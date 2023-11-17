@@ -11,6 +11,7 @@
 	- You can talk the whole video if you wish, you can also try to be funny, but **ALWAYS** stay on topic of the code/PR
 	- No fancy editing required unless you want to.
 		- Bare minimum is just hit record, do the code, stop recording
+		- Time stamps for major parts of the process would be appreciated, but not required
 	- You must provide verbal or code comment commentary showing your thought process
 	- You are responsible for anything visible on your screen, don't share sensitive information
 	- Your video must comply 100% with [YouTube's video guidelines](https://www.youtube.com/howyoutubeworks/policies/community-guidelines/)
