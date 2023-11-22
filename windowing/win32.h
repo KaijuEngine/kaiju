@@ -1,35 +1,13 @@
-//go:build windows
+#ifndef WINDOWING_WIN32_H
+#define WINDOWING_WIN32_H
 
-package windowing
-
-import (
-	"unicode/utf16"
-	"unsafe"
-)
-
-/*
 #ifndef UNICODE
 #define UNICODE
 #endif
 
+#include <stdint.h>
 #include <windows.h>
 #include <windowsx.h>
-
-#define SHARED_MEM_AVAILABLE	0
-#define SHARED_MEM_WRITING		1
-#define SHARED_MEM_WRITTEN		2
-#define SHARED_MEM_FATAL		0xFE
-#define SHARED_MEM_QUIT			0xFF
-#define SHARED_MEM_DATA_START	4
-
-typedef struct {
-	union {
-		int mouseX;
-		int key;
-	};
-	int mouseY;
-	int mouseXButton;
-} InputEvent;
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -77,16 +55,19 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 		return;
     }
     ShowWindow(hwnd, SW_SHOW);
+	esm[0] = SHARED_MEM_WRITTEN;
     // Run the message loop.
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
+		while (esm[0] != SHARED_MEM_AVAILABLE) {}
 		esm[0] = SHARED_MEM_WRITING;
 		if (msg.message == WM_QUIT) {
 			break;
 		} else {
 			void* esmData = esm + SHARED_MEM_DATA_START;
-			memcpy(esmData, &msg.message, sizeof(msg.message));
-			esmData += sizeof(msg.message);
+			uint32_t msgType = msg.message;
+			memcpy(esmData, &msgType, sizeof(msgType));
+			esmData += sizeof(msgType);
 			InputEvent ie;
 			switch (msg.message) {
 				case WM_LBUTTONDOWN:
@@ -106,36 +87,5 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	}
 	esm[0] = SHARED_MEM_QUIT;
 }
-*/
-import "C"
 
-const (
-	sharedMemAvailable = iota
-	sharedMemWriting
-	sharedMemWritten
-	sharedMemFatal = 0xFE
-	sharedMemQuit  = 0xFF
-)
-
-const evtSharedMemSize = 256
-
-type evtMem [evtSharedMemSize]byte
-
-func (e *evtMem) AsPointer() unsafe.Pointer { return unsafe.Pointer(&e[0]) }
-func (e evtMem) IsFatal() bool              { return e[0] == sharedMemFatal }
-func (e evtMem) IsReady() bool              { return e[0] == sharedMemAvailable }
-func (e evtMem) IsQuit() bool               { return e[0] == sharedMemQuit }
-func (e *evtMem) MakeAvailable()            { e[0] = sharedMemAvailable }
-func (e evtMem) HasEvent() bool             { return e.EventType() != 0 }
-func (e evtMem) EventType() uint32 {
-	return *(*uint32)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
-}
-
-func createWindow(windowName string) {
-	var evtSharedMem evtMem
-	windowTitle := utf16.Encode([]rune(windowName))
-	go C.window_main((*C.wchar_t)(unsafe.Pointer(&windowTitle[0])), evtSharedMem.AsPointer(), evtSharedMemSize)
-	for !evtSharedMem.IsQuit() && !evtSharedMem.IsFatal() {
-
-	}
-}
+#endif
