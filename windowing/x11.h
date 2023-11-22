@@ -8,7 +8,7 @@
 #include <X11/Xlib.h>
 
 void window_main(const char* windowTitle, void* evtSharedMem, int size) {
-	char* ems = evtSharedMem;
+	char* esm = evtSharedMem;
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		esm[0] = SHARED_MEM_FATAL;
@@ -49,8 +49,8 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 				}
 				break;
 		}
-		if (ems[0] == SHARED_MEM_WRITING) {
-			ems[0] = SHARED_MEM_WRITTEN;
+		if (esm[0] == SHARED_MEM_WRITING) {
+			esm[0] = SHARED_MEM_WRITTEN;
 		}
 	}
 	XDestroyWindow(d, w);
