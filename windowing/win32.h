@@ -73,13 +73,23 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 				esmData += sizeof(msgType);
 				InputEvent ie;
 				switch (msg.message) {
+					case WM_MOUSEMOVE:
 					case WM_LBUTTONDOWN:
 					case WM_LBUTTONUP:
-					case WM_MOUSEMOVE:
+					case WM_MBUTTONDOWN:
+					case WM_MBUTTONUP:
+					case WM_RBUTTONDOWN:
+					case WM_RBUTTONUP:
+					case WM_XBUTTONDOWN:
+					case WM_XBUTTONUP:
 						ie.mouseX = GET_X_LPARAM(msg.lParam);
 						ie.mouseY = GET_Y_LPARAM(msg.lParam);
-						//ie.mouseXButton = msg.wParam & 0x0020; (x button 1)
-						//ie.mouseXButton = msg.wParam & 0x0040; (x button 2)
+						ie.mouseXButton = 0;
+						if (msg.wParam & 0x0020) {
+							ie.mouseXButton = 1;
+						} else if (msg.wParam & 0x0040) {
+							ie.mouseXButton = 2;
+						}
 						break;
 				}
 				memcpy(esmData, &ie, sizeof(ie));
