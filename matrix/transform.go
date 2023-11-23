@@ -19,6 +19,18 @@ func NewTransform() Transform {
 	}
 }
 
+func (t Transform) Position() Vec3 {
+	return t.position
+}
+
+func (t Transform) Rotation() Vec3 {
+	return t.rotation
+}
+
+func (t Transform) Scale() Vec3 {
+	return t.scale
+}
+
 func (t *Transform) SetParent(parent *Transform) {
 	pos, rot, scale := t.WorldTransform()
 	t.parent = parent

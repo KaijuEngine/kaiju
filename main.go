@@ -1,9 +1,16 @@
 package main
 
 import (
-	"kaiju/windowing"
+	"kaiju/engine"
+	"time"
 )
 
 func main() {
-	windowing.New("Kaiju Engine")
+	lastTime := time.Now()
+	host := engine.NewHost()
+	for !host.Closing {
+		deltaTime := time.Since(lastTime).Seconds()
+		lastTime = time.Now()
+		host.Update(deltaTime)
+	}
 }
