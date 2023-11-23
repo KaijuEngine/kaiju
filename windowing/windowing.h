@@ -1,6 +1,8 @@
 #ifndef WINDOWING_H
 #define WINDOWING_H
 
+#include <stdint.h>
+
 #define SHARED_MEM_AVAILABLE	0
 #define SHARED_MEM_WRITING		1
 #define SHARED_MEM_WRITTEN		2
@@ -10,11 +12,11 @@
 
 typedef struct {
 	union {
-		int mouseX;
-		int key;
+		int32_t mouseX;
+		int32_t key;
 	};
-	int mouseY;
-	int mouseXButton;
+	int32_t mouseY;
+	int32_t mouseXButton;
 } InputEvent;
 
 #if defined(_WIN32) || defined(_WIN64)
