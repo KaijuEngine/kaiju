@@ -31,8 +31,8 @@ InputEvent setMouseEvent(MSG msg, int buttonId) {
 	InputEvent ie;
 	ie.mouseX = GET_X_LPARAM(msg.lParam);
 	ie.mouseY = GET_Y_LPARAM(msg.lParam);
-	ie.mouseButtonId = buttonId
-	return ie
+	ie.mouseButtonId = buttonId;
+	return ie;
 }
 
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
@@ -98,9 +98,9 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 						break;
 					case WM_XBUTTONDOWN:
 					case WM_XBUTTONUP:
-						if (msg.wParam & 0x0020) {
+						if (msg.wParam & 0x0010000) {
 							ie = setMouseEvent(msg, MOUSE_BUTTON_X1);
-						} else if (msg.wParam & 0x0040) {
+						} else if (msg.wParam & 0x0020000) {
 							ie = setMouseEvent(msg, MOUSE_BUTTON_X2);
 						}
 						break;
