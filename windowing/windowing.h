@@ -10,13 +10,19 @@
 #define SHARED_MEM_QUIT			0xFF
 #define SHARED_MEM_DATA_START	4
 
+#define MOUSE_BUTTON_LEFT		0
+#define MOUSE_BUTTON_MIDDLE		1
+#define MOUSE_BUTTON_RIGHT		2
+#define MOUSE_BUTTON_X1			3
+#define MOUSE_BUTTON_X2			4
+
 typedef struct {
 	union {
 		int32_t mouseX;
 		int32_t key;
 	};
 	int32_t mouseY;
-	int32_t mouseXButton;
+	int32_t mouseButtonId;
 } InputEvent;
 
 #if defined(_WIN32) || defined(_WIN64)

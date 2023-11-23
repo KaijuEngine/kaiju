@@ -27,6 +27,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+InputEvent setMouseEvent(MSG msg, int buttonId) {
+	InputEvent ie;
+	ie.mouseX = GET_X_LPARAM(msg.lParam);
+	ie.mouseY = GET_Y_LPARAM(msg.lParam);
+	ie.mouseButtonId = buttonId
+	return ie
+}
+
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -74,21 +82,26 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 				InputEvent ie;
 				switch (msg.message) {
 					case WM_MOUSEMOVE:
+						ie = setMouseEvent(msg, -1);
+						break;
 					case WM_LBUTTONDOWN:
 					case WM_LBUTTONUP:
+						ie = setMouseEvent(msg, MOUSE_BUTTON_LEFT);
+						break;
 					case WM_MBUTTONDOWN:
 					case WM_MBUTTONUP:
+						ie = setMouseEvent(msg, MOUSE_BUTTON_MIDDLE);
+						break;
 					case WM_RBUTTONDOWN:
 					case WM_RBUTTONUP:
+						ie = setMouseEvent(msg, MOUSE_BUTTON_RIGHT);
+						break;
 					case WM_XBUTTONDOWN:
 					case WM_XBUTTONUP:
-						ie.mouseX = GET_X_LPARAM(msg.lParam);
-						ie.mouseY = GET_Y_LPARAM(msg.lParam);
-						ie.mouseXButton = 0;
 						if (msg.wParam & 0x0020) {
-							ie.mouseXButton = 1;
+							ie = setMouseEvent(msg, MOUSE_BUTTON_X1);
 						} else if (msg.wParam & 0x0040) {
-							ie.mouseXButton = 2;
+							ie = setMouseEvent(msg, MOUSE_BUTTON_X2);
 						}
 						break;
 				}
