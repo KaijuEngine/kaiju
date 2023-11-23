@@ -58,34 +58,40 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	esm[0] = SHARED_MEM_WRITTEN;
     // Run the message loop.
     MSG msg = { };
-    while (GetMessage(&msg, NULL, 0, 0) > 0) {
-		while (esm[0] != SHARED_MEM_AVAILABLE) {}
-		esm[0] = SHARED_MEM_WRITING;
-		if (msg.message == WM_QUIT) {
-			break;
-		} else {
-			void* esmData = esm + SHARED_MEM_DATA_START;
-			uint32_t msgType = msg.message;
-			memcpy(esmData, &msgType, sizeof(msgType));
-			esmData += sizeof(msgType);
-			InputEvent ie;
-			switch (msg.message) {
-				case WM_LBUTTONDOWN:
-				case WM_LBUTTONUP:
-				case WM_MOUSEMOVE:
-					ie.mouseX = GET_X_LPARAM(msg.lParam);
-					ie.mouseY = GET_Y_LPARAM(msg.lParam);
-					//ie.mouseXButton = msg.wParam & 0x0020; (x button 1)
-					//ie.mouseXButton = msg.wParam & 0x0040; (x button 2)
-					break;
+	while (esm[0] != SHARED_MEM_QUIT) {
+		void* esmData = esm + SHARED_MEM_DATA_START;
+		uint32_t msgType = 0;
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
+			while (esm[0] != SHARED_MEM_AVAILABLE) {}
+			esm[0] = SHARED_MEM_WRITING;
+			if (msg.message == WM_QUIT) {
+				esm[0] = SHARED_MEM_QUIT;
+				break;
+			} else {
+				msgType = msg.message;
+				memcpy(esmData, &msgType, sizeof(msgType));
+				esmData += sizeof(msgType);
+				InputEvent ie;
+				switch (msg.message) {
+					case WM_LBUTTONDOWN:
+					case WM_LBUTTONUP:
+					case WM_MOUSEMOVE:
+						ie.mouseX = GET_X_LPARAM(msg.lParam);
+						ie.mouseY = GET_Y_LPARAM(msg.lParam);
+						//ie.mouseXButton = msg.wParam & 0x0020; (x button 1)
+						//ie.mouseXButton = msg.wParam & 0x0040; (x button 2)
+						break;
+				}
+				memcpy(esmData, &ie, sizeof(ie));
+				esm[0] = SHARED_MEM_WRITTEN;
 			}
-			memcpy(esmData, &ie, sizeof(ie));
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		} else {
+			memcpy(esmData, &msgType, sizeof(msgType));
 			esm[0] = SHARED_MEM_WRITTEN;
 		}
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
 	}
-	esm[0] = SHARED_MEM_QUIT;
 }
 
 #endif
