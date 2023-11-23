@@ -34,10 +34,40 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		uint32_t msgType = e.type;
 		memcpy(esmData, &msgType, sizeof(msgType));
 		esmData += sizeof(msgType);
+		InputEvent ie;
 		switch (e.type) {
 			case Expose:
 				break;
 			case KeyPress:
+				break;
+			case KeyRelease:
+				break;
+			case ButtonPress:
+			case ButtonRelease:
+				ie.mouseX = e.xbutton.x;
+				ie.mouseY = e.xbutton.y;
+				switch (e.xbutton.button) {
+					case Button1:
+						ie.mouseButtonId = MOUSE_BUTTON_LEFT;
+						break;
+					case Button2:
+						ie.mouseButtonId = MOUSE_BUTTON_MIDDLE;
+						break;
+					case Button3:
+						ie.mouseButtonId = MOUSE_BUTTON_RIGHT;
+						break;
+					case Button4:
+						ie.mouseButtonId = MOUSE_BUTTON_X1;
+						break;
+					case Button5:
+						ie.mouseButtonId = MOUSE_BUTTON_X2;
+						break;
+				}
+				break;
+			case MotionNotify:
+				ie.mouseX = e.xmotion.x;
+				ie.mouseY = e.xmotion.y;
+				ie.mouseButtonId = -1;
 				break;
 			case ClientMessage:
 				if (filtered) {
@@ -50,6 +80,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 				break;
 		}
 		if (esm[0] == SHARED_MEM_WRITING) {
+			memcpy(esmData, &ie, sizeof(ie));
 			esm[0] = SHARED_MEM_WRITTEN;
 		}
 	}

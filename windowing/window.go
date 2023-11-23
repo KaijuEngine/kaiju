@@ -51,7 +51,7 @@ func (w Window) IsCrashed() bool {
 }
 
 func (w *Window) processEvent() {
-	evtType := toEventType(w.evtSharedMem.EventType())
+	evtType := w.evtSharedMem.toEventType()
 	w.processMouseEvent(evtType)
 }
 
@@ -74,16 +74,20 @@ func (w *Window) processMouseEvent(evtType eventType) {
 		w.Mouse.SetUp(hid.MouseButtonRight)
 	case evtX1MouseDown:
 		me := w.evtSharedMem.toMouseEvent()
-		if me.mouseXButton == 2 {
+		if me.mouseButtonId == 4 {
+			println("X2 down")
 			w.Mouse.SetDown(hid.MouseButtonX2)
 		} else {
+			println("X1 down")
 			w.Mouse.SetDown(hid.MouseButtonX1)
 		}
 	case evtX1MouseUp:
 		me := w.evtSharedMem.toMouseEvent()
-		if me.mouseXButton == 2 {
+		if me.mouseButtonId == 4 {
+			println("X2 up")
 			w.Mouse.SetUp(hid.MouseButtonX2)
 		} else {
+			println("X1 up")
 			w.Mouse.SetUp(hid.MouseButtonX1)
 		}
 	case evtX2MouseDown:

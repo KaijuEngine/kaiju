@@ -12,8 +12,8 @@ import (
 */
 import "C"
 
-func toEventType(nativeType uint32) eventType {
-	switch nativeType {
+func (e evtMem) toEventType() eventType {
+	switch e.EventType() {
 	case 512:
 		return evtMouseMove
 	case 513:

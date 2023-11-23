@@ -10,6 +10,14 @@ const (
 	sharedMemQuit  = 0xFF
 )
 
+const (
+	nativeMouseButtonLeft   = 0
+	nativeMouseButtonMiddle = 1
+	nativeMouseButtonRight  = 2
+	nativeMouseButtonX1     = 3
+	nativeMouseButtonX2     = 4
+)
+
 const evtSharedMemSize = 256
 
 type evtMem [evtSharedMemSize]byte
@@ -20,9 +28,9 @@ type baseEvent struct {
 
 type mouseEvent struct {
 	baseEvent
-	mouseX       int32
-	mouseY       int32
-	mouseXButton int32
+	mouseX        int32
+	mouseY        int32
+	mouseButtonId int32
 }
 
 type keyboardEvent struct {
