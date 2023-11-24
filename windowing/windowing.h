@@ -18,11 +18,11 @@
 
 typedef struct {
 	union {
-		int32_t mouseX;
-		int32_t key;
+		int32_t mouseButtonId;
+		int32_t keyId;
 	};
+	int32_t mouseX;
 	int32_t mouseY;
-	int32_t mouseButtonId;
 } InputEvent;
 
 #if defined(_WIN32) || defined(_WIN64)

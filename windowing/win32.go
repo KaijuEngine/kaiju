@@ -14,6 +14,14 @@ import "C"
 
 func (e evtMem) toEventType() eventType {
 	switch e.EventType() {
+	case 0x0104:
+		fallthrough
+	case 256:
+		return evtKeyDown
+	case 0x0105:
+		fallthrough
+	case 257:
+		return evtKeyUp
 	case 512:
 		return evtMouseMove
 	case 513:
