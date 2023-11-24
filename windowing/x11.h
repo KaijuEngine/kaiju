@@ -39,9 +39,8 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 			case Expose:
 				break;
 			case KeyPress:
-				ie.keyId = XLookupKeysym(&e.xkey, 0)
-				break;
 			case KeyRelease:
+				ie.keyId = XLookupKeysym(&e.xkey, 0);
 				break;
 			case ButtonPress:
 			case ButtonRelease:

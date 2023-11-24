@@ -1,7 +1,6 @@
 package windowing
 
 import (
-	"fmt"
 	"kaiju/hid"
 )
 
@@ -114,7 +113,6 @@ func (w *Window) processKeyboardEvent(evtType eventType) {
 		ke := w.evtSharedMem.toKeyboardEvent()
 		key := hid.ToKeyboardKey(int(ke.key))
 		w.Keyboard.SetKeyDown(key)
-		fmt.Printf("%c\n", w.Keyboard.KeyToRune(key))
 	case evtKeyUp:
 		ke := w.evtSharedMem.toKeyboardEvent()
 		key := hid.ToKeyboardKey(int(ke.key))
