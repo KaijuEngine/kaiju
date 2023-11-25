@@ -27,8 +27,10 @@ func createSource(projTemplateFolder string) error {
 	defer f.Close()
 	_, err = f.WriteString(`package source
 
-func Main() {
-	// TODO:  Bootstrap your project here
+import "kaiju/engine"
+
+func Main(host *engine.Host) {
+	
 }
 `)
 	return err

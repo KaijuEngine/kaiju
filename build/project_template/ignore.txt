@@ -8,5 +8,6 @@ LICENSE
 README.md
 build
 editor
+source
 go.mod
 project_template
