@@ -5,17 +5,33 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch Windows",
+			"name": "Launch Windows Editor",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"buildFlags": "-tags editor",
+			"env": {}
+		}, {
+			"name": "Launch Windows Runtime",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "",
+			"env": {}
+		}, {
+			"name": "Launch X11 Editor",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"buildFlags": "-tags editor",
 			"env": {
-				
+				"CGO_LDFLAGS": "-lX11"
 			}
 		}, {
-			"name": "Launch Linux",
+			"name": "Launch X11 Runtime",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",

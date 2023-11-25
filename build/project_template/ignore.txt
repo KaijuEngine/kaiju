@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+.vscode
+AUTHORS.md
+CONTRIBUTING.md
+LICENSE
+README.md
+build
+editor
+go.mod
+project_template
