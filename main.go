@@ -8,6 +8,7 @@ import (
 func main() {
 	lastTime := time.Now()
 	host := engine.NewHost()
+	engine.Main()
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()
