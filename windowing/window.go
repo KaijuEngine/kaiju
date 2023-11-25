@@ -21,10 +21,13 @@ const (
 	evtX2MouseUp
 	evtMouseWheelVertical
 	evtMouseWheelHorizontal
+	evtKeyDown
+	evtKeyUp
 )
 
 type Window struct {
 	Mouse         hid.Mouse
+	Keyboard      hid.Keyboard
 	evtSharedMem  evtMem
 	width, height int
 	isClosed      bool
@@ -53,6 +56,7 @@ func (w Window) IsCrashed() bool {
 func (w *Window) processEvent() {
 	evtType := w.evtSharedMem.toEventType()
 	w.processMouseEvent(evtType)
+	w.processKeyboardEvent(evtType)
 }
 
 func (w *Window) processMouseEvent(evtType eventType) {
@@ -100,6 +104,19 @@ func (w *Window) processMouseEvent(evtType eventType) {
 	case evtMouseWheelHorizontal:
 		me := w.evtSharedMem.toMouseEvent()
 		w.Mouse.SetScroll(float32(me.mouseX), 0.0)
+	}
+}
+
+func (w *Window) processKeyboardEvent(evtType eventType) {
+	switch evtType {
+	case evtKeyDown:
+		ke := w.evtSharedMem.toKeyboardEvent()
+		key := hid.ToKeyboardKey(int(ke.key))
+		w.Keyboard.SetKeyDown(key)
+	case evtKeyUp:
+		ke := w.evtSharedMem.toKeyboardEvent()
+		key := hid.ToKeyboardKey(int(ke.key))
+		w.Keyboard.SetKeyUp(key)
 	}
 }
 

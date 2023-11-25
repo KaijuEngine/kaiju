@@ -29,12 +29,13 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 InputEvent setMouseEvent(MSG msg, int buttonId) {
 	InputEvent ie;
+	ie.mouseButtonId = buttonId;
 	ie.mouseX = GET_X_LPARAM(msg.lParam);
 	ie.mouseY = GET_Y_LPARAM(msg.lParam);
-	ie.mouseButtonId = buttonId;
 	return ie;
 }
 
+#include <stdio.h>
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -79,7 +80,7 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 				msgType = msg.message;
 				memcpy(esmData, &msgType, sizeof(msgType));
 				esmData += sizeof(msgType);
-				InputEvent ie;
+				InputEvent ie = {0};
 				switch (msg.message) {
 					case WM_MOUSEMOVE:
 						ie = setMouseEvent(msg, -1);
@@ -102,6 +103,37 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 							ie = setMouseEvent(msg, MOUSE_BUTTON_X1);
 						} else if (msg.wParam & 0x0020000) {
 							ie = setMouseEvent(msg, MOUSE_BUTTON_X2);
+						}
+						break;
+					case WM_MOUSEWHEEL:
+						// TODO:  Add wheel code
+						break;
+					case WM_KEYDOWN:
+					case WM_SYSKEYDOWN:
+					case WM_KEYUP:
+					case WM_SYSKEYUP:
+						switch (msg.wParam) {
+							case VK_SHIFT:
+								UINT scancode = (msg.lParam & 0x00FF0000) >> 16;
+								ie.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+								break;
+							case VK_CONTROL:
+								if (msg.lParam & 0x01000000) {
+									ie.keyId = VK_RCONTROL;
+								} else {
+									ie.keyId = VK_LCONTROL;
+								}
+								break;
+							case VK_MENU:
+								if (msg.lParam & 0x01000000) {
+									ie.keyId = VK_RMENU;
+								} else {
+									ie.keyId = VK_LMENU;
+								}
+								break;
+							default:
+								ie.keyId = msg.wParam;
+								break;
 						}
 						break;
 				}

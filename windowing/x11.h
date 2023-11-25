@@ -39,13 +39,11 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 			case Expose:
 				break;
 			case KeyPress:
-				break;
 			case KeyRelease:
+				ie.keyId = XLookupKeysym(&e.xkey, 0);
 				break;
 			case ButtonPress:
 			case ButtonRelease:
-				ie.mouseX = e.xbutton.x;
-				ie.mouseY = e.xbutton.y;
 				switch (e.xbutton.button) {
 					case Button1:
 						ie.mouseButtonId = MOUSE_BUTTON_LEFT;
@@ -63,11 +61,13 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 						ie.mouseButtonId = MOUSE_BUTTON_X2;
 						break;
 				}
+				ie.mouseX = e.xbutton.x;
+				ie.mouseY = e.xbutton.y;
 				break;
 			case MotionNotify:
+				ie.mouseButtonId = -1;
 				ie.mouseX = e.xmotion.x;
 				ie.mouseY = e.xmotion.y;
-				ie.mouseButtonId = -1;
 				break;
 			case ClientMessage:
 				if (filtered) {

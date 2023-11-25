@@ -12,6 +12,10 @@ import (
 
 func (e evtMem) toEventType() eventType {
 	switch e.EventType() {
+	case 2:
+		return evtKeyDown
+	case 3:
+		return evtKeyUp
 	case 6:
 		return evtMouseMove
 	case 4:

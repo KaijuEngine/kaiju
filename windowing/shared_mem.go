@@ -1,6 +1,8 @@
 package windowing
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 const (
 	sharedMemAvailable = iota
@@ -28,9 +30,9 @@ type baseEvent struct {
 
 type mouseEvent struct {
 	baseEvent
+	mouseButtonId int32
 	mouseX        int32
 	mouseY        int32
-	mouseButtonId int32
 }
 
 type keyboardEvent struct {
