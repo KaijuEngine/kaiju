@@ -12,6 +12,24 @@ import (
 //go:embed ignore.txt
 var ignore string
 
+//go:embed launch.json.txt
+var launch string
+
+//go:embed build.bat.txt
+var buildBat string
+
+//go:embed build.js.bat.txt
+var buildJSBat string
+
+//go:embed build.sh.txt
+var buildSh string
+
+//go:embed build.js.sh.txt
+var buildJSSh string
+
+//go:embed go.mod.txt
+var goMod string
+
 func findRootAndProjectTemplateFolders() (string, string, error) {
 	wd, err := os.Getwd()
 	if _, goMain, _, ok := runtime.Caller(0); ok {
@@ -22,6 +40,38 @@ func findRootAndProjectTemplateFolders() (string, string, error) {
 		return "", "", err
 	}
 	return wd, wd + "/project_template", nil
+}
+
+func writeLaunchFiles(projTemplateFolder string) error {
+	files := map[string]string{
+		".vscode/launch.json": launch,
+		"build/build.bat":     buildBat,
+		"build/build.js.bat":  buildJSBat,
+		"build/build.sh":      buildSh,
+		"build/build.js.sh":   buildJSSh,
+		"go.mod":              goMod,
+	}
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, ".vscode"), 0655); err != nil {
+		return err
+	}
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, "build"), 0655); err != nil {
+		return err
+	}
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, "bin"), 0655); err != nil {
+		return err
+	}
+	for file, content := range files {
+		f, err := os.Create(filepath.Join(projTemplateFolder, file))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.WriteString(content)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func main() {
@@ -61,5 +111,8 @@ func main() {
 				}
 			}
 		}
+	}
+	if err = writeLaunchFiles(projTemplateFolder); err != nil {
+		panic(err)
 	}
 }
