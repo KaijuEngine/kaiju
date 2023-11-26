@@ -40,12 +40,12 @@ func NewVec4(x, y, z, w Float) Vec4 {
 	return Vec4{x, y, z, w}
 }
 
-func Vec4FromArray[T FloatingPoint](a [4]T) Vec4 {
-	return Vec4{Float(a[0]), Float(a[1]), Float(a[2]), Float(a[3])}
+func Vec4FromArray(a [4]Float) Vec4 {
+	return Vec4{a[0], a[1], a[2], a[3]}
 }
 
-func Vec4FromSlice[T FloatingPoint](a []T) Vec4 {
-	return Vec4{Float(a[0]), Float(a[1]), Float(a[2]), Float(a[3])}
+func Vec4FromSlice(a []Float) Vec4 {
+	return Vec4{a[0], a[1], a[2], a[3]}
 }
 
 func (v Vec4) Add(other Vec4) Vec4 {

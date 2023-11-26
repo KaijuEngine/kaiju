@@ -6,6 +6,17 @@ import (
 	"strings"
 )
 
+func ReadTextFile(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	var text strings.Builder
+	_, err = io.Copy(&text, file)
+	return text.String(), err
+}
+
 func CopyFile(src, dst string) error {
 	if strings.HasSuffix(src, ".go") {
 		return CopyGoSourceFile(src, dst)

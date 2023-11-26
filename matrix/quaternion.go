@@ -15,12 +15,12 @@ func NewQuaternion(w, x, y, z Float) Quaternion {
 	return Quaternion{w, x, y, z}
 }
 
-func QuaternionFromArray[T FloatingPoint](v [4]T) Quaternion {
-	return Quaternion{Float(v[0]), Float(v[1]), Float(v[2]), Float(v[3])}
+func QuaternionFromArray(v [4]Float) Quaternion {
+	return Quaternion{v[0], v[1], v[2], v[3]}
 }
 
-func QuaternionFromSlice[T FloatingPoint](v []T) Quaternion {
-	return Quaternion{Float(v[0]), Float(v[1]), Float(v[2]), Float(v[3])}
+func QuaternionFromSlice(v []Float) Quaternion {
+	return Quaternion{v[0], v[1], v[2], v[3]}
 }
 
 func QuaternionIdentity() Quaternion {
@@ -90,9 +90,9 @@ func (q Quaternion) ToMat4() Mat4 {
 }
 
 func QuaternionFromEuler(v Vec3) Quaternion {
-	x := Deg2Rad(v.X())
-	y := Deg2Rad(v.Y())
-	z := Deg2Rad(v.Z())
+	x := deg2Rad(v.X())
+	y := deg2Rad(v.Y())
+	z := deg2Rad(v.Z())
 	c1 := Cos(x / 2.0)
 	c2 := Cos(y / 2.0)
 	c3 := Cos(z / 2.0)
@@ -108,12 +108,12 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 func (q Quaternion) ToEuler() Vec3 {
 	out := Vec3{}
 	m := q.ToMat4()
-	out[Vy] = Rad2Deg(Asin(Clamp(m[x0y2], -1.0, 1.0)))
+	out[Vy] = rad2Deg(Asin(clamp(m[x0y2], -1.0, 1.0)))
 	if Abs(m[x0y2]) < 0.9999999 {
-		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
-		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
+		out.SetX(rad2Deg(Atan2(-m[x1y2], m[x2y2])))
+		out.SetZ(rad2Deg(Atan2(-m[x0y1], m[x0y0])))
 	} else {
-		out.SetX(Rad2Deg(Atan2(m[x2y1], m[x1y1])))
+		out.SetX(rad2Deg(Atan2(m[x2y1], m[x1y1])))
 		out.SetZ(0.0)
 	}
 	return out
@@ -286,11 +286,11 @@ func QuaternionLookAt(from, to Vec3) Quaternion {
 	dot := Vec3Dot(back, direction)
 	if Abs(dot-(-1.0)) < 0.000001 {
 		u := Vec3Up()
-		return QuaternionAxisAngle(u, Rad2Deg(Float(math.Pi)))
+		return QuaternionAxisAngle(u, rad2Deg(Float(math.Pi)))
 	} else if Abs(dot-(1.0)) < 0.000001 {
 		return QuaternionIdentity()
 	}
-	angle := -Rad2Deg(Acos(dot))
+	angle := -rad2Deg(Acos(dot))
 	cross := Vec3Cross(back, direction)
 	nmlCross := cross.Normal()
 	return QuaternionAxisAngle(nmlCross, angle)

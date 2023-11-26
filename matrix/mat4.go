@@ -330,28 +330,28 @@ func (m *Mat4) Rotate(rotate Vec3) {
 
 func (m *Mat4) RotateX(angles Float) {
 	rot := Mat4Identity()
-	rot[x1y1] = Cos(Deg2Rad(angles))
-	rot[x2y1] = -Sin(Deg2Rad(angles))
-	rot[x1y2] = Sin(Deg2Rad(angles))
-	rot[x2y2] = Cos(Deg2Rad(angles))
+	rot[x1y1] = Cos(deg2Rad(angles))
+	rot[x2y1] = -Sin(deg2Rad(angles))
+	rot[x1y2] = Sin(deg2Rad(angles))
+	rot[x2y2] = Cos(deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateY(angles Float) {
 	rot := Mat4Identity()
-	rot[x0y0] = Cos(Deg2Rad(angles))
-	rot[x2y0] = Sin(Deg2Rad(angles))
-	rot[x0y2] = -Sin(Deg2Rad(angles))
-	rot[x2y2] = Cos(Deg2Rad(angles))
+	rot[x0y0] = Cos(deg2Rad(angles))
+	rot[x2y0] = Sin(deg2Rad(angles))
+	rot[x0y2] = -Sin(deg2Rad(angles))
+	rot[x2y2] = Cos(deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateZ(angles Float) {
 	rot := Mat4Identity()
-	rot[x0y0] = Cos(Deg2Rad(angles))
-	rot[x1y0] = -Sin(Deg2Rad(angles))
-	rot[x0y1] = Sin(Deg2Rad(angles))
-	rot[x1y1] = Cos(Deg2Rad(angles))
+	rot[x0y0] = Cos(deg2Rad(angles))
+	rot[x1y0] = -Sin(deg2Rad(angles))
+	rot[x0y1] = Sin(deg2Rad(angles))
+	rot[x1y1] = Cos(deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"kaiju/bootstrap"
-	"kaiju/editor/project"
 	"kaiju/engine"
 	"time"
 )

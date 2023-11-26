@@ -11,7 +11,7 @@ const projectTemplateFolder = "project_template"
 
 func createSource(projTemplateFolder string) error {
 	sourceDir := filepath.Join(projTemplateFolder, "/source")
-	err := os.Mkdir(sourceDir, 0655)
+	err := os.Mkdir(sourceDir, 0755)
 	if err != nil {
 		return err
 	}

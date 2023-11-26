@@ -5,6 +5,37 @@ import (
 	"path/filepath"
 )
 
+func ListRecursive(path string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		files = append(files, path)
+		return nil
+	})
+	return files, err
+}
+
+func ListFoldersRecursive(path string) ([]string, error) {
+	var folders []string
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			folders = append(folders, path)
+		}
+		return nil
+	})
+	return folders, err
+}
+
+func ListFilesRecursive(path string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
+}
+
 func CopyDirectory(src, dst string) error {
 	dirInfo, err := os.Stat(src)
 	if err != nil {
