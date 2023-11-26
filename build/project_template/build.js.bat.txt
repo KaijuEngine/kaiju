@@ -1,4 +1,4 @@
 SET "GOOS=js"
 SET "GOARCH=wasm"
 SET "CGO_ENABLED=0"
-go build -o ./bin/kaiju.wasm -ldflags="-s -w" main.go
+go build -o ./bin/[PROJECT_NAME].wasm -ldflags="-s -w" main.go
