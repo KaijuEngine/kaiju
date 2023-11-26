@@ -1,0 +1,4 @@
+github.com/KaijuEngine/yaegi v1.0.0 h1:qw4HT5GePE3baJwkR4BAr9CAW11edPq2b8OCI8OzcrE=
+github.com/KaijuEngine/yaegi v1.0.0/go.mod h1:KV+8UawtAJWqFdS1rzJMRoye3FvKtz+ArARQLIxUe0Y=
+github.com/traefik/yaegi v0.15.1 h1:YA5SbaL6HZA0Exh9T/oArRHqGN2HQ+zgmCY7dkoTXu4=
+github.com/traefik/yaegi v0.15.1/go.mod h1:AVRxhaI2G+nUsaM1zyktzwXn69G3t/AuTDrCiTds9p0=

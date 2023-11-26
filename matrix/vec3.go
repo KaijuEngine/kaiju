@@ -25,12 +25,12 @@ func NewVec3(x, y, z Float) Vec3 {
 	return Vec3{x, y, z}
 }
 
-func Vec3FromArray[T FloatingPoint](a [3]T) Vec3 {
-	return Vec3{Float(a[0]), Float(a[1]), Float(a[2])}
+func Vec3FromArray(a [3]Float) Vec3 {
+	return Vec3{a[0], a[1], a[2]}
 }
 
-func Vec3FromSlice[T FloatingPoint](a []T) Vec3 {
-	return Vec3{Float(a[0]), Float(a[1]), Float(a[2])}
+func Vec3FromSlice(a []Float) Vec3 {
+	return Vec3{a[0], a[1], a[2]}
 }
 
 func (v Vec3) AsAligned16() [4]Float {

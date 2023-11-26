@@ -51,13 +51,13 @@ func writeLaunchFiles(projTemplateFolder string) error {
 		"build/build.js.sh":   buildJSSh,
 		"go.mod":              goMod,
 	}
-	if err := os.Mkdir(filepath.Join(projTemplateFolder, ".vscode"), 0655); err != nil {
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, ".vscode"), 0755); err != nil {
 		return err
 	}
-	if err := os.Mkdir(filepath.Join(projTemplateFolder, "build"), 0655); err != nil {
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, "build"), 0755); err != nil {
 		return err
 	}
-	if err := os.Mkdir(filepath.Join(projTemplateFolder, "bin"), 0655); err != nil {
+	if err := os.Mkdir(filepath.Join(projTemplateFolder, "bin"), 0755); err != nil {
 		return err
 	}
 	for file, content := range files {
@@ -82,7 +82,7 @@ func main() {
 	if err = os.RemoveAll(projTemplateFolder); err != nil {
 		panic(err)
 	}
-	if err = os.Mkdir(projTemplateFolder, 0655); err != nil {
+	if err = os.Mkdir(projTemplateFolder, 0755); err != nil {
 		panic(err)
 	}
 	entries, err := os.ReadDir(root)

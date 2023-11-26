@@ -21,42 +21,42 @@ const (
 	Qz
 )
 
-type FloatingPoint interface {
+type tFloatingPoint interface {
 	~float32 | ~float64
 }
 
-type Signed interface {
+type tSigned interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
-type Unsigned interface {
+type tUnsigned interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
 }
 
-type Integer interface {
-	Signed | Unsigned
+type tInteger interface {
+	tSigned | tUnsigned
 }
 
-type Number interface {
-	Integer | FloatingPoint
+type tNumber interface {
+	tInteger | tFloatingPoint
 }
 
-type Vector interface {
+type tVector interface {
 	Vec2 | Vec3 | Vec4 | Quaternion
 }
 
-type Matrix interface {
+type tMatrix interface {
 	Mat3 | Mat4
 }
 
-func Rad2Deg[T FloatingPoint](radian T) T {
+func rad2Deg[T tFloatingPoint](radian T) T {
 	return radian * (180.0 / math.Pi)
 }
 
-func Deg2Rad[T FloatingPoint](degree T) T {
+func deg2Rad[T tFloatingPoint](degree T) T {
 	return degree * (math.Pi / 180.0)
 }
 
-func Clamp[T FloatingPoint](current, minimum, maximum T) T {
+func clamp[T tFloatingPoint](current, minimum, maximum T) T {
 	return T(max(minimum, min(maximum, current)))
 }

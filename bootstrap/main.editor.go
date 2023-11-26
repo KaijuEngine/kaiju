@@ -2,7 +2,9 @@
 
 package bootstrap
 
-import "kaiju/engine"
+import (
+	"kaiju/engine"
+)
 
 func Main(host *engine.Host) {
 	println("Starting editor")

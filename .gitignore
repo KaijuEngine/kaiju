@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+project_template/
+bin/
+interpreter/kaiju-*
