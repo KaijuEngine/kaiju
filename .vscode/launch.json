@@ -11,7 +11,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor",
-			"env": {}
+			"env": {
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+			}
 		}, {
 			"name": "Launch Windows Runtime",
 			"type": "go",
@@ -19,7 +21,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "",
-			"env": {}
+			"env": {
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+			}
 		}, {
 			"name": "Launch X11 Editor",
 			"type": "go",
@@ -28,7 +32,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor",
 			"env": {
-				"CGO_LDFLAGS": "-lX11"
+				"CGO_LDFLAGS": "-lX11 -lGL"
 			}
 		}, {
 			"name": "Launch X11 Runtime",
@@ -38,7 +42,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "",
 			"env": {
-				"CGO_LDFLAGS": "-lX11"
+				"CGO_LDFLAGS": "-lX11 -lGL"
 			}
 		}
 	]

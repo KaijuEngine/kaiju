@@ -2,6 +2,7 @@
 #define WINDOWING_H
 
 #include <stdint.h>
+#include <string.h>
 
 #define SHARED_MEM_AVAILABLE	0
 #define SHARED_MEM_WRITING		1
@@ -47,6 +48,16 @@ void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {
 	if (smState != SHARED_MEM_QUIT && smState != SHARED_MEM_FATAL) {
 		sm->evt->writeState = state;
 	}
+}
+
+void write_fatal(char* evtSharedMem, int size, const char* msg) {
+	int msgLen = strlen(msg);
+	if (msgLen > size - SHARED_MEM_DATA_START) {
+		msgLen = size - SHARED_MEM_DATA_START - 1;
+	}
+	memcpy(evtSharedMem + SHARED_MEM_DATA_START, msg, msgLen);
+	evtSharedMem[SHARED_MEM_DATA_START + msgLen] = '\0';
+	evtSharedMem[0] = SHARED_MEM_FATAL;
 }
 
 #if defined(_WIN32) || defined(_WIN64)
