@@ -1,6 +1,7 @@
 package windowing
 
 import (
+	"errors"
 	"kaiju/hid"
 )
 
@@ -34,7 +35,7 @@ type Window struct {
 	isCrashed     bool
 }
 
-func New(windowName string) *Window {
+func New(windowName string) (*Window, error) {
 	w := &Window{
 		Mouse:  hid.NewMouse(),
 		width:  1280,
@@ -42,7 +43,10 @@ func New(windowName string) *Window {
 	}
 	// TODO:  Pass in width and height
 	createWindow(windowName, &w.evtSharedMem)
-	return w
+	if w.evtSharedMem.IsFatal() {
+		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	}
+	return w, nil
 }
 
 func (w Window) IsClosed() bool {

@@ -20,7 +20,10 @@ const (
 	nativeMouseButtonX2     = 4
 )
 
-const evtSharedMemSize = 256
+const (
+	evtSharedMemSize      = 256
+	evtSharedMemDataStart = 4
+)
 
 type evtMem [evtSharedMemSize]byte
 
@@ -42,6 +45,7 @@ type keyboardEvent struct {
 
 func (e *evtMem) AsPointer() unsafe.Pointer { return unsafe.Pointer(&e[0]) }
 func (e evtMem) IsFatal() bool              { return e[0] == sharedMemFatal }
+func (e evtMem) FatalMessage() string       { return string([]byte(e[evtSharedMemDataStart:])) }
 func (e evtMem) IsReady() bool              { return e[0] >= sharedMemWritten }
 func (e evtMem) IsWritten() bool            { return e[0] == sharedMemWritten }
 func (e evtMem) IsQuit() bool               { return e[0] == sharedMemQuit }

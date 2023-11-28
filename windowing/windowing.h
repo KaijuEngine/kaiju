@@ -18,12 +18,36 @@
 
 typedef struct {
 	union {
+		uint8_t writeState;
+		int32_t buffer;
+	};
+	uint32_t evtType;
+	union {
 		int32_t mouseButtonId;
 		int32_t keyId;
 	};
 	int32_t mouseX;
 	int32_t mouseY;
 } InputEvent;
+
+typedef struct {
+	union {
+		char* sharedMem;
+		InputEvent* evt;
+	};
+	int size;
+} SharedMem;
+
+void shared_memory_wait_for_available(SharedMem* sm) {
+	while (sm->evt->writeState != SHARED_MEM_AVAILABLE) {}
+}
+
+void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {
+	uint8_t smState = sm->evt->writeState;
+	if (smState != SHARED_MEM_QUIT && smState != SHARED_MEM_FATAL) {
+		sm->evt->writeState = state;
+	}
+}
 
 #if defined(_WIN32) || defined(_WIN64)
 #include "win32.h"

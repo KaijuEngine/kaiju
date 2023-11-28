@@ -6,36 +6,100 @@
 #endif
 
 #include <stdint.h>
+#include <string.h>
 #include <windows.h>
 #include <windowsx.h>
 
+void write_fatal(char* evtSharedMem, int size, const char* msg) {
+	strcpy_s(evtSharedMem + SHARED_MEM_DATA_START, size - SHARED_MEM_DATA_START, msg);
+	evtSharedMem[0] = SHARED_MEM_FATAL;
+}
+
+void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
+	evt->mouseButtonId = buttonId;
+	evt->mouseX = GET_X_LPARAM(lParam);
+	evt->mouseY = GET_Y_LPARAM(lParam);
+}
+
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-		case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hwnd, &ps);
-			// All painting occurs here, between BeginPaint and EndPaint.
-			FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-			EndPaint(hwnd, &ps);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm != NULL) {
+		sm->evt->evtType = uMsg;
+		shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
+		switch (uMsg) {
+			case WM_DESTROY:
+				PostQuitMessage(0);
+				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+				return 0;
+			case WM_PAINT:
+			{
+				PAINTSTRUCT ps;
+				HDC hdc = BeginPaint(hwnd, &ps);
+				// All painting occurs here, between BeginPaint and EndPaint.
+				FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
+				EndPaint(hwnd, &ps);
+				break;
+			}
+			case WM_MOUSEMOVE:
+				setMouseEvent(sm->evt, uMsg, -1);
+				break;
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:
+				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_LEFT);
+				break;
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:
+				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_MIDDLE);
+				break;
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:
+				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_RIGHT);
+				break;
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONUP:
+				if (wParam & 0x0010000) {
+					setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_X1);
+				} else if (wParam & 0x0020000) {
+					setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_X2);
+				}
+				break;
+			case WM_MOUSEWHEEL:
+				// TODO:  Add wheel code
+				break;
+			case WM_KEYDOWN:
+			case WM_SYSKEYDOWN:
+			case WM_KEYUP:
+			case WM_SYSKEYUP:
+				switch (wParam) {
+					case VK_SHIFT:
+						UINT scancode = (lParam & 0x00FF0000) >> 16;
+						sm->evt->keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+						break;
+					case VK_CONTROL:
+						if (lParam & 0x01000000) {
+							sm->evt->keyId = VK_RCONTROL;
+						} else {
+							sm->evt->keyId = VK_LCONTROL;
+						}
+						break;
+					case VK_MENU:
+						if (lParam & 0x01000000) {
+							sm->evt->keyId = VK_RMENU;
+						} else {
+							sm->evt->keyId = VK_LMENU;
+						}
+						break;
+					default:
+						sm->evt->keyId = wParam;
+						break;
+				}
+				break;
 		}
-		return 0;
-    }
+		shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+	}
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-InputEvent setMouseEvent(MSG msg, int buttonId) {
-	InputEvent ie;
-	ie.mouseButtonId = buttonId;
-	ie.mouseX = GET_X_LPARAM(msg.lParam);
-	ie.mouseY = GET_Y_LPARAM(msg.lParam);
-	return ie;
-}
-
-#include <stdio.h>
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -60,91 +124,23 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
         NULL					// Additional application data
 	);
     if (hwnd == NULL) {
-		esm[0] = SHARED_MEM_FATAL;
+		write_fatal(esm, size, "Failed to create window.");
 		return;
     }
+	SharedMem sm = {esm, size};
+	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
     ShowWindow(hwnd, SW_SHOW);
-	esm[0] = SHARED_MEM_WRITTEN;
+	shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
     // Run the message loop.
     MSG msg = { };
 	while (esm[0] != SHARED_MEM_QUIT) {
-		void* esmData = esm + SHARED_MEM_DATA_START;
-		uint32_t msgType = 0;
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
-			while (esm[0] != SHARED_MEM_AVAILABLE) {}
-			esm[0] = SHARED_MEM_WRITING;
-			if (msg.message == WM_QUIT) {
-				esm[0] = SHARED_MEM_QUIT;
-				break;
-			} else {
-				msgType = msg.message;
-				memcpy(esmData, &msgType, sizeof(msgType));
-				esmData += sizeof(msgType);
-				InputEvent ie = {0};
-				switch (msg.message) {
-					case WM_MOUSEMOVE:
-						ie = setMouseEvent(msg, -1);
-						break;
-					case WM_LBUTTONDOWN:
-					case WM_LBUTTONUP:
-						ie = setMouseEvent(msg, MOUSE_BUTTON_LEFT);
-						break;
-					case WM_MBUTTONDOWN:
-					case WM_MBUTTONUP:
-						ie = setMouseEvent(msg, MOUSE_BUTTON_MIDDLE);
-						break;
-					case WM_RBUTTONDOWN:
-					case WM_RBUTTONUP:
-						ie = setMouseEvent(msg, MOUSE_BUTTON_RIGHT);
-						break;
-					case WM_XBUTTONDOWN:
-					case WM_XBUTTONUP:
-						if (msg.wParam & 0x0010000) {
-							ie = setMouseEvent(msg, MOUSE_BUTTON_X1);
-						} else if (msg.wParam & 0x0020000) {
-							ie = setMouseEvent(msg, MOUSE_BUTTON_X2);
-						}
-						break;
-					case WM_MOUSEWHEEL:
-						// TODO:  Add wheel code
-						break;
-					case WM_KEYDOWN:
-					case WM_SYSKEYDOWN:
-					case WM_KEYUP:
-					case WM_SYSKEYUP:
-						switch (msg.wParam) {
-							case VK_SHIFT:
-								UINT scancode = (msg.lParam & 0x00FF0000) >> 16;
-								ie.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
-								break;
-							case VK_CONTROL:
-								if (msg.lParam & 0x01000000) {
-									ie.keyId = VK_RCONTROL;
-								} else {
-									ie.keyId = VK_LCONTROL;
-								}
-								break;
-							case VK_MENU:
-								if (msg.lParam & 0x01000000) {
-									ie.keyId = VK_RMENU;
-								} else {
-									ie.keyId = VK_LMENU;
-								}
-								break;
-							default:
-								ie.keyId = msg.wParam;
-								break;
-						}
-						break;
-				}
-				memcpy(esmData, &ie, sizeof(ie));
-				esm[0] = SHARED_MEM_WRITTEN;
-			}
+			shared_memory_wait_for_available(&sm);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-			memcpy(esmData, &msgType, sizeof(msgType));
-			esm[0] = SHARED_MEM_WRITTEN;
+			sm.evt->evtType = 0;
+			shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
 		}
 	}
 }

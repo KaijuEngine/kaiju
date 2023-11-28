@@ -8,7 +8,10 @@ import (
 
 func main() {
 	lastTime := time.Now()
-	host := engine.NewHost()
+	host, err := engine.NewHost()
+	if err != nil {
+		panic(err)
+	}
 	bootstrap.Main(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()

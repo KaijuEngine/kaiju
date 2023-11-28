@@ -23,51 +23,48 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 	XMapWindow(d, w);
 	Atom WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(d, w, &WM_DELETE_WINDOW, 1);
-	esm[0] = SHARED_MEM_WRITTEN;
+	SharedMem sm = {evtSharedMem, size};
+	shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
 	XEvent e;
 	while (esm[0] != SHARED_MEM_QUIT) {
 		while (esm[0] != SHARED_MEM_AVAILABLE) {}
-		esm[0] = SHARED_MEM_WRITING;
-		void* esmData = esm + SHARED_MEM_DATA_START;
+		shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
 		XNextEvent(d, &e);
 		bool filtered = XFilterEvent(&e, None);
 		uint32_t msgType = e.type;
-		memcpy(esmData, &msgType, sizeof(msgType));
-		esmData += sizeof(msgType);
-		InputEvent ie;
 		switch (e.type) {
 			case Expose:
 				break;
 			case KeyPress:
 			case KeyRelease:
-				ie.keyId = XLookupKeysym(&e.xkey, 0);
+				sm.evt->keyId = XLookupKeysym(&e.xkey, 0);
 				break;
 			case ButtonPress:
 			case ButtonRelease:
 				switch (e.xbutton.button) {
 					case Button1:
-						ie.mouseButtonId = MOUSE_BUTTON_LEFT;
+						sm.evt->mouseButtonId = MOUSE_BUTTON_LEFT;
 						break;
 					case Button2:
-						ie.mouseButtonId = MOUSE_BUTTON_MIDDLE;
+						sm.evt->mouseButtonId = MOUSE_BUTTON_MIDDLE;
 						break;
 					case Button3:
-						ie.mouseButtonId = MOUSE_BUTTON_RIGHT;
+						sm.evt->mouseButtonId = MOUSE_BUTTON_RIGHT;
 						break;
 					case Button4:
-						ie.mouseButtonId = MOUSE_BUTTON_X1;
+						sm.evt->mouseButtonId = MOUSE_BUTTON_X1;
 						break;
 					case Button5:
-						ie.mouseButtonId = MOUSE_BUTTON_X2;
+						sm.evt->mouseButtonId = MOUSE_BUTTON_X2;
 						break;
 				}
-				ie.mouseX = e.xbutton.x;
-				ie.mouseY = e.xbutton.y;
+				sm.evt->mouseX = e.xbutton.x;
+				sm.evt->mouseY = e.xbutton.y;
 				break;
 			case MotionNotify:
-				ie.mouseButtonId = -1;
-				ie.mouseX = e.xmotion.x;
-				ie.mouseY = e.xmotion.y;
+				sm.evt->mouseButtonId = -1;
+				sm.evt->mouseX = e.xmotion.x;
+				sm.evt->mouseY = e.xmotion.y;
 				break;
 			case ClientMessage:
 				if (filtered) {
@@ -75,14 +72,11 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 				}
 				const Atom protocol = e.xclient.data.l[0];
 				if (protocol == WM_DELETE_WINDOW) {
-					esm[0] = SHARED_MEM_QUIT;
+					shared_memory_set_write_state(&sm, SHARED_MEM_QUIT);
 				}
 				break;
 		}
-		if (esm[0] == SHARED_MEM_WRITING) {
-			memcpy(esmData, &ie, sizeof(ie));
-			esm[0] = SHARED_MEM_WRITTEN;
-		}
+		shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
 	}
 	XDestroyWindow(d, w);
 	XCloseDisplay(d);
