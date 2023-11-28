@@ -11,15 +11,19 @@ type Host struct {
 	LateUpdater Updater
 }
 
-func NewHost() Host {
+func NewHost() (Host, error) {
+	win, err := windowing.New("Kaiju")
+	if err != nil {
+		return Host{}, err
+	}
 	return Host{
 		entities:    make([]*Entity, 0),
 		frameTime:   0,
 		Closing:     false,
 		Updater:     NewUpdater(),
 		LateUpdater: NewUpdater(),
-		Window:      windowing.New("Kaiju"),
-	}
+		Window:      win,
+	}, nil
 }
 
 func (host *Host) Update(deltaTime float64) {
