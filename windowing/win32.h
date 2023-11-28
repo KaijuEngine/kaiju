@@ -9,11 +9,7 @@
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
-
-void write_fatal(char* evtSharedMem, int size, const char* msg) {
-	strcpy_s(evtSharedMem + SHARED_MEM_DATA_START, size - SHARED_MEM_DATA_START, msg);
-	evtSharedMem[0] = SHARED_MEM_FATAL;
-}
+#include "glad_wgl.h"
 
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouseButtonId = buttonId;
@@ -31,12 +27,19 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				PostQuitMessage(0);
 				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
 				return 0;
+			case WM_SIZE:
+				glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+				PostMessage(hwnd, WM_PAINT, 0, 0);
+				break;
 			case WM_PAINT:
 			{
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hwnd, &ps);
+				glClearColor(0.392f, 0.584f, 0.929f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
+				SwapBuffers(hdc);
 				// All painting occurs here, between BeginPaint and EndPaint.
-				FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
+				//FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
 				EndPaint(hwnd, &ps);
 				break;
 			}
@@ -100,6 +103,71 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+const char* setupOpenGLContext(HWND hwnd) {
+	PIXELFORMATDESCRIPTOR pfd = { 0 };
+	pfd.nSize = sizeof(pfd);
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 32;
+	pfd.cDepthBits = 24;
+	pfd.cStencilBits = 8;
+	pfd.iLayerType = PFD_MAIN_PLANE;
+	HDC hdc = GetDC(hwnd);
+	int pixelFormat = ChoosePixelFormat(hdc, &pfd);
+	if (pixelFormat == 0) {
+		return "Failed to find a suitable pixel format.";
+	}
+	if (!SetPixelFormat(hdc, pixelFormat, &pfd)) {
+		return "Failed to set the pixel format.";
+	}
+	HGLRC legacyCtx = wglCreateContext(hdc);
+	if (legacyCtx == NULL) {
+		return "Failed to create an OpenGL context.";
+	}
+	if (!wglMakeCurrent(hdc, legacyCtx)) {
+		return "Failed to make the OpenGL context current.";
+	}
+	const int ctxAttr[] = {
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		0
+	};
+	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB =
+		(PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+	if (wglCreateContextAttribsARB == NULL) {
+		return "Failed to get wglCreateContextAttribsARB.";
+	}
+	HGLRC renderingCtx = wglCreateContextAttribsARB(hdc, 0, ctxAttr);
+	if (renderingCtx == NULL) {
+		return "Failed to create the rendering context.";
+	}
+	BOOL res = wglMakeCurrent(hdc, renderingCtx);
+	if (!res) {
+		return "Failed to make the rendering context current.";
+	}
+	res = wglDeleteContext(legacyCtx);
+	if (!res) {
+		return "Failed to delete the legacy context.";
+	}
+	if (!wglMakeCurrent(hdc, renderingCtx)) {
+		return "Failed to make the rendering context current.";
+	}
+	// VSync
+	const int frameVSyncSkipCount = 1;
+	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT =
+		(PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+	if (wglSwapIntervalEXT != NULL) {
+		wglSwapIntervalEXT(frameVSyncSkipCount);
+	}
+	if (gladLoadGL() == 0) {
+		return "Failed to load OpenGL.";
+	}
+	return NULL;
+}
+
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -127,6 +195,11 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 		write_fatal(esm, size, "Failed to create window.");
 		return;
     }
+	const char* err = setupOpenGLContext(hwnd);
+	if (err != NULL) {
+		write_fatal(esm, size, err);
+		return;
+	}
 	SharedMem sm = {esm, size};
 	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
     ShowWindow(hwnd, SW_SHOW);

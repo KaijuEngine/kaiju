@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CGO_LDFLAGS="-lX11"
+export CGO_LDFLAGS="-lX11 -lGL"
 go test -timeout 30s -v ./...
 if [ $? -eq 0 ]; then
 	echo "Tests passed, compiling code..."
