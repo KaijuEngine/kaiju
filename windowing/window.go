@@ -1,8 +1,11 @@
 package windowing
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"kaiju/hid"
+	"unsafe"
 )
 
 type eventType int
@@ -27,6 +30,7 @@ const (
 )
 
 type Window struct {
+	handle        unsafe.Pointer
 	Mouse         hid.Mouse
 	Keyboard      hid.Keyboard
 	evtSharedMem  evtMem
@@ -43,8 +47,24 @@ func New(windowName string) (*Window, error) {
 	}
 	// TODO:  Pass in width and height
 	createWindow(windowName, &w.evtSharedMem)
+	w.evtSharedMem.AwaitReady()
+	if !w.evtSharedMem.IsFatal() && !w.evtSharedMem.IsContext() {
+		return nil, errors.New("Context create expected but wasn't requested")
+	}
+	var hwndAddr uint64
+	reader := bytes.NewReader(w.evtSharedMem[evtSharedMemDataStart:])
+	binary.Read(reader, binary.LittleEndian, &hwndAddr)
+	w.handle = unsafe.Pointer(uintptr(hwndAddr))
+	createWindowContext(w.handle, &w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	}
+	w.evtSharedMem.MakeAvailable()
+	w.evtSharedMem.AwaitReady()
+	if w.evtSharedMem.IsFatal() {
+		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	} else if !w.evtSharedMem.IsStart() {
+		return nil, errors.New("Start expected but wasn't requested")
 	}
 	return w, nil
 }
@@ -140,4 +160,8 @@ func (w *Window) Poll() {
 	}
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
+}
+
+func (w *Window) SwapBuffers() {
+	swapBuffers(w.handle)
 }

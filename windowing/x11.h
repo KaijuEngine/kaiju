@@ -6,12 +6,17 @@
 #include <string.h>
 #include <stdbool.h>
 #include <X11/Xlib.h>
-#include <GL/gl.h>
+#include "../gl/glad.h"
 #include <GL/glx.h>
 
-#include <stdio.h>
-
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+
+typedef struct {
+	Display* d;
+	Window w;
+	GLXFBConfig bestFbcConfig;
+	GLXContext ctx;
+} X11State;
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -36,15 +41,53 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
+void window_create_gl_context(void* state, void* evtSharedMem, int size) {
+	X11State* x11State = state;
+	char* esm = evtSharedMem;
+	const char* glxExts = glXQueryExtensionsString(x11State->d, DefaultScreen(x11State->d));
+	glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)
+		glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
+	x11State->ctx = NULL;
+	// TODO:  Deal with ctx errors
+	if (!isExtensionSupported(glxExts, "GLX_ARB_create_context") || !glXCreateContextAttribsARB) {
+		x11State->ctx = glXCreateNewContext(x11State->d, x11State->bestFbcConfig, GLX_RGBA_TYPE, 0, True);
+	} else {
+		int contextAttrs[] = {
+			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+			None
+		};
+		x11State->ctx = glXCreateContextAttribsARB(x11State->d, x11State->bestFbcConfig, 0, True, contextAttrs);
+		XSync(x11State->d, False);
+		// TODO:  Check ctx errors and if so, then do the following
+		//context_attribs[1] = 1;
+		//context_attribs[3] = 0;
+		//x11State->ctx = glXCreateContextAttribsARB(d, bestFbc, 0, True, context_attribs);
+	}
+	XSync(x11State->d, False);
+	//XSetErrorHandler(oldHandler);
+	// TODO:  Check context error as well as ctx
+	if (x11State->ctx == NULL) {
+		write_fatal(evtSharedMem, size, "Failed to create GL context");
+		return;
+	}
+	glXMakeCurrent(x11State->d, x11State->w, x11State->ctx);
+	if (gladLoadGL() == 0) {
+		write_fatal(evtSharedMem, size, "Failed to load OpenGL");
+		return;
+	}
+}
+
 void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
+	SharedMem sm = {evtSharedMem, size};
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
 		return;
 	}
-	int s = DefaultScreen(d);
-
 	int visAttrs[] = {
 		GLX_X_RENDERABLE, True,
 		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -59,7 +102,6 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		GLX_DOUBLEBUFFER, True,
 		None
 	};
-	
 	int glxMajor, glxMinor;
 	if (!glXQueryVersion(d, &glxMajor, &glxMinor) ||
 		((glxMajor == 1) && (glxMinor < 3)) || (glxMajor < 1))
@@ -68,7 +110,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		return;
 	}
 	int fbCount;
-	GLXFBConfig* fbc = glXChooseFBConfig(d, s, visAttrs, &fbCount);
+	GLXFBConfig* fbc = glXChooseFBConfig(d, DefaultScreen(d), visAttrs, &fbCount);
 	int bestFbc = -1, worstFbc = -1, bestNumSamp = -1, worstNumSamp = 999;
 	for (int i = 0; i < fbCount; i++) {
 		XVisualInfo* vi = glXGetVisualFromFBConfig(d, fbc[i]);
@@ -107,43 +149,15 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 	XSetIconName(d, w, windowTitle);
 	XSelectInput(d, w, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 	XMapWindow(d, w);
-
-	const char* glxExts = glXQueryExtensionsString(d, s);
-	glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)
-		glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
-	GLXContext ctx = NULL;
-	// TODO:  Deal with ctx errors
-
-	if (!isExtensionSupported(glxExts, "GLX_ARB_create_context") || !glXCreateContextAttribsARB) {
-		ctx = glXCreateNewContext(d, bestFbcConfig, GLX_RGBA_TYPE, 0, True);
-	} else {
-		int contextAttrs[] = {
-			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-			None
-		};
-		ctx = glXCreateContextAttribsARB(d, bestFbcConfig, 0, True, contextAttrs);
-		XSync(d, False);
-		// TODO:  Check ctx errors and if so, then do the following
-		//context_attribs[1] = 1;
-		//context_attribs[3] = 0;
-		//ctx = glXCreateContextAttribsARB(d, bestFbc, 0, True, context_attribs);
-	}
-	XSync(d, False);
-	//XSetErrorHandler(oldHandler);
-	// TODO:  Check context error as well as ctx
-	if (ctx == NULL) {
-		write_fatal(evtSharedMem, size, "Failed to create GL context");
-		return;
-	}
-	glXMakeCurrent(d, w, ctx);
-
+	X11State x11State = {d, w};
+	X11State* cpyState = &x11State;
+	memcpy(esm+SHARED_MEM_DATA_START, &cpyState, sizeof(X11State**));
+	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
+	// Context should be created in Go here on go main thread
+	shared_memory_wait_for_available(&sm);
 	Atom WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(d, w, &WM_DELETE_WINDOW, 1);
-	SharedMem sm = {evtSharedMem, size};
-	shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
+	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
 	XEvent e;
 	while (esm[0] != SHARED_MEM_QUIT) {
 		while (esm[0] != SHARED_MEM_AVAILABLE) {}
@@ -153,9 +167,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		uint32_t msgType = e.type;
 		switch (e.type) {
 			case Expose:
-				glClearColor(0.392f, 0.584f, 0.929f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
-				glXSwapBuffers(d, w);
+				
 				break;
 			case KeyPress:
 			case KeyRelease:
@@ -201,7 +213,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
 	}
 	glXMakeCurrent(d, 0, 0);
-	glXDestroyContext(d, ctx);
+	glXDestroyContext(d, x11State.ctx);
 	XDestroyWindow(d, w);
 	XFreeColormap(d, cmap);
 	XCloseDisplay(d);

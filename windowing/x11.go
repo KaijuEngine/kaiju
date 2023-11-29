@@ -4,6 +4,13 @@ package windowing
 
 /*
 #include "windowing.h"
+
+void window_swap_buffers(void* handle) {
+	X11State* x11State = handle;
+	glClearColor(0.392F, 0.584F, 0.929F, 1.0F);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glXSwapBuffers(x11State->d, x11State->w);
+}
 */
 import "C"
 import (
@@ -53,10 +60,16 @@ func (e evtMem) toEventType() eventType {
 	}
 }
 
+func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
+	C.window_create_gl_context(handle, evtSharedMem.AsPointer(), evtSharedMemSize)
+}
+
 func createWindow(windowName string, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))
 	go C.window_main(title, evtSharedMem.AsPointer(), evtSharedMemSize)
-	for !evtSharedMem.IsReady() {
-	}
+}
+
+func swapBuffers(handle unsafe.Pointer) {
+	C.window_swap_buffers(handle)
 }
