@@ -9,7 +9,7 @@
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
-#include "glad_wgl.h"
+#include "../gl/glad_wgl.h"
 
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouseButtonId = buttonId;
@@ -33,14 +33,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			case WM_PAINT:
 			{
-				PAINTSTRUCT ps;
-				HDC hdc = BeginPaint(hwnd, &ps);
-				glClearColor(0.392f, 0.584f, 0.929f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
-				SwapBuffers(hdc);
-				// All painting occurs here, between BeginPaint and EndPaint.
-				//FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-				EndPaint(hwnd, &ps);
+				//PAINTSTRUCT ps;
+				//BeginPaint(hwnd, &ps);
+				//EndPaint(hwnd, &ps);
 				break;
 			}
 			case WM_MOUSEMOVE:
@@ -168,6 +163,16 @@ const char* setupOpenGLContext(HWND hwnd) {
 	return NULL;
 }
 
+void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
+	HWND hwnd = winHWND;
+	char* esm = evtSharedMem;
+	const char* err = setupOpenGLContext(hwnd);
+	if (err != NULL) {
+		write_fatal(esm, size, err);
+		return;
+	}
+}
+
 void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -195,20 +200,19 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
 		write_fatal(esm, size, "Failed to create window.");
 		return;
     }
-	const char* err = setupOpenGLContext(hwnd);
-	if (err != NULL) {
-		write_fatal(esm, size, err);
-		return;
-	}
 	SharedMem sm = {esm, size};
+	memcpy(esm+SHARED_MEM_DATA_START, &hwnd, sizeof(HWND*));
+	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
+	// Context should be created in Go here on go main thread
+	shared_memory_wait_for_available(&sm);
+	ShowWindow(hwnd, SW_SHOW);
 	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
-    ShowWindow(hwnd, SW_SHOW);
-	shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
+	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
     // Run the message loop.
     MSG msg = { };
 	while (esm[0] != SHARED_MEM_QUIT) {
+		shared_memory_wait_for_available(&sm);
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
-			shared_memory_wait_for_available(&sm);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
