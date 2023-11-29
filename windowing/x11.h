@@ -149,7 +149,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 	XSetIconName(d, w, windowTitle);
 	XSelectInput(d, w, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 	XMapWindow(d, w);
-	X11State x11State = {d, w};
+	X11State x11State = {d, w, bestFbcConfig};
 	X11State* cpyState = &x11State;
 	memcpy(esm+SHARED_MEM_DATA_START, &cpyState, sizeof(X11State**));
 	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
@@ -164,10 +164,18 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 		shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
 		XNextEvent(d, &e);
 		bool filtered = XFilterEvent(&e, None);
-		uint32_t msgType = e.type;
+		sm.evt->evtType = e.type;
 		switch (e.type) {
 			case Expose:
-				
+				// Setting this to 0 will make Go think there are no more
+				// events to process and continue. Then next time we come
+				// back around in go for availability we'll continue from
+				// here.
+				sm.evt->evtType = 0;
+				shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
+				shared_memory_wait_for_available(&sm);
+				shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
+				sm.evt->evtType = e.type;
 				break;
 			case KeyPress:
 			case KeyRelease:
