@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"kaiju/hid"
+	"kaiju/rendering"
 	"unsafe"
 )
 
@@ -33,6 +34,7 @@ type Window struct {
 	handle        unsafe.Pointer
 	Mouse         hid.Mouse
 	Keyboard      hid.Keyboard
+	Renderer      rendering.Renderer
 	evtSharedMem  evtMem
 	width, height int
 	isClosed      bool
@@ -44,6 +46,8 @@ func New(windowName string) (*Window, error) {
 		Mouse:  hid.NewMouse(),
 		width:  1280,
 		height: 720,
+		// TODO:  Select the correct renderer, or pass it in
+		Renderer: rendering.NewGLRenderer(),
 	}
 	// TODO:  Pass in width and height
 	createWindow(windowName, &w.evtSharedMem)

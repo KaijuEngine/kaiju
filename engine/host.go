@@ -1,14 +1,20 @@
 package engine
 
-import "kaiju/windowing"
+import (
+	"kaiju/assets"
+	"kaiju/rendering"
+	"kaiju/windowing"
+)
 
 type Host struct {
-	entities    []*Entity
-	Window      *windowing.Window
-	frameTime   float64
-	Closing     bool
-	Updater     Updater
-	LateUpdater Updater
+	entities      []*Entity
+	Window        *windowing.Window
+	ShaderCache   rendering.ShaderCache
+	frameTime     float64
+	Closing       bool
+	Updater       Updater
+	LateUpdater   Updater
+	assetDatabase assets.Database
 }
 
 func NewHost() (Host, error) {
@@ -16,14 +22,17 @@ func NewHost() (Host, error) {
 	if err != nil {
 		return Host{}, err
 	}
-	return Host{
-		entities:    make([]*Entity, 0),
-		frameTime:   0,
-		Closing:     false,
-		Updater:     NewUpdater(),
-		LateUpdater: NewUpdater(),
-		Window:      win,
-	}, nil
+	host := Host{
+		entities:      make([]*Entity, 0),
+		frameTime:     0,
+		Closing:       false,
+		Updater:       NewUpdater(),
+		LateUpdater:   NewUpdater(),
+		Window:        win,
+		assetDatabase: assets.NewDatabase(),
+	}
+	host.ShaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
+	return host, nil
 }
 
 func (host *Host) Update(deltaTime float64) {
@@ -33,5 +42,8 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
+	host.ShaderCache.CreatePending()
+	//gl.ClearScreen()
+	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems
 }
