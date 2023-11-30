@@ -7,7 +7,7 @@ import (
 )
 
 type Shader struct {
-	RenderId  RenderId
+	RenderId  ShaderId
 	SubShader *Shader
 	KeyName   string
 	VertPath  string

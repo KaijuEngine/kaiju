@@ -4,7 +4,15 @@ import (
 	"kaiju/assets"
 	"kaiju/gl"
 	"log"
+	"unsafe"
 )
+
+type MeshIdGL struct {
+	VAO        gl.Handle
+	VBO        gl.Handle
+	EBO        gl.Handle
+	indexCount int32
+}
 
 type GLRenderer struct {
 }
@@ -100,4 +108,57 @@ func (r GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database)
 
 func (r GLRenderer) FreeShader(shader *Shader) {
 	gl.DeleteProgram(shader.RenderId.(gl.Handle))
+}
+
+func (r GLRenderer) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
+	id := MeshIdGL{}
+	stride := int32(unsafe.Sizeof(verts[0]))
+	vertsSize := uint(stride) * uint(len(verts))
+	indexSize := uint(unsafe.Sizeof(indices[0])) * uint(len(indices))
+	id.indexCount = int32(len(indices))
+	gl.GenVertexArrays(1, &id.VAO)
+	gl.GenBuffers(1, &id.VBO)
+	gl.GenBuffers(1, &id.EBO)
+	gl.BindVertexArray(id.VAO)
+
+	gl.BindBuffer(gl.ArrayBuffer, id.VBO)
+	gl.BufferData(gl.ArrayBuffer, unsafe.Pointer(&verts[0]), vertsSize, gl.StaticDraw)
+	gl.BindBuffer(gl.ElementArrayBuffer, id.EBO)
+	gl.BufferData(gl.ElementArrayBuffer, unsafe.Pointer(&indices[0]), indexSize, gl.StaticDraw)
+	pOffset := int32(0)
+	// Vertex positions
+	gl.VertexAttribPointer(0, 3, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(0)
+	pOffset += int32(unsafe.Sizeof(verts[0].Position))
+	// Vertex normals
+	gl.VertexAttribPointer(1, 3, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(1)
+	pOffset += int32(unsafe.Sizeof(verts[0].Normal))
+	// Vertex tangent
+	gl.VertexAttribPointer(2, 4, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(2)
+	pOffset += int32(unsafe.Sizeof(verts[0].Tangent))
+	// Vertex texture coordinates
+	gl.VertexAttribPointer(3, 2, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(3)
+	pOffset += int32(unsafe.Sizeof(verts[0].UV0))
+	// Vertex color
+	gl.VertexAttribPointer(4, 4, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(4)
+	pOffset += int32(unsafe.Sizeof(verts[0].Color))
+	// Vertex joint ids
+	gl.VertexAttribPointer(5, 4, gl.Int, false, stride, pOffset)
+	gl.EnableVertexAttribArray(5)
+	pOffset += int32(unsafe.Sizeof(verts[0].JointIds))
+	// Vertex joint weights
+	gl.VertexAttribPointer(6, 4, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(6)
+	pOffset += int32(unsafe.Sizeof(verts[0].JointWeights))
+	// Vertex morph target
+	gl.VertexAttribPointer(7, 3, gl.Float, false, stride, pOffset)
+	gl.EnableVertexAttribArray(7)
+	// Unbind
+	gl.UnBindBuffer(gl.ArrayBuffer)
+	gl.UnBindVertexArray()
+	mesh.MeshId = id
 }

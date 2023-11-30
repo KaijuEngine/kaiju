@@ -129,8 +129,10 @@ const (
 	InfoLogLength        = 0x8B84
 	LinkStatus           = 0x8B82
 	ArrayBuffer          = 0x8892
+	ElementArrayBuffer   = 0x8893
 	StaticDraw           = 0x88E4
 	Float                = 0x1406
+	Int                  = 0x1404
 	Triangles            = 0x0004
 )
 
@@ -223,16 +225,16 @@ func BindBuffer(target Handle, buffer Handle) {
 	C.cglBindBuffer(C.GLenum(target), buffer.AsGL())
 }
 
-func BufferData(target Handle, data []float32, usage Handle) {
-	C.cglBufferData(C.GLenum(target), C.GLsizeiptr(len(data)*4), unsafe.Pointer(&data[0]), C.GLenum(usage))
+func BufferData(target Handle, data unsafe.Pointer, dataSize uint, usage Handle) {
+	C.cglBufferData(C.GLenum(target), C.GLsizeiptr(dataSize), data, C.GLenum(usage))
 }
 
-func VertexAttribPointer(index uint32, size int32, typ Handle, normalized bool, stride int32, offset unsafe.Pointer) {
+func VertexAttribPointer(index uint32, size int32, typ Handle, normalized bool, stride int32, offset int32) {
 	var nml uint8
 	if normalized {
 		nml = 1
 	}
-	C.cglVertexAttribPointer(C.GLuint(index), C.GLint(size), C.GLenum(typ), C.GLboolean(nml), C.GLsizei(stride), offset)
+	C.cglVertexAttribPointer(C.GLuint(index), C.GLint(size), C.GLenum(typ), C.GLboolean(nml), C.GLsizei(stride), unsafe.Pointer(uintptr(offset)))
 }
 
 func EnableVertexAttribArray(index uint32) {
@@ -245,4 +247,12 @@ func UseProgram(program Handle) {
 
 func DrawArrays(mode Handle, first int32, count int32) {
 	C.cglDrawArrays(C.GLenum(mode), C.GLint(first), C.GLsizei(count))
+}
+
+func UnBindBuffer(target Handle) {
+	C.cglBindBuffer(C.GLenum(target), 0)
+}
+
+func UnBindVertexArray() {
+	C.cglBindVertexArray(0)
 }
