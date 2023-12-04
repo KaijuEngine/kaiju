@@ -10,7 +10,7 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "-tags editor",
+			"buildFlags": "-tags editor,OPENGL",
 			"env": {
 				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
 			}
@@ -20,7 +20,7 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "",
+			"buildFlags": "-tags OPENGL",
 			"env": {
 				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
 			}
@@ -30,7 +30,7 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "-tags editor",
+			"buildFlags": "-tags editor,OPENGL",
 			"env": {
 				"CGO_LDFLAGS": "-lX11 -lGL"
 			}
@@ -40,7 +40,7 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "",
+			"buildFlags": "-tags OPENGL",
 			"env": {
 				"CGO_LDFLAGS": "-lX11 -lGL"
 			}

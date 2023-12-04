@@ -90,9 +90,9 @@ func (q Quaternion) ToMat4() Mat4 {
 }
 
 func QuaternionFromEuler(v Vec3) Quaternion {
-	x := deg2Rad(v.X())
-	y := deg2Rad(v.Y())
-	z := deg2Rad(v.Z())
+	x := Deg2Rad(v.X())
+	y := Deg2Rad(v.Y())
+	z := Deg2Rad(v.Z())
 	c1 := Cos(x / 2.0)
 	c2 := Cos(y / 2.0)
 	c3 := Cos(z / 2.0)
@@ -108,12 +108,12 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 func (q Quaternion) ToEuler() Vec3 {
 	out := Vec3{}
 	m := q.ToMat4()
-	out[Vy] = rad2Deg(Asin(clamp(m[x0y2], -1.0, 1.0)))
+	out[Vy] = Rad2Deg(Asin(clamp(m[x0y2], -1.0, 1.0)))
 	if Abs(m[x0y2]) < 0.9999999 {
-		out.SetX(rad2Deg(Atan2(-m[x1y2], m[x2y2])))
-		out.SetZ(rad2Deg(Atan2(-m[x0y1], m[x0y0])))
+		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
+		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
 	} else {
-		out.SetX(rad2Deg(Atan2(m[x2y1], m[x1y1])))
+		out.SetX(Rad2Deg(Atan2(m[x2y1], m[x1y1])))
 		out.SetZ(0.0)
 	}
 	return out
@@ -286,11 +286,11 @@ func QuaternionLookAt(from, to Vec3) Quaternion {
 	dot := Vec3Dot(back, direction)
 	if Abs(dot-(-1.0)) < 0.000001 {
 		u := Vec3Up()
-		return QuaternionAxisAngle(u, rad2Deg(Float(math.Pi)))
+		return QuaternionAxisAngle(u, Rad2Deg(Float(math.Pi)))
 	} else if Abs(dot-(1.0)) < 0.000001 {
 		return QuaternionIdentity()
 	}
-	angle := -rad2Deg(Acos(dot))
+	angle := -Rad2Deg(Acos(dot))
 	cross := Vec3Cross(back, direction)
 	nmlCross := cross.Normal()
 	return QuaternionAxisAngle(nmlCross, angle)
