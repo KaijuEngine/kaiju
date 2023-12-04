@@ -2,7 +2,7 @@ go test -timeout 30s -v ./...
 SET "CGO_LDFLAGS=-lgdi32 -lOpenGL32"
 if %errorlevel% equ 0 (
 	echo Tests passed, compiling code...
-	go build -o ./bin/[PROJECT_NAME].exe -ldflags="-s -w" main.go
+	go build -tags OPENGL -o ./bin/[PROJECT_NAME].exe -ldflags="-s -w" main.go
 ) else (
 	echo Tests failed, skipping code compile
 )

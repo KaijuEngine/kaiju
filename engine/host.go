@@ -2,6 +2,8 @@ package engine
 
 import (
 	"kaiju/assets"
+	"kaiju/cameras"
+	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/windowing"
 )
@@ -9,6 +11,7 @@ import (
 type Host struct {
 	entities      []*Entity
 	Window        *windowing.Window
+	Camera        *cameras.StandardCamera
 	ShaderCache   rendering.ShaderCache
 	frameTime     float64
 	Closing       bool
@@ -30,6 +33,7 @@ func NewHost() (Host, error) {
 		LateUpdater:   NewUpdater(),
 		Window:        win,
 		assetDatabase: assets.NewDatabase(),
+		Camera:        cameras.NewStandardCamera(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 	}
 	host.ShaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
 	return host, nil
@@ -46,4 +50,8 @@ func (host *Host) Update(deltaTime float64) {
 	//gl.ClearScreen()
 	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems
+}
+
+func (host Host) Runtime() float64 {
+	return host.frameTime
 }

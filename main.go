@@ -38,6 +38,8 @@ func main() {
 		host.Update(deltaTime)
 		gl.ClearScreen()
 		gl.UseProgram(shader.RenderId.(gl.Handle))
+		host.Window.Renderer.ReadyFrame(host.Camera, float32(host.Runtime()))
+		host.Window.Renderer.Draw(shader)
 		gl.BindVertexArray(mesh.MeshId.(rendering.MeshIdGL).VAO)
 		gl.DrawArrays(gl.Triangles, 0, 3)
 		host.Window.SwapBuffers()

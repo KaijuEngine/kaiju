@@ -49,12 +49,16 @@ type tMatrix interface {
 	Mat3 | Mat4
 }
 
-func rad2Deg[T tFloatingPoint](radian T) T {
+func Rad2Deg(radian Float) Float {
 	return radian * (180.0 / math.Pi)
 }
 
-func deg2Rad[T tFloatingPoint](degree T) T {
+func Deg2Rad(degree Float) Float {
 	return degree * (math.Pi / 180.0)
+}
+
+func Approx(a, b Float) bool {
+	return math.Abs(float64(a-b)) < FloatSmallestNonzero
 }
 
 func clamp[T tFloatingPoint](current, minimum, maximum T) T {

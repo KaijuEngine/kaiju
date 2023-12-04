@@ -94,9 +94,28 @@ void cglUseProgram(GLuint program) {
 void cglDrawArrays(GLenum mode, GLint first, GLsizei count) {
 	glDrawArrays(mode, first, count);
 }
+
+GLint cglGetUniformLocation(GLuint program, const GLchar *name) {
+	return glGetUniformLocation(program, name);
+}
+
+void cglUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {
+	glUniformMatrix4fv(location, count, transpose, value);
+}
+
+void cglUniform3fv(GLint location, GLsizei count, const GLfloat *value) {
+	glUniform3fv(location, count, value);
+}
+
+void cglUniform1f(GLint location, GLfloat value) {
+	glUniform1f(location, value);
+}
 */
 import "C"
-import "unsafe"
+import (
+	"kaiju/matrix"
+	"unsafe"
+)
 
 type Handle uint32
 
@@ -255,4 +274,27 @@ func UnBindBuffer(target Handle) {
 
 func UnBindVertexArray() {
 	C.cglBindVertexArray(0)
+}
+
+func GetUniformLocation(program Handle, name string) Result {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	res := C.cglGetUniformLocation(program.AsGL(), cname)
+	return Result(res)
+}
+
+func UniformMatrix4fv(location Result, transpose bool, matrices *matrix.Mat4) {
+	var nml uint8
+	if transpose {
+		nml = 1
+	}
+	C.cglUniformMatrix4fv(C.GLint(location), C.GLsizei(1), C.GLboolean(nml), (*C.GLfloat)(unsafe.Pointer(&matrices[0])))
+}
+
+func Uniform3fv(location Result, values *matrix.Vec3) {
+	C.cglUniform3fv(C.GLint(location), C.GLsizei(1), (*C.GLfloat)(unsafe.Pointer(&values[0])))
+}
+
+func Uniform1f(location Result, value float32) {
+	C.cglUniform1f(C.GLint(location), C.GLfloat(value))
 }

@@ -257,7 +257,7 @@ func (m *Mat4) MultiplyAssign(rhs Mat4) {
 	m[15] = m[12]*rhs[3] + m[13]*rhs[6] + m[14]*rhs[9] + m[15]*rhs[12]
 }
 
-func (m *Mat4) Ortho(left Float, right Float, bottom Float, top Float, near Float, far Float) {
+func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {
 	m.Zero()
 	m[x0y0] = 2.0 / (right - left)
 	// Vulkan inverts x1y1 (see mat4_projection_gl2vulkan)
@@ -276,9 +276,7 @@ func (m *Mat4) Perspective(fovy Float, aspect Float, nearVal Float, farVal Float
 	f = 1.0 / Tan(fovy*0.5)
 	fn = 1.0 / (nearVal - farVal)
 	m[x0y0] = f / aspect
-	// Vulkan inverts x1y1 (see mat4_projection_gl2vulkan)
-	m[x1y1] = -f
-	//matrix4x4->x1y1 = f;
+	m[x1y1] = mat4X1Y1(f)
 	m[x2y2] = (nearVal + farVal) * fn
 	m[x3y2] = -1.0
 	m[x2y3] = 2.0 * nearVal * farVal * fn
@@ -330,28 +328,28 @@ func (m *Mat4) Rotate(rotate Vec3) {
 
 func (m *Mat4) RotateX(angles Float) {
 	rot := Mat4Identity()
-	rot[x1y1] = Cos(deg2Rad(angles))
-	rot[x2y1] = -Sin(deg2Rad(angles))
-	rot[x1y2] = Sin(deg2Rad(angles))
-	rot[x2y2] = Cos(deg2Rad(angles))
+	rot[x1y1] = Cos(Deg2Rad(angles))
+	rot[x2y1] = -Sin(Deg2Rad(angles))
+	rot[x1y2] = Sin(Deg2Rad(angles))
+	rot[x2y2] = Cos(Deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateY(angles Float) {
 	rot := Mat4Identity()
-	rot[x0y0] = Cos(deg2Rad(angles))
-	rot[x2y0] = Sin(deg2Rad(angles))
-	rot[x0y2] = -Sin(deg2Rad(angles))
-	rot[x2y2] = Cos(deg2Rad(angles))
+	rot[x0y0] = Cos(Deg2Rad(angles))
+	rot[x2y0] = Sin(Deg2Rad(angles))
+	rot[x0y2] = -Sin(Deg2Rad(angles))
+	rot[x2y2] = Cos(Deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateZ(angles Float) {
 	rot := Mat4Identity()
-	rot[x0y0] = Cos(deg2Rad(angles))
-	rot[x1y0] = -Sin(deg2Rad(angles))
-	rot[x0y1] = Sin(deg2Rad(angles))
-	rot[x1y1] = Cos(deg2Rad(angles))
+	rot[x0y0] = Cos(Deg2Rad(angles))
+	rot[x1y0] = -Sin(Deg2Rad(angles))
+	rot[x0y1] = Sin(Deg2Rad(angles))
+	rot[x1y1] = Cos(Deg2Rad(angles))
 	m.MultiplyAssign(rot)
 }
 

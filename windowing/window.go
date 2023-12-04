@@ -35,7 +35,7 @@ type Window struct {
 	Mouse         hid.Mouse
 	Keyboard      hid.Keyboard
 	Renderer      rendering.Renderer
-	evtSharedMem  evtMem
+	evtSharedMem  *evtMem
 	width, height int
 	isClosed      bool
 	isCrashed     bool
@@ -47,10 +47,11 @@ func New(windowName string) (*Window, error) {
 		width:  1280,
 		height: 720,
 		// TODO:  Select the correct renderer, or pass it in
-		Renderer: rendering.NewGLRenderer(),
+		Renderer:     rendering.NewGLRenderer(),
+		evtSharedMem: new(evtMem),
 	}
 	// TODO:  Pass in width and height
-	createWindow(windowName, &w.evtSharedMem)
+	createWindow(windowName, w.evtSharedMem)
 	w.evtSharedMem.AwaitReady()
 	if !w.evtSharedMem.IsFatal() && !w.evtSharedMem.IsContext() {
 		return nil, errors.New("Context create expected but wasn't requested")
@@ -59,7 +60,7 @@ func New(windowName string) (*Window, error) {
 	reader := bytes.NewReader(w.evtSharedMem[evtSharedMemDataStart:])
 	binary.Read(reader, binary.LittleEndian, &hwndAddr)
 	w.handle = unsafe.Pointer(uintptr(hwndAddr))
-	createWindowContext(w.handle, &w.evtSharedMem)
+	createWindowContext(w.handle, w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
@@ -73,13 +74,10 @@ func New(windowName string) (*Window, error) {
 	return w, nil
 }
 
-func (w Window) IsClosed() bool {
-	return w.isClosed
-}
-
-func (w Window) IsCrashed() bool {
-	return w.isCrashed
-}
+func (w Window) IsClosed() bool  { return w.isClosed }
+func (w Window) IsCrashed() bool { return w.isCrashed }
+func (w Window) Width() int      { return w.width }
+func (w Window) Height() int     { return w.height }
 
 func (w *Window) processEvent() {
 	evtType := w.evtSharedMem.toEventType()
