@@ -6,8 +6,13 @@ import (
 	"kaiju/gl"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"runtime"
 	"time"
 )
+
+func init() {
+	runtime.LockOSThread()
+}
 
 func main() {
 	lastTime := time.Now()
