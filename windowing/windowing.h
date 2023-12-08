@@ -41,8 +41,16 @@ typedef struct {
 	int size;
 } SharedMem;
 
+int shared_mem_set_thread_priority(SharedMem* sm);
+void shared_mem_reset_thread_priority(SharedMem* sm, int priority);
+void shared_mem_wait(SharedMem* sm);
+
 void shared_memory_wait_for_available(SharedMem* sm) {
-	while (sm->evt->writeState != SHARED_MEM_AVAILABLE) {}
+	int priority = shared_mem_set_thread_priority(sm);
+	while (sm->evt->writeState != SHARED_MEM_AVAILABLE) {
+		shared_mem_wait(sm);
+	}
+	shared_mem_reset_thread_priority(sm, priority);
 }
 
 void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {

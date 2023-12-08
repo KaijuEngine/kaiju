@@ -11,6 +11,22 @@
 #include <windowsx.h>
 #include "../gl/glad_wgl.h"
 
+int shared_mem_set_thread_priority(SharedMem* sm) {
+	int priority = GetThreadPriority(GetCurrentThread());
+	if (sm->evt->writeState != SHARED_MEM_WRITTEN) {
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+	}
+	return priority;
+}
+
+void shared_mem_reset_thread_priority(SharedMem* sm, int priority) {
+	SetThreadPriority(GetCurrentThread(), priority);
+}
+
+void shared_mem_wait(SharedMem* sm) {
+	SwitchToThread();
+}
+
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouseButtonId = buttonId;
 	evt->mouseX = GET_X_LPARAM(lParam);
