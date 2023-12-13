@@ -215,6 +215,6 @@ func (r GLRenderer) Draw(drawings []DrawInstanceGroup) {
 			gl.UnsignedInt, 0, int32(len(draw.Instances)))
 		gl.UnBindBuffer(gl.ElementArrayBuffer)
 		gl.UnBindVertexArray()
-		//gl.DeleteTextures(1, &instanceTexBuff)
+		gl.DeleteTextures(1, &instanceTexBuff)
 	}
 }
