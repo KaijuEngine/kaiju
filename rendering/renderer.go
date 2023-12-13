@@ -10,7 +10,7 @@ type Renderer interface {
 	CreateShader(shader *Shader, assetDatabase *assets.Database)
 	FreeShader(shader *Shader)
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
-	Draw(shader *Shader)
+	Draw(drawings []DrawInstanceGroup)
 }
 
 type ShaderId interface{}
