@@ -184,37 +184,27 @@ func (r GLRenderer) setGlobalUniforms(shader *Shader) {
 	gl.Uniform1f(timeLoc, r.globalShaderData.Time)
 }
 
-func (r GLRenderer) Draw(drawings []DrawInstanceGroup) {
+func (r GLRenderer) Draw(drawings []ShaderDraw) {
 	gl.ClearScreen()
-	for _, draw := range drawings {
-		if draw.IsEmpty() {
-			continue
-		}
-		draw.UpdateData()
-		shaderId := draw.Shader.RenderId.(gl.Handle)
-		meshId := draw.Mesh.MeshId.(MeshIdGL)
+	for _, sd := range drawings {
+		shaderId := sd.shader.RenderId.(gl.Handle)
 		gl.UseProgram(shaderId)
-		r.setGlobalUniforms(draw.Shader)
-		gl.BindVertexArray(meshId.VAO)
-		var instanceTexBuff gl.Handle
-		gl.GenTextures(1, &instanceTexBuff)
-		gl.BindTexture(gl.Texture2D, instanceTexBuff)
-		gl.TexImage2D(gl.Texture2D, 0, gl.RGBA32F,
-			int32(len(draw.instanceData))/4/4, 1, 0,
-			gl.RGBA, gl.Float, unsafe.Pointer(&draw.instanceData[0]))
-		gl.TexParameteri(gl.Texture2D, gl.TextureWrapS, gl.ClampToEdge)
-		gl.TexParameteri(gl.Texture2D, gl.TextureWrapT, gl.ClampToEdge)
-		gl.TexParameteri(gl.Texture2D, gl.TextureMinFilter, gl.Nearest)
-		gl.TexParameteri(gl.Texture2D, gl.TextureMagFilter, gl.Nearest)
-		gl.UnBindTexture(gl.Texture2D)
-		gl.ActivateTexture(gl.Texture0)
-		gl.BindTexture(gl.Texture2D, instanceTexBuff)
-		gl.Uniform1i(gl.GetUniformLocation(shaderId, "instanceSampler"), 0)
-		gl.BindBuffer(gl.ElementArrayBuffer, meshId.EBO)
-		gl.DrawElementsInstanced(gl.Triangles, meshId.indexCount,
-			gl.UnsignedInt, 0, int32(len(draw.Instances)))
-		gl.UnBindBuffer(gl.ElementArrayBuffer)
-		gl.UnBindVertexArray()
-		gl.DeleteTextures(1, &instanceTexBuff)
+		r.setGlobalUniforms(sd.shader)
+		for _, draw := range sd.instanceGroups {
+			if draw.IsEmpty() {
+				continue
+			}
+			draw.UpdateData()
+			meshId := draw.Mesh.MeshId.(MeshIdGL)
+			gl.BindVertexArray(meshId.VAO)
+			gl.ActivateTexture(gl.Texture0)
+			gl.BindTexture(gl.Texture2D, draw.TextureData)
+			gl.Uniform1i(gl.GetUniformLocation(shaderId, "instanceSampler"), 0)
+			gl.BindBuffer(gl.ElementArrayBuffer, meshId.EBO)
+			gl.DrawElementsInstanced(gl.Triangles, meshId.indexCount,
+				gl.UnsignedInt, 0, int32(len(draw.Instances)))
+			gl.UnBindBuffer(gl.ElementArrayBuffer)
+			gl.UnBindVertexArray()
+		}
 	}
 }
