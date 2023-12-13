@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"kaiju/gl"
 	"kaiju/matrix"
 	"unsafe"
 )
@@ -18,17 +19,16 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 }
 
 type DrawInstanceGroup struct {
-	Shader       *Shader
 	Mesh         *Mesh
+	TextureData  gl.Handle
 	Instances    []DrawInstance
 	instanceData []byte
 	instanceSize int
 	dataSize     int
 }
 
-func NewDrawInstanceGroup(shader *Shader, mesh *Mesh, dataSize int) DrawInstanceGroup {
+func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 	return DrawInstanceGroup{
-		Shader:       shader,
 		Mesh:         mesh,
 		Instances:    make([]DrawInstance, 0),
 		instanceData: make([]byte, 0),
@@ -45,6 +45,18 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
 	d.dataSize += d.instanceSize
 	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize)...)
+	d.generateTexture()
+}
+
+func (d *DrawInstanceGroup) generateTexture() {
+	gl.DeleteTextures(1, &d.TextureData)
+	gl.GenTextures(1, &d.TextureData)
+	gl.BindTexture(gl.Texture2D, d.TextureData)
+	gl.TexParameteri(gl.Texture2D, gl.TextureWrapS, gl.ClampToEdge)
+	gl.TexParameteri(gl.Texture2D, gl.TextureWrapT, gl.ClampToEdge)
+	gl.TexParameteri(gl.Texture2D, gl.TextureMinFilter, gl.Nearest)
+	gl.TexParameteri(gl.Texture2D, gl.TextureMagFilter, gl.Nearest)
+	gl.UnBindTexture(gl.Texture2D)
 }
 
 func (d *DrawInstanceGroup) UpdateData() {
@@ -55,4 +67,9 @@ func (d *DrawInstanceGroup) UpdateData() {
 		copy(unsafe.Slice((*byte)(to), d.instanceSize),
 			unsafe.Slice((*byte)(from), d.instanceSize))
 	}
+	gl.BindTexture(gl.Texture2D, d.TextureData)
+	gl.TexImage2D(gl.Texture2D, 0, gl.RGBA32F,
+		int32(len(d.instanceData))/4/4, 1, 0,
+		gl.RGBA, gl.Float, unsafe.Pointer(&d.instanceData[0]))
+	gl.UnBindTexture(gl.Texture2D)
 }

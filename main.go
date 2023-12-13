@@ -43,25 +43,25 @@ func main() {
 	}
 	mesh := rendering.Mesh{}
 	host.Window.Renderer.CreateMesh(&mesh, verts, []uint32{0, 1, 2})
-	drawGroup := rendering.NewDrawInstanceGroup(shader, &mesh, TriangleShaderDataSize)
+	drawGroup := rendering.NewDrawInstanceGroup(&mesh, TriangleShaderDataSize)
 	{
 		t := TriangleShaderData{Color: matrix.ColorRed()}
 		t.Model = matrix.Mat4Identity()
 		t.Model.Translate(matrix.Vec3{-0.51, 0, 0})
 		drawGroup.AddInstance(&t)
 	}
-	{
-		t := TriangleShaderData{Color: matrix.ColorBlue()}
-		t.Model = matrix.Mat4Identity()
-		t.Model.Translate(matrix.Vec3{0.51, 0, 0})
-		drawGroup.AddInstance(&t)
-	}
+	t := TriangleShaderData{Color: matrix.ColorBlue()}
+	t.Model = matrix.Mat4Identity()
+	drawGroup.AddInstance(&t)
+	sd := rendering.NewShaderDraw(shader)
+	sd.AddInstanceGroup(&drawGroup)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
 		host.Window.Renderer.ReadyFrame(host.Camera, float32(host.Runtime()))
-		host.Window.Renderer.Draw([]rendering.DrawInstanceGroup{drawGroup})
+		host.Window.Renderer.Draw([]rendering.ShaderDraw{sd})
 		host.Window.SwapBuffers()
+		t.Model.Translate(matrix.Vec3{matrix.Float(0.1 * deltaTime), 0, 0})
 	}
 }
