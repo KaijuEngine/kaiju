@@ -5,6 +5,11 @@ import (
 	"path/filepath"
 )
 
+func DirectoryExists(path string) bool {
+	stat, err := os.Stat(path)
+	return err == nil && stat.IsDir()
+}
+
 func ListRecursive(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {

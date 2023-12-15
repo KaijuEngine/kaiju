@@ -6,6 +6,21 @@ import (
 	"strings"
 )
 
+func FileExists(path string) bool {
+	stat, err := os.Stat(path)
+	return err == nil && !stat.IsDir()
+}
+
+func ReadFile(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer file.Close()
+	buff, err := io.ReadAll(file)
+	return buff, err
+}
+
 func ReadTextFile(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {

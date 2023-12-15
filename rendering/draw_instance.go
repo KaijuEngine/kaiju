@@ -21,6 +21,7 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 type DrawInstanceGroup struct {
 	Mesh         *Mesh
 	TextureData  gl.Handle
+	Textures     []*Texture
 	Instances    []DrawInstance
 	instanceData []byte
 	instanceSize int

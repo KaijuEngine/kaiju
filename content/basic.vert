@@ -20,6 +20,7 @@ uniform struct GlobalData {
 } globalData;
 
 out vec4 fragColor;
+out vec2 fragTexCoords;
 
 void main() {
     mat4 model;
@@ -30,5 +31,6 @@ void main() {
     model[3] = texelFetch(instanceSampler, ivec2(xOffset+3,0), 0);
     vec4 color = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
     fragColor = Color * color;
+    fragTexCoords = UV0;
     gl_Position = globalData.projection * globalData.view * model * vec4(Position, 1.0);
 }

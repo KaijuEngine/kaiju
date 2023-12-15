@@ -43,11 +43,9 @@ type Window struct {
 
 func New(windowName string) (*Window, error) {
 	w := &Window{
-		Mouse:  hid.NewMouse(),
-		width:  1280,
-		height: 720,
-		// TODO:  Select the correct renderer, or pass it in
-		Renderer:     rendering.NewGLRenderer(),
+		Mouse:        hid.NewMouse(),
+		width:        1280,
+		height:       720,
 		evtSharedMem: new(evtMem),
 	}
 	// TODO:  Pass in width and height
@@ -71,6 +69,8 @@ func New(windowName string) (*Window, error) {
 	} else if !w.evtSharedMem.IsStart() {
 		return nil, errors.New("Start expected but wasn't requested")
 	}
+	// TODO:  Select the correct renderer, or pass it in
+	w.Renderer = rendering.NewGLRenderer()
 	return w, nil
 }
 

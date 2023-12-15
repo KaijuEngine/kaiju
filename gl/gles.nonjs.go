@@ -22,9 +22,12 @@ void cglGetShaderiv(GLuint shader, GLenum pname, GLint *params) {
 	glGetShaderiv(shader, pname, params);
 }
 
-void cglClearScreen() {
-	glClearColor(0.392f, 0.584f, 0.929f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+void cglClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
+	glClearColor(red, green, blue, alpha);
+}
+
+void cglClear(GLbitfield mask) {
+	glClear(mask);
 }
 
 void cglGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog) {
@@ -99,6 +102,18 @@ void cglTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei wid
 	glTexImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
 }
 
+void cglCompressedTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data) {
+	glCompressedTexImage2D(target, level, internalFormat, width, height, border, imageSize, data);
+}
+
+void cglGenerateMipmap(GLenum target) {
+	glGenerateMipmap(target);
+}
+
+void cglGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels) {
+	glGetTexImage(target, level, format, type, pixels);
+}
+
 void cglTexParameteri(GLenum target, GLenum pname, GLint param) {
 	glTexParameteri(target, pname, param);
 }
@@ -142,6 +157,30 @@ void cglUniform3fv(GLint location, GLsizei count, const GLfloat *value) {
 void cglUniform1f(GLint location, GLfloat value) {
 	glUniform1f(location, value);
 }
+
+void cglEnable(GLenum capability) {
+	glEnable(capability);
+}
+
+void cglDisable(GLenum capability) {
+	glDisable(capability);
+}
+
+void cglDepthMask(GLboolean flag) {
+	glDepthMask(flag);
+}
+
+void cglDepthFunc(GLenum fun) {
+	glDepthFunc(fun);
+}
+
+void cglBlendFunc(GLenum sfactor, GLenum dfactor) {
+	glBlendFunc(sfactor, dfactor);
+}
+
+void cglFrontFace(GLenum mode) {
+	glFrontFace(mode);
+}
 */
 import "C"
 import (
@@ -170,36 +209,75 @@ func (r Result) Equal(value int32) bool {
 }
 
 const (
-	CompileStatus        = 0x8B81
-	ShaderType           = 0x8B4F
-	FragmentShader       = 0x8B30
-	VertexShader         = 0x8B31
-	GeometryShader       = 0x8DD9
-	TessControlShader    = 0x8E88
-	TessEvaluationShader = 0x8E87
-	InfoLogLength        = 0x8B84
-	LinkStatus           = 0x8B82
-	ArrayBuffer          = 0x8892
-	ElementArrayBuffer   = 0x8893
-	StaticDraw           = 0x88E4
-	Float                = 0x1406
-	Int                  = 0x1404
-	UnsignedInt          = 0x1405
-	Triangles            = 0x0004
-	Texture2D            = 0x0DE1
-	RGBA32F              = 0x8814
-	RGBA                 = 0x1908
-	TextureWrapS         = 0x2802
-	TextureWrapT         = 0x2803
-	TextureMinFilter     = 0x2801
-	TextureMagFilter     = 0x2800
-	ClampToEdge          = 0x812F
-	Nearest              = 0x2600
-	Texture0             = 0x84C0
+	CompileStatus           = 0x8B81
+	ShaderType              = 0x8B4F
+	FragmentShader          = 0x8B30
+	VertexShader            = 0x8B31
+	GeometryShader          = 0x8DD9
+	TessControlShader       = 0x8E88
+	TessEvaluationShader    = 0x8E87
+	InfoLogLength           = 0x8B84
+	LinkStatus              = 0x8B82
+	ArrayBuffer             = 0x8892
+	ElementArrayBuffer      = 0x8893
+	StaticDraw              = 0x88E4
+	Float                   = 0x1406
+	Int                     = 0x1404
+	UnsignedInt             = 0x1405
+	UnsignedByte            = 0x1401
+	Points                  = 0x0000
+	Lines                   = 0x0001
+	Triangles               = 0x0004
+	Texture2D               = 0x0DE1
+	RGBA32F                 = 0x8814
+	RGB                     = 0x1907
+	RGBA                    = 0x1908
+	RGBA8                   = 0x8058
+	RGB8                    = 0x8051
+	TextureWrapS            = 0x2802
+	TextureWrapT            = 0x2803
+	TextureMinFilter        = 0x2801
+	TextureMagFilter        = 0x2800
+	ClampToEdge             = 0x812F
+	Nearest                 = 0x2600
+	Texture0                = 0x84C0
+	Texture1                = 0x84C1
+	Repeat                  = 0x2901
+	Linear                  = 0x2601
+	LinearMipMapLinear      = 0x2703
+	CompressedRgbaAstc4x4   = 0x93B0
+	CompressedRgbaAstc5x4   = 0x93B1
+	CompressedRgbaAstc5x5   = 0x93B2
+	CompressedRgbaAstc6x5   = 0x93B3
+	CompressedRgbaAstc6x6   = 0x93B4
+	CompressedRgbaAstc8x5   = 0x93B5
+	CompressedRgbaAstc8x6   = 0x93B6
+	CompressedRgbaAstc8x8   = 0x93B7
+	CompressedRgbaAstc10x5  = 0x93B8
+	CompressedRgbaAstc10x6  = 0x93B9
+	CompressedRgbaAstc10x8  = 0x93BA
+	CompressedRgbaAstc10x10 = 0x93BB
+	CompressedRgbaAstc12x10 = 0x93BC
+	CompressedRgbaAstc12x12 = 0x93BD
+	CullFace                = 0x0B44
+	DepthTest               = 0x0B71
+	LEqual                  = 0x0203
+	StencilTest             = 0x0B90
+	Blend                   = 0x0BE2
+	SrcAlpha                = 0x0302
+	OneMinusSrcAlpha        = 0x0303
+	CCW                     = 0x0901
+	CW                      = 0x0900
+	ColorBufferBit          = 0x00004000
+	DepthBufferBit          = 0x00000100
 )
 
-func ClearScreen() {
-	C.cglClearScreen()
+func ClearColor(r, g, b, a float32) {
+	C.cglClearColor(C.GLfloat(r), C.GLfloat(g), C.GLfloat(b), C.GLfloat(a))
+}
+
+func Clear(mask Handle) {
+	C.cglClear(C.GLbitfield(mask))
 }
 
 func CreateShader(shaderType Handle) Handle {
@@ -307,6 +385,18 @@ func TexImage2D(target Handle, level int32, internalFormat Handle, width int32, 
 	C.cglTexImage2D(C.GLenum(target), C.GLint(level), C.GLint(internalFormat), C.GLsizei(width), C.GLsizei(height), C.GLint(border), C.GLenum(format), C.GLenum(typ), pixels)
 }
 
+func CompressedTexImage2D(target Handle, level int32, internalFormat Handle, width int32, height int32, border int32, imageSize int32, data unsafe.Pointer) {
+	C.cglCompressedTexImage2D(C.GLenum(target), C.GLint(level), C.GLint(internalFormat), C.GLsizei(width), C.GLsizei(height), C.GLint(border), C.GLsizei(imageSize), data)
+}
+
+func GenerateMipmap(target Handle) {
+	C.cglGenerateMipmap(C.GLenum(target))
+}
+
+func GetTexImage(target Handle, level int32, format Handle, typ Handle, pixels unsafe.Pointer) {
+	C.cglGetTexImage(C.GLenum(target), C.GLint(level), C.GLenum(format), C.GLenum(typ), pixels)
+}
+
 func TexParameteri(target Handle, pname Handle, param Handle) {
 	C.cglTexParameteri(C.GLenum(target), C.GLenum(pname), C.GLint(param))
 }
@@ -376,4 +466,32 @@ func Uniform3fv(location Result, values *matrix.Vec3) {
 
 func Uniform1f(location Result, value float32) {
 	C.cglUniform1f(C.GLint(location), C.GLfloat(value))
+}
+
+func Enable(capability Handle) {
+	C.cglEnable(C.GLenum(capability))
+}
+
+func Disable(capability Handle) {
+	C.cglDisable(C.GLenum(capability))
+}
+
+func DepthMask(flag bool) {
+	var nml uint8
+	if flag {
+		nml = 1
+	}
+	C.cglDepthMask(C.GLboolean(nml))
+}
+
+func DepthFunc(fun Handle) {
+	C.cglDepthFunc(C.GLenum(fun))
+}
+
+func BlendFunc(src, dst Handle) {
+	C.cglBlendFunc(C.GLenum(src), C.GLenum(dst))
+}
+
+func FrontFace(mode Handle) {
+	C.cglFrontFace(C.GLenum(mode))
 }
