@@ -33,17 +33,22 @@ func main() {
 		{
 			Position: matrix.Vec3{-0.5, -0.5, 0.0},
 			Color:    matrix.ColorWhite(),
+			UV0:      matrix.Vec2{0, 0},
 		}, {
 			Position: matrix.Vec3{0.5, -0.5, 0.0},
 			Color:    matrix.ColorWhite(),
+			UV0:      matrix.Vec2{1, 0},
 		}, {
 			Position: matrix.Vec3{0.0, 0.5, 0.0},
 			Color:    matrix.ColorWhite(),
+			UV0:      matrix.Vec2{0.5, 1},
 		},
 	}
 	mesh := rendering.Mesh{}
 	host.Window.Renderer.CreateMesh(&mesh, verts, []uint32{0, 1, 2})
 	drawGroup := rendering.NewDrawInstanceGroup(&mesh, TriangleShaderDataSize)
+	droidTex, _ := host.TextureCache.Texture("content/android.png", rendering.TextureFilterNearest)
+	drawGroup.Textures = []*rendering.Texture{droidTex}
 	{
 		t := TriangleShaderData{Color: matrix.ColorRed()}
 		t.Model = matrix.Mat4Identity()

@@ -1,9 +1,12 @@
+//go:build OPENGL
+
 package rendering
 
 import (
 	"kaiju/assets"
 	"kaiju/cameras"
 	"kaiju/gl"
+	"kaiju/matrix"
 	"log"
 	"unsafe"
 )
@@ -20,11 +23,25 @@ type GLRenderer struct {
 }
 
 func NewGLRenderer() *GLRenderer {
-	return &GLRenderer{}
+	r := &GLRenderer{}
+	gl.Enable(gl.CullFace)
+	gl.Enable(gl.DepthTest)
+	gl.DepthMask(true)
+	gl.DepthFunc(gl.LEqual)
+	gl.Disable(gl.StencilTest)
+	gl.Enable(gl.Blend)
+	gl.BlendFunc(gl.SrcAlpha, gl.OneMinusSrcAlpha)
+	gl.FrontFace(gl.CCW)
+	// TODO:  For when doing WebGL stuff
+	//gl.GetExtension("EXT_color_buffer_half_float")
+	//gl.GetExtension("EXT_float_blend")
+	//gl.GetExtension("EXT_color_buffer_float")
+	//gl.GetExtension("OES_texture_float_linear")
+	return r
 }
 
 func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle) gl.Handle {
-	src, err := assetDatabase.ReadAsset(shaderKey)
+	src, err := assetDatabase.ReadTextAsset(shaderKey)
 	if err != nil {
 		panic(err)
 	}
@@ -165,6 +182,50 @@ func (r GLRenderer) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	mesh.MeshId = id
 }
 
+func (r *GLRenderer) CreateTexture(texture *Texture, textureData *TextureData) {
+	var id gl.Handle
+	gl.GenTextures(1, &id)
+	texture.RenderId = id
+	gl.BindTexture(gl.Texture2D, id)
+	gl.TexParameteri(gl.Texture2D, gl.TextureWrapS, gl.Repeat)
+	gl.TexParameteri(gl.Texture2D, gl.TextureWrapT, gl.Repeat)
+	gl.TexParameteri(gl.Texture2D, gl.TextureMinFilter, gl.LinearMipMapLinear)
+	gl.TexParameteri(gl.Texture2D, gl.TextureMagFilter, gl.Linear)
+	if texture.pendingData.InputType == TextureFileFormatAstc {
+		gl.CompressedTexImage2D(gl.Texture2D, 0,
+			toGLInternalFormat(texture.pendingData.InternalFormat),
+			int32(texture.pendingData.Width), int32(texture.pendingData.Height), 0,
+			int32(len(texture.pendingData.Mem)), unsafe.Pointer(&texture.pendingData.Mem[0]))
+	} else {
+		gl.TexImage2D(gl.Texture2D, 0, toGLInternalFormat(texture.pendingData.InternalFormat),
+			int32(texture.pendingData.Width), int32(texture.pendingData.Height), 0,
+			toGLFormat(texture.pendingData.Format),
+			toGLType(texture.pendingData.Type), unsafe.Pointer(&texture.pendingData.Mem[0]))
+	}
+	gl.GenerateMipmap(gl.Texture2D)
+	gl.UnBindTexture(gl.Texture2D)
+}
+
+func (w *GLRenderer) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
+	if texture.TexturePixelCache == nil {
+		texture.TexturePixelCache = make([]uint8, texture.Width*texture.Height*bytesInPixel)
+	}
+	if texture.CacheInvalid {
+		gl.GetTexImage(gl.Texture2D, 0, gl.RGBA, gl.UnsignedByte, unsafe.Pointer(&texture.TexturePixelCache[0]))
+	}
+	offset := (y*texture.Width + x) * bytesInPixel
+	return matrix.Color{
+		float32(texture.TexturePixelCache[offset]),
+		float32(texture.TexturePixelCache[offset+1]),
+		float32(texture.TexturePixelCache[offset+2]),
+		float32(texture.TexturePixelCache[offset+3]),
+	}
+}
+
+func (w *GLRenderer) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte) {
+	panic("TextureWritePixels not implemented")
+}
+
 func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, runtime float32) {
 	r.globalShaderData.View = camera.View()
 	r.globalShaderData.Projection = camera.Projection()
@@ -185,7 +246,8 @@ func (r GLRenderer) setGlobalUniforms(shader *Shader) {
 }
 
 func (r GLRenderer) Draw(drawings []ShaderDraw) {
-	gl.ClearScreen()
+	gl.ClearColor(0.392, 0.584, 0.929, 1.0)
+	gl.Clear(gl.ColorBufferBit | gl.DepthBufferBit)
 	for _, sd := range drawings {
 		shaderId := sd.shader.RenderId.(gl.Handle)
 		gl.UseProgram(shaderId)
@@ -200,10 +262,17 @@ func (r GLRenderer) Draw(drawings []ShaderDraw) {
 			gl.ActivateTexture(gl.Texture0)
 			gl.BindTexture(gl.Texture2D, draw.TextureData)
 			gl.Uniform1i(gl.GetUniformLocation(shaderId, "instanceSampler"), 0)
+			for i, texture := range draw.Textures {
+				gl.ActivateTexture(gl.Handle(int(gl.Texture1) + i))
+				gl.BindTexture(gl.Texture2D, texture.RenderId.(gl.Handle))
+				// TODO:  Set/get the uniform location as part of draw textures
+				gl.Uniform1i(gl.GetUniformLocation(shaderId, "texSampler"), int32(i+1))
+			}
 			gl.BindBuffer(gl.ElementArrayBuffer, meshId.EBO)
 			gl.DrawElementsInstanced(gl.Triangles, meshId.indexCount,
 				gl.UnsignedInt, 0, int32(len(draw.Instances)))
 			gl.UnBindBuffer(gl.ElementArrayBuffer)
+			gl.UnBindTexture(gl.Texture2D)
 			gl.UnBindVertexArray()
 		}
 	}

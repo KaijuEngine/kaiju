@@ -1,5 +1,6 @@
 {
 	"files.associations": {
 		"glad_wgl.h": "c"
-	}
+	},
+	"go.buildTags": "OPENGL"
 }
