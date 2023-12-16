@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <X11/Xlib.h>
-#include "../gl/glad.h"
+#include "../gl/dist/glad.h"
 #include <GL/glx.h>
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);

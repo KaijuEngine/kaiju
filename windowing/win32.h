@@ -9,7 +9,7 @@
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
-#include "../gl/glad_wgl.h"
+#include "../gl/dist/glad_wgl.h"
 
 int shared_mem_set_thread_priority(SharedMem* sm) {
 	int priority = GetThreadPriority(GetCurrentThread());

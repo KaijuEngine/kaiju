@@ -4,7 +4,7 @@ package gl
 
 /*
 #include <stdlib.h>
-#include "glad.h"
+#include "dist/glad.h"
 
 GLuint cglCreateShader(GLenum type) {
 	return glCreateShader(type);
@@ -184,6 +184,7 @@ void cglFrontFace(GLenum mode) {
 */
 import "C"
 import (
+	_ "kaiju/gl/dist"
 	"kaiju/matrix"
 	"unsafe"
 )
