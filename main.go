@@ -21,39 +21,27 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func testDrawing(host *engine.Host) *TriangleShaderData {
-	shader := host.ShaderCache.CreateShader("content/basic.vert", "content/basic.frag", "", "", "")
-	verts := []rendering.Vertex{
-		{
-			Position: matrix.Vec3{-0.5, -0.5, 0.0},
-			Color:    matrix.ColorWhite(),
-			UV0:      matrix.Vec2{0, 0},
-		}, {
-			Position: matrix.Vec3{0.5, -0.5, 0.0},
-			Color:    matrix.ColorWhite(),
-			UV0:      matrix.Vec2{1, 0},
-		}, {
-			Position: matrix.Vec3{0.0, 0.5, 0.0},
-			Color:    matrix.ColorWhite(),
-			UV0:      matrix.Vec2{0.5, 1},
-		},
+func testDrawing(host *engine.Host) {
+	positions := []matrix.Vec3{
+		{-0.6, 0.0, 0.0},
+		{0.6, 0.0, 0.0},
 	}
-	mesh := rendering.Mesh{}
-	host.Window.Renderer.CreateMesh(&mesh, verts, []uint32{0, 1, 2})
-	drawGroup := rendering.NewDrawInstanceGroup(&mesh, TriangleShaderDataSize)
-	droidTex, _ := host.TextureCache.Texture("content/android.png", rendering.TextureFilterNearest)
-	drawGroup.Textures = []*rendering.Texture{droidTex}
-	{
-		t := TriangleShaderData{Color: matrix.ColorRed()}
-		t.Model = matrix.Mat4Identity()
-		t.Model.Translate(matrix.Vec3{-0.51, 0, 0})
-		drawGroup.AddInstance(&t)
+	colors := []matrix.Color{
+		{1.0, 0.0, 0.0, 1.0},
+		{0.0, 1.0, 0.0, 1.0},
 	}
-	t := TriangleShaderData{Color: matrix.ColorBlue()}
-	t.Model = matrix.Mat4Identity()
-	drawGroup.AddInstance(&t)
-	host.Drawings.AddDrawing(shader, drawGroup)
-	return &t
+	for i := 0; i < 2; i++ {
+		shader := host.ShaderCache.CreateShader("content/basic.vert", "content/basic.frag", "", "", "")
+		mesh := rendering.NewMeshQuad(&host.MeshCache)
+		drawGroup := rendering.NewDrawInstanceGroup(mesh, TriangleShaderDataSize)
+		droidTex, _ := host.TextureCache.Texture("content/android.png", rendering.TextureFilterNearest)
+		drawGroup.Textures = []*rendering.Texture{droidTex}
+		tsd := TriangleShaderData{Color: colors[i]}
+		tsd.Model = matrix.Mat4Identity()
+		tsd.Model.Translate(positions[i])
+		drawGroup.AddInstance(&tsd)
+		host.Drawings.AddDrawing(shader, drawGroup)
+	}
 }
 
 func main() {
@@ -63,12 +51,11 @@ func main() {
 		panic(err)
 	}
 	bootstrap.Main(&host)
-	t := testDrawing(&host)
+	testDrawing(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
 		host.Render()
-		t.Model.Translate(matrix.Vec3{matrix.Float(0.1 * deltaTime), 0, 0})
 	}
 }

@@ -7,11 +7,16 @@ import (
 )
 
 type DrawInstance interface {
+	SetModel(model matrix.Mat4)
 	DataPointer() unsafe.Pointer
 }
 
 type ShaderDataBase struct {
 	Model matrix.Mat4
+}
+
+func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
+	s.Model = model
 }
 
 func (s *ShaderDataBase) DataPointer() unsafe.Pointer {

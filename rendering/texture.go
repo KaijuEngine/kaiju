@@ -181,13 +181,14 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 			res.InternalFormat = TextureInputTypeRgba8
 			res.Format = TextureColorFormatRgbaUnorm
 			res.Type = TextureMemTypeUnsignedByte
-			res.Mem = make([]byte, len(mem))
-			byteWidth := res.Width * bytesInPixel
-			for y := 0; y < res.Height; y++ {
-				from := y * byteWidth
-				to := (res.Height - y - 1) * byteWidth
-				copy(res.Mem[to:to+byteWidth], mem[from:from+byteWidth])
-			}
+			res.Mem = mem
+			//res.Mem = make([]byte, len(mem))
+			//byteWidth := res.Width * bytesInPixel
+			//for y := 0; y < res.Height; y++ {
+			//	from := y * byteWidth
+			//	to := (res.Height - y - 1) * byteWidth
+			//	copy(res.Mem[to:to+byteWidth], mem[from:from+byteWidth])
+			//}
 		}
 	case TextureFileFormatRaw:
 		res.Mem = mem[:]

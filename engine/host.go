@@ -14,6 +14,7 @@ type Host struct {
 	Camera        *cameras.StandardCamera
 	ShaderCache   rendering.ShaderCache
 	TextureCache  rendering.TextureCache
+	MeshCache     rendering.MeshCache
 	Drawings      rendering.Drawings
 	frameTime     float64
 	Closing       bool
@@ -40,6 +41,7 @@ func NewHost() (Host, error) {
 	}
 	host.ShaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
 	host.TextureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
+	host.MeshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	return host, nil
 }
 
@@ -52,6 +54,7 @@ func (host *Host) Update(deltaTime float64) {
 	}
 	host.ShaderCache.CreatePending()
 	host.TextureCache.CreatePending()
+	host.MeshCache.CreatePending()
 	//gl.ClearScreen()
 	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems

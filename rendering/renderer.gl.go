@@ -18,6 +18,10 @@ type MeshIdGL struct {
 	indexCount int32
 }
 
+func (m MeshIdGL) IsValid() bool {
+	return m.VAO.IsValid()
+}
+
 type GLRenderer struct {
 	globalShaderData GlobalShaderData
 }
@@ -253,7 +257,7 @@ func (r GLRenderer) Draw(drawings []ShaderDraw) {
 		gl.UseProgram(shaderId)
 		r.setGlobalUniforms(sd.shader)
 		for _, draw := range sd.instanceGroups {
-			if draw.IsEmpty() {
+			if draw.IsEmpty() || !draw.Mesh.IsReady() {
 				continue
 			}
 			draw.UpdateData()
