@@ -21,13 +21,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func main() {
-	lastTime := time.Now()
-	host, err := engine.NewHost()
-	if err != nil {
-		panic(err)
-	}
-	bootstrap.Main(&host)
+func testDrawing(host *engine.Host) *TriangleShaderData {
 	shader := host.ShaderCache.CreateShader("content/basic.vert", "content/basic.frag", "", "", "")
 	verts := []rendering.Vertex{
 		{
@@ -58,15 +52,23 @@ func main() {
 	t := TriangleShaderData{Color: matrix.ColorBlue()}
 	t.Model = matrix.Mat4Identity()
 	drawGroup.AddInstance(&t)
-	sd := rendering.NewShaderDraw(shader)
-	sd.AddInstanceGroup(&drawGroup)
+	host.Drawings.AddDrawing(shader, drawGroup)
+	return &t
+}
+
+func main() {
+	lastTime := time.Now()
+	host, err := engine.NewHost()
+	if err != nil {
+		panic(err)
+	}
+	bootstrap.Main(&host)
+	t := testDrawing(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
-		host.Window.Renderer.ReadyFrame(host.Camera, float32(host.Runtime()))
-		host.Window.Renderer.Draw([]rendering.ShaderDraw{sd})
-		host.Window.SwapBuffers()
+		host.Render()
 		t.Model.Translate(matrix.Vec3{matrix.Float(0.1 * deltaTime), 0, 0})
 	}
 }

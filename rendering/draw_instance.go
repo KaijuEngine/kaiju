@@ -49,6 +49,13 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.generateTexture()
 }
 
+func (d *DrawInstanceGroup) Merge(other *DrawInstanceGroup) {
+	d.Instances = append(d.Instances, other.Instances...)
+	d.dataSize += other.dataSize
+	d.instanceData = append(d.instanceData, other.instanceData...)
+	d.generateTexture()
+}
+
 func (d *DrawInstanceGroup) generateTexture() {
 	gl.DeleteTextures(1, &d.TextureData)
 	gl.GenTextures(1, &d.TextureData)
