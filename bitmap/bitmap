@@ -1,0 +1,46 @@
+package bitmap
+
+const bitsInByte = 8
+
+func New(length int) []byte {
+	return make([]byte, LengthFor(length))
+}
+
+func Check(bitmap []byte, index int) bool {
+	return bitmap[index/bitsInByte]&0x01<<(index%bitsInByte) != 0
+}
+
+func Set(bitmap []byte, index int) {
+	bitmap[index/bitsInByte] |= 0x01 << (index % bitsInByte)
+}
+
+func Reset(bitmap []byte, index int) {
+	bitmap[index/bitsInByte] &= ^(0x01 << (index % bitsInByte))
+}
+
+func Toggle(bitmap []byte, index int) {
+	bitmap[index/bitsInByte] ^= 0x01 << (index % bitsInByte)
+}
+
+func Count(bitmap []byte) int {
+	count := 0
+	length := len(bitmap) * bitsInByte
+	for i := 0; i < length; i++ {
+		if Check(bitmap, i) {
+			count++
+		}
+	}
+	return count
+}
+
+func CountInverse(bitmap []byte) int {
+	return len(bitmap)*bitsInByte - Count(bitmap)
+}
+
+func LengthFor(byteCount int) int {
+	return (byteCount / bitsInByte) + 1
+}
+
+func Clear(bitmap []byte) {
+	clear(bitmap)
+}

@@ -49,6 +49,10 @@ func Color8FromColor(c Color) Color8 {
 	}
 }
 
+func (c Color8) Equal(rhs Color8) bool {
+	return c.R == rhs.R && c.G == rhs.G && c.B == rhs.B && c.A == rhs.A
+}
+
 func ColorMix(lhs, rhs Color, amount Float) Color {
 	return Color{
 		lhs.R() + (rhs.R()-lhs.R())*amount,
@@ -225,3 +229,10 @@ func ColorThistle() Color              { return Color{0.847, 0.749, 0.847, 1} }
 func ColorWhiteSmoke() Color           { return Color{0.961, 0.961, 0.961, 1} }
 func ColorYellowGreen() Color          { return Color{0.604, 0.804, 0.196, 1} }
 func ColorTransparent() Color          { return Color{0, 0, 0, 0} }
+
+func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
+	return uint8(AbsInt(int(lhs.R)-int(rhs.R))) <= tolerance &&
+		uint8(AbsInt(int(lhs.G)-int(rhs.G))) <= tolerance &&
+		uint8(AbsInt(int(lhs.B)-int(rhs.B))) <= tolerance &&
+		uint8(AbsInt(int(lhs.A)-int(rhs.A))) <= tolerance
+}

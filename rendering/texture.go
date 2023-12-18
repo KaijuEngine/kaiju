@@ -244,9 +244,11 @@ func (t *Texture) DelayedCreate(renderer Renderer) {
 	t.pendingData = nil
 }
 
-func NewTextureFromMemory(key string, data []byte, filter TextureFilter) (*Texture, error) {
+func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
+	tex.Width = width
+	tex.Height = height
 	return tex, nil
 }
 

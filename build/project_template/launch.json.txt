@@ -10,17 +10,19 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "",
-			"env": {}
+			"buildFlags": "-tags OPENGL",
+			"env": {
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+			}
 		}, {
 			"name": "Launch X11 Runtime",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
-			"buildFlags": "",
+			"buildFlags": "-tags OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lX11"
+				"CGO_LDFLAGS": "-lX11 -lGL"
 			}
 		}
 	]
