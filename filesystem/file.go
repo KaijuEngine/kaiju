@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+func WriteFile(path string, data []byte) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
 func FileExists(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && !stat.IsDir()

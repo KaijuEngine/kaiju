@@ -5,9 +5,21 @@ import (
 	"path/filepath"
 )
 
+func CreateDirectory(path string) error {
+	return os.MkdirAll(path, 0755)
+}
+
 func DirectoryExists(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && stat.IsDir()
+}
+
+func DeleteDirectory(path string) error {
+	return os.RemoveAll(path)
+}
+
+func ImageDirectory() (string, error) {
+	return imageDirectory()
 }
 
 func ListRecursive(path string) ([]string, error) {

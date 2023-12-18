@@ -64,3 +64,5 @@ func Approx(a, b Float) bool {
 func clamp[T tFloatingPoint](current, minimum, maximum T) T {
 	return T(max(minimum, min(maximum, current)))
 }
+
+func AbsInt(a int) int { return a & int(^uint(0)>>1) }
