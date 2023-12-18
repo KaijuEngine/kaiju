@@ -21,4 +21,6 @@ type Renderer interface {
 
 type ShaderId interface{}
 type TextureId interface{}
-type MeshId interface{}
+type MeshId interface {
+	IsValid() bool
+}

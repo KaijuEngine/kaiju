@@ -27,7 +27,7 @@ func (s *ShaderCache) CreateShader(vertPath string, fragPath string, geomPath st
 		if shader != nil {
 			s.pendingShaders = append(s.pendingShaders, shader)
 		}
-		// Else, use a fallback shader
+		s.shaders[shaderKey] = shader
 		return shader
 	}
 }

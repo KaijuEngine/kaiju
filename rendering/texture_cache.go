@@ -24,6 +24,7 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 	} else {
 		if texture, err := NewTexture(t.renderer, t.assetDatabase, textureKey, filter); err == nil {
 			t.pendingTextures = append(t.pendingTextures, texture)
+			t.textures[textureKey] = texture
 			return texture, nil
 		} else {
 			return nil, err
