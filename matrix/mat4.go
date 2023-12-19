@@ -239,22 +239,22 @@ func (m Mat4) Multiply(rhs Mat4) Mat4 {
 }
 
 func (m *Mat4) MultiplyAssign(rhs Mat4) {
-	m[0] = m[0]*rhs[0] + m[1]*rhs[3] + m[2]*rhs[6] + m[3]*rhs[9]
-	m[1] = m[0]*rhs[1] + m[1]*rhs[4] + m[2]*rhs[7] + m[3]*rhs[10]
-	m[2] = m[0]*rhs[2] + m[1]*rhs[5] + m[2]*rhs[8] + m[3]*rhs[11]
-	m[3] = m[0]*rhs[3] + m[1]*rhs[6] + m[2]*rhs[9] + m[3]*rhs[12]
-	m[4] = m[4]*rhs[0] + m[5]*rhs[3] + m[6]*rhs[6] + m[7]*rhs[9]
-	m[5] = m[4]*rhs[1] + m[5]*rhs[4] + m[6]*rhs[7] + m[7]*rhs[10]
-	m[6] = m[4]*rhs[2] + m[5]*rhs[5] + m[6]*rhs[8] + m[7]*rhs[11]
-	m[7] = m[4]*rhs[3] + m[5]*rhs[6] + m[6]*rhs[9] + m[7]*rhs[12]
-	m[8] = m[8]*rhs[0] + m[9]*rhs[3] + m[10]*rhs[6] + m[11]*rhs[9]
-	m[9] = m[8]*rhs[1] + m[9]*rhs[4] + m[10]*rhs[7] + m[11]*rhs[10]
-	m[10] = m[8]*rhs[2] + m[9]*rhs[5] + m[10]*rhs[8] + m[11]*rhs[11]
-	m[11] = m[8]*rhs[3] + m[9]*rhs[6] + m[10]*rhs[9] + m[11]*rhs[12]
-	m[12] = m[12]*rhs[0] + m[13]*rhs[3] + m[14]*rhs[6] + m[15]*rhs[9]
-	m[13] = m[12]*rhs[1] + m[13]*rhs[4] + m[14]*rhs[7] + m[15]*rhs[10]
-	m[14] = m[12]*rhs[2] + m[13]*rhs[5] + m[14]*rhs[8] + m[15]*rhs[11]
-	m[15] = m[12]*rhs[3] + m[13]*rhs[6] + m[14]*rhs[9] + m[15]*rhs[12]
+	m[x0y0] = m[x0y0]*rhs[x0y0] + m[x1y0]*rhs[x0y1] + m[x2y0]*rhs[x0y2] + m[x3y0]*rhs[x0y3]
+	m[x1y0] = m[x0y0]*rhs[x1y0] + m[x1y0]*rhs[x1y1] + m[x2y0]*rhs[x1y2] + m[x3y0]*rhs[x1y3]
+	m[x2y0] = m[x0y0]*rhs[x2y0] + m[x1y0]*rhs[x2y1] + m[x2y0]*rhs[x2y2] + m[x3y0]*rhs[x2y3]
+	m[x3y0] = m[x0y0]*rhs[x3y0] + m[x1y0]*rhs[x3y1] + m[x2y0]*rhs[x3y2] + m[x3y0]*rhs[x3y3]
+	m[x0y1] = m[x0y1]*rhs[x0y0] + m[x1y1]*rhs[x0y1] + m[x2y1]*rhs[x0y2] + m[x3y1]*rhs[x0y3]
+	m[x1y1] = m[x0y1]*rhs[x1y0] + m[x1y1]*rhs[x1y1] + m[x2y1]*rhs[x1y2] + m[x3y1]*rhs[x1y3]
+	m[x2y1] = m[x0y1]*rhs[x2y0] + m[x1y1]*rhs[x2y1] + m[x2y1]*rhs[x2y2] + m[x3y1]*rhs[x2y3]
+	m[x3y1] = m[x0y1]*rhs[x3y0] + m[x1y1]*rhs[x3y1] + m[x2y1]*rhs[x3y2] + m[x3y1]*rhs[x3y3]
+	m[x0y2] = m[x0y2]*rhs[x0y0] + m[x1y2]*rhs[x0y1] + m[x2y2]*rhs[x0y2] + m[x3y2]*rhs[x0y3]
+	m[x1y2] = m[x0y2]*rhs[x1y0] + m[x1y2]*rhs[x1y1] + m[x2y2]*rhs[x1y2] + m[x3y2]*rhs[x1y3]
+	m[x2y2] = m[x0y2]*rhs[x2y0] + m[x1y2]*rhs[x2y1] + m[x2y2]*rhs[x2y2] + m[x3y2]*rhs[x2y3]
+	m[x3y2] = m[x0y2]*rhs[x3y0] + m[x1y2]*rhs[x3y1] + m[x2y2]*rhs[x3y2] + m[x3y2]*rhs[x3y3]
+	m[x0y3] = m[x0y3]*rhs[x0y0] + m[x1y3]*rhs[x0y1] + m[x2y3]*rhs[x0y2] + m[x3y3]*rhs[x0y3]
+	m[x1y3] = m[x0y3]*rhs[x1y0] + m[x1y3]*rhs[x1y1] + m[x2y3]*rhs[x1y2] + m[x3y3]*rhs[x1y3]
+	m[x2y3] = m[x0y3]*rhs[x2y0] + m[x1y3]*rhs[x2y1] + m[x2y3]*rhs[x2y2] + m[x3y3]*rhs[x2y3]
+	m[x3y3] = m[x0y3]*rhs[x3y0] + m[x1y3]*rhs[x3y1] + m[x2y3]*rhs[x3y2] + m[x3y3]*rhs[x3y3]
 }
 
 func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {

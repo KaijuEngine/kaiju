@@ -1,6 +1,17 @@
 package rendering
 
-import "slices"
+import (
+	"kaiju/matrix"
+	"slices"
+)
+
+type Drawing struct {
+	Shader     *Shader
+	Mesh       *Mesh
+	Textures   []*Texture
+	ShaderData DrawInstance
+	Transform  *matrix.Transform
+}
 
 type Drawings struct {
 	draws []ShaderDraw
@@ -33,7 +44,7 @@ func texturesMatch(a []*Texture, b []*Texture) bool {
 	return true
 }
 
-func (d *Drawings) matchGroup(sd *ShaderDraw, dg *DrawInstanceGroup) (*DrawInstanceGroup, bool) {
+func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, bool) {
 	var dig *DrawInstanceGroup = nil
 	for i := 0; i < len(sd.instanceGroups) && dig == nil; i++ {
 		g := &sd.instanceGroups[i]
@@ -44,17 +55,20 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *DrawInstanceGroup) (*DrawInsta
 	return dig, dig != nil
 }
 
-func (d *Drawings) AddDrawing(shader *Shader, drawGroup DrawInstanceGroup) {
+func (d *Drawings) AddDrawing(shader *Shader, drawing Drawing) {
 	draw, ok := d.findShaderDraw(shader)
 	if !ok {
 		newDraw := NewShaderDraw(shader)
 		d.draws = append(d.draws, newDraw)
 		draw = &d.draws[len(d.draws)-1]
 	}
-	if dg, ok := d.matchGroup(draw, &drawGroup); ok {
-		dg.Merge(&drawGroup)
+	if dg, ok := d.matchGroup(draw, &drawing); ok {
+		dg.AddInstance(drawing.ShaderData)
 	} else {
-		draw.instanceGroups = append(draw.instanceGroups, drawGroup)
+		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
+		group.AddInstance(drawing.ShaderData)
+		group.Textures = drawing.Textures
+		draw.instanceGroups = append(draw.instanceGroups, group)
 	}
 }
 

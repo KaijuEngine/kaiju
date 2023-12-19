@@ -3,24 +3,54 @@ package rendering
 import (
 	"kaiju/gl"
 	"kaiju/matrix"
+	"slices"
 	"unsafe"
 )
 
 type DrawInstance interface {
+	Destroy()
+	IsDestroyed() bool
+	Activate()
+	Deactivate()
+	IsActive() bool
+	Size() int
 	SetModel(model matrix.Mat4)
+	UpdateModel()
 	DataPointer() unsafe.Pointer
 }
 
+const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
+
 type ShaderDataBase struct {
-	Model matrix.Mat4
+	destroyed   bool
+	deactivated bool
+	_           [2]byte
+	transform   *matrix.Transform
+	initModel   matrix.Mat4
+	model       matrix.Mat4
 }
 
+func (s *ShaderDataBase) Destroy()          { s.destroyed = true }
+func (s *ShaderDataBase) IsDestroyed() bool { return s.destroyed }
+func (s *ShaderDataBase) Activate()         { s.deactivated = false }
+func (s *ShaderDataBase) Deactivate()       { s.deactivated = true }
+func (s *ShaderDataBase) IsActive() bool    { return !s.deactivated }
+
 func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
-	s.Model = model
+	s.initModel = model
+	if s.transform == nil {
+		s.model = model
+	}
+}
+
+func (s *ShaderDataBase) UpdateModel() {
+	if s.transform != nil && s.transform.IsDirty() {
+		s.model = s.initModel.Multiply(s.transform.Matrix())
+	}
 }
 
 func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
-	return unsafe.Pointer(&s.Model[0])
+	return unsafe.Pointer(&s.model[0])
 }
 
 type DrawInstanceGroup struct {
@@ -30,7 +60,6 @@ type DrawInstanceGroup struct {
 	Instances    []DrawInstance
 	instanceData []byte
 	instanceSize int
-	dataSize     int
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
@@ -39,7 +68,6 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 		Instances:    make([]DrawInstance, 0),
 		instanceData: make([]byte, 0),
 		instanceSize: dataSize,
-		dataSize:     0,
 	}
 }
 
@@ -49,15 +77,7 @@ func (d *DrawInstanceGroup) IsEmpty() bool {
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
-	d.dataSize += d.instanceSize
 	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize)...)
-	d.generateTexture()
-}
-
-func (d *DrawInstanceGroup) Merge(other *DrawInstanceGroup) {
-	d.Instances = append(d.Instances, other.Instances...)
-	d.dataSize += other.dataSize
-	d.instanceData = append(d.instanceData, other.instanceData...)
 	d.generateTexture()
 }
 
@@ -72,17 +92,42 @@ func (d *DrawInstanceGroup) generateTexture() {
 	gl.UnBindTexture(gl.Texture2D)
 }
 
+func (d *DrawInstanceGroup) texSize() (int32, int32) {
+	// Low end devices have a max 2048 texture size
+	pixelCount := int32(len(d.instanceData)) / 4 / 4
+	width := min(pixelCount, 2048)
+	height := int32(1)
+	for pixelCount > 2048 {
+		height++
+		pixelCount -= 2048
+	}
+	if height > 2048 {
+		// TODO:  Handle this case with multiple textures
+		panic("Too many instances")
+	}
+	return width, height
+}
+
 func (d *DrawInstanceGroup) UpdateData() {
 	base := unsafe.Pointer(&d.instanceData[0])
-	for i, instance := range d.Instances {
-		to := unsafe.Pointer(uintptr(base) + uintptr(i*d.instanceSize))
-		from := instance.DataPointer()
-		copy(unsafe.Slice((*byte)(to), d.instanceSize),
-			unsafe.Slice((*byte)(from), d.instanceSize))
+	offset := uintptr(0)
+	for i := 0; i < len(d.Instances); i++ {
+		instance := d.Instances[i]
+		instance.UpdateModel()
+		if instance.IsDestroyed() {
+			d.Instances = slices.Delete(d.Instances, i, i+1)
+			i--
+		} else if instance.IsActive() {
+			to := unsafe.Pointer(uintptr(base) + offset)
+			from := instance.DataPointer()
+			copy(unsafe.Slice((*byte)(to), d.instanceSize),
+				unsafe.Slice((*byte)(from), d.instanceSize))
+			offset += uintptr(d.instanceSize)
+		}
 	}
 	gl.BindTexture(gl.Texture2D, d.TextureData)
-	gl.TexImage2D(gl.Texture2D, 0, gl.RGBA32F,
-		int32(len(d.instanceData))/4/4, 1, 0,
+	w, h := d.texSize()
+	gl.TexImage2D(gl.Texture2D, 0, gl.RGBA32F, w, h, 0,
 		gl.RGBA, gl.Float, unsafe.Pointer(&d.instanceData[0]))
 	gl.UnBindTexture(gl.Texture2D)
 }
