@@ -4,8 +4,16 @@ import (
 	"math"
 )
 
+type ColorComponent = int
 type VectorComponent = int
 type QuaternionComponent = int
+
+const (
+	Cr ColorComponent = iota
+	Cg
+	Cb
+	Ca
+)
 
 const (
 	Vx VectorComponent = iota

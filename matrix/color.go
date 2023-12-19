@@ -13,15 +13,15 @@ type Color8 struct {
 	A uint8
 }
 
-func (c Color) R() Float                           { return c[Vx] }
-func (c Color) G() Float                           { return c[Vy] }
-func (c Color) B() Float                           { return c[Vz] }
-func (c Color) A() Float                           { return c[Vw] }
-func (c *Color) PR() *Float                        { return &c[Vx] }
-func (c *Color) PG() *Float                        { return &c[Vy] }
-func (c *Color) PB() *Float                        { return &c[Vz] }
-func (c *Color) PA() *Float                        { return &c[Vw] }
-func (c Color) RGBA() (Float, Float, Float, Float) { return c[Vx], c[Vy], c[Vz], c[Vw] }
+func (c Color) R() Float                           { return c[Cr] }
+func (c Color) G() Float                           { return c[Cg] }
+func (c Color) B() Float                           { return c[Cb] }
+func (c Color) A() Float                           { return c[Ca] }
+func (c *Color) PR() *Float                        { return &c[Cr] }
+func (c *Color) PG() *Float                        { return &c[Cg] }
+func (c *Color) PB() *Float                        { return &c[Cb] }
+func (c *Color) PA() *Float                        { return &c[Ca] }
+func (c Color) RGBA() (Float, Float, Float, Float) { return c[Cr], c[Cg], c[Cb], c[Ca] }
 
 func NewColor(r, g, b, a Float) Color {
 	return Color{r, g, b, a}
