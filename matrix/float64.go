@@ -7,6 +7,7 @@ import "math"
 type Float = float64
 
 const FloatSmallestNonzero = math.SmallestNonzeroFloat64
+const FloatMax = math.MaxFloat64
 
 func Abs(x Float) Float {
 	return math.Abs(x)

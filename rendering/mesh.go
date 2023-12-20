@@ -26,10 +26,16 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	}
 }
 
+func (m *Mesh) SetKey(key string) {
+	m.key = key
+}
+
 func (m *Mesh) DelayedCreate(renderer Renderer) {
-	renderer.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
-	m.pendingVerts = m.pendingVerts[:0]
-	m.pendingIndexes = m.pendingIndexes[:0]
+	if len(m.pendingVerts) > 0 {
+		renderer.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
+		m.pendingVerts = m.pendingVerts[:0]
+		m.pendingIndexes = m.pendingIndexes[:0]
+	}
 }
 
 func (m Mesh) Key() string   { return m.key }

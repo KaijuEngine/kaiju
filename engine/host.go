@@ -12,9 +12,11 @@ type Host struct {
 	entities      []*Entity
 	Window        *windowing.Window
 	Camera        *cameras.StandardCamera
-	ShaderCache   rendering.ShaderCache
-	TextureCache  rendering.TextureCache
-	MeshCache     rendering.MeshCache
+	UICamera      *cameras.StandardCamera
+	shaderCache   rendering.ShaderCache
+	textureCache  rendering.TextureCache
+	meshCache     rendering.MeshCache
+	fontCache     rendering.FontCache
 	Drawings      rendering.Drawings
 	frameTime     float64
 	Closing       bool
@@ -37,13 +39,23 @@ func NewHost() (Host, error) {
 		Window:        win,
 		assetDatabase: assets.NewDatabase(),
 		Camera:        cameras.NewStandardCamera(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
+		UICamera:      cameras.NewStandardCameraOrthographic(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		Drawings:      rendering.NewDrawings(),
 	}
-	host.ShaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
-	host.TextureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
-	host.MeshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
+	uiPos := matrix.Vec3{matrix.Float(host.Window.Width()) * 0.5, matrix.Float(host.Window.Height()) * 0.5, 250}
+	host.UICamera.SetPosition(uiPos)
+	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
+	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
+	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
+	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
 	return host, nil
 }
+
+func (host *Host) ShaderCache() *rendering.ShaderCache   { return &host.shaderCache }
+func (host *Host) TextureCache() *rendering.TextureCache { return &host.textureCache }
+func (host *Host) MeshCache() *rendering.MeshCache       { return &host.meshCache }
+func (host *Host) FontCache() *rendering.FontCache       { return &host.fontCache }
+func (host *Host) AssetDatabase() *assets.Database       { return &host.assetDatabase }
 
 func (host *Host) Update(deltaTime float64) {
 	host.Window.Poll()
@@ -52,16 +64,16 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	host.ShaderCache.CreatePending()
-	host.TextureCache.CreatePending()
-	host.MeshCache.CreatePending()
+	host.shaderCache.CreatePending()
+	host.textureCache.CreatePending()
+	host.meshCache.CreatePending()
 	//gl.ClearScreen()
 	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems
 }
 
 func (host *Host) Render() {
-	host.Window.Renderer.ReadyFrame(host.Camera, float32(host.Runtime()))
+	host.Window.Renderer.ReadyFrame(host.Camera, host.UICamera, float32(host.Runtime()))
 	host.Drawings.Render(host.Window.Renderer)
 	host.Window.SwapBuffers()
 }

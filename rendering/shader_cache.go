@@ -18,7 +18,7 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 	}
 }
 
-func (s *ShaderCache) CreateShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) *Shader {
+func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) *Shader {
 	shaderKey := createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath)
 	if shader, ok := s.shaders[shaderKey]; ok {
 		return shader

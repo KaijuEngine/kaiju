@@ -55,10 +55,10 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, 
 	return dig, dig != nil
 }
 
-func (d *Drawings) AddDrawing(shader *Shader, drawing Drawing) {
-	draw, ok := d.findShaderDraw(shader)
+func (d *Drawings) AddDrawing(drawing Drawing) {
+	draw, ok := d.findShaderDraw(drawing.Shader)
 	if !ok {
-		newDraw := NewShaderDraw(shader)
+		newDraw := NewShaderDraw(drawing.Shader)
 		d.draws = append(d.draws, newDraw)
 		draw = &d.draws[len(d.draws)-1]
 	}
@@ -69,6 +69,12 @@ func (d *Drawings) AddDrawing(shader *Shader, drawing Drawing) {
 		group.AddInstance(drawing.ShaderData)
 		group.Textures = drawing.Textures
 		draw.instanceGroups = append(draw.instanceGroups, group)
+	}
+}
+
+func (d *Drawings) AddDrawings(drawings []Drawing) {
+	for _, drawing := range drawings {
+		d.AddDrawing(drawing)
 	}
 }
 
