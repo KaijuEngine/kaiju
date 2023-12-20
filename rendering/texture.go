@@ -7,7 +7,6 @@ import (
 	"image/draw"
 	"image/png"
 	"kaiju/assets"
-	"kaiju/filesystem"
 	"kaiju/matrix"
 	"strings"
 )
@@ -226,8 +225,8 @@ func (t *Texture) create(imgBuff []byte) {
 
 func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
 	tex := &Texture{Key: textureKey, Filter: filter}
-	if assetDb.AssetExists(textureKey) {
-		if imgBuff, err := filesystem.ReadFile(textureKey); err != nil {
+	if assetDb.Exists(textureKey) {
+		if imgBuff, err := assetDb.Read(textureKey); err != nil {
 			return nil, err
 		} else if len(imgBuff) == 0 {
 			return nil, errors.New("no data in texture")
@@ -266,8 +265,8 @@ func (t Texture) Size() matrix.Vec2 {
 }
 
 func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (TextureData, error) {
-	if assetDb.AssetExists(textureKey) {
-		if imgBuff, err := filesystem.ReadFile(textureKey); err != nil {
+	if assetDb.Exists(textureKey) {
+		if imgBuff, err := assetDb.Read(textureKey); err != nil {
 			return TextureData{}, err
 		} else if len(imgBuff) == 0 {
 			return TextureData{}, errors.New("no data in texture")

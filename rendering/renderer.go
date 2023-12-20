@@ -7,7 +7,7 @@ import (
 )
 
 type Renderer interface {
-	ReadyFrame(camera *cameras.StandardCamera, runtime float32)
+	ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32)
 	CreateShader(shader *Shader, assetDatabase *assets.Database)
 	FreeShader(shader *Shader)
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)

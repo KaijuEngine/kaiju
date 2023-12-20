@@ -15,20 +15,28 @@ uniform sampler2D instanceSampler;
 uniform struct GlobalData {
     mat4 view;
     mat4 projection;
+    mat4 uiView;
+    mat4 uiProjection;
     vec3 cameraPosition;
+    vec3 uiCameraPosition;
     float time;
 } globalData;
 
 out vec4 fragColor;
 out vec2 fragTexCoords;
 
-void main() {
+mat4 pullModel(int xOffset) {
     mat4 model;
-    int xOffset = gl_InstanceID*INSTANCE_VEC4_COUNT;
     model[0] = texelFetch(instanceSampler, ivec2(xOffset,0), 0);
     model[1] = texelFetch(instanceSampler, ivec2(xOffset+1,0), 0);
     model[2] = texelFetch(instanceSampler, ivec2(xOffset+2,0), 0);
     model[3] = texelFetch(instanceSampler, ivec2(xOffset+3,0), 0);
+    return model;
+}
+
+void main() {
+    int xOffset = gl_InstanceID*INSTANCE_VEC4_COUNT;
+    mat4 model = pullModel(xOffset);
     vec4 color = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
     fragColor = Color * color;
     fragTexCoords = UV0;

@@ -60,6 +60,7 @@ type DrawInstanceGroup struct {
 	Instances    []DrawInstance
 	instanceData []byte
 	instanceSize int
+	padding      int
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
@@ -68,6 +69,7 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 		Instances:    make([]DrawInstance, 0),
 		instanceData: make([]byte, 0),
 		instanceSize: dataSize,
+		padding:      dataSize % 16,
 	}
 }
 
@@ -77,7 +79,7 @@ func (d *DrawInstanceGroup) IsEmpty() bool {
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
-	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize)...)
+	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
 	d.generateTexture()
 }
 
@@ -122,7 +124,7 @@ func (d *DrawInstanceGroup) UpdateData() {
 			from := instance.DataPointer()
 			copy(unsafe.Slice((*byte)(to), d.instanceSize),
 				unsafe.Slice((*byte)(from), d.instanceSize))
-			offset += uintptr(d.instanceSize)
+			offset += uintptr(d.instanceSize + d.padding)
 		}
 	}
 	gl.BindTexture(gl.Texture2D, d.TextureData)

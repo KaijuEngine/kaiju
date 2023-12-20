@@ -7,6 +7,7 @@ import "math"
 type Float = float32
 
 const FloatSmallestNonzero = math.SmallestNonzeroFloat32
+const FloatMax = math.MaxFloat32
 
 func Abs(x Float) Float {
 	return math.Float32frombits(math.Float32bits(x) &^ (1 << 31))

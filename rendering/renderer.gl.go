@@ -45,7 +45,7 @@ func NewGLRenderer() *GLRenderer {
 }
 
 func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle) gl.Handle {
-	src, err := assetDatabase.ReadTextAsset(shaderKey)
+	src, err := assetDatabase.ReadText(shaderKey)
 	if err != nil {
 		panic(err)
 	}
@@ -230,10 +230,13 @@ func (w *GLRenderer) TextureWritePixels(texture *Texture, x, y, width, height in
 	panic("TextureWritePixels not implemented")
 }
 
-func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, runtime float32) {
+func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) {
 	r.globalShaderData.View = camera.View()
 	r.globalShaderData.Projection = camera.Projection()
+	r.globalShaderData.UIView = uiCamera.View()
+	r.globalShaderData.UIProjection = uiCamera.Projection()
 	r.globalShaderData.CameraPosition = camera.Position()
+	r.globalShaderData.UICameraPosition = uiCamera.Position()
 	r.globalShaderData.Time = runtime
 }
 
@@ -241,11 +244,17 @@ func (r GLRenderer) setGlobalUniforms(shader *Shader) {
 	sid := shader.RenderId.(gl.Handle)
 	viewLoc := gl.GetUniformLocation(sid, "globalData.view")
 	projectionLoc := gl.GetUniformLocation(sid, "globalData.projection")
+	uiViewLoc := gl.GetUniformLocation(sid, "globalData.uiView")
+	uiProjectionLoc := gl.GetUniformLocation(sid, "globalData.uiProjection")
 	cameraPositionLoc := gl.GetUniformLocation(sid, "globalData.cameraPosition")
+	uiCameraPositionLoc := gl.GetUniformLocation(sid, "globalData.uiCameraPosition")
 	timeLoc := gl.GetUniformLocation(sid, "globalData.time")
 	gl.UniformMatrix4fv(viewLoc, false, &r.globalShaderData.View)
 	gl.UniformMatrix4fv(projectionLoc, false, &r.globalShaderData.Projection)
+	gl.UniformMatrix4fv(uiViewLoc, false, &r.globalShaderData.UIView)
+	gl.UniformMatrix4fv(uiProjectionLoc, false, &r.globalShaderData.UIProjection)
 	gl.Uniform3fv(cameraPositionLoc, &r.globalShaderData.CameraPosition)
+	gl.Uniform3fv(uiCameraPositionLoc, &r.globalShaderData.UICameraPosition)
 	gl.Uniform1f(timeLoc, r.globalShaderData.Time)
 }
 
