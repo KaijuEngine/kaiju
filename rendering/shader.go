@@ -15,6 +15,7 @@ type Shader struct {
 	GeomPath  string
 	CtrlPath  string
 	EvalPath  string
+	Defines   []string // TODO:  This is only for GL...
 }
 
 func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) string {
@@ -30,6 +31,7 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 		GeomPath:  geomPath,
 		CtrlPath:  ctrlPath,
 		EvalPath:  evalPath,
+		Defines:   make([]string, 0),
 	}
 	runtime.SetFinalizer(s, func(shader *Shader) {
 		renderer.FreeShader(shader)
@@ -40,6 +42,8 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database) {
 	renderer.CreateShader(s, assetDatabase)
 	if s.SubShader != nil {
-		s.SubShader.DelayedCreate(renderer, assetDatabase)
+		renderer.CreateShader(s.SubShader, assetDatabase)
+		// TODO:  Make this not needed
+		s.SubShader.SubShader = nil
 	}
 }

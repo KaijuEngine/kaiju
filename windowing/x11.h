@@ -94,7 +94,7 @@ void window_create_gl_context(void* state, void* evtSharedMem, int size) {
 	}
 }
 
-void window_main(const char* windowTitle, void* evtSharedMem, int size) {
+void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	SharedMem sm = {evtSharedMem, size};
 	Display* d = XOpenDisplay(NULL);
@@ -152,7 +152,7 @@ void window_main(const char* windowTitle, void* evtSharedMem, int size) {
 	swa.background_pixmap = None;
 	swa.border_pixel = 0;
 	swa.event_mask = StructureNotifyMask;
-	Window w = XCreateWindow(d, RootWindow(d, vi->screen), 10, 10, 1280, 720,
+	Window w = XCreateWindow(d, RootWindow(d, vi->screen), 10, 10, width, height,
 		0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
 	if (w == None) {
 		write_fatal(evtSharedMem, size, "Failed to create window");

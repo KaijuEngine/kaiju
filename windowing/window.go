@@ -44,12 +44,12 @@ type Window struct {
 func New(windowName string) (*Window, error) {
 	w := &Window{
 		Mouse:        hid.NewMouse(),
-		width:        1280,
-		height:       720,
+		width:        944,
+		height:       500,
 		evtSharedMem: new(evtMem),
 	}
 	// TODO:  Pass in width and height
-	createWindow(windowName, w.evtSharedMem)
+	createWindow(windowName, w.width, w.height, w.evtSharedMem)
 	w.evtSharedMem.AwaitReady()
 	if !w.evtSharedMem.IsFatal() && !w.evtSharedMem.IsContext() {
 		return nil, errors.New("Context create expected but wasn't requested")
@@ -165,5 +165,6 @@ func (w *Window) Poll() {
 }
 
 func (w *Window) SwapBuffers() {
+	w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height()))
 	swapBuffers(w.handle)
 }

@@ -66,12 +66,20 @@ void cglDeleteTextures(GLsizei n, GLuint *textures) {
 	glDeleteTextures(n, textures);
 }
 
+void cglDeleteFramebuffers(GLsizei n, GLuint *framebuffers) {
+	glDeleteFramebuffers(n, framebuffers);
+}
+
 void cglGenVertexArrays(GLsizei n, GLuint *arrays) {
 	glGenVertexArrays(n, arrays);
 }
 
 void cglGenBuffers(GLsizei n, GLuint *buffers) {
 	glGenBuffers(n, buffers);
+}
+
+void cglGenFramebuffers(GLsizei n, GLuint *framebuffers) {
+	glGenFramebuffers(n, framebuffers);
 }
 
 void cglGenTextures(GLsizei n, GLuint *textures) {
@@ -88,6 +96,10 @@ void cglBindBuffer(GLenum target, GLuint buffer) {
 
 void cglBindTexture(GLenum target, GLuint texture) {
 	glBindTexture(target, texture);
+}
+
+void cglBindFramebuffer(GLenum target, GLuint framebuffer) {
+	glBindFramebuffer(target, framebuffer);
 }
 
 void cglActiveTexture(GLenum texture) {
@@ -112,6 +124,10 @@ void cglGenerateMipmap(GLenum target) {
 
 void cglGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels) {
 	glGetTexImage(target, level, format, type, pixels);
+}
+
+void cglFrameBufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
+	glFramebufferTexture2D(target, attachment, textarget, texture, level);
 }
 
 void cglTexParameteri(GLenum target, GLenum pname, GLint param) {
@@ -178,8 +194,28 @@ void cglBlendFunc(GLenum sfactor, GLenum dfactor) {
 	glBlendFunc(sfactor, dfactor);
 }
 
+void cglBlendEquation(GLenum mode) {
+	glBlendEquation(mode);
+}
+
 void cglFrontFace(GLenum mode) {
 	glFrontFace(mode);
+}
+
+GLenum cglCheckFramebufferStatus(GLenum target) {
+	return glCheckFramebufferStatus(target);
+}
+
+void cglDrawBuffers(GLsizei n, const GLenum *bufs) {
+	glDrawBuffers(n, bufs);
+}
+
+void cglClearBufferfv(GLenum buffer, GLint drawBuffer, const GLfloat *value) {
+	glClearBufferfv(buffer, drawBuffer, value);
+}
+
+void cglViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
+	glViewport(x, y, width, height);
 }
 */
 import "C"
@@ -190,6 +226,7 @@ import (
 )
 
 type Handle uint32
+type Texture = Handle
 
 func (h Handle) IsValid() bool {
 	return h != 0
@@ -223,6 +260,7 @@ const (
 	ElementArrayBuffer      = 0x8893
 	StaticDraw              = 0x88E4
 	Float                   = 0x1406
+	HalfFloat               = 0x140B
 	Int                     = 0x1404
 	UnsignedInt             = 0x1405
 	UnsignedByte            = 0x1401
@@ -230,16 +268,24 @@ const (
 	Lines                   = 0x0001
 	Triangles               = 0x0004
 	Texture2D               = 0x0DE1
+	FrameBuffer             = 0x8D40
+	FrameBufferComplete     = 0x8CD5
+	Red                     = 0x1903
+	R32F                    = 0x822E
 	RGBA32F                 = 0x8814
 	RGB                     = 0x1907
 	RGBA                    = 0x1908
 	RGBA8                   = 0x8058
 	RGB8                    = 0x8051
+	RGBA16F                 = 0x881A
 	TextureWrapS            = 0x2802
 	TextureWrapT            = 0x2803
 	TextureMinFilter        = 0x2801
 	TextureMagFilter        = 0x2800
 	ClampToEdge             = 0x812F
+	ColorAttachment0        = 0x8CE0
+	ColorAttachment1        = 0x8CE1
+	DepthAttachment         = 0x8D00
 	Nearest                 = 0x2600
 	Texture0                = 0x84C0
 	Texture1                = 0x84C1
@@ -262,13 +308,22 @@ const (
 	CompressedRgbaAstc12x12 = 0x93BD
 	CullFace                = 0x0B44
 	DepthTest               = 0x0B71
+	Zero                    = 0x0000
+	One                     = 0x0001
+	Less                    = 0x0201
 	LEqual                  = 0x0203
+	FuncAdd                 = 0x8006
 	StencilTest             = 0x0B90
 	Blend                   = 0x0BE2
 	SrcAlpha                = 0x0302
+	Always                  = 0x0207
 	OneMinusSrcAlpha        = 0x0303
 	CCW                     = 0x0901
 	CW                      = 0x0900
+	DepthComponent          = 0x1902
+	DepthComponent32F       = 0x8CAC
+	Color                   = 0x1800
+	OneMinusSrcColor        = 0x0301
 	ColorBufferBit          = 0x00004000
 	DepthBufferBit          = 0x00000100
 )
@@ -279,6 +334,10 @@ func ClearColor(r, g, b, a float32) {
 
 func Clear(mask Handle) {
 	C.cglClear(C.GLbitfield(mask))
+}
+
+func Viewport(x, y, width, height int32) {
+	C.cglViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
 }
 
 func CreateShader(shaderType Handle) Handle {
@@ -354,6 +413,10 @@ func DeleteTextures(n int32, textures *Handle) {
 	C.cglDeleteTextures(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(textures)))
 }
 
+func DeleteFrameBuffers(n int32, framebuffers *Handle) {
+	C.cglDeleteFramebuffers(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(framebuffers)))
+}
+
 func GenVertexArrays(n int32, arrays *Handle) {
 	C.cglGenVertexArrays(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(arrays)))
 }
@@ -366,6 +429,10 @@ func GenTextures(n int32, textures *Handle) {
 	C.cglGenTextures(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(textures)))
 }
 
+func GenFrameBuffers(n int32, framebuffers *Handle) {
+	C.cglGenFramebuffers(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(framebuffers)))
+}
+
 func BindVertexArray(array Handle) {
 	C.cglBindVertexArray(array.AsGL())
 }
@@ -376,6 +443,10 @@ func BindBuffer(target Handle, buffer Handle) {
 
 func BindTexture(target Handle, texture Handle) {
 	C.cglBindTexture(C.GLenum(target), texture.AsGL())
+}
+
+func BindFrameBuffer(target Handle, framebuffer Handle) {
+	C.cglBindFramebuffer(C.GLenum(target), framebuffer.AsGL())
 }
 
 func Uniform1i(location Result, value int32) {
@@ -396,6 +467,10 @@ func GenerateMipmap(target Handle) {
 
 func GetTexImage(target Handle, level int32, format Handle, typ Handle, pixels unsafe.Pointer) {
 	C.cglGetTexImage(C.GLenum(target), C.GLint(level), C.GLenum(format), C.GLenum(typ), pixels)
+}
+
+func FrameBufferTexture2D(target Handle, attachment Handle, textarget Handle, texture Handle, level int32) {
+	C.cglFrameBufferTexture2D(C.GLenum(target), C.GLenum(attachment), C.GLenum(textarget), texture.AsGL(), C.GLint(level))
 }
 
 func TexParameteri(target Handle, pname Handle, param Handle) {
@@ -440,6 +515,10 @@ func UnBindVertexArray() {
 
 func UnBindTexture(target Handle) {
 	C.cglBindTexture(C.GLenum(target), 0)
+}
+
+func UnBindFrameBuffer(target Handle) {
+	C.cglBindFramebuffer(C.GLenum(target), 0)
 }
 
 func ActivateTexture(target Handle) {
@@ -493,6 +572,23 @@ func BlendFunc(src, dst Handle) {
 	C.cglBlendFunc(C.GLenum(src), C.GLenum(dst))
 }
 
+func BlendEquation(mode Handle) {
+	C.cglBlendEquation(C.GLenum(mode))
+}
+
 func FrontFace(mode Handle) {
 	C.cglFrontFace(C.GLenum(mode))
+}
+
+func CheckFrameBufferStatus(target Handle) Result {
+	res := C.cglCheckFramebufferStatus(C.GLenum(target))
+	return Result(res)
+}
+
+func DrawBuffers(buffers []Handle) {
+	C.cglDrawBuffers(C.GLsizei(len(buffers)), (*C.GLenum)(unsafe.Pointer(&buffers[0])))
+}
+
+func ClearBufferfv(buffer Handle, drawBuffer int32, value matrix.Vec4) {
+	C.cglClearBufferfv(C.GLenum(buffer), C.GLint(drawBuffer), (*C.GLfloat)(unsafe.Pointer(&value[0])))
 }

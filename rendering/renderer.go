@@ -7,6 +7,7 @@ import (
 )
 
 type Renderer interface {
+	Initialize(caches RenderCaches, width, height int32)
 	ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32)
 	CreateShader(shader *Shader, assetDatabase *assets.Database)
 	FreeShader(shader *Shader)
@@ -17,6 +18,7 @@ type Renderer interface {
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
 	Draw(drawings []ShaderDraw)
+	SwapFrame(width, height int32)
 }
 
 type ShaderId interface{}

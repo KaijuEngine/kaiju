@@ -6,11 +6,12 @@ import (
 )
 
 type Drawing struct {
-	Shader     *Shader
-	Mesh       *Mesh
-	Textures   []*Texture
-	ShaderData DrawInstance
-	Transform  *matrix.Transform
+	Shader      *Shader
+	Mesh        *Mesh
+	Textures    []*Texture
+	ShaderData  DrawInstance
+	Transform   *matrix.Transform
+	UseBlending bool
 }
 
 type Drawings struct {
@@ -48,7 +49,7 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, 
 	var dig *DrawInstanceGroup = nil
 	for i := 0; i < len(sd.instanceGroups) && dig == nil; i++ {
 		g := &sd.instanceGroups[i]
-		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Textures) {
+		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Textures) && dg.UseBlending == g.useBlending {
 			dig = g
 		}
 	}
@@ -68,6 +69,7 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
 		group.AddInstance(drawing.ShaderData)
 		group.Textures = drawing.Textures
+		group.useBlending = drawing.UseBlending
 		draw.instanceGroups = append(draw.instanceGroups, group)
 	}
 }

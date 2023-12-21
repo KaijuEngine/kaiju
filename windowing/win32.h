@@ -189,7 +189,7 @@ void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
 	}
 }
 
-void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
+void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
 	HMODULE hInstance = GetModuleHandle(NULL);
@@ -201,16 +201,16 @@ void window_main(const wchar_t* windowTitle, void* evtSharedMem, int size) {
     RegisterClass(&wc);
     // Create the window.
     HWND hwnd = CreateWindowEx(
-        0,						// Optional window styles.
-        className,				// Window class
-        windowTitle,			// Window text
-        WS_OVERLAPPEDWINDOW,	// Window style
-        // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        NULL,					// Parent window
-        NULL,					// Menu
-        hInstance,				// Instance handle
-        NULL					// Additional application data
+        0,								// Optional window styles.
+        className,						// Window class
+        windowTitle,					// Window text
+        WS_OVERLAPPEDWINDOW,			// Window style
+        CW_USEDEFAULT, CW_USEDEFAULT,	// Position
+		width, height,					// Size
+        NULL,							// Parent window
+        NULL,							// Menu
+        hInstance,						// Instance handle
+        NULL							// Additional application data
 	);
     if (hwnd == NULL) {
 		write_fatal(esm, size, "Failed to create window.");
