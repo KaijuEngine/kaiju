@@ -62,10 +62,10 @@ func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
 	C.window_create_gl_context(handle, evtSharedMem.AsPointer(), evtSharedMemSize)
 }
 
-func createWindow(windowName string, evtSharedMem *evtMem) {
+func createWindow(windowName string, width, height, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))
-	go C.window_main(title, evtSharedMem.AsPointer(), evtSharedMemSize)
+	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
 	evtSharedMem.AwaitReady()
 }
 

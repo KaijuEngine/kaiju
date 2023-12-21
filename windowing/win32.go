@@ -55,10 +55,10 @@ func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
 	C.window_create_gl_context(handle, evtSharedMem.AsPointer(), evtSharedMemSize)
 }
 
-func createWindow(windowName string, evtSharedMem *evtMem) {
+func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
-	go C.window_main(title, evtSharedMem.AsPointer(), evtSharedMemSize)
+	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
 }
 
 func swapBuffers(handle unsafe.Pointer) {

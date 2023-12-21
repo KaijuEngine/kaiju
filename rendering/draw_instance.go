@@ -61,6 +61,7 @@ type DrawInstanceGroup struct {
 	instanceData []byte
 	instanceSize int
 	padding      int
+	useBlending  bool
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {

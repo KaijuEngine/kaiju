@@ -8,6 +8,7 @@ import (
 	"kaiju/gl"
 	"kaiju/matrix"
 	"log"
+	"strings"
 	"unsafe"
 )
 
@@ -23,7 +24,22 @@ func (m MeshIdGL) IsValid() bool {
 }
 
 type GLRenderer struct {
-	globalShaderData GlobalShaderData
+	globalShaderData     GlobalShaderData
+	opaqueFBO            gl.Handle
+	transparentAccumFBO  gl.Handle
+	transparentRevealFBO gl.Handle
+	opaqueTexture        gl.Texture
+	depthTexture         gl.Texture
+	accumTexture         gl.Texture
+	revealTexture        gl.Texture
+	revealAccumTexture   gl.Texture
+	revealRevealTexture  gl.Texture
+	colorBuffer          gl.Handle
+	compositeShader      *Shader
+	hdrShader            *Shader
+	composeQuad          *Mesh
+	hdr                  int
+	exposure             float32
 }
 
 func NewGLRenderer() *GLRenderer {
@@ -44,10 +60,23 @@ func NewGLRenderer() *GLRenderer {
 	return r
 }
 
-func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle) gl.Handle {
+func (r *GLRenderer) Initialize(caches RenderCaches, width, height int32) {
+	r.setupOITFrameBuffer(width, height)
+	r.composeQuad = NewMeshUnitQuad(caches.MeshCache())
+	r.compositeShader = caches.ShaderCache().Shader(
+		assets.ShaderVertOitComposite, assets.ShaderFragOitComposite, "", "", "")
+	r.hdrShader = caches.ShaderCache().Shader(
+		assets.ShaderVertHdr, assets.ShaderFragHdr, "", "", "")
+}
+
+func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle, defines []string) (gl.Handle, string) {
 	src, err := assetDatabase.ReadText(shaderKey)
 	if err != nil {
 		panic(err)
+	}
+	if len(defines) > 0 {
+		defineStr := "#version 300 es\n#define " + strings.Join(defines, "\n#define ")
+		src = strings.Replace(src, "#version 300 es", defineStr, 1)
 	}
 	shaderObj := gl.CreateShader(shaderType)
 	gl.ShaderSource(shaderObj, src)
@@ -76,7 +105,7 @@ func createShaderObject(assetDatabase *assets.Database, shaderKey string, shader
 			log.Fatalf("Error compiling shader %s: There was an error compiling the shader and could not retrieve the error log for unknown reasons\n", sType)
 		}
 	}
-	return shaderObj
+	return shaderObj, src
 }
 
 func linkShader(vert, frag, geom, tesc, tese gl.Handle) gl.Handle {
@@ -102,18 +131,19 @@ func linkShader(vert, frag, geom, tesc, tese gl.Handle) gl.Handle {
 	return shader
 }
 
-func (r GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database) {
-	vert := createShaderObject(assetDatabase, shader.VertPath, gl.VertexShader)
-	frag := createShaderObject(assetDatabase, shader.FragPath, gl.FragmentShader)
+func (r *GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database) {
+	noDef := []string{}
+	vert, _ := createShaderObject(assetDatabase, shader.VertPath, gl.VertexShader, noDef)
+	frag, fragSrc := createShaderObject(assetDatabase, shader.FragPath, gl.FragmentShader, shader.Defines)
 	var geom, tesc, tese gl.Handle
 	if len(shader.GeomPath) > 0 {
-		geom = createShaderObject(assetDatabase, shader.GeomPath, gl.GeometryShader)
+		geom, _ = createShaderObject(assetDatabase, shader.GeomPath, gl.GeometryShader, noDef)
 	}
 	if len(shader.CtrlPath) > 0 {
-		tesc = createShaderObject(assetDatabase, shader.CtrlPath, gl.TessControlShader)
+		tesc, _ = createShaderObject(assetDatabase, shader.CtrlPath, gl.TessControlShader, noDef)
 	}
 	if len(shader.EvalPath) > 0 {
-		tese = createShaderObject(assetDatabase, shader.EvalPath, gl.TessEvaluationShader)
+		tese, _ = createShaderObject(assetDatabase, shader.EvalPath, gl.TessEvaluationShader, noDef)
 	}
 	shader.RenderId = linkShader(vert, frag, geom, tesc, tese)
 	gl.DeleteShader(vert)
@@ -126,6 +156,13 @@ func (r GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database)
 	}
 	if tese.IsValid() {
 		gl.DeleteShader(tese)
+	}
+	const def = "#define OIT"
+	const ifdef = "#ifdef OIT"
+	if !strings.Contains(fragSrc, def) && strings.Contains(fragSrc, ifdef) {
+		shader.SubShader = NewShader(shader.VertPath, shader.FragPath,
+			shader.GeomPath, shader.CtrlPath, shader.EvalPath, r)
+		shader.SubShader.Defines = append(shader.SubShader.Defines, "OIT")
 	}
 }
 
@@ -258,9 +295,7 @@ func (r GLRenderer) setGlobalUniforms(shader *Shader) {
 	gl.Uniform1f(timeLoc, r.globalShaderData.Time)
 }
 
-func (r GLRenderer) Draw(drawings []ShaderDraw) {
-	gl.ClearColor(0.392, 0.584, 0.929, 1.0)
-	gl.Clear(gl.ColorBufferBit | gl.DepthBufferBit)
+func (r *GLRenderer) draw(drawings []ShaderDraw) {
 	for _, sd := range drawings {
 		shaderId := sd.shader.RenderId.(gl.Handle)
 		gl.UseProgram(shaderId)
@@ -289,4 +324,57 @@ func (r GLRenderer) Draw(drawings []ShaderDraw) {
 			gl.UnBindVertexArray()
 		}
 	}
+}
+
+func (r GLRenderer) Draw(drawings []ShaderDraw) {
+	solids := make([]ShaderDraw, 0)
+	transparents := make([]ShaderDraw, 0)
+	for _, sd := range drawings {
+		ss := NewShaderDraw(sd.shader)
+		var st ShaderDraw
+		if sd.shader.SubShader != nil {
+			st = NewShaderDraw(sd.shader.SubShader)
+		} else {
+			st = NewShaderDraw(sd.shader)
+		}
+		for _, dg := range sd.instanceGroups {
+			if dg.useBlending {
+				st.AddInstanceGroup(&dg)
+			} else {
+				ss.AddInstanceGroup(&dg)
+			}
+		}
+		if len(ss.instanceGroups) > 0 {
+			solids = append(solids, ss)
+		}
+		if len(st.instanceGroups) > 0 {
+			transparents = append(transparents, st)
+		}
+	}
+	r.solidPass(solids, matrix.ColorCornflowerBlue())
+	r.transparentPass(transparents)
+}
+
+func (r *GLRenderer) SwapFrame(width, height int32) {
+	r.composePass()
+	gl.Disable(gl.DepthTest)
+	gl.DepthMask(true)
+	gl.Disable(gl.Blend)
+	gl.UnBindFrameBuffer(gl.FrameBuffer)
+	gl.Viewport(0, 0, width, height)
+	gl.ClearColor(1, 0, 1, 1)
+	gl.Clear(gl.ColorBufferBit | gl.DepthBufferBit | gl.StencilTest)
+	id := r.hdrShader.RenderId.(gl.Handle)
+	gl.UseProgram(id)
+	meshId := r.composeQuad.MeshId.(MeshIdGL)
+	gl.BindVertexArray(meshId.VAO)
+	gl.Uniform1i(gl.GetUniformLocation(id, "hdr"), int32(r.hdr))
+	gl.Uniform1f(gl.GetUniformLocation(id, "exposure"), r.exposure)
+	gl.ActivateTexture(gl.Texture0)
+	gl.BindTexture(gl.Texture2D, r.opaqueTexture)
+	gl.BindBuffer(gl.ElementArrayBuffer, meshId.EBO)
+	gl.DrawElementsInstanced(gl.Triangles, 6, gl.UnsignedInt, 0, 1)
+	gl.UnBindBuffer(gl.ElementArrayBuffer)
+	gl.UnBindTexture(gl.Texture2D)
+	gl.UnBindVertexArray()
 }
