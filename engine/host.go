@@ -70,6 +70,7 @@ func (host *Host) Update(deltaTime float64) {
 	//gl.ClearScreen()
 	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems
+	host.Window.EndUpdate()
 }
 
 func (host *Host) Render() {
