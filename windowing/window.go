@@ -34,6 +34,9 @@ type Window struct {
 	handle        unsafe.Pointer
 	Mouse         hid.Mouse
 	Keyboard      hid.Keyboard
+	Touch         hid.Touch
+	Stylus        hid.Stylus
+	Cursor        hid.Cursor
 	Renderer      rendering.Renderer
 	evtSharedMem  *evtMem
 	width, height int
@@ -43,11 +46,15 @@ type Window struct {
 
 func New(windowName string) (*Window, error) {
 	w := &Window{
+		Keyboard:     hid.NewKeyboard(),
 		Mouse:        hid.NewMouse(),
+		Touch:        hid.NewTouch(),
+		Stylus:       hid.NewStylus(),
 		width:        944,
 		height:       500,
 		evtSharedMem: new(evtMem),
 	}
+	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
 	createWindow(windowName, w.width, w.height, w.evtSharedMem)
 	w.evtSharedMem.AwaitReady()
@@ -162,6 +169,14 @@ func (w *Window) Poll() {
 	}
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
+	w.Cursor.Poll()
+}
+
+func (w *Window) EndUpdate() {
+	w.Keyboard.EndUpdate()
+	w.Mouse.EndUpdate()
+	w.Touch.EndUpdate()
+	w.Stylus.EndUpdate()
 }
 
 func (w *Window) SwapBuffers() {
