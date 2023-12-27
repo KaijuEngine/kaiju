@@ -36,6 +36,10 @@ func (v *Vec4) SetHeight(w Float)                 { v[Vw] = w }
 func (v Vec4) AsVec3() Vec3                       { return Vec3(v[:Vz]) }
 func (v Vec4) XYZW() (Float, Float, Float, Float) { return v[Vx], v[Vy], v[Vz], v[Vw] }
 
+func (v Vec4) AsVec4i() Vec4i {
+	return Vec4i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz]), int32(v[Vw])}
+}
+
 func NewVec4(x, y, z, w Float) Vec4 {
 	return Vec4{x, y, z, w}
 }

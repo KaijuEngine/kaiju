@@ -14,6 +14,8 @@ type Drawing struct {
 	UseBlending bool
 }
 
+func (d *Drawing) IsValid() bool { return d.Shader != nil }
+
 type Drawings struct {
 	draws []ShaderDraw
 }

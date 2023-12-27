@@ -3,7 +3,6 @@ package rendering
 import (
 	"kaiju/gl"
 	"kaiju/matrix"
-	"slices"
 	"unsafe"
 )
 
@@ -28,6 +27,10 @@ type ShaderDataBase struct {
 	transform   *matrix.Transform
 	initModel   matrix.Mat4
 	model       matrix.Mat4
+}
+
+func (s *ShaderDataBase) Size() int {
+	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
 }
 
 func (s *ShaderDataBase) Destroy()          { s.destroyed = true }
@@ -114,12 +117,14 @@ func (d *DrawInstanceGroup) texSize() (int32, int32) {
 func (d *DrawInstanceGroup) UpdateData() {
 	base := unsafe.Pointer(&d.instanceData[0])
 	offset := uintptr(0)
-	for i := 0; i < len(d.Instances); i++ {
+	count := len(d.Instances)
+	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
 		instance.UpdateModel()
 		if instance.IsDestroyed() {
-			d.Instances = slices.Delete(d.Instances, i, i+1)
+			d.Instances[i] = d.Instances[count-1]
 			i--
+			count--
 		} else if instance.IsActive() {
 			to := unsafe.Pointer(uintptr(base) + offset)
 			from := instance.DataPointer()
@@ -127,6 +132,9 @@ func (d *DrawInstanceGroup) UpdateData() {
 				unsafe.Slice((*byte)(from), d.instanceSize))
 			offset += uintptr(d.instanceSize + d.padding)
 		}
+	}
+	if count < len(d.Instances) {
+		d.Instances = d.Instances[:count]
 	}
 	gl.BindTexture(gl.Texture2D, d.TextureData)
 	w, h := d.texSize()

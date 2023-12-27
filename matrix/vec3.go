@@ -21,6 +21,10 @@ func (v *Vec3) SetZ(z Float)              { v[Vz] = z }
 func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vy]) }
 func (v Vec3) XYZ() (Float, Float, Float) { return v[Vx], v[Vy], v[Vz] }
 
+func (v Vec3) AsVec3i() Vec3i {
+	return Vec3i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz])}
+}
+
 func NewVec3(x, y, z Float) Vec3 {
 	return Vec3{x, y, z}
 }

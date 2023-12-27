@@ -64,9 +64,9 @@ func (r *GLRenderer) Initialize(caches RenderCaches, width, height int32) {
 	r.setupOITFrameBuffer(width, height)
 	r.composeQuad = NewMeshUnitQuad(caches.MeshCache())
 	r.compositeShader = caches.ShaderCache().Shader(
-		assets.ShaderVertOitComposite, assets.ShaderFragOitComposite, "", "", "")
+		assets.ShaderOitCompositeVert, assets.ShaderOitCompositeFrag, "", "", "")
 	r.hdrShader = caches.ShaderCache().Shader(
-		assets.ShaderVertHdr, assets.ShaderFragHdr, "", "", "")
+		assets.ShaderHdrVert, assets.ShaderHdrFrag, "", "", "")
 }
 
 func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle, defines []string) (gl.Handle, string) {

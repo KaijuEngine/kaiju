@@ -62,7 +62,7 @@ func setupBuildScripts(projectName, projTemplateFolder string) error {
 	return nil
 }
 
-func CreateNewProject(projectName, path string) error {
+func CreateNew(projectName, path string) error {
 	if filepath.Base(path) != projectName {
 		return errors.New("project name and path do not match")
 	}

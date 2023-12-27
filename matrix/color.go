@@ -49,6 +49,9 @@ func Color8FromColor(c Color) Color8 {
 	}
 }
 
+func (c Color) AsColor8() Color8 { return Color8FromColor(c) }
+func (c Color8) AsColor() Color  { return ColorFromColor8(c) }
+
 func (c Color8) Equal(rhs Color8) bool {
 	return c.R == rhs.R && c.G == rhs.G && c.B == rhs.B && c.A == rhs.A
 }

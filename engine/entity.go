@@ -2,6 +2,7 @@ package engine
 
 import (
 	"kaiju/matrix"
+	"slices"
 )
 
 type Entity struct {
@@ -9,6 +10,7 @@ type Entity struct {
 	Parent                          *Entity
 	Children                        []*Entity
 	matrix                          matrix.Mat4
+	namedData                       map[string][]interface{}
 	name                            string
 	destroyedFrames                 int8
 	isDestroyed                     bool
@@ -16,12 +18,13 @@ type Entity struct {
 	relativeTransformations         bool
 }
 
-func NewEntity() Entity {
-	return Entity{
+func NewEntity() *Entity {
+	return &Entity{
 		isActive:  true,
 		Children:  make([]*Entity, 0),
 		Transform: matrix.NewTransform(),
 		matrix:    matrix.Mat4Identity(),
+		namedData: make(map[string][]interface{}),
 		name:      "Entity",
 	}
 }
@@ -146,7 +149,7 @@ func (e *Entity) Matrix(base *matrix.Mat4) {
 	e.Transform.WorldMatrix(base)
 }
 
-func (e Entity) Clone(parentOverride *Entity) Entity {
+func (e Entity) Clone(parentOverride *Entity) *Entity {
 	clone := NewEntity()
 	if parentOverride == nil {
 		clone.SetParent(parentOverride)
@@ -154,8 +157,9 @@ func (e Entity) Clone(parentOverride *Entity) Entity {
 		clone.SetParent(e.Parent)
 	}
 	for _, c := range e.Children {
-		c.Clone(&clone)
+		c.Clone(clone)
 	}
+	// TODO: Clone named data
 	clone.Transform.Copy(e.Transform)
 	clone.isDestroyed = e.isDestroyed
 	clone.name = e.name
@@ -292,4 +296,29 @@ func (e Entity) IsActive() bool {
 
 func (e Entity) IsDestroyed() bool {
 	return e.isDestroyed
+}
+
+func (e *Entity) AddNamedData(key string, data interface{}) {
+	if _, ok := e.namedData[key]; !ok {
+		e.namedData[key] = make([]interface{}, 0)
+	}
+	e.namedData[key] = append(e.namedData[key], data)
+}
+
+func (e *Entity) RemoveNamedData(key string, data interface{}) {
+	if _, ok := e.namedData[key]; ok {
+		for i := range e.namedData[key] {
+			if e.namedData[key][i] == data {
+				e.namedData[key] = slices.Delete(e.namedData[key], i, i+1)
+				break
+			}
+		}
+	}
+}
+
+func (e *Entity) NamedData(key string) []interface{} {
+	if _, ok := e.namedData[key]; ok {
+		return e.namedData[key]
+	}
+	return nil
 }

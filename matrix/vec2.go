@@ -21,6 +21,10 @@ func (v *Vec2) SetWidth(x Float)  { v[Vx] = x }
 func (v *Vec2) SetHeight(y Float) { v[Vy] = y }
 func (v Vec2) XY() (Float, Float) { return v[Vx], v[Vy] }
 
+func (v Vec2) AsVec2i() Vec2i {
+	return Vec2i{int32(v[Vx]), int32(v[Vy])}
+}
+
 func NewVec2(x, y Float) Vec2 {
 	return Vec2{x, y}
 }
