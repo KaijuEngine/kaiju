@@ -57,6 +57,20 @@ func (host *Host) MeshCache() *rendering.MeshCache       { return &host.meshCach
 func (host *Host) FontCache() *rendering.FontCache       { return &host.fontCache }
 func (host *Host) AssetDatabase() *assets.Database       { return &host.assetDatabase }
 
+func (host *Host) AddEntity(entity *Entity) {
+	host.entities = append(host.entities, entity)
+}
+
+func (host *Host) AddEntities(entities ...*Entity) {
+	host.entities = append(host.entities, entities...)
+}
+
+func (host *Host) NewEntity() *Entity {
+	entity := NewEntity()
+	host.AddEntity(entity)
+	return entity
+}
+
 func (host *Host) Update(deltaTime float64) {
 	host.Window.Poll()
 	host.Updater.Update(deltaTime)

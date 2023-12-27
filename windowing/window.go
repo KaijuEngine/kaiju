@@ -183,3 +183,26 @@ func (w *Window) SwapBuffers() {
 	w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height()))
 	swapBuffers(w.handle)
 }
+
+func (w Window) GetDPI() (int, int, error) {
+	// TODO:  Actually get the DPI
+	return 96, 96, nil
+}
+
+func (w Window) IsPhoneSize() bool {
+	wmm, hmm, _ := w.GetDPI()
+	return wmm < 178 || hmm < 170
+}
+
+func (w Window) IsPCSize() bool {
+	wmm, hmm, _ := w.GetDPI()
+	return wmm > 254 || hmm > 254
+}
+
+func (w Window) IsTabletSize() bool {
+	return !w.IsPhoneSize() && !w.IsPCSize()
+}
+
+func DPI2PX(pixels, mm, targetMM int) int {
+	return targetMM * (pixels / mm)
+}

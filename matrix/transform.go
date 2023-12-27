@@ -226,3 +226,24 @@ func (t *Transform) SetWorldScale(scale Vec3) {
 	}
 	p.SetScale(scale)
 }
+
+func (t *Transform) ContainsPoint2D(point Vec2) bool {
+	p, _, s := t.WorldTransform()
+	l := p.X() - (s.X() * 0.5)
+	r := p.X() + (s.X() * 0.5)
+	u := p.Y() + (s.Y() * 0.5)
+	d := p.Y() - (s.Y() * 0.5)
+	return point.X() >= l && point.X() <= r && point.Y() >= d && point.Y() <= u
+}
+
+func (t *Transform) ContainsPoint(point Vec3) bool {
+	p, _, s := t.WorldTransform()
+	l := p.X() - (s.X() * 0.5)
+	r := p.X() + (s.X() * 0.5)
+	u := p.Y() + (s.Y() * 0.5)
+	d := p.Y() - (s.Y() * 0.5)
+	f := p.Z() - (s.Z() * 0.5)
+	b := p.Z() + (s.Z() * 0.5)
+	return point.X() >= l && point.X() <= r && point.Y() >= d &&
+		point.Y() <= u && point.Z() >= f && point.Z() <= b
+}
