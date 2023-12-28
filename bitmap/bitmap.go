@@ -8,6 +8,14 @@ func New(length int) Bitmap {
 	return make([]byte, LengthFor(length))
 }
 
+func NewTrue(length int) Bitmap {
+	b := make([]byte, LengthFor(length))
+	for i := 0; i < len(b); i++ {
+		b[i] = 0xFF
+	}
+	return b
+}
+
 func LengthFor(byteCount int) int {
 	return (byteCount / bitsInByte) + 1
 }
