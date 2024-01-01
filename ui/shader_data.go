@@ -9,8 +9,8 @@ import (
 type ShaderData struct {
 	rendering.ShaderDataBase
 	UVs       matrix.Vec4
-	FGColor   matrix.Vec4
-	BGColor   matrix.Vec4
+	FGColor   matrix.Color
+	BGColor   matrix.Color
 	Scissor   matrix.Vec4
 	Size2D    matrix.Vec4
 	BorderLen matrix.Vec2

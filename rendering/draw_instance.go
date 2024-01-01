@@ -34,6 +34,7 @@ func (s *ShaderDataBase) Size() int {
 }
 
 func (s *ShaderDataBase) Destroy()          { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()    { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool { return s.destroyed }
 func (s *ShaderDataBase) Activate()         { s.deactivated = false }
 func (s *ShaderDataBase) Deactivate()       { s.deactivated = true }

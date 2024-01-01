@@ -332,9 +332,10 @@ func (layout *Layout) setBounds() {
 	}
 }
 
-func (layout *Layout) initialize() {
+func (layout *Layout) initialize(ui UI, anchor Anchor) {
 	layout.anchor = matrix.Vec2Zero()
-	layout.AnchorTo(AnchorTopLeft)
+	layout.ui = ui
+	layout.AnchorTo(anchor)
 	layout.prepare()
 	layout.update()
 }

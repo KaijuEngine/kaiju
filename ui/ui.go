@@ -35,12 +35,14 @@ type UI interface {
 	SetDirty(dirtyType DirtyType)
 	Layout() *Layout
 	ShaderData() *ShaderData
+	Clean()
+	SetGroup(group *Group)
 	generateScissor()
 	hasScissor() bool
+	selfScissor() matrix.Vec4
 	selfHost() *engine.Host
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
-	clean()
 }
 
 type uiBase struct {
@@ -63,19 +65,22 @@ type uiBase struct {
 	disconnectedScissor bool
 }
 
-func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2) {
+func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor) {
 	ui.host = host
 	ui.entity = host.NewEntity()
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
+	ui.layout.initialize(ui, anchor)
 }
 
-func (ui *uiBase) Entity() *engine.Entity  { return ui.entity }
-func (ui *uiBase) Layout() *Layout         { return &ui.layout }
-func (ui *uiBase) hasScissor() bool        { return ui.scissor.X() > -matrix.FloatMax }
-func (ui *uiBase) selfHost() *engine.Host  { return ui.host }
-func (ui *uiBase) dirty() DirtyType        { return ui.dirtyType }
-func (ui *uiBase) ShaderData() *ShaderData { return &ui.shaderData }
+func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
+func (ui *uiBase) Layout() *Layout          { return &ui.layout }
+func (ui *uiBase) hasScissor() bool         { return ui.scissor.X() > -matrix.FloatMax }
+func (ui *uiBase) selfHost() *engine.Host   { return ui.host }
+func (ui *uiBase) selfScissor() matrix.Vec4 { return ui.scissor }
+func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
+func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
+func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].execute()
@@ -110,7 +115,7 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *uiBase) clean() {
+func (ui *uiBase) Clean() {
 	ui.layout.update()
 	if !ui.events[EventTypeRebuild].isEmpty() {
 		ui.ExecuteEvent(EventTypeRebuild)
@@ -132,7 +137,7 @@ func cleanParent(host *engine.Host, entity *engine.Entity) {
 	all := AllOnEntity(entity)
 	for i := 0; i < len(all); i++ {
 		if all[i].dirty() != DirtyTypeNone {
-			all[i].clean()
+			all[i].Clean()
 		}
 	}
 }
@@ -230,7 +235,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 		if ui.entity.Parent != nil {
 			cleanParent(ui.selfHost(), ui.entity.Parent)
 		}
-		ui.clean()
+		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
