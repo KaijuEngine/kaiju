@@ -1,10 +1,12 @@
 package main
 
 import (
+	"kaiju/assets"
 	"kaiju/bootstrap"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/ui"
 	"runtime"
 	"time"
 	"unsafe"
@@ -96,6 +98,13 @@ func testOIT(host *engine.Host) {
 	}
 }
 
+func testPanel(host *engine.Host) {
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	p := ui.NewPanel(host, ui.AnchorBottomLeft, tex)
+	p.Layout().Scale(128, 128)
+	p.Layout().SetOffset(10, 10)
+}
+
 func main() {
 	lastTime := time.Now()
 	host, err := engine.NewHost()
@@ -108,7 +117,8 @@ func main() {
 	host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 	//testDrawing(&host)
 	//testFont(&host)
-	testOIT(&host)
+	//testOIT(&host)
+	testPanel(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()

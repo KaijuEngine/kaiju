@@ -4,6 +4,7 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/rendering"
 	"kaiju/windowing"
 )
 
@@ -35,12 +36,14 @@ type UI interface {
 	SetDirty(dirtyType DirtyType)
 	Layout() *Layout
 	ShaderData() *ShaderData
+	Clean()
+	SetGroup(group *Group)
 	generateScissor()
 	hasScissor() bool
+	selfScissor() matrix.Vec4
 	selfHost() *engine.Host
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
-	clean()
 }
 
 type uiBase struct {
@@ -48,7 +51,6 @@ type uiBase struct {
 	entity              *engine.Entity
 	events              [EventTypeEnd]uiEvent
 	group               *Group
-	scissor             matrix.Vec4
 	dragStartPos        matrix.Vec3
 	downPos             matrix.Vec2
 	layout              Layout
@@ -63,19 +65,24 @@ type uiBase struct {
 	disconnectedScissor bool
 }
 
-func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2) {
+func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
 	ui.entity = host.NewEntity()
-	ui.entity.AddNamedData(EntityDataName, ui)
+	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
+	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
+	ui.layout.initialize(ui, anchor)
 }
 
-func (ui *uiBase) Entity() *engine.Entity  { return ui.entity }
-func (ui *uiBase) Layout() *Layout         { return &ui.layout }
-func (ui *uiBase) hasScissor() bool        { return ui.scissor.X() > -matrix.FloatMax }
-func (ui *uiBase) selfHost() *engine.Host  { return ui.host }
-func (ui *uiBase) dirty() DirtyType        { return ui.dirtyType }
-func (ui *uiBase) ShaderData() *ShaderData { return &ui.shaderData }
+func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
+func (ui *uiBase) Layout() *Layout          { return &ui.layout }
+func (ui *uiBase) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *uiBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
+func (ui *uiBase) selfHost() *engine.Host   { return ui.host }
+func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
+func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
+func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].execute()
@@ -110,7 +117,7 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *uiBase) clean() {
+func (ui *uiBase) Clean() {
 	ui.layout.update()
 	if !ui.events[EventTypeRebuild].isEmpty() {
 		ui.ExecuteEvent(EventTypeRebuild)
@@ -132,7 +139,7 @@ func cleanParent(host *engine.Host, entity *engine.Entity) {
 	all := AllOnEntity(entity)
 	for i := 0; i < len(all); i++ {
 		if all[i].dirty() != DirtyTypeNone {
-			all[i].clean()
+			all[i].Clean()
 		}
 	}
 }
@@ -155,7 +162,7 @@ func (ui *uiBase) setScissor(scissor matrix.Vec4) {
 	if ui.disconnectedScissor {
 		return
 	}
-	ui.scissor = scissor
+	ui.shaderData.Scissor = scissor
 	for i := 0; i < len(ui.entity.Children); i++ {
 		cUI := FirstOnEntity(ui.entity.Children[i])
 		if cUI != nil {
@@ -230,7 +237,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 		if ui.entity.Parent != nil {
 			cleanParent(ui.selfHost(), ui.entity.Parent)
 		}
-		ui.clean()
+		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
@@ -244,7 +251,7 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	cp := ui.cursorPos(cursor)
 	contained := entity.Transform.ContainsPoint2D(cp)
 	if contained && ui.hasScissor() {
-		contained = ui.scissor.ScreenAreaContains(cp.X(), cp.Y())
+		contained = ui.shaderData.Scissor.ScreenAreaContains(cp.X(), cp.Y())
 	}
 	if !ui.hovering && contained {
 		ui.hovering = true

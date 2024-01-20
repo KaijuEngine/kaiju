@@ -125,6 +125,9 @@ func (t *Transform) UpdateMatrix() {
 }
 
 func (t Transform) Matrix() Mat4 {
+	if t.isDirty {
+		t.UpdateMatrix()
+	}
 	return t.matrix
 }
 

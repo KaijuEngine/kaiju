@@ -108,7 +108,7 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 func (q Quaternion) ToEuler() Vec3 {
 	out := Vec3{}
 	m := q.ToMat4()
-	out[Vy] = Rad2Deg(Asin(clamp(m[x0y2], -1.0, 1.0)))
+	out[Vy] = Rad2Deg(Asin(Clamp(m[x0y2], -1.0, 1.0)))
 	if Abs(m[x0y2]) < 0.9999999 {
 		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
 		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
