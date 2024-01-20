@@ -16,6 +16,7 @@ type DrawInstance interface {
 	SetModel(model matrix.Mat4)
 	UpdateModel()
 	DataPointer() unsafe.Pointer
+	setTransform(transform *matrix.Transform)
 }
 
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
@@ -29,15 +30,26 @@ type ShaderDataBase struct {
 	model       matrix.Mat4
 }
 
+func NewShaderDataBase() ShaderDataBase {
+	sdb := ShaderDataBase{}
+	sdb.SetModel(matrix.Mat4Identity())
+	return sdb
+}
+
 func (s *ShaderDataBase) Size() int {
 	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
 }
 
 func (s *ShaderDataBase) Destroy()          { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()    { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool { return s.destroyed }
 func (s *ShaderDataBase) Activate()         { s.deactivated = false }
 func (s *ShaderDataBase) Deactivate()       { s.deactivated = true }
 func (s *ShaderDataBase) IsActive() bool    { return !s.deactivated }
+
+func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
+	s.transform = transform
+}
 
 func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 	s.initModel = model

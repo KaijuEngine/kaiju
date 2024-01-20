@@ -65,6 +65,7 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 		d.draws = append(d.draws, newDraw)
 		draw = &d.draws[len(d.draws)-1]
 	}
+	drawing.ShaderData.setTransform(drawing.Transform)
 	if dg, ok := d.matchGroup(draw, &drawing); ok {
 		dg.AddInstance(drawing.ShaderData)
 	} else {

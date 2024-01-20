@@ -221,6 +221,8 @@ func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, 
 func (t *Texture) create(imgBuff []byte) {
 	data := t.createData(imgBuff, 0, 0, t.Key)
 	t.pendingData = &data
+	t.Width = data.Width
+	t.Height = data.Height
 }
 
 func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {

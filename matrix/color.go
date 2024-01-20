@@ -231,7 +231,8 @@ func ColorSteelBlue() Color            { return Color{0.275, 0.51, 0.706, 1} }
 func ColorThistle() Color              { return Color{0.847, 0.749, 0.847, 1} }
 func ColorWhiteSmoke() Color           { return Color{0.961, 0.961, 0.961, 1} }
 func ColorYellowGreen() Color          { return Color{0.604, 0.804, 0.196, 1} }
-func ColorTransparent() Color          { return Color{0, 0, 0, 0} }
+func ColorTransparent() Color          { return Color{1, 1, 1, 0} }
+func ColorZero() Color                 { return Color{0, 0, 0, 0} }
 
 func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
 	return uint8(AbsInt(int(lhs.R)-int(rhs.R))) <= tolerance &&
@@ -239,3 +240,6 @@ func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
 		uint8(AbsInt(int(lhs.B)-int(rhs.B))) <= tolerance &&
 		uint8(AbsInt(int(lhs.A)-int(rhs.A))) <= tolerance
 }
+
+func (lhs Color) Equals(rhs Color) bool { return Vec4(lhs).Equals(Vec4(rhs)) }
+func (c Color) IsZero() bool            { return c.Equals(ColorZero()) }
