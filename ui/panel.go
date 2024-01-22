@@ -47,7 +47,6 @@ type Panel struct {
 	color                         matrix.Color
 	drawing                       rendering.Drawing
 	localData                     any
-	updateId                      int
 	isScrolling, dragging, frozen bool
 	isButton                      bool
 	fitContent                    bool
@@ -62,12 +61,12 @@ func NewPanel(host *engine.Host, anchor Anchor, texture *rendering.Texture) *Pan
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
 		fitContent:        true,
 	}
+	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.init(host, texture.Size(), anchor, panel)
 	panel.entity.Transform.SetScale(matrix.Vec3{1.0, 1.0, 1.0})
 	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
 	panel.ensureBGExists(texture)
-	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	return panel
 }
 
@@ -387,14 +386,14 @@ func (panel *Panel) removeDrawing() {
 
 func (panel *Panel) SetColor(bgColor matrix.Color) {
 	panel.ensureBGExists(nil)
-	hasBlending := panel.shaderData.FGColor.A() < 1.0
+	hasBlending := panel.shaderData.FgColor.A() < 1.0
 	shouldBlend := bgColor.A() < 1.0
 	if hasBlending != shouldBlend {
 		panel.recreateDrawing()
 		panel.drawing.UseBlending = shouldBlend
 		panel.host.Drawings.AddDrawing(panel.drawing)
 	}
-	panel.shaderData.FGColor = bgColor
+	panel.shaderData.FgColor = bgColor
 }
 
 func (panel *Panel) SetScrollX(value float32) {
@@ -420,8 +419,8 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 		shader := panel.host.ShaderCache().Shader(assets.ShaderUIVert,
 			assets.ShadersUINineFrag, "", "", "")
 		panel.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
-		panel.shaderData.BGColor = panel.color
-		panel.shaderData.FGColor = panel.color
+		panel.shaderData.BgColor = panel.color
+		panel.shaderData.FgColor = panel.color
 		panel.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		panel.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
