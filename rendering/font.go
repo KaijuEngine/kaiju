@@ -130,11 +130,11 @@ type FontCache struct {
 
 type TextShaderData struct {
 	ShaderDataBase
-	UVs     [4]float32
-	FgColor [4]float32
-	BgColor [4]float32
-	Scissor [4]float32
-	PxRange [2]float32
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+	BgColor matrix.Color
+	Scissor matrix.Vec4
+	PxRange matrix.Vec2
 }
 
 func (s TextShaderData) Size() int {
@@ -436,7 +436,9 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					clm = cache.cachedMeshLetter(fontFace, c, !is3D)
 				}
 				var m *Mesh
-				shaderData := TextShaderData{}
+				shaderData := TextShaderData{
+					ShaderDataBase: NewShaderDataBase(),
+				}
 				model := matrix.Mat4Identity()
 				if clm == nil {
 					var verts [4]Vertex
@@ -470,7 +472,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
 					model.Scale(matrix.Vec3{scale * inverseWidth, scale * inverseHeight, 1.0})
-					model.Translate(matrix.Vec3{xpos / inverseWidth, (ypos + h) / inverseHeight, z})
+					model.Translate(matrix.Vec3{xpos, (ypos + h), z})
 					uvs = clm.uvs
 					m = clm.mesh
 				}

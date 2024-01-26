@@ -137,8 +137,7 @@ func (t *Transform) WorldMatrix(base *Mat4) {
 	m.Scale(t.scale)
 	m.Rotate(t.rotation)
 	m.Translate(t.position)
-	bPos := base.Position()
-	dPos := t.position.Add(bPos)
+	dPos := t.position.Add(base.Position())
 	base.MultiplyAssign(m)
 	base.SetTranslation(dPos)
 	if t.parent != nil {

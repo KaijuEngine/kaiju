@@ -105,6 +105,11 @@ func testPanel(host *engine.Host) {
 	p.Layout().SetOffset(10, 10)
 }
 
+func testLabel(host *engine.Host) {
+	l := ui.NewLabel(host, "Hello, World!", ui.AnchorBottomCenter)
+	l.Layout().Scale(100, 50)
+}
+
 func main() {
 	lastTime := time.Now()
 	host, err := engine.NewHost()
@@ -118,7 +123,8 @@ func main() {
 	//testDrawing(&host)
 	//testFont(&host)
 	//testOIT(&host)
-	testPanel(&host)
+	//testPanel(&host)
+	testLabel(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()

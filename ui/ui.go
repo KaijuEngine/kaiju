@@ -57,6 +57,7 @@ type uiBase struct {
 	dirtyType           DirtyType
 	shaderData          ShaderData
 	textureSize         matrix.Vec2
+	updateId            int
 	hovering            bool
 	cantMiss            bool
 	isDown              bool
@@ -73,6 +74,9 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui, anchor)
+	if ui.updateId == 0 {
+		ui.updateId = host.Updater.AddUpdate(ui.Update)
+	}
 }
 
 func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
