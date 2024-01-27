@@ -297,7 +297,7 @@ func (vr Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ver
 	} else {
 		var data unsafe.Pointer
 		vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-		vk.MemCopy(data, klib.StructSliceToByteArray(verts))
+		vk.Memcopy(data, klib.StructSliceToByteArray(verts))
 		vk.UnmapMemory(vr.device, stagingBufferMemory)
 		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
 			log.Printf("%s", "Failed to create from staging buffer for the verts")
@@ -324,7 +324,7 @@ func (vr Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, ind
 	}
 	var data unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-	vk.MemCopy(data, klib.StructSliceToByteArray(indices))
+	vk.Memcopy(data, klib.StructSliceToByteArray(indices))
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
 		log.Printf("%s", "Failed to create the index buffer")
@@ -397,7 +397,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera *cameras.StandardCamera, uiCa
 	}
 	var data unsafe.Pointer
 	vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame], 0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
-	vk.MemCopy(data, klib.StructToByteArray(ubo))
+	vk.Memcopy(data, klib.StructToByteArray(ubo))
 	vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame])
 }
 
@@ -525,7 +525,7 @@ func (vr Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, w
 	vr.CreateBuffer(vk.DeviceSize(len(buffer)), vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(len(buffer)), 0, &stageData)
-	vk.MemCopy(stageData, buffer)
+	vk.Memcopy(stageData, buffer)
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 
 	commandBuffer := vr.beginSingleTimeCommands()
@@ -1611,7 +1611,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		return nil, errors.New("failed to create Vulkan instance")
 	}
 
-	if !vk.Win32SurfaceCreateInfoKHRHelper(window.PlatformWindow(), window.PlatformInstance(), vr.instance, &vr.surface) {
+	if !vr.createSurface(window) {
 		return nil, errors.New("failed to create window surface")
 	}
 	//vr.surface = vk.SurfaceFromPointer(uintptr(surface))
@@ -2683,7 +2683,7 @@ func (vr Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		&stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(memLen), 0, &stageData)
-	vk.MemCopy(stageData, data.Mem)
+	vk.Memcopy(stageData, data.Mem)
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1
