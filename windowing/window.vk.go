@@ -13,5 +13,6 @@ func (w *Window) GetDrawableSize() (int32, int32) {
 }
 
 func (w *Window) GetInstanceExtensions() []string {
-	return []string{}
+	// TODO:  VK_KHR_win32_surface is windows specific
+	return []string{"VK_KHR_surface", "VK_KHR_win32_surface"}
 }

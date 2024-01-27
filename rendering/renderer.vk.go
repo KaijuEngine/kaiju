@@ -121,6 +121,11 @@ type Vulkan struct {
 	oit                        oitPass
 }
 
+func init() {
+	vk.SetGetInstanceProcAddr(C.vkGetInstanceProcAddr)
+	klib.Must(vk.Init())
+}
+
 /******************************************************************************/
 /* Helpers                                                                    */
 /******************************************************************************/
@@ -1258,10 +1263,6 @@ func (vr *Vulkan) createDefaultFrameBuffer() bool {
 
 func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 	sdlExtensions := vr.window.GetInstanceExtensions()
-	if len(sdlExtensions) == 0 {
-		log.Fatal("Failed to get the extension list for Vulkan from SDL")
-		return false
-	}
 	added := make([]string, 0, 3)
 	if useValidationLayers {
 		added = append(added, vk.ExtDebugReportExtensionName+"\x00")
