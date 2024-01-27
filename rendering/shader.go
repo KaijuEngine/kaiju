@@ -9,13 +9,15 @@ import (
 type Shader struct {
 	RenderId  ShaderId
 	SubShader *Shader
+	DrawMode  MeshDrawMode
+	CullMode  MeshCullMode
 	KeyName   string
 	VertPath  string
 	FragPath  string
 	GeomPath  string
 	CtrlPath  string
 	EvalPath  string
-	Defines   []string // TODO:  This is only for GL...
+	ShaderDriverData
 }
 
 func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) string {
@@ -24,14 +26,16 @@ func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath
 
 func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderer Renderer) *Shader {
 	s := &Shader{
-		SubShader: nil,
-		KeyName:   createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
-		VertPath:  vertPath,
-		FragPath:  fragPath,
-		GeomPath:  geomPath,
-		CtrlPath:  ctrlPath,
-		EvalPath:  evalPath,
-		Defines:   make([]string, 0),
+		SubShader:        nil,
+		KeyName:          createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
+		DrawMode:         MeshDrawModeTriangles,
+		CullMode:         MeshCullModeBack,
+		VertPath:         vertPath,
+		FragPath:         fragPath,
+		GeomPath:         geomPath,
+		CtrlPath:         ctrlPath,
+		EvalPath:         evalPath,
+		ShaderDriverData: NewDriverData(),
 	}
 	runtime.SetFinalizer(s, func(shader *Shader) {
 		renderer.FreeShader(shader)
@@ -46,4 +50,8 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 		// TODO:  Make this not needed
 		s.SubShader.SubShader = nil
 	}
+}
+
+func (s *Shader) IsComposite() bool {
+	return s.FragPath == assets.ShaderOitCompositeFrag
 }

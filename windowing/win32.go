@@ -51,10 +51,6 @@ func (e evtMem) toEventType() eventType {
 	}
 }
 
-func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
-	C.window_create_gl_context(handle, evtSharedMem.AsPointer(), evtSharedMemSize)
-}
-
 func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))

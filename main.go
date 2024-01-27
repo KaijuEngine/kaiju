@@ -48,6 +48,7 @@ func testDrawing(host *engine.Host) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		host.Drawings.AddDrawing(rendering.Drawing{
+			Renderer:   host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       mesh,
 			Textures:   []*rendering.Texture{droidTex},
@@ -88,6 +89,7 @@ func testOIT(host *engine.Host) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		host.Drawings.AddDrawing(rendering.Drawing{
+			Renderer:    host.Window.Renderer,
 			Shader:      shader,
 			Mesh:        mesh,
 			Textures:    []*rendering.Texture{droidTex},

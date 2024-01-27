@@ -9,7 +9,10 @@
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
+
+#ifdef OPENGL
 #include "../gl/dist/glad_wgl.h"
+#endif
 
 int shared_mem_set_thread_priority(SharedMem* sm) {
 	int priority = GetThreadPriority(GetCurrentThread());
@@ -114,6 +117,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+#ifdef OPENGL
 const char* setupOpenGLContext(HWND hwnd) {
 	PIXELFORMATDESCRIPTOR pfd = { 0 };
 	pfd.nSize = sizeof(pfd);
@@ -188,6 +192,7 @@ void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
 		return;
 	}
 }
+#endif
 
 void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
@@ -218,6 +223,7 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     }
 	SharedMem sm = {esm, size};
 	memcpy(esm+SHARED_MEM_DATA_START, &hwnd, sizeof(HWND*));
+	memcpy(esm+SHARED_MEM_DATA_START+sizeof(&hwnd), &hInstance, sizeof(HMODULE*));
 	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
 	// Context should be created in Go here on go main thread
 	shared_memory_wait_for_available(&sm);

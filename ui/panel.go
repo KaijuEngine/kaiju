@@ -425,6 +425,7 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 		panel.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		panel.drawing = rendering.Drawing{
+			Renderer:   panel.host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       rendering.NewMeshQuad(panel.host.MeshCache()),
 			Textures:   []*rendering.Texture{tex},

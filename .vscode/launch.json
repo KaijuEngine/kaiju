@@ -5,44 +5,88 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch Windows Editor",
+			"name": "Launch Windows Editor (VK)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"buildFlags": "-tags editor",
+			"env": {
+				"CGO_LDFLAGS": "-lgdi32",
+				"CGO_CFLAGS": "-DVK_USE_PLATFORM_WIN32_KHR"
+			}
+		}, {
+			"name": "Launch Windows Editor (GL)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor,OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32",
+				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {
-			"name": "Launch Windows Runtime",
+			"name": "Launch Windows Runtime (VK)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"env": {
+				"CGO_LDFLAGS": "-lgdi32",
+				"CGO_CFLAGS": "-DVK_USE_PLATFORM_WIN32_KHR"
+			}
+		}, {
+			"name": "Launch Windows Runtime (GL)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32",
+				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {
-			"name": "Launch X11 Editor",
+			"name": "Launch X11 Editor (VK)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"buildFlags": "-tags editor",
+			"env": {
+				"CGO_LDFLAGS": "-lX11"
+			}
+		}, {
+			"name": "Launch X11 Editor (GL)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor,OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lX11 -lGL"
+				"CGO_LDFLAGS": "-lX11 -lGL",
+				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {
-			"name": "Launch X11 Runtime",
+			"name": "Launch X11 Runtime (VK)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}",
+			"env": {
+				"CGO_LDFLAGS": "-lX11"
+			}
+		}, {
+			"name": "Launch X11 Runtime (GL)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lX11 -lGL"
+				"CGO_LDFLAGS": "-lX11 -lGL",
+				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}
 	]

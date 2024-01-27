@@ -1,7 +1,6 @@
 package rendering
 
 import (
-	"kaiju/gl"
 	"kaiju/matrix"
 	"unsafe"
 )
@@ -69,8 +68,8 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 }
 
 type DrawInstanceGroup struct {
-	Mesh         *Mesh
-	TextureData  gl.Handle
+	Mesh *Mesh
+	InstanceDriverData
 	Textures     []*Texture
 	Instances    []DrawInstance
 	instanceData []byte
@@ -89,25 +88,27 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 	}
 }
 
+func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
+	d.padding = d.instanceSize % blockSize
+}
+
 func (d *DrawInstanceGroup) IsEmpty() bool {
 	return len(d.Instances) == 0
 }
 
-func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
-	d.Instances = append(d.Instances, instance)
-	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
-	d.generateTexture()
+func (d *DrawInstanceGroup) IsReady() bool {
+	// TODO:  Check if textures are ready?
+	return d.Mesh.IsReady() && !d.IsEmpty()
 }
 
-func (d *DrawInstanceGroup) generateTexture() {
-	gl.DeleteTextures(1, &d.TextureData)
-	gl.GenTextures(1, &d.TextureData)
-	gl.BindTexture(gl.Texture2D, d.TextureData)
-	gl.TexParameteri(gl.Texture2D, gl.TextureWrapS, gl.ClampToEdge)
-	gl.TexParameteri(gl.Texture2D, gl.TextureWrapT, gl.ClampToEdge)
-	gl.TexParameteri(gl.Texture2D, gl.TextureMinFilter, gl.Nearest)
-	gl.TexParameteri(gl.Texture2D, gl.TextureMagFilter, gl.Nearest)
-	gl.UnBindTexture(gl.Texture2D)
+func (d *DrawInstanceGroup) TotalSize() int {
+	return len(d.Instances) * (d.instanceSize + d.padding)
+}
+
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader) {
+	d.Instances = append(d.Instances, instance)
+	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
+	d.generateInstanceDriverData(renderer, shader)
 }
 
 func (d *DrawInstanceGroup) texSize() (int32, int32) {
@@ -148,9 +149,5 @@ func (d *DrawInstanceGroup) UpdateData() {
 	if count < len(d.Instances) {
 		d.Instances = d.Instances[:count]
 	}
-	gl.BindTexture(gl.Texture2D, d.TextureData)
-	w, h := d.texSize()
-	gl.TexImage2D(gl.Texture2D, 0, gl.RGBA32F, w, h, 0,
-		gl.RGBA, gl.Float, unsafe.Pointer(&d.instanceData[0]))
-	gl.UnBindTexture(gl.Texture2D)
+	d.bindInstanceDriverData()
 }
