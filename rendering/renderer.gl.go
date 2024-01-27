@@ -75,9 +75,15 @@ func createShaderObject(assetDatabase *assets.Database, shaderKey string, shader
 	if err != nil {
 		panic(err)
 	}
+	// TODO:  Setup this so it supports other versions
+	const vulkanVersion = "#version 460"
+	const glVersion = "#version 300 es\nprecision mediump float;"
+	if strings.HasPrefix(src, vulkanVersion) {
+		src = strings.Replace(src, vulkanVersion, glVersion, 1)
+	}
 	if len(defines) > 0 {
-		defineStr := "#version 300 es\n#define " + strings.Join(defines, "\n#define ")
-		src = strings.Replace(src, "#version 300 es", defineStr, 1)
+		defineStr := glVersion + "\n#define " + strings.Join(defines, "\n#define ")
+		src = strings.Replace(src, glVersion, defineStr, 1)
 	}
 	shaderObj := gl.CreateShader(shaderType)
 	gl.ShaderSource(shaderObj, src)

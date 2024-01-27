@@ -122,7 +122,9 @@ type Vulkan struct {
 }
 
 func init() {
-	vk.SetGetInstanceProcAddr(C.vkGetInstanceProcAddr)
+	// TODO:  Fix this, to the correct loader
+	klib.Must(vk.SetDefaultGetInstanceProcAddr())
+	//vk.SetGetInstanceProcAddr(vk.GetInstanceProcAddr())
 	klib.Must(vk.Init())
 }
 
@@ -1262,7 +1264,7 @@ func (vr *Vulkan) createDefaultFrameBuffer() bool {
 }
 
 func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
-	sdlExtensions := vr.window.GetInstanceExtensions()
+	windowExtensions := vr.window.GetInstanceExtensions()
 	added := make([]string, 0, 3)
 	if useValidationLayers {
 		added = append(added, vk.ExtDebugReportExtensionName+"\x00")
@@ -1275,8 +1277,8 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 	//		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 	//#endif
 	//	};
-	extensions := make([]string, 0, len(sdlExtensions)+len(added))
-	extensions = append(extensions, sdlExtensions...)
+	extensions := make([]string, 0, len(windowExtensions)+len(added))
+	extensions = append(extensions, windowExtensions...)
 	extensions = append(extensions, added...)
 	extensions = append(extensions, vkInstanceExtensions()...)
 
@@ -1299,11 +1301,13 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 		createInfo.PpEnabledLayerNames = validationLayers
 	}
 
-	result := vk.CreateInstance(&createInfo, nil, &vr.instance)
+	var instance vk.Instance
+	result := vk.CreateInstance(&createInfo, nil, &instance)
 	if result != vk.Success {
 		log.Fatalf("Failed to get the VK instance, error code (%d)", result)
 		return false
 	} else {
+		vr.instance = instance
 		vk.InitInstance(vr.instance)
 		return true
 	}

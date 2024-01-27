@@ -5,7 +5,9 @@ package rendering
 import vk "github.com/BrentFarris/go-vulkan"
 
 func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+	var surface vk.Surface
 	result := vk.Win32SurfaceCreateInfoKHRHelper(
-		window.PlatformWindow(), window.PlatformInstance(), vr.instance, &vr.surface)
+		window.PlatformWindow(), window.PlatformInstance(), vr.instance, &surface)
+	vr.surface = surface
 	return result == vk.Success
 }
