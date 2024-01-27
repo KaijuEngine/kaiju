@@ -3,7 +3,7 @@
 package windowing
 
 /*
-#include "windowing.h"
+#include "win32.h"
 */
 import "C"
 import "unsafe"

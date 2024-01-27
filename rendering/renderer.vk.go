@@ -1718,10 +1718,6 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	return nil
 }
 
-func (vr *Vulkan) Resize(width, height int) {
-	vr.resized = true
-}
-
 func (vr *Vulkan) remakeSwapChain() {
 	vk.DeviceWaitIdle(vr.device)
 	vr.createSwapChain()
@@ -2978,4 +2974,8 @@ func (vr *Vulkan) FreeShader(shader *Shader) {
 
 func (vr *Vulkan) Destroy() {
 	// TODO:  Clean up stuff?
+}
+
+func (vr *Vulkan) Resize(width, height int) {
+	vr.resized = true
 }

@@ -382,3 +382,7 @@ func (r *GLRenderer) SwapFrame(width, height int32) bool {
 	gl.UnBindVertexArray()
 	return true
 }
+
+func (r *GLRenderer) Resize(width, height int) {
+	gl.Viewport(0, 0, width, height)
+}

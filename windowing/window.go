@@ -28,6 +28,7 @@ const (
 	evtMouseWheelHorizontal
 	evtKeyDown
 	evtKeyUp
+	evtResize
 )
 
 type Window struct {
@@ -94,8 +95,19 @@ func (w Window) Height() int     { return w.height }
 
 func (w *Window) processEvent() {
 	evtType := w.evtSharedMem.toEventType()
+	w.processWindowEvent(evtType)
 	w.processMouseEvent(evtType)
 	w.processKeyboardEvent(evtType)
+}
+
+func (w *Window) processWindowEvent(evtType eventType) {
+	switch evtType {
+	case evtResize:
+		we := w.evtSharedMem.toWindowEvent()
+		w.width = int(we.width)
+		w.height = int(we.height)
+		w.Renderer.Resize(w.width, w.height)
+	}
 }
 
 func (w *Window) processMouseEvent(evtType eventType) {

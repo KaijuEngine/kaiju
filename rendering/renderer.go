@@ -19,4 +19,5 @@ type Renderer interface {
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
 	Draw(drawings []ShaderDraw)
 	SwapFrame(width, height int32) bool
+	Resize(width, height int)
 }

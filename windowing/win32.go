@@ -9,6 +9,8 @@ import (
 
 /*
 #include "windowing.h"
+#include <windows.h>
+#include <windowsx.h>
 
 void window_swap_buffers(void* handle) {
 	HWND hwnd = (HWND)handle;
@@ -20,6 +22,8 @@ import "C"
 
 func (e evtMem) toEventType() eventType {
 	switch e.EventType() {
+	case 0x0005:
+		return evtResize
 	case 0x0104:
 		fallthrough
 	case 256:

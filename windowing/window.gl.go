@@ -2,7 +2,9 @@
 
 package windowing
 
-import "kaiju/rendering"
+import (
+	"kaiju/rendering"
+)
 
 func selectRenderer() (rendering.Renderer, error) {
 	return rendering.NewGLRenderer(), nil
