@@ -4,7 +4,6 @@ package rendering
 
 import (
 	"errors"
-	"fmt"
 	"kaiju/assets"
 	"kaiju/cameras"
 	"kaiju/klib"
@@ -23,6 +22,7 @@ const (
 	BytesInPixel        = 4
 	MaxCommandBuffers   = 10
 	maxFramesInFlight   = 2
+	oitSuffix           = ".oit.spv"
 )
 
 type materialRendererData struct {
@@ -2859,7 +2859,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		moduleCount++
 	}
 	renderPass := vr.oit.opaqueRenderPass
-	if strings.HasSuffix(shader.FragPath, ".spv.oit") || shader.IsComposite() {
+	if strings.HasSuffix(shader.FragPath, oitSuffix) || shader.IsComposite() {
 		renderPass = vr.oit.transparentRenderPass
 	} else if overrideRenderPass != nil {
 		renderPass = *overrideRenderPass
@@ -2871,7 +2871,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		id.descriptorSetLayout, &id.pipelineLayout,
 		&id.graphicsPipeline, renderPass, isTransparentPipeline)
 	var subShaderCheck string
-	subShaderCheck = fmt.Sprintf("%s.oit", shader.FragPath)
+	subShaderCheck = strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath, vr)
