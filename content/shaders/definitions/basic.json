@@ -5,7 +5,7 @@
 	},
 	"Vulkan": {
 		"Vert": "shaders/spv/basic.vert.spv",
-		"Frag": "shaders/spv/basic.frag.spv",
+		"Frag": "shaders/spv/basic.frag.spv"
 	},
 	"Fields": [
 		{
@@ -19,7 +19,7 @@
 	],
 	"Layouts": [{
 		"Type": "UniformBuffer",
-		"Flags": ["Vertex", "Fragment", "Geometry"],
+		"Flags": ["Vertex", "Fragment"],
 		"Count": 1,
 		"Binding": 0
 	}, {

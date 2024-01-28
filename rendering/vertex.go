@@ -2,6 +2,8 @@ package rendering
 
 import "kaiju/matrix"
 
+const baseVertexAttributeCount = 8
+
 type Vertex struct {
 	Position     matrix.Vec3
 	Normal       matrix.Vec3

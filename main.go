@@ -39,7 +39,7 @@ func testDrawing(host *engine.Host) {
 	}
 	rots := []matrix.Float{45, -45}
 	for i := 0; i < 2; i++ {
-		shader := host.ShaderCache().Shader("shaders/basic.vert", "shaders/basic.frag", "", "", "")
+		shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 		mesh := rendering.NewMeshQuad(host.MeshCache())
 		droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 		tsd := TestBasicShaderData{Color: colors[i]}
@@ -80,7 +80,7 @@ func testOIT(host *engine.Host) {
 		{0.0, 1.0, 0.0, 0.5},
 		{0.0, 0.0, 1.0, 0.5},
 	}
-	shader := host.ShaderCache().Shader("shaders/basic.vert", "shaders/basic.frag", "", "", "")
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/square.png", rendering.TextureFilterNearest)
 	for i := 0; i < len(positions); i++ {

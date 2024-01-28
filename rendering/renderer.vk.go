@@ -1569,9 +1569,8 @@ func (vr *Vulkan) createCompositeResources(windowWidth, windowHeight float32, sh
 	var err error
 	vr.oit.compositeQuad = NewMeshUnitQuad(meshCache) // NewMeshQuadSized(matrix.Vec2{windowWidth, windowHeight})
 	vr.oit.compositeQuad.DelayedCreate(vr)
-	vr.oit.compositeShader = shaderCache.Shader(
-		assets.ShaderOitCompositeVert, assets.ShaderOitCompositeFrag,
-		"", "", "")
+	vr.oit.compositeShader = shaderCache.ShaderFromDefinition(
+		assets.ShaderDefinitionOITComposite)
 	shaderCache.CreatePending()
 	if err != nil {
 		log.Fatalf("%s", err)

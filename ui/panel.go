@@ -416,8 +416,8 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 			tex, _ = panel.host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
 		}
-		shader := panel.host.ShaderCache().Shader(assets.ShaderUIVert,
-			assets.ShadersUINineFrag, "", "", "")
+		shader := panel.host.ShaderCache().ShaderFromDefinition(
+			assets.ShaderDefinitionUI)
 		panel.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
 		panel.shaderData.BgColor = panel.color
 		panel.shaderData.FgColor = panel.color
