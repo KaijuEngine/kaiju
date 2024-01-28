@@ -134,7 +134,7 @@ var defTypes = map[string]defType{
 	"vec2":  defType{uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
 	"vec3":  defType{uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
 	"vec4":  defType{uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
-	"mat4":  defType{uint32(vec4Size) * 4, vk.FormatR32g32b32a32Sfloat, 4},
+	"mat4":  defType{uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
 }
 
 func (sd *ShaderDef) AddField(name, glslType string) {
