@@ -241,7 +241,7 @@ func vertexGetBindingDescription(shader *Shader) [2]vk.VertexInputBindingDescrip
 	desc[0].Stride = uint32(unsafe.Sizeof(*(*Vertex)(nil)))
 	desc[0].InputRate = vk.VertexInputRateVertex
 	desc[1].Binding = 1
-	desc[1].Stride = shader.ShaderDriverData.Stride
+	desc[1].Stride = shader.DriverData.Stride
 	desc[1].InputRate = vk.VertexInputRateInstance
 	return desc
 }
@@ -283,7 +283,7 @@ func vertexGetAttributeDescription(shader *Shader) []vk.VertexInputAttributeDesc
 	if shader.IsComposite() {
 		return desc[:]
 	} else {
-		uniformDescriptions := shader.AttributeDescriptions
+		uniformDescriptions := shader.DriverData.AttributeDescriptions
 		descriptions := make([]vk.VertexInputAttributeDescription, 0, len(uniformDescriptions)+len(desc))
 		descriptions = append(descriptions, desc[:]...)
 		descriptions = append(descriptions, uniformDescriptions...)
@@ -2302,7 +2302,7 @@ func (vr Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Samp
 
 func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 	offset := uint64(0)
-	shaderDataSize := key.ShaderDriverData.Stride
+	shaderDataSize := key.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
 	for i, group := range groups {
 		if !group.IsReady() {
@@ -2746,7 +2746,7 @@ func (vr Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, p
 func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
-	overrideRenderPass := shader.OverrideRenderPass
+	overrideRenderPass := shader.DriverData.OverrideRenderPass
 	vertStage := vk.PipelineShaderStageCreateInfo{}
 	vMem, err := assetDB.Read(shader.VertPath)
 	if err != nil || !(len(vMem) > 0 && (len(vMem)%4) == 0) {
@@ -2831,7 +2831,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	id := &shader.RenderId
 
 	id.descriptorSetLayout, err = createDescriptorSetLayout(vr.device,
-		shader.ShaderDriverData.DescriptorSetLayoutStructure)
+		shader.DriverData.DescriptorSetLayoutStructure)
 	if err != nil {
 		// TODO:  Handle this error properly
 		log.Printf("Error: %s", err.Error())
@@ -2957,7 +2957,7 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 			}
 		}
 		if currentCount > 0 {
-			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.ShaderDriverData.Stride))
+			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
 			for i := 0; i < maxFramesInFlight; i++ {
 				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
 					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),

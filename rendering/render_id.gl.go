@@ -16,6 +16,9 @@ type DriverData struct {
 	Defines []string
 }
 
+func (d *ShaderDriverData) setup(def ShaderDef, _ uint32) {
+}
+
 func NewDriverData() DriverData {
 	return DriverData{
 		Defines: make([]string, 0),

@@ -21,7 +21,13 @@ type ShaderDriverData struct {
 	AttributeDescriptions []vk.VertexInputAttributeDescription
 }
 
-func NewDriverData() ShaderDriverData {
+func (d *ShaderDriverData) setup(def ShaderDef, locationStart uint32) {
+	d.Stride = def.Stride()
+	d.AttributeDescriptions = def.ToAttributeDescription(locationStart)
+	d.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()
+}
+
+func NewShaderDriverData() ShaderDriverData {
 	return ShaderDriverData{}
 }
 

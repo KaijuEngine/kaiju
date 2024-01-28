@@ -5,7 +5,7 @@
 	},
 	"Vulkan": {
 		"Vert": "shaders/spv/basic.vert.spv",
-		"Frag": "shaders/spv/basic.frag.spv"
+		"Frag": "shaders/spv/basic.frag.spv",
 	},
 	"Fields": [
 		{
@@ -16,5 +16,16 @@
 			"Name": "color",
 			"Type": "vec4"
 		}
-	]
+	],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment", "Geometry"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "CombinedImageSampler",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}]
 }

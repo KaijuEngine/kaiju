@@ -7,17 +7,17 @@ import (
 )
 
 type Shader struct {
-	RenderId  ShaderId
-	SubShader *Shader
-	DrawMode  MeshDrawMode
-	CullMode  MeshCullMode
-	KeyName   string
-	VertPath  string
-	FragPath  string
-	GeomPath  string
-	CtrlPath  string
-	EvalPath  string
-	ShaderDriverData
+	RenderId   ShaderId
+	SubShader  *Shader
+	DrawMode   MeshDrawMode
+	CullMode   MeshCullMode
+	KeyName    string
+	VertPath   string
+	FragPath   string
+	GeomPath   string
+	CtrlPath   string
+	EvalPath   string
+	DriverData ShaderDriverData
 }
 
 func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) string {
@@ -26,16 +26,16 @@ func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath
 
 func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderer Renderer) *Shader {
 	s := &Shader{
-		SubShader:        nil,
-		KeyName:          createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
-		DrawMode:         MeshDrawModeTriangles,
-		CullMode:         MeshCullModeBack,
-		VertPath:         vertPath,
-		FragPath:         fragPath,
-		GeomPath:         geomPath,
-		CtrlPath:         ctrlPath,
-		EvalPath:         evalPath,
-		ShaderDriverData: NewDriverData(),
+		SubShader:  nil,
+		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
+		DrawMode:   MeshDrawModeTriangles,
+		CullMode:   MeshCullModeBack,
+		VertPath:   vertPath,
+		FragPath:   fragPath,
+		GeomPath:   geomPath,
+		CtrlPath:   ctrlPath,
+		EvalPath:   evalPath,
+		DriverData: NewShaderDriverData(),
 	}
 	runtime.SetFinalizer(s, func(shader *Shader) {
 		renderer.FreeShader(shader)

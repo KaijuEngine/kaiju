@@ -30,10 +30,94 @@ func (f ShaderDefField) Format() vk.Format {
 	return defTypes[f.Type].format
 }
 
+type ShaderDefLayout struct {
+	Type    string
+	Flags   []string
+	Count   int
+	Binding int
+}
+
+func (l ShaderDefLayout) DescriptorType() vk.DescriptorType {
+	switch l.Type {
+	case "Sampler":
+		return vk.DescriptorTypeSampler
+	case "CombinedImageSampler":
+		return vk.DescriptorTypeCombinedImageSampler
+	case "SampledImage":
+		return vk.DescriptorTypeSampledImage
+	case "StorageImage":
+		return vk.DescriptorTypeStorageImage
+	case "UniformTexelBuffer":
+		return vk.DescriptorTypeUniformTexelBuffer
+	case "StorageTexelBuffer":
+		return vk.DescriptorTypeStorageTexelBuffer
+	case "UniformBuffer":
+		return vk.DescriptorTypeUniformBuffer
+	case "StorageBuffer":
+		return vk.DescriptorTypeStorageBuffer
+	case "UniformBufferDynamic":
+		return vk.DescriptorTypeUniformBufferDynamic
+	case "StorageBufferDynamic":
+		return vk.DescriptorTypeStorageBufferDynamic
+	case "InputAttachment":
+		return vk.DescriptorTypeInputAttachment
+	case "InlineUniformBlock":
+		return vk.DescriptorTypeInlineUniformBlock
+	case "AccelerationStructureNvx":
+		return vk.DescriptorTypeAccelerationStructureNvx
+	default:
+		panic("unknown descriptor type")
+	}
+}
+
+func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
+	flags := vk.ShaderStageFlagBits(0)
+	for _, flag := range l.Flags {
+		switch flag {
+		case "Vertex":
+			flags |= vk.ShaderStageVertexBit
+		case "TessellationControl":
+			flags |= vk.ShaderStageTessellationControlBit
+		case "TessellationEvaluation":
+			flags |= vk.ShaderStageTessellationEvaluationBit
+		case "Geometry":
+			flags |= vk.ShaderStageGeometryBit
+		case "Fragment":
+			flags |= vk.ShaderStageFragmentBit
+		case "Compute":
+			flags |= vk.ShaderStageComputeBit
+		case "AllGraphics":
+			flags |= vk.ShaderStageAllGraphics
+		case "All":
+			flags |= vk.ShaderStageAll
+		case "Raygen":
+			flags |= vk.ShaderStageRaygenBitNvx
+		case "AnyHit":
+			flags |= vk.ShaderStageAnyHitBitNvx
+		case "ClosestHit":
+			flags |= vk.ShaderStageClosestHitBitNvx
+		case "Miss":
+			flags |= vk.ShaderStageMissBitNvx
+		case "Intersection":
+			flags |= vk.ShaderStageIntersectionBitNvx
+		case "Callable":
+			flags |= vk.ShaderStageCallableBitNvx
+		case "Task":
+			flags |= vk.ShaderStageTaskBitNv
+		case "Mesh":
+			flags |= vk.ShaderStageMeshBitNv
+		default:
+			panic("unknown shader stage flag")
+		}
+	}
+	return flags
+}
+
 type ShaderDef struct {
-	OpenGL ShaderDefDriver
-	Vulkan ShaderDefDriver
-	Fields []ShaderDefField
+	OpenGL  ShaderDefDriver
+	Vulkan  ShaderDefDriver
+	Fields  []ShaderDefField
+	Layouts []ShaderDefLayout
 }
 
 const floatSize = int(unsafe.Sizeof(matrix.Float(0.0)))
@@ -88,4 +172,17 @@ func (sd ShaderDef) ToAttributeDescription(locationStart uint32) []vk.VertexInpu
 		}
 	}
 	return attrs
+}
+
+func (sd ShaderDef) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure {
+	structure := DescriptorSetLayoutStructure{}
+	for _, layout := range sd.Layouts {
+		structure.Types = append(structure.Types, DescriptorSetLayoutStructureType{
+			Type:    layout.DescriptorType(),
+			Flags:   layout.DescriptorFlags(),
+			Count:   uint32(layout.Count),
+			Binding: uint32(layout.Binding),
+		})
+	}
+	return structure
 }

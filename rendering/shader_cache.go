@@ -38,10 +38,7 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 	panic("not implemented") // This 8 needs to be listed elsewhere
 	def := ShaderDef{}
 	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese)
-	panic("not implemented") // This is vulkan only
-	shader.ShaderDriverData.Stride = def.Stride()
-	shader.ShaderDriverData.AttributeDescriptions = def.ToAttributeDescription(locationStart)
-	shader.ShaderDriverData.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()
+	shader.DriverData.setup(def, locationStart)
 	return shader
 }
 
