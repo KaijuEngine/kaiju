@@ -32,6 +32,19 @@ func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, 
 	}
 }
 
+func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
+	panic("not implemented") // Will need shader definition cache
+	const locationStart = 8
+	panic("not implemented") // This 8 needs to be listed elsewhere
+	def := ShaderDef{}
+	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese)
+	panic("not implemented") // This is vulkan only
+	shader.ShaderDriverData.Stride = def.Stride()
+	shader.ShaderDriverData.AttributeDescriptions = def.ToAttributeDescription(locationStart)
+	shader.ShaderDriverData.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()
+	return shader
+}
+
 func (s *ShaderCache) CreatePending() {
 	for _, shader := range s.pendingShaders {
 		shader.DelayedCreate(s.renderer, s.assetDatabase)

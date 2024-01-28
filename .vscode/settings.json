@@ -8,4 +8,7 @@
 		"win32.h": "c",
 		"x11.h": "c"
 	},
+	"cSpell.words": [
+		"Vulkan"
+	],
 }
