@@ -1,15 +1,25 @@
-#version 300 es
-precision mediump float;
+#version 450
+//#version 300 es
+//precision mediump float;
 
-in vec4 fragColor;
-in vec4 fragBGColor;
-in vec2 fragTexCoord;
-in vec2 fragPxRange;
+#ifdef VULKAN
+	layout(location = 0) in vec4 fragColor;
+	layout(location = 1) in vec4 fragBGColor;
+	layout(location = 2) in vec2 fragTexCoord;
+	layout(location = 3) in vec2 fragPxRange;
+
+	layout(binding = 1) uniform sampler2D texSampler;
+#else
+	in vec4 fragColor;
+	in vec4 fragBGColor;
+	in vec2 fragTexCoord;
+	in vec2 fragPxRange;
+
+	uniform sampler2D texSampler;
+#endif
 
 layout(location = 0) out vec4 outColor;
-layout (location = 1) out float reveal;
-
-uniform sampler2D texSampler;
+layout(location = 1) out float reveal;
 
 float median(float r, float g, float b) {
 	return max(min(r, g), min(max(r, g), b));

@@ -1,5 +1,6 @@
-#version 300 es
-precision mediump float;
+#version 450
+//#version 300 es
+//precision mediump float;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -10,66 +11,88 @@ layout(location = 5) in ivec4 inJointIds;
 layout(location = 6) in vec4 inJointWeights;
 layout(location = 7) in vec3 inMorphTarget;
 
-// Instance data
-layout(location = 8) in mat4 model;
-//uniform struct InstanceData {
-//	vec4 uvs;
-//	vec4 fgColor;
-//	vec4 bgColor;
-//	vec4 scissor;
-//	vec2 pxRange;
-//}
-#define INSTANCE_VEC4_COUNT 9
-uniform sampler2D instanceSampler;
+#ifdef VULKAN
+	layout(location = 8) in mat4 model;
+	layout(location = 12) in vec4 uvs;
+	layout(location = 13) in vec4 fgColor;
+	layout(location = 14) in vec4 bgColor;
+	layout(location = 15) in vec4 scissor;
+	layout(location = 16) in vec2 pxRange;
 
-uniform struct GlobalData {
-    mat4 view;
-    mat4 projection;
-    mat4 uiView;
-    mat4 uiProjection;
-    vec3 cameraPosition;
-    vec3 uiCameraPosition;
-    float time;
+	layout(location = 0) out vec4 fragColor;
+	layout(location = 1) out vec4 fragBGColor;
+	layout(location = 2) out vec2 fragTexCoord;
+	layout(location = 3) out vec2 fragPxRange;
+#else
+	out vec4 fragColor;
+	out vec4 fragBGColor;
+	out vec2 fragTexCoord;
+	out vec2 fragPxRange;
+
+	#define INSTANCE_VEC4_COUNT 9
+	uniform sampler2D instanceSampler;
+#endif
+
+struct InstanceData {
+	mat4 model;
+	vec4 uvs;
+	vec4 fgColor;
+	vec4 bgColor;
+	vec4 scissor;
+	vec2 pxRange;
+};
+
+#ifdef VULKAN
+	layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
+#else
+	uniform struct GlobalData {
+#endif
+	mat4 view;
+	mat4 projection;
+	mat4 uiView;
+	mat4 uiProjection;
+	vec3 cameraPosition;
+	vec3 uiCameraPosition;
+	float time;
 } globalData;
 
-out vec4 fragColor;
-out vec4 fragBGColor;
-out vec2 fragTexCoord;
-out vec2 fragPxRange;
-
-mat4 pullModel(int xOffset) {
-    mat4 model;
-    model[0] = texelFetch(instanceSampler, ivec2(xOffset,0), 0);
-    model[1] = texelFetch(instanceSampler, ivec2(xOffset+1,0), 0);
-    model[2] = texelFetch(instanceSampler, ivec2(xOffset+2,0), 0);
-    model[3] = texelFetch(instanceSampler, ivec2(xOffset+3,0), 0);
-    return model;
+InstanceData pullInstanceData() {
+	InstanceData data;
+#ifdef VULKAN
+	data.model = model;
+	data.uvs = uvs;
+	data.fgColor = fgColor;
+	data.bgColor = bgColor;
+	data.scissor = scissor;
+	data.pxRange = pxRange;
+#else
+	int xOffset = gl_InstanceID*INSTANCE_VEC4_COUNT;
+    data.model[0] = texelFetch(instanceSampler, ivec2(xOffset,0), 0);
+    data.model[1] = texelFetch(instanceSampler, ivec2(xOffset+1,0), 0);
+    data.model[2] = texelFetch(instanceSampler, ivec2(xOffset+2,0), 0);
+    data.model[3] = texelFetch(instanceSampler, ivec2(xOffset+3,0), 0);
+	data.uvs = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
+	data.fgColor = texelFetch(instanceSampler, ivec2(xOffset+5,0), 0);
+	data.bgColor = texelFetch(instanceSampler, ivec2(xOffset+6,0), 0);
+	data.scissor = texelFetch(instanceSampler, ivec2(xOffset+7,0), 0);
+	data.pxRange = texelFetch(instanceSampler, ivec2(xOffset+8,0), 0).xy;
+#endif
+	return data;
 }
 
 void main() {
-	mat4 view = globalData.view;
-	mat4 uiView = globalData.uiView;
-	mat4 projection = globalData.projection;
-	mat4 uiProjection = globalData.uiProjection;
-	vec3 cameraPosition = globalData.cameraPosition;
-	vec3 uiCameraPosition = globalData.uiCameraPosition;
-	float time = globalData.time;
+	InstanceData data = pullInstanceData();
 	
-    int xOffset = gl_InstanceID*INSTANCE_VEC4_COUNT;
-    mat4 model = pullModel(xOffset);
-	vec4 uvs = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
-	vec4 fgColor = texelFetch(instanceSampler, ivec2(xOffset+5,0), 0);
-	vec4 bgColor = texelFetch(instanceSampler, ivec2(xOffset+6,0), 0);
-	vec4 scissor = texelFetch(instanceSampler, ivec2(xOffset+7,0), 0);
-	vec2 pxRange = texelFetch(instanceSampler, ivec2(xOffset+8,0), 0).xy;
-
+	mat4 view = globalData.view;
+	mat4 projection = globalData.projection;
+	
     vec2 uv = inTexCoord0;
-	uv *= uvs.zw;
-	uv.y += (1.0 - uvs.w) - uvs.y;
-	uv.x += uvs.x;
+	uv *= data.uvs.zw;
+	uv.y += (1.0 - data.uvs.w) - data.uvs.y;
+	uv.x += data.uvs.x;
 	fragTexCoord = uv;
-	fragColor = inColor * fgColor;
-	fragBGColor = bgColor;
-	gl_Position = projection * view * model * vec4(inPosition, 1.0);
-	fragPxRange = pxRange;
+	fragColor = inColor * data.fgColor;
+	fragBGColor = data.bgColor;
+	gl_Position = projection * view * data.model * vec4(inPosition, 1.0);
+	fragPxRange = data.pxRange;
 }

@@ -483,6 +483,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.Scissor = matrix.Vec4{-math.MaxFloat32, -math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
+					Renderer:   cache.renderer,
 					Shader:     shader,
 					Mesh:       m,
 					Textures:   []*Texture{fontFace.texture},
