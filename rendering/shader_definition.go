@@ -163,7 +163,7 @@ func (sd ShaderDef) ToAttributeDescription(locationStart uint32) []vk.VertexInpu
 		for j := 0; j < defTypes[field.Type].repeat; j++ {
 			attrs = append(attrs, vk.VertexInputAttributeDescription{
 				Location: location,
-				Binding:  0,
+				Binding:  1,
 				Format:   field.Format(),
 				Offset:   offset,
 			})
