@@ -8,20 +8,22 @@ const (
 )
 
 const (
-	ControllerButtonA = iota
+	ControllerButtonUp = iota
+	ControllerButtonDown
+	ControllerButtonLeft
+	ControllerButtonRight
+	ControllerButtonStart
+	ControllerButtonSelect
+	ControllerButtonLeftStick
+	ControllerButtonRightStick
+	ControllerButtonLeftBumper
+	ControllerButtonRightBumper
+	ControllerButtonEx1 // TODO:  Name this correctly
+	ControllerButtonEx2 // TODO:  Name this correctly
+	ControllerButtonA
 	ControllerButtonB
 	ControllerButtonX
 	ControllerButtonY
-	ControllerButtonBack
-	ControllerButtonPause
-	ControllerButtonStickLeft
-	ControllerButtonStickRight
-	ControllerButtonBumperLeft
-	ControllerButtonBumperRight
-	ControllerButtonDPadUp
-	ControllerButtonDPadDown
-	ControllerButtonDPadLeft
-	ControllerButtonDPadRight
 	ControllerButtonMax
 )
 
@@ -75,14 +77,14 @@ func (c *Controller) Available(id int) bool {
 
 func (c *Controller) Connected(id int) {
 	err := validateJoystick(id)
-	if err == nil {
+	if err == nil && c.devices[id].id < 0 {
 		c.devices[id].id = id
 	}
 }
 
 func (c *Controller) Disconnected(id int) {
 	err := validateJoystick(id)
-	if err == nil {
+	if err == nil && c.devices[id].id >= 0 {
 		c.devices[id].id = -1
 	}
 }
@@ -106,11 +108,15 @@ func (c *Controller) EndUpdate() {
 }
 
 func (c *Controller) SetButtonDown(id, button int) {
-	c.devices[id].buttons[button] = controllerButtonStateDown
+	if c.devices[id].buttons[button] == controllerButtonStateIdle {
+		c.devices[id].buttons[button] = controllerButtonStateDown
+	}
 }
 
 func (c *Controller) SetButtonUp(id, button int) {
-	c.devices[id].buttons[button] = controllerButtonStateUp
+	if c.devices[id].buttons[button] != controllerButtonStateIdle {
+		c.devices[id].buttons[button] = controllerButtonStateUp
+	}
 }
 
 func (c *Controller) SetAxis(id, stick int, axis float32) {

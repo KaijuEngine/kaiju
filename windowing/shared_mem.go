@@ -51,6 +51,23 @@ type keyboardEvent struct {
 	key int32
 }
 
+type controllerState struct {
+	baseEvent
+	buttons      uint16
+	thumbLX      int16
+	thumbLY      int16
+	thumbRX      int16
+	thumbRY      int16
+	leftTrigger  uint8
+	rightTrigger uint8
+	isConnected  uint8
+}
+
+type controllerEvent struct {
+	// TODO:  This 4 will need to be pulled from C
+	controllerStates [4]controllerState
+}
+
 func (e *evtMem) AsPointer() unsafe.Pointer     { return unsafe.Pointer(&e[0]) }
 func (e *evtMem) AsDataPointer() unsafe.Pointer { return unsafe.Pointer(&e[evtSharedMemDataStart]) }
 func (e evtMem) IsFatal() bool                  { return e[0] == sharedMemFatal }
@@ -87,4 +104,8 @@ func (e evtMem) toMouseEvent() *mouseEvent {
 
 func (e evtMem) toKeyboardEvent() *keyboardEvent {
 	return (*keyboardEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+}
+
+func (e evtMem) toControllerEvent() *controllerEvent {
+	return (*controllerEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }

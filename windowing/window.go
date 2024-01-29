@@ -29,6 +29,7 @@ const (
 	evtKeyDown
 	evtKeyUp
 	evtResize
+	evtControllerStates
 )
 
 type Window struct {
@@ -100,6 +101,7 @@ func (w *Window) processEvent() {
 	w.processWindowEvent(evtType)
 	w.processMouseEvent(evtType)
 	w.processKeyboardEvent(evtType)
+	w.processControllerEvent(evtType)
 }
 
 func (w *Window) processWindowEvent(evtType eventType) {
@@ -170,6 +172,28 @@ func (w *Window) processKeyboardEvent(evtType eventType) {
 		ke := w.evtSharedMem.toKeyboardEvent()
 		key := hid.ToKeyboardKey(int(ke.key))
 		w.Keyboard.SetKeyUp(key)
+	}
+}
+
+func (w *Window) processControllerEvent(evtType eventType) {
+	switch evtType {
+	case evtControllerStates:
+		ce := w.evtSharedMem.toControllerEvent()
+		for id, c := range ce.controllerStates {
+			if c.isConnected == 0 {
+				w.Controller.Disconnected(id)
+			} else {
+				w.Controller.Connected(id)
+			}
+			for i := 0; i < int(unsafe.Sizeof(c.buttons)*8); i++ {
+				buttonId := c.buttons & (1 << i)
+				if buttonId != 0 {
+					w.Controller.SetButtonDown(id, i)
+				} else {
+					w.Controller.SetButtonUp(id, i)
+				}
+			}
+		}
 	}
 }
 

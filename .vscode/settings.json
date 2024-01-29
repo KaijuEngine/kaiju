@@ -6,7 +6,9 @@
 		"windowing.h": "c",
 		"string.h": "c",
 		"win32.h": "c",
-		"x11.h": "c"
+		"x11.h": "c",
+		"xinput.h": "c",
+		"shared_mem.h": "c"
 	},
 	"cSpell.words": [
 		"Vulkan"
