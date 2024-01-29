@@ -29,6 +29,7 @@ const (
 	evtKeyDown
 	evtKeyUp
 	evtResize
+	evtControllerStates
 )
 
 type Window struct {
@@ -38,6 +39,7 @@ type Window struct {
 	Keyboard      hid.Keyboard
 	Touch         hid.Touch
 	Stylus        hid.Stylus
+	Controller    hid.Controller
 	Cursor        hid.Cursor
 	Renderer      rendering.Renderer
 	evtSharedMem  *evtMem
@@ -52,6 +54,7 @@ func New(windowName string) (*Window, error) {
 		Mouse:        hid.NewMouse(),
 		Touch:        hid.NewTouch(),
 		Stylus:       hid.NewStylus(),
+		Controller:   hid.NewController(),
 		width:        944,
 		height:       500,
 		evtSharedMem: new(evtMem),
@@ -98,6 +101,7 @@ func (w *Window) processEvent() {
 	w.processWindowEvent(evtType)
 	w.processMouseEvent(evtType)
 	w.processKeyboardEvent(evtType)
+	w.processControllerEvent(evtType)
 }
 
 func (w *Window) processWindowEvent(evtType eventType) {
@@ -171,6 +175,28 @@ func (w *Window) processKeyboardEvent(evtType eventType) {
 	}
 }
 
+func (w *Window) processControllerEvent(evtType eventType) {
+	switch evtType {
+	case evtControllerStates:
+		ce := w.evtSharedMem.toControllerEvent()
+		for id, c := range ce.controllerStates {
+			if c.isConnected == 0 {
+				w.Controller.Disconnected(id)
+			} else {
+				w.Controller.Connected(id)
+			}
+			for i := 0; i < int(unsafe.Sizeof(c.buttons)*8); i++ {
+				buttonId := c.buttons & (1 << i)
+				if buttonId != 0 {
+					w.Controller.SetButtonDown(id, i)
+				} else {
+					w.Controller.SetButtonUp(id, i)
+				}
+			}
+		}
+	}
+}
+
 func (w *Window) Poll() {
 	w.evtSharedMem.MakeAvailable()
 	for !w.evtSharedMem.IsQuit() && !w.evtSharedMem.IsFatal() {
@@ -195,6 +221,7 @@ func (w *Window) EndUpdate() {
 	w.Mouse.EndUpdate()
 	w.Touch.EndUpdate()
 	w.Stylus.EndUpdate()
+	w.Controller.EndUpdate()
 }
 
 func (w *Window) SwapBuffers() {

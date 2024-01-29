@@ -12,7 +12,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32"
+				"CGO_LDFLAGS": "-lgdi32 -lXInput"
 			}
 		}, {
 			"name": "Launch Windows Editor (GL)",
@@ -22,7 +22,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor,OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32",
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32 -lXInput",
 				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {
@@ -32,7 +32,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32"
+				"CGO_LDFLAGS": "-lgdi32 -lXInput"
 			}
 		}, {
 			"name": "Launch Windows Runtime (GL)",
@@ -42,7 +42,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32",
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32 -lXInput",
 				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {

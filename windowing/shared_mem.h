@@ -13,11 +13,51 @@
 #define SHARED_MEM_QUIT				0xFF
 #define SHARED_MEM_DATA_START		4
 
+#define EVENT_TYPE_CONTROLLER		-2
+
 #define MOUSE_BUTTON_LEFT			0
 #define MOUSE_BUTTON_MIDDLE			1
 #define MOUSE_BUTTON_RIGHT			2
 #define MOUSE_BUTTON_X1				3
 #define MOUSE_BUTTON_X2				4
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <xinput.h>
+#define MAX_CONTROLLERS				XUSER_MAX_COUNT
+#else
+// TODO:  Get the correct value for X11
+#define MAX_CONTROLLERS				4
+#endif
+
+typedef struct {
+	int32_t mouseButtonId;
+	int32_t mouseX;
+	int32_t mouseY;
+} MouseEvent;
+
+typedef struct {
+	int32_t keyId;
+} KeyboardEvent;
+
+typedef struct {
+	int32_t width;
+	int32_t height;
+} ResizeEvent;
+
+typedef struct {
+	uint16_t buttons;
+	int16_t thumbLX;
+	int16_t thumbLY;
+	int16_t thumbRX;
+	int16_t thumbRY;
+	uint8_t leftTrigger;
+	uint8_t rightTrigger;
+	uint8_t isConnected;
+} ControllerState;
+
+typedef struct {
+	ControllerState states[MAX_CONTROLLERS];
+} ControllerEvent;
 
 typedef struct {
 	union {
@@ -26,15 +66,11 @@ typedef struct {
 	};
 	uint32_t evtType;
 	union {
-		int32_t mouseButtonId;
-		int32_t keyId;
-		int32_t width;
+		MouseEvent mouse;
+		KeyboardEvent keyboard;
+		ResizeEvent resize;
+		ControllerEvent controllers;
 	};
-	union {
-		int32_t mouseX;
-		int32_t height;
-	};
-	int32_t mouseY;
 } InputEvent;
 
 typedef struct {

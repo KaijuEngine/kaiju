@@ -42,6 +42,8 @@ func (e evtMem) toEventType() eventType {
 		return evtX1MouseDown
 	case 524:
 		return evtX1MouseUp
+	case 0xFFFFFFFF - 1:
+		return evtControllerStates
 	default:
 		return evtUnknown
 	}

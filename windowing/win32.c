@@ -7,9 +7,12 @@
 #include "win32.h"
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <windows.h>
 #include <windowsx.h>
 #include "shared_mem.h"
+
+#include <XInput.h>
 
 #ifdef OPENGL
 #include "../gl/dist/glad_wgl.h"
@@ -32,14 +35,43 @@ void shared_mem_wait(SharedMem* sm) {
 }
 
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
-	evt->mouseButtonId = buttonId;
-	evt->mouseX = GET_X_LPARAM(lParam);
-	evt->mouseY = GET_Y_LPARAM(lParam);
+	evt->mouse.mouseButtonId = buttonId;
+	evt->mouse.mouseX = GET_X_LPARAM(lParam);
+	evt->mouse.mouseY = GET_Y_LPARAM(lParam);
 }
 
 void setSizeEvent(InputEvent* evt, LPARAM lParam) {
-	evt->width = LOWORD(lParam);
-	evt->height = HIWORD(lParam);
+	evt->resize.width = LOWORD(lParam);
+	evt->resize.height = HIWORD(lParam);
+}
+
+bool obtainControllerStates(SharedMem* sm) {
+	bool readControllerStates = false;
+	DWORD dwResult;
+	memset(&sm->evt->controllers, 0, sizeof(ControllerEvent));
+	for (DWORD i = 0; i < MAX_CONTROLLERS; i++) {
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+		// Simply get the state of the controller from XInput.
+		dwResult = XInputGetState(i, &state);
+		if(dwResult == ERROR_SUCCESS) {
+			sm->evt->controllers.states[i].buttons = state.Gamepad.wButtons;
+			sm->evt->controllers.states[i].leftTrigger = state.Gamepad.bLeftTrigger;
+			sm->evt->controllers.states[i].rightTrigger = state.Gamepad.bRightTrigger;
+			sm->evt->controllers.states[i].thumbLX = state.Gamepad.sThumbLX;
+			sm->evt->controllers.states[i].thumbLY = state.Gamepad.sThumbLY;
+			sm->evt->controllers.states[i].thumbRX = state.Gamepad.sThumbRX;
+			sm->evt->controllers.states[i].thumbRY = state.Gamepad.sThumbRY;
+			sm->evt->controllers.states[i].isConnected = 1;
+			readControllerStates = true;
+		} else {
+			// TODO:  readControllerStates would be true here too, but
+			// no need to spam the event if no controllers are available?
+			// Probably means the state of the controllers need tracking in C...
+			sm->evt->controllers.states[i].isConnected = 0;
+		}
+	}
+	return readControllerStates;
 }
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -96,24 +128,24 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				switch (wParam) {
 					case VK_SHIFT:
 						UINT scancode = (lParam & 0x00FF0000) >> 16;
-						sm->evt->keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+						sm->evt->keyboard.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
 						break;
 					case VK_CONTROL:
 						if (lParam & 0x01000000) {
-							sm->evt->keyId = VK_RCONTROL;
+							sm->evt->keyboard.keyId = VK_RCONTROL;
 						} else {
-							sm->evt->keyId = VK_LCONTROL;
+							sm->evt->keyboard.keyId = VK_LCONTROL;
 						}
 						break;
 					case VK_MENU:
 						if (lParam & 0x01000000) {
-							sm->evt->keyId = VK_RMENU;
+							sm->evt->keyboard.keyId = VK_RMENU;
 						} else {
-							sm->evt->keyId = VK_LMENU;
+							sm->evt->keyboard.keyId = VK_LMENU;
 						}
 						break;
 					default:
-						sm->evt->keyId = wParam;
+						sm->evt->keyboard.keyId = wParam;
 						break;
 				}
 				break;
@@ -240,13 +272,20 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     MSG msg = { };
 	while (esm[0] != SHARED_MEM_QUIT) {
 		shared_memory_wait_for_available(&sm);
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		} else {
-			sm.evt->evtType = 0;
+		if (obtainControllerStates(&sm)) {
+			sm.evt->evtType = EVENT_TYPE_CONTROLLER;
 			shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
+			shared_memory_wait_for_available(&sm);
 		}
+		do {
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			} else {
+				sm.evt->evtType = 0;
+				shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
+			}
+		} while(sm.evt->evtType != 0);
 	}
 }
 
