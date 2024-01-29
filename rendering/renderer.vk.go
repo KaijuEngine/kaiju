@@ -1981,14 +1981,7 @@ func (vr Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShader
 	rasterizer.RasterizerDiscardEnable = vk.False
 	rasterizer.PolygonMode = vk.PolygonModeFill
 	rasterizer.LineWidth = 1.0
-	switch shader.CullMode {
-	case MeshCullModeNone:
-		rasterizer.CullMode = vk.CullModeFlags(vk.CullModeNone)
-	case MeshCullModeFront:
-		rasterizer.CullMode = vk.CullModeFlags(vk.CullModeFrontBit)
-	case MeshCullModeBack:
-		rasterizer.CullMode = vk.CullModeFlags(vk.CullModeBackBit)
-	}
+	rasterizer.CullMode = vk.CullModeFlags(shader.DriverData.CullMode)
 	rasterizer.FrontFace = vk.FrontFaceClockwise
 	rasterizer.DepthBiasEnable = vk.False
 	rasterizer.DepthBiasConstantFactor = 0.0 // Optional
@@ -2489,10 +2482,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear[:])
 	for _, d := range drawings {
-		vr.renderEach(cmd1, d.shader, d.SolidGroups())
-	}
-	for _, d := range drawings {
-		vr.renderEachAlpha(cmd1, d.shader, d.TransparentGroups())
+		vr.renderEach(cmd1, d.shader, d.instanceGroups)
 	}
 	endRender(cmd1)
 
@@ -2505,10 +2495,8 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
 	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear[:])
 	for _, d := range drawings {
-		vr.renderEachAlpha(cmd1, d.shader.SubShader, d.TransparentGroups())
+		vr.renderEachAlpha(cmd2, d.shader.SubShader, d.TransparentGroups())
 	}
-
-	mid := &vr.oit.compositeQuad.MeshId
 	offsets := vk.DeviceSize(0)
 	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
 	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, vr.oit.compositeShader.RenderId.graphicsPipeline)
@@ -2525,6 +2513,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	csid := &vr.oit.compositeShader.RenderId
 	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, csid.pipelineLayout,
 		0, 1, []vk.DescriptorSet{vr.oit.descriptorSets[vr.currentFrame]}, 0, []uint32{0})
+	mid := &vr.oit.compositeQuad.MeshId
 	vk.CmdBindVertexBuffers(cmd2, 0, 1, []vk.Buffer{mid.vertexBuffer}, []vk.DeviceSize{offsets})
 	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
 	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)

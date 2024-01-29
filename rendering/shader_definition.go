@@ -114,10 +114,11 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 }
 
 type ShaderDef struct {
-	OpenGL  ShaderDefDriver
-	Vulkan  ShaderDefDriver
-	Fields  []ShaderDefField
-	Layouts []ShaderDefLayout
+	CullMode string
+	OpenGL   ShaderDefDriver
+	Vulkan   ShaderDefDriver
+	Fields   []ShaderDefField
+	Layouts  []ShaderDefLayout
 }
 
 const floatSize = int(unsafe.Sizeof(matrix.Float(0.0)))

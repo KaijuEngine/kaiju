@@ -1,4 +1,5 @@
 {
+	"CullMode": "None",
 	"OpenGL": {
 		"Vert": "shaders/oit_composite.vert",
 		"Frag": "shaders/oit_composite.frag"

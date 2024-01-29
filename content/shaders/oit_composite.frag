@@ -15,7 +15,7 @@
 		outColor = vec4(accum.rgb / max(accum.a, 1e-5), reveal);
 	}
 #else
-	out vec4 FragColor;
+	out vec4 outColor;
 
 	uniform sampler2D accum;
 	uniform sampler2D reveal;
@@ -39,6 +39,6 @@
 		if (isinf(max3(abs(accumulation.rgb)))) 
 			accumulation.rgb = vec3(accumulation.a);
 		vec3 averageColor = accumulation.rgb / max(accumulation.a, EPSILON);
-		FragColor = vec4(averageColor, 1.0 - revealage);
+		outColor = vec4(averageColor, 1.0 - revealage);
 	}
 #endif

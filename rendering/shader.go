@@ -10,7 +10,6 @@ type Shader struct {
 	RenderId   ShaderId
 	SubShader  *Shader
 	DrawMode   MeshDrawMode
-	CullMode   MeshCullMode
 	KeyName    string
 	VertPath   string
 	FragPath   string
@@ -29,7 +28,6 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 		SubShader:  nil,
 		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
 		DrawMode:   MeshDrawModeTriangles,
-		CullMode:   MeshCullModeFront,
 		VertPath:   vertPath,
 		FragPath:   fragPath,
 		GeomPath:   geomPath,
