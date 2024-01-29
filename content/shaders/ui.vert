@@ -18,21 +18,12 @@ layout (location = 7) in vec3 MorphTarget;
 	layout(location = 14) in vec4 bgColor;
 	layout(location = 15) in vec4 scissor;
 	layout(location = 16) in vec4 size2D;
-	layout(location = 17) in vec4 borderRadius;
-	layout(location = 18) in vec4 borderSize;
-	layout(location = 19) in mat4 borderColor;
-	layout(location = 23) in vec2 borderLen;
+	layout(location = 17) in vec2 borderLen;
+	//layout(location = 17) in vec4 borderRadius;
+	//layout(location = 18) in vec4 borderSize;
+	//layout(location = 19) in mat4 borderColor;
+	//layout(location = 23) in vec2 borderLen;
 
-	//layout(location = 0) out vec4 fragColor;
-	//layout(location = 1) out vec4 fragBGColor;
-	//layout(location = 2) out vec4 fragSize2D;
-	////layout(location = 3) out vec4 fragBorderRadius;
-	////layout(location = 4) out vec4 fragBorderSize;
-	////layout(location = 5) out mat4 fragBorderColor;
-	//layout(location = 9) out vec2 fragTexCoord;
-	//layout(location = 10) out vec2 fragBorderLen;
-	////layout(location = 11) out float fragTime;
-	
 	layout(location = 0) out vec4 fragColor;
 	layout(location = 1) out vec4 fragBGColor;
 	layout(location = 2) out vec4 fragSize2D;
