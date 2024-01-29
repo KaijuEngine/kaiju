@@ -2312,7 +2312,6 @@ func (vr Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Samp
 /******************************************************************************/
 
 func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
-	offset := uint64(0)
 	shaderDataSize := key.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
 	for i := range groups {
@@ -2323,16 +2322,11 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 		vr.resizeUniformBuffer(key, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		var data unsafe.Pointer
-		mem := group.instanceBuffersMemory[vr.currentFrame]
 		mapLen := instanceLen
-		vk.MapMemory(vr.device, mem, vk.DeviceSize(offset), mapLen, 0, &data)
-		offset += uint64(mapLen)
-		group.AlterPadding(int(instanceSize))
 		group.UpdateData()
-		to := unsafe.Pointer(uintptr(data))
-		base := unsafe.Pointer(&group.instanceData[0])
-		klib.Memcpy(to, base, int(instanceLen))
-		vk.UnmapMemory(vr.device, mem)
+		vk.MapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame], 0, mapLen, 0, &data)
+		vk.Memcopy(data, group.instanceData)
+		vk.UnmapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame])
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]
 		globalInfo := bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
 			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
@@ -2351,7 +2345,8 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 			vk.UpdateDescriptorSets(vr.device, count, descriptorWrites, 0, nil)
 		} else {
 			descriptorWrites := []vk.WriteDescriptorSet{
-				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo}, 0, vk.DescriptorTypeUniformBuffer),
+				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
+					0, vk.DescriptorTypeUniformBuffer),
 			}
 			count := uint32(len(descriptorWrites))
 			vk.UpdateDescriptorSets(vr.device, count, descriptorWrites, 0, nil)
@@ -2979,6 +2974,7 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
 					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
 			}
+			group.AlterPadding(int(iSize))
 		}
 		group.InstanceDriverData.lastInstanceCount = currentCount
 	}

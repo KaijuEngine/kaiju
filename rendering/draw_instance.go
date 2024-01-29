@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"kaiju/klib"
 	"kaiju/matrix"
 	"unsafe"
 )
@@ -143,9 +144,7 @@ func (d *DrawInstanceGroup) UpdateData() {
 			count--
 		} else if instance.IsActive() {
 			to := unsafe.Pointer(uintptr(base) + offset)
-			from := instance.DataPointer()
-			copy(unsafe.Slice((*byte)(to), d.instanceSize),
-				unsafe.Slice((*byte)(from), d.instanceSize))
+			klib.Memcpy(to, instance.DataPointer(), d.instanceSize)
 			offset += uintptr(d.instanceSize + d.padding)
 		}
 	}
