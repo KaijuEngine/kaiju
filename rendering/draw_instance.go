@@ -89,7 +89,11 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 }
 
 func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
-	d.padding = d.instanceSize % blockSize
+	newPadding := blockSize - d.instanceSize%blockSize
+	if d.padding != newPadding {
+		d.padding = newPadding
+		d.instanceData = make([]byte, d.TotalSize())
+	}
 }
 
 func (d *DrawInstanceGroup) IsEmpty() bool {
@@ -108,7 +112,6 @@ func (d *DrawInstanceGroup) TotalSize() int {
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader) {
 	d.Instances = append(d.Instances, instance)
 	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
-	renderer.AddPreRun(func() { d.generateInstanceDriverData(renderer, shader) })
 }
 
 func (d *DrawInstanceGroup) texSize() (int32, int32) {

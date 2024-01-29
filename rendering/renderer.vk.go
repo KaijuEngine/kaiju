@@ -879,6 +879,7 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 		}
 		vk.GetPhysicalDeviceProperties(devices[i], &currentProperties)
 		currentProperties.Deref()
+		currentProperties.Limits.Deref()
 		pick := physicalDevice == vk.PhysicalDevice(vk.NullHandle)
 		if !pick {
 			t := properties.DeviceType
@@ -1627,6 +1628,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &vr.physicalDeviceProperties)
 	vr.physicalDeviceProperties.Deref()
+	vr.physicalDeviceProperties.Limits.Deref()
 
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
@@ -2969,6 +2971,7 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 			}
 		}
 		if currentCount > 0 {
+			group.generateInstanceDriverData(vr, shader)
 			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
 			for i := 0; i < maxFramesInFlight; i++ {
 				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),

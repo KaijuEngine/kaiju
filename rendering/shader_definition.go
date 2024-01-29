@@ -150,7 +150,7 @@ func ShaderDefFromJson(jsonStr string) (ShaderDef, error) {
 func (sd ShaderDef) Stride() uint32 {
 	stride := uint32(0)
 	for _, field := range sd.Fields {
-		stride += defTypes[field.Type].size
+		stride += defTypes[field.Type].size * uint32(defTypes[field.Type].repeat)
 	}
 	return stride
 }

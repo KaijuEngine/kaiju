@@ -74,7 +74,7 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 		group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
 		group.Textures = drawing.Textures
 		group.useBlending = drawing.UseBlending
-		draw.instanceGroups = append(draw.instanceGroups, group)
+		draw.AddInstanceGroup(group)
 	}
 }
 

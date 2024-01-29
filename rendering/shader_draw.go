@@ -12,8 +12,8 @@ func NewShaderDraw(shader *Shader) ShaderDraw {
 	}
 }
 
-func (s *ShaderDraw) AddInstanceGroup(group *DrawInstanceGroup) {
-	s.instanceGroups = append(s.instanceGroups, *group)
+func (s *ShaderDraw) AddInstanceGroup(group DrawInstanceGroup) {
+	s.instanceGroups = append(s.instanceGroups, group)
 }
 
 func (s *ShaderDraw) Filter(filter func(DrawInstanceGroup) bool) []DrawInstanceGroup {

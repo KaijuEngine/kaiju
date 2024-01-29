@@ -78,9 +78,6 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	host.shaderCache.CreatePending()
-	host.textureCache.CreatePending()
-	host.meshCache.CreatePending()
 	//gl.ClearScreen()
 	//host.Window.SwapBuffers()
 	// TODO:  Do end updates on various systems
@@ -88,6 +85,9 @@ func (host *Host) Update(deltaTime float64) {
 }
 
 func (host *Host) Render() {
+	host.shaderCache.CreatePending()
+	host.textureCache.CreatePending()
+	host.meshCache.CreatePending()
 	host.Window.Renderer.ReadyFrame(host.Camera, host.UICamera, float32(host.Runtime()))
 	host.Drawings.Render(host.Window.Renderer)
 	host.Window.SwapBuffers()
