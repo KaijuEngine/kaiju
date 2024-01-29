@@ -1,6 +1,14 @@
 {
 	"files.associations": {
-		"glad_wgl.h": "c"
+		"glad_wgl.h": "c",
+		"stdint.h": "c",
+		"wchar.h": "c",
+		"windowing.h": "c",
+		"string.h": "c",
+		"win32.h": "c",
+		"x11.h": "c"
 	},
-	"go.buildTags": "OPENGL"
+	"cSpell.words": [
+		"Vulkan"
+	],
 }

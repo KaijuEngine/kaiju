@@ -40,6 +40,7 @@ type GLRenderer struct {
 	composeQuad          *Mesh
 	hdr                  int
 	exposure             float32
+	preRuns              []func()
 }
 
 func NewGLRenderer() *GLRenderer {
@@ -60,13 +61,14 @@ func NewGLRenderer() *GLRenderer {
 	return r
 }
 
-func (r *GLRenderer) Initialize(caches RenderCaches, width, height int32) {
+func (r *GLRenderer) Initialize(caches RenderCaches, width, height int32) error {
 	r.setupOITFrameBuffer(width, height)
 	r.composeQuad = NewMeshUnitQuad(caches.MeshCache())
 	r.compositeShader = caches.ShaderCache().Shader(
 		assets.ShaderOitCompositeVert, assets.ShaderOitCompositeFrag, "", "", "")
 	r.hdrShader = caches.ShaderCache().Shader(
 		assets.ShaderHdrVert, assets.ShaderHdrFrag, "", "", "")
+	return nil
 }
 
 func createShaderObject(assetDatabase *assets.Database, shaderKey string, shaderType gl.Handle, defines []string) (gl.Handle, string) {
@@ -74,9 +76,15 @@ func createShaderObject(assetDatabase *assets.Database, shaderKey string, shader
 	if err != nil {
 		panic(err)
 	}
+	// TODO:  Setup this so it supports other versions
+	const vulkanVersion = "#version 460"
+	const glVersion = "#version 300 es\nprecision mediump float;"
+	if strings.HasPrefix(src, vulkanVersion) {
+		src = strings.Replace(src, vulkanVersion, glVersion, 1)
+	}
 	if len(defines) > 0 {
-		defineStr := "#version 300 es\n#define " + strings.Join(defines, "\n#define ")
-		src = strings.Replace(src, "#version 300 es", defineStr, 1)
+		defineStr := glVersion + "\n#define " + strings.Join(defines, "\n#define ")
+		src = strings.Replace(src, glVersion, defineStr, 1)
 	}
 	shaderObj := gl.CreateShader(shaderType)
 	gl.ShaderSource(shaderObj, src)
@@ -134,7 +142,7 @@ func linkShader(vert, frag, geom, tesc, tese gl.Handle) gl.Handle {
 func (r *GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database) {
 	noDef := []string{}
 	vert, _ := createShaderObject(assetDatabase, shader.VertPath, gl.VertexShader, noDef)
-	frag, fragSrc := createShaderObject(assetDatabase, shader.FragPath, gl.FragmentShader, shader.Defines)
+	frag, fragSrc := createShaderObject(assetDatabase, shader.FragPath, gl.FragmentShader, shader.DriverData.Defines)
 	var geom, tesc, tese gl.Handle
 	if len(shader.GeomPath) > 0 {
 		geom, _ = createShaderObject(assetDatabase, shader.GeomPath, gl.GeometryShader, noDef)
@@ -162,7 +170,8 @@ func (r *GLRenderer) CreateShader(shader *Shader, assetDatabase *assets.Database
 	if !strings.Contains(fragSrc, def) && strings.Contains(fragSrc, ifdef) {
 		shader.SubShader = NewShader(shader.VertPath, shader.FragPath,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath, r)
-		shader.SubShader.Defines = append(shader.SubShader.Defines, "OIT")
+		shader.SubShader.DriverData.Defines = append(
+			shader.SubShader.DriverData.Defines, "OIT")
 	}
 }
 
@@ -267,7 +276,7 @@ func (w *GLRenderer) TextureWritePixels(texture *Texture, x, y, width, height in
 	panic("TextureWritePixels not implemented")
 }
 
-func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) {
+func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) bool {
 	r.globalShaderData.View = camera.View()
 	r.globalShaderData.Projection = camera.Projection()
 	r.globalShaderData.UIView = uiCamera.View()
@@ -275,6 +284,11 @@ func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, uiCamera *camera
 	r.globalShaderData.CameraPosition = camera.Position()
 	r.globalShaderData.UICameraPosition = uiCamera.Position()
 	r.globalShaderData.Time = runtime
+	for _, r := range vr.preRuns {
+		r()
+	}
+	vr.preRuns = vr.preRuns[:0]
+	return true
 }
 
 func (r GLRenderer) setGlobalUniforms(shader *Shader) {
@@ -308,7 +322,7 @@ func (r *GLRenderer) draw(drawings []ShaderDraw) {
 			meshId := draw.Mesh.MeshId.(MeshIdGL)
 			gl.BindVertexArray(meshId.VAO)
 			gl.ActivateTexture(gl.Texture0)
-			gl.BindTexture(gl.Texture2D, draw.TextureData)
+			gl.BindTexture(gl.Texture2D, draw.InstanceDriverData)
 			gl.Uniform1i(gl.GetUniformLocation(shaderId, "instanceSampler"), 0)
 			for i, texture := range draw.Textures {
 				gl.ActivateTexture(gl.Handle(int(gl.Texture1) + i))
@@ -355,7 +369,7 @@ func (r GLRenderer) Draw(drawings []ShaderDraw) {
 	r.transparentPass(transparents)
 }
 
-func (r *GLRenderer) SwapFrame(width, height int32) {
+func (r *GLRenderer) SwapFrame(width, height int32) bool {
 	r.composePass()
 	gl.Disable(gl.DepthTest)
 	gl.DepthMask(true)
@@ -377,4 +391,13 @@ func (r *GLRenderer) SwapFrame(width, height int32) {
 	gl.UnBindBuffer(gl.ElementArrayBuffer)
 	gl.UnBindTexture(gl.Texture2D)
 	gl.UnBindVertexArray()
+	return true
+}
+
+func (r *GLRenderer) Resize(width, height int) {
+	gl.Viewport(0, 0, width, height)
+}
+
+func (r *GLRenderer) AddPreRun(preRun func()) {
+	r.preRuns = append(r.preRuns, preRun)
 }

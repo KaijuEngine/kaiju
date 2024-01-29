@@ -6,6 +6,7 @@ import (
 )
 
 type Drawing struct {
+	Renderer    Renderer
 	Shader      *Shader
 	Mesh        *Mesh
 	Textures    []*Texture
@@ -67,13 +68,13 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 	}
 	drawing.ShaderData.setTransform(drawing.Transform)
 	if dg, ok := d.matchGroup(draw, &drawing); ok {
-		dg.AddInstance(drawing.ShaderData)
+		dg.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
 	} else {
 		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-		group.AddInstance(drawing.ShaderData)
+		group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
 		group.Textures = drawing.Textures
 		group.useBlending = drawing.UseBlending
-		draw.instanceGroups = append(draw.instanceGroups, group)
+		draw.AddInstanceGroup(group)
 	}
 }
 

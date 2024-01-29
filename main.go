@@ -29,6 +29,21 @@ func init() {
 }
 
 func testDrawing(host *engine.Host) {
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+	mesh := rendering.NewMeshQuad(host.MeshCache())
+	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
+	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     shader,
+		Mesh:       mesh,
+		Textures:   []*rendering.Texture{droidTex},
+		ShaderData: &tsd,
+		Transform:  nil,
+	})
+}
+
+func testTwoDrawings(host *engine.Host) {
 	positions := []matrix.Vec3{
 		{-1, 0.0, 0.0},
 		{1, 0.0, 0.0},
@@ -39,7 +54,7 @@ func testDrawing(host *engine.Host) {
 	}
 	rots := []matrix.Float{45, -45}
 	for i := 0; i < 2; i++ {
-		shader := host.ShaderCache().Shader("shaders/basic.vert", "shaders/basic.frag", "", "", "")
+		shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 		mesh := rendering.NewMeshQuad(host.MeshCache())
 		droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 		tsd := TestBasicShaderData{Color: colors[i]}
@@ -48,6 +63,7 @@ func testDrawing(host *engine.Host) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		host.Drawings.AddDrawing(rendering.Drawing{
+			Renderer:   host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       mesh,
 			Textures:   []*rendering.Texture{droidTex},
@@ -79,7 +95,7 @@ func testOIT(host *engine.Host) {
 		{0.0, 1.0, 0.0, 0.5},
 		{0.0, 0.0, 1.0, 0.5},
 	}
-	shader := host.ShaderCache().Shader("shaders/basic.vert", "shaders/basic.frag", "", "", "")
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/square.png", rendering.TextureFilterNearest)
 	for i := 0; i < len(positions); i++ {
@@ -88,6 +104,7 @@ func testOIT(host *engine.Host) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		host.Drawings.AddDrawing(rendering.Drawing{
+			Renderer:    host.Window.Renderer,
 			Shader:      shader,
 			Mesh:        mesh,
 			Textures:    []*rendering.Texture{droidTex},
@@ -121,10 +138,11 @@ func main() {
 	bootstrap.Main(&host)
 	host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 	//testDrawing(&host)
+	//testTwoDrawings(&host)
 	//testFont(&host)
-	//testOIT(&host)
+	testOIT(&host)
 	//testPanel(&host)
-	testLabel(&host)
+	//testLabel(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()

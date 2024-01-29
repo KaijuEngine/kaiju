@@ -316,10 +316,10 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 }
 
 func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) bool {
-	cache.textShader = caches.ShaderCache().Shader(
-		assets.ShaderText3DVert, assets.ShaderText3DFrag, "", "", "")
-	cache.textOrthoShader = caches.ShaderCache().Shader(
-		assets.ShaderTextVert, assets.ShaderTextFrag, "", "", "")
+	cache.textShader = caches.ShaderCache().ShaderFromDefinition(
+		assets.ShaderDefinitionText3D)
+	cache.textOrthoShader = caches.ShaderCache().ShaderFromDefinition(
+		assets.ShaderDefinitionText)
 	faces := [...]FontFace{
 		FontRegular,
 		FontBold,
@@ -483,6 +483,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.Scissor = matrix.Vec4{-math.MaxFloat32, -math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
+					Renderer:   cache.renderer,
 					Shader:     shader,
 					Mesh:       m,
 					Textures:   []*Texture{fontFace.texture},

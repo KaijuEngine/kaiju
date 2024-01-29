@@ -1,0 +1,28 @@
+{
+	"CullMode": "None",
+	"OpenGL": {
+		"Vert": "shaders/oit_composite.vert",
+		"Frag": "shaders/oit_composite.frag"
+	},
+	"Vulkan": {
+		"Vert": "shaders/spv/oit_composite.vert.spv",
+		"Frag": "shaders/spv/oit_composite.frag.spv"
+	},
+	"Fields": [
+		{
+			"Name": "model",
+			"Type": "mat4"
+		}
+	],
+	"Layouts": [{
+		"Type": "InputAttachment",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "InputAttachment",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}]
+}

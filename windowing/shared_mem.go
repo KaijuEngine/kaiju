@@ -40,6 +40,12 @@ type mouseEvent struct {
 	mouseY        int32
 }
 
+type windowEvent struct {
+	baseEvent
+	width  int32
+	height int32
+}
+
 type keyboardEvent struct {
 	baseEvent
 	key int32
@@ -69,6 +75,10 @@ func (e *evtMem) SetFatal(message string) {
 func (e *evtMem) AwaitReady() {
 	for !e.IsReady() {
 	}
+}
+
+func (e evtMem) toWindowEvent() *windowEvent {
+	return (*windowEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
 func (e evtMem) toMouseEvent() *mouseEvent {

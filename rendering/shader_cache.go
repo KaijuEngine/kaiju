@@ -3,18 +3,20 @@ package rendering
 import "kaiju/assets"
 
 type ShaderCache struct {
-	renderer       Renderer
-	assetDatabase  *assets.Database
-	shaders        map[string]*Shader
-	pendingShaders []*Shader
+	renderer          Renderer
+	assetDatabase     *assets.Database
+	shaders           map[string]*Shader
+	pendingShaders    []*Shader
+	shaderDefinitions map[string]ShaderDef
 }
 
 func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCache {
 	return ShaderCache{
-		renderer:       renderer,
-		assetDatabase:  assetDatabase,
-		shaders:        make(map[string]*Shader),
-		pendingShaders: make([]*Shader, 0),
+		renderer:          renderer,
+		assetDatabase:     assetDatabase,
+		shaders:           make(map[string]*Shader),
+		pendingShaders:    make([]*Shader, 0),
+		shaderDefinitions: make(map[string]ShaderDef),
 	}
 }
 
@@ -30,6 +32,27 @@ func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, 
 		s.shaders[shaderKey] = shader
 		return shader
 	}
+}
+
+func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
+	def, ok := s.shaderDefinitions[definitionKey]
+	if !ok {
+		if str, err := s.assetDatabase.ReadText(definitionKey); err != nil {
+			// TODO:  Return error and fallback shader
+			panic(err)
+		} else {
+			if def, err = ShaderDefFromJson(str); err != nil {
+				// TODO:  Return error and fallback shader
+				panic(err)
+			} else {
+				s.shaderDefinitions[definitionKey] = def
+			}
+		}
+	}
+	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag,
+		def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese)
+	shader.DriverData.setup(def, baseVertexAttributeCount)
+	return shader
 }
 
 func (s *ShaderCache) CreatePending() {

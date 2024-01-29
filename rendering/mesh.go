@@ -2,13 +2,20 @@ package rendering
 
 import "kaiju/matrix"
 
-type MeshDrawMode int
+type MeshDrawMode = int
+type MeshCullMode = int
 
 const (
 	MeshDrawModePoints MeshDrawMode = iota
 	MeshDrawModeLines
 	MeshDrawModeTriangles
 	MeshDrawModePatches
+)
+
+const (
+	MeshCullModeBack MeshCullMode = iota
+	MeshCullModeFront
+	MeshCullModeNone
 )
 
 type Mesh struct {
@@ -39,7 +46,7 @@ func (m *Mesh) DelayedCreate(renderer Renderer) {
 }
 
 func (m Mesh) Key() string   { return m.key }
-func (m Mesh) IsReady() bool { return m.MeshId != nil && m.MeshId.IsValid() }
+func (m Mesh) IsReady() bool { return m.MeshId.IsValid() }
 
 func NewMeshQuad(cache *MeshCache) *Mesh {
 	const key = "quad"

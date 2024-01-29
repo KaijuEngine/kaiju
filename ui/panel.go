@@ -61,8 +61,8 @@ func NewPanel(host *engine.Host, anchor Anchor, texture *rendering.Texture) *Pan
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
 		fitContent:        true,
 	}
-	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.init(host, texture.Size(), anchor, panel)
+	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.entity.Transform.SetScale(matrix.Vec3{1.0, 1.0, 1.0})
 	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
@@ -416,8 +416,8 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 			tex, _ = panel.host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
 		}
-		shader := panel.host.ShaderCache().Shader(assets.ShaderUIVert,
-			assets.ShadersUINineFrag, "", "", "")
+		shader := panel.host.ShaderCache().ShaderFromDefinition(
+			assets.ShaderDefinitionUI)
 		panel.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
 		panel.shaderData.BgColor = panel.color
 		panel.shaderData.FgColor = panel.color
@@ -425,6 +425,7 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 		panel.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		panel.drawing = rendering.Drawing{
+			Renderer:   panel.host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       rendering.NewMeshQuad(panel.host.MeshCache()),
 			Textures:   []*rendering.Texture{tex},

@@ -28,10 +28,12 @@ const (
 	evtMouseWheelHorizontal
 	evtKeyDown
 	evtKeyUp
+	evtResize
 )
 
 type Window struct {
 	handle        unsafe.Pointer
+	instance      unsafe.Pointer
 	Mouse         hid.Mouse
 	Keyboard      hid.Keyboard
 	Touch         hid.Touch
@@ -61,10 +63,12 @@ func New(windowName string) (*Window, error) {
 	if !w.evtSharedMem.IsFatal() && !w.evtSharedMem.IsContext() {
 		return nil, errors.New("Context create expected but wasn't requested")
 	}
-	var hwndAddr uint64
+	var hwndAddr, hInstance uint64
 	reader := bytes.NewReader(w.evtSharedMem[evtSharedMemDataStart:])
 	binary.Read(reader, binary.LittleEndian, &hwndAddr)
 	w.handle = unsafe.Pointer(uintptr(hwndAddr))
+	binary.Read(reader, binary.LittleEndian, &hInstance)
+	w.instance = unsafe.Pointer(uintptr(hInstance))
 	createWindowContext(w.handle, w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
@@ -76,10 +80,13 @@ func New(windowName string) (*Window, error) {
 	} else if !w.evtSharedMem.IsStart() {
 		return nil, errors.New("Start expected but wasn't requested")
 	}
-	// TODO:  Select the correct renderer, or pass it in
-	w.Renderer = rendering.NewGLRenderer()
-	return w, nil
+	var err error
+	w.Renderer, err = selectRenderer(w, windowName)
+	return w, err
 }
+
+func (w Window) PlatformWindow() unsafe.Pointer   { return w.handle }
+func (w Window) PlatformInstance() unsafe.Pointer { return w.instance }
 
 func (w Window) IsClosed() bool  { return w.isClosed }
 func (w Window) IsCrashed() bool { return w.isCrashed }
@@ -88,8 +95,19 @@ func (w Window) Height() int     { return w.height }
 
 func (w *Window) processEvent() {
 	evtType := w.evtSharedMem.toEventType()
+	w.processWindowEvent(evtType)
 	w.processMouseEvent(evtType)
 	w.processKeyboardEvent(evtType)
+}
+
+func (w *Window) processWindowEvent(evtType eventType) {
+	switch evtType {
+	case evtResize:
+		we := w.evtSharedMem.toWindowEvent()
+		w.width = int(we.width)
+		w.height = int(we.height)
+		w.Renderer.Resize(w.width, w.height)
+	}
 }
 
 func (w *Window) processMouseEvent(evtType eventType) {
