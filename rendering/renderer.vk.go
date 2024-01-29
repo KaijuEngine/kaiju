@@ -119,6 +119,7 @@ type Vulkan struct {
 	resized                    bool
 	msaaSamples                vk.SampleCountFlagBits
 	oit                        oitPass
+	preRuns                    []func()
 }
 
 func init() {
@@ -2090,11 +2091,16 @@ func (vr Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShader
 	pipelineInfo.PDynamicState = &dynamicState
 	pipelineInfo.Layout = *pipelineLayout
 	pipelineInfo.RenderPass = renderPass
-	pipelineInfo.Subpass = 0
-	s := shader.SubShader
-	for s != nil {
-		s = s.SubShader
-		pipelineInfo.Subpass++
+	//pipelineInfo.Subpass = 0
+	//s := shader.SubShader
+	//for s != nil {
+	//	s = s.SubShader
+	//	pipelineInfo.Subpass++
+	//}
+	if shader.IsComposite() {
+		pipelineInfo.Subpass = 1
+	} else {
+		pipelineInfo.Subpass = 0
 	}
 	pipelineInfo.BasePipelineHandle = vk.Pipeline(vk.NullHandle)
 	pipelineInfo.PDepthStencilState = &depthStencil
@@ -2134,6 +2140,10 @@ func (vr *Vulkan) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.S
 	vk.ResetFences(vr.device, 1, fences)
 	vk.ResetCommandBuffer(vr.commandBuffers[vr.currentFrame*MaxCommandBuffers], 0)
 	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
+	for _, r := range vr.preRuns {
+		r()
+	}
+	vr.preRuns = vr.preRuns[:0]
 	return true
 }
 
@@ -2303,11 +2313,12 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 	offset := uint64(0)
 	shaderDataSize := key.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
-	for i, group := range groups {
+	for i := range groups {
+		group := &groups[i]
 		if !group.IsReady() {
 			continue
 		}
-		vr.resizeUniformBuffer(key, &groups[i])
+		vr.resizeUniformBuffer(key, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		var data unsafe.Pointer
 		mem := group.instanceBuffersMemory[vr.currentFrame]
@@ -2452,10 +2463,10 @@ func (vr Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader,
 }
 
 func (vr *Vulkan) Draw(drawings []ShaderDraw) {
-	panic("not implemented")
+	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings)
 }
 
-func (vr *Vulkan) DrawMeshes(lightFollowCamera cameras.StandardCamera, clearColor matrix.Color, drawings []ShaderDraw) {
+func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	for i := len(vr.pendingDeletes) - 1; i >= 0; i-- {
 		pd := &vr.pendingDeletes[i]
 		pd.delay--
@@ -2870,11 +2881,13 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	vr.createPipeline(shader, stages, moduleCount,
 		id.descriptorSetLayout, &id.pipelineLayout,
 		&id.graphicsPipeline, renderPass, isTransparentPipeline)
+	// TODO:  Setup subshader in the shader definition?
 	var subShaderCheck string
 	subShaderCheck = strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath, vr)
+		subShader.DriverData = shader.DriverData
 		vr.CreateShader(subShader, assetDB)
 		shader.SubShader = subShader
 	}
@@ -2982,4 +2995,8 @@ func (vr *Vulkan) Destroy() {
 
 func (vr *Vulkan) Resize(width, height int) {
 	vr.resized = true
+}
+
+func (vr *Vulkan) AddPreRun(preRun func()) {
+	vr.preRuns = append(vr.preRuns, preRun)
 }

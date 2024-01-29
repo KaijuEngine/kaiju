@@ -108,7 +108,7 @@ func (d *DrawInstanceGroup) TotalSize() int {
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader) {
 	d.Instances = append(d.Instances, instance)
 	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
-	d.generateInstanceDriverData(renderer, shader)
+	renderer.AddPreRun(func() { d.generateInstanceDriverData(renderer, shader) })
 }
 
 func (d *DrawInstanceGroup) texSize() (int32, int32) {

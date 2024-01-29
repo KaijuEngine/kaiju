@@ -53,5 +53,5 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 }
 
 func (s *Shader) IsComposite() bool {
-	return s.FragPath == assets.ShaderOitCompositeFrag
+	return s.VertPath == assets.ShaderOitCompositeVert
 }

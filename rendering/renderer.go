@@ -20,4 +20,5 @@ type Renderer interface {
 	Draw(drawings []ShaderDraw)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
+	AddPreRun(preRun func())
 }

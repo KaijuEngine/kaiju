@@ -40,6 +40,7 @@ type GLRenderer struct {
 	composeQuad          *Mesh
 	hdr                  int
 	exposure             float32
+	preRuns              []func()
 }
 
 func NewGLRenderer() *GLRenderer {
@@ -283,6 +284,10 @@ func (r *GLRenderer) ReadyFrame(camera *cameras.StandardCamera, uiCamera *camera
 	r.globalShaderData.CameraPosition = camera.Position()
 	r.globalShaderData.UICameraPosition = uiCamera.Position()
 	r.globalShaderData.Time = runtime
+	for _, r := range vr.preRuns {
+		r()
+	}
+	vr.preRuns = vr.preRuns[:0]
 	return true
 }
 
@@ -391,4 +396,8 @@ func (r *GLRenderer) SwapFrame(width, height int32) bool {
 
 func (r *GLRenderer) Resize(width, height int) {
 	gl.Viewport(0, 0, width, height)
+}
+
+func (r *GLRenderer) AddPreRun(preRun func()) {
+	r.preRuns = append(r.preRuns, preRun)
 }
