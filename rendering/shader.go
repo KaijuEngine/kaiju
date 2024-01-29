@@ -29,7 +29,7 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 		SubShader:  nil,
 		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
 		DrawMode:   MeshDrawModeTriangles,
-		CullMode:   MeshCullModeBack,
+		CullMode:   MeshCullModeFront,
 		VertPath:   vertPath,
 		FragPath:   fragPath,
 		GeomPath:   geomPath,
