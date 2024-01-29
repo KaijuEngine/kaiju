@@ -137,10 +137,10 @@ func main() {
 	host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), &host)
 	bootstrap.Main(&host)
 	host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
-	testDrawing(&host)
+	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	//testOIT(&host)
+	testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
 	for !host.Closing {
