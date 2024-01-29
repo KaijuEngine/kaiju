@@ -38,6 +38,7 @@ type Window struct {
 	Keyboard      hid.Keyboard
 	Touch         hid.Touch
 	Stylus        hid.Stylus
+	Controller    hid.Controller
 	Cursor        hid.Cursor
 	Renderer      rendering.Renderer
 	evtSharedMem  *evtMem
@@ -52,6 +53,7 @@ func New(windowName string) (*Window, error) {
 		Mouse:        hid.NewMouse(),
 		Touch:        hid.NewTouch(),
 		Stylus:       hid.NewStylus(),
+		Controller:   hid.NewController(),
 		width:        944,
 		height:       500,
 		evtSharedMem: new(evtMem),
@@ -195,6 +197,7 @@ func (w *Window) EndUpdate() {
 	w.Mouse.EndUpdate()
 	w.Touch.EndUpdate()
 	w.Stylus.EndUpdate()
+	w.Controller.EndUpdate()
 }
 
 func (w *Window) SwapBuffers() {
