@@ -6,7 +6,7 @@ import (
 	"math"
 	"unsafe"
 
-	vk "github.com/BrentFarris/go-vulkan"
+	vk "github.com/KaijuEngine/go-vulkan"
 )
 
 type ShaderDefDriver struct {

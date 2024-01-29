@@ -2,7 +2,7 @@
 
 package rendering
 
-import vk "github.com/BrentFarris/go-vulkan"
+import vk "github.com/KaijuEngine/go-vulkan"
 
 func preTransform(scs vkSwapChainSupportDetails) vk.SurfaceTransformFlagBits {
 	return vk.SurfaceTransformIdentityBit

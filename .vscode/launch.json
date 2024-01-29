@@ -12,8 +12,7 @@
 			"program": "${workspaceFolder}",
 			"buildFlags": "-tags editor",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32",
-				"CGO_CFLAGS": "-DVK_USE_PLATFORM_WIN32_KHR"
+				"CGO_LDFLAGS": "-lgdi32"
 			}
 		}, {
 			"name": "Launch Windows Editor (GL)",
@@ -33,8 +32,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32",
-				"CGO_CFLAGS": "-DVK_USE_PLATFORM_WIN32_KHR"
+				"CGO_LDFLAGS": "-lgdi32"
 			}
 		}, {
 			"name": "Launch Windows Runtime (GL)",

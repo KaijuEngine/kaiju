@@ -14,7 +14,7 @@ import (
 	"strings"
 	"unsafe"
 
-	vk "github.com/BrentFarris/go-vulkan"
+	vk "github.com/KaijuEngine/go-vulkan"
 )
 
 const (

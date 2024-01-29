@@ -5,7 +5,7 @@ package rendering
 import (
 	"strings"
 
-	vk "github.com/BrentFarris/go-vulkan"
+	vk "github.com/KaijuEngine/go-vulkan"
 )
 
 type DescriptorSetLayoutStructureType struct {
