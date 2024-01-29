@@ -61,8 +61,8 @@ func NewPanel(host *engine.Host, anchor Anchor, texture *rendering.Texture) *Pan
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
 		fitContent:        true,
 	}
-	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.init(host, texture.Size(), anchor, panel)
+	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.entity.Transform.SetScale(matrix.Vec3{1.0, 1.0, 1.0})
 	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
