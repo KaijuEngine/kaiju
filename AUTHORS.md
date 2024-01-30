@@ -1,6 +1,7 @@
 # Godot Engine authors
 
-## Project Founders
-
+## Project Founder
     Brent Farris (brentfarris)
+
+## Contributors
     Brett Faulds (crazy8ball)
