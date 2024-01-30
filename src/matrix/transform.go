@@ -3,7 +3,8 @@ package matrix
 import "math"
 
 type Transform struct {
-	matrix                    Mat4
+	localMatrix               Mat4
+	worldMatrix               Mat4
 	parent                    *Transform
 	position, rotation, scale Vec3
 	isDirty, isLive           bool
@@ -11,11 +12,12 @@ type Transform struct {
 
 func NewTransform() Transform {
 	return Transform{
-		matrix:   Mat4Identity(),
-		position: Vec3Zero(),
-		rotation: Vec3Zero(),
-		scale:    Vec3One(),
-		isDirty:  true,
+		localMatrix: Mat4Identity(),
+		worldMatrix: Mat4Identity(),
+		position:    Vec3Zero(),
+		rotation:    Vec3Zero(),
+		scale:       Vec3One(),
+		isDirty:     true,
 	}
 }
 
@@ -60,15 +62,15 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t Transform) Right() Vec3 {
-	return t.matrix.Right().Normal()
+	return t.localMatrix.Right().Normal()
 }
 
 func (t Transform) Up() Vec3 {
-	return t.matrix.Up().Normal()
+	return t.localMatrix.Up().Normal()
 }
 
 func (t Transform) Forward() Vec3 {
-	return t.matrix.Forward().Normal()
+	return t.localMatrix.Forward().Normal()
 }
 
 func (t *Transform) SetDirty() {
@@ -117,23 +119,41 @@ func (t *Transform) StopLive() {
 
 func (t *Transform) UpdateMatrix() {
 	if t.isDirty || t.isLive {
-		t.matrix.Reset()
-		t.matrix.Scale(t.scale)
-		t.matrix.Rotate(t.rotation)
-		t.matrix.Translate(t.position)
+		t.localMatrix.Reset()
+		t.localMatrix.Scale(t.scale)
+		t.localMatrix.Rotate(t.rotation)
+		t.localMatrix.Translate(t.position)
 	}
 }
 
-func (t Transform) Matrix() Mat4 {
+func (t *Transform) UpdateWorldMatrix() {
+	if t.isDirty || t.isLive {
+		t.worldMatrix.Reset()
+		t.CalcWorldMatrix(&t.worldMatrix)
+	}
+}
+
+func (t *Transform) updateMatrices() {
+	t.UpdateMatrix()
+	t.UpdateWorldMatrix()
+}
+
+func (t *Transform) Matrix() Mat4 {
 	if t.isDirty {
-		t.UpdateMatrix()
+		t.updateMatrices()
 	}
-	return t.matrix
+	return t.localMatrix
 }
 
-func (t *Transform) WorldMatrix(base *Mat4) {
-	m := t.matrix
-	m.Reset()
+func (t *Transform) WorldMatrix() Mat4 {
+	if t.isDirty {
+		t.updateMatrices()
+	}
+	return t.worldMatrix
+}
+
+func (t *Transform) CalcWorldMatrix(base *Mat4) {
+	m := Mat4Identity()
 	m.Scale(t.scale)
 	m.Rotate(t.rotation)
 	m.Translate(t.position)
@@ -141,7 +161,7 @@ func (t *Transform) WorldMatrix(base *Mat4) {
 	base.MultiplyAssign(m)
 	base.SetTranslation(dPos)
 	if t.parent != nil {
-		t.parent.WorldMatrix(base)
+		t.parent.CalcWorldMatrix(base)
 	}
 }
 
@@ -149,7 +169,7 @@ func (t *Transform) Copy(other Transform) {
 	t.position = other.position
 	t.rotation = other.rotation
 	t.scale = other.scale
-	t.matrix = other.matrix
+	t.localMatrix = other.localMatrix
 	t.isDirty = other.isDirty
 }
 

@@ -23,11 +23,13 @@ layout(location = 7) in vec3 inMorphTarget;
 	layout(location = 1) out vec4 fragBGColor;
 	layout(location = 2) out vec2 fragTexCoord;
 	layout(location = 3) out vec2 fragPxRange;
+	layout(location = 4) out vec2 fragTexRange;
 #else
 	out vec4 fragColor;
 	out vec4 fragBGColor;
 	out vec2 fragTexCoord;
 	out vec2 fragPxRange;
+	out vec2 fragTexRange;
 
 	#define INSTANCE_VEC4_COUNT 9
 	uniform sampler2D instanceSampler;
@@ -71,11 +73,11 @@ InstanceData pullInstanceData() {
     data.model[1] = texelFetch(instanceSampler, ivec2(xOffset+1,0), 0);
     data.model[2] = texelFetch(instanceSampler, ivec2(xOffset+2,0), 0);
     data.model[3] = texelFetch(instanceSampler, ivec2(xOffset+3,0), 0);
-	vec4 uvs = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
-	vec4 fgColor = texelFetch(instanceSampler, ivec2(xOffset+5,0), 0);
-	vec4 bgColor = texelFetch(instanceSampler, ivec2(xOffset+6,0), 0);
-	vec4 scissor = texelFetch(instanceSampler, ivec2(xOffset+7,0), 0);
-	vec2 pxRange = texelFetch(instanceSampler, ivec2(xOffset+8,0), 0).xy;
+	data.uvs = texelFetch(instanceSampler, ivec2(xOffset+4,0), 0);
+	data.fgColor = texelFetch(instanceSampler, ivec2(xOffset+5,0), 0);
+	data.bgColor = texelFetch(instanceSampler, ivec2(xOffset+6,0), 0);
+	data.scissor = texelFetch(instanceSampler, ivec2(xOffset+7,0), 0);
+	data.pxRange = texelFetch(instanceSampler, ivec2(xOffset+8,0), 0).xy;
 #endif
 	return data;
 }
@@ -95,6 +97,7 @@ void main() {
 	fragColor = inColor * data.fgColor;
 	fragBGColor = data.bgColor;
 	fragPxRange = data.pxRange;
+	fragTexRange = data.uvs.zw;
 
 #ifdef VULKAN
 	gl_ClipDistance[0] = vPos.x - data.scissor.x;

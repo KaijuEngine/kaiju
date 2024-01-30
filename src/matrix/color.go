@@ -13,15 +13,19 @@ type Color8 struct {
 	A uint8
 }
 
-func (c Color) R() Float                           { return c[Cr] }
-func (c Color) G() Float                           { return c[Cg] }
-func (c Color) B() Float                           { return c[Cb] }
-func (c Color) A() Float                           { return c[Ca] }
-func (c *Color) PR() *Float                        { return &c[Cr] }
-func (c *Color) PG() *Float                        { return &c[Cg] }
-func (c *Color) PB() *Float                        { return &c[Cb] }
-func (c *Color) PA() *Float                        { return &c[Ca] }
-func (c Color) RGBA() (Float, Float, Float, Float) { return c[Cr], c[Cg], c[Cb], c[Ca] }
+func (c Color) R() Float                           { return c[R] }
+func (c Color) G() Float                           { return c[G] }
+func (c Color) B() Float                           { return c[B] }
+func (c Color) A() Float                           { return c[A] }
+func (c *Color) PR() *Float                        { return &c[R] }
+func (c *Color) PG() *Float                        { return &c[G] }
+func (c *Color) PB() *Float                        { return &c[B] }
+func (c *Color) PA() *Float                        { return &c[A] }
+func (c Color) RGBA() (Float, Float, Float, Float) { return c[R], c[G], c[B], c[A] }
+func (c *Color) SetR(r Float)                      { c[R] = r }
+func (c *Color) SetG(g Float)                      { c[G] = g }
+func (c *Color) SetB(b Float)                      { c[B] = b }
+func (c *Color) SetA(a Float)                      { c[A] = a }
 
 func NewColor(r, g, b, a Float) Color {
 	return Color{r, g, b, a}
@@ -243,3 +247,7 @@ func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
 
 func (lhs Color) Equals(rhs Color) bool { return Vec4(lhs).Equals(Vec4(rhs)) }
 func (c Color) IsZero() bool            { return c.Equals(ColorZero()) }
+
+func (c Color) ScaleWithoutAlpha(scale Float) Color {
+	return Color{c.R() * scale, c.G() * scale, c.B() * scale, c.A()}
+}

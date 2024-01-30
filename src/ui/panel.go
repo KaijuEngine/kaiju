@@ -52,14 +52,14 @@ type Panel struct {
 	fitContent                    bool
 }
 
-func NewPanel(host *engine.Host, anchor Anchor, texture *rendering.Texture) *Panel {
+func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
 		scrollEvent:       -1,
 		scrollSpeed:       30.0,
 		childScrollEvents: make(map[UI]childScrollEvent),
 		scrollDirection:   PanelScrollDirectionVertical,
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:        true,
+		fitContent:        false,
 	}
 	panel.init(host, texture.Size(), anchor, panel)
 	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
@@ -67,6 +67,7 @@ func NewPanel(host *engine.Host, anchor Anchor, texture *rendering.Texture) *Pan
 	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
 	panel.ensureBGExists(texture)
+	panel.AddEvent(EventTypeRebuild, panel.onRebuild)
 	return panel
 }
 

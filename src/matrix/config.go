@@ -9,10 +9,10 @@ type VectorComponent = int
 type QuaternionComponent = int
 
 const (
-	Cr ColorComponent = iota
-	Cg
-	Cb
-	Ca
+	R ColorComponent = iota
+	G
+	B
+	A
 )
 
 const (

@@ -267,6 +267,7 @@ func layoutStretch(self *Layout) {
 	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / width
 	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / height
 	self.ui.Entity().ScaleWithoutChildren(scale)
+	self.pixelSize = self.ui.Entity().Transform.WorldScale().AsVec2()
 	pos := matrix.Vec3{
 		x + self.bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
 		y + self.bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,

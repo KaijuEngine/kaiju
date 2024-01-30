@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	distanceFieldSize = 32.0
+	distanceFieldSize  = 64.0
+	distanceFieldRange = 4.0
 )
 
 type FontJustify int
@@ -256,8 +257,8 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 		uvw / float32(font.width), uvh / float32(font.height)}
 	// TODO:  Figure out the distance field size
 	clm.pxRange = matrix.Vec2{
-		c.Width() / distanceFieldSize * 2.0,
-		c.Height() / distanceFieldSize * 2.0}
+		c.Width() / distanceFieldSize * distanceFieldRange,
+		c.Height() / distanceFieldSize * distanceFieldRange}
 	//clm.pxRange = matrix.Vec2{
 	//	c.Width() / c.AtlasWidth() * 2.0,
 	//	c.Height() / c.AtlasHeight() * 2.0}
@@ -274,7 +275,8 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 
 func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *assets.Database, caches RenderCaches) bool {
 	bin := fontBin{}
-	bin.texture, _ = caches.TextureCache().Texture(face.string()+".png", TextureFilterNearest)
+	bin.texture, _ = caches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
+	bin.texture.MipLevels = 1
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
 	out, _ := assetDb.Read(face.string() + ".bin")
@@ -425,11 +427,11 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				h := ch.Height() * scale * inverseHeight
 				// TODO:  Figure out the distance field size
 				pxRange := matrix.Vec2{
-					(ch.Width() * scale) / distanceFieldSize * 2.0,
-					(-ch.Height() * scale) / distanceFieldSize * 2.0}
+					(ch.Width() * scale) / distanceFieldSize * distanceFieldRange,
+					(-ch.Height() * scale) / distanceFieldSize * distanceFieldRange}
 				//pxRange := matrix.Vec2{
-				//	(ch.Width() * scale) / ch.AtlasWidth() * 2.0,
-				//	(ch.Height() * scale) / ch.AtlasHeight() * 2.0}
+				//	(ch.Width() * scale) / ch.AtlasWidth() * distanceFieldRange,
+				//	(ch.Height() * scale) / ch.AtlasHeight() * distanceFieldRange}
 				uvs := matrix.Vec4Zero()
 				var clm *cachedLetterMesh = nil
 				if instanced {

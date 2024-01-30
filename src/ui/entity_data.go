@@ -7,6 +7,9 @@ const (
 )
 
 func FirstOnEntity(entity *engine.Entity) UI {
+	if entity == nil {
+		return nil
+	}
 	found := entity.NamedData(EntityDataName)
 	if len(found) == 0 {
 		return nil
