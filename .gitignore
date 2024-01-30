@@ -22,4 +22,5 @@ go.work
 
 project_template/
 bin/
+external/bin
 interpreter/kaiju-*
