@@ -5,15 +5,15 @@
 2. If you didn't find the bug, report it via issues with bug tag
 
 #### **Pull requeset rules**
-1. You must provide a video of your entire development process of the PR (see video rules below)
-2. Once you have the video and the changes, open a new GitHub pull request
-3. Title must be short and self explanitory
-4. Give a detailed description of the change, why it was made, and what it solves
-5. Provide your video(s) as a downloadable link
+1. Title must be short and self explanitory
+2. Give a detailed description of the change, why it was made, and what it solves
+3. Pull request title should include issue number (eg: #1234)
+4. You can provide a video of your entire development process of the PR (see video rules below)
+	- Provide your video(s) as a downloadable link
 	- Include your name and a picture you wish to use for credit
 		- If not provided, your GitHub username/profile picture will be used
 
-#### **Video rules**
+#### **Video rules** (if you provide a video)
 - In your video, the text/code must be legible
 - Maximum video quality is 1080p 30fps
 - You must provide verbal or code comment commentary showing your thought process
