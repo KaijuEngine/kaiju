@@ -241,19 +241,24 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     wc.lpfnWndProc   = window_proc;
     wc.hInstance     = hInstance;
     wc.lpszClassName = className;
+	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
     RegisterClass(&wc);
+	RECT clientArea = {0, 0, width, height};
+	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
     // Create the window.
     HWND hwnd = CreateWindowEx(
-        0,								// Optional window styles.
-        className,						// Window class
-        windowTitle,					// Window text
-        WS_OVERLAPPEDWINDOW,			// Window style
-        CW_USEDEFAULT, CW_USEDEFAULT,	// Position
-		width, height,					// Size
-        NULL,							// Parent window
-        NULL,							// Menu
-        hInstance,						// Instance handle
-        NULL							// Additional application data
+        0,									// Optional window styles.
+        className,							// Window class
+        windowTitle,						// Window text
+        WS_OVERLAPPEDWINDOW,				// Window style
+        CW_USEDEFAULT, CW_USEDEFAULT,		// Position
+		clientArea.right-clientArea.left,	// Width
+		clientArea.bottom-clientArea.top,	// Height
+        NULL,								// Parent window
+        NULL,								// Menu
+        hInstance,							// Instance handle
+        NULL								// Additional application data
 	);
     if (hwnd == NULL) {
 		write_fatal(esm, size, "Failed to create window.");
