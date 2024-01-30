@@ -60,7 +60,7 @@ func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 
 func (s *ShaderDataBase) UpdateModel() {
 	if s.transform != nil && s.transform.IsDirty() {
-		s.model = s.initModel.Multiply(s.transform.Matrix())
+		s.model = s.initModel.Multiply(s.transform.WorldMatrix())
 	}
 }
 
@@ -150,6 +150,7 @@ func (d *DrawInstanceGroup) UpdateData() {
 	}
 	if count < len(d.Instances) {
 		d.Instances = d.Instances[:count]
+		d.instanceData = d.instanceData[:offset]
 	}
 	d.bindInstanceDriverData()
 }

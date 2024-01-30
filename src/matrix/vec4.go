@@ -33,7 +33,7 @@ func (v *Vec4) SetRight(z Float)                  { v[Vz] = z }
 func (v *Vec4) SetBottom(w Float)                 { v[Vw] = w }
 func (v *Vec4) SetWidth(z Float)                  { v[Vz] = z }
 func (v *Vec4) SetHeight(w Float)                 { v[Vw] = w }
-func (v Vec4) AsVec3() Vec3                       { return Vec3(v[:Vz]) }
+func (v Vec4) AsVec3() Vec3                       { return Vec3(v[:Vw]) }
 func (v Vec4) XYZW() (Float, Float, Float, Float) { return v[Vx], v[Vy], v[Vz], v[Vw] }
 
 func (v Vec4) AsVec4i() Vec4i {

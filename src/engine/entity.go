@@ -128,7 +128,7 @@ func (e *Entity) SetParent(newParent *Entity) {
 		e.Parent.Children = append(e.Parent.Children, e)
 		e.SetRelativeTransformations(e.Parent.relativeTransformations)
 	}
-	if e.Parent != nil && e.Parent.isActive {
+	if e.Parent != nil && !e.Parent.isActive {
 		e.deactivateFromParent()
 	}
 }
@@ -146,7 +146,7 @@ func (e *Entity) Matrix(base *matrix.Mat4) {
 	if e.relativeTransformations {
 		e.MatrixRelative(base)
 	}
-	e.Transform.WorldMatrix(base)
+	e.Transform.CalcWorldMatrix(base)
 }
 
 func (e Entity) Clone(parentOverride *Entity) *Entity {

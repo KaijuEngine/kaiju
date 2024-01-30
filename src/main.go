@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"kaiju/assets"
 	"kaiju/bootstrap"
 	"kaiju/engine"
@@ -117,7 +118,7 @@ func testOIT(host *engine.Host) {
 
 func testPanel(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	p := ui.NewPanel(host, ui.AnchorBottomLeft, tex)
+	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft)
 	p.Layout().Scale(128, 128)
 	p.Layout().SetOffset(10, 10)
 }
@@ -125,6 +126,18 @@ func testPanel(host *engine.Host) {
 func testLabel(host *engine.Host) {
 	l := ui.NewLabel(host, "Hello, World!", ui.AnchorBottomCenter)
 	l.Layout().Scale(100, 50)
+}
+
+func testButton(host *engine.Host) {
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	btn := ui.NewButton(host, tex, "Click me!", ui.AnchorCenter)
+	btn.Layout().Scale(100, 50)
+	btn.SetColor(matrix.ColorDarkGray())
+	clickCount := 0
+	btn.AddEvent(ui.EventTypeClick, func() {
+		clickCount++
+		btn.Label().SetText(fmt.Sprintf("Clicked x%d!", clickCount))
+	})
 }
 
 func main() {
@@ -140,9 +153,10 @@ func main() {
 	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	testOIT(&host)
+	//testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
+	testButton(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()

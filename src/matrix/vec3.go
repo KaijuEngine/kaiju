@@ -18,7 +18,7 @@ func (v *Vec3) PZ() *Float                { return &v[Vz] }
 func (v *Vec3) SetX(x Float)              { v[Vx] = x }
 func (v *Vec3) SetY(y Float)              { v[Vy] = y }
 func (v *Vec3) SetZ(z Float)              { v[Vz] = z }
-func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vy]) }
+func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vz]) }
 func (v Vec3) XYZ() (Float, Float, Float) { return v[Vx], v[Vy], v[Vz] }
 
 func (v Vec3) AsVec3i() Vec3i {

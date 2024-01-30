@@ -84,7 +84,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				PostQuitMessage(0);
 				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
 				return 0;
-			case WM_SIZE:
+						case WM_SIZE:
 				setSizeEvent(sm->evt, lParam);
 				PostMessage(hwnd, WM_PAINT, 0, 0);
 				break;
@@ -96,26 +96,26 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			case WM_MOUSEMOVE:
-				setMouseEvent(sm->evt, uMsg, -1);
+				setMouseEvent(sm->evt, lParam, -1);
 				break;
 			case WM_LBUTTONDOWN:
 			case WM_LBUTTONUP:
-				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_LEFT);
+				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_LEFT);
 				break;
 			case WM_MBUTTONDOWN:
 			case WM_MBUTTONUP:
-				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_MIDDLE);
+				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_MIDDLE);
 				break;
 			case WM_RBUTTONDOWN:
 			case WM_RBUTTONUP:
-				setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_RIGHT);
+				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_RIGHT);
 				break;
 			case WM_XBUTTONDOWN:
 			case WM_XBUTTONUP:
 				if (wParam & 0x0010000) {
-					setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_X1);
+					setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_X1);
 				} else if (wParam & 0x0020000) {
-					setMouseEvent(sm->evt, uMsg, MOUSE_BUTTON_X2);
+					setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_X2);
 				}
 				break;
 			case WM_MOUSEWHEEL:

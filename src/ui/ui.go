@@ -123,6 +123,13 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 
 func (ui *uiBase) Clean() {
 	ui.layout.update()
+	for i := 0; i < len(ui.entity.Children); i++ {
+		kid := ui.entity.Children[i]
+		all := AllOnEntity(kid)
+		for _, cui := range all {
+			cui.Clean()
+		}
+	}
 	if !ui.events[EventTypeRebuild].isEmpty() {
 		ui.ExecuteEvent(EventTypeRebuild)
 	}
@@ -247,8 +254,9 @@ func (ui *uiBase) Update(deltaTime float64) {
 }
 
 func (ui *uiBase) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
-	camPos := ui.host.UICamera.Position()
-	return cursor.ScreenPosition().Add(matrix.Vec2{camPos.X(), camPos.Y()})
+	//camPos := ui.host.UICamera.Position()
+	//return cursor.ScreenPosition().Add(matrix.Vec2{camPos.X(), camPos.Y()})
+	return cursor.Position()
 }
 
 func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
