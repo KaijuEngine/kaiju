@@ -76,7 +76,7 @@ func testTwoDrawings(host *engine.Host) {
 
 func testFont(host *engine.Host) {
 	drawings := host.FontCache().RenderMeshes(host, "Hello, World!",
-		0, 0, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorCornflowerBlue(),
+		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorCornflowerBlue(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, []rendering.FontRange{},
 		rendering.FontRegular)
@@ -132,7 +132,6 @@ func testButton(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	btn := ui.NewButton(host, tex, "Click me!", ui.AnchorCenter)
 	btn.Layout().Scale(100, 50)
-	btn.SetColor(matrix.ColorDarkGray())
 	clickCount := 0
 	btn.AddEvent(ui.EventTypeClick, func() {
 		clickCount++
