@@ -33,5 +33,3 @@ for file in *.frag; do
 		fi
 	fi
 done
-
-read -p "Press enter to continue"

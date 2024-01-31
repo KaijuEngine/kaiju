@@ -20,7 +20,7 @@
 # Go workspace file
 go.work
 
-project_template/
+/project_template/
 bin/
 external/bin
 interpreter/kaiju-*
