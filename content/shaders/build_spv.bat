@@ -33,5 +33,3 @@ FOR /f %%A IN ('dir /b *.frag') DO (
 		)
 	)
 )
-
-pause
