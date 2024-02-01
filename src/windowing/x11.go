@@ -3,12 +3,8 @@
 package windowing
 
 /*
+#include <stdlib.h>
 #include "windowing.h"
-
-void window_swap_buffers(void* handle) {
-	X11State* x11State = handle;
-	glXSwapBuffers(x11State->d, x11State->w);
-}
 */
 import "C"
 import (
@@ -59,19 +55,11 @@ func (e evtMem) toEventType() eventType {
 	}
 }
 
-func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
-	C.window_create_gl_context(handle, evtSharedMem.AsPointer(), evtSharedMemSize)
-}
-
-func createWindow(windowName string, width, height, evtSharedMem *evtMem) {
+func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))
 	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
 	evtSharedMem.AwaitReady()
-}
-
-func swapBuffers(handle unsafe.Pointer) {
-	C.window_swap_buffers(handle)
 }
 
 func (w *Window) cursorStandard() {

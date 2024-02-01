@@ -1,13 +1,7 @@
-//go:build !OPENGL
+//go:build windows && !OPENGL
 
 package windowing
 
-/*
-#include "win32.h"
-*/
-import "C"
-import "unsafe"
-
-func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
-
+func getInstanceExtensions() []string {
+	return []string{"VK_KHR_surface\x00", "VK_KHR_win32_surface\x00"}
 }
