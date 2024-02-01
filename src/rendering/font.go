@@ -125,6 +125,7 @@ type cachedLetterMesh struct {
 type FontCache struct {
 	textShader, textOrthoShader *Shader
 	renderer                    Renderer
+	renderCaches                RenderCaches
 	assetDb                     *assets.Database
 	fontFaces                   map[string]fontBin
 }
@@ -143,7 +144,14 @@ func (s TextShaderData) Size() int {
 	return size
 }
 
-func (cache FontCache) EMSize(face FontFace) float32 {
+func (cache *FontCache) requireFace(face FontFace) {
+	if _, ok := cache.fontFaces[face.string()]; !ok {
+		cache.initFont(face, cache.renderer, cache.assetDb)
+	}
+}
+
+func (cache *FontCache) EMSize(face FontFace) float32 {
+	cache.requireFace(face)
 	return cache.fontFaces[face.string()].metrics.EMSize * defaultFontEMSize
 }
 
@@ -273,9 +281,9 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	font.cachedOrthoLetters[key] = &clmCpy
 }
 
-func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *assets.Database, caches RenderCaches) bool {
+func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *assets.Database) bool {
 	bin := fontBin{}
-	bin.texture, _ = caches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
+	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
 	bin.texture.MipLevels = 1
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
@@ -311,38 +319,25 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 		planeBounds: [4]float32{0, 0, 0, 0}, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
 	bin.letters['\r'] = cReturn
 	for i := int32(0); i < count; i++ {
-		cache.createLetterMesh(bin, bin.letters[i].letter, bin.letters[i], renderer, caches.MeshCache())
+		cache.createLetterMesh(bin, bin.letters[i].letter, bin.letters[i], renderer, cache.renderCaches.MeshCache())
 	}
 	cache.fontFaces[face.string()] = bin
 	return true
 }
 
-func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) bool {
+func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) {
 	cache.textShader = caches.ShaderCache().ShaderFromDefinition(
 		assets.ShaderDefinitionText3D)
 	cache.textOrthoShader = caches.ShaderCache().ShaderFromDefinition(
 		assets.ShaderDefinitionText)
-	faces := [...]FontFace{
-		FontRegular,
-		FontBold,
-		FontItalic,
-		FontExtraBold,
-		FontLight,
-		FontLightItalic,
-		FontBoldItalic,
-		FontExtraBoldItalic,
-	}
-	failed := false
-	for _, f := range faces {
-		failed = failed || !cache.initFont(f, renderer, assetDb, caches)
-	}
-	return !failed
+	cache.renderCaches = caches
 }
 
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
 	is3D bool, fontRanges []FontRange, face FontFace) []Drawing {
+	cache.requireFace(face)
 	cx := x
 	cy := y
 
@@ -505,7 +500,8 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	return fontMeshes
 }
 
-func (cache FontCache) MeasureString(face FontFace, text string, scale float32) float32 {
+func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32 {
+	cache.requireFace(face)
 	x, maxX := float32(0.0), float32(0.0)
 	for _, r := range text {
 		if r == '\n' {
@@ -519,7 +515,8 @@ func (cache FontCache) MeasureString(face FontFace, text string, scale float32) 
 	return maxX
 }
 
-func (cache FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32) matrix.Vec2 {
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32) matrix.Vec2 {
+	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
 	var innerMaxWidth, wrapX, x, y float32 = 0.0, 0.0, 0.0, 0.0
@@ -547,7 +544,8 @@ func (cache FontCache) MeasureStringWithin(face FontFace, text string, scale, ma
 	return matrix.Vec2{innerMaxWidth, y + maxHeight}
 }
 
-func (cache FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
+func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
+	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	rects := make([]matrix.Vec4, 0)
 	current := 0
@@ -570,7 +568,8 @@ func (cache FontCache) StringRectsWithinNew(face FontFace, text string, scale, m
 	return rects
 }
 
-func (cache FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int {
+func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int {
+	cache.requireFace(face)
 	lines := 0
 	textLen := len(text)
 	current := 0
@@ -588,7 +587,8 @@ func (cache FontCache) MeasureCharacter(face string, r rune, pixelSize float32) 
 		ch.Height() * pixelSize}
 }
 
-func (cache FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
+func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
+	cache.requireFace(face)
 	textLen := len(text)
 	idx := textLen
 	rects := cache.StringRectsWithinNew(face, text, scale, maxWidth)
