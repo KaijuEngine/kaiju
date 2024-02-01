@@ -11,6 +11,7 @@
 		"shared_mem.h": "c"
 	},
 	"cSpell.words": [
+		"kaiju",
 		"Vulkan"
 	],
 }
