@@ -119,9 +119,6 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			HTML:    e,
 		}
 		e.DocumentElement = &entry
-		if e.Attribute("id") != "" {
-			panel.Entity().SetName(e.Attribute("id"))
-		}
 		d.Elements = append(d.Elements, entry)
 		parent.AddChild(uiElm)
 		return entry
@@ -184,6 +181,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		group := e.Attribute("group")
 		if len(id) > 0 {
 			d.ids[id] = entry
+			uiElm.Entity().SetName(id)
 		}
 		if len(group) > 0 {
 			d.groups[group] = append(d.groups[group], entry)
