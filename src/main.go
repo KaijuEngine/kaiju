@@ -7,6 +7,7 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/console"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
@@ -169,7 +170,10 @@ func main() {
 	//testPanel(&host)
 	//testLabel(&host)
 	//testButton(&host)
-	testHTML(&host)
+	//testHTML(&host)
+	console.For(&host).AddCommand("EntityCount", func(string) string {
+		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
+	})
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()
