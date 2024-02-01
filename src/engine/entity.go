@@ -12,6 +12,8 @@ type Entity struct {
 	matrix                          matrix.Mat4
 	namedData                       map[string][]interface{}
 	OnDestroy                       Event
+	OnActivate                      Event
+	OnDeactivate                    Event
 	name                            string
 	destroyedFrames                 int8
 	isDestroyed                     bool
@@ -21,12 +23,15 @@ type Entity struct {
 
 func NewEntity() *Entity {
 	return &Entity{
-		isActive:  true,
-		Children:  make([]*Entity, 0),
-		Transform: matrix.NewTransform(),
-		matrix:    matrix.Mat4Identity(),
-		namedData: make(map[string][]interface{}),
-		name:      "Entity",
+		isActive:     true,
+		Children:     make([]*Entity, 0),
+		Transform:    matrix.NewTransform(),
+		matrix:       matrix.Mat4Identity(),
+		namedData:    make(map[string][]interface{}),
+		name:         "Entity",
+		OnDestroy:    NewEvent(),
+		OnActivate:   NewEvent(),
+		OnDeactivate: NewEvent(),
 	}
 }
 
@@ -48,6 +53,7 @@ func (e *Entity) Activate() {
 	for i := range e.Children {
 		e.Children[i].activateFromParent()
 	}
+	e.OnActivate.Execute()
 }
 
 func (e *Entity) Deactivate() {
@@ -56,6 +62,7 @@ func (e *Entity) Deactivate() {
 	for i := range e.Children {
 		e.Children[i].deactivateFromParent()
 	}
+	e.OnDeactivate.Execute()
 }
 
 func (e *Entity) RemoveFromParent() {
