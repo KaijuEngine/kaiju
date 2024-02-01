@@ -20,7 +20,7 @@ func NewUpdater() Updater {
 		updates:    make(map[int]engineUpdate),
 		backAdd:    make([]engineUpdate, 0),
 		backRemove: make([]int, 0),
-		nextId:     0,
+		nextId:     1,
 		pending:    make(chan int, 100),
 		complete:   make(chan int, 100),
 	}
@@ -66,7 +66,9 @@ func (u *Updater) AddUpdate(update func(float64)) int {
 }
 
 func (u *Updater) RemoveUpdate(id int) {
-	delete(u.updates, id)
+	if id > 0 {
+		u.backRemove = append(u.backRemove, id)
+	}
 }
 
 func (u *Updater) inlineUpdate(deltaTime float64) {
@@ -89,7 +91,7 @@ func (u *Updater) threadedUpdate() {
 func (u *Updater) Update(deltaTime float64) {
 	u.lastDelta = deltaTime
 	u.addInternal()
+	u.removeInternal()
 	u.inlineUpdate(deltaTime)
 	//u.threadedUpdate()
-	u.removeInternal()
 }
