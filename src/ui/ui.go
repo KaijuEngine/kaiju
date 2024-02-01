@@ -30,8 +30,8 @@ const (
 type UI interface {
 	Entity() *engine.Entity
 	ExecuteEvent(evtType EventType) bool
-	AddEvent(evtType EventType, evt func()) EventId
-	RemoveEvent(evtType EventType, evtId EventId)
+	AddEvent(evtType EventType, evt func()) engine.EventId
+	RemoveEvent(evtType EventType, evtId engine.EventId)
 	Update(deltaTime float64)
 	SetDirty(dirtyType DirtyType)
 	Layout() *Layout
@@ -49,7 +49,7 @@ type UI interface {
 type uiBase struct {
 	host                *engine.Host
 	entity              *engine.Entity
-	events              [EventTypeEnd]uiEvent
+	events              [EventTypeEnd]engine.Event
 	group               *Group
 	dragStartPos        matrix.Vec3
 	downPos             matrix.Vec2
@@ -89,16 +89,16 @@ func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
 func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
-	ui.events[evtType].execute()
-	return !ui.events[evtType].isEmpty()
+	ui.events[evtType].Execute()
+	return !ui.events[evtType].IsEmpty()
 }
 
-func (ui *uiBase) AddEvent(evtType EventType, evt func()) EventId {
-	return ui.events[evtType].add(evt)
+func (ui *uiBase) AddEvent(evtType EventType, evt func()) engine.EventId {
+	return ui.events[evtType].Add(evt)
 }
 
-func (ui *uiBase) RemoveEvent(evtType EventType, evtId EventId) {
-	ui.events[evtType].remove(evtId)
+func (ui *uiBase) RemoveEvent(evtType EventType, evtId engine.EventId) {
+	ui.events[evtType].Remove(evtId)
 }
 
 func (ui *uiBase) SetDirty(dirtyType DirtyType) {
@@ -130,7 +130,7 @@ func (ui *uiBase) Clean() {
 			cui.Clean()
 		}
 	}
-	if !ui.events[EventTypeRebuild].isEmpty() {
+	if !ui.events[EventTypeRebuild].IsEmpty() {
 		ui.ExecuteEvent(EventTypeRebuild)
 	}
 	// TODO:  Layout should do this, so remove if so
@@ -272,4 +272,8 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 		ui.hovering = false
 		ui.requestEvent(EventTypeExit)
 	}
+}
+
+func (ui *uiBase) changed() {
+	ui.ExecuteEvent(EventTypeChange)
 }
