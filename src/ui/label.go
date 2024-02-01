@@ -91,7 +91,7 @@ func (label *Label) rebuild() {
 		if label.textLength > 0 {
 			maxWidth := float32(999999.0)
 			if label.wordWrap {
-				maxWidth = label.layout.pixelSize.Width()
+				maxWidth = label.layout.PixelSize().Width()
 			}
 			label.runeDrawings = label.Host().FontCache().RenderMeshes(
 				label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,

@@ -61,7 +61,7 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		childScrollEvents: make(map[UI]childScrollEvent),
 		scrollDirection:   PanelScrollDirectionVertical,
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:        false,
+		fitContent:        true,
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
@@ -201,7 +201,7 @@ type rowBuilder struct {
 }
 
 func (rb *rowBuilder) addElement(areaWidth float32, e UI) bool {
-	eSize := e.Layout().pixelSize
+	eSize := e.Layout().PixelSize()
 	w := eSize.Width()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
 		return false
@@ -243,7 +243,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		x += e.Layout().margin.X()
 		y += rb.maxMarginTop
 		e.Layout().SetOffset(x, -y)
-		offsetX += e.Layout().pixelSize.Width() + e.Layout().margin.X() + e.Layout().margin.Z()
+		offsetX += e.Layout().PixelSize().Width() + e.Layout().margin.X() + e.Layout().margin.Z()
 	}
 }
 
@@ -254,7 +254,7 @@ func (panel *Panel) onRebuild() {
 	}
 	offsetStart := matrix.Vec2{-panel.scroll.X(), panel.scroll.Y()}
 	rows := make([]rowBuilder, 0)
-	areaWidth := panel.Layout().mySize.X() - panel.Layout().padding.X() - panel.Layout().padding.Z()
+	areaWidth := panel.layout.mySize.X() - panel.layout.padding.X() - panel.layout.padding.Z()
 	for _, kid := range panel.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -285,19 +285,20 @@ func (panel *Panel) onRebuild() {
 		case PositioningSticky:
 		}
 	}
-	xyOffset := matrix.Vec2{panel.Layout().padding.X(), panel.Layout().padding.Y()}
+	xyOffset := matrix.Vec2{panel.layout.padding.X(), panel.layout.padding.Y()}
 	nextPos := offsetStart.Add(xyOffset)
 	for _, row := range rows {
-		row.setElements(panel.Layout().padding.X(), nextPos[matrix.Vy])
+		row.setElements(panel.layout.padding.X(), nextPos[matrix.Vy])
 		nextPos[matrix.Vy] += row.Height()
 	}
-	nextPos[matrix.Vy] += panel.Layout().padding.W()
-	if panel.fitContent {
-		ph := panel.Layout().pixelSize.Height()
+	nextPos[matrix.Vy] += panel.layout.padding.W()
+	if panel.fitContent && len(rows) > 0 {
+		ps := panel.layout.PixelSize()
+		ph := ps.Height()
 		if !matrix.Approx(ph, nextPos.Y()) {
-			w := panel.Layout().pixelSize.Width() - panel.Layout().padding.Left() - panel.Layout().padding.Right()
-			h := nextPos.Y() - panel.Layout().padding.Top() - panel.Layout().padding.Bottom()
-			panel.Layout().Scale(w, h)
+			w := ps.Width() - panel.layout.padding.Left() - panel.layout.padding.Right()
+			h := nextPos.Y() - panel.layout.padding.Top() - panel.layout.padding.Bottom()
+			panel.layout.Scale(w, h)
 			panel.SetDirty(DirtyTypeReGenerated)
 			if pui := FirstOnEntity(panel.entity.Parent); pui != nil {
 				if p, ok := pui.(*Panel); ok {
@@ -347,7 +348,7 @@ func (panel *Panel) adjustKidsOnRebuild(target UI) {
 
 func (panel *Panel) AddChild(target UI) {
 	target.Entity().SetParent(panel.entity)
-	panel.Layout().update()
+	panel.layout.update()
 	if panel.group != nil {
 		target.SetGroup(panel.group)
 	}
@@ -368,7 +369,7 @@ func (panel *Panel) RemoveChild(target UI) {
 	target.Entity().SetParent(nil)
 	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
 	target.Layout().update()
-	panel.Layout().update()
+	panel.layout.update()
 	panel.SetDirty(DirtyTypeGenerated)
 	cse := panel.childScrollEvents[target]
 	target.RemoveEvent(EventTypeDown, cse.down)

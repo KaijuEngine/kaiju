@@ -20,7 +20,6 @@ func (p Height) Process(panel *ui.Panel, elm markup.DocElement, values []rules.P
 		height = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
-
 		if strings.HasSuffix(values[0].Str, "%") {
 			panel.Layout().AddFunction(func(l *ui.Layout) {
 				pLayout := elm.HTML.Parent.DocumentElement.UI.Layout()

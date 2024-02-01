@@ -69,7 +69,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.label.SetMaxWidth(100000.0)
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		l.Scale(input.layout.pixelSize.Width(), input.layout.pixelSize.Height())
+		ps := input.layout.PixelSize()
+		l.Scale(ps.Width(), ps.Height())
 	})
 
 	// Placeholder
@@ -79,7 +80,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.placeholder.SetMaxWidth(100000.0)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		l.Scale(input.layout.pixelSize.Width(), input.layout.pixelSize.Height())
+		ps := input.layout.PixelSize()
+		l.Scale(ps.Width(), ps.Height())
 	})
 
 	// Create the cursor
@@ -88,7 +90,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
 	p.AddChild(data.cursor)
 	data.cursor.layout.AddFunction(func(l *Layout) {
-		l.Scale(cursorWidth, input.layout.pixelSize.Height()-5)
+		l.Scale(cursorWidth, input.layout.PixelSize().Height()-5)
 		l.SetOffset(l.offset.X(), cursorY)
 	})
 
@@ -211,7 +213,7 @@ func (input *Input) setSelect(start, end int) {
 			startX := input.charX(data.selectStart)
 			endX := input.charX(data.selectEnd)
 			width := endX - startX
-			data.highlight.layout.Scale(width, input.layout.pixelSize.Height())
+			data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
 			data.highlight.layout.innerOffset.SetLeft(startX)
 		}
 		input.setBgColors()
