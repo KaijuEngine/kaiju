@@ -170,11 +170,12 @@ func (t *Transform) Copy(other Transform) {
 	t.rotation = other.rotation
 	t.scale = other.scale
 	t.localMatrix = other.localMatrix
+	t.worldMatrix = other.worldMatrix
 	t.isDirty = other.isDirty
 }
 
 func (t Transform) WorldTransform() (Vec3, Vec3, Vec3) {
-	pos, rot, scale := Vec3Zero(), Vec3Zero(), Vec3One()
+	pos, rot, scale := Vec3{}, Vec3{}, Vec3One()
 	p := &t
 	for p != nil {
 		pp, rr, ss := p.position, p.rotation, p.scale
@@ -186,9 +187,9 @@ func (t Transform) WorldTransform() (Vec3, Vec3, Vec3) {
 	return pos, rot, scale
 }
 
-func (t Transform) WorldPosition() Vec3 {
-	pos := Vec3Zero()
-	p := &t
+func (t *Transform) WorldPosition() Vec3 {
+	pos := Vec3{}
+	p := t
 	for p != nil {
 		pp := p.position
 		pos.AddAssign(pp)
@@ -198,11 +199,11 @@ func (t Transform) WorldPosition() Vec3 {
 }
 
 func (t Transform) WorldRotation() Vec3 {
-	rot := Vec3Zero()
+	rot := Vec3{}
 	p := &t
 	for p != nil {
-		rr := p.rotation
-		rot.AddAssign(rr)
+		r := p.rotation
+		rot.AddAssign(r)
 		p = p.parent
 	}
 	return rot
@@ -212,8 +213,8 @@ func (t Transform) WorldScale() Vec3 {
 	scale := Vec3One()
 	p := &t
 	for p != nil {
-		ss := p.scale
-		scale.MultiplyAssign(ss)
+		s := p.scale
+		scale.MultiplyAssign(s)
 		p = p.parent
 	}
 	return scale
@@ -226,27 +227,27 @@ func (t *Transform) SetWorldPosition(position Vec3) {
 		position.SubtractAssign(pp)
 		p = p.parent
 	}
-	p.SetPosition(position)
+	t.SetPosition(position)
 }
 
 func (t *Transform) SetWorldRotation(rotation Vec3) {
 	p := t.parent
 	for p != nil {
-		rr := p.rotation
-		rotation.SubtractAssign(rr)
+		r := p.rotation
+		rotation.SubtractAssign(r)
 		p = p.parent
 	}
-	p.SetRotation(rotation)
+	t.SetRotation(rotation)
 }
 
 func (t *Transform) SetWorldScale(scale Vec3) {
 	p := t.parent
 	for p != nil {
-		ss := p.scale
-		scale.DivideAssign(ss)
+		s := p.scale
+		scale.DivideAssign(s)
 		p = p.parent
 	}
-	p.SetScale(scale)
+	t.SetScale(scale)
 }
 
 func (t *Transform) ContainsPoint2D(point Vec2) bool {
