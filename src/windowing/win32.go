@@ -3,6 +3,7 @@
 package windowing
 
 import (
+	"kaiju/klib"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -53,4 +54,21 @@ func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+}
+
+func (w *Window) cursorStandard() {
+	C.window_cursor_standard(w.handle)
+}
+
+func (w *Window) cursorIbeam() {
+	C.window_cursor_ibeam(w.handle)
+}
+
+func (w *Window) copyToClipboard(text string) {
+	klib.NotYetImplemented(102)
+}
+
+func (w *Window) clipboardContents() string {
+	klib.NotYetImplemented(102)
+	return ""
 }

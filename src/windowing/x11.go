@@ -12,6 +12,7 @@ void window_swap_buffers(void* handle) {
 */
 import "C"
 import (
+	"kaiju/klib"
 	"unsafe"
 )
 
@@ -71,4 +72,21 @@ func createWindow(windowName string, width, height, evtSharedMem *evtMem) {
 
 func swapBuffers(handle unsafe.Pointer) {
 	C.window_swap_buffers(handle)
+}
+
+func (w *Window) cursorStandard() {
+	klib.NotYetImplemented(100)
+}
+
+func (w *Window) cursorIbeam() {
+	klib.NotYetImplemented(101)
+}
+
+func (w *Window) copyToClipboard(text string) {
+	klib.NotYetImplemented(103)
+}
+
+func (w *Window) clipboardContents() string {
+	klib.NotYetImplemented(103)
+	return ""
 }
