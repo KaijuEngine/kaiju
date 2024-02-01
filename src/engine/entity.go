@@ -204,7 +204,7 @@ func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
 		c.SetParent(nil)
 		arr[i] = c
 	}
-	e.Children = make([]*Entity, 0)
+	e.Children = e.Children[:0]
 	e.Transform.SetScale(scale)
 	for i := 0; i < count; i++ {
 		c := arr[i]
