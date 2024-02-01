@@ -16,33 +16,51 @@ func (b *Button) data() *buttonData {
 	return b.localData.(*buttonData)
 }
 
-func (button *Button) Label() *Label {
-	pui := FirstOnEntity(button.entity.Children[0])
-	return pui.(*Label)
+func (b *Button) Label() *Label {
+	var pui UI
+	for _, c := range b.entity.Children {
+		pui = FirstOnEntity(c)
+		_, ok := pui.(*Label)
+		if pui != nil && ok {
+			break
+		} else {
+			pui = nil
+		}
+	}
+	if pui == nil {
+		return b.createLabel()
+	} else {
+		return pui.(*Label)
+	}
 }
 
 func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
 	panel := NewPanel(host, texture, anchor)
 	btn := (*Button)(panel)
 	btn.setup(text)
+	btn.createLabel()
 	return btn
+}
+
+func (b *Button) createLabel() *Label {
+	lbl := NewLabel(b.host, "", AnchorStretchCenter)
+	lbl.layout.SetStretch(0, 0, 0, 0)
+	lbl.SetColor(matrix.ColorBlack())
+	lbl.SetBGColor(b.shaderData.FgColor)
+	lbl.SetJustify(rendering.FontJustifyCenter)
+	lbl.SetBaseline(rendering.FontBaselineCenter)
+	(*Panel)(b).AddChild(lbl)
+	return lbl
 }
 
 func (b *Button) setup(text string) {
 	p := (*Panel)(b)
 	p.isButton = true
 	p.localData = &buttonData{matrix.ColorWhite()}
-	lbl := NewLabel(p.host, text, AnchorStretchCenter)
-	lbl.layout.SetStretch(0, 0, 0, 0)
 	p.SetColor(matrix.ColorWhite())
-	lbl.SetColor(matrix.ColorBlack())
-	lbl.SetBGColor(matrix.ColorWhite())
-	lbl.SetJustify(rendering.FontJustifyCenter)
-	lbl.SetBaseline(rendering.FontBaselineCenter)
-	p.AddChild(lbl)
 	btn := (*Button)(p)
 	btn.setupEvents()
-	ps := p.layout.pixelSize
+	ps := p.layout.PixelSize()
 	p.layout.Scale(ps.Width(), ps.Height()+1)
 }
 
