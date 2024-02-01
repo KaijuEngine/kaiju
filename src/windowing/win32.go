@@ -19,11 +19,11 @@ func (e evtMem) toEventType() eventType {
 		return evtResize
 	case 0x0104:
 		fallthrough
-	case 256:
+	case 0x0100:
 		return evtKeyDown
 	case 0x0105:
 		fallthrough
-	case 257:
+	case 0x0101:
 		return evtKeyUp
 	case 512:
 		return evtMouseMove

@@ -75,84 +75,15 @@ bool obtainControllerStates(SharedMem* sm) {
 }
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (sm != NULL) {
-		sm->evt->evtType = uMsg;
-		shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
-		switch (uMsg) {
-			case WM_DESTROY:
-				PostQuitMessage(0);
-				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
-				return 0;
-						case WM_SIZE:
-				setSizeEvent(sm->evt, lParam);
-				PostMessage(hwnd, WM_PAINT, 0, 0);
-				break;
-			case WM_PAINT:
-			{
-				//PAINTSTRUCT ps;
-				//BeginPaint(hwnd, &ps);
-				//EndPaint(hwnd, &ps);
-				break;
-			}
-			case WM_MOUSEMOVE:
-				setMouseEvent(sm->evt, lParam, -1);
-				break;
-			case WM_LBUTTONDOWN:
-			case WM_LBUTTONUP:
-				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_LEFT);
-				break;
-			case WM_MBUTTONDOWN:
-			case WM_MBUTTONUP:
-				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_MIDDLE);
-				break;
-			case WM_RBUTTONDOWN:
-			case WM_RBUTTONUP:
-				setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_RIGHT);
-				break;
-			case WM_XBUTTONDOWN:
-			case WM_XBUTTONUP:
-				if (wParam & 0x0010000) {
-					setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_X1);
-				} else if (wParam & 0x0020000) {
-					setMouseEvent(sm->evt, lParam, MOUSE_BUTTON_X2);
-				}
-				break;
-			case WM_MOUSEWHEEL:
-				// TODO:  Add wheel code
-				break;
-			case WM_KEYDOWN:
-			case WM_SYSKEYDOWN:
-			case WM_KEYUP:
-			case WM_SYSKEYUP:
-				switch (wParam) {
-					case VK_SHIFT:
-						UINT scancode = (lParam & 0x00FF0000) >> 16;
-						sm->evt->keyboard.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
-						break;
-					case VK_CONTROL:
-						if (lParam & 0x01000000) {
-							sm->evt->keyboard.keyId = VK_RCONTROL;
-						} else {
-							sm->evt->keyboard.keyId = VK_LCONTROL;
-						}
-						break;
-					case VK_MENU:
-						if (lParam & 0x01000000) {
-							sm->evt->keyboard.keyId = VK_RMENU;
-						} else {
-							sm->evt->keyboard.keyId = VK_LMENU;
-						}
-						break;
-					default:
-						sm->evt->keyboard.keyId = wParam;
-						break;
-				}
-				break;
-		}
-		shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+	switch (uMsg) {
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			return 0;
+		case WM_SIZE:
+			PostMessage(hwnd, WM_PAINT, 0, 0);
+			break;
 	}
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 #ifdef OPENGL
@@ -232,6 +163,73 @@ void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
 }
 #endif
 
+void process_message(SharedMem* sm, MSG *msg) {
+	shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
+	sm->evt->evtType = msg->message;
+	switch (msg->message) {
+		case WM_DESTROY:
+			shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+		case WM_SIZE:
+			setSizeEvent(sm->evt, msg->lParam);
+			break;
+		case WM_MOUSEMOVE:
+			setMouseEvent(sm->evt, msg->lParam, -1);
+			break;
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
+			break;
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
+			break;
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
+			break;
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+			if (msg->wParam & 0x0010000) {
+				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X1);
+			} else if (msg->wParam & 0x0020000) {
+				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X2);
+			}
+			break;
+		case WM_MOUSEWHEEL:
+			// TODO:  Add wheel code
+			break;
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			switch (msg->wParam) {
+				case VK_SHIFT:
+					UINT scancode = (msg->lParam & 0x00FF0000) >> 16;
+					sm->evt->keyboard.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+					break;
+				case VK_CONTROL:
+					if (msg->lParam & 0x01000000) {
+						sm->evt->keyboard.keyId = VK_RCONTROL;
+					} else {
+						sm->evt->keyboard.keyId = VK_LCONTROL;
+					}
+					break;
+				case VK_MENU:
+					if (msg->lParam & 0x01000000) {
+						sm->evt->keyboard.keyId = VK_RMENU;
+					} else {
+						sm->evt->keyboard.keyId = VK_LMENU;
+					}
+					break;
+				default:
+					sm->evt->keyboard.keyId = msg->wParam;
+					break;
+			}
+			break;
+	}
+	shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+}
+
 void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size) {
 	char* esm = evtSharedMem;
 	// Register the window class.
@@ -286,6 +284,8 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
+				process_message(&sm, &msg);
+				shared_memory_wait_for_available(&sm);
 			} else {
 				sm.evt->evtType = 0;
 				shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
