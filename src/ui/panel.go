@@ -33,8 +33,8 @@ const (
 )
 
 type childScrollEvent struct {
-	down   EventType
-	scroll EventType
+	down   engine.EventId
+	scroll engine.EventId
 }
 
 type Panel struct {
@@ -42,11 +42,12 @@ type Panel struct {
 	scroll, offset, maxScroll     matrix.Vec2
 	scrollSpeed                   float32
 	scrollDirection               PanelScrollDirection
-	scrollEvent                   EventId
+	scrollEvent                   engine.EventId
 	childScrollEvents             map[UI]childScrollEvent
 	color                         matrix.Color
 	drawing                       rendering.Drawing
 	localData                     any
+	innerUpdate                   func(deltaTime float64)
 	isScrolling, dragging, frozen bool
 	isButton                      bool
 	fitContent                    bool
@@ -178,6 +179,9 @@ func (panel *Panel) update(deltaTime float64) {
 		} else {
 			panel.isScrolling = false
 		}
+	}
+	if panel.innerUpdate != nil {
+		panel.innerUpdate(deltaTime)
 	}
 }
 
@@ -471,3 +475,9 @@ func (panel *Panel) SetScrollDirection(direction PanelScrollDirection) {
 }
 
 func (panel *Panel) ScrollDirection() PanelScrollDirection { return panel.scrollDirection }
+
+func (panel *Panel) SetUseBlending(useBlending bool) {
+	panel.recreateDrawing()
+	panel.drawing.UseBlending = useBlending
+	panel.host.Drawings.AddDrawing(panel.drawing)
+}
