@@ -2,7 +2,7 @@ go test -timeout 30s -v ./...
 SET "CGO_LDFLAGS=-lgdi32 -lOpenGL32 -lXInput"
 if %errorlevel% equ 0 (
 	echo Tests passed, compiling code...
-	go build -tags editor,OPENGL -o ./bin/kaiju.exe -ldflags="-s -w" main.go
+	go build -tags editor,OPENGL -o ./bin/kaiju.exe -ldflags="-s -w" ./src/main.go
 ) else (
 	echo Tests failed, skipping code compile
 )
