@@ -138,7 +138,6 @@ type Layout struct {
 	bottom           float32
 	z                float32
 	anchor           matrix.Vec2
-	pixelSize        matrix.Vec2
 	ui               UI
 	screenAnchor     Anchor
 	layoutFunction   func(layout *Layout)
@@ -158,14 +157,17 @@ type Layout struct {
 
 func NewLayout(ui UI) Layout {
 	return Layout{
-		ui:        ui,
-		anchor:    matrix.Vec2{0.0, 0.0},
-		pixelSize: matrix.Vec2{1.0, 1.0},
+		ui:     ui,
+		anchor: matrix.Vec2{0.0, 0.0},
 	}
 }
 
 func (layout *Layout) AddFunction(fn func(layout *Layout)) {
 	layout.functions = append(layout.functions, fn)
+}
+
+func (layout *Layout) PixelSize() matrix.Vec2 {
+	return layout.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
 func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
@@ -267,7 +269,6 @@ func layoutStretch(self *Layout) {
 	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / width
 	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / height
 	self.ui.Entity().ScaleWithoutChildren(scale)
-	self.pixelSize = self.ui.Entity().Transform.WorldScale().AsVec2()
 	pos := matrix.Vec3{
 		x + self.bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
 		y + self.bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
@@ -323,11 +324,13 @@ func (layout *Layout) setBounds() {
 	}
 	if layout.parentChanged() {
 		layout.lastParent = layout.ui.Entity().Parent
-		layout.Scale(layout.pixelSize.Width(), layout.pixelSize.Height())
+		ps := layout.PixelSize()
+		layout.Scale(ps.Width(), ps.Height())
 		for _, c := range layout.ui.Entity().Children {
 			if ui := FirstOnEntity(c); ui != nil {
 				cl := ui.Layout()
-				cl.Scale(cl.pixelSize.Width(), cl.pixelSize.Height())
+				cps := cl.PixelSize()
+				cl.Scale(cps.Width(), cps.Height())
 			}
 		}
 	}
@@ -347,7 +350,7 @@ func (layout *Layout) SetOffset(x, y float32) {
 	}
 	layout.offset.SetX(x)
 	layout.offset.SetY(y)
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) SetInnerOffset(left, top, right, bottom float32) {
@@ -355,7 +358,7 @@ func (layout *Layout) SetInnerOffset(left, top, right, bottom float32) {
 		return
 	}
 	layout.innerOffset = matrix.Vec4{left, top, right, bottom}
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) SetInnerOffsetLeft(offset float32) {
@@ -363,7 +366,7 @@ func (layout *Layout) SetInnerOffsetLeft(offset float32) {
 		return
 	}
 	layout.innerOffset.SetX(offset)
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) SetInnerOffsetTop(offset float32) {
@@ -371,7 +374,7 @@ func (layout *Layout) SetInnerOffsetTop(offset float32) {
 		return
 	}
 	layout.innerOffset.SetY(offset)
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) SetInnerOffsetRight(offset float32) {
@@ -379,7 +382,7 @@ func (layout *Layout) SetInnerOffsetRight(offset float32) {
 		return
 	}
 	layout.innerOffset.SetRight(offset)
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) SetInnerOffsetBottom(offset float32) {
@@ -387,7 +390,7 @@ func (layout *Layout) SetInnerOffsetBottom(offset float32) {
 		return
 	}
 	layout.innerOffset.SetBottom(offset)
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout *Layout) LocalInnerOffset() matrix.Vec4 {
@@ -399,7 +402,7 @@ func (layout *Layout) SetLocalInnerOffset(left, top, right, bottom float32) {
 		return
 	}
 	layout.localInnerOffset = matrix.Vec4{left, top, right, bottom}
-	layout.ui.SetDirty(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
 func (layout Layout) InnerOffset() matrix.Vec4 {
@@ -416,7 +419,7 @@ func (layout *Layout) SetStretch(left, top, right, bottom float32) {
 	layout.top = top
 	layout.right = right
 	layout.bottom = bottom
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) SetStretchRatio(leftRatio, topRatio, rightRatio, bottomRatio float32) {
@@ -426,54 +429,53 @@ func (layout *Layout) SetStretchRatio(leftRatio, topRatio, rightRatio, bottomRat
 	layout.top = h * topRatio
 	layout.right = w * rightRatio
 	layout.bottom = h * bottomRatio
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) Scale(width, height float32) {
 	width += layout.padding.X() + layout.padding.Z()
 	height += layout.padding.Y() + layout.padding.W()
-	if matrix.Vec2Approx(layout.pixelSize, matrix.Vec2{width, height}) {
+	ps := layout.PixelSize()
+	if matrix.Vec2Approx(ps, matrix.Vec2{width, height}) {
 		return
 	}
-	layout.pixelSize.SetX(width)
-	layout.pixelSize.SetY(height)
 	size := matrix.Vec3{width, height, 1.0}
 	if layout.ui.Entity().Parent != nil {
 		size.DivideAssign(layout.ui.Entity().Parent.Transform.WorldScale())
 	}
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) ScaleWidth(width float32) {
 	width += layout.padding.X() + layout.padding.Z()
-	if matrix.Approx(layout.pixelSize[matrix.Vx], width) {
+	ps := layout.PixelSize()
+	if matrix.Approx(ps[matrix.Vx], width) {
 		return
 	}
-	layout.pixelSize.SetX(width)
-	size := matrix.Vec3{width, layout.pixelSize.Height(), 1.0}
+	size := matrix.Vec3{width, ps.Height(), 1.0}
 	if layout.ui.Entity().Parent != nil {
 		size.DivideAssign(layout.ui.Entity().Parent.Transform.WorldScale())
 	}
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) ScaleHeight(height float32) {
 	height += layout.padding.Y() + layout.padding.W()
-	if matrix.Approx(layout.pixelSize.Y(), height) {
+	ps := layout.PixelSize()
+	if matrix.Approx(ps.Y(), height) {
 		return
 	}
-	layout.pixelSize.SetY(height)
-	size := matrix.Vec3{layout.pixelSize.Width(), height, 1.0}
+	size := matrix.Vec3{ps.Width(), height, 1.0}
 	if layout.ui.Entity().Parent != nil {
 		size.DivideAssign(layout.ui.Entity().Parent.Transform.WorldScale())
 	}
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout Layout) Positioning() Positioning { return layout.positioning }
@@ -483,30 +485,27 @@ func (layout Layout) Padding() matrix.Vec4     { return layout.padding }
 func (layout Layout) Margin() matrix.Vec4      { return layout.margin }
 func (layout Layout) Offset() matrix.Vec2      { return matrix.Vec2{layout.offset.X(), layout.offset.Y()} }
 
-func (layout Layout) PixelSize() matrix.Vec2 {
-	return matrix.NewVec2(layout.pixelSize.Width(), layout.pixelSize.Height())
-}
-
 func (layout Layout) Stretch() matrix.Vec4 {
 	return matrix.Vec4{layout.left, layout.top, layout.right, layout.bottom}
 }
 
 func (layout *Layout) SetBorder(left, top, right, bottom float32) {
 	layout.border = matrix.Vec4{left, top, right, bottom}
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) SetPadding(left, top, right, bottom float32) {
 	lastPad := layout.padding
 	layout.padding = matrix.Vec4{left, top, right, bottom}
-	layout.Scale(layout.pixelSize.Width()-lastPad.X()-lastPad.Z(),
-		layout.pixelSize.Height()-lastPad.Y()-lastPad.W())
-	layout.ui.SetDirty(DirtyTypeResize)
+	ps := layout.PixelSize()
+	layout.Scale(ps.Width()-lastPad.X()-lastPad.Z(),
+		ps.Height()-lastPad.Y()-lastPad.W())
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) SetMargin(left, top, right, bottom float32) {
 	layout.margin = matrix.Vec4{left, top, right, bottom}
-	layout.ui.SetDirty(DirtyTypeResize)
+	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (layout *Layout) AnchorTo(anchorPosition Anchor) {
@@ -563,7 +562,8 @@ func (layout *Layout) AnchorTo(anchorPosition Anchor) {
 	layout.screenAnchor = anchorPosition
 	layout.anchorFunction = afn
 	layout.layoutFunction = lfn
-	layout.ui.SetDirty(DirtyTypeGenerated)
+	//layout.ui.layoutChanged(DirtyTypeLayout)
+	layout.ui.layoutChanged(DirtyTypeGenerated)
 }
 
 func (layout *Layout) parentChanged() bool {
@@ -594,6 +594,7 @@ func (layout *Layout) SetPositioning(pos Positioning) {
 }
 
 func (layout *Layout) ContentSize() (float32, float32) {
-	return layout.pixelSize.X() - layout.padding.X() - layout.padding.Z(),
-		layout.pixelSize.Y() - layout.padding.Y() - layout.padding.W()
+	ps := layout.PixelSize()
+	return ps.X() - layout.padding.X() - layout.padding.Z(),
+		ps.Y() - layout.padding.Y() - layout.padding.W()
 }
