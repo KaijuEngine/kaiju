@@ -119,6 +119,9 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			HTML:    e,
 		}
 		e.DocumentElement = &entry
+		if e.Attribute("id") != "" {
+			panel.Entity().SetName(e.Attribute("id"))
+		}
 		d.Elements = append(d.Elements, entry)
 		parent.AddChild(uiElm)
 		return entry
@@ -246,6 +249,7 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 	h := NewHTML(TransformHTML(htmlStr, withData))
 	body := parsed.setupBody(h, host)
 	bodyPanel := body.DocumentElement.UIPanel
+	bodyPanel.Entity().SetName("body")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
 		parsed.createUIElement(host, &body.Children[i], bodyPanel)
