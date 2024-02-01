@@ -9,6 +9,7 @@ type Pseudo interface {
 	Key() string
 	IsFunction() bool
 	Process(elm markup.DocElement, value rules.SelectorPart) ([]markup.DocElement, error)
+	AlterRules(rules []rules.Rule) []rules.Rule
 }
 
 var PseudoMap = map[string]Pseudo{
