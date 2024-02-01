@@ -18,23 +18,27 @@ layout (location = 7) in vec3 MorphTarget;
 	layout(location = 14) in vec4 bgColor;
 	layout(location = 15) in vec4 scissor;
 	layout(location = 16) in vec4 size2D;
-	layout(location = 17) in vec2 borderLen;
-	//layout(location = 17) in vec4 borderRadius;
-	//layout(location = 18) in vec4 borderSize;
-	//layout(location = 19) in mat4 borderColor;
-	//layout(location = 23) in vec2 borderLen;
+	layout(location = 17) in vec4 borderRadius;
+	layout(location = 18) in vec4 borderSize;
+	layout(location = 19) in mat4 borderColor;
+	layout(location = 23) in vec2 borderLen;
 
 	layout(location = 0) out vec4 fragColor;
 	layout(location = 1) out vec4 fragBGColor;
 	layout(location = 2) out vec4 fragSize2D;
-	layout(location = 3) out vec4 fragScissor;
-	layout(location = 4) out vec2 fragTexCoord;
-	layout(location = 5) out vec2 fragBorderLen;
+	layout(location = 3) out vec4 fragBorderRadius;
+	layout(location = 4) out vec4 fragBorderSize;
+	layout(location = 5) out mat4 fragBorderColor;
+	layout(location = 9) out vec2 fragTexCoord;
+	layout(location = 10) out vec2 fragBorderLen;
 #else
 	out vec4 fragColor;
 	out vec4 fragBGColor;
 	out vec4 fragSize2D;
 	out vec4 fragScissor;
+	out vec4 fragBorderRadius;
+	out vec4 fragBorderSize;
+	out mat4 fragBorderColor;
 	out vec2 fragTexCoord;
 	out vec2 fragBorderLen;
 
@@ -49,6 +53,9 @@ struct InstanceData {
 	vec4 bgColor;
 	vec4 scissor;
 	vec4 size2D;
+	vec4 borderRadius;
+	vec4 borderSize;
+	mat4 borderColor;
 	vec2 borderLen;
 };
 
@@ -76,6 +83,10 @@ InstanceData pullInstanceData() {
 	data.scissor = scissor;
 	data.size2D = size2D;
 	data.borderLen = borderLen;
+	data.borderRadius = borderRadius;
+	data.borderSize = borderSize;
+	data.borderColor = borderColor;
+	data.borderLen = borderLen;
 #else
 	int xOffset = gl_InstanceID*INSTANCE_VEC4_COUNT;
     data.model[0] = texelFetch(instanceSampler, ivec2(xOffset,0), 0);
@@ -87,7 +98,13 @@ InstanceData pullInstanceData() {
 	data.bgColor = texelFetch(instanceSampler, ivec2(xOffset+6,0), 0);
 	data.scissor = texelFetch(instanceSampler, ivec2(xOffset+7,0), 0);
 	data.size2D = texelFetch(instanceSampler, ivec2(xOffset+8,0), 0);
-	data.borderLen = texelFetch(instanceSampler, ivec2(xOffset+9,0), 0).xy;
+	data.borderRadius = texelFetch(instanceSampler, ivec2(xOffset+9,0), 0);
+	data.borderSize = texelFetch(instanceSampler, ivec2(xOffset+10,0), 0);
+	data.borderColor[0] = texelFetch(instanceSampler, ivec2(xOffset+11,0), 0);
+	data.borderColor[1] = texelFetch(instanceSampler, ivec2(xOffset+12,0), 0);
+	data.borderColor[2] = texelFetch(instanceSampler, ivec2(xOffset+13,0), 0);
+	data.borderColor[3] = texelFetch(instanceSampler, ivec2(xOffset+14,0), 0);
+	data.borderLen = texelFetch(instanceSampler, ivec2(xOffset+15,0), 0).xy;
 #endif
 	return data;
 }
@@ -103,8 +120,10 @@ void main() {
 	fragColor = Color * data.fgColor;
 	fragBGColor = data.bgColor;
 	fragSize2D = data.size2D;
-	fragScissor = data.scissor;
 	fragTexCoord = uv;
+	fragBorderRadius = data.borderRadius;
+	fragBorderSize = data.borderSize;
+	fragBorderColor = data.borderColor;
 	fragBorderLen = data.borderLen;
 
 #ifdef VULKAN
@@ -112,5 +131,7 @@ void main() {
 	gl_ClipDistance[1] = vPos.y - data.scissor.y;
 	gl_ClipDistance[2] = data.scissor.z - vPos.x;
 	gl_ClipDistance[3] = data.scissor.w - vPos.y;
+#else
+	fragScissor = data.scissor;
 #endif
 }

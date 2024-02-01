@@ -32,16 +32,17 @@ type UI interface {
 	ExecuteEvent(evtType EventType) bool
 	AddEvent(evtType EventType, evt func()) engine.EventId
 	RemoveEvent(evtType EventType, evtId engine.EventId)
+	Event(evtType EventType) *engine.Event
 	Update(deltaTime float64)
 	SetDirty(dirtyType DirtyType)
 	Layout() *Layout
 	ShaderData() *ShaderData
 	Clean()
 	SetGroup(group *Group)
+	Host() *engine.Host
 	generateScissor()
 	hasScissor() bool
 	selfScissor() matrix.Vec4
-	selfHost() *engine.Host
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
 }
@@ -83,7 +84,7 @@ func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
 func (ui *uiBase) Layout() *Layout          { return &ui.layout }
 func (ui *uiBase) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
 func (ui *uiBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
-func (ui *uiBase) selfHost() *engine.Host   { return ui.host }
+func (ui *uiBase) Host() *engine.Host       { return ui.host }
 func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
 func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
 func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
@@ -99,6 +100,10 @@ func (ui *uiBase) AddEvent(evtType EventType, evt func()) engine.EventId {
 
 func (ui *uiBase) RemoveEvent(evtType EventType, evtId engine.EventId) {
 	ui.events[evtType].Remove(evtId)
+}
+
+func (ui *uiBase) Event(evtType EventType) *engine.Event {
+	return &ui.events[evtType]
 }
 
 func (ui *uiBase) SetDirty(dirtyType DirtyType) {
@@ -200,8 +205,8 @@ func (ui *uiBase) Update(deltaTime float64) {
 		pos := ui.cursorPos(cursor)
 		ui.containedCheck(cursor, ui.entity)
 		if ui.isDown && !ui.drag {
-			w := ui.selfHost().Window.Width()
-			h := ui.selfHost().Window.Height()
+			w := ui.Host().Window.Width()
+			h := ui.Host().Window.Height()
 			wmm, hmm, _ := ui.host.Window.GetDPI()
 			threshold := max(windowing.DPI2PX(w, wmm, 4), windowing.DPI2PX(h, hmm, 4))
 			if ui.downPos.Distance(pos) > float32(threshold) {
@@ -246,7 +251,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 	}
 	if ui.dirtyType != DirtyTypeNone {
 		if ui.entity.Parent != nil {
-			cleanParent(ui.selfHost(), ui.entity.Parent)
+			cleanParent(ui.Host(), ui.entity.Parent)
 		}
 		ui.Clean()
 	}
@@ -276,4 +281,21 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 
 func (ui *uiBase) changed() {
 	ui.ExecuteEvent(EventTypeChange)
+}
+
+func (ui *uiBase) SetScissorToParent() {
+	ui.disconnectedScissor = false
+	if elm := FirstOnEntity(ui.entity.Parent); elm != nil {
+		elm.setScissor(elm.selfScissor())
+	} else {
+		ui.generateScissor()
+	}
+}
+
+func (ui *uiBase) DisconnectParentScissor() {
+	if ui.hasScissor() {
+		ui.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
+		ui.generateScissor()
+	}
+	ui.disconnectedScissor = true
 }

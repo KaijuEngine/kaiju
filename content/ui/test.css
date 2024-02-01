@@ -1,0 +1,134 @@
+h1 {
+	width: 100%;
+}
+
+button {
+	background-color: white;
+	color: black;
+	border-radius: 5px;
+	text-align: center;
+	/* padding: 3px; */
+}
+
+.mainMenu {
+	position: absolute;
+	width: 50%;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	background-color: #346E47;
+}
+
+.settingsView {
+	position: absolute;
+	width: 80%;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	background-color: #346E47;
+	font-size: 1.33em;
+}
+
+.rulesView {
+	position: absolute;
+	width: 80%;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	background-color: #346E47;
+	font-size: 1.33em;
+}
+
+.checkbox, .slider {
+	width: 100%;
+	color: white;
+	margin-bottom: 10px;
+}
+
+.checkbox span {
+	width: 50%;
+	margin-left: 10px;
+}
+
+.slider span {
+	width: 30%;
+}
+
+.slider input {
+	width: 40%;
+	height: 20px;
+	margin: 0 10px;
+}
+
+.menuTitle {
+	width: 100%;
+	text-align: center;
+	font-size: 48px;
+	margin-bottom: 20px;
+	color: white;
+	font-weight: bolder;
+}
+
+.menuBtn {
+	width: 100%;
+	height: 72px;
+	margin-bottom: 10px;
+	font-size: 1.5em;
+}
+
+.menuInput {
+	width: 100%;
+	height: 32px;
+	margin-bottom: 10px;
+	font-size: 1.5em;
+}
+
+#playHandButton {
+	position: absolute;
+	width: 200px;
+	height: 45px;
+	left: 50%;
+	bottom: 20px;
+	transform: translateX(-50%);
+}
+
+.wideBtnBox {
+	width: 100%;
+}
+
+.wideBtnBox button {
+	width: 100%;
+}
+
+.extraSettings {
+	width: 100%;
+	margin-bottom: 10px;
+}
+
+.extraSettings button {
+	width: 40%;
+}
+
+.extraSettings:last-child {
+	/* TODO:  I want to set this to right: 0; but it doesn't work */
+	margin-left: 10px;
+}
+
+#closeSettings {
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+}
+
+.rulesView p {
+	/* causes issues if set to anything other then 100% */
+	width: 100%;
+	font-size: 1.15em;
+	color: white;
+}
+
+#closeRules {
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+}

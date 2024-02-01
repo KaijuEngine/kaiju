@@ -1,0 +1,51 @@
+{
+	"OpenGL": {
+		"Vert": "shaders/sprite.vert",
+		"Frag": "shaders/sprite.frag"
+	},
+	"Vulkan": {
+		"Vert": "shaders/spv/sprite.vert.spv",
+		"Frag": "shaders/spv/sprite.frag.spv"
+	},
+	"Fields": [
+		{
+			"Name": "model",
+			"Type": "mat4"
+		},
+		{
+			"Name": "uvs",
+			"Type": "vec4"
+		},
+		{
+			"Name": "fgColor",
+			"Type": "vec4"
+		},
+		{
+			"Name": "bgColor",
+			"Type": "vec4"
+		},
+		{
+			"Name": "scissor",
+			"Type": "vec4"
+		},
+		{
+			"Name": "size2D",
+			"Type": "vec4"
+		},
+		{
+			"Name": "borderLen",
+			"Type": "vec2"
+		}
+	],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "CombinedImageSampler",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}]
+}

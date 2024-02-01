@@ -222,7 +222,7 @@ func Vec4Zero() Vec4 { return Vec4{0, 0, 0, 0} }
 func Vec4One() Vec4  { return Vec4{1, 1, 1, 1} }
 func Vec4Half() Vec4 { return Vec4{0.5, 0.5, 0.5, 0.5} }
 func Vec4Largest() Vec4 {
-	return Vec4{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+	return Vec4{FloatMax, FloatMax, FloatMax, FloatMax}
 }
 
 func (v Vec4) LargestAxis() Float {

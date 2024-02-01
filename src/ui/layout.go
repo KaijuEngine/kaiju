@@ -293,8 +293,8 @@ func (layout *Layout) setBounds() {
 	layout.mySize = t.WorldScale()
 	if layout.ui.Entity().IsRoot() {
 		layout.bounds = matrix.Vec4{0, 0,
-			matrix.Float(layout.ui.selfHost().Window.Width()),
-			matrix.Float(layout.ui.selfHost().Window.Height()),
+			matrix.Float(layout.ui.Host().Window.Width()),
+			matrix.Float(layout.ui.Host().Window.Height()),
 		}
 		layout.worldScalar = matrix.Vec2One()
 		et := &layout.ui.Entity().Transform

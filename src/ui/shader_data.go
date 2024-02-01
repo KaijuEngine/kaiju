@@ -8,12 +8,15 @@ import (
 
 type ShaderData struct {
 	rendering.ShaderDataBase
-	UVs       matrix.Vec4
-	FgColor   matrix.Color
-	BgColor   matrix.Color
-	Scissor   matrix.Vec4
-	Size2D    matrix.Vec4
-	BorderLen matrix.Vec2
+	UVs          matrix.Vec4
+	FgColor      matrix.Color
+	BgColor      matrix.Color
+	Scissor      matrix.Vec4
+	Size2D       matrix.Vec4
+	BorderRadius matrix.Vec4
+	BorderSize   matrix.Vec4
+	BorderColor  [4]matrix.Color
+	BorderLen    matrix.Vec2
 }
 
 func (s ShaderData) Size() int {

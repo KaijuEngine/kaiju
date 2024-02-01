@@ -6,9 +6,11 @@
 	layout(location = 0) in vec4 fragColor;
 	layout(location = 1) in vec4 fragBGColor;
 	layout(location = 2) in vec4 fragSize2D;
-	layout(location = 3) in vec4 fragScissor;
-	layout(location = 4) in vec2 fragTexCoord;
-	layout(location = 5) in vec2 fragBorderLen;
+	layout(location = 3) in vec4 fragBorderRadius;
+	layout(location = 4) in vec4 fragBorderSize;
+	layout(location = 5) in mat4 fragBorderColor;
+	layout(location = 9) in vec2 fragTexCoord;
+	layout(location = 10) in vec2 fragBorderLen;
 
 	layout(binding = 1) uniform sampler2D texSampler;
 #else
@@ -16,6 +18,9 @@
 	in vec4 fragBGColor;
 	in vec4 fragSize2D;
 	in vec4 fragScissor;
+	in vec4 borderRadius;
+	in vec4 borderSize;
+	in mat4 borderColor;
 	in vec2 fragTexCoord;
 	in vec2 fragBorderLen;
 

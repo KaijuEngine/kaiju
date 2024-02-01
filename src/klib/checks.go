@@ -32,6 +32,6 @@ func ShouldReturn[T any](ret T, err error) T {
 	return ret
 }
 
-func FloatEquals[T AnyFloat](a, b T) bool {
+func FloatEquals[T Float](a, b T) bool {
 	return math.Abs(float64(a-b)) < math.SmallestNonzeroFloat64
 }

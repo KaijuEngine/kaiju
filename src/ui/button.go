@@ -23,20 +23,32 @@ func (button *Button) Label() *Label {
 
 func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
 	panel := NewPanel(host, texture, anchor)
-	panel.isButton = true
-	panel.localData = &buttonData{matrix.ColorWhite()}
-	lbl := NewLabel(host, text, AnchorStretchCenter)
+	btn := (*Button)(panel)
+	btn.setup(text)
+	return btn
+}
+
+func (b *Button) setup(text string) {
+	p := (*Panel)(b)
+	p.isButton = true
+	p.localData = &buttonData{matrix.ColorWhite()}
+	lbl := NewLabel(p.host, text, AnchorStretchCenter)
 	lbl.layout.SetStretch(0, 0, 0, 0)
-	panel.SetColor(matrix.ColorWhite())
+	p.SetColor(matrix.ColorWhite())
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(matrix.ColorWhite())
 	lbl.SetJustify(rendering.FontJustifyCenter)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
-	panel.AddChild(lbl)
-	btn := (*Button)(panel)
+	p.AddChild(lbl)
+	btn := (*Button)(p)
 	btn.setupEvents()
-	ps := panel.layout.pixelSize
-	panel.layout.Scale(ps.Width(), ps.Height()+1)
+	ps := p.layout.pixelSize
+	p.layout.Scale(ps.Width(), ps.Height()+1)
+}
+
+func (p *Panel) ConvertToButton() *Button {
+	btn := (*Button)(p)
+	btn.setup("")
 	return btn
 }
 

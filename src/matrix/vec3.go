@@ -233,7 +233,7 @@ func Vec3Backward() Vec3 { return Vec3{0, 0, 1} }
 func Vec3Zero() Vec3     { return Vec3{0, 0, 0} }
 func Vec3One() Vec3      { return Vec3{1, 1, 1} }
 func Vec3Half() Vec3     { return Vec3{0.5, 0.5, 0.5} }
-func Vec3Largest() Vec3  { return Vec3{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32} }
+func Vec3Largest() Vec3  { return Vec3{FloatMax, FloatMax, FloatMax} }
 
 func (v Vec3) SquareDistance(b Vec3) Float {
 	return (v[Vx]-b[Vx])*(v[Vx]-b[Vx]) + (v[Vy]-b[Vy])*(v[Vy]-b[Vy]) + (v[Vz]-b[Vz])*(v[Vz]-b[Vz])

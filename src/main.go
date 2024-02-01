@@ -8,6 +8,8 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/ui"
+	"kaiju/uimarkup"
+	"kaiju/uimarkup/markup"
 	"runtime"
 	"time"
 	"unsafe"
@@ -139,6 +141,17 @@ func testButton(host *engine.Host) {
 	})
 }
 
+func testHTML(host *engine.Host) {
+	events := map[string]func(*markup.DocElement){
+		"playGame":     func(*markup.DocElement) { println("Clicked playGame") },
+		"showSettings": func(*markup.DocElement) { println("Clicked showSettings") },
+		"showRules":    func(*markup.DocElement) { println("Clicked showRules") },
+	}
+	testHTML, _ := host.AssetDatabase().ReadText("ui/test.html")
+	testCSS, _ := host.AssetDatabase().ReadText("ui/test.css")
+	uimarkup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
+}
+
 func main() {
 	lastTime := time.Now()
 	host, err := engine.NewHost()
@@ -155,7 +168,8 @@ func main() {
 	//testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
-	testButton(&host)
+	//testButton(&host)
+	testHTML(&host)
 	for !host.Closing {
 		deltaTime := time.Since(lastTime).Seconds()
 		lastTime = time.Now()

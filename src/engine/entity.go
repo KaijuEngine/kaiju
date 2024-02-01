@@ -199,7 +199,7 @@ func (e *Entity) SetRelativeTransformations(transformRelative bool) {
 func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
 	count := len(e.Children)
 	arr := make([]*Entity, count)
-	for i := 0; i < count; i++ {
+	for i := count - 1; i >= 0; i-- {
 		c := e.Children[i]
 		c.SetParent(nil)
 		arr[i] = c

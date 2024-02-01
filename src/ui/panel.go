@@ -44,6 +44,7 @@ type Panel struct {
 	scrollDirection               PanelScrollDirection
 	scrollEvent                   engine.EventId
 	childScrollEvents             map[UI]childScrollEvent
+	borderStyle                   [4]BorderStyle
 	color                         matrix.Color
 	drawing                       rendering.Drawing
 	localData                     any
@@ -62,12 +63,18 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
 		fitContent:        false,
 	}
-	panel.init(host, texture.Size(), anchor, panel)
+	ts := matrix.Vec2Zero()
+	if texture != nil {
+		ts = texture.Size()
+	}
+	panel.init(host, ts, anchor, panel)
 	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
 	panel.entity.Transform.SetScale(matrix.Vec3{1.0, 1.0, 1.0})
 	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
-	panel.ensureBGExists(texture)
+	if texture != nil {
+		panel.ensureBGExists(texture)
+	}
 	panel.AddEvent(EventTypeRebuild, panel.onRebuild)
 	return panel
 }
@@ -326,7 +333,7 @@ func (panel *Panel) adjustKidsOnRebuild(target UI) {
 	}
 	if panel.entity.Parent != nil {
 		pUI := FirstOnEntity(panel.entity.Parent)
-		if pUI != nil && pUI.selfScissor().Z() < math.MaxFloat32 {
+		if pUI != nil && pUI.selfScissor().Z() < matrix.FloatMax {
 			parentScissor := pUI.selfScissor()
 			bounds.SetLeft(matrix.Max(parentScissor.X(), bounds.X()))
 			bounds.SetTop(matrix.Max(parentScissor.Y(), bounds.Y()))
@@ -359,7 +366,7 @@ func (panel *Panel) InsertChild(target UI, idx int) {
 
 func (panel *Panel) RemoveChild(target UI) {
 	target.Entity().SetParent(nil)
-	target.setScissor(matrix.Vec4{-math.MaxFloat32, -math.MaxFloat32, math.MaxFloat32, math.MaxFloat32})
+	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
 	target.Layout().update()
 	panel.Layout().update()
 	panel.SetDirty(DirtyTypeGenerated)
@@ -429,6 +436,8 @@ func (panel *Panel) ensureBGExists(tex *rendering.Texture) {
 		panel.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		panel.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
+		panel.textureSize = tex.Size()
+		panel.shaderData.setSize2d(panel, panel.textureSize.X(), panel.textureSize.Y())
 		panel.drawing = rendering.Drawing{
 			Renderer:   panel.host.Window.Renderer,
 			Shader:     shader,
@@ -475,6 +484,27 @@ func (panel *Panel) SetScrollDirection(direction PanelScrollDirection) {
 }
 
 func (panel *Panel) ScrollDirection() PanelScrollDirection { return panel.scrollDirection }
+func (panel *Panel) BorderSize() matrix.Vec4               { return panel.layout.Border() }
+func (panel *Panel) BorderStyle() [4]BorderStyle           { return panel.borderStyle }
+func (panel *Panel) BorderColor() [4]matrix.Color          { return panel.shaderData.BorderColor }
+func (panel *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
+	panel.shaderData.BorderRadius = matrix.Vec4{topLeft, topRight, bottomRight, bottomLeft}
+}
+
+func (panel *Panel) SetBorderSize(left, top, right, bottom float32) {
+	panel.layout.SetBorder(left, top, right, bottom)
+	// TODO:  If there isn't a border, it should be transparent when created
+	panel.ensureBGExists(nil)
+	panel.shaderData.BorderSize = panel.layout.Border()
+}
+
+func (panel *Panel) SetBorderStyle(left, top, right, bottom BorderStyle) {
+	panel.borderStyle = [4]BorderStyle{left, top, right, bottom}
+}
+
+func (panel *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
+	panel.shaderData.BorderColor = [4]matrix.Color{left, top, right, bottom}
+}
 
 func (panel *Panel) SetUseBlending(useBlending bool) {
 	panel.recreateDrawing()

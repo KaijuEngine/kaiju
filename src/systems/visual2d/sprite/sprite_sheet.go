@@ -1,4 +1,4 @@
-package visuals2d
+package sprite
 
 import (
 	"encoding/json"

@@ -21,7 +21,7 @@ func (cb *Slider) data() *localSliderData {
 func (p *Panel) ConvertToSlider() *Slider {
 	s := (*Slider)(p)
 	ld := &localSliderData{}
-	host := p.selfHost()
+	host := p.Host()
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = NewPanel(host, tex, AnchorLeft)
