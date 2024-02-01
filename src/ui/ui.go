@@ -45,6 +45,8 @@ type UI interface {
 	selfScissor() matrix.Vec4
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
+	layoutChanged(dirtyType DirtyType)
+	clean()
 }
 
 type uiBase struct {
@@ -127,18 +129,28 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 }
 
 func (ui *uiBase) Clean() {
-	ui.layout.update()
-	for i := 0; i < len(ui.entity.Children); i++ {
-		kid := ui.entity.Children[i]
-		all := AllOnEntity(kid)
-		for _, cui := range all {
-			cui.Clean()
+	if ui.dirtyType != DirtyTypeNone {
+		if ui.entity.Parent != nil {
+			cleanParent(ui.host, ui.entity.Parent)
+		}
+		ui.clean()
+		for i := 0; i < len(ui.entity.Children); i++ {
+			c := ui.entity.Children[i]
+			all := AllOnEntity(c)
+			for _, childUI := range all {
+				if childUI.dirty() != DirtyTypeNone {
+					childUI.Clean()
+				}
+			}
 		}
 	}
+}
+
+func (ui *uiBase) clean() {
+	ui.layout.update()
 	if !ui.events[EventTypeRebuild].IsEmpty() {
-		ui.ExecuteEvent(EventTypeRebuild)
+		ui.events[EventTypeRebuild].Execute()
 	}
-	// TODO:  Layout should do this, so remove if so
 	ui.entity.Transform.SetDirty()
 	if ui.dirtyType == DirtyTypeReGenerated {
 		ui.dirtyType = DirtyTypeGenerated
@@ -155,7 +167,7 @@ func cleanParent(host *engine.Host, entity *engine.Entity) {
 	all := AllOnEntity(entity)
 	for i := 0; i < len(all); i++ {
 		if all[i].dirty() != DirtyTypeNone {
-			all[i].Clean()
+			all[i].clean()
 		}
 	}
 }
@@ -253,7 +265,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 		if ui.entity.Parent != nil {
 			cleanParent(ui.Host(), ui.entity.Parent)
 		}
-		ui.Clean()
+		ui.clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
@@ -298,4 +310,17 @@ func (ui *uiBase) DisconnectParentScissor() {
 		ui.generateScissor()
 	}
 	ui.disconnectedScissor = true
+}
+
+func (ui uiBase) layoutChanged(dirtyType DirtyType) {
+	ui.SetDirty(dirtyType)
+	if ui.Entity().Parent != nil {
+		if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
+			if pui.dirty() == DirtyTypeNone {
+				pui.SetDirty(DirtyTypeParentLayout)
+			} else {
+				pui.SetDirty(DirtyTypeReGenerated)
+			}
+		}
+	}
 }
