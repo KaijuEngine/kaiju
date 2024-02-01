@@ -73,14 +73,14 @@ func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32) {
 }
 
 func (m *Mouse) SetDown(index int) {
-	if m.buttonStates[index] != MousePress {
+	if m.buttonStates[index] == MouseInvalid {
 		m.buttonStates[index] = MousePress
 		m.buttonChanged = true
 	}
 }
 
 func (m *Mouse) SetUp(index int) {
-	if m.buttonStates[index] != MouseRelease {
+	if m.buttonStates[index] != MouseInvalid {
 		m.buttonStates[index] = MouseRelease
 		m.buttonChanged = true
 	}
