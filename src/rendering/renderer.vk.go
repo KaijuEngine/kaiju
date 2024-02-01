@@ -2874,7 +2874,6 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath, vr)
 		subShader.DriverData = shader.DriverData
-		vr.CreateShader(subShader, assetDB)
 		shader.SubShader = subShader
 	}
 }

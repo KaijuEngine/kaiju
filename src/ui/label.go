@@ -212,6 +212,7 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 	cRange.hue = newColor
 	cRange.bgHue = bgColor
 	label.colorRange(*cRange)
+	label.SetDirty(DirtyTypeColorChange)
 }
 
 func (label *Label) BoldRange(start, end int) {
@@ -220,6 +221,7 @@ func (label *Label) BoldRange(start, end int) {
 	cRange.bgHue = label.bgColor
 	cRange.isBold = true
 	label.colorRange(*cRange)
+	label.SetDirty(DirtyTypeColorChange)
 }
 
 func (label *Label) SetWrap(wrapText bool) {

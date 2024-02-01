@@ -251,3 +251,9 @@ func (w Window) IsTabletSize() bool {
 func DPI2PX(pixels, mm, targetMM int) int {
 	return targetMM * (pixels / mm)
 }
+
+func (w *Window) CursorStandard() { w.cursorStandard() }
+func (w *Window) CursorIbeam()    { w.cursorIbeam() }
+
+func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
+func (w *Window) ClipboardContents() string   { return w.clipboardContents() }

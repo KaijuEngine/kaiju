@@ -23,11 +23,13 @@ layout(location = 7) in vec3 inMorphTarget;
 	layout(location = 1) out vec4 fragBGColor;
 	layout(location = 2) out vec2 fragTexCoord;
 	layout(location = 3) out vec2 fragPxRange;
+	layout(location = 4) out vec2 fragTexRange;
 #else
 	out vec4 fragColor;
 	out vec4 fragBGColor;
 	out vec2 fragTexCoord;
 	out vec2 fragPxRange;
+	out vec2 fragTexRange;
 
 	#define INSTANCE_VEC4_COUNT 9
 	uniform sampler2D instanceSampler;

@@ -294,4 +294,12 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 	}
 }
 
+void window_cursor_standard(void* winHWND) {
+	SetCursor(LoadCursor(NULL, IDC_ARROW));
+}
+
+void window_cursor_ibeam(void* winHWND) {
+	SetCursor(LoadCursor(NULL, IDC_IBEAM));
+}
+
 #endif

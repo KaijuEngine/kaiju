@@ -30,7 +30,7 @@
 		},
 		{
 			"Name": "pxRange",
-			"Type": "vec4"
+			"Type": "vec2"
 		}
 	],
 	"Layouts": [{

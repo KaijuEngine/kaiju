@@ -45,8 +45,6 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 	renderer.CreateShader(s, assetDatabase)
 	if s.SubShader != nil {
 		renderer.CreateShader(s.SubShader, assetDatabase)
-		// TODO:  Make this not needed
-		s.SubShader.SubShader = nil
 	}
 }
 

@@ -11,6 +11,7 @@ type Entity struct {
 	Children                        []*Entity
 	matrix                          matrix.Mat4
 	namedData                       map[string][]interface{}
+	OnDestroy                       Event
 	name                            string
 	destroyedFrames                 int8
 	isDestroyed                     bool
@@ -247,6 +248,7 @@ func (e *Entity) LookAt(point matrix.Vec3) {
 func (e *Entity) TickCleanup() bool {
 	if e.isDestroyed {
 		if e.destroyedFrames <= 0 {
+			e.OnDestroy.Execute()
 			return true
 		}
 		e.destroyedFrames--
