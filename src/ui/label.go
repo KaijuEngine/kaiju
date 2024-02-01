@@ -91,10 +91,10 @@ func (label *Label) rebuild() {
 		if label.textLength > 0 {
 			maxWidth := float32(999999.0)
 			if label.wordWrap {
-				maxWidth = label.layout.pixelSize.Width()
+				maxWidth = label.layout.PixelSize().Width()
 			}
-			label.runeDrawings = label.selfHost().FontCache().RenderMeshes(
-				label.selfHost(), label.text, 0.0, 0.0, 0.0, label.fontSize,
+			label.runeDrawings = label.Host().FontCache().RenderMeshes(
+				label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
 				maxWidth, label.color, label.bgColor, label.justify,
 				label.baseline, label.entity.Transform.WorldScale(), true,
 				false, label.rangesToFont(), label.fontFace)
@@ -188,7 +188,7 @@ func (label Label) MaxWidth() float32 {
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {
-	textSize := label.selfHost().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width)
+	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width)
 	label.layout.Scale(width, textSize.Y())
 	label.SetDirty(DirtyTypeResize)
 }

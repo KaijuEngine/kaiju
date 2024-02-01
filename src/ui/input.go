@@ -56,7 +56,7 @@ func (input *Input) Data() *localInputData {
 
 func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input := (*Input)(p)
-	host := p.selfHost()
+	host := p.Host()
 	data := &localInputData{}
 	input.localData = data
 
@@ -69,7 +69,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.label.SetMaxWidth(100000.0)
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		l.Scale(input.layout.pixelSize.Width(), input.layout.pixelSize.Height())
+		ps := input.layout.PixelSize()
+		l.Scale(ps.Width(), ps.Height())
 	})
 
 	// Placeholder
@@ -79,7 +80,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.placeholder.SetMaxWidth(100000.0)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		l.Scale(input.layout.pixelSize.Width(), input.layout.pixelSize.Height())
+		ps := input.layout.PixelSize()
+		l.Scale(ps.Width(), ps.Height())
 	})
 
 	// Create the cursor
@@ -88,7 +90,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
 	p.AddChild(data.cursor)
 	data.cursor.layout.AddFunction(func(l *Layout) {
-		l.Scale(cursorWidth, input.layout.pixelSize.Height()-5)
+		l.Scale(cursorWidth, input.layout.PixelSize().Height()-5)
 		l.SetOffset(l.offset.X(), cursorY)
 	})
 
@@ -171,7 +173,7 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = input.selfHost().FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
+		strWidth = input.Host().FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
 	}
 	return left + strWidth
 }
@@ -211,7 +213,7 @@ func (input *Input) setSelect(start, end int) {
 			startX := input.charX(data.selectStart)
 			endX := input.charX(data.selectEnd)
 			width := endX - startX
-			data.highlight.layout.Scale(width, input.layout.pixelSize.Height())
+			data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
 			data.highlight.layout.innerOffset.SetLeft(startX)
 		}
 		input.setBgColors()
@@ -333,7 +335,7 @@ func (input *Input) pointerPosWithin() int {
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return input.selfHost().FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
+		return input.Host().FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
 	}
 }
 
@@ -407,11 +409,11 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onHover() {
-	input.selfHost().Window.CursorIbeam()
+	input.Host().Window.CursorIbeam()
 }
 
 func (input *Input) onBlur() {
-	input.selfHost().Window.CursorStandard()
+	input.Host().Window.CursorStandard()
 }
 
 func (input *Input) onDown() {
@@ -434,7 +436,7 @@ func (input *Input) onMiss() {
 		input.Deselect()
 		input.resetSelect()
 		input.makeCursorInvisible()
-		input.selfHost().Window.CursorStandard()
+		input.Host().Window.CursorStandard()
 	}
 }
 
@@ -510,7 +512,7 @@ func (input *Input) Deselect() {
 	input.Data().isActive = false
 	input.resetSelect()
 	input.makeCursorInvisible()
-	input.selfHost().Window.CursorStandard()
+	input.Host().Window.CursorStandard()
 }
 
 func (input *Input) SetFontSize(fontSize float32) {

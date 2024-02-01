@@ -33,6 +33,18 @@
 			"Type": "vec4"
 		},
 		{
+			"Name": "borderRadius",
+			"Type": "vec4"
+		},
+		{
+			"Name": "borderSize",
+			"Type": "vec4"
+		},
+		{
+			"Name": "borderColor",
+			"Type": "mat4"
+		},
+		{
 			"Name": "borderLen",
 			"Type": "vec2"
 		}

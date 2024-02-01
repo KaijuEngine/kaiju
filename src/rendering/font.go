@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"kaiju/assets"
 	"kaiju/matrix"
-	"math"
 	"strings"
 	"unicode"
 	"unsafe"
@@ -477,7 +476,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.BgColor = bgColor
 				shaderData.PxRange = pxRange
 				shaderData.UVs = uvs
-				shaderData.Scissor = matrix.Vec4{-math.MaxFloat32, -math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+				shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,

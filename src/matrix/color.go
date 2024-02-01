@@ -53,6 +53,22 @@ func Color8FromColor(c Color) Color8 {
 	}
 }
 
+func ColorFromVec3(v Vec3) Color {
+	return Color{v.X(), v.Y(), v.Z(), 1}
+}
+
+func ColorFromVec4(v Vec4) Color {
+	return Color{v.X(), v.Y(), v.Z(), v.W()}
+}
+
+func ColorRGBAInt(r, g, b, a int) Color {
+	return Color{Float(r) / 255.0, Float(g) / 255.0, Float(b) / 255.0, Float(a) / 255.0}
+}
+
+func ColorRGBInt(r, g, b int) Color {
+	return Color{Float(r) / 255.0, Float(g) / 255.0, Float(b) / 255.0, 1.0}
+}
+
 func (c Color) AsColor8() Color8 { return Color8FromColor(c) }
 func (c Color8) AsColor() Color  { return ColorFromColor8(c) }
 

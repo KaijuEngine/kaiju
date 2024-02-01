@@ -186,7 +186,7 @@ func Vec2Right() Vec2   { return Vec2{1, 0} }
 func Vec2Zero() Vec2    { return Vec2{0, 0} }
 func Vec2One() Vec2     { return Vec2{1, 1} }
 func Vec2Half() Vec2    { return Vec2{0.5, 0.5} }
-func Vec2Largest() Vec2 { return Vec2{math.MaxFloat32, math.MaxFloat32} }
+func Vec2Largest() Vec2 { return Vec2{FloatMax, FloatMax} }
 
 func (v Vec2) LargestAxis() Float {
 	return max(v[Vx], v[Vy])

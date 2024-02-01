@@ -1,12 +1,10 @@
-package visuals2d
+package sprite
 
 import (
 	"kaiju/assets"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/ui"
-	"math"
 )
 
 var ZAxisScaleFactor = float32(16.0)
@@ -20,7 +18,7 @@ type Sprite struct {
 	frameCount, currentFrame int
 	paused                   bool
 	spriteSheet              spriteSheet
-	shaderData               ui.ShaderData
+	shaderData               ShaderData
 	drawing                  rendering.Drawing
 	currentClipName          string
 	currentClip              []spriteSheetFrameData
@@ -175,19 +173,19 @@ func NewSprite(x, y, width, height matrix.Float, host *engine.Host, texture *ren
 		flipBook: []*rendering.Texture{},
 	}
 	sprite.baseScale = matrix.Vec3{width, height, 1.0}
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionUI)
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionSprite)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	sprite.Entity.Transform.SetPosition(matrix.Vec3{x, y, 0})
 	sprite.Entity.Transform.SetScale(matrix.Vec3{width, height, 1})
 	sprite.texture = texture
-	sprite.shaderData = ui.ShaderData{
+	sprite.shaderData = ShaderData{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		BorderLen:      matrix.Vec2{8.0, 8.0},
 		BgColor:        matrix.ColorWhite(),
 		FgColor:        matrix.ColorWhite(),
 		UVs:            matrix.Vec4{0.0, 0.0, 1.0, 1.0},
 		Scissor: matrix.Vec4{
-			-math.MaxFloat32, -math.MaxFloat32, math.MaxFloat32, math.MaxFloat32,
+			-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax,
 		},
 		Size2D: matrix.Vec4{
 			0.0, 0.0, float32(texture.Width), float32(texture.Height),
