@@ -117,6 +117,10 @@ func Vec2Approx(a, b Vec2) bool {
 		Abs(a.Y()-b.Y()) < math.SmallestNonzeroFloat32
 }
 
+func Vec2ApproxTo(a, b Vec2, delta Float) bool {
+	return Abs(a.X()-b.X()) < delta && Abs(a.Y()-b.Y()) < delta
+}
+
 func Vec2Min(a, b Vec2) Vec2 {
 	return Vec2{
 		Min(a[Vx], b[Vx]),
