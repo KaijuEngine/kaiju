@@ -88,13 +88,13 @@ func New(windowName string) (*Window, error) {
 	return w, err
 }
 
-func (w Window) PlatformWindow() unsafe.Pointer   { return w.handle }
-func (w Window) PlatformInstance() unsafe.Pointer { return w.instance }
+func (w *Window) PlatformWindow() unsafe.Pointer   { return w.handle }
+func (w *Window) PlatformInstance() unsafe.Pointer { return w.instance }
 
-func (w Window) IsClosed() bool  { return w.isClosed }
-func (w Window) IsCrashed() bool { return w.isCrashed }
-func (w Window) Width() int      { return w.width }
-func (w Window) Height() int     { return w.height }
+func (w *Window) IsClosed() bool  { return w.isClosed }
+func (w *Window) IsCrashed() bool { return w.isCrashed }
+func (w *Window) Width() int      { return w.width }
+func (w *Window) Height() int     { return w.height }
 
 func (w *Window) processEvent() {
 	evtType := w.evtSharedMem.toEventType()
@@ -179,7 +179,8 @@ func (w *Window) processControllerEvent(evtType eventType) {
 	switch evtType {
 	case evtControllerStates:
 		ce := w.evtSharedMem.toControllerEvent()
-		for id, c := range ce.controllerStates {
+		for id := range ce.controllerStates {
+			c := &ce.controllerStates[id]
 			if c.isConnected == 0 {
 				w.Controller.Disconnected(id)
 			} else {
@@ -229,22 +230,22 @@ func (w *Window) SwapBuffers() {
 	swapBuffers(w.handle)
 }
 
-func (w Window) GetDPI() (int, int, error) {
+func (w *Window) GetDPI() (int, int, error) {
 	// TODO:  Actually get the DPI
 	return 96, 96, nil
 }
 
-func (w Window) IsPhoneSize() bool {
+func (w *Window) IsPhoneSize() bool {
 	wmm, hmm, _ := w.GetDPI()
 	return wmm < 178 || hmm < 170
 }
 
-func (w Window) IsPCSize() bool {
+func (w *Window) IsPCSize() bool {
 	wmm, hmm, _ := w.GetDPI()
 	return wmm > 254 || hmm > 254
 }
 
-func (w Window) IsTabletSize() bool {
+func (w *Window) IsTabletSize() bool {
 	return !w.IsPhoneSize() && !w.IsPCSize()
 }
 

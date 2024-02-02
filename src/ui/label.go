@@ -79,7 +79,7 @@ func (label *Label) deactivateDrawings() {
 	}
 }
 
-func (label Label) FontFace() rendering.FontFace { return label.fontFace }
+func (label *Label) FontFace() rendering.FontFace { return label.fontFace }
 
 func (label *Label) colorRange(section colorRange) {
 	end := len(label.runeShaderData)
@@ -102,6 +102,7 @@ func (label *Label) rebuild() {
 	// on any change. The UI can have many different changes, so it doesn't
 	// help to have only 1 dirty type
 	reRender := label.dirtyType != DirtyTypeParentGenerated &&
+		label.dirtyType != DirtyTypeParentReGenerated &&
 		label.dirtyType != DirtyTypeParentLayout &&
 		label.dirtyType != DirtyTypeParentResize
 	if label.dirtyType == DirtyTypeColorChange {
@@ -141,7 +142,7 @@ func (label *Label) rebuild() {
 	}
 }
 
-func (label Label) rangesToFont() []rendering.FontRange {
+func (label *Label) rangesToFont() []rendering.FontRange {
 	ranges := make([]rendering.FontRange, len(label.colorRanges))
 	for i := 0; i < len(label.colorRanges); i++ {
 		ranges[i] = rendering.FontRange{
@@ -153,7 +154,7 @@ func (label Label) rangesToFont() []rendering.FontRange {
 	return ranges
 }
 
-func (label Label) FontSize() float32 { return label.fontSize }
+func (label *Label) FontSize() float32 { return label.fontSize }
 
 func (label *Label) SetFontSize(size float32) {
 	label.fontSize = size
@@ -174,7 +175,7 @@ func (label *Label) SetText(text string) {
 func (label *Label) fixSize() {
 	wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
 		label.text, label.fontSize, label.MaxWidth())
-	if label.layout.Scale(wh.X(), wh.Y()) && !label.entity.IsRoot() {
+	if label.layout.ScaleHeight(wh.Y()) && !label.entity.IsRoot() {
 		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
 		label.SetDirty(DirtyTypeReGenerated)
 		label.SetScissorToParent()
@@ -188,8 +189,8 @@ func (label *Label) setLabelScissors() {
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {
-	for i, r := range label.colorRanges {
-		if r.hue.Equals(label.color) {
+	for i := range label.colorRanges {
+		if label.colorRanges[i].hue.Equals(label.color) {
 			label.colorRanges[i].hue = newColor
 		}
 	}
@@ -198,8 +199,8 @@ func (label *Label) SetColor(newColor matrix.Color) {
 }
 
 func (label *Label) SetBGColor(newColor matrix.Color) {
-	for i, r := range label.colorRanges {
-		if r.bgHue.Equals(label.bgColor) {
+	for i := range label.colorRanges {
+		if label.colorRanges[i].bgHue.Equals(label.bgColor) {
 			label.colorRanges[i].bgHue = newColor
 		}
 	}
@@ -224,7 +225,7 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 	label.overrideMaxWidth = maxWidth
 }
 
-func (label Label) MaxWidth() float32 {
+func (label *Label) MaxWidth() float32 {
 	if label.overrideMaxWidth > 0.0 {
 		return label.overrideMaxWidth
 	} else if label.entity.IsRoot() {

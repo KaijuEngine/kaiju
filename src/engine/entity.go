@@ -35,11 +35,11 @@ func NewEntity() *Entity {
 	}
 }
 
-func (e Entity) IsRoot() bool {
+func (e *Entity) IsRoot() bool {
 	return e.Parent == nil
 }
 
-func (e Entity) ChildCount() int {
+func (e *Entity) ChildCount() int {
 	return len(e.Children)
 }
 
@@ -157,7 +157,7 @@ func (e *Entity) Matrix(base *matrix.Mat4) {
 	e.Transform.CalcWorldMatrix(base)
 }
 
-func (e Entity) Clone(parentOverride *Entity) *Entity {
+func (e *Entity) Clone(parentOverride *Entity) *Entity {
 	clone := NewEntity()
 	if parentOverride == nil {
 		clone.SetParent(parentOverride)
@@ -176,7 +176,7 @@ func (e Entity) Clone(parentOverride *Entity) *Entity {
 	return clone
 }
 
-func (e Entity) Name() string {
+func (e *Entity) Name() string {
 	return e.name
 }
 
@@ -263,31 +263,31 @@ func (e *Entity) TickCleanup() bool {
 	return false
 }
 
-func (e Entity) CanUpdate() bool {
+func (e *Entity) CanUpdate() bool {
 	return e.isActive && !e.isDestroyed
 }
 
-func (e Entity) LocalPosition() matrix.Vec3 {
+func (e *Entity) LocalPosition() matrix.Vec3 {
 	return e.Transform.Position()
 }
 
-func (e Entity) LocalRotation() matrix.Vec3 {
+func (e *Entity) LocalRotation() matrix.Vec3 {
 	return e.Transform.Rotation()
 }
 
-func (e Entity) LocalScale() matrix.Vec3 {
+func (e *Entity) LocalScale() matrix.Vec3 {
 	return e.Transform.Scale()
 }
 
-func (e Entity) LocalForward() matrix.Vec3 {
+func (e *Entity) LocalForward() matrix.Vec3 {
 	return e.Transform.Forward()
 }
 
-func (e Entity) LocalRight() matrix.Vec3 {
+func (e *Entity) LocalRight() matrix.Vec3 {
 	return e.Transform.Right()
 }
 
-func (e Entity) LocalUp() matrix.Vec3 {
+func (e *Entity) LocalUp() matrix.Vec3 {
 	return e.Transform.Up()
 }
 
@@ -299,11 +299,11 @@ func (e *Entity) Root() *Entity {
 	return root
 }
 
-func (e Entity) IsActive() bool {
+func (e *Entity) IsActive() bool {
 	return e.isActive
 }
 
-func (e Entity) IsDestroyed() bool {
+func (e *Entity) IsDestroyed() bool {
 	return e.isDestroyed
 }
 

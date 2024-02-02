@@ -79,8 +79,8 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing) {
-	for _, drawing := range drawings {
-		d.AddDrawing(drawing)
+	for i := range drawings {
+		d.AddDrawing(drawings[i])
 	}
 }
 

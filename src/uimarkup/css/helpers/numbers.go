@@ -16,8 +16,8 @@ var arithmeticMap = map[string]func(int, int) int{
 }
 
 func ChangeNToChildCount(args []string, count int) {
-	for i, a := range args {
-		if a == "n" {
+	for i := range args {
+		if args[i] == "n" {
 			args[i] = strconv.Itoa(count)
 		}
 	}
@@ -33,19 +33,19 @@ func ArithmeticString(args []string) (int, error) {
 		do := arithmeticMap["+"]
 		value := 0
 		negate := false
-		for _, a := range args {
-			if a == "-" {
+		for i := range args {
+			if args[i] == "-" {
 				negate = true
 				continue
-			} else if v, err := strconv.Atoi(a); err == nil {
+			} else if v, err := strconv.Atoi(args[i]); err == nil {
 				if negate {
 					v = -v
 				}
 				value = do(value, v)
-			} else if f, ok := arithmeticMap[a]; ok {
+			} else if f, ok := arithmeticMap[args[i]]; ok {
 				do = f
 			} else {
-				return 0, fmt.Errorf("invalid arithmetic operator: %s", a)
+				return 0, fmt.Errorf("invalid arithmetic operator: %s", args[i])
 			}
 		}
 		return value, nil
@@ -64,8 +64,8 @@ func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float3
 	} else if len(str) > 2 {
 		validSuffixes := []string{"px", "em", "ex", "cm", "mm", "in", "pt", "pc"}
 		valid := false
-		for _, s := range validSuffixes {
-			valid = valid || strings.HasSuffix(str, s)
+		for i := range validSuffixes {
+			valid = valid || strings.HasSuffix(str, validSuffixes[i])
 		}
 		if valid {
 			suffix = str[len(str)-2:]

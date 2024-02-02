@@ -65,9 +65,9 @@ func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS)
 	s.Parse(cssStr)
-	for _, elm := range doc.HeadElements {
-		if elm.Data() == "style" {
-			s.Parse(elm.Children[0].Data())
+	for i := range doc.HeadElements {
+		if doc.HeadElements[i].Data() == "style" {
+			s.Parse(doc.HeadElements[i].Children[0].Data())
 		}
 	}
 	css.Apply(s, doc, host)

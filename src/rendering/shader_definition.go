@@ -72,8 +72,8 @@ func (l ShaderDefLayout) DescriptorType() vk.DescriptorType {
 
 func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 	flags := vk.ShaderStageFlagBits(0)
-	for _, flag := range l.Flags {
-		switch flag {
+	for i := range l.Flags {
+		switch l.Flags[i] {
 		case "Vertex":
 			flags |= vk.ShaderStageVertexBit
 		case "TessellationControl":
@@ -150,8 +150,9 @@ func ShaderDefFromJson(jsonStr string) (ShaderDef, error) {
 
 func (sd ShaderDef) Stride() uint32 {
 	stride := uint32(0)
-	for _, field := range sd.Fields {
-		stride += defTypes[field.Type].size * uint32(defTypes[field.Type].repeat)
+	for i := range sd.Fields {
+		fieldType := sd.Fields[i].Type
+		stride += defTypes[fieldType].size * uint32(defTypes[fieldType].repeat)
 	}
 	return stride
 }

@@ -458,11 +458,11 @@ func (layout *Layout) Scale(width, height float32) bool {
 	return true
 }
 
-func (layout *Layout) ScaleWidth(width float32) {
+func (layout *Layout) ScaleWidth(width float32) bool {
 	width += layout.padding.X() + layout.padding.Z()
 	ps := layout.PixelSize()
-	if matrix.Approx(ps[matrix.Vx], width) {
-		return
+	if matrix.ApproxTo(ps[matrix.Vx], width, 0.001) {
+		return false
 	}
 	size := matrix.Vec3{width, ps.Height(), 1.0}
 	if layout.ui.Entity().Parent != nil {
@@ -471,13 +471,14 @@ func (layout *Layout) ScaleWidth(width float32) {
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
 	layout.ui.layoutChanged(DirtyTypeResize)
+	return true
 }
 
-func (layout *Layout) ScaleHeight(height float32) {
+func (layout *Layout) ScaleHeight(height float32) bool {
 	height += layout.padding.Y() + layout.padding.W()
 	ps := layout.PixelSize()
-	if matrix.Approx(ps.Y(), height) {
-		return
+	if matrix.ApproxTo(ps.Y(), height, 0.001) {
+		return false
 	}
 	size := matrix.Vec3{ps.Width(), height, 1.0}
 	if layout.ui.Entity().Parent != nil {
@@ -486,6 +487,7 @@ func (layout *Layout) ScaleHeight(height float32) {
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
 	layout.ui.layoutChanged(DirtyTypeResize)
+	return true
 }
 
 func (layout Layout) Positioning() Positioning { return layout.positioning }
