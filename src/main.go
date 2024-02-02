@@ -186,6 +186,10 @@ func main() {
 		} else if arg == "stop" {
 			pprof.StopCPUProfile()
 			pprofFile.Close()
+		} else if arg == "heap" {
+			hp := klib.MustReturn(os.Create("heap.prof"))
+			pprof.WriteHeapProfile(hp)
+			hp.Close()
 		}
 		return ""
 	})
