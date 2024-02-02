@@ -445,7 +445,7 @@ func (layout *Layout) Scale(width, height float32) bool {
 	width += layout.padding.X() + layout.padding.Z()
 	height += layout.padding.Y() + layout.padding.W()
 	ps := layout.PixelSize()
-	if matrix.Vec2Approx(ps, matrix.Vec2{width, height}) {
+	if matrix.Vec2ApproxTo(ps, matrix.Vec2{width, height}, 0.001) {
 		return false
 	}
 	size := matrix.Vec3{width, height, 1.0}

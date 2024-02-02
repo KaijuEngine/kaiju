@@ -112,6 +112,7 @@ func (label *Label) rebuild() {
 	} else if reRender {
 		label.clearDrawings()
 		if label.textLength > 0 {
+			label.fixSize()
 			maxWidth := float32(999999.0)
 			if label.wordWrap {
 				maxWidth = label.layout.PixelSize().Width()
@@ -133,7 +134,7 @@ func (label *Label) rebuild() {
 			}
 			label.host.Drawings.AddDrawings(label.runeDrawings)
 		}
-		label.fixSize()
+		label.setLabelScissors()
 	}
 	if !label.isActive() {
 		label.deactivateDrawings()
@@ -175,6 +176,14 @@ func (label *Label) fixSize() {
 		label.text, label.fontSize, label.MaxWidth())
 	if label.layout.Scale(wh.X(), wh.Y()) && !label.entity.IsRoot() {
 		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
+		label.SetDirty(DirtyTypeReGenerated)
+		label.SetScissorToParent()
+	}
+}
+
+func (label *Label) setLabelScissors() {
+	for i := 0; i < len(label.runeDrawings); i++ {
+		label.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = label.shaderData.Scissor
 	}
 }
 
@@ -221,7 +230,7 @@ func (label Label) MaxWidth() float32 {
 	} else if label.entity.IsRoot() {
 		return 100000.0
 	} else {
-		return label.entity.Transform.WorldScale().X()
+		return label.entity.Parent.Transform.WorldScale().X()
 	}
 }
 
