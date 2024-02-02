@@ -22,7 +22,7 @@ func (h *history) add(cmd string) {
 	if len(h.data) > 0 && h.data[h.idx-1] == cmd {
 		return
 	}
-	h.data = h.data[:h.idx+min(1, len(h.data))]
+	h.data = h.data[:h.idx]
 	h.data = append(h.data, cmd)
 	h.idx++
 }
