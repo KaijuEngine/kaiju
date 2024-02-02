@@ -414,7 +414,7 @@ func (layout *Layout) SetLocalInnerOffset(left, top, right, bottom float32) {
 	layout.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (layout Layout) InnerOffset() matrix.Vec4 {
+func (layout *Layout) InnerOffset() matrix.Vec4 {
 	return matrix.Vec4{
 		layout.localInnerOffset.Left() + layout.innerOffset.Left(),
 		layout.localInnerOffset.Top() + layout.innerOffset.Top(),
@@ -490,14 +490,14 @@ func (layout *Layout) ScaleHeight(height float32) bool {
 	return true
 }
 
-func (layout Layout) Positioning() Positioning { return layout.positioning }
-func (layout Layout) Anchor() Anchor           { return layout.screenAnchor }
-func (layout Layout) Border() matrix.Vec4      { return layout.border }
-func (layout Layout) Padding() matrix.Vec4     { return layout.padding }
-func (layout Layout) Margin() matrix.Vec4      { return layout.margin }
-func (layout Layout) Offset() matrix.Vec2      { return matrix.Vec2{layout.offset.X(), layout.offset.Y()} }
+func (layout *Layout) Positioning() Positioning { return layout.positioning }
+func (layout *Layout) Anchor() Anchor           { return layout.screenAnchor }
+func (layout *Layout) Border() matrix.Vec4      { return layout.border }
+func (layout *Layout) Padding() matrix.Vec4     { return layout.padding }
+func (layout *Layout) Margin() matrix.Vec4      { return layout.margin }
+func (layout *Layout) Offset() matrix.Vec2      { return matrix.Vec2{layout.offset.X(), layout.offset.Y()} }
 
-func (layout Layout) Stretch() matrix.Vec4 {
+func (layout *Layout) Stretch() matrix.Vec4 {
 	return matrix.Vec4{layout.left, layout.top, layout.right, layout.bottom}
 }
 
@@ -592,7 +592,7 @@ func (layout *Layout) update() {
 	}
 }
 
-func (layout Layout) Z() float32 {
+func (layout *Layout) Z() float32 {
 	return layout.z
 }
 
