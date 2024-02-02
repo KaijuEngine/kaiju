@@ -133,6 +133,7 @@ func (label *Label) rebuild() {
 			}
 			label.host.Drawings.AddDrawings(label.runeDrawings)
 		}
+		label.fixSize()
 	}
 	if !label.isActive() {
 		label.deactivateDrawings()
@@ -166,9 +167,15 @@ func (label *Label) SetText(text string) {
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = make([]colorRange, 0)
+	label.fixSize()
+}
+
+func (label *Label) fixSize() {
 	wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
 		label.text, label.fontSize, label.MaxWidth())
-	label.layout.Scale(wh.X(), wh.Y())
+	if label.layout.Scale(wh.X(), wh.Y()) && !label.entity.IsRoot() {
+		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
+	}
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {
@@ -211,6 +218,8 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 func (label Label) MaxWidth() float32 {
 	if label.overrideMaxWidth > 0.0 {
 		return label.overrideMaxWidth
+	} else if label.entity.IsRoot() {
+		return 100000.0
 	} else {
 		return label.entity.Transform.WorldScale().X()
 	}

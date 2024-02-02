@@ -441,12 +441,12 @@ func (layout *Layout) SetStretchRatio(leftRatio, topRatio, rightRatio, bottomRat
 	layout.ui.layoutChanged(DirtyTypeResize)
 }
 
-func (layout *Layout) Scale(width, height float32) {
+func (layout *Layout) Scale(width, height float32) bool {
 	width += layout.padding.X() + layout.padding.Z()
 	height += layout.padding.Y() + layout.padding.W()
 	ps := layout.PixelSize()
 	if matrix.Vec2Approx(ps, matrix.Vec2{width, height}) {
-		return
+		return false
 	}
 	size := matrix.Vec3{width, height, 1.0}
 	if layout.ui.Entity().Parent != nil {
@@ -455,6 +455,7 @@ func (layout *Layout) Scale(width, height float32) {
 	layout.ui.Entity().ScaleWithoutChildren(size)
 	layout.prepare()
 	layout.ui.layoutChanged(DirtyTypeResize)
+	return true
 }
 
 func (layout *Layout) ScaleWidth(width float32) {
