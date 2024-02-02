@@ -152,11 +152,13 @@ func (w *Window) processMouseEvent(evtType eventType) {
 	case evtMouseWheelVertical:
 		s := w.Mouse.Scroll()
 		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetScroll(s.X(), s.Y()+float32(me.delta))
+		delta := scaleScrollDelta(float32(me.delta))
+		w.Mouse.SetScroll(s.X(), s.Y()+delta)
 	case evtMouseWheelHorizontal:
 		s := w.Mouse.Scroll()
 		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetScroll(s.X()+float32(me.delta), s.Y())
+		delta := scaleScrollDelta(float32(me.delta))
+		w.Mouse.SetScroll(s.X()+delta, s.Y())
 	}
 }
 
