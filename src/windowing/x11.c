@@ -12,16 +12,9 @@
 #ifdef OPENGL
 #include "../gl/dist/glad.h"
 #include <GL/glx.h>
-#endif
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-
-typedef struct {
-	Display* d;
-	Window w;
-	GLXFBConfig bestFbcConfig;
-	GLXContext ctx;
-} X11State;
+#endif
 
 int shared_mem_set_thread_priority(SharedMem* sm) {
 	// TODO:  Get current thread priority and set the current thread priority to idle
@@ -59,6 +52,7 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
+#ifdef OPENGL
 void window_create_gl_context(void* state, void* evtSharedMem, int size) {
 	X11State* x11State = state;
 	char* esm = evtSharedMem;
@@ -97,15 +91,16 @@ void window_create_gl_context(void* state, void* evtSharedMem, int size) {
 		return;
 	}
 }
+#endif
 
 void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size) {
-	char* esm = evtSharedMem;
 	SharedMem sm = {evtSharedMem, size};
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
 		return;
 	}
+#ifdef OPENGL
 	int visAttrs[] = {
 		GLX_X_RENDERABLE, True,
 		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -151,25 +146,35 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 	XFree(fbc);
 	XVisualInfo* vi = glXGetVisualFromFBConfig(d, bestFbcConfig);
 	XSetWindowAttributes swa;
-	Colormap cmap = XCreateColormap(d, RootWindow(d, vi->screen), vi->visual, AllocNone);
+	Colormap cmap = XCreateColormap(d, RootWindow(d, vi->screen), NULL, AllocNone);
 	swa.colormap = cmap;
 	swa.background_pixmap = None;
 	swa.border_pixel = 0;
 	swa.event_mask = StructureNotifyMask;
 	Window w = XCreateWindow(d, RootWindow(d, vi->screen), 10, 10, width, height,
 		0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
+#else
+	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), 10, 10,
+		width, height, 1, BlackPixel(d, DefaultScreen(d)), WhitePixel(d, DefaultScreen(d)));
+#endif
 	if (w == None) {
 		write_fatal(evtSharedMem, size, "Failed to create window");
 		return;
 	}
+#ifdef OPENGL
 	XFree(vi);
+#endif
 	XStoreName(d, w, windowTitle);
 	XSetIconName(d, w, windowTitle);
 	XSelectInput(d, w, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 	XMapWindow(d, w);
-	X11State x11State = {d, w, bestFbcConfig};
-	X11State* cpyState = &x11State;
-	memcpy(esm+SHARED_MEM_DATA_START, &cpyState, sizeof(X11State**));
+	X11State x11State = {
+		&w, d
+#ifdef OPENGL
+		bestFbcConfig
+#endif
+	};
+	memcpy(sm.sharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
 	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
 	// Context should be created in Go here on go main thread
 	shared_memory_wait_for_available(&sm);
@@ -177,8 +182,8 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 	XSetWMProtocols(d, w, &WM_DELETE_WINDOW, 1);
 	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
 	XEvent e;
-	while (esm[0] != SHARED_MEM_QUIT) {
-		while (esm[0] != SHARED_MEM_AVAILABLE) {}
+	while (sm.sharedMem[0] != SHARED_MEM_QUIT) {
+		while (sm.sharedMem[0] != SHARED_MEM_AVAILABLE) {}
 		shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
 		XNextEvent(d, &e);
 		bool filtered = XFilterEvent(&e, None);
@@ -197,34 +202,34 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 				break;
 			case KeyPress:
 			case KeyRelease:
-				sm.evt->keyId = XLookupKeysym(&e.xkey, 0);
+				sm.evt->keyboard.keyId = XLookupKeysym(&e.xkey, 0);
 				break;
 			case ButtonPress:
 			case ButtonRelease:
 				switch (e.xbutton.button) {
 					case Button1:
-						sm.evt->mouseButtonId = MOUSE_BUTTON_LEFT;
+						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_LEFT;
 						break;
 					case Button2:
-						sm.evt->mouseButtonId = MOUSE_BUTTON_MIDDLE;
+						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_MIDDLE;
 						break;
 					case Button3:
-						sm.evt->mouseButtonId = MOUSE_BUTTON_RIGHT;
+						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_RIGHT;
 						break;
 					case Button4:
-						sm.evt->mouseButtonId = MOUSE_BUTTON_X1;
+						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X1;
 						break;
 					case Button5:
-						sm.evt->mouseButtonId = MOUSE_BUTTON_X2;
+						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X2;
 						break;
 				}
-				sm.evt->mouseX = e.xbutton.x;
-				sm.evt->mouseY = e.xbutton.y;
+				sm.evt->mouse.mouseX = e.xbutton.x;
+				sm.evt->mouse.mouseY = e.xbutton.y;
 				break;
 			case MotionNotify:
-				sm.evt->mouseButtonId = -1;
-				sm.evt->mouseX = e.xmotion.x;
-				sm.evt->mouseY = e.xmotion.y;
+				sm.evt->mouse.mouseButtonId = -1;
+				sm.evt->mouse.mouseX = e.xmotion.x;
+				sm.evt->mouse.mouseY = e.xmotion.y;
 				break;
 			case ClientMessage:
 				if (filtered) {
@@ -238,10 +243,14 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 		}
 		shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
 	}
+#ifdef OPENGL
 	glXMakeCurrent(d, 0, 0);
 	glXDestroyContext(d, x11State.ctx);
+#endif
 	XDestroyWindow(d, w);
+#ifdef OPENGL
 	XFreeColormap(d, cmap);
+#endif
 	XCloseDisplay(d);
 }
 

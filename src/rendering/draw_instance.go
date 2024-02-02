@@ -75,6 +75,7 @@ type DrawInstanceGroup struct {
 	Instances    []DrawInstance
 	instanceData []byte
 	instanceSize int
+	visibleCount int
 	padding      int
 	useBlending  bool
 }
@@ -131,10 +132,17 @@ func (d *DrawInstanceGroup) texSize() (int32, int32) {
 	return width, height
 }
 
+func (d *DrawInstanceGroup) VisibleCount() int { return d.visibleCount }
+
+func (d *DrawInstanceGroup) VisibleSize() int {
+	return d.visibleCount * (d.instanceSize + d.padding)
+}
+
 func (d *DrawInstanceGroup) UpdateData() {
 	base := unsafe.Pointer(&d.instanceData[0])
 	offset := uintptr(0)
 	count := len(d.Instances)
+	d.visibleCount = 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
 		instance.UpdateModel()
@@ -146,11 +154,13 @@ func (d *DrawInstanceGroup) UpdateData() {
 			to := unsafe.Pointer(uintptr(base) + offset)
 			klib.Memcpy(to, instance.DataPointer(), d.instanceSize)
 			offset += uintptr(d.instanceSize + d.padding)
+			d.visibleCount++
 		}
 	}
 	if count < len(d.Instances) {
+		newMemLen := count * (d.instanceSize + d.padding)
 		d.Instances = d.Instances[:count]
-		d.instanceData = d.instanceData[:offset]
+		d.instanceData = d.instanceData[:newMemLen]
 	}
 	d.bindInstanceDriverData()
 }

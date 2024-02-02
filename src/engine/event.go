@@ -12,8 +12,8 @@ type Event struct {
 	calls  []eventEntry
 }
 
-func NewEvent() *Event {
-	return &Event{
+func NewEvent() Event {
+	return Event{
 		nextId: 1,
 		calls:  make([]eventEntry, 0),
 	}

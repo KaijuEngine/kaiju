@@ -53,7 +53,30 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label.AddEvent(EventTypeRebuild, label.rebuild)
 	label.SetText(text)
 	label.SetDirty(DirtyTypeGenerated)
+	label.entity.OnActivate.Add(func() {
+		label.activateDrawings()
+		label.updateId = host.Updater.AddUpdate(label.Update)
+		label.SetDirty(DirtyTypeLayout)
+		label.Clean()
+	})
+	label.entity.OnDeactivate.Add(func() {
+		label.deactivateDrawings()
+		host.Updater.RemoveUpdate(label.updateId)
+		label.updateId = 0
+	})
 	return label
+}
+
+func (label *Label) activateDrawings() {
+	for i := range label.runeDrawings {
+		label.runeDrawings[i].ShaderData.Activate()
+	}
+}
+
+func (label *Label) deactivateDrawings() {
+	for i := range label.runeDrawings {
+		label.runeDrawings[i].ShaderData.Deactivate()
+	}
 }
 
 func (label Label) FontFace() rendering.FontFace { return label.fontFace }
@@ -110,6 +133,9 @@ func (label *Label) rebuild() {
 			}
 			label.host.Drawings.AddDrawings(label.runeDrawings)
 		}
+	}
+	if !label.isActive() {
+		label.deactivateDrawings()
 	}
 }
 

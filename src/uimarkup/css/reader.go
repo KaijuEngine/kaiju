@@ -18,15 +18,36 @@ func (m CSSMap) add(elm ui.UI, rule []rules.Rule) {
 	m[elm] = append(m[elm], rule...)
 }
 
-func applyToElement(rules []rules.Rule, elm markup.DocElement, host *engine.Host) []error {
-	problems := make([]error, 0)
+func applyToElement(inRules []rules.Rule, elm markup.DocElement, host *engine.Host) []error {
 	panel := elm.UIPanel
-	for _, rule := range rules {
-		if p, ok := properties.PropertyMap[rule.Property]; ok {
-			if err := p.Process(panel, elm, rule.Values, host); err != nil {
-				problems = append(problems, err)
+	hasHover := false
+	for i := 0; i < len(inRules) && !hasHover; i++ {
+		hasHover = inRules[i].Invocation == rules.RuleInvokeHover
+	}
+	proc := func(invokeType rules.RuleInvoke) []error {
+		problems := make([]error, 0)
+		for _, rule := range inRules {
+			if p, ok := properties.PropertyMap[rule.Property]; ok {
+				if rule.Invocation == invokeType {
+					if err := p.Process(panel, elm, rule.Values, host); err != nil {
+						problems = append(problems, err)
+					}
+				}
 			}
 		}
+		return problems
+	}
+	problems := proc(rules.RuleInvokeImmediate)
+	if hasHover {
+		elm.UI.AddEvent(ui.EventTypeEnter, func() {
+			elm.UI.Layout().ClearFunctions()
+			proc(rules.RuleInvokeImmediate)
+			proc(rules.RuleInvokeHover)
+		})
+		elm.UI.AddEvent(ui.EventTypeExit, func() {
+			elm.UI.Layout().ClearFunctions()
+			proc(rules.RuleInvokeImmediate)
+		})
 	}
 	return problems
 }
@@ -80,6 +101,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *mar
 			if p, ok := pseudos.PseudoMap[part.Name]; ok {
 				if selects, err := p.Process(elm, part); err == nil {
 					targets = append(targets, selects...)
+					applyRules = p.AlterRules(applyRules)
 				}
 			} else {
 				tagged := doc.GetElementsByTagName(part.Name)

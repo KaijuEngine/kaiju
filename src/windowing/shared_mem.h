@@ -75,7 +75,7 @@ typedef struct {
 
 typedef struct {
 	union {
-		char* sharedMem;
+		uint8_t* sharedMem;
 		InputEvent* evt;
 	};
 	int size;

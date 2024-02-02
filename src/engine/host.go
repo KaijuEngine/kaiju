@@ -65,6 +65,8 @@ func (host *Host) AddEntities(entities ...*Entity) {
 	host.entities = append(host.entities, entities...)
 }
 
+func (host *Host) Entities() []*Entity { return host.entities }
+
 func (host *Host) NewEntity() *Entity {
 	entity := NewEntity()
 	host.AddEntity(entity)

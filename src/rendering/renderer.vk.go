@@ -2312,11 +2312,14 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 		if !group.IsReady() {
 			continue
 		}
+		group.UpdateData()
+		if group.VisibleCount() == 0 {
+			continue
+		}
 		vr.resizeUniformBuffer(key, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		var data unsafe.Pointer
 		mapLen := instanceLen
-		group.UpdateData()
 		vk.MapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame], 0, mapLen, 0, &data)
 		vk.Memcopy(data, group.instanceData)
 		vk.UnmapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame])
@@ -2398,7 +2401,7 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 	vk.CmdBindPipeline(commandBuffer, vk.PipelineBindPointGraphics,
 		shader.RenderId.graphicsPipeline)
 	for _, group := range groups {
-		if !group.IsReady() {
+		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
 		vr.createDescriptorSet(shader.RenderId.descriptorSetLayout)
@@ -2418,7 +2421,7 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		//shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
-			uint32(len(group.Instances)), 0, 0, 0)
+			uint32(group.VisibleCount()), 0, 0, 0)
 	}
 }
 
@@ -2426,6 +2429,9 @@ func (vr Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader,
 	lastShader := (*Shader)(nil)
 	currentShader := (*Shader)(nil)
 	for _, group := range groups {
+		if !group.IsReady() || group.VisibleCount() == 0 {
+			continue
+		}
 		if lastShader != shader {
 			if shader == nil {
 				continue
@@ -2448,7 +2454,7 @@ func (vr Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader,
 		//draw.shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
-			uint32(len(group.Instances)), 0, 0, 0)
+			uint32(group.VisibleCount()), 0, 0, 0)
 	}
 }
 

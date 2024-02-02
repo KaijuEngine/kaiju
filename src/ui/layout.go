@@ -157,8 +157,9 @@ type Layout struct {
 
 func NewLayout(ui UI) Layout {
 	return Layout{
-		ui:     ui,
-		anchor: matrix.Vec2{0.0, 0.0},
+		ui:          ui,
+		anchor:      matrix.Vec2{0.0, 0.0},
+		positioning: PositioningAbsolute,
 	}
 }
 
@@ -166,24 +167,31 @@ func (layout *Layout) AddFunction(fn func(layout *Layout)) {
 	layout.functions = append(layout.functions, fn)
 }
 
+func (layout *Layout) ClearFunctions() {
+	layout.functions = layout.functions[:0]
+}
+
 func (layout *Layout) PixelSize() matrix.Vec2 {
 	return layout.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
 func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{size.X() * 0.5, h - size.Y()*0.5, 0.0, 0.0}
+	return matrix.Vec4{size.X()*0.5 + self.inset.Left(),
+		h - size.Y()*0.5 - self.inset.Top(), 0.0, 0.0}
 }
 
 func anchorTopCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{w * 0.5, h - size.Y()*0.5, 0.0, 0.0}
+	return matrix.Vec4{w * 0.5,
+		h - size.Y()*0.5 - self.inset.Top(), 0.0, 0.0}
 }
 
 func anchorTopRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{w - size.X()*0.5, h - size.Y()*0.5, 0.0, 0.0}
+	return matrix.Vec4{w - size.X()*0.5 - self.inset.Right(),
+		h - size.Y()*0.5 - self.inset.Top(), 0.0, 0.0}
 }
 
 func anchorLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{size.X() * 0.5, h * 0.5, 0.0, 0.0}
+	return matrix.Vec4{size.X()*0.5 + self.inset.Left(), h * 0.5, 0.0, 0.0}
 }
 
 func anchorCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
@@ -191,19 +199,21 @@ func anchorCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
 }
 
 func anchorRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{w - size.X()*0.5, h * 0.5, 0.0, 0.0}
+	return matrix.Vec4{w - size.X()*0.5 - self.inset.Right(), h * 0.5, 0.0, 0.0}
 }
 
 func anchorBottomLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{size.X() * 0.5, size.Y() * 0.5, 0.0, 0.0}
+	return matrix.Vec4{size.X()*0.5 + self.inset.Left(),
+		size.Y()*0.5 + self.inset.Bottom(), 0.0, 0.0}
 }
 
 func anchorBottomCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{w * 0.5, size.Y() * 0.5, 0.0, 0.0}
+	return matrix.Vec4{w * 0.5, size.Y()*0.5 + self.inset.Bottom(), 0.0, 0.0}
 }
 
 func anchorBottomRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{w - size.X()*0.5, size.Y() * 0.5, 0.0, 0.0}
+	return matrix.Vec4{w - size.X()*0.5 - self.inset.Right(),
+		size.Y()*0.5 + self.inset.Bottom(), 0.0, 0.0}
 }
 
 func layoutFloating(self *Layout) {
@@ -304,10 +314,9 @@ func (layout *Layout) setBounds() {
 	} else {
 		parent := layout.ui.Entity().Parent
 		s := parent.Transform.WorldScale()
-		p := parent
 		layout.inset = matrix.Vec4Zero()
-		for ; p != nil; p = p.Parent {
-			pUI := FirstOnEntity(p)
+		if parent != nil {
+			pUI := FirstOnEntity(parent)
 			if pUI != nil {
 				pLayout := pUI.Layout()
 				layout.inset.AddAssign(pLayout.margin)

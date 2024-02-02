@@ -241,6 +241,11 @@ func (input *Input) resetSelect() {
 func (input *Input) findNextBreak(start, dir int) int {
 	data := input.Data()
 	// TODO:  This is a mess, simplify it
+	if start < 0 {
+		return 0
+	} else if start > data.label.textLength {
+		return data.label.textLength
+	}
 	i := start
 	runes := []rune(data.label.text)
 	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
@@ -299,8 +304,8 @@ func (input *Input) InsertText(text string) {
 		lhs := data.label.text[:data.cursorOffset]
 		rhs := data.label.text[data.cursorOffset:]
 		str := lhs + text + rhs
-		input.SetText(str)
-		//data.cursorOffset += len(text)
+		input.setText(str)
+		data.cursorOffset += len(text)
 		input.makeCursorVisible()
 		input.updateCursorPosition()
 	}
@@ -445,8 +450,8 @@ func (input *Input) Text() string {
 }
 
 func (input *Input) SetText(text string) {
+	input.moveCursor(len(text))
 	input.setText(text)
-	input.moveCursor(input.Data().label.textLength)
 }
 
 func (input *Input) SetPlaceholder(text string) {
@@ -575,8 +580,8 @@ func (input *Input) deleteSelection() {
 		lhs := data.label.text[:data.selectStart]
 		rhs := data.label.text[data.selectEnd:]
 		str := lhs + rhs
-		input.setText(str)
 		input.moveCursor(sStart)
+		input.setText(str)
 		input.resetSelect()
 	}
 }
@@ -589,12 +594,12 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection()
-	} else if data.label.textLength > 0 {
+	} else if data.label.textLength > 0 && data.cursorOffset > 0 {
 		lhs := data.label.text[:data.cursorOffset-1]
 		rhs := data.label.text[data.cursorOffset:]
 		str := lhs + rhs
-		input.setText(str)
 		input.moveCursor(data.cursorOffset - 1)
+		input.setText(str)
 	}
 }
 
@@ -606,11 +611,11 @@ func (input *Input) delete(kb *hid.Keyboard) {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection()
-	} else {
+	} else if data.cursorOffset < data.label.textLength {
 		lhs := data.label.text[:data.cursorOffset]
 		rhs := data.label.text[data.cursorOffset+1:]
 		str := lhs + rhs
-		input.setText(str)
 		input.moveCursor(data.cursorOffset)
+		input.setText(str)
 	}
 }

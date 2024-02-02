@@ -37,6 +37,9 @@ type childScrollEvent struct {
 	scroll engine.EventId
 }
 
+type localData interface {
+}
+
 type Panel struct {
 	uiBase
 	scroll, offset, maxScroll     matrix.Vec2
@@ -47,7 +50,7 @@ type Panel struct {
 	borderStyle                   [4]BorderStyle
 	color                         matrix.Color
 	drawing                       rendering.Drawing
-	localData                     any
+	localData                     localData
 	innerUpdate                   func(deltaTime float64)
 	isScrolling, dragging, frozen bool
 	isButton                      bool
@@ -67,15 +70,24 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	if texture != nil {
 		ts = texture.Size()
 	}
+	panel.updateId = host.Updater.AddUpdate(panel.update)
 	panel.init(host, ts, anchor, panel)
-	panel.updateId = panel.host.Updater.AddUpdate(panel.update)
-	panel.entity.Transform.SetScale(matrix.Vec3{1.0, 1.0, 1.0})
-	panel.Clean()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
 	if texture != nil {
 		panel.ensureBGExists(texture)
 	}
 	panel.AddEvent(EventTypeRebuild, panel.onRebuild)
+	panel.entity.OnActivate.Add(func() {
+		panel.shaderData.Activate()
+		panel.updateId = host.Updater.AddUpdate(panel.update)
+		panel.SetDirty(DirtyTypeLayout)
+		panel.Clean()
+	})
+	panel.entity.OnDeactivate.Add(func() {
+		panel.shaderData.Deactivate()
+		host.Updater.RemoveUpdate(panel.updateId)
+		panel.updateId = 0
+	})
 	return panel
 }
 
@@ -225,7 +237,7 @@ func (rb rowBuilder) Height() float32 {
 func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 	for _, e := range rb.elements {
 		x, y := offsetX, offsetY
-		switch e.Layout().positioning {
+		switch e.Layout().Positioning() {
 		case PositioningAbsolute:
 			fallthrough
 		case PositioningRelative:
@@ -300,11 +312,11 @@ func (panel *Panel) onRebuild() {
 			h := nextPos.Y() - panel.layout.padding.Top() - panel.layout.padding.Bottom()
 			panel.layout.Scale(w, h)
 			panel.SetDirty(DirtyTypeReGenerated)
-			if pui := FirstOnEntity(panel.entity.Parent); pui != nil {
-				if p, ok := pui.(*Panel); ok {
-					p.FitContent()
-				}
-			}
+			//if pui := FirstOnEntity(panel.entity.Parent); pui != nil {
+			//	if p, ok := pui.(*Panel); ok {
+			//		p.FitContent()
+			//	}
+			//}
 		}
 	}
 	if panel.dirtyType != DirtyTypeReGenerated {

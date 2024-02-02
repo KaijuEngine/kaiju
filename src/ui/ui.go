@@ -69,6 +69,8 @@ type uiBase struct {
 	disconnectedScissor bool
 }
 
+func (ui uiBase) isActive() bool { return ui.updateId != 0 }
+
 func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
 	ui.entity = host.NewEntity()
@@ -80,6 +82,9 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	if ui.updateId == 0 {
 		ui.updateId = host.Updater.AddUpdate(ui.Update)
 	}
+	ui.entity.OnDestroy.Add(func() {
+		host.Updater.RemoveUpdate(ui.updateId)
+	})
 }
 
 func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
