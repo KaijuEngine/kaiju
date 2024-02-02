@@ -166,6 +166,9 @@ func (label *Label) SetText(text string) {
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = make([]colorRange, 0)
+	wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
+		label.text, label.fontSize, label.MaxWidth())
+	label.layout.Scale(wh.X(), wh.Y())
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {

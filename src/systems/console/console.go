@@ -19,7 +19,7 @@ type history struct {
 func newHistory() history { return history{data: []string{}} }
 
 func (h *history) add(cmd string) {
-	if len(h.data) > 0 && h.data[h.idx-1] == cmd {
+	if h.idx > 0 && len(h.data) > 0 && h.data[h.idx-1] == cmd {
 		return
 	}
 	h.data = h.data[:h.idx]
@@ -123,6 +123,9 @@ func (c *Console) AddCommand(key string, fn func(cmd string) string) {
 
 func (c *Console) submit(input *ui.Input) {
 	cmd := strings.TrimSpace(input.Text())
+	if cmd == "" {
+		return
+	}
 	input.SetText("")
 	c.history.add(cmd)
 	head := strings.Index(cmd, " ")

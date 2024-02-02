@@ -195,6 +195,9 @@ func (ui *uiBase) setScissor(scissor matrix.Vec4) {
 	if ui.disconnectedScissor {
 		return
 	}
+	if ui.shaderData.Scissor.Equals(scissor) {
+		return
+	}
 	ui.shaderData.Scissor = scissor
 	for i := 0; i < len(ui.entity.Children); i++ {
 		cUI := FirstOnEntity(ui.entity.Children[i])
