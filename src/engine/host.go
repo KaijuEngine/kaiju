@@ -42,8 +42,8 @@ func NewHost() (Host, error) {
 		UICamera:      cameras.NewStandardCameraOrthographic(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		Drawings:      rendering.NewDrawings(),
 	}
-	uiPos := matrix.Vec3{matrix.Float(host.Window.Width()) * 0.5, matrix.Float(host.Window.Height()) * 0.5, 250}
-	host.UICamera.SetPosition(uiPos)
+	//uiPos := matrix.Vec3{matrix.Float(host.Window.Width()) * 0.5, matrix.Float(host.Window.Height()) * 0.5, 250}
+	//host.UICamera.SetPosition(uiPos)
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)

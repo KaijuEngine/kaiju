@@ -46,7 +46,7 @@ type UI interface {
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
 	layoutChanged(dirtyType DirtyType)
-	clean()
+	cleanDirty()
 }
 
 type uiBase struct {
@@ -113,6 +113,8 @@ func (ui *uiBase) Event(evtType EventType) *engine.Event {
 	return &ui.events[evtType]
 }
 
+func (ui *uiBase) cleanDirty() { ui.dirtyType = DirtyTypeNone }
+
 func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated || dirtyType == DirtyTypeReGenerated {
 		ui.dirtyType = dirtyType
@@ -133,46 +135,49 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *uiBase) Clean() {
-	if ui.dirtyType != DirtyTypeNone {
-		if ui.entity.Parent != nil {
-			cleanParent(ui.host, ui.entity.Parent)
+func (ui *uiBase) rootUI() UI {
+	root := ui.entity
+	var rootUI UI = FirstOnEntity(root)
+	for root.Parent != nil {
+		if pui := FirstOnEntity(root.Parent); pui != nil {
+			root = root.Parent
+			rootUI = pui
+		} else {
+			break
 		}
-		ui.clean()
-		for i := 0; i < len(ui.entity.Children); i++ {
-			c := ui.entity.Children[i]
-			all := AllOnEntity(c)
-			for _, childUI := range all {
-				if childUI.dirty() != DirtyTypeNone {
-					childUI.Clean()
-				}
+	}
+	return rootUI
+}
+
+func (ui *uiBase) Clean() {
+	root := ui.rootUI()
+	tree := []UI{root}
+	var createTree func(target *engine.Entity)
+	createTree = func(target *engine.Entity) {
+		for _, child := range target.Children {
+			cui := FirstOnEntity(child)
+			if cui != nil {
+				tree = append(tree, cui)
+				createTree(child)
 			}
 		}
 	}
-}
-
-func (ui *uiBase) clean() {
-	ui.layout.update()
-	if !ui.events[EventTypeRebuild].IsEmpty() {
-		ui.events[EventTypeRebuild].Execute()
+	createTree(root.Entity())
+	stabilized := false
+	for !stabilized {
+		stabilized = true
+		for i := range tree {
+			ds := tree[i].dirty()
+			tree[i].cleanDirty()
+			tree[i].Layout().update()
+			stabilized = stabilized && ds == DirtyTypeNone
+		}
 	}
-	ui.entity.Transform.SetDirty()
-	if ui.dirtyType == DirtyTypeReGenerated {
-		ui.dirtyType = DirtyTypeGenerated
-	} else {
-		ui.dirtyType = DirtyTypeNone
-	}
-	ui.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
-}
-
-func cleanParent(host *engine.Host, entity *engine.Entity) {
-	if entity.Parent != nil {
-		cleanParent(host, entity.Parent)
-	}
-	all := AllOnEntity(entity)
-	for i := 0; i < len(all); i++ {
-		if all[i].dirty() != DirtyTypeNone {
-			all[i].clean()
+	for i := range tree {
+		if l, ok := tree[i].(*Label); ok {
+			l.render()
+		} else if p, ok := tree[i].(*Panel); ok {
+			p.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
 		}
 	}
 }
@@ -270,10 +275,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 		ui.requestEvent(EventTypeScroll)
 	}
 	if ui.dirtyType != DirtyTypeNone {
-		if ui.entity.Parent != nil {
-			cleanParent(ui.Host(), ui.entity.Parent)
-		}
-		ui.clean()
+		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }

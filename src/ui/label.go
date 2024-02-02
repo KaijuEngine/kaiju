@@ -50,9 +50,13 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		wordWrap:     true,
 	}
 	label.init(host, matrix.Vec2Zero(), anchor, label)
-	label.AddEvent(EventTypeRebuild, label.rebuild)
 	label.SetText(text)
 	label.SetDirty(DirtyTypeGenerated)
+	label.layout.AddFunction(func(layout *Layout) {
+		wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
+			label.text, label.fontSize, label.MaxWidth())
+		label.layout.ScaleHeight(wh.Y())
+	})
 	label.entity.OnActivate.Add(func() {
 		label.activateDrawings()
 		label.updateId = host.Updater.AddUpdate(label.Update)
@@ -97,48 +101,41 @@ func (label *Label) clearDrawings() {
 	label.runeDrawings = label.runeDrawings[:]
 }
 
-func (label *Label) rebuild() {
-	// TODO:  Probably need a list of layout changes in order to not rebuild
-	// on any change. The UI can have many different changes, so it doesn't
-	// help to have only 1 dirty type
-	reRender := label.dirtyType != DirtyTypeParentGenerated &&
-		label.dirtyType != DirtyTypeParentReGenerated &&
-		label.dirtyType != DirtyTypeParentLayout &&
-		label.dirtyType != DirtyTypeParentResize
-	if label.dirtyType == DirtyTypeColorChange {
-		for i := range label.runeShaderData {
-			label.runeShaderData[i].FgColor = label.color
-			label.runeShaderData[i].BgColor = label.bgColor
+func (label *Label) render() {
+	label.clearDrawings()
+	if label.textLength > 0 {
+		maxWidth := float32(999999.0)
+		if label.wordWrap {
+			maxWidth = label.layout.PixelSize().Width()
 		}
-	} else if reRender {
-		label.clearDrawings()
-		if label.textLength > 0 {
-			label.fixSize()
-			maxWidth := float32(999999.0)
-			if label.wordWrap {
-				maxWidth = label.layout.PixelSize().Width()
-			}
-			label.runeDrawings = label.Host().FontCache().RenderMeshes(
-				label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
-				maxWidth, label.color, label.bgColor, label.justify,
-				label.baseline, label.entity.Transform.WorldScale(), true,
-				false, label.rangesToFont(), label.fontFace)
-			for i := 0; i < len(label.runeDrawings); i++ {
-				label.runeDrawings[i].Transform = &label.entity.Transform
-				label.runeShaderData = append(label.runeShaderData,
-					label.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
-				label.runeDrawings[i].UseBlending = label.bgColor.A() < 1.0
-				label.runeShaderData[i].Scissor = label.shaderData.Scissor
-			}
-			for i := 0; i < len(label.colorRanges); i++ {
-				label.colorRange(label.colorRanges[i])
-			}
-			label.host.Drawings.AddDrawings(label.runeDrawings)
+		label.runeDrawings = label.Host().FontCache().RenderMeshes(
+			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
+			maxWidth, label.color, label.bgColor, label.justify,
+			label.baseline, label.entity.Transform.WorldScale(), true,
+			false, label.rangesToFont(), label.fontFace)
+		for i := 0; i < len(label.runeDrawings); i++ {
+			label.runeDrawings[i].Transform = &label.entity.Transform
+			label.runeShaderData = append(label.runeShaderData,
+				label.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
+			label.runeDrawings[i].UseBlending = label.bgColor.A() < 1.0
+			label.runeShaderData[i].Scissor = label.shaderData.Scissor
 		}
-		label.setLabelScissors()
+		for i := 0; i < len(label.colorRanges); i++ {
+			label.colorRange(label.colorRanges[i])
+		}
+		label.host.Drawings.AddDrawings(label.runeDrawings)
 	}
+	label.setLabelScissors()
 	if !label.isActive() {
 		label.deactivateDrawings()
+	}
+	label.updateColors()
+}
+
+func (label *Label) updateColors() {
+	for i := range label.runeShaderData {
+		label.runeShaderData[i].FgColor = label.color
+		label.runeShaderData[i].BgColor = label.bgColor
 	}
 }
 
@@ -195,7 +192,7 @@ func (label *Label) SetColor(newColor matrix.Color) {
 		}
 	}
 	label.color = newColor
-	label.SetDirty(DirtyTypeColorChange)
+	label.updateColors()
 }
 
 func (label *Label) SetBGColor(newColor matrix.Color) {
@@ -208,7 +205,7 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 	for i := range label.runeDrawings {
 		label.runeDrawings[i].UseBlending = newColor.A() < 1.0
 	}
-	label.SetDirty(DirtyTypeColorChange)
+	label.updateColors()
 }
 
 func (label *Label) SetJustify(justify rendering.FontJustify) {
@@ -260,7 +257,7 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 	cRange.hue = newColor
 	cRange.bgHue = bgColor
 	label.colorRange(*cRange)
-	label.SetDirty(DirtyTypeColorChange)
+	label.updateColors()
 }
 
 func (label *Label) BoldRange(start, end int) {
@@ -269,7 +266,7 @@ func (label *Label) BoldRange(start, end int) {
 	cRange.bgHue = label.bgColor
 	cRange.isBold = true
 	label.colorRange(*cRange)
-	label.SetDirty(DirtyTypeColorChange)
+	label.updateColors()
 }
 
 func (label *Label) SetWrap(wrapText bool) {
