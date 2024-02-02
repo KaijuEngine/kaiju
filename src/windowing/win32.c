@@ -196,7 +196,12 @@ void process_message(SharedMem* sm, MSG *msg) {
 			}
 			break;
 		case WM_MOUSEWHEEL:
-			// TODO:  Add wheel code
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_WHEEL_VERTICAL);
+			sm->evt->mouse.wheelDelta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
+			break;
+		case WM_MOUSEHWHEEL:
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_WHEEL_HORIZONTAL);
+			sm->evt->mouse.wheelDelta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
 			break;
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:

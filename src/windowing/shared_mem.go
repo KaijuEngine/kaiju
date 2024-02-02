@@ -35,9 +35,10 @@ type baseEvent struct {
 
 type mouseEvent struct {
 	baseEvent
-	mouseButtonId int32
-	mouseX        int32
-	mouseY        int32
+	buttonId int32
+	x        int32
+	y        int32
+	delta    int32
 }
 
 type windowEvent struct {

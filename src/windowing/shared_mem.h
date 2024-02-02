@@ -15,6 +15,8 @@
 
 #define EVENT_TYPE_CONTROLLER		-2
 
+#define MOUSE_WHEEL_HORIZONTAL		-2
+#define MOUSE_WHEEL_VERTICAL		-1
 #define MOUSE_BUTTON_LEFT			0
 #define MOUSE_BUTTON_MIDDLE			1
 #define MOUSE_BUTTON_RIGHT			2
@@ -33,6 +35,7 @@ typedef struct {
 	int32_t mouseButtonId;
 	int32_t mouseX;
 	int32_t mouseY;
+	int32_t wheelDelta;
 } MouseEvent;
 
 typedef struct {
