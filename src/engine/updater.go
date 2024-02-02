@@ -72,8 +72,8 @@ func (u *Updater) RemoveUpdate(id int) {
 }
 
 func (u *Updater) inlineUpdate(deltaTime float64) {
-	for _, eu := range u.updates {
-		eu.update(deltaTime)
+	for i := range u.updates {
+		u.updates[i].update(deltaTime)
 	}
 }
 

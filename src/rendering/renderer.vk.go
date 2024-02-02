@@ -174,7 +174,7 @@ func (vr *Vulkan) formatIsTileable(format vk.Format, tiling vk.ImageTiling) bool
 	}
 }
 
-func (vr Vulkan) FindMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
+func (vr *Vulkan) FindMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
 	var memProperties vk.PhysicalDeviceMemoryProperties
 	vk.GetPhysicalDeviceMemoryProperties(vr.physicalDevice, &memProperties)
 	memProperties.Deref()
@@ -192,7 +192,7 @@ func (vr Vulkan) FindMemoryType(typeFilter uint32, properties vk.MemoryPropertyF
 	return found
 }
 
-func (vr Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
+func (vr *Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
 	// Calculate required alignment based on minimum device offset alignment
 	minUboAlignment := vk.DeviceSize(vr.physicalDeviceProperties.Limits.MinUniformBufferOffsetAlignment)
 	alignedSize := size
@@ -206,7 +206,7 @@ func (vr Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
 /* Command buffer                                                             */
 /******************************************************************************/
 
-func (vr Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
+func (vr *Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
 	allocInfo := vk.CommandBufferAllocateInfo{}
 	allocInfo.SType = vk.StructureTypeCommandBufferAllocateInfo
 	allocInfo.Level = vk.CommandBufferLevelPrimary
@@ -221,7 +221,7 @@ func (vr Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
 	return commandBuffer[0]
 }
 
-func (vr Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
+func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
 	vk.EndCommandBuffer(commandBuffer)
 	submitInfo := vk.SubmitInfo{}
 	submitInfo.SType = vk.StructureTypeSubmitInfo
@@ -292,7 +292,7 @@ func vertexGetAttributeDescription(shader *Shader) []vk.VertexInputAttributeDesc
 	}
 }
 
-func (vr Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {
+func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {
 	bufferSize := vk.DeviceSize(int(unsafe.Sizeof(verts[0])) * len(verts))
 	if bufferSize <= 0 {
 		panic("Buffer size is 0")
@@ -319,7 +319,7 @@ func (vr Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ver
 	}
 }
 
-func (vr Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, indexBufferMemory *vk.DeviceMemory) bool {
+func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, indexBufferMemory *vk.DeviceMemory) bool {
 	bufferSize := vk.DeviceSize(int(unsafe.Sizeof(indices[0])) * len(indices))
 	if bufferSize <= 0 {
 		panic("Buffer size is 0")
@@ -378,7 +378,7 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	}
 }
 
-func (vr Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout) ([maxFramesInFlight]vk.DescriptorSet, error) {
+func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout) ([maxFramesInFlight]vk.DescriptorSet, error) {
 	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{layout, layout}
 	allocInfo := vk.DescriptorSetAllocateInfo{}
 	allocInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
@@ -469,7 +469,7 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFla
 	return vk.PipelineStageFlagBits(pipes)
 }
 
-func (vr Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd vk.CommandBuffer) bool {
+func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd vk.CommandBuffer) bool {
 	// Note that in larger applications, we could batch together pipeline
 	// barriers for better performance!
 	if aspectMask == 0 {
@@ -511,7 +511,7 @@ func (vr Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, 
 	return true
 }
 
-func (vr Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, height uint32) {
+func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, height uint32) {
 	commandBuffer := vr.beginSingleTimeCommands()
 	region := vk.BufferImageCopy{}
 	region.BufferOffset = 0
@@ -527,7 +527,7 @@ func (vr Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, heig
 	vr.endSingleTimeCommands(commandBuffer)
 }
 
-func (vr Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, width, height int) {
+func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, width, height int) {
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
 	vr.CreateBuffer(vk.DeviceSize(len(buffer)), vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory)
@@ -646,7 +646,7 @@ func chooseSwapExtent(window RenderingContainer, capabilities *vk.SurfaceCapabil
 	}
 }
 
-func (vr Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSupportDetails {
+func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSupportDetails {
 	details := vkSwapChainSupportDetails{}
 
 	vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, nil)
@@ -817,7 +817,7 @@ func (vr *Vulkan) createLogicalDevice() bool {
 	}
 }
 
-func (vr Vulkan) isPhysicalDeviceSuitable(device vk.PhysicalDevice) bool {
+func (vr *Vulkan) isPhysicalDeviceSuitable(device vk.PhysicalDevice) bool {
 	var supportedFeatures vk.PhysicalDeviceFeatures
 	vk.GetPhysicalDeviceFeatures(device, &supportedFeatures)
 	supportedFeatures.Deref()
@@ -947,7 +947,7 @@ func checkValidationLayerSupport(validationLayers []string) bool {
 /* Image views                                                                */
 /******************************************************************************/
 
-func (vr Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidth, texHeight, mipLevels uint32, filter vk.Filter) bool {
+func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidth, texHeight, mipLevels uint32, filter vk.Filter) bool {
 	var fp vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, imageFormat, &fp)
 	fp.Deref()
@@ -1052,7 +1052,7 @@ func (vr *Vulkan) createImageViews() bool {
 	return success
 }
 
-func (vr Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vk.Filter) bool {
+func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vk.Filter) bool {
 	properties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &properties)
 	properties.Deref()
@@ -1768,7 +1768,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 	return success
 }
 
-func (vr Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
+func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info := vk.ShaderModuleCreateInfo{}
 	info.SType = vk.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))
@@ -1912,7 +1912,7 @@ func (vr *Vulkan) createRenderPass() bool {
 	}
 }
 
-func (vr Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo,
+func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo,
 	shaderStageCount int, descriptorSetLayout vk.DescriptorSetLayout,
 	pipelineLayout *vk.PipelineLayout, graphicsPipeline *vk.Pipeline,
 	renderPass vk.RenderPass, isTransparentPipeline bool) bool {
@@ -2250,7 +2250,7 @@ func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.D
 /* Images                                                                     */
 /******************************************************************************/
 
-func (vr Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
+func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
 	imageInfo := vk.ImageCreateInfo{}
 	imageInfo.SType = vk.StructureTypeImageCreateInfo
 	imageInfo.ImageType = vk.ImageType2d
@@ -2351,8 +2351,8 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 }
 
 func (vr *Vulkan) prepEntityBuffers(drawings []ShaderDraw) {
-	for _, d := range drawings {
-		vr.prepShader(d.shader, d.instanceGroups)
+	for i := range drawings {
+		vr.prepShader(drawings[i].shader, drawings[i].instanceGroups)
 	}
 }
 
@@ -2400,7 +2400,8 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 	}
 	vk.CmdBindPipeline(commandBuffer, vk.PipelineBindPointGraphics,
 		shader.RenderId.graphicsPipeline)
-	for _, group := range groups {
+	for i := range groups {
+		group := &groups[i]
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
@@ -2425,10 +2426,11 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 	}
 }
 
-func (vr Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader, groups []DrawInstanceGroup) {
+func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader, groups []*DrawInstanceGroup) {
 	lastShader := (*Shader)(nil)
 	currentShader := (*Shader)(nil)
-	for _, group := range groups {
+	for i := range groups {
+		group := groups[i]
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
@@ -2487,8 +2489,8 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear[:])
-	for _, d := range drawings {
-		vr.renderEach(cmd1, d.shader, d.instanceGroups)
+	for i := range drawings {
+		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
 	endRender(cmd1)
 
@@ -2500,8 +2502,8 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
 	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear[:])
-	for _, d := range drawings {
-		vr.renderEachAlpha(cmd2, d.shader.SubShader, d.TransparentGroups())
+	for i := range drawings {
+		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
 	}
 	offsets := vk.DeviceSize(0)
 	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
@@ -2560,7 +2562,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	vk.EndCommandBuffer(cmd3)
 }
 
-func (vr Vulkan) WaitRender() {
+func (vr *Vulkan) WaitRender() {
 	vk.WaitForFences(vr.device, maxFramesInFlight, vr.renderFences[:], vk.True, math.MaxUint64)
 }
 
@@ -2568,7 +2570,7 @@ func (vr Vulkan) WaitRender() {
 /* Friendly texture API                                                       */
 /******************************************************************************/
 
-func (vr Vulkan) CreateTexture(texture *Texture, data *TextureData) {
+func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	format := vk.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
@@ -2711,11 +2713,11 @@ func (vr Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	vr.createTextureSampler(&texture.RenderId.Sampler, uint32(mip), filter)
 }
 
-func (vr Vulkan) TextureFromId(texture *Texture, other TextureId) {
+func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId) {
 	texture.RenderId = other
 }
 
-func (vr Vulkan) freeTexture(rendererId *TextureId) {
+func (vr *Vulkan) freeTexture(rendererId *TextureId) {
 	vk.DestroySampler(vr.device, rendererId.Sampler, nil)
 	vk.DestroyImageView(vr.device, rendererId.View, nil)
 	vk.DestroyImage(vr.device, rendererId.Image, nil)
@@ -2727,11 +2729,11 @@ func vulkanIsTextureValid(texture Texture) bool {
 	return texture.RenderId.Image != vk.NullImage
 }
 
-func (vr Vulkan) rebuildTexture(texture *Texture, data *TextureData) {
+func (vr *Vulkan) rebuildTexture(texture *Texture, data *TextureData) {
 	vr.CreateTexture(texture, data)
 }
 
-func (vr Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8) {
+func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8) {
 	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	id := &texture.RenderId
 	vr.transitionImageLayout(id, vk.ImageLayoutTransferDstOptimal,
@@ -2888,7 +2890,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 /* Friendly mesh API                                                          */
 /******************************************************************************/
 
-func (vr Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
+func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id := &mesh.MeshId
 	vNum := uint32(len(verts))
 	iNum := uint32(len(indices))
@@ -2898,7 +2900,7 @@ func (vr Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
 }
 
-func (vr Vulkan) FreeMesh(mesh *Mesh) {
+func (vr *Vulkan) FreeMesh(mesh *Mesh) {
 	id := &mesh.MeshId
 	vk.FreeMemory(vr.device, id.indexBufferMemory, nil)
 	vk.DestroyBuffer(vr.device, id.indexBuffer, nil)
@@ -2907,7 +2909,7 @@ func (vr Vulkan) FreeMesh(mesh *Mesh) {
 	mesh.MeshId = MeshId{}
 }
 
-func (vr Vulkan) MeshIsReady(mesh Mesh) bool {
+func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
 	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
 }
 

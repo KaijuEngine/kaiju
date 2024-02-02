@@ -21,15 +21,15 @@ func NewTransform() Transform {
 	}
 }
 
-func (t Transform) Position() Vec3 {
+func (t *Transform) Position() Vec3 {
 	return t.position
 }
 
-func (t Transform) Rotation() Vec3 {
+func (t *Transform) Rotation() Vec3 {
 	return t.rotation
 }
 
-func (t Transform) Scale() Vec3 {
+func (t *Transform) Scale() Vec3 {
 	return t.scale
 }
 
@@ -61,15 +61,15 @@ func (t *Transform) SetParent(parent *Transform) {
 	t.SetScale(scale)
 }
 
-func (t Transform) Right() Vec3 {
+func (t *Transform) Right() Vec3 {
 	return t.localMatrix.Right().Normal()
 }
 
-func (t Transform) Up() Vec3 {
+func (t *Transform) Up() Vec3 {
 	return t.localMatrix.Up().Normal()
 }
 
-func (t Transform) Forward() Vec3 {
+func (t *Transform) Forward() Vec3 {
 	return t.localMatrix.Forward().Normal()
 }
 
@@ -84,7 +84,7 @@ func (t *Transform) ResetDirty() {
 	}
 }
 
-func (t Transform) IsDirty() bool {
+func (t *Transform) IsDirty() bool {
 	return t.isDirty
 }
 
@@ -174,9 +174,9 @@ func (t *Transform) Copy(other Transform) {
 	t.isDirty = other.isDirty
 }
 
-func (t Transform) WorldTransform() (Vec3, Vec3, Vec3) {
+func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3) {
 	pos, rot, scale := Vec3{}, Vec3{}, Vec3One()
-	p := &t
+	p := t
 	for p != nil {
 		pp, rr, ss := p.position, p.rotation, p.scale
 		pos.AddAssign(pp)
@@ -198,9 +198,9 @@ func (t *Transform) WorldPosition() Vec3 {
 	return pos
 }
 
-func (t Transform) WorldRotation() Vec3 {
+func (t *Transform) WorldRotation() Vec3 {
 	rot := Vec3{}
-	p := &t
+	p := t
 	for p != nil {
 		r := p.rotation
 		rot.AddAssign(r)
@@ -209,9 +209,9 @@ func (t Transform) WorldRotation() Vec3 {
 	return rot
 }
 
-func (t Transform) WorldScale() Vec3 {
+func (t *Transform) WorldScale() Vec3 {
 	scale := Vec3One()
-	p := &t
+	p := t
 	for p != nil {
 		s := p.scale
 		scale.MultiplyAssign(s)

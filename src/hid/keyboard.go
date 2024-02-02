@@ -194,8 +194,8 @@ func (k *Keyboard) EndUpdate() {
 }
 
 func (k *Keyboard) doKeyCallbacks(key int, state KeyState) {
-	for _, cb := range k.keyCallbacks {
-		cb.fn(key, state)
+	for i := range k.keyCallbacks {
+		k.keyCallbacks[i].fn(key, state)
 	}
 }
 

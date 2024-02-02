@@ -26,7 +26,8 @@ func applyToElement(inRules []rules.Rule, elm markup.DocElement, host *engine.Ho
 	}
 	proc := func(invokeType rules.RuleInvoke) []error {
 		problems := make([]error, 0)
-		for _, rule := range inRules {
+		for i := range inRules {
+			rule := &inRules[i]
 			if p, ok := properties.PropertyMap[rule.Property]; ok {
 				if rule.Invocation == invokeType {
 					if err := p.Process(panel, elm, rule.Values, host); err != nil {
@@ -53,11 +54,11 @@ func applyToElement(inRules []rules.Rule, elm markup.DocElement, host *engine.Ho
 }
 
 func applyMappings(doc *markup.Document, cssMap map[ui.UI][]rules.Rule, host *engine.Host) {
-	for _, elm := range doc.Elements {
+	for i := range doc.Elements {
 		// TODO:  Make sure this is applying in order from parent to child
 		// Since this array is intrinsically ordered, it should be fine
-		if rules, ok := cssMap[elm.UI]; ok {
-			applyToElement(rules, elm, host)
+		if rules, ok := cssMap[doc.Elements[i].UI]; ok {
+			applyToElement(rules, doc.Elements[i], host)
 		}
 	}
 }

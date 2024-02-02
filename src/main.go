@@ -5,13 +5,16 @@ import (
 	"kaiju/assets"
 	"kaiju/bootstrap"
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
+	"os"
 	"runtime"
+	"runtime/pprof"
 	"time"
 	"unsafe"
 )
@@ -154,6 +157,8 @@ func testHTML(host *engine.Host) {
 }
 
 func main() {
+	pprofFile := klib.MustReturn(os.Create("cpu.prof"))
+	defer pprofFile.Close()
 	lastTime := time.Now()
 	host, err := engine.NewHost()
 	if err != nil {
@@ -175,8 +180,23 @@ func main() {
 	console.For(&host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
+	console.For(&host).AddCommand("pprof", func(arg string) string {
+		if arg == "start" {
+			pprof.StartCPUProfile(pprofFile)
+		} else if arg == "stop" {
+			pprof.StopCPUProfile()
+			pprofFile.Close()
+		} else if arg == "heap" {
+			hp := klib.MustReturn(os.Create("heap.prof"))
+			pprof.WriteHeapProfile(hp)
+			hp.Close()
+		}
+		return ""
+	})
 	for !host.Closing {
-		deltaTime := time.Since(lastTime).Seconds()
+		since := time.Since(lastTime)
+		deltaTime := since.Seconds()
+		println(since.Milliseconds())
 		lastTime = time.Now()
 		host.Update(deltaTime)
 		host.Render()

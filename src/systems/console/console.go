@@ -99,16 +99,16 @@ func (c *Console) toggle() {
 }
 
 func (c *Console) show() {
-	for _, e := range c.doc.Elements {
-		e.UI.Entity().Activate()
+	for i := range c.doc.Elements {
+		c.doc.Elements[i].UI.Entity().Activate()
 	}
 	c.isActive = true
 }
 
 func (c *Console) hide() {
 	c.input.SetText(strings.TrimSuffix(c.input.Text(), "`"))
-	for _, e := range c.doc.Elements {
-		e.UI.Entity().Deactivate()
+	for i := range c.doc.Elements {
+		c.doc.Elements[i].UI.Entity().Deactivate()
 	}
 	c.isActive = false
 }

@@ -250,9 +250,9 @@ func (panel *Panel) onRebuild() {
 	}
 	xyOffset := matrix.Vec2{panel.layout.padding.X(), panel.layout.padding.Y()}
 	nextPos := offsetStart.Add(xyOffset)
-	for _, row := range rows {
-		row.setElements(panel.layout.padding.X(), nextPos[matrix.Vy])
-		nextPos[matrix.Vy] += row.Height()
+	for i := range rows {
+		rows[i].setElements(panel.layout.padding.X(), nextPos[matrix.Vy])
+		nextPos[matrix.Vy] += rows[i].Height()
 	}
 	nextPos[matrix.Vy] += panel.layout.padding.W()
 	if panel.fitContent && len(rows) > 0 {

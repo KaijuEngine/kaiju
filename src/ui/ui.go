@@ -69,7 +69,7 @@ type uiBase struct {
 	disconnectedScissor bool
 }
 
-func (ui uiBase) isActive() bool { return ui.updateId != 0 }
+func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
 
 func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
@@ -320,7 +320,7 @@ func (ui *uiBase) DisconnectParentScissor() {
 	ui.disconnectedScissor = true
 }
 
-func (ui uiBase) layoutChanged(dirtyType DirtyType) {
+func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
 	if ui.Entity().Parent != nil {
 		if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {

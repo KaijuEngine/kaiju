@@ -99,6 +99,6 @@ func (host *Host) Render() {
 	}
 }
 
-func (host Host) Runtime() float64 {
+func (host *Host) Runtime() float64 {
 	return host.frameTime
 }
