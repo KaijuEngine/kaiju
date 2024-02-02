@@ -55,6 +55,10 @@ func (e evtMem) toEventType() eventType {
 	}
 }
 
+func scaleScrollDelta(delta float32) float32 {
+	return delta
+}
+
 func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))

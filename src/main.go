@@ -171,6 +171,7 @@ func main() {
 	//testLabel(&host)
 	//testButton(&host)
 	//testHTML(&host)
+	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	console.For(&host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})

@@ -148,6 +148,13 @@ func Vec4Approx(a, b Vec4) bool {
 		Abs(a.W()-b.W()) < math.SmallestNonzeroFloat32
 }
 
+func Vec4ApproxTo(a, b Vec4, delta Float) bool {
+	return Abs(a.X()-b.X()) < delta &&
+		Abs(a.Y()-b.Y()) < delta &&
+		Abs(a.Z()-b.Z()) < delta &&
+		Abs(a.W()-b.W()) < delta
+}
+
 func Vec4Min(a, b Vec4) Vec4 {
 	return Vec4{
 		Min(a[Vx], b[Vx]),

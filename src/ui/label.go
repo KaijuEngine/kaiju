@@ -112,6 +112,7 @@ func (label *Label) rebuild() {
 	} else if reRender {
 		label.clearDrawings()
 		if label.textLength > 0 {
+			label.fixSize()
 			maxWidth := float32(999999.0)
 			if label.wordWrap {
 				maxWidth = label.layout.PixelSize().Width()
@@ -133,6 +134,7 @@ func (label *Label) rebuild() {
 			}
 			label.host.Drawings.AddDrawings(label.runeDrawings)
 		}
+		label.setLabelScissors()
 	}
 	if !label.isActive() {
 		label.deactivateDrawings()
@@ -166,6 +168,23 @@ func (label *Label) SetText(text string) {
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = make([]colorRange, 0)
+	label.fixSize()
+}
+
+func (label *Label) fixSize() {
+	wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
+		label.text, label.fontSize, label.MaxWidth())
+	if label.layout.Scale(wh.X(), wh.Y()) && !label.entity.IsRoot() {
+		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
+		label.SetDirty(DirtyTypeReGenerated)
+		label.SetScissorToParent()
+	}
+}
+
+func (label *Label) setLabelScissors() {
+	for i := 0; i < len(label.runeDrawings); i++ {
+		label.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = label.shaderData.Scissor
+	}
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {
@@ -208,8 +227,10 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 func (label Label) MaxWidth() float32 {
 	if label.overrideMaxWidth > 0.0 {
 		return label.overrideMaxWidth
+	} else if label.entity.IsRoot() {
+		return 100000.0
 	} else {
-		return label.entity.Transform.WorldScale().X()
+		return label.entity.Parent.Transform.WorldScale().X()
 	}
 }
 

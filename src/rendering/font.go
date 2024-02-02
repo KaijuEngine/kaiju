@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"kaiju/assets"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"strings"
 	"unicode"
@@ -518,29 +519,15 @@ func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, m
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
-	var innerMaxWidth, wrapX, x, y float32 = 0.0, 0.0, 0.0, 0.0
-	for _, r := range text {
-		if r == '\n' {
-			y += maxHeight
-			x = 0
-		} else {
-			ch := findBinChar(fontFace, r)
-			xPlus := ch.advance * scale
-			if x+xPlus > maxWidth {
-				innerMaxWidth = matrix.Max(innerMaxWidth, x)
-				x = x + xPlus - wrapX
-				y += maxHeight
-			} else {
-				x += xPlus
-			}
-			if r == ' ' {
-				wrapX = x
-			}
-		}
+	var x, y float32 = 0.0, 0.0
+	clip := text
+	for len(clip) > 0 {
+		count := klib.Clamp(cache.charCountInWidth(fontFace, clip, maxWidth, scale), 0, len(clip))
+		x = max(x, cache.MeasureString(face, clip[:count], scale))
+		y += maxHeight
+		clip = clip[count:]
 	}
-	innerMaxWidth = matrix.Max(innerMaxWidth, x)
-	innerMaxWidth = matrix.Min(innerMaxWidth, maxWidth)
-	return matrix.Vec2{innerMaxWidth, y + maxHeight}
+	return matrix.Vec2{x, y}
 }
 
 func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {

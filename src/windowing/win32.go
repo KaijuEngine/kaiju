@@ -43,11 +43,19 @@ func (e evtMem) toEventType() eventType {
 		return evtX1MouseDown
 	case 524:
 		return evtX1MouseUp
+	case 0x020A:
+		return evtMouseWheelVertical
+	case 0x020E:
+		return evtMouseWheelHorizontal
 	case 0xFFFFFFFF - 1:
 		return evtControllerStates
 	default:
 		return evtUnknown
 	}
+}
+
+func scaleScrollDelta(delta float32) float32 {
+	return delta / 120.0
 }
 
 func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {

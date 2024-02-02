@@ -118,7 +118,7 @@ func (w *Window) processMouseEvent(evtType eventType) {
 	switch evtType {
 	case evtMouseMove:
 		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetPosition(float32(me.mouseX), float32(me.mouseY), float32(w.width), float32(w.height))
+		w.Mouse.SetPosition(float32(me.x), float32(me.y), float32(w.width), float32(w.height))
 	case evtLeftMouseDown:
 		w.Mouse.SetDown(hid.MouseButtonLeft)
 	case evtLeftMouseUp:
@@ -133,14 +133,14 @@ func (w *Window) processMouseEvent(evtType eventType) {
 		w.Mouse.SetUp(hid.MouseButtonRight)
 	case evtX1MouseDown:
 		me := w.evtSharedMem.toMouseEvent()
-		if me.mouseButtonId == 4 {
+		if me.buttonId == 4 {
 			w.Mouse.SetDown(hid.MouseButtonX2)
 		} else {
 			w.Mouse.SetDown(hid.MouseButtonX1)
 		}
 	case evtX1MouseUp:
 		me := w.evtSharedMem.toMouseEvent()
-		if me.mouseButtonId == 4 {
+		if me.buttonId == 4 {
 			w.Mouse.SetUp(hid.MouseButtonX2)
 		} else {
 			w.Mouse.SetUp(hid.MouseButtonX1)
@@ -150,11 +150,15 @@ func (w *Window) processMouseEvent(evtType eventType) {
 	case evtX2MouseUp:
 		w.Mouse.SetUp(hid.MouseButtonX2)
 	case evtMouseWheelVertical:
+		s := w.Mouse.Scroll()
 		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetScroll(0.0, float32(me.mouseY))
+		delta := scaleScrollDelta(float32(me.delta))
+		w.Mouse.SetScroll(s.X(), s.Y()+delta)
 	case evtMouseWheelHorizontal:
+		s := w.Mouse.Scroll()
 		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetScroll(float32(me.mouseX), 0.0)
+		delta := scaleScrollDelta(float32(me.delta))
+		w.Mouse.SetScroll(s.X()+delta, s.Y())
 	}
 }
 

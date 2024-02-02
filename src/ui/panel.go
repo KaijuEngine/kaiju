@@ -5,7 +5,6 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"math"
 )
 
 type PanelScrollDirection = int32
@@ -46,7 +45,6 @@ type Panel struct {
 	scrollSpeed                   float32
 	scrollDirection               PanelScrollDirection
 	scrollEvent                   engine.EventId
-	childScrollEvents             map[UI]childScrollEvent
 	borderStyle                   [4]BorderStyle
 	color                         matrix.Color
 	drawing                       rendering.Drawing
@@ -59,12 +57,11 @@ type Panel struct {
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
-		scrollEvent:       -1,
-		scrollSpeed:       30.0,
-		childScrollEvents: make(map[UI]childScrollEvent),
-		scrollDirection:   PanelScrollDirectionVertical,
-		color:             matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:        true,
+		scrollEvent:     -1,
+		scrollSpeed:     30.0,
+		scrollDirection: PanelScrollDirectionVertical,
+		color:           matrix.Color{1.0, 1.0, 1.0, 1.0},
+		fitContent:      true,
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
@@ -112,19 +109,19 @@ func (panel *Panel) onScroll() {
 	mouse := &panel.host.Window.Mouse
 	delta := mouse.Scroll()
 	if !mouse.Scrolled() {
-		pos := panel.host.Window.Cursor.ScreenPosition()
+		pos := panel.cursorPos(&panel.host.Window.Cursor)
 		delta = pos.Subtract(panel.downPos)
-		delta[matrix.Vx] *= -1.0
+		delta[matrix.Vy] *= -1.0
 	} else {
 		panel.offset = panel.scroll
-		delta.ScaleAssign(-1.0 * panel.scrollSpeed)
+		delta.ScaleAssign(1.0 * panel.scrollSpeed)
 	}
 	if (panel.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
 		x := matrix.Clamp(delta.X()+panel.offset.X(), 0.0, panel.maxScroll.X())
 		panel.scroll.SetX(x)
 	}
 	if (panel.scrollDirection & PanelScrollDirectionVertical) != 0 {
-		y := matrix.Clamp(delta.Y()+panel.offset.Y(), 0.0, panel.maxScroll.Y())
+		y := matrix.Clamp(delta.Y()+panel.offset.Y(), -panel.maxScroll.Y(), 0.0)
 		panel.scroll.SetY(y)
 	}
 	panel.SetDirty(DirtyTypeLayout)
@@ -134,58 +131,13 @@ func (panel *Panel) onScroll() {
 func panelOnDown(ui UI) {
 	var target UI = ui
 	ok := false
+	var panel *Panel
 	for !ok {
 		target = FirstOnEntity(target.Entity().Parent)
-		_, ok = target.(*Panel)
+		panel, ok = target.(*Panel)
 	}
-	panel := target.(*Panel)
 	panel.offset = panel.scroll
 	panel.dragging = true
-}
-
-func (panel *Panel) shouldAddScrollEvents() bool {
-	switch panel.scrollDirection {
-	case PanelScrollDirectionNone:
-		return false
-	case PanelScrollDirectionHorizontal:
-		return panel.maxScroll.X() > math.SmallestNonzeroFloat32
-	case PanelScrollDirectionVertical:
-		return panel.maxScroll.Y() > math.SmallestNonzeroFloat32
-	case PanelScrollDirectionBoth:
-		return panel.maxScroll.X() > math.SmallestNonzeroFloat32 || panel.maxScroll.Y() > math.SmallestNonzeroFloat32
-	default:
-		panic("Invalid scroll direction")
-	}
-}
-
-func (panel *Panel) disableScrollEvents() {
-	panel.RemoveEvent(EventTypeScroll, panel.scrollEvent)
-	for i := 0; i < len(panel.entity.Children); i++ {
-		c := FirstOnEntity(panel.entity.Children[i])
-		// TODO:  Nested scroll panels drag...
-		if _, isPanel := c.(*Panel); !isPanel {
-			if cse, ok := panel.childScrollEvents[c]; ok {
-				c.RemoveEvent(EventTypeDown, cse.down)
-				c.RemoveEvent(EventTypeScroll, cse.scroll)
-			}
-		}
-	}
-}
-
-func (panel *Panel) tryEnableScrollEvents() {
-	if panel.shouldAddScrollEvents() {
-		panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
-		for i := 0; i < len(panel.entity.Children); i++ {
-			c := FirstOnEntity(panel.entity.Children[i])
-			// TODO:  Nested scroll panels drag...
-			if _, isPanel := c.(*Panel); !isPanel {
-				cse := childScrollEvent{}
-				cse.down = c.AddEvent(EventTypeDown, func() { panelOnDown(c) })
-				cse.scroll = c.AddEvent(EventTypeScroll, func() { panelOnDown(c) })
-				panel.childScrollEvents[c] = cse
-			}
-		}
-	}
 }
 
 func (panel *Panel) update(deltaTime float64) {
@@ -260,7 +212,6 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 }
 
 func (panel *Panel) onRebuild() {
-	panel.disableScrollEvents()
 	if len(panel.entity.Children) == 0 {
 		return
 	}
@@ -319,19 +270,18 @@ func (panel *Panel) onRebuild() {
 			//}
 		}
 	}
-	if panel.dirtyType != DirtyTypeReGenerated {
-		length := nextPos.Subtract(offsetStart)
-		last := panel.maxScroll
-		ws := panel.entity.Transform.WorldScale()
-		panel.maxScroll = matrix.Vec2{
-			matrix.Max(0.0, length.X()-ws.X()),
-			matrix.Max(0.0, length.Y()-ws.Y())}
-		if !matrix.Vec2Approx(last, panel.maxScroll) {
-			panel.SetScrollX(panel.scroll.X())
-			panel.SetScrollY(panel.scroll.Y())
-		}
-		panel.tryEnableScrollEvents()
+	//if panel.dirtyType != DirtyTypeReGenerated {
+	length := nextPos.Subtract(offsetStart)
+	last := panel.maxScroll
+	ws := panel.entity.Transform.WorldScale()
+	panel.maxScroll = matrix.Vec2{
+		matrix.Max(0.0, length.X()-ws.X()),
+		matrix.Max(0.0, length.Y()-ws.Y())}
+	if !matrix.Vec2Approx(last, panel.maxScroll) {
+		panel.SetScrollX(panel.scroll.X())
+		panel.SetScrollY(panel.scroll.Y())
 	}
+	//}
 }
 
 func (panel *Panel) adjustKidsOnRebuild(target UI) {
@@ -365,7 +315,6 @@ func (panel *Panel) AddChild(target UI) {
 		target.SetGroup(panel.group)
 	}
 	panel.SetDirty(DirtyTypeGenerated)
-	panel.tryEnableScrollEvents()
 }
 
 func (panel *Panel) InsertChild(target UI, idx int) {
@@ -383,10 +332,6 @@ func (panel *Panel) RemoveChild(target UI) {
 	target.Layout().update()
 	panel.layout.update()
 	panel.SetDirty(DirtyTypeGenerated)
-	cse := panel.childScrollEvents[target]
-	target.RemoveEvent(EventTypeDown, cse.down)
-	target.RemoveEvent(EventTypeScroll, cse.scroll)
-	delete(panel.childScrollEvents, target)
 }
 
 func (panel *Panel) Child(index int) UI {
