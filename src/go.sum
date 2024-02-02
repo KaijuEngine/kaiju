@@ -2,6 +2,8 @@ github.com/KaijuEngine/go-vulkan v1.0.0 h1:7w3aUCkcHuy6W6RCV9uaJ+0U66cLGdJjqJxEy
 github.com/KaijuEngine/go-vulkan v1.0.0/go.mod h1:yAksUOuzGMiWjodB8M8/9d9d6GtgMnhOVaGUB5di5sM=
 github.com/KaijuEngine/go-vulkan v1.0.1 h1:Ws46ih1WmYyeRVMqgEOsD5w7CGut5hmyf4Y39crQ6kk=
 github.com/KaijuEngine/go-vulkan v1.0.1/go.mod h1:yAksUOuzGMiWjodB8M8/9d9d6GtgMnhOVaGUB5di5sM=
+github.com/KaijuEngine/go-vulkan v1.0.4 h1:CBpPVwbSAkjTnhUEwQYk0oa0JxLphQjwWml0ELwVWVQ=
+github.com/KaijuEngine/go-vulkan v1.0.4/go.mod h1:yAksUOuzGMiWjodB8M8/9d9d6GtgMnhOVaGUB5di5sM=
 github.com/KaijuEngine/yaegi v1.0.1 h1:SJy+rcD/WpEt5DbTsj816S9Ibo7na1B0SsV98RKeAw4=
 github.com/KaijuEngine/yaegi v1.0.1/go.mod h1:KV+8UawtAJWqFdS1rzJMRoye3FvKtz+ArARQLIxUe0Y=
 github.com/tdewolff/parse/v2 v2.7.11 h1:v+W45LnzmjndVlfqPCT5gGjAAZKd1GJGOPJveTIkBY8=
