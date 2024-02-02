@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"kaiju/assets"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"strings"
 	"unicode"
@@ -521,7 +522,7 @@ func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, m
 	var x, y float32 = 0.0, 0.0
 	clip := text
 	for len(clip) > 0 {
-		count := cache.charCountInWidth(fontFace, clip, maxWidth, scale)
+		count := klib.Clamp(cache.charCountInWidth(fontFace, clip, maxWidth, scale), 0, len(clip))
 		x = max(x, cache.MeasureString(face, clip[:count], scale))
 		y += maxHeight
 		clip = clip[count:]
