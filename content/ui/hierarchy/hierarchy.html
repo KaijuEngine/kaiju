@@ -32,8 +32,8 @@
 	<body>
 		<div id="console">
 			<div id="consoleContent">
-				{{range .EntityNames}}
-					<div class="entry">Entity: {{.}}</div>
+				{{range .}}
+					<div class="entry">Entity: {{.Entity.Name}}</div>
 				{{end}}
 			</div>
 		</div>

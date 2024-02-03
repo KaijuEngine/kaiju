@@ -268,6 +268,12 @@ func addConsole(host *engine.Host) {
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
+	//hrc := hierarchy.New()
+	console.For(host).AddCommand("Hierarchy", func(string) string {
+		//	hrc.Destroy()
+		//	hrc.Create(host)
+		return ""
+	})
 	console.For(host).AddCommand("pprof", func(arg string) string {
 		if arg == "start" {
 			pprofFile = klib.MustReturn(os.Create(pprofCPU))
@@ -289,27 +295,6 @@ func addConsole(host *engine.Host) {
 			return ""
 		}
 	})
-}
-
-func testEntityNames(host *engine.Host) {
-	demoData := struct {
-		EntityNames []string
-	}{
-		EntityNames: make([]string, 0),
-	}
-
-	for _, entity := range host.Entities() {
-		demoData.EntityNames = append(demoData.EntityNames, entity.Name())
-	}
-
-	//var doc *markup.Document = nil
-	//if doc != nil {
-	//	for _, elm := range doc.Elements {
-	//		elm.UI.Entity().Destroy()
-	//	}
-	//}
-	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/hierachy/hierachy.html"))
-	uimarkup.DocumentFromHTMLString(host, html, "", demoData, nil)
 }
 
 func main() {
@@ -334,8 +319,7 @@ func main() {
 	//testLayoutSimple(&host)
 	//testLayout(&host)
 	//testHTMLLayout(&host)
-	//addConsole(&host)
-	testEntityNames(&host)
+	addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
