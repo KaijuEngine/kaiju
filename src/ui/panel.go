@@ -100,7 +100,7 @@ func (panel *Panel) FitContent() {
 	if panel.dirtyType == DirtyTypeNone {
 		panel.SetDirty(DirtyTypeLayout)
 	} else {
-		panel.SetDirty(DirtyTypeReGenerated)
+		panel.SetDirty(DirtyTypeGenerated)
 	}
 }
 
@@ -230,13 +230,16 @@ func (panel *Panel) postLayoutUpdate() {
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
-			//if kLayout.Anchor().IsTop() {
-			//	kLayout.SetOffset(kLayout.left+kLayout.InnerOffset().Left(),
-			//		kLayout.top+kLayout.InnerOffset().Top())
-			//} else if kLayout.Anchor().IsBottom() {
-			//	kLayout.SetOffset(kLayout.left+kLayout.InnerOffset().Left(),
-			//		kLayout.bottom-kLayout.InnerOffset().Bottom())
-			//}
+			if kLayout.Anchor().IsTop() {
+				kLayout.rowLayoutOffset.SetY(panel.layout.InnerOffset().Top() + panel.layout.padding.Top())
+			} else if kLayout.Anchor().IsBottom() {
+				kLayout.rowLayoutOffset.SetY(panel.layout.InnerOffset().Bottom() + panel.layout.padding.Bottom())
+			}
+			if kLayout.Anchor().IsLeft() {
+				kLayout.rowLayoutOffset.SetX(panel.layout.InnerOffset().Left() + panel.layout.padding.Left())
+			} else if kLayout.Anchor().IsRight() {
+				kLayout.rowLayoutOffset.SetX(panel.layout.InnerOffset().Right() + panel.layout.padding.Right())
+			}
 		case PositioningRelative:
 			fallthrough
 		case PositioningStatic:

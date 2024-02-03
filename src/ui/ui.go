@@ -142,8 +142,13 @@ func (ui *uiBase) rootUI() UI {
 	var rootUI UI = FirstOnEntity(root)
 	for root.Parent != nil {
 		if pui := FirstOnEntity(root.Parent); pui != nil {
-			root = root.Parent
-			rootUI = pui
+			p := pui.(*Panel)
+			if p.dirty() != DirtyTypeNone || p.FittingContent() {
+				root = root.Parent
+				rootUI = pui
+			} else {
+				break
+			}
 		} else {
 			break
 		}
@@ -172,6 +177,7 @@ func (ui *uiBase) Clean() {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
 			tree[i].postLayoutUpdate()
+			tree[i].generateScissor()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}
@@ -185,17 +191,17 @@ func (ui *uiBase) Clean() {
 }
 
 func (ui *uiBase) generateScissor() {
-	if !ui.hasScissor() {
-		pos := ui.entity.Transform.WorldPosition()
-		size := ui.entity.Transform.WorldScale()
-		bounds := matrix.Vec4{
-			pos.X() - size.X()*0.5,
-			pos.Y() - size.Y()*0.5,
-			pos.X() + size.X()*0.5,
-			pos.Y() + size.Y()*0.5,
-		}
-		ui.setScissor(bounds)
+	//if !ui.hasScissor() {
+	pos := ui.entity.Transform.WorldPosition()
+	size := ui.entity.Transform.WorldScale()
+	bounds := matrix.Vec4{
+		pos.X() - size.X()*0.5,
+		pos.Y() - size.Y()*0.5,
+		pos.X() + size.X()*0.5,
+		pos.Y() + size.Y()*0.5,
 	}
+	ui.setScissor(bounds)
+	//}
 }
 
 func (ui *uiBase) setScissor(scissor matrix.Vec4) {
@@ -283,9 +289,10 @@ func (ui *uiBase) Update(deltaTime float64) {
 }
 
 func (ui *uiBase) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
-	//camPos := ui.host.UICamera.Position()
-	//return cursor.ScreenPosition().Add(matrix.Vec2{camPos.X(), camPos.Y()})
-	return cursor.Position()
+	pos := cursor.Position()
+	pos[matrix.Vx] -= matrix.Float(ui.host.Window.Width()) * 0.5
+	pos[matrix.Vy] -= matrix.Float(ui.host.Window.Height()) * 0.5
+	return pos
 }
 
 func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
@@ -326,13 +333,13 @@ func (ui *uiBase) DisconnectParentScissor() {
 
 func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
-	if ui.Entity().Parent != nil {
-		if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
-			if pui.dirty() == DirtyTypeNone {
-				pui.SetDirty(DirtyTypeParentLayout)
-			} else {
-				pui.SetDirty(DirtyTypeReGenerated)
-			}
-		}
-	}
+	//if ui.Entity().Parent != nil {
+	//	if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
+	//		if pui.dirty() == DirtyTypeNone {
+	//			pui.SetDirty(DirtyTypeParentLayout)
+	//		} else {
+	//			pui.SetDirty(DirtyTypeReGenerated)
+	//		}
+	//	}
+	//}
 }

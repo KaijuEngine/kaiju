@@ -239,13 +239,17 @@ func testHTMLLayout(host *engine.Host) {
 				}
 				#consoleInput {
 					width: 100%;
-					height: 32px;
+					height: 100%;
 				}
 			</style>
 		</head>
 		<body>
 			<div id="console">
 				<div id="consoleContent">
+					[Kaiju Console]
+				</div>
+				<div id="consoleInputArea">
+					<input id="consoleInput" type="text" placeholder="Command..." />
 				</div>
 			</div>
 		</body>
@@ -307,8 +311,8 @@ func main() {
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
 	//testLayout(&host)
-	testHTMLLayout(&host)
-	//addConsole(&host)
+	//testHTMLLayout(&host)
+	addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()

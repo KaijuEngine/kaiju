@@ -28,7 +28,7 @@ const (
 	verticalPadding   float32 = 3.0
 	cursorZ           float32 = 0.3
 	highlightZ        float32 = 0.07
-	cursorY           float32 = -2
+	cursorY           float32 = 2
 )
 
 type localInputData struct {
@@ -59,6 +59,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	host := p.Host()
 	data := &localInputData{}
 	input.localData = data
+	p.DontFitContent()
 
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
@@ -67,6 +68,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.label)
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
+	data.label.layout.ClearFunctions()
+	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
 		ps := input.layout.PixelSize()
@@ -78,6 +81,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.placeholder)
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
+	data.placeholder.layout.ClearFunctions()
+	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
 		ps := input.layout.PixelSize()
@@ -86,6 +91,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 
 	// Create the cursor
 	data.cursor = NewPanel(host, tex, AnchorTopLeft)
+	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
 	p.AddChild(data.cursor)
@@ -96,6 +102,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 
 	// Create the highlight
 	data.highlight = NewPanel(host, tex, AnchorTopLeft)
+	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
@@ -180,9 +187,6 @@ func (input *Input) charX(index int) float32 {
 
 func (input *Input) setBgColors() {
 	data := input.Data()
-	if input.dirtyType != DirtyTypeNone {
-		input.Clean()
-	}
 	if len(data.label.runeDrawings) > 0 {
 		sd := data.label.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
 		data.label.ColorRange(0, data.label.textLength,

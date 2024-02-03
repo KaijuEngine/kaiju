@@ -86,6 +86,7 @@ func initialize(host *engine.Host) *Console {
 	input := inputElm.UI.(*ui.Input)
 	input.Data().OnSubmit.Add(func() { console.submit(input) })
 	console.input = input
+	input.Clean()
 	console.hide()
 	return console
 }

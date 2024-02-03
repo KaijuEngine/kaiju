@@ -174,7 +174,7 @@ func (label *Label) fixSize() {
 		label.text, label.fontSize, label.MaxWidth())
 	if label.layout.ScaleHeight(wh.Y()) && !label.entity.IsRoot() {
 		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
-		label.SetDirty(DirtyTypeReGenerated)
+		//label.SetDirty(DirtyTypeReGenerated)
 		label.SetScissorToParent()
 	}
 }
