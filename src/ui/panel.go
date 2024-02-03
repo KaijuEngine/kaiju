@@ -107,6 +107,7 @@ func (panel *Panel) FitContent() {
 func (panel *Panel) onScroll() {
 	mouse := &panel.host.Window.Mouse
 	delta := mouse.Scroll()
+	scroll := panel.scroll
 	if !mouse.Scrolled() {
 		pos := panel.cursorPos(&panel.host.Window.Cursor)
 		delta = pos.Subtract(panel.downPos)
@@ -117,14 +118,17 @@ func (panel *Panel) onScroll() {
 	}
 	if (panel.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
 		x := matrix.Clamp(delta.X()+panel.offset.X(), 0.0, panel.maxScroll.X())
-		panel.scroll.SetX(x)
+		scroll.SetX(x)
 	}
 	if (panel.scrollDirection & PanelScrollDirectionVertical) != 0 {
-		y := matrix.Clamp(delta.Y()+panel.offset.Y(), -panel.maxScroll.Y(), 0.0)
-		panel.scroll.SetY(y)
+		y := matrix.Clamp(delta.Y()+panel.offset.Y(), -panel.maxScroll.Y(), 0)
+		scroll.SetY(y)
 	}
-	panel.SetDirty(DirtyTypeLayout)
-	panel.isScrolling = true
+	if !matrix.Vec2Approx(scroll, panel.scroll) {
+		panel.scroll = scroll
+		panel.SetDirty(DirtyTypeLayout)
+		panel.isScrolling = true
+	}
 }
 
 func panelOnDown(ui UI) {

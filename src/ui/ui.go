@@ -40,7 +40,7 @@ type UI interface {
 	Clean()
 	SetGroup(group *Group)
 	Host() *engine.Host
-	generateScissor()
+	GenerateScissor()
 	hasScissor() bool
 	selfScissor() matrix.Vec4
 	dirty() DirtyType
@@ -177,11 +177,11 @@ func (ui *uiBase) Clean() {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
 			tree[i].postLayoutUpdate()
-			tree[i].generateScissor()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}
 	for i := range tree {
+		tree[i].GenerateScissor()
 		if l, ok := tree[i].(*Label); ok {
 			l.render()
 		} else if p, ok := tree[i].(*Panel); ok {
@@ -190,10 +190,14 @@ func (ui *uiBase) Clean() {
 	}
 }
 
-func (ui *uiBase) generateScissor() {
-	//if !ui.hasScissor() {
-	pos := ui.entity.Transform.WorldPosition()
-	size := ui.entity.Transform.WorldScale()
+func (ui *uiBase) GenerateScissor() {
+	ui.disconnectedScissor = false
+	target := &ui.entity.Transform
+	if !ui.entity.IsRoot() {
+		target = &ui.entity.Parent.Transform
+	}
+	pos := target.WorldPosition()
+	size := target.WorldScale()
 	bounds := matrix.Vec4{
 		pos.X() - size.X()*0.5,
 		pos.Y() - size.Y()*0.5,
@@ -201,7 +205,6 @@ func (ui *uiBase) generateScissor() {
 		pos.Y() + size.Y()*0.5,
 	}
 	ui.setScissor(bounds)
-	//}
 }
 
 func (ui *uiBase) setScissor(scissor matrix.Vec4) {
@@ -314,19 +317,10 @@ func (ui *uiBase) changed() {
 	ui.ExecuteEvent(EventTypeChange)
 }
 
-func (ui *uiBase) SetScissorToParent() {
-	ui.disconnectedScissor = false
-	if elm := FirstOnEntity(ui.entity.Parent); elm != nil {
-		elm.setScissor(elm.selfScissor())
-	} else {
-		ui.generateScissor()
-	}
-}
-
 func (ui *uiBase) DisconnectParentScissor() {
 	if ui.hasScissor() {
 		ui.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-		ui.generateScissor()
+		ui.GenerateScissor()
 	}
 	ui.disconnectedScissor = true
 }

@@ -578,7 +578,7 @@ func (layout *Layout) update() {
 		layout.prepare()
 		layout.layoutFunction(layout)
 		if layout.ui.hasScissor() {
-			layout.ui.generateScissor()
+			layout.ui.GenerateScissor()
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"strings"
 )
 
 const (
@@ -97,8 +96,8 @@ func (label *Label) clearDrawings() {
 	for i := range label.runeShaderData {
 		label.runeShaderData[i].Destroy()
 	}
-	label.runeShaderData = label.runeShaderData[:]
-	label.runeDrawings = label.runeDrawings[:]
+	label.runeShaderData = label.runeShaderData[:0]
+	label.runeDrawings = label.runeDrawings[:0]
 }
 
 func (label *Label) render() {
@@ -113,12 +112,11 @@ func (label *Label) render() {
 			maxWidth, label.color, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
 			false, label.rangesToFont(), label.fontFace)
-		for i := 0; i < len(label.runeDrawings); i++ {
+		for i := range label.runeDrawings {
 			label.runeDrawings[i].Transform = &label.entity.Transform
 			label.runeShaderData = append(label.runeShaderData,
 				label.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
 			label.runeDrawings[i].UseBlending = label.bgColor.A() < 1.0
-			label.runeShaderData[i].Scissor = label.shaderData.Scissor
 		}
 		for i := 0; i < len(label.colorRanges); i++ {
 			label.colorRange(label.colorRanges[i])
@@ -161,7 +159,7 @@ func (label *Label) SetFontSize(size float32) {
 func (label *Label) Text() string { return label.text }
 
 func (label *Label) SetText(text string) {
-	label.text = strings.Clone(text)
+	label.text = text
 	// TODO:  Put a cap on the length of the string
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
@@ -175,7 +173,7 @@ func (label *Label) fixSize() {
 	if label.layout.ScaleHeight(wh.Y()) && !label.entity.IsRoot() {
 		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
 		//label.SetDirty(DirtyTypeReGenerated)
-		label.SetScissorToParent()
+		label.GenerateScissor()
 	}
 }
 

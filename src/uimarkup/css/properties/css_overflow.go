@@ -19,17 +19,17 @@ func (p Overflow) Process(panel *ui.Panel, elm markup.DocElement, values []rules
 		case "hidden":
 			fallthrough
 		case "clip":
-			panel.SetScissorToParent()
+			panel.GenerateScissor()
 			panel.SetScrollDirection(ui.PanelScrollDirectionNone)
 		case "scroll":
 			fallthrough
 		case "auto":
-			panel.SetScissorToParent()
+			panel.GenerateScissor()
 			panel.SetScrollDirection(ui.PanelScrollDirectionBoth)
 		case "inherit":
 			if elm.HTML.Parent != nil {
 				parentPanel := elm.HTML.Parent.DocumentElement.UI.(*ui.Panel)
-				panel.SetScissorToParent()
+				panel.GenerateScissor()
 				panel.SetScrollDirection(parentPanel.ScrollDirection())
 			}
 		case "initial":
