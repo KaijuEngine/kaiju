@@ -40,13 +40,14 @@ type UI interface {
 	Clean()
 	SetGroup(group *Group)
 	Host() *engine.Host
-	generateScissor()
+	GenerateScissor()
 	hasScissor() bool
 	selfScissor() matrix.Vec4
 	dirty() DirtyType
 	setScissor(scissor matrix.Vec4)
 	layoutChanged(dirtyType DirtyType)
-	clean()
+	cleanDirty()
+	postLayoutUpdate()
 }
 
 type uiBase struct {
@@ -95,6 +96,7 @@ func (ui *uiBase) Host() *engine.Host       { return ui.host }
 func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
 func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
 func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
+func (ui *uiBase) postLayoutUpdate()        {}
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
@@ -112,6 +114,8 @@ func (ui *uiBase) RemoveEvent(evtType EventType, evtId engine.EventId) {
 func (ui *uiBase) Event(evtType EventType) *engine.Event {
 	return &ui.events[evtType]
 }
+
+func (ui *uiBase) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
 func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated || dirtyType == DirtyTypeReGenerated {
@@ -133,62 +137,74 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *uiBase) Clean() {
-	if ui.dirtyType != DirtyTypeNone {
-		if ui.entity.Parent != nil {
-			cleanParent(ui.host, ui.entity.Parent)
+func (ui *uiBase) rootUI() UI {
+	root := ui.entity
+	var rootUI UI = FirstOnEntity(root)
+	for root.Parent != nil {
+		if pui := FirstOnEntity(root.Parent); pui != nil {
+			p := pui.(*Panel)
+			if p.dirty() != DirtyTypeNone || p.FittingContent() {
+				root = root.Parent
+				rootUI = pui
+			} else {
+				break
+			}
+		} else {
+			break
 		}
-		ui.clean()
-		for i := 0; i < len(ui.entity.Children); i++ {
-			c := ui.entity.Children[i]
-			all := AllOnEntity(c)
-			for _, childUI := range all {
-				if childUI.dirty() != DirtyTypeNone {
-					childUI.Clean()
-				}
+	}
+	return rootUI
+}
+
+func (ui *uiBase) Clean() {
+	root := ui.rootUI()
+	tree := []UI{root}
+	var createTree func(target *engine.Entity)
+	createTree = func(target *engine.Entity) {
+		for _, child := range target.Children {
+			cui := FirstOnEntity(child)
+			if cui != nil {
+				tree = append(tree, cui)
+				createTree(child)
 			}
 		}
 	}
-}
-
-func (ui *uiBase) clean() {
-	ui.layout.update()
-	if !ui.events[EventTypeRebuild].IsEmpty() {
-		ui.events[EventTypeRebuild].Execute()
+	createTree(root.Entity())
+	stabilized := false
+	for !stabilized {
+		stabilized = true
+		for i := range tree {
+			tree[i].cleanDirty()
+			tree[i].Layout().update()
+			tree[i].postLayoutUpdate()
+			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
+		}
 	}
-	ui.entity.Transform.SetDirty()
-	if ui.dirtyType == DirtyTypeReGenerated {
-		ui.dirtyType = DirtyTypeGenerated
-	} else {
-		ui.dirtyType = DirtyTypeNone
-	}
-	ui.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
-}
-
-func cleanParent(host *engine.Host, entity *engine.Entity) {
-	if entity.Parent != nil {
-		cleanParent(host, entity.Parent)
-	}
-	all := AllOnEntity(entity)
-	for i := 0; i < len(all); i++ {
-		if all[i].dirty() != DirtyTypeNone {
-			all[i].clean()
+	for i := range tree {
+		tree[i].GenerateScissor()
+		if l, ok := tree[i].(*Label); ok {
+			l.render()
+		} else if p, ok := tree[i].(*Panel); ok {
+			p.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
 		}
 	}
 }
 
-func (ui *uiBase) generateScissor() {
-	if !ui.hasScissor() {
-		pos := ui.entity.Transform.WorldPosition()
-		size := ui.entity.Transform.WorldScale()
-		bounds := matrix.Vec4{
-			pos.X() - size.X()*0.5,
-			pos.Y() - size.Y()*0.5,
-			pos.X() + size.X()*0.5,
-			pos.Y() + size.Y()*0.5,
-		}
-		ui.setScissor(bounds)
+func (ui *uiBase) GenerateScissor() {
+	ui.disconnectedScissor = false
+	target := &ui.entity.Transform
+	if !ui.entity.IsRoot() {
+		target = &ui.entity.Parent.Transform
 	}
+	pos := target.WorldPosition()
+	size := target.WorldScale()
+	bounds := matrix.Vec4{
+		pos.X() - size.X()*0.5,
+		pos.Y() - size.Y()*0.5,
+		pos.X() + size.X()*0.5,
+		pos.Y() + size.Y()*0.5,
+	}
+	ui.setScissor(bounds)
 }
 
 func (ui *uiBase) setScissor(scissor matrix.Vec4) {
@@ -270,18 +286,16 @@ func (ui *uiBase) Update(deltaTime float64) {
 		ui.requestEvent(EventTypeScroll)
 	}
 	if ui.dirtyType != DirtyTypeNone {
-		if ui.entity.Parent != nil {
-			cleanParent(ui.Host(), ui.entity.Parent)
-		}
-		ui.clean()
+		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
 
 func (ui *uiBase) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
-	//camPos := ui.host.UICamera.Position()
-	//return cursor.ScreenPosition().Add(matrix.Vec2{camPos.X(), camPos.Y()})
-	return cursor.Position()
+	pos := cursor.Position()
+	pos[matrix.Vx] -= matrix.Float(ui.host.Window.Width()) * 0.5
+	pos[matrix.Vy] -= matrix.Float(ui.host.Window.Height()) * 0.5
+	return pos
 }
 
 func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
@@ -303,32 +317,23 @@ func (ui *uiBase) changed() {
 	ui.ExecuteEvent(EventTypeChange)
 }
 
-func (ui *uiBase) SetScissorToParent() {
-	ui.disconnectedScissor = false
-	if elm := FirstOnEntity(ui.entity.Parent); elm != nil {
-		elm.setScissor(elm.selfScissor())
-	} else {
-		ui.generateScissor()
-	}
-}
-
 func (ui *uiBase) DisconnectParentScissor() {
 	if ui.hasScissor() {
 		ui.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-		ui.generateScissor()
+		ui.GenerateScissor()
 	}
 	ui.disconnectedScissor = true
 }
 
 func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
-	if ui.Entity().Parent != nil {
-		if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
-			if pui.dirty() == DirtyTypeNone {
-				pui.SetDirty(DirtyTypeParentLayout)
-			} else {
-				pui.SetDirty(DirtyTypeReGenerated)
-			}
-		}
-	}
+	//if ui.Entity().Parent != nil {
+	//	if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
+	//		if pui.dirty() == DirtyTypeNone {
+	//			pui.SetDirty(DirtyTypeParentLayout)
+	//		} else {
+	//			pui.SetDirty(DirtyTypeReGenerated)
+	//		}
+	//	}
+	//}
 }

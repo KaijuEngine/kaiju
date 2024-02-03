@@ -40,7 +40,6 @@ func sizeTexts(doc *markup.Document, host *engine.Host) {
 						textSize := host.FontCache().MeasureStringWithin(label.FontFace(),
 							e.Data(), label.FontSize(), parentWidth)
 						height = textSize.Height()
-						p.(*ui.Panel).FitContent()
 					}
 					l.Scale(parentWidth, height)
 				}

@@ -22,9 +22,16 @@ func (p Height) Process(panel *ui.Panel, elm markup.DocElement, values []rules.P
 	if err == nil {
 		if strings.HasSuffix(values[0].Str, "%") {
 			panel.Layout().AddFunction(func(l *ui.Layout) {
+				if elm.HTML.Parent == nil || elm.HTML.Parent.DocumentElement.UI == nil {
+					return
+				}
 				pLayout := elm.HTML.Parent.DocumentElement.UI.Layout()
-				p := pLayout.Padding()
-				h := pLayout.PixelSize().Y()*height - p.Y() - p.W()
+				s := pLayout.PixelSize().Y()
+				pPad := pLayout.Padding()
+				s -= pPad.Y() + pPad.W()
+				// Subtracting local padding because it's added in final scale
+				p := l.Padding()
+				h := s*height - p.Y() - p.W()
 				l.ScaleHeight(h)
 			})
 		} else if values[0].IsFunction() {

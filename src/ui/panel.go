@@ -73,7 +73,6 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	if texture != nil {
 		panel.ensureBGExists(texture)
 	}
-	panel.AddEvent(EventTypeRebuild, panel.onRebuild)
 	panel.entity.OnActivate.Add(func() {
 		panel.shaderData.Activate()
 		panel.updateId = host.Updater.AddUpdate(panel.update)
@@ -101,13 +100,14 @@ func (panel *Panel) FitContent() {
 	if panel.dirtyType == DirtyTypeNone {
 		panel.SetDirty(DirtyTypeLayout)
 	} else {
-		panel.SetDirty(DirtyTypeReGenerated)
+		panel.SetDirty(DirtyTypeGenerated)
 	}
 }
 
 func (panel *Panel) onScroll() {
 	mouse := &panel.host.Window.Mouse
 	delta := mouse.Scroll()
+	scroll := panel.scroll
 	if !mouse.Scrolled() {
 		pos := panel.cursorPos(&panel.host.Window.Cursor)
 		delta = pos.Subtract(panel.downPos)
@@ -118,14 +118,17 @@ func (panel *Panel) onScroll() {
 	}
 	if (panel.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
 		x := matrix.Clamp(delta.X()+panel.offset.X(), 0.0, panel.maxScroll.X())
-		panel.scroll.SetX(x)
+		scroll.SetX(x)
 	}
 	if (panel.scrollDirection & PanelScrollDirectionVertical) != 0 {
-		y := matrix.Clamp(delta.Y()+panel.offset.Y(), -panel.maxScroll.Y(), 0.0)
-		panel.scroll.SetY(y)
+		y := matrix.Clamp(delta.Y()+panel.offset.Y(), -panel.maxScroll.Y(), 0)
+		scroll.SetY(y)
 	}
-	panel.SetDirty(DirtyTypeLayout)
-	panel.isScrolling = true
+	if !matrix.Vec2Approx(scroll, panel.scroll) {
+		panel.scroll = scroll
+		panel.SetDirty(DirtyTypeLayout)
+		panel.isScrolling = true
+	}
 }
 
 func panelOnDown(ui UI) {
@@ -206,18 +209,19 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		}
 		x += e.Layout().margin.X()
 		y += rb.maxMarginTop
-		e.Layout().SetOffset(x, -y)
+		e.Layout().rowLayoutOffset = matrix.Vec2{x, y}
 		offsetX += e.Layout().PixelSize().Width() + e.Layout().margin.X() + e.Layout().margin.Z()
 	}
 }
 
-func (panel *Panel) onRebuild() {
+func (panel *Panel) postLayoutUpdate() {
 	if len(panel.entity.Children) == 0 {
 		return
 	}
 	offsetStart := matrix.Vec2{-panel.scroll.X(), panel.scroll.Y()}
 	rows := make([]rowBuilder, 0)
-	areaWidth := panel.layout.mySize.X() - panel.layout.padding.X() - panel.layout.padding.Z()
+	ps := panel.layout.PixelSize()
+	areaWidth := ps.X() - panel.layout.padding.X() - panel.layout.padding.Z()
 	for _, kid := range panel.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -227,15 +231,18 @@ func (panel *Panel) onRebuild() {
 			panic("No UI component on entity")
 		}
 		kui := target
-		panel.adjustKidsOnRebuild(kui)
-		switch kui.Layout().Positioning() {
+		kLayout := kui.Layout()
+		switch kLayout.Positioning() {
 		case PositioningAbsolute:
-			if kui.Layout().Anchor().IsTop() {
-				kui.Layout().SetOffset(kui.Layout().left+kui.Layout().InnerOffset().Left(),
-					kui.Layout().top+kui.Layout().InnerOffset().Top())
-			} else if kui.Layout().Anchor().IsBottom() {
-				kui.Layout().SetOffset(kui.Layout().left+kui.Layout().InnerOffset().Left(),
-					kui.Layout().bottom-kui.Layout().InnerOffset().Bottom())
+			if kLayout.Anchor().IsTop() {
+				kLayout.rowLayoutOffset.SetY(panel.layout.InnerOffset().Top() + panel.layout.padding.Top())
+			} else if kLayout.Anchor().IsBottom() {
+				kLayout.rowLayoutOffset.SetY(panel.layout.InnerOffset().Bottom() + panel.layout.padding.Bottom())
+			}
+			if kLayout.Anchor().IsLeft() {
+				kLayout.rowLayoutOffset.SetX(panel.layout.InnerOffset().Left() + panel.layout.padding.Left())
+			} else if kLayout.Anchor().IsRight() {
+				kLayout.rowLayoutOffset.SetX(panel.layout.InnerOffset().Right() + panel.layout.padding.Right())
 			}
 		case PositioningRelative:
 			fallthrough
@@ -255,22 +262,20 @@ func (panel *Panel) onRebuild() {
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
 	nextPos[matrix.Vy] += panel.layout.padding.W()
-	if panel.fitContent && len(rows) > 0 {
-		ps := panel.layout.PixelSize()
-		ph := ps.Height()
-		if !matrix.Approx(ph, nextPos.Y()) {
-			w := ps.Width() - panel.layout.padding.Left() - panel.layout.padding.Right()
-			h := nextPos.Y() - panel.layout.padding.Top() - panel.layout.padding.Bottom()
-			panel.layout.Scale(w, h)
-			panel.SetDirty(DirtyTypeReGenerated)
-			//if pui := FirstOnEntity(panel.entity.Parent); pui != nil {
-			//	if p, ok := pui.(*Panel); ok {
-			//		p.FitContent()
-			//	}
-			//}
+	if panel.fitContent {
+		bounds := matrix.Vec2{0, 0}
+		panelScale := panel.entity.Transform.WorldScale().Scale(0.5)
+		for _, kid := range panel.entity.Children {
+			pos := kid.Transform.Position()
+			pos[matrix.Vx] += panelScale.X()
+			pos[matrix.Vy] -= panelScale.Y()
+			size := kid.Transform.WorldScale().Scale(0.5)
+			r := matrix.Abs(pos.X()) + size.X()
+			b := matrix.Abs(pos.Y()) + size.Y()
+			bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
 		}
+		panel.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))
 	}
-	//if panel.dirtyType != DirtyTypeReGenerated {
 	length := nextPos.Subtract(offsetStart)
 	last := panel.maxScroll
 	ws := panel.entity.Transform.WorldScale()
@@ -281,39 +286,14 @@ func (panel *Panel) onRebuild() {
 		panel.SetScrollX(panel.scroll.X())
 		panel.SetScrollY(panel.scroll.Y())
 	}
-	//}
-}
-
-func (panel *Panel) adjustKidsOnRebuild(target UI) {
-	// TODO:  Only do this if the panel's values have changed
-	pos := panel.entity.Transform.WorldPosition()
-	size := panel.entity.Transform.WorldScale()
-	bounds := matrix.Vec4{
-		pos.X() - size.X()*0.5,
-		pos.Y() - size.Y()*0.5,
-		pos.X() + size.X()*0.5,
-		pos.Y() + size.Y()*0.5,
-	}
-	if panel.entity.Parent != nil {
-		pUI := FirstOnEntity(panel.entity.Parent)
-		if pUI != nil && pUI.selfScissor().Z() < matrix.FloatMax {
-			parentScissor := pUI.selfScissor()
-			bounds.SetLeft(matrix.Max(parentScissor.X(), bounds.X()))
-			bounds.SetTop(matrix.Max(parentScissor.Y(), bounds.Y()))
-			bounds.SetRight(matrix.Min(parentScissor.Z(), bounds.Z()))
-			bounds.SetBottom(matrix.Min(parentScissor.W(), bounds.W()))
-		}
-	}
-	panel.setScissor(bounds)
-	//panel.ui.isDirty = DirtyTypeNone;
 }
 
 func (panel *Panel) AddChild(target UI) {
 	target.Entity().SetParent(panel.entity)
-	panel.layout.update()
 	if panel.group != nil {
 		target.SetGroup(panel.group)
 	}
+	target.Layout().update()
 	panel.SetDirty(DirtyTypeGenerated)
 }
 

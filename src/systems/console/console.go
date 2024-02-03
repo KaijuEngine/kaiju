@@ -41,7 +41,7 @@ func (h *history) forward() string {
 	if len(h.data) == 0 {
 		return ""
 	}
-	if h.idx < len(h.data)-1 {
+	if h.idx < len(h.data) {
 		h.idx++
 	}
 	return h.data[h.idx]
@@ -86,6 +86,7 @@ func initialize(host *engine.Host) *Console {
 	input := inputElm.UI.(*ui.Input)
 	input.Data().OnSubmit.Add(func() { console.submit(input) })
 	console.input = input
+	input.Clean()
 	console.hide()
 	return console
 }

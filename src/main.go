@@ -125,7 +125,8 @@ func testOIT(host *engine.Host) {
 func testPanel(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft)
-	p.Layout().Scale(128, 128)
+	p.DontFitContent()
+	p.Layout().Scale(100, 100)
 	p.Layout().SetOffset(10, 10)
 }
 
@@ -156,9 +157,140 @@ func testHTML(host *engine.Host) {
 	uimarkup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
 }
 
+func testLayoutSimple(host *engine.Host) {
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	panels := []*ui.Panel{
+		ui.NewPanel(host, tex, ui.AnchorBottomLeft),
+		ui.NewPanel(host, tex, ui.AnchorBottomCenter),
+		ui.NewPanel(host, tex, ui.AnchorBottomRight),
+		ui.NewPanel(host, tex, ui.AnchorLeft),
+		ui.NewPanel(host, tex, ui.AnchorRight),
+		ui.NewPanel(host, tex, ui.AnchorCenter),
+		ui.NewPanel(host, tex, ui.AnchorTopLeft),
+		ui.NewPanel(host, tex, ui.AnchorTopCenter),
+		ui.NewPanel(host, tex, ui.AnchorTopRight),
+	}
+	for _, p := range panels {
+		p.DontFitContent()
+		p.Layout().Scale(100, 100)
+		p.Layout().SetOffset(10, 10)
+	}
+}
+
+func testLayout(host *engine.Host) {
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+
+	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p1.Entity().SetName("p1")
+	//p1.Layout().Scale(300, 100)
+
+	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p2.Entity().SetName("p2")
+	p2.SetColor(matrix.ColorBlue())
+	//p2.Layout().SetPadding(5, 5, 5, 5)
+	p2.Layout().SetMargin(5, 5, 5, 5)
+	//p2.DontFitContent()
+	//p2.Layout().Scale(64, 64)
+	//p2.Layout().SetOffset(10, 10)
+
+	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p3.Entity().SetName("p3")
+	p3.SetColor(matrix.ColorRed())
+	p3.Layout().Scale(32, 32)
+	p3.Layout().SetOffset(10, 10)
+	//p3.Layout().SetMargin(5, 5, 0, 0)
+
+	p1.AddChild(p2)
+	p2.AddChild(p3)
+}
+
+func testHTMLLayout(host *engine.Host) {
+	const html = `<!DOCTYPE html>
+	<html>
+		<head>
+			<style>
+				body {
+					padding: 0;
+					margin: 0;
+				}
+				#console {
+					position: absolute;
+					top: 0;
+					width: 100%;
+					height: 300px;
+					background-color: #000;
+					padding: 10px;
+					border-bottom: 1px solid white;
+					z-index: 100;
+				}
+				#consoleContent {
+					padding: 0;
+					width: 100%;
+					height: calc(100% - 32px);
+					overflow-y: scroll;
+					color: white;
+					background-color: orange;
+				}
+				#consoleInputArea {
+					position: absolute;
+					width: 100%;
+					height: 32px;
+					bottom: 0;
+				}
+				#consoleInput {
+					width: 100%;
+					height: 100%;
+				}
+			</style>
+		</head>
+		<body>
+			<div id="console">
+				<div id="consoleContent">
+					[Kaiju Console]
+				</div>
+				<div id="consoleInputArea">
+					<input id="consoleInput" type="text" placeholder="Command..." />
+				</div>
+			</div>
+		</body>
+	</html>`
+	uimarkup.DocumentFromHTMLString(host, html, "", nil, nil)
+}
+
+const (
+	pprofCPU  = "cpu.prof"
+	pprofHeap = "heap.prof"
+)
+
+func addConsole(host *engine.Host) {
+	var pprofFile *os.File = nil
+	console.For(host).AddCommand("EntityCount", func(string) string {
+		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
+	})
+	console.For(host).AddCommand("pprof", func(arg string) string {
+		if arg == "start" {
+			pprofFile = klib.MustReturn(os.Create(pprofCPU))
+			pprof.StartCPUProfile(pprofFile)
+			return "CPU profile started"
+		} else if arg == "stop" {
+			if pprofFile == nil {
+				return "CPU profile not yet started"
+			}
+			pprof.StopCPUProfile()
+			pprofFile.Close()
+			return "CPU profile written to " + pprofCPU
+		} else if arg == "heap" {
+			hp := klib.MustReturn(os.Create(pprofHeap))
+			pprof.WriteHeapProfile(hp)
+			hp.Close()
+			return "Heap profile written to " + pprofHeap
+		} else {
+			return ""
+		}
+	})
+}
+
 func main() {
-	pprofFile := klib.MustReturn(os.Create("cpu.prof"))
-	defer pprofFile.Close()
 	lastTime := time.Now()
 	host, err := engine.NewHost()
 	if err != nil {
@@ -177,26 +309,13 @@ func main() {
 	//testButton(&host)
 	//testHTML(&host)
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
-	console.For(&host).AddCommand("EntityCount", func(string) string {
-		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
-	})
-	console.For(&host).AddCommand("pprof", func(arg string) string {
-		if arg == "start" {
-			pprof.StartCPUProfile(pprofFile)
-		} else if arg == "stop" {
-			pprof.StopCPUProfile()
-			pprofFile.Close()
-		} else if arg == "heap" {
-			hp := klib.MustReturn(os.Create("heap.prof"))
-			pprof.WriteHeapProfile(hp)
-			hp.Close()
-		}
-		return ""
-	})
+	//testLayoutSimple(&host)
+	//testLayout(&host)
+	//testHTMLLayout(&host)
+	addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
-		println(since.Milliseconds())
 		lastTime = time.Now()
 		host.Update(deltaTime)
 		host.Render()

@@ -42,9 +42,13 @@ func (f Calc) Process(panel *ui.Panel, elm markup.DocElement, value rules.Proper
 			v := helpers.NumFromLength(value.Args[i], panel.Host().Window)
 			if strings.HasSuffix(value.Args[i], "%") {
 				if prop == "width" {
-					v *= elm.HTML.Parent.DocumentElement.UI.Layout().PixelSize().Width()
+					pl := elm.HTML.Parent.DocumentElement.UI.Layout()
+					p := pl.Padding()
+					v *= pl.PixelSize().Width() - p.X() - p.Z()
 				} else if prop == "height" {
-					v *= elm.HTML.Parent.DocumentElement.UI.Layout().PixelSize().Height()
+					pl := elm.HTML.Parent.DocumentElement.UI.Layout()
+					p := pl.Padding()
+					v *= pl.PixelSize().Height() - p.Y() - p.W()
 				}
 			}
 			entries[i].value = v
