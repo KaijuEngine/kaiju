@@ -206,7 +206,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		}
 		x += e.Layout().margin.X()
 		y += rb.maxMarginTop
-		e.Layout().SetOffset(x, y)
+		e.Layout().rowLayoutOffset = matrix.Vec2{x, y}
 		offsetX += e.Layout().PixelSize().Width() + e.Layout().margin.X() + e.Layout().margin.Z()
 	}
 }
@@ -217,7 +217,8 @@ func (panel *Panel) runLayout() {
 	}
 	offsetStart := matrix.Vec2{-panel.scroll.X(), panel.scroll.Y()}
 	rows := make([]rowBuilder, 0)
-	areaWidth := panel.layout.mySize.X() - panel.layout.padding.X() - panel.layout.padding.Z()
+	ps := panel.layout.PixelSize()
+	areaWidth := ps.X() - panel.layout.padding.X() - panel.layout.padding.Z()
 	for _, kid := range panel.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -256,8 +257,7 @@ func (panel *Panel) runLayout() {
 	}
 	nextPos[matrix.Vy] += panel.layout.padding.W()
 	if panel.fitContent {
-		s := panel.layout.PixelSize()
-		bounds := matrix.Vec2{s.X(), s.Y()}
+		bounds := matrix.Vec2{0, 0}
 		panelScale := panel.entity.Transform.WorldScale().Scale(0.5)
 		for _, kid := range panel.entity.Children {
 			pos := kid.Transform.Position()

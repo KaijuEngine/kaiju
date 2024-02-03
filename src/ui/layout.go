@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 )
 
@@ -130,6 +129,7 @@ func (a Anchor) IsBottom() bool {
 
 type Layout struct {
 	offset           matrix.Vec2
+	rowLayoutOffset  matrix.Vec2
 	innerOffset      matrix.Vec4
 	localInnerOffset matrix.Vec4
 	left             float32
@@ -141,10 +141,7 @@ type Layout struct {
 	ui               UI
 	screenAnchor     Anchor
 	layoutFunction   func(layout *Layout)
-	anchorFunction   func(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4
-	bounds           matrix.Vec4
-	lastParent       *engine.Entity
-	mySize           matrix.Vec3
+	anchorFunction   func(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4
 	worldScalar      matrix.Vec2
 	border           matrix.Vec4
 	padding          matrix.Vec4
@@ -179,76 +176,80 @@ func (layout *Layout) PixelSize() matrix.Vec2 {
 	return layout.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
-func al(edges matrix.Vec4, w float32, size matrix.Vec3) float32 {
+func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return -w*0.5 + size.X()*0.5 + edges.Left()
 }
 
-func ar(edges matrix.Vec4, w float32, size matrix.Vec3) float32 {
+func ar(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return w*0.5 - size.X()*0.5 - edges.Right()
 }
 
-func at(edges matrix.Vec4, h float32, size matrix.Vec3) float32 {
+func at(edges matrix.Vec4, h float32, size matrix.Vec2) float32 {
 	return h*0.5 - size.Y()*0.5 - edges.Top()
 }
 
-func ab(edges matrix.Vec4, h float32, size matrix.Vec3) float32 {
+func ab(edges matrix.Vec4, h float32, size matrix.Vec2) float32 {
 	return -h*0.5 + size.Y()*0.5 + edges.Bottom()
 }
 
-func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	return matrix.Vec4{al(edges, w, size), at(edges, h, size), 0.0, 0.0}
 }
 
-func anchorTopCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	edges := self.totalOffsetBounds()
-	return matrix.Vec4{self.offset.X(), at(edges, h, size), 0.0, 0.0}
+func (layout *Layout) calcOffset() matrix.Vec2 {
+	return layout.rowLayoutOffset.Add(layout.offset)
 }
 
-func anchorTopRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorTopCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
+	edges := self.totalOffsetBounds()
+	return matrix.Vec4{self.calcOffset().X(), at(edges, h, size), 0.0, 0.0}
+}
+
+func anchorTopRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	return matrix.Vec4{ar(edges, w, size), at(edges, h, size), 0.0, 0.0}
 }
 
-func anchorLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
-	return matrix.Vec4{al(edges, w, size), self.offset.Y(), 0.0, 0.0}
+	return matrix.Vec4{al(edges, w, size), self.calcOffset().Y(), 0.0, 0.0}
 }
 
-func anchorCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
-	return matrix.Vec4{self.offset.X(), self.offset.Y(), 0.0, 0.0}
+func anchorCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
+	return matrix.Vec4{self.calcOffset().X(), self.calcOffset().Y(), 0.0, 0.0}
 }
 
-func anchorRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
-	return matrix.Vec4{ar(edges, w, size), self.offset.Y(), 0.0, 0.0}
+	return matrix.Vec4{ar(edges, w, size), self.calcOffset().Y(), 0.0, 0.0}
 }
 
-func anchorBottomLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorBottomLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	return matrix.Vec4{al(edges, w, size), ab(edges, h, size), 0.0, 0.0}
 }
 
-func anchorBottomCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorBottomCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
-	return matrix.Vec4{self.offset.X(), ab(edges, h, size), 0.0, 0.0}
+	return matrix.Vec4{self.calcOffset().X(), ab(edges, h, size), 0.0, 0.0}
 }
 
-func anchorBottomRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorBottomRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	return matrix.Vec4{ar(edges, w, size), ab(edges, h, size), 0.0, 0.0}
 }
 
 func layoutFloating(self *Layout) {
 	t := &self.ui.Entity().Transform
-	w := self.bounds.Z() - self.bounds.X()
-	h := self.bounds.W() - self.bounds.Y()
-	pos := self.anchorFunction(self, w, h, self.mySize)
-	pos.SetZ(t.Position().Z())
+	s := self.PixelSize()
+	bounds := self.bounds()
+	pos := self.anchorFunction(self, bounds.X(), bounds.Y(), s)
+	pos.SetZ(0.01)
 	t.SetPosition(pos.AsVec3())
 }
 
-func anchorStretchLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorStretchLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	xSize := self.right
 	ySize := h - (self.top + self.bottom)
 	xMid := xSize*0.5 + self.left
@@ -256,7 +257,7 @@ func anchorStretchLeft(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4
 	return matrix.Vec4{xMid, yMid, xSize, ySize}
 }
 
-func anchorStretchTop(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorStretchTop(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	xSize := w - (self.left + self.right)
 	ySize := self.bottom
 	xMid := self.left + xSize*0.5
@@ -264,7 +265,7 @@ func anchorStretchTop(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 
 	return matrix.Vec4{xMid, yMid, xSize, ySize}
 }
 
-func anchorStretchRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorStretchRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	xSize := self.left
 	ySize := h - (self.top + self.bottom)
 	xMid := w - (xSize * 0.5) - self.right
@@ -272,7 +273,7 @@ func anchorStretchRight(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec
 	return matrix.Vec4{xMid, yMid, xSize, ySize}
 }
 
-func anchorStretchBottom(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorStretchBottom(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	xSize := w - (self.left + self.right)
 	ySize := self.top
 	xMid := self.left + xSize*0.5
@@ -280,7 +281,7 @@ func anchorStretchBottom(self *Layout, w, h float32, size matrix.Vec3) matrix.Ve
 	return matrix.Vec4{xMid, yMid, xSize, ySize}
 }
 
-func anchorStretchCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Vec4 {
+func anchorStretchCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	xSize := w - (self.left + self.right)
 	ySize := h - (self.top + self.bottom)
 	xMid := self.left + xSize*0.5
@@ -290,20 +291,19 @@ func anchorStretchCenter(self *Layout, w, h float32, size matrix.Vec3) matrix.Ve
 
 func layoutStretch(self *Layout) {
 	t := &self.ui.Entity().Transform
-	width := self.bounds.Z() - self.bounds.X()
-	height := self.bounds.W() - self.bounds.Y()
-	res := self.anchorFunction(self, width, height, matrix.Vec3Zero())
-	x := res.X() + self.offset.X()
-	y := res.Y() + self.offset.Y()
+	bounds := self.bounds()
+	res := self.anchorFunction(self, bounds.X(), bounds.Y(), matrix.Vec2Zero())
+	x := res.X() + self.calcOffset().X()
+	y := res.Y() + self.calcOffset().Y()
 	xSize := res.Z()
 	ySize := res.W()
-	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), self.mySize.Z()}
-	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / width
-	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / height
+	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), 1}
+	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / bounds.X()
+	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / bounds.Y()
 	self.ui.Entity().ScaleWithoutChildren(scale)
 	pos := matrix.Vec3{
-		x + self.bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
-		y + self.bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
+		x + bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
+		y + bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
 		t.Position().Z(),
 	}
 	t.SetPosition(pos)
@@ -316,51 +316,21 @@ func (layout *Layout) prepare() {
 	layout.runningFuncs = true
 	layout.functions.Execute(layout)
 	layout.runningFuncs = false
-	layout.setBounds()
 }
 
-func (layout *Layout) setBounds() {
-	t := &layout.ui.Entity().Transform
-	layout.mySize = t.WorldScale()
+func (layout *Layout) bounds() matrix.Vec2 {
 	if layout.ui.Entity().IsRoot() {
-		layout.bounds = matrix.Vec4{0, 0,
+		return matrix.Vec2{
 			matrix.Float(layout.ui.Host().Window.Width()),
 			matrix.Float(layout.ui.Host().Window.Height()),
 		}
-		layout.worldScalar = matrix.Vec2One()
-		et := &layout.ui.Entity().Transform
-		pos := matrix.Vec3{et.Position().X(), et.Position().Y(), layout.z}
-		et.SetPosition(pos)
 	} else {
 		parent := layout.ui.Entity().Parent
 		s := parent.Transform.WorldScale()
-		layout.inset = matrix.Vec4Zero()
-		if parent != nil {
-			pUI := FirstOnEntity(parent)
-			if pUI != nil {
-				pLayout := pUI.Layout()
-				layout.inset.AddAssign(pLayout.margin)
-				layout.inset.AddAssign(pLayout.border)
-				layout.inset.AddAssign(pLayout.padding)
-			}
-		}
-		layout.worldScalar = matrix.Vec2{1.0 / s.X(), 1.0 / s.Y()}
-		layout.bounds = matrix.Vec4{-s.X() * 0.5, -s.Y() * 0.5, s.X() * 0.5, s.Y() * 0.5}
-		// Set this child in front of parent
-		et := &layout.ui.Entity().Transform
-		pos := matrix.Vec3{et.Position().X(), et.Position().Y(), 0.2 + layout.z}
-		et.SetPosition(pos)
-	}
-	if layout.parentChanged() {
-		layout.lastParent = layout.ui.Entity().Parent
-		ps := layout.PixelSize()
-		layout.Scale(ps.Width(), ps.Height())
-		for _, c := range layout.ui.Entity().Children {
-			if ui := FirstOnEntity(c); ui != nil {
-				cl := ui.Layout()
-				cps := cl.PixelSize()
-				cl.Scale(cps.Width(), cps.Height())
-			}
+		pLayout := FirstOnEntity(parent).Layout()
+		return matrix.Vec2{
+			s.X() - pLayout.padding.X() - pLayout.padding.Z() - pLayout.border.X() - pLayout.border.Z(),
+			s.Y() - pLayout.padding.Y() - pLayout.padding.W() - pLayout.border.Y() - pLayout.border.W(),
 		}
 	}
 }
@@ -452,8 +422,9 @@ func (layout *Layout) SetStretch(left, top, right, bottom float32) {
 }
 
 func (layout *Layout) SetStretchRatio(leftRatio, topRatio, rightRatio, bottomRatio float32) {
-	w := layout.bounds.Z() - layout.bounds.X()
-	h := layout.bounds.W() - layout.bounds.Y()
+	bounds := layout.bounds()
+	w := bounds.X()
+	h := bounds.Y()
 	layout.left = w * leftRatio
 	layout.top = h * topRatio
 	layout.right = w * rightRatio
@@ -518,10 +489,10 @@ func (layout *Layout) Offset() matrix.Vec2      { return matrix.Vec2{layout.offs
 
 func (layout *Layout) totalOffsetBounds() matrix.Vec4 {
 	return matrix.Vec4{
-		layout.offset.X(),
-		layout.offset.Y(),
-		layout.offset.X(),
-		layout.offset.Y(),
+		layout.calcOffset().X(),
+		layout.calcOffset().Y(),
+		layout.calcOffset().X(),
+		layout.calcOffset().Y(),
 	}
 }
 
@@ -553,7 +524,7 @@ func (layout *Layout) AnchorTo(anchorPosition Anchor) {
 		return
 	}
 	var lfn func(*Layout) = nil
-	var afn func(*Layout, float32, float32, matrix.Vec3) matrix.Vec4 = nil
+	var afn func(*Layout, float32, float32, matrix.Vec2) matrix.Vec4 = nil
 	if anchorPosition == AnchorTopLeft {
 		afn = anchorTopLeft
 		lfn = layoutFloating
@@ -604,10 +575,6 @@ func (layout *Layout) AnchorTo(anchorPosition Anchor) {
 	layout.layoutFunction = lfn
 	//layout.ui.layoutChanged(DirtyTypeLayout)
 	layout.ui.layoutChanged(DirtyTypeGenerated)
-}
-
-func (layout *Layout) parentChanged() bool {
-	return layout.lastParent != layout.ui.Entity().Parent
 }
 
 func (layout *Layout) update() {

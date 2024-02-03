@@ -187,20 +187,69 @@ func testLayout(host *engine.Host) {
 	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
 	p2.Entity().SetName("p2")
 	p2.SetColor(matrix.ColorBlue())
+	//p2.Layout().SetPadding(5, 5, 5, 5)
+	p2.Layout().SetMargin(5, 5, 5, 5)
 	//p2.DontFitContent()
-	//p2.Layout().SetPositioning(ui.PositioningAbsolute)
 	//p2.Layout().Scale(64, 64)
 	//p2.Layout().SetOffset(10, 10)
-	//p2.Layout().SetPadding(10, 10, 10, 10)
 
 	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
 	p3.Entity().SetName("p3")
 	p3.SetColor(matrix.ColorRed())
 	p3.Layout().Scale(32, 32)
-	p3.Layout().SetMargin(10, 10, 0, 0)
+	p3.Layout().SetOffset(10, 10)
+	//p3.Layout().SetMargin(5, 5, 0, 0)
 
 	p1.AddChild(p2)
 	p2.AddChild(p3)
+}
+
+func testHTMLLayout(host *engine.Host) {
+	const html = `<!DOCTYPE html>
+	<html>
+		<head>
+			<style>
+				body {
+					padding: 0;
+					margin: 0;
+				}
+				#console {
+					position: absolute;
+					top: 0;
+					width: 100%;
+					height: 300px;
+					background-color: #000;
+					padding: 10px;
+					border-bottom: 1px solid white;
+					z-index: 100;
+				}
+				#consoleContent {
+					width: 100%;
+					height: calc(100% - 30px);
+					overflow-y: scroll;
+					color: white;
+					background-color: orange;
+				}
+				#consoleInputArea {
+					position: absolute;
+					width: 100%;
+					height: 32px;
+					bottom: 0;
+				}
+				#consoleInput {
+					width: 100%;
+					height: 32px;
+				}
+			</style>
+		</head>
+		<body>
+			<div id="console">
+				<div id="consoleContent">
+				</div>
+			</div>
+		</body>
+	</html>`
+	uimarkup.DocumentFromHTMLString(host, html, "", nil, nil)
 }
 
 const (
@@ -256,7 +305,8 @@ func main() {
 	//testHTML(&host)
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
-	testLayout(&host)
+	//testLayout(&host)
+	testHTMLLayout(&host)
 	//addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
