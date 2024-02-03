@@ -119,6 +119,7 @@ func testOIT(host *engine.Host) {
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
 		})
+		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
 
@@ -290,6 +291,27 @@ func addConsole(host *engine.Host) {
 	})
 }
 
+func testEntityNames(host *engine.Host) {
+	demoData := struct {
+		EntityNames []string
+	}{
+		EntityNames: make([]string, 0),
+	}
+
+	for _, entity := range host.Entities() {
+		demoData.EntityNames = append(demoData.EntityNames, entity.Name())
+	}
+
+	//var doc *markup.Document = nil
+	//if doc != nil {
+	//	for _, elm := range doc.Elements {
+	//		elm.UI.Entity().Destroy()
+	//	}
+	//}
+	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/hierachy/hierachy.html"))
+	uimarkup.DocumentFromHTMLString(host, html, "", demoData, nil)
+}
+
 func main() {
 	lastTime := time.Now()
 	host, err := engine.NewHost()
@@ -303,7 +325,7 @@ func main() {
 	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	//testOIT(&host)
+	testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
 	//testButton(&host)
@@ -312,7 +334,8 @@ func main() {
 	//testLayoutSimple(&host)
 	//testLayout(&host)
 	//testHTMLLayout(&host)
-	addConsole(&host)
+	//addConsole(&host)
+	testEntityNames(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
