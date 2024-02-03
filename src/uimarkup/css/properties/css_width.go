@@ -28,6 +28,7 @@ func (p Width) Process(panel *ui.Panel, elm markup.DocElement, values []rules.Pr
 				s := pLayout.PixelSize().X()
 				pPad := pLayout.Padding()
 				s -= pPad.X() + pPad.Z()
+				// Subtracting local padding because it's added in final scale
 				p := l.Padding()
 				w := s*width - p.X() - p.Z()
 				l.ScaleWidth(w)

@@ -84,7 +84,6 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		host.Updater.RemoveUpdate(panel.updateId)
 		panel.updateId = 0
 	})
-	panel.layout.AddFunction(func(l *Layout) { panel.runLayout() })
 	return panel
 }
 
@@ -211,7 +210,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 	}
 }
 
-func (panel *Panel) runLayout() {
+func (panel *Panel) postLayoutUpdate() {
 	if len(panel.entity.Children) == 0 {
 		return
 	}

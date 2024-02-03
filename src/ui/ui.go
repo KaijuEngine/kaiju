@@ -47,6 +47,7 @@ type UI interface {
 	setScissor(scissor matrix.Vec4)
 	layoutChanged(dirtyType DirtyType)
 	cleanDirty()
+	postLayoutUpdate()
 }
 
 type uiBase struct {
@@ -95,6 +96,7 @@ func (ui *uiBase) Host() *engine.Host       { return ui.host }
 func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
 func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
 func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
+func (ui *uiBase) postLayoutUpdate()        {}
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
@@ -169,6 +171,7 @@ func (ui *uiBase) Clean() {
 		for i := range tree {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
+			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}

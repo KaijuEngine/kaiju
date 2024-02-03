@@ -224,8 +224,9 @@ func testHTMLLayout(host *engine.Host) {
 					z-index: 100;
 				}
 				#consoleContent {
+					padding: 0;
 					width: 100%;
-					height: calc(100% - 30px);
+					height: calc(100% - 32px);
 					overflow-y: scroll;
 					color: white;
 					background-color: orange;

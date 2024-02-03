@@ -327,11 +327,7 @@ func (layout *Layout) bounds() matrix.Vec2 {
 	} else {
 		parent := layout.ui.Entity().Parent
 		s := parent.Transform.WorldScale()
-		pLayout := FirstOnEntity(parent).Layout()
-		return matrix.Vec2{
-			s.X() - pLayout.padding.X() - pLayout.padding.Z() - pLayout.border.X() - pLayout.border.Z(),
-			s.Y() - pLayout.padding.Y() - pLayout.padding.W() - pLayout.border.Y() - pLayout.border.W(),
-		}
+		return matrix.Vec2{s.X(), s.Y()}
 	}
 }
 
