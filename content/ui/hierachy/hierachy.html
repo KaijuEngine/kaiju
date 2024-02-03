@@ -23,13 +23,17 @@
 				overflow-y: scroll;
 				color: white;
 			}
+			.entry {
+				width: 100%;
+				height: 32px;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="console">
 			<div id="consoleContent">
 				{{range .EntityNames}}
-					Entity: {{.}}
+					<div class="entry">Entity: {{.}}</div>
 				{{end}}
 			</div>
 		</div>
