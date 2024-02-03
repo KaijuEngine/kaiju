@@ -152,9 +152,20 @@ func testHTML(host *engine.Host) {
 		"showSettings": func(*markup.DocElement) { println("Clicked showSettings") },
 		"showRules":    func(*markup.DocElement) { println("Clicked showRules") },
 	}
-	testHTML, _ := host.AssetDatabase().ReadText("ui/test.html")
-	testCSS, _ := host.AssetDatabase().ReadText("ui/test.css")
+	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
+	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
 	uimarkup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
+}
+
+func testHTMLBinding(host *engine.Host) {
+	demoData := struct {
+		EntityNames []string
+	}{
+		EntityNames: []string{"Entity 1", "Entity 2", "Entity 3"},
+	}
+
+	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
+	uimarkup.DocumentFromHTMLString(host, testHTML, "", demoData, nil)
 }
 
 func testLayoutSimple(host *engine.Host) {
@@ -312,7 +323,8 @@ func main() {
 	//testLayoutSimple(&host)
 	//testLayout(&host)
 	//testHTMLLayout(&host)
-	addConsole(&host)
+	testHTMLBinding(&host)
+	//addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
