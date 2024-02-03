@@ -14,6 +14,7 @@ import (
 const (
 	distanceFieldSize  = 64.0
 	distanceFieldRange = 4.0
+	invalidRuneProxy   = '_'
 )
 
 type FontJustify int
@@ -183,7 +184,7 @@ func (c fontBinChar) AtlasHeight() float32 {
 func findBinChar(font fontBin, letter rune) fontBinChar {
 	cached, ok := font.letters[letter]
 	if !ok {
-		cached = font.letters['▩']
+		cached = font.letters[invalidRuneProxy]
 	}
 	return cached
 }
@@ -228,11 +229,10 @@ func (cache FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool)
 		outLetter, ok = font.cachedLetters[letter]
 	}
 	if !ok {
-		letter = '▩'
 		if isOrtho {
-			outLetter, ok = font.cachedOrthoLetters[letter]
+			outLetter = font.cachedOrthoLetters[invalidRuneProxy]
 		} else {
-			outLetter, ok = font.cachedLetters[letter]
+			outLetter = font.cachedLetters[invalidRuneProxy]
 		}
 	}
 	return outLetter
@@ -427,13 +427,13 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				//pxRange := matrix.Vec2{
 				//	(ch.Width() * scale) / ch.AtlasWidth() * distanceFieldRange,
 				//	(ch.Height() * scale) / ch.AtlasHeight() * distanceFieldRange}
-				uvs := matrix.Vec4Zero()
+				var uvs matrix.Vec4
 				var clm *cachedLetterMesh = nil
 				if instanced {
 					clm = cache.cachedMeshLetter(fontFace, c, !is3D)
 				}
 				var m *Mesh
-				shaderData := TextShaderData{
+				shaderData := &TextShaderData{
 					ShaderDataBase: NewShaderDataBase(),
 				}
 				model := matrix.Mat4Identity()
@@ -484,7 +484,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					Shader:     shader,
 					Mesh:       m,
 					Textures:   []*Texture{fontFace.texture},
-					ShaderData: &shaderData,
+					ShaderData: shaderData,
 					Transform:  nil,
 				})
 				cx += ch.advance * scale * inverseWidth
