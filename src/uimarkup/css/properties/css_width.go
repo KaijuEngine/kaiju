@@ -36,7 +36,7 @@ func (p Width) Process(panel *ui.Panel, elm markup.DocElement, values []rules.Pr
 		} else {
 			panel.Layout().ScaleWidth(width)
 		}
-		panel.DontFitContent()
+		panel.DontFitContentWidth()
 	}
 	return err
 }

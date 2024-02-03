@@ -47,7 +47,7 @@ func (p Height) Process(panel *ui.Panel, elm markup.DocElement, values []rules.P
 		} else {
 			panel.Layout().ScaleHeight(height)
 		}
-		panel.DontFitContent()
+		panel.DontFitContentHeight()
 	}
 	return err
 }

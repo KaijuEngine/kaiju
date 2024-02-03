@@ -215,59 +215,6 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func testHTMLLayout(host *engine.Host) {
-	const html = `<!DOCTYPE html>
-	<html>
-		<head>
-			<style>
-				body {
-					padding: 0;
-					margin: 0;
-				}
-				#console {
-					position: absolute;
-					top: 0;
-					width: 100%;
-					height: 300px;
-					background-color: #000;
-					padding: 10px;
-					border-bottom: 1px solid white;
-					z-index: 100;
-				}
-				#consoleContent {
-					padding: 0;
-					width: 100%;
-					height: calc(100% - 32px);
-					overflow-y: scroll;
-					color: white;
-					background-color: orange;
-				}
-				#consoleInputArea {
-					position: absolute;
-					width: 100%;
-					height: 32px;
-					bottom: 0;
-				}
-				#consoleInput {
-					width: 100%;
-					height: 100%;
-				}
-			</style>
-		</head>
-		<body>
-			<div id="console">
-				<div id="consoleContent">
-					[Kaiju Console]
-				</div>
-				<div id="consoleInputArea">
-					<input id="consoleInput" type="text" placeholder="Command..." />
-				</div>
-			</div>
-		</body>
-	</html>`
-	uimarkup.DocumentFromHTMLString(host, html, "", nil, nil)
-}
-
 const (
 	pprofCPU  = "cpu.prof"
 	pprofHeap = "heap.prof"
@@ -322,7 +269,6 @@ func main() {
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
 	//testLayout(&host)
-	//testHTMLLayout(&host)
 	testHTMLBinding(&host)
 	//addConsole(&host)
 	for !host.Closing {
