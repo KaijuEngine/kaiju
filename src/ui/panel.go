@@ -206,7 +206,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		}
 		x += e.Layout().margin.X()
 		y += rb.maxMarginTop
-		e.Layout().SetOffset(x, -y)
+		e.Layout().SetOffset(x, y)
 		offsetX += e.Layout().PixelSize().Width() + e.Layout().margin.X() + e.Layout().margin.Z()
 	}
 }
@@ -258,11 +258,14 @@ func (panel *Panel) runLayout() {
 	if panel.fitContent {
 		s := panel.layout.PixelSize()
 		bounds := matrix.Vec2{s.X(), s.Y()}
+		panelScale := panel.entity.Transform.WorldScale().Scale(0.5)
 		for _, kid := range panel.entity.Children {
 			pos := kid.Transform.Position()
+			pos[matrix.Vx] += panelScale.X()
+			pos[matrix.Vy] -= panelScale.Y()
 			size := kid.Transform.WorldScale().Scale(0.5)
 			r := matrix.Abs(pos.X()) + size.X()
-			b := -pos.Y() + size.Y()
+			b := matrix.Abs(pos.Y()) + size.Y()
 			bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
 		}
 		panel.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))

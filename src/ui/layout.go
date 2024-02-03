@@ -518,14 +518,10 @@ func (layout *Layout) Offset() matrix.Vec2      { return matrix.Vec2{layout.offs
 
 func (layout *Layout) totalOffsetBounds() matrix.Vec4 {
 	return matrix.Vec4{
-		layout.offset.X() + layout.innerOffset.X() + layout.localInnerOffset.X() +
-			layout.padding.X() + layout.margin.X(),
-		layout.offset.Y() + layout.innerOffset.Y() + layout.localInnerOffset.Y() +
-			layout.padding.Y() + layout.margin.Y(),
-		layout.offset.X() + layout.innerOffset.Z() + layout.localInnerOffset.Z() +
-			layout.padding.Z() + layout.margin.Z(),
-		layout.offset.Y() + layout.innerOffset.W() + layout.localInnerOffset.W() +
-			layout.padding.W() + layout.margin.W(),
+		layout.offset.X(),
+		layout.offset.Y(),
+		layout.offset.X(),
+		layout.offset.Y(),
 	}
 }
 

@@ -180,24 +180,27 @@ func testLayoutSimple(host *engine.Host) {
 func testLayout(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
-	p1 := ui.NewPanel(host, tex, ui.AnchorBottomLeft)
+	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p1.Entity().SetName("p1")
 	//p1.Layout().Scale(300, 100)
 
 	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p2.Entity().SetName("p2")
 	p2.SetColor(matrix.ColorBlue())
-	p2.DontFitContent()
-	p2.Layout().SetPositioning(ui.PositioningAbsolute)
-	p2.Layout().Scale(64, 64)
-	p2.Layout().SetOffset(10, 10)
+	//p2.DontFitContent()
+	//p2.Layout().SetPositioning(ui.PositioningAbsolute)
+	//p2.Layout().Scale(64, 64)
+	//p2.Layout().SetOffset(10, 10)
 	//p2.Layout().SetPadding(10, 10, 10, 10)
 
-	//p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
-	//p3.SetColor(matrix.ColorRed())
-	//p3.Layout().Scale(32, 32)
-	//p3.Layout().SetOffset(10, 10)
+	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
+	p3.Entity().SetName("p3")
+	p3.SetColor(matrix.ColorRed())
+	p3.Layout().Scale(32, 32)
+	p3.Layout().SetMargin(10, 10, 0, 0)
 
 	p1.AddChild(p2)
-	//p2.AddChild(p3)
+	p2.AddChild(p3)
 }
 
 const (
@@ -258,7 +261,6 @@ func main() {
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
-		println(since.Milliseconds())
 		lastTime = time.Now()
 		host.Update(deltaTime)
 		host.Render()

@@ -167,10 +167,9 @@ func (ui *uiBase) Clean() {
 	for !stabilized {
 		stabilized = true
 		for i := range tree {
-			ds := tree[i].dirty()
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
-			stabilized = stabilized && ds == DirtyTypeNone
+			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}
 	for i := range tree {
