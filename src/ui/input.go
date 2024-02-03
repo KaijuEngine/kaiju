@@ -454,8 +454,11 @@ func (input *Input) Text() string {
 }
 
 func (input *Input) SetText(text string) {
-	input.moveCursor(len(text))
-	input.setText(text)
+	if input.Text() != text {
+		input.moveCursor(0)
+		input.setText(text)
+		input.moveCursor(len(text))
+	}
 }
 
 func (input *Input) SetPlaceholder(text string) {
