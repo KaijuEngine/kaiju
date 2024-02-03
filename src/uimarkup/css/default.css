@@ -58,35 +58,36 @@ caption {
 cite {
 	font-style: italic;
 }
-code { 
+code {
 	font-family: monospace;
 }
-col { 
+col {
 	display: table-column;
 }
-colgroup { 
+colgroup {
 	display: table-column-group;
 }
-datalist { 
+datalist {
 	display: none;
 }
-dd { 
+dd {
 	display: block;
 	margin-left: 40px;
 }
-del { 
+del {
 	text-decoration: line-through;
 }
-details { 
+details {
 	display: block;
 }
-dfn { 
+dfn {
 	font-style: italic;
 }
-div { 
+div {
 	display: block;
+	width: 100%;
 }
-dl { 
+dl {
 	display: block;
 	margin-top: 1em;
 	margin-bottom: 1em;
@@ -254,7 +255,7 @@ menu {
 	margin-right: 0;
 	padding-left: 40px;
 }
-nav { display: block;
+nav {display: block;
 }
 object:focus {
 	outline: none;
@@ -365,7 +366,7 @@ thead {
 	vertical-align: middle;
 	border-color: inherit;
 }
-title { display: none;
+title {display: none;
 }
 tr {
 	display: table-row;

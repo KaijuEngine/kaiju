@@ -152,9 +152,20 @@ func testHTML(host *engine.Host) {
 		"showSettings": func(*markup.DocElement) { println("Clicked showSettings") },
 		"showRules":    func(*markup.DocElement) { println("Clicked showRules") },
 	}
-	testHTML, _ := host.AssetDatabase().ReadText("ui/test.html")
-	testCSS, _ := host.AssetDatabase().ReadText("ui/test.css")
+	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
+	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
 	uimarkup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
+}
+
+func testHTMLBinding(host *engine.Host) {
+	demoData := struct {
+		EntityNames []string
+	}{
+		EntityNames: []string{"Entity 1", "Entity 2", "Entity 3"},
+	}
+
+	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
+	uimarkup.DocumentFromHTMLString(host, testHTML, "", demoData, nil)
 }
 
 func testLayoutSimple(host *engine.Host) {
@@ -202,59 +213,6 @@ func testLayout(host *engine.Host) {
 
 	p1.AddChild(p2)
 	p2.AddChild(p3)
-}
-
-func testHTMLLayout(host *engine.Host) {
-	const html = `<!DOCTYPE html>
-	<html>
-		<head>
-			<style>
-				body {
-					padding: 0;
-					margin: 0;
-				}
-				#console {
-					position: absolute;
-					top: 0;
-					width: 100%;
-					height: 300px;
-					background-color: #000;
-					padding: 10px;
-					border-bottom: 1px solid white;
-					z-index: 100;
-				}
-				#consoleContent {
-					padding: 0;
-					width: 100%;
-					height: calc(100% - 32px);
-					overflow-y: scroll;
-					color: white;
-					background-color: orange;
-				}
-				#consoleInputArea {
-					position: absolute;
-					width: 100%;
-					height: 32px;
-					bottom: 0;
-				}
-				#consoleInput {
-					width: 100%;
-					height: 100%;
-				}
-			</style>
-		</head>
-		<body>
-			<div id="console">
-				<div id="consoleContent">
-					[Kaiju Console]
-				</div>
-				<div id="consoleInputArea">
-					<input id="consoleInput" type="text" placeholder="Command..." />
-				</div>
-			</div>
-		</body>
-	</html>`
-	uimarkup.DocumentFromHTMLString(host, html, "", nil, nil)
 }
 
 const (
@@ -311,8 +269,8 @@ func main() {
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
 	//testLayout(&host)
-	//testHTMLLayout(&host)
-	addConsole(&host)
+	testHTMLBinding(&host)
+	//addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
