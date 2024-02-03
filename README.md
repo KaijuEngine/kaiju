@@ -3,6 +3,8 @@ Kaiju Engine is a 2D/3D game engine being developed in the Go programming langua
 
 If you'd like occasional updates on what I'm doing here, I post them [Twitter/X](https://twitter.com/KaijuCoder)
 
+Our discord server is located here: [Discord](https://discord.gg/HYj7Dh7ke3)
+
 ## Go language
 Being a stubborn C programmer for most of my programming life, it was not easy to make the decision to use Go for the engine, nor was it made lightly. The bridge from C to Go started when I found out it was partly designed by Ken Thompson (partly responsible for C itself), and that it was created out of the frustration of C++. We wish to develop a game engine with the maximum performance and simplicity of design, Go can do this for us. We're not here to get into a language flame war, so just trust us here on this and just have fun!
 
