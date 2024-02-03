@@ -41,7 +41,7 @@ func (h *history) forward() string {
 	if len(h.data) == 0 {
 		return ""
 	}
-	if h.idx < len(h.data)-1 {
+	if h.idx < len(h.data) {
 		h.idx++
 	}
 	return h.data[h.idx]
