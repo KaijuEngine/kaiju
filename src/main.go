@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kaiju/assets"
 	"kaiju/bootstrap"
+	"kaiju/editor/project/ui/hierarchy"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -268,10 +269,10 @@ func addConsole(host *engine.Host) {
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
-	//hrc := hierarchy.New()
-	console.For(host).AddCommand("Hierarchy", func(string) string {
-		//	hrc.Destroy()
-		//	hrc.Create(host)
+	hrc := hierarchy.New()
+	console.For(host).AddCommand("hrc", func(string) string {
+		hrc.Destroy()
+		hrc.Create(host)
 		return ""
 	})
 	console.For(host).AddCommand("pprof", func(arg string) string {
@@ -310,7 +311,7 @@ func main() {
 	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	testOIT(&host)
+	//testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
 	//testButton(&host)
