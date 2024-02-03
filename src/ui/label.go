@@ -102,6 +102,7 @@ func (label *Label) clearDrawings() {
 
 func (label *Label) render() {
 	label.clearDrawings()
+	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {
 		maxWidth := float32(999999.0)
 		if label.wordWrap {
