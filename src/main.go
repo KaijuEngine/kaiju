@@ -161,7 +161,7 @@ func testHTMLBinding(host *engine.Host) {
 	demoData := struct {
 		EntityNames []string
 	}{
-		EntityNames: []string{"Entity 1", "Entity 2", "Entity 3"},
+		EntityNames: []string{"Entity 1", "\tEntity 2", "\t\tEntity 3"},
 	}
 
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
