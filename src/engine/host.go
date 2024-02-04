@@ -80,9 +80,9 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	//gl.ClearScreen()
-	//host.Window.SwapBuffers()
-	// TODO:  Do end updates on various systems
+	for _, e := range host.entities {
+		e.TickCleanup()
+	}
 	host.Window.EndUpdate()
 }
 
