@@ -101,7 +101,6 @@ func (label *Label) clearDrawings() {
 }
 
 func (label *Label) postLayoutUpdate() {
-	label.fixSize()
 }
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
@@ -174,16 +173,6 @@ func (label *Label) SetText(text string) {
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = make([]colorRange, 0)
-	label.fixSize()
-}
-
-func (label *Label) fixSize() {
-	wh := label.measure(label.MaxWidth())
-	if label.layout.ScaleHeight(wh.Y()) && !label.entity.IsRoot() {
-		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
-		//label.SetDirty(DirtyTypeReGenerated)
-		label.GenerateScissor()
-	}
 }
 
 func (label *Label) setLabelScissors() {
