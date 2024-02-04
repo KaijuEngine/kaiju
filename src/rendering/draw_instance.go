@@ -138,7 +138,7 @@ func (d *DrawInstanceGroup) VisibleSize() int {
 	return d.visibleCount * (d.instanceSize + d.padding)
 }
 
-func (d *DrawInstanceGroup) UpdateData() {
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 	base := unsafe.Pointer(&d.instanceData[0])
 	offset := uintptr(0)
 	count := len(d.Instances)
@@ -163,4 +163,7 @@ func (d *DrawInstanceGroup) UpdateData() {
 		d.instanceData = d.instanceData[:newMemLen]
 	}
 	d.bindInstanceDriverData()
+	if len(d.Instances) == 0 {
+		renderer.DestroyGroup(d)
+	}
 }

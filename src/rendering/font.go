@@ -195,12 +195,12 @@ func (cache FontCache) charCountInWidth(font fontBin, text string, maxWidth, sca
 	wx := float32(0.0)
 	textLen := len(text)
 	for i, r := range text {
-		if r == ' ' {
-			spaceIndex = i
-		} else if r == '\n' {
+		if r == '\n' {
 			spaceIndex = i
 			wrap = true
 			break
+		} else if unicode.IsSpace(r) {
+			spaceIndex = i
 		}
 		// TODO:  Optimize this to use a linear array
 		ch := findBinChar(font, r)
@@ -312,9 +312,24 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 		bin.letters[fbc.letter] = fbc
 	}
 	sample := findBinChar(bin, 'j')
-	cSpace := fontBinChar{letter: ' ', advance: sample.advance,
-		planeBounds: sample.planeBounds, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
+	cSpace := fontBinChar{
+		letter:      ' ',
+		advance:     sample.advance,
+		planeBounds: sample.planeBounds,
+		atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0},
+	}
+	const tabRune = '\t'
+	const tabSize = 4
+	cTab := fontBinChar{
+		letter:      tabRune,
+		advance:     cSpace.advance * 4,
+		planeBounds: cSpace.planeBounds,
+		atlasBounds: cSpace.atlasBounds,
+	}
+	cTab.planeBounds[0] *= tabSize / 2
+	cTab.planeBounds[2] *= tabSize / 2
 	bin.letters[' '] = cSpace
+	bin.letters[tabRune] = cTab
 	cReturn := fontBinChar{letter: '\r', advance: 0.0,
 		planeBounds: [4]float32{0, 0, 0, 0}, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
 	bin.letters['\r'] = cReturn
@@ -365,12 +380,12 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	runes := []rune(text)
 	for current < textLen {
 		if maxWidth > 0 {
-			charLen = cache.charCountInWidth(fontFace, text[current:], maxWidth, scale)
+			charLen = cache.charCountInWidth(fontFace, string(runes[current:]), maxWidth, scale)
 		}
 		lineWidth := float32(0.0)
 		maxHeight := fontFace.metrics.LineHeight * -scale
 		if charLen > 0 || unicode.IsSpace(runes[current]) {
-			for _, c := range text[current : current+charLen] {
+			for _, c := range runes[current : current+charLen] {
 				if c != '\n' {
 					ch := findBinChar(fontFace, c)
 					lineWidth += ch.advance * scale
@@ -401,7 +416,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		yOffset -= fontFace.metrics.Descender * scale
 		yOffset *= inverseHeight
 
-		if charLen > 0 || text[current] != ' ' {
+		if charLen > 0 || (unicode.IsSpace(runes[current]) && runes[current] != '\n') {
 			for i := current; i < current+charLen; i++ {
 				c := runes[i]
 				if c == '\n' {
@@ -536,11 +551,12 @@ func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, 
 	rects := make([]matrix.Vec4, 0)
 	current := 0
 	var x, y, height float32 = 0.0, 0.0, 0.0
+	runes := []rune(text)
 	for current < len(text) {
 		offset := current
-		count := cache.charCountInWidth(fontFace, text[current:], maxWidth, scale)
+		count := cache.charCountInWidth(fontFace, string(runes[current:]), maxWidth, scale)
 		x = 0.0
-		for _, r := range text[offset : offset+count] {
+		for _, r := range runes[offset : offset+count] {
 			ch := findBinChar(fontFace, r)
 			w := ch.advance * scale
 			h := fontFace.metrics.LineHeight * scale
@@ -560,8 +576,9 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 	textLen := len(text)
 	current := 0
 	fontFace := cache.fontFaces[face.string()]
+	runes := []rune(text)
 	for current < textLen {
-		current += cache.charCountInWidth(fontFace, text[current:], maxWidth, scale)
+		current += cache.charCountInWidth(fontFace, string(runes[current:]), maxWidth, scale)
 		lines++
 	}
 	return max(1, lines)

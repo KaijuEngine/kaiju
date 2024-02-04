@@ -119,6 +119,21 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *mar
 	}
 }
 
+func cleanMapDuplicates(cssMap CSSMap) {
+	for k, v := range cssMap {
+		for i := range v {
+			for j := i + 1; j < len(v); j++ {
+				if v[i].Property == v[j].Property {
+					v = append(v[:i], v[i+1:]...)
+					i--
+					break
+				}
+			}
+		}
+		cssMap[k] = v
+	}
+}
+
 func Apply(s rules.StyleSheet, doc *markup.Document, host *engine.Host) {
 	cssMap := CSSMap(make(map[ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
@@ -130,6 +145,7 @@ func Apply(s rules.StyleSheet, doc *markup.Document, host *engine.Host) {
 			}
 		}
 	}
+	cleanMapDuplicates(cssMap)
 	applyMappings(doc, cssMap, host)
 	for _, elm := range doc.Elements {
 		if inlineStyle := elm.HTML.Attribute("style"); inlineStyle != "" {

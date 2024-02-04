@@ -100,8 +100,23 @@ func (label *Label) clearDrawings() {
 	label.runeDrawings = label.runeDrawings[:0]
 }
 
+func (label *Label) postLayoutUpdate() {
+}
+
+func (label *Label) updateHeight(maxWidth float32) {
+	m := label.measure(label.MaxWidth())
+	label.layout.ScaleHeight(m.Y())
+}
+
+func (label *Label) measure(maxWidth float32) matrix.Vec2 {
+	return label.host.FontCache().MeasureStringWithin(label.fontFace,
+		label.text, label.fontSize, maxWidth)
+}
+
 func (label *Label) render() {
+	label.updateHeight(label.MaxWidth())
 	label.clearDrawings()
+	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {
 		maxWidth := float32(999999.0)
 		if label.wordWrap {
@@ -164,17 +179,6 @@ func (label *Label) SetText(text string) {
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = make([]colorRange, 0)
-	label.fixSize()
-}
-
-func (label *Label) fixSize() {
-	wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
-		label.text, label.fontSize, label.MaxWidth())
-	if label.layout.ScaleHeight(wh.Y()) && !label.entity.IsRoot() {
-		FirstOnEntity(label.entity.Parent).SetDirty(DirtyTypeLayout)
-		//label.SetDirty(DirtyTypeReGenerated)
-		label.GenerateScissor()
-	}
 }
 
 func (label *Label) setLabelScissors() {

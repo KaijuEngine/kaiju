@@ -39,6 +39,15 @@ type childScrollEvent struct {
 type localData interface {
 }
 
+type ContentFit = int32
+
+const (
+	ContentFitNone = iota
+	ContentFitWidth
+	ContentFitHeight
+	ContentFitBoth
+)
+
 type Panel struct {
 	uiBase
 	scroll, offset, maxScroll     matrix.Vec2
@@ -52,7 +61,7 @@ type Panel struct {
 	innerUpdate                   func(deltaTime float64)
 	isScrolling, dragging, frozen bool
 	isButton                      bool
-	fitContent                    bool
+	fitContent                    ContentFit
 }
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
@@ -61,7 +70,7 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		scrollSpeed:     30.0,
 		scrollDirection: PanelScrollDirectionVertical,
 		color:           matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:      true,
+		fitContent:      ContentFitBoth,
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
@@ -87,16 +96,62 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	return panel
 }
 
+func (panel *Panel) DontFitContentWidth() {
+	switch panel.fitContent {
+	case ContentFitBoth:
+		panel.fitContent = ContentFitHeight
+	case ContentFitWidth:
+		panel.fitContent = ContentFitNone
+	}
+}
+
+func (panel *Panel) DontFitContentHeight() {
+	switch panel.fitContent {
+	case ContentFitBoth:
+		panel.fitContent = ContentFitWidth
+	case ContentFitHeight:
+		panel.fitContent = ContentFitNone
+	}
+}
+
 func (panel *Panel) DontFitContent() {
-	panel.fitContent = false
+	panel.fitContent = ContentFitNone
 }
 
 func (panel *Panel) FittingContent() bool {
-	return panel.fitContent
+	return panel.fitContent != ContentFitNone
+}
+
+func (panel *Panel) FitContentWidth() {
+	switch panel.fitContent {
+	case ContentFitNone:
+		panel.fitContent = ContentFitWidth
+	case ContentFitHeight:
+		panel.fitContent = ContentFitBoth
+	}
+	if panel.dirtyType == DirtyTypeNone {
+		panel.SetDirty(DirtyTypeLayout)
+	} else {
+		panel.SetDirty(DirtyTypeGenerated)
+	}
+}
+
+func (panel *Panel) FitContentHeight() {
+	switch panel.fitContent {
+	case ContentFitNone:
+		panel.fitContent = ContentFitHeight
+	case ContentFitWidth:
+		panel.fitContent = ContentFitBoth
+	}
+	if panel.dirtyType == DirtyTypeNone {
+		panel.SetDirty(DirtyTypeLayout)
+	} else {
+		panel.SetDirty(DirtyTypeGenerated)
+	}
 }
 
 func (panel *Panel) FitContent() {
-	panel.fitContent = true
+	panel.fitContent = ContentFitBoth
 	if panel.dirtyType == DirtyTypeNone {
 		panel.SetDirty(DirtyTypeLayout)
 	} else {
@@ -226,11 +281,10 @@ func (panel *Panel) postLayoutUpdate() {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
 		}
-		target := FirstOnEntity(kid)
-		if target == nil {
+		kui := FirstOnEntity(kid)
+		if kui == nil {
 			panic("No UI component on entity")
 		}
-		kui := target
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
@@ -262,19 +316,37 @@ func (panel *Panel) postLayoutUpdate() {
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
 	nextPos[matrix.Vy] += panel.layout.padding.W()
-	if panel.fitContent {
+	if panel.FittingContent() {
 		bounds := matrix.Vec2{0, 0}
 		panelScale := panel.entity.Transform.WorldScale().Scale(0.5)
 		for _, kid := range panel.entity.Children {
 			pos := kid.Transform.Position()
 			pos[matrix.Vx] += panelScale.X()
 			pos[matrix.Vy] -= panelScale.Y()
-			size := kid.Transform.WorldScale().Scale(0.5)
-			r := matrix.Abs(pos.X()) + size.X()
-			b := matrix.Abs(pos.Y()) + size.Y()
+			kui := FirstOnEntity(kid)
+			var r, b matrix.Float
+			if lbl, ok := kui.(*Label); ok {
+				maxWidth := matrix.Float(1000000.0)
+				if !panel.entity.IsRoot() {
+					maxWidth = panel.entity.Parent.Transform.WorldScale().X()
+				}
+				size := lbl.measure(maxWidth)
+				r = matrix.Abs(pos.X()) + size.X()
+				b = matrix.Abs(pos.Y()) + size.Y()
+			} else {
+				size := kid.Transform.WorldScale().Scale(0.5)
+				r = matrix.Abs(pos.X()) + size.X()
+				b = matrix.Abs(pos.Y()) + size.Y()
+			}
 			bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
 		}
-		panel.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))
+		if panel.fitContent == ContentFitWidth {
+			panel.layout.ScaleWidth(max(1, bounds.X()))
+		} else if panel.fitContent == ContentFitHeight {
+			panel.layout.ScaleHeight(max(1, bounds.Y()))
+		} else if panel.fitContent == ContentFitBoth {
+			panel.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))
+		}
 	}
 	length := nextPos.Subtract(offsetStart)
 	last := panel.maxScroll
