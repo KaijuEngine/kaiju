@@ -21,4 +21,5 @@ type Renderer interface {
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
+	DestroyGroup(group *DrawInstanceGroup)
 }

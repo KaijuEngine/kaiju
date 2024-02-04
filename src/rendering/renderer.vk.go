@@ -48,6 +48,7 @@ type oitPass struct {
 	transparentRenderPass  vk.RenderPass
 	transparentFrameBuffer vk.Framebuffer
 	descriptorSets         [maxFramesInFlight]vk.DescriptorSet
+	descriptorPool         vk.DescriptorPool
 }
 
 func (oit *oitPass) reset(vr *Vulkan) {
@@ -98,7 +99,7 @@ type Vulkan struct {
 	swapChainExtent            vk.Extent2D
 	renderPass                 vk.RenderPass
 	imageIndex                 [maxFramesInFlight]uint32
-	descriptorPool             vk.DescriptorPool
+	descriptorPools            []vk.DescriptorPool
 	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
 	globalUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
 	pendingDeletes             []pendingDelete
@@ -373,24 +374,32 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 		log.Printf("%s", "Failed to create descriptor pool")
 		return false
 	} else {
-		vr.descriptorPool = descriptorPool
+		vr.descriptorPools = append(vr.descriptorPools, descriptorPool)
 		return true
 	}
 }
 
-func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout) ([maxFramesInFlight]vk.DescriptorSet, error) {
+func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int) ([maxFramesInFlight]vk.DescriptorSet, vk.DescriptorPool, error) {
 	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{layout, layout}
 	allocInfo := vk.DescriptorSetAllocateInfo{}
 	allocInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
-	allocInfo.DescriptorPool = vr.descriptorPool
+	allocInfo.DescriptorPool = vr.descriptorPools[poolIdx]
 	allocInfo.DescriptorSetCount = maxFramesInFlight
 	allocInfo.PSetLayouts = layouts[:]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
 	res := vk.AllocateDescriptorSets(vr.device, &allocInfo, &sets[0])
 	if res != vk.Success {
-		return sets, errors.New("failed to allocate descriptor sets")
+		if res == vk.ErrorOutOfPoolMemory {
+			if poolIdx < len(vr.descriptorPools)-1 {
+				return vr.createDescriptorSet(layout, poolIdx+1)
+			} else {
+				vr.createDescriptorPool(1000)
+				return vr.createDescriptorSet(layout, poolIdx+1)
+			}
+		}
+		return sets, nil, errors.New("failed to allocate descriptor sets")
 	}
-	return sets, nil
+	return sets, vr.descriptorPools[poolIdx], nil
 }
 
 func (vr *Vulkan) updateGlobalUniformBuffer(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) {
@@ -1579,7 +1588,7 @@ func (vr *Vulkan) createCompositeResources(windowWidth, windowHeight float32, sh
 		// TODO:  Return the error
 		return false
 	}
-	vr.oit.descriptorSets = klib.MustReturn(vr.createDescriptorSet(vr.oit.compositeShader.RenderId.descriptorSetLayout))
+	vr.oit.descriptorSets, vr.oit.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(vr.oit.compositeShader.RenderId.descriptorSetLayout, 0))
 	vr.createTextureSampler(&vr.oit.weightedColor.Sampler,
 		vr.oit.weightedColor.MipLevels, vk.FilterLinear)
 	vr.createTextureSampler(&vr.oit.weightedReveal.Sampler,
@@ -1699,7 +1708,9 @@ func (vr *Vulkan) free() {
 			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
 			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
 		}
-		vk.DestroyDescriptorPool(vr.device, vr.descriptorPool, nil)
+		for i := range vr.descriptorPools {
+			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
+		}
 
 		vk.DestroyRenderPass(vr.device, vr.renderPass, nil)
 		vr.swapChainCleanup()
@@ -2312,7 +2323,7 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 		if !group.IsReady() {
 			continue
 		}
-		group.UpdateData()
+		group.UpdateData(vr)
 		if group.VisibleCount() == 0 {
 			continue
 		}
@@ -2405,7 +2416,7 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
-		vr.createDescriptorSet(shader.RenderId.descriptorSetLayout)
+		vr.createDescriptorSet(shader.RenderId.descriptorSetLayout, 0)
 		descriptorSets := []vk.DescriptorSet{
 			group.InstanceDriverData.descriptorSets[vr.currentFrame],
 		}
@@ -2994,4 +3005,10 @@ func (vr *Vulkan) Resize(width, height int) {
 
 func (vr *Vulkan) AddPreRun(preRun func()) {
 	vr.preRuns = append(vr.preRuns, preRun)
+}
+
+func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
+	vk.FreeDescriptorSets(vr.device, group.descriptorPool,
+		uint32(len(group.descriptorSets)), &group.descriptorSets[0])
+	group.InstanceDriverData.Reset()
 }
