@@ -228,10 +228,18 @@ func addConsole(host *engine.Host) {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
 	hrc := hierarchy.New()
-	console.For(host).AddCommand("hrc", func(string) string {
-		hrc.Destroy()
-		hrc.Create(host)
-		return ""
+	console.For(host).AddCommand("hrc", func(arg string) string {
+		log := ""
+		if arg == "show" {
+			hrc.Destroy()
+			hrc.Create(host)
+		} else if arg == "hide" {
+			hrc.Destroy()
+		} else {
+			log = "Invalid command"
+		}
+
+		return log
 	})
 	console.For(host).AddCommand("pprof", func(arg string) string {
 		if arg == "start" {
@@ -269,7 +277,7 @@ func main() {
 	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	//testOIT(&host)
+	testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
 	//testButton(&host)
@@ -277,8 +285,8 @@ func main() {
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
 	//testLayout(&host)
-	testHTMLBinding(&host)
-	//addConsole(&host)
+	//testHTMLBinding(&host)
+	addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
