@@ -6,13 +6,21 @@
 				padding: 0;
 				margin: 0;
 			}
-			#console {
+			#hierarchy {
 				padding: 0;
 				width: 100%;
 				height: 100%;
 				overflow-y: scroll;
 				background-color: black;
 				color: white;
+			}
+			#hierarchyInputArea {
+				width: 100%;
+				height: 32px;
+			}
+			#hierarchyInput {
+				width: 100%;
+				height: 100%;
 			}
 			.entry {
 				width: 100%;
@@ -21,10 +29,15 @@
 		</style>
 	</head>
 	<body>
-		<div id="console">
-			{{range .}}
-				<div class="entry">Entity: {{.Entity.Name}}</div>
-			{{end}}
+		<div id="hierarchy">
+			<div id="hierarchyInputArea">
+				<input id="hierarchyInput" type="text" placeholder="Search..." />
+			</div>
+			<div id="entityList">
+				{{range .}}
+					<div class="entry">Entity: {{.Entity.Name}}</div>
+				{{end}}
+			</div>
 		</div>
 	</body>
 </html>
