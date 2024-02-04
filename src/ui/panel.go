@@ -93,6 +93,9 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		host.Updater.RemoveUpdate(panel.updateId)
 		panel.updateId = 0
 	})
+	panel.entity.OnDestroy.Add(func() {
+		panel.shaderData.Destroy()
+	})
 	return panel
 }
 

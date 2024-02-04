@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kaiju/assets"
 	"kaiju/bootstrap"
+	"kaiju/editor/project/ui/hierarchy"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/profiler"
@@ -117,6 +118,7 @@ func testOIT(host *engine.Host) {
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
 		})
+		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
 
@@ -216,6 +218,19 @@ func testLayout(host *engine.Host) {
 func addConsole(host *engine.Host) {
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
+	})
+	hrc := hierarchy.New()
+	console.For(host).AddCommand("hrc", func(arg string) string {
+		log := ""
+		if arg == "show" {
+			hrc.Destroy()
+			hrc.Create(host)
+		} else if arg == "hide" {
+			hrc.Destroy()
+		} else {
+			log = "Invalid command"
+		}
+		return log
 	})
 	profiler.SetupConsole(host)
 }

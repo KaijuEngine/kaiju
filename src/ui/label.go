@@ -67,6 +67,11 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		host.Updater.RemoveUpdate(label.updateId)
 		label.updateId = 0
 	})
+	label.entity.OnDestroy.Add(func() {
+		for idx := range label.runeDrawings {
+			label.runeDrawings[idx].ShaderData.Destroy()
+		}
+	})
 	return label
 }
 

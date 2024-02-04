@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				padding: 0;
+				margin: 0;
+			}
+			#console {
+				padding: 0;
+				width: 100%;
+				height: 100%;
+				overflow-y: scroll;
+				background-color: black;
+				color: white;
+			}
+			.entry {
+				width: 100%;
+				height: 32px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="console">
+			{{range .}}
+				<div class="entry">Entity: {{.Entity.Name}}</div>
+			{{end}}
+		</div>
+	</body>
+</html>
