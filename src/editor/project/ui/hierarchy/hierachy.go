@@ -45,13 +45,12 @@ func (h *Hierarchy) Create(host *engine.Host) {
 
 	h.input.Data().OnChange.Remove(h.onChangeId)
 	h.onChangeId = h.input.Data().OnChange.Add(func() {
-		activeText := h.input.Text()
+		activeText := strings.ToLower(h.input.Text())
 
-		//TODO: Convert activeText to lowercase, convert label.text to lowercase for contains
 		for idx := range entityList.HTML.Children {
 			label := entityList.HTML.Children[idx].Children[0].DocumentElement.UI.(*ui.Label)
 
-			if strings.Contains(label.Text(), activeText) {
+			if strings.Contains(strings.ToLower(label.Text()), activeText) {
 				entityList.HTML.Children[idx].DocumentElement.UI.Entity().Activate()
 			} else {
 				entityList.HTML.Children[idx].DocumentElement.UI.Entity().Deactivate()
