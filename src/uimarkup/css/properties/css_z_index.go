@@ -20,7 +20,7 @@ func (p ZIndex) Process(panel *ui.Panel, elm markup.DocElement, values []rules.P
 			z += p.DocumentElement.UI.Layout().Z()
 			p = p.Parent
 		}
-		panel.Layout().SetZ(z)
+		panel.Layout().SetZ(-z)
 		return nil
 	}
 }
