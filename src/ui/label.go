@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	LabelFontSize = 18.0
+	LabelFontSize = 14.0
 )
 
 type colorRange struct {
