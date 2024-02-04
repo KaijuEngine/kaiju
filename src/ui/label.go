@@ -103,12 +103,18 @@ func (label *Label) clearDrawings() {
 func (label *Label) postLayoutUpdate() {
 }
 
+func (label *Label) updateHeight(maxWidth float32) {
+	m := label.measure(label.MaxWidth())
+	label.layout.ScaleHeight(m.Y())
+}
+
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	return label.host.FontCache().MeasureStringWithin(label.fontFace,
 		label.text, label.fontSize, maxWidth)
 }
 
 func (label *Label) render() {
+	label.updateHeight(label.MaxWidth())
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {

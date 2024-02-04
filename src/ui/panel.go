@@ -281,11 +281,10 @@ func (panel *Panel) postLayoutUpdate() {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
 		}
-		target := FirstOnEntity(kid)
-		if target == nil {
+		kui := FirstOnEntity(kid)
+		if kui == nil {
 			panic("No UI component on entity")
 		}
-		kui := target
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:

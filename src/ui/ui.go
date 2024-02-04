@@ -142,13 +142,8 @@ func (ui *uiBase) rootUI() UI {
 	var rootUI UI = FirstOnEntity(root)
 	for root.Parent != nil {
 		if pui := FirstOnEntity(root.Parent); pui != nil {
-			p := pui.(*Panel)
-			if p.dirty() != DirtyTypeNone || p.FittingContent() {
-				root = root.Parent
-				rootUI = pui
-			} else {
-				break
-			}
+			root = root.Parent
+			rootUI = pui
 		} else {
 			break
 		}
