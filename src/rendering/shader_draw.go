@@ -33,3 +33,9 @@ func (s *ShaderDraw) SolidGroups() []*DrawInstanceGroup {
 func (s *ShaderDraw) TransparentGroups() []*DrawInstanceGroup {
 	return s.Filter(func(g *DrawInstanceGroup) bool { return g.useBlending })
 }
+
+func (s *ShaderDraw) Destroy(renderer Renderer) {
+	for i := range s.instanceGroups {
+		s.instanceGroups[i].Destroy(renderer)
+	}
+}

@@ -167,8 +167,10 @@ void process_message(SharedMem* sm, MSG *msg) {
 	shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
 	sm->evt->evtType = msg->message;
 	switch (msg->message) {
+		case WM_QUIT:
 		case WM_DESTROY:
 			shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+			shared_memory_wait_for_available(sm);
 		case WM_SIZE:
 			setSizeEvent(sm->evt, msg->lParam);
 			break;

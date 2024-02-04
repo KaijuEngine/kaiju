@@ -95,3 +95,11 @@ func (u *Updater) Update(deltaTime float64) {
 	u.inlineUpdate(deltaTime)
 	//u.threadedUpdate()
 }
+
+func (u *Updater) Destroy() {
+	close(u.pending)
+	close(u.complete)
+	clear(u.updates)
+	u.backAdd = u.backAdd[:0]
+	u.backRemove = u.backRemove[:0]
+}

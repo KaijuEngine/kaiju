@@ -87,3 +87,9 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 func (d *Drawings) Render(renderer Renderer) {
 	renderer.Draw(d.draws)
 }
+
+func (d *Drawings) Destroy(renderer Renderer) {
+	for i := range d.draws {
+		d.draws[i].Destroy(renderer)
+	}
+}

@@ -6,16 +6,14 @@ import (
 	"kaiju/bootstrap"
 	"kaiju/editor/project/ui/hierarchy"
 	"kaiju/engine"
-	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler"
 	"kaiju/rendering"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
-	"os"
 	"runtime"
-	"runtime/pprof"
 	"time"
 	"unsafe"
 )
@@ -217,13 +215,7 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-const (
-	pprofCPU  = "cpu.prof"
-	pprofHeap = "heap.prof"
-)
-
 func addConsole(host *engine.Host) {
-	var pprofFile *os.File = nil
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
@@ -238,30 +230,9 @@ func addConsole(host *engine.Host) {
 		} else {
 			log = "Invalid command"
 		}
-
 		return log
 	})
-	console.For(host).AddCommand("pprof", func(arg string) string {
-		if arg == "start" {
-			pprofFile = klib.MustReturn(os.Create(pprofCPU))
-			pprof.StartCPUProfile(pprofFile)
-			return "CPU profile started"
-		} else if arg == "stop" {
-			if pprofFile == nil {
-				return "CPU profile not yet started"
-			}
-			pprof.StopCPUProfile()
-			pprofFile.Close()
-			return "CPU profile written to " + pprofCPU
-		} else if arg == "heap" {
-			hp := klib.MustReturn(os.Create(pprofHeap))
-			pprof.WriteHeapProfile(hp)
-			hp.Close()
-			return "Heap profile written to " + pprofHeap
-		} else {
-			return ""
-		}
-	})
+	profiler.SetupConsole(host)
 }
 
 func main() {
@@ -292,6 +263,9 @@ func main() {
 		deltaTime := since.Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
-		host.Render()
+		if !host.Closing {
+			host.Render()
+		}
 	}
+	host.Teardown()
 }

@@ -57,6 +57,8 @@ type ShaderId struct {
 	vertModule                   vk.ShaderModule
 	fragModule                   vk.ShaderModule
 	geomModule                   vk.ShaderModule
+	tescModule                   vk.ShaderModule
+	teseModule                   vk.ShaderModule
 	skinningUniformBuffers       [maxFramesInFlight]vk.Buffer
 	skinningUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
 }

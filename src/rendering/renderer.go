@@ -12,8 +12,6 @@ type Renderer interface {
 	CreateShader(shader *Shader, assetDatabase *assets.Database)
 	FreeShader(shader *Shader)
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
-	// TODO:  Implement freeing of meshes
-	//FreeMesh(mesh *Mesh)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
@@ -22,4 +20,8 @@ type Renderer interface {
 	Resize(width, height int)
 	AddPreRun(preRun func())
 	DestroyGroup(group *DrawInstanceGroup)
+	DestroyTexture(texture *Texture)
+	DestroyShader(shader *Shader)
+	DestroyMesh(mesh *Mesh)
+	Destroy()
 }

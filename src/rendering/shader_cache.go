@@ -61,3 +61,13 @@ func (s *ShaderCache) CreatePending() {
 	}
 	s.pendingShaders = s.pendingShaders[:0]
 }
+
+func (s *ShaderCache) Destroy() {
+	for _, shader := range s.pendingShaders {
+		shader.Destroy(s.renderer)
+	}
+	s.pendingShaders = s.pendingShaders[:0]
+	for _, shader := range s.shaders {
+		shader.Destroy(s.renderer)
+	}
+}

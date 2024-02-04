@@ -605,3 +605,7 @@ func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matr
 	}
 	return idx
 }
+
+func (cache *FontCache) Destroy() {
+	// TODO:  Anything?
+}
