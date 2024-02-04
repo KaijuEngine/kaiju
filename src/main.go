@@ -219,19 +219,7 @@ func addConsole(host *engine.Host) {
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
-	hrc := hierarchy.New()
-	console.For(host).AddCommand("hrc", func(arg string) string {
-		log := ""
-		if arg == "show" {
-			hrc.Destroy()
-			hrc.Create(host)
-		} else if arg == "hide" {
-			hrc.Destroy()
-		} else {
-			log = "Invalid command"
-		}
-		return log
-	})
+	hierarchy.SetupConsole(host)
 	profiler.SetupConsole(host)
 }
 
