@@ -320,7 +320,7 @@ func (panel *Panel) postLayoutUpdate() {
 	}
 	nextPos[matrix.Vy] += panel.layout.padding.W()
 	if panel.FittingContent() {
-		bounds := matrix.Vec2{0, 0}
+		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		panelScale := panel.entity.Transform.WorldScale().Scale(0.5)
 		for _, kid := range panel.entity.Children {
 			pos := kid.Transform.Position()
