@@ -71,16 +71,16 @@ type controllerEvent struct {
 
 func (e *evtMem) AsPointer() unsafe.Pointer     { return unsafe.Pointer(&e[0]) }
 func (e *evtMem) AsDataPointer() unsafe.Pointer { return unsafe.Pointer(&e[evtSharedMemDataStart]) }
-func (e evtMem) IsFatal() bool                  { return e[0] == sharedMemFatal }
-func (e evtMem) FatalMessage() string           { return string([]byte(e[evtSharedMemDataStart:])) }
-func (e evtMem) IsReady() bool                  { return e[0] >= sharedMemWritten }
-func (e evtMem) IsStart() bool                  { return e[0] == sharedMemAwaitingStart }
-func (e evtMem) IsContext() bool                { return e[0] == sharedMemAwaitingContext }
-func (e evtMem) IsWritten() bool                { return e[0] == sharedMemWritten }
-func (e evtMem) IsQuit() bool                   { return e[0] == sharedMemQuit }
+func (e *evtMem) IsFatal() bool                 { return e[0] == sharedMemFatal }
+func (e *evtMem) FatalMessage() string          { return string([]byte(e[evtSharedMemDataStart:])) }
+func (e *evtMem) IsReady() bool                 { return e[0] >= sharedMemWritten }
+func (e *evtMem) IsStart() bool                 { return e[0] == sharedMemAwaitingStart }
+func (e *evtMem) IsContext() bool               { return e[0] == sharedMemAwaitingContext }
+func (e *evtMem) IsWritten() bool               { return e[0] == sharedMemWritten }
+func (e *evtMem) IsQuit() bool                  { return e[0] == sharedMemQuit }
 func (e *evtMem) MakeAvailable()                { e[0] = sharedMemAvailable }
-func (e evtMem) HasEvent() bool                 { return e.EventType() != 0 }
-func (e evtMem) EventType() uint32 {
+func (e *evtMem) HasEvent() bool                { return e.EventType() != 0 }
+func (e *evtMem) EventType() uint32 {
 	return *(*uint32)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 func (e *evtMem) SetFatal(message string) {
@@ -95,18 +95,18 @@ func (e *evtMem) AwaitReady() {
 	}
 }
 
-func (e evtMem) toWindowEvent() *windowEvent {
+func (e *evtMem) toWindowEvent() *windowEvent {
 	return (*windowEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
-func (e evtMem) toMouseEvent() *mouseEvent {
+func (e *evtMem) toMouseEvent() *mouseEvent {
 	return (*mouseEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
-func (e evtMem) toKeyboardEvent() *keyboardEvent {
+func (e *evtMem) toKeyboardEvent() *keyboardEvent {
 	return (*keyboardEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
-func (e evtMem) toControllerEvent() *controllerEvent {
+func (e *evtMem) toControllerEvent() *controllerEvent {
 	return (*controllerEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
