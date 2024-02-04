@@ -245,7 +245,7 @@ func layoutFloating(self *Layout) {
 	s := self.PixelSize()
 	bounds := self.bounds()
 	pos := self.anchorFunction(self, bounds.X(), bounds.Y(), s)
-	pos.SetZ(0.01)
+	pos.SetZ(self.z + 0.01)
 	t.SetPosition(pos.AsVec3())
 }
 
