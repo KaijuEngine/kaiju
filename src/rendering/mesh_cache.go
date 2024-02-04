@@ -50,3 +50,13 @@ func (m *MeshCache) CreatePending() {
 	}
 	m.pendingMeshes = m.pendingMeshes[:0]
 }
+
+func (m *MeshCache) Destroy() {
+	for _, mesh := range m.pendingMeshes {
+		mesh.Destroy(m.renderer)
+	}
+	m.pendingMeshes = m.pendingMeshes[:0]
+	for _, mesh := range m.meshes {
+		mesh.Destroy(m.renderer)
+	}
+}

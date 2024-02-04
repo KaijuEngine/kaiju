@@ -248,6 +248,9 @@ func main() {
 		deltaTime := since.Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
-		host.Render()
+		if !host.Closing {
+			host.Render()
+		}
 	}
+	host.Teardown()
 }

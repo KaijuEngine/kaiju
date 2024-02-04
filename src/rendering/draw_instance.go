@@ -167,3 +167,11 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 		renderer.DestroyGroup(d)
 	}
 }
+
+func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+	for i := range d.Instances {
+		d.Instances[i].Destroy()
+	}
+	d.Instances = d.Instances[:0]
+	renderer.DestroyGroup(d)
+}

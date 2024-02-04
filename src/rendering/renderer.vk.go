@@ -10,7 +10,7 @@ import (
 	"kaiju/matrix"
 	"log"
 	"math"
-	"runtime"
+	"slices"
 	"strings"
 	"unsafe"
 
@@ -1612,7 +1612,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		device:         vk.Device(vk.NullHandle),
 		msaaSamples:    vk.SampleCountFlagBits(vk.SampleCount1Bit),
 	}
-	runtime.SetFinalizer(vr, func(v *Vulkan) { v.free() })
 
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vk.StructureTypeApplicationInfo
@@ -1689,37 +1688,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		return nil, errors.New("failed to create OIT resources")
 	}
 	return vr, nil
-}
-
-func (vr *Vulkan) free() {
-	if vr.device != vk.Device(vk.NullHandle) {
-		vr.defaultTexture = nil
-
-		vk.DeviceWaitIdle(vr.device)
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-		}
-
-		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
-
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-		}
-		for i := range vr.descriptorPools {
-			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
-		}
-
-		vk.DestroyRenderPass(vr.device, vr.renderPass, nil)
-		vr.swapChainCleanup()
-		vk.DestroyDevice(vr.device, nil)
-	}
-	if vr.instance != vk.Instance(vk.NullHandle) {
-		vk.DestroySurface(vr.instance, vr.surface, nil)
-		vk.DestroyInstance(vr.instance, nil)
-	}
 }
 
 func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
@@ -2823,7 +2791,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		tescStage.Stage = vk.ShaderStageTessellationControlBit
 		tescStage.Module = tesc
 		tescStage.PName = "main\x00"
-		shader.RenderId.geomModule = tesc
+		shader.RenderId.tescModule = tesc
 	}
 
 	teseStage := vk.PipelineShaderStageCreateInfo{}
@@ -2840,7 +2808,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		teseStage.Stage = vk.ShaderStageTessellationEvaluationBit
 		teseStage.Module = tese
 		teseStage.PName = "main\x00"
-		shader.RenderId.geomModule = tese
+		shader.RenderId.teseModule = tese
 	}
 
 	id := &shader.RenderId
@@ -2995,10 +2963,6 @@ func (vr *Vulkan) FreeShader(shader *Shader) {
 	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
 }
 
-func (vr *Vulkan) Destroy() {
-	// TODO:  Clean up stuff?
-}
-
 func (vr *Vulkan) Resize(width, height int) {
 	vr.resized = true
 }
@@ -3008,7 +2972,74 @@ func (vr *Vulkan) AddPreRun(preRun func()) {
 }
 
 func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
-	vk.FreeDescriptorSets(vr.device, group.descriptorPool,
-		uint32(len(group.descriptorSets)), &group.descriptorSets[0])
+	vk.DeviceWaitIdle(vr.device)
+	if group.descriptorPool != vk.DescriptorPool(vk.NullHandle) {
+		dp := slices.Clone(group.descriptorSets[:])
+		vk.FreeDescriptorSets(vr.device, group.descriptorPool,
+			uint32(len(group.descriptorSets)), &dp[0])
+	}
 	group.InstanceDriverData.Reset()
+}
+
+func (vr *Vulkan) DestroyTexture(texture *Texture) {
+	vk.DeviceWaitIdle(vr.device)
+	vk.DestroyImageView(vr.device, texture.RenderId.View, nil)
+	vk.DestroyImage(vr.device, texture.RenderId.Image, nil)
+	vk.FreeMemory(vr.device, texture.RenderId.Memory, nil)
+	vk.DestroySampler(vr.device, texture.RenderId.Sampler, nil)
+	texture.RenderId = TextureId{}
+}
+
+func (vr *Vulkan) DestroyShader(shader *Shader) {
+	vk.DeviceWaitIdle(vr.device)
+	vk.DestroyPipeline(vr.device, shader.RenderId.graphicsPipeline, nil)
+	vk.DestroyPipelineLayout(vr.device, shader.RenderId.pipelineLayout, nil)
+	vk.DestroyShaderModule(vr.device, shader.RenderId.vertModule, nil)
+	vk.DestroyShaderModule(vr.device, shader.RenderId.fragModule, nil)
+	if shader.RenderId.geomModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, shader.RenderId.geomModule, nil)
+	}
+	if shader.RenderId.tescModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, shader.RenderId.tescModule, nil)
+	}
+	if shader.RenderId.teseModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, shader.RenderId.teseModule, nil)
+	}
+	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
+}
+
+func (vr *Vulkan) DestroyMesh(mesh *Mesh) {
+	vk.DeviceWaitIdle(vr.device)
+	vk.DestroyBuffer(vr.device, mesh.MeshId.indexBuffer, nil)
+	vk.FreeMemory(vr.device, mesh.MeshId.indexBufferMemory, nil)
+	vk.DestroyBuffer(vr.device, mesh.MeshId.vertexBuffer, nil)
+	vk.FreeMemory(vr.device, mesh.MeshId.vertexBufferMemory, nil)
+}
+
+func (vr *Vulkan) Destroy() {
+	vk.DeviceWaitIdle(vr.device)
+	if vr.device != vk.Device(vk.NullHandle) {
+		vr.defaultTexture = nil
+		vk.DeviceWaitIdle(vr.device)
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+		}
+		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+		}
+		for i := range vr.descriptorPools {
+			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
+		}
+		vk.DestroyRenderPass(vr.device, vr.renderPass, nil)
+		vr.swapChainCleanup()
+		vk.DestroyDevice(vr.device, nil)
+	}
+	if vr.instance != vk.Instance(vk.NullHandle) {
+		vk.DestroySurface(vr.instance, vr.surface, nil)
+		vk.DestroyInstance(vr.instance, nil)
+	}
 }

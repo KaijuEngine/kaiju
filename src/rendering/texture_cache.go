@@ -38,3 +38,13 @@ func (t *TextureCache) CreatePending() {
 	}
 	t.pendingTextures = t.pendingTextures[:0]
 }
+
+func (t *TextureCache) Destroy() {
+	for _, texture := range t.pendingTextures {
+		texture.Destroy(t.renderer)
+	}
+	t.pendingTextures = t.pendingTextures[:0]
+	for _, texture := range t.textures {
+		texture.Destroy(t.renderer)
+	}
+}

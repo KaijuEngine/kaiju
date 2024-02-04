@@ -279,3 +279,9 @@ func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (Textur
 		return TextureData{}, errors.New("texture does not exist")
 	}
 }
+
+func (t *Texture) Destroy(renderer Renderer) {
+	// TODO:  Anything needed cleaned up from pendingData?
+	t.pendingData = nil
+	renderer.DestroyTexture(t)
+}

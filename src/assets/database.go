@@ -26,3 +26,7 @@ func (a *Database) Exists(key string) bool {
 	key = filepath.Join("content", key)
 	return filesystem.FileExists(key)
 }
+
+func (a *Database) Destroy() {
+
+}

@@ -102,3 +102,15 @@ func (host *Host) Render() {
 func (host *Host) Runtime() float64 {
 	return host.frameTime
 }
+
+func (host *Host) Teardown() {
+	host.Updater.Destroy()
+	host.LateUpdater.Destroy()
+	host.Drawings.Destroy(host.Window.Renderer)
+	host.textureCache.Destroy()
+	host.meshCache.Destroy()
+	host.shaderCache.Destroy()
+	host.fontCache.Destroy()
+	host.assetDatabase.Destroy()
+	host.Window.Destroy()
+}
