@@ -47,6 +47,7 @@ func (h *Hierarchy) Create(host *engine.Host) {
 	h.onChangeId = h.input.Data().OnChange.Add(func() {
 		activeText := h.input.Text()
 
+		//TODO: Convert activeText to lowercase, convert label.text to lowercase for contains
 		for idx := range entityList.HTML.Children {
 			label := entityList.HTML.Children[idx].Children[0].DocumentElement.UI.(*ui.Label)
 
