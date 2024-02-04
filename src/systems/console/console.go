@@ -88,6 +88,7 @@ func initialize(host *engine.Host) *Console {
 	console.input = input
 	input.Clean()
 	console.hide()
+	console.AddCommand("help", console.help)
 	return console
 }
 
@@ -120,6 +121,17 @@ func (c *Console) IsActive() bool {
 
 func (c *Console) AddCommand(key string, fn func(cmd string) string) {
 	c.commands[key] = fn
+}
+
+func (c *Console) help(arg string) string {
+	sb := strings.Builder{}
+	sb.WriteString("Available Commands:\n")
+	for name := range c.commands {
+		sb.WriteString(name)
+		sb.WriteRune('\n')
+	}
+
+	return sb.String()
 }
 
 func (c *Console) submit(input *ui.Input) {
