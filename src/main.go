@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"kaiju/assets"
 	"kaiju/bootstrap"
+	"kaiju/editor/project/ui/hierarchy"
 	"kaiju/engine"
-	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler"
 	"kaiju/rendering"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
-	"os"
 	"runtime"
-	"runtime/pprof"
 	"time"
 	"unsafe"
 )
@@ -119,6 +118,7 @@ func testOIT(host *engine.Host) {
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
 		})
+		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
 
@@ -215,37 +215,24 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-const (
-	pprofCPU  = "cpu.prof"
-	pprofHeap = "heap.prof"
-)
-
 func addConsole(host *engine.Host) {
-	var pprofFile *os.File = nil
 	console.For(host).AddCommand("EntityCount", func(string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
-	console.For(host).AddCommand("pprof", func(arg string) string {
-		if arg == "start" {
-			pprofFile = klib.MustReturn(os.Create(pprofCPU))
-			pprof.StartCPUProfile(pprofFile)
-			return "CPU profile started"
-		} else if arg == "stop" {
-			if pprofFile == nil {
-				return "CPU profile not yet started"
-			}
-			pprof.StopCPUProfile()
-			pprofFile.Close()
-			return "CPU profile written to " + pprofCPU
-		} else if arg == "heap" {
-			hp := klib.MustReturn(os.Create(pprofHeap))
-			pprof.WriteHeapProfile(hp)
-			hp.Close()
-			return "Heap profile written to " + pprofHeap
+	hrc := hierarchy.New()
+	console.For(host).AddCommand("hrc", func(arg string) string {
+		log := ""
+		if arg == "show" {
+			hrc.Destroy()
+			hrc.Create(host)
+		} else if arg == "hide" {
+			hrc.Destroy()
 		} else {
-			return ""
+			log = "Invalid command"
 		}
+		return log
 	})
+	profiler.SetupConsole(host)
 }
 
 func main() {
@@ -261,7 +248,7 @@ func main() {
 	//testDrawing(&host)
 	//testTwoDrawings(&host)
 	//testFont(&host)
-	//testOIT(&host)
+	testOIT(&host)
 	//testPanel(&host)
 	//testLabel(&host)
 	//testButton(&host)
@@ -269,13 +256,16 @@ func main() {
 	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
 	//testLayoutSimple(&host)
 	//testLayout(&host)
-	testHTMLBinding(&host)
-	//addConsole(&host)
+	//testHTMLBinding(&host)
+	addConsole(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
 		lastTime = time.Now()
 		host.Update(deltaTime)
-		host.Render()
+		if !host.Closing {
+			host.Render()
+		}
 	}
+	host.Teardown()
 }

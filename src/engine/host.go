@@ -80,9 +80,9 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	//gl.ClearScreen()
-	//host.Window.SwapBuffers()
-	// TODO:  Do end updates on various systems
+	for _, e := range host.entities {
+		e.TickCleanup()
+	}
 	host.Window.EndUpdate()
 }
 
@@ -101,4 +101,16 @@ func (host *Host) Render() {
 
 func (host *Host) Runtime() float64 {
 	return host.frameTime
+}
+
+func (host *Host) Teardown() {
+	host.Updater.Destroy()
+	host.LateUpdater.Destroy()
+	host.Drawings.Destroy(host.Window.Renderer)
+	host.textureCache.Destroy()
+	host.meshCache.Destroy()
+	host.shaderCache.Destroy()
+	host.fontCache.Destroy()
+	host.assetDatabase.Destroy()
+	host.Window.Destroy()
 }

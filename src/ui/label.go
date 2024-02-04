@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	LabelFontSize = 18.0
+	LabelFontSize = 14.0
 )
 
 type colorRange struct {
@@ -66,6 +66,9 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		label.deactivateDrawings()
 		host.Updater.RemoveUpdate(label.updateId)
 		label.updateId = 0
+	})
+	label.entity.OnDestroy.Add(func() {
+		label.clearDrawings()
 	})
 	return label
 }

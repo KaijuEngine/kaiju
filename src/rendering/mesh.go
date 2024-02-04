@@ -572,3 +572,7 @@ func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
 		return cache.Mesh(key, verts, indexes)
 	}
 }
+
+func (m *Mesh) Destroy(renderer Renderer) {
+	renderer.DestroyMesh(m)
+}
