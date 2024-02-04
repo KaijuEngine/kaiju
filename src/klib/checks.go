@@ -20,6 +20,14 @@ func MustReturn[T any](ret T, err error) T {
 	return ret
 }
 
+func MustReturn2[T, U any](ret1 T, ret2 U, err error) (T, U) {
+	if err != nil {
+		log.Printf("Error: %v", err)
+		panic(err)
+	}
+	return ret1, ret2
+}
+
 func Should(err error) bool {
 	log.Printf("Error: %v", err)
 	return err != nil

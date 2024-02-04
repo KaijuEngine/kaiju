@@ -322,9 +322,9 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 	const tabSize = 4
 	cTab := fontBinChar{
 		letter:      tabRune,
-		advance:     sample.advance * 4,
-		planeBounds: sample.planeBounds,
-		atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0},
+		advance:     cSpace.advance * 4,
+		planeBounds: cSpace.planeBounds,
+		atlasBounds: cSpace.atlasBounds,
 	}
 	cTab.planeBounds[0] *= tabSize / 2
 	cTab.planeBounds[2] *= tabSize / 2
