@@ -327,13 +327,4 @@ func (ui *uiBase) DisconnectParentScissor() {
 
 func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
-	//if ui.Entity().Parent != nil {
-	//	if pui := FirstOnEntity(ui.Entity().Parent); pui != nil {
-	//		if pui.dirty() == DirtyTypeNone {
-	//			pui.SetDirty(DirtyTypeParentLayout)
-	//		} else {
-	//			pui.SetDirty(DirtyTypeReGenerated)
-	//		}
-	//	}
-	//}
 }

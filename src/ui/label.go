@@ -51,11 +51,6 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label.init(host, matrix.Vec2Zero(), anchor, label)
 	label.SetText(text)
 	label.SetDirty(DirtyTypeGenerated)
-	label.layout.AddFunction(func(layout *Layout) {
-		wh := label.host.FontCache().MeasureStringWithin(label.fontFace,
-			label.text, label.fontSize, label.MaxWidth())
-		label.layout.ScaleHeight(wh.Y())
-	})
 	label.entity.OnActivate.Add(func() {
 		label.activateDrawings()
 		label.updateId = host.Updater.AddUpdate(label.Update)
