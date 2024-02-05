@@ -23,6 +23,8 @@
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
 #define WM_SET_CURSOR (WM_USER + 0x0001)
+	#define CURSOR_ARROW	1
+	#define CURSOR_IBEAM	2
 
 int shared_mem_set_thread_priority(SharedMem* sm) {
 	int priority = GetThreadPriority(GetCurrentThread());
@@ -241,7 +243,14 @@ void process_message(SharedMem* sm, MSG *msg) {
 			}
 			break;
 		case WM_SET_CURSOR:
-			SetCursor(LoadCursor(NULL, (LPCTSTR)msg->wParam));
+			switch (msg->wParam) {
+				case CURSOR_ARROW:
+					SetCursor(LoadCursor(NULL, IDC_ARROW));
+					break;
+				case CURSOR_IBEAM:
+					SetCursor(LoadCursor(NULL, IDC_IBEAM));
+					break;
+			}
 			break;
 	}
 	shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
@@ -312,11 +321,11 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 }
 
 void window_cursor_standard(void* hwnd) {
-	PostMessageA(hwnd, WM_SET_CURSOR, IDC_ARROW, 0);
+	PostMessageA(hwnd, WM_SET_CURSOR, CURSOR_ARROW, 0);
 }
 
 void window_cursor_ibeam(void* hwnd) {
-	PostMessageA(hwnd, WM_SET_CURSOR, IDC_IBEAM, 0);
+	PostMessageA(hwnd, WM_SET_CURSOR, CURSOR_IBEAM, 0);
 }
 
 #endif
