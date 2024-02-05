@@ -6,6 +6,7 @@ import (
 	"errors"
 	"kaiju/hid"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"unsafe"
 )
 
@@ -46,6 +47,7 @@ type Window struct {
 	width, height int
 	isClosed      bool
 	isCrashed     bool
+	OnResize      events.Event
 }
 
 func New(windowName string) (*Window, error) {
@@ -58,6 +60,7 @@ func New(windowName string) (*Window, error) {
 		width:        944,
 		height:       500,
 		evtSharedMem: new(evtMem),
+		OnResize:     events.New(),
 	}
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
@@ -111,6 +114,7 @@ func (w *Window) processWindowEvent(evtType eventType) {
 		w.width = int(we.width)
 		w.height = int(we.height)
 		w.Renderer.Resize(w.width, w.height)
+		w.OnResize.Execute()
 	}
 }
 

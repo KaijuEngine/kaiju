@@ -10,7 +10,6 @@ type Renderer interface {
 	Initialize(caches RenderCaches, width, height int32) error
 	ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) bool
 	CreateShader(shader *Shader, assetDatabase *assets.Database)
-	FreeShader(shader *Shader)
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color

@@ -35,9 +35,9 @@ func New() (*HostContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &HostContainer{&host, []func(){}, make(chan bool)}
-	host.Window.Renderer.Initialize(&host, int32(host.Window.Width()), int32(host.Window.Height()))
-	host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), &host)
+	c := &HostContainer{host, []func(){}, make(chan bool)}
+	host.Window.Renderer.Initialize(host, int32(host.Window.Width()), int32(host.Window.Height()))
+	host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host)
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
 		if len(c.runFunctions) > 0 {
 			for _, f := range c.runFunctions {

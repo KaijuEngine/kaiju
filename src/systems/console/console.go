@@ -89,6 +89,7 @@ func initialize(host *engine.Host) *Console {
 	input.Clean()
 	console.hide()
 	console.AddCommand("help", console.help)
+	console.AddCommand("clear", console.clear)
 	return console
 }
 
@@ -135,6 +136,16 @@ func (c *Console) help(arg string) string {
 	return sb.String()
 }
 
+func (c *Console) clear(arg string) string {
+	c.outputLabel().SetText("")
+	return ""
+}
+
+func (c *Console) outputLabel() *ui.Label {
+	cc, _ := c.doc.GetElementById("consoleContent")
+	return ui.FirstOnEntity(cc.HTML.Children[0].DocumentElement.UI.Entity()).(*ui.Label)
+}
+
 func (c *Console) submit(input *ui.Input) {
 	cmd := strings.TrimSpace(input.Text())
 	if cmd == "" {
@@ -154,8 +165,7 @@ func (c *Console) submit(input *ui.Input) {
 	if fn, ok := c.commands[key]; ok {
 		res = strings.TrimSpace(fn(value))
 	}
-	cc, _ := c.doc.GetElementById("consoleContent")
-	lbl := ui.FirstOnEntity(cc.HTML.Children[0].DocumentElement.UI.Entity()).(*ui.Label)
+	lbl := c.outputLabel()
 	if res != "" {
 		lbl.SetText(lbl.Text() + "\n" + cmd + "\n" + res)
 	} else {

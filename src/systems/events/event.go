@@ -1,18 +1,18 @@
-package engine
+package events
 
-type EventId = int64
+type Id = int64
 
 type eventEntry struct {
-	id   EventId
+	id   Id
 	call func()
 }
 
 type Event struct {
-	nextId EventId
+	nextId Id
 	calls  []eventEntry
 }
 
-func NewEvent() Event {
+func New() Event {
 	return Event{
 		nextId: 1,
 		calls:  make([]eventEntry, 0),
@@ -21,14 +21,14 @@ func NewEvent() Event {
 
 func (e Event) IsEmpty() bool { return len(e.calls) == 0 }
 
-func (e *Event) Add(call func()) EventId {
+func (e *Event) Add(call func()) Id {
 	id := e.nextId
 	e.nextId++
 	e.calls = append(e.calls, eventEntry{id, call})
 	return id
 }
 
-func (e *Event) Remove(id EventId) {
+func (e *Event) Remove(id Id) {
 	for i := range e.calls {
 		if e.calls[i].id == id {
 			last := len(e.calls) - 1

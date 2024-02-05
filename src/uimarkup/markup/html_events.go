@@ -1,11 +1,11 @@
 package markup
 
 import (
-	"kaiju/engine"
+	"kaiju/systems/events"
 	"kaiju/ui"
 )
 
-func tryMap(attr string, elm *DocElement, evt *engine.Event, funcMap map[string]func(*DocElement)) {
+func tryMap(attr string, elm *DocElement, evt *events.Event, funcMap map[string]func(*DocElement)) {
 	if funcName := elm.HTML.Attribute(attr); len(funcName) > 0 {
 		if f, ok := funcMap[funcName]; ok {
 			evt.Add(func() { f(elm) })

@@ -4,6 +4,7 @@ import (
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/systems/console"
+	"kaiju/systems/events"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
@@ -13,7 +14,7 @@ import (
 type Hierarchy struct {
 	doc        *markup.Document
 	input      *ui.Input
-	onChangeId engine.EventId
+	onChangeId events.Id
 }
 
 type entityEntry struct {

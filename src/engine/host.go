@@ -25,12 +25,12 @@ type Host struct {
 	assetDatabase assets.Database
 }
 
-func NewHost() (Host, error) {
+func NewHost() (*Host, error) {
 	win, err := windowing.New("Kaiju")
 	if err != nil {
-		return Host{}, err
+		return nil, err
 	}
-	host := Host{
+	host := &Host{
 		entities:      make([]*Entity, 0),
 		frameTime:     0,
 		Closing:       false,
@@ -47,7 +47,14 @@ func NewHost() (Host, error) {
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
+	host.Window.OnResize.Add(host.resized)
 	return host, nil
+}
+
+func (host *Host) resized() {
+	w, h := float32(host.Window.Width()), float32(host.Window.Height())
+	host.Camera.ViewportChanged(w, h)
+	host.UICamera.ViewportChanged(w, h)
 }
 
 func (host *Host) ShaderCache() *rendering.ShaderCache   { return &host.shaderCache }

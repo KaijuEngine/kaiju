@@ -22,7 +22,7 @@
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
-#define WM_SET_CURSOR (WM_USER + 0x0001)
+#define UWM_SET_CURSOR		(WM_USER + 0x0001)
 	#define CURSOR_ARROW	1
 	#define CURSOR_IBEAM	2
 
@@ -48,9 +48,9 @@ void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouse.mouseY = GET_Y_LPARAM(lParam);
 }
 
-void setSizeEvent(InputEvent* evt, LPARAM lParam) {
-	evt->resize.width = LOWORD(lParam);
-	evt->resize.height = HIWORD(lParam);
+void setSizeEvent(InputEvent* evt, LONG width, LONG height) {
+	evt->resize.width = width;
+	evt->resize.height = height;
 }
 
 bool obtainControllerStates(SharedMem* sm) {
@@ -82,13 +82,30 @@ bool obtainControllerStates(SharedMem* sm) {
 	return readControllerStates;
 }
 
-#include <stdio.h>
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	SharedMem* sm = GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
 		case WM_SIZE:
+			if (sm != NULL) {
+				RECT clientArea;
+				GetClientRect(hwnd, &clientArea);
+				LONG width = clientArea.right-clientArea.left;
+				LONG height = clientArea.bottom-clientArea.top;
+				if (sm->windowWidth != width || sm->windowHeight != height) {
+					sm->windowWidth = width;
+					sm->windowHeight = height;
+					setSizeEvent(sm->evt, width, height);
+					shared_memory_wait_for_available(sm);
+					shared_memory_wait_for_available(sm);
+					shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
+					setSizeEvent(sm->evt, LOWORD(lParam), HIWORD(lParam));
+					sm->evt->evtType = uMsg;
+					shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+				}
+			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
 			break;
 	}
@@ -180,8 +197,6 @@ void process_message(SharedMem* sm, MSG *msg) {
 		case WM_DESTROY:
 			shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
 			shared_memory_wait_for_available(sm);
-		case WM_SIZE:
-			setSizeEvent(sm->evt, msg->lParam);
 			break;
 		case WM_MOUSEMOVE:
 			setMouseEvent(sm->evt, msg->lParam, -1);
@@ -242,7 +257,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 					break;
 			}
 			break;
-		case WM_SET_CURSOR:
+		case UWM_SET_CURSOR:
 			switch (msg->wParam) {
 				case CURSOR_ARROW:
 					SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -295,8 +310,8 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 	// Context should be created in Go here on go main thread
 	shared_memory_wait_for_available(&sm);
 	ShowWindow(hwnd, SW_SHOW);
-	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
 	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
+	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
     // Run the message loop.
     MSG msg = { };
 	while (esm[0] != SHARED_MEM_QUIT) {
@@ -321,11 +336,11 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 }
 
 void window_cursor_standard(void* hwnd) {
-	PostMessageA(hwnd, WM_SET_CURSOR, CURSOR_ARROW, 0);
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_ARROW, 0);
 }
 
 void window_cursor_ibeam(void* hwnd) {
-	PostMessageA(hwnd, WM_SET_CURSOR, CURSOR_IBEAM, 0);
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
 }
 
 #endif

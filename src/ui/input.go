@@ -2,11 +2,11 @@ package ui
 
 import (
 	"kaiju/assets"
-	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"math"
 	"unicode"
 )
@@ -38,9 +38,9 @@ type localInputData struct {
 	cursor                            *Panel
 	title                             string
 	description                       string
-	onUpDown                          engine.Event
-	OnSubmit                          engine.Event
-	OnChange                          engine.Event
+	onUpDown                          events.Event
+	OnSubmit                          events.Event
+	OnChange                          events.Event
 	cursorOffset                      int
 	dragStartClick, cursorBlink       float32
 	selectStart, selectEnd, dragStart int

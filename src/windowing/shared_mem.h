@@ -82,6 +82,8 @@ typedef struct {
 		InputEvent* evt;
 	};
 	int size;
+	int windowWidth;
+	int windowHeight;
 } SharedMem;
 
 int shared_mem_set_thread_priority(SharedMem* sm);

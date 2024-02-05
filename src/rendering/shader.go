@@ -2,7 +2,6 @@ package rendering
 
 import (
 	"kaiju/assets"
-	"runtime"
 	"strings"
 )
 
@@ -35,9 +34,6 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 		EvalPath:   evalPath,
 		DriverData: NewShaderDriverData(),
 	}
-	runtime.SetFinalizer(s, func(shader *Shader) {
-		renderer.FreeShader(shader)
-	})
 	return s
 }
 

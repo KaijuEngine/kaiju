@@ -59,4 +59,5 @@ func (m *MeshCache) Destroy() {
 	for _, mesh := range m.meshes {
 		mesh.Destroy(m.renderer)
 	}
+	m.meshes = make(map[string]*Mesh)
 }
