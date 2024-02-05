@@ -3,6 +3,7 @@ package rendering
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"kaiju/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -129,6 +130,7 @@ type FontCache struct {
 	renderCaches                RenderCaches
 	assetDb                     *assets.Database
 	fontFaces                   map[string]fontBin
+	instanceKey                 int64
 }
 
 type TextShaderData struct {
@@ -143,6 +145,11 @@ type TextShaderData struct {
 func (s TextShaderData) Size() int {
 	const size = int(unsafe.Sizeof(TextShaderData{}) - ShaderBaseDataStart)
 	return size
+}
+
+func (cache *FontCache) nextInstanceKey(key rune) string {
+	cache.instanceKey++
+	return fmt.Sprintf("font_%c_%d", key, cache.instanceKey)
 }
 
 func (cache *FontCache) requireFace(face FontFace) {
@@ -213,9 +220,6 @@ func (cache FontCache) charCountInWidth(font fontBin, text string, maxWidth, sca
 	if !wrap {
 		return textLen
 	} else {
-		if spaceIndex == 0 {
-			spaceIndex = textLen
-		}
 		return spaceIndex + 1
 	}
 }
@@ -246,10 +250,8 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	h := -c.Height()
 
 	mesh := NewMeshScreenQuad(meshCache)
-	mesh.DelayedCreate(renderer)
 	transformation := matrix.Mat4Identity()
 	transformation.Scale(matrix.Vec3{w, h, 1})
-	mesh.SetKey(string(key))
 
 	var clm cachedLetterMesh
 	clm.mesh = mesh
@@ -474,8 +476,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
 					indexes := [6]uint32{0, 1, 2, 0, 2, 3}
-					m = NewMesh(string(c), verts[:], indexes[:])
-					m.DelayedCreate(cache.renderer)
+					caches.MeshCache().Mesh(cache.nextInstanceKey(c), verts[:], indexes[:])
 					uvx := ch.atlasBounds[0]
 					uvy := ch.atlasBounds[1]
 					uvw := ch.atlasBounds[2] - ch.atlasBounds[0]
