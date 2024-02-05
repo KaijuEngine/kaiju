@@ -18,6 +18,12 @@
 #include "../gl/dist/glad_wgl.h"
 #endif
 
+/*
+* Messages defined here are NOT to be sent to other windows
+* https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
+*/
+#define WM_SET_CURSOR (WM_USER + 0x0001)
+
 int shared_mem_set_thread_priority(SharedMem* sm) {
 	int priority = GetThreadPriority(GetCurrentThread());
 	if (sm->evt->writeState != SHARED_MEM_WRITTEN) {
@@ -74,6 +80,7 @@ bool obtainControllerStates(SharedMem* sm) {
 	return readControllerStates;
 }
 
+#include <stdio.h>
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 		case WM_DESTROY:
@@ -233,6 +240,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 					break;
 			}
 			break;
+		case WM_SET_CURSOR:
+			SetCursor(LoadCursor(NULL, (LPCTSTR)msg->wParam));
+			break;
 	}
 	shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
 }
@@ -247,7 +257,6 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     wc.hInstance     = hInstance;
     wc.lpszClassName = className;
 	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
     RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};
 	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
@@ -269,6 +278,7 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 		write_fatal(esm, size, "Failed to create window.");
 		return;
     }
+	window_cursor_standard(hwnd);
 	SharedMem sm = {esm, size};
 	memcpy(esm+SHARED_MEM_DATA_START, &hwnd, sizeof(HWND*));
 	memcpy(esm+SHARED_MEM_DATA_START+sizeof(&hwnd), &hInstance, sizeof(HMODULE*));
@@ -301,12 +311,12 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 	}
 }
 
-void window_cursor_standard(void* winHWND) {
-	SetCursor(LoadCursor(NULL, IDC_ARROW));
+void window_cursor_standard(void* hwnd) {
+	PostMessageA(hwnd, WM_SET_CURSOR, IDC_ARROW, 0);
 }
 
-void window_cursor_ibeam(void* winHWND) {
-	SetCursor(LoadCursor(NULL, IDC_IBEAM));
+void window_cursor_ibeam(void* hwnd) {
+	PostMessageA(hwnd, WM_SET_CURSOR, IDC_IBEAM, 0);
 }
 
 #endif

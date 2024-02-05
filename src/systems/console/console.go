@@ -105,6 +105,7 @@ func (c *Console) show() {
 		c.doc.Elements[i].UI.Entity().Activate()
 	}
 	c.isActive = true
+	c.input.Select()
 }
 
 func (c *Console) hide() {
