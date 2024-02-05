@@ -280,6 +280,7 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     wc.lpfnWndProc   = window_proc;
     wc.hInstance     = hInstance;
     wc.lpszClassName = className;
+	//wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
     RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};
