@@ -2,11 +2,13 @@ package profiler
 
 import (
 	"bufio"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/systems/console"
 	"os"
 	"os/exec"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"syscall"
@@ -57,5 +59,14 @@ func SetupConsole(host *engine.Host) {
 		} else {
 			return ""
 		}
+	})
+	console.For(host).AddCommand("GC", func(string) string {
+		runtime.GC()
+		return "Garbage collection done"
+	})
+	console.For(host).AddCommand("MemStats", func(string) string {
+		var mem runtime.MemStats
+		runtime.ReadMemStats(&mem)
+		return fmt.Sprintf("Alloc: %d, TotalAlloc: %d, Sys: %d, NumGC: %d", mem.Alloc, mem.TotalAlloc, mem.Sys, mem.NumGC)
 	})
 }
