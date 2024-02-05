@@ -82,3 +82,8 @@ func (w *Window) clipboardContents() string {
 	klib.NotYetImplemented(103)
 	return ""
 }
+
+func (w *Window) getDPI() (int, int, error) {
+	klib.NotYetImplemented(131)
+	return 96, 96, nil
+}

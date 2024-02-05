@@ -10,6 +10,12 @@ import (
 
 /*
 #include "windowing.h"
+#include <windows.h>
+#include <windowsx.h>
+
+float get_dpi(HWND hwnd) {
+	return GetDpiForWindow(hwnd);
+}
 */
 import "C"
 
@@ -69,7 +75,9 @@ func (w *Window) cursorStandard() {
 }
 
 func (w *Window) cursorIbeam() {
-	C.window_cursor_ibeam(w.handle)
+	go func() {
+		C.window_cursor_ibeam(w.handle)
+	}()
 }
 
 func (w *Window) copyToClipboard(text string) {
@@ -79,4 +87,9 @@ func (w *Window) copyToClipboard(text string) {
 func (w *Window) clipboardContents() string {
 	klib.NotYetImplemented(102)
 	return ""
+}
+
+func (w *Window) getDPI() (int, int, error) {
+	dpi := C.get_dpi(C.HWND(w.handle))
+	return int(dpi), int(dpi), nil
 }

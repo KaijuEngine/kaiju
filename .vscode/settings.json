@@ -8,7 +8,10 @@
 		"win32.h": "c",
 		"x11.h": "c",
 		"xinput.h": "c",
-		"shared_mem.h": "c"
+		"shared_mem.h": "c",
+		"*.rh": "c",
+		"stdbool.h": "c",
+		"windowsx.h": "c"
 	},
 	"cSpell.words": [
 		"kaiju",

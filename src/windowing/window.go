@@ -231,8 +231,7 @@ func (w *Window) SwapBuffers() {
 }
 
 func (w *Window) GetDPI() (int, int, error) {
-	// TODO:  Actually get the DPI
-	return 96, 96, nil
+	return w.getDPI()
 }
 
 func (w *Window) IsPhoneSize() bool {

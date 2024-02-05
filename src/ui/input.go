@@ -146,6 +146,7 @@ func (input *Input) makeCursorVisible() {
 		data.cursor.entity.SetActive(true)
 	}
 	data.cursorBlink = cursorBlinkRate
+	input.updateCursorPosition()
 }
 
 func (input *Input) makeCursorInvisible() {
@@ -217,7 +218,7 @@ func (input *Input) setSelect(start, end int) {
 			endX := input.charX(data.selectEnd)
 			width := endX - startX
 			data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
-			data.highlight.layout.innerOffset.SetLeft(startX)
+			data.highlight.layout.SetOffset(startX, 0)
 		}
 		input.setBgColors()
 	}
@@ -389,13 +390,6 @@ func (input *Input) update(deltaTime float64) {
 func (input *Input) updateCursorPosition() {
 	data := input.Data()
 	x := input.charX(data.cursorOffset)
-	ws := input.entity.Transform.WorldScale()
-	maxWidth := ws.X() * 0.5
-	if x > maxWidth {
-		// TODO:  Move the text to the left
-	} else if x < -maxWidth {
-		// TODO:  Move the text to the right
-	}
 	data.cursor.layout.SetOffset(x, cursorY)
 }
 
