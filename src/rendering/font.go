@@ -321,13 +321,16 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 	const tabRune = '\t'
 	const tabSize = 4
 	cTab := fontBinChar{
-		letter:      tabRune,
-		advance:     cSpace.advance * 4,
-		planeBounds: cSpace.planeBounds,
+		letter:  tabRune,
+		advance: cSpace.advance * 4,
+		planeBounds: [4]float32{
+			cSpace.planeBounds[0] * tabSize / 2,
+			cSpace.planeBounds[1],
+			cSpace.planeBounds[2] * tabSize / 2,
+			cSpace.planeBounds[3],
+		},
 		atlasBounds: cSpace.atlasBounds,
 	}
-	cTab.planeBounds[0] *= tabSize / 2
-	cTab.planeBounds[2] *= tabSize / 2
 	bin.letters[' '] = cSpace
 	bin.letters[tabRune] = cTab
 	cReturn := fontBinChar{letter: '\r', advance: 0.0,

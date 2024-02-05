@@ -246,6 +246,7 @@ func main() {
 	//testLayout(&host)
 	//testHTMLBinding(&host)
 	addConsole(&host)
+	//hierarchy.New().Create(&host)
 	for !host.Closing {
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()

@@ -188,9 +188,6 @@ func (ui *uiBase) Clean() {
 func (ui *uiBase) GenerateScissor() {
 	ui.disconnectedScissor = false
 	target := &ui.entity.Transform
-	if !ui.entity.IsRoot() {
-		target = &ui.entity.Parent.Transform
-	}
 	pos := target.WorldPosition()
 	size := target.WorldScale()
 	bounds := matrix.Vec4{
@@ -198,6 +195,14 @@ func (ui *uiBase) GenerateScissor() {
 		pos.Y() - size.Y()*0.5,
 		pos.X() + size.X()*0.5,
 		pos.Y() + size.Y()*0.5,
+	}
+	if !ui.entity.IsRoot() {
+		p := FirstOnEntity(ui.entity.Parent)
+		pBounds := p.selfScissor()
+		bounds.SetX(max(bounds.X(), pBounds.X()))
+		bounds.SetY(max(bounds.Y(), pBounds.Y()))
+		bounds.SetZ(min(bounds.Z(), pBounds.Z()))
+		bounds.SetW(min(bounds.W(), pBounds.W()))
 	}
 	ui.setScissor(bounds)
 }

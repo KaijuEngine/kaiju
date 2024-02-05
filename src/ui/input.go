@@ -64,7 +64,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	// Label
-	data.label = NewLabel(host, "", AnchorTopLeft)
+	data.label = NewLabel(host, "", AnchorLeft)
 	p.AddChild(data.label)
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -73,11 +73,11 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
 		ps := input.layout.PixelSize()
-		l.Scale(ps.Width(), ps.Height())
+		l.ScaleWidth(ps.Width())
 	})
 
 	// Placeholder
-	data.placeholder = NewLabel(host, placeholderText, AnchorTopLeft)
+	data.placeholder = NewLabel(host, placeholderText, AnchorLeft)
 	p.AddChild(data.placeholder)
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
@@ -86,7 +86,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
 		ps := input.layout.PixelSize()
-		l.Scale(ps.Width(), ps.Height())
+		l.ScaleWidth(ps.Width())
 	})
 
 	// Create the cursor
@@ -97,7 +97,6 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.cursor)
 	data.cursor.layout.AddFunction(func(l *Layout) {
 		l.Scale(cursorWidth, input.layout.PixelSize().Height()-5)
-		l.SetOffset(l.offset.X(), cursorY)
 	})
 
 	// Create the highlight
