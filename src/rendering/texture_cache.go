@@ -47,4 +47,5 @@ func (t *TextureCache) Destroy() {
 	for _, texture := range t.textures {
 		texture.Destroy(t.renderer)
 	}
+	t.textures = make(map[string]*Texture)
 }

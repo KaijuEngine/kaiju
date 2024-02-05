@@ -70,4 +70,5 @@ func (s *ShaderCache) Destroy() {
 	for _, shader := range s.shaders {
 		shader.Destroy(s.renderer)
 	}
+	s.shaders = make(map[string]*Shader)
 }
