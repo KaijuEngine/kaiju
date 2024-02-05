@@ -72,6 +72,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
+		ps := input.layout.PixelSize()
+		l.ScaleWidth(ps.Width())
 	})
 
 	// Placeholder
@@ -83,6 +85,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
+		ps := input.layout.PixelSize()
+		l.ScaleWidth(ps.Width())
 	})
 
 	// Create the cursor
