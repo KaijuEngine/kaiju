@@ -13,37 +13,71 @@ import (
 )
 
 type Preview struct {
-	doc          *markup.Document
-	path         string
-	lastModified time.Time
+	doc         *markup.Document
+	html        string
+	css         string
+	bindingData any
+	lastMod     time.Time
+}
+
+func (p *Preview) fileChanged() bool {
+	hs, hErr := os.Stat(p.html)
+	if hErr != nil {
+		return false
+	}
+	if p.css == "" {
+		cs, cErr := os.Stat(p.css)
+		if cErr != nil {
+			return false
+		}
+		return hs.ModTime().After(p.lastMod) || cs.ModTime().After(p.lastMod)
+	} else {
+		return hs.ModTime().After(p.lastMod)
+	}
 }
 
 func (p *Preview) readHTML(container *host_container.HostContainer) {
 	container.RunFunction(func() {
-		if html, err := filesystem.ReadTextFile(p.path); err == nil {
+		if html, err := filesystem.ReadTextFile(p.html); err == nil {
+			css := ""
+			if p.css != "" {
+				css, _ = filesystem.ReadTextFile(p.css)
+			}
 			if p.doc != nil {
 				for _, elm := range p.doc.Elements {
 					elm.UI.Entity().Destroy()
 				}
 			}
-			p.doc = uimarkup.DocumentFromHTMLString(container.Host, html, "", nil, nil)
+			p.doc = uimarkup.DocumentFromHTMLString(
+				container.Host, html, css, p.bindingData, nil)
 		}
 	})
-	p.lastModified = time.Now()
+	p.lastMod = time.Now()
 }
 
-func startPreview(previewContainer *host_container.HostContainer, path string) {
-	preview := Preview{path: path}
+func startPreview(previewContainer *host_container.HostContainer, htmlFile, cssFile string, bindingData any) {
+	preview := Preview{
+		html:        htmlFile,
+		css:         cssFile,
+		bindingData: bindingData,
+	}
 	preview.readHTML(previewContainer)
 	for !previewContainer.Host.Closing {
 		time.Sleep(time.Second * 1)
-		if s, err := os.Stat(path); err != nil {
-			// TODO:  Should be able to signal a close to the window
-			return
-		} else if s.ModTime().After(preview.lastModified) {
+		if preview.fileChanged() {
 			preview.readHTML(previewContainer)
 		}
 	}
+}
+
+func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContainer, error) {
+	c, err := host_container.New()
+	if err != nil {
+		return nil, err
+	}
+	go c.Run()
+	go startPreview(c, htmlFile, cssFile, bindingData)
+	return c, nil
 }
 
 func SetupConsole(host *engine.Host) {
@@ -51,12 +85,9 @@ func SetupConsole(host *engine.Host) {
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}
-		previewContainer, err := host_container.New()
-		if err != nil {
-			return err.Error()
+		if _, err := New(filePath, "", nil); err != nil {
+			return fmt.Sprintf("Error creating preview: %s", err)
 		}
-		go previewContainer.Run()
-		go startPreview(previewContainer, filePath)
 		return fmt.Sprintf("Previewing file: %s", filePath)
 	})
 }
