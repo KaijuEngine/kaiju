@@ -131,6 +131,12 @@ func (c *StandardCamera) SetHeight(height float32) {
 	c.updateProjection()
 }
 
+func (c *StandardCamera) ViewportChanged(width, height float32) {
+	c.width = width
+	c.height = height
+	c.updateProjection()
+}
+
 func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height float32) {
 	c.fieldOfView = fov
 	c.nearPlane = nearPlane

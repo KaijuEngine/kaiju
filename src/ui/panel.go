@@ -5,6 +5,7 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 )
 
 type PanelScrollDirection = int32
@@ -32,8 +33,8 @@ const (
 )
 
 type childScrollEvent struct {
-	down   engine.EventId
-	scroll engine.EventId
+	down   events.Id
+	scroll events.Id
 }
 
 type localData interface {
@@ -53,7 +54,7 @@ type Panel struct {
 	scroll, offset, maxScroll     matrix.Vec2
 	scrollSpeed                   float32
 	scrollDirection               PanelScrollDirection
-	scrollEvent                   engine.EventId
+	scrollEvent                   events.Id
 	borderStyle                   [4]BorderStyle
 	color                         matrix.Color
 	drawing                       rendering.Drawing

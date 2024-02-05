@@ -2,6 +2,7 @@ package engine
 
 import (
 	"kaiju/matrix"
+	"kaiju/systems/events"
 	"slices"
 )
 
@@ -11,9 +12,9 @@ type Entity struct {
 	Children                        []*Entity
 	matrix                          matrix.Mat4
 	namedData                       map[string][]interface{}
-	OnDestroy                       Event
-	OnActivate                      Event
-	OnDeactivate                    Event
+	OnDestroy                       events.Event
+	OnActivate                      events.Event
+	OnDeactivate                    events.Event
 	name                            string
 	destroyedFrames                 int8
 	isDestroyed                     bool
@@ -29,9 +30,9 @@ func NewEntity() *Entity {
 		matrix:       matrix.Mat4Identity(),
 		namedData:    make(map[string][]interface{}),
 		name:         "Entity",
-		OnDestroy:    NewEvent(),
-		OnActivate:   NewEvent(),
-		OnDeactivate: NewEvent(),
+		OnDestroy:    events.New(),
+		OnActivate:   events.New(),
+		OnDeactivate: events.New(),
 	}
 }
 

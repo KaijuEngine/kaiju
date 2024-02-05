@@ -5,6 +5,7 @@ import (
 	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"kaiju/windowing"
 )
 
@@ -30,9 +31,9 @@ const (
 type UI interface {
 	Entity() *engine.Entity
 	ExecuteEvent(evtType EventType) bool
-	AddEvent(evtType EventType, evt func()) engine.EventId
-	RemoveEvent(evtType EventType, evtId engine.EventId)
-	Event(evtType EventType) *engine.Event
+	AddEvent(evtType EventType, evt func()) events.Id
+	RemoveEvent(evtType EventType, evtId events.Id)
+	Event(evtType EventType) *events.Event
 	Update(deltaTime float64)
 	SetDirty(dirtyType DirtyType)
 	Layout() *Layout
@@ -53,7 +54,7 @@ type UI interface {
 type uiBase struct {
 	host                *engine.Host
 	entity              *engine.Entity
-	events              [EventTypeEnd]engine.Event
+	events              [EventTypeEnd]events.Event
 	group               *Group
 	dragStartPos        matrix.Vec3
 	downPos             matrix.Vec2
@@ -83,8 +84,12 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	if ui.updateId == 0 {
 		ui.updateId = host.Updater.AddUpdate(ui.Update)
 	}
+	rzId := host.Window.OnResize.Add(func() {
+		ui.SetDirty(DirtyTypeResize)
+	})
 	ui.entity.OnDestroy.Add(func() {
 		host.Updater.RemoveUpdate(ui.updateId)
+		host.Window.OnResize.Remove(rzId)
 	})
 }
 
@@ -103,15 +108,15 @@ func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	return !ui.events[evtType].IsEmpty()
 }
 
-func (ui *uiBase) AddEvent(evtType EventType, evt func()) engine.EventId {
+func (ui *uiBase) AddEvent(evtType EventType, evt func()) events.Id {
 	return ui.events[evtType].Add(evt)
 }
 
-func (ui *uiBase) RemoveEvent(evtType EventType, evtId engine.EventId) {
+func (ui *uiBase) RemoveEvent(evtType EventType, evtId events.Id) {
 	ui.events[evtType].Remove(evtId)
 }
 
-func (ui *uiBase) Event(evtType EventType) *engine.Event {
+func (ui *uiBase) Event(evtType EventType) *events.Event {
 	return &ui.events[evtType]
 }
 

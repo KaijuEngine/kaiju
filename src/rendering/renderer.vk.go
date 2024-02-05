@@ -2149,6 +2149,10 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 }
 
 func (vr *Vulkan) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) bool {
+	if vr.resized {
+		vr.remakeSwapChain()
+		vr.resized = false
+	}
 	fences := []vk.Fence{vr.renderFences[vr.currentFrame]}
 	vk.WaitForFences(vr.device, 1, fences, vk.True, math.MaxUint64)
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
@@ -2213,8 +2217,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
 
-	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal || vr.resized {
-		vr.resized = false
+	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal {
 		vr.remakeSwapChain()
 	} else if vr.acquireImageResult != vk.Success {
 		log.Fatal("Failed to present swap chain image")
