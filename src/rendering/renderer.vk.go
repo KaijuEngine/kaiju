@@ -125,7 +125,6 @@ type Vulkan struct {
 	acquireImageResult         vk.Result
 	currentFrame               int
 	commandBuffersCount        int
-	resized                    bool
 	msaaSamples                vk.SampleCountFlagBits
 	oit                        oitPass
 	preRuns                    []func()
@@ -2152,10 +2151,6 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 func (vr *Vulkan) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) bool {
 	fences := []vk.Fence{vr.renderFences[vr.currentFrame]}
 	vk.WaitForFences(vr.device, 1, fences, vk.True, math.MaxUint64)
-	if vr.resized {
-		vr.remakeSwapChain()
-		vr.resized = false
-	}
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
 		vr.imageSemaphores[vr.currentFrame], vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
 	if vr.acquireImageResult == vk.ErrorOutOfDate {
@@ -3016,7 +3011,7 @@ func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
 }
 
 func (vr *Vulkan) Resize(width, height int) {
-	vr.resized = true
+	vr.remakeSwapChain()
 }
 
 func (vr *Vulkan) AddPreRun(preRun func()) {
