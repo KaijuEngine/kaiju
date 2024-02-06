@@ -20,6 +20,17 @@ func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache {
 	}
 }
 
+// Try to add the mesh to the cache, if it already exists,
+// return the existing mesh
+func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
+	if found, ok := m.meshes[mesh.key]; !ok {
+		m.meshes[mesh.key] = mesh
+		return mesh
+	} else {
+		return found
+	}
+}
+
 func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh, true
