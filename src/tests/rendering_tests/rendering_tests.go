@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"kaiju/assets"
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/rendering/loaders"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
@@ -204,7 +206,26 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func RunTest(hsot *engine.Host) {
+func monkeyTest(host *engine.Host) {
+	const monkeyObj = "meshes/monkey.obj"
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
+	monkey := loaders.Obj(host.Window.Renderer, monkeyObj, monkeyData)
+	if len(monkey) != 1 {
+		panic("Expected 1 mesh")
+	}
+	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
+	host.MeshCache().AddMesh(monkey[0])
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		Mesh:       monkey[0],
+		Textures:   []*rendering.Texture{tex},
+		ShaderData: &sd,
+	})
+}
+
+func RunTest(host *engine.Host) {
 	//testDrawing(host)
 	//testTwoDrawings(host)
 	//testFont(host)
@@ -218,4 +239,5 @@ func RunTest(hsot *engine.Host) {
 	//testLayout(host)
 	//testHTMLBinding(host)
 	//hierarchy.New().Create(host)
+	monkeyTest(host)
 }

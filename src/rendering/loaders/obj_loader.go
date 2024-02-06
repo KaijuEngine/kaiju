@@ -2,23 +2,40 @@ package loaders
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"math"
 	"strings"
 )
 
 type objBuilder struct {
-	name     string
-	material string
-	points   []matrix.Vec3
-	uvs      []matrix.Vec2
-	normals  []matrix.Vec3
-	vIndexes []uint32
-	tIndexes []uint32
-	nIndexes []uint32
+	name                 string
+	material             string
+	points               []matrix.Vec3
+	colors               []matrix.Color
+	uvs                  []matrix.Vec2
+	normals              []matrix.Vec3
+	vIndexes             []uint32
+	tIndexes             []uint32
+	nIndexes             []uint32
+	complainedAboutQuads bool
+}
+
+func (o *objBuilder) fromVertIdx(idx int) int {
+	for i, v := range o.vIndexes {
+		if v == uint32(idx) {
+			return i
+		}
+	}
+	return 0
+}
+
+func (o *objBuilder) complainAboutQuads() {
+	if !o.complainedAboutQuads {
+		klib.NotYetImplemented(139)
+		o.complainedAboutQuads = true
+	}
 }
 
 type objLineType = int
@@ -81,8 +98,15 @@ func objNewObject(line string) objBuilder {
 
 func (obj *objBuilder) readVertex(line string) {
 	var p matrix.Vec3
-	fmt.Sscanf(line, "v %f %f %f", p.PX(), p.PY(), p.PZ())
+	c := matrix.ColorWhite()
+	spaceCount := strings.Count(line, " ")
+	if spaceCount == 3 {
+		fmt.Sscanf(line, "v %f %f %f", p.PX(), p.PY(), p.PZ())
+	} else if spaceCount == 6 {
+		fmt.Sscanf(line, "v %f %f %f %f %f %f", p.PX(), p.PY(), p.PZ(), c.PR(), c.PG(), c.PB())
+	}
 	obj.points = append(obj.points, p)
+	obj.colors = append(obj.colors, c)
 }
 
 func (obj *objBuilder) readUv(line string) {
@@ -101,51 +125,52 @@ func (obj *objBuilder) readMaterial(line string) {
 	fmt.Sscanf(line, "mtllib %s", obj.material)
 }
 
-func (obj *objBuilder) readFace(line string) error {
-	var v0, vt0, vn0,
-		v1, vt1, vn1,
-		v2, vt2, vn2 uint32
-	fmt.Sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
-		&v0, &vt0, &vn0, &v1, &vt1, &vn1, &v2, &vt2, &vn2)
-	v0--
-	v1--
-	v2--
-	vt0--
-	vt1--
-	vt2--
-	vn0--
-	vn1--
-	vn2--
-	if v0 > math.MaxUint32 || v1 > math.MaxUint32 || v2 > math.MaxUint32 {
-		return errors.New("Expected 32 bit unsigned int")
+func (obj *objBuilder) readFace(line string) {
+	var v, vt, vn [4]uint32
+	spaceCount := strings.Count(line, " ")
+	if spaceCount == 3 {
+		fmt.Sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+			&v[0], &vt[0], &vn[0], &v[1], &vt[1], &vn[1], &v[2], &vt[2], &vn[2])
+		for i := 0; i < 3; i++ {
+			v[i]--
+			vt[i]--
+			vn[i]--
+		}
+		obj.vIndexes = append(obj.vIndexes, v[:3]...)
+		obj.tIndexes = append(obj.tIndexes, vt[:3]...)
+		obj.nIndexes = append(obj.nIndexes, vn[:3]...)
+	} else if spaceCount == 4 {
+		obj.complainAboutQuads()
+		fmt.Sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d",
+			&v[0], &vt[0], &vn[0], &v[1], &vt[1], &vn[1], &v[2], &vt[2], &vn[2], &v[3], &vt[3], &vn[3])
+		for i := 0; i < 4; i++ {
+			v[i]--
+			vt[i]--
+			vn[i]--
+		}
+		obj.vIndexes = append(obj.vIndexes, v[:]...)
+		obj.tIndexes = append(obj.tIndexes, vt[:]...)
+		obj.nIndexes = append(obj.nIndexes, vn[:]...)
 	}
-	obj.vIndexes = append(obj.vIndexes, v0)
-	obj.vIndexes = append(obj.vIndexes, v1)
-	obj.vIndexes = append(obj.vIndexes, v2)
-	obj.tIndexes = append(obj.tIndexes, vt0)
-	obj.tIndexes = append(obj.tIndexes, vt1)
-	obj.tIndexes = append(obj.tIndexes, vt2)
-	obj.nIndexes = append(obj.nIndexes, vn0)
-	obj.nIndexes = append(obj.nIndexes, vn1)
-	obj.nIndexes = append(obj.nIndexes, vn2)
-	return nil
 }
 
 func Obj(renderer rendering.Renderer, key, objData string) []*rendering.Mesh {
 	builders := ObjToRaw(objData)
-	meshes := make([]*rendering.Mesh, 0)
-	for _, builder := range builders {
-		verts := make([]rendering.Vertex, 0)
-		for i := 0; i < len(builder.points); i++ {
-			v := rendering.Vertex{}
-			v.Position = builder.points[builder.vIndexes[i]]
-			v.UV0 = builder.uvs[builder.tIndexes[i]]
-			v.Normal = builder.normals[builder.nIndexes[i]]
-			v.Color = matrix.ColorWhite()
-			verts = append(verts, v)
+	meshes := make([]*rendering.Mesh, len(builders))
+	for i := range builders {
+		builder := &builders[i]
+		verts := make([]rendering.Vertex, len(builder.points))
+		for j := range builder.points {
+			vi := builder.fromVertIdx(j)
+			verts[j] = rendering.Vertex{
+				Position: builder.points[j],
+				UV0:      builder.uvs[builder.tIndexes[vi]],
+				Normal:   builder.normals[builder.nIndexes[vi]],
+				Color:    builder.colors[builder.vIndexes[vi]],
+			}
 		}
 		mesh := rendering.NewMesh(key, verts, builder.vIndexes)
-		meshes = append(meshes, mesh)
+		meshes[i] = mesh
 	}
 	return meshes
 }

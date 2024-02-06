@@ -83,7 +83,7 @@ bool obtainControllerStates(SharedMem* sm) {
 }
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	SharedMem* sm = GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 		case WM_DESTROY:
 			PostQuitMessage(0);
