@@ -729,7 +729,7 @@ func (vr *Vulkan) createSwapChain() bool {
 	info.OldSwapchain = vk.Swapchain(vk.NullHandle)
 	//free_swap_chain_support_details(scs);
 	var swapChain vk.Swapchain
-	if vk.CreateSwapchain(vr.device, &info, nil, &swapChain) != vk.Success {
+	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vk.Success {
 		log.Printf("%s", "Failed to create swap chain")
 		return false
 	} else {
@@ -1739,6 +1739,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 
 func (vr *Vulkan) remakeSwapChain() {
 	vk.DeviceWaitIdle(vr.device)
+	vr.swapChainCleanup()
 	vr.createSwapChain()
 	vr.createImageViews()
 	//vr.createRenderPass()
@@ -2149,12 +2150,12 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 }
 
 func (vr *Vulkan) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.StandardCamera, runtime float32) bool {
+	fences := []vk.Fence{vr.renderFences[vr.currentFrame]}
+	vk.WaitForFences(vr.device, 1, fences, vk.True, math.MaxUint64)
 	if vr.resized {
 		vr.remakeSwapChain()
 		vr.resized = false
 	}
-	fences := []vk.Fence{vr.renderFences[vr.currentFrame]}
-	vk.WaitForFences(vr.device, 1, fences, vk.True, math.MaxUint64)
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
 		vr.imageSemaphores[vr.currentFrame], vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
 	if vr.acquireImageResult == vk.ErrorOutOfDate {
