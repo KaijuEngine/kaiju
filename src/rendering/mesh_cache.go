@@ -24,12 +24,8 @@ func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache {
 // return the existing mesh
 func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
 	if found, ok := m.meshes[mesh.key]; !ok {
-		for _, pending := range m.pendingMeshes {
-			if pending.key == mesh.key {
-				return pending
-			}
-		}
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
+		m.meshes[mesh.key] = mesh
 		return mesh
 	} else {
 		return found

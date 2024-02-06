@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"kaiju/assets"
 	"kaiju/engine"
+	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
+	"kaiju/systems/console"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
+	"strings"
 	"unsafe"
 )
 
@@ -206,8 +209,9 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func monkeyTest(host *engine.Host) {
+func testMonkey(host *engine.Host) {
 	const monkeyObj = "meshes/monkey.obj"
+	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
 	monkey := loaders.Obj(host.Window.Renderer, monkeyObj, monkeyData)
@@ -225,19 +229,44 @@ func monkeyTest(host *engine.Host) {
 	})
 }
 
-func RunTest(host *engine.Host) {
-	//testDrawing(host)
-	//testTwoDrawings(host)
-	//testFont(host)
-	//testOIT(host)
-	//testPanel(host)
-	//testLabel(host)
-	//testButton(host)
-	//testHTML(host)
-	//[Kaiju Console]\nkl\nj\nj\nj\nj\nj\nj\nj\nj\nj\n\nj
-	//testLayoutSimple(host)
-	//testLayout(host)
-	//testHTMLBinding(host)
-	//hierarchy.New().Create(host)
-	monkeyTest(host)
+func SetupConsole(host *engine.Host) {
+	console.For(host).AddCommand("test", func(t string) string {
+		var testFunc func(*engine.Host) = nil
+		switch strings.ToLower(t) {
+		case "drawing":
+			testFunc = testDrawing
+		case "two drawings":
+			testFunc = testTwoDrawings
+		case "font":
+			testFunc = testFont
+		case "oit":
+			testFunc = testOIT
+		case "panel":
+			testFunc = testPanel
+		case "label":
+			testFunc = testLabel
+		case "button":
+			testFunc = testButton
+		case "html":
+			testFunc = testHTML
+		case "layout simple":
+			testFunc = testLayoutSimple
+		case "layout":
+			testFunc = testLayout
+		case "html binding":
+			testFunc = testHTMLBinding
+		case "monkey":
+			testFunc = testMonkey
+		}
+		if testFunc != nil {
+			c, err := host_container.New()
+			if err != nil {
+				return err.Error()
+			}
+			c.Host.Camera.SetPosition(matrix.Vec3{0, 0, 2})
+			testFunc(c.Host)
+			go c.Run()
+		}
+		return "Running test"
+	})
 }

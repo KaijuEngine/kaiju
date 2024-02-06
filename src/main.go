@@ -10,6 +10,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/systems/console"
+	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
 	"runtime"
 )
@@ -25,6 +26,7 @@ func addConsole(host *engine.Host) {
 	html_preview.SetupConsole(host)
 	hierarchy.SetupConsole(host)
 	profiler.SetupConsole(host)
+	tests.SetupConsole(host)
 }
 
 func main() {
