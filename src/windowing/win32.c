@@ -97,8 +97,6 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (sm->windowWidth != width || sm->windowHeight != height) {
 					sm->windowWidth = width;
 					sm->windowHeight = height;
-					setSizeEvent(sm->evt, width, height);
-					shared_memory_wait_for_available(sm);
 					shared_memory_wait_for_available(sm);
 					shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
 					setSizeEvent(sm->evt, LOWORD(lParam), HIWORD(lParam));
