@@ -209,24 +209,55 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func testMonkey(host *engine.Host) {
-	const monkeyObj = "meshes/monkey.obj"
-	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
-	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
-	monkey := loaders.Obj(host.Window.Renderer, monkeyObj, monkeyData)
-	if len(monkey) != 1 {
-		panic("Expected 1 mesh")
-	}
+func drawBasicMesh(host *engine.Host, res loaders.Result) {
 	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-	host.MeshCache().AddMesh(monkey[0])
+	m := res[0]
+	m.Textures = []string{assets.TextureSquare}
+	textures := []*rendering.Texture{}
+	for _, t := range m.Textures {
+		tex, _ := host.TextureCache().Texture(t, rendering.TextureFilterLinear)
+		textures = append(textures, tex)
+	}
+	mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
+	host.MeshCache().AddMesh(mesh)
 	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
-		Mesh:       monkey[0],
-		Textures:   []*rendering.Texture{tex},
+		Mesh:       mesh,
+		Textures:   textures,
 		ShaderData: &sd,
 	})
+}
+
+func testMonkeyOBJ(host *engine.Host) {
+	const monkeyObj = "meshes/monkey.obj"
+	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
+	res := loaders.OBJ(monkeyObj, monkeyData)
+	if !res.IsValid() || len(res) != 1 {
+		panic("Expected 1 mesh")
+	}
+	drawBasicMesh(host, res)
+}
+
+func testMonkeyGLTF(host *engine.Host) {
+	const monkeyGLTF = "meshes/monkey.gltf"
+	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
+	if !res.IsValid() || len(res) != 1 {
+		panic("Expected 1 mesh")
+	}
+	drawBasicMesh(host, res)
+}
+
+func testMonkeyGLB(host *engine.Host) {
+	const monkeyGLTF = "meshes/monkey.glb"
+	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
+	if !res.IsValid() || len(res) != 1 {
+		panic("Expected 1 mesh")
+	}
+	drawBasicMesh(host, res)
 }
 
 func SetupConsole(host *engine.Host) {
@@ -255,8 +286,12 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testLayout
 		case "html binding":
 			testFunc = testHTMLBinding
-		case "monkey":
-			testFunc = testMonkey
+		case "obj":
+			testFunc = testMonkeyOBJ
+		case "gltf":
+			testFunc = testMonkeyGLTF
+		case "glb":
+			testFunc = testMonkeyGLB
 		}
 		if testFunc != nil {
 			c, err := host_container.New()

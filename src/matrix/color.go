@@ -267,3 +267,10 @@ func (c Color) IsZero() bool            { return c.Equals(ColorZero()) }
 func (c Color) ScaleWithoutAlpha(scale Float) Color {
 	return Color{c.R() * scale, c.G() * scale, c.B() * scale, c.A()}
 }
+
+func (c *Color) MultiplyAssign(other Color) {
+	c[R] *= other[R]
+	c[G] *= other[G]
+	c[B] *= other[B]
+	c[A] *= other[A]
+}
