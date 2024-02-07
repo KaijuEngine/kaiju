@@ -16,14 +16,18 @@ import (
 )
 
 const (
-	pprofCPU     = "cpu.prof"
-	pprofHeap    = "heap.prof"
-	pprofMerge   = "default.pgo"
-	pprofWebPort = "9382"
+	pprofCPUFile   = "cpu.prof"
+	pprofHeapFile  = "heap.prof"
+	pprofMergeFile = "default.pgo"
+	pprofWebPort   = "9382"
+
+	ctxDataKey        = "pprofWebCtx"
+	pprofFileKey      = "pprofFile"
+	pprofWebOpenedKey = "pprofWebOpened"
 )
 
 func consoleTop(host *engine.Host) string {
-	cmd := exec.Command("go", "tool", "pprof", "-top", pprofCPU)
+	cmd := exec.Command("go", "tool", "pprof", "-top", pprofCPUFile)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	out := klib.MustReturn(cmd.StdoutPipe())
 	scanner := bufio.NewScanner(out)
@@ -44,7 +48,7 @@ func consoleMerge(host *engine.Host, argStr string) string {
 	cmdArgs := make([]string, 0, len(args)+5)
 	cmdArgs = append(cmdArgs, "tool", "pprof", "-proto")
 	cmdArgs = append(cmdArgs, args...)
-	cmdArgs = append(cmdArgs, ">", pprofMerge)
+	cmdArgs = append(cmdArgs, ">", pprofMergeFile)
 	cmd := exec.Command("go", cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	err := cmd.Start()
@@ -52,21 +56,22 @@ func consoleMerge(host *engine.Host, argStr string) string {
 		return err.Error()
 	}
 	cmd.Wait()
-	return "Files merged into " + pprofMerge
+	return "Files merged into " + pprofMergeFile
 }
 
-func launchWeb(host *engine.Host) (*contexts.Cancellable, error) {
+func launchWeb(c *console.Console) (*contexts.Cancellable, error) {
 	ctx := contexts.NewCancellable()
-	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, pprofCPU)
+	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, pprofCPUFile)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	err := cmd.Start()
 	if err != nil {
 		return nil, err
 	}
 	go func() {
-		console.For(host).Write("Starting server on localhost:" + pprofWebPort)
+		c.Write("Starting server on localhost:" + pprofWebPort)
 		<-ctx.Done()
 		cmd.Process.Kill()
+		c.DeleteData(ctxDataKey)
 		// Go tool pprof spawns child process pprof.exe which is not killed by the above command
 		// So we need to kill it manually
 		if runtime.GOOS == "windows" {
@@ -78,67 +83,118 @@ func launchWeb(host *engine.Host) (*contexts.Cancellable, error) {
 			killCmd.Run()
 		}
 		if ctx.Err() == nil {
-			console.For(host).Write("Failed to start web server, make sure you have go and graphviz installed.")
+			c.Write("Failed to start web server, make sure you have go and graphviz installed.")
 			ctx.Cancel()
 		}
 	}()
 	return ctx, err
 }
 
-func SetupConsole(host *engine.Host) {
-	var pprofFile *os.File = nil
-	var ctx *contexts.Cancellable = nil
-	console.For(host).AddCommand("pprof", func(arg string) string {
-		if arg == "start" {
-			pprofFile = klib.MustReturn(os.Create(pprofCPU))
-			pprof.StartCPUProfile(pprofFile)
-			return "CPU profile started"
-		} else if arg == "stop" {
-			if pprofFile == nil {
-				return "CPU profile not yet started"
-			}
-			pprof.StopCPUProfile()
-			pprofFile.Close()
-			return "CPU profile written to " + pprofCPU
-		} else if arg == "heap" {
-			hp := klib.MustReturn(os.Create(pprofHeap))
-			pprof.WriteHeapProfile(hp)
-			hp.Close()
-			return "Heap profile written to " + pprofHeap
-		} else if arg == "top" {
-			return consoleTop(host)
-		} else if arg == "web" {
-			var err error
-			if ctx != nil {
-				ctx.Cancel()
-				ctx = nil
-			}
-			if ctx, err = launchWeb(host); err != nil {
-				return err.Error()
-			} else {
-				return "Starting up web server..."
-			}
-		} else if arg == "webstop" {
-			if ctx != nil {
-				ctx.Cancel()
-				ctx = nil
-				return "Web server stopped"
-			} else {
-				return "Web server not running"
-			}
-		} else if strings.HasPrefix(arg, "merge") {
-			return consoleMerge(host, arg)
-		} else {
-			return ""
+func pprofStart(c *console.Console, arg string) string {
+	pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
+	pprof.StartCPUProfile(pprofFile)
+	c.SetData(pprofFileKey, pprofFile)
+	return "CPU profile started"
+}
+
+func pprofStop(c *console.Console, arg string) string {
+	pprofFile, ok := c.Data(pprofFileKey).(*os.File)
+	if !ok || pprofFile == nil {
+		return "CPU profile not yet started"
+	}
+	pprof.StopCPUProfile()
+	pprofFile.Close()
+	return "CPU profile written to " + pprofCPUFile
+}
+
+func pprofHeap() string {
+	hp := klib.MustReturn(os.Create(pprofHeapFile))
+	pprof.WriteHeapProfile(hp)
+	hp.Close()
+	return "Heap profile written to " + pprofHeapFile
+}
+
+func pprofWebStart(c *console.Console) string {
+	ctx, ok := c.Data(ctxDataKey).(*contexts.Cancellable)
+	if ok && ctx != nil {
+		ctx.Cancel()
+		c.DeleteData(ctxDataKey)
+	}
+	if ctx, err := launchWeb(c); err != nil {
+		return err.Error()
+	} else {
+		if !c.HasData(ctxDataKey) {
+			c.Host().OnClose.Add(func() {
+				if c.HasData(ctxDataKey) {
+					c.Data(ctxDataKey).(*contexts.Cancellable).Cancel()
+				}
+			})
+			c.SetData(ctxDataKey, ctx)
 		}
-	})
-	console.For(host).AddCommand("GC", func(string) string {
-		runtime.GC()
-		return "Garbage collection done"
-	})
-	console.For(host).AddCommand("MemStats", func(string) string {
-		var mem runtime.MemStats
-		runtime.ReadMemStats(&mem)
-		return fmt.Sprintf("Alloc: %d, TotalAlloc: %d, Sys: %d, NumGC: %d", mem.Alloc, mem.TotalAlloc, mem.Sys, mem.NumGC)
-	})
+		return "Starting up web server..."
+	}
+}
+
+func pprofWebStop(c *console.Console) string {
+	ctx, ok := c.Data(ctxDataKey).(*contexts.Cancellable)
+	if ok && ctx != nil {
+		ctx.Cancel()
+		ctx = nil
+		return "Web server stopped"
+	} else {
+		return "Web server not running"
+	}
+}
+
+func pprofWeb(c *console.Console, args []string) string {
+	if len(args) < 1 {
+		return `Expected "start" or "stop"`
+	}
+	switch args[0] {
+	case "start":
+		return pprofWebStart(c)
+	case "stop":
+		return pprofWebStop(c)
+	default:
+		return `Expected "start" or "stop"`
+	}
+}
+
+func pprofCommands(host *engine.Host, arg string) string {
+	c := console.For(host)
+	arg = klib.ReplaceStringRecursive(arg, "  ", " ")
+	args := strings.Split(arg, " ")
+	if arg == "start" {
+		return pprofStart(c, arg)
+	} else if arg == "stop" {
+		return pprofStop(c, arg)
+	} else if arg == "heap" {
+		return pprofHeap()
+	} else if arg == "top" {
+		return consoleTop(host)
+	} else if args[0] == "web" {
+		return pprofWeb(c, args[1:])
+	} else if strings.HasPrefix(arg, "merge") {
+		return consoleMerge(host, arg)
+	} else {
+		return ""
+	}
+}
+
+func gc(host *engine.Host, arg string) string {
+	runtime.GC()
+	return "Garbage collection done"
+}
+
+func memStats(host *engine.Host, arg string) string {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	return fmt.Sprintf("Alloc: %d, TotalAlloc: %d, Sys: %d, NumGC: %d", mem.Alloc, mem.TotalAlloc, mem.Sys, mem.NumGC)
+}
+
+func SetupConsole(host *engine.Host) {
+	c := console.For(host)
+	c.AddCommand("pprof", pprofCommands)
+	console.For(host).AddCommand("GC", gc)
+	console.For(host).AddCommand("MemStats", memStats)
 }
