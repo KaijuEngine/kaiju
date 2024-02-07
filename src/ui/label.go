@@ -104,6 +104,11 @@ func (label *Label) clearDrawings() {
 }
 
 func (label *Label) postLayoutUpdate() {
+	maxWidth := float32(999999.0)
+	if label.wordWrap {
+		maxWidth = label.layout.PixelSize().Width()
+	}
+	label.updateHeight(maxWidth)
 }
 
 func (label *Label) updateHeight(maxWidth float32) {

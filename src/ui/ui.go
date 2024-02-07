@@ -49,6 +49,7 @@ type UI interface {
 	layoutChanged(dirtyType DirtyType)
 	cleanDirty()
 	postLayoutUpdate()
+	render()
 }
 
 type uiBase struct {
@@ -72,6 +73,7 @@ type uiBase struct {
 }
 
 func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
+func (ui *uiBase) render()        {}
 
 func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
@@ -182,11 +184,7 @@ func (ui *uiBase) Clean() {
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
-		if l, ok := tree[i].(*Label); ok {
-			l.render()
-		} else if p, ok := tree[i].(*Panel); ok {
-			p.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
-		}
+		tree[i].render()
 	}
 }
 
