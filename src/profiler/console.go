@@ -65,10 +65,8 @@ func launchWeb(host *engine.Host) (*contexts.Cancellable, error) {
 	}
 	go func() {
 		console.For(host).Write("Starting server on localhost:" + pprofWebPort)
-		select {
-		case <-ctx.Done():
-			cmd.Process.Kill()
-		}
+		<-ctx.Done()
+		cmd.Process.Kill()
 		if ctx.Err() == nil {
 			console.For(host).Write("Failed to start web server, make sure you have go and graphviz installed.")
 			ctx.Cancel()
