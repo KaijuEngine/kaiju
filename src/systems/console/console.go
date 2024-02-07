@@ -47,15 +47,18 @@ func (h *history) forward() string {
 	return h.data[h.idx]
 }
 
+type ConsoleData interface{}
+
 type Console struct {
 	doc        *markup.Document
 	host       *engine.Host
-	commands   map[string]func(string) string
+	commands   map[string]func(*engine.Host, string) string
 	history    history
 	historyIdx int
 	updateId   int
 	isActive   bool
 	input      *ui.Input
+	data       map[string]ConsoleData
 }
 
 func For(host *engine.Host) *Console {
@@ -67,13 +70,12 @@ func For(host *engine.Host) *Console {
 	return c
 }
 
-func UnlinkHost(host *engine.Host) { delete(consoles, host) }
-
 func initialize(host *engine.Host) *Console {
 	console := &Console{
 		host:     host,
-		commands: map[string]func(string) string{},
+		commands: map[string]func(*engine.Host, string) string{},
 		history:  newHistory(),
+		data:     make(map[string]ConsoleData),
 	}
 	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
 	console.doc = uimarkup.DocumentFromHTMLString(host,
@@ -92,6 +94,14 @@ func initialize(host *engine.Host) *Console {
 	console.AddCommand("clear", console.clear)
 	return console
 }
+
+func UnlinkHost(host *engine.Host) { delete(consoles, host) }
+
+func (c *Console) Host() *engine.Host                   { return c.host }
+func (c *Console) SetData(key string, data ConsoleData) { c.data[key] = data }
+func (c *Console) HasData(key string) bool              { _, ok := c.data[key]; return ok }
+func (c *Console) Data(key string) ConsoleData          { return c.data[key] }
+func (c *Console) DeleteData(key string)                { delete(c.data, key) }
 
 func (c *Console) toggle() {
 	if c.isActive {
@@ -121,7 +131,7 @@ func (c *Console) IsActive() bool {
 	return c.isActive
 }
 
-func (c *Console) AddCommand(key string, fn func(cmd string) string) {
+func (c *Console) AddCommand(key string, fn func(*engine.Host, string) string) {
 	c.commands[key] = fn
 }
 
@@ -130,7 +140,7 @@ func (c *Console) Write(message string) {
 	lbl.SetText(lbl.Text() + "\n" + message)
 }
 
-func (c *Console) help(arg string) string {
+func (c *Console) help(*engine.Host, string) string {
 	sb := strings.Builder{}
 	sb.WriteString("Available Commands:\n")
 	for name := range c.commands {
@@ -141,7 +151,7 @@ func (c *Console) help(arg string) string {
 	return sb.String()
 }
 
-func (c *Console) clear(arg string) string {
+func (c *Console) clear(*engine.Host, string) string {
 	c.outputLabel().SetText("")
 	return ""
 }
@@ -168,7 +178,7 @@ func (c *Console) submit(input *ui.Input) {
 	}
 	var res string
 	if fn, ok := c.commands[key]; ok {
-		res = strings.TrimSpace(fn(value))
+		res = strings.TrimSpace(fn(c.host, value))
 	}
 	lbl := c.outputLabel()
 	if res != "" {

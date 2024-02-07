@@ -81,7 +81,7 @@ func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContain
 }
 
 func SetupConsole(host *engine.Host) {
-	console.For(host).AddCommand("preview", func(filePath string) string {
+	console.For(host).AddCommand("preview", func(_ *engine.Host, filePath string) string {
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}
