@@ -31,22 +31,26 @@ type Label struct {
 	runeShaderData   []*rendering.TextShaderData
 	runeDrawings     []rendering.Drawing
 	fontFace         rendering.FontFace
+	lastRenderWidth  float32
 	wordWrap         bool
+	renderRequired   bool
 }
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{
-		text:         text,
-		textLength:   len(text),
-		color:        matrix.ColorWhite(),
-		bgColor:      matrix.ColorBlack(),
-		fontSize:     LabelFontSize,
-		baseline:     rendering.FontBaselineTop,
-		justify:      rendering.FontJustifyLeft,
-		colorRanges:  make([]colorRange, 0),
-		runeDrawings: make([]rendering.Drawing, 0),
-		fontFace:     rendering.FontRegular,
-		wordWrap:     true,
+		text:            text,
+		textLength:      len(text),
+		color:           matrix.ColorWhite(),
+		bgColor:         matrix.ColorBlack(),
+		fontSize:        LabelFontSize,
+		baseline:        rendering.FontBaselineTop,
+		justify:         rendering.FontJustifyLeft,
+		colorRanges:     make([]colorRange, 0),
+		runeDrawings:    make([]rendering.Drawing, 0),
+		fontFace:        rendering.FontRegular,
+		wordWrap:        true,
+		renderRequired:  true,
+		lastRenderWidth: 0,
 	}
 	label.init(host, matrix.Vec2Zero(), anchor, label)
 	label.SetText(text)
@@ -55,6 +59,7 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		label.activateDrawings()
 		label.updateId = host.Updater.AddUpdate(label.Update)
 		label.SetDirty(DirtyTypeLayout)
+		label.renderRequired = true
 		label.Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
@@ -111,15 +116,15 @@ func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 		label.text, label.fontSize, maxWidth)
 }
 
-func (label *Label) render() {
-	label.updateHeight(label.MaxWidth())
+func (label *Label) renderText() {
+	maxWidth := float32(999999.0)
+	if label.wordWrap {
+		maxWidth = label.layout.PixelSize().Width()
+	}
+	label.updateHeight(maxWidth)
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {
-		maxWidth := float32(999999.0)
-		if label.wordWrap {
-			maxWidth = label.layout.PixelSize().Width()
-		}
 		label.runeDrawings = label.Host().FontCache().RenderMeshes(
 			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
 			maxWidth, label.color, label.bgColor, label.justify,
@@ -136,11 +141,23 @@ func (label *Label) render() {
 		}
 		label.host.Drawings.AddDrawings(label.runeDrawings)
 	}
+}
+
+func (label *Label) render() {
+	maxWidth := label.MaxWidth()
+	if label.lastRenderWidth != maxWidth {
+		label.lastRenderWidth = maxWidth
+		label.renderRequired = true
+	}
+	if label.renderRequired {
+		label.renderText()
+	}
 	label.setLabelScissors()
 	if !label.isActive() {
 		label.deactivateDrawings()
 	}
 	label.updateColors()
+	label.renderRequired = false
 }
 
 func (label *Label) updateColors() {
@@ -173,6 +190,7 @@ func (label *Label) Text() string { return label.text }
 
 func (label *Label) SetText(text string) {
 	label.text = text
+	label.renderRequired = true
 	// TODO:  Put a cap on the length of the string
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
