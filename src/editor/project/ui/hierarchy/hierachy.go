@@ -63,7 +63,7 @@ func (h *Hierarchy) Create(host *engine.Host) {
 
 func SetupConsole(host *engine.Host) {
 	hrc := New()
-	console.For(host).AddCommand("hrc", func(arg string) string {
+	console.For(host).AddCommand("hrc", func(_ *engine.Host, arg string) string {
 		log := ""
 		if arg == "show" {
 			hrc.Destroy()

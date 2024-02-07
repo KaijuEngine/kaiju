@@ -261,7 +261,7 @@ func testMonkeyGLB(host *engine.Host) {
 }
 
 func SetupConsole(host *engine.Host) {
-	console.For(host).AddCommand("test", func(t string) string {
+	console.For(host).AddCommand("test", func(_ *engine.Host, t string) string {
 		var testFunc func(*engine.Host) = nil
 		switch strings.ToLower(t) {
 		case "drawing":

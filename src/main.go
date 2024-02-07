@@ -20,7 +20,7 @@ func init() {
 }
 
 func addConsole(host *engine.Host) {
-	console.For(host).AddCommand("EntityCount", func(string) string {
+	console.For(host).AddCommand("EntityCount", func(*engine.Host, string) string {
 		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
 	})
 	html_preview.SetupConsole(host)
