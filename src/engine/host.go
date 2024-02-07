@@ -6,6 +6,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"kaiju/windowing"
 	"time"
 )
@@ -25,6 +26,7 @@ type Host struct {
 	Updater       Updater
 	LateUpdater   Updater
 	assetDatabase assets.Database
+	OnClose       events.Event
 	CloseSignal   chan struct{}
 }
 
@@ -44,6 +46,7 @@ func NewHost() (*Host, error) {
 		Camera:        cameras.NewStandardCamera(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		UICamera:      cameras.NewStandardCameraOrthographic(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		Drawings:      rendering.NewDrawings(),
+		OnClose:       events.New(),
 		CloseSignal:   make(chan struct{}),
 	}
 	host.UICamera.SetPosition(matrix.Vec3{0, 0, 250})
@@ -114,6 +117,7 @@ func (host *Host) Runtime() float64 {
 }
 
 func (host *Host) Teardown() {
+	host.OnClose.Execute()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
 	host.Drawings.Destroy(host.Window.Renderer)
