@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"context"
 	"kaiju/assets"
 	"kaiju/cameras"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/windowing"
+	"time"
 )
 
 type Host struct {
@@ -23,6 +25,7 @@ type Host struct {
 	Updater       Updater
 	LateUpdater   Updater
 	assetDatabase assets.Database
+	CloseSignal   chan struct{}
 }
 
 func NewHost() (*Host, error) {
@@ -41,6 +44,7 @@ func NewHost() (*Host, error) {
 		Camera:        cameras.NewStandardCamera(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		UICamera:      cameras.NewStandardCameraOrthographic(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		Drawings:      rendering.NewDrawings(),
+		CloseSignal:   make(chan struct{}),
 	}
 	host.UICamera.SetPosition(matrix.Vec3{0, 0, 250})
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
@@ -119,4 +123,26 @@ func (host *Host) Teardown() {
 	host.fontCache.Destroy()
 	host.assetDatabase.Destroy()
 	host.Window.Destroy()
+	host.CloseSignal <- struct{}{}
+}
+
+/* context.Context implementation */
+
+func (h *Host) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
+func (h *Host) Done() <-chan struct{} {
+	return h.CloseSignal
+}
+
+func (h *Host) Err() error {
+	if h.Closing {
+		return context.Canceled
+	}
+	return nil
+}
+
+func (h *Host) Value(key any) any {
+	return nil
 }

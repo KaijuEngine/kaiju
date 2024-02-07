@@ -125,6 +125,11 @@ func (c *Console) AddCommand(key string, fn func(cmd string) string) {
 	c.commands[key] = fn
 }
 
+func (c *Console) Write(message string) {
+	lbl := c.outputLabel()
+	lbl.SetText(lbl.Text() + "\n" + message)
+}
+
 func (c *Console) help(arg string) string {
 	sb := strings.Builder{}
 	sb.WriteString("Available Commands:\n")

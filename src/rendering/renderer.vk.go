@@ -2441,7 +2441,6 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
-		vr.createDescriptorSet(shader.RenderId.descriptorSetLayout, 0)
 		descriptorSets := []vk.DescriptorSet{
 			group.InstanceDriverData.descriptorSets[vr.currentFrame],
 		}

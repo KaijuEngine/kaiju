@@ -35,5 +35,5 @@ func main() {
 	container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 	addConsole(container.Host)
 	go container.Run()
-	<-container.CloseSignal
+	<-container.Host.Done()
 }
