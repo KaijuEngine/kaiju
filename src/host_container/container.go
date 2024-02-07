@@ -2,13 +2,13 @@ package host_container
 
 import (
 	"kaiju/engine"
+	"kaiju/systems/console"
 	"time"
 )
 
 type HostContainer struct {
 	Host         *engine.Host
 	runFunctions []func()
-	CloseSignal  chan bool
 }
 
 func (c *HostContainer) RunFunction(f func()) {
@@ -26,8 +26,8 @@ func (c *HostContainer) Run() {
 			c.Host.Render()
 		}
 	}
+	console.UnlinkHost(c.Host)
 	c.Host.Teardown()
-	c.CloseSignal <- true
 }
 
 func New() (*HostContainer, error) {
@@ -35,7 +35,7 @@ func New() (*HostContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &HostContainer{host, []func(){}, make(chan bool)}
+	c := &HostContainer{host, []func(){}}
 	host.Window.Renderer.Initialize(host, int32(host.Window.Width()), int32(host.Window.Height()))
 	host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host)
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
