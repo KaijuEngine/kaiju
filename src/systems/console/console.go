@@ -3,6 +3,7 @@ package console
 import (
 	"kaiju/engine"
 	"kaiju/hid"
+	"kaiju/matrix"
 	"kaiju/ui"
 	"kaiju/uimarkup"
 	"kaiju/uimarkup/markup"
@@ -180,12 +181,14 @@ func (c *Console) submit(input *ui.Input) {
 	if fn, ok := c.commands[key]; ok {
 		res = strings.TrimSpace(fn(c.host, value))
 	}
+	lblParent, _ := c.doc.GetElementById("consoleContent")
 	lbl := c.outputLabel()
 	if res != "" {
 		lbl.SetText(lbl.Text() + "\n" + cmd + "\n" + res)
 	} else {
 		lbl.SetText(lbl.Text() + "\n" + cmd)
 	}
+	lblParent.UIPanel.SetScrollY(matrix.FloatMax)
 }
 
 func (c *Console) update(deltaTime float64) {
