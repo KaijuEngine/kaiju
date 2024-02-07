@@ -67,6 +67,16 @@ func launchWeb(host *engine.Host) (*contexts.Cancellable, error) {
 		console.For(host).Write("Starting server on localhost:" + pprofWebPort)
 		<-ctx.Done()
 		cmd.Process.Kill()
+		// Go tool pprof spawns child process pprof.exe which is not killed by the above command
+		// So we need to kill it manually
+		if runtime.GOOS == "windows" {
+			killCmd := exec.Command("taskkill", "/F", "/IM", "pprof.exe")
+			killCmd.Run()
+		} else {
+			// On mac, the child process is named pprof
+			killCmd := exec.Command("pkill", "pprof")
+			killCmd.Run()
+		}
 		if ctx.Err() == nil {
 			console.For(host).Write("Failed to start web server, make sure you have go and graphviz installed.")
 			ctx.Cancel()
