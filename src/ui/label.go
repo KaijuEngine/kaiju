@@ -149,6 +149,7 @@ func (label *Label) renderText() {
 }
 
 func (label *Label) render() {
+	label.uiBase.render()
 	maxWidth := label.MaxWidth()
 	if label.lastRenderWidth != maxWidth {
 		label.lastRenderWidth = maxWidth

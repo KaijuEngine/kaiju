@@ -379,6 +379,7 @@ func (p *Panel) postLayoutUpdate() {
 }
 
 func (p *Panel) render() {
+	p.uiBase.render()
 	p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
 	p.requestScrollX.requested = false
 	p.requestScrollY.requested = false
