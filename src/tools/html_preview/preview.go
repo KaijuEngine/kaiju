@@ -71,7 +71,7 @@ func startPreview(previewContainer *host_container.HostContainer, htmlFile, cssF
 }
 
 func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContainer, error) {
-	c, err := host_container.New()
+	c, err := host_container.New("HTML Preview")
 	if err != nil {
 		return nil, err
 	}

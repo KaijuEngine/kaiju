@@ -30,7 +30,7 @@ func addConsole(host *engine.Host) {
 }
 
 func main() {
-	container := klib.MustReturn(host_container.New())
+	container := klib.MustReturn(host_container.New("Kaiju"))
 	container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 	addConsole(container.Host)
 	go container.Run()

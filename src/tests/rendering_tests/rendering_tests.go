@@ -294,7 +294,7 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testMonkeyGLB
 		}
 		if testFunc != nil {
-			c, err := host_container.New()
+			c, err := host_container.New("Test " + t)
 			if err != nil {
 				return err.Error()
 			}

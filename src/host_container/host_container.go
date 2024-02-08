@@ -31,8 +31,8 @@ func (c *HostContainer) Run() {
 	c.Host.Teardown()
 }
 
-func New() (*HostContainer, error) {
-	host, err := engine.NewHost()
+func New(name string) (*HostContainer, error) {
+	host, err := engine.NewHost(name)
 	if err != nil {
 		return nil, err
 	}

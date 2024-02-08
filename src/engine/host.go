@@ -31,8 +31,8 @@ type Host struct {
 	frameRateLimit *time.Ticker
 }
 
-func NewHost() (*Host, error) {
-	win, err := windowing.New("Kaiju")
+func NewHost(name string) (*Host, error) {
+	win, err := windowing.New(name)
 	if err != nil {
 		return nil, err
 	}
