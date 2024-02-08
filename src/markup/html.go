@@ -67,6 +67,16 @@ func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any
 	for i := range doc.HeadElements {
 		if doc.HeadElements[i].Data() == "style" {
 			s.Parse(doc.HeadElements[i].Children[0].Data())
+		} else if doc.HeadElements[i].Data() == "link" {
+			if doc.HeadElements[i].Attribute("rel") == "stylesheet" {
+				cssPath := doc.HeadElements[i].Attribute("href")
+				css, err := host.AssetDatabase().ReadText(cssPath)
+				if err != nil {
+					continue
+				}
+				s.Parse(css)
+			}
+
 		}
 	}
 	css.Apply(s, doc, host)
