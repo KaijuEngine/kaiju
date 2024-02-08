@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				padding: 0;
+				margin: 0;
+			}
+			.horizontalBar {
+				width: 100%;
+				height: 32px;
+				background-color: #1f1f1f;
+				padding: 0;
+				margin: 0;
+			}
+			.menuItem {
+				height: 100%;
+				background-color: #1f1f1f;
+				color: #BBB;
+				float: left;
+				padding: 0;
+				margin: 0;
+				overflow: visible;
+				padding: 0 5px;
+			}
+			.menuItem:hover {
+				background-color: #313232;
+				color: #CCC;
+			}
+			.menuItem span {
+				font-size: 20px;
+			}
+			.menuItemList {
+				position: absolute;
+				top: 32px;
+				background-color: inherit;
+				color: #BBB;
+				padding: 0 5px;
+				margin: 0;
+			}
+			.menuItemListItem {
+				width: 100px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="horizontalBar">
+			<div class="horizontalBar">
+				<div class="menuItem">
+					<span>Files</span>
+				</div>
+				<div class="menuItem">
+					<span>Help</span>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
