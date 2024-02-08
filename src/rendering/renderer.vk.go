@@ -36,40 +36,6 @@ type transparencyDraw struct {
 	uniformOffset vk.DeviceSize
 }
 
-type oitPass struct {
-	compositeShader        *Shader
-	compositeQuad          *Mesh
-	color                  TextureId
-	depth                  TextureId
-	weightedColor          TextureId
-	weightedReveal         TextureId
-	opaqueRenderPass       vk.RenderPass
-	opaqueFrameBuffer      vk.Framebuffer
-	transparentRenderPass  vk.RenderPass
-	transparentFrameBuffer vk.Framebuffer
-	descriptorSets         [maxFramesInFlight]vk.DescriptorSet
-	descriptorPool         vk.DescriptorPool
-}
-
-func (oit *oitPass) reset(vr *Vulkan) {
-	vr.textureIdFree(&vr.oit.color)
-	vr.textureIdFree(&vr.oit.depth)
-	vr.textureIdFree(&vr.oit.weightedColor)
-	vr.textureIdFree(&vr.oit.weightedReveal)
-	vk.DestroyFramebuffer(vr.device, vr.oit.opaqueFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(vr.oit.opaqueFrameBuffer)))
-	vk.DestroyFramebuffer(vr.device, vr.oit.transparentFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(vr.oit.transparentFrameBuffer)))
-	vk.DestroyRenderPass(vr.device, vr.oit.opaqueRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(vr.oit.opaqueRenderPass)))
-	vk.DestroyRenderPass(vr.device, vr.oit.transparentRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(vr.oit.transparentRenderPass)))
-	vr.oit.color = TextureId{}
-	vr.oit.depth = TextureId{}
-	vr.oit.weightedColor = TextureId{}
-	vr.oit.weightedReveal = TextureId{}
-}
-
 type pendingDelete struct {
 	buffer vk.Buffer
 	memory vk.DeviceMemory
@@ -126,7 +92,8 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	oit                        oitPass
+	defaultTarget              VKRenderTarget
+	oitPass                    oitPass
 	preRuns                    []func()
 	dbg                        debugVulkan
 }
@@ -1354,284 +1321,6 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 }
 
 /******************************************************************************/
-/* OIT API                                                                    */
-/******************************************************************************/
-
-func (vr *Vulkan) createOitSolidImages() bool {
-	w := uint32(vr.swapChainExtent.Width)
-	h := uint32(vr.swapChainExtent.Height)
-	samples := vk.SampleCount1Bit
-	//VkSampleCountFlagBits samples = vr.msaaSamples;
-	// Create the solid color image
-	imagesCreated := vr.CreateImage(w, h, 1, samples,
-		vk.FormatB8g8r8a8Unorm, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageTransferSrcBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.oit.color, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&vr.oit.color,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit))
-	// Create the depth image
-	depthFormat := vr.findDepthFormat()
-	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1,
-		samples, depthFormat, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageDepthStencilAttachmentBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.oit.depth, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&vr.oit.depth,
-		vk.ImageAspectFlags(vk.ImageAspectDepthBit))
-	if imagesCreated {
-		vr.transitionImageLayout(&vr.oit.color,
-			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-		vr.transitionImageLayout(&vr.oit.depth,
-			vk.ImageLayoutDepthStencilAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectDepthBit),
-			vk.AccessFlags(vk.AccessDepthStencilAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-	}
-	return imagesCreated
-}
-
-func (vr *Vulkan) createOitTransparentImages() bool {
-	w := uint32(vr.swapChainExtent.Width)
-	h := uint32(vr.swapChainExtent.Height)
-	samples := vk.SampleCount1Bit
-	//VkSampleCountFlagBits samples = vr.msaaSamples;
-	// Create the transparent weighted color image
-	imagesCreated := vr.CreateImage(w, h, 1, samples,
-		vk.FormatR16g16b16a16Sfloat, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageInputAttachmentBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.oit.weightedColor, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&vr.oit.weightedColor,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit))
-	// Create the transparent weighted reveal image
-	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1, samples,
-		vk.FormatR16Sfloat, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageInputAttachmentBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.oit.weightedReveal, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&vr.oit.weightedReveal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit))
-	if imagesCreated {
-		vr.transitionImageLayout(&vr.oit.weightedColor,
-			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-		vr.transitionImageLayout(&vr.oit.weightedReveal,
-			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-	}
-	return imagesCreated
-}
-
-func (vr *Vulkan) createOitRenderPassOpaque() bool {
-	var attachments [2]vk.AttachmentDescription
-	// Color attachment
-	attachments[0].Format = vr.oit.color.Format
-	attachments[0].Samples = vr.oit.color.Samples
-	attachments[0].LoadOp = vk.AttachmentLoadOpClear
-	attachments[0].StoreOp = vk.AttachmentStoreOpStore
-	attachments[0].StencilLoadOp = vk.AttachmentLoadOpDontCare
-	attachments[0].StencilStoreOp = vk.AttachmentStoreOpDontCare
-	attachments[0].InitialLayout = vk.ImageLayoutColorAttachmentOptimal
-	attachments[0].FinalLayout = vk.ImageLayoutColorAttachmentOptimal
-	attachments[0].Flags = 0
-
-	// Color attachment reference
-	colorAttachmentRef := vk.AttachmentReference{}
-	colorAttachmentRef.Attachment = 0
-	colorAttachmentRef.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	// Depth attachment
-	attachments[1] = attachments[0]
-	attachments[1].Format = vr.oit.depth.Format
-	attachments[1].InitialLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-	attachments[1].FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	// Depth attachment reference
-	depthAttachmentRef := vk.AttachmentReference{}
-	depthAttachmentRef.Attachment = 1
-	depthAttachmentRef.Layout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	// 1 subpass
-	subpass := vk.SubpassDescription{}
-	subpass.PipelineBindPoint = vk.PipelineBindPointGraphics
-	subpass.ColorAttachmentCount = 1
-	subpass.PColorAttachments = []vk.AttachmentReference{colorAttachmentRef}
-	subpass.PDepthStencilAttachment = &depthAttachmentRef
-
-	// We only need to specify one dependency: Since the subpass has a barrier, the subpass will
-	// need a self-dependency. (There are implicit external dependencies that are automatically added.)
-	selfDependency := vk.SubpassDependency{}
-	selfDependency.SrcSubpass = 0
-	selfDependency.DstSubpass = 0
-	selfDependency.SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit)
-	selfDependency.DstStageMask = selfDependency.SrcStageMask
-	selfDependency.SrcAccessMask = vk.AccessFlags(vk.AccessShaderReadBit | vk.AccessShaderWriteBit)
-	selfDependency.DstAccessMask = selfDependency.SrcAccessMask
-	selfDependency.DependencyFlags = vk.DependencyFlags(vk.DependencyByRegionBit) // Required, since we use framebuffer-space stages
-
-	// No dependency on external data
-	rpInfo := vk.RenderPassCreateInfo{}
-	rpInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	rpInfo.AttachmentCount = uint32(len(attachments))
-	rpInfo.PAttachments = attachments[:]
-	rpInfo.SubpassCount = 1
-	rpInfo.PSubpasses = []vk.SubpassDescription{subpass}
-	rpInfo.DependencyCount = 1
-	rpInfo.PDependencies = []vk.SubpassDependency{selfDependency}
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &rpInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create the render pass for opaque OIT")
-		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		vr.oit.opaqueRenderPass = renderPass
-		return true
-	}
-}
-
-func (vr *Vulkan) createOitRenderPassTransparent() bool {
-	// Describe the attachments at the beginning and end of the render pass.
-	weightedColorAttachment := vk.AttachmentDescription{}
-	weightedColorAttachment.Format = vr.oit.weightedColor.Format
-	weightedColorAttachment.Samples = vr.oit.weightedColor.Samples
-	weightedColorAttachment.LoadOp = vk.AttachmentLoadOpClear
-	weightedColorAttachment.StoreOp = vk.AttachmentStoreOpStore
-	weightedColorAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	weightedColorAttachment.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	weightedColorAttachment.InitialLayout = vk.ImageLayoutColorAttachmentOptimal
-	weightedColorAttachment.FinalLayout = vk.ImageLayoutColorAttachmentOptimal
-
-	weightedRevealAttachment := weightedColorAttachment
-	weightedRevealAttachment.Format = vr.oit.weightedReveal.Format
-
-	colorAttachment := weightedColorAttachment
-	colorAttachment.Format = vr.oit.color.Format
-	colorAttachment.LoadOp = vk.AttachmentLoadOpLoad
-
-	depthAttachment := colorAttachment
-	depthAttachment.Format = vr.oit.depth.Format
-	depthAttachment.InitialLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-	depthAttachment.FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	allAttachments := []vk.AttachmentDescription{weightedColorAttachment,
-		weightedRevealAttachment, colorAttachment, depthAttachment}
-
-	var subpasses [2]vk.SubpassDescription
-
-	// Subpass 0 - weighted textures & depth texture for testing
-	var subpass0ColorAttachments [2]vk.AttachmentReference
-	subpass0ColorAttachments[0].Attachment = 0 // weightedColor
-	subpass0ColorAttachments[0].Layout = vk.ImageLayoutColorAttachmentOptimal
-	subpass0ColorAttachments[1].Attachment = 1 // weightedReveal
-	subpass0ColorAttachments[1].Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	depthAttachmentRef := vk.AttachmentReference{}
-	depthAttachmentRef.Attachment = 3 // depth
-	depthAttachmentRef.Layout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	subpasses[0].PipelineBindPoint = vk.PipelineBindPointGraphics
-	subpasses[0].ColorAttachmentCount = uint32(len(subpass0ColorAttachments))
-	subpasses[0].PColorAttachments = subpass0ColorAttachments[:]
-	subpasses[0].PDepthStencilAttachment = &depthAttachmentRef
-
-	// Subpass 1
-	subpass1ColorAttachment := vk.AttachmentReference{}
-	subpass1ColorAttachment.Attachment = 2 // color
-	subpass1ColorAttachment.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	var subpass1InputAttachments [2]vk.AttachmentReference
-	subpass1InputAttachments[0].Attachment = 0 // weightedColor
-	subpass1InputAttachments[0].Layout = vk.ImageLayoutShaderReadOnlyOptimal
-	subpass1InputAttachments[1].Attachment = 1 // weightedReveal
-	subpass1InputAttachments[1].Layout = vk.ImageLayoutShaderReadOnlyOptimal
-
-	subpasses[1].PipelineBindPoint = vk.PipelineBindPointGraphics
-	subpasses[1].ColorAttachmentCount = 1
-	subpasses[1].PColorAttachments = []vk.AttachmentReference{subpass1ColorAttachment}
-	subpasses[1].InputAttachmentCount = uint32(len(subpass1InputAttachments))
-	subpasses[1].PInputAttachments = subpass1InputAttachments[:]
-
-	// Dependencies
-	var subpassDependencies [3]vk.SubpassDependency
-	subpassDependencies[0].SrcSubpass = vk.SubpassExternal
-	subpassDependencies[0].DstSubpass = 0
-	subpassDependencies[0].SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
-	subpassDependencies[0].DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
-	subpassDependencies[0].SrcAccessMask = 0
-	subpassDependencies[0].DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
-	//
-	subpassDependencies[1].SrcSubpass = 0
-	subpassDependencies[1].DstSubpass = 1
-	subpassDependencies[1].SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
-	subpassDependencies[1].DstStageMask = vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit)
-	subpassDependencies[1].SrcAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
-	subpassDependencies[1].DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
-	// Finally, we have a dependency at the end to allow the images to transition back to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-	subpassDependencies[2].SrcSubpass = 1
-	subpassDependencies[2].DstSubpass = vk.SubpassExternal
-	subpassDependencies[2].SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit)
-	subpassDependencies[2].DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
-	subpassDependencies[2].SrcAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
-	subpassDependencies[2].DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
-
-	// Finally create the render pass
-	renderPassInfo := vk.RenderPassCreateInfo{}
-	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	renderPassInfo.AttachmentCount = uint32(len(allAttachments))
-	renderPassInfo.PAttachments = allAttachments
-	renderPassInfo.DependencyCount = uint32(len(subpassDependencies))
-	renderPassInfo.PDependencies = subpassDependencies[:]
-	renderPassInfo.SubpassCount = uint32(len(subpasses))
-	renderPassInfo.PSubpasses = subpasses[:]
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create render pass")
-		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		vr.oit.transparentRenderPass = renderPass
-		return true
-	}
-}
-
-func (vr *Vulkan) createOitFrameBufferOpaque() bool {
-	attachments := []vk.ImageView{vr.oit.color.View, vr.oit.depth.View}
-	return vr.CreateFrameBuffer(vr.oit.opaqueRenderPass, attachments,
-		uint32(vr.oit.color.Width), uint32(vr.oit.color.Height), &vr.oit.opaqueFrameBuffer)
-}
-
-func (vr *Vulkan) createOitFrameBufferTransparent() bool {
-	attachments := []vk.ImageView{vr.oit.weightedColor.View,
-		vr.oit.weightedReveal.View, vr.oit.color.View, vr.oit.depth.View}
-	return vr.CreateFrameBuffer(vr.oit.transparentRenderPass, attachments,
-		uint32(vr.oit.weightedColor.Width), uint32(vr.oit.weightedColor.Height),
-		&vr.oit.transparentFrameBuffer)
-}
-
-func (vr *Vulkan) createCompositeResources(windowWidth, windowHeight float32, shaderCache *ShaderCache, meshCache *MeshCache) bool {
-	// TODO:  Resize on screen size change
-	var err error
-	vr.oit.compositeQuad = NewMeshUnitQuad(meshCache)
-	meshCache.CreatePending()
-	vr.oit.compositeShader = shaderCache.ShaderFromDefinition(
-		assets.ShaderDefinitionOITComposite)
-	shaderCache.CreatePending()
-	if err != nil {
-		log.Fatalf("%s", err)
-		// TODO:  Return the error
-		return false
-	}
-	vr.oit.descriptorSets, vr.oit.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(vr.oit.compositeShader.RenderId.descriptorSetLayout, 0))
-	vr.createTextureSampler(&vr.oit.weightedColor.Sampler,
-		vr.oit.weightedColor.MipLevels, vk.FilterLinear)
-	vr.createTextureSampler(&vr.oit.weightedReveal.Sampler,
-		vr.oit.weightedReveal.MipLevels, vk.FilterLinear)
-	return true
-}
-
-func (vr *Vulkan) createOitResources() bool {
-	return vr.createOitSolidImages() && vr.createOitTransparentImages() && vr.createOitRenderPassOpaque() && vr.createOitFrameBufferOpaque() && vr.createOitRenderPassTransparent() && vr.createOitFrameBufferTransparent()
-}
-
-/******************************************************************************/
 /* Public API                                                                 */
 /******************************************************************************/
 
@@ -1652,72 +1341,61 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	appInfo.PEngineName = "Kaiju"
 	appInfo.EngineVersion = vk.MakeVersion(1, 0, 0)
 	appInfo.ApiVersion = vk.ApiVersion11
-
 	if !vr.createVulkanInstance(appInfo) {
 		return nil, errors.New("failed to create Vulkan instance")
 	}
-
 	if !vr.createSurface(window) {
 		return nil, errors.New("failed to create window surface")
 	}
 	//vr.surface = vk.SurfaceFromPointer(uintptr(surface))
-
 	if !vr.selectPhysicalDevice() {
 		return nil, errors.New("failed to select physical device")
 	}
-
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &vr.physicalDeviceProperties)
 	vr.physicalDeviceProperties.Deref()
 	vr.physicalDeviceProperties.Limits.Deref()
-
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
 	}
-
 	if !vr.createSwapChain() {
 		return nil, errors.New("failed to create swap chain")
 	}
-
 	if !vr.createImageViews() {
 		return nil, errors.New("failed to create image views")
 	}
-
 	if !vr.createRenderPass() {
 		return nil, errors.New("failed to create render pass")
 	}
-
 	if !vr.createCmdPool() {
 		return nil, errors.New("failed to create command pool")
 	}
-
 	if !vr.createColorResources() {
 		return nil, errors.New("failed to create color resources")
 	}
-
 	if !vr.createDepthResources() {
 		return nil, errors.New("failed to create depth resources")
 	}
-
 	if !vr.createDefaultFrameBuffer() {
 		return nil, errors.New("failed to create default frame buffer")
 	}
-
 	vr.createGlobalUniformBuffers()
-
 	if !vr.createDescriptorPool(1000) {
 		return nil, errors.New("failed to create descriptor pool")
 	}
-
 	if !vr.createCmdBuffer() {
 		return nil, errors.New("failed to create command buffer")
 	}
-
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-
-	if !vr.createOitResources() {
-		return nil, errors.New("failed to create OIT resources")
+	if !vr.defaultTarget.oit.createImages(vr) {
+		return nil, errors.New("failed to create OIT images")
+	}
+	if !vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit) {
+		return nil, errors.New("failed to create OIT render pass")
+	}
+	if !vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass) {
+		return nil, errors.New("failed to create OIT buffers")
 	}
 	return vr, nil
 }
@@ -1731,8 +1409,8 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 		return err
 	}
 	caches.TextureCache().CreatePending()
-	vr.createCompositeResources(float32(width), float32(height),
-		caches.ShaderCache(), caches.MeshCache())
+	vr.oitPass.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
+	vr.defaultTarget.oit.createSetsAndSamplers(vr)
 	return nil
 }
 
@@ -1745,8 +1423,10 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createDefaultFrameBuffer()
-	vr.oit.reset(vr)
-	vr.createOitResources()
+	vr.defaultTarget.oit.reset(vr)
+	vr.defaultTarget.oit.createImages(vr)
+	vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit)
+	vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -1791,7 +1471,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info := vk.ShaderModuleCreateInfo{}
 	info.SType = vk.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))
-	// Conver the ascii []byte (mem) into []uint32 runes
+	// Convert the ascii []byte (mem) into []uint32 runes
 	info.PCode = *(*[]uint32)(unsafe.Pointer(&mem))
 	var outModule vk.ShaderModule
 	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vk.Success {
@@ -2496,7 +2176,11 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 }
 
 func (vr *Vulkan) Draw(drawings []ShaderDraw) {
-	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings)
+	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings, &vr.defaultTarget)
+}
+
+func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
+	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings, target)
 }
 
 func (vr *Vulkan) doPendingDeletes() {
@@ -2513,7 +2197,8 @@ func (vr *Vulkan) doPendingDeletes() {
 	}
 }
 
-func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
+func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget) {
+	rt := target.(*VKRenderTarget)
 	vr.doPendingDeletes()
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -2521,8 +2206,8 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	vr.prepEntityBuffers(drawings)
 
 	// TODO:  The material will render entities not yet added to the host...
-	oRenderPass := vr.oit.opaqueRenderPass
-	oFrameBuffer := vr.oit.opaqueFrameBuffer
+	oRenderPass := vr.oitPass.opaqueRenderPass
+	oFrameBuffer := rt.oit.opaqueFrameBuffer
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
@@ -2535,8 +2220,8 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	}
 	endRender(cmd1)
 
-	tRenderPass := vr.oit.transparentRenderPass
-	tFrameBuffer := vr.oit.transparentFrameBuffer
+	tRenderPass := vr.oitPass.transparentRenderPass
+	tFrameBuffer := rt.oit.transparentFrameBuffer
 	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var transparentClear [2]vk.ClearValue
@@ -2548,21 +2233,21 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	}
 	offsets := vk.DeviceSize(0)
 	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
-	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, vr.oit.compositeShader.RenderId.graphicsPipeline)
+	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, vr.oitPass.compositeShader.RenderId.graphicsPipeline)
 	imageInfos := [2]vk.DescriptorImageInfo{
-		imageInfo(vr.oit.weightedColor.View, vr.oit.weightedColor.Sampler),
-		imageInfo(vr.oit.weightedReveal.View, vr.oit.weightedReveal.Sampler),
+		imageInfo(rt.oit.weightedColor.View, rt.oit.weightedColor.Sampler),
+		imageInfo(rt.oit.weightedReveal.View, rt.oit.weightedReveal.Sampler),
 	}
-	set := vr.oit.descriptorSets[vr.currentFrame]
+	set := rt.oit.descriptorSets[vr.currentFrame]
 	descriptorWrites := []vk.WriteDescriptorSet{
 		prepareSetWriteImage(set, imageInfos[0:1], 0, true),
 		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
 	}
 	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), descriptorWrites, 0, nil)
-	csid := &vr.oit.compositeShader.RenderId
+	csid := &vr.oitPass.compositeShader.RenderId
 	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, csid.pipelineLayout,
-		0, 1, []vk.DescriptorSet{vr.oit.descriptorSets[vr.currentFrame]}, 0, []uint32{0})
-	mid := &vr.oit.compositeQuad.MeshId
+		0, 1, []vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}, 0, []uint32{0})
+	mid := &vr.oitPass.compositeQuad.MeshId
 	vk.CmdBindVertexBuffers(cmd2, 0, 1, []vk.Buffer{mid.vertexBuffer}, []vk.DeviceSize{offsets})
 	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
 	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
@@ -2590,12 +2275,12 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw) {
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
-	vr.transitionImageLayout(&vr.oit.color, vk.ImageLayoutTransferSrcOptimal,
+	vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutTransferSrcOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
-	vk.CmdBlitImage(cmd3, vr.oit.color.Image, vr.oit.color.Layout,
+	vk.CmdBlitImage(cmd3, rt.oit.color.Image, rt.oit.color.Layout,
 		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
 		1, []vk.ImageBlit{region}, vk.FilterNearest)
-	vr.transitionImageLayout(&vr.oit.color, vk.ImageLayoutColorAttachmentOptimal,
+	vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutColorAttachmentOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
@@ -2899,14 +2584,14 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		stages[moduleCount] = fragStage
 		moduleCount++
 	}
-	renderPass := vr.oit.opaqueRenderPass
+	renderPass := vr.oitPass.opaqueRenderPass
 	if strings.HasSuffix(shader.FragPath, oitSuffix) || shader.IsComposite() {
-		renderPass = vr.oit.transparentRenderPass
+		renderPass = vr.oitPass.transparentRenderPass
 	} else if overrideRenderPass != nil {
 		renderPass = *overrideRenderPass
 	}
 
-	isTransparentPipeline := renderPass == vr.oit.transparentRenderPass &&
+	isTransparentPipeline := renderPass == vr.oitPass.transparentRenderPass &&
 		!shader.IsComposite()
 	vr.createPipeline(shader, stages, moduleCount,
 		id.descriptorSetLayout, &id.pipelineLayout,
@@ -3089,7 +2774,8 @@ func (vr *Vulkan) Destroy() {
 		vr.doPendingDeletes()
 	}
 	if vr.device != vk.Device(vk.NullHandle) {
-		vr.oit.reset(vr)
+		vr.defaultTarget.reset(vr)
+		vr.oitPass.reset(vr)
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
