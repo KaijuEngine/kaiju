@@ -13,6 +13,9 @@ import (
 func (p Width) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	var width float32
 	var err error = nil
+	if values[0].Str == "initial" {
+		return nil
+	}
 	if len(values) != 1 {
 		err = fmt.Errorf("Expected exactly 1 value but got %d", len(values))
 	} else {

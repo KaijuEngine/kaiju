@@ -286,6 +286,28 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 	}
 }
 
+func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
+	for _, kid := range p.entity.Children {
+		pos := kid.Transform.Position()
+		kui := FirstOnEntity(kid)
+		if kui.Layout().Positioning() == PositioningAbsolute {
+			continue
+		}
+		var size matrix.Vec2
+		if lbl, ok := kui.(*Label); ok {
+			size = lbl.CalculateSize()
+			// Give a little margin for error on text
+			size[matrix.Vx] += 0.1
+		} else {
+			size = kid.Transform.WorldScale().AsVec2()
+			kui.(*Panel).boundsChildren(bounds)
+		}
+		r := pos.X() + size.X()
+		b := pos.Y() + size.Y()
+		*bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
+	}
+}
+
 func (p *Panel) postLayoutUpdate() {
 	if len(p.entity.Children) == 0 {
 		return
@@ -342,42 +364,8 @@ func (p *Panel) postLayoutUpdate() {
 	}
 	nextPos[matrix.Vy] += p.layout.padding.W()
 	if p.FittingContent() {
-		off := p.layout.InnerOffset().Add(p.layout.padding)
-		bounds := matrix.Vec2{off.X() + off.Z(), off.Y() + off.W()}
-		for _, kid := range p.entity.Children {
-			pos := kid.Transform.Position()
-			kui := FirstOnEntity(kid)
-			var r, b matrix.Float
-			if lbl, ok := kui.(*Label); ok {
-				var maxWidth matrix.Float
-				parent := p.entity.Parent
-				for parent != nil {
-					if !FirstPanelOnEntity(parent).FittingContent() {
-						break
-					}
-					parent = parent.Parent
-				}
-				if parent == nil {
-					maxWidth = matrix.Float(p.host.Window.Width())
-				} else {
-					maxWidth = parent.Transform.WorldScale().X()
-				}
-				size := lbl.measure(maxWidth)
-				r = matrix.Abs(pos.X()) + size.X()
-				b = matrix.Abs(pos.Y()) + size.Y()
-			} else {
-				pnl := kui.(*Panel)
-				size := kid.Transform.WorldScale().Scale(0.5)
-				size.AddAssign(matrix.Vec3{
-					pnl.layout.padding.X() + pnl.layout.padding.Z(),
-					pnl.layout.padding.Y() + pnl.layout.padding.W(),
-					0,
-				})
-				r = matrix.Abs(pos.X()) + size.X()
-				b = matrix.Abs(pos.Y()) + size.Y()
-			}
-			bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
-		}
+		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
+		p.boundsChildren(&bounds)
 		if p.fitContent == ContentFitWidth {
 			p.layout.ScaleWidth(max(1, bounds.X()))
 		} else if p.fitContent == ContentFitHeight {

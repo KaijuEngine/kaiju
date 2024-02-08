@@ -89,7 +89,7 @@ const (
 	FontSemiBoldItalic               = FontFace("fonts/OpenSans-SemiBoldItalic")
 
 	fontDefaultFace   = FontRegular
-	defaultFontEMSize = 18.0
+	DefaultFontEMSize = 14.0
 )
 
 type fontBinMetrics struct {
@@ -160,7 +160,7 @@ func (cache *FontCache) requireFace(face FontFace) {
 
 func (cache *FontCache) EMSize(face FontFace) float32 {
 	cache.requireFace(face)
-	return cache.fontFaces[face.string()].metrics.EMSize * defaultFontEMSize
+	return cache.fontFaces[face.string()].metrics.EMSize * DefaultFontEMSize
 }
 
 func NewFontCache(renderer Renderer, assetDb *assets.Database) FontCache {

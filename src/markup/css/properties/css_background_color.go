@@ -27,7 +27,7 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm document.DocElement, value
 	var color matrix.Color
 	hex := values[0].Str
 	if hex == "inherit" {
-		panel.OnRender.Add(func() {
+		panel.AddEvent(ui.EventTypeRender, func() {
 			if panel.Entity().Parent != nil {
 				p := ui.FirstPanelOnEntity(panel.Entity().Parent)
 				panel.SetColor(p.ShaderData().FgColor)

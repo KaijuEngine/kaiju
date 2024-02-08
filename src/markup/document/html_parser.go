@@ -135,9 +135,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			width := host.FontCache().MeasureString(label.FontFace(), label.Text(), label.FontSize())
 			e.Parent.DocumentElement.UI.Layout().Scale(width+20, label.FontSize()+20)
 			label.Layout().AddFunction(func(l *ui.Layout) {
-				parent := ui.FirstOnEntity(label.Entity().Parent)
-				// Should be subtracting the padding of the parent
-				l.Scale(parent.Layout().PixelSize().Width(), parent.Layout().PixelSize().Height())
+				l.Scale(label.CalculateSize().XY())
 			})
 		} else {
 			label.SetJustify(rendering.FontJustifyLeft)
@@ -147,6 +145,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		appendElement(label, nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
 		panel := ui.NewPanel(host, nil, ui.AnchorTopLeft)
+		panel.SetOverflow(ui.OverflowVisible)
 		var uiElm ui.UI = panel
 		if e.IsButton() {
 			uiElm = panel.ConvertToButton()

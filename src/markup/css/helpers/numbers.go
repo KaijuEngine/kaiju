@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"kaiju/klib"
+	"kaiju/rendering"
 	"kaiju/windowing"
 	"strconv"
 	"strings"
@@ -101,5 +102,5 @@ func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float3
 }
 
 func NumFromLength(str string, window *windowing.Window) float32 {
-	return NumFromLengthWithFont(str, window, 0)
+	return NumFromLengthWithFont(str, window, rendering.DefaultFontEMSize)
 }
