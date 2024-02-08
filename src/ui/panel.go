@@ -278,6 +278,11 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 				y += e.Layout().InnerOffset().Bottom()
 			}
 		}
+		if l, ok := e.(*Label); ok {
+			if l.justify == rendering.FontJustifyCenter {
+				x -= offsetX
+			}
+		}
 		x += e.Layout().margin.X()
 		y += rb.maxMarginTop
 		e.Layout().rowLayoutOffset = matrix.Vec2{x, y}
@@ -358,7 +363,7 @@ func (p *Panel) postLayoutUpdate() {
 	nextPos := offsetStart
 	nextPos[matrix.Vy] += p.layout.padding.Y()
 	for i := range rows {
-		rows[i].setElements(p.layout.padding.X()-p.layout.padding.Z(), nextPos[matrix.Vy])
+		rows[i].setElements(p.layout.padding.X(), nextPos[matrix.Vy])
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
 	if p.FittingContent() {
