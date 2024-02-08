@@ -55,7 +55,6 @@ func (b *Button) createLabel() *Label {
 
 func (b *Button) setup(text string) {
 	p := (*Panel)(b)
-	p.isButton = true
 	p.localData = &buttonData{matrix.ColorWhite()}
 	p.SetColor(matrix.ColorWhite())
 	btn := (*Button)(p)

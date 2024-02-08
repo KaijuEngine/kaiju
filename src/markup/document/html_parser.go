@@ -125,31 +125,16 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 	}
 	if e.IsText() {
 		anchor := ui.AnchorTopLeft
-		if e.Parent.IsButton() {
-			anchor = ui.AnchorCenter
-		}
 		label := ui.NewLabel(host, strings.TrimSpace(e.Data()), anchor)
-		if e.Parent.IsButton() {
-			label.SetJustify(rendering.FontJustifyCenter)
-			label.SetBaseline(rendering.FontBaselineCenter)
-			width := host.FontCache().MeasureString(label.FontFace(), label.Text(), label.FontSize())
-			e.Parent.DocumentElement.UI.Layout().Scale(width+20, label.FontSize()+20)
-			label.Layout().AddFunction(func(l *ui.Layout) {
-				l.Scale(label.CalculateSize().XY())
-			})
-		} else {
-			label.SetJustify(rendering.FontJustifyLeft)
-			label.SetBaseline(rendering.FontBaselineTop)
-		}
+		label.SetJustify(rendering.FontJustifyLeft)
+		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
 		appendElement(label, nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
 		panel := ui.NewPanel(host, nil, ui.AnchorTopLeft)
 		panel.SetOverflow(ui.OverflowVisible)
 		var uiElm ui.UI = panel
-		if e.IsButton() {
-			uiElm = panel.ConvertToButton()
-		} else if e.IsInput() {
+		if e.IsInput() {
 			inputType := e.Attribute("type")
 			switch inputType {
 			case "checkbox":

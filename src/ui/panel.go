@@ -75,7 +75,6 @@ type Panel struct {
 	requestScrollY                requestScroll
 	overflow                      Overflow
 	isScrolling, dragging, frozen bool
-	isButton                      bool
 }
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
@@ -356,13 +355,13 @@ func (p *Panel) postLayoutUpdate() {
 		case PositioningSticky:
 		}
 	}
-	xyOffset := matrix.Vec2{p.layout.padding.X(), p.layout.padding.Y()}
-	nextPos := offsetStart.Add(xyOffset)
+	nextPos := offsetStart
+	nextPos[matrix.Vy] += p.layout.padding.Y()
 	for i := range rows {
-		rows[i].setElements(p.layout.padding.X(), nextPos[matrix.Vy])
+		rows[i].setElements(p.layout.padding.X()-p.layout.padding.Z(), nextPos[matrix.Vy])
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
-	nextPos[matrix.Vy] += p.layout.padding.W()
+	nextPos[matrix.Vy] += p.layout.padding.Y() + p.layout.padding.W()
 	if p.FittingContent() {
 		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)
