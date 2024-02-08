@@ -14,14 +14,12 @@
 				margin: 0;
 			}
 			.menuItem {
+				margin: 0;
+				padding: 0 5px;
 				height: 100%;
 				background-color: #1f1f1f;
 				color: #BBB;
-				float: left;
-				padding: 0;
-				margin: 0;
 				overflow: visible;
-				padding: 0 5px;
 			}
 			.menuItem:hover {
 				background-color: #313232;
@@ -45,12 +43,20 @@
 	</head>
 	<body>
 		<div class="horizontalBar">
-			<div class="horizontalBar">
-				<div class="menuItem">
-					<span>Files</span>
+			<div class="menuItem">
+				<span>Files</span>
+				<div class="menuItemList">
+					<span class="menuItemListItem">File</span>
+					<span class="menuItemListItem">Save the world</span>
+					<span class="menuItemListItem">Test</span>
 				</div>
-				<div class="menuItem">
-					<span>Help</span>
+			</div>
+			<div class="menuItem">
+				<span>Help</span>
+				<div class="menuItemList">
+					<span class="menuItemListItem">File</span>
+					<span class="menuItemListItem">Save</span>
+					<span class="menuItemListItem">Test</span>
 				</div>
 			</div>
 		</div>
