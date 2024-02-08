@@ -12,22 +12,23 @@ import (
 )
 
 type Host struct {
-	entities      []*Entity
-	Window        *windowing.Window
-	Camera        *cameras.StandardCamera
-	UICamera      *cameras.StandardCamera
-	shaderCache   rendering.ShaderCache
-	textureCache  rendering.TextureCache
-	meshCache     rendering.MeshCache
-	fontCache     rendering.FontCache
-	Drawings      rendering.Drawings
-	frameTime     float64
-	Closing       bool
-	Updater       Updater
-	LateUpdater   Updater
-	assetDatabase assets.Database
-	OnClose       events.Event
-	CloseSignal   chan struct{}
+	entities       []*Entity
+	Window         *windowing.Window
+	Camera         *cameras.StandardCamera
+	UICamera       *cameras.StandardCamera
+	shaderCache    rendering.ShaderCache
+	textureCache   rendering.TextureCache
+	meshCache      rendering.MeshCache
+	fontCache      rendering.FontCache
+	Drawings       rendering.Drawings
+	frameTime      float64
+	Closing        bool
+	Updater        Updater
+	LateUpdater    Updater
+	assetDatabase  assets.Database
+	OnClose        events.Event
+	CloseSignal    chan struct{}
+	frameRateLimit *time.Ticker
 }
 
 func NewHost() (*Host, error) {
@@ -149,4 +150,19 @@ func (h *Host) Err() error {
 
 func (h *Host) Value(key any) any {
 	return nil
+}
+
+func (h *Host) WaitForFrameRate() {
+	if h.frameRateLimit != nil {
+		<-h.frameRateLimit.C
+	}
+}
+
+func (h *Host) SetFrameRateLimit(fps int64) {
+	if fps == 0 {
+		h.frameRateLimit.Stop()
+		h.frameRateLimit = nil
+	} else {
+		h.frameRateLimit = time.NewTicker(time.Second / time.Duration(fps))
+	}
 }

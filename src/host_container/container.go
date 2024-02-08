@@ -18,6 +18,7 @@ func (c *HostContainer) RunFunction(f func()) {
 func (c *HostContainer) Run() {
 	lastTime := time.Now()
 	for !c.Host.Closing {
+		c.Host.WaitForFrameRate()
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
 		lastTime = time.Now()
