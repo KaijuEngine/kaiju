@@ -64,7 +64,6 @@ type uiBase struct {
 	shaderData          ShaderData
 	textureSize         matrix.Vec2
 	updateId            int
-	OnRender            events.Event
 	hovering            bool
 	cantMiss            bool
 	isDown              bool
@@ -76,7 +75,7 @@ type uiBase struct {
 func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
 
 func (ui *uiBase) render() {
-	ui.OnRender.Execute()
+	ui.events[EventTypeRender].Execute()
 }
 
 func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
@@ -87,7 +86,6 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui, anchor)
-	ui.OnRender = events.New()
 	if ui.updateId == 0 {
 		ui.updateId = host.Updater.AddUpdate(ui.Update)
 	}
