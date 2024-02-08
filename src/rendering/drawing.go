@@ -88,8 +88,8 @@ func (d *Drawings) Render(renderer Renderer) {
 	renderer.Draw(d.draws)
 }
 
-func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget) {
-	renderer.DrawToTarget(d.draws, target)
+func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget, targetModel matrix.Mat4) {
+	renderer.DrawToTarget(d.draws, target, targetModel)
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {

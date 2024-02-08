@@ -15,7 +15,7 @@ type Renderer interface {
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
 	Draw(drawings []ShaderDraw)
-	DrawToTarget(drawings []ShaderDraw, target RenderTarget)
+	DrawToTarget(drawings []ShaderDraw, target RenderTarget, targetModel matrix.Mat4)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
