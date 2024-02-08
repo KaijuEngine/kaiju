@@ -20,7 +20,7 @@ import (
 const (
 	useValidationLayers = vkUseValidationLayers
 	BytesInPixel        = 4
-	MaxCommandBuffers   = 10
+	MaxCommandBuffers   = 15
 	maxFramesInFlight   = 2
 	oitSuffix           = ".oit.spv"
 )
@@ -104,6 +104,8 @@ func init() {
 	//vk.SetGetInstanceProcAddr(vk.GetInstanceProcAddr())
 	klib.Must(vk.Init())
 }
+
+func (vr *Vulkan) DefaultTarget() RenderTarget { return &vr.defaultTarget }
 
 /******************************************************************************/
 /* Helpers                                                                    */
@@ -2178,11 +2180,11 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 
 func (vr *Vulkan) Draw(drawings []ShaderDraw) {
 	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings,
-		&vr.defaultTarget, matrix.Mat4Identity())
+		&vr.defaultTarget)
 }
 
-func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget, targetModel matrix.Mat4) {
-	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings, target, targetModel)
+func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
+	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings, target)
 }
 
 func (vr *Vulkan) doPendingDeletes() {
@@ -2199,7 +2201,7 @@ func (vr *Vulkan) doPendingDeletes() {
 	}
 }
 
-func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget, targetModel matrix.Mat4) {
+func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget) {
 	rt := target.(*VKRenderTarget)
 	vr.doPendingDeletes()
 	frame := vr.currentFrame
@@ -2250,14 +2252,12 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 		0, 1, []vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}, 0, []uint32{0})
 	mid := &vr.oitPass.compositeQuad.MeshId
 	vk.CmdBindVertexBuffers(cmd2, 0, 1, []vk.Buffer{mid.vertexBuffer}, []vk.DeviceSize{offsets})
-	// TODO:  Make this draw use the targetModel matrix for transformation
 	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
 	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
 	endRender(cmd2)
-	vr.BlitTargets(&vr.defaultTarget)
 }
 
-func (vr *Vulkan) BlitTargets(targets ...RenderTarget) {
+func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	idxSF := vr.imageIndex[frame]
@@ -2268,22 +2268,25 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTarget) {
 		log.Fatal("Failed to begin recording command buffer")
 		return
 	}
+	vr.transitionImageLayout(&vr.swapImages[idxSF],
+		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
+		vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
 	for i := range targets {
-		rt := targets[i].(*VKRenderTarget)
+		rt := targets[i].Target.(*VKRenderTarget)
+		area := targets[i].Rect
 		region := vk.ImageBlit{}
-		region.DstOffsets[1].X = int32(vr.swapChainExtent.Width)
-		region.DstOffsets[1].Y = int32(vr.swapChainExtent.Height)
-		region.DstOffsets[1].Z = 1
 		region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
 		region.SrcOffsets[1].Y = int32(vr.swapChainExtent.Height)
 		region.SrcOffsets[1].Z = 1
+		region.DstOffsets[0].X = int32(float32(vr.swapChainExtent.Width) * area[0])
+		region.DstOffsets[0].Y = int32(float32(vr.swapChainExtent.Height) * area[1])
+		region.DstOffsets[1].X = int32(float32(vr.swapChainExtent.Width) * area[2])
+		region.DstOffsets[1].Y = int32(float32(vr.swapChainExtent.Height) * area[3])
+		region.DstOffsets[1].Z = 1
 		region.DstSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 		region.DstSubresource.LayerCount = 1
 		region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 		region.SrcSubresource.LayerCount = 1
-		vr.transitionImageLayout(&vr.swapImages[idxSF],
-			vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
 		vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutTransferSrcOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
 		vk.CmdBlitImage(cmd3, rt.oit.color.Image, rt.oit.color.Layout,

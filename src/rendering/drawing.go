@@ -86,10 +86,14 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 
 func (d *Drawings) Render(renderer Renderer) {
 	renderer.Draw(d.draws)
+	renderer.BlitTargets(RenderTargetDraw{
+		Target: renderer.DefaultTarget(),
+		Rect:   matrix.Vec4{0, 0, 1, 1},
+	})
 }
 
-func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget, targetModel matrix.Mat4) {
-	renderer.DrawToTarget(d.draws, target, targetModel)
+func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget) {
+	renderer.DrawToTarget(d.draws, target)
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {
