@@ -22,6 +22,7 @@ type Label struct {
 	text             string
 	textLength       int
 	fontSize         float32
+	lineHeight       float32
 	overrideMaxWidth float32
 	color            matrix.Color
 	bgColor          matrix.Color
@@ -134,7 +135,7 @@ func (label *Label) renderText() {
 			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
 			maxWidth, label.color, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
-			false, label.rangesToFont(), label.fontFace)
+			false, label.rangesToFont(), label.fontFace, label.lineHeight)
 		for i := range label.runeDrawings {
 			label.runeDrawings[i].Transform = &label.entity.Transform
 			label.runeShaderData = append(label.runeShaderData,
@@ -189,6 +190,11 @@ func (label *Label) FontSize() float32 { return label.fontSize }
 
 func (label *Label) SetFontSize(size float32) {
 	label.fontSize = size
+	label.SetDirty(DirtyTypeGenerated)
+}
+
+func (label *Label) SetLineHeight(height float32) {
+	label.lineHeight = height
 	label.SetDirty(DirtyTypeGenerated)
 }
 

@@ -356,12 +356,16 @@ func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
-	is3D bool, fontRanges []FontRange, face FontFace) []Drawing {
+	is3D bool, fontRanges []FontRange, face FontFace, lineHeight float32) []Drawing {
 	cache.requireFace(face)
 	cx := x
 	cy := y
 
 	es := rootScale
+	if lineHeight != 0 {
+		baseline = FontBaselineCenter
+	}
+
 	left := -es.X() * 0.5
 	inverseWidth := 1.0 / es.X()
 	inverseHeight := 1.0 / es.Y()
@@ -383,12 +387,15 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 
 	fontMeshes := make([]Drawing, 0)
 	runes := []rune(text)
+	maxHeight := fontFace.metrics.LineHeight * -scale
+	if lineHeight != 0 {
+		maxHeight = -lineHeight
+	}
 	for current < textLen {
 		if maxWidth > 0 {
 			charLen = cache.charCountInWidth(fontFace, string(runes[current:]), maxWidth, scale)
 		}
 		lineWidth := float32(0.0)
-		maxHeight := fontFace.metrics.LineHeight * -scale
 		if charLen > 0 || unicode.IsSpace(runes[current]) {
 			for _, c := range runes[current : current+charLen] {
 				if c != '\n' {
