@@ -6,9 +6,9 @@
 				padding: 0;
 				margin: 0;
 			}
-			.horizontalBar {
+			#bar {
 				width: 100%;
-				height: 32px;
+				height: 20px;
 				background-color: #1f1f1f;
 				padding: 0;
 				margin: 0;
@@ -21,43 +21,48 @@
 				color: #BBB;
 				overflow: visible;
 			}
-			.menuItem:hover {
+			/*.menuItem:hover {
 				background-color: #313232;
 				color: #CCC;
-			}
+			}*/
 			.menuItem span {
-				font-size: 20px;
+				font-size: 14px;
 			}
 			.menuItemList {
+				visibility: hidden;
 				position: absolute;
-				top: 32px;
-				background-color: inherit;
+				width: initial;
+				top: 20px;
+				background-color: #1f1f1f;
 				color: #BBB;
 				padding: 0 5px;
 				margin: 0;
 			}
 			.menuItemListItem {
-				width: 100px;
+				background-color: #1f1f1f;
+			}
+			.menuItemListItem:hover {
+				background-color: #313232;
+				color: #CCC;
 			}
 		</style>
 	</head>
 	<body>
-		<div class="horizontalBar">
-			<div class="menuItem">
-				<span>Files</span>
-				<div class="menuItemList">
-					<span class="menuItemListItem">File</span>
-					<span class="menuItemListItem">Save the world</span>
-					<span class="menuItemListItem">Test</span>
-				</div>
-			</div>
-			<div class="menuItem">
+		<div id="bar">
+			<span class="menuItem" data-target="FilesList">
+				<span>File</span>
+			</span>
+			<span class="menuItem" data-target="HelpList">
 				<span>Help</span>
-				<div class="menuItemList">
-					<span class="menuItemListItem">File</span>
-					<span class="menuItemListItem">Save</span>
-					<span class="menuItemListItem">Test</span>
-				</div>
+			</span>
+			<div id="FilesList" class="menuItemList">
+				<div class="menuItemListItem">File</div>
+				<div class="menuItemListItem">Open Project</div>
+				<div class="menuItemListItem">Save the world</div>
+			</div>
+			<div id="HelpList" class="menuItemList">
+				<div class="menuItemListItem">About</div>
+				<div class="menuItemListItem" onclick="openRepository">Repository</div>
 			</div>
 		</div>
 	</body>
