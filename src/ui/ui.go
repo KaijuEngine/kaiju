@@ -87,6 +87,7 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui, anchor)
+	ui.OnRender = events.New()
 	if ui.updateId == 0 {
 		ui.updateId = host.Updater.AddUpdate(ui.Update)
 	}
