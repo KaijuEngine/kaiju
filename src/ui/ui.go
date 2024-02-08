@@ -205,12 +205,19 @@ func (ui *uiBase) GenerateScissor() {
 		pos.Y() + size.Y()*0.5,
 	}
 	if !ui.entity.IsRoot() {
-		p := FirstOnEntity(ui.entity.Parent)
-		pBounds := p.selfScissor()
-		bounds.SetX(max(bounds.X(), pBounds.X()))
-		bounds.SetY(max(bounds.Y(), pBounds.Y()))
-		bounds.SetZ(min(bounds.Z(), pBounds.Z()))
-		bounds.SetW(min(bounds.W(), pBounds.W()))
+		p := FirstPanelOnEntity(ui.entity.Parent)
+		for p.overflow == OverflowVisible && !p.entity.IsRoot() {
+			p = FirstPanelOnEntity(p.entity.Parent)
+		}
+		if !p.entity.IsRoot() {
+			pBounds := p.selfScissor()
+			bounds.SetX(max(bounds.X(), pBounds.X()))
+			bounds.SetY(max(bounds.Y(), pBounds.Y()))
+			bounds.SetZ(min(bounds.Z(), pBounds.Z()))
+			bounds.SetW(min(bounds.W(), pBounds.W()))
+		} else {
+			bounds = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+		}
 	}
 	ui.setScissor(bounds)
 }
@@ -323,14 +330,6 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 
 func (ui *uiBase) changed() {
 	ui.ExecuteEvent(EventTypeChange)
-}
-
-func (ui *uiBase) DisconnectParentScissor() {
-	if ui.hasScissor() {
-		ui.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-		ui.GenerateScissor()
-	}
-	ui.disconnectedScissor = true
 }
 
 func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
