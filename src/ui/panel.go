@@ -20,8 +20,6 @@ const (
 	PanelScrollDirectionBoth       = 0x03
 )
 
-type BorderStyle = int32
-
 const (
 	BorderStyleNone = iota
 	BorderStyleHidden
