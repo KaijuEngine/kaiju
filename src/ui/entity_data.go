@@ -17,6 +17,14 @@ func FirstOnEntity(entity *engine.Entity) UI {
 	return found[0].(UI)
 }
 
+func FirstPanelOnEntity(entity *engine.Entity) *Panel {
+	ui := FirstOnEntity(entity)
+	if ui == nil {
+		return nil
+	}
+	return ui.(*Panel)
+}
+
 func AllOnEntity(entity *engine.Entity) []UI {
 	found := entity.NamedData(EntityDataName)
 	if len(found) == 0 {
