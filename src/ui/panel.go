@@ -342,24 +342,37 @@ func (p *Panel) postLayoutUpdate() {
 	}
 	nextPos[matrix.Vy] += p.layout.padding.W()
 	if p.FittingContent() {
-		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
-		panelScale := p.entity.Transform.WorldScale().Scale(0.5)
+		off := p.layout.InnerOffset().Add(p.layout.padding)
+		bounds := matrix.Vec2{off.X() + off.Z(), off.Y() + off.W()}
 		for _, kid := range p.entity.Children {
 			pos := kid.Transform.Position()
-			pos[matrix.Vx] += panelScale.X()
-			pos[matrix.Vy] -= panelScale.Y()
 			kui := FirstOnEntity(kid)
 			var r, b matrix.Float
 			if lbl, ok := kui.(*Label); ok {
-				maxWidth := matrix.Float(1000000.0)
-				if !p.entity.IsRoot() {
-					maxWidth = p.entity.Parent.Transform.WorldScale().X()
+				var maxWidth matrix.Float
+				parent := p.entity.Parent
+				for parent != nil {
+					if !FirstPanelOnEntity(parent).FittingContent() {
+						break
+					}
+					parent = parent.Parent
+				}
+				if parent == nil {
+					maxWidth = matrix.Float(p.host.Window.Width())
+				} else {
+					maxWidth = parent.Transform.WorldScale().X()
 				}
 				size := lbl.measure(maxWidth)
 				r = matrix.Abs(pos.X()) + size.X()
 				b = matrix.Abs(pos.Y()) + size.Y()
 			} else {
+				pnl := kui.(*Panel)
 				size := kid.Transform.WorldScale().Scale(0.5)
+				size.AddAssign(matrix.Vec3{
+					pnl.layout.padding.X() + pnl.layout.padding.Z(),
+					pnl.layout.padding.Y() + pnl.layout.padding.W(),
+					0,
+				})
 				r = matrix.Abs(pos.X()) + size.X()
 				b = matrix.Abs(pos.Y()) + size.Y()
 			}
