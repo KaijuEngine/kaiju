@@ -79,7 +79,7 @@ func testFont(host *engine.Host) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorCornflowerBlue(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, []rendering.FontRange{},
-		rendering.FontRegular)
+		rendering.FontRegular, 0)
 	host.Drawings.AddDrawings(drawings)
 }
 

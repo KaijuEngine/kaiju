@@ -156,6 +156,26 @@ type H1 struct{}
 
 func (p H1) Key() string { return "h1" }
 
+type H2 struct{}
+
+func (p H2) Key() string { return "h2" }
+
+type H3 struct{}
+
+func (p H3) Key() string { return "h3" }
+
+type H4 struct{}
+
+func (p H4) Key() string { return "h4" }
+
+type H5 struct{}
+
+func (p H5) Key() string { return "h5" }
+
+type H6 struct{}
+
+func (p H6) Key() string { return "h6" }
+
 type Head struct{}
 
 func (p Head) Key() string { return "head" }
