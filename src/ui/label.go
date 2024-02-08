@@ -349,3 +349,23 @@ func (label *Label) SetFontStyle(style string) {
 	}
 	label.SetDirty(DirtyTypeGenerated)
 }
+
+func (label *Label) CalculateSize() matrix.Vec2 {
+	var maxWidth matrix.Float
+	parent := label.entity.Parent
+	var p *Panel
+	for parent != nil {
+		p = FirstPanelOnEntity(parent)
+		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
+			break
+		}
+		parent = parent.Parent
+	}
+	if parent == nil || (p.Layout().Positioning() == PositioningAbsolute && p.FittingContent()) {
+		// TODO:  This will need to be bounded by left offset
+		maxWidth = matrix.Float(label.host.Window.Width())
+	} else {
+		maxWidth = parent.Transform.WorldScale().X()
+	}
+	return label.measure(maxWidth)
+}
