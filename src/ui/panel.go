@@ -9,6 +9,9 @@ import (
 )
 
 type PanelScrollDirection = int32
+type BorderStyle = int32
+type ContentFit = int32
+type Overflow = int
 
 const (
 	PanelScrollDirectionNone       = 0x00
@@ -32,6 +35,19 @@ const (
 	BorderStyleOutset
 )
 
+const (
+	ContentFitNone = iota
+	ContentFitWidth
+	ContentFitHeight
+	ContentFitBoth
+)
+
+const (
+	OverflowScroll = iota
+	OverflowVisible
+	OverflowHidden
+)
+
 type childScrollEvent struct {
 	down   events.Id
 	scroll events.Id
@@ -39,15 +55,6 @@ type childScrollEvent struct {
 
 type localData interface {
 }
-
-type ContentFit = int32
-
-const (
-	ContentFitNone = iota
-	ContentFitWidth
-	ContentFitHeight
-	ContentFitBoth
-)
 
 type requestScroll struct {
 	to        float32
@@ -68,6 +75,7 @@ type Panel struct {
 	fitContent                    ContentFit
 	requestScrollX                requestScroll
 	requestScrollY                requestScroll
+	overflow                      Overflow
 	isScrolling, dragging, frozen bool
 	isButton                      bool
 }
@@ -552,4 +560,13 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 	p.recreateDrawing()
 	p.drawing.UseBlending = useBlending
 	p.host.Drawings.AddDrawing(p.drawing)
+}
+
+func (p *Panel) Overflow() Overflow { return p.overflow }
+
+func (p *Panel) SetOverflow(overflow Overflow) {
+	if p.overflow != overflow {
+		p.overflow = overflow
+		p.SetDirty(DirtyTypeLayout)
+	}
 }
