@@ -3,10 +3,10 @@ package console
 import (
 	"kaiju/engine"
 	"kaiju/hid"
+	"kaiju/markup"
+	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/ui"
-	"kaiju/uimarkup"
-	"kaiju/uimarkup/markup"
 	"strings"
 )
 
@@ -51,7 +51,7 @@ func (h *history) forward() string {
 type ConsoleData interface{}
 
 type Console struct {
-	doc        *markup.Document
+	doc        *document.Document
 	host       *engine.Host
 	commands   map[string]func(*engine.Host, string) string
 	history    history
@@ -79,7 +79,7 @@ func initialize(host *engine.Host) *Console {
 		data:     make(map[string]ConsoleData),
 	}
 	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
-	console.doc = uimarkup.DocumentFromHTMLString(host,
+	console.doc = markup.DocumentFromHTMLString(host,
 		string(consoleHTML), "", nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {

@@ -5,15 +5,15 @@ import (
 	"kaiju/engine"
 	"kaiju/filesystem"
 	"kaiju/host_container"
+	"kaiju/markup"
+	"kaiju/markup/document"
 	"kaiju/systems/console"
-	"kaiju/uimarkup"
-	"kaiju/uimarkup/markup"
 	"os"
 	"time"
 )
 
 type Preview struct {
-	doc         *markup.Document
+	doc         *document.Document
 	html        string
 	css         string
 	bindingData any
@@ -25,7 +25,7 @@ func (p *Preview) fileChanged() bool {
 	if hErr != nil {
 		return false
 	}
-	if p.css == "" {
+	if p.css != "" {
 		cs, cErr := os.Stat(p.css)
 		if cErr != nil {
 			return false
@@ -48,7 +48,7 @@ func (p *Preview) readHTML(container *host_container.HostContainer) {
 					elm.UI.Entity().Destroy()
 				}
 			}
-			p.doc = uimarkup.DocumentFromHTMLString(
+			p.doc = markup.DocumentFromHTMLString(
 				container.Host, html, css, p.bindingData, nil)
 		}
 	})
@@ -75,6 +75,7 @@ func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContain
 	if err != nil {
 		return nil, err
 	}
+	c.Host.SetFrameRateLimit(60)
 	go c.Run()
 	go startPreview(c, htmlFile, cssFile, bindingData)
 	return c, nil
