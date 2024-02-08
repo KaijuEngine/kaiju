@@ -361,7 +361,6 @@ func (p *Panel) postLayoutUpdate() {
 		rows[i].setElements(p.layout.padding.X()-p.layout.padding.Z(), nextPos[matrix.Vy])
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
-	nextPos[matrix.Vy] += p.layout.padding.Y() + p.layout.padding.W()
 	if p.FittingContent() {
 		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)

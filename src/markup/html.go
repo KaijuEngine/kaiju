@@ -37,8 +37,9 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					height := l.PixelSize().Height()
 					if newParentWidth != parentWidth {
 						parentWidth = newParentWidth
-						textSize := host.FontCache().MeasureStringWithin(label.FontFace(),
-							e.Data(), label.FontSize(), parentWidth)
+						textSize := host.FontCache().MeasureStringWithin(
+							label.FontFace(), e.Data(), label.FontSize(),
+							parentWidth, label.LineHeight())
 						height = textSize.Height()
 					}
 					l.Scale(parentWidth, height)

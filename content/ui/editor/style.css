@@ -39,5 +39,8 @@ body {
 button {
 	width: initial;
 	color: white;
-	background-color: darkgray;
+	background-color: #1f1f1f;
+}
+button:hover {
+	background-color: #313232;
 }

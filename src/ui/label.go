@@ -119,7 +119,7 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	return label.host.FontCache().MeasureStringWithin(label.fontFace,
-		label.text, label.fontSize, maxWidth)
+		label.text, label.fontSize, maxWidth, label.lineHeight)
 }
 
 func (label *Label) renderText() {
@@ -198,6 +198,8 @@ func (label *Label) SetLineHeight(height float32) {
 	label.SetDirty(DirtyTypeGenerated)
 }
 
+func (label *Label) LineHeight() float32 { return label.lineHeight }
+
 func (label *Label) Text() string { return label.text }
 
 func (label *Label) SetText(text string) {
@@ -263,7 +265,7 @@ func (label *Label) MaxWidth() float32 {
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {
-	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width)
+	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width, label.lineHeight)
 	label.layout.Scale(width, textSize.Y())
 	label.SetDirty(DirtyTypeResize)
 }

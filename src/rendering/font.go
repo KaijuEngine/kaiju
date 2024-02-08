@@ -389,7 +389,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	runes := []rune(text)
 	maxHeight := fontFace.metrics.LineHeight * -scale
 	if lineHeight != 0 {
-		maxHeight = -lineHeight
+		maxHeight = min(maxHeight, -lineHeight)
 	}
 	for current < textLen {
 		if maxWidth > 0 {
@@ -541,10 +541,13 @@ func (cache *FontCache) MeasureString(face FontFace, text string, scale float32)
 	return maxX
 }
 
-func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32) matrix.Vec2 {
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2 {
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
+	if lineHeight != 0 {
+		maxHeight = max(maxHeight, lineHeight)
+	}
 	var x, y float32 = 0.0, 0.0
 	clip := text
 	for len(clip) > 0 {
