@@ -344,6 +344,7 @@ uint32_t window_poll(void* hwnd) {
     MSG msg = {};
 	if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
 		TranslateMessage(&msg);
+		// TODO:  Window resize happens in here, but would be clobbered by &msg which is different
 		DispatchMessage(&msg);
 		process_message(sm, &msg);
 		return msg.message;
