@@ -12,7 +12,8 @@
 		"*.rh": "c",
 		"stdbool.h": "c",
 		"windowsx.h": "c",
-		"strings.h": "c"
+		"strings.h": "c",
+		"windows.h": "c"
 	},
 	"cSpell.words": [
 		"kaiju",

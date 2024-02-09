@@ -1,6 +1,9 @@
 package rendering
 
-import "kaiju/assets"
+import (
+	"kaiju/assets"
+	"sync"
+)
 
 type ShaderCache struct {
 	renderer          Renderer
@@ -8,6 +11,7 @@ type ShaderCache struct {
 	shaders           map[string]*Shader
 	pendingShaders    []*Shader
 	shaderDefinitions map[string]ShaderDef
+	mutex             sync.Mutex
 }
 
 func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCache {
@@ -17,10 +21,13 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 		shaders:           make(map[string]*Shader),
 		pendingShaders:    make([]*Shader, 0),
 		shaderDefinitions: make(map[string]ShaderDef),
+		mutex:             sync.Mutex{},
 	}
 }
 
 func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) *Shader {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	shaderKey := createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath)
 	if shader, ok := s.shaders[shaderKey]; ok {
 		return shader

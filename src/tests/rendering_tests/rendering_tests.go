@@ -294,13 +294,11 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testMonkeyGLB
 		}
 		if testFunc != nil {
-			c, err := host_container.New("Test " + t)
-			if err != nil {
-				return err.Error()
-			}
+			c := host_container.New("Test " + t)
+			go c.Run()
+			<-c.PrepLock
 			c.Host.Camera.SetPosition(matrix.Vec3{0, 0, 2})
 			testFunc(c.Host)
-			go c.Run()
 		}
 		return "Running test"
 	})

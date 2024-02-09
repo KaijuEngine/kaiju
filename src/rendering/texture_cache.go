@@ -1,12 +1,16 @@
 package rendering
 
-import "kaiju/assets"
+import (
+	"kaiju/assets"
+	"sync"
+)
 
 type TextureCache struct {
 	renderer        Renderer
 	assetDatabase   *assets.Database
 	textures        map[string]*Texture
 	pendingTextures []*Texture
+	mutex           sync.Mutex
 }
 
 func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache {
@@ -15,10 +19,13 @@ func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureC
 		assetDatabase:   assetDatabase,
 		textures:        make(map[string]*Texture),
 		pendingTextures: make([]*Texture, 0),
+		mutex:           sync.Mutex{},
 	}
 }
 
 func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	if texture, ok := t.textures[textureKey]; ok {
 		return texture, nil
 	} else {

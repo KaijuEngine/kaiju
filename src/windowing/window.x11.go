@@ -66,6 +66,22 @@ func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	evtSharedMem.AwaitReady()
 }
 
+func (w *Window) poll() {
+	w.evtSharedMem.MakeAvailable()
+	for !w.evtSharedMem.IsQuit() && !w.evtSharedMem.IsFatal() {
+		for !w.evtSharedMem.IsReady() {
+		}
+		if w.evtSharedMem.IsWritten() {
+			if w.evtSharedMem.HasEvent() {
+				w.processEvent()
+				w.evtSharedMem.MakeAvailable()
+			} else {
+				break
+			}
+		}
+	}
+}
+
 func (w *Window) cursorStandard() {
 	klib.NotYetImplemented(100)
 }
@@ -86,4 +102,9 @@ func (w *Window) clipboardContents() string {
 func (w *Window) getDPI() (int, int, error) {
 	klib.NotYetImplemented(131)
 	return 96, 96, nil
+}
+
+func (w *Window) openFile(extension string) (string, bool) {
+	klib.NotYetImplemented(146)
+	return "", false
 }

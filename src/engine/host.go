@@ -12,6 +12,7 @@ import (
 )
 
 type Host struct {
+	name           string
 	editorEntities EditorEntities
 	entities       []*Entity
 	Window         *windowing.Window
@@ -33,34 +34,43 @@ type Host struct {
 	inEditorEntity bool
 }
 
-func NewHost(name string) (*Host, error) {
-	win, err := windowing.New(name)
-	if err != nil {
-		return nil, err
-	}
+func NewHost(name string) *Host {
+	w := float32(windowing.DefaultWindowWidth)
+	h := float32(windowing.DefaultWindowHeight)
 	host := &Host{
+		name:           name,
 		editorEntities: newEditorEntities(),
 		entities:       make([]*Entity, 0),
 		frameTime:      0,
 		Closing:        false,
 		Updater:        NewUpdater(),
 		LateUpdater:    NewUpdater(),
-		Window:         win,
 		assetDatabase:  assets.NewDatabase(),
-		Camera:         cameras.NewStandardCamera(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
-		UICamera:       cameras.NewStandardCameraOrthographic(float32(win.Width()), float32(win.Height()), matrix.Vec3{0, 0, 1}),
 		Drawings:       rendering.NewDrawings(),
 		OnClose:        events.New(),
 		CloseSignal:    make(chan struct{}),
+		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3{0, 0, 1}),
+		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 1}),
 	}
 	host.UICamera.SetPosition(matrix.Vec3{0, 0, 250})
+	return host
+}
+
+func (host *Host) Initialize() error {
+	win, err := windowing.New(host.name)
+	if err != nil {
+		return err
+	}
+	host.Window = win
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
 	host.Window.OnResize.Add(host.resized)
-	return host, nil
+	return nil
 }
+
+func (host *Host) Name() string { return host.name }
 
 func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())

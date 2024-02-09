@@ -10,10 +10,16 @@ import (
 	"unsafe"
 )
 
-type eventType int
+const (
+	DefaultWindowWidth  = 944
+	DefaultWindowHeight = 500
+)
+
+type eventType = int
 
 const (
 	evtUnknown eventType = iota
+	evtQuit
 	evtMouseMove
 	evtLeftMouseDown
 	evtLeftMouseUp
@@ -57,17 +63,16 @@ func New(windowName string) (*Window, error) {
 		Touch:        hid.NewTouch(),
 		Stylus:       hid.NewStylus(),
 		Controller:   hid.NewController(),
-		width:        944,
-		height:       500,
+		width:        DefaultWindowWidth,
+		height:       DefaultWindowHeight,
 		evtSharedMem: new(evtMem),
 		OnResize:     events.New(),
 	}
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
 	createWindow(windowName, w.width, w.height, w.evtSharedMem)
-	w.evtSharedMem.AwaitReady()
-	if !w.evtSharedMem.IsFatal() && !w.evtSharedMem.IsContext() {
-		return nil, errors.New("Context create expected but wasn't requested")
+	if w.evtSharedMem.IsFatal() {
+		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
 	var hwndAddr, hInstance uint64
 	reader := bytes.NewReader(w.evtSharedMem[evtSharedMemDataStart:])
@@ -79,12 +84,9 @@ func New(windowName string) (*Window, error) {
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
-	w.evtSharedMem.MakeAvailable()
-	w.evtSharedMem.AwaitReady()
+	w.showWindow(w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
-	} else if !w.evtSharedMem.IsStart() {
-		return nil, errors.New("Start expected but wasn't requested")
 	}
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName)
@@ -99,8 +101,7 @@ func (w *Window) IsCrashed() bool { return w.isCrashed }
 func (w *Window) Width() int      { return w.width }
 func (w *Window) Height() int     { return w.height }
 
-func (w *Window) processEvent() {
-	evtType := w.evtSharedMem.toEventType()
+func (w *Window) processEvent(evtType eventType) {
 	w.processWindowEvent(evtType)
 	w.processMouseEvent(evtType)
 	w.processKeyboardEvent(evtType)
@@ -203,19 +204,7 @@ func (w *Window) processControllerEvent(evtType eventType) {
 }
 
 func (w *Window) Poll() {
-	w.evtSharedMem.MakeAvailable()
-	for !w.evtSharedMem.IsQuit() && !w.evtSharedMem.IsFatal() {
-		for !w.evtSharedMem.IsReady() {
-		}
-		if w.evtSharedMem.IsWritten() {
-			if w.evtSharedMem.HasEvent() {
-				w.processEvent()
-				w.evtSharedMem.MakeAvailable()
-			} else {
-				break
-			}
-		}
-	}
+	w.poll()
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
 	w.Cursor.Poll()
@@ -269,5 +258,9 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) confirmQuit() {
-	w.evtSharedMem.MakeAvailable()
+	w.destroy()
+}
+
+func (w *Window) OpenFile(extension string) (string, bool) {
+	return w.openFileInternal(extension)
 }

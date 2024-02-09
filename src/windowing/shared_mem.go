@@ -78,7 +78,6 @@ func (e *evtMem) IsStart() bool                 { return e[0] == sharedMemAwaiti
 func (e *evtMem) IsContext() bool               { return e[0] == sharedMemAwaitingContext }
 func (e *evtMem) IsWritten() bool               { return e[0] == sharedMemWritten }
 func (e *evtMem) IsQuit() bool                  { return e[0] == sharedMemQuit }
-func (e *evtMem) MakeAvailable()                { e[0] = sharedMemAvailable }
 func (e *evtMem) HasEvent() bool                { return e.EventType() != 0 }
 func (e *evtMem) EventType() uint32 {
 	return *(*uint32)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
@@ -88,10 +87,6 @@ func (e *evtMem) SetFatal(message string) {
 	msg := []byte(message)
 	for i := 0; i < len(msg) && i < len(e)-evtSharedMemDataStart; i++ {
 		e[i+evtSharedMemDataStart] = msg[i]
-	}
-}
-func (e *evtMem) AwaitReady() {
-	for !e.IsReady() {
 	}
 }
 

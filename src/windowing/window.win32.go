@@ -19,8 +19,12 @@ float get_dpi(HWND hwnd) {
 */
 import "C"
 
-func (e evtMem) toEventType() eventType {
-	switch e.EventType() {
+func asEventType(msg uint32) eventType {
+	switch msg {
+	case 0x0002:
+		fallthrough
+	case 0x0012:
+		return evtQuit
 	case 0x0005:
 		return evtResize
 	case 0x0104:
@@ -67,7 +71,30 @@ func scaleScrollDelta(delta float32) float32 {
 func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
-	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+	C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+}
+
+func (w *Window) showWindow(evtSharedMem *evtMem) {
+	C.window_show(w.handle)
+}
+
+func (w *Window) destroy() {
+	C.window_destroy(w.handle)
+}
+
+func (w *Window) poll() {
+	evtType := uint32(C.window_poll_controller(w.handle))
+	if evtType != 0 {
+		w.processControllerEvent(asEventType(evtType))
+	}
+	evtType = 1
+	for evtType != 0 && !w.evtSharedMem.IsQuit() {
+		evtType = uint32(C.window_poll(w.handle))
+		if evtType != 0 {
+			t := asEventType(evtType)
+			w.processEvent(t)
+		}
+	}
 }
 
 func (w *Window) cursorStandard() {
@@ -75,9 +102,7 @@ func (w *Window) cursorStandard() {
 }
 
 func (w *Window) cursorIbeam() {
-	go func() {
-		C.window_cursor_ibeam(w.handle)
-	}()
+	C.window_cursor_ibeam(w.handle)
 }
 
 func (w *Window) copyToClipboard(text string) {
@@ -92,4 +117,15 @@ func (w *Window) clipboardContents() string {
 func (w *Window) getDPI() (int, int, error) {
 	dpi := C.get_dpi(C.HWND(w.handle))
 	return int(dpi), int(dpi), nil
+}
+
+func (w *Window) openFile(extension string) (string, bool) {
+	outStr := (*C.char)(C.malloc(0))
+	ok := C.window_open_file(w.handle, C.CString(extension), &outStr)
+	out := C.GoString(outStr)
+	C.free(unsafe.Pointer(outStr))
+	if ok {
+		return out, true
+	}
+	return "", false
 }

@@ -3,12 +3,12 @@
 package bootstrap
 
 import (
-	"kaiju/engine"
+	"kaiju/host_container"
 	"kaiju/source"
 )
 
-func Main(host *engine.Host) {
+func Main(container *host_container.HostContainer) {
 	println("Starting runtime")
-	source.Main(host)
-	<-host.Done()
+	source.Main(container.Host)
+	<-container.Host.Done()
 }
