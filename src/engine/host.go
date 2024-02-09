@@ -123,6 +123,7 @@ func (host *Host) Update(deltaTime float64) {
 }
 
 func (host *Host) Render() {
+	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()

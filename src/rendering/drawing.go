@@ -3,6 +3,7 @@ package rendering
 import (
 	"kaiju/matrix"
 	"slices"
+	"sync"
 )
 
 type Drawing struct {
@@ -18,12 +19,16 @@ type Drawing struct {
 func (d *Drawing) IsValid() bool { return d.Shader != nil }
 
 type Drawings struct {
-	draws []ShaderDraw
+	draws     []ShaderDraw
+	backDraws []Drawing
+	mutex     sync.Mutex
 }
 
 func NewDrawings() Drawings {
 	return Drawings{
-		draws: make([]ShaderDraw, 0),
+		draws:     make([]ShaderDraw, 0),
+		backDraws: make([]Drawing, 0),
+		mutex:     sync.Mutex{},
 	}
 }
 
@@ -59,29 +64,41 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, 
 	return dig, dig != nil
 }
 
+func (d *Drawings) PreparePending() {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	for i := range d.backDraws {
+		drawing := &d.backDraws[i]
+		draw, ok := d.findShaderDraw(drawing.Shader)
+		if !ok {
+			newDraw := NewShaderDraw(drawing.Shader)
+			d.draws = append(d.draws, newDraw)
+			draw = &d.draws[len(d.draws)-1]
+		}
+		drawing.ShaderData.setTransform(drawing.Transform)
+		if dg, ok := d.matchGroup(draw, drawing); ok {
+			dg.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
+		} else {
+			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
+			group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
+			group.Textures = drawing.Textures
+			group.useBlending = drawing.UseBlending
+			draw.AddInstanceGroup(group)
+		}
+	}
+	d.backDraws = d.backDraws[:0]
+}
+
 func (d *Drawings) AddDrawing(drawing Drawing) {
-	draw, ok := d.findShaderDraw(drawing.Shader)
-	if !ok {
-		newDraw := NewShaderDraw(drawing.Shader)
-		d.draws = append(d.draws, newDraw)
-		draw = &d.draws[len(d.draws)-1]
-	}
-	drawing.ShaderData.setTransform(drawing.Transform)
-	if dg, ok := d.matchGroup(draw, &drawing); ok {
-		dg.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
-	} else {
-		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-		group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
-		group.Textures = drawing.Textures
-		group.useBlending = drawing.UseBlending
-		draw.AddInstanceGroup(group)
-	}
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.backDraws = append(d.backDraws, drawing)
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing) {
-	for i := range drawings {
-		d.AddDrawing(drawings[i])
-	}
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.backDraws = append(d.backDraws, drawings...)
 }
 
 func (d *Drawings) Render(renderer Renderer) {
