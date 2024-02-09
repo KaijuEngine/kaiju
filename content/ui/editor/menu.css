@@ -1,0 +1,39 @@
+#bar {
+	width: 100%;
+	height: 20px;
+	background-color: #1f1f1f;
+	padding: 0;
+	margin: 0;
+}
+.menuItem {
+	margin: 0;
+	padding: 0 5px;
+	height: 100%;
+	background-color: #1f1f1f;
+	color: #BBB;
+	overflow: visible;
+}
+.menuItem:hover {
+	background-color: #313232;
+	color: #CCC;
+}
+.menuItem span {
+	font-size: 14px;
+}
+.menuItemList {
+	visibility: hidden;
+	position: absolute;
+	width: initial;
+	top: 20px;
+	background-color: #1f1f1f;
+	color: #BBB;
+	padding: 0 5px;
+	margin: 0;
+}
+.menuItemListItem {
+	background-color: #1f1f1f;
+}
+.menuItemListItem:hover {
+	background-color: #313232;
+	color: #CCC;
+}

@@ -90,6 +90,10 @@ func ColorFromHexString(str string) (Color, error) {
 	return ColorFromColor8(c8), err
 }
 
+func (c Color) Hex() string {
+	return fmt.Sprintf("#%02x%02x%02x%02x", uint8(c.R()*255), uint8(c.G()*255), uint8(c.B()*255), uint8(c.A()*255))
+}
+
 func Color8FromHexString(str string) (Color8, error) {
 	rgba := Color8{255, 255, 255, 255}
 	var err error
@@ -106,6 +110,10 @@ func Color8FromHexString(str string) (Color8, error) {
 		err = fmt.Errorf("invalid hex color string: %s", str)
 	}
 	return rgba, err
+}
+
+func (c Color8) Hex() string {
+	return fmt.Sprintf("#%02x%02x%02x%02x", c.R, c.G, c.B, c.A)
 }
 
 func ColorRed() Color                  { return Color{1, 0, 0, 1} }

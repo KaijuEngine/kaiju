@@ -10,4 +10,5 @@ import (
 func Main(host *engine.Host) {
 	println("Starting runtime")
 	source.Main(host)
+	<-host.Done()
 }

@@ -6,13 +6,13 @@ import (
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
+	"kaiju/markup"
+	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
 	"kaiju/systems/console"
 	"kaiju/ui"
-	"kaiju/uimarkup"
-	"kaiju/uimarkup/markup"
 	"strings"
 	"unsafe"
 )
@@ -79,7 +79,7 @@ func testFont(host *engine.Host) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorCornflowerBlue(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, []rendering.FontRange{},
-		rendering.FontRegular)
+		rendering.FontRegular, 0)
 	host.Drawings.AddDrawings(drawings)
 }
 
@@ -142,14 +142,14 @@ func testButton(host *engine.Host) {
 }
 
 func testHTML(host *engine.Host) {
-	events := map[string]func(*markup.DocElement){
-		"playGame":     func(*markup.DocElement) { println("Clicked playGame") },
-		"showSettings": func(*markup.DocElement) { println("Clicked showSettings") },
-		"showRules":    func(*markup.DocElement) { println("Clicked showRules") },
+	events := map[string]func(*document.DocElement){
+		"playGame":     func(*document.DocElement) { println("Clicked playGame") },
+		"showSettings": func(*document.DocElement) { println("Clicked showSettings") },
+		"showRules":    func(*document.DocElement) { println("Clicked showRules") },
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
-	uimarkup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
+	markup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
 }
 
 func testHTMLBinding(host *engine.Host) {
@@ -159,7 +159,7 @@ func testHTMLBinding(host *engine.Host) {
 		EntityNames: []string{"Entity 1", "\tEntity 2", "\t\tEntity 3"},
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
-	uimarkup.DocumentFromHTMLString(host, testHTML, "", demoData, nil)
+	markup.DocumentFromHTMLString(host, testHTML, "", demoData, nil)
 }
 
 func testLayoutSimple(host *engine.Host) {
@@ -294,7 +294,7 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testMonkeyGLB
 		}
 		if testFunc != nil {
-			c, err := host_container.New()
+			c, err := host_container.New("Test " + t)
 			if err != nil {
 				return err.Error()
 			}

@@ -15,6 +15,8 @@ type Renderer interface {
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
 	Draw(drawings []ShaderDraw)
+	DrawToTarget(drawings []ShaderDraw, target RenderTarget)
+	BlitTargets(targets ...RenderTargetDraw)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
@@ -23,4 +25,5 @@ type Renderer interface {
 	DestroyShader(shader *Shader)
 	DestroyMesh(mesh *Mesh)
 	Destroy()
+	DefaultTarget() RenderTarget
 }

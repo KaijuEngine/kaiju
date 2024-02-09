@@ -14,5 +14,6 @@ const (
 	EventTypeRebuild
 	EventTypeDestroy
 	EventTypeChange
+	EventTypeRender
 	EventTypeEnd
 )

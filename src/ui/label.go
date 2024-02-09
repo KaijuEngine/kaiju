@@ -22,6 +22,7 @@ type Label struct {
 	text             string
 	textLength       int
 	fontSize         float32
+	lineHeight       float32
 	overrideMaxWidth float32
 	color            matrix.Color
 	bgColor          matrix.Color
@@ -31,22 +32,26 @@ type Label struct {
 	runeShaderData   []*rendering.TextShaderData
 	runeDrawings     []rendering.Drawing
 	fontFace         rendering.FontFace
+	lastRenderWidth  float32
 	wordWrap         bool
+	renderRequired   bool
 }
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{
-		text:         text,
-		textLength:   len(text),
-		color:        matrix.ColorWhite(),
-		bgColor:      matrix.ColorBlack(),
-		fontSize:     LabelFontSize,
-		baseline:     rendering.FontBaselineTop,
-		justify:      rendering.FontJustifyLeft,
-		colorRanges:  make([]colorRange, 0),
-		runeDrawings: make([]rendering.Drawing, 0),
-		fontFace:     rendering.FontRegular,
-		wordWrap:     true,
+		text:            text,
+		textLength:      len(text),
+		color:           matrix.ColorWhite(),
+		bgColor:         matrix.ColorBlack(),
+		fontSize:        LabelFontSize,
+		baseline:        rendering.FontBaselineTop,
+		justify:         rendering.FontJustifyLeft,
+		colorRanges:     make([]colorRange, 0),
+		runeDrawings:    make([]rendering.Drawing, 0),
+		fontFace:        rendering.FontRegular,
+		wordWrap:        true,
+		renderRequired:  true,
+		lastRenderWidth: 0,
 	}
 	label.init(host, matrix.Vec2Zero(), anchor, label)
 	label.SetText(text)
@@ -55,6 +60,7 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		label.activateDrawings()
 		label.updateId = host.Updater.AddUpdate(label.Update)
 		label.SetDirty(DirtyTypeLayout)
+		label.renderRequired = true
 		label.Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
@@ -99,6 +105,11 @@ func (label *Label) clearDrawings() {
 }
 
 func (label *Label) postLayoutUpdate() {
+	maxWidth := float32(999999.0)
+	if label.wordWrap {
+		maxWidth = label.layout.PixelSize().Width()
+	}
+	label.updateHeight(maxWidth)
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
@@ -108,23 +119,23 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	return label.host.FontCache().MeasureStringWithin(label.fontFace,
-		label.text, label.fontSize, maxWidth)
+		label.text, label.fontSize, maxWidth, label.lineHeight)
 }
 
-func (label *Label) render() {
-	label.updateHeight(label.MaxWidth())
+func (label *Label) renderText() {
+	maxWidth := float32(999999.0)
+	if label.wordWrap {
+		maxWidth = label.layout.PixelSize().Width()
+	}
+	label.updateHeight(maxWidth)
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {
-		maxWidth := float32(999999.0)
-		if label.wordWrap {
-			maxWidth = label.layout.PixelSize().Width()
-		}
 		label.runeDrawings = label.Host().FontCache().RenderMeshes(
 			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
 			maxWidth, label.color, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
-			false, label.rangesToFont(), label.fontFace)
+			false, label.rangesToFont(), label.fontFace, label.lineHeight)
 		for i := range label.runeDrawings {
 			label.runeDrawings[i].Transform = &label.entity.Transform
 			label.runeShaderData = append(label.runeShaderData,
@@ -136,11 +147,24 @@ func (label *Label) render() {
 		}
 		label.host.Drawings.AddDrawings(label.runeDrawings)
 	}
+}
+
+func (label *Label) render() {
+	label.uiBase.render()
+	maxWidth := label.MaxWidth()
+	if label.lastRenderWidth != maxWidth {
+		label.lastRenderWidth = maxWidth
+		label.renderRequired = true
+	}
+	if label.renderRequired {
+		label.renderText()
+	}
 	label.setLabelScissors()
 	if !label.isActive() {
 		label.deactivateDrawings()
 	}
 	label.updateColors()
+	label.renderRequired = false
 }
 
 func (label *Label) updateColors() {
@@ -169,10 +193,18 @@ func (label *Label) SetFontSize(size float32) {
 	label.SetDirty(DirtyTypeGenerated)
 }
 
+func (label *Label) SetLineHeight(height float32) {
+	label.lineHeight = height
+	label.SetDirty(DirtyTypeGenerated)
+}
+
+func (label *Label) LineHeight() float32 { return label.lineHeight }
+
 func (label *Label) Text() string { return label.text }
 
 func (label *Label) SetText(text string) {
 	label.text = text
+	label.renderRequired = true
 	// TODO:  Put a cap on the length of the string
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
@@ -233,7 +265,7 @@ func (label *Label) MaxWidth() float32 {
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {
-	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width)
+	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width, label.lineHeight)
 	label.layout.Scale(width, textSize.Y())
 	label.SetDirty(DirtyTypeResize)
 }
@@ -324,4 +356,24 @@ func (label *Label) SetFontStyle(style string) {
 		}
 	}
 	label.SetDirty(DirtyTypeGenerated)
+}
+
+func (label *Label) CalculateSize() matrix.Vec2 {
+	var maxWidth matrix.Float
+	parent := label.entity.Parent
+	var p *Panel
+	for parent != nil {
+		p = FirstPanelOnEntity(parent)
+		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
+			break
+		}
+		parent = parent.Parent
+	}
+	if parent == nil || (p.Layout().Positioning() == PositioningAbsolute && p.FittingContent()) {
+		// TODO:  This will need to be bounded by left offset
+		maxWidth = matrix.Float(label.host.Window.Width())
+	} else {
+		maxWidth = parent.Transform.WorldScale().X()
+	}
+	return label.measure(maxWidth)
 }

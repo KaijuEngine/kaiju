@@ -4,6 +4,8 @@
 #define UNICODE
 #endif
 
+#define WIN32_LEAN_AND_MEAN
+
 #include "win32.h"
 #include <stdint.h>
 #include <string.h>
@@ -256,15 +258,22 @@ void process_message(SharedMem* sm, MSG *msg) {
 			}
 			break;
 		case UWM_SET_CURSOR:
+		{
+			HCURSOR c = NULL;
 			switch (msg->wParam) {
 				case CURSOR_ARROW:
-					SetCursor(LoadCursor(NULL, IDC_ARROW));
+					c = LoadCursor(NULL, IDC_ARROW);
 					break;
 				case CURSOR_IBEAM:
-					SetCursor(LoadCursor(NULL, IDC_IBEAM));
+					c = LoadCursor(NULL, IDC_IBEAM);
 					break;
 			}
+			if (c != NULL) {
+				SetCursor(c);
+				SetClassLongPtr(msg->hwnd, GCLP_HCURSOR, (LONG_PTR)c);
+			}
 			break;
+		}
 	}
 	shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
 }
@@ -278,7 +287,7 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     wc.lpfnWndProc   = window_proc;
     wc.hInstance     = hInstance;
     wc.lpszClassName = className;
-	//wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
+	wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
     RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};

@@ -192,7 +192,7 @@ func ab(edges matrix.Vec4, h float32, size matrix.Vec2) float32 {
 	return -h*0.5 + size.Y()*0.5 + edges.Bottom()
 }
 
-func (l *Layout) calcOffset() matrix.Vec2 {
+func (l *Layout) CalcOffset() matrix.Vec2 {
 	return l.rowLayoutOffset.Add(l.offset)
 }
 
@@ -205,7 +205,7 @@ func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 func anchorTopCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	inner := self.InnerOffset()
-	return matrix.Vec4{self.calcOffset().X(), at(edges, h, size) + inner.Top(), 0.0, 0.0}
+	return matrix.Vec4{self.CalcOffset().X(), at(edges, h, size) + inner.Top(), 0.0, 0.0}
 }
 
 func anchorTopRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
@@ -217,17 +217,17 @@ func anchorTopRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 func anchorLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	inner := self.InnerOffset()
-	return matrix.Vec4{al(edges, w, size) + inner.Left(), self.calcOffset().Y(), 0.0, 0.0}
+	return matrix.Vec4{al(edges, w, size) + inner.Left(), self.CalcOffset().Y(), 0.0, 0.0}
 }
 
 func anchorCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
-	return matrix.Vec4{self.calcOffset().X(), self.calcOffset().Y(), 0.0, 0.0}
+	return matrix.Vec4{self.CalcOffset().X(), self.CalcOffset().Y(), 0.0, 0.0}
 }
 
 func anchorRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	inner := self.InnerOffset()
-	return matrix.Vec4{ar(edges, w, size) + inner.Right(), self.calcOffset().Y(), 0.0, 0.0}
+	return matrix.Vec4{ar(edges, w, size) + inner.Right(), self.CalcOffset().Y(), 0.0, 0.0}
 }
 
 func anchorBottomLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
@@ -239,7 +239,7 @@ func anchorBottomLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 
 func anchorBottomCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	inner := self.InnerOffset()
-	return matrix.Vec4{self.calcOffset().X(), ab(edges, h, size) + inner.Bottom(), 0.0, 0.0}
+	return matrix.Vec4{self.CalcOffset().X(), ab(edges, h, size) + inner.Bottom(), 0.0, 0.0}
 }
 
 func anchorBottomRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
@@ -301,8 +301,8 @@ func layoutStretch(self *Layout) {
 	t := &self.ui.Entity().Transform
 	bounds := self.bounds()
 	res := self.anchorFunction(self, bounds.X(), bounds.Y(), matrix.Vec2Zero())
-	x := res.X() + self.calcOffset().X()
-	y := res.Y() + self.calcOffset().Y()
+	x := res.X() + self.CalcOffset().X()
+	y := res.Y() + self.CalcOffset().Y()
 	xSize := res.Z()
 	ySize := res.W()
 	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), 1}
@@ -493,10 +493,10 @@ func (l *Layout) Offset() matrix.Vec2      { return matrix.Vec2{l.offset.X(), l.
 
 func (l *Layout) totalOffsetBounds() matrix.Vec4 {
 	return matrix.Vec4{
-		l.calcOffset().X(),
-		l.calcOffset().Y(),
-		l.calcOffset().X(),
-		l.calcOffset().Y(),
+		l.CalcOffset().X(),
+		l.CalcOffset().Y(),
+		l.CalcOffset().X(),
+		l.CalcOffset().Y(),
 	}
 }
 

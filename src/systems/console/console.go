@@ -3,9 +3,10 @@ package console
 import (
 	"kaiju/engine"
 	"kaiju/hid"
+	"kaiju/markup"
+	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/ui"
-	"kaiju/uimarkup"
-	"kaiju/uimarkup/markup"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ func (h *history) forward() string {
 type ConsoleData interface{}
 
 type Console struct {
-	doc        *markup.Document
+	doc        *document.Document
 	host       *engine.Host
 	commands   map[string]func(*engine.Host, string) string
 	history    history
@@ -64,7 +65,9 @@ type Console struct {
 func For(host *engine.Host) *Console {
 	c, ok := consoles[host]
 	if !ok {
+		host.CreatingEditorEntities()
 		c = initialize(host)
+		host.DoneCreatingEditorEntities()
 		consoles[host] = c
 	}
 	return c
@@ -78,7 +81,7 @@ func initialize(host *engine.Host) *Console {
 		data:     make(map[string]ConsoleData),
 	}
 	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
-	console.doc = uimarkup.DocumentFromHTMLString(host,
+	console.doc = markup.DocumentFromHTMLString(host,
 		string(consoleHTML), "", nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
@@ -180,12 +183,14 @@ func (c *Console) submit(input *ui.Input) {
 	if fn, ok := c.commands[key]; ok {
 		res = strings.TrimSpace(fn(c.host, value))
 	}
+	lblParent, _ := c.doc.GetElementById("consoleContent")
 	lbl := c.outputLabel()
 	if res != "" {
 		lbl.SetText(lbl.Text() + "\n" + cmd + "\n" + res)
 	} else {
 		lbl.SetText(lbl.Text() + "\n" + cmd)
 	}
+	lblParent.UIPanel.SetScrollY(matrix.FloatMax)
 }
 
 func (c *Console) update(deltaTime float64) {

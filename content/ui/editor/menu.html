@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/menu.css">
+	</head>
+	<body>
+		<div id="bar">
+			<span class="menuItem" data-target="FilesList"><span>File</span></span>
+			<span class="menuItem" data-target="HelpList"><span>Help</span></span>
+			<div id="FilesList" class="menuItemList">
+				<div class="menuItemListItem">File</div>
+				<div class="menuItemListItem">Open Project</div>
+				<div class="menuItemListItem">Save the world</div>
+			</div>
+			<div id="HelpList" class="menuItemList">
+				<div class="menuItemListItem">About</div>
+				<div class="menuItemListItem" onclick="openRepository">Repository</div>
+			</div>
+		</div>
+	</body>
+</html>

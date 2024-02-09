@@ -59,9 +59,13 @@ func consoleMerge(host *engine.Host, argStr string) string {
 	return "Files merged into " + pprofMergeFile
 }
 
-func launchWeb(c *console.Console) (*contexts.Cancellable, error) {
+func launchWeb(c *console.Console, webType string) (*contexts.Cancellable, error) {
 	ctx := contexts.NewCancellable()
-	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, pprofCPUFile)
+	targetFile := pprofCPUFile
+	if webType == "mem" {
+		targetFile = pprofHeapFile
+	}
+	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, targetFile)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	err := cmd.Start()
 	if err != nil {
@@ -114,13 +118,13 @@ func pprofHeap() string {
 	return "Heap profile written to " + pprofHeapFile
 }
 
-func pprofWebStart(c *console.Console) string {
+func pprofWebStart(c *console.Console, webType string) string {
 	ctx, ok := c.Data(ctxDataKey).(*contexts.Cancellable)
 	if ok && ctx != nil {
 		ctx.Cancel()
 		c.DeleteData(ctxDataKey)
 	}
-	if ctx, err := launchWeb(c); err != nil {
+	if ctx, err := launchWeb(c, webType); err != nil {
 		return err.Error()
 	} else {
 		if !c.HasData(ctxDataKey) {
@@ -151,8 +155,10 @@ func pprofWeb(c *console.Console, args []string) string {
 		return `Expected "start" or "stop"`
 	}
 	switch args[0] {
-	case "start":
-		return pprofWebStart(c)
+	case "mem":
+		fallthrough
+	case "cpu":
+		return pprofWebStart(c, args[0])
 	case "stop":
 		return pprofWebStop(c)
 	default:
@@ -168,7 +174,7 @@ func pprofCommands(host *engine.Host, arg string) string {
 		return pprofStart(c, arg)
 	} else if arg == "stop" {
 		return pprofStop(c, arg)
-	} else if arg == "heap" {
+	} else if arg == "mem" {
 		return pprofHeap()
 	} else if arg == "top" {
 		return consoleTop(host)

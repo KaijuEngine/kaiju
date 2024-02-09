@@ -49,6 +49,7 @@ type UI interface {
 	layoutChanged(dirtyType DirtyType)
 	cleanDirty()
 	postLayoutUpdate()
+	render()
 }
 
 type uiBase struct {
@@ -72,6 +73,10 @@ type uiBase struct {
 }
 
 func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
+
+func (ui *uiBase) render() {
+	ui.events[EventTypeRender].Execute()
+}
 
 func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
@@ -182,11 +187,7 @@ func (ui *uiBase) Clean() {
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
-		if l, ok := tree[i].(*Label); ok {
-			l.render()
-		} else if p, ok := tree[i].(*Panel); ok {
-			p.shaderData.setSize2d(ui, ui.textureSize.X(), ui.textureSize.Y())
-		}
+		tree[i].render()
 	}
 }
 
@@ -202,12 +203,19 @@ func (ui *uiBase) GenerateScissor() {
 		pos.Y() + size.Y()*0.5,
 	}
 	if !ui.entity.IsRoot() {
-		p := FirstOnEntity(ui.entity.Parent)
-		pBounds := p.selfScissor()
-		bounds.SetX(max(bounds.X(), pBounds.X()))
-		bounds.SetY(max(bounds.Y(), pBounds.Y()))
-		bounds.SetZ(min(bounds.Z(), pBounds.Z()))
-		bounds.SetW(min(bounds.W(), pBounds.W()))
+		p := FirstPanelOnEntity(ui.entity.Parent)
+		for p.overflow == OverflowVisible && !p.entity.IsRoot() {
+			p = FirstPanelOnEntity(p.entity.Parent)
+		}
+		if !p.entity.IsRoot() {
+			pBounds := p.selfScissor()
+			bounds.SetX(max(bounds.X(), pBounds.X()))
+			bounds.SetY(max(bounds.Y(), pBounds.Y()))
+			bounds.SetZ(min(bounds.Z(), pBounds.Z()))
+			bounds.SetW(min(bounds.W(), pBounds.W()))
+		} else {
+			bounds = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+		}
 	}
 	ui.setScissor(bounds)
 }
@@ -320,14 +328,6 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 
 func (ui *uiBase) changed() {
 	ui.ExecuteEvent(EventTypeChange)
-}
-
-func (ui *uiBase) DisconnectParentScissor() {
-	if ui.hasScissor() {
-		ui.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-		ui.GenerateScissor()
-	}
-	ui.disconnectedScissor = true
 }
 
 func (ui *uiBase) layoutChanged(dirtyType DirtyType) {

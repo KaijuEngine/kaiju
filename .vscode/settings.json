@@ -11,7 +11,8 @@
 		"shared_mem.h": "c",
 		"*.rh": "c",
 		"stdbool.h": "c",
-		"windowsx.h": "c"
+		"windowsx.h": "c",
+		"strings.h": "c"
 	},
 	"cSpell.words": [
 		"kaiju",
