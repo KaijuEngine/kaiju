@@ -162,7 +162,7 @@ func pprofWeb(c *console.Console, args []string) string {
 	case "stop":
 		return pprofWebStop(c)
 	default:
-		return `Expected "start" or "stop"`
+		return `Expected "cpu" or "mem" or "stop"`
 	}
 }
 
