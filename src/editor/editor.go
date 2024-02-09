@@ -20,5 +20,7 @@ func New(host *engine.Host) *Editor {
 func (e *Editor) SetupUI() {
 	e.Host.CreatingEditorEntities()
 	e.menu = menu.New(e.Host)
+	//html := klib.MustReturn(e.Host.AssetDatabase().ReadText("ui/editor/project.html"))
+	//markup.DocumentFromHTMLString(e.Host, html, "", nil, nil)
 	e.Host.DoneCreatingEditorEntities()
 }
