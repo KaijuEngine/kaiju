@@ -21,14 +21,14 @@ func (d *Drawing) IsValid() bool { return d.Shader != nil }
 type Drawings struct {
 	draws     []ShaderDraw
 	backDraws []Drawing
-	mutex     sync.Mutex
+	mutex     sync.RWMutex
 }
 
 func NewDrawings() Drawings {
 	return Drawings{
 		draws:     make([]ShaderDraw, 0),
 		backDraws: make([]Drawing, 0),
-		mutex:     sync.Mutex{},
+		mutex:     sync.RWMutex{},
 	}
 }
 
@@ -65,8 +65,8 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, 
 }
 
 func (d *Drawings) PreparePending() {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
 		drawing := &d.backDraws[i]
 		draw, ok := d.findShaderDraw(drawing.Shader)

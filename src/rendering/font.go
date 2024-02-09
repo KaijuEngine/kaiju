@@ -8,6 +8,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"strings"
+	"sync"
 	"unicode"
 	"unsafe"
 )
@@ -131,6 +132,7 @@ type FontCache struct {
 	assetDb                     *assets.Database
 	fontFaces                   map[string]fontBin
 	instanceKey                 int64
+	FaceMutex                   sync.RWMutex
 }
 
 type TextShaderData struct {
@@ -153,8 +155,14 @@ func (cache *FontCache) nextInstanceKey(key rune) string {
 }
 
 func (cache *FontCache) requireFace(face FontFace) {
+	cache.FaceMutex.RLock()
 	if _, ok := cache.fontFaces[face.string()]; !ok {
+		cache.FaceMutex.RUnlock()
+		cache.FaceMutex.Lock()
+		defer cache.FaceMutex.Unlock()
 		cache.initFont(face, cache.renderer, cache.assetDb)
+	} else {
+		cache.FaceMutex.RUnlock()
 	}
 }
 

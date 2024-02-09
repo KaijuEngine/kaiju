@@ -443,6 +443,9 @@ func (l *Layout) Scale(width, height float32) bool {
 	if matrix.Vec2ApproxTo(ps, matrix.Vec2{width, height}, 0.001) {
 		return false
 	}
+	if width == 0 || height == 0 {
+		return false
+	}
 	size := matrix.Vec3{width, height, 1.0}
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
@@ -472,6 +475,9 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	height += l.padding.Y() + l.padding.W()
 	ps := l.PixelSize()
 	if matrix.ApproxTo(ps.Y(), height, 0.001) {
+		return false
+	}
+	if ps.Y() == 0 {
 		return false
 	}
 	size := matrix.Vec3{ps.Width(), height, 1.0}
