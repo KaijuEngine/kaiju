@@ -1426,6 +1426,7 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createDepthResources()
 	vr.createDefaultFrameBuffer()
 	vr.defaultTarget.oit.reset(vr)
+	vr.oitPass.reset(vr)
 	vr.defaultTarget.oit.createImages(vr)
 	vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit)
 	vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass)

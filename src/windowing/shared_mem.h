@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define SHARED_MEM_AVAILABLE		0
-#define SHARED_MEM_WRITING			1
-#define SHARED_MEM_WRITTEN			2
+#define SHARED_MEM_WINDOW_RESIZE	0xFB
 #define SHARED_MEM_AWAITING_CONTEXT	0xFC
 #define SHARED_MEM_AWAITING_START	0xFD
 #define SHARED_MEM_FATAL			0xFE
@@ -85,18 +83,6 @@ typedef struct {
 	int windowWidth;
 	int windowHeight;
 } SharedMem;
-
-int shared_mem_set_thread_priority(SharedMem* sm);
-void shared_mem_reset_thread_priority(SharedMem* sm, int priority);
-void shared_mem_wait(SharedMem* sm);
-
-static inline void shared_memory_wait_for_available(SharedMem* sm) {
-	int priority = shared_mem_set_thread_priority(sm);
-	while (sm->evt->writeState != SHARED_MEM_AVAILABLE) {
-		shared_mem_wait(sm);
-	}
-	shared_mem_reset_thread_priority(sm, priority);
-}
 
 static inline void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {
 	uint8_t smState = sm->evt->writeState;

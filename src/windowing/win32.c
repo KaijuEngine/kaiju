@@ -33,22 +33,6 @@
 	#define CURSOR_ARROW	1
 	#define CURSOR_IBEAM	2
 
-int shared_mem_set_thread_priority(SharedMem* sm) {
-	int priority = GetThreadPriority(GetCurrentThread());
-	if (sm->evt->writeState != SHARED_MEM_WRITTEN) {
-		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
-	}
-	return priority;
-}
-
-void shared_mem_reset_thread_priority(SharedMem* sm, int priority) {
-	SetThreadPriority(GetCurrentThread(), priority);
-}
-
-void shared_mem_wait(SharedMem* sm) {
-	SwitchToThread();
-}
-
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouse.mouseButtonId = buttonId;
 	evt->mouse.mouseX = GET_X_LPARAM(lParam);
@@ -107,11 +91,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (sm->windowWidth != width || sm->windowHeight != height) {
 					sm->windowWidth = width;
 					sm->windowHeight = height;
-					//shared_memory_wait_for_available(sm);
-					//shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
-					//setSizeEvent(sm->evt, LOWORD(lParam), HIWORD(lParam));
-					//sm->evt->evtType = uMsg;
-					//shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+					sm->evt->resize.width = width;
+					sm->evt->resize.height = height;
+					shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_RESIZE);
 				}
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
@@ -366,16 +348,13 @@ void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
 }
 
-bool window_open_file(void* hwnd, const char* extension, char** outPath) {
+bool window_open_file(void* hwnd,  const wchar_t* extensions, char** outPath) {
 	*outPath = NULL;
 	bool valid = false;
 	OPENFILENAME ofn = { 0 };       // common dialog box structure
-	WCHAR szFile[260];              // buffer for file name
-	if (extension == NULL)
-		extension = "All Files\0*.*\0\0";
-	wchar_t* filter;
-	u8towchar(extension, &filter);
-	wstrsub(filter, '\n', '\0');
+	WCHAR szFile[1024];              // buffer for file name
+	if (extensions == NULL || extensions[0] == L'\0')
+		extensions = L"All Files\0*.*\0\0";
 	// Initialize OPENFILENAME
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
@@ -385,7 +364,7 @@ bool window_open_file(void* hwnd, const char* extension, char** outPath) {
 	// use the contents of szFile to initialize itself.
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = filter;
+	ofn.lpstrFilter = extensions;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
@@ -394,7 +373,6 @@ bool window_open_file(void* hwnd, const char* extension, char** outPath) {
 	valid = GetOpenFileName(&ofn) == TRUE;
 	if (valid)
 		wchartou8(ofn.lpstrFile, outPath);
-	free(filter);
 	return valid;
 }
 
