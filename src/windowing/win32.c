@@ -1,19 +1,24 @@
 #if defined(_WIN32) || defined(_WIN64)
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #ifndef UNICODE
 #define UNICODE
 #endif
 
-#define WIN32_LEAN_AND_MEAN
+#include "shared_mem.h"
+#include "strings.h"
 
 #include "win32.h"
-#include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
 #include <windows.h>
 #include <windowsx.h>
-#include "shared_mem.h"
-
+#include <shellapi.h>
+#include <commdlg.h>
+#include <direct.h>
+#include <knownfolders.h>
 #include <XInput.h>
 
 #ifdef OPENGL
@@ -358,6 +363,38 @@ void window_cursor_standard(void* hwnd) {
 
 void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
+}
+
+bool window_open_file(void* hwnd, const char* extension, char** outPath) {
+	*outPath = NULL;
+	bool valid = false;
+	OPENFILENAME ofn = { 0 };       // common dialog box structure
+	WCHAR szFile[260];              // buffer for file name
+	if (extension == NULL)
+		extension = "All Files\0*.*\0\0";
+	wchar_t* filter;
+	u8towchar(extension, &filter);
+	wstrsub(filter, '\n', '\0');
+	// Initialize OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = szFile;
+	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not
+	// use the contents of szFile to initialize itself.
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOREADONLYRETURN;
+	valid = GetOpenFileName(&ofn) == TRUE;
+	if (valid)
+		wchartou8(ofn.lpstrFile, outPath);
+	free(filter);
+	return valid;
 }
 
 #endif

@@ -103,3 +103,8 @@ func (w *Window) getDPI() (int, int, error) {
 	klib.NotYetImplemented(131)
 	return 96, 96, nil
 }
+
+func (w *Window) openFile(extension string) (string, bool) {
+	klib.NotYetImplemented(146)
+	return "", false
+}

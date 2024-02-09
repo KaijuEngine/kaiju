@@ -118,3 +118,14 @@ func (w *Window) getDPI() (int, int, error) {
 	dpi := C.get_dpi(C.HWND(w.handle))
 	return int(dpi), int(dpi), nil
 }
+
+func (w *Window) openFile(extension string) (string, bool) {
+	outStr := (*C.char)(C.malloc(0))
+	ok := C.window_open_file(w.handle, C.CString(extension), &outStr)
+	out := C.GoString(outStr)
+	C.free(unsafe.Pointer(outStr))
+	if ok {
+		return out, true
+	}
+	return "", false
+}

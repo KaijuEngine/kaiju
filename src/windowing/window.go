@@ -261,4 +261,6 @@ func (w *Window) confirmQuit() {
 	w.destroy()
 }
 
+func (w *Window) OpenFile(extension string) (string, bool) {
+	return w.openFileInternal(extension)
 }
