@@ -129,3 +129,6 @@ func (w *Window) openFile(extension string) (string, bool) {
 	}
 	return "", false
 }
+
+func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
+func (w *Window) cInstance() unsafe.Pointer { return w.instance }

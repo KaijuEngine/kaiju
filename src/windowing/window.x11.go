@@ -12,8 +12,8 @@ import (
 	"unsafe"
 )
 
-func (e evtMem) toEventType() eventType {
-	switch e.EventType() {
+func asEventType(msg int, e *evtMem) eventType {
+	switch msg {
 	case 2:
 		return evtKeyDown
 	case 3:
@@ -21,7 +21,7 @@ func (e evtMem) toEventType() eventType {
 	case 6:
 		return evtMouseMove
 	case 4:
-		switch e.toMouseEvent().mouseButtonId {
+		switch e.toMouseEvent().buttonId {
 		case nativeMouseButtonLeft:
 			return evtLeftMouseDown
 		case nativeMouseButtonMiddle:
@@ -36,7 +36,7 @@ func (e evtMem) toEventType() eventType {
 			return evtUnknown
 		}
 	case 5:
-		switch e.toMouseEvent().mouseButtonId {
+		switch e.toMouseEvent().buttonId {
 		case nativeMouseButtonLeft:
 			return evtLeftMouseUp
 		case nativeMouseButtonMiddle:
@@ -62,22 +62,28 @@ func scaleScrollDelta(delta float32) float32 {
 func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))
-	go C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
-	evtSharedMem.AwaitReady()
+	C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+}
+
+func (w *Window) showWindow(evtSharedMem *evtMem) {
+	C.window_show(w.handle)
+}
+
+func (w *Window) destroy() {
+	C.window_destroy(w.handle)
 }
 
 func (w *Window) poll() {
-	w.evtSharedMem.MakeAvailable()
-	for !w.evtSharedMem.IsQuit() && !w.evtSharedMem.IsFatal() {
-		for !w.evtSharedMem.IsReady() {
-		}
-		if w.evtSharedMem.IsWritten() {
-			if w.evtSharedMem.HasEvent() {
-				w.processEvent()
-				w.evtSharedMem.MakeAvailable()
-			} else {
-				break
-			}
+	//evtType := uint32(C.window_poll_controller(w.handle))
+	//if evtType != 0 {
+	//	w.processControllerEvent(asEventType(evtType))
+	//}
+	evtType := 1
+	for evtType != 0 && !w.evtSharedMem.IsQuit() {
+		evtType = int(C.window_poll(w.handle))
+		if evtType != 0 {
+			t := asEventType(evtType, w.evtSharedMem)
+			w.processEvent(t)
 		}
 	}
 }
@@ -105,6 +111,9 @@ func (w *Window) getDPI() (int, int, error) {
 }
 
 func (w *Window) openFile(extension string) (string, bool) {
-	klib.NotYetImplemented(146)
+	klib.NotYetImplemented(151)
 	return "", false
 }
+
+func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }
+func (w *Window) cInstance() unsafe.Pointer { return C.display(w.handle) }

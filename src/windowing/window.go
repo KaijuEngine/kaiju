@@ -93,8 +93,8 @@ func New(windowName string) (*Window, error) {
 	return w, err
 }
 
-func (w *Window) PlatformWindow() unsafe.Pointer   { return w.handle }
-func (w *Window) PlatformInstance() unsafe.Pointer { return w.instance }
+func (w *Window) PlatformWindow() unsafe.Pointer   { return w.cHandle() }
+func (w *Window) PlatformInstance() unsafe.Pointer { return w.cInstance() }
 
 func (w *Window) IsClosed() bool  { return w.isClosed }
 func (w *Window) IsCrashed() bool { return w.isCrashed }
