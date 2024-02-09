@@ -2,6 +2,6 @@
 
 package windowing
 
-func (w *Window) openFileInternal(extension string) (string, bool) {
-	return w.openFile(extension)
+func (w *Window) openFileInternal(search ...FileSearch) (string, bool) {
+	return w.openFile(search...)
 }

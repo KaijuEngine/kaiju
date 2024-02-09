@@ -17,19 +17,6 @@ typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXC
 
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
 
-int shared_mem_set_thread_priority(SharedMem* sm) {
-	// TODO:  Get current thread priority and set the current thread priority to idle
-	return 0;
-}
-
-void shared_mem_reset_thread_priority(SharedMem* sm, int priority) {
-	// TODO:  Set the current thread priority to the given priority
-}
-
-void shared_mem_wait(SharedMem* sm) {
-	sched_yield();
-}
-
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
 	const char* where, *terminator;

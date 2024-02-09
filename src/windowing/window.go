@@ -56,6 +56,11 @@ type Window struct {
 	OnResize      events.Event
 }
 
+type FileSearch struct {
+	Title     string
+	Extension string
+}
+
 func New(windowName string) (*Window, error) {
 	w := &Window{
 		Keyboard:     hid.NewKeyboard(),
@@ -261,6 +266,6 @@ func (w *Window) confirmQuit() {
 	w.destroy()
 }
 
-func (w *Window) OpenFile(extension string) (string, bool) {
-	return w.openFileInternal(extension)
+func (w *Window) OpenFile(search ...FileSearch) (string, bool) {
+	return w.openFileInternal(search...)
 }
