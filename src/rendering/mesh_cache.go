@@ -2,6 +2,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"sync"
 )
 
 type MeshCache struct {
@@ -9,6 +10,7 @@ type MeshCache struct {
 	assetDatabase *assets.Database
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
+	mutex         sync.Mutex
 }
 
 func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache {
@@ -17,6 +19,7 @@ func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache {
 		assetDatabase: assetDatabase,
 		meshes:        make(map[string]*Mesh),
 		pendingMeshes: make([]*Mesh, 0),
+		mutex:         sync.Mutex{},
 	}
 }
 
@@ -46,6 +49,8 @@ func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 }
 
 func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh
 	} else {

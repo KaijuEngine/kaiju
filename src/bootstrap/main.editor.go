@@ -4,12 +4,12 @@ package bootstrap
 
 import (
 	"kaiju/editor"
-	"kaiju/engine"
+	"kaiju/host_container"
 )
 
-func Main(host *engine.Host) {
+func Main(container *host_container.HostContainer) {
 	println("Starting editor")
-	editor := editor.New(host)
+	editor := editor.New(container.Host)
 	editor.SetupUI()
 	<-editor.Host.Done()
 }

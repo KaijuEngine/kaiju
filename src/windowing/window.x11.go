@@ -66,6 +66,22 @@ func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
 	evtSharedMem.AwaitReady()
 }
 
+func (w *Window) poll() {
+	w.evtSharedMem.MakeAvailable()
+	for !w.evtSharedMem.IsQuit() && !w.evtSharedMem.IsFatal() {
+		for !w.evtSharedMem.IsReady() {
+		}
+		if w.evtSharedMem.IsWritten() {
+			if w.evtSharedMem.HasEvent() {
+				w.processEvent()
+				w.evtSharedMem.MakeAvailable()
+			} else {
+				break
+			}
+		}
+	}
+}
+
 func (w *Window) cursorStandard() {
 	klib.NotYetImplemented(100)
 }

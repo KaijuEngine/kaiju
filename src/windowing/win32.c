@@ -88,6 +88,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 		case WM_DESTROY:
+			if (sm != NULL) {
+				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+			}
 			PostQuitMessage(0);
 			return 0;
 		case WM_SIZE:
@@ -99,11 +102,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (sm->windowWidth != width || sm->windowHeight != height) {
 					sm->windowWidth = width;
 					sm->windowHeight = height;
-					shared_memory_wait_for_available(sm);
-					shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
-					setSizeEvent(sm->evt, LOWORD(lParam), HIWORD(lParam));
-					sm->evt->evtType = uMsg;
-					shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
+					//shared_memory_wait_for_available(sm);
+					//shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
+					//setSizeEvent(sm->evt, LOWORD(lParam), HIWORD(lParam));
+					//sm->evt->evtType = uMsg;
+					//shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
 				}
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
@@ -190,13 +193,11 @@ void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
 #endif
 
 void process_message(SharedMem* sm, MSG *msg) {
-	shared_memory_set_write_state(sm, SHARED_MEM_WRITING);
 	sm->evt->evtType = msg->message;
 	switch (msg->message) {
 		case WM_QUIT:
 		case WM_DESTROY:
 			shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
-			shared_memory_wait_for_available(sm);
 			break;
 		case WM_MOUSEMOVE:
 			setMouseEvent(sm->evt, msg->lParam, -1);
@@ -275,7 +276,6 @@ void process_message(SharedMem* sm, MSG *msg) {
 			break;
 		}
 	}
-	shared_memory_set_write_state(sm, SHARED_MEM_WRITTEN);
 }
 
 void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size) {
@@ -311,36 +311,45 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 		return;
     }
 	window_cursor_standard(hwnd);
-	SharedMem sm = {esm, size};
 	memcpy(esm+SHARED_MEM_DATA_START, &hwnd, sizeof(HWND*));
 	memcpy(esm+SHARED_MEM_DATA_START+sizeof(&hwnd), &hInstance, sizeof(HMODULE*));
-	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
-	// Context should be created in Go here on go main thread
-	shared_memory_wait_for_available(&sm);
+	SharedMem* sm = malloc(sizeof(SharedMem));
+	sm->sharedMem = evtSharedMem;
+	sm->size = size;
+	sm->windowWidth = width;
+	sm->windowHeight = height;
+	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)sm);
+}
+
+void window_show(void* hwnd) {
 	ShowWindow(hwnd, SW_SHOW);
-	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
-	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)&sm);
-    // Run the message loop.
-    MSG msg = { };
-	while (esm[0] != SHARED_MEM_QUIT) {
-		shared_memory_wait_for_available(&sm);
-		if (obtainControllerStates(&sm)) {
-			sm.evt->evtType = EVENT_TYPE_CONTROLLER;
-			shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
-			shared_memory_wait_for_available(&sm);
-		}
-		do {
-			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-				process_message(&sm, &msg);
-				shared_memory_wait_for_available(&sm);
-			} else {
-				sm.evt->evtType = 0;
-				shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
-			}
-		} while(sm.evt->evtType != 0);
+}
+
+uint32_t window_poll_controller(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (obtainControllerStates(sm)) {
+		return EVENT_TYPE_CONTROLLER;
 	}
+	return 0;
+}
+
+uint32_t window_poll(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+ 	// Run the message loop.
+    MSG msg = {};
+	if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+		process_message(sm, &msg);
+		return msg.message;
+	} else {
+		return 0;
+	}
+}
+
+void window_destroy(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	free(sm);
 }
 
 void window_cursor_standard(void* hwnd) {

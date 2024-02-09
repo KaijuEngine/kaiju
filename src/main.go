@@ -6,7 +6,6 @@ import (
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/engine"
 	"kaiju/host_container"
-	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/systems/console"
@@ -30,9 +29,10 @@ func addConsole(host *engine.Host) {
 }
 
 func main() {
-	container := klib.MustReturn(host_container.New("Kaiju"))
+	container := host_container.New("Kaiju")
+	go container.Run()
+	<-container.PrepLock
 	container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 	addConsole(container.Host)
-	go container.Run()
-	bootstrap.Main(container.Host)
+	bootstrap.Main(container)
 }
