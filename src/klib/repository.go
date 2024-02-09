@@ -5,7 +5,13 @@ import (
 	"runtime"
 )
 
+var complaints = make(map[int]bool)
+
 func NotYetImplemented(issueId int) {
+	if _, ok := complaints[issueId]; ok {
+		return
+	}
+	complaints[issueId] = true
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
