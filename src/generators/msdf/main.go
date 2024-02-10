@@ -7,9 +7,11 @@ import (
 	"kaiju/klib"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
-	"syscall"
 )
+
+const binDir = "../bin/"
 
 type Rect struct {
 	Left   float32 `json:"left"`
@@ -19,10 +21,10 @@ type Rect struct {
 }
 
 type Glyph struct {
-	Unicode     int  `json:"unicode"`
-	Advance     int  `json:"advance"`
-	PlaneBounds Rect `json:"planeBounds"`
-	AtlasBounds Rect `json:"atlasBounds"`
+	Unicode     int     `json:"unicode"`
+	Advance     float32 `json:"advance"`
+	PlaneBounds Rect    `json:"planeBounds"`
+	AtlasBounds Rect    `json:"atlasBounds"`
 }
 
 type Atlas struct {
@@ -52,22 +54,24 @@ type FontData struct {
 	Kerning []Kerning `json:"kerning"`
 }
 
-func main() {
-	ttfName := os.Args[1]
-	ttfFile := ttfName + ".ttf"
-	jsonFile := ttfName + ".json"
-	binFile := ttfName + ".bin"
-	pngFile := ttfName + ".png"
-	cmd := exec.Command("./msdf-atlas-gen.exe",
+func processFile(ttfName string) {
+	println("Processing", ttfName)
+	name := filepath.Base(ttfName)
+	ttfFile := binDir + ttfName + ".ttf"
+	jsonFile := binDir + name + ".json"
+	binFile := binDir + name + ".bin"
+	pngFile := binDir + name + ".png"
+	cmd := exec.Command(binDir+"msdf-atlas-gen.exe",
 		"-font", ttfFile,
-		"-charset", "charset.txt",
+		"-pxrange", "4",
+		"-size", "64",
+		"-charset", binDir+"charset.txt",
 		"-fontname", ttfName,
 		"-type", "msdf",
 		"-format", "png",
 		"-pots",
 		"-json", jsonFile,
 		"-imageout", pngFile)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	out := klib.MustReturn(cmd.StdoutPipe())
 	scanner := bufio.NewScanner(out)
 	klib.Must(cmd.Start())
@@ -102,4 +106,24 @@ func main() {
 		binary.Write(fout, binary.LittleEndian, glyph.AtlasBounds.Bottom)
 	}
 	os.Remove(jsonFile)
+}
+
+func main() {
+	ttfName := os.Args[1]
+	dirName := filepath.Join(binDir, ttfName)
+	if s, err := os.Stat(dirName); err != nil {
+		panic(err)
+	} else if s.IsDir() {
+		klib.Must(filepath.Walk(dirName, func(path string, _ os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if filepath.Ext(path) == ".ttf" {
+				processFile(strings.TrimSuffix(path, ".ttf"))
+			}
+			return nil
+		}))
+	} else {
+		processFile(ttfName)
+	}
 }

@@ -397,7 +397,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	runes := []rune(text)
 	maxHeight := fontFace.metrics.LineHeight * -scale
 	if lineHeight != 0 {
-		maxHeight = min(maxHeight, -lineHeight)
+		maxHeight = -lineHeight / fontFace.metrics.LineHeight
 	}
 	for current < textLen {
 		if maxWidth > 0 {

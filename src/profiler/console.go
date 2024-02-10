@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
-	"syscall"
 )
 
 const (
@@ -28,7 +27,6 @@ const (
 
 func consoleTop(host *engine.Host) string {
 	cmd := exec.Command("go", "tool", "pprof", "-top", pprofCPUFile)
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	out := klib.MustReturn(cmd.StdoutPipe())
 	scanner := bufio.NewScanner(out)
 	err := cmd.Start()
@@ -50,7 +48,6 @@ func consoleMerge(host *engine.Host, argStr string) string {
 	cmdArgs = append(cmdArgs, args...)
 	cmdArgs = append(cmdArgs, ">", pprofMergeFile)
 	cmd := exec.Command("go", cmdArgs...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	err := cmd.Start()
 	if err != nil {
 		return err.Error()
@@ -66,7 +63,6 @@ func launchWeb(c *console.Console, webType string) (*contexts.Cancellable, error
 		targetFile = pprofHeapFile
 	}
 	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, targetFile)
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	err := cmd.Start()
 	if err != nil {
 		return nil, err
