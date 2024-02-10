@@ -43,6 +43,7 @@ func New(title string, extensions []string, onSelected func(string)) {
 		s.Extensions = append(s.Extensions, ext)
 	}
 	s.funcMap["selectEntry"] = s.selectEntry
+	s.funcMap["selectPath"] = s.selectPath
 	s.container = host_container.New(title)
 	go s.container.Run(500, 600)
 	<-s.container.PrepLock
@@ -59,7 +60,7 @@ func New(title string, extensions []string, onSelected func(string)) {
 	})
 }
 
-func (s *FilesystemSelect) selectPath() {
+func (s *FilesystemSelect) selectPath(*document.DocElement) {
 	s.container.Host.Close()
 	s.onSelected(s.Path)
 }
