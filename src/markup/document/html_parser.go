@@ -3,6 +3,7 @@ package document
 import (
 	"html/template"
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/markup/elements"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -125,7 +126,12 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 	}
 	if e.IsText() {
 		anchor := ui.AnchorTopLeft
-		label := ui.NewLabel(host, strings.TrimSpace(e.Data()), anchor)
+		txt := strings.TrimSpace(e.Data())
+		txt = strings.ReplaceAll(txt, "\r", "")
+		txt = strings.ReplaceAll(txt, "\n", " ")
+		txt = strings.ReplaceAll(txt, "\t", " ")
+		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
+		label := ui.NewLabel(host, txt, anchor)
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())

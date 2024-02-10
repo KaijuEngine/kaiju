@@ -16,7 +16,12 @@
 				</div>
 				{{range .Dir}}
 				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
-					{{if .IsDir}}[Folder]{{else}}[File]{{end}} {{.Name}}
+					{{if .IsDir}}
+						[Folder] 
+					{{else}}
+						[File] 
+					{{end}}
+					{{.Name}}
 				</div>
 				{{end}}
 			</div>
