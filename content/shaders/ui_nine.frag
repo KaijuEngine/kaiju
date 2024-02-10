@@ -83,7 +83,7 @@ void main(void) {
 		// Border color
 		vec4 bc = fragBorderColor[0].xyzw;
 		unWeightedColor = mix(unWeightedColor, bc, smoothedBorderAlpha);
-		unWeightedColor.a = smoothedAlpha * fragColor.a;
+		unWeightedColor.a = smoothedAlpha * unWeightedColor.a;
 	}
 #ifdef OIT
 	float distWeight = clamp(0.03 / (1e-5 + pow(gl_FragCoord.z / 200.0, 4.0)), 1e-2, 3e3);
