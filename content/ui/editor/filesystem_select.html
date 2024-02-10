@@ -12,16 +12,17 @@
 			</div>
 			<div id="listing" class="listing">
 				<div class="listEntry" onclick="selectEntry" data-path="../">
-					[Folder] ..
+					<img class="listImg" src="textures/icons/folder.png" />
+					<span>..</span>
 				</div>
 				{{range .Dir}}
 				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
 					{{if .IsDir}}
-						[Folder] 
+						<img class="listImg" src="textures/icons/folder.png" />
 					{{else}}
-						[File] 
+						<img class="listImg" src="textures/icons/file.png" />
 					{{end}}
-					{{.Name}}
+					<span>{{.Name}}</span>
 				</div>
 				{{end}}
 			</div>

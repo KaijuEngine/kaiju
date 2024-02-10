@@ -137,8 +137,19 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		label.SetBGColor(matrix.ColorTransparent())
 		appendElement(label, nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
-		panel := ui.NewPanel(host, nil, ui.AnchorTopLeft)
-		panel.SetOverflow(ui.OverflowVisible)
+		var panel *ui.Panel
+		if e.IsImage() {
+			tex, err := host.TextureCache().Texture(
+				e.Attribute("src"), rendering.TextureFilterLinear)
+			if err != nil {
+				panic(err)
+			}
+			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
+			panel = (*ui.Panel)(img)
+		} else {
+			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft)
+			panel.SetOverflow(ui.OverflowVisible)
+		}
 		var uiElm ui.UI = panel
 		if e.IsInput() {
 			inputType := e.Attribute("type")

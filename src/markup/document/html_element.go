@@ -27,6 +27,10 @@ func (e *Element) IsInput() bool {
 	return e.node.Data == "input"
 }
 
+func (e *Element) IsImage() bool {
+	return e.node.Data == "img"
+}
+
 func NewHTML(htmlStr string) *Element {
 	doc, _ := html.Parse(strings.NewReader(htmlStr))
 	return createElement(doc)

@@ -26,3 +26,8 @@
 .listEntry:hover {
 	background-color: #313232;
 }
+.listImg {
+	width: 24px;
+	height: 24px;
+	margin-right: 5px;
+}
