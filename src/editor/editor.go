@@ -22,18 +22,9 @@ func New(host *engine.Host) *Editor {
 }
 
 func (e *Editor) testBtn(*document.DocElement) {
-	filesystem_select.New(func(s string) {
+	filesystem_select.New("Select a file", []string{"png"}, func(s string) {
 		println(s)
 	})
-	//search := windowing.FileSearch{
-	//	Title:     "Binary file",
-	//	Extension: "bin",
-	//}
-	//if s, ok := e.Host.Window.OpenFile(search); ok {
-	//	println(s)
-	//} else {
-	//	println("no file selected")
-	//}
 }
 
 func (e *Editor) SetupUI() {

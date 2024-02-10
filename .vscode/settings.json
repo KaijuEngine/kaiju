@@ -14,7 +14,9 @@
 		"windowsx.h": "c",
 		"strings.h": "c",
 		"windows.h": "c",
-		"xlib.h": "c"
+		"xlib.h": "c",
+		"commdlg.h": "c",
+		"knownfolders.h": "c"
 	},
 	"cSpell.words": [
 		"kaiju",

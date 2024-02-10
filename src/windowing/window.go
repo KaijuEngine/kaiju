@@ -10,11 +10,6 @@ import (
 	"unsafe"
 )
 
-const (
-	DefaultWindowWidth  = 944
-	DefaultWindowHeight = 500
-)
-
 type eventType = int
 
 const (
@@ -61,15 +56,15 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string) (*Window, error) {
+func New(windowName string, width, height int) (*Window, error) {
 	w := &Window{
 		Keyboard:     hid.NewKeyboard(),
 		Mouse:        hid.NewMouse(),
 		Touch:        hid.NewTouch(),
 		Stylus:       hid.NewStylus(),
 		Controller:   hid.NewController(),
-		width:        DefaultWindowWidth,
-		height:       DefaultWindowHeight,
+		width:        width,
+		height:       height,
 		evtSharedMem: new(evtMem),
 		OnResize:     events.New(),
 	}
@@ -260,8 +255,4 @@ func (w *Window) Destroy() {
 	w.isClosed = true
 	w.Renderer.Destroy()
 	w.destroy()
-}
-
-func (w *Window) OpenFile(search ...FileSearch) (string, bool) {
-	return w.openFileInternal(search...)
 }

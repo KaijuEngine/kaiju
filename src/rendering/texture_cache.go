@@ -8,30 +8,33 @@ import (
 type TextureCache struct {
 	renderer        Renderer
 	assetDatabase   *assets.Database
-	textures        map[string]*Texture
+	textures        [TextureFilterMax]map[string]*Texture
 	pendingTextures []*Texture
 	mutex           sync.Mutex
 }
 
 func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache {
-	return TextureCache{
+	tc := TextureCache{
 		renderer:        renderer,
 		assetDatabase:   assetDatabase,
-		textures:        make(map[string]*Texture),
 		pendingTextures: make([]*Texture, 0),
 		mutex:           sync.Mutex{},
 	}
+	for i := range tc.textures {
+		tc.textures[i] = make(map[string]*Texture)
+	}
+	return tc
 }
 
 func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	if texture, ok := t.textures[textureKey]; ok {
+	if texture, ok := t.textures[filter][textureKey]; ok {
 		return texture, nil
 	} else {
 		if texture, err := NewTexture(t.renderer, t.assetDatabase, textureKey, filter); err == nil {
 			t.pendingTextures = append(t.pendingTextures, texture)
-			t.textures[textureKey] = texture
+			t.textures[filter][textureKey] = texture
 			return texture, nil
 		} else {
 			return nil, err
@@ -53,8 +56,10 @@ func (t *TextureCache) Destroy() {
 		texture.Destroy(t.renderer)
 	}
 	t.pendingTextures = t.pendingTextures[:0]
-	for _, texture := range t.textures {
-		texture.Destroy(t.renderer)
+	for i := range t.textures {
+		for _, texture := range t.textures[i] {
+			texture.Destroy(t.renderer)
+		}
+		t.textures[i] = make(map[string]*Texture)
 	}
-	t.textures = make(map[string]*Texture)
 }

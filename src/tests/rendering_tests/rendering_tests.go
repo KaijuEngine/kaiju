@@ -295,7 +295,7 @@ func SetupConsole(host *engine.Host) {
 		}
 		if testFunc != nil {
 			c := host_container.New("Test " + t)
-			go c.Run()
+			go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 			<-c.PrepLock
 			c.Host.Camera.SetPosition(matrix.Vec3{0, 0, 2})
 			testFunc(c.Host)

@@ -65,6 +65,7 @@ const (
 const (
 	TextureFilterLinear TextureFilter = iota
 	TextureFilterNearest
+	TextureFilterMax
 )
 
 const (

@@ -30,7 +30,7 @@ func addConsole(host *engine.Host) {
 
 func main() {
 	container := host_container.New("Kaiju")
-	go container.Run()
+	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 	<-container.PrepLock
 	container.RunFunction(func() {
 		container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})

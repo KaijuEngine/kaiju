@@ -37,9 +37,11 @@ type transparencyDraw struct {
 }
 
 type pendingDelete struct {
-	buffer vk.Buffer
-	memory vk.DeviceMemory
-	delay  int
+	delay    int
+	pool     vk.DescriptorPool
+	sets     [maxFramesInFlight]vk.DescriptorSet
+	buffers  [maxFramesInFlight]vk.Buffer
+	memories [maxFramesInFlight]vk.DeviceMemory
 }
 
 type vkQueueFamilyIndices struct {
@@ -1076,7 +1078,14 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 	samplerInfo.UnnormalizedCoordinates = vk.False
 	samplerInfo.CompareEnable = vk.False
 	samplerInfo.CompareOp = vk.CompareOpAlways
-	samplerInfo.MipmapMode = vk.SamplerMipmapModeLinear
+	switch filter {
+	case vk.FilterNearest:
+		samplerInfo.MipmapMode = vk.SamplerMipmapModeNearest
+	case vk.FilterCubicImg:
+		fallthrough
+	case vk.FilterLinear:
+		samplerInfo.MipmapMode = vk.SamplerMipmapModeLinear
+	}
 	samplerInfo.MipLodBias = 0.0
 	samplerInfo.MinLod = 0.0
 	samplerInfo.MaxLod = float32(mipLevels)
@@ -1845,6 +1854,7 @@ func (vr *Vulkan) ReadyFrame(camera *cameras.StandardCamera, uiCamera *cameras.S
 	}
 	vk.ResetFences(vr.device, 1, fences)
 	vk.ResetCommandBuffer(vr.commandBuffers[vr.currentFrame*MaxCommandBuffers], 0)
+	vr.doPendingDeletes()
 	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
 	for _, r := range vr.preRuns {
 		r()
@@ -2189,14 +2199,22 @@ func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
 }
 
 func (vr *Vulkan) doPendingDeletes() {
+	if len(vr.pendingDeletes) == 0 {
+		return
+	}
 	for i := len(vr.pendingDeletes) - 1; i >= 0; i-- {
 		pd := &vr.pendingDeletes[i]
 		pd.delay--
 		if pd.delay == 0 {
-			vk.DestroyBuffer(vr.device, pd.buffer, nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(pd.buffer)))
-			vk.FreeMemory(vr.device, pd.memory, nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(pd.memory)))
+			for j := range maxFramesInFlight {
+				vk.DestroyBuffer(vr.device, pd.buffers[j], nil)
+				vr.dbg.remove(uintptr(unsafe.Pointer(pd.buffers[j])))
+				vk.FreeMemory(vr.device, pd.memories[j], nil)
+				vr.dbg.remove(uintptr(unsafe.Pointer(pd.memories[j])))
+			}
+			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
+				vk.FreeDescriptorSets(vr.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])
+			}
 			vr.pendingDeletes = klib.RemoveOrdered(vr.pendingDeletes, i)
 		}
 	}
@@ -2204,7 +2222,6 @@ func (vr *Vulkan) doPendingDeletes() {
 
 func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget) {
 	rt := target.(*VKRenderTarget)
-	vr.doPendingDeletes()
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	vr.prepEntityBuffers(drawings)
@@ -2303,7 +2320,8 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 }
 
 func (vr *Vulkan) WaitRender() {
-	vk.WaitForFences(vr.device, maxFramesInFlight, vr.renderFences[:], vk.True, math.MaxUint64)
+	fences := slices.Clone(vr.renderFences[:])
+	vk.WaitForFences(vr.device, maxFramesInFlight, fences, vk.True, math.MaxUint64)
 }
 
 /******************************************************************************/
@@ -2680,14 +2698,14 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 	lastCount := group.InstanceDriverData.lastInstanceCount
 	if currentCount > lastCount {
 		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
+			pd := pendingDelete{delay: maxFramesInFlight}
 			for i := 0; i < maxFramesInFlight; i++ {
-				vr.pendingDeletes = append(vr.pendingDeletes, pendingDelete{
-					delay:  maxFramesInFlight,
-					buffer: group.instanceBuffers[i],
-					memory: group.instanceBuffersMemory[i],
-				})
+				pd.buffers[i] = group.instanceBuffers[i]
+				pd.memories[i] = group.instanceBuffersMemory[i]
 				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
+				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
 			}
+			vr.pendingDeletes = append(vr.pendingDeletes, pd)
 		}
 		if currentCount > 0 {
 			group.generateInstanceDriverData(vr, shader)
@@ -2718,19 +2736,14 @@ func (vr *Vulkan) AddPreRun(preRun func()) {
 
 func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 	vk.DeviceWaitIdle(vr.device)
-	if group.descriptorPool != vk.DescriptorPool(vk.NullHandle) {
-		dp := slices.Clone(group.descriptorSets[:])
-		vk.FreeDescriptorSets(vr.device, group.descriptorPool,
-			uint32(len(group.descriptorSets)), &dp[0])
-		vr.dbg.remove(uintptr(unsafe.Pointer(group.descriptorPool)))
-	}
+	pd := pendingDelete{delay: maxFramesInFlight}
+	pd.pool = group.descriptorPool
 	for i := 0; i < maxFramesInFlight; i++ {
-		vk.DestroyBuffer(vr.device, group.instanceBuffers[i], nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(group.instanceBuffers[i])))
-		vk.FreeMemory(vr.device, group.instanceBuffersMemory[i], nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(group.instanceBuffersMemory[i])))
+		pd.buffers[i] = group.instanceBuffers[i]
+		pd.memories[i] = group.instanceBuffersMemory[i]
+		pd.sets[i] = group.descriptorSets[i]
 	}
-	group.InstanceDriverData.Reset()
+	vr.pendingDeletes = append(vr.pendingDeletes, pd)
 }
 
 func (vr *Vulkan) DestroyTexture(texture *Texture) {

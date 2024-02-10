@@ -13,14 +13,6 @@ type InstanceDriverData struct {
 	generatedSets         bool
 }
 
-func (d *InstanceDriverData) IsReady() bool {
-	return d.descriptorSets[0] != nil
-}
-
-func (d *InstanceDriverData) Reset() {
-	d.generatedSets = false
-}
-
 func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader *Shader) {
 	if !d.generatedSets {
 		vr := renderer.(*Vulkan)

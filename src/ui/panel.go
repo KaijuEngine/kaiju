@@ -497,6 +497,13 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	}
 }
 
+func (p *Panel) Background() *rendering.Texture {
+	if p.drawing.IsValid() {
+		return p.drawing.Textures[0]
+	}
+	return nil
+}
+
 func (p *Panel) SetBackground(tex *rendering.Texture) {
 	if p.drawing.IsValid() {
 		p.recreateDrawing()

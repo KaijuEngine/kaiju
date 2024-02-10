@@ -73,7 +73,7 @@ func startPreview(previewContainer *host_container.HostContainer, htmlFile, cssF
 func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContainer, error) {
 	c := host_container.New("HTML Preview")
 	c.Host.SetFrameRateLimit(60)
-	go c.Run()
+	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 	<-c.PrepLock
 	go startPreview(c, htmlFile, cssFile, bindingData)
 	return c, nil
