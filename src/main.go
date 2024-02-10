@@ -32,7 +32,9 @@ func main() {
 	container := host_container.New("Kaiju")
 	go container.Run()
 	<-container.PrepLock
-	container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
-	addConsole(container.Host)
+	container.RunFunction(func() {
+		container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
+		addConsole(container.Host)
+	})
 	bootstrap.Main(container)
 }

@@ -337,6 +337,7 @@ uint32_t window_poll(void* hwnd) {
 
 void window_destroy(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	DestroyWindow(hwnd);
 	free(sm);
 }
 

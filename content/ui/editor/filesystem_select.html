@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/filesystem_select.css">
+	</head>
+	<body>
+		<div class="fill darkBG">
+			<div class="pathInput">
+				<input id="pathInput" type="text" placeholder="Path..." value="{{.Path}}" />
+				<button id="pathButton" onclick="selectPath">Pick</button>
+			</div>
+			<div id="listing" class="listing">
+				<div class="listEntry" onclick="selectEntry" data-path="../">
+					[Folder] ..
+				</div>
+				{{range .Dir}}
+				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
+					{{if .IsDir}}[Folder]{{else}}[File]{{end}} {{.Name}}
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>

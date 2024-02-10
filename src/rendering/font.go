@@ -468,9 +468,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					clm = cache.cachedMeshLetter(fontFace, c, !is3D)
 				}
 				var m *Mesh
-				shaderData := &TextShaderData{
-					ShaderDataBase: NewShaderDataBase(),
-				}
 				model := matrix.Mat4Identity()
 				if clm == nil {
 					var verts [4]Vertex
@@ -507,11 +504,14 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					uvs = clm.uvs
 					m = clm.mesh
 				}
-				shaderData.FgColor = fgColor
-				shaderData.BgColor = bgColor
-				shaderData.PxRange = pxRange
-				shaderData.UVs = uvs
-				shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+				shaderData := &TextShaderData{
+					ShaderDataBase: NewShaderDataBase(),
+					FgColor:        fgColor,
+					BgColor:        bgColor,
+					PxRange:        pxRange,
+					UVs:            uvs,
+					Scissor:        matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax},
+				}
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,

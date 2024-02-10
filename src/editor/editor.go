@@ -1,12 +1,12 @@
 package editor
 
 import (
+	"kaiju/editor/ui/filesystem_select"
 	"kaiju/editor/ui/menu"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/windowing"
 )
 
 type Editor struct {
@@ -22,15 +22,18 @@ func New(host *engine.Host) *Editor {
 }
 
 func (e *Editor) testBtn(*document.DocElement) {
-	search := windowing.FileSearch{
-		Title:     "Binary file",
-		Extension: "bin",
-	}
-	if s, ok := e.Host.Window.OpenFile(search); ok {
+	filesystem_select.New(func(s string) {
 		println(s)
-	} else {
-		println("no file selected")
-	}
+	})
+	//search := windowing.FileSearch{
+	//	Title:     "Binary file",
+	//	Extension: "bin",
+	//}
+	//if s, ok := e.Host.Window.OpenFile(search); ok {
+	//	println(s)
+	//} else {
+	//	println("no file selected")
+	//}
 }
 
 func (e *Editor) SetupUI() {

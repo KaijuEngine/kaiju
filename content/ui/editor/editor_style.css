@@ -24,7 +24,7 @@ body {
 	left: 50%;
 	transform: translate(-50%, -50%);
 	text-align: center;
-	background-color: #313232;
+	background-color: #1b1b1b;
 }
 .vCenter {
 	position: absolute;
@@ -39,8 +39,8 @@ body {
 button {
 	width: initial;
 	color: white;
-	background-color: #1f1f1f;
+	background-color: #313232;
 }
 button:hover {
-	background-color: #313232;
+	background-color: #505050;
 }

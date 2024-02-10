@@ -190,3 +190,7 @@ func (h *Host) SetFrameRateLimit(fps int64) {
 		h.frameRateLimit = time.NewTicker(time.Second / time.Duration(fps))
 	}
 }
+
+func (host *Host) Close() {
+	host.Closing = true
+}

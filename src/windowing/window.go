@@ -257,12 +257,8 @@ func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) Destroy() {
+	w.isClosed = true
 	w.Renderer.Destroy()
-	w.confirmQuit()
-	// TODO:  Destroy the window?
-}
-
-func (w *Window) confirmQuit() {
 	w.destroy()
 }
 
