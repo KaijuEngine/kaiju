@@ -78,6 +78,7 @@ type DrawInstanceGroup struct {
 	visibleCount int
 	padding      int
 	useBlending  bool
+	destroyed    bool
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
@@ -87,6 +88,7 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 		instanceData: make([]byte, 0),
 		instanceSize: dataSize,
 		padding:      dataSize % 16,
+		destroyed:    false,
 	}
 }
 
@@ -165,6 +167,7 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 	d.bindInstanceDriverData()
 	if len(d.Instances) == 0 {
 		renderer.DestroyGroup(d)
+		d.destroyed = true
 	}
 }
 

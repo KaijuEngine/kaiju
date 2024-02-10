@@ -53,15 +53,15 @@ func texturesMatch(a []*Texture, b []*Texture) bool {
 	return true
 }
 
-func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) (*DrawInstanceGroup, bool) {
-	var dig *DrawInstanceGroup = nil
-	for i := 0; i < len(sd.instanceGroups) && dig == nil; i++ {
+func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
+	idx := -1
+	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
 		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Textures) && dg.UseBlending == g.useBlending {
-			dig = g
+			idx = i
 		}
 	}
-	return dig, dig != nil
+	return idx
 }
 
 func (d *Drawings) PreparePending() {
@@ -76,14 +76,19 @@ func (d *Drawings) PreparePending() {
 			draw = &d.draws[len(d.draws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
-		if dg, ok := d.matchGroup(draw, drawing); ok {
-			dg.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
+		idx := d.matchGroup(draw, drawing)
+		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
+			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
 		} else {
 			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
 			group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
 			group.Textures = drawing.Textures
 			group.useBlending = drawing.UseBlending
-			draw.AddInstanceGroup(group)
+			if idx >= 0 {
+				draw.instanceGroups[idx] = group
+			} else {
+				draw.AddInstanceGroup(group)
+			}
 		}
 	}
 	d.backDraws = d.backDraws[:0]
