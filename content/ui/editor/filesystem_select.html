@@ -8,7 +8,9 @@
 		<div class="fill darkBG">
 			<div class="pathInput">
 				<input id="pathInput" type="text" placeholder="Path..." value="{{.Path}}" />
-				<button id="pathButton" onclick="selectPath">Pick</button>
+				{{if not .Extensions}}
+					<button id="pathButton" onclick="selectPath">Select</button>
+				{{end}}
 			</div>
 			<div id="listing" class="listing">
 				<div class="listEntry" onclick="selectEntry" data-path="../">
