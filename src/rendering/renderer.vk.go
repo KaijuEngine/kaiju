@@ -1076,7 +1076,14 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 	samplerInfo.UnnormalizedCoordinates = vk.False
 	samplerInfo.CompareEnable = vk.False
 	samplerInfo.CompareOp = vk.CompareOpAlways
-	samplerInfo.MipmapMode = vk.SamplerMipmapModeLinear
+	switch filter {
+	case vk.FilterNearest:
+		samplerInfo.MipmapMode = vk.SamplerMipmapModeNearest
+	case vk.FilterCubicImg:
+		fallthrough
+	case vk.FilterLinear:
+		samplerInfo.MipmapMode = vk.SamplerMipmapModeLinear
+	}
 	samplerInfo.MipLodBias = 0.0
 	samplerInfo.MinLod = 0.0
 	samplerInfo.MaxLod = float32(mipLevels)
