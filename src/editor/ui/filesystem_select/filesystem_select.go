@@ -12,16 +12,21 @@ import (
 	"slices"
 )
 
+const (
+	SelectFolderExtension = "."
+)
+
 type FilesystemSelect struct {
-	doc        *document.Document
-	input      *ui.Input
-	listing    *ui.Panel
-	onSelected func(string)
-	container  *host_container.HostContainer
-	Dir        []fs.DirEntry
-	Path       string
-	Extensions []string
-	funcMap    map[string]func(*document.DocElement)
+	doc           *document.Document
+	input         *ui.Input
+	listing       *ui.Panel
+	onSelected    func(string)
+	container     *host_container.HostContainer
+	Dir           []fs.DirEntry
+	Path          string
+	Extensions    []string
+	funcMap       map[string]func(*document.DocElement)
+	SearchFolders bool
 }
 
 // Will create a new window that allows the person to select a file or folder
@@ -37,10 +42,16 @@ func New(title string, extensions []string, onSelected func(string)) {
 		Extensions: make([]string, 0, len(extensions)),
 	}
 	for _, ext := range extensions {
-		if ext[0] != '.' {
-			ext = "." + ext
+		if ext != "" {
+			if ext == "." {
+				s.SearchFolders = true
+			} else {
+				if ext[0] != '.' {
+					ext = "." + ext
+				}
+				s.Extensions = append(s.Extensions, ext)
+			}
 		}
-		s.Extensions = append(s.Extensions, ext)
 	}
 	s.funcMap["selectEntry"] = s.selectEntry
 	s.funcMap["selectPath"] = s.selectPath
@@ -122,6 +133,13 @@ func (s *FilesystemSelect) list() {
 		s.Dir = make([]fs.DirEntry, 0, len(dir))
 		for i := range dir {
 			if dir[i].IsDir() || slices.Contains(s.Extensions, filepath.Ext(dir[i].Name())) {
+				s.Dir = append(s.Dir, dir[i])
+			}
+		}
+	} else if s.SearchFolders {
+		s.Dir = make([]fs.DirEntry, 0, len(dir))
+		for i := range dir {
+			if dir[i].IsDir() {
 				s.Dir = append(s.Dir, dir[i])
 			}
 		}

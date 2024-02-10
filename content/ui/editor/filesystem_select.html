@@ -8,7 +8,7 @@
 		<div class="fill darkBG">
 			<div class="pathInput">
 				<input id="pathInput" type="text" placeholder="Path..." value="{{.Path}}" />
-				{{if not .Extensions}}
+				{{if or (.SearchFolders) (not .Extensions)}}
 					<button id="pathButton" onclick="selectPath">Select</button>
 				{{end}}
 			</div>
