@@ -13,7 +13,7 @@
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags editor",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lXInput -lcomdlg32"
+				"CGO_LDFLAGS": "-lgdi32 -lXInput"
 			}
 		}, {
 			"name": "Launch Windows Editor (GL)",
@@ -24,7 +24,7 @@
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags editor,OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32 -lXInput -lcomdlg32",
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32 -lXInput",
 				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}, {

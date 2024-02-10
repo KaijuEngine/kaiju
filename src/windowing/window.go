@@ -256,7 +256,3 @@ func (w *Window) Destroy() {
 	w.Renderer.Destroy()
 	w.destroy()
 }
-
-func (w *Window) OpenFile(search ...FileSearch) (string, bool) {
-	return w.openFileInternal(search...)
-}

@@ -30,7 +30,6 @@ func main() {
 	}
 	if *isEditor {
 		tags = append(tags, "editor")
-		cgoLDFLAGS = append(cgoLDFLAGS, "-lcomdlg32")
 	}
 	switch *renderer {
 	case "gl":

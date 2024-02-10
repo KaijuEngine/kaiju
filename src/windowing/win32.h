@@ -12,7 +12,6 @@ uint32_t window_poll(void* hwnd);
 void window_destroy(void* hwnd);
 void window_cursor_standard(void* hwnd);
 void window_cursor_ibeam(void* hwnd);
-bool window_open_file(void* hwnd, const wchar_t* extensions, char** outPath);
 
 #ifdef OPENGL
 void window_create_gl_context(void* winHWND, void* evtSharedMem, int size);

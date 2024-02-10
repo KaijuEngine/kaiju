@@ -110,10 +110,5 @@ func (w *Window) getDPI() (int, int, error) {
 	return 96, 96, nil
 }
 
-func (w *Window) openFile(extension string) (string, bool) {
-	klib.NotYetImplemented(151)
-	return "", false
-}
-
 func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }
 func (w *Window) cInstance() unsafe.Pointer { return C.display(w.handle) }

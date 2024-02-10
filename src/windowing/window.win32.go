@@ -4,7 +4,6 @@ package windowing
 
 import (
 	"kaiju/klib"
-	"strings"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -122,28 +121,6 @@ func (w *Window) clipboardContents() string {
 func (w *Window) getDPI() (int, int, error) {
 	dpi := C.get_dpi(C.HWND(w.handle))
 	return int(dpi), int(dpi), nil
-}
-
-func (w *Window) openFile(search ...FileSearch) (string, bool) {
-	sb := strings.Builder{}
-	for _, s := range search {
-		sb.WriteString(s.Title)
-		sb.WriteString(" (.")
-		sb.WriteString(s.Extension)
-		sb.WriteString(")\x00*.")
-		sb.WriteString(s.Extension)
-		sb.WriteString("\x00")
-	}
-	sb.WriteString("\x00")
-	outStr := (*C.char)(C.malloc(0))
-	wStr := utf16.Encode([]rune(sb.String()))
-	ok := C.window_open_file(w.handle, C.LPCWSTR(unsafe.Pointer(&wStr[0])), &outStr)
-	out := C.GoString(outStr)
-	C.free(unsafe.Pointer(outStr))
-	if ok {
-		return out, true
-	}
-	return "", false
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }

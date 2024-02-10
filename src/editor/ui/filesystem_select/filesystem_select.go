@@ -22,13 +22,16 @@ type FilesystemSelect struct {
 	funcMap    map[string]func(*document.DocElement)
 }
 
-func New(onSelected func(string)) {
+func New(title string, onSelected func(string)) {
+	if title == "" {
+		title = "File/Folder Select"
+	}
 	fs := FilesystemSelect{
 		onSelected: onSelected,
 		funcMap:    make(map[string]func(*document.DocElement)),
 	}
 	fs.funcMap["selectEntry"] = fs.selectEntry
-	fs.container = host_container.New("File/Folder Select")
+	fs.container = host_container.New(title)
 	go fs.container.Run(500, 600)
 	<-fs.container.PrepLock
 	if here, err := os.Getwd(); err != nil {

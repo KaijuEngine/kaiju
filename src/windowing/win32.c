@@ -15,11 +15,6 @@
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
-#include <shellapi.h>
-#include <commdlg.h>
-#include <direct.h>
-#include <knownfolders.h>
-#include <XInput.h>
 
 #ifdef OPENGL
 #include "../gl/dist/glad_wgl.h"
@@ -347,34 +342,6 @@ void window_cursor_standard(void* hwnd) {
 
 void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
-}
-
-bool window_open_file(void* hwnd,  const wchar_t* extensions, char** outPath) {
-	*outPath = NULL;
-	bool valid = false;
-	OPENFILENAME ofn = { 0 };       // common dialog box structure
-	WCHAR szFile[1024];              // buffer for file name
-	if (extensions == NULL || extensions[0] == L'\0')
-		extensions = L"All Files\0*.*\0\0";
-	// Initialize OPENFILENAME
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = hwnd;
-	ofn.lpstrFile = szFile;
-	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not
-	// use the contents of szFile to initialize itself.
-	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = extensions;
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOREADONLYRETURN;
-	valid = GetOpenFileName(&ofn) == TRUE;
-	if (valid)
-		wchartou8(ofn.lpstrFile, outPath);
-	return valid;
 }
 
 #endif
