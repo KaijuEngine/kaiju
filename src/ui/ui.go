@@ -211,8 +211,8 @@ func (ui *uiBase) GenerateScissor() {
 			bounds.SetY(max(bounds.Y(), pBounds.Y()))
 			bounds.SetZ(min(bounds.Z(), pBounds.Z()))
 			bounds.SetW(min(bounds.W(), pBounds.W()))
-		} else {
-			bounds = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+			//} else {
+			//	bounds = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 		}
 	}
 	ui.setScissor(bounds)

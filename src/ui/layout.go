@@ -477,7 +477,7 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	if matrix.ApproxTo(ps.Y(), height, 0.001) {
 		return false
 	}
-	if ps.Y() == 0 {
+	if height == 0 {
 		return false
 	}
 	size := matrix.Vec3{ps.Width(), height, 1.0}
