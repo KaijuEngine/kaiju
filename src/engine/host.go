@@ -35,8 +35,8 @@ type Host struct {
 }
 
 func NewHost(name string) *Host {
-	w := float32(windowing.DefaultWindowWidth)
-	h := float32(windowing.DefaultWindowHeight)
+	w := float32(DefaultWindowWidth)
+	h := float32(DefaultWindowHeight)
 	host := &Host{
 		name:           name,
 		editorEntities: newEditorEntities(),
@@ -56,12 +56,20 @@ func NewHost(name string) *Host {
 	return host
 }
 
-func (host *Host) Initialize() error {
-	win, err := windowing.New(host.name)
+func (host *Host) Initialize(width, height int) error {
+	if width <= 0 {
+		width = DefaultWindowWidth
+	}
+	if height <= 0 {
+		height = DefaultWindowHeight
+	}
+	win, err := windowing.New(host.name, width, height)
 	if err != nil {
 		return err
 	}
 	host.Window = win
+	host.Camera.ViewportChanged(float32(width), float32(height))
+	host.UICamera.ViewportChanged(float32(width), float32(height))
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)

@@ -29,7 +29,7 @@ func New(onSelected func(string)) {
 	}
 	fs.funcMap["selectEntry"] = fs.selectEntry
 	fs.container = host_container.New("File/Folder Select")
-	go fs.container.Run()
+	go fs.container.Run(500, 600)
 	<-fs.container.PrepLock
 	if here, err := os.Getwd(); err != nil {
 		fs.Path = "/"
