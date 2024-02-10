@@ -4,6 +4,7 @@ package windowing
 
 import (
 	"kaiju/klib"
+	"strings"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -90,8 +91,12 @@ func (w *Window) poll() {
 	evtType = 1
 	for evtType != 0 && !w.evtSharedMem.IsQuit() {
 		evtType = uint32(C.window_poll(w.handle))
-		if evtType != 0 {
-			t := asEventType(evtType)
+		t := asEventType(evtType)
+		if w.evtSharedMem.IsResize() {
+			t = evtResize
+			w.evtSharedMem.ResetHeader()
+		}
+		if t != evtUnknown {
 			w.processEvent(t)
 		}
 	}
@@ -119,9 +124,20 @@ func (w *Window) getDPI() (int, int, error) {
 	return int(dpi), int(dpi), nil
 }
 
-func (w *Window) openFile(extension string) (string, bool) {
+func (w *Window) openFile(search ...FileSearch) (string, bool) {
+	sb := strings.Builder{}
+	for _, s := range search {
+		sb.WriteString(s.Title)
+		sb.WriteString(" (.")
+		sb.WriteString(s.Extension)
+		sb.WriteString(")\x00*.")
+		sb.WriteString(s.Extension)
+		sb.WriteString("\x00")
+	}
+	sb.WriteString("\x00")
 	outStr := (*C.char)(C.malloc(0))
-	ok := C.window_open_file(w.handle, C.CString(extension), &outStr)
+	wStr := utf16.Encode([]rune(sb.String()))
+	ok := C.window_open_file(w.handle, C.LPCWSTR(unsafe.Pointer(&wStr[0])), &outStr)
 	out := C.GoString(outStr)
 	C.free(unsafe.Pointer(outStr))
 	if ok {
@@ -129,3 +145,6 @@ func (w *Window) openFile(extension string) (string, bool) {
 	}
 	return "", false
 }
+
+func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
+func (w *Window) cInstance() unsafe.Pointer { return w.instance }

@@ -68,3 +68,11 @@ func Atan2(y Float, x Float) Float {
 func Pow(x Float, y Float) Float {
 	return Float(math.Pow(float64(x), float64(y)))
 }
+
+func IsNaN(x Float) bool {
+	return math.IsNaN(float64(x))
+}
+
+func IsInf(x Float, sign int) bool {
+	return math.IsInf(float64(x), sign)
+}

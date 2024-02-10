@@ -40,6 +40,8 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 }
 
 func (t *TextureCache) CreatePending() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	for _, texture := range t.pendingTextures {
 		texture.DelayedCreate(t.renderer)
 	}

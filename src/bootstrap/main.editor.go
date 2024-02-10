@@ -10,6 +10,8 @@ import (
 func Main(container *host_container.HostContainer) {
 	println("Starting editor")
 	editor := editor.New(container.Host)
-	editor.SetupUI()
+	container.RunFunction(func() {
+		editor.SetupUI()
+	})
 	<-editor.Host.Done()
 }

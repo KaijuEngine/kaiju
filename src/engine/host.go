@@ -123,6 +123,7 @@ func (host *Host) Update(deltaTime float64) {
 }
 
 func (host *Host) Render() {
+	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
@@ -188,4 +189,8 @@ func (h *Host) SetFrameRateLimit(fps int64) {
 	} else {
 		h.frameRateLimit = time.NewTicker(time.Second / time.Duration(fps))
 	}
+}
+
+func (host *Host) Close() {
+	host.Closing = true
 }

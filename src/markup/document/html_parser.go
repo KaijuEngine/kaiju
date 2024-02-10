@@ -3,6 +3,7 @@ package document
 import (
 	"html/template"
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/markup/elements"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -125,14 +126,30 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 	}
 	if e.IsText() {
 		anchor := ui.AnchorTopLeft
-		label := ui.NewLabel(host, strings.TrimSpace(e.Data()), anchor)
+		txt := strings.TrimSpace(e.Data())
+		txt = strings.ReplaceAll(txt, "\r", "")
+		txt = strings.ReplaceAll(txt, "\n", " ")
+		txt = strings.ReplaceAll(txt, "\t", " ")
+		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
+		label := ui.NewLabel(host, txt, anchor)
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
 		appendElement(label, nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
-		panel := ui.NewPanel(host, nil, ui.AnchorTopLeft)
-		panel.SetOverflow(ui.OverflowVisible)
+		var panel *ui.Panel
+		if e.IsImage() {
+			tex, err := host.TextureCache().Texture(
+				e.Attribute("src"), rendering.TextureFilterLinear)
+			if err != nil {
+				panic(err)
+			}
+			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
+			panel = (*ui.Panel)(img)
+		} else {
+			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft)
+			panel.SetOverflow(ui.OverflowVisible)
+		}
 		var uiElm ui.UI = panel
 		if e.IsInput() {
 			inputType := e.Attribute("type")

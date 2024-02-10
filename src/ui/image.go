@@ -18,7 +18,7 @@ func (s *Image) data() *imageData {
 	return s.localData.(*imageData)
 }
 
-func NewSprite(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Image {
+func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
 	panel := NewPanel(host, texture, anchor)
 	img := (*Image)(panel)
 	img.localData = &imageData{

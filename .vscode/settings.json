@@ -13,7 +13,8 @@
 		"stdbool.h": "c",
 		"windowsx.h": "c",
 		"strings.h": "c",
-		"windows.h": "c"
+		"windows.h": "c",
+		"xlib.h": "c"
 	},
 	"cSpell.words": [
 		"kaiju",

@@ -9,6 +9,8 @@ import (
 
 func Main(container *host_container.HostContainer) {
 	println("Starting runtime")
-	source.Main(container.Host)
+	container.RunFunction(func() {
+		source.Main(container.Host)
+	})
 	<-container.Host.Done()
 }

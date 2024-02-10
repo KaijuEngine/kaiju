@@ -8,6 +8,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"strings"
+	"sync"
 	"unicode"
 	"unsafe"
 )
@@ -131,6 +132,7 @@ type FontCache struct {
 	assetDb                     *assets.Database
 	fontFaces                   map[string]fontBin
 	instanceKey                 int64
+	FaceMutex                   sync.RWMutex
 }
 
 type TextShaderData struct {
@@ -153,8 +155,14 @@ func (cache *FontCache) nextInstanceKey(key rune) string {
 }
 
 func (cache *FontCache) requireFace(face FontFace) {
+	cache.FaceMutex.RLock()
 	if _, ok := cache.fontFaces[face.string()]; !ok {
+		cache.FaceMutex.RUnlock()
+		cache.FaceMutex.Lock()
+		defer cache.FaceMutex.Unlock()
 		cache.initFont(face, cache.renderer, cache.assetDb)
+	} else {
+		cache.FaceMutex.RUnlock()
 	}
 }
 
@@ -460,9 +468,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					clm = cache.cachedMeshLetter(fontFace, c, !is3D)
 				}
 				var m *Mesh
-				shaderData := &TextShaderData{
-					ShaderDataBase: NewShaderDataBase(),
-				}
 				model := matrix.Mat4Identity()
 				if clm == nil {
 					var verts [4]Vertex
@@ -499,11 +504,14 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					uvs = clm.uvs
 					m = clm.mesh
 				}
-				shaderData.FgColor = fgColor
-				shaderData.BgColor = bgColor
-				shaderData.PxRange = pxRange
-				shaderData.UVs = uvs
-				shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+				shaderData := &TextShaderData{
+					ShaderDataBase: NewShaderDataBase(),
+					FgColor:        fgColor,
+					BgColor:        bgColor,
+					PxRange:        pxRange,
+					UVs:            uvs,
+					Scissor:        matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax},
+				}
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,

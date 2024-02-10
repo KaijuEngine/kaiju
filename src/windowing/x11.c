@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <X11/Xlib.h>
-#include "shared_mem.h"
 
 #ifdef OPENGL
 #include "../gl/dist/glad.h"
@@ -16,18 +15,7 @@
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 #endif
 
-int shared_mem_set_thread_priority(SharedMem* sm) {
-	// TODO:  Get current thread priority and set the current thread priority to idle
-	return 0;
-}
-
-void shared_mem_reset_thread_priority(SharedMem* sm, int priority) {
-	// TODO:  Set the current thread priority to the given priority
-}
-
-void shared_mem_wait(SharedMem* sm) {
-	sched_yield();
-}
+#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -94,7 +82,6 @@ void window_create_gl_context(void* state, void* evtSharedMem, int size) {
 #endif
 
 void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size) {
-	SharedMem sm = {evtSharedMem, size};
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
@@ -166,92 +153,104 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 #endif
 	XStoreName(d, w, windowTitle);
 	XSetIconName(d, w, windowTitle);
-	XSelectInput(d, w, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
+	XSelectInput(d, w, EVT_MASK);
 	XMapWindow(d, w);
-	X11State x11State = {
-		&w, d
+	X11State* x11State = malloc(sizeof(X11State));
+	x11State->sm.sharedMem = evtSharedMem;
+	x11State->sm.size = size;
+	x11State->w = w;
+	x11State->d = d;
 #ifdef OPENGL
-		bestFbcConfig
+	x11State->bestFbcConfig = bestFbcConfig;
+	x11State->cmap = cmap;
 #endif
-	};
-	memcpy(sm.sharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
-	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_CONTEXT);
-	// Context should be created in Go here on go main thread
-	shared_memory_wait_for_available(&sm);
-	Atom WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols(d, w, &WM_DELETE_WINDOW, 1);
-	shared_memory_set_write_state(&sm, SHARED_MEM_AWAITING_START);
-	XEvent e;
-	while (sm.sharedMem[0] != SHARED_MEM_QUIT) {
-		while (sm.sharedMem[0] != SHARED_MEM_AVAILABLE) {}
-		shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
-		XNextEvent(d, &e);
-		bool filtered = XFilterEvent(&e, None);
-		sm.evt->evtType = e.type;
-		switch (e.type) {
-			case Expose:
-				// Setting this to 0 will make Go think there are no more
-				// events to process and continue. Then next time we come
-				// back around in go for availability we'll continue from
-				// here.
-				sm.evt->evtType = 0;
-				shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
-				shared_memory_wait_for_available(&sm);
-				shared_memory_set_write_state(&sm, SHARED_MEM_WRITING);
-				sm.evt->evtType = e.type;
-				break;
-			case KeyPress:
-			case KeyRelease:
-				sm.evt->keyboard.keyId = XLookupKeysym(&e.xkey, 0);
-				break;
-			case ButtonPress:
-			case ButtonRelease:
-				switch (e.xbutton.button) {
-					case Button1:
-						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_LEFT;
-						break;
-					case Button2:
-						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_MIDDLE;
-						break;
-					case Button3:
-						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_RIGHT;
-						break;
-					case Button4:
-						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X1;
-						break;
-					case Button5:
-						sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X2;
-						break;
-				}
-				sm.evt->mouse.mouseX = e.xbutton.x;
-				sm.evt->mouse.mouseY = e.xbutton.y;
-				break;
-			case MotionNotify:
-				sm.evt->mouse.mouseButtonId = -1;
-				sm.evt->mouse.mouseX = e.xmotion.x;
-				sm.evt->mouse.mouseY = e.xmotion.y;
-				break;
-			case ClientMessage:
-				if (filtered) {
-					return;
-				}
-				const Atom protocol = e.xclient.data.l[0];
-				if (protocol == WM_DELETE_WINDOW) {
-					shared_memory_set_write_state(&sm, SHARED_MEM_QUIT);
-				}
-				break;
-		}
-		shared_memory_set_write_state(&sm, SHARED_MEM_WRITTEN);
-	}
-#ifdef OPENGL
-	glXMakeCurrent(d, 0, 0);
-	glXDestroyContext(d, x11State.ctx);
-#endif
-	XDestroyWindow(d, w);
-#ifdef OPENGL
-	XFreeColormap(d, cmap);
-#endif
-	XCloseDisplay(d);
+	x11State->WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
+	memcpy(evtSharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
 }
+
+void window_show(void* x11State) {
+	X11State* s = x11State;
+	// Flush initial events
+	while (window_poll(x11State) != Expose) {}
+	while (window_poll(x11State) != 0) {}
+}
+
+int window_poll_controller(void* x11State) {
+	// TODO:  Implement for controllers
+	return 0;
+}
+
+int window_poll(void* x11State) {
+	X11State* s = x11State;
+	XEvent e = {};
+
+	if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
+		return 0;
+	}
+	bool filtered = XFilterEvent(&e, None);
+	s->sm.evt->evtType = e.type;
+	switch (e.type) {
+		case Expose:
+			//return 0;
+			break;
+		case KeyPress:
+		case KeyRelease:
+			s->sm.evt->keyboard.keyId = XLookupKeysym(&e.xkey, 0);
+			break;
+		case ButtonPress:
+		case ButtonRelease:
+			switch (e.xbutton.button) {
+				case Button1:
+					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_LEFT;
+					break;
+				case Button2:
+					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_MIDDLE;
+					break;
+				case Button3:
+					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_RIGHT;
+					break;
+				case Button4:
+					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X1;
+					break;
+				case Button5:
+					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X2;
+					break;
+			}
+			s->sm.evt->mouse.mouseX = e.xbutton.x;
+			s->sm.evt->mouse.mouseY = e.xbutton.y;
+			break;
+		case MotionNotify:
+			s->sm.evt->mouse.mouseButtonId = -1;
+			s->sm.evt->mouse.mouseX = e.xmotion.x;
+			s->sm.evt->mouse.mouseY = e.xmotion.y;
+			break;
+		case ClientMessage:
+			if (!filtered) {
+				const Atom protocol = e.xclient.data.l[0];
+				if (protocol == s->WM_DELETE_WINDOW) {
+					shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
+				}
+			}
+			break;
+	}
+	return e.type;
+}
+
+void window_destroy(void* x11State) {
+	X11State* s = x11State;
+#ifdef OPENGL
+	glXMakeCurrent(s->d, 0, 0);
+	glXDestroyContext(s->d, s->ctx);
+#endif
+	XDestroyWindow(s->d, s->w);
+#ifdef OPENGL
+	XFreeColormap(s->d, s->cmap);
+#endif
+	XCloseDisplay(s->d);
+}
+
+void* display(void* x11State) { return ((X11State*)x11State)->d; }
+void* window(void* x11State) { return &((X11State*)x11State)->w; }
 
 #endif

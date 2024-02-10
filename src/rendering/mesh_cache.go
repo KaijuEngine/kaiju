@@ -62,6 +62,8 @@ func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 }
 
 func (m *MeshCache) CreatePending() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	for _, mesh := range m.pendingMeshes {
 		mesh.DelayedCreate(m.renderer)
 	}

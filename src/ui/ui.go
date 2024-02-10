@@ -53,23 +53,22 @@ type UI interface {
 }
 
 type uiBase struct {
-	host                *engine.Host
-	entity              *engine.Entity
-	events              [EventTypeEnd]events.Event
-	group               *Group
-	dragStartPos        matrix.Vec3
-	downPos             matrix.Vec2
-	layout              Layout
-	dirtyType           DirtyType
-	shaderData          ShaderData
-	textureSize         matrix.Vec2
-	updateId            int
-	hovering            bool
-	cantMiss            bool
-	isDown              bool
-	drag                bool
-	lastActive          bool
-	disconnectedScissor bool
+	host         *engine.Host
+	entity       *engine.Entity
+	events       [EventTypeEnd]events.Event
+	group        *Group
+	dragStartPos matrix.Vec3
+	downPos      matrix.Vec2
+	layout       Layout
+	dirtyType    DirtyType
+	shaderData   ShaderData
+	textureSize  matrix.Vec2
+	updateId     int
+	hovering     bool
+	cantMiss     bool
+	isDown       bool
+	drag         bool
+	lastActive   bool
 }
 
 func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
@@ -192,7 +191,6 @@ func (ui *uiBase) Clean() {
 }
 
 func (ui *uiBase) GenerateScissor() {
-	ui.disconnectedScissor = false
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -221,9 +219,6 @@ func (ui *uiBase) GenerateScissor() {
 }
 
 func (ui *uiBase) setScissor(scissor matrix.Vec4) {
-	if ui.disconnectedScissor {
-		return
-	}
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}

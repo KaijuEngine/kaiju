@@ -56,6 +56,11 @@ type Window struct {
 	OnResize      events.Event
 }
 
+type FileSearch struct {
+	Title     string
+	Extension string
+}
+
 func New(windowName string) (*Window, error) {
 	w := &Window{
 		Keyboard:     hid.NewKeyboard(),
@@ -93,8 +98,8 @@ func New(windowName string) (*Window, error) {
 	return w, err
 }
 
-func (w *Window) PlatformWindow() unsafe.Pointer   { return w.handle }
-func (w *Window) PlatformInstance() unsafe.Pointer { return w.instance }
+func (w *Window) PlatformWindow() unsafe.Pointer   { return w.cHandle() }
+func (w *Window) PlatformInstance() unsafe.Pointer { return w.cInstance() }
 
 func (w *Window) IsClosed() bool  { return w.isClosed }
 func (w *Window) IsCrashed() bool { return w.isCrashed }
@@ -252,15 +257,11 @@ func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) Destroy() {
+	w.isClosed = true
 	w.Renderer.Destroy()
-	w.confirmQuit()
-	// TODO:  Destroy the window?
-}
-
-func (w *Window) confirmQuit() {
 	w.destroy()
 }
 
-func (w *Window) OpenFile(extension string) (string, bool) {
-	return w.openFileInternal(extension)
+func (w *Window) OpenFile(search ...FileSearch) (string, bool) {
+	return w.openFileInternal(search...)
 }

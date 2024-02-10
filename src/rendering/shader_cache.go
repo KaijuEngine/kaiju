@@ -63,6 +63,8 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 }
 
 func (s *ShaderCache) CreatePending() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	for _, shader := range s.pendingShaders {
 		shader.DelayedCreate(s.renderer, s.assetDatabase)
 	}
