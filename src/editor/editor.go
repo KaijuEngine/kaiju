@@ -21,7 +21,7 @@ func New(host *engine.Host) *Editor {
 
 func (e *Editor) SetupUI() {
 	e.Host.CreatingEditorEntities()
-	//e.menu = menu.New(e.Host)
+	e.menu = menu.New(e.Host)
 	e.projectWindow, _ = project_window.New()
 	<-e.projectWindow.Done
 	e.Host.DoneCreatingEditorEntities()
