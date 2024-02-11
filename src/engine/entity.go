@@ -72,7 +72,7 @@ func (e *Entity) RemoveFromParent() {
 			me := e.Parent.Children[i]
 			if me == e {
 				last := len(e.Parent.Children) - 1
-				e.Parent.Children[i], e.Parent.Children[last] = e.Parent.Children[last], e.Parent.Children[i]
+				e.Parent.Children[i] = e.Parent.Children[last]
 				e.Parent.Children = e.Parent.Children[:last]
 				break
 			}

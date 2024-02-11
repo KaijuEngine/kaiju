@@ -7,7 +7,7 @@ import (
 	"kaiju/source"
 )
 
-func Main(container *host_container.HostContainer) {
+func Main(container *host_container.Container) {
 	println("Starting runtime")
 	container.RunFunction(func() {
 		source.Main(container.Host)

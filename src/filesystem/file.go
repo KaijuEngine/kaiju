@@ -18,6 +18,18 @@ func WriteFile(path string, data []byte) error {
 	return f.Close()
 }
 
+func WriteTextFile(path string, data string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(data); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
 func FileExists(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && !stat.IsDir()

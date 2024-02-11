@@ -80,7 +80,7 @@ type Panel struct {
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
 		scrollEvent:     -1,
-		scrollSpeed:     30.0,
+		scrollSpeed:     20.0,
 		scrollDirection: PanelScrollDirectionVertical,
 		color:           matrix.Color{1.0, 1.0, 1.0, 1.0},
 		fitContent:      ContentFitBoth,
@@ -262,20 +262,21 @@ func (rb rowBuilder) Height() float32 {
 
 func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 	for _, e := range rb.elements {
+		layout := e.Layout()
 		x, y := offsetX, offsetY
 		switch e.Layout().Positioning() {
 		case PositioningAbsolute:
 			fallthrough
 		case PositioningRelative:
-			if e.Layout().Anchor().IsLeft() {
-				x += e.Layout().InnerOffset().Left()
+			if layout.Anchor().IsLeft() {
+				x += layout.InnerOffset().Left()
 			} else {
-				x += e.Layout().InnerOffset().Right()
+				x += layout.InnerOffset().Right()
 			}
-			if e.Layout().Anchor().IsTop() {
-				y += e.Layout().InnerOffset().Top()
+			if layout.Anchor().IsTop() {
+				y += layout.InnerOffset().Top()
 			} else {
-				y += e.Layout().InnerOffset().Bottom()
+				y += layout.InnerOffset().Bottom()
 			}
 		}
 		if l, ok := e.(*Label); ok {
@@ -283,10 +284,10 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 				x -= offsetX
 			}
 		}
-		x += e.Layout().margin.X()
+		x += layout.margin.X()
 		y += rb.maxMarginTop
-		e.Layout().rowLayoutOffset = matrix.Vec2{x, y}
-		offsetX += e.Layout().PixelSize().Width() + e.Layout().margin.X() + e.Layout().margin.Z()
+		layout.SetRowLayoutOffset(matrix.Vec2{x, y})
+		offsetX += layout.PixelSize().Width() + layout.margin.X() + layout.margin.Z()
 	}
 }
 

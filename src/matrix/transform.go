@@ -6,6 +6,7 @@ type Transform struct {
 	localMatrix               Mat4
 	worldMatrix               Mat4
 	parent                    *Transform
+	children                  []*Transform
 	position, rotation, scale Vec3
 	isDirty, isLive           bool
 }
@@ -33,7 +34,23 @@ func (t *Transform) Scale() Vec3 {
 	return t.scale
 }
 
+func (t *Transform) removeChild(child *Transform) {
+	for i, c := range t.children {
+		if c == child {
+			last := len(t.children) - 1
+			t.children[i] = t.children[last]
+			t.children = t.children[:last]
+			break
+		}
+	}
+}
+
 func (t *Transform) SetParent(parent *Transform) {
+	if t.parent == parent {
+		return
+	} else if t.parent != nil {
+		t.parent.removeChild(t)
+	}
 	pos, rot, scale := t.WorldTransform()
 	t.parent = parent
 	if t.parent != nil {
@@ -55,6 +72,7 @@ func (t *Transform) SetParent(parent *Transform) {
 		} else {
 			scale.SetZ(scale.Z() / s.Z())
 		}
+		t.parent.children = append(t.parent.children, t)
 	}
 	t.SetPosition(pos)
 	t.SetRotation(rot)
@@ -75,6 +93,9 @@ func (t *Transform) Forward() Vec3 {
 
 func (t *Transform) SetDirty() {
 	t.isDirty = true
+	for _, child := range t.children {
+		child.SetDirty()
+	}
 }
 
 func (t *Transform) ResetDirty() {

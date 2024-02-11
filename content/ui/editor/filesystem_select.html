@@ -5,10 +5,10 @@
 		<link rel="stylesheet" type="text/css" href="ui/editor/filesystem_select.css">
 	</head>
 	<body>
-		<div class="fill darkBG">
+		<div class="fill darkBG clip">
 			<div class="pathInput">
 				<input id="pathInput" type="text" placeholder="Path..." value="{{.Path}}" />
-				{{if not .Extensions}}
+				{{if .CanSelectFolder}}
 					<button id="pathButton" onclick="selectPath">Select</button>
 				{{end}}
 			</div>

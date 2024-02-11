@@ -591,9 +591,6 @@ func (l *Layout) update() {
 	if l.layoutFunction != nil {
 		l.prepare()
 		l.layoutFunction(l)
-		if l.ui.hasScissor() {
-			l.ui.GenerateScissor()
-		}
 	}
 }
 
@@ -614,4 +611,12 @@ func (l *Layout) ContentSize() (float32, float32) {
 	ps := l.PixelSize()
 	return ps.X() - l.padding.X() - l.padding.Z(),
 		ps.Y() - l.padding.Y() - l.padding.W()
+}
+
+func (l *Layout) SetRowLayoutOffset(offset matrix.Vec2) {
+	if matrix.Vec2Approx(l.rowLayoutOffset, offset) {
+		return
+	}
+	l.rowLayoutOffset = offset
+	l.ui.SetDirty(DirtyTypeLayout)
 }
