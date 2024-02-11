@@ -23,24 +23,25 @@ type FilesystemSelect struct {
 	Extensions []string
 	funcMap    map[string]func(*document.DocElement)
 	Folders    bool
+	done       chan string
 }
 
 // Creates a window allowing the person to select any file or folder
-func Any(title string, onSelected func(string)) {
-	create(title, false, nil, onSelected)
+func Any(title string, onSelected func(string)) chan string {
+	return create(title, false, nil, onSelected)
 }
 
 // Creates a window allowing the person to select a folder
-func Folder(title string, onSelected func(string)) {
-	create(title, true, nil, onSelected)
+func Folder(title string, onSelected func(string)) chan string {
+	return create(title, true, nil, onSelected)
 }
 
 // Creates a window allowing the person to select a file with the given extensions
-func Files(title string, extensions []string, onSelected func(string)) {
-	create(title, false, extensions, onSelected)
+func Files(title string, extensions []string, onSelected func(string)) chan string {
+	return create(title, false, extensions, onSelected)
 }
 
-func create(title string, foldersOnly bool, extensions []string, onSelected func(string)) {
+func create(title string, foldersOnly bool, extensions []string, onSelected func(string)) chan string {
 	if title == "" {
 		title = "File/Folder Select"
 	}
@@ -49,6 +50,7 @@ func create(title string, foldersOnly bool, extensions []string, onSelected func
 		funcMap:    make(map[string]func(*document.DocElement)),
 		Extensions: make([]string, 0, len(extensions)),
 		Folders:    foldersOnly,
+		done:       make(chan string),
 	}
 	for _, ext := range extensions {
 		if ext != "" {
@@ -72,8 +74,14 @@ func create(title string, foldersOnly bool, extensions []string, onSelected func
 		s.reloadUI()
 	})
 	s.container.Host.OnClose.Add(func() {
-		s.onSelected("")
+		if s.onSelected != nil {
+			s.onSelected("")
+			close(s.done)
+		} else {
+			s.done <- ""
+		}
 	})
+	return s.done
 }
 
 func (s *FilesystemSelect) CanSelectFolder() bool {
@@ -81,8 +89,13 @@ func (s *FilesystemSelect) CanSelectFolder() bool {
 }
 
 func (s *FilesystemSelect) selectPath(*document.DocElement) {
+	if s.onSelected != nil {
+		s.onSelected(s.Path)
+		close(s.done)
+	} else {
+		s.done <- s.Path
+	}
 	s.container.Host.Close()
-	s.onSelected(s.Path)
 }
 
 func (s *FilesystemSelect) selectEntry(elm *document.DocElement) {
