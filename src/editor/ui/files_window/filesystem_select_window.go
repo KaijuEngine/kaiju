@@ -1,4 +1,4 @@
-package filesystem_select
+package files_window
 
 import (
 	"io/fs"
@@ -17,7 +17,7 @@ type FilesystemSelect struct {
 	input      *ui.Input
 	listing    *ui.Panel
 	onSelected func(string)
-	container  *host_container.HostContainer
+	container  *host_container.Container
 	Dir        []fs.DirEntry
 	Path       string
 	Extensions []string
