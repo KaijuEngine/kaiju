@@ -16,7 +16,6 @@ type FilesystemSelect struct {
 	doc        *document.Document
 	input      *ui.Input
 	listing    *ui.Panel
-	onSelected func(string)
 	container  *host_container.Container
 	Dir        []fs.DirEntry
 	Path       string
@@ -27,26 +26,25 @@ type FilesystemSelect struct {
 }
 
 // Creates a window allowing the person to select any file or folder
-func Any(title string, onSelected func(string)) chan string {
-	return create(title, false, nil, onSelected)
+func Any(title string) chan string {
+	return create(title, false, nil)
 }
 
 // Creates a window allowing the person to select a folder
-func Folder(title string, onSelected func(string)) chan string {
-	return create(title, true, nil, onSelected)
+func Folder(title string) chan string {
+	return create(title, true, nil)
 }
 
 // Creates a window allowing the person to select a file with the given extensions
-func Files(title string, extensions []string, onSelected func(string)) chan string {
-	return create(title, false, extensions, onSelected)
+func Files(title string, extensions []string) chan string {
+	return create(title, false, extensions)
 }
 
-func create(title string, foldersOnly bool, extensions []string, onSelected func(string)) chan string {
+func create(title string, foldersOnly bool, extensions []string) chan string {
 	if title == "" {
 		title = "File/Folder Select"
 	}
 	s := FilesystemSelect{
-		onSelected: onSelected,
 		funcMap:    make(map[string]func(*document.DocElement)),
 		Extensions: make([]string, 0, len(extensions)),
 		Folders:    foldersOnly,
@@ -74,12 +72,7 @@ func create(title string, foldersOnly bool, extensions []string, onSelected func
 		s.reloadUI()
 	})
 	s.container.Host.OnClose.Add(func() {
-		if s.onSelected != nil {
-			s.onSelected("")
-			close(s.done)
-		} else {
-			s.done <- ""
-		}
+		s.done <- ""
 	})
 	return s.done
 }
@@ -89,12 +82,7 @@ func (s *FilesystemSelect) CanSelectFolder() bool {
 }
 
 func (s *FilesystemSelect) selectPath(*document.DocElement) {
-	if s.onSelected != nil {
-		s.onSelected(s.Path)
-		close(s.done)
-	} else {
-		s.done <- s.Path
-	}
+	s.done <- s.Path
 	s.container.Host.Close()
 }
 
@@ -109,7 +97,7 @@ func (s *FilesystemSelect) selectEntry(elm *document.DocElement) {
 			s.reloadUI()
 		} else {
 			s.container.Host.Close()
-			s.onSelected(s.Path)
+			s.done <- s.Path
 		}
 	}
 }
