@@ -59,3 +59,7 @@ func New(name string) *Container {
 	})
 	return c
 }
+
+func (c *Container) Close() {
+	c.Host.Close()
+}
