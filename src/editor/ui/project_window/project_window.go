@@ -7,6 +7,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"os"
 )
 
 type windowData struct {
@@ -23,16 +24,21 @@ type ProjectWindow struct {
 func (p *ProjectWindow) newProject(elm *document.DocElement) {
 	path := <-files_window.Folder("Select Project Folder")
 	if path != "" {
-		// TODO:  Check if folder has an existing project in it,
-		// if so, then open the project and add to project cache
+		dir, err := os.ReadDir(path)
+		if err != nil {
+			println("Error reading directory", err)
+			return
+		}
+		if len(dir) == 0 {
+			// TODO:  Create a new project in the folder
+			println("Creating a new project in", path)
+		} else {
+			// TODO:  Check if folder has an existing project in it,
+			// if so, then open the project and add to project cache
 
-		// TODO:  Check if the folder is empty, if so, then
-		// create a new project in the folder and add to project cache
-
-		// TODO:  Check if the folder has files in it, if so, then
-		// tell the person that they can not create a project there
-
-		println(path)
+			// TODO:  Check if the folder is empty, if so, then
+			// create a new project in the folder and add to project cache
+		}
 		p.container.Close()
 	}
 }
