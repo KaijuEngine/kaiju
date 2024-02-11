@@ -12,8 +12,8 @@
 /*                                                                           */
 /* May all those that this source may reach be blessed by the LORD and find  */
 /* peace and joy in life.                                                    */
-/* "Everyone who drinks of this water will be thirsty again; but whoever     */
-/* drinks of the water that I will give him shall never thirst;" -Jesus      */
+/* Everyone who drinks of this water will be thirsty again; but whoever      */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14 */
 /*                                                                           */
 /* Permission is hereby granted, free of charge, to any person obtaining a   */
 /* copy of this software and associated documentation files (the "Software"),*/
@@ -60,8 +60,8 @@ const header = `/***************************************************************
 /*                                                                           */
 /* May all those that this source may reach be blessed by the LORD and find  */
 /* peace and joy in life.                                                    */
-/* "Everyone who drinks of this water will be thirsty again; but whoever     */
-/* drinks of the water that I will give him shall never thirst;" -Jesus      */
+/* Everyone who drinks of this water will be thirsty again; but whoever      */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14 */
 /*                                                                           */
 /* Permission is hereby granted, free of charge, to any person obtaining a   */
 /* copy of this software and associated documentation files (the "Software"),*/
