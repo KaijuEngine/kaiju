@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-type HostContainer struct {
+type Container struct {
 	Host         *engine.Host
 	runFunctions []func()
-	PrepLock     chan bool
+	PrepLock     chan struct{}
 }
 
-func (c *HostContainer) RunFunction(f func()) {
+func (c *Container) RunFunction(f func()) {
 	c.runFunctions = append(c.runFunctions, f)
 }
 
-func (c *HostContainer) Run(width, height int) error {
+func (c *Container) Run(width, height int) error {
 	runtime.LockOSThread()
 	if err := c.Host.Initialize(width, height); err != nil {
 		return err
@@ -25,7 +25,7 @@ func (c *HostContainer) Run(width, height int) error {
 	c.Host.Window.Renderer.Initialize(c.Host, int32(c.Host.Window.Width()), int32(c.Host.Window.Height()))
 	c.Host.FontCache().Init(c.Host.Window.Renderer, c.Host.AssetDatabase(), c.Host)
 	lastTime := time.Now()
-	c.PrepLock <- true
+	c.PrepLock <- struct{}{}
 	for !c.Host.Closing {
 		c.Host.WaitForFrameRate()
 		since := time.Since(lastTime)
@@ -42,12 +42,12 @@ func (c *HostContainer) Run(width, height int) error {
 	return nil
 }
 
-func New(name string) *HostContainer {
+func New(name string) *Container {
 	host := engine.NewHost(name)
-	c := &HostContainer{
+	c := &Container{
 		Host:         host,
 		runFunctions: []func(){},
-		PrepLock:     make(chan bool),
+		PrepLock:     make(chan struct{}),
 	}
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
 		if len(c.runFunctions) > 0 {

@@ -36,7 +36,7 @@ func (p *Preview) fileChanged() bool {
 	}
 }
 
-func (p *Preview) readHTML(container *host_container.HostContainer) {
+func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
 		if html, err := filesystem.ReadTextFile(p.html); err == nil {
 			css := ""
@@ -55,7 +55,7 @@ func (p *Preview) readHTML(container *host_container.HostContainer) {
 	p.lastMod = time.Now()
 }
 
-func startPreview(previewContainer *host_container.HostContainer, htmlFile, cssFile string, bindingData any) {
+func startPreview(previewContainer *host_container.Container, htmlFile, cssFile string, bindingData any) {
 	preview := Preview{
 		html:        htmlFile,
 		css:         cssFile,
@@ -70,7 +70,7 @@ func startPreview(previewContainer *host_container.HostContainer, htmlFile, cssF
 	}
 }
 
-func New(htmlFile, cssFile string, bindingData any) (*host_container.HostContainer, error) {
+func New(htmlFile, cssFile string, bindingData any) (*host_container.Container, error) {
 	c := host_container.New("HTML Preview")
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
