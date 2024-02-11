@@ -5,24 +5,48 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch Windows Runtime",
+			"name": "Launch Windows Runtime (VK)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
-			"program": "${workspaceFolder}",
-			"buildFlags": "-tags OPENGL",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32"
+				"CGO_LDFLAGS": "-lgdi32 -lXInput"
 			}
 		}, {
-			"name": "Launch X11 Runtime",
+			"name": "Launch Windows Runtime (GL)",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
-			"program": "${workspaceFolder}",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags OPENGL",
 			"env": {
-				"CGO_LDFLAGS": "-lX11 -lGL"
+				"CGO_LDFLAGS": "-lgdi32 -lOpenGL32 -lXInput",
+				"CGO_CFLAGS": "-DOPENGL"
+			}
+		}, {
+			"name": "Launch X11 Runtime (VK)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_LDFLAGS": "-lX11"
+			}
+		}, {
+			"name": "Launch X11 Runtime (GL)",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags OPENGL",
+			"env": {
+				"CGO_LDFLAGS": "-lX11 -lGL",
+				"CGO_CFLAGS": "-DOPENGL"
 			}
 		}
 	]

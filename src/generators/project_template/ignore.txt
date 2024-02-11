@@ -1,14 +1,6 @@
-.git
-.github
-.gitignore
-.vscode
-AUTHORS.md
-CONTRIBUTING.md
-LICENSE
-README.md
-build
 editor
 interpreter
 source
 go.mod
-project_template
+go.sum
+default.pgo
