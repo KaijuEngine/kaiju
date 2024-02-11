@@ -22,6 +22,7 @@ type FilesystemSelect struct {
 	Extensions []string
 	funcMap    map[string]func(*document.DocElement)
 	Folders    bool
+	selected   bool
 	done       chan string
 }
 
@@ -72,7 +73,10 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 		s.reloadUI()
 	})
 	s.container.Host.OnClose.Add(func() {
-		s.done <- ""
+		if !s.selected {
+			s.done <- ""
+		}
+		close(s.done)
 	})
 	return s.done
 }
@@ -83,6 +87,7 @@ func (s *FilesystemSelect) CanSelectFolder() bool {
 
 func (s *FilesystemSelect) selectPath(*document.DocElement) {
 	s.done <- s.Path
+	s.selected = true
 	s.container.Host.Close()
 }
 
@@ -96,8 +101,9 @@ func (s *FilesystemSelect) selectEntry(elm *document.DocElement) {
 		if info.IsDir() {
 			s.reloadUI()
 		} else {
-			s.container.Host.Close()
 			s.done <- s.Path
+			s.selected = true
+			s.container.Host.Close()
 		}
 	}
 }

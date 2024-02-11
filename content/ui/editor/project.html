@@ -2,14 +2,20 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/project_style.css">
 	</head>
 	<body>
-		<div class="fill darkBG">
-			<div class="centerBox">
-				<h1>Project</h1>
-				<div class="fillWidth">
-					<button class="hCenter" onclick="testBtn">New Project</button>
-				</div>
+		<div class="fill darkBG clip">
+			<h1 class="centerText">Projects</h1>
+			<div class="newProject">
+				<button class="hCenter" onclick="newProject">Select Project Folder</button>
+			</div>
+			<div class="existingProjects">
+				{{range .ExistingProjects}}
+					<div class="project" onclick="selectProject" data-project="{{.}}">
+						<span>{{.}}</span>
+					</div>
+				{{end}}
 			</div>
 		</div>
 	</body>
