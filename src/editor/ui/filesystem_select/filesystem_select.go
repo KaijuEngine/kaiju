@@ -12,27 +12,35 @@ import (
 	"slices"
 )
 
-const (
-	SelectFolderExtension = "."
-)
-
 type FilesystemSelect struct {
-	doc           *document.Document
-	input         *ui.Input
-	listing       *ui.Panel
-	onSelected    func(string)
-	container     *host_container.HostContainer
-	Dir           []fs.DirEntry
-	Path          string
-	Extensions    []string
-	funcMap       map[string]func(*document.DocElement)
-	SearchFolders bool
+	doc        *document.Document
+	input      *ui.Input
+	listing    *ui.Panel
+	onSelected func(string)
+	container  *host_container.HostContainer
+	Dir        []fs.DirEntry
+	Path       string
+	Extensions []string
+	funcMap    map[string]func(*document.DocElement)
+	Folders    bool
 }
 
-// Will create a new window that allows the person to select a file or folder
-// on their system. If the extensions are not empty, then only files with those
-// extensions will be selectable. Otherwise all files or folders can be picked
-func New(title string, extensions []string, onSelected func(string)) {
+// Creates a window allowing the person to select any file or folder
+func Any(title string, onSelected func(string)) {
+	create(title, false, nil, onSelected)
+}
+
+// Creates a window allowing the person to select a folder
+func Folder(title string, onSelected func(string)) {
+	create(title, true, nil, onSelected)
+}
+
+// Creates a window allowing the person to select a file with the given extensions
+func Files(title string, extensions []string, onSelected func(string)) {
+	create(title, false, extensions, onSelected)
+}
+
+func create(title string, foldersOnly bool, extensions []string, onSelected func(string)) {
 	if title == "" {
 		title = "File/Folder Select"
 	}
@@ -40,17 +48,14 @@ func New(title string, extensions []string, onSelected func(string)) {
 		onSelected: onSelected,
 		funcMap:    make(map[string]func(*document.DocElement)),
 		Extensions: make([]string, 0, len(extensions)),
+		Folders:    foldersOnly,
 	}
 	for _, ext := range extensions {
 		if ext != "" {
-			if ext == "." {
-				s.SearchFolders = true
-			} else {
-				if ext[0] != '.' {
-					ext = "." + ext
-				}
-				s.Extensions = append(s.Extensions, ext)
+			if ext[0] != '.' {
+				ext = "." + ext
 			}
+			s.Extensions = append(s.Extensions, ext)
 		}
 	}
 	s.funcMap["selectEntry"] = s.selectEntry
@@ -69,6 +74,10 @@ func New(title string, extensions []string, onSelected func(string)) {
 	s.container.Host.OnClose.Add(func() {
 		s.onSelected("")
 	})
+}
+
+func (s *FilesystemSelect) CanSelectFolder() bool {
+	return s.Folders || len(s.Extensions) == 0
 }
 
 func (s *FilesystemSelect) selectPath(*document.DocElement) {
@@ -136,7 +145,7 @@ func (s *FilesystemSelect) list() {
 				s.Dir = append(s.Dir, dir[i])
 			}
 		}
-	} else if s.SearchFolders {
+	} else if s.Folders {
 		s.Dir = make([]fs.DirEntry, 0, len(dir))
 		for i := range dir {
 			if dir[i].IsDir() {
