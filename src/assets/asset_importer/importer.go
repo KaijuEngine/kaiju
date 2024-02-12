@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* importers_config.go                                                       */
+/* importer.go                                                               */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,11 +35,42 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package importers
+package asset_importer
 
-type ImportType = string
+type Importer interface {
+	Handles(path string) bool
+	Import(path string) error
+}
 
-const (
-	ImportTypeObj  ImportType = "obj"
-	ImportTypeMesh ImportType = "mesh"
-)
+type ImportRegistry struct {
+	importers []Importer
+}
+
+func NewImportRegistry() ImportRegistry {
+	return ImportRegistry{
+		importers: make([]Importer, 0),
+	}
+}
+
+func (r *ImportRegistry) Register(importer Importer) {
+	r.importers = append(r.importers, importer)
+}
+
+func (r *ImportRegistry) Import(path string) error {
+	// We go back to front so devs can override default importers
+	for i := len(r.importers) - 1; i >= 0; i-- {
+		if r.importers[i].Handles(path) {
+			return r.importers[i].Import(path)
+		}
+	}
+	return ErrNoImporter
+}
+
+func (r *ImportRegistry) ImportUsingDefault(path string) error {
+	for i := range r.importers {
+		if r.importers[i].Handles(path) {
+			return r.importers[i].Import(path)
+		}
+	}
+	return ErrNoImporter
+}

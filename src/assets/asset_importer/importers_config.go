@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* obj_importer.go                                                           */
+/* importers_config.go                                                       */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,56 +35,17 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package importers
+package asset_importer
 
-import (
-	"errors"
-	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/project_cache"
-	"kaiju/filesystem"
-	"kaiju/rendering/loaders"
-	"path/filepath"
+import "errors"
 
-	"github.com/KaijuEngine/uuid"
+type ImportType = string
+
+const (
+	ImportTypeObj  ImportType = "obj"
+	ImportTypeMesh ImportType = "mesh"
 )
 
-type OBJImporter struct{}
-
-func (m OBJImporter) Handles(path string) bool {
-	return filepath.Ext(path) == ".obj"
-}
-
-func (m OBJImporter) Import(path string) error {
-	adi, err := asset_info.Read(path)
-	if errors.Is(err, asset_info.ErrNoInfo) {
-		adi = asset_info.New(path, uuid.New().String())
-	} else if err != nil {
-		return err
-	} else {
-		project_cache.DeleteMesh(adi)
-		adi.Children = adi.Children[:0]
-	}
-	adi.Type = ImportTypeObj
-	if err := importMeshToCache(&adi); err != nil {
-		return err
-	}
-	return asset_info.Write(adi)
-}
-
-func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
-	src, err := filesystem.ReadTextFile(adi.Path)
-	if err != nil {
-		return err
-	}
-	res := loaders.OBJ(src)
-	for _, o := range res.Meshes {
-		info := adi.SpawnChild(uuid.New().String())
-		info.Type = ImportTypeMesh
-		info.ParentID = adi.ID
-		if err := project_cache.CacheMesh(info, o); err != nil {
-			return err
-		}
-		adi.Children = append(adi.Children, info)
-	}
-	return nil
-}
+var (
+	ErrNoImporter = errors.New("no importer found for file")
+)
