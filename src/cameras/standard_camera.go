@@ -43,22 +43,25 @@ import (
 )
 
 type StandardCamera struct {
-	view           matrix.Mat4
-	iView          matrix.Mat4
-	projection     matrix.Mat4
-	iProjection    matrix.Mat4
-	frustum        collision.Frustum
-	position       matrix.Vec3
-	lookAt         matrix.Vec3
-	up             matrix.Vec3
-	fieldOfView    float32
-	nearPlane      float32
-	farPlane       float32
-	pitch          float32
-	yaw            float32
-	width          float32
-	height         float32
-	isOrthographic bool
+	view             matrix.Mat4
+	iView            matrix.Mat4
+	projection       matrix.Mat4
+	iProjection      matrix.Mat4
+	frustum          collision.Frustum
+	position         matrix.Vec3
+	lookAt           matrix.Vec3
+	up               matrix.Vec3
+	updateProjection func()
+	updateView       func()
+	fieldOfView      float32
+	nearPlane        float32
+	farPlane         float32
+	pitch            float32
+	yaw              float32
+	width            float32
+	height           float32
+	zoom             float32
+	isOrthographic   bool
 }
 
 func NewStandardCamera(width, height float32, position matrix.Vec3) *StandardCamera {
@@ -84,13 +87,15 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.position = position
 	c.view = matrix.Mat4Identity()
 	c.projection = matrix.Mat4Identity()
-	c.yaw = -90.0
+	c.yaw = 0.0
 	c.pitch = 0.0
 	c.up = matrix.Vec3Up()
 	c.lookAt = matrix.Vec3Forward()
 }
 
 func (c *StandardCamera) initialize(width, height float32) {
+	c.updateProjection = c.internalUpdateProjection
+	c.updateView = c.internalUpdateView
 	c.setProjection(width, height)
 	c.updateView()
 }
@@ -106,7 +111,7 @@ func (c *StandardCamera) setProjection(width, height float32) {
 	c.updateProjection()
 }
 
-func (c *StandardCamera) updateProjection() {
+func (c *StandardCamera) internalUpdateProjection() {
 	if !c.isOrthographic {
 		c.projection.Perspective(matrix.Deg2Rad(c.fieldOfView),
 			c.width/c.height, c.nearPlane, c.farPlane)
@@ -117,7 +122,7 @@ func (c *StandardCamera) updateProjection() {
 	c.iProjection.Inverse()
 }
 
-func (c *StandardCamera) updateView() {
+func (c *StandardCamera) internalUpdateView() {
 	if !c.isOrthographic {
 		c.view.LookAt(c.position, c.lookAt, c.up)
 	} else {
@@ -240,7 +245,7 @@ func (c *StandardCamera) SetYawAndPitch(yaw, pitch float32) {
 	c.updateView()
 }
 
-func (c StandardCamera) Forward() matrix.Vec3 {
+func (c *StandardCamera) Forward() matrix.Vec3 {
 	return matrix.Vec3{
 		-c.iView[matrix.Mat4x0y2],
 		-c.iView[matrix.Mat4x1y2],
@@ -248,7 +253,7 @@ func (c StandardCamera) Forward() matrix.Vec3 {
 	}
 }
 
-func (c StandardCamera) Right() matrix.Vec3 {
+func (c *StandardCamera) Right() matrix.Vec3 {
 	return matrix.Vec3{
 		c.iView[matrix.Mat4x0y0],
 		c.iView[matrix.Mat4x1y0],
@@ -256,7 +261,7 @@ func (c StandardCamera) Right() matrix.Vec3 {
 	}
 }
 
-func (c StandardCamera) Up() matrix.Vec3 {
+func (c *StandardCamera) Up() matrix.Vec3 {
 	return matrix.Vec3{
 		c.iView[matrix.Mat4x0y1],
 		c.iView[matrix.Mat4x1y1],
@@ -284,7 +289,7 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	c.updateView()
 }
 
-func (c StandardCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
+func (c *StandardCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
 	x := (2.0*screenPos.X())/c.width - 1.0
 	y := 1.0 - (2.0*screenPos.Y())/c.height
 	rayNdc := matrix.Vec3{x, y, -1.0}
@@ -318,9 +323,9 @@ func (c *StandardCamera) ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.
 	return c.TryPlaneHit(screenPos, planePos, fwd)
 }
 
-func (c StandardCamera) Position() matrix.Vec3    { return c.position }
-func (c StandardCamera) Width() float32           { return c.width }
-func (c StandardCamera) Height() float32          { return c.height }
+func (c *StandardCamera) Position() matrix.Vec3   { return c.position }
+func (c *StandardCamera) Width() float32          { return c.width }
+func (c *StandardCamera) Height() float32         { return c.height }
 func (c *StandardCamera) View() matrix.Mat4       { return c.view }
 func (c *StandardCamera) Projection() matrix.Mat4 { return c.projection }
 func (c *StandardCamera) Center() matrix.Vec3     { return c.lookAt }
@@ -328,3 +333,4 @@ func (c *StandardCamera) Yaw() float32            { return c.yaw }
 func (c *StandardCamera) Pitch() float32          { return c.pitch }
 func (c *StandardCamera) NearPlane() float32      { return c.nearPlane }
 func (c *StandardCamera) FarPlane() float32       { return c.farPlane }
+func (c *StandardCamera) Zoom() float32           { return c.zoom }

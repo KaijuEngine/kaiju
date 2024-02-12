@@ -53,8 +53,8 @@ type Host struct {
 	editorEntities EditorEntities
 	entities       []*Entity
 	Window         *windowing.Window
-	Camera         *cameras.StandardCamera
-	UICamera       *cameras.StandardCamera
+	Camera         cameras.Camera
+	UICamera       cameras.Camera
 	shaderCache    rendering.ShaderCache
 	textureCache   rendering.TextureCache
 	meshCache      rendering.MeshCache
