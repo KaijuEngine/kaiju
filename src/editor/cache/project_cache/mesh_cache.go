@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* result.go                                                                 */
+/* mesh_cache.go                                                             */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,34 +35,55 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package loaders
+package project_cache
 
-import "kaiju/rendering"
+import (
+	"encoding/gob"
+	"kaiju/assets/asset_info"
+	"kaiju/rendering/loaders"
+	"os"
+	"path/filepath"
+)
 
-type ResultMesh struct {
-	Name    string
-	Verts   []rendering.Vertex
-	Indexes []uint32
+func toCachedMeshPath(path string, adi asset_info.AssetDatabaseInfo) string {
+	return filepath.Join(path, adi.ID+".msh")
 }
 
-type Result struct {
-	Meshes   []ResultMesh
-	Textures []string
-}
-
-func NewResult() Result {
-	return Result{
-		Meshes:   make([]ResultMesh, 0),
-		Textures: make([]string, 0),
+func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh loaders.ResultMesh) error {
+	path := cachePath(meshCache)
+	f, err := os.Create(toCachedMeshPath(path, adi))
+	if err != nil {
+		return err
 	}
+	defer f.Close()
+	enc := gob.NewEncoder(f)
+	return enc.Encode(mesh)
 }
 
-func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
+func LoadCachedMesh(adi asset_info.AssetDatabaseInfo) (loaders.ResultMesh, error) {
+	path := cachePath(meshCache)
+	f, err := os.Open(toCachedMeshPath(path, adi))
+	if err != nil {
+		return loaders.ResultMesh{}, err
+	}
+	defer f.Close()
+	var mesh loaders.ResultMesh
+	dec := gob.NewDecoder(f)
+	err = dec.Decode(&mesh)
+	return mesh, err
+}
 
-func (r *Result) Add(name string, verts []rendering.Vertex, indexes []uint32, textures []string) {
-	r.Meshes = append(r.Meshes, ResultMesh{
-		Name:    name,
-		Verts:   verts,
-		Indexes: indexes,
-	})
+func DeleteMesh(adi asset_info.AssetDatabaseInfo) error {
+	path := cachePath(meshCache)
+	for i := range adi.Children {
+		if err := DeleteMesh(adi.Children[i]); err != nil {
+			return err
+		}
+	}
+	if err := os.Remove(toCachedMeshPath(path, adi)); err != nil {
+		if err != os.ErrNotExist {
+			return err
+		}
+	}
+	return nil
 }

@@ -1687,7 +1687,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{}
 	inputAssembly.SType = vk.StructureTypePipelineInputAssemblyStateCreateInfo
-	switch shader.DrawMode {
+	switch shader.DriverData.DrawMode {
 	case MeshDrawModePoints:
 		inputAssembly.Topology = vk.PrimitiveTopologyPointList
 	case MeshDrawModeLines:
@@ -2227,12 +2227,12 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 }
 
 func (vr *Vulkan) Draw(drawings []ShaderDraw) {
-	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings,
+	vr.DrawMeshes(matrix.ColorDarkBG(), drawings,
 		&vr.defaultTarget)
 }
 
 func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
-	vr.DrawMeshes(matrix.ColorCornflowerBlue(), drawings, target)
+	vr.DrawMeshes(matrix.ColorDarkBG(), drawings, target)
 }
 
 func (vr *Vulkan) doPendingDeletes() {

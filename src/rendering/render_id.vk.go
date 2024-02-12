@@ -58,6 +58,7 @@ type DescriptorSetLayoutStructure struct {
 type ShaderDriverData struct {
 	DescriptorSetLayoutStructure
 	CullMode              vk.CullModeFlagBits
+	DrawMode              MeshDrawMode
 	Stride                uint32
 	OverrideRenderPass    *vk.RenderPass
 	AttributeDescriptions []vk.VertexInputAttributeDescription
@@ -76,6 +77,14 @@ func (d *ShaderDriverData) setup(def ShaderDef, locationStart uint32) {
 	case "front":
 	default:
 		d.CullMode = vk.CullModeFrontBit
+	}
+	switch strings.ToLower(def.DrawMode) {
+	case "lines":
+		d.DrawMode = MeshDrawModeLines
+	case "points":
+		d.DrawMode = MeshDrawModePoints
+	default:
+		d.DrawMode = MeshDrawModeTriangles
 	}
 }
 

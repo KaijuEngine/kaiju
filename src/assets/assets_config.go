@@ -44,6 +44,7 @@ const (
 
 // Shader definitions
 const (
+	ShaderDefinitionGrid         = "shaders/definitions/grid.json"
 	ShaderDefinitionBasic        = "shaders/definitions/basic.json"
 	ShaderDefinitionText3D       = "shaders/definitions/text3d.json"
 	ShaderDefinitionText         = "shaders/definitions/text.json"

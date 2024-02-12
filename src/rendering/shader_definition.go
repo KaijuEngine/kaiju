@@ -152,6 +152,7 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 
 type ShaderDef struct {
 	CullMode string
+	DrawMode string
 	OpenGL   ShaderDefDriver
 	Vulkan   ShaderDefDriver
 	Fields   []ShaderDefField
@@ -168,11 +169,11 @@ type defType struct {
 }
 
 var defTypes = map[string]defType{
-	"float": defType{uint32(floatSize), vk.FormatR32Sfloat, 1},
-	"vec2":  defType{uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
-	"vec3":  defType{uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
-	"vec4":  defType{uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
-	"mat4":  defType{uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
+	"float": {uint32(floatSize), vk.FormatR32Sfloat, 1},
+	"vec2":  {uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
+	"vec3":  {uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
+	"vec4":  {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
+	"mat4":  {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
 }
 
 func (sd *ShaderDef) AddField(name, glslType string) {

@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* result.go                                                                 */
+/* project_cache_config.go                                                   */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,34 +35,29 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package loaders
+package project_cache
 
-import "kaiju/rendering"
+import (
+	"kaiju/editor/cache"
+	"os"
+	"path/filepath"
+)
 
-type ResultMesh struct {
-	Name    string
-	Verts   []rendering.Vertex
-	Indexes []uint32
-}
+const (
+	editorFile = "editor.json"
+	meshCache  = "meshes"
+)
 
-type Result struct {
-	Meshes   []ResultMesh
-	Textures []string
-}
+var createdCachePaths = make(map[string]bool)
 
-func NewResult() Result {
-	return Result{
-		Meshes:   make([]ResultMesh, 0),
-		Textures: make([]string, 0),
+func cachePath(category string) string {
+	// TODO:  If the developer manually deletes the .cache folder
+	// or any of the sub-folders, then we'd have a problem due to
+	// the createdCachePaths check here
+	path := filepath.Join(cache.ProjectCacheFolder, category)
+	if _, ok := createdCachePaths[path]; !ok {
+		os.MkdirAll(path, os.ModePerm)
+		createdCachePaths[path] = true
 	}
-}
-
-func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
-
-func (r *Result) Add(name string, verts []rendering.Vertex, indexes []uint32, textures []string) {
-	r.Meshes = append(r.Meshes, ResultMesh{
-		Name:    name,
-		Verts:   verts,
-		Indexes: indexes,
-	})
+	return path
 }

@@ -45,7 +45,6 @@ import (
 type Shader struct {
 	RenderId   ShaderId
 	SubShader  *Shader
-	DrawMode   MeshDrawMode
 	KeyName    string
 	VertPath   string
 	FragPath   string
@@ -63,7 +62,6 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 	s := &Shader{
 		SubShader:  nil,
 		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
-		DrawMode:   MeshDrawModeTriangles,
 		VertPath:   vertPath,
 		FragPath:   fragPath,
 		GeomPath:   geomPath,
