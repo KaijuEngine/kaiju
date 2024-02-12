@@ -38,6 +38,8 @@
 package project_window
 
 import (
+	"archive/zip"
+	"io"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/ui/files_window"
 	"kaiju/host_container"
@@ -45,6 +47,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"os"
+	"path/filepath"
 )
 
 type windowData struct {
@@ -58,6 +61,32 @@ type ProjectWindow struct {
 	data      windowData
 }
 
+func unzipTemplate(into string) error {
+	r, err := zip.OpenReader("project_template.zip")
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	for _, file := range r.File {
+		sf, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer sf.Close()
+		toPath := filepath.Join(into, file.Name)
+		os.MkdirAll(filepath.Dir(toPath), os.ModePerm)
+		df, err := os.Create(toPath)
+		if err != nil {
+			return err
+		}
+		defer df.Close()
+		if _, err = io.Copy(df, sf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (p *ProjectWindow) newProject(elm *document.DocElement) {
 	path := <-files_window.Folder("Select Project Folder")
 	if path != "" {
@@ -69,6 +98,10 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 		if len(dir) == 0 {
 			// TODO:  Create a new project in the folder
 			println("Creating a new project in", path)
+			if err := unzipTemplate(path); err != nil {
+				println("Error unzipping template", err)
+				return
+			}
 		} else {
 			// TODO:  Check if folder has an existing project in it,
 			// if so, then open the project and add to project cache
