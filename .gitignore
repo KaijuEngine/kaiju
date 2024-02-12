@@ -24,6 +24,7 @@ go.work
 bin/
 external/bin
 interpreter/kaiju-*
+*.zip
 
 # Go pprof files
 *.prof
