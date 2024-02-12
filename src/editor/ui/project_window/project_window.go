@@ -80,17 +80,20 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 		}
 	}
 	if p.picked {
-		editor_cache.AddProject(path)
-		p.Selected <- path
-		p.container.Close()
+		p.pick(path)
 	} else {
 		p.load()
 	}
 }
 
-func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	p.Selected <- elm.HTML.Attribute("data-project")
+func (p *ProjectWindow) pick(path string) {
+	p.Selected <- path
+	p.picked = true
 	p.container.Close()
+}
+
+func (p *ProjectWindow) selectProject(elm *document.DocElement) {
+	p.pick(elm.HTML.Attribute("data-project"))
 }
 
 func (p *ProjectWindow) load() {
