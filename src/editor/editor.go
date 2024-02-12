@@ -38,8 +38,12 @@
 package editor
 
 import (
+	"errors"
 	"kaiju/assets"
+	"kaiju/assets/asset_importer"
+	"kaiju/assets/asset_info"
 	"kaiju/cameras"
+	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/controls"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -47,23 +51,27 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/rendering/loaders"
+	"os"
+	"strings"
 	"unsafe"
 )
 
 type Editor struct {
-	Host    *engine.Host
-	menu    *menu.Menu
-	project string
-	cam     controls.EditorCamera
+	Host           *engine.Host
+	menu           *menu.Menu
+	project        string
+	cam            controls.EditorCamera
+	AssetImporters asset_importer.ImportRegistry
 }
 
 func New(host *engine.Host) *Editor {
 	host.SetFrameRateLimit(60)
 	host.Camera = cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
 	ed := &Editor{
-		Host: host,
+		Host:           host,
+		AssetImporters: asset_importer.NewImportRegistry(),
 	}
+	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	host.Updater.AddUpdate(ed.update)
 	return ed
 }
@@ -76,6 +84,21 @@ type testBasicShaderData struct {
 func (t testBasicShaderData) Size() int {
 	const size = int(unsafe.Sizeof(testBasicShaderData{}) - rendering.ShaderBaseDataStart)
 	return size
+}
+
+func (e *Editor) setProject(project string) error {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		return errors.New("target project is not possible")
+	}
+	if _, err := os.Stat(project); os.IsNotExist(err) {
+		return err
+	}
+	e.project = project
+	if err := os.Chdir(project); err != nil {
+		return err
+	}
+	return asset_info.InitForCurrentProject()
 }
 
 func (e *Editor) setupViewportGrid() {
@@ -112,33 +135,29 @@ func (e *Editor) SetupUI() {
 	e.setupViewportGrid()
 	e.Host.DoneCreatingEditorEntities()
 	projectWindow, _ := project_window.New()
-	e.project = <-projectWindow.Selected
-	println(e.project)
+	project := <-projectWindow.Selected
+	if err := e.setProject(project); err != nil {
+		return
+	}
 
 	// Create a mesh for testing the camera
 	{
-		const monkeyObj = "meshes/monkey.obj"
 		e.Host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
-		monkeyData := klib.MustReturn(e.Host.AssetDatabase().ReadText(monkeyObj))
-		res := loaders.OBJ(monkeyObj, monkeyData)
-		if !res.IsValid() || len(res) != 1 {
-			panic("Expected 1 mesh")
+		adi, err := asset_info.Read("content/meshes/monkey.obj")
+		if err == asset_info.ErrNoInfo {
+			e.AssetImporters.Import("content/meshes/monkey.obj")
+			adi = klib.MustReturn(asset_info.Read("content/meshes/monkey.obj"))
 		}
+		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
 		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-		m := res[0]
-		m.Textures = []string{assets.TextureSquare}
-		textures := []*rendering.Texture{}
-		for _, t := range m.Textures {
-			tex, _ := e.Host.TextureCache().Texture(t, rendering.TextureFilterLinear)
-			textures = append(textures, tex)
-		}
+		tex, _ := e.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
 		e.Host.MeshCache().AddMesh(mesh)
 		e.Host.Drawings.AddDrawing(rendering.Drawing{
 			Renderer:   e.Host.Window.Renderer,
 			Shader:     e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 			Mesh:       mesh,
-			Textures:   textures,
+			Textures:   []*rendering.Texture{tex},
 			ShaderData: &sd,
 		})
 	}

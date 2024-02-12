@@ -248,20 +248,15 @@ func testLayout(host *engine.Host) {
 
 func drawBasicMesh(host *engine.Host, res loaders.Result) {
 	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-	m := res[0]
-	m.Textures = []string{assets.TextureSquare}
-	textures := []*rendering.Texture{}
-	for _, t := range m.Textures {
-		tex, _ := host.TextureCache().Texture(t, rendering.TextureFilterLinear)
-		textures = append(textures, tex)
-	}
+	m := res.Meshes[0]
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
 	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 		Mesh:       mesh,
-		Textures:   textures,
+		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
 	})
 }
@@ -270,8 +265,8 @@ func testMonkeyOBJ(host *engine.Host) {
 	const monkeyObj = "meshes/monkey.obj"
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
-	res := loaders.OBJ(monkeyObj, monkeyData)
-	if !res.IsValid() || len(res) != 1 {
+	res := loaders.OBJ(monkeyData)
+	if !res.IsValid() || len(res.Meshes) != 1 {
 		panic("Expected 1 mesh")
 	}
 	drawBasicMesh(host, res)
@@ -281,7 +276,7 @@ func testMonkeyGLTF(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.gltf"
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
-	if !res.IsValid() || len(res) != 1 {
+	if !res.IsValid() || len(res.Meshes) != 1 {
 		panic("Expected 1 mesh")
 	}
 	drawBasicMesh(host, res)
@@ -291,7 +286,7 @@ func testMonkeyGLB(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.glb"
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
-	if !res.IsValid() || len(res) != 1 {
+	if !res.IsValid() || len(res.Meshes) != 1 {
 		panic("Expected 1 mesh")
 	}
 	drawBasicMesh(host, res)

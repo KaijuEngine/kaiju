@@ -37,10 +37,5 @@
 
 package project_cache
 
-const (
-	cachePath  = ".cache"
-	editorFile = "editor.json"
-)
-
 type ProjectEditorCache struct {
 }

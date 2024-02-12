@@ -191,9 +191,9 @@ func (obj *objBuilder) readFace(line string) {
 	}
 }
 
-func OBJ(key, objData string) Result {
+func OBJ(objData string) Result {
 	builders := ObjToRaw(objData)
-	res := make(Result, 0)
+	res := NewResult()
 	for i := range builders {
 		builder := &builders[i]
 		verts := make([]rendering.Vertex, len(builder.points))
@@ -206,11 +206,7 @@ func OBJ(key, objData string) Result {
 				Color:    builder.colors[builder.vIndexes[vi]],
 			}
 		}
-		meshKey := key
-		if i > 0 {
-			meshKey = fmt.Sprintf("%s_%d", key, i)
-		}
-		res.Add(meshKey, verts, builder.vIndexes, nil)
+		res.Add(builder.name, verts, builder.vIndexes, nil)
 	}
 	return res
 }

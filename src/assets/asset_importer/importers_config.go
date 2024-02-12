@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* result.go                                                                 */
+/* importers_config.go                                                       */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,34 +35,17 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package loaders
+package asset_importer
 
-import "kaiju/rendering"
+import "errors"
 
-type ResultMesh struct {
-	Name    string
-	Verts   []rendering.Vertex
-	Indexes []uint32
-}
+type ImportType = string
 
-type Result struct {
-	Meshes   []ResultMesh
-	Textures []string
-}
+const (
+	ImportTypeObj  ImportType = "obj"
+	ImportTypeMesh ImportType = "mesh"
+)
 
-func NewResult() Result {
-	return Result{
-		Meshes:   make([]ResultMesh, 0),
-		Textures: make([]string, 0),
-	}
-}
-
-func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
-
-func (r *Result) Add(name string, verts []rendering.Vertex, indexes []uint32, textures []string) {
-	r.Meshes = append(r.Meshes, ResultMesh{
-		Name:    name,
-		Verts:   verts,
-		Indexes: indexes,
-	})
-}
+var (
+	ErrNoImporter = errors.New("no importer found for file")
+)

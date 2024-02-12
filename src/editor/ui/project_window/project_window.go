@@ -89,6 +89,9 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 func (p *ProjectWindow) pick(path string) {
 	p.Selected <- path
 	p.picked = true
+	if path != "" {
+		editor_cache.AddProject(path)
+	}
 	p.container.Close()
 }
 
