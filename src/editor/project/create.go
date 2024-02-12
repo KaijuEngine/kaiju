@@ -45,33 +45,26 @@ import (
 	"path/filepath"
 )
 
-const projectTemplateFolder = "project_template"
+const (
+	projectTemplateFolder = "project_template"
+	sourceFolder          = "src/source"
+)
 
-func createSource(projTemplateFolder string) error {
-	sourceDir := filepath.Join(projTemplateFolder, "/source")
-	err := os.Mkdir(sourceDir, 0755)
-	if err != nil {
+func CreateNew(path string) error {
+	if stat, err := os.Stat(path); err != nil {
+		if err = os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+	} else if !stat.IsDir() {
+		return os.ErrExist
+	}
+	if err := unzipTemplate(path); err != nil {
 		return err
 	}
-	mainFile := filepath.Join(sourceDir, "/source.go")
-	_, err = os.Stat(mainFile)
-	if err == nil {
-		return errors.New("source file already exists and should not")
-	}
-	f, err := os.Create(mainFile)
-	if err != nil {
+	if err := createCache(path); err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = f.WriteString(`package source
-
-import "kaiju/engine"
-
-func Main(host *engine.Host) {
-	
-}
-`)
-	return err
+	return createSource(path)
 }
 
 func unzipTemplate(into string) error {
@@ -100,16 +93,36 @@ func unzipTemplate(into string) error {
 	return nil
 }
 
-func CreateNew(path string) error {
-	if stat, err := os.Stat(path); err != nil {
-		if err = os.MkdirAll(path, 0755); err != nil {
-			return err
-		}
-	} else if !stat.IsDir() {
-		return os.ErrExist
+func createCache(projectFolder string) error {
+	if _, err := os.Stat(filepath.Join(projectFolder, "/.cache")); err != nil {
+		return os.Mkdir(filepath.Join(projectFolder, "/.cache"), 0755)
 	}
-	if err := unzipTemplate(path); err != nil {
+	return nil
+}
+
+func createSource(projectFolder string) error {
+	sourceDir := filepath.Join(projectFolder, sourceFolder)
+	err := os.Mkdir(sourceDir, 0755)
+	if err != nil {
 		return err
 	}
-	return createSource(path)
+	mainFile := filepath.Join(sourceDir, "/source.go")
+	_, err = os.Stat(mainFile)
+	if err == nil {
+		return errors.New("source file already exists and should not")
+	}
+	f, err := os.Create(mainFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(`package source
+
+import "kaiju/engine"
+
+func Main(host *engine.Host) {
+	
+}
+`)
+	return err
 }

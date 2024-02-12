@@ -85,7 +85,6 @@ func main() {
 	if contentEntries, err = os.ReadDir(filepath.Join(root, "../content")); err != nil {
 		panic(err)
 	}
-
 	ignoreEntries := strings.Split(ignore, "\n")
 	for i := range ignoreEntries {
 		ignoreEntries[i] = strings.TrimSpace(ignoreEntries[i])
@@ -116,6 +115,13 @@ func zipTemplate(outPath string, srcEntries, contentEntries []fs.DirEntry, ignor
 		}
 		if info.IsDir() || slices.Contains(ignore, path) {
 			return nil
+		} else {
+			dir := filepath.Dir(path)
+			for i := range ignore {
+				if strings.HasPrefix(dir, ignore[i]) {
+					return nil
+				}
+			}
 		}
 		file, err := os.Open(path)
 		if err != nil {

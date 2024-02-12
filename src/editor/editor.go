@@ -44,9 +44,9 @@ import (
 )
 
 type Editor struct {
-	Host          *engine.Host
-	menu          *menu.Menu
-	projectWindow *project_window.ProjectWindow
+	Host    *engine.Host
+	menu    *menu.Menu
+	project string
 }
 
 func New(host *engine.Host) *Editor {
@@ -60,7 +60,7 @@ func (e *Editor) SetupUI() {
 	e.Host.CreatingEditorEntities()
 	e.menu = menu.New(e.Host)
 	e.Host.DoneCreatingEditorEntities()
-	e.projectWindow, _ = project_window.New()
-	project := <-e.projectWindow.Selected
-	println(project)
+	projectWindow, _ := project_window.New()
+	e.project = <-projectWindow.Selected
+	println(e.project)
 }
