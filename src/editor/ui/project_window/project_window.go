@@ -76,7 +76,7 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 		} else if project.IsProjectDirectory(path) {
 			p.picked = true
 		} else {
-			p.data.Error = "Selected folder (" + path + ") is not a Kaiju project"
+			p.data.Error = path + " is not a Kaiju project"
 		}
 	}
 	if p.picked {
@@ -93,7 +93,14 @@ func (p *ProjectWindow) pick(path string) {
 }
 
 func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	p.pick(elm.HTML.Attribute("data-project"))
+	path := elm.HTML.Attribute("data-project")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		p.data.Error = "Project folder no longer exists"
+		editor_cache.RemoveProject(path)
+		p.load()
+	} else {
+		p.pick(path)
+	}
 }
 
 func (p *ProjectWindow) load() {

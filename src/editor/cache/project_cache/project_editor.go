@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* projects.go                                                               */
+/* project_editor.go                                                         */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,97 +35,12 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package editor_cache
-
-import (
-	"kaiju/filesystem"
-	"kaiju/klib"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
-)
+package project_cache
 
 const (
-	projectListFile = "projects.txt"
+	cachePath  = ".cache"
+	editorFile = "editor.json"
 )
 
-func projectCacheFolder() (string, error) {
-	cache, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	cache = filepath.Join(cache, CacheFolder)
-	if _, err := os.Stat(cache); os.IsNotExist(err) {
-		os.Mkdir(cache, os.ModePerm)
-	}
-	return cache, nil
-}
-
-func writeProjectList(cache string, list []string) error {
-	return filesystem.WriteTextFile(filepath.Join(cache, projectListFile), strings.Join(list, "\n"))
-}
-
-func AddProject(project string) error {
-	cache, err := projectCacheFolder()
-	if err != nil {
-		return err
-	}
-	list, err := ListProjects()
-	if err != nil {
-		return err
-	}
-	if !slices.Contains(list, project) {
-		list = append(list, project)
-		return writeProjectList(cache, list)
-	}
-	return nil
-}
-
-func RemoveProject(project string) error {
-	cache, err := projectCacheFolder()
-	if err != nil {
-		return err
-	}
-	list, err := ListProjects()
-	if err != nil {
-		return err
-	}
-	removed := false
-	for i := 0; i < len(list) && !removed; i++ {
-		if list[i] == project {
-			list = klib.RemoveUnordered(list, i)
-			removed = true
-		}
-	}
-	if removed {
-		return writeProjectList(cache, list)
-	}
-	return nil
-
-}
-
-func ListProjects() ([]string, error) {
-	cache, err := projectCacheFolder()
-	if err != nil {
-		return []string{}, err
-	}
-	projectsList := filepath.Join(cache, projectListFile)
-	list, err := filesystem.ReadTextFile(projectsList)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []string{}, nil
-		} else {
-			return []string{}, err
-		}
-	}
-	lines := strings.Split(list, "\n")
-	projects := make([]string, 0, len(lines))
-	for _, s := range lines {
-		s = strings.TrimSpace(s)
-		if s != "" {
-			projects = append(projects, s)
-		}
-	}
-	return projects, nil
+type ProjectEditorCache struct {
 }
