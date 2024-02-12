@@ -56,7 +56,7 @@ type windowData struct {
 type ProjectWindow struct {
 	doc       *document.Document
 	container *host_container.Container
-	Done      chan string
+	Selected  chan string
 	data      windowData
 	picked    bool
 }
@@ -78,7 +78,7 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 	}
 	if p.picked {
 		editor_cache.AddProject(path)
-		p.Done <- path
+		p.Selected <- path
 		p.container.Close()
 	} else {
 		p.load()
@@ -86,8 +86,7 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 }
 
 func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	projectPath := elm.HTML.Attribute("data-project")
-	println("Selecting project", projectPath)
+	p.Selected <- elm.HTML.Attribute("data-project")
 	p.container.Close()
 }
 
@@ -105,7 +104,7 @@ func (p *ProjectWindow) load() {
 
 func New() (*ProjectWindow, error) {
 	p := &ProjectWindow{
-		Done: make(chan string),
+		Selected: make(chan string),
 	}
 	p.container = host_container.New("Project Window")
 	go p.container.Run(600, 400)
@@ -116,9 +115,9 @@ func New() (*ProjectWindow, error) {
 	}
 	p.container.Host.OnClose.Add(func() {
 		if !p.picked {
-			p.Done <- ""
+			p.Selected <- ""
 		}
-		close(p.Done)
+		close(p.Selected)
 	})
 	<-p.container.PrepLock
 	p.container.RunFunction(p.load)
