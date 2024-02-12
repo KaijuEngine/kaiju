@@ -1,0 +1,27 @@
+{
+	"DrawMode": "lines",
+	"OpenGL": {
+		"Vert": "shaders/basic.vert",
+		"Frag": "shaders/grid.frag"
+	},
+	"Vulkan": {
+		"Vert": "shaders/spv/basic.vert.spv",
+		"Frag": "shaders/spv/grid.frag.spv"
+	},
+	"Fields": [
+		{
+			"Name": "model",
+			"Type": "mat4"
+		},
+		{
+			"Name": "color",
+			"Type": "vec4"
+		}
+	],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}]
+}

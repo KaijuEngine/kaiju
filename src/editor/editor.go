@@ -78,9 +78,38 @@ func (t testBasicShaderData) Size() int {
 	return size
 }
 
+func (e *Editor) setupViewportGrid() {
+	const gridCount = 20
+	const halfGridCount = gridCount / 2
+	points := make([]matrix.Vec3, 0, gridCount*4)
+	for i := -halfGridCount; i <= halfGridCount; i++ {
+		points = append(points, matrix.Vec3{float32(i), 0, -halfGridCount})
+		points = append(points, matrix.Vec3{float32(i), 0, halfGridCount})
+		points = append(points, matrix.Vec3{-halfGridCount, 0, float32(i)})
+		points = append(points, matrix.Vec3{halfGridCount, 0, float32(i)})
+	}
+	grid := rendering.NewMeshGrid(e.Host.MeshCache(), "viewport_grid",
+		points, matrix.Color{0.5, 0.5, 0.5, 1})
+	shader := e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	// TODO:  Use a shader that doesn't require a texture
+	tex, _ := e.Host.TextureCache().Texture(
+		assets.TextureSquare, rendering.TextureFilterLinear)
+	e.Host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer: e.Host.Window.Renderer,
+		Shader:   shader,
+		Mesh:     grid,
+		Textures: []*rendering.Texture{tex},
+		ShaderData: &testBasicShaderData{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
+		},
+	})
+}
+
 func (e *Editor) SetupUI() {
 	e.Host.CreatingEditorEntities()
 	e.menu = menu.New(e.Host)
+	e.setupViewportGrid()
 	e.Host.DoneCreatingEditorEntities()
 	projectWindow, _ := project_window.New()
 	e.project = <-projectWindow.Selected

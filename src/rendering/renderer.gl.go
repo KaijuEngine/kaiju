@@ -402,7 +402,7 @@ func (r GLRenderer) Draw(drawings []ShaderDraw) {
 			transparents = append(transparents, st)
 		}
 	}
-	r.solidPass(solids, matrix.ColorCornflowerBlue())
+	r.solidPass(solids, matrix.ColorDarkBG())
 	r.transparentPass(transparents)
 }
 
