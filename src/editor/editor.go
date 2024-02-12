@@ -40,8 +40,8 @@ package editor
 import (
 	"errors"
 	"kaiju/assets"
+	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
-	"kaiju/assets/importers"
 	"kaiju/cameras"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/controls"
@@ -57,18 +57,21 @@ import (
 )
 
 type Editor struct {
-	Host    *engine.Host
-	menu    *menu.Menu
-	project string
-	cam     controls.EditorCamera
+	Host           *engine.Host
+	menu           *menu.Menu
+	project        string
+	cam            controls.EditorCamera
+	AssetImporters asset_importer.ImportRegistry
 }
 
 func New(host *engine.Host) *Editor {
 	host.SetFrameRateLimit(60)
 	host.Camera = cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
 	ed := &Editor{
-		Host: host,
+		Host:           host,
+		AssetImporters: asset_importer.NewImportRegistry(),
 	}
+	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	host.Updater.AddUpdate(ed.update)
 	return ed
 }
@@ -113,7 +116,7 @@ func (e *Editor) SetupUI() {
 		e.Host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 		adi, err := asset_info.Read("content/meshes/monkey.obj")
 		if err == asset_info.ErrNoInfo {
-			importers.OBJImporter{}.Import("content/meshes/monkey.obj")
+			e.AssetImporters.Import("content/meshes/monkey.obj")
 			adi = klib.MustReturn(asset_info.Read("content/meshes/monkey.obj"))
 		}
 		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
