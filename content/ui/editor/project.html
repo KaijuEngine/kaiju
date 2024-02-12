@@ -10,6 +10,11 @@
 			<div class="newProject">
 				<button class="hCenter" onclick="newProject">Select Project Folder</button>
 			</div>
+			{{if .Error}}
+			<div class="errorMsg">
+				<span>{{.Error}}</span>
+			</div>
+			{{else}}
 			<div class="existingProjects">
 				{{range .ExistingProjects}}
 					<div class="project" onclick="selectProject" data-project="{{.}}">
@@ -17,6 +22,7 @@
 					</div>
 				{{end}}
 			</div>
+			{{end}}
 		</div>
 	</body>
 </html>

@@ -50,3 +50,9 @@ button {
 button:hover {
 	background-color: #505050;
 }
+.errorMsg {
+	width: 100%;
+	font-size: 14px;
+	color: red;
+	font-weight: bold;
+}

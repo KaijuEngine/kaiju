@@ -38,53 +38,27 @@
 package project_window
 
 import (
-	"archive/zip"
-	"io"
 	"kaiju/editor/cache/editor_cache"
+	"kaiju/editor/project"
 	"kaiju/editor/ui/files_window"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"os"
-	"path/filepath"
 )
 
 type windowData struct {
 	ExistingProjects []string
+	Error            string
 }
 
 type ProjectWindow struct {
 	doc       *document.Document
 	container *host_container.Container
-	Done      chan struct{}
+	Selected  chan string
 	data      windowData
-}
-
-func unzipTemplate(into string) error {
-	r, err := zip.OpenReader("project_template.zip")
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	for _, file := range r.File {
-		sf, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer sf.Close()
-		toPath := filepath.Join(into, file.Name)
-		os.MkdirAll(filepath.Dir(toPath), os.ModePerm)
-		df, err := os.Create(toPath)
-		if err != nil {
-			return err
-		}
-		defer df.Close()
-		if _, err = io.Copy(df, sf); err != nil {
-			return err
-		}
-	}
-	return nil
+	picked    bool
 }
 
 func (p *ProjectWindow) newProject(elm *document.DocElement) {
@@ -92,34 +66,34 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 	if path != "" {
 		dir, err := os.ReadDir(path)
 		if err != nil {
-			println("Error reading directory", err)
-			return
-		}
-		if len(dir) == 0 {
-			// TODO:  Create a new project in the folder
-			println("Creating a new project in", path)
-			if err := unzipTemplate(path); err != nil {
-				println("Error unzipping template", err)
-				return
-			}
+			p.data.Error = "Error reading directory, check permissions and try again"
+		} else if len(dir) == 0 {
+			project.CreateNew(path)
+			p.picked = true
+		} else if project.IsProjectDirectory(path) {
+			p.picked = true
 		} else {
-			// TODO:  Check if folder has an existing project in it,
-			// if so, then open the project and add to project cache
-
-			// TODO:  Check if the folder is empty, if so, then
-			// create a new project in the folder and add to project cache
+			p.data.Error = "Selected folder (" + path + ") is not a Kaiju project"
 		}
+	}
+	if p.picked {
+		editor_cache.AddProject(path)
+		p.Selected <- path
 		p.container.Close()
+	} else {
+		p.load()
 	}
 }
 
 func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	projectPath := elm.HTML.Attribute("data-project")
-	println("Selecting project", projectPath)
+	p.Selected <- elm.HTML.Attribute("data-project")
 	p.container.Close()
 }
 
-func (p *ProjectWindow) setupUI() {
+func (p *ProjectWindow) load() {
+	for _, e := range p.container.Host.Entities() {
+		e.Destroy()
+	}
 	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("ui/editor/project.html"))
 	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
 		map[string]func(*document.DocElement){
@@ -130,7 +104,7 @@ func (p *ProjectWindow) setupUI() {
 
 func New() (*ProjectWindow, error) {
 	p := &ProjectWindow{
-		Done: make(chan struct{}),
+		Selected: make(chan string),
 	}
 	p.container = host_container.New("Project Window")
 	go p.container.Run(600, 400)
@@ -140,9 +114,12 @@ func New() (*ProjectWindow, error) {
 		return nil, err
 	}
 	p.container.Host.OnClose.Add(func() {
-		p.Done <- struct{}{}
+		if !p.picked {
+			p.Selected <- ""
+		}
+		close(p.Selected)
 	})
 	<-p.container.PrepLock
-	p.container.RunFunction(p.setupUI)
+	p.container.RunFunction(p.load)
 	return p, nil
 }
