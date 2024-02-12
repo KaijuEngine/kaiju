@@ -38,22 +38,44 @@
 package editor
 
 import (
+	"kaiju/assets"
+	"kaiju/cameras"
+	"kaiju/editor/controls"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/engine"
+	"kaiju/klib"
+	"kaiju/matrix"
+	"kaiju/rendering"
+	"kaiju/rendering/loaders"
+	"unsafe"
 )
 
 type Editor struct {
 	Host    *engine.Host
 	menu    *menu.Menu
 	project string
+	cam     controls.EditorCamera
 }
 
 func New(host *engine.Host) *Editor {
 	host.SetFrameRateLimit(60)
-	return &Editor{
+	host.Camera = cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
+	ed := &Editor{
 		Host: host,
 	}
+	host.Updater.AddUpdate(ed.update)
+	return ed
+}
+
+type testBasicShaderData struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t testBasicShaderData) Size() int {
+	const size = int(unsafe.Sizeof(testBasicShaderData{}) - rendering.ShaderBaseDataStart)
+	return size
 }
 
 func (e *Editor) SetupUI() {
@@ -63,4 +85,36 @@ func (e *Editor) SetupUI() {
 	projectWindow, _ := project_window.New()
 	e.project = <-projectWindow.Selected
 	println(e.project)
+
+	// Create a mesh for testing the camera
+	{
+		const monkeyObj = "meshes/monkey.obj"
+		e.Host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+		monkeyData := klib.MustReturn(e.Host.AssetDatabase().ReadText(monkeyObj))
+		res := loaders.OBJ(monkeyObj, monkeyData)
+		if !res.IsValid() || len(res) != 1 {
+			panic("Expected 1 mesh")
+		}
+		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
+		m := res[0]
+		m.Textures = []string{assets.TextureSquare}
+		textures := []*rendering.Texture{}
+		for _, t := range m.Textures {
+			tex, _ := e.Host.TextureCache().Texture(t, rendering.TextureFilterLinear)
+			textures = append(textures, tex)
+		}
+		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
+		e.Host.MeshCache().AddMesh(mesh)
+		e.Host.Drawings.AddDrawing(rendering.Drawing{
+			Renderer:   e.Host.Window.Renderer,
+			Shader:     e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+			Mesh:       mesh,
+			Textures:   textures,
+			ShaderData: &sd,
+		})
+	}
+}
+
+func (ed *Editor) update(delta float64) {
+	ed.cam.Update(ed.Host, delta)
 }
