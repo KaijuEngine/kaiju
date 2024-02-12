@@ -118,19 +118,14 @@ func (e *Editor) SetupUI() {
 		}
 		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
 		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-		m.Textures = []string{assets.TextureSquare}
-		textures := []*rendering.Texture{}
-		for _, t := range m.Textures {
-			tex, _ := e.Host.TextureCache().Texture(t, rendering.TextureFilterLinear)
-			textures = append(textures, tex)
-		}
+		tex, _ := e.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
 		e.Host.MeshCache().AddMesh(mesh)
 		e.Host.Drawings.AddDrawing(rendering.Drawing{
 			Renderer:   e.Host.Window.Renderer,
 			Shader:     e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 			Mesh:       mesh,
-			Textures:   textures,
+			Textures:   []*rendering.Texture{tex},
 			ShaderData: &sd,
 		})
 	}

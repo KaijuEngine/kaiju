@@ -193,7 +193,7 @@ func (obj *objBuilder) readFace(line string) {
 
 func OBJ(objData string) Result {
 	builders := ObjToRaw(objData)
-	res := make(Result, 0)
+	res := NewResult()
 	for i := range builders {
 		builder := &builders[i]
 		verts := make([]rendering.Vertex, len(builder.points))

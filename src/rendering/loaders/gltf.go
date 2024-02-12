@@ -156,7 +156,7 @@ func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (R
 }
 
 func gltfParse(doc *fullGLTF) (Result, error) {
-	res := make(Result, 0)
+	res := NewResult()
 	for i := range doc.glTF.Meshes {
 		mesh := &doc.glTF.Meshes[i]
 		if verts, err := gltfReadMeshVerts(mesh, doc); err != nil {

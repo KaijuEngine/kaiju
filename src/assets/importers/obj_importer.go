@@ -77,7 +77,7 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 		return err
 	}
 	res := loaders.OBJ(src)
-	for _, o := range res {
+	for _, o := range res.Meshes {
 		info := adi.SpawnChild(uuid.New().String())
 		info.Type = ImportTypeMesh
 		info.ParentID = adi.ID
