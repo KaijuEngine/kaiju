@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* importers_config.go                                                       */
+/* obj_importer.go                                                           */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -38,17 +38,15 @@
 package asset_importer
 
 import (
-	"errors"
+	"path/filepath"
 )
 
-type ImportType = string
+type PNGImporter struct{}
 
-const (
-	ImportTypeObj  ImportType = "obj"
-	ImportTypeMesh ImportType = "mesh"
-	ImportTypePNG  ImportType = "png"
-)
+func (m PNGImporter) Handles(path string) bool {
+	return filepath.Ext(path) == ".png"
+}
 
-var (
-	ErrNoImporter = errors.New("no importer found for file")
-)
+func (m PNGImporter) Import(path string) error {
+	return noMutationImport(path)
+}

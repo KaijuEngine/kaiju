@@ -38,7 +38,6 @@
 package asset_importer
 
 import (
-	"errors"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/filesystem"
@@ -54,15 +53,15 @@ func (m OBJImporter) Handles(path string) bool {
 	return filepath.Ext(path) == ".obj"
 }
 
+func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
+	project_cache.DeleteMesh(adi)
+	adi.Children = adi.Children[:0]
+}
+
 func (m OBJImporter) Import(path string) error {
-	adi, err := asset_info.Read(path)
-	if errors.Is(err, asset_info.ErrNoInfo) {
-		adi = asset_info.New(path, uuid.New().String())
-	} else if err != nil {
+	adi, err := createADI(path, cleanupOBJ)
+	if err != nil {
 		return err
-	} else {
-		project_cache.DeleteMesh(adi)
-		adi.Children = adi.Children[:0]
 	}
 	adi.Type = ImportTypeObj
 	if err := importMeshToCache(&adi); err != nil {
