@@ -38,8 +38,12 @@
 package editor
 
 import (
+	"errors"
 	"kaiju/assets"
+	"kaiju/assets/asset_info"
+	"kaiju/assets/importers"
 	"kaiju/cameras"
+	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/controls"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -47,7 +51,8 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/rendering/loaders"
+	"os"
+	"strings"
 	"unsafe"
 )
 
@@ -78,25 +83,41 @@ func (t testBasicShaderData) Size() int {
 	return size
 }
 
+func (e *Editor) setProject(project string) error {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		return errors.New("target project is not possible")
+	}
+	if _, err := os.Stat(project); os.IsNotExist(err) {
+		return err
+	}
+	e.project = project
+	if err := os.Chdir(project); err != nil {
+		return err
+	}
+	return asset_info.InitForCurrentProject()
+}
+
 func (e *Editor) SetupUI() {
 	e.Host.CreatingEditorEntities()
 	e.menu = menu.New(e.Host)
 	e.Host.DoneCreatingEditorEntities()
 	projectWindow, _ := project_window.New()
-	e.project = <-projectWindow.Selected
-	println(e.project)
+	project := <-projectWindow.Selected
+	if err := e.setProject(project); err != nil {
+		return
+	}
 
 	// Create a mesh for testing the camera
 	{
-		const monkeyObj = "meshes/monkey.obj"
 		e.Host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
-		monkeyData := klib.MustReturn(e.Host.AssetDatabase().ReadText(monkeyObj))
-		res := loaders.OBJ(monkeyObj, monkeyData)
-		if !res.IsValid() || len(res) != 1 {
-			panic("Expected 1 mesh")
+		adi, err := asset_info.Read("content/meshes/monkey.obj")
+		if err == asset_info.ErrNoInfo {
+			importers.OBJImporter{}.Import("content/meshes/monkey.obj")
+			adi = klib.MustReturn(asset_info.Read("content/meshes/monkey.obj"))
 		}
+		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
 		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-		m := res[0]
 		m.Textures = []string{assets.TextureSquare}
 		textures := []*rendering.Texture{}
 		for _, t := range m.Textures {

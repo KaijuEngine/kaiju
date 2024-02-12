@@ -270,7 +270,7 @@ func testMonkeyOBJ(host *engine.Host) {
 	const monkeyObj = "meshes/monkey.obj"
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
-	res := loaders.OBJ(monkeyObj, monkeyData)
+	res := loaders.OBJ(monkeyData)
 	if !res.IsValid() || len(res) != 1 {
 		panic("Expected 1 mesh")
 	}

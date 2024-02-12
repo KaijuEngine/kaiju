@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* importer.go                                                               */
+/* projects.go                                                               */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,9 +35,8 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package importers
+package cache
 
-type Importer interface {
-	Handles(path string) bool
-	Import(path string) error
-}
+const (
+	ProjectCacheFolder = ".cache"
+)

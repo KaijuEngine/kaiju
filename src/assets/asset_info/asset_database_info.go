@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* importer.go                                                               */
+/* asset_database_info.go                                                    */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,9 +35,131 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package importers
+package asset_info
 
-type Importer interface {
-	Handles(path string) bool
-	Import(path string) error
+import (
+	"encoding/json"
+	"errors"
+	"kaiju/editor/cache"
+	"kaiju/filesystem"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+const (
+	infoExtension = ".adi"
+)
+
+var (
+	ErrNoInfo = errors.New("asset database does not have info for this file")
+)
+
+type AssetDatabaseInfo struct {
+	ID       string
+	Path     string
+	Type     string
+	ParentID string
+	Children []AssetDatabaseInfo
+}
+
+func InitForCurrentProject() error {
+	return os.MkdirAll(indexPath(), os.ModePerm)
+}
+
+func indexPath() string {
+	return filepath.Join(cache.ProjectCacheFolder, "index")
+}
+
+func toIndexPath(id string) string {
+	return filepath.Join(indexPath(), id)
+}
+
+func toADI(path string) string {
+	return path + infoExtension
+}
+
+func Exists(path string) bool {
+	s, err := os.Stat(toADI(path))
+	return err == nil && !s.IsDir()
+}
+
+func New(path string, id string) AssetDatabaseInfo {
+	if Exists(path) {
+		return AssetDatabaseInfo{}
+	}
+	return AssetDatabaseInfo{
+		ID:   id,
+		Path: path,
+		Type: strings.TrimPrefix(filepath.Ext(path), "."),
+	}
+}
+
+func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
+	return AssetDatabaseInfo{
+		ID:       id,
+		Path:     a.Path,
+		Type:     a.Type,
+		ParentID: a.ID,
+	}
+}
+
+func Read(path string) (AssetDatabaseInfo, error) {
+	adi := AssetDatabaseInfo{}
+	if !Exists(path) {
+		return adi, ErrNoInfo
+	}
+	adiFile := toADI(path)
+	src, err := filesystem.ReadTextFile(adiFile)
+	if err != nil {
+		return adi, err
+	}
+	if err := json.Unmarshal([]byte(src), &adi); err != nil {
+		return adi, err
+	}
+	return adi, nil
+}
+
+func writeIndexes(info AssetDatabaseInfo) error {
+	idx := filepath.Join(cache.ProjectCacheFolder, "index", info.ID)
+	if err := filesystem.WriteTextFile(idx, info.Path); err != nil {
+		return err
+	}
+	for _, child := range info.Children {
+		if err := writeIndexes(child); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Write(adi AssetDatabaseInfo) error {
+	adiFile := toADI(adi.Path)
+	src, err := json.Marshal(adi)
+	if err != nil {
+		return err
+	}
+	if err := filesystem.WriteTextFile(adiFile, string(src)); err != nil {
+		return err
+	}
+	return writeIndexes(adi)
+}
+
+func Move(info AssetDatabaseInfo, newPath string) error {
+	oldPath := info.Path
+	oldAdiPath := toADI(oldPath)
+	newAdiFile := toADI(newPath)
+	info.Path = newPath
+	if err := Write(info); err != nil {
+		return err
+	}
+	return os.Rename(oldAdiPath, newAdiFile)
+}
+
+func ID(path string) (string, error) {
+	aid, err := Read(path)
+	if err != nil {
+		return "", err
+	}
+	return aid.ID, nil
 }

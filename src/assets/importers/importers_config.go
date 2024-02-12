@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* importer.go                                                               */
+/* importers_config.go                                                       */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -37,7 +37,9 @@
 
 package importers
 
-type Importer interface {
-	Handles(path string) bool
-	Import(path string) error
-}
+type ImportType = string
+
+const (
+	ImportTypeObj  ImportType = "obj"
+	ImportTypeMesh ImportType = "mesh"
+)
