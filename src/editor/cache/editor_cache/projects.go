@@ -45,6 +45,10 @@ import (
 	"strings"
 )
 
+const (
+	projectListFile = "projects.txt"
+)
+
 func projectCacheFolder() (string, error) {
 	cache, err := os.UserCacheDir()
 	if err != nil {
@@ -66,9 +70,9 @@ func AddProject(project string) error {
 	if err != nil {
 		return err
 	}
-	if slices.Contains(list, project) {
+	if !slices.Contains(list, project) {
 		list = append(list, project)
-		filesystem.WriteTextFile(cache, strings.Join(list, "\n"))
+		filesystem.WriteTextFile(filepath.Join(cache, projectListFile), strings.Join(list, "\n"))
 	}
 	return nil
 }
@@ -78,7 +82,7 @@ func ListProjects() ([]string, error) {
 	if err != nil {
 		return []string{}, err
 	}
-	projectsList := filepath.Join(cache, "projects.txt")
+	projectsList := filepath.Join(cache, projectListFile)
 	list, err := filesystem.ReadTextFile(projectsList)
 	if err != nil {
 		if os.IsNotExist(err) {
