@@ -38,11 +38,11 @@
 package project
 
 import (
+	"archive/zip"
 	"errors"
-	"kaiju/filesystem"
+	"io"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const projectTemplateFolder = "project_template"
@@ -74,47 +74,41 @@ func Main(host *engine.Host) {
 	return err
 }
 
-func setupBuildScripts(projectName, projTemplateFolder string) error {
-	buildDir := filepath.Join(projTemplateFolder, "/build")
-	files, err := filesystem.ListFilesRecursive(buildDir)
+func unzipTemplate(into string) error {
+	r, err := zip.OpenReader("project_template.zip")
 	if err != nil {
 		return err
 	}
-	for _, file := range files {
-		src, err := filesystem.ReadTextFile(file)
+	defer r.Close()
+	for _, file := range r.File {
+		sf, err := file.Open()
 		if err != nil {
 			return err
 		}
-		src = strings.ReplaceAll(src, "[PROJECT_NAME]", projectName)
-		f, err := os.Create(file)
+		defer sf.Close()
+		toPath := filepath.Join(into, file.Name)
+		os.MkdirAll(filepath.Dir(toPath), os.ModePerm)
+		df, err := os.Create(toPath)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		_, err = f.WriteString(src)
-		if err != nil {
+		defer df.Close()
+		if _, err = io.Copy(df, sf); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func CreateNew(projectName, path string) error {
-	if filepath.Base(path) != projectName {
-		return errors.New("project name and path do not match")
-	}
-	stat, err := os.Stat(path)
-	if err != nil {
+func CreateNew(path string) error {
+	if stat, err := os.Stat(path); err != nil {
 		if err = os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
 	} else if !stat.IsDir() {
 		return os.ErrExist
 	}
-	if err = filesystem.CopyDirectory(projectTemplateFolder, path); err != nil {
-		return err
-	}
-	if err = setupBuildScripts(projectName, projectTemplateFolder); err != nil {
+	if err := unzipTemplate(path); err != nil {
 		return err
 	}
 	return createSource(path)
