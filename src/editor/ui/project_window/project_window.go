@@ -68,8 +68,11 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 		if err != nil {
 			p.data.Error = "Error reading directory, check permissions and try again"
 		} else if len(dir) == 0 {
-			project.CreateNew(path)
-			p.picked = true
+			if err := project.CreateNew(path); err != nil {
+				p.data.Error = "Error creating project: " + err.Error()
+			} else {
+				p.picked = true
+			}
 		} else if project.IsProjectDirectory(path) {
 			p.picked = true
 		} else {

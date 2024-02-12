@@ -85,7 +85,6 @@ func main() {
 	if contentEntries, err = os.ReadDir(filepath.Join(root, "../content")); err != nil {
 		panic(err)
 	}
-
 	ignoreEntries := strings.Split(ignore, "\n")
 	for i := range ignoreEntries {
 		ignoreEntries[i] = strings.TrimSpace(ignoreEntries[i])
