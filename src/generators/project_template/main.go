@@ -78,10 +78,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	entries, err := os.ReadDir(root)
-	if err != nil {
+	var srcEntries, contentEntries []fs.DirEntry
+	if srcEntries, err = os.ReadDir(root); err != nil {
 		panic(err)
 	}
+	if contentEntries, err = os.ReadDir(filepath.Join(root, "../content")); err != nil {
+		panic(err)
+	}
+
 	ignoreEntries := strings.Split(ignore, "\n")
 	for i := range ignoreEntries {
 		ignoreEntries[i] = strings.TrimSpace(ignoreEntries[i])
@@ -94,10 +98,10 @@ func main() {
 	if err := os.Chdir(root); err != nil {
 		panic(err)
 	}
-	zipTemplate("../project_template.zip", entries, ignoreEntries, addFiles)
+	zipTemplate("../project_template.zip", srcEntries, contentEntries, ignoreEntries, addFiles)
 }
 
-func zipTemplate(outPath string, entries []fs.DirEntry, ignore []string, explicitFiles map[string]string) {
+func zipTemplate(outPath string, srcEntries, contentEntries []fs.DirEntry, ignore []string, explicitFiles map[string]string) {
 	file, err := os.Create(outPath)
 	if err != nil {
 		panic(err)
@@ -105,6 +109,7 @@ func zipTemplate(outPath string, entries []fs.DirEntry, ignore []string, explici
 	defer file.Close()
 	w := zip.NewWriter(file)
 	defer w.Close()
+	var containingFolder string
 	walker := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -117,7 +122,7 @@ func zipTemplate(outPath string, entries []fs.DirEntry, ignore []string, explici
 			return err
 		}
 		defer file.Close()
-		f, err := w.Create("src/" + path)
+		f, err := w.Create(filepath.Join(containingFolder, path))
 		if err != nil {
 			return err
 		}
@@ -127,7 +132,18 @@ func zipTemplate(outPath string, entries []fs.DirEntry, ignore []string, explici
 		}
 		return nil
 	}
-	for _, entry := range entries {
+	containingFolder = "src"
+	for _, entry := range srcEntries {
+		err = filepath.Walk(entry.Name(), walker)
+		if err != nil {
+			panic(err)
+		}
+	}
+	containingFolder = "content"
+	if err := os.Chdir("../content"); err != nil {
+		panic(err)
+	}
+	for _, entry := range contentEntries {
 		err = filepath.Walk(entry.Name(), walker)
 		if err != nil {
 			panic(err)
