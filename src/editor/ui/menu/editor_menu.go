@@ -38,6 +38,7 @@
 package menu
 
 import (
+	"kaiju/editor/ui/about_window"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -48,6 +49,7 @@ import (
 )
 
 type Menu struct {
+	host   *engine.Host
 	doc    *document.Document
 	isOpen bool
 }
@@ -80,6 +82,11 @@ func (m *Menu) hoverOpenMenu(targetId string) {
 	}
 }
 
+func openAbout(*document.DocElement) {
+	// TODO:  Open the about in a new window
+	about_window.New()
+}
+
 func openRepository(*document.DocElement) {
 	cmd := "open"
 	if runtime.GOOS == "windows" {
@@ -90,9 +97,12 @@ func openRepository(*document.DocElement) {
 
 func New(host *engine.Host) *Menu {
 	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/editor/menu.html"))
-	m := &Menu{}
+	m := &Menu{
+		host: host,
+	}
 	funcMap := map[string]func(*document.DocElement){
 		"openRepository": openRepository,
+		"openAbout":      openAbout,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")

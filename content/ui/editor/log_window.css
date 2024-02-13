@@ -13,6 +13,7 @@
 .logEntry {
 	width: 100%;
 	height: 40px;
+	padding: 5px;
 	overflow: hidden;
 }
 .logTime {
@@ -32,4 +33,15 @@
 }
 #errorEntryTemplate {
 	visibility: hidden;
+}
+.selectedView {
+	width: 100%;
+	height: calc(100% - 50px);
+	overflow-y: scroll;
+}
+#warn, #warningsBtn {
+	color: yellow;
+}
+#error, #errorsBtn {
+	color: lightcoral;
 }

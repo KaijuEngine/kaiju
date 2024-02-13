@@ -110,7 +110,7 @@ func (p *ProjectWindow) load() {
 	for _, e := range p.container.Host.Entities() {
 		e.Destroy()
 	}
-	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("ui/editor/project.html"))
+	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("ui/editor/project_window.html"))
 	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
 		map[string]func(*document.DocElement){
 			"newProject":    p.newProject,

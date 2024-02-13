@@ -109,7 +109,7 @@ type parseInfo struct {
 	funcMap      map[string]func(DocElement, *Document)
 }
 
-func (h Document) GetElementById(id string) (DocElement, bool) {
+func (h *Document) GetElementById(id string) (DocElement, bool) {
 	if e, ok := h.ids[id]; ok {
 		return e, ok
 	} else {
@@ -117,7 +117,7 @@ func (h Document) GetElementById(id string) (DocElement, bool) {
 	}
 }
 
-func (h Document) GetElementsByGroup(group string) []DocElement {
+func (h *Document) GetElementsByGroup(group string) []DocElement {
 	if e, ok := h.groups[group]; ok {
 		return e
 	} else {
@@ -125,7 +125,7 @@ func (h Document) GetElementsByGroup(group string) []DocElement {
 	}
 }
 
-func (h Document) GetElementsByClass(class string) []DocElement {
+func (h *Document) GetElementsByClass(class string) []DocElement {
 	if e, ok := h.classElements[class]; ok {
 		return e
 	} else {
@@ -133,7 +133,7 @@ func (h Document) GetElementsByClass(class string) []DocElement {
 	}
 }
 
-func (h Document) GetElementsByTagName(tag string) []DocElement {
+func (h *Document) GetElementsByTagName(tag string) []DocElement {
 	if e, ok := h.tagElements[tag]; ok {
 		return e
 	} else {
@@ -304,4 +304,10 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 		}
 	}
 	return parsed
+}
+
+func (d *Document) Destroy() {
+	for i := range d.Elements {
+		d.Elements[i].UI.Entity().Destroy()
+	}
 }

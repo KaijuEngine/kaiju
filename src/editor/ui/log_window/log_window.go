@@ -38,7 +38,6 @@
 package log_window
 
 import (
-	"fmt"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -46,6 +45,7 @@ import (
 	"kaiju/markup/document"
 	"kaiju/systems/logging"
 	"kaiju/ui"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -64,15 +64,20 @@ type visibleMessage struct {
 	Time    string
 	Message string
 	Trace   string
+	Data    map[string]string
 }
 
 func newVisibleMessage(msg string, trace []string) visibleMessage {
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
+	message := mapping["msg"]
+	delete(mapping, "time")
+	delete(mapping, "msg")
 	return visibleMessage{
 		Time:    t.Format(time.StampMilli),
-		Message: mapping["msg"],
+		Message: message,
 		Trace:   strings.Join(trace, "\n"),
+		Data:    mapping,
 	}
 }
 
@@ -80,33 +85,51 @@ type LogWindow struct {
 	doc        *document.Document
 	container  *host_container.Container
 	Group      viewGroup
-	Infos      []visibleMessage
-	Warnings   []visibleMessage
-	Errors     []visibleMessage
-	lastReload float64
+	infos      []visibleMessage
+	warnings   []visibleMessage
+	errors     []visibleMessage
+	lastReload engine.FrameId
+}
+
+func (l *LogWindow) Infos() []visibleMessage {
+	res := slices.Clone(l.infos)
+	slices.Reverse(res)
+	return res
+}
+
+func (l *LogWindow) Warnings() []visibleMessage {
+	res := slices.Clone(l.warnings)
+	slices.Reverse(res)
+	return res
+}
+
+func (l *LogWindow) Errors() []visibleMessage {
+	res := slices.Clone(l.errors)
+	slices.Reverse(res)
+	return res
 }
 
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		container:  host_container.New("Log Window", nil),
-		lastReload: -1,
-		Infos:      make([]visibleMessage, 0),
-		Warnings:   make([]visibleMessage, 0),
-		Errors:     make([]visibleMessage, 0),
+		lastReload: engine.InvalidFrameId,
+		infos:      make([]visibleMessage, 0),
+		warnings:   make([]visibleMessage, 0),
+		errors:     make([]visibleMessage, 0),
 	}
 	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
 	<-l.container.PrepLock
 	l.reloadUI()
 	iID := logStream.OnInfo.Add(func(msg string) {
-		l.Infos = append(l.Infos, newVisibleMessage(msg, []string{}))
+		l.infos = append(l.infos, newVisibleMessage(msg, []string{}))
 		l.reloadUI()
 	})
 	wID := logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.Warnings = append(l.Warnings, newVisibleMessage(msg, trace))
+		l.warnings = append(l.warnings, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
 	eID := logStream.OnError.Add(func(msg string, trace []string) {
-		l.Errors = append(l.Errors, newVisibleMessage(msg, trace))
+		l.errors = append(l.errors, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
 	l.container.Host.OnClose.Add(func() {
@@ -118,9 +141,9 @@ func New(logStream *logging.LogStream) *LogWindow {
 }
 
 func (l *LogWindow) clearAll(e *document.DocElement) {
-	l.Infos = l.Infos[:0]
-	l.Warnings = l.Warnings[:0]
-	l.Errors = l.Errors[:0]
+	l.infos = l.infos[:0]
+	l.warnings = l.warnings[:0]
+	l.errors = l.errors[:0]
 	l.reloadUI()
 }
 
@@ -197,17 +220,30 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 		var target []visibleMessage
 		switch l.Group {
 		case viewGroupInfo:
-			target = l.Infos
+			target = l.infos
 		case viewGroupWarn:
-			target = l.Warnings
+			target = l.warnings
 		case viewGroupError:
-			target = l.Errors
+			target = l.errors
 		}
 		if id >= 0 && id < len(target) {
+			// The lists are printed in reverse order, so we invert the index
+			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
 			lbl := selectedElm.HTML.Children[0].DocumentElement.UI.(*ui.Label)
-			lbl.SetText(fmt.Sprintf("%s\n%s\n\n%s", target[id].Time,
-				target[id].Message, target[id].Trace))
+			sb := strings.Builder{}
+			sb.WriteString(target[id].Time)
+			sb.WriteRune('\n')
+			sb.WriteString(target[id].Message)
+			sb.WriteRune('\n')
+			for k, v := range target[id].Data {
+				sb.WriteString(k)
+				sb.WriteRune('=')
+				sb.WriteString(v)
+				sb.WriteRune('\n')
+			}
+			sb.WriteString(target[id].Trace)
+			lbl.SetText(sb.String())
 			l.showSelected(e)
 		}
 	}
@@ -217,11 +253,11 @@ func (l *LogWindow) reloadUI() {
 	for _, e := range l.container.Host.Entities() {
 		e.Destroy()
 	}
-	rt := l.container.Host.Runtime()
-	if l.lastReload == rt {
+	frame := l.container.Host.Frame()
+	if l.lastReload == frame {
 		return
 	}
-	l.lastReload = rt
+	l.lastReload = frame
 	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("ui/editor/log_window.html"))
 	l.container.RunFunction(func() {
 		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
