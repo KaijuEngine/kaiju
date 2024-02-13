@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/log_window.css">
+	</head>
+	<body>
+		<div class="fill darkBG clip">
+			<div>
+				<button class="topBtn" onclick="clearAll">Clear</button>
+				<button id="infoBtn" class="topBtn" onclick="showInfos">Infos</button>
+				<button id="warningsBtn" class="topBtn" onclick="showWarns">Warnings</button>
+				<button id="errorsBtn" class="topBtn" onclick="showErrors">Errors</button>
+				<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
+			</div>
+			<div id="info" class="logGroup">
+				{{range $i, $v := .Infos}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
+				</div>
+				{{end}}
+			</div>
+			<div id="warn" class="logGroup">
+				{{range $i, $v := .Warnings}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
+				</div>
+				{{end}}
+			</div>
+			<div id="error" class="logGroup">
+				{{range $i, $v := .Errors}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
+				</div>
+				{{end}}
+			</div>
+			<div id="selected" class="selectedView">
+				Nothing selected, select a log from "Infos", "Warnings", or "Errors"
+			</div>
+		</div>
+	</body>
+</html>
