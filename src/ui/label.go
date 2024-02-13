@@ -188,7 +188,7 @@ func (label *Label) renderText() {
 
 func (label *Label) render() {
 	label.uiBase.render()
-	maxWidth := label.MaxWidth()
+	maxWidth := label.nonOverrideMaxWidth()
 	if label.lastRenderWidth != maxWidth {
 		label.lastRenderWidth = maxWidth
 		label.renderRequired = true
@@ -291,13 +291,19 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 	label.overrideMaxWidth = maxWidth
 }
 
-func (label *Label) MaxWidth() float32 {
-	if label.overrideMaxWidth > 0.0 {
-		return label.overrideMaxWidth
-	} else if label.entity.IsRoot() {
+func (label *Label) nonOverrideMaxWidth() float32 {
+	if label.entity.IsRoot() {
 		return 100000.0
 	} else {
 		return label.entity.Parent.Transform.WorldScale().X()
+	}
+}
+
+func (label *Label) MaxWidth() float32 {
+	if label.overrideMaxWidth > 0.0 {
+		return label.overrideMaxWidth
+	} else {
+		return label.nonOverrideMaxWidth()
 	}
 }
 
