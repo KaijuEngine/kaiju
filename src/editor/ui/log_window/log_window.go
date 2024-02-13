@@ -38,7 +38,6 @@
 package log_window
 
 import (
-	"fmt"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -46,7 +45,6 @@ import (
 	"kaiju/markup/document"
 	"kaiju/systems/logging"
 	"kaiju/ui"
-	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -66,15 +64,20 @@ type visibleMessage struct {
 	Time    string
 	Message string
 	Trace   string
+	Data    map[string]string
 }
 
 func newVisibleMessage(msg string, trace []string) visibleMessage {
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
+	message := mapping["msg"]
+	delete(mapping, "time")
+	delete(mapping, "msg")
 	return visibleMessage{
 		Time:    t.Format(time.StampMilli),
-		Message: mapping["msg"],
+		Message: message,
 		Trace:   strings.Join(trace, "\n"),
+		Data:    mapping,
 	}
 }
 
@@ -85,7 +88,7 @@ type LogWindow struct {
 	infos      []visibleMessage
 	warnings   []visibleMessage
 	errors     []visibleMessage
-	lastReload float64
+	lastReload engine.FrameId
 }
 
 func (l *LogWindow) Infos() []visibleMessage {
@@ -109,7 +112,7 @@ func (l *LogWindow) Errors() []visibleMessage {
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		container:  host_container.New("Log Window", nil),
-		lastReload: -1,
+		lastReload: engine.InvalidFrameId,
 		infos:      make([]visibleMessage, 0),
 		warnings:   make([]visibleMessage, 0),
 		errors:     make([]visibleMessage, 0),
@@ -138,9 +141,9 @@ func New(logStream *logging.LogStream) *LogWindow {
 }
 
 func (l *LogWindow) clearAll(e *document.DocElement) {
-	l.Infos = l.Infos[:0]
-	l.Warnings = l.Warnings[:0]
-	l.Errors = l.Errors[:0]
+	l.infos = l.infos[:0]
+	l.warnings = l.warnings[:0]
+	l.errors = l.errors[:0]
 	l.reloadUI()
 }
 
@@ -228,8 +231,19 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
 			lbl := selectedElm.HTML.Children[0].DocumentElement.UI.(*ui.Label)
-			lbl.SetText(fmt.Sprintf("%s\n%s\n\n%s", target[id].Time,
-				target[id].Message, target[id].Trace))
+			sb := strings.Builder{}
+			sb.WriteString(target[id].Time)
+			sb.WriteRune('\n')
+			sb.WriteString(target[id].Message)
+			sb.WriteRune('\n')
+			for k, v := range target[id].Data {
+				sb.WriteString(k)
+				sb.WriteRune('=')
+				sb.WriteString(v)
+				sb.WriteRune('\n')
+			}
+			sb.WriteString(target[id].Trace)
+			lbl.SetText(sb.String())
 			l.showSelected(e)
 		}
 	}
@@ -239,11 +253,11 @@ func (l *LogWindow) reloadUI() {
 	for _, e := range l.container.Host.Entities() {
 		e.Destroy()
 	}
-	rt := l.container.Host.Runtime()
-	if l.lastReload == rt {
+	frame := l.container.Host.Frame()
+	if l.lastReload == frame {
 		return
 	}
-	l.lastReload = rt
+	l.lastReload = frame
 	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("ui/editor/log_window.html"))
 	l.container.RunFunction(func() {
 		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
