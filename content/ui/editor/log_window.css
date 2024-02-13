@@ -39,3 +39,9 @@
 	height: calc(100% - 50px);
 	overflow-y: scroll;
 }
+#warn, #warningsBtn {
+	color: yellow;
+}
+#error, #errorsBtn {
+	color: lightcoral;
+}
