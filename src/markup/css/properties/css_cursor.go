@@ -40,13 +40,92 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/ui"
 )
 
 func (p Cursor) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("Cursor not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return errors.New("no cursor value")
+	}
+	panel.AddEvent(ui.EventTypeEnter, func() {
+		switch values[0].Str {
+		case "text":
+			host.Window.CursorIbeam()
+		case "default":
+			host.Window.CursorStandard()
+		case "context-menu":
+			fallthrough
+		case "help":
+			fallthrough
+		case "pointer":
+			fallthrough
+		case "progress":
+			fallthrough
+		case "wait":
+			fallthrough
+		case "cell":
+			fallthrough
+		case "crosshair":
+			fallthrough
+		case "vertical-text":
+			fallthrough
+		case "alias":
+			fallthrough
+		case "copy":
+			fallthrough
+		case "move":
+			fallthrough
+		case "no-drop":
+			fallthrough
+		case "not-allowed":
+			fallthrough
+		case "grab":
+			fallthrough
+		case "grabbing":
+			fallthrough
+		case "all-scroll":
+			fallthrough
+		case "col-resize":
+			fallthrough
+		case "row-resize":
+			fallthrough
+		case "n-resize":
+			fallthrough
+		case "e-resize":
+			fallthrough
+		case "s-resize":
+			fallthrough
+		case "w-resize":
+			fallthrough
+		case "ne-resize":
+			fallthrough
+		case "nw-resize":
+			fallthrough
+		case "se-resize":
+			fallthrough
+		case "sw-resize":
+			fallthrough
+		case "ew-resize":
+			fallthrough
+		case "ns-resize":
+			fallthrough
+		case "nesw-resize":
+			fallthrough
+		case "nwse-resize":
+			fallthrough
+		case "zoom-in":
+			fallthrough
+		case "zoom-out":
+			klib.NotYetImplemented(180)
+		default:
+			host.Window.CursorStandard()
+		}
+	})
+	panel.AddEvent(ui.EventTypeExit, func() {
+		host.Window.CursorStandard()
+	})
+	return nil
 }
