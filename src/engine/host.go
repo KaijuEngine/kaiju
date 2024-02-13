@@ -46,8 +46,13 @@ import (
 	"kaiju/systems/events"
 	"kaiju/systems/logging"
 	"kaiju/windowing"
+	"math"
 	"time"
 )
+
+type FrameId = uint64
+
+const InvalidFrameId = math.MaxUint64
 
 type Host struct {
 	name           string
@@ -62,6 +67,7 @@ type Host struct {
 	meshCache      rendering.MeshCache
 	fontCache      rendering.FontCache
 	Drawings       rendering.Drawings
+	frame          FrameId
 	frameTime      float64
 	Closing        bool
 	Updater        Updater
@@ -157,6 +163,7 @@ func (host *Host) NewEntity() *Entity {
 }
 
 func (host *Host) Update(deltaTime float64) {
+	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
 	host.Updater.Update(deltaTime)
@@ -186,9 +193,8 @@ func (host *Host) Render() {
 	host.editorEntities.ResetDirty()
 }
 
-func (host *Host) Runtime() float64 {
-	return host.frameTime
-}
+func (host *Host) Frame() FrameId   { return host.frame }
+func (host *Host) Runtime() float64 { return host.frameTime }
 
 func (host *Host) Teardown() {
 	host.OnClose.Execute()
