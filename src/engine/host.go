@@ -157,6 +157,7 @@ func (host *Host) NewEntity() *Entity {
 }
 
 func (host *Host) Update(deltaTime float64) {
+	host.frameTime += deltaTime
 	host.Window.Poll()
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
