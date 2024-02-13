@@ -53,7 +53,6 @@ const (
 	DirtyTypeLayout
 	DirtyTypeResize
 	DirtyTypeGenerated
-	DirtyTypeReGenerated
 	DirtyTypeColorChange
 	DirtyTypeScissor
 	DirtyTypeParent
@@ -164,7 +163,7 @@ func (ui *uiBase) Event(evtType EventType) *events.Event {
 func (ui *uiBase) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
 func (ui *uiBase) SetDirty(dirtyType DirtyType) {
-	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated || dirtyType == DirtyTypeReGenerated {
+	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
 			kid := ui.entity.Children[i]
