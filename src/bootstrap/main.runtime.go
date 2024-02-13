@@ -42,10 +42,11 @@ package bootstrap
 import (
 	"kaiju/host_container"
 	"kaiju/source"
+	"log/slog"
 )
 
 func Main(container *host_container.Container) {
-	println("Starting runtime")
+	slog.Info("Starting runtime")
 	container.RunFunction(func() {
 		source.Main(container.Host)
 	})

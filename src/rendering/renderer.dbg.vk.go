@@ -42,6 +42,7 @@ package rendering
 import (
 	"fmt"
 	"kaiju/klib"
+	"log/slog"
 )
 
 type debugVulkan map[uintptr]string
@@ -60,6 +61,6 @@ func (d debugVulkan) remove(handle uintptr) {
 
 func (d debugVulkan) print() {
 	for _, trace := range d {
-		fmt.Println(trace)
+		slog.Info(trace)
 	}
 }

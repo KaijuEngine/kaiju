@@ -50,6 +50,7 @@ import (
 	"kaiju/rendering/loaders"
 	"kaiju/systems/console"
 	"kaiju/ui"
+	"log/slog"
 	"strings"
 	"unsafe"
 )
@@ -180,9 +181,9 @@ func testButton(host *engine.Host) {
 
 func testHTML(host *engine.Host) {
 	events := map[string]func(*document.DocElement){
-		"playGame":     func(*document.DocElement) { println("Clicked playGame") },
-		"showSettings": func(*document.DocElement) { println("Clicked showSettings") },
-		"showRules":    func(*document.DocElement) { println("Clicked showRules") },
+		"playGame":     func(*document.DocElement) { slog.Info("Clicked playGame") },
+		"showSettings": func(*document.DocElement) { slog.Info("Clicked showSettings") },
+		"showRules":    func(*document.DocElement) { slog.Info("Clicked showRules") },
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")

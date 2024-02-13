@@ -46,6 +46,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"log"
+	"log/slog"
 	"math"
 	"slices"
 	"strings"
@@ -317,7 +318,7 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
 	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
-		log.Printf("%s", "Failed to create the staging buffer for the verts")
+		slog.Error("Failed to create the staging buffer for the verts")
 		return false
 	} else {
 		var data unsafe.Pointer
@@ -325,7 +326,7 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 		vk.Memcopy(data, klib.StructSliceToByteArray(verts))
 		vk.UnmapMemory(vr.device, stagingBufferMemory)
 		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
-			log.Printf("%s", "Failed to create from staging buffer for the verts")
+			slog.Error("Failed to create from staging buffer for the verts")
 			return false
 		} else {
 			vr.CopyBuffer(stagingBuffer, *vertexBuffer, bufferSize)
@@ -346,7 +347,7 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
 	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
-		log.Printf("%s", "Failed to create the staging index buffer")
+		slog.Error("Failed to create the staging index buffer")
 		return false
 	}
 	var data unsafe.Pointer
@@ -354,7 +355,7 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	vk.Memcopy(data, klib.StructSliceToByteArray(indices))
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
-		log.Printf("%s", "Failed to create the index buffer")
+		slog.Error("Failed to create the index buffer")
 		return false
 	}
 	vr.CopyBuffer(stagingBuffer, *indexBuffer, bufferSize)
@@ -391,7 +392,7 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	poolInfo.MaxSets = counts * maxFramesInFlight
 	var descriptorPool vk.DescriptorPool
 	if vk.CreateDescriptorPool(vr.device, &poolInfo, nil, &descriptorPool) != vk.Success {
-		log.Printf("%s", "Failed to create descriptor pool")
+		slog.Error("Failed to create descriptor pool")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(descriptorPool)))
@@ -737,7 +738,7 @@ func (vr *Vulkan) createSwapChain() bool {
 	//free_swap_chain_support_details(scs);
 	var swapChain vk.Swapchain
 	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vk.Success {
-		log.Printf("%s", "Failed to create swap chain")
+		slog.Error("Failed to create swap chain")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(swapChain)))
@@ -945,7 +946,7 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 		}
 	}
 	if physicalDevice == vk.PhysicalDevice(vk.NullHandle) {
-		log.Printf("%s", "Failed to find a compatible physical device")
+		slog.Error("Failed to find a compatible physical device")
 		return false
 	} else {
 		vr.physicalDevice = physicalDevice
@@ -977,7 +978,7 @@ func checkValidationLayerSupport(validationLayers []string) bool {
 		}
 		if !layerFound {
 			available = false
-			log.Printf("Could not find validation layer: %s", layerName)
+			slog.Error("Could not find validation layer", slog.String("layer", layerName))
 		}
 	}
 	return available
@@ -992,7 +993,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, imageFormat, &fp)
 	fp.Deref()
 	if (uint32(fp.OptimalTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) == 0 {
-		log.Printf("%s", "Texture image format does not support linear blitting")
+		slog.Error("Texture image format does not support linear blitting")
 		return false
 	}
 	commandBuffer := vr.beginSingleTimeCommands()
@@ -1073,7 +1074,7 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 	viewInfo.SubresourceRange.LayerCount = uint32(id.LayerCount)
 	var idView vk.ImageView
 	if vk.CreateImageView(vr.device, &viewInfo, nil, &idView) != vk.Success {
-		log.Printf("%s", "Failed to create texture image view")
+		slog.Error("Failed to create texture image view")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(idView)))
@@ -1087,7 +1088,7 @@ func (vr *Vulkan) createImageViews() bool {
 	success := true
 	for i := uint32(0); i < vr.swapChainImageViewCount && success; i++ {
 		if !vr.createImageView(&vr.swapImages[i], vk.ImageAspectFlags(vk.ImageAspectColorBit)) {
-			log.Printf("%s", "Failed to create image views")
+			slog.Error("Failed to create image views")
 			success = false
 		}
 	}
@@ -1128,7 +1129,7 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 	samplerInfo.MaxLod = float32(mipLevels)
 	var localSampler vk.Sampler
 	if vk.CreateSampler(vr.device, &samplerInfo, nil, &localSampler) != vk.Success {
-		log.Printf("%s", "Failed to create texture sampler")
+		slog.Error("Failed to create texture sampler")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(localSampler)))
@@ -1886,7 +1887,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		vr.remakeSwapChain()
 		return false
 	} else if vr.acquireImageResult != vk.Success {
-		log.Printf("Failed to present swap chain image")
+		slog.Error("Failed to present swap chain image")
 		return false
 	}
 	vk.ResetFences(vr.device, 1, fences)
@@ -2628,7 +2629,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		shader.DriverData.DescriptorSetLayoutStructure)
 	if err != nil {
 		// TODO:  Handle this error properly
-		log.Printf("Error: %s", err.Error())
+		slog.Error(err.Error())
 	}
 
 	stages := []vk.PipelineShaderStageCreateInfo{vertStage, tescStage, teseStage, geomStage, fragStage}

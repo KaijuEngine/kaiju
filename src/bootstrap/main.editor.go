@@ -42,10 +42,11 @@ package bootstrap
 import (
 	"kaiju/editor"
 	"kaiju/host_container"
+	"log/slog"
 )
 
 func Main(container *host_container.Container) {
-	println("Starting editor")
+	slog.Info("Starting editor")
 	editor := editor.New(container.Host)
 	container.RunFunction(func() {
 		editor.SetupUI()
