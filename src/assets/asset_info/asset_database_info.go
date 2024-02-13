@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	infoExtension = ".adi"
+	InfoExtension = ".adi"
 )
 
 var (
@@ -76,7 +76,7 @@ func toIndexPath(id string) string {
 }
 
 func toADI(path string) string {
-	return path + infoExtension
+	return path + InfoExtension
 }
 
 func Exists(path string) bool {

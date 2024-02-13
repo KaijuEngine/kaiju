@@ -40,6 +40,7 @@ package asset_importer
 import (
 	"errors"
 	"kaiju/assets/asset_info"
+	"path/filepath"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -63,7 +64,20 @@ func (r *ImportRegistry) Register(importer Importer) {
 	r.importers = append(r.importers, importer)
 }
 
+func (r *ImportRegistry) ImportIfNew(path string) error {
+	if filepath.Ext(path) == asset_info.InfoExtension {
+		return nil
+	}
+	if !asset_info.Exists(path) {
+		return r.Import(path)
+	}
+	return nil
+}
+
 func (r *ImportRegistry) Import(path string) error {
+	if filepath.Ext(path) == asset_info.InfoExtension {
+		return nil
+	}
 	// We go back to front so devs can override default importers
 	for i := len(r.importers) - 1; i >= 0; i-- {
 		if r.importers[i].Handles(path) {
