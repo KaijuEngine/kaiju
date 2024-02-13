@@ -162,7 +162,13 @@ func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 func (label *Label) renderText() {
 	maxWidth := float32(999999.0)
 	if label.wordWrap {
-		maxWidth = label.layout.PixelSize().Width()
+		if label.entity.Parent != nil {
+			p := FirstOnEntity(label.entity.Parent)
+			o := p.Layout().Padding()
+			maxWidth = label.layout.PixelSize().Width() - o.X() - o.Z()
+		} else {
+			maxWidth = label.MaxWidth()
+		}
 	}
 	label.updateHeight(maxWidth)
 	label.clearDrawings()
@@ -295,7 +301,7 @@ func (label *Label) nonOverrideMaxWidth() float32 {
 	if label.entity.IsRoot() {
 		return 100000.0
 	} else {
-		return label.entity.Parent.Transform.WorldScale().X()
+		return label.CalculateMaxWidth()
 	}
 }
 
@@ -401,12 +407,14 @@ func (label *Label) SetFontStyle(style string) {
 	label.SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) CalculateSize() matrix.Vec2 {
+func (label *Label) CalculateMaxWidth() float32 {
 	var maxWidth matrix.Float
 	parent := label.entity.Parent
 	var p *Panel
+	o := matrix.Vec4Zero()
 	for parent != nil {
 		p = FirstPanelOnEntity(parent)
+		o.AddAssign(p.Layout().Padding())
 		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
 			break
 		}
@@ -416,7 +424,11 @@ func (label *Label) CalculateSize() matrix.Vec2 {
 		// TODO:  This will need to be bounded by left offset
 		maxWidth = matrix.Float(label.host.Window.Width())
 	} else {
-		maxWidth = parent.Transform.WorldScale().X()
+		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
 	}
-	return label.measure(maxWidth)
+	return maxWidth
+}
+
+func (label *Label) Measure() matrix.Vec2 {
+	return label.measure(label.CalculateMaxWidth())
 }

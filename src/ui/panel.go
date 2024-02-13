@@ -316,11 +316,6 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 				y += layout.InnerOffset().Bottom()
 			}
 		}
-		if l, ok := e.(*Label); ok {
-			if l.justify == rendering.FontJustifyCenter {
-				x -= offsetX
-			}
-		}
 		x += layout.margin.X()
 		y += rb.maxMarginTop
 		layout.SetRowLayoutOffset(matrix.Vec2{x, y})
@@ -337,7 +332,7 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 		}
 		var size matrix.Vec2
 		if lbl, ok := kui.(*Label); ok {
-			size = lbl.CalculateSize()
+			size = lbl.Measure()
 			// Give a little margin for error on text
 			size[matrix.Vx] += 0.1
 		} else {
