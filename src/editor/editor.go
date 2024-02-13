@@ -45,6 +45,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/controls"
+	"kaiju/editor/project"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/engine"
@@ -72,6 +73,7 @@ func New(host *engine.Host) *Editor {
 		AssetImporters: asset_importer.NewImportRegistry(),
 	}
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
+	ed.AssetImporters.Register(asset_importer.PNGImporter{})
 	host.Updater.AddUpdate(ed.update)
 	return ed
 }
@@ -114,14 +116,10 @@ func (e *Editor) setupViewportGrid() {
 	grid := rendering.NewMeshGrid(e.Host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	shader := e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	// TODO:  Use a shader that doesn't require a texture
-	tex, _ := e.Host.TextureCache().Texture(
-		assets.TextureSquare, rendering.TextureFilterLinear)
 	e.Host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer: e.Host.Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,
-		Textures: []*rendering.Texture{tex},
 		ShaderData: &testBasicShaderData{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
@@ -135,10 +133,11 @@ func (e *Editor) SetupUI() {
 	e.setupViewportGrid()
 	e.Host.DoneCreatingEditorEntities()
 	projectWindow, _ := project_window.New()
-	project := <-projectWindow.Selected
-	if err := e.setProject(project); err != nil {
+	projectPath := <-projectWindow.Selected
+	if err := e.setProject(projectPath); err != nil {
 		return
 	}
+	project.ScanContent(&e.AssetImporters)
 
 	// Create a mesh for testing the camera
 	{

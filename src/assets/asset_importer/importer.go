@@ -37,6 +37,14 @@
 
 package asset_importer
 
+import (
+	"errors"
+	"kaiju/assets/asset_info"
+	"path/filepath"
+
+	"github.com/KaijuEngine/uuid"
+)
+
 type Importer interface {
 	Handles(path string) bool
 	Import(path string) error
@@ -56,7 +64,20 @@ func (r *ImportRegistry) Register(importer Importer) {
 	r.importers = append(r.importers, importer)
 }
 
+func (r *ImportRegistry) ImportIfNew(path string) error {
+	if filepath.Ext(path) == asset_info.InfoExtension {
+		return nil
+	}
+	if !asset_info.Exists(path) {
+		return r.Import(path)
+	}
+	return nil
+}
+
 func (r *ImportRegistry) Import(path string) error {
+	if filepath.Ext(path) == asset_info.InfoExtension {
+		return nil
+	}
 	// We go back to front so devs can override default importers
 	for i := len(r.importers) - 1; i >= 0; i-- {
 		if r.importers[i].Handles(path) {
@@ -73,4 +94,24 @@ func (r *ImportRegistry) ImportUsingDefault(path string) error {
 		}
 	}
 	return ErrNoImporter
+}
+
+func createADI(path string, cleanup func(adi asset_info.AssetDatabaseInfo)) (asset_info.AssetDatabaseInfo, error) {
+	adi, err := asset_info.Read(path)
+	if errors.Is(err, asset_info.ErrNoInfo) {
+		adi = asset_info.New(path, uuid.New().String())
+		err = nil
+	} else if err == nil && cleanup != nil {
+		cleanup(adi)
+	}
+	return adi, err
+}
+
+func noMutationImport(path string) error {
+	adi, err := createADI(path, nil)
+	if err != nil {
+		return err
+	}
+	adi.Type = ImportTypePNG
+	return asset_info.Write(adi)
 }

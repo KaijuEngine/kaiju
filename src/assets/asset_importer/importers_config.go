@@ -37,13 +37,16 @@
 
 package asset_importer
 
-import "errors"
+import (
+	"errors"
+)
 
 type ImportType = string
 
 const (
 	ImportTypeObj  ImportType = "obj"
 	ImportTypeMesh ImportType = "mesh"
+	ImportTypePNG  ImportType = "png"
 )
 
 var (
