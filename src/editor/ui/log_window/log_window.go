@@ -38,13 +38,17 @@
 package log_window
 
 import (
+	"fmt"
+	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/systems/logging"
-	"log/slog"
+	"kaiju/ui"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type viewGroup = int
@@ -53,6 +57,7 @@ const (
 	viewGroupInfo viewGroup = iota
 	viewGroupWarn
 	viewGroupError
+	viewGroupSelected
 )
 
 type visibleMessage struct {
@@ -62,34 +67,34 @@ type visibleMessage struct {
 }
 
 func newVisibleMessage(msg string, trace []string) visibleMessage {
-	msg = strings.TrimPrefix(msg, "time=")
-	timeEnd := strings.Index(msg, " ")
-	msgStart := strings.Index(msg, "msg=")
+	mapping := logging.ToMap(msg)
+	t, _ := time.Parse(time.RFC3339, mapping["time"])
 	return visibleMessage{
-		Time:    msg[:timeEnd],
-		Message: msg[msgStart+4:],
+		Time:    t.Format(time.StampMilli),
+		Message: mapping["msg"],
 		Trace:   strings.Join(trace, "\n"),
 	}
 }
 
 type LogWindow struct {
-	doc       *document.Document
-	container *host_container.Container
-	Group     viewGroup
-	Infos     []visibleMessage
-	Warnings  []visibleMessage
-	Errors    []visibleMessage
+	doc        *document.Document
+	container  *host_container.Container
+	Group      viewGroup
+	Infos      []visibleMessage
+	Warnings   []visibleMessage
+	Errors     []visibleMessage
+	lastReload float64
 }
-
-func (l *LogWindow) ShowingInfos() bool  { return l.Group == viewGroupInfo }
-func (l *LogWindow) ShowingWarns() bool  { return l.Group == viewGroupWarn }
-func (l *LogWindow) ShowingErrors() bool { return l.Group == viewGroupError }
 
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
-		container: host_container.New("Log Window", nil),
+		container:  host_container.New("Log Window", nil),
+		lastReload: -1,
+		Infos:      make([]visibleMessage, 0),
+		Warnings:   make([]visibleMessage, 0),
+		Errors:     make([]visibleMessage, 0),
 	}
-	go l.container.Run(500, 600)
+	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
 	<-l.container.PrepLock
 	l.reloadUI()
 	iID := logStream.OnInfo.Add(func(msg string) {
@@ -112,63 +117,121 @@ func New(logStream *logging.LogStream) *LogWindow {
 	return l
 }
 
-var count = 0
-
 func (l *LogWindow) clearAll(e *document.DocElement) {
-	count++
-	slog.Info("Clearing all logs", slog.Int("Count", count))
-	slog.Warn("Clearing all logs", slog.Int("Count", count))
-	slog.Error("Clearing all logs", slog.Int("Count", count))
-	//l.Infos = l.Infos[:0]
-	//l.Warnings = l.Warnings[:0]
-	//l.Errors = l.Errors[:0]
-	//l.reloadUI()
+	l.Infos = l.Infos[:0]
+	l.Warnings = l.Warnings[:0]
+	l.Errors = l.Errors[:0]
+	l.reloadUI()
 }
 
-func (l *LogWindow) showInfos(e *document.DocElement) {
+func (l *LogWindow) deactivateGroups() {
+	info, _ := l.doc.GetElementById("info")
+	warn, _ := l.doc.GetElementById("warn")
+	err, _ := l.doc.GetElementById("error")
+	selected, _ := l.doc.GetElementById("selected")
+	info.UI.Entity().Deactivate()
+	warn.UI.Entity().Deactivate()
+	err.UI.Entity().Deactivate()
+	selected.UI.Entity().Deactivate()
+	ib, _ := l.doc.GetElementById("infoBtn")
+	wb, _ := l.doc.GetElementById("warningsBtn")
+	eb, _ := l.doc.GetElementById("errorsBtn")
+	sb, _ := l.doc.GetElementById("selectedBtn")
+	ib.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
+	wb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
+	eb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
+	sb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
+}
+
+func (l *LogWindow) showCurrent() {
+	switch l.Group {
+	case viewGroupInfo:
+		l.showInfos(nil)
+	case viewGroupWarn:
+		l.showWarns(nil)
+	case viewGroupError:
+		l.showErrors(nil)
+	case viewGroupSelected:
+		l.showSelected(nil)
+	}
+}
+
+func (l *LogWindow) showInfos(*document.DocElement) {
 	l.Group = viewGroupInfo
-	infoElm, _ := l.doc.GetElementById("info")
-	warnElm, _ := l.doc.GetElementById("warn")
-	errorElm, _ := l.doc.GetElementById("error")
-	infoElm.UI.Entity().Activate()
-	warnElm.UI.Entity().Deactivate()
-	errorElm.UI.Entity().Deactivate()
+	l.deactivateGroups()
+	e, _ := l.doc.GetElementById("info")
+	b, _ := l.doc.GetElementById("infoBtn")
+	e.UI.Entity().Activate()
+	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showWarns(e *document.DocElement) {
+func (l *LogWindow) showWarns(*document.DocElement) {
 	l.Group = viewGroupWarn
-	infoElm, _ := l.doc.GetElementById("info")
-	warnElm, _ := l.doc.GetElementById("warn")
-	errorElm, _ := l.doc.GetElementById("error")
-	infoElm.UI.Entity().Deactivate()
-	warnElm.UI.Entity().Activate()
-	errorElm.UI.Entity().Deactivate()
+	l.deactivateGroups()
+	e, _ := l.doc.GetElementById("warn")
+	b, _ := l.doc.GetElementById("warningsBtn")
+	e.UI.Entity().Activate()
+	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showErrors(e *document.DocElement) {
+func (l *LogWindow) showErrors(*document.DocElement) {
 	l.Group = viewGroupError
-	infoElm, _ := l.doc.GetElementById("info")
-	warnElm, _ := l.doc.GetElementById("warn")
-	errorElm, _ := l.doc.GetElementById("error")
-	infoElm.UI.Entity().Deactivate()
-	warnElm.UI.Entity().Deactivate()
-	errorElm.UI.Entity().Activate()
+	l.deactivateGroups()
+	e, _ := l.doc.GetElementById("error")
+	b, _ := l.doc.GetElementById("errorsBtn")
+	e.UI.Entity().Activate()
+	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+}
+
+func (l *LogWindow) showSelected(*document.DocElement) {
+	l.Group = viewGroupSelected
+	l.deactivateGroups()
+	e, _ := l.doc.GetElementById("selected")
+	b, _ := l.doc.GetElementById("selectedBtn")
+	e.UI.Entity().Activate()
+	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
 }
 
 func (l *LogWindow) selectEntry(e *document.DocElement) {
-	slog.Info("Selected entry", slog.String("Name", e.HTML.Attribute("data-entry")))
+	if id, err := strconv.Atoi(e.HTML.Attribute("data-entry")); err == nil {
+		var target []visibleMessage
+		switch l.Group {
+		case viewGroupInfo:
+			target = l.Infos
+		case viewGroupWarn:
+			target = l.Warnings
+		case viewGroupError:
+			target = l.Errors
+		}
+		if id >= 0 && id < len(target) {
+			selectedElm, _ := l.doc.GetElementById("selected")
+			lbl := selectedElm.HTML.Children[0].DocumentElement.UI.(*ui.Label)
+			lbl.SetText(fmt.Sprintf("%s\n%s\n\n%s", target[id].Time,
+				target[id].Message, target[id].Trace))
+			l.showSelected(e)
+		}
+	}
 }
 
 func (l *LogWindow) reloadUI() {
 	for _, e := range l.container.Host.Entities() {
 		e.Destroy()
 	}
+	rt := l.container.Host.Runtime()
+	if l.lastReload == rt {
+		return
+	}
+	l.lastReload = rt
 	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("ui/editor/log_window.html"))
-	l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
-		"clearAll":    l.clearAll,
-		"showInfos":   l.showInfos,
-		"showWarns":   l.showWarns,
-		"showErrors":  l.showErrors,
-		"selectEntry": l.selectEntry,
+	l.container.RunFunction(func() {
+		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
+			"clearAll":     l.clearAll,
+			"showInfos":    l.showInfos,
+			"showWarns":    l.showWarns,
+			"showErrors":   l.showErrors,
+			"showSelected": l.showSelected,
+			"selectEntry":  l.selectEntry,
+		})
+		l.showCurrent()
 	})
 }

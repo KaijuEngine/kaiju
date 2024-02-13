@@ -8,33 +8,37 @@
 		<div class="fill darkBG clip">
 			<div>
 				<button class="topBtn" onclick="clearAll">Clear</button>
-				<button class="topBtn" onclick="showInfos">Infos</button>
-				<button class="topBtn" onclick="showWarns">Warnings</button>
-				<button class="topBtn" onclick="showErrors">Errors</button>
+				<button id="infoBtn" class="topBtn" onclick="showInfos">Infos</button>
+				<button id="warningsBtn" class="topBtn" onclick="showWarns">Warnings</button>
+				<button id="errorsBtn" class="topBtn" onclick="showErrors">Errors</button>
+				<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
 			</div>
-			<div id="info" class="infoGroup">
-				{{range .Infos}}
-				<div class="logEntry{{if not .ShowingInfos}} hide{{end}}">
-					<span class="logTime">{{.Time}}</span>
-					<span class="logMessage">{{.Message}}</span>
+			<div id="info" class="logGroup">
+				{{range $i, $v := .Infos}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
 				</div>
 				{{end}}
 			</div>
-			<div id="warn" class="warnGroup{{if not .ShowingWarns}} hide{{end}}">
-				{{range .Warnings}}
-				<div class="logEntry">
-					<span class="logTime">{{.Time}}</span>
-					<span class="logMessage">{{.Message}}</span>
+			<div id="warn" class="logGroup">
+				{{range $i, $v := .Warnings}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
 				</div>
 				{{end}}
 			</div>
-			<div id="error" class="errorGroup{{if not .ShowingErrors}} hide{{end}}">
-				{{range .Errors}}
-				<div class="logEntry">
-					<span class="logTime">{{.Time}}</span>
-					<span class="logMessage">{{.Message}}</span>
+			<div id="error" class="logGroup">
+				{{range $i, $v := .Errors}}
+				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
 				</div>
 				{{end}}
+			</div>
+			<div id="selected" class="selectedView">
+				Nothing selected, select a log from "Infos", "Warnings", or "Errors"
 			</div>
 		</div>
 	</body>

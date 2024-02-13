@@ -1,17 +1,14 @@
 .topBtn {
 	margin-right: 5px;
 }
-.logGroup {
-
-}
-.infoGroup {
+#infoBtn {
 	
 }
-.warnGroup {
-	visibility: hidden;
+.logGroup {
+	background-color: #232424;
 }
-.errorGroup {
-	visibility: hidden;
+.logGroup:nth-child(odd) {
+	background-color: #272828;
 }
 .logEntry {
 	width: 100%;
@@ -19,13 +16,13 @@
 	overflow: hidden;
 }
 .logTime {
-
+	font-size: 12px;
 }
 .logMessage {
-
+	font-size: 16px;
 }
 .logTrace {
-
+	font-size: 12px;
 }
 #infoEntryTemplate {
 	visibility: hidden;

@@ -41,6 +41,7 @@ import (
 	"kaiju/klib"
 	"log/slog"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -77,4 +78,16 @@ func Initialize(opts *slog.HandlerOptions) *LogStream {
 	logger := slog.New(newLogHandler(stream, opts))
 	slog.SetDefault(logger)
 	return stream
+}
+
+func ToMap(logMessage string) map[string]string {
+	mapping := make(map[string]string)
+	re := regexp.MustCompile(`(\w+)=("[^"]*"|.*?)(\s|$)`)
+	matches := re.FindAllStringSubmatch(logMessage, -1)
+	for _, match := range matches {
+		key := match[1]
+		value := strings.Trim(match[2], `"`)
+		mapping[key] = value
+	}
+	return mapping
 }
