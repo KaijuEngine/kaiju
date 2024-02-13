@@ -40,12 +40,17 @@ package document
 import (
 	"kaiju/systems/events"
 	"kaiju/ui"
+	"log/slog"
 )
 
 func tryMap(attr string, elm *DocElement, evt *events.Event, funcMap map[string]func(*DocElement)) {
 	if funcName := elm.HTML.Attribute(attr); len(funcName) > 0 {
 		if f, ok := funcMap[funcName]; ok {
 			evt.Add(func() { f(elm) })
+		} else {
+			slog.Warn("Failed to find the event function",
+				slog.String("func", funcName),
+				slog.String("event", attr))
 		}
 	}
 }
