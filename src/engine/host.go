@@ -44,6 +44,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
+	"kaiju/systems/logging"
 	"kaiju/windowing"
 	"time"
 )
@@ -53,6 +54,7 @@ type Host struct {
 	editorEntities EditorEntities
 	entities       []*Entity
 	Window         *windowing.Window
+	LogStream      *logging.LogStream
 	Camera         cameras.Camera
 	UICamera       cameras.Camera
 	shaderCache    rendering.ShaderCache
@@ -71,7 +73,7 @@ type Host struct {
 	inEditorEntity bool
 }
 
-func NewHost(name string) *Host {
+func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
 	host := &Host{
@@ -88,6 +90,7 @@ func NewHost(name string) *Host {
 		CloseSignal:    make(chan struct{}),
 		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3{0, 0, 1}),
 		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 1}),
+		LogStream:      logStream,
 	}
 	host.UICamera.SetPosition(matrix.Vec3{0, 0, 250})
 	return host

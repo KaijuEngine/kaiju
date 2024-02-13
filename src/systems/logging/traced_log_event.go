@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* project_window.go                                                         */
+/* event.go                                                                  */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,107 +35,47 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package project_window
+package logging
 
-import (
-	"kaiju/editor/cache/editor_cache"
-	"kaiju/editor/project"
-	"kaiju/editor/ui/files_window"
-	"kaiju/host_container"
-	"kaiju/klib"
-	"kaiju/markup"
-	"kaiju/markup/document"
-	"os"
-)
-
-type windowData struct {
-	ExistingProjects []string
-	Error            string
+type tracedEventEntry struct {
+	id   Id
+	call func(string, []string)
 }
 
-type ProjectWindow struct {
-	doc       *document.Document
-	container *host_container.Container
-	Selected  chan string
-	data      windowData
-	picked    bool
+type TracedEvent struct {
+	nextId Id
+	calls  []tracedEventEntry
 }
 
-func (p *ProjectWindow) newProject(elm *document.DocElement) {
-	path := <-files_window.Folder("Select Project Folder")
-	if path != "" {
-		dir, err := os.ReadDir(path)
-		if err != nil {
-			p.data.Error = "Error reading directory, check permissions and try again"
-		} else if len(dir) == 0 {
-			if err := project.CreateNew(path); err != nil {
-				p.data.Error = "Error creating project: " + err.Error()
-			} else {
-				p.picked = true
-			}
-		} else if project.IsProjectDirectory(path) {
-			p.picked = true
-		} else {
-			p.data.Error = path + " is not a Kaiju project"
+func newTracedEvent() TracedEvent {
+	return TracedEvent{
+		nextId: 1,
+		calls:  make([]tracedEventEntry, 0),
+	}
+}
+
+func (e TracedEvent) IsEmpty() bool { return len(e.calls) == 0 }
+
+func (e *TracedEvent) Add(call func(msg string, trace []string)) Id {
+	id := e.nextId
+	e.nextId++
+	e.calls = append(e.calls, tracedEventEntry{id, call})
+	return id
+}
+
+func (e *TracedEvent) Remove(id Id) {
+	for i := range e.calls {
+		if e.calls[i].id == id {
+			last := len(e.calls) - 1
+			e.calls[i], e.calls[last] = e.calls[last], e.calls[i]
+			e.calls = e.calls[:last]
+			return
 		}
 	}
-	if p.picked {
-		p.pick(path)
-	} else {
-		p.load()
-	}
 }
 
-func (p *ProjectWindow) pick(path string) {
-	p.Selected <- path
-	p.picked = true
-	if path != "" {
-		editor_cache.AddProject(path)
+func (e *TracedEvent) Execute(message string, trace []string) {
+	for i := range e.calls {
+		e.calls[i].call(message, trace)
 	}
-	p.container.Close()
-}
-
-func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	path := elm.HTML.Attribute("data-project")
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		p.data.Error = "Project folder no longer exists"
-		editor_cache.RemoveProject(path)
-		p.load()
-	} else {
-		p.pick(path)
-	}
-}
-
-func (p *ProjectWindow) load() {
-	for _, e := range p.container.Host.Entities() {
-		e.Destroy()
-	}
-	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("ui/editor/project.html"))
-	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
-		map[string]func(*document.DocElement){
-			"newProject":    p.newProject,
-			"selectProject": p.selectProject,
-		})
-}
-
-func New() (*ProjectWindow, error) {
-	p := &ProjectWindow{
-		Selected: make(chan string),
-	}
-	p.container = host_container.New("Project Window", nil)
-	go p.container.Run(600, 400)
-	var err error
-	p.data.ExistingProjects, err = editor_cache.ListProjects()
-	if err != nil {
-		return nil, err
-	}
-	p.container.Host.OnClose.Add(func() {
-		if !p.picked {
-			p.Selected <- ""
-		}
-		close(p.Selected)
-	})
-	<-p.container.PrepLock
-	p.container.RunFunction(p.load)
-	return p, nil
 }

@@ -98,7 +98,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 	}
 	s.funcMap["selectEntry"] = s.selectEntry
 	s.funcMap["selectPath"] = s.selectPath
-	s.container = host_container.New(title)
+	s.container = host_container.New(title, nil)
 	go s.container.Run(500, 600)
 	<-s.container.PrepLock
 	if here, err := os.Getwd(); err != nil {

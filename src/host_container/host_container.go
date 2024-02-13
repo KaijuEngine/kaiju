@@ -40,6 +40,7 @@ package host_container
 import (
 	"kaiju/engine"
 	"kaiju/systems/console"
+	"kaiju/systems/logging"
 	"runtime"
 	"time"
 )
@@ -79,8 +80,8 @@ func (c *Container) Run(width, height int) error {
 	return nil
 }
 
-func New(name string) *Container {
-	host := engine.NewHost(name)
+func New(name string, logStream *logging.LogStream) *Container {
+	host := engine.NewHost(name, logStream)
 	c := &Container{
 		Host:         host,
 		runFunctions: []func(){},
