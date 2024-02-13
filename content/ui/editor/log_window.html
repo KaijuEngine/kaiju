@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/log_window.css">
+	</head>
+	<body>
+		<div class="fill darkBG clip">
+			<div>
+				<button class="topBtn" onclick="clearAll">Clear</button>
+				<button class="topBtn" onclick="showInfos">Infos</button>
+				<button class="topBtn" onclick="showWarns">Warnings</button>
+				<button class="topBtn" onclick="showErrors">Errors</button>
+			</div>
+			<div id="info" class="infoGroup">
+				{{range .Infos}}
+				<div class="logEntry{{if not .ShowingInfos}} hide{{end}}">
+					<span class="logTime">{{.Time}}</span>
+					<span class="logMessage">{{.Message}}</span>
+				</div>
+				{{end}}
+			</div>
+			<div id="warn" class="warnGroup{{if not .ShowingWarns}} hide{{end}}">
+				{{range .Warnings}}
+				<div class="logEntry">
+					<span class="logTime">{{.Time}}</span>
+					<span class="logMessage">{{.Message}}</span>
+				</div>
+				{{end}}
+			</div>
+			<div id="error" class="errorGroup{{if not .ShowingErrors}} hide{{end}}">
+				{{range .Errors}}
+				<div class="logEntry">
+					<span class="logTime">{{.Time}}</span>
+					<span class="logMessage">{{.Message}}</span>
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>

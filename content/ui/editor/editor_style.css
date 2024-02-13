@@ -6,6 +6,9 @@ body {
 	color: #CCC;
 	background-color: #1f1f1f;
 }
+.hide {
+	visibility: hidden;
+}
 .fill {
 	width: 100%;
 	height: 100%;

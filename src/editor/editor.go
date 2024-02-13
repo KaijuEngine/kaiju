@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/controls"
 	"kaiju/editor/project"
+	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/engine"
@@ -63,6 +64,7 @@ type Editor struct {
 	project        string
 	cam            controls.EditorCamera
 	AssetImporters asset_importer.ImportRegistry
+	logWindow      *log_window.LogWindow
 }
 
 func New(host *engine.Host) *Editor {
@@ -135,6 +137,7 @@ func (e *Editor) SetupUI() {
 	projectWindow, _ := project_window.New()
 	projectPath := <-projectWindow.Selected
 	if err := e.setProject(projectPath); err != nil {
+		e.logWindow = log_window.New(e.Host.LogStream)
 		return
 	}
 	project.ScanContent(&e.AssetImporters)
