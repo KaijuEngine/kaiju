@@ -1,4 +1,5 @@
 {
+	"go.buildTags": "editor",
 	"files.associations": {
 		"glad_wgl.h": "c",
 		"stdint.h": "c",

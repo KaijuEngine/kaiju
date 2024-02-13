@@ -46,6 +46,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/systems/console"
+	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
 	"runtime"
@@ -66,7 +67,8 @@ func addConsole(host *engine.Host) {
 }
 
 func main() {
-	container := host_container.New("Kaiju")
+	logStream := logging.Initialize(nil)
+	container := host_container.New("Kaiju", logStream)
 	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 	<-container.PrepLock
 	container.RunFunction(func() {

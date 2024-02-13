@@ -43,19 +43,21 @@ import (
 	"strings"
 )
 
-func TraceString(message string) string {
-	sb := strings.Builder{}
+func TraceStrings(message string, skip int) []string {
 	pc := make([]uintptr, 15)
-	n := runtime.Callers(2, pc)
+	n := runtime.Callers(skip, pc)
 	frames := runtime.CallersFrames(pc[:n])
-	sb.WriteString(message)
-	sb.WriteRune('\n')
+	result := make([]string, 0)
 	frame, ok := frames.Next()
 	for ok {
-		sb.WriteString(fmt.Sprintf("\t%s:%d %s\n", frame.File, frame.Line, frame.Function))
+		result = append(result, fmt.Sprintf("\t%s:%d %s", frame.File, frame.Line, frame.Function))
 		frame, ok = frames.Next()
 	}
-	return sb.String()
+	return result
+}
+
+func TraceString(message string) string {
+	return strings.Join(TraceStrings(message, 2), "\n")
 }
 
 func Trace(message string) {

@@ -326,7 +326,7 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testMonkeyGLB
 		}
 		if testFunc != nil {
-			c := host_container.New("Test " + t)
+			c := host_container.New("Test "+t, nil)
 			go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 			<-c.PrepLock
 			c.Host.Camera.SetPosition(matrix.Vec3{0, 0, 2})
