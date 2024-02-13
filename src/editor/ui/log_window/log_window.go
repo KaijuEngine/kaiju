@@ -46,6 +46,8 @@ import (
 	"kaiju/markup/document"
 	"kaiju/systems/logging"
 	"kaiju/ui"
+	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -80,33 +82,51 @@ type LogWindow struct {
 	doc        *document.Document
 	container  *host_container.Container
 	Group      viewGroup
-	Infos      []visibleMessage
-	Warnings   []visibleMessage
-	Errors     []visibleMessage
+	infos      []visibleMessage
+	warnings   []visibleMessage
+	errors     []visibleMessage
 	lastReload float64
+}
+
+func (l *LogWindow) Infos() []visibleMessage {
+	res := slices.Clone(l.infos)
+	slices.Reverse(res)
+	return res
+}
+
+func (l *LogWindow) Warnings() []visibleMessage {
+	res := slices.Clone(l.warnings)
+	slices.Reverse(res)
+	return res
+}
+
+func (l *LogWindow) Errors() []visibleMessage {
+	res := slices.Clone(l.errors)
+	slices.Reverse(res)
+	return res
 }
 
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		container:  host_container.New("Log Window", nil),
 		lastReload: -1,
-		Infos:      make([]visibleMessage, 0),
-		Warnings:   make([]visibleMessage, 0),
-		Errors:     make([]visibleMessage, 0),
+		infos:      make([]visibleMessage, 0),
+		warnings:   make([]visibleMessage, 0),
+		errors:     make([]visibleMessage, 0),
 	}
 	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
 	<-l.container.PrepLock
 	l.reloadUI()
 	iID := logStream.OnInfo.Add(func(msg string) {
-		l.Infos = append(l.Infos, newVisibleMessage(msg, []string{}))
+		l.infos = append(l.infos, newVisibleMessage(msg, []string{}))
 		l.reloadUI()
 	})
 	wID := logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.Warnings = append(l.Warnings, newVisibleMessage(msg, trace))
+		l.warnings = append(l.warnings, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
 	eID := logStream.OnError.Add(func(msg string, trace []string) {
-		l.Errors = append(l.Errors, newVisibleMessage(msg, trace))
+		l.errors = append(l.errors, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
 	l.container.Host.OnClose.Add(func() {
@@ -197,13 +217,15 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 		var target []visibleMessage
 		switch l.Group {
 		case viewGroupInfo:
-			target = l.Infos
+			target = l.infos
 		case viewGroupWarn:
-			target = l.Warnings
+			target = l.warnings
 		case viewGroupError:
-			target = l.Errors
+			target = l.errors
 		}
 		if id >= 0 && id < len(target) {
+			// The lists are printed in reverse order, so we invert the index
+			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
 			lbl := selectedElm.HTML.Children[0].DocumentElement.UI.(*ui.Label)
 			lbl.SetText(fmt.Sprintf("%s\n%s\n\n%s", target[id].Time,
