@@ -66,22 +66,23 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 		elm := &doc.Elements[i]
 		e := elm.HTML
 		if e.IsText() {
-			label := elm.UI.(*ui.Label)
 			parentWidth := float32(-1.0)
 			updateSize := func(l *ui.Layout) {
-				if p := ui.FirstOnEntity(label.Entity().Parent); p != nil {
+				if p := ui.FirstOnEntity(l.Ui().Entity().Parent); p != nil {
 					newParentWidth := p.Layout().PixelSize().Width()
 					height := l.PixelSize().Height()
 					if newParentWidth != parentWidth {
 						parentWidth = newParentWidth
+						lbl := l.Ui().(*ui.Label)
 						textSize := host.FontCache().MeasureStringWithin(
-							label.FontFace(), e.Data(), label.FontSize(),
-							parentWidth, label.LineHeight())
+							lbl.FontFace(), e.Data(), lbl.FontSize(),
+							parentWidth, lbl.LineHeight())
 						height = textSize.Height()
 					}
 					l.Scale(parentWidth, height)
 				}
 			}
+			label := elm.UI.(*ui.Label)
 			updateSize(label.Layout())
 			label.Layout().AddFunction(updateSize)
 		}

@@ -69,11 +69,11 @@ func (p Left) Process(panel *ui.Panel, elm document.DocElement, values []rules.P
 			val := helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
 				panel.Layout().AddFunction(func(l *ui.Layout) {
-					if elm.HTML.Parent == nil || elm.HTML.Parent.DocumentElement.UI == nil {
+					if l.Ui().Entity().IsRoot() {
 						return
 					}
-					pLayout := elm.HTML.Parent.DocumentElement.UI.Layout()
-					layout.SetInnerOffsetLeft(pLayout.PixelSize().X() * val)
+					pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+					l.SetInnerOffsetLeft(pLayout.PixelSize().X() * val)
 				})
 			} else {
 				offset[matrix.Vx] += val
