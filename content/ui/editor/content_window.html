@@ -2,23 +2,22 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
-		<link rel="stylesheet" type="text/css" href="ui/editor/filesystem_select.css">
+		<link rel="stylesheet" type="text/css" href="ui/editor/content_window.css">
 	</head>
 	<body>
 		<div class="fill darkBG clip">
-			<div class="pathInput">
-				<input id="pathInput" type="text" placeholder="Path..." value="{{.Path}}" />
-				{{if .CanSelectFolder}}
-					<button id="pathButton" onclick="selectPath">Select</button>
-				{{end}}
+			<div class="searchInput">
+				<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
 			</div>
 			<div id="listing" class="listing">
-				<div class="listEntry" onclick="selectEntry" data-path="../">
+				{{if not .IsRoot}}
+				<div class="listEntry" ondblclick="openContent" data-path="../">
 					<img class="listImg" src="textures/icons/folder.png" />
 					<span>..</span>
 				</div>
+				{{end}}
 				{{range .Dir}}
-				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
+				<div class="listEntry" ondblclick="openContent" data-path="{{.Path}}">
 					{{if .IsDir}}
 						<img class="listImg" src="textures/icons/folder.png" />
 					{{else}}

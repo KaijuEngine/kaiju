@@ -263,6 +263,9 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 }
 
 func (l *LogWindow) reloadUI() {
+	if l.container == nil {
+		return
+	}
 	for _, e := range l.container.Host.Entities() {
 		e.Destroy()
 	}

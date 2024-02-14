@@ -1,7 +1,5 @@
-//go:build editor
-
 /*****************************************************************************/
-/* main.editor.go                                                            */
+/* ui_config.go                                                              */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -37,19 +35,8 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package bootstrap
+package ui
 
-import (
-	"kaiju/editor"
-	"kaiju/host_container"
-	"log/slog"
+const (
+	dblCLickTime = 0.5
 )
-
-func Main(container *host_container.Container) {
-	slog.Info("Starting editor")
-	editor := editor.New(container)
-	container.RunFunction(func() {
-		editor.SetupUI()
-	})
-	<-editor.Host().Done()
-}

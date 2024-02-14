@@ -1,7 +1,5 @@
-//go:build editor
-
 /*****************************************************************************/
-/* main.editor.go                                                            */
+/* content_opener.go                                                         */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -37,19 +35,56 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package bootstrap
+package content_opener
 
 import (
-	"kaiju/editor"
-	"kaiju/host_container"
-	"log/slog"
+	"errors"
+	"kaiju/assets/asset_importer"
+	"kaiju/assets/asset_info"
 )
 
-func Main(container *host_container.Container) {
-	slog.Info("Starting editor")
-	editor := editor.New(container)
-	container.RunFunction(func() {
-		editor.SetupUI()
-	})
-	<-editor.Host().Done()
+var (
+	ErrNoOpener = errors.New("no opener found")
+)
+
+type ContentOpener interface {
+	Handles(adi asset_info.AssetDatabaseInfo) bool
+	Open(adi asset_info.AssetDatabaseInfo) error
+}
+
+type Opener struct {
+	openers  []ContentOpener
+	importer *asset_importer.ImportRegistry
+}
+
+func New(importer *asset_importer.ImportRegistry) Opener {
+	return Opener{
+		importer: importer,
+	}
+}
+
+func (o *Opener) Register(opener ContentOpener) {
+	o.openers = append(o.openers, opener)
+}
+
+func (o *Opener) Open(adi asset_info.AssetDatabaseInfo) error {
+	for i := range o.openers {
+		if o.openers[i].Handles(adi) {
+			return o.openers[i].Open(adi)
+		}
+	}
+	return ErrNoOpener
+}
+
+func (o *Opener) OpenPath(path string) error {
+	if !asset_info.Exists(path) {
+		if err := o.importer.Import(path); err != nil {
+			return err
+		}
+	}
+	if adi, err := asset_info.Read(path); err != nil {
+		return err
+	} else {
+		return o.Open(adi)
+	}
 }

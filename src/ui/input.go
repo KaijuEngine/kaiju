@@ -154,24 +154,9 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input.AddEvent(EventTypeClick, input.onClick)
 	input.AddEvent(EventTypeMiss, input.onMiss)
 	input.AddEvent(EventTypeRebuild, input.onRebuild)
-	// TODO:  Bring back keyboard callback
-	//host.Platform.Keyboard.AddKeyCallback(input.key_pressed)
 	input.makeCursorInvisible()
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
-	// TODO:  When this component is destroyed it should call valk_entity_events_remove
-	// and remove these two events
-
-	// TODO:  Add events
-	//EntityEventVector_add(entity.onActivate, &(EntityEvent) {
-	//	.state = input,
-	//	.exec = local_on_entity_activate
-	//});
-	//EntityEventVector_add(entity.onDeactivate, &(EntityEvent) {
-	//	.state = input,
-	//	.exec = local_on_entity_deactivate
-	//});
-
 	input.innerUpdate = input.update
 	id := host.Window.Keyboard.AddKeyCallback(input.keyPressed)
 	input.entity.OnDestroy.Add(func() {

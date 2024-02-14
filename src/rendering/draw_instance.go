@@ -209,6 +209,9 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 }
 
 func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+	if d.destroyed {
+		return
+	}
 	for i := range d.Instances {
 		d.Instances[i].Destroy()
 	}
