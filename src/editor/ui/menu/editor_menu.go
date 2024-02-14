@@ -45,6 +45,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"log/slog"
 	"os/exec"
 	"runtime"
 )
@@ -111,6 +112,9 @@ func New(host *engine.Host, logWindow *log_window.LogWindow) *Menu {
 		"openLogWindow":  m.openLogWindow,
 		"openRepository": openRepository,
 		"openAbout":      openAbout,
+		"sampleInfo":     func(*document.DocElement) { slog.Info("This is some info") },
+		"sampleWarn":     func(*document.DocElement) { slog.Warn("This is a warning") },
+		"sampleError":    func(*document.DocElement) { slog.Error("This is an error") },
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
