@@ -99,6 +99,7 @@ type uiBase struct {
 	dirtyType    DirtyType
 	shaderData   ShaderData
 	textureSize  matrix.Vec2
+	lastClick    float64
 	updateId     int
 	hovering     bool
 	cantMiss     bool
@@ -314,7 +315,14 @@ func (ui *uiBase) Update(deltaTime float64) {
 				}
 				ui.drag = false
 				if ui.hovering && !dragged {
-					ui.requestEvent(EventTypeClick)
+					rt := ui.host.Runtime()
+					if rt-ui.lastClick < dblCLickTime {
+						ui.requestEvent(EventTypeDoubleClick)
+						ui.lastClick = 0
+					} else {
+						ui.requestEvent(EventTypeClick)
+						ui.lastClick = rt
+					}
 				}
 			} else if !ui.hovering && !ui.cantMiss {
 				ui.requestEvent(EventTypeMiss)

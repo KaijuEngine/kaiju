@@ -57,6 +57,7 @@ func tryMap(attr string, elm *DocElement, evt *events.Event, funcMap map[string]
 
 func setupEvents(elm *DocElement, funcMap map[string]func(*DocElement)) {
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
+	tryMap("ondblclick", elm, elm.UI.Event(ui.EventTypeDoubleClick), funcMap)
 	tryMap("onmouseover", elm, elm.UI.Event(ui.EventTypeEnter), funcMap)
 	tryMap("onmouseenter", elm, elm.UI.Event(ui.EventTypeEnter), funcMap)
 	tryMap("onmouseleave", elm, elm.UI.Event(ui.EventTypeExit), funcMap)
