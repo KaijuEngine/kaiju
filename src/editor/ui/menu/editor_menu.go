@@ -39,6 +39,7 @@ package menu
 
 import (
 	"kaiju/editor/ui/about_window"
+	"kaiju/editor/ui/log_window"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -49,9 +50,10 @@ import (
 )
 
 type Menu struct {
-	host   *engine.Host
-	doc    *document.Document
-	isOpen bool
+	host      *engine.Host
+	doc       *document.Document
+	isOpen    bool
+	logWindow *log_window.LogWindow
 }
 
 func (m *Menu) close() {
@@ -95,12 +97,18 @@ func openRepository(*document.DocElement) {
 	exec.Command(cmd, "https://github.com/KaijuEngine/kaiju").Run()
 }
 
-func New(host *engine.Host) *Menu {
+func (m *Menu) openLogWindow(*document.DocElement) {
+	m.logWindow.Show()
+}
+
+func New(host *engine.Host, logWindow *log_window.LogWindow) *Menu {
 	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/editor/menu.html"))
 	m := &Menu{
-		host: host,
+		host:      host,
+		logWindow: logWindow,
 	}
 	funcMap := map[string]func(*document.DocElement){
+		"openLogWindow":  m.openLogWindow,
 		"openRepository": openRepository,
 		"openAbout":      openAbout,
 	}

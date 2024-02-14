@@ -7,11 +7,15 @@
 	<body>
 		<div id="bar">
 			<span class="menuItem" data-target="FilesList"><span>File</span></span>
+			<span class="menuItem" data-target="WindowList"><span>Window</span></span>
 			<span class="menuItem" data-target="HelpList"><span>Help</span></span>
 			<div id="FilesList" class="menuItemList">
 				<div class="menuItemListItem">New map...</div>
 				<div class="menuItemListItem">Open project...</div>
 				<div class="menuItemListItem">Save map...</div>
+			</div>
+			<div id="WindowList" class="menuItemList">
+				<div class="menuItemListItem" onclick="openLogWindow">Log Window</div>
 			</div>
 			<div id="HelpList" class="menuItemList">
 				<div class="menuItemListItem" onclick="openAbout">About</div>
