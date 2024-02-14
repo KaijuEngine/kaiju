@@ -40,6 +40,7 @@ package engine
 import (
 	"kaiju/matrix"
 	"kaiju/systems/events"
+	"log/slog"
 	"slices"
 )
 
@@ -155,10 +156,12 @@ func (e *Entity) Destroy() {
 
 func (e *Entity) SetParent(newParent *Entity) {
 	if e == newParent {
-		panic("Can't set an entity to parent itself")
+		slog.Error("Can't set an entity to parent itself")
+		return
 	}
 	if newParent != nil && newParent.isDestroyed {
-		panic("Can't set an entity to a destroyed parent")
+		slog.Error("Can't set an entity to a destroyed parent")
+		return
 	}
 	if newParent == e.Parent {
 		return

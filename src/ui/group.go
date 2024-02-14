@@ -40,6 +40,7 @@ package ui
 import (
 	"kaiju/bitmap"
 	"kaiju/engine"
+	"log/slog"
 	"sort"
 )
 
@@ -63,7 +64,8 @@ func NewGroup() *Group {
 
 func (group *Group) requestEvent(ui UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
-		panic("Invalid UI event type")
+		slog.Error("Invalid UI event type")
+		return
 	}
 	group.requests = append(group.requests, groupRequest{
 		target:    ui,
@@ -123,7 +125,8 @@ func (group *Group) lateUpdate() {
 						shouldContinue = false
 					}
 				default:
-					panic("Invalid UI event type")
+					slog.Error("Invalid UI event type")
+					return
 				}
 				available.Assign(req.eventType, shouldContinue)
 			}

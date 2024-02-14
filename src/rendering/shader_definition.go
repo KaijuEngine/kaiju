@@ -40,6 +40,7 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/matrix"
+	"log/slog"
 	"math"
 	"unsafe"
 
@@ -103,7 +104,8 @@ func (l ShaderDefLayout) DescriptorType() vk.DescriptorType {
 	case "AccelerationStructureNvx":
 		return vk.DescriptorTypeAccelerationStructureNvx
 	default:
-		panic("unknown descriptor type")
+		slog.Error("unknown descriptor type", slog.String("DescriptorType", l.Type))
+		return vk.DescriptorTypeUniformBuffer
 	}
 }
 
@@ -144,7 +146,7 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 		case "Mesh":
 			flags |= vk.ShaderStageMeshBitNv
 		default:
-			panic("unknown shader stage flag")
+			slog.Error("unknown shader stage flag", slog.String("flag", l.Flags[i]))
 		}
 	}
 	return flags
