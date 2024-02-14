@@ -116,8 +116,7 @@ func testFont(host *engine.Host) {
 	drawings := host.FontCache().RenderMeshes(host, "Hello, World!",
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
-		matrix.Vec3One(), true, false, []rendering.FontRange{},
-		rendering.FontRegular, 0)
+		matrix.Vec3One(), true, false, rendering.FontRegular, 0)
 	host.Drawings.AddDrawings(drawings)
 }
 

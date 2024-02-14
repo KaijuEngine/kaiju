@@ -134,11 +134,6 @@ type fontBinMetrics struct {
 	EMSize, LineHeight, Ascender, Descender, UnderlineY, UnderlineThickness float32
 }
 
-type FontRange struct {
-	Start, End   int
-	Bold, Italic bool
-}
-
 type fontBinChar struct {
 	letter                   rune
 	advance                  float32
@@ -401,7 +396,7 @@ func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
-	is3D bool, fontRanges []FontRange, face FontFace, lineHeight float32) []Drawing {
+	is3D bool, face FontFace, lineHeight float32) []Drawing {
 	cache.requireFace(face)
 	cx := x
 	cy := y

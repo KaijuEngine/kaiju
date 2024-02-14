@@ -50,7 +50,6 @@ const (
 type colorRange struct {
 	start, end int
 	hue, bgHue matrix.Color
-	isBold     bool
 }
 
 type Label struct {
@@ -178,7 +177,7 @@ func (label *Label) renderText() {
 			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
 			maxWidth, label.color, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
-			false, label.rangesToFont(), label.fontFace, label.lineHeight)
+			false, label.fontFace, label.lineHeight)
 		for i := range label.runeDrawings {
 			label.runeDrawings[i].Transform = &label.entity.Transform
 			label.runeShaderData = append(label.runeShaderData,
@@ -217,18 +216,6 @@ func (label *Label) updateColors() {
 	}
 }
 
-func (label *Label) rangesToFont() []rendering.FontRange {
-	ranges := make([]rendering.FontRange, len(label.colorRanges))
-	for i := 0; i < len(label.colorRanges); i++ {
-		ranges[i] = rendering.FontRange{
-			Start: label.colorRanges[i].start,
-			End:   label.colorRanges[i].end,
-			Bold:  label.colorRanges[i].isBold,
-		}
-	}
-	return ranges
-}
-
 func (label *Label) FontSize() float32 { return label.fontSize }
 
 func (label *Label) SetFontSize(size float32) {
@@ -251,7 +238,7 @@ func (label *Label) SetText(text string) {
 	// TODO:  Put a cap on the length of the string
 	label.textLength = len(label.text)
 	label.SetDirty(DirtyTypeGenerated)
-	label.colorRanges = make([]colorRange, 0)
+	label.colorRanges = label.colorRanges[:0]
 }
 
 func (label *Label) setLabelScissors() {
@@ -322,11 +309,10 @@ func (label *Label) SetWidthAutoHeight(width float32) {
 func (label *Label) findColorRange(start, end int) *colorRange {
 	// TODO:  Remove/update overlapped ranges
 	newRange := colorRange{
-		start:  start,
-		end:    end,
-		hue:    label.color,
-		bgHue:  label.bgColor,
-		isBold: false,
+		start: start,
+		end:   end,
+		hue:   label.color,
+		bgHue: label.bgColor,
 	}
 	//label.colorRanges = append(label.colorRanges, newRange)
 	//return &label.colorRanges[len(label.colorRanges)-1]
@@ -345,7 +331,6 @@ func (label *Label) BoldRange(start, end int) {
 	cRange := label.findColorRange(start, end)
 	cRange.hue = label.color
 	cRange.bgHue = label.bgColor
-	cRange.isBold = true
 	label.colorRange(*cRange)
 	label.updateColors()
 }
