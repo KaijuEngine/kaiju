@@ -1,5 +1,19 @@
 {
 	"go.buildTags": "editor",
+	"gopls": {
+		"build.env": {
+			"CGO_LDFLAGS": "-lgdi32 -lXInput"
+		},
+		"ui.codelenses": {
+			"references": true,
+			"generate": true,
+			"gc_details": true,
+			"test": true
+		},
+		"ui.diagnostic.annotations": {
+			"escape": true
+		}
+	},
 	"go.testEnvVars": {
 		"CGO_LDFLAGS": "-lgdi32 -lXInput"
 	},
@@ -25,6 +39,7 @@
 	"cSpell.words": [
 		"Farris",
 		"kaiju",
-		"Vulkan"
+		"Vulkan",
+		"klib"
 	],
 }
