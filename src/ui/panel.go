@@ -129,6 +129,7 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	}
 	panel.updateId = host.Updater.AddUpdate(panel.update)
 	panel.init(host, ts, anchor, panel)
+	panel.entity.SetChildrenOrdered()
 	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
 	if texture != nil {
 		panel.ensureBGExists(texture)
