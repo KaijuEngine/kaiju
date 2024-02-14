@@ -37,7 +37,11 @@
 
 package matrix
 
-import "math"
+import (
+	"kaiju/klib"
+	"math"
+	"slices"
+)
 
 type Transform struct {
 	localMatrix               Mat4
@@ -45,7 +49,9 @@ type Transform struct {
 	parent                    *Transform
 	children                  []*Transform
 	position, rotation, scale Vec3
-	isDirty, isLive           bool
+	isDirty                   bool
+	isLive                    bool
+	orderedChildren           bool
 }
 
 func NewTransform() Transform {
@@ -59,24 +65,27 @@ func NewTransform() Transform {
 	}
 }
 
-func (t *Transform) Position() Vec3 {
-	return t.position
-}
+func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
+func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
 
-func (t *Transform) Rotation() Vec3 {
-	return t.rotation
-}
-
-func (t *Transform) Scale() Vec3 {
-	return t.scale
-}
+func (t *Transform) StartLive()     { t.isLive = true }
+func (t *Transform) StopLive()      { t.isLive = false }
+func (t *Transform) IsDirty() bool  { return t.isDirty }
+func (t *Transform) Position() Vec3 { return t.position }
+func (t *Transform) Rotation() Vec3 { return t.rotation }
+func (t *Transform) Scale() Vec3    { return t.scale }
+func (t *Transform) Right() Vec3    { return t.localMatrix.Right().Normal() }
+func (t *Transform) Up() Vec3       { return t.localMatrix.Up().Normal() }
+func (t *Transform) Forward() Vec3  { return t.localMatrix.Forward().Normal() }
 
 func (t *Transform) removeChild(child *Transform) {
 	for i, c := range t.children {
 		if c == child {
-			last := len(t.children) - 1
-			t.children[i] = t.children[last]
-			t.children = t.children[:last]
+			if t.orderedChildren {
+				t.children = slices.Delete(t.children, i, i+1)
+			} else {
+				t.children = klib.RemoveUnordered(t.children, i)
+			}
 			break
 		}
 	}
@@ -116,18 +125,6 @@ func (t *Transform) SetParent(parent *Transform) {
 	t.SetScale(scale)
 }
 
-func (t *Transform) Right() Vec3 {
-	return t.localMatrix.Right().Normal()
-}
-
-func (t *Transform) Up() Vec3 {
-	return t.localMatrix.Up().Normal()
-}
-
-func (t *Transform) Forward() Vec3 {
-	return t.localMatrix.Forward().Normal()
-}
-
 func (t *Transform) SetDirty() {
 	t.isDirty = true
 	for _, child := range t.children {
@@ -140,10 +137,6 @@ func (t *Transform) ResetDirty() {
 		t.UpdateMatrix()
 		t.isDirty = false
 	}
-}
-
-func (t *Transform) IsDirty() bool {
-	return t.isDirty
 }
 
 func (t *Transform) SetPosition(position Vec3) {
@@ -165,14 +158,6 @@ func (t *Transform) SetScale(scale Vec3) {
 		t.scale = scale
 		t.SetDirty()
 	}
-}
-
-func (t *Transform) StartLive() {
-	t.isLive = true
-}
-
-func (t *Transform) StopLive() {
-	t.isLive = false
 }
 
 func (t *Transform) UpdateMatrix() {

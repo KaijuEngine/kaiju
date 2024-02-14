@@ -190,14 +190,6 @@ type Layout struct {
 	runningFuncs     bool
 }
 
-func NewLayout(ui UI) Layout {
-	return Layout{
-		ui:          ui,
-		anchor:      matrix.Vec2{0.0, 0.0},
-		positioning: PositioningAbsolute,
-	}
-}
-
 func (l *Layout) AddFunction(fn func(layout *Layout)) LayoutFuncId {
 	return l.functions.Add(fn)
 }
@@ -213,6 +205,8 @@ func (l *Layout) ClearFunctions() {
 func (l *Layout) PixelSize() matrix.Vec2 {
 	return l.ui.Entity().Transform.WorldScale().AsVec2()
 }
+
+func (l *Layout) Ui() UI { return l.ui }
 
 func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return -w*0.5 + size.X()*0.5 + edges.Left()

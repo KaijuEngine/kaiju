@@ -63,7 +63,8 @@ func (p *Panel) ConvertToSlider() *Slider {
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = NewPanel(host, tex, AnchorLeft)
 	ld.bgPanel.layout.AddFunction(func(l *Layout) {
-		w, h := p.layout.ContentSize()
+		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
+		w, h := pLayout.ContentSize()
 		// TODO:  Why -10?
 		l.Scale(w-10, h)
 	})
@@ -72,9 +73,11 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
 	ld.fgPanel.layout.AddFunction(func(l *Layout) {
-		_, h := p.layout.ContentSize()
-		ld.fgPanel.layout.Scale(h/2, h)
-		s.SetValue(s.Value())
+		pp := FirstPanelOnEntity(l.Ui().Entity().Parent)
+		ps := (*Slider)(pp)
+		_, h := pp.Layout().ContentSize()
+		l.Scale(h/2, h)
+		ps.SetValue(ps.Value())
 	})
 	ld.fgPanel.SetColor(matrix.ColorWhite())
 	ld.bgPanel.entity.SetParent(p.entity)

@@ -39,19 +39,13 @@ package klib
 
 import "math/rand"
 
-type Anything interface {
+func RemoveUnordered[T any](slice []T, idx int) []T {
+	last := len(slice) - 1
+	slice[idx] = slice[last]
+	return slice[:last]
 }
 
-func RemoveOrdered[T Anything](slice []T, idx int) []T {
-	return append(slice[:idx], slice[idx+1:]...)
-}
-
-func RemoveUnordered[T Anything](slice []T, idx int) []T {
-	slice[idx] = slice[len(slice)-1]
-	return slice[:len(slice)-1]
-}
-
-func Shuffle[T Anything](slice []T, rng *rand.Rand) {
+func Shuffle[T any](slice []T, rng *rand.Rand) {
 	for i := len(slice) - 1; i > 0; i-- {
 		j := rng.Intn(i + 1)
 		slice[i], slice[j] = slice[j], slice[i]

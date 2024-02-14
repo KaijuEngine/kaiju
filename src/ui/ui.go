@@ -120,7 +120,7 @@ func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
-	ui.layout.initialize(ui, anchor)
+	ui.layout.initialize(self, anchor)
 	if ui.updateId == 0 {
 		ui.updateId = host.Updater.AddUpdate(ui.Update)
 	}

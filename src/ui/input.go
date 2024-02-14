@@ -109,7 +109,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		ps := input.layout.PixelSize()
+		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
+		ps := pLayout.PixelSize()
 		l.ScaleWidth(ps.Width())
 	})
 
@@ -122,7 +123,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
 		l.SetOffset(horizontalPadding, 0)
-		ps := input.layout.PixelSize()
+		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
+		ps := pLayout.PixelSize()
 		l.ScaleWidth(ps.Width())
 	})
 
@@ -133,7 +135,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
 	p.AddChild(data.cursor)
 	data.cursor.layout.AddFunction(func(l *Layout) {
-		l.Scale(cursorWidth, input.layout.PixelSize().Height()-5)
+		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
+		l.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
 	})
 
 	// Create the highlight

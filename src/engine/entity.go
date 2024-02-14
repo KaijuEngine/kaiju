@@ -38,6 +38,7 @@
 package engine
 
 import (
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"log/slog"
@@ -58,6 +59,7 @@ type Entity struct {
 	isDestroyed                     bool
 	isActive, deactivatedFromParent bool
 	relativeTransformations         bool
+	orderedChildren                 bool
 }
 
 func NewEntity() *Entity {
@@ -74,16 +76,18 @@ func NewEntity() *Entity {
 	}
 }
 
-func (e *Entity) IsRoot() bool {
-	return e.Parent == nil
+func (e *Entity) IsRoot() bool            { return e.Parent == nil }
+func (e *Entity) ChildCount() int         { return len(e.Children) }
+func (e *Entity) ChildAt(idx int) *Entity { return e.Children[idx] }
+
+func (e *Entity) SetChildrenOrdered() {
+	e.orderedChildren = true
+	e.Transform.SetChildrenOrdered()
 }
 
-func (e *Entity) ChildCount() int {
-	return len(e.Children)
-}
-
-func (e *Entity) ChildAt(idx int) *Entity {
-	return e.Children[idx]
+func (e *Entity) SetChildrenUnordered() {
+	e.orderedChildren = false
+	e.Transform.SetChildrenUnordered()
 }
 
 func (e *Entity) Activate() {
@@ -109,9 +113,11 @@ func (e *Entity) RemoveFromParent() {
 		for i := range e.Parent.Children {
 			me := e.Parent.Children[i]
 			if me == e {
-				last := len(e.Parent.Children) - 1
-				e.Parent.Children[i] = e.Parent.Children[last]
-				e.Parent.Children = e.Parent.Children[:last]
+				if e.orderedChildren {
+					e.Parent.Children = slices.Delete(e.Parent.Children, i, i+1)
+				} else {
+					e.Parent.Children = klib.RemoveUnordered(e.Parent.Children, i)
+				}
 				break
 			}
 		}

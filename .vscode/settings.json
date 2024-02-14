@@ -1,5 +1,8 @@
 {
 	"go.buildTags": "editor",
+	"go.testEnvVars": {
+		"CGO_LDFLAGS": "-lgdi32 -lXInput"
+	},
 	"files.associations": {
 		"glad_wgl.h": "c",
 		"stdint.h": "c",

@@ -42,20 +42,6 @@ import (
 	"testing"
 )
 
-func TestRemoveOrdered(t *testing.T) {
-	slice := []int{1, 2, 3, 4, 5}
-	slice = RemoveOrdered(slice, 2)
-	compare := []int{1, 2, 4, 5}
-	if len(slice) != len(compare) {
-		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
-	}
-	for i := 0; i < len(slice); i++ {
-		if slice[i] != compare[i] {
-			t.Errorf("slice[%d] = %d, expected %d", i, slice[i], compare[i])
-		}
-	}
-}
-
 func TestRemoveUnordered(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5}
 	slice = RemoveUnordered(slice, 2)

@@ -2253,7 +2253,7 @@ func (vr *Vulkan) doPendingDeletes() {
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
 				vk.FreeDescriptorSets(vr.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])
 			}
-			vr.pendingDeletes = klib.RemoveOrdered(vr.pendingDeletes, i)
+			vr.pendingDeletes = slices.Delete(vr.pendingDeletes, i, i+1)
 		}
 	}
 }

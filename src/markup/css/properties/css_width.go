@@ -61,10 +61,10 @@ func (p Width) Process(panel *ui.Panel, elm document.DocElement, values []rules.
 	if err == nil {
 		if strings.HasSuffix(values[0].Str, "%") && elm.HTML.Parent != nil {
 			panel.Layout().AddFunction(func(l *ui.Layout) {
-				if elm.HTML.Parent == nil || elm.HTML.Parent.DocumentElement.UI == nil {
+				if l.Ui().Entity().IsRoot() {
 					return
 				}
-				pLayout := elm.HTML.Parent.DocumentElement.UI.Layout()
+				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 				s := pLayout.PixelSize().X()
 				pPad := pLayout.Padding()
 				s -= pPad.X() + pPad.Z()
