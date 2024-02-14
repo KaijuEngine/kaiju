@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* filesystem_select_window.go                                               */
+/* file_window.go                                                            */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -44,12 +44,13 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 )
 
-type FilesystemSelect struct {
+type FileWindow struct {
 	doc        *document.Document
 	input      *ui.Input
 	listing    *ui.Panel
@@ -82,7 +83,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 	if title == "" {
 		title = "File/Folder Select"
 	}
-	s := FilesystemSelect{
+	s := FileWindow{
 		funcMap:    make(map[string]func(*document.DocElement)),
 		Extensions: make([]string, 0, len(extensions)),
 		Folders:    foldersOnly,
@@ -118,20 +119,21 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 	return s.done
 }
 
-func (s *FilesystemSelect) CanSelectFolder() bool {
+func (s *FileWindow) CanSelectFolder() bool {
 	return s.Folders || len(s.Extensions) == 0
 }
 
-func (s *FilesystemSelect) selectPath(*document.DocElement) {
+func (s *FileWindow) selectPath(*document.DocElement) {
 	s.done <- s.Path
 	s.selected = true
 	s.container.Host.Close()
 }
 
-func (s *FilesystemSelect) selectEntry(elm *document.DocElement) {
+func (s *FileWindow) selectEntry(elm *document.DocElement) {
 	path := elm.HTML.Attribute("data-path")
 	s.Path = filepath.Clean(s.Path + "/" + path)
 	if info, err := os.Stat(s.Path); err != nil {
+		slog.Error(err.Error())
 		s.container.Host.Close()
 		return
 	} else {
@@ -145,16 +147,16 @@ func (s *FilesystemSelect) selectEntry(elm *document.DocElement) {
 	}
 }
 
-func (s *FilesystemSelect) reloadUI() {
+func (s *FileWindow) reloadUI() {
 	for _, e := range s.container.Host.Entities() {
 		e.Destroy()
 	}
 	s.list()
-	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("ui/editor/filesystem_select.html"))
+	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("ui/editor/file_window.html"))
 	s.doc = markup.DocumentFromHTMLString(
 		s.container.Host, html, "", s, s.funcMap)
 	if elm, ok := s.doc.GetElementById("pathInput"); !ok {
-		// TODO:  Log the error
+		slog.Error(`Failed to locate the "pathInput" for the file window`)
 		s.container.Host.Close()
 		return
 	} else {
@@ -162,7 +164,7 @@ func (s *FilesystemSelect) reloadUI() {
 		s.input.Data().OnSubmit.Add(s.submit)
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
-		// TODO:  Log the error
+		slog.Error(`Failed to locate the "listing" for the file window`)
 		s.container.Host.Close()
 		return
 	} else {
@@ -170,12 +172,12 @@ func (s *FilesystemSelect) reloadUI() {
 	}
 }
 
-func (s *FilesystemSelect) submit() {
+func (s *FileWindow) submit() {
 	s.Path = s.input.Text()
 	s.reloadUI()
 }
 
-func (s *FilesystemSelect) list() {
+func (s *FileWindow) list() {
 	dir, err := os.ReadDir(s.Path)
 	if err != nil {
 		// TODO:  Report the error
