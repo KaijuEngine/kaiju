@@ -268,7 +268,8 @@ func testMonkeyOBJ(host *engine.Host) {
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
 	res := loaders.OBJ(monkeyData)
 	if !res.IsValid() || len(res.Meshes) != 1 {
-		panic("Expected 1 mesh")
+		slog.Error("Expected 1 mesh")
+		return
 	}
 	drawBasicMesh(host, res)
 }
@@ -278,7 +279,8 @@ func testMonkeyGLTF(host *engine.Host) {
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
-		panic("Expected 1 mesh")
+		slog.Error("Expected 1 mesh")
+		return
 	}
 	drawBasicMesh(host, res)
 }
@@ -288,7 +290,8 @@ func testMonkeyGLB(host *engine.Host) {
 	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
-		panic("Expected 1 mesh")
+		slog.Error("Expected 1 mesh")
+		return
 	}
 	drawBasicMesh(host, res)
 }

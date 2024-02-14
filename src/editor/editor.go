@@ -130,14 +130,14 @@ func (e *Editor) setupViewportGrid() {
 }
 
 func (e *Editor) SetupUI() {
-	e.Host.CreatingEditorEntities()
-	e.menu = menu.New(e.Host)
-	e.setupViewportGrid()
-	e.Host.DoneCreatingEditorEntities()
 	projectWindow, _ := project_window.New()
 	projectPath := <-projectWindow.Selected
+	e.Host.CreatingEditorEntities()
+	e.logWindow = log_window.New(e.Host.LogStream)
+	e.menu = menu.New(e.Host, e.logWindow)
+	e.setupViewportGrid()
+	e.Host.DoneCreatingEditorEntities()
 	if err := e.setProject(projectPath); err != nil {
-		e.logWindow = log_window.New(e.Host.LogStream)
 		return
 	}
 	project.ScanContent(&e.AssetImporters)

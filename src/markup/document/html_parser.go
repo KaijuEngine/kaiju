@@ -45,6 +45,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/ui"
+	"log/slog"
 	"strconv"
 	"strings"
 )
@@ -179,7 +180,8 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			tex, err := host.TextureCache().Texture(
 				e.Attribute("src"), rendering.TextureFilterLinear)
 			if err != nil {
-				panic(err)
+				slog.Error(err.Error())
+				return
 			}
 			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
 			panel = (*ui.Panel)(img)

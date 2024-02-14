@@ -38,12 +38,12 @@
 package logging
 
 type tracedEventEntry struct {
-	id   Id
+	id   EventId
 	call func(string, []string)
 }
 
 type TracedEvent struct {
-	nextId Id
+	nextId EventId
 	calls  []tracedEventEntry
 }
 
@@ -56,14 +56,14 @@ func newTracedEvent() TracedEvent {
 
 func (e TracedEvent) IsEmpty() bool { return len(e.calls) == 0 }
 
-func (e *TracedEvent) Add(call func(msg string, trace []string)) Id {
+func (e *TracedEvent) Add(call func(msg string, trace []string)) EventId {
 	id := e.nextId
 	e.nextId++
 	e.calls = append(e.calls, tracedEventEntry{id, call})
 	return id
 }
 
-func (e *TracedEvent) Remove(id Id) {
+func (e *TracedEvent) Remove(id EventId) {
 	for i := range e.calls {
 		if e.calls[i].id == id {
 			last := len(e.calls) - 1

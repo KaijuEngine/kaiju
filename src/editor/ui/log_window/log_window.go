@@ -89,6 +89,10 @@ type LogWindow struct {
 	warnings   []visibleMessage
 	errors     []visibleMessage
 	lastReload engine.FrameId
+	logStream  *logging.LogStream
+	infoEvtId  logging.EventId
+	warnEvtId  logging.EventId
+	errEvtId   logging.EventId
 }
 
 func (l *LogWindow) Infos() []visibleMessage {
@@ -111,33 +115,42 @@ func (l *LogWindow) Errors() []visibleMessage {
 
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
-		container:  host_container.New("Log Window", nil),
 		lastReload: engine.InvalidFrameId,
 		infos:      make([]visibleMessage, 0),
 		warnings:   make([]visibleMessage, 0),
 		errors:     make([]visibleMessage, 0),
+		logStream:  logStream,
 	}
-	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
-	<-l.container.PrepLock
-	l.reloadUI()
-	iID := logStream.OnInfo.Add(func(msg string) {
+	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.infos = append(l.infos, newVisibleMessage(msg, []string{}))
 		l.reloadUI()
 	})
-	wID := logStream.OnWarn.Add(func(msg string, trace []string) {
+	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
 		l.warnings = append(l.warnings, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
-	eID := logStream.OnError.Add(func(msg string, trace []string) {
+	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.errors = append(l.errors, newVisibleMessage(msg, trace))
 		l.reloadUI()
 	})
-	l.container.Host.OnClose.Add(func() {
-		logStream.OnInfo.Remove(iID)
-		logStream.OnWarn.Remove(wID)
-		logStream.OnError.Remove(eID)
-	})
 	return l
+}
+
+func (l *LogWindow) Show() {
+	if l.container != nil {
+		return
+	}
+	l.container = host_container.New("Log Window", nil)
+	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
+	<-l.container.PrepLock
+	l.reloadUI()
+	l.container.Host.OnClose.Add(func() {
+		l.logStream.OnInfo.Remove(l.infoEvtId)
+		l.logStream.OnWarn.Remove(l.warnEvtId)
+		l.logStream.OnError.Remove(l.errEvtId)
+		l.container = nil
+		l.lastReload = engine.InvalidFrameId
+	})
 }
 
 func (l *LogWindow) clearAll(e *document.DocElement) {

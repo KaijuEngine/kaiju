@@ -37,15 +37,15 @@
 
 package logging
 
-type Id = int64
+type EventId = int64
 
 type eventEntry struct {
-	id   Id
+	id   EventId
 	call func(string)
 }
 
 type Event struct {
-	nextId Id
+	nextId EventId
 	calls  []eventEntry
 }
 
@@ -58,14 +58,14 @@ func newEvent() Event {
 
 func (e Event) IsEmpty() bool { return len(e.calls) == 0 }
 
-func (e *Event) Add(call func(string)) Id {
+func (e *Event) Add(call func(string)) EventId {
 	id := e.nextId
 	e.nextId++
 	e.calls = append(e.calls, eventEntry{id, call})
 	return id
 }
 
-func (e *Event) Remove(id Id) {
+func (e *Event) Remove(id EventId) {
 	for i := range e.calls {
 		if e.calls[i].id == id {
 			last := len(e.calls) - 1

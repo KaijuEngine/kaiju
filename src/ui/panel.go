@@ -43,6 +43,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
+	"log/slog"
 )
 
 type PanelScrollDirection = int32
@@ -367,7 +368,8 @@ func (p *Panel) postLayoutUpdate() {
 		}
 		kui := FirstOnEntity(kid)
 		if kui == nil {
-			panic("No UI component on entity")
+			slog.Error("No UI component on entity")
+			continue
 		}
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {

@@ -39,6 +39,7 @@ package ui
 
 import (
 	"kaiju/matrix"
+	"log/slog"
 )
 
 type Anchor int32
@@ -615,7 +616,9 @@ func (l *Layout) AnchorTo(anchorPosition Anchor) {
 		afn = anchorStretchCenter
 		lfn = layoutStretch
 	} else {
-		panic("Invalid anchor position")
+		slog.Error("Invalid anchor position")
+		afn = anchorTopLeft
+		lfn = layoutFloating
 	}
 	l.screenAnchor = anchorPosition
 	l.anchorFunction = afn
