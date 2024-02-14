@@ -145,7 +145,9 @@ func (h *Document) GetElementsByTagName(tag string) []DocElement {
 func TransformHTML(htmlStr string, withData any) string {
 	tpl := template.Must(template.New("html").Funcs(funcMap).Parse(htmlStr))
 	sb := strings.Builder{}
-	tpl.ExecuteTemplate(&sb, "html", withData)
+	if err := tpl.ExecuteTemplate(&sb, "html", withData); err != nil {
+		slog.Error(err.Error())
+	}
 	htmlStr = sb.String()
 	return htmlStr
 }
