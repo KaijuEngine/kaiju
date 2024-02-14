@@ -42,6 +42,12 @@ package windowing
 /*
 #include <stdlib.h>
 #include "windowing.h"
+
+void window_focus(void* window) {
+	X11State* s = state;
+	XRaiseWindow(s->d, s->w);
+	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
+}
 */
 import "C"
 import (
@@ -149,3 +155,7 @@ func (w *Window) getDPI() (int, int, error) {
 
 func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }
 func (w *Window) cInstance() unsafe.Pointer { return C.display(w.handle) }
+
+func (w *Window) focus() {
+	C.window_focus(w.handle)
+}

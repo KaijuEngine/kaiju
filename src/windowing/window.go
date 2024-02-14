@@ -293,3 +293,5 @@ func (w *Window) Destroy() {
 	w.Renderer.Destroy()
 	w.destroy()
 }
+
+func (w *Window) Focus() { w.focus() }

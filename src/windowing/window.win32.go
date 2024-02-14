@@ -53,6 +53,11 @@ import (
 float get_dpi(HWND hwnd) {
 	return GetDpiForWindow(hwnd);
 }
+
+void window_focus(void* hwnd) {
+	BringWindowToTop(hwnd);
+	SetFocus(hwnd);
+}
 */
 import "C"
 
@@ -162,3 +167,7 @@ func (w *Window) getDPI() (int, int, error) {
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
+
+func (w *Window) focus() {
+	C.window_focus(w.handle)
+}
