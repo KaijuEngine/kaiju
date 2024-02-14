@@ -180,7 +180,7 @@ func (s *FileWindow) submit() {
 func (s *FileWindow) list() {
 	dir, err := os.ReadDir(s.Path)
 	if err != nil {
-		// TODO:  Report the error
+		slog.Error(err.Error())
 		s.container.Host.Close()
 		return
 	}
