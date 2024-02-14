@@ -44,6 +44,7 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
 	"kaiju/editor/cache/project_cache"
+	"kaiju/editor/content/content_opener"
 	"kaiju/editor/controls"
 	"kaiju/editor/project"
 	"kaiju/editor/ui/log_window"
@@ -65,6 +66,7 @@ type Editor struct {
 	project        string
 	cam            controls.EditorCamera
 	AssetImporters asset_importer.ImportRegistry
+	ContentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
 }
 
@@ -78,6 +80,7 @@ func New(container *host_container.Container) *Editor {
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
 	}
+	ed.ContentOpener = content_opener.New(&ed.AssetImporters)
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
 	host.Updater.AddUpdate(ed.update)
@@ -138,7 +141,7 @@ func (e *Editor) SetupUI() {
 	projectPath := <-projectWindow.Selected
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host().LogStream)
-	e.menu = menu.New(e.Container, e.logWindow)
+	e.menu = menu.New(e.Container, e.logWindow, &e.ContentOpener)
 	e.setupViewportGrid()
 	e.Host().DoneCreatingEditorEntities()
 	if err := e.setProject(projectPath); err != nil {

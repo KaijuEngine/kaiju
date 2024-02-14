@@ -38,9 +38,11 @@
 package menu
 
 import (
+	"kaiju/editor/content/content_opener"
 	"kaiju/editor/ui/about_window"
+	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/log_window"
-	"kaiju/engine"
+	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -51,10 +53,11 @@ import (
 )
 
 type Menu struct {
-	host      *engine.Host
-	doc       *document.Document
-	isOpen    bool
-	logWindow *log_window.LogWindow
+	container     *host_container.Container
+	doc           *document.Document
+	isOpen        bool
+	logWindow     *log_window.LogWindow
+	contentOpener *content_opener.Opener
 }
 
 func (m *Menu) close() {
@@ -102,19 +105,26 @@ func (m *Menu) openLogWindow(*document.DocElement) {
 	m.logWindow.Show()
 }
 
-func New(host *engine.Host, logWindow *log_window.LogWindow) *Menu {
+func (m *Menu) openContentWindow(*document.DocElement) {
+	content_window.New(m.contentOpener)
+}
+
+func New(container *host_container.Container, logWindow *log_window.LogWindow, contentOpener *content_opener.Opener) *Menu {
+	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/editor/menu.html"))
 	m := &Menu{
-		host:      host,
-		logWindow: logWindow,
+		container:     container,
+		logWindow:     logWindow,
+		contentOpener: contentOpener,
 	}
 	funcMap := map[string]func(*document.DocElement){
-		"openLogWindow":  m.openLogWindow,
-		"openRepository": openRepository,
-		"openAbout":      openAbout,
-		"sampleInfo":     func(*document.DocElement) { slog.Info("This is some info") },
-		"sampleWarn":     func(*document.DocElement) { slog.Warn("This is a warning") },
-		"sampleError":    func(*document.DocElement) { slog.Error("This is an error") },
+		"openLogWindow":     m.openLogWindow,
+		"openRepository":    openRepository,
+		"openAbout":         openAbout,
+		"openContentWindow": m.openContentWindow,
+		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
+		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },
+		"sampleError":       func(*document.DocElement) { slog.Error("This is an error") },
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
