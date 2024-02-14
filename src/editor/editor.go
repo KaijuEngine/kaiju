@@ -50,6 +50,7 @@ import (
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/engine"
+	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -59,7 +60,7 @@ import (
 )
 
 type Editor struct {
-	Host           *engine.Host
+	Container      *host_container.Container
 	menu           *menu.Menu
 	project        string
 	cam            controls.EditorCamera
@@ -67,11 +68,14 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 }
 
-func New(host *engine.Host) *Editor {
+func (e *Editor) Host() *engine.Host { return e.Container.Host }
+
+func New(container *host_container.Container) *Editor {
+	host := container.Host
 	host.SetFrameRateLimit(60)
 	host.Camera = cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
 	ed := &Editor{
-		Host:           host,
+		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
 	}
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
@@ -115,11 +119,11 @@ func (e *Editor) setupViewportGrid() {
 		points = append(points, matrix.Vec3{-halfGridCount, 0, float32(i)})
 		points = append(points, matrix.Vec3{halfGridCount, 0, float32(i)})
 	}
-	grid := rendering.NewMeshGrid(e.Host.MeshCache(), "viewport_grid",
+	grid := rendering.NewMeshGrid(e.Host().MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	shader := e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	e.Host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer: e.Host.Window.Renderer,
+	shader := e.Host().ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	e.Host().Drawings.AddDrawing(rendering.Drawing{
+		Renderer: e.Host().Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,
 		ShaderData: &testBasicShaderData{
@@ -132,11 +136,11 @@ func (e *Editor) setupViewportGrid() {
 func (e *Editor) SetupUI() {
 	projectWindow, _ := project_window.New()
 	projectPath := <-projectWindow.Selected
-	e.Host.CreatingEditorEntities()
-	e.logWindow = log_window.New(e.Host.LogStream)
-	e.menu = menu.New(e.Host, e.logWindow)
+	e.Host().CreatingEditorEntities()
+	e.logWindow = log_window.New(e.Host().LogStream)
+	e.menu = menu.New(e.Container, e.logWindow)
 	e.setupViewportGrid()
-	e.Host.DoneCreatingEditorEntities()
+	e.Host().DoneCreatingEditorEntities()
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
@@ -144,7 +148,7 @@ func (e *Editor) SetupUI() {
 
 	// Create a mesh for testing the camera
 	{
-		e.Host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+		e.Host().Camera.SetPosition(matrix.Vec3{0, 0, 3})
 		adi, err := asset_info.Read("content/meshes/monkey.obj")
 		if err == asset_info.ErrNoInfo {
 			e.AssetImporters.Import("content/meshes/monkey.obj")
@@ -152,12 +156,12 @@ func (e *Editor) SetupUI() {
 		}
 		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
 		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-		tex, _ := e.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, _ := e.Host().TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
-		e.Host.MeshCache().AddMesh(mesh)
-		e.Host.Drawings.AddDrawing(rendering.Drawing{
-			Renderer:   e.Host.Window.Renderer,
-			Shader:     e.Host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		e.Host().MeshCache().AddMesh(mesh)
+		e.Host().Drawings.AddDrawing(rendering.Drawing{
+			Renderer:   e.Host().Window.Renderer,
+			Shader:     e.Host().ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 			Mesh:       mesh,
 			Textures:   []*rendering.Texture{tex},
 			ShaderData: &sd,
@@ -166,5 +170,5 @@ func (e *Editor) SetupUI() {
 }
 
 func (ed *Editor) update(delta float64) {
-	ed.cam.Update(ed.Host, delta)
+	ed.cam.Update(ed.Host(), delta)
 }

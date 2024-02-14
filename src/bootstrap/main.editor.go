@@ -47,9 +47,9 @@ import (
 
 func Main(container *host_container.Container) {
 	slog.Info("Starting editor")
-	editor := editor.New(container.Host)
+	editor := editor.New(container)
 	container.RunFunction(func() {
 		editor.SetupUI()
 	})
-	<-editor.Host.Done()
+	<-editor.Host().Done()
 }
