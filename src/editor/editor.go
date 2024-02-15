@@ -74,7 +74,7 @@ func New(container *host_container.Container) *Editor {
 	host.SetFrameRateLimit(60)
 	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
 	host.Camera = tc
-	tc.SetYawPitchZoom(0, -35, 16)
+	tc.SetYawPitchZoom(0, -25, 16)
 	ed := &Editor{
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),

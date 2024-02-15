@@ -169,32 +169,22 @@ func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 }
 
 func (c *TurntableCamera) setYaw(yaw float32) {
-	c.yaw = yaw
-	if yaw > 360 {
-		c.yaw -= 360
-	} else if yaw < -360 {
-		c.yaw += 360
-	}
+	c.yaw = matrix.Deg2Rad(yaw)
 	direction := matrix.Vec3{
-		matrix.Cos(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
+		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
+		matrix.Sin(c.pitch),
+		matrix.Sin(c.yaw) * matrix.Cos(c.pitch),
 	}
 	direction.Normalize()
 	c.lookAt = c.position.Add(direction)
 }
 
 func (c *TurntableCamera) setPitch(pitch float32) {
-	c.pitch = pitch
-	if c.pitch > 89.0 {
-		c.pitch = 89.0
-	} else if c.pitch < -89.0 {
-		c.pitch = -89.0
-	}
+	c.pitch = matrix.Deg2Rad(pitch)
 	direction := matrix.Vec3{
-		matrix.Cos(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
+		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
+		matrix.Sin(c.pitch),
+		matrix.Sin(c.yaw) * matrix.Cos(c.pitch),
 	}
 	direction.Normalize()
 	c.lookAt = c.position.Add(direction)
