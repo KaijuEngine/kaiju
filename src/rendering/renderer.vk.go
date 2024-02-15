@@ -2078,7 +2078,7 @@ func (vr *Vulkan) prepEntityBuffers(drawings []ShaderDraw) {
 }
 
 func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
-	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors []vk.ClearValue) {
+	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
 	beginInfo.Flags = 0              // Optional
@@ -2094,7 +2094,7 @@ func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
 	renderPassInfo.RenderArea.Offset = vk.Offset2D{X: 0, Y: 0}
 	renderPassInfo.RenderArea.Extent = extent
 	renderPassInfo.ClearValueCount = uint32(len(clearColors))
-	renderPassInfo.PClearValues = clearColors
+	renderPassInfo.PClearValues = clearColors[:]
 	vk.CmdBeginRenderPass(commandBuffer, &renderPassInfo, vk.SubpassContentsInline)
 	viewport := vk.Viewport{}
 	viewport.X = 0.0
@@ -2161,8 +2161,7 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 				continue
 			}
 			vk.CmdBindPipeline(commandBuffer,
-				vk.PipelineBindPointGraphics,
-				shader.RenderId.graphicsPipeline)
+				vk.PipelineBindPointGraphics, shader.RenderId.graphicsPipeline)
 			lastShader = shader
 			currentShader = shader
 		}
@@ -2231,7 +2230,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	cc := clearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear[:])
+	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -2244,7 +2243,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear[:])
+	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
 	}
@@ -2261,10 +2260,10 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
 	}
 	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), descriptorWrites, 0, nil)
-	csid := &vr.oitPass.compositeShader.RenderId
+	pl := vr.oitPass.compositeShader.RenderId.pipelineLayout
 	ds := [...]vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}
 	dsOffsets := [...]uint32{0}
-	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, csid.pipelineLayout,
+	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, pl,
 		0, 1, &ds[0], 0, &dsOffsets[0])
 	mid := &vr.oitPass.compositeQuad.MeshId
 	vb := [...]vk.Buffer{mid.vertexBuffer}
