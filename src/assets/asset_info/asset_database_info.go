@@ -41,6 +41,7 @@ import (
 	"encoding/json"
 	"errors"
 	"kaiju/editor/cache"
+	"kaiju/editor/editor_config"
 	"kaiju/filesystem"
 	"os"
 	"path/filepath"
@@ -48,7 +49,7 @@ import (
 )
 
 const (
-	InfoExtension = ".adi"
+	InfoExtension = editor_config.FileExtensionAssetDbInfo
 )
 
 var (
@@ -58,9 +59,10 @@ var (
 type AssetDatabaseInfo struct {
 	ID       string
 	Path     string
-	Type     string
+	Type     editor_config.AssetType
 	ParentID string
 	Children []AssetDatabaseInfo
+	Metadata map[string]string
 }
 
 func InitForCurrentProject() error {
@@ -86,7 +88,10 @@ func Exists(path string) bool {
 
 func New(path string, id string) AssetDatabaseInfo {
 	if Exists(path) {
-		return AssetDatabaseInfo{}
+		return AssetDatabaseInfo{
+			Children: make([]AssetDatabaseInfo, 0),
+			Metadata: make(map[string]string),
+		}
 	}
 	return AssetDatabaseInfo{
 		ID:   id,
@@ -101,6 +106,8 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 		Path:     a.Path,
 		Type:     a.Type,
 		ParentID: a.ID,
+		Children: make([]AssetDatabaseInfo, 0),
+		Metadata: make(map[string]string),
 	}
 }
 

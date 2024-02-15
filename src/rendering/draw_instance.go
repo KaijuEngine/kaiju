@@ -67,6 +67,16 @@ type ShaderDataBase struct {
 	model       matrix.Mat4
 }
 
+type ShaderDataBasic struct {
+	ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataBasic) Size() int {
+	const size = int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
+	return size
+}
+
 func NewShaderDataBase() ShaderDataBase {
 	sdb := ShaderDataBase{}
 	sdb.SetModel(matrix.Mat4Identity())

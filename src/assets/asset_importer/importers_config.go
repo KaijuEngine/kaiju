@@ -43,12 +43,6 @@ import (
 
 type ImportType = string
 
-const (
-	ImportTypeObj  ImportType = "obj"
-	ImportTypeMesh ImportType = "mesh"
-	ImportTypePNG  ImportType = "png"
-)
-
 var (
 	ErrNoImporter = errors.New("no importer found for file")
 )

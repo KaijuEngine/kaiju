@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* content_opener.go                                                         */
+/* editor_config.go                                                          */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,59 +35,28 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package content_opener
+package editor_config
 
-import (
-	"errors"
-	"kaiju/assets/asset_importer"
-	"kaiju/assets/asset_info"
-	"kaiju/host_container"
+type FileExtension = string
+type AssetType = string
+
+const (
+	FileExtensionH           FileExtension = ".h"
+	FileExtensionC           FileExtension = ".c"
+	FileExtensionGo          FileExtension = ".go"
+	FileExtensionMap         FileExtension = ".map"
+	FileExtensionObj         FileExtension = ".obj"
+	FileExtensionPng         FileExtension = ".png"
+	FileExtensionMesh        FileExtension = ".msh"
+	FileExtensionAssetDbInfo FileExtension = ".adi"
 )
 
-var (
-	ErrNoOpener = errors.New("no opener found")
+const (
+	AssetTypeH    AssetType = "h"
+	AssetTypeC    AssetType = "c"
+	AssetTypeGo   AssetType = "go"
+	AssetTypeMap  AssetType = "map"
+	AssetTypeObj  AssetType = "obj"
+	AssetTypePng  AssetType = "png"
+	AssetTypeMesh AssetType = "mesh"
 )
-
-type ContentOpener interface {
-	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error
-}
-
-type Opener struct {
-	openers   []ContentOpener
-	container *host_container.Container
-	importer  *asset_importer.ImportRegistry
-}
-
-func New(importer *asset_importer.ImportRegistry, container *host_container.Container) Opener {
-	return Opener{
-		importer:  importer,
-		container: container,
-	}
-}
-
-func (o *Opener) Register(opener ContentOpener) {
-	o.openers = append(o.openers, opener)
-}
-
-func (o *Opener) Open(adi asset_info.AssetDatabaseInfo) error {
-	for i := range o.openers {
-		if o.openers[i].Handles(adi) {
-			return o.openers[i].Open(adi, o.container)
-		}
-	}
-	return ErrNoOpener
-}
-
-func (o *Opener) OpenPath(path string) error {
-	if !asset_info.Exists(path) {
-		if err := o.importer.Import(path); err != nil {
-			return err
-		}
-	}
-	if adi, err := asset_info.Read(path); err != nil {
-		return err
-	} else {
-		return o.Open(adi)
-	}
-}

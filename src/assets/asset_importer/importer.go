@@ -40,6 +40,7 @@ package asset_importer
 import (
 	"errors"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
 	"path/filepath"
 
 	"github.com/KaijuEngine/uuid"
@@ -107,11 +108,11 @@ func createADI(path string, cleanup func(adi asset_info.AssetDatabaseInfo)) (ass
 	return adi, err
 }
 
-func noMutationImport(path string) error {
+func noMutationImport(path string, aType editor_config.AssetType) error {
 	adi, err := createADI(path, nil)
 	if err != nil {
 		return err
 	}
-	adi.Type = ImportTypePNG
+	adi.Type = aType
 	return asset_info.Write(adi)
 }

@@ -99,20 +99,23 @@ type requestScroll struct {
 
 type Panel struct {
 	uiBase
-	scroll, offset, maxScroll     matrix.Vec2
-	scrollSpeed                   float32
-	scrollDirection               PanelScrollDirection
-	scrollEvent                   events.Id
-	borderStyle                   [4]BorderStyle
-	color                         matrix.Color
-	drawing                       rendering.Drawing
-	localData                     localData
-	innerUpdate                   func(deltaTime float64)
-	fitContent                    ContentFit
-	requestScrollX                requestScroll
-	requestScrollY                requestScroll
-	overflow                      Overflow
-	isScrolling, dragging, frozen bool
+	scroll, offset, maxScroll matrix.Vec2
+	scrollSpeed               float32
+	scrollDirection           PanelScrollDirection
+	scrollEvent               events.Id
+	borderStyle               [4]BorderStyle
+	color                     matrix.Color
+	drawing                   rendering.Drawing
+	localData                 localData
+	innerUpdate               func(deltaTime float64)
+	fitContent                ContentFit
+	requestScrollX            requestScroll
+	requestScrollY            requestScroll
+	overflow                  Overflow
+	isScrolling               bool
+	dragging                  bool
+	frozen                    bool
+	allowDragScroll           bool
 }
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
@@ -150,6 +153,9 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	})
 	return panel
 }
+
+func (p *Panel) EnableDragScroll()  { p.allowDragScroll = true }
+func (p *Panel) DisableDragScroll() { p.allowDragScroll = false }
 
 func (p *Panel) DontFitContentWidth() {
 	switch p.fitContent {
@@ -251,13 +257,18 @@ func panelOnDown(ui UI) {
 	}
 	panel.offset = panel.scroll
 	panel.dragging = true
+	if !panel.allowDragScroll {
+		// TODO:  Change the mouse cursor to look like it's dragging something
+	}
 }
 
 func (p *Panel) update(deltaTime float64) {
 	p.uiBase.Update(deltaTime)
 	if !p.frozen {
 		if p.isDown && p.dragging {
-			p.onScroll()
+			if p.allowDragScroll {
+				p.onScroll()
+			}
 		} else if p.dragging {
 			p.dragging = false
 		} else {

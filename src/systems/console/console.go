@@ -81,6 +81,8 @@ func (h *history) forward() string {
 	}
 	if h.idx < len(h.data) {
 		h.idx++
+	} else {
+		h.idx = len(h.data) - 1
 	}
 	return h.data[h.idx]
 }
