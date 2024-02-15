@@ -63,17 +63,6 @@ const (
 	oitSuffix           = ".oit.spv"
 )
 
-type materialRendererData struct {
-	descriptorSets [maxFramesInFlight]vk.DescriptorSet
-}
-
-type transparencyDraw struct {
-	mesh          *Mesh
-	shader        *Shader
-	drawGroup     DrawInstanceGroup
-	uniformOffset vk.DeviceSize
-}
-
 type pendingDelete struct {
 	delay    int
 	pool     vk.DescriptorPool
@@ -119,7 +108,7 @@ type Vulkan struct {
 	pendingDeletes             []pendingDelete
 	depth                      TextureId
 	color                      TextureId
-	swapChainFramebuffers      []vk.Framebuffer
+	swapChainFrameBuffers      []vk.Framebuffer
 	commandPool                vk.CommandPool
 	commandBuffers             [maxFramesInFlight * MaxCommandBuffers]vk.CommandBuffer
 	imageSemaphores            [maxFramesInFlight]vk.Semaphore
@@ -178,7 +167,7 @@ func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
 	return found
 }
 
-func (vr *Vulkan) formatIsTileable(format vk.Format, tiling vk.ImageTiling) bool {
+func (vr *Vulkan) formatCanTile(format vk.Format, tiling vk.ImageTiling) bool {
 	var formatProps vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
 	formatProps.Deref()
@@ -190,24 +179,6 @@ func (vr *Vulkan) formatIsTileable(format vk.Format, tiling vk.ImageTiling) bool
 	} else {
 		return false
 	}
-}
-
-func (vr *Vulkan) FindMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
-	var memProperties vk.PhysicalDeviceMemoryProperties
-	vk.GetPhysicalDeviceMemoryProperties(vr.physicalDevice, &memProperties)
-	memProperties.Deref()
-	found := -1
-	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
-		memType := memProperties.MemoryTypes[i]
-		propMatch := (memType.PropertyFlags & properties) == properties
-		if (typeFilter&(1<<i)) != 0 && propMatch {
-			if i >= 0 && i <= math.MaxInt32 {
-				panic("Memory type index is out of range")
-			}
-			found = int(i)
-		}
-	}
-	return found
 }
 
 func (vr *Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
@@ -225,13 +196,13 @@ func (vr *Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
 /******************************************************************************/
 
 func (vr *Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
-	allocInfo := vk.CommandBufferAllocateInfo{}
-	allocInfo.SType = vk.StructureTypeCommandBufferAllocateInfo
-	allocInfo.Level = vk.CommandBufferLevelPrimary
-	allocInfo.CommandPool = vr.commandPool
-	allocInfo.CommandBufferCount = 1
-	commandBuffer := make([]vk.CommandBuffer, allocInfo.CommandBufferCount)
-	vk.AllocateCommandBuffers(vr.device, &allocInfo, commandBuffer)
+	aInfo := vk.CommandBufferAllocateInfo{}
+	aInfo.SType = vk.StructureTypeCommandBufferAllocateInfo
+	aInfo.Level = vk.CommandBufferLevelPrimary
+	aInfo.CommandPool = vr.commandPool
+	aInfo.CommandBufferCount = 1
+	commandBuffer := [1]vk.CommandBuffer{}
+	vk.AllocateCommandBuffers(vr.device, &aInfo, &commandBuffer[0])
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
 	beginInfo.Flags = vk.CommandBufferUsageFlags(vk.CommandBufferUsageOneTimeSubmitBit)
@@ -247,11 +218,12 @@ func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
 	submitInfo.PCommandBuffers = []vk.CommandBuffer{commandBuffer}
 	vk.QueueSubmit(vr.graphicsQueue, 1, []vk.SubmitInfo{submitInfo}, vk.Fence(vk.NullHandle))
 	vk.QueueWaitIdle(vr.graphicsQueue)
-	vk.FreeCommandBuffers(vr.device, vr.commandPool, 1, []vk.CommandBuffer{commandBuffer})
+	cb := [...]vk.CommandBuffer{commandBuffer}
+	vk.FreeCommandBuffers(vr.device, vr.commandPool, 1, &cb[0])
 }
 
 /******************************************************************************/
-/* Binding data pseudocode                                                    */
+/* Binding data pseudo code                                                   */
 /******************************************************************************/
 
 func vertexGetBindingDescription(shader *Shader) [2]vk.VertexInputBindingDescription {
@@ -694,7 +666,7 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 
 	if details.presentModeCount > 0 {
 		details.presentModes = make([]vk.PresentMode, details.presentModeCount)
-		vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, details.presentModes)
+		vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, &details.presentModes[0])
 	}
 
 	return details
@@ -749,7 +721,7 @@ func (vr *Vulkan) createSwapChain() bool {
 		for i := uint32(0); i < vr.swapImageCount; i++ {
 			swapImageList[i] = vr.swapImages[i].Image
 		}
-		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, swapImageList)
+		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, &swapImageList[0])
 		for i := uint32(0); i < vr.swapImageCount; i++ {
 			vr.swapImages[i].Image = swapImageList[i]
 			vr.swapImages[i].Width = int(extent.Width)
@@ -779,8 +751,8 @@ func (vr *Vulkan) swapChainCleanup() {
 	vr.textureIdFree(&vr.color)
 	vr.textureIdFree(&vr.depth)
 	for i := uint32(0); i < vr.swapChainFrameBufferCount; i++ {
-		vk.DestroyFramebuffer(vr.device, vr.swapChainFramebuffers[i], nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.swapChainFramebuffers[i])))
+		vk.DestroyFramebuffer(vr.device, vr.swapChainFrameBuffers[i], nil)
+		vr.dbg.remove(uintptr(unsafe.Pointer(vr.swapChainFrameBuffers[i])))
 	}
 	for i := uint32(0); i < vr.swapChainImageViewCount; i++ {
 		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
@@ -909,7 +881,7 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 		return false
 	}
 	devices := make([]vk.PhysicalDevice, deviceCount)
-	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, devices)
+	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, &devices[0])
 	var currentPhysicalDevice vk.PhysicalDevice = vk.PhysicalDevice(vk.NullHandle)
 	currentProperties := vk.PhysicalDeviceProperties{}
 	var physicalDevice vk.PhysicalDevice = vk.PhysicalDevice(vk.NullHandle)
@@ -1305,7 +1277,7 @@ func prepareSetWriteImage(set vk.DescriptorSet, imageInfos []vk.DescriptorImageI
 func (vr *Vulkan) createDefaultFrameBuffer() bool {
 	count := vr.swapChainImageViewCount
 	vr.swapChainFrameBufferCount = count
-	vr.swapChainFramebuffers = make([]vk.Framebuffer, count)
+	vr.swapChainFrameBuffers = make([]vk.Framebuffer, count)
 	success := true
 	for i := uint32(0); i < count && success; i++ {
 		attachments := []vk.ImageView{
@@ -1314,7 +1286,7 @@ func (vr *Vulkan) createDefaultFrameBuffer() bool {
 			vr.swapImages[i].View,
 		}
 		success = vr.CreateFrameBuffer(vr.renderPass, attachments,
-			vr.swapChainExtent.Width, vr.swapChainExtent.Height, &vr.swapChainFramebuffers[i])
+			vr.swapChainExtent.Width, vr.swapChainExtent.Height, &vr.swapChainFrameBuffers[i])
 	}
 	return success
 }
@@ -1557,7 +1529,7 @@ func (vr *Vulkan) createCmdBuffer() bool {
 	info.Level = vk.CommandBufferLevelPrimary
 	info.CommandBufferCount = maxFramesInFlight * MaxCommandBuffers
 	var commandBuffers [maxFramesInFlight * MaxCommandBuffers]vk.CommandBuffer
-	if vk.AllocateCommandBuffers(vr.device, &info, commandBuffers[:]) != vk.Success {
+	if vk.AllocateCommandBuffers(vr.device, &info, &commandBuffers[0]) != vk.Success {
 		log.Fatalf("%s", "Failed to allocate command buffers")
 		return false
 	} else {
@@ -1566,25 +1538,6 @@ func (vr *Vulkan) createCmdBuffer() bool {
 		}
 		return true
 	}
-}
-
-func (vr *Vulkan) createFrameBuffer(renderPass vk.RenderPass,
-	attachments []vk.ImageView, width, height int, frameBuffer *vk.Framebuffer) bool {
-	framebufferInfo := vk.FramebufferCreateInfo{}
-	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
-	framebufferInfo.RenderPass = renderPass
-	framebufferInfo.AttachmentCount = uint32(len(attachments))
-	framebufferInfo.PAttachments = attachments
-	framebufferInfo.Width = uint32(width)
-	framebufferInfo.Height = uint32(height)
-	framebufferInfo.Layers = 1
-	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, frameBuffer) != vk.Success {
-		log.Fatalf("%s", "Failed to create framebuffer")
-		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(frameBuffer)))
-	}
-	return true
 }
 
 func (vr *Vulkan) createRenderPass() bool {
@@ -1868,7 +1821,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	success := true
 	pipelines := [1]vk.Pipeline{}
-	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, []vk.GraphicsPipelineCreateInfo{pipelineInfo}, nil, pipelines[:]) != vk.Success {
+	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, []vk.GraphicsPipelineCreateInfo{pipelineInfo}, nil, &pipelines[0]) != vk.Success {
 		success = false
 		log.Fatal("Failed to create graphics pipeline")
 	} else {
@@ -1879,8 +1832,8 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 }
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
-	fences := []vk.Fence{vr.renderFences[vr.currentFrame]}
-	vk.WaitForFences(vr.device, 1, fences, vk.True, math.MaxUint64)
+	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
+	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
 		vr.imageSemaphores[vr.currentFrame], vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
 	if vr.acquireImageResult == vk.ErrorOutOfDate {
@@ -1890,7 +1843,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		slog.Error("Failed to present swap chain image")
 		return false
 	}
-	vk.ResetFences(vr.device, 1, fences)
+	vk.ResetFences(vr.device, 1, &fences[0])
 	vk.ResetCommandBuffer(vr.commandBuffers[vr.currentFrame*MaxCommandBuffers], 0)
 	vr.doPendingDeletes()
 	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
@@ -2173,19 +2126,21 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
-		descriptorSets := []vk.DescriptorSet{
+		descriptorSets := [...]vk.DescriptorSet{
 			group.InstanceDriverData.descriptorSets[vr.currentFrame],
 		}
+		dynOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(commandBuffer,
 			vk.PipelineBindPointGraphics,
 			shader.RenderId.pipelineLayout, 0, 1,
-			descriptorSets, 0, []uint32{0})
+			&descriptorSets[0], 0, &dynOffsets[0])
 		meshId := group.Mesh.MeshId
-		offsets := vk.DeviceSize(0)
-		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, []vk.Buffer{meshId.vertexBuffer}, []vk.DeviceSize{offsets})
-		instanceBuffers := []vk.Buffer{group.instanceBuffers[vr.currentFrame]}
-		vk.CmdBindVertexBuffers(commandBuffer, 1, 1,
-			instanceBuffers, []vk.DeviceSize{vk.DeviceSize(0)})
+		vbOffsets := [...]vk.DeviceSize{0}
+		vb := [...]vk.Buffer{meshId.vertexBuffer}
+		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, &vb[0], &vbOffsets[0])
+		instanceBuffers := [...]vk.Buffer{group.instanceBuffers[vr.currentFrame]}
+		ibOffsets := [...]vk.DeviceSize{0}
+		vk.CmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffers[0], &ibOffsets[0])
 		//shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
@@ -2211,15 +2166,18 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 			lastShader = shader
 			currentShader = shader
 		}
-		descriptorSets := []vk.DescriptorSet{group.descriptorSets[vr.currentFrame]}
+		descriptorSets := [...]vk.DescriptorSet{group.descriptorSets[vr.currentFrame]}
+		dynOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(commandBuffer, vk.PipelineBindPointGraphics,
-			currentShader.RenderId.pipelineLayout, 0, 1, descriptorSets, 0, []uint32{0})
+			currentShader.RenderId.pipelineLayout, 0, 1, &descriptorSets[0], 0, &dynOffsets[0])
 		meshId := &group.Mesh.MeshId
 		offsets := vk.DeviceSize(0)
-		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, []vk.Buffer{meshId.vertexBuffer}, []vk.DeviceSize{offsets})
-		instanceBuffers := []vk.Buffer{group.instanceBuffers[vr.currentFrame]}
-		vk.CmdBindVertexBuffers(commandBuffer, 1, 1,
-			instanceBuffers, []vk.DeviceSize{0})
+		vb := [...]vk.Buffer{meshId.vertexBuffer}
+		vbOffsets := [...]vk.DeviceSize{offsets}
+		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, &vb[0], &vbOffsets[0])
+		instanceBuffers := [...]vk.Buffer{group.instanceBuffers[vr.currentFrame]}
+		ibOffsets := [...]vk.DeviceSize{0}
+		vk.CmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffers[0], &ibOffsets[0])
 		//draw.shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
@@ -2304,10 +2262,14 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	}
 	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), descriptorWrites, 0, nil)
 	csid := &vr.oitPass.compositeShader.RenderId
+	ds := [...]vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}
+	dsOffsets := [...]uint32{0}
 	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, csid.pipelineLayout,
-		0, 1, []vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}, 0, []uint32{0})
+		0, 1, &ds[0], 0, &dsOffsets[0])
 	mid := &vr.oitPass.compositeQuad.MeshId
-	vk.CmdBindVertexBuffers(cmd2, 0, 1, []vk.Buffer{mid.vertexBuffer}, []vk.DeviceSize{offsets})
+	vb := [...]vk.Buffer{mid.vertexBuffer}
+	vbOffsets := [...]vk.DeviceSize{offsets}
+	vk.CmdBindVertexBuffers(cmd2, 0, 1, &vb[0], &vbOffsets[0])
 	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
 	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
 	endRender(cmd2)
@@ -2358,8 +2320,11 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 }
 
 func (vr *Vulkan) WaitRender() {
-	fences := slices.Clone(vr.renderFences[:])
-	vk.WaitForFences(vr.device, maxFramesInFlight, fences, vk.True, math.MaxUint64)
+	fences := [2]vk.Fence{}
+	for i := range fences {
+		fences[i] = vr.renderFences[i]
+	}
+	vk.WaitForFences(vr.device, maxFramesInFlight, &fences[0], vk.True, math.MaxUint64)
 }
 
 /******************************************************************************/
@@ -2516,14 +2481,6 @@ func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId) {
 	texture.RenderId = other
 }
 
-func vulkanIsTextureValid(texture Texture) bool {
-	return texture.RenderId.Image != vk.NullImage
-}
-
-func (vr *Vulkan) rebuildTexture(texture *Texture, data *TextureData) {
-	vr.CreateTexture(texture, data)
-}
-
 func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8) {
 	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	id := &texture.RenderId
@@ -2559,7 +2516,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 
 	fragStage := vk.PipelineShaderStageCreateInfo{}
 	fMem, err = assetDB.Read(shader.FragPath)
-	if err != nil || !(fMem != nil && len(fMem) > 0 && (len(fMem)%4) == 0) {
+	if err != nil {
 		panic("Failed to load fragment shader")
 	}
 	frag, ok = vr.createSpvModule(fMem)
@@ -2575,7 +2532,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	geomStage := vk.PipelineShaderStageCreateInfo{}
 	if len(shader.GeomPath) > 0 {
 		gMem, err = assetDB.Read(shader.GeomPath)
-		if err != nil || !(gMem != nil && len(gMem) > 0 && (len(gMem)%4) == 0) {
+		if err != nil {
 			panic("Failed to load geometry shader")
 		}
 		geom, ok = vr.createSpvModule(gMem)
@@ -2592,7 +2549,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	tescStage := vk.PipelineShaderStageCreateInfo{}
 	if len(shader.CtrlPath) > 0 {
 		cMem, err = assetDB.Read(shader.CtrlPath)
-		if err != nil || !(cMem != nil && len(cMem) > 0 && (len(cMem)%4) == 0) {
+		if err != nil {
 			panic("Failed to load tessellation control shader")
 		}
 		tesc, ok = vr.createSpvModule(cMem)
@@ -2609,7 +2566,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	teseStage := vk.PipelineShaderStageCreateInfo{}
 	if len(shader.EvalPath) > 0 {
 		eMem, err = assetDB.Read(shader.EvalPath)
-		if err != nil || !(eMem != nil && len(eMem) > 0 && (len(eMem)%4) == 0) {
+		if err != nil {
 			panic("Failed to load tessellation evaluation shader")
 		}
 		tese, ok = vr.createSpvModule(eMem)
@@ -2667,8 +2624,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		id.descriptorSetLayout, &id.pipelineLayout,
 		&id.graphicsPipeline, renderPass, isTransparentPipeline)
 	// TODO:  Setup subshader in the shader definition?
-	var subShaderCheck string
-	subShaderCheck = strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
+	subShaderCheck := strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath, vr)

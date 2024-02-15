@@ -59,13 +59,19 @@ type Drawings struct {
 	draws     []ShaderDraw
 	backDraws []Drawing
 	mutex     sync.RWMutex
+	targets   []RenderTargetDraw
 }
 
 func NewDrawings() Drawings {
+	initialTarget := RenderTargetDraw{
+		Target: nil,
+		Rect:   matrix.Vec4{0, 0, 1, 1},
+	}
 	return Drawings{
 		draws:     make([]ShaderDraw, 0),
 		backDraws: make([]Drawing, 0),
 		mutex:     sync.RWMutex{},
+		targets:   []RenderTargetDraw{initialTarget},
 	}
 }
 
@@ -145,10 +151,8 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 
 func (d *Drawings) Render(renderer Renderer) {
 	renderer.Draw(d.draws)
-	renderer.BlitTargets(RenderTargetDraw{
-		Target: renderer.DefaultTarget(),
-		Rect:   matrix.Vec4{0, 0, 1, 1},
-	})
+	d.targets[0].Target = renderer.DefaultTarget()
+	renderer.BlitTargets(d.targets...)
 }
 
 func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget) {
