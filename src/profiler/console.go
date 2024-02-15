@@ -48,16 +48,19 @@ import (
 	"os/exec"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"strings"
 )
 
 const (
 	pprofCPUFile   = "cpu.prof"
 	pprofHeapFile  = "heap.prof"
+	traceFile      = "trace.out"
 	pprofMergeFile = "default.pgo"
 	pprofWebPort   = "9382"
 
-	ctxDataKey        = "pprofWebCtx"
+	pprofCtxDataKey   = "pprofWebCtx"
+	traceCtxDataKey   = "traceWebCtx"
 	pprofFileKey      = "pprofFile"
 	pprofWebOpenedKey = "pprofWebOpened"
 )
@@ -93,30 +96,41 @@ func consoleMerge(host *engine.Host, argStr string) string {
 	return "Files merged into " + pprofMergeFile
 }
 
-func launchWeb(c *console.Console, webType string) (*contexts.Cancellable, error) {
+func launchWeb(c *console.Console, webType, ctxKey string) (*contexts.Cancellable, error) {
 	ctx := contexts.NewCancellable()
 	targetFile := pprofCPUFile
-	if webType == "mem" {
-		targetFile = pprofHeapFile
+	args := []string{"tool"}
+	var procName, startMsg string
+	if webType == "trace" {
+		args = append(args, "trace", traceFile)
+		startMsg = "Starting server on localhost"
+		procName = "trace"
+	} else {
+		if webType == "mem" {
+			targetFile = pprofHeapFile
+		}
+		args = append(args, "pprof", "-http=:"+pprofWebPort, targetFile)
+		startMsg = "Starting server on localhost:" + pprofWebPort
+		procName = "pprof"
 	}
-	cmd := exec.CommandContext(ctx, "go", "tool", "pprof", "-http=:"+pprofWebPort, targetFile)
+	cmd := exec.CommandContext(ctx, "go", args...)
 	err := cmd.Start()
 	if err != nil {
 		return nil, err
 	}
 	go func() {
-		c.Write("Starting server on localhost:" + pprofWebPort)
+		c.Write(startMsg)
 		<-ctx.Done()
 		cmd.Process.Kill()
-		c.DeleteData(ctxDataKey)
-		// Go tool pprof spawns child process pprof.exe which is not killed by the above command
+		c.DeleteData(ctxKey)
+		// Go tool spawns child process pprof.exe which is not killed by the above command
 		// So we need to kill it manually
 		if runtime.GOOS == "windows" {
-			killCmd := exec.Command("taskkill", "/F", "/IM", "pprof.exe")
+			killCmd := exec.Command("taskkill", "/F", "/IM", procName+".exe")
 			killCmd.Run()
 		} else {
 			// On mac, the child process is named pprof
-			killCmd := exec.Command("pkill", "pprof")
+			killCmd := exec.Command("pkill", procName)
 			killCmd.Run()
 		}
 		if ctx.Err() == nil {
@@ -151,29 +165,24 @@ func pprofHeap() string {
 	return "Heap profile written to " + pprofHeapFile
 }
 
-func pprofWebStart(c *console.Console, webType string) string {
-	ctx, ok := c.Data(ctxDataKey).(*contexts.Cancellable)
+func webStart(c *console.Console, webType, ctxKey string) string {
+	ctx, ok := c.Data(ctxKey).(*contexts.Cancellable)
 	if ok && ctx != nil {
 		ctx.Cancel()
-		c.DeleteData(ctxDataKey)
+		c.DeleteData(ctxKey)
 	}
-	if ctx, err := launchWeb(c, webType); err != nil {
+	if ctx, err := launchWeb(c, webType, ctxKey); err != nil {
 		return err.Error()
 	} else {
-		if !c.HasData(ctxDataKey) {
-			c.Host().OnClose.Add(func() {
-				if c.HasData(ctxDataKey) {
-					c.Data(ctxDataKey).(*contexts.Cancellable).Cancel()
-				}
-			})
-			c.SetData(ctxDataKey, ctx)
+		if !c.HasData(ctxKey) {
+			c.SetData(ctxKey, ctx)
 		}
 		return "Starting up web server..."
 	}
 }
 
 func pprofWebStop(c *console.Console) string {
-	ctx, ok := c.Data(ctxDataKey).(*contexts.Cancellable)
+	ctx, ok := c.Data(pprofCtxDataKey).(*contexts.Cancellable)
 	if ok && ctx != nil {
 		ctx.Cancel()
 		ctx = nil
@@ -191,7 +200,7 @@ func pprofWeb(c *console.Console, args []string) string {
 	case "mem":
 		fallthrough
 	case "cpu":
-		return pprofWebStart(c, args[0])
+		return webStart(c, args[0], pprofCtxDataKey)
 	case "stop":
 		return pprofWebStop(c)
 	default:
@@ -220,6 +229,63 @@ func pprofCommands(host *engine.Host, arg string) string {
 	}
 }
 
+func traceStart() string {
+	if f, err := os.Create(traceFile); err != nil {
+		return err.Error()
+	} else {
+		if err := trace.Start(f); err != nil {
+			return err.Error()
+		}
+		return "Trace started"
+	}
+}
+
+func traceStop() string {
+	trace.Stop()
+	return "Trace stopped"
+}
+
+func traceWeb(c *console.Console, args []string) string {
+	if len(args) < 1 {
+		return `Expected "start" or "stop"`
+	}
+	switch args[0] {
+	case "start":
+		return webStart(c, "trace", traceCtxDataKey)
+	case "stop":
+		return traceWebStop(c)
+	default:
+		return `Expected "start" or "stop"`
+	}
+}
+
+func traceWebStop(c *console.Console) string {
+	ctx, ok := c.Data(traceCtxDataKey).(*contexts.Cancellable)
+	if ok && ctx != nil {
+		ctx.Cancel()
+		ctx = nil
+		return "Web server stopped"
+	} else {
+		return "Web server not running"
+	}
+}
+
+func traceCommands(host *engine.Host, arg string) string {
+	c := console.For(host)
+	arg = klib.ReplaceStringRecursive(arg, "  ", " ")
+	args := strings.Split(arg, " ")
+	switch args[0] {
+	case "start":
+		return traceStart()
+	case "stop":
+		return traceStop()
+	case "web":
+		return traceWeb(c, args[1:])
+	default:
+		return `Expected "start" or "stop" or "web"`
+	}
+}
+
 func gc(host *engine.Host, arg string) string {
 	runtime.GC()
 	return "Garbage collection done"
@@ -234,6 +300,15 @@ func memStats(host *engine.Host, arg string) string {
 func SetupConsole(host *engine.Host) {
 	c := console.For(host)
 	c.AddCommand("pprof", pprofCommands)
+	c.AddCommand("trace", traceCommands)
+	c.Host().OnClose.Add(func() {
+		if c.HasData(pprofCtxDataKey) {
+			c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
+		}
+		if c.HasData(traceCtxDataKey) {
+			c.Data(traceCtxDataKey).(*contexts.Cancellable).Cancel()
+		}
+	})
 	console.For(host).AddCommand("GC", gc)
 	console.For(host).AddCommand("MemStats", memStats)
 }
