@@ -56,11 +56,8 @@ type StandardCamera struct {
 	fieldOfView      float32
 	nearPlane        float32
 	farPlane         float32
-	pitch            float32
-	yaw              float32
 	width            float32
 	height           float32
-	zoom             float32
 	isOrthographic   bool
 }
 
@@ -87,8 +84,6 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.position = position
 	c.view = matrix.Mat4Identity()
 	c.projection = matrix.Mat4Identity()
-	c.yaw = 0.0
-	c.pitch = 0.0
 	c.up = matrix.Vec3Up()
 	c.lookAt = matrix.Vec3Forward()
 }
@@ -188,63 +183,6 @@ func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height f
 	c.updateProjection()
 }
 
-func (c *StandardCamera) SetYaw(yaw float32) {
-	c.yaw = yaw
-	if yaw > 360 {
-		c.yaw -= 360
-	} else if yaw < -360 {
-		c.yaw += 360
-	}
-	direction := matrix.Vec3{
-		matrix.Cos(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-	}
-	direction.Normalize()
-	c.lookAt = c.position.Add(direction)
-	c.updateView()
-}
-
-func (c *StandardCamera) SetPitch(pitch float32) {
-	c.pitch = pitch
-	if c.pitch > 89.0 {
-		c.pitch = 89.0
-	} else if c.pitch < -89.0 {
-		c.pitch = -89.0
-	}
-	direction := matrix.Vec3{
-		matrix.Cos(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-	}
-	direction.Normalize()
-	c.lookAt = c.position.Add(direction)
-	c.updateView()
-}
-
-func (c *StandardCamera) SetYawAndPitch(yaw, pitch float32) {
-	c.yaw = yaw
-	c.pitch = pitch
-	if c.pitch > 89.0 {
-		c.pitch = 89.0
-	} else if c.pitch < -89.0 {
-		c.pitch = -89.0
-	}
-	if yaw > 360 {
-		c.yaw -= 360
-	} else if yaw < -360 {
-		c.yaw += 360
-	}
-	direction := matrix.Vec3{
-		matrix.Cos(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.pitch)),
-		matrix.Sin(matrix.Deg2Rad(c.yaw)) * matrix.Cos(matrix.Deg2Rad(c.pitch)),
-	}
-	direction.Normalize()
-	c.lookAt = c.position.Add(direction)
-	c.updateView()
-}
-
 func (c *StandardCamera) Forward() matrix.Vec3 {
 	return matrix.Vec3{
 		-c.iView[matrix.Mat4x0y2],
@@ -329,8 +267,5 @@ func (c *StandardCamera) Height() float32         { return c.height }
 func (c *StandardCamera) View() matrix.Mat4       { return c.view }
 func (c *StandardCamera) Projection() matrix.Mat4 { return c.projection }
 func (c *StandardCamera) Center() matrix.Vec3     { return c.lookAt }
-func (c *StandardCamera) Yaw() float32            { return c.yaw }
-func (c *StandardCamera) Pitch() float32          { return c.pitch }
 func (c *StandardCamera) NearPlane() float32      { return c.nearPlane }
 func (c *StandardCamera) FarPlane() float32       { return c.farPlane }
-func (c *StandardCamera) Zoom() float32           { return c.zoom }
