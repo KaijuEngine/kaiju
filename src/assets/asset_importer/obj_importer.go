@@ -38,8 +38,10 @@
 package asset_importer
 
 import (
+	"kaiju/assets"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
+	"kaiju/editor/editor_config"
 	"kaiju/filesystem"
 	"kaiju/rendering/loaders"
 	"path/filepath"
@@ -50,7 +52,7 @@ import (
 type OBJImporter struct{}
 
 func (m OBJImporter) Handles(path string) bool {
-	return filepath.Ext(path) == ".obj"
+	return filepath.Ext(path) == editor_config.FileExtensionObj
 }
 
 func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
@@ -63,7 +65,7 @@ func (m OBJImporter) Import(path string) error {
 	if err != nil {
 		return err
 	}
-	adi.Type = ImportTypeObj
+	adi.Type = editor_config.AssetTypeObj
 	if err := importMeshToCache(&adi); err != nil {
 		return err
 	}
@@ -78,11 +80,14 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 	res := loaders.OBJ(src)
 	for _, o := range res.Meshes {
 		info := adi.SpawnChild(uuid.New().String())
-		info.Type = ImportTypeMesh
+		info.Type = editor_config.AssetTypeMesh
 		info.ParentID = adi.ID
 		if err := project_cache.CacheMesh(info, o); err != nil {
 			return err
 		}
+		// TODO:  Write the correct material to the adi
+		info.Metadata["shader"] = assets.ShaderDefinitionBasic
+		info.Metadata["texture"] = assets.TextureSquare
 		adi.Children = append(adi.Children, info)
 	}
 	return nil

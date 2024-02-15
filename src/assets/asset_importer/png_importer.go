@@ -38,6 +38,7 @@
 package asset_importer
 
 import (
+	"kaiju/editor/editor_config"
 	"path/filepath"
 )
 
@@ -48,5 +49,5 @@ func (m PNGImporter) Handles(path string) bool {
 }
 
 func (m PNGImporter) Import(path string) error {
-	return noMutationImport(path)
+	return noMutationImport(path, editor_config.AssetTypePng)
 }

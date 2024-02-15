@@ -115,7 +115,9 @@ func (s *ContentWindow) openContent(elm *document.DocElement) {
 
 func (s *ContentWindow) submit() {
 	s.Query = strings.ToLower(strings.TrimSpace(s.input.Text()))
-	slog.Info("Submitted search query", slog.String("query", s.Query))
+	if s.Query == "" {
+		s.path = contentPath
+	}
 	s.reloadUI()
 }
 

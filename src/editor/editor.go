@@ -43,7 +43,6 @@ import (
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
-	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/controls"
 	"kaiju/editor/project"
@@ -52,12 +51,10 @@ import (
 	"kaiju/editor/ui/project_window"
 	"kaiju/engine"
 	"kaiju/host_container"
-	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"os"
 	"strings"
-	"unsafe"
 )
 
 type Editor struct {
@@ -80,21 +77,12 @@ func New(container *host_container.Container) *Editor {
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
 	}
-	ed.ContentOpener = content_opener.New(&ed.AssetImporters)
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
+	ed.ContentOpener = content_opener.New(&ed.AssetImporters, container)
+	ed.ContentOpener.Register(content_opener.ObjOpener{})
 	host.Updater.AddUpdate(ed.update)
 	return ed
-}
-
-type testBasicShaderData struct {
-	rendering.ShaderDataBase
-	Color matrix.Color
-}
-
-func (t testBasicShaderData) Size() int {
-	const size = int(unsafe.Sizeof(testBasicShaderData{}) - rendering.ShaderBaseDataStart)
-	return size
 }
 
 func (e *Editor) setProject(project string) error {
@@ -129,7 +117,7 @@ func (e *Editor) setupViewportGrid() {
 		Renderer: e.Host().Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,
-		ShaderData: &testBasicShaderData{
+		ShaderData: &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
@@ -148,28 +136,6 @@ func (e *Editor) SetupUI() {
 		return
 	}
 	project.ScanContent(&e.AssetImporters)
-
-	// Create a mesh for testing the camera
-	{
-		e.Host().Camera.SetPosition(matrix.Vec3{0, 0, 3})
-		adi, err := asset_info.Read("content/meshes/monkey.obj")
-		if err == asset_info.ErrNoInfo {
-			e.AssetImporters.Import("content/meshes/monkey.obj")
-			adi = klib.MustReturn(asset_info.Read("content/meshes/monkey.obj"))
-		}
-		m := klib.MustReturn(project_cache.LoadCachedMesh(adi.Children[0]))
-		sd := testBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-		tex, _ := e.Host().TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
-		e.Host().MeshCache().AddMesh(mesh)
-		e.Host().Drawings.AddDrawing(rendering.Drawing{
-			Renderer:   e.Host().Window.Renderer,
-			Shader:     e.Host().ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
-			Mesh:       mesh,
-			Textures:   []*rendering.Texture{tex},
-			ShaderData: &sd,
-		})
-	}
 }
 
 func (ed *Editor) update(delta float64) {

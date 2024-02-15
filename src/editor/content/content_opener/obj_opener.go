@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* content_opener.go                                                         */
+/* obj_opener.go                                                             */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -38,56 +38,70 @@
 package content_opener
 
 import (
-	"errors"
-	"kaiju/assets/asset_importer"
+	"kaiju/assets"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/cache/project_cache"
+	"kaiju/editor/editor_config"
+	"kaiju/engine"
 	"kaiju/host_container"
+	"kaiju/matrix"
+	"kaiju/rendering"
 )
 
-var (
-	ErrNoOpener = errors.New("no opener found")
-)
+type ObjOpener struct{}
 
-type ContentOpener interface {
-	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error
+func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
+	return adi.Type == editor_config.AssetTypeObj
 }
 
-type Opener struct {
-	openers   []ContentOpener
-	container *host_container.Container
-	importer  *asset_importer.ImportRegistry
-}
-
-func New(importer *asset_importer.ImportRegistry, container *host_container.Container) Opener {
-	return Opener{
-		importer:  importer,
-		container: container,
+func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
+	m, err := project_cache.LoadCachedMesh(adi)
+	if err != nil {
+		return err
 	}
-}
-
-func (o *Opener) Register(opener ContentOpener) {
-	o.openers = append(o.openers, opener)
-}
-
-func (o *Opener) Open(adi asset_info.AssetDatabaseInfo) error {
-	for i := range o.openers {
-		if o.openers[i].Handles(adi) {
-			return o.openers[i].Open(adi, o.container)
+	texId := assets.TextureSquare
+	if t, ok := adi.Metadata["texture"]; ok {
+		texId = t
+	}
+	tex, err := host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
+	if err != nil {
+		return err
+	}
+	var data rendering.DrawInstance
+	var shader *rendering.Shader
+	if s, ok := adi.Metadata["shader"]; ok {
+		shader = host.ShaderCache().ShaderFromDefinition(s)
+		// TODO:  We need to create or generate shader data given the definition
+		data = &rendering.ShaderDataBasic{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+		}
+	} else {
+		shader = host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+		data = &rendering.ShaderDataBasic{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
 		}
 	}
-	return ErrNoOpener
+	mesh := rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
+	host.MeshCache().AddMesh(mesh)
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     shader,
+		Mesh:       mesh,
+		Textures:   []*rendering.Texture{tex},
+		ShaderData: data,
+	})
+	return nil
 }
 
-func (o *Opener) OpenPath(path string) error {
-	if !asset_info.Exists(path) {
-		if err := o.importer.Import(path); err != nil {
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error {
+	host := container.Host
+	for i := range adi.Children {
+		if err := load(host, adi.Children[i]); err != nil {
 			return err
 		}
 	}
-	if adi, err := asset_info.Read(path); err != nil {
-		return err
-	} else {
-		return o.Open(adi)
-	}
+	container.Host.Window.Focus()
+	return nil
 }
