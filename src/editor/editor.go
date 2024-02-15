@@ -72,7 +72,9 @@ func (e *Editor) Host() *engine.Host { return e.Container.Host }
 func New(container *host_container.Container) *Editor {
 	host := container.Host
 	host.SetFrameRateLimit(60)
-	host.Camera = cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
+	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
+	host.Camera = tc
+	tc.SetYawPitchZoom(0, -25, 16)
 	ed := &Editor{
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
@@ -105,10 +107,11 @@ func (e *Editor) setupViewportGrid() {
 	const halfGridCount = gridCount / 2
 	points := make([]matrix.Vec3, 0, gridCount*4)
 	for i := -halfGridCount; i <= halfGridCount; i++ {
-		points = append(points, matrix.Vec3{float32(i), 0, -halfGridCount})
-		points = append(points, matrix.Vec3{float32(i), 0, halfGridCount})
-		points = append(points, matrix.Vec3{-halfGridCount, 0, float32(i)})
-		points = append(points, matrix.Vec3{halfGridCount, 0, float32(i)})
+		fi := float32(i)
+		points = append(points, matrix.Vec3{fi, 0, -halfGridCount})
+		points = append(points, matrix.Vec3{fi, 0, halfGridCount})
+		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
+		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
 	}
 	grid := rendering.NewMeshGrid(e.Host().MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})

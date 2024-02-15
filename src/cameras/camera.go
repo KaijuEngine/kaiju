@@ -51,9 +51,6 @@ type Camera interface {
 	SetHeight(height float32)
 	ViewportChanged(width, height float32)
 	SetProperties(fov, nearPlane, farPlane, width, height float32)
-	SetYaw(yaw float32)
-	SetPitch(pitch float32)
-	SetYawAndPitch(yaw, pitch float32)
 	Forward() matrix.Vec3
 	Right() matrix.Vec3
 	Up() matrix.Vec3
@@ -69,9 +66,6 @@ type Camera interface {
 	View() matrix.Mat4
 	Projection() matrix.Mat4
 	Center() matrix.Vec3
-	Yaw() float32
-	Pitch() float32
 	NearPlane() float32
 	FarPlane() float32
-	Zoom() float32
 }

@@ -41,11 +41,20 @@ import "kaiju/matrix"
 
 type TurntableCamera struct {
 	StandardCamera
+	pitch float32
+	yaw   float32
+	zoom  float32
 }
+
+func (c *TurntableCamera) Yaw() float32   { return c.yaw }
+func (c *TurntableCamera) Pitch() float32 { return c.pitch }
+func (c *TurntableCamera) Zoom() float32  { return c.zoom }
 
 func ToTurntable(camera *StandardCamera) *TurntableCamera {
 	tc := &TurntableCamera{
 		StandardCamera: *camera,
+		yaw:            0.0,
+		pitch:          0.0,
 	}
 	tc.updateView = tc.internalUpdateView
 	return tc
@@ -143,17 +152,72 @@ func (c *TurntableCamera) Pan(delta matrix.Vec3) {
 }
 
 func (c *TurntableCamera) Dolly(delta float32) {
+	zoom := c.zoom
 	diff := c.position.Subtract(c.lookAt)
 	length := diff.Length()
-	c.zoom += delta * length
+	zoom += delta * length
 	if c.position.Z() <= 0.0 {
-		c.zoom += 0.001
+		zoom += 0.001
 	}
-	c.updateViewAndPosition()
+	c.SetZoom(zoom)
 }
 
 func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	c.pitch += delta.X()
 	c.yaw += delta.Y()
+	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) setYaw(yaw float32) {
+	c.yaw = matrix.Deg2Rad(yaw)
+	direction := matrix.Vec3{
+		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
+		matrix.Sin(c.pitch),
+		matrix.Sin(c.yaw) * matrix.Cos(c.pitch),
+	}
+	direction.Normalize()
+	c.lookAt = c.position.Add(direction)
+}
+
+func (c *TurntableCamera) setPitch(pitch float32) {
+	c.pitch = matrix.Deg2Rad(pitch)
+	direction := matrix.Vec3{
+		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
+		matrix.Sin(c.pitch),
+		matrix.Sin(c.yaw) * matrix.Cos(c.pitch),
+	}
+	direction.Normalize()
+	c.lookAt = c.position.Add(direction)
+}
+
+func (c *TurntableCamera) setZoom(zoom float32) {
+	c.zoom = zoom
+}
+
+func (c *TurntableCamera) SetYaw(yaw float32) {
+	c.setYaw(yaw)
+	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) SetPitch(pitch float32) {
+	c.setPitch(pitch)
+	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) SetZoom(zoom float32) {
+	c.setZoom(zoom)
+	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
+	c.setYaw(yaw)
+	c.setPitch(pitch)
+	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
+	c.setYaw(yaw)
+	c.setPitch(pitch)
+	c.setZoom(zoom)
 	c.updateViewAndPosition()
 }

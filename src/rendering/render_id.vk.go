@@ -124,6 +124,10 @@ type TextureId struct {
 	LayerCount int
 }
 
+func (t TextureId) IsValid() bool {
+	return t.Image != vk.NullImage
+}
+
 type MeshId struct {
 	vertexCount        uint32
 	indexCount         uint32

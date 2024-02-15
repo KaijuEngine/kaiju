@@ -40,6 +40,13 @@
 		"Farris",
 		"kaiju",
 		"Vulkan",
-		"klib"
+		"klib",
+		"Swapchain",
+		"Framebuffer",
+		"Khronos",
+		"OpenGL",
+		"MSAA",
+		"Blit",
+		"Subresource"
 	],
 }
