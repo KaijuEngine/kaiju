@@ -43,7 +43,6 @@ import (
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/engine"
 	"kaiju/host_container"
-	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/systems/console"
 	"kaiju/systems/logging"
@@ -72,7 +71,6 @@ func main() {
 	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 	<-container.PrepLock
 	container.RunFunction(func() {
-		container.Host.Camera.SetPosition(matrix.Vec3{0.0, 0.0, 2.0})
 		addConsole(container.Host)
 	})
 	bootstrap.Main(container)
