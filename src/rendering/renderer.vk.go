@@ -213,7 +213,7 @@ func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
 	submitInfo := vk.SubmitInfo{}
 	submitInfo.SType = vk.StructureTypeSubmitInfo
 	submitInfo.CommandBufferCount = 1
-	submitInfo.PCommandBuffers = []vk.CommandBuffer{commandBuffer}
+	submitInfo.PCommandBuffers = &commandBuffer
 	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
 	vk.QueueWaitIdle(vr.graphicsQueue)
 	cb := [...]vk.CommandBuffer{commandBuffer}
@@ -357,7 +357,7 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	poolInfo := vk.DescriptorPoolCreateInfo{}
 	poolInfo.SType = vk.StructureTypeDescriptorPoolCreateInfo
 	poolInfo.PoolSizeCount = uint32(len(poolSizes))
-	poolInfo.PPoolSizes = poolSizes
+	poolInfo.PPoolSizes = &poolSizes[0]
 	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vk.DescriptorPoolCreateFreeDescriptorSetBit)
 	poolInfo.MaxSets = counts * maxFramesInFlight
 	var descriptorPool vk.DescriptorPool
@@ -377,7 +377,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	allocInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
 	allocInfo.DescriptorPool = vr.descriptorPools[poolIdx]
 	allocInfo.DescriptorSetCount = maxFramesInFlight
-	allocInfo.PSetLayouts = layouts[:]
+	allocInfo.PSetLayouts = &layouts[0]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
 	res := vk.AllocateDescriptorSets(vr.device, &allocInfo, &sets[0])
 	if res != vk.Success {
@@ -1199,7 +1199,7 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	info := vk.DescriptorSetLayoutCreateInfo{}
 	info.SType = vk.StructureTypeDescriptorSetLayoutCreateInfo
 	info.BindingCount = uint32(structureCount)
-	info.PBindings = bindings
+	info.PBindings = &bindings[0]
 	var layout vk.DescriptorSetLayout
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vk.Success {
 		return layout, errors.New("failed to create descriptor set layout")
@@ -1225,7 +1225,7 @@ func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBuff
 	write.DstArrayElement = 0
 	write.DescriptorType = descriptorType
 	write.DescriptorCount = uint32(len(bufferInfos))
-	write.PBufferInfo = bufferInfos
+	write.PBufferInfo = &bufferInfos[0]
 	return write
 }
 
@@ -1249,7 +1249,7 @@ func prepareSetWriteImage(set vk.DescriptorSet, imageInfos []vk.DescriptorImageI
 		write.DescriptorType = vk.DescriptorTypeCombinedImageSampler
 	}
 	write.DescriptorCount = uint32(len(imageInfos))
-	write.PImageInfo = imageInfos
+	write.PImageInfo = &imageInfos[0]
 	return write
 }
 
@@ -1472,8 +1472,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info := vk.ShaderModuleCreateInfo{}
 	info.SType = vk.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))
-	// Convert the ascii []byte (mem) into []uint32 runes
-	info.PCode = *(*[]uint32)(unsafe.Pointer(&mem))
+	info.PCode = (*uint32)(unsafe.Pointer(&mem[0]))
 	var outModule vk.ShaderModule
 	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vk.Success {
 		log.Fatalf("Failed to create shader module for %s", "TODO")
@@ -1615,8 +1614,8 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	vertexInputInfo.SType = vk.StructureTypePipelineVertexInputStateCreateInfo
 	vertexInputInfo.VertexBindingDescriptionCount = bDescCount
 	vertexInputInfo.VertexAttributeDescriptionCount = uint32(len(aDesc))
-	vertexInputInfo.PVertexBindingDescriptions = bDesc[:] // Optional
-	vertexInputInfo.PVertexAttributeDescriptions = aDesc  // Optional
+	vertexInputInfo.PVertexBindingDescriptions = &bDesc[0]   // Optional
+	vertexInputInfo.PVertexAttributeDescriptions = &aDesc[0] // Optional
 
 	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{}
 	inputAssembly.SType = vk.StructureTypePipelineInputAssemblyStateCreateInfo
@@ -1652,14 +1651,14 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	dynamicState := vk.PipelineDynamicStateCreateInfo{}
 	dynamicState.SType = vk.StructureTypePipelineDynamicStateCreateInfo
 	dynamicState.DynamicStateCount = uint32(len(dynamicStates))
-	dynamicState.PDynamicStates = dynamicStates
+	dynamicState.PDynamicStates = &dynamicStates[0]
 
 	viewportState := vk.PipelineViewportStateCreateInfo{}
 	viewportState.SType = vk.StructureTypePipelineViewportStateCreateInfo
 	viewportState.ViewportCount = 1
-	viewportState.PViewports = []vk.Viewport{viewport}
+	viewportState.PViewports = &viewport
 	viewportState.ScissorCount = 1
-	viewportState.PScissors = []vk.Rect2D{scissor}
+	viewportState.PScissors = &scissor
 
 	rasterizer := vk.PipelineRasterizationStateCreateInfo{}
 	rasterizer.SType = vk.StructureTypePipelineRasterizationStateCreateInfo
@@ -1725,7 +1724,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	colorBlending.LogicOpEnable = vk.False
 	colorBlending.LogicOp = vk.LogicOpCopy // Optional
 	colorBlending.AttachmentCount = uint32(colorBlendAttachmentCount)
-	colorBlending.PAttachments = colorBlendAttachment[:]
+	colorBlending.PAttachments = &colorBlendAttachment[0]
 	colorBlending.BlendConstants[0] = 0.0 // Optional
 	colorBlending.BlendConstants[1] = 0.0 // Optional
 	colorBlending.BlendConstants[2] = 0.0 // Optional
@@ -1733,10 +1732,10 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{}
 	pipelineLayoutInfo.SType = vk.StructureTypePipelineLayoutCreateInfo
-	pipelineLayoutInfo.SetLayoutCount = 1                                          // Optional
-	pipelineLayoutInfo.PSetLayouts = []vk.DescriptorSetLayout{descriptorSetLayout} // Optional
-	pipelineLayoutInfo.PushConstantRangeCount = 0                                  // Optional
-	pipelineLayoutInfo.PPushConstantRanges = nil                                   // Optional
+	pipelineLayoutInfo.SetLayoutCount = 1                 // Optional
+	pipelineLayoutInfo.PSetLayouts = &descriptorSetLayout // Optional
+	pipelineLayoutInfo.PushConstantRangeCount = 0         // Optional
+	pipelineLayoutInfo.PPushConstantRanges = nil          // Optional
 
 	var pLayout vk.PipelineLayout
 	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
@@ -1764,7 +1763,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{}
 	pipelineInfo.SType = vk.StructureTypeGraphicsPipelineCreateInfo
 	pipelineInfo.StageCount = uint32(shaderStageCount)
-	pipelineInfo.PStages = shaderStages[:shaderStageCount]
+	pipelineInfo.PStages = &shaderStages[:shaderStageCount][0]
 	pipelineInfo.PVertexInputState = &vertexInputInfo
 	pipelineInfo.PInputAssemblyState = &inputAssembly
 	pipelineInfo.PViewportState = &viewportState
@@ -1841,15 +1840,15 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	waitSemaphores := []vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
 	waitStages := []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
 	submitInfo.WaitSemaphoreCount = 1
-	submitInfo.PWaitSemaphores = waitSemaphores
-	submitInfo.PWaitDstStageMask = waitStages
+	submitInfo.PWaitSemaphores = &waitSemaphores[0]
+	submitInfo.PWaitDstStageMask = &waitStages[0]
 	submitInfo.CommandBufferCount = uint32(vr.commandBuffersCount)
 	startIdx := vr.currentFrame * MaxCommandBuffers
-	submitInfo.PCommandBuffers = vr.commandBuffers[startIdx : startIdx+vr.commandBuffersCount]
+	submitInfo.PCommandBuffers = &vr.commandBuffers[startIdx : startIdx+vr.commandBuffersCount][0]
 
 	signalSemaphores := []vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
 	submitInfo.SignalSemaphoreCount = 1
-	submitInfo.PSignalSemaphores = signalSemaphores
+	submitInfo.PSignalSemaphores = &signalSemaphores[0]
 
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
 	if eCode != vk.Success {
@@ -1869,10 +1868,10 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	presentInfo := vk.PresentInfo{}
 	presentInfo.SType = vk.StructureTypePresentInfo
 	presentInfo.WaitSemaphoreCount = 1
-	presentInfo.PWaitSemaphores = signalSemaphores
+	presentInfo.PWaitSemaphores = &signalSemaphores[0]
 	presentInfo.SwapchainCount = 1
-	presentInfo.PSwapchains = swapChains
-	presentInfo.PImageIndices = []uint32{vr.imageIndex[vr.currentFrame]}
+	presentInfo.PSwapchains = &swapChains[0]
+	presentInfo.PImageIndices = &vr.imageIndex[vr.currentFrame]
 	presentInfo.PResults = nil // Optional
 
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
@@ -2488,7 +2487,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	vertStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	vertStage.Stage = vk.ShaderStageVertexBit
 	vertStage.Module = vert
-	vertStage.PName = "main\x00"
+	vertStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.vertModule = vert
 
 	fragStage := vk.PipelineShaderStageCreateInfo{}
@@ -2503,7 +2502,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	fragStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	fragStage.Stage = vk.ShaderStageFragmentBit
 	fragStage.Module = frag
-	fragStage.PName = "main\x00"
+	fragStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.fragModule = frag
 
 	geomStage := vk.PipelineShaderStageCreateInfo{}
@@ -2519,8 +2518,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		geomStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		geomStage.Stage = vk.ShaderStageGeometryBit
 		geomStage.Module = geom
-		geomStage.PName = "main\x00"
-		shader.RenderId.geomModule = geom
+		geomStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	}
 
 	tescStage := vk.PipelineShaderStageCreateInfo{}
@@ -2536,7 +2534,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		tescStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		tescStage.Stage = vk.ShaderStageTessellationControlBit
 		tescStage.Module = tesc
-		tescStage.PName = "main\x00"
+		tescStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.tescModule = tesc
 	}
 
@@ -2553,7 +2551,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		teseStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		teseStage.Stage = vk.ShaderStageTessellationEvaluationBit
 		teseStage.Module = tese
-		teseStage.PName = "main\x00"
+		teseStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.teseModule = tese
 	}
 
@@ -2647,7 +2645,7 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.I
 	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
 	framebufferInfo.RenderPass = renderPass
 	framebufferInfo.AttachmentCount = uint32(len(attachments))
-	framebufferInfo.PAttachments = attachments
+	framebufferInfo.PAttachments = &attachments[0]
 	framebufferInfo.Width = width
 	framebufferInfo.Height = height
 	framebufferInfo.Layers = 1
