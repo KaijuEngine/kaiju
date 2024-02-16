@@ -373,13 +373,13 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 
 func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int) ([maxFramesInFlight]vk.DescriptorSet, vk.DescriptorPool, error) {
 	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{layout, layout}
-	allocInfo := vk.DescriptorSetAllocateInfo{}
-	allocInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
-	allocInfo.DescriptorPool = vr.descriptorPools[poolIdx]
-	allocInfo.DescriptorSetCount = maxFramesInFlight
-	allocInfo.PSetLayouts = &layouts[0]
+	aInfo := vk.DescriptorSetAllocateInfo{}
+	aInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
+	aInfo.DescriptorPool = vr.descriptorPools[poolIdx]
+	aInfo.DescriptorSetCount = maxFramesInFlight
+	aInfo.PSetLayouts = &layouts[0]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
-	res := vk.AllocateDescriptorSets(vr.device, &allocInfo, &sets[0])
+	res := vk.AllocateDescriptorSets(vr.device, &aInfo, &sets[0])
 	if res != vk.Success {
 		if res == vk.ErrorOutOfPoolMemory {
 			if poolIdx < len(vr.descriptorPools)-1 {
@@ -410,7 +410,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 	vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame])
 }
 
-var mampsfDefault = uint32(vk.PipelineStageVertexShaderBit | vk.PipelineStageTessellationControlShaderBit | vk.PipelineStageTessellationEvaluationShaderBit | vk.PipelineStageGeometryShaderBit | vk.PipelineStageFragmentShaderBit | vk.PipelineStageComputeShaderBit)
+var accessMaskPipelineStageFlagsDefault = uint32(vk.PipelineStageVertexShaderBit | vk.PipelineStageTessellationControlShaderBit | vk.PipelineStageTessellationEvaluationShaderBit | vk.PipelineStageGeometryShaderBit | vk.PipelineStageFragmentShaderBit | vk.PipelineStageComputeShaderBit)
 
 func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFlagBits {
 	accessPipes := []uint32{
@@ -421,13 +421,13 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFla
 		uint32(vk.AccessVertexAttributeReadBit),
 		uint32(vk.PipelineStageVertexInputBit),
 		uint32(vk.AccessUniformReadBit),
-		mampsfDefault,
+		accessMaskPipelineStageFlagsDefault,
 		uint32(vk.AccessInputAttachmentReadBit),
 		uint32(vk.PipelineStageFragmentShaderBit),
 		uint32(vk.AccessShaderReadBit),
-		mampsfDefault,
+		accessMaskPipelineStageFlagsDefault,
 		uint32(vk.AccessShaderWriteBit),
-		mampsfDefault,
+		accessMaskPipelineStageFlagsDefault,
 		uint32(vk.AccessColorAttachmentReadBit),
 		uint32(vk.PipelineStageColorAttachmentOutputBit),
 		uint32(vk.AccessColorAttachmentReadNoncoherentBit),
@@ -599,11 +599,11 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	var targetFormat *vk.SurfaceFormat = nil
 	var fallbackFormat *vk.SurfaceFormat = nil
 	for i := uint32(0); i < formatCount; i++ {
-		sfmt := &formats[i]
-		if sfmt.Format == vk.FormatB8g8r8a8Srgb {
-			fallbackFormat = sfmt
-		} else if sfmt.Format == vk.FormatB8g8r8a8Unorm {
-			targetFormat = sfmt
+		surfFormat := &formats[i]
+		if surfFormat.Format == vk.FormatB8g8r8a8Srgb {
+			fallbackFormat = surfFormat
+		} else if surfFormat.Format == vk.FormatB8g8r8a8Unorm {
+			targetFormat = surfFormat
 		}
 	}
 	if targetFormat == nil {
@@ -1910,18 +1910,18 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	*buffer = localBuffer
 	var memRequirements vk.MemoryRequirements
 	vk.GetBufferMemoryRequirements(vr.device, *buffer, &memRequirements)
-	allocInfo := vk.MemoryAllocateInfo{}
-	allocInfo.SType = vk.StructureTypeMemoryAllocateInfo
-	allocInfo.AllocationSize = memRequirements.Size
+	aInfo := vk.MemoryAllocateInfo{}
+	aInfo.SType = vk.StructureTypeMemoryAllocateInfo
+	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
 		log.Fatal("Failed to find suitable memory type")
 		return false
 	}
-	allocInfo.MemoryTypeIndex = uint32(memType)
+	aInfo.MemoryTypeIndex = uint32(memType)
 	var localBufferMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &allocInfo, nil, &localBufferMemory) != vk.Success {
 		log.Fatal("Failed to allocate vertex buffer memory")
+	if vk.AllocateMemory(vr.device, &aInfo, nil, &localBufferMemory) != vk.Success {
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(localBufferMemory)))
@@ -1969,18 +1969,18 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	textureId.Image = image
 	var memRequirements vk.MemoryRequirements
 	vk.GetImageMemoryRequirements(vr.device, textureId.Image, &memRequirements)
-	allocInfo := vk.MemoryAllocateInfo{}
-	allocInfo.SType = vk.StructureTypeMemoryAllocateInfo
-	allocInfo.AllocationSize = memRequirements.Size
+	aInfo := vk.MemoryAllocateInfo{}
+	aInfo.SType = vk.StructureTypeMemoryAllocateInfo
+	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
 		log.Fatal("Failed to find suitable memory type")
 		return false
 	}
-	allocInfo.MemoryTypeIndex = uint32(memType)
+	aInfo.MemoryTypeIndex = uint32(memType)
 	var tidMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &allocInfo, nil, &tidMemory) != vk.Success {
 		log.Fatal("Failed to allocate image memory")
+	if vk.AllocateMemory(vr.device, &aInfo, nil, &tidMemory) != vk.Success {
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(tidMemory)))
@@ -2161,8 +2161,7 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 }
 
 func (vr *Vulkan) Draw(drawings []ShaderDraw) {
-	vr.DrawMeshes(matrix.ColorDarkBG(), drawings,
-		&vr.defaultTarget)
+	vr.DrawMeshes(matrix.ColorDarkBG(), drawings, &vr.defaultTarget)
 }
 
 func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
