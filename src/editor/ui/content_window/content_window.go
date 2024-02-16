@@ -45,6 +45,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -70,6 +71,7 @@ type ContentWindow struct {
 	Query     string
 	funcMap   map[string]func(*document.DocElement)
 	opener    *content_opener.Opener
+	selected  *ui.Panel
 }
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
@@ -81,12 +83,30 @@ func New(opener *content_opener.Opener) {
 		path:    contentPath,
 	}
 	s.funcMap["openContent"] = s.openContent
+	s.funcMap["contentClick"] = s.contentClick
 	s.container = host_container.New("Content Browser", nil)
 	go s.container.Run(500, 300)
 	<-s.container.PrepLock
 	s.container.RunFunction(func() {
 		s.reloadUI()
 	})
+}
+
+func (s *ContentWindow) contentClick(elm *document.DocElement) {
+	if elm.UIPanel == s.selected {
+		s.openContent(elm)
+		return
+	}
+	for i := range elm.HTML.Parent.Children {
+		p := elm.HTML.Parent.Children[i].DocumentElement.UIPanel
+		p.UnEnforceColor()
+		lbl := ui.FirstOnEntity(p.Entity().Children[1].Children[0]).(*ui.Label)
+		lbl.UnEnforceBGColor()
+	}
+	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
+	lbl := ui.FirstOnEntity(elm.UI.Entity().Children[1].Children[0]).(*ui.Label)
+	lbl.EnforceBGColor(matrix.ColorDarkBlue())
+	s.selected = elm.UIPanel
 }
 
 func (s *ContentWindow) openContent(elm *document.DocElement) {
