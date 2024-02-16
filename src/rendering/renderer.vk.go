@@ -45,7 +45,6 @@ import (
 	"kaiju/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"log"
 	"log/slog"
 	"math"
 	"slices"
@@ -805,7 +804,7 @@ func (vr *Vulkan) createLogicalDevice() bool {
 
 	var device vk.Device
 	if vk.CreateDevice(vr.physicalDevice, createInfo, nil, &device) != vk.Success {
-		log.Fatal("Failed to create logical device")
+		slog.Error("Failed to create logical device")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(device)))
@@ -868,7 +867,7 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 	var deviceCount uint32
 	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, nil)
 	if deviceCount == 0 {
-		log.Fatal("Failed to find GPUs with Vulkan support")
+		slog.Error("Failed to find GPUs with Vulkan support")
 		return false
 	}
 	devices := make([]vk.PhysicalDevice, deviceCount)
@@ -1151,7 +1150,7 @@ func (vr *Vulkan) findSupportedFormat(candidates []vk.Format, tiling vk.ImageTil
 			return format
 		}
 	}
-	log.Fatalf("%s", "Failed to find supported format")
+	slog.Error("Failed to find supported format")
 	// TODO:  Return an error too
 	return candidates[0]
 }
@@ -1304,7 +1303,7 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 	validationLayers := validationLayers()
 	if len(validationLayers) > 0 {
 		if !checkValidationLayerSupport(validationLayers) {
-			log.Fatalf("%s", "Expected to have validation layers for debugging, but didn't find them")
+			slog.Error("Expected to have validation layers for debugging, but didn't find them")
 			return false
 		}
 		createInfo.SetEnabledLayerNames(validationLayers)
@@ -1313,7 +1312,7 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 	var instance vk.Instance
 	result := vk.CreateInstance(&createInfo, nil, &instance)
 	if result != vk.Success {
-		log.Fatalf("Failed to get the VK instance, error code (%d)", result)
+		slog.Error("Failed to get the VK instance", slog.Int("code", int(result)))
 		return false
 	} else {
 		vr.instance = instance
@@ -1405,7 +1404,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	vr.defaultTexture, err = caches.TextureCache().Texture(
 		assets.TextureSquare, TextureFilterLinear)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
 		return err
 	}
 	caches.TextureCache().CreatePending()
@@ -1445,7 +1444,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 			vk.CreateSemaphore(vr.device, &sInfo, nil, &rdrSemaphore) != vk.Success ||
 			vk.CreateFence(vr.device, &fInfo, nil, &fence) != vk.Success {
 			success = false
-			log.Fatalf("%s", "Failed to create semaphores")
+			slog.Error("Failed to create semaphores")
 		} else {
 			vr.dbg.add(uintptr(unsafe.Pointer(imgSemaphore)))
 			vr.dbg.add(uintptr(unsafe.Pointer(rdrSemaphore)))
@@ -1475,7 +1474,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info.PCode = (*uint32)(unsafe.Pointer(&mem[0]))
 	var outModule vk.ShaderModule
 	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vk.Success {
-		log.Fatalf("Failed to create shader module for %s", "TODO")
+		slog.Error("Failed to create shader module", slog.String("module", string(mem)))
 		return outModule, false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(outModule)))
@@ -1491,7 +1490,7 @@ func (vr *Vulkan) createCmdPool() bool {
 	info.QueueFamilyIndex = uint32(indices.graphicsFamily)
 	var commandPool vk.CommandPool
 	if vk.CreateCommandPool(vr.device, &info, nil, &commandPool) != vk.Success {
-		log.Fatalf("%s", "Failed to create command pool")
+		slog.Error("Failed to create command pool")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(commandPool)))
@@ -1508,7 +1507,7 @@ func (vr *Vulkan) createCmdBuffer() bool {
 	info.CommandBufferCount = maxFramesInFlight * MaxCommandBuffers
 	var commandBuffers [maxFramesInFlight * MaxCommandBuffers]vk.CommandBuffer
 	if vk.AllocateCommandBuffers(vr.device, &info, &commandBuffers[0]) != vk.Success {
-		log.Fatalf("%s", "Failed to allocate command buffers")
+		slog.Error("Failed to allocate command buffers")
 		return false
 	} else {
 		for i := 0; i < maxFramesInFlight*MaxCommandBuffers; i++ {
@@ -1588,7 +1587,7 @@ func (vr *Vulkan) createRenderPass() bool {
 
 	var renderPass vk.RenderPass
 	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create render pass")
+		slog.Error("Failed to create render pass")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
@@ -1739,7 +1738,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	var pLayout vk.PipelineLayout
 	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
-		log.Fatalf("%s", "Failed to create pipeline layout")
+		slog.Error("Failed to create pipeline layout")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(pLayout)))
@@ -1801,7 +1800,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	pipelines := [1]vk.Pipeline{}
 	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, &pipelineInfo, nil, &pipelines[0]) != vk.Success {
 		success = false
-		log.Fatal("Failed to create graphics pipeline")
+		slog.Error("Failed to create graphics pipeline")
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(pipelines[0])))
 	}
@@ -1852,7 +1851,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
 	if eCode != vk.Success {
-		log.Fatalf("Failed to submit draw command buffer, error code %d", eCode)
+		slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
 		return false
 	}
 
@@ -1879,7 +1878,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal {
 		vr.remakeSwapChain()
 	} else if vr.acquireImageResult != vk.Success {
-		log.Fatal("Failed to present swap chain image")
+		slog.Error("Failed to present swap chain image")
 		return false
 	}
 
@@ -1902,7 +1901,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	bufferInfo.SharingMode = vk.SharingModeExclusive
 	var localBuffer vk.Buffer
 	if vk.CreateBuffer(vr.device, &bufferInfo, nil, &localBuffer) != vk.Success {
-		log.Fatal("Failed to create vertex buffer")
+		slog.Error("Failed to create vertex buffer")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(localBuffer)))
@@ -1915,13 +1914,13 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
-		log.Fatal("Failed to find suitable memory type")
+		slog.Error("Failed to find suitable memory type")
 		return false
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var localBufferMemory vk.DeviceMemory
-		log.Fatal("Failed to allocate vertex buffer memory")
 	if vk.AllocateMemory(vr.device, &aInfo, nil, &localBufferMemory) != vk.Success {
+		slog.Error("Failed to allocate vertex buffer memory")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(localBufferMemory)))
@@ -1960,7 +1959,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	imageInfo.SharingMode = vk.SharingModeExclusive
 	var image vk.Image
 	if vk.CreateImage(vr.device, &imageInfo, nil, &image) != vk.Success {
-		log.Fatal("Failed to create image")
+		slog.Error("Failed to create image")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(image)))
@@ -1974,13 +1973,13 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
-		log.Fatal("Failed to find suitable memory type")
+		slog.Error("Failed to find suitable memory type")
 		return false
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var tidMemory vk.DeviceMemory
-		log.Fatal("Failed to allocate image memory")
 	if vk.AllocateMemory(vr.device, &aInfo, nil, &tidMemory) != vk.Success {
+		slog.Error("Failed to allocate image memory")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(tidMemory)))
@@ -2060,7 +2059,7 @@ func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
 	beginInfo.Flags = 0              // Optional
 	beginInfo.PInheritanceInfo = nil // Optional
 	if vk.BeginCommandBuffer(commandBuffer, &beginInfo) != vk.Success {
-		log.Fatal("Failed to begin recording command buffer")
+		slog.Error("Failed to begin recording command buffer")
 		return
 	}
 	renderPassInfo := vk.RenderPassBeginInfo{}
@@ -2257,7 +2256,7 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	vr.commandBuffersCount++
 	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
 	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
-		log.Fatal("Failed to begin recording command buffer")
+		slog.Error("Failed to begin recording command buffer")
 		return
 	}
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
@@ -2649,7 +2648,7 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.I
 	framebufferInfo.Layers = 1
 	var fb vk.Framebuffer
 	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
-		log.Fatal("Failed to create framebuffer")
+		slog.Error("Failed to create framebuffer")
 		return false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(fb)))
