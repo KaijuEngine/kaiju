@@ -1,5 +1,8 @@
 {
 	"go.buildTags": "editor",
+	"go.alternateTools": {
+		"go": "${workspaceFolder}/../go/bin/go.exe"
+	},
 	"gopls": {
 		"build.env": {
 			"CGO_LDFLAGS": "-lgdi32 -lXInput"
@@ -47,6 +50,7 @@
 		"OpenGL",
 		"MSAA",
 		"Blit",
-		"Subresource"
+		"Subresource",
+		"Memcopy"
 	],
 }

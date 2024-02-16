@@ -5,11 +5,19 @@ If you'd like occasional updates on what I'm doing here, I post them [Twitter/X]
 
 Our discord server is located here: [Discord](https://discord.gg/HYj7Dh7ke3)
 
-## Go language
-Being a stubborn C programmer for most of my programming life, it was not easy to make the decision to use Go for the engine, nor was it made lightly. The bridge from C to Go started when I found out it was partly designed by Ken Thompson (partly responsible for C itself), and that it was created out of the frustration of C++. We wish to develop a game engine with the maximum performance and simplicity of design, Go can do this for us. We're not here to get into a language flame war, so just trust us here on this and just have fun!
+## ⚠️ WORK IN PROGRESS ⚠️
+For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3) or check my [Twitter/X](https://twitter.com/KaijuCoder).
 
-## WORK IN PROGRESS
-This engine is a work in progress. I'm currently porting and refactoring my code from various engines I've written in the past. For an overview of where the engine currently is, please check out the [announcement posts in the GitHub discussions](https://github.com/KaijuEngine/kaiju/discussions).
+# Developing from source
+Below are instructions on how to build the engine from source. Please take care to ensure you're using the Kaiju Engine Go compiler. It is modified for speed (relating to games) and has some features enabled that are currently disabled in Go until the next release.
+
+## Prerequisites
+I have made modifications to the Go complier to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
+- Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
+  - This should be placed along side the Kaiju Engine repository
+- Ensure you have the standard Go compiler installed (Go builds Go)
+- Run the make script file inside of the `src` directory
+  - This will build the Kaiju Engine Go compiler into the `bin` directory
 
 ## Windows Development
 - Download mingw into `C:/`
@@ -18,10 +26,13 @@ This engine is a work in progress. I'm currently porting and refactoring my code
 - Add the `bin` folder to your environment path
   - Mine is `C:\mingw64\bin`
 - Pull the repository
-- Use `build/build.bat` to compile the executable to `bin/kaiju.exe`
+- To build the exe, run `go run build/build.go`
+  - Make sure to use the Kaiju Engine Go compiler
 
 ### Debug in VSCode
 - Open the project in VSCode
+- Press Ctrl+Shift+P and type "Choose Go Environment"
+  - Select the Kaiju Engine Go compiler `bin` folder
 - Select one of the Windows debug options
 - Press F5
 
@@ -29,9 +40,12 @@ This engine is a work in progress. I'm currently porting and refactoring my code
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
-- Use `build/build.sh` to compile the executable to `bin/kaiju`
+- To build the exe, run `go run build/build.go`
+  - Make sure to use the Kaiju Engine Go compiler
 
 ### Debug in VSCode
 - Open the project in VSCode
+- Press Ctrl+Shift+P and type "Choose Go Environment"
+  - Select the Kaiju Engine Go compiler `bin` folder
 - Select one of the X11 debug options
 - Press F5

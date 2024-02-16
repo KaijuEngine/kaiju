@@ -155,12 +155,11 @@ func requiredDeviceExtensions() []string {
 
 func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
 	var extensionCount uint32
-	vk.EnumerateDeviceExtensionProperties(device, "", &extensionCount, nil)
+	vk.EnumerateDeviceExtensionProperties(device, nil, &extensionCount, nil)
 	availableExtensions := make([]vk.ExtensionProperties, extensionCount)
-	vk.EnumerateDeviceExtensionProperties(device, "", &extensionCount, availableExtensions)
+	vk.EnumerateDeviceExtensionProperties(device, nil, &extensionCount, &availableExtensions[0])
 	found := false
 	for i := uint32(0); i < extensionCount && !found; i++ {
-		availableExtensions[i].Deref()
 		end := klib.FindFirstZeroInByteArray(availableExtensions[i].ExtensionName[:])
 		found = string(availableExtensions[i].ExtensionName[:end+1]) == extension
 	}
@@ -170,7 +169,6 @@ func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
 func (vr *Vulkan) formatCanTile(format vk.Format, tiling vk.ImageTiling) bool {
 	var formatProps vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
-	formatProps.Deref()
 	if tiling == vk.ImageTilingOptimal {
 		return (uint32(formatProps.OptimalTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) != 0
 
@@ -215,8 +213,8 @@ func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
 	submitInfo := vk.SubmitInfo{}
 	submitInfo.SType = vk.StructureTypeSubmitInfo
 	submitInfo.CommandBufferCount = 1
-	submitInfo.PCommandBuffers = []vk.CommandBuffer{commandBuffer}
-	vk.QueueSubmit(vr.graphicsQueue, 1, []vk.SubmitInfo{submitInfo}, vk.Fence(vk.NullHandle))
+	submitInfo.PCommandBuffers = &commandBuffer
+	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
 	vk.QueueWaitIdle(vr.graphicsQueue)
 	cb := [...]vk.CommandBuffer{commandBuffer}
 	vk.FreeCommandBuffers(vr.device, vr.commandPool, 1, &cb[0])
@@ -359,7 +357,7 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	poolInfo := vk.DescriptorPoolCreateInfo{}
 	poolInfo.SType = vk.StructureTypeDescriptorPoolCreateInfo
 	poolInfo.PoolSizeCount = uint32(len(poolSizes))
-	poolInfo.PPoolSizes = poolSizes
+	poolInfo.PPoolSizes = &poolSizes[0]
 	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vk.DescriptorPoolCreateFreeDescriptorSetBit)
 	poolInfo.MaxSets = counts * maxFramesInFlight
 	var descriptorPool vk.DescriptorPool
@@ -379,7 +377,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	allocInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
 	allocInfo.DescriptorPool = vr.descriptorPools[poolIdx]
 	allocInfo.DescriptorSetCount = maxFramesInFlight
-	allocInfo.PSetLayouts = layouts[:]
+	allocInfo.PSetLayouts = &layouts[0]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
 	res := vk.AllocateDescriptorSets(vr.device, &allocInfo, &sets[0])
 	if res != vk.Success {
@@ -505,7 +503,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	barrier.DstAccessMask = newAccess
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
-	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, []vk.ImageMemoryBarrier{barrier})
+	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
 	if cmd == vk.CommandBuffer(vk.NullHandle) {
 		vr.endSingleTimeCommands(commandBuffer)
 	}
@@ -526,7 +524,7 @@ func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, hei
 	region.ImageSubresource.LayerCount = 1
 	region.ImageOffset = vk.Offset3D{X: 0, Y: 0, Z: 0}
 	region.ImageExtent = vk.Extent3D{Width: width, Height: height, Depth: 1}
-	vk.CmdCopyBufferToImage(commandBuffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, []vk.BufferImageCopy{region})
+	vk.CmdCopyBufferToImage(commandBuffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, &region)
 	vr.endSingleTimeCommands(commandBuffer)
 }
 
@@ -551,7 +549,7 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	region.ImageOffset = vk.Offset3D{X: int32(x), Y: int32(y), Z: 0}
 	region.ImageExtent = vk.Extent3D{Width: uint32(width), Height: uint32(height), Depth: 1}
 	vk.CmdCopyBufferToImage(commandBuffer, stagingBuffer, image,
-		vk.ImageLayoutTransferDstOptimal, 1, []vk.BufferImageCopy{region})
+		vk.ImageLayoutTransferDstOptimal, 1, &region)
 	vr.endSingleTimeCommands(commandBuffer)
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
 	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
@@ -578,9 +576,8 @@ func findQueueFamilies(device vk.PhysicalDevice, surface vk.Surface) vkQueueFami
 	count := uint32(0)
 	vk.GetPhysicalDeviceQueueFamilyProperties(device, &count, nil)
 	queueFamilies := make([]vk.QueueFamilyProperties, count)
-	vk.GetPhysicalDeviceQueueFamilyProperties(device, &count, queueFamilies)
+	vk.GetPhysicalDeviceQueueFamilyProperties(device, &count, &queueFamilies[0])
 	for i := 0; i < int(count) && !queueFamilyIndicesValid(indices); i++ {
-		queueFamilies[i].Deref()
 		if (uint32(queueFamilies[i].QueueFlags) & uint32(vk.QueueGraphicsBit)) != 0 {
 			indices.graphicsFamily = i
 		}
@@ -602,7 +599,6 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	var targetFormat *vk.SurfaceFormat = nil
 	var fallbackFormat *vk.SurfaceFormat = nil
 	for i := uint32(0); i < formatCount; i++ {
-		formats[i].Deref()
 		sfmt := &formats[i]
 		if sfmt.Format == vk.FormatB8g8r8a8Srgb {
 			fallbackFormat = sfmt
@@ -636,7 +632,6 @@ func chooseSwapPresentMode(modes []vk.PresentMode, count uint32) vk.PresentMode 
 
 func chooseSwapExtent(window RenderingContainer, capabilities *vk.SurfaceCapabilities) vk.Extent2D {
 	if capabilities.CurrentExtent.Width != math.MaxUint32 {
-		capabilities.CurrentExtent.Deref()
 		return capabilities.CurrentExtent
 	} else {
 		// TODO:  When the window resizes, we'll need to re-query this
@@ -644,7 +639,6 @@ func chooseSwapExtent(window RenderingContainer, capabilities *vk.SurfaceCapabil
 		actualExtent := vk.Extent2D{Width: uint32(w), Height: uint32(h)}
 		actualExtent.Width = klib.Clamp(actualExtent.Width, capabilities.MinImageExtent.Width, capabilities.MaxImageExtent.Width)
 		actualExtent.Height = klib.Clamp(actualExtent.Height, capabilities.MinImageExtent.Height, capabilities.MaxImageExtent.Height)
-		actualExtent.Deref()
 		return actualExtent
 	}
 }
@@ -655,11 +649,10 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 	vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, nil)
 
 	vk.GetPhysicalDeviceSurfaceCapabilities(device, vr.surface, &details.capabilities)
-	details.capabilities.Deref()
 
 	if details.formatCount > 0 {
 		details.formats = make([]vk.SurfaceFormat, details.formatCount)
-		vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, details.formats)
+		vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, &details.formats[0])
 	}
 
 	vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, nil)
@@ -676,7 +669,6 @@ func (vr *Vulkan) createSwapChain() bool {
 	scs := vr.querySwapChainSupport(vr.physicalDevice)
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)
-	scs.capabilities.Deref()
 	extent := chooseSwapExtent(vr.window, &scs.capabilities)
 	imgCount := uint32(scs.capabilities.MinImageCount + 1)
 	if scs.capabilities.MaxImageCount > 0 && imgCount > scs.capabilities.MaxImageCount {
@@ -696,7 +688,7 @@ func (vr *Vulkan) createSwapChain() bool {
 	if indices.graphicsFamily != indices.presentFamily {
 		info.ImageSharingMode = vk.SharingModeConcurrent
 		info.QueueFamilyIndexCount = 2
-		info.PQueueFamilyIndices = queueFamilyIndices
+		info.PQueueFamilyIndices = &queueFamilyIndices[0]
 	} else {
 		info.ImageSharingMode = vk.SharingModeExclusive
 		info.QueueFamilyIndexCount = 0 // Optional
@@ -731,7 +723,6 @@ func (vr *Vulkan) createSwapChain() bool {
 			vr.swapImages[i].MipLevels = 1
 		}
 		vr.swapChainExtent = extent
-		vr.swapChainExtent.Deref()
 		return true
 	}
 }
@@ -778,11 +769,12 @@ func (vr *Vulkan) createLogicalDevice() bool {
 	}
 
 	var queueCreateInfos [2]vk.DeviceQueueCreateInfo
+	defaultPriority := float32(1.0)
 	for i := 0; i < qFamCount; i++ {
 		queueCreateInfos[i].SType = vk.StructureTypeDeviceQueueCreateInfo
 		queueCreateInfos[i].QueueFamilyIndex = uint32(indices.graphicsFamily)
 		queueCreateInfos[i].QueueCount = 1
-		queueCreateInfos[i].PQueuePriorities = []float32{1.0}
+		queueCreateInfos[i].PQueuePriorities = &defaultPriority
 	}
 
 	deviceFeatures := vk.PhysicalDeviceFeatures{}
@@ -800,16 +792,16 @@ func (vr *Vulkan) createLogicalDevice() bool {
 
 	extensions := requiredDeviceExtensions()
 	validationLayers := validationLayers()
-	createInfo := &vk.DeviceCreateInfo{}
-	createInfo.SType = vk.StructureTypeDeviceCreateInfo
-	createInfo.PQueueCreateInfos = queueCreateInfos[:qFamCount]
-	createInfo.QueueCreateInfoCount = uint32(qFamCount)
-	createInfo.PEnabledFeatures = []vk.PhysicalDeviceFeatures{deviceFeatures}
-	createInfo.EnabledExtensionCount = uint32(len(extensions))
-	createInfo.PpEnabledExtensionNames = extensions
-	createInfo.EnabledLayerCount = uint32(len(validationLayers))
-	createInfo.PpEnabledLayerNames = validationLayers
-	createInfo.PNext = unsafe.Pointer(&drawFeatures)
+	createInfo := &vk.DeviceCreateInfo{
+		SType:                vk.StructureTypeDeviceCreateInfo,
+		PQueueCreateInfos:    &queueCreateInfos[:qFamCount][0],
+		QueueCreateInfoCount: uint32(qFamCount),
+		PEnabledFeatures:     &deviceFeatures,
+		PNext:                unsafe.Pointer(&drawFeatures),
+	}
+	createInfo.SetEnabledLayerNames(validationLayers)
+	createInfo.SetEnabledExtensionNames(extensions)
+	defer createInfo.Free()
 
 	var device vk.Device
 	if vk.CreateDevice(vr.physicalDevice, createInfo, nil, &device) != vk.Success {
@@ -833,7 +825,6 @@ func (vr *Vulkan) createLogicalDevice() bool {
 func (vr *Vulkan) isPhysicalDeviceSuitable(device vk.PhysicalDevice) bool {
 	var supportedFeatures vk.PhysicalDeviceFeatures
 	vk.GetPhysicalDeviceFeatures(device, &supportedFeatures)
-	supportedFeatures.Deref()
 	indices := findQueueFamilies(device, vr.surface)
 	exts := requiredDeviceExtensions()
 	hasExtensions := true
@@ -891,8 +882,6 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 			currentPhysicalDevice = devices[i]
 		}
 		vk.GetPhysicalDeviceProperties(devices[i], &currentProperties)
-		currentProperties.Deref()
-		currentProperties.Limits.Deref()
 		pick := physicalDevice == vk.PhysicalDevice(vk.NullHandle)
 		if !pick {
 			t := properties.DeviceType
@@ -934,14 +923,13 @@ func checkValidationLayerSupport(validationLayers []string) bool {
 	var layerCount uint32
 	vk.EnumerateInstanceLayerProperties(&layerCount, nil)
 	availableLayers := make([]vk.LayerProperties, layerCount)
-	vk.EnumerateInstanceLayerProperties(&layerCount, availableLayers)
+	vk.EnumerateInstanceLayerProperties(&layerCount, &availableLayers[0])
 	available := true
 	for i := uint64(0); i < uint64(len(validationLayers)) && available; i++ {
 		layerFound := false
 		layerName := validationLayers[i]
 		for j := uint32(0); j < layerCount; j++ {
 			layer := &availableLayers[j]
-			layer.Deref()
 			end := klib.FindFirstZeroInByteArray(layer.LayerName[:])
 			if layerName == string(layer.LayerName[:end+1]) {
 				layerFound = true
@@ -963,7 +951,6 @@ func checkValidationLayerSupport(validationLayers []string) bool {
 func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidth, texHeight, mipLevels uint32, filter vk.Filter) bool {
 	var fp vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, imageFormat, &fp)
-	fp.Deref()
 	if (uint32(fp.OptimalTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) == 0 {
 		slog.Error("Texture image format does not support linear blitting")
 		return false
@@ -987,7 +974,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferWriteBit)
 		barrier.DstAccessMask = vk.AccessFlags(vk.AccessTransferReadBit)
 		vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
-			vk.PipelineStageFlags(vk.PipelineStageTransferBit), 0, 0, nil, 0, nil, 1, []vk.ImageMemoryBarrier{barrier})
+			vk.PipelineStageFlags(vk.PipelineStageTransferBit), 0, 0, nil, 0, nil, 1, &barrier)
 		blit := vk.ImageBlit{}
 		blit.SrcOffsets[0] = vk.Offset3D{X: 0, Y: 0, Z: 0}
 		blit.SrcOffsets[1] = vk.Offset3D{X: int32(mipWidth), Y: int32(mipHeight), Z: 1}
@@ -1008,13 +995,13 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		blit.DstSubresource.BaseArrayLayer = 0
 		blit.DstSubresource.LayerCount = 1
 		vk.CmdBlitImage(commandBuffer, image, vk.ImageLayoutTransferSrcOptimal,
-			image, vk.ImageLayoutTransferDstOptimal, 1, []vk.ImageBlit{blit}, filter)
+			image, vk.ImageLayoutTransferDstOptimal, 1, &blit, filter)
 		barrier.OldLayout = vk.ImageLayoutTransferSrcOptimal
 		barrier.NewLayout = vk.ImageLayoutShaderReadOnlyOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferReadBit)
 		barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 		vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
-			vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, []vk.ImageMemoryBarrier{barrier})
+			vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
 		if mipWidth > 1 {
 			mipWidth /= 2
 		}
@@ -1028,7 +1015,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferWriteBit)
 	barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
-		vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, []vk.ImageMemoryBarrier{barrier})
+		vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
 	vr.endSingleTimeCommands(commandBuffer)
 	return true
 }
@@ -1070,7 +1057,6 @@ func (vr *Vulkan) createImageViews() bool {
 func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vk.Filter) bool {
 	properties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &properties)
-	properties.Deref()
 	samplerInfo := vk.SamplerCreateInfo{}
 	samplerInfo.SType = vk.StructureTypeSamplerCreateInfo
 	samplerInfo.MagFilter = filter
@@ -1117,8 +1103,6 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 func getMaxUsableSampleCount(device vk.PhysicalDevice) vk.SampleCountFlagBits {
 	physicalDeviceProperties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(device, &physicalDeviceProperties)
-	physicalDeviceProperties.Deref()
-	physicalDeviceProperties.Limits.Deref()
 
 	counts := vk.SampleCountFlags(physicalDeviceProperties.Limits.FramebufferColorSampleCounts & physicalDeviceProperties.Limits.FramebufferDepthSampleCounts)
 
@@ -1161,7 +1145,6 @@ func (vr *Vulkan) findSupportedFormat(candidates []vk.Format, tiling vk.ImageTil
 		var props vk.FormatProperties
 		format := candidates[i]
 		vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &props)
-		props.Deref()
 		if tiling == vk.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
 			return format
 		} else if tiling == vk.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
@@ -1216,7 +1199,7 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	info := vk.DescriptorSetLayoutCreateInfo{}
 	info.SType = vk.StructureTypeDescriptorSetLayoutCreateInfo
 	info.BindingCount = uint32(structureCount)
-	info.PBindings = bindings
+	info.PBindings = &bindings[0]
 	var layout vk.DescriptorSetLayout
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vk.Success {
 		return layout, errors.New("failed to create descriptor set layout")
@@ -1242,7 +1225,7 @@ func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBuff
 	write.DstArrayElement = 0
 	write.DescriptorType = descriptorType
 	write.DescriptorCount = uint32(len(bufferInfos))
-	write.PBufferInfo = bufferInfos
+	write.PBufferInfo = &bufferInfos[0]
 	return write
 }
 
@@ -1266,7 +1249,7 @@ func prepareSetWriteImage(set vk.DescriptorSet, imageInfos []vk.DescriptorImageI
 		write.DescriptorType = vk.DescriptorTypeCombinedImageSampler
 	}
 	write.DescriptorCount = uint32(len(imageInfos))
-	write.PImageInfo = imageInfos
+	write.PImageInfo = &imageInfos[0]
 	return write
 }
 
@@ -1311,13 +1294,12 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 	extensions = append(extensions, vkInstanceExtensions()...)
 
 	createInfo := vk.InstanceCreateInfo{
-		SType:                   vk.StructureTypeInstanceCreateInfo,
-		PApplicationInfo:        &appInfo,
-		EnabledExtensionCount:   uint32(len(extensions)),
-		PpEnabledExtensionNames: extensions,
-		EnabledLayerCount:       0,
-		Flags:                   vkInstanceFlags,
+		SType:            vk.StructureTypeInstanceCreateInfo,
+		PApplicationInfo: &appInfo,
+		Flags:            vkInstanceFlags,
 	}
+	defer createInfo.Free()
+	createInfo.SetEnabledExtensionNames(extensions)
 
 	validationLayers := validationLayers()
 	if len(validationLayers) > 0 {
@@ -1325,8 +1307,7 @@ func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
 			log.Fatalf("%s", "Expected to have validation layers for debugging, but didn't find them")
 			return false
 		}
-		createInfo.EnabledLayerCount = uint32(len(validationLayers))
-		createInfo.PpEnabledLayerNames = validationLayers
+		createInfo.SetEnabledLayerNames(validationLayers)
 	}
 
 	var instance vk.Instance
@@ -1357,9 +1338,9 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vk.StructureTypeApplicationInfo
-	appInfo.PApplicationName = applicationName
+	appInfo.PApplicationName = (*vk.Char)(unsafe.Pointer(&([]byte(applicationName + "\x00"))[0]))
 	appInfo.ApplicationVersion = vk.MakeVersion(1, 0, 0)
-	appInfo.PEngineName = "Kaiju"
+	appInfo.PEngineName = (*vk.Char)(unsafe.Pointer(&([]byte("Kaiju\x00"))[0]))
 	appInfo.EngineVersion = vk.MakeVersion(1, 0, 0)
 	appInfo.ApiVersion = vk.ApiVersion11
 	if !vr.createVulkanInstance(appInfo) {
@@ -1373,8 +1354,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		return nil, errors.New("failed to select physical device")
 	}
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &vr.physicalDeviceProperties)
-	vr.physicalDeviceProperties.Deref()
-	vr.physicalDeviceProperties.Limits.Deref()
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
 	}
@@ -1493,8 +1472,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info := vk.ShaderModuleCreateInfo{}
 	info.SType = vk.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))
-	// Convert the ascii []byte (mem) into []uint32 runes
-	info.PCode = *(*[]uint32)(unsafe.Pointer(&mem))
+	info.PCode = (*uint32)(unsafe.Pointer(&mem[0]))
 	var outModule vk.ShaderModule
 	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vk.Success {
 		log.Fatalf("Failed to create shader module for %s", "TODO")
@@ -1586,8 +1564,8 @@ func (vr *Vulkan) createRenderPass() bool {
 	subpass := vk.SubpassDescription{}
 	subpass.PipelineBindPoint = vk.PipelineBindPointGraphics
 	subpass.ColorAttachmentCount = 1
-	subpass.PColorAttachments = []vk.AttachmentReference{colorAttachmentRef}
-	subpass.PResolveAttachments = []vk.AttachmentReference{colorAttachmentResolveRef}
+	subpass.PColorAttachments = &colorAttachmentRef
+	subpass.PResolveAttachments = &colorAttachmentResolveRef
 	subpass.PDepthStencilAttachment = &depthAttachmentRef
 
 	dependency := vk.SubpassDependency{}
@@ -1602,11 +1580,11 @@ func (vr *Vulkan) createRenderPass() bool {
 	renderPassInfo := vk.RenderPassCreateInfo{}
 	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
 	renderPassInfo.AttachmentCount = uint32(len(attachments))
-	renderPassInfo.PAttachments = attachments
+	renderPassInfo.PAttachments = &attachments[0]
 	renderPassInfo.SubpassCount = 1
-	renderPassInfo.PSubpasses = []vk.SubpassDescription{subpass}
+	renderPassInfo.PSubpasses = &subpass
 	renderPassInfo.DependencyCount = 1
-	renderPassInfo.PDependencies = []vk.SubpassDependency{dependency}
+	renderPassInfo.PDependencies = &dependency
 
 	var renderPass vk.RenderPass
 	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
@@ -1636,8 +1614,8 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	vertexInputInfo.SType = vk.StructureTypePipelineVertexInputStateCreateInfo
 	vertexInputInfo.VertexBindingDescriptionCount = bDescCount
 	vertexInputInfo.VertexAttributeDescriptionCount = uint32(len(aDesc))
-	vertexInputInfo.PVertexBindingDescriptions = bDesc[:] // Optional
-	vertexInputInfo.PVertexAttributeDescriptions = aDesc  // Optional
+	vertexInputInfo.PVertexBindingDescriptions = &bDesc[0]   // Optional
+	vertexInputInfo.PVertexAttributeDescriptions = &aDesc[0] // Optional
 
 	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{}
 	inputAssembly.SType = vk.StructureTypePipelineInputAssemblyStateCreateInfo
@@ -1673,14 +1651,14 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	dynamicState := vk.PipelineDynamicStateCreateInfo{}
 	dynamicState.SType = vk.StructureTypePipelineDynamicStateCreateInfo
 	dynamicState.DynamicStateCount = uint32(len(dynamicStates))
-	dynamicState.PDynamicStates = dynamicStates
+	dynamicState.PDynamicStates = &dynamicStates[0]
 
 	viewportState := vk.PipelineViewportStateCreateInfo{}
 	viewportState.SType = vk.StructureTypePipelineViewportStateCreateInfo
 	viewportState.ViewportCount = 1
-	viewportState.PViewports = []vk.Viewport{viewport}
+	viewportState.PViewports = &viewport
 	viewportState.ScissorCount = 1
-	viewportState.PScissors = []vk.Rect2D{scissor}
+	viewportState.PScissors = &scissor
 
 	rasterizer := vk.PipelineRasterizationStateCreateInfo{}
 	rasterizer.SType = vk.StructureTypePipelineRasterizationStateCreateInfo
@@ -1746,7 +1724,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	colorBlending.LogicOpEnable = vk.False
 	colorBlending.LogicOp = vk.LogicOpCopy // Optional
 	colorBlending.AttachmentCount = uint32(colorBlendAttachmentCount)
-	colorBlending.PAttachments = colorBlendAttachment[:]
+	colorBlending.PAttachments = &colorBlendAttachment[0]
 	colorBlending.BlendConstants[0] = 0.0 // Optional
 	colorBlending.BlendConstants[1] = 0.0 // Optional
 	colorBlending.BlendConstants[2] = 0.0 // Optional
@@ -1754,10 +1732,10 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{}
 	pipelineLayoutInfo.SType = vk.StructureTypePipelineLayoutCreateInfo
-	pipelineLayoutInfo.SetLayoutCount = 1                                          // Optional
-	pipelineLayoutInfo.PSetLayouts = []vk.DescriptorSetLayout{descriptorSetLayout} // Optional
-	pipelineLayoutInfo.PushConstantRangeCount = 0                                  // Optional
-	pipelineLayoutInfo.PPushConstantRanges = nil                                   // Optional
+	pipelineLayoutInfo.SetLayoutCount = 1                 // Optional
+	pipelineLayoutInfo.PSetLayouts = &descriptorSetLayout // Optional
+	pipelineLayoutInfo.PushConstantRangeCount = 0         // Optional
+	pipelineLayoutInfo.PPushConstantRanges = nil          // Optional
 
 	var pLayout vk.PipelineLayout
 	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
@@ -1785,7 +1763,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{}
 	pipelineInfo.SType = vk.StructureTypeGraphicsPipelineCreateInfo
 	pipelineInfo.StageCount = uint32(shaderStageCount)
-	pipelineInfo.PStages = shaderStages[:shaderStageCount]
+	pipelineInfo.PStages = &shaderStages[:shaderStageCount][0]
 	pipelineInfo.PVertexInputState = &vertexInputInfo
 	pipelineInfo.PInputAssemblyState = &inputAssembly
 	pipelineInfo.PViewportState = &viewportState
@@ -1821,7 +1799,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 
 	success := true
 	pipelines := [1]vk.Pipeline{}
-	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, []vk.GraphicsPipelineCreateInfo{pipelineInfo}, nil, &pipelines[0]) != vk.Success {
+	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, &pipelineInfo, nil, &pipelines[0]) != vk.Success {
 		success = false
 		log.Fatal("Failed to create graphics pipeline")
 	} else {
@@ -1862,17 +1840,17 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	waitSemaphores := []vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
 	waitStages := []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
 	submitInfo.WaitSemaphoreCount = 1
-	submitInfo.PWaitSemaphores = waitSemaphores
-	submitInfo.PWaitDstStageMask = waitStages
+	submitInfo.PWaitSemaphores = &waitSemaphores[0]
+	submitInfo.PWaitDstStageMask = &waitStages[0]
 	submitInfo.CommandBufferCount = uint32(vr.commandBuffersCount)
 	startIdx := vr.currentFrame * MaxCommandBuffers
-	submitInfo.PCommandBuffers = vr.commandBuffers[startIdx : startIdx+vr.commandBuffersCount]
+	submitInfo.PCommandBuffers = &vr.commandBuffers[startIdx : startIdx+vr.commandBuffersCount][0]
 
 	signalSemaphores := []vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
 	submitInfo.SignalSemaphoreCount = 1
-	submitInfo.PSignalSemaphores = signalSemaphores
+	submitInfo.PSignalSemaphores = &signalSemaphores[0]
 
-	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, []vk.SubmitInfo{submitInfo}, vr.renderFences[vr.currentFrame])
+	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
 	if eCode != vk.Success {
 		log.Fatalf("Failed to submit draw command buffer, error code %d", eCode)
 		return false
@@ -1890,10 +1868,10 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	presentInfo := vk.PresentInfo{}
 	presentInfo.SType = vk.StructureTypePresentInfo
 	presentInfo.WaitSemaphoreCount = 1
-	presentInfo.PWaitSemaphores = signalSemaphores
+	presentInfo.PWaitSemaphores = &signalSemaphores[0]
 	presentInfo.SwapchainCount = 1
-	presentInfo.PSwapchains = swapChains
-	presentInfo.PImageIndices = []uint32{vr.imageIndex[vr.currentFrame]}
+	presentInfo.PSwapchains = &swapChains[0]
+	presentInfo.PImageIndices = &vr.imageIndex[vr.currentFrame]
 	presentInfo.PResults = nil // Optional
 
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
@@ -1932,7 +1910,6 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	*buffer = localBuffer
 	var memRequirements vk.MemoryRequirements
 	vk.GetBufferMemoryRequirements(vr.device, *buffer, &memRequirements)
-	memRequirements.Deref()
 	allocInfo := vk.MemoryAllocateInfo{}
 	allocInfo.SType = vk.StructureTypeMemoryAllocateInfo
 	allocInfo.AllocationSize = memRequirements.Size
@@ -1958,7 +1935,7 @@ func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.D
 	commandBuffer := vr.beginSingleTimeCommands()
 	copyRegion := vk.BufferCopy{}
 	copyRegion.Size = size
-	vk.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, []vk.BufferCopy{copyRegion})
+	vk.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion)
 	vr.endSingleTimeCommands(commandBuffer)
 }
 
@@ -1992,7 +1969,6 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	textureId.Image = image
 	var memRequirements vk.MemoryRequirements
 	vk.GetImageMemoryRequirements(vr.device, textureId.Image, &memRequirements)
-	memRequirements.Deref()
 	allocInfo := vk.MemoryAllocateInfo{}
 	allocInfo.SType = vk.StructureTypeMemoryAllocateInfo
 	allocInfo.AllocationSize = memRequirements.Size
@@ -2059,14 +2035,14 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 				prepareSetWriteImage(set, imageInfos, 1, false),
 			}
 			count := uint32(len(descriptorWrites))
-			vk.UpdateDescriptorSets(vr.device, count, descriptorWrites, 0, nil)
+			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
 		} else {
 			descriptorWrites := []vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
 					0, vk.DescriptorTypeUniformBuffer),
 			}
 			count := uint32(len(descriptorWrites))
-			vk.UpdateDescriptorSets(vr.device, count, descriptorWrites, 0, nil)
+			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
 		}
 	}
 }
@@ -2078,7 +2054,7 @@ func (vr *Vulkan) prepEntityBuffers(drawings []ShaderDraw) {
 }
 
 func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
-	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors []vk.ClearValue) {
+	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
 	beginInfo.Flags = 0              // Optional
@@ -2094,7 +2070,7 @@ func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
 	renderPassInfo.RenderArea.Offset = vk.Offset2D{X: 0, Y: 0}
 	renderPassInfo.RenderArea.Extent = extent
 	renderPassInfo.ClearValueCount = uint32(len(clearColors))
-	renderPassInfo.PClearValues = clearColors
+	renderPassInfo.PClearValues = &clearColors[0]
 	vk.CmdBeginRenderPass(commandBuffer, &renderPassInfo, vk.SubpassContentsInline)
 	viewport := vk.Viewport{}
 	viewport.X = 0.0
@@ -2103,11 +2079,11 @@ func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
 	viewport.Height = float32(extent.Height)
 	viewport.MinDepth = 0.0
 	viewport.MaxDepth = 1.0
-	vk.CmdSetViewport(commandBuffer, 0, 1, []vk.Viewport{viewport})
+	vk.CmdSetViewport(commandBuffer, 0, 1, &viewport)
 	scissor := vk.Rect2D{}
 	scissor.Offset = vk.Offset2D{X: 0, Y: 0}
 	scissor.Extent = extent
-	vk.CmdSetScissor(commandBuffer, 0, 1, []vk.Rect2D{scissor})
+	vk.CmdSetScissor(commandBuffer, 0, 1, &scissor)
 }
 
 func endRender(commandBuffer vk.CommandBuffer) {
@@ -2161,8 +2137,7 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 				continue
 			}
 			vk.CmdBindPipeline(commandBuffer,
-				vk.PipelineBindPointGraphics,
-				shader.RenderId.graphicsPipeline)
+				vk.PipelineBindPointGraphics, shader.RenderId.graphicsPipeline)
 			lastShader = shader
 			currentShader = shader
 		}
@@ -2231,7 +2206,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	cc := clearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear[:])
+	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -2244,7 +2219,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear[:])
+	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
 	}
@@ -2260,11 +2235,11 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 		prepareSetWriteImage(set, imageInfos[0:1], 0, true),
 		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
 	}
-	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), descriptorWrites, 0, nil)
-	csid := &vr.oitPass.compositeShader.RenderId
+	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
 	ds := [...]vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}
 	dsOffsets := [...]uint32{0}
-	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics, csid.pipelineLayout,
+	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics,
+		vr.oitPass.compositeShader.RenderId.pipelineLayout,
 		0, 1, &ds[0], 0, &dsOffsets[0])
 	mid := &vr.oitPass.compositeQuad.MeshId
 	vb := [...]vk.Buffer{mid.vertexBuffer}
@@ -2309,7 +2284,7 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
 		vk.CmdBlitImage(cmd3, rt.oit.color.Image, rt.oit.color.Layout,
 			vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
-			1, []vk.ImageBlit{region}, vk.FilterNearest)
+			1, &region, vk.FilterNearest)
 		vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
@@ -2511,7 +2486,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	vertStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	vertStage.Stage = vk.ShaderStageVertexBit
 	vertStage.Module = vert
-	vertStage.PName = "main\x00"
+	vertStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.vertModule = vert
 
 	fragStage := vk.PipelineShaderStageCreateInfo{}
@@ -2526,7 +2501,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	fragStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	fragStage.Stage = vk.ShaderStageFragmentBit
 	fragStage.Module = frag
-	fragStage.PName = "main\x00"
+	fragStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.fragModule = frag
 
 	geomStage := vk.PipelineShaderStageCreateInfo{}
@@ -2542,8 +2517,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		geomStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		geomStage.Stage = vk.ShaderStageGeometryBit
 		geomStage.Module = geom
-		geomStage.PName = "main\x00"
-		shader.RenderId.geomModule = geom
+		geomStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	}
 
 	tescStage := vk.PipelineShaderStageCreateInfo{}
@@ -2559,7 +2533,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		tescStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		tescStage.Stage = vk.ShaderStageTessellationControlBit
 		tescStage.Module = tesc
-		tescStage.PName = "main\x00"
+		tescStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.tescModule = tesc
 	}
 
@@ -2576,7 +2550,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		teseStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		teseStage.Stage = vk.ShaderStageTessellationEvaluationBit
 		teseStage.Module = tese
-		teseStage.PName = "main\x00"
+		teseStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.teseModule = tese
 	}
 
@@ -2654,11 +2628,9 @@ func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
 func (vr *Vulkan) findMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
 	var memProperties vk.PhysicalDeviceMemoryProperties
 	vk.GetPhysicalDeviceMemoryProperties(vr.physicalDevice, &memProperties)
-	memProperties.Deref()
 	found := -1
 	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
 		memType := memProperties.MemoryTypes[i]
-		memType.Deref()
 		propMatch := (memType.PropertyFlags & properties) == properties
 		if (typeFilter&(1<<i)) != 0 && propMatch {
 			found = int(i)
@@ -2672,7 +2644,7 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.I
 	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
 	framebufferInfo.RenderPass = renderPass
 	framebufferInfo.AttachmentCount = uint32(len(attachments))
-	framebufferInfo.PAttachments = attachments
+	framebufferInfo.PAttachments = &attachments[0]
 	framebufferInfo.Width = width
 	framebufferInfo.Height = height
 	framebufferInfo.Layers = 1
