@@ -197,7 +197,7 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 	subpass := vk.SubpassDescription{}
 	subpass.PipelineBindPoint = vk.PipelineBindPointGraphics
 	subpass.ColorAttachmentCount = 1
-	subpass.PColorAttachments = []vk.AttachmentReference{colorAttachmentRef}
+	subpass.PColorAttachments = &colorAttachmentRef
 	subpass.PDepthStencilAttachment = &depthAttachmentRef
 
 	// We only need to specify one dependency: Since the subpass has a barrier, the subpass will
@@ -215,11 +215,11 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 	rpInfo := vk.RenderPassCreateInfo{}
 	rpInfo.SType = vk.StructureTypeRenderPassCreateInfo
 	rpInfo.AttachmentCount = uint32(len(attachments))
-	rpInfo.PAttachments = attachments[:]
+	rpInfo.PAttachments = &attachments[0]
 	rpInfo.SubpassCount = 1
-	rpInfo.PSubpasses = []vk.SubpassDescription{subpass}
+	rpInfo.PSubpasses = &subpass
 	rpInfo.DependencyCount = 1
-	rpInfo.PDependencies = []vk.SubpassDependency{selfDependency}
+	rpInfo.PDependencies = &selfDependency
 
 	var renderPass vk.RenderPass
 	if vk.CreateRenderPass(vr.device, &rpInfo, nil, &renderPass) != vk.Success {
@@ -274,7 +274,7 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 
 	subpasses[0].PipelineBindPoint = vk.PipelineBindPointGraphics
 	subpasses[0].ColorAttachmentCount = uint32(len(subpass0ColorAttachments))
-	subpasses[0].PColorAttachments = subpass0ColorAttachments[:]
+	subpasses[0].PColorAttachments = &subpass0ColorAttachments[0]
 	subpasses[0].PDepthStencilAttachment = &depthAttachmentRef
 
 	// Subpass 1
@@ -290,9 +290,9 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 
 	subpasses[1].PipelineBindPoint = vk.PipelineBindPointGraphics
 	subpasses[1].ColorAttachmentCount = 1
-	subpasses[1].PColorAttachments = []vk.AttachmentReference{subpass1ColorAttachment}
+	subpasses[1].PColorAttachments = &subpass1ColorAttachment
 	subpasses[1].InputAttachmentCount = uint32(len(subpass1InputAttachments))
-	subpasses[1].PInputAttachments = subpass1InputAttachments[:]
+	subpasses[1].PInputAttachments = &subpass1InputAttachments[0]
 
 	// Dependencies
 	var subpassDependencies [3]vk.SubpassDependency
@@ -321,11 +321,11 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	renderPassInfo := vk.RenderPassCreateInfo{}
 	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
 	renderPassInfo.AttachmentCount = uint32(len(allAttachments))
-	renderPassInfo.PAttachments = allAttachments
+	renderPassInfo.PAttachments = &allAttachments[0]
 	renderPassInfo.DependencyCount = uint32(len(subpassDependencies))
-	renderPassInfo.PDependencies = subpassDependencies[:]
+	renderPassInfo.PDependencies = &subpassDependencies[0]
 	renderPassInfo.SubpassCount = uint32(len(subpasses))
-	renderPassInfo.PSubpasses = subpasses[:]
+	renderPassInfo.PSubpasses = &subpasses[0]
 
 	var renderPass vk.RenderPass
 	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
