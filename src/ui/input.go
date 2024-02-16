@@ -215,10 +215,10 @@ func (input *Input) setBgColors() {
 	if len(data.label.runeDrawings) > 0 {
 		sd := data.label.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
 		data.label.ColorRange(0, data.label.textLength,
-			data.label.color, sd.FgColor)
+			data.label.fgColor, sd.FgColor)
 		if data.selectStart != data.selectEnd {
 			data.label.ColorRange(data.selectStart, data.selectEnd,
-				data.label.color, data.highlight.color)
+				data.label.fgColor, data.highlight.color)
 		}
 	}
 }
