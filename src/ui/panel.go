@@ -112,6 +112,8 @@ type Panel struct {
 	requestScrollX            requestScroll
 	requestScrollY            requestScroll
 	overflow                  Overflow
+	unEnforcedColor           matrix.Color
+	isForcedColor             bool
 	isScrolling               bool
 	dragging                  bool
 	frozen                    bool
@@ -488,7 +490,24 @@ func (p *Panel) removeDrawing() {
 	p.drawing = rendering.Drawing{}
 }
 
+func (p *Panel) EnforceColor(color matrix.Color) {
+	p.unEnforcedColor = p.shaderData.FgColor
+	p.SetColor(color)
+	p.isForcedColor = true
+}
+
+func (p *Panel) UnEnforceColor() {
+	if !p.isForcedColor {
+		return
+	}
+	p.isForcedColor = false
+	p.SetColor(p.unEnforcedColor)
+}
+
 func (p *Panel) SetColor(bgColor matrix.Color) {
+	if p.isForcedColor || p.shaderData.FgColor.Equals(bgColor) {
+		return
+	}
 	p.ensureBGExists(nil)
 	hasBlending := p.shaderData.FgColor.A() < 1.0
 	shouldBlend := bgColor.A() < 1.0

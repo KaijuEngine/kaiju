@@ -11,13 +11,13 @@
 			</div>
 			<div id="listing" class="listing">
 				{{if not .IsRoot}}
-				<div class="listEntry" ondblclick="openContent" data-path="../">
+				<div class="listEntry" onclick="contentClick" data-path="../">
 					<img class="listImg" src="textures/icons/folder.png" />
 					<span>..</span>
 				</div>
 				{{end}}
 				{{range .Dir}}
-				<div class="listEntry" ondblclick="openContent" data-path="{{.Path}}">
+				<div class="listEntry" onclick="contentClick" data-path="{{.Path}}">
 					{{if .IsDir}}
 						<img class="listImg" src="textures/icons/folder.png" />
 					{{else}}

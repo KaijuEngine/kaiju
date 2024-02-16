@@ -54,30 +54,34 @@ type colorRange struct {
 
 type Label struct {
 	uiBase
-	colorRanges      []colorRange
-	text             string
-	textLength       int
-	fontSize         float32
-	lineHeight       float32
-	overrideMaxWidth float32
-	color            matrix.Color
-	bgColor          matrix.Color
-	justify          rendering.FontJustify
-	baseline         rendering.FontBaseline
-	diffScore        int
-	runeShaderData   []*rendering.TextShaderData
-	runeDrawings     []rendering.Drawing
-	fontFace         rendering.FontFace
-	lastRenderWidth  float32
-	wordWrap         bool
-	renderRequired   bool
+	colorRanges       []colorRange
+	text              string
+	textLength        int
+	fontSize          float32
+	lineHeight        float32
+	overrideMaxWidth  float32
+	fgColor           matrix.Color
+	bgColor           matrix.Color
+	justify           rendering.FontJustify
+	baseline          rendering.FontBaseline
+	diffScore         int
+	runeShaderData    []*rendering.TextShaderData
+	runeDrawings      []rendering.Drawing
+	fontFace          rendering.FontFace
+	lastRenderWidth   float32
+	unEnforcedFGColor matrix.Color
+	unEnforcedBGColor matrix.Color
+	isForcedFGColor   bool
+	isForcedBGColor   bool
+	wordWrap          bool
+	renderRequired    bool
 }
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{
 		text:            text,
 		textLength:      len(text),
-		color:           matrix.ColorWhite(),
+		fgColor:         matrix.ColorWhite(),
 		bgColor:         matrix.ColorBlack(),
 		fontSize:        LabelFontSize,
 		baseline:        rendering.FontBaselineTop,
@@ -175,7 +179,7 @@ func (label *Label) renderText() {
 	if label.textLength > 0 {
 		label.runeDrawings = label.Host().FontCache().RenderMeshes(
 			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
-			maxWidth, label.color, label.bgColor, label.justify,
+			maxWidth, label.fgColor, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
 			false, label.fontFace, label.lineHeight)
 		for i := range label.runeDrawings {
@@ -211,7 +215,7 @@ func (label *Label) render() {
 
 func (label *Label) updateColors() {
 	for i := range label.runeShaderData {
-		label.runeShaderData[i].FgColor = label.color
+		label.runeShaderData[i].FgColor = label.fgColor
 		label.runeShaderData[i].BgColor = label.bgColor
 	}
 }
@@ -248,16 +252,50 @@ func (label *Label) setLabelScissors() {
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {
+	if label.isForcedFGColor || label.fgColor.Equals(newColor) {
+		return
+	}
 	for i := range label.colorRanges {
-		if label.colorRanges[i].hue.Equals(label.color) {
+		if label.colorRanges[i].hue.Equals(label.fgColor) {
 			label.colorRanges[i].hue = newColor
 		}
 	}
-	label.color = newColor
+	label.fgColor = newColor
 	label.updateColors()
 }
 
+func (label *Label) EnforceFGColor(color matrix.Color) {
+	label.unEnforcedFGColor = label.fgColor
+	label.SetColor(color)
+	label.isForcedFGColor = true
+}
+
+func (label *Label) UnEnforceFGColor() {
+	if !label.isForcedFGColor {
+		return
+	}
+	label.isForcedFGColor = false
+	label.SetColor(label.unEnforcedFGColor)
+}
+
+func (label *Label) EnforceBGColor(color matrix.Color) {
+	label.unEnforcedBGColor = label.bgColor
+	label.SetBGColor(color)
+	label.isForcedBGColor = true
+}
+
+func (label *Label) UnEnforceBGColor() {
+	if !label.isForcedBGColor {
+		return
+	}
+	label.isForcedBGColor = false
+	label.SetBGColor(label.unEnforcedBGColor)
+}
+
 func (label *Label) SetBGColor(newColor matrix.Color) {
+	if label.isForcedBGColor || label.bgColor.Equals(newColor) {
+		return
+	}
 	for i := range label.colorRanges {
 		if label.colorRanges[i].bgHue.Equals(label.bgColor) {
 			label.colorRanges[i].bgHue = newColor
@@ -311,7 +349,7 @@ func (label *Label) findColorRange(start, end int) *colorRange {
 	newRange := colorRange{
 		start: start,
 		end:   end,
-		hue:   label.color,
+		hue:   label.fgColor,
 		bgHue: label.bgColor,
 	}
 	//label.colorRanges = append(label.colorRanges, newRange)
@@ -329,7 +367,7 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 
 func (label *Label) BoldRange(start, end int) {
 	cRange := label.findColorRange(start, end)
-	cRange.hue = label.color
+	cRange.hue = label.fgColor
 	cRange.bgHue = label.bgColor
 	label.colorRange(*cRange)
 	label.updateColors()
