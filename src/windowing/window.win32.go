@@ -46,6 +46,14 @@ import (
 )
 
 /*
+#cgo noescape window_main
+#cgo noescape window_show
+#cgo noescape window_destroy
+#cgo noescape window_cursor_standard
+#cgo noescape window_cursor_ibeam
+#cgo noescape get_dpi
+#cgo noescape window_focus
+
 #include "windowing.h"
 #include <windows.h>
 #include <windowsx.h>

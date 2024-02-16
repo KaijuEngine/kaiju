@@ -1424,6 +1424,9 @@ func (vr *Vulkan) remakeSwapChain() {
 		vr.swapChainCleanup()
 	}
 	vr.createSwapChain()
+	if !vr.hasSwapChain {
+		return
+	}
 	vr.createImageViews()
 	//vr.createRenderPass()
 	vr.createColorResources()
@@ -2037,14 +2040,13 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
 		texCount := len(group.Textures)
 		if texCount > 0 {
-			var imageInfos = make([]vk.DescriptorImageInfo, texCount)
 			for j := 0; j < texCount; j++ {
 				t := group.Textures[j]
-				imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
+				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
 			descriptorWrites := []vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo}, 0, vk.DescriptorTypeUniformBuffer),
-				prepareSetWriteImage(set, imageInfos, 1, false),
+				prepareSetWriteImage(set, group.imageInfos, 1, false),
 			}
 			count := uint32(len(descriptorWrites))
 			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)

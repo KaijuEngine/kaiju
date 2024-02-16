@@ -40,6 +40,11 @@
 package windowing
 
 /*
+#cgo noescape window_main
+#cgo noescape window_show
+#cgo noescape window_destroy
+#cgo noescape window_focus
+
 #include <stdlib.h>
 #include "windowing.h"
 
