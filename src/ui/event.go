@@ -43,8 +43,8 @@ const (
 	EventTypeInvalid = iota
 	EventTypeEnter
 	EventTypeExit
-	EventTypeDoubleClick
 	EventTypeClick
+	EventTypeDoubleClick
 	EventTypeDown
 	EventTypeUp
 	EventTypeMiss

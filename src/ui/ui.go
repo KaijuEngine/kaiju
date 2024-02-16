@@ -316,7 +316,7 @@ func (ui *uiBase) Update(deltaTime float64) {
 				ui.drag = false
 				if ui.hovering && !dragged {
 					rt := ui.host.Runtime()
-					if rt-ui.lastClick < dblCLickTime {
+					if rt-ui.lastClick < dblCLickTime && !ui.events[EventTypeDoubleClick].IsEmpty() {
 						ui.requestEvent(EventTypeDoubleClick)
 						ui.lastClick = 0
 					} else {
