@@ -46,6 +46,7 @@ type InstanceDriverData struct {
 	descriptorSets        [maxFramesInFlight]vk.DescriptorSet
 	instanceBuffers       [maxFramesInFlight]vk.Buffer
 	instanceBuffersMemory [maxFramesInFlight]vk.DeviceMemory
+	imageInfos            []vk.DescriptorImageInfo
 	lastInstanceCount     int
 	generatedSets         bool
 }
@@ -55,6 +56,7 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader
 		vr := renderer.(*Vulkan)
 		d.descriptorSets, d.descriptorPool, _ = vr.createDescriptorSet(
 			shader.RenderId.descriptorSetLayout, 0)
+		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.Textures))
 		d.generatedSets = true
 	}
 }

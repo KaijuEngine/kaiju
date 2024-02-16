@@ -50,7 +50,20 @@
 		"OpenGL",
 		"MSAA",
 		"Blit",
+		"Blitting",
 		"Subresource",
-		"Memcopy"
+		"Memcopy",
+		"Sfloat",
+		"Vert",
+		"Verts",
+		"Mipmap",
+		"Mipmaps",
+		"Preprocess",
+		"Subpass",
+		"Rasterizer",
+		"Viewports",
+		"Srgb",
+		"Astc",
+		"Unorm"
 	],
 }
