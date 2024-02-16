@@ -124,6 +124,7 @@ type Vulkan struct {
 	oitPass                    oitPass
 	preRuns                    []func()
 	dbg                        debugVulkan
+	hasSwapChain               bool
 }
 
 func init() {
@@ -669,6 +670,10 @@ func (vr *Vulkan) createSwapChain() bool {
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)
 	extent := chooseSwapExtent(vr.window, &scs.capabilities)
+	vr.hasSwapChain = extent.Width != 0 && extent.Height != 0
+	if !vr.hasSwapChain {
+		return false
+	}
 	imgCount := uint32(scs.capabilities.MinImageCount + 1)
 	if scs.capabilities.MaxImageCount > 0 && imgCount > scs.capabilities.MaxImageCount {
 		imgCount = scs.capabilities.MaxImageCount
@@ -1415,7 +1420,9 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 
 func (vr *Vulkan) remakeSwapChain() {
 	vk.DeviceWaitIdle(vr.device)
-	vr.swapChainCleanup()
+	if vr.hasSwapChain {
+		vr.swapChainCleanup()
+	}
 	vr.createSwapChain()
 	vr.createImageViews()
 	//vr.createRenderPass()
@@ -1809,6 +1816,9 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 }
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
+	if !vr.hasSwapChain {
+		return false
+	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
 	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
@@ -1833,6 +1843,9 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
+	if !vr.hasSwapChain {
+		return false
+	}
 	submitInfo := vk.SubmitInfo{}
 	submitInfo.SType = vk.StructureTypeSubmitInfo
 
@@ -2190,6 +2203,9 @@ func (vr *Vulkan) doPendingDeletes() {
 }
 
 func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget) {
+	if !vr.hasSwapChain {
+		return
+	}
 	rt := target.(*VKRenderTarget)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -2249,6 +2265,9 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 }
 
 func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
+	if !vr.hasSwapChain {
+		return
+	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	idxSF := vr.imageIndex[frame]
