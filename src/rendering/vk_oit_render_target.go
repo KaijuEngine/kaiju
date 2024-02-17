@@ -1,45 +1,10 @@
-/*****************************************************************************/
-/* oit.vk.go                                                                 */
-/*****************************************************************************/
-/*                           This file is part of:                           */
-/*                                KAIJU ENGINE                               */
-/*                          https://kaijuengine.org                          */
-/*****************************************************************************/
-/* MIT License                                                               */
-/*                                                                           */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).   */
-/* Copyright (c) 2015-2023 Brent Farris.                                     */
-/*                                                                           */
-/* May all those that this source may reach be blessed by the LORD and find  */
-/* peace and joy in life.                                                    */
-/* Everyone who drinks of this water will be thirsty again; but whoever      */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14 */
-/*                                                                           */
-/* Permission is hereby granted, free of charge, to any person obtaining a   */
-/* copy of this software and associated documentation files (the "Software"),*/
-/* to deal in the Software without restriction, including without limitation */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,  */
-/* and/or sell copies of the Software, and to permit persons to whom the     */
-/* Software is furnished to do so, subject to the following conditions:      */
-/*                                                                           */
-/* The above copyright, blessing, biblical verse, notice and                 */
-/* this permission notice shall be included in all copies or                 */
-/* substantial portions of the Software.                                     */
-/*                                                                           */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS   */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.    */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY   */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE     */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
-/*****************************************************************************/
-
 package rendering
 
 import (
+	"errors"
 	"kaiju/assets"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"log"
 	"log/slog"
 	"unsafe"
@@ -47,7 +12,7 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-type oitFrameBuffers struct {
+type RenderTargetOIT struct {
 	opaqueFrameBuffer      vk.Framebuffer
 	transparentFrameBuffer vk.Framebuffer
 	descriptorSets         [maxFramesInFlight]vk.DescriptorSet
@@ -58,7 +23,80 @@ type oitFrameBuffers struct {
 	weightedReveal         TextureId
 }
 
-func (o *oitFrameBuffers) reset(vr *Vulkan) {
+func newRenderTargetOIT(renderer Renderer) (RenderTargetOIT, error) {
+	vr := renderer.(*Vulkan)
+	target := RenderTargetOIT{}
+	if !target.createImages(vr) {
+		return target, errors.New("failed to create render target images")
+	}
+	if !target.createBuffers(vr, &vr.oitPass) {
+		return target, errors.New("failed to create render target buffers")
+	}
+	return target, nil
+}
+
+func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color) {
+	vr := renderer.(*Vulkan)
+	frame := vr.currentFrame
+	cmdBuffIdx := frame * MaxCommandBuffers
+	for i := range drawings {
+		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+	}
+
+	// TODO:  The material will render entities not yet added to the host...
+	oRenderPass := vr.oitPass.opaqueRenderPass
+	oFrameBuffer := r.opaqueFrameBuffer
+	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	var opaqueClear [2]vk.ClearValue
+	cc := clearColor
+	opaqueClear[0].SetColor(cc[:])
+	opaqueClear[1].SetDepthStencil(1.0, 0.0)
+	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	for i := range drawings {
+		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
+	}
+	endRender(cmd1)
+
+	tRenderPass := vr.oitPass.transparentRenderPass
+	tFrameBuffer := r.transparentFrameBuffer
+	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	var transparentClear [2]vk.ClearValue
+	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
+	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
+	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
+	for i := range drawings {
+		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
+	}
+	offsets := vk.DeviceSize(0)
+	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
+	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, vr.oitPass.compositeShader.RenderId.graphicsPipeline)
+	imageInfos := [2]vk.DescriptorImageInfo{
+		imageInfo(r.weightedColor.View, r.weightedColor.Sampler),
+		imageInfo(r.weightedReveal.View, r.weightedReveal.Sampler),
+	}
+	set := r.descriptorSets[vr.currentFrame]
+	descriptorWrites := []vk.WriteDescriptorSet{
+		prepareSetWriteImage(set, imageInfos[0:1], 0, true),
+		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
+	}
+	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
+	ds := [...]vk.DescriptorSet{r.descriptorSets[vr.currentFrame]}
+	dsOffsets := [...]uint32{0}
+	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics,
+		vr.oitPass.compositeShader.RenderId.pipelineLayout,
+		0, 1, &ds[0], 0, &dsOffsets[0])
+	mid := &vr.oitPass.compositeQuad.MeshId
+	vb := [...]vk.Buffer{mid.vertexBuffer}
+	vbOffsets := [...]vk.DeviceSize{offsets}
+	vk.CmdBindVertexBuffers(cmd2, 0, 1, &vb[0], &vbOffsets[0])
+	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
+	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
+	endRender(cmd2)
+}
+
+func (o *RenderTargetOIT) reset(vr *Vulkan) {
 	vr.textureIdFree(&o.color)
 	vr.textureIdFree(&o.depth)
 	vr.textureIdFree(&o.weightedColor)
@@ -73,12 +111,12 @@ func (o *oitFrameBuffers) reset(vr *Vulkan) {
 	o.weightedReveal = TextureId{}
 }
 
-func (o *oitFrameBuffers) createImages(vr *Vulkan) bool {
+func (o *RenderTargetOIT) createImages(vr *Vulkan) bool {
 	return o.createOitSolidImages(vr) &&
 		o.createOitTransparentImages(vr)
 }
 
-func (o *oitFrameBuffers) createBuffers(vr *Vulkan, pass *oitPass) bool {
+func (o *RenderTargetOIT) createBuffers(vr *Vulkan, pass *oitPass) bool {
 	return o.createOitFrameBufferOpaque(vr, pass) &&
 		o.createOitFrameBufferTransparent(vr, pass)
 }
@@ -90,7 +128,7 @@ type oitPass struct {
 	transparentRenderPass RenderPass
 }
 
-func (o *oitPass) createOitResources(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
+func (o *oitPass) createOitResources(vr *Vulkan, defaultOitBuffers *RenderTargetOIT) bool {
 	return o.createOitRenderPassOpaque(vr, defaultOitBuffers) &&
 		o.createOitRenderPassTransparent(vr, defaultOitBuffers)
 }
@@ -100,7 +138,7 @@ func (o *oitPass) reset(vr *Vulkan) {
 	o.transparentRenderPass.Destroy()
 }
 
-func (o *oitFrameBuffers) createOitSolidImages(vr *Vulkan) bool {
+func (o *RenderTargetOIT) createOitSolidImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -131,7 +169,7 @@ func (o *oitFrameBuffers) createOitSolidImages(vr *Vulkan) bool {
 	return imagesCreated
 }
 
-func (o *oitFrameBuffers) createOitTransparentImages(vr *Vulkan) bool {
+func (o *RenderTargetOIT) createOitTransparentImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -161,7 +199,7 @@ func (o *oitFrameBuffers) createOitTransparentImages(vr *Vulkan) bool {
 	return imagesCreated
 }
 
-func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
+func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *RenderTargetOIT) bool {
 	var attachments [2]vk.AttachmentDescription
 	// Color attachment
 	attachments[0].Format = defaultOitBuffers.color.Format
@@ -218,7 +256,7 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 	return true
 }
 
-func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
+func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *RenderTargetOIT) bool {
 	// Describe the attachments at the beginning and end of the render pass.
 	weightedColorAttachment := vk.AttachmentDescription{}
 	weightedColorAttachment.Format = defaultOitBuffers.weightedColor.Format
@@ -312,13 +350,13 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	return true
 }
 
-func (o *oitFrameBuffers) createOitFrameBufferOpaque(vr *Vulkan, pass *oitPass) bool {
+func (o *RenderTargetOIT) createOitFrameBufferOpaque(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.color.View, o.depth.View}
 	return vr.CreateFrameBuffer(pass.opaqueRenderPass, attachments,
 		uint32(o.color.Width), uint32(o.color.Height), &o.opaqueFrameBuffer)
 }
 
-func (o *oitFrameBuffers) createOitFrameBufferTransparent(vr *Vulkan, pass *oitPass) bool {
+func (o *RenderTargetOIT) createOitFrameBufferTransparent(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.weightedColor.View,
 		o.weightedReveal.View, o.color.View, o.depth.View}
 	return vr.CreateFrameBuffer(pass.transparentRenderPass, attachments,
@@ -342,7 +380,7 @@ func (o *oitPass) createCompositeResources(vr *Vulkan, windowWidth, windowHeight
 	return true
 }
 
-func (o *oitFrameBuffers) createSetsAndSamplers(vr *Vulkan) bool {
+func (o *RenderTargetOIT) createSetsAndSamplers(vr *Vulkan) bool {
 	o.descriptorSets, o.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(vr.oitPass.compositeShader.RenderId.descriptorSetLayout, 0))
 	vr.createTextureSampler(&o.weightedColor.Sampler,
 		o.weightedColor.MipLevels, vk.FilterLinear)

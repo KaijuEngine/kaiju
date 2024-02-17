@@ -96,7 +96,7 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	defaultTarget              VKRenderTarget
+	defaultTarget              RenderTargetOIT
 	oitPass                    oitPass
 	preRuns                    []func()
 	dbg                        debugVulkan
@@ -263,13 +263,13 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if !vr.defaultTarget.oit.createImages(vr) {
+	if !vr.defaultTarget.createImages(vr) {
 		return nil, errors.New("failed to create OIT images")
 	}
-	if !vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit) {
+	if !vr.oitPass.createOitResources(vr, &vr.defaultTarget) {
 		return nil, errors.New("failed to create OIT render pass")
 	}
-	if !vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass) {
+	if !vr.defaultTarget.createBuffers(vr, &vr.oitPass) {
 		return nil, errors.New("failed to create OIT buffers")
 	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
@@ -286,7 +286,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	}
 	caches.TextureCache().CreatePending()
 	vr.oitPass.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
-	vr.defaultTarget.oit.createSetsAndSamplers(vr)
+	vr.defaultTarget.createSetsAndSamplers(vr)
 	return nil
 }
 
@@ -304,11 +304,11 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	vr.defaultTarget.oit.reset(vr)
+	vr.defaultTarget.reset(vr)
 	vr.oitPass.reset(vr)
-	vr.defaultTarget.oit.createImages(vr)
-	vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit)
-	vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass)
+	vr.defaultTarget.createImages(vr)
+	vr.oitPass.createOitResources(vr, &vr.defaultTarget)
+	vr.defaultTarget.createBuffers(vr, &vr.oitPass)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {

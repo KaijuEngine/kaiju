@@ -124,7 +124,7 @@ func (e *Editor) setupViewportGrid() {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
-	})
+	}, e.Host().Window.Renderer.DefaultTarget())
 }
 
 func (e *Editor) SetupUI() {

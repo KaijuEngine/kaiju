@@ -79,7 +79,7 @@ func testDrawing(host *engine.Host) {
 		Textures:   []*rendering.Texture{droidTex},
 		ShaderData: &tsd,
 		Transform:  nil,
-	})
+	}, host.Window.Renderer.DefaultTarget())
 }
 
 func testTwoDrawings(host *engine.Host) {
@@ -108,7 +108,7 @@ func testTwoDrawings(host *engine.Host) {
 			Textures:   []*rendering.Texture{droidTex},
 			ShaderData: &tsd,
 			Transform:  nil,
-		})
+		}, host.Window.Renderer.DefaultTarget())
 	}
 }
 
@@ -117,7 +117,7 @@ func testFont(host *engine.Host) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, rendering.FontRegular, 0)
-	host.Drawings.AddDrawings(drawings)
+	host.Drawings.AddDrawings(drawings, host.Window.Renderer.DefaultTarget())
 }
 
 func testOIT(host *engine.Host) {
@@ -149,7 +149,7 @@ func testOIT(host *engine.Host) {
 			ShaderData:  &tsd,
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
-		})
+		}, host.Window.Renderer.DefaultTarget())
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
@@ -258,7 +258,7 @@ func drawBasicMesh(host *engine.Host, res loaders.Result) {
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
-	})
+	}, host.Window.Renderer.DefaultTarget())
 }
 
 func testMonkeyOBJ(host *engine.Host) {

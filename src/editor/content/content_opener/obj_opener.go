@@ -91,7 +91,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
-	})
+	}, host.Window.Renderer.DefaultTarget())
 	return nil
 }
 

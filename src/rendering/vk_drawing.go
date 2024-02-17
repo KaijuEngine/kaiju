@@ -160,76 +160,10 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 	}
 }
 
-func (vr *Vulkan) Draw(drawings []ShaderDraw) {
-	vr.DrawMeshes(matrix.ColorDarkBG(), drawings, &vr.defaultTarget)
-}
-
-func (vr *Vulkan) DrawToTarget(drawings []ShaderDraw, target RenderTarget) {
-	vr.DrawMeshes(matrix.ColorDarkBG(), drawings, target)
-}
-
-func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, target RenderTarget) {
-	if !vr.hasSwapChain {
-		return
-	}
-	rt := target.(*VKRenderTarget)
-	frame := vr.currentFrame
-	cmdBuffIdx := frame * MaxCommandBuffers
+func (vr *Vulkan) Draw(drawings []RenderTargetDraw) {
 	for i := range drawings {
-		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+		drawings[i].Target.Draw(vr, drawings[i].innerDraws, matrix.ColorDarkBG())
 	}
-
-	// TODO:  The material will render entities not yet added to the host...
-	oRenderPass := vr.oitPass.opaqueRenderPass
-	oFrameBuffer := rt.oit.opaqueFrameBuffer
-	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
-	var opaqueClear [2]vk.ClearValue
-	cc := clearColor
-	opaqueClear[0].SetColor(cc[:])
-	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
-	for i := range drawings {
-		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
-	}
-	endRender(cmd1)
-
-	tRenderPass := vr.oitPass.transparentRenderPass
-	tFrameBuffer := rt.oit.transparentFrameBuffer
-	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
-	var transparentClear [2]vk.ClearValue
-	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
-	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
-	for i := range drawings {
-		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
-	}
-	offsets := vk.DeviceSize(0)
-	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
-	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, vr.oitPass.compositeShader.RenderId.graphicsPipeline)
-	imageInfos := [2]vk.DescriptorImageInfo{
-		imageInfo(rt.oit.weightedColor.View, rt.oit.weightedColor.Sampler),
-		imageInfo(rt.oit.weightedReveal.View, rt.oit.weightedReveal.Sampler),
-	}
-	set := rt.oit.descriptorSets[vr.currentFrame]
-	descriptorWrites := []vk.WriteDescriptorSet{
-		prepareSetWriteImage(set, imageInfos[0:1], 0, true),
-		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
-	}
-	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
-	ds := [...]vk.DescriptorSet{rt.oit.descriptorSets[vr.currentFrame]}
-	dsOffsets := [...]uint32{0}
-	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics,
-		vr.oitPass.compositeShader.RenderId.pipelineLayout,
-		0, 1, &ds[0], 0, &dsOffsets[0])
-	mid := &vr.oitPass.compositeQuad.MeshId
-	vb := [...]vk.Buffer{mid.vertexBuffer}
-	vbOffsets := [...]vk.DeviceSize{offsets}
-	vk.CmdBindVertexBuffers(cmd2, 0, 1, &vb[0], &vbOffsets[0])
-	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
-	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
-	endRender(cmd2)
 }
 
 func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
@@ -250,8 +184,8 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
 	for i := range targets {
-		rt := targets[i].Target.(*VKRenderTarget)
-		area := targets[i].Rect
+		rt := targets[i].Target.(*RenderTargetOIT)
+		area := matrix.Vec4{0, 0, 1, 1}
 		region := vk.ImageBlit{}
 		region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
 		region.SrcOffsets[1].Y = int32(vr.swapChainExtent.Height)
@@ -265,12 +199,12 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 		region.DstSubresource.LayerCount = 1
 		region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 		region.SrcSubresource.LayerCount = 1
-		vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutTransferSrcOptimal,
+		vr.transitionImageLayout(&rt.color, vk.ImageLayoutTransferSrcOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
-		vk.CmdBlitImage(cmd3, rt.oit.color.Image, rt.oit.color.Layout,
+		vk.CmdBlitImage(cmd3, rt.color.Image, rt.color.Layout,
 			vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
 			1, &region, vk.FilterNearest)
-		vr.transitionImageLayout(&rt.oit.color, vk.ImageLayoutColorAttachmentOptimal,
+		vr.transitionImageLayout(&rt.color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
 	}
