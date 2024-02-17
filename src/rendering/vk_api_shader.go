@@ -123,21 +123,16 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		stages[moduleCount] = fragStage
 		moduleCount++
 	}
-	renderPass := vr.defaultTarget.opaqueRenderPass
-	if strings.HasSuffix(shader.FragPath, oitSuffix) || shader.IsComposite() {
-		renderPass = vr.defaultTarget.transparentRenderPass
-	}
 
-	isTransparentPipeline := renderPass == vr.defaultTarget.transparentRenderPass &&
-		!shader.IsComposite()
 	vr.createPipeline(shader, stages, moduleCount,
 		id.descriptorSetLayout, &id.pipelineLayout,
-		&id.graphicsPipeline, renderPass, isTransparentPipeline)
+		&id.graphicsPipeline)
 	// TODO:  Setup subshader in the shader definition?
 	subShaderCheck := strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
-			shader.GeomPath, shader.CtrlPath, shader.EvalPath, vr)
+			shader.GeomPath, shader.CtrlPath, shader.EvalPath,
+			&vr.defaultTarget.transparentRenderPass)
 		subShader.DriverData = shader.DriverData
 		shader.SubShader = subShader
 	}

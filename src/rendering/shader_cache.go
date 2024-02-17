@@ -62,14 +62,15 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 	}
 }
 
-func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) *Shader {
+func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) *Shader {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	shaderKey := createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath)
 	if shader, ok := s.shaders[shaderKey]; ok {
 		return shader
 	} else {
-		shader := NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath, s.renderer)
+		shader := NewShader(vertPath, fragPath,
+			geomPath, ctrlPath, evalPath, renderPass)
 		if shader != nil {
 			s.pendingShaders = append(s.pendingShaders, shader)
 		}
@@ -93,8 +94,15 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 			}
 		}
 	}
+	// TODO:  Should use render pass lookup from definition key
+	var renderPass *RenderPass
+	if def.Vulkan.Vert == assets.ShaderOitCompositeVert { // Is composite?
+		renderPass = &s.renderer.(*Vulkan).defaultTarget.transparentRenderPass
+	} else {
+		renderPass = &s.renderer.(*Vulkan).defaultTarget.opaqueRenderPass
+	}
 	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag,
-		def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese)
+		def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese, renderPass)
 	shader.DriverData.setup(def, baseVertexAttributeCount)
 	return shader
 }
