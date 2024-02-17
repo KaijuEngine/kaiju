@@ -13,7 +13,7 @@ func main() {
 
 	fs := flag.NewFlagSet("Kaiju Build Args", flag.ContinueOnError)
 	isEditor := fs.Bool("editor", false, "Builds the editor, otherwise builds the runtime")
-	renderer := fs.String("renderer", "", "vk (Vulkan default), gl (OpenGL), or js (WebGL)")
+	renderer := fs.String("renderer", "", "vk (Vulkan default)")
 	fs.Parse(os.Args[1:])
 	tags := []string{}       // tags
 	cgoLDFLAGS := []string{} // CGO_LDFLAGS
@@ -32,21 +32,6 @@ func main() {
 		tags = append(tags, "editor")
 	}
 	switch *renderer {
-	case "gl":
-		if runtime.GOOS == "windows" {
-			cgoLDFLAGS = append(cgoLDFLAGS, "-lOpenGL32")
-		} else if runtime.GOOS == "linux" {
-			cgoLDFLAGS = append(cgoLDFLAGS, "-lGL")
-		} else if runtime.GOOS == "darwin" {
-			cgoLDFLAGS = append(cgoLDFLAGS, "-framework", "OpenGL")
-		}
-		tags = append(tags, "OPENGL")
-		cgoCFLAGS = append(cgoCFLAGS, "-DOPENGL")
-	case "js":
-		goOS = "js"
-		goArch = "wasm"
-		cgoEnabled = false
-		outExtension = ".wasm"
 	case "vk":
 		fallthrough
 	default:

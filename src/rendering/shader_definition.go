@@ -155,7 +155,6 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 type ShaderDef struct {
 	CullMode string
 	DrawMode string
-	OpenGL   ShaderDefDriver
 	Vulkan   ShaderDefDriver
 	Fields   []ShaderDefField
 	Layouts  []ShaderDefLayout

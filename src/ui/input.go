@@ -425,14 +425,6 @@ func (input *Input) onRebuild() {
 	data.label.layout.SetStretch(horizontalPadding,
 		verticalPadding, horizontalPadding, verticalPadding)
 	input.updateCursorPosition()
-
-	// TODO:  VULKAN - Fix scissor
-	//if (input.ui.entity.model.useScissor)
-	//	scissor = input.ui.entity.model.scissor;
-	//for (int i = 0; i < input.ui.entity.children.length; ++i) {
-	//	ValkEntity* e = EntityVector_at(input.ui.entity.children, i);
-	//	valk_model_set_scissor(e.model, scissor);
-	//}
 }
 
 func (input *Input) onHover() {

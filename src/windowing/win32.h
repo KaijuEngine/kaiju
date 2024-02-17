@@ -50,8 +50,4 @@ void window_destroy(void* hwnd);
 void window_cursor_standard(void* hwnd);
 void window_cursor_ibeam(void* hwnd);
 
-#ifdef OPENGL
-void window_create_gl_context(void* winHWND, void* evtSharedMem, int size);
-#endif
-
 #endif

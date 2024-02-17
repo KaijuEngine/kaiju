@@ -1,8 +1,4 @@
 {
-	"OpenGL": {
-		"Vert": "shaders/text.vert",
-		"Frag": "shaders/text.frag"
-	},
 	"Vulkan": {
 		"Vert": "shaders/spv/text.vert.spv",
 		"Frag": "shaders/spv/text.frag.spv"

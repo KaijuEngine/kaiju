@@ -53,10 +53,6 @@
 #include <windows.h>
 #include <windowsx.h>
 
-#ifdef OPENGL
-#include "../gl/dist/glad_wgl.h"
-#endif
-
 /*
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
@@ -133,83 +129,6 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-#ifdef OPENGL
-const char* setup_gl_context(HWND hwnd) {
-	PIXELFORMATDESCRIPTOR pfd = { 0 };
-	pfd.nSize = sizeof(pfd);
-	pfd.nVersion = 1;
-	pfd.dwFlags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;
-	pfd.iPixelType = PFD_TYPE_RGBA;
-	pfd.cColorBits = 32;
-	pfd.cDepthBits = 24;
-	pfd.cStencilBits = 8;
-	pfd.iLayerType = PFD_MAIN_PLANE;
-	HDC hdc = GetDC(hwnd);
-	int pixelFormat = ChoosePixelFormat(hdc, &pfd);
-	if (pixelFormat == 0) {
-		return "Failed to find a suitable pixel format.";
-	}
-	if (!SetPixelFormat(hdc, pixelFormat, &pfd)) {
-		return "Failed to set the pixel format.";
-	}
-	HGLRC legacyCtx = wglCreateContext(hdc);
-	if (legacyCtx == NULL) {
-		return "Failed to create an OpenGL context.";
-	}
-	if (!wglMakeCurrent(hdc, legacyCtx)) {
-		return "Failed to make the OpenGL context current.";
-	}
-	const int ctxAttr[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-		0
-	};
-	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB =
-		(PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
-	if (wglCreateContextAttribsARB == NULL) {
-		return "Failed to get wglCreateContextAttribsARB.";
-	}
-	HGLRC renderingCtx = wglCreateContextAttribsARB(hdc, 0, ctxAttr);
-	if (renderingCtx == NULL) {
-		return "Failed to create the rendering context.";
-	}
-	BOOL res = wglMakeCurrent(hdc, renderingCtx);
-	if (!res) {
-		return "Failed to make the rendering context current.";
-	}
-	res = wglDeleteContext(legacyCtx);
-	if (!res) {
-		return "Failed to delete the legacy context.";
-	}
-	if (!wglMakeCurrent(hdc, renderingCtx)) {
-		return "Failed to make the rendering context current.";
-	}
-	// VSync
-	const int frameVSyncSkipCount = 1;
-	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT =
-		(PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	if (wglSwapIntervalEXT != NULL) {
-		wglSwapIntervalEXT(frameVSyncSkipCount);
-	}
-	if (gladLoadGL() == 0) {
-		return "Failed to load OpenGL.";
-	}
-	return NULL;
-}
-
-void window_create_gl_context(void* winHWND, void* evtSharedMem, int size) {
-	HWND hwnd = winHWND;
-	char* esm = evtSharedMem;
-	const char* err = setup_gl_context(hwnd);
-	if (err != NULL) {
-		write_fatal(esm, size, err);
-		return;
-	}
-}
-#endif
 
 void process_message(SharedMem* sm, MSG *msg) {
 	sm->evt->evtType = msg->message;

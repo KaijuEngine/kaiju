@@ -1,4 +1,4 @@
-//go:build (linux || darwin) && !OPENGL
+//go:build linux || darwin
 
 /*****************************************************************************/
 /* vulkan.x11.go                                                             */

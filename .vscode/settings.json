@@ -37,7 +37,8 @@
 		"windows.h": "c",
 		"xlib.h": "c",
 		"commdlg.h": "c",
-		"knownfolders.h": "c"
+		"knownfolders.h": "c",
+		"glad.h": "c"
 	},
 	"cSpell.words": [
 		"Farris",
@@ -47,7 +48,6 @@
 		"Swapchain",
 		"Framebuffer",
 		"Khronos",
-		"OpenGL",
 		"MSAA",
 		"Blit",
 		"Blitting",

@@ -1,8 +1,4 @@
 {
-	"OpenGL": {
-		"Vert": "shaders/ui.vert",
-		"Frag": "shaders/ui_nine.frag"
-	},
 	"Vulkan": {
 		"Vert": "shaders/spv/ui.vert.spv",
 		"Frag": "shaders/spv/ui_nine.frag.spv"
