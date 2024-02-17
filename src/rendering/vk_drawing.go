@@ -188,7 +188,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	cc := clearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(oRenderPass.Handle, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -201,7 +201,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
+	beginRender(tRenderPass.Handle, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
 	}

@@ -124,14 +124,14 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		stages[moduleCount] = fragStage
 		moduleCount++
 	}
-	renderPass := vr.oitPass.opaqueRenderPass
+	renderPass := vr.oitPass.opaqueRenderPass.Handle
 	if strings.HasSuffix(shader.FragPath, oitSuffix) || shader.IsComposite() {
-		renderPass = vr.oitPass.transparentRenderPass
+		renderPass = vr.oitPass.transparentRenderPass.Handle
 	} else if overrideRenderPass != nil {
-		renderPass = *overrideRenderPass
+		renderPass = overrideRenderPass.Handle
 	}
 
-	isTransparentPipeline := renderPass == vr.oitPass.transparentRenderPass &&
+	isTransparentPipeline := renderPass == vr.oitPass.transparentRenderPass.Handle &&
 		!shader.IsComposite()
 	vr.createPipeline(shader, stages, moduleCount,
 		id.descriptorSetLayout, &id.pipelineLayout,

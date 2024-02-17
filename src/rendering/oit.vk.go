@@ -41,6 +41,7 @@ import (
 	"kaiju/assets"
 	"kaiju/klib"
 	"log"
+	"log/slog"
 	"unsafe"
 
 	vk "github.com/KaijuEngine/go-vulkan"
@@ -85,8 +86,8 @@ func (o *oitFrameBuffers) createBuffers(vr *Vulkan, pass *oitPass) bool {
 type oitPass struct {
 	compositeShader       *Shader
 	compositeQuad         *Mesh
-	opaqueRenderPass      vk.RenderPass
-	transparentRenderPass vk.RenderPass
+	opaqueRenderPass      RenderPass
+	transparentRenderPass RenderPass
 }
 
 func (o *oitPass) createOitResources(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
@@ -95,10 +96,8 @@ func (o *oitPass) createOitResources(vr *Vulkan, defaultOitBuffers *oitFrameBuff
 }
 
 func (o *oitPass) reset(vr *Vulkan) {
-	vk.DestroyRenderPass(vr.device, o.opaqueRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.opaqueRenderPass)))
-	vk.DestroyRenderPass(vr.device, o.transparentRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.transparentRenderPass)))
+	o.opaqueRenderPass.Destroy()
+	o.transparentRenderPass.Destroy()
 }
 
 func (o *oitFrameBuffers) createOitSolidImages(vr *Vulkan) bool {
@@ -209,25 +208,14 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 	selfDependency.DstAccessMask = selfDependency.SrcAccessMask
 	selfDependency.DependencyFlags = vk.DependencyFlags(vk.DependencyByRegionBit) // Required, since we use framebuffer-space stages
 
-	// No dependency on external data
-	rpInfo := vk.RenderPassCreateInfo{}
-	rpInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	rpInfo.AttachmentCount = uint32(len(attachments))
-	rpInfo.PAttachments = &attachments[0]
-	rpInfo.SubpassCount = 1
-	rpInfo.PSubpasses = &subpass
-	rpInfo.DependencyCount = 1
-	rpInfo.PDependencies = &selfDependency
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &rpInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create the render pass for opaque OIT")
+	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments[:],
+		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{selfDependency})
+	if err != nil {
+		slog.Error("Failed to create the solid OIT render pass")
 		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		o.opaqueRenderPass = renderPass
-		return true
 	}
+	o.opaqueRenderPass = pass
+	return true
 }
 
 func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
@@ -254,7 +242,7 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	depthAttachment.InitialLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 	depthAttachment.FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 
-	allAttachments := []vk.AttachmentDescription{weightedColorAttachment,
+	attachments := []vk.AttachmentDescription{weightedColorAttachment,
 		weightedRevealAttachment, colorAttachment, depthAttachment}
 
 	var subpasses [2]vk.SubpassDescription
@@ -315,37 +303,25 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	subpassDependencies[2].SrcAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 	subpassDependencies[2].DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
 
-	// Finally create the render pass
-	renderPassInfo := vk.RenderPassCreateInfo{}
-	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	renderPassInfo.AttachmentCount = uint32(len(allAttachments))
-	renderPassInfo.PAttachments = &allAttachments[0]
-	renderPassInfo.DependencyCount = uint32(len(subpassDependencies))
-	renderPassInfo.PDependencies = &subpassDependencies[0]
-	renderPassInfo.SubpassCount = uint32(len(subpasses))
-	renderPassInfo.PSubpasses = &subpasses[0]
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create render pass")
+	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments, subpasses[:], subpassDependencies[:])
+	if err != nil {
+		slog.Error("Failed to create the transparent OIT render pass")
 		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		o.transparentRenderPass = renderPass
-		return true
 	}
+	o.transparentRenderPass = pass
+	return true
 }
 
 func (o *oitFrameBuffers) createOitFrameBufferOpaque(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.opaqueRenderPass, attachments,
+	return vr.CreateFrameBuffer(pass.opaqueRenderPass.Handle, attachments,
 		uint32(o.color.Width), uint32(o.color.Height), &o.opaqueFrameBuffer)
 }
 
 func (o *oitFrameBuffers) createOitFrameBufferTransparent(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.weightedColor.View,
 		o.weightedReveal.View, o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.transparentRenderPass, attachments,
+	return vr.CreateFrameBuffer(pass.transparentRenderPass.Handle, attachments,
 		uint32(o.weightedColor.Width), uint32(o.weightedColor.Height),
 		&o.transparentFrameBuffer)
 }
