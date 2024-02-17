@@ -1,31 +1,15 @@
 #version 450
-//#version 300 es
-//precision mediump float;
 
-#ifdef VULKAN
-	layout(location = 0) in vec4 fragColor;
-	layout(location = 1) in vec4 fragBGColor;
-	layout(location = 2) in vec4 fragSize2D;
-	layout(location = 3) in vec4 fragBorderRadius;
-	layout(location = 4) in vec4 fragBorderSize;
-	layout(location = 5) in mat4 fragBorderColor;
-	layout(location = 9) in vec2 fragTexCoord;
-	layout(location = 10) in vec2 fragBorderLen;
+layout(location = 0) in vec4 fragColor;
+layout(location = 1) in vec4 fragBGColor;
+layout(location = 2) in vec4 fragSize2D;
+layout(location = 3) in vec4 fragBorderRadius;
+layout(location = 4) in vec4 fragBorderSize;
+layout(location = 5) in mat4 fragBorderColor;
+layout(location = 9) in vec2 fragTexCoord;
+layout(location = 10) in vec2 fragBorderLen;
 
-	layout(binding = 1) uniform sampler2D texSampler;
-#else
-	in vec4 fragColor;
-	in vec4 fragBGColor;
-	in vec4 fragSize2D;
-	in vec4 fragScissor;
-	in vec4 fragBorderRadius;
-	in vec4 fragBorderSize;
-	in mat4 fragBorderColor;
-	in vec2 fragTexCoord;
-	in vec2 fragBorderLen;
-
-	uniform sampler2D texSampler;
-#endif
+layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out float reveal;
@@ -51,13 +35,6 @@ float roundedBoxSDF(vec2 CenterPosition, vec2 Size, vec4 Radius) {
 }
 
 void main(void) {
-#ifndef VULKAN
-	if (gl_FragCoord.x < fragScissor.x || gl_FragCoord.x > fragScissor.z ||
-		gl_FragCoord.y < fragScissor.y || gl_FragCoord.y > fragScissor.w)
-	{
-		discard;
-	}
-#endif
 	vec2 newUV = vec2(
 		processAxis(fragTexCoord.x, fragBorderLen.x / fragSize2D.z, fragSize2D.z / fragSize2D.x),
 		processAxis(fragTexCoord.y, fragBorderLen.y / fragSize2D.w, fragSize2D.w / fragSize2D.y)
