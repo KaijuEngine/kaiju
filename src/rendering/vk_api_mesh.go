@@ -8,6 +8,10 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
+func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
+	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
+}
+
 func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id := &mesh.MeshId
 	vNum := uint32(len(verts))
@@ -16,10 +20,6 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id.vertexCount = vNum
 	vr.createVertexBuffer(verts, &id.vertexBuffer, &id.vertexBufferMemory)
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
-}
-
-func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
-	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
 }
 
 func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.ImageView, width, height uint32, frameBuffer *vk.Framebuffer) bool {
@@ -40,35 +40,6 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.I
 	}
 	*frameBuffer = fb
 	return true
-}
-
-func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) {
-	currentCount := len(group.Instances)
-	lastCount := group.InstanceDriverData.lastInstanceCount
-	if currentCount > lastCount {
-		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
-			pd := bufferTrash{delay: maxFramesInFlight}
-			for i := 0; i < maxFramesInFlight; i++ {
-				pd.buffers[i] = group.instanceBuffers[i]
-				pd.memories[i] = group.instanceBuffersMemory[i]
-				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
-				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
-			}
-			vr.bufferTrash.Add(pd)
-		}
-		if currentCount > 0 {
-			group.generateInstanceDriverData(vr, shader)
-			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
-			for i := 0; i < maxFramesInFlight; i++ {
-				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
-					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
-					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
-					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
-			}
-			group.AlterPadding(int(iSize))
-		}
-		group.InstanceDriverData.lastInstanceCount = currentCount
-	}
 }
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
@@ -184,4 +155,33 @@ func (vr *Vulkan) Destroy() {
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.instance)))
 	}
 	vr.dbg.print()
+}
+
+func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) {
+	currentCount := len(group.Instances)
+	lastCount := group.InstanceDriverData.lastInstanceCount
+	if currentCount > lastCount {
+		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
+			pd := bufferTrash{delay: maxFramesInFlight}
+			for i := 0; i < maxFramesInFlight; i++ {
+				pd.buffers[i] = group.instanceBuffers[i]
+				pd.memories[i] = group.instanceBuffersMemory[i]
+				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
+				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
+			}
+			vr.bufferTrash.Add(pd)
+		}
+		if currentCount > 0 {
+			group.generateInstanceDriverData(vr, shader)
+			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
+			for i := 0; i < maxFramesInFlight; i++ {
+				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
+					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
+					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
+					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
+			}
+			group.AlterPadding(int(iSize))
+		}
+		group.InstanceDriverData.lastInstanceCount = currentCount
+	}
 }

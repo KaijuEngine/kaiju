@@ -8,7 +8,7 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
+func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGroup) {
 	shaderDataSize := key.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
 	for i := range groups {
@@ -17,7 +17,7 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 			continue
 		}
 		group.UpdateData(vr)
-		if group.VisibleCount() == 0 {
+		if !group.AnyVisible() {
 			continue
 		}
 		vr.resizeUniformBuffer(key, group)
@@ -50,12 +50,6 @@ func (vr *Vulkan) prepShader(key *Shader, groups []DrawInstanceGroup) {
 			count := uint32(len(descriptorWrites))
 			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
 		}
-	}
-}
-
-func (vr *Vulkan) prepEntityBuffers(drawings []ShaderDraw) {
-	for i := range drawings {
-		vr.prepShader(drawings[i].shader, drawings[i].instanceGroups)
 	}
 }
 
@@ -181,7 +175,9 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	rt := target.(*VKRenderTarget)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
-	vr.prepEntityBuffers(drawings)
+	for i := range drawings {
+		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+	}
 
 	// TODO:  The material will render entities not yet added to the host...
 	oRenderPass := vr.oitPass.opaqueRenderPass

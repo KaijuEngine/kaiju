@@ -210,7 +210,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		msaaSamples:    vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:            debugVulkanNew(),
 	}
-	vr.bufferTrash = newBufferDestroyer(&vr.device, &vr.dbg)
+	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
 
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vk.StructureTypeApplicationInfo

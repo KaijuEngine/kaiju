@@ -16,12 +16,12 @@ type bufferTrash struct {
 }
 
 type bufferDestroyer struct {
-	device *vk.Device
+	device vk.Device
 	trash  []bufferTrash
 	dbg    *debugVulkan
 }
 
-func newBufferDestroyer(device *vk.Device, dbg *debugVulkan) bufferDestroyer {
+func newBufferDestroyer(device vk.Device, dbg *debugVulkan) bufferDestroyer {
 	return bufferDestroyer{
 		device: device,
 		dbg:    dbg,
@@ -47,13 +47,13 @@ func (b *bufferDestroyer) Cycle() {
 		pd.delay--
 		if pd.delay == 0 {
 			for j := range maxFramesInFlight {
-				vk.DestroyBuffer(*b.device, pd.buffers[j], nil)
+				vk.DestroyBuffer(b.device, pd.buffers[j], nil)
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.buffers[j])))
-				vk.FreeMemory(*b.device, pd.memories[j], nil)
+				vk.FreeMemory(b.device, pd.memories[j], nil)
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.memories[j])))
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
-				vk.FreeDescriptorSets(*b.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])
+				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])
 			}
 			// TODO:  Does this need to be ordered delete?
 			b.trash = slices.Delete(b.trash, i, i+1)

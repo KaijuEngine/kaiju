@@ -181,6 +181,7 @@ func (d *DrawInstanceGroup) texSize() (int32, int32) {
 	return width, height
 }
 
+func (d *DrawInstanceGroup) AnyVisible() bool  { return d.visibleCount > 0 }
 func (d *DrawInstanceGroup) VisibleCount() int { return d.visibleCount }
 
 func (d *DrawInstanceGroup) VisibleSize() int {

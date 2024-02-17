@@ -64,6 +64,7 @@
 		"Viewports",
 		"Srgb",
 		"Astc",
-		"Unorm"
+		"Unorm",
+		"Subpasses"
 	],
 }
