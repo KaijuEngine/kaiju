@@ -45,13 +45,6 @@
 #include <pthread.h>
 #include <X11/Xlib.h>
 
-#ifdef OPENGL
-#include "../gl/dist/glad.h"
-#include <GL/glx.h>
-
-typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-#endif
-
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
@@ -77,117 +70,18 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
-#ifdef OPENGL
-void window_create_gl_context(void* state, void* evtSharedMem, int size) {
-	X11State* x11State = state;
-	char* esm = evtSharedMem;
-	const char* glxExts = glXQueryExtensionsString(x11State->d, DefaultScreen(x11State->d));
-	glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)
-		glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
-	x11State->ctx = NULL;
-	// TODO:  Deal with ctx errors
-	if (!isExtensionSupported(glxExts, "GLX_ARB_create_context") || !glXCreateContextAttribsARB) {
-		x11State->ctx = glXCreateNewContext(x11State->d, x11State->bestFbcConfig, GLX_RGBA_TYPE, 0, True);
-	} else {
-		int contextAttrs[] = {
-			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-			None
-		};
-		x11State->ctx = glXCreateContextAttribsARB(x11State->d, x11State->bestFbcConfig, 0, True, contextAttrs);
-		XSync(x11State->d, False);
-		// TODO:  Check ctx errors and if so, then do the following
-		//context_attribs[1] = 1;
-		//context_attribs[3] = 0;
-		//x11State->ctx = glXCreateContextAttribsARB(d, bestFbc, 0, True, context_attribs);
-	}
-	XSync(x11State->d, False);
-	//XSetErrorHandler(oldHandler);
-	// TODO:  Check context error as well as ctx
-	if (x11State->ctx == NULL) {
-		write_fatal(evtSharedMem, size, "Failed to create GL context");
-		return;
-	}
-	glXMakeCurrent(x11State->d, x11State->w, x11State->ctx);
-	if (gladLoadGL() == 0) {
-		write_fatal(evtSharedMem, size, "Failed to load OpenGL");
-		return;
-	}
-}
-#endif
-
 void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size) {
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
 		return;
 	}
-#ifdef OPENGL
-	int visAttrs[] = {
-		GLX_X_RENDERABLE, True,
-		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-		GLX_RENDER_TYPE, GLX_RGBA_BIT,
-		GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
-		GLX_RED_SIZE, 8,
-		GLX_GREEN_SIZE, 8,
-		GLX_BLUE_SIZE, 8,
-		GLX_ALPHA_SIZE, 8,
-		GLX_DEPTH_SIZE, 24,
-		GLX_STENCIL_SIZE, 8,
-		GLX_DOUBLEBUFFER, True,
-		None
-	};
-	int glxMajor, glxMinor;
-	if (!glXQueryVersion(d, &glxMajor, &glxMinor) ||
-		((glxMajor == 1) && (glxMinor < 3)) || (glxMajor < 1))
-	{
-		write_fatal(evtSharedMem, size, "Invalid GLX version");
-		return;
-	}
-	int fbCount;
-	GLXFBConfig* fbc = glXChooseFBConfig(d, DefaultScreen(d), visAttrs, &fbCount);
-	int bestFbc = -1, worstFbc = -1, bestNumSamp = -1, worstNumSamp = 999;
-	for (int i = 0; i < fbCount; i++) {
-		XVisualInfo* vi = glXGetVisualFromFBConfig(d, fbc[i]);
-		if (vi != NULL) {
-			int sampBuf, samples;
-			glXGetFBConfigAttrib(d, fbc[i], GLX_SAMPLE_BUFFERS, &sampBuf);
-			glXGetFBConfigAttrib(d, fbc[i], GLX_SAMPLES, &samples);
-			if (bestFbc < 0 || (sampBuf && samples > bestNumSamp)) {
-				bestFbc = i;
-				bestNumSamp = samples;
-			}
-			if (worstFbc < 0 || !sampBuf || samples < worstNumSamp) {
-				worstFbc = i;
-				worstNumSamp = samples;
-			}
-		}
-		XFree(vi);
-	}
-	GLXFBConfig bestFbcConfig = fbc[bestFbc];
-	XFree(fbc);
-	XVisualInfo* vi = glXGetVisualFromFBConfig(d, bestFbcConfig);
-	XSetWindowAttributes swa;
-	Colormap cmap = XCreateColormap(d, RootWindow(d, vi->screen), NULL, AllocNone);
-	swa.colormap = cmap;
-	swa.background_pixmap = None;
-	swa.border_pixel = 0;
-	swa.event_mask = StructureNotifyMask;
-	Window w = XCreateWindow(d, RootWindow(d, vi->screen), 10, 10, width, height,
-		0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
-#else
 	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), 10, 10,
 		width, height, 1, BlackPixel(d, DefaultScreen(d)), WhitePixel(d, DefaultScreen(d)));
-#endif
 	if (w == None) {
 		write_fatal(evtSharedMem, size, "Failed to create window");
 		return;
 	}
-#ifdef OPENGL
-	XFree(vi);
-#endif
 	XStoreName(d, w, windowTitle);
 	XSetIconName(d, w, windowTitle);
 	XSelectInput(d, w, EVT_MASK);
@@ -197,10 +91,6 @@ void window_main(const char* windowTitle, int width, int height, void* evtShared
 	x11State->sm.size = size;
 	x11State->w = w;
 	x11State->d = d;
-#ifdef OPENGL
-	x11State->bestFbcConfig = bestFbcConfig;
-	x11State->cmap = cmap;
-#endif
 	x11State->WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
 	memcpy(evtSharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
@@ -276,14 +166,7 @@ int window_poll(void* x11State) {
 
 void window_destroy(void* x11State) {
 	X11State* s = x11State;
-#ifdef OPENGL
-	glXMakeCurrent(s->d, 0, 0);
-	glXDestroyContext(s->d, s->ctx);
-#endif
 	XDestroyWindow(s->d, s->w);
-#ifdef OPENGL
-	XFreeColormap(s->d, s->cmap);
-#endif
 	XCloseDisplay(s->d);
 }
 

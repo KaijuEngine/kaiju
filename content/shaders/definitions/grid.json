@@ -1,9 +1,5 @@
 {
 	"DrawMode": "lines",
-	"OpenGL": {
-		"Vert": "shaders/basic.vert",
-		"Frag": "shaders/grid.frag"
-	},
 	"Vulkan": {
 		"Vert": "shaders/spv/basic.vert.spv",
 		"Frag": "shaders/spv/grid.frag.spv"

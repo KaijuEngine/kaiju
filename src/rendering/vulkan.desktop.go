@@ -1,4 +1,4 @@
-//go:build !OPENGL && (windows || darwin || linux)
+//go:build windows || darwin || linux
 
 /*****************************************************************************/
 /* vulkan.desktop.go                                                         */
