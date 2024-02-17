@@ -37,15 +37,10 @@
 
 package rendering
 
-import "kaiju/matrix"
+import (
+	"kaiju/matrix"
+)
 
-type RenderTarget interface{}
-
-type RenderTargetDraw struct {
-	Target RenderTarget
-	Rect   matrix.Vec4
-}
-
-func NewRenderTarget(renderer Renderer) (RenderTarget, error) {
-	return newRenderTarget(renderer)
+type RenderTarget interface {
+	Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color)
 }

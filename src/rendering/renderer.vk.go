@@ -75,7 +75,7 @@ type Vulkan struct {
 	surface                    vk.Surface
 	swapChain                  vk.Swapchain
 	swapChainExtent            vk.Extent2D
-	renderPass                 vk.RenderPass
+	swapChainRenderPass        RenderPass
 	imageIndex                 [maxFramesInFlight]uint32
 	descriptorPools            []vk.DescriptorPool
 	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
@@ -96,8 +96,7 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	defaultTarget              VKRenderTarget
-	oitPass                    oitPass
+	defaultTarget              RenderTargetOIT
 	preRuns                    []func()
 	dbg                        debugVulkan
 	hasSwapChain               bool
@@ -210,7 +209,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		msaaSamples:    vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:            debugVulkanNew(),
 	}
-	vr.bufferTrash = newBufferDestroyer(&vr.device, &vr.dbg)
 
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vk.StructureTypeApplicationInfo
@@ -239,7 +237,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createImageViews() {
 		return nil, errors.New("failed to create image views")
 	}
-	if !vr.createRenderPass() {
+	if !vr.createSwapChainRenderPass() {
 		return nil, errors.New("failed to create render pass")
 	}
 	if !vr.createCmdPool() {
@@ -251,7 +249,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createDepthResources() {
 		return nil, errors.New("failed to create depth resources")
 	}
-	if !vr.createDefaultFrameBuffer() {
+	if !vr.createSwapChainFrameBuffer() {
 		return nil, errors.New("failed to create default frame buffer")
 	}
 	vr.createGlobalUniformBuffers()
@@ -264,15 +262,10 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if !vr.defaultTarget.oit.createImages(vr) {
-		return nil, errors.New("failed to create OIT images")
+	if err := vr.defaultTarget.recreate(vr); err != nil {
+		return nil, err
 	}
-	if !vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit) {
-		return nil, errors.New("failed to create OIT render pass")
-	}
-	if !vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass) {
-		return nil, errors.New("failed to create OIT buffers")
-	}
+	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
 	return vr, nil
 }
 
@@ -285,8 +278,8 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 		return err
 	}
 	caches.TextureCache().CreatePending()
-	vr.oitPass.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
-	vr.defaultTarget.oit.createSetsAndSamplers(vr)
+	vr.defaultTarget.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
+	vr.defaultTarget.createSetsAndSamplers(vr)
 	return nil
 }
 
@@ -303,12 +296,10 @@ func (vr *Vulkan) remakeSwapChain() {
 	//vr.createRenderPass()
 	vr.createColorResources()
 	vr.createDepthResources()
-	vr.createDefaultFrameBuffer()
-	vr.defaultTarget.oit.reset(vr)
-	vr.oitPass.reset(vr)
-	vr.defaultTarget.oit.createImages(vr)
-	vr.oitPass.createOitResources(vr, &vr.defaultTarget.oit)
-	vr.defaultTarget.oit.createBuffers(vr, &vr.oitPass)
+	vr.createSwapChainFrameBuffer()
+	vr.defaultTarget.reset(vr)
+	vr.defaultTarget.reset(vr)
+	vr.defaultTarget.recreate(vr)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -384,7 +375,7 @@ func (vr *Vulkan) createCmdBuffer() bool {
 	}
 }
 
-func (vr *Vulkan) createRenderPass() bool {
+func (vr *Vulkan) createSwapChainRenderPass() bool {
 	colorAttachment := vk.AttachmentDescription{}
 	colorAttachment.Format = vr.swapImages[0].Format
 	colorAttachment.Samples = vr.msaaSamples
@@ -443,24 +434,15 @@ func (vr *Vulkan) createRenderPass() bool {
 	dependency.DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit | vk.AccessDepthStencilAttachmentWriteBit)
 
 	attachments := []vk.AttachmentDescription{colorAttachment, depthAttachment, colorAttachmentResolve}
-	renderPassInfo := vk.RenderPassCreateInfo{}
-	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	renderPassInfo.AttachmentCount = uint32(len(attachments))
-	renderPassInfo.PAttachments = &attachments[0]
-	renderPassInfo.SubpassCount = 1
-	renderPassInfo.PSubpasses = &subpass
-	renderPassInfo.DependencyCount = 1
-	renderPassInfo.PDependencies = &dependency
 
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
+	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments,
+		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{dependency})
+	if err != nil {
 		slog.Error("Failed to create render pass")
 		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		vr.renderPass = renderPass
-		return true
 	}
+	vr.swapChainRenderPass = pass
+	return true
 }
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
@@ -545,4 +527,44 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 	vr.currentFrame = (vr.currentFrame + 1) % maxFramesInFlight
 	return true
+}
+
+func (vr *Vulkan) Destroy() {
+	vk.DeviceWaitIdle(vr.device)
+	vr.bufferTrash.Purge()
+	if vr.device != vk.Device(vk.NullHandle) {
+		vr.defaultTarget.reset(vr)
+		vr.defaultTexture = nil
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.imageSemaphores[i])))
+			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderSemaphores[i])))
+			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderFences[i])))
+		}
+		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
+		vr.dbg.remove(uintptr(unsafe.Pointer(vr.commandPool)))
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffers[i])))
+			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffersMemory[i])))
+		}
+		for i := range vr.descriptorPools {
+			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
+			vr.dbg.remove(uintptr(unsafe.Pointer(vr.descriptorPools[i])))
+		}
+		vr.swapChainRenderPass.Destroy()
+		vr.swapChainCleanup()
+		vk.DestroyDevice(vr.device, nil)
+		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))
+	}
+	if vr.instance != vk.Instance(vk.NullHandle) {
+		vk.DestroySurface(vr.instance, vr.surface, nil)
+		vr.dbg.remove(uintptr(unsafe.Pointer(vr.surface)))
+		vk.DestroyInstance(vr.instance, nil)
+		vr.dbg.remove(uintptr(unsafe.Pointer(vr.instance)))
+	}
+	vr.dbg.print()
 }

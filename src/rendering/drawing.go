@@ -44,40 +44,51 @@ import (
 )
 
 type Drawing struct {
-	Renderer    Renderer
-	Shader      *Shader
-	Mesh        *Mesh
-	Textures    []*Texture
-	ShaderData  DrawInstance
-	Transform   *matrix.Transform
-	UseBlending bool
+	Renderer     Renderer
+	Shader       *Shader
+	Mesh         *Mesh
+	Textures     []*Texture
+	ShaderData   DrawInstance
+	Transform    *matrix.Transform
+	renderTarget RenderTarget
+	UseBlending  bool
 }
 
-func (d *Drawing) IsValid() bool { return d.Shader != nil }
+func (d *Drawing) IsValid() bool {
+	return d.Shader != nil && d.renderTarget != nil
+}
+
+type RenderTargetDraw struct {
+	innerDraws []ShaderDraw
+	Target     RenderTarget
+}
+
+func (t *RenderTargetDraw) findShaderDraw(shader *Shader) (*ShaderDraw, bool) {
+	for i := range t.innerDraws {
+		if t.innerDraws[i].shader == shader {
+			return &t.innerDraws[i], true
+		}
+	}
+	return nil, false
+}
 
 type Drawings struct {
-	draws     []ShaderDraw
+	draws     []RenderTargetDraw
 	backDraws []Drawing
 	mutex     sync.RWMutex
-	targets   []RenderTargetDraw
 }
 
 func NewDrawings() Drawings {
-	initialTarget := RenderTargetDraw{
-		Target: nil,
-		Rect:   matrix.Vec4{0, 0, 1, 1},
-	}
 	return Drawings{
-		draws:     make([]ShaderDraw, 0),
+		draws:     make([]RenderTargetDraw, 0),
 		backDraws: make([]Drawing, 0),
 		mutex:     sync.RWMutex{},
-		targets:   []RenderTargetDraw{initialTarget},
 	}
 }
 
-func (d *Drawings) findShaderDraw(shader *Shader) (*ShaderDraw, bool) {
+func (d *Drawings) findRenderTargetDraw(target RenderTarget) (*RenderTargetDraw, bool) {
 	for i := range d.draws {
-		if d.draws[i].shader == shader {
+		if d.draws[i].Target == target {
 			return &d.draws[i], true
 		}
 	}
@@ -112,11 +123,20 @@ func (d *Drawings) PreparePending() {
 	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
 		drawing := &d.backDraws[i]
-		draw, ok := d.findShaderDraw(drawing.Shader)
+		rtDraw, ok := d.findRenderTargetDraw(drawing.renderTarget)
+		if !ok {
+			newDraw := RenderTargetDraw{
+				innerDraws: make([]ShaderDraw, 0),
+				Target:     drawing.renderTarget,
+			}
+			d.draws = append(d.draws, newDraw)
+			rtDraw = &d.draws[len(d.draws)-1]
+		}
+		draw, ok := rtDraw.findShaderDraw(drawing.Shader)
 		if !ok {
 			newDraw := NewShaderDraw(drawing.Shader)
-			d.draws = append(d.draws, newDraw)
-			draw = &d.draws[len(d.draws)-1]
+			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
+			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
@@ -137,13 +157,17 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing Drawing) {
+func (d *Drawings) AddDrawing(drawing Drawing, target RenderTarget) {
+	drawing.renderTarget = target
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawing)
 }
 
-func (d *Drawings) AddDrawings(drawings []Drawing) {
+func (d *Drawings) AddDrawings(drawings []Drawing, target RenderTarget) {
+	for i := range drawings {
+		drawings[i].renderTarget = target
+	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawings...)
@@ -151,16 +175,14 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 
 func (d *Drawings) Render(renderer Renderer) {
 	renderer.Draw(d.draws)
-	d.targets[0].Target = renderer.DefaultTarget()
-	renderer.BlitTargets(d.targets...)
-}
-
-func (d *Drawings) RenderToTarget(renderer Renderer, target RenderTarget) {
-	renderer.DrawToTarget(d.draws, target)
+	renderer.BlitTargets(d.draws...)
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {
 	for i := range d.draws {
-		d.draws[i].Destroy(renderer)
+		for j := range d.draws[i].innerDraws {
+			d.draws[i].innerDraws[j].Destroy(renderer)
+		}
 	}
+	d.draws = d.draws[:0]
 }

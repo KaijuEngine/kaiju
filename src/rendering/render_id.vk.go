@@ -58,11 +58,12 @@ type ShaderDriverData struct {
 	CullMode              vk.CullModeFlagBits
 	DrawMode              MeshDrawMode
 	Stride                uint32
-	OverrideRenderPass    *vk.RenderPass
 	AttributeDescriptions []vk.VertexInputAttributeDescription
+	pipelineConstructor   func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
 }
 
 func (d *ShaderDriverData) setup(def ShaderDef, locationStart uint32) {
+	d.pipelineConstructor = defaultCreateShaderPipeline
 	d.Stride = def.Stride()
 	d.AttributeDescriptions = def.ToAttributeDescription(locationStart)
 	d.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()

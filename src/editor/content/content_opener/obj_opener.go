@@ -77,7 +77,8 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 			Color:          matrix.ColorWhite(),
 		}
 	} else {
-		shader = host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+		shader = host.ShaderCache().ShaderFromDefinition(
+			assets.ShaderDefinitionBasic)
 		data = &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -91,7 +92,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
-	})
+	}, host.Window.Renderer.DefaultTarget())
 	return nil
 }
 

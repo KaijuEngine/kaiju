@@ -51,6 +51,7 @@ type Shader struct {
 	GeomPath   string
 	CtrlPath   string
 	EvalPath   string
+	RenderPass *RenderPass
 	DriverData ShaderDriverData
 }
 
@@ -58,7 +59,7 @@ func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath
 	return strings.Join([]string{vertPath, fragPath, geomPath, ctrlPath, evalPath}, ";")
 }
 
-func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderer Renderer) *Shader {
+func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) *Shader {
 	s := &Shader{
 		SubShader:  nil,
 		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
@@ -67,6 +68,7 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 		GeomPath:   geomPath,
 		CtrlPath:   ctrlPath,
 		EvalPath:   evalPath,
+		RenderPass: renderPass,
 		DriverData: NewShaderDriverData(),
 	}
 	return s

@@ -1,52 +1,22 @@
-/*****************************************************************************/
-/* oit.vk.go                                                                 */
-/*****************************************************************************/
-/*                           This file is part of:                           */
-/*                                KAIJU ENGINE                               */
-/*                          https://kaijuengine.org                          */
-/*****************************************************************************/
-/* MIT License                                                               */
-/*                                                                           */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).   */
-/* Copyright (c) 2015-2023 Brent Farris.                                     */
-/*                                                                           */
-/* May all those that this source may reach be blessed by the LORD and find  */
-/* peace and joy in life.                                                    */
-/* Everyone who drinks of this water will be thirsty again; but whoever      */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14 */
-/*                                                                           */
-/* Permission is hereby granted, free of charge, to any person obtaining a   */
-/* copy of this software and associated documentation files (the "Software"),*/
-/* to deal in the Software without restriction, including without limitation */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,  */
-/* and/or sell copies of the Software, and to permit persons to whom the     */
-/* Software is furnished to do so, subject to the following conditions:      */
-/*                                                                           */
-/* The above copyright, blessing, biblical verse, notice and                 */
-/* this permission notice shall be included in all copies or                 */
-/* substantial portions of the Software.                                     */
-/*                                                                           */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS   */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.    */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY   */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE     */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
-/*****************************************************************************/
-
 package rendering
 
 import (
+	"errors"
 	"kaiju/assets"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"log"
+	"log/slog"
 	"unsafe"
 
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-type oitFrameBuffers struct {
+type RenderTargetOIT struct {
+	compositeShader        *Shader
+	compositeQuad          *Mesh
+	opaqueRenderPass       RenderPass
+	transparentRenderPass  RenderPass
 	opaqueFrameBuffer      vk.Framebuffer
 	transparentFrameBuffer vk.Framebuffer
 	descriptorSets         [maxFramesInFlight]vk.DescriptorSet
@@ -57,51 +27,113 @@ type oitFrameBuffers struct {
 	weightedReveal         TextureId
 }
 
-func (o *oitFrameBuffers) reset(vr *Vulkan) {
-	vr.textureIdFree(&o.color)
-	vr.textureIdFree(&o.depth)
-	vr.textureIdFree(&o.weightedColor)
-	vr.textureIdFree(&o.weightedReveal)
-	vk.DestroyFramebuffer(vr.device, o.opaqueFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.opaqueFrameBuffer)))
-	vk.DestroyFramebuffer(vr.device, o.transparentFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.transparentFrameBuffer)))
-	o.color = TextureId{}
-	o.depth = TextureId{}
-	o.weightedColor = TextureId{}
-	o.weightedReveal = TextureId{}
+func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
+	if !r.createImages(vr) {
+		return errors.New("failed to create render target images")
+	}
+	if !r.createRenderPasses(vr) {
+		return errors.New("failed to create OIT render pass")
+	}
+	if !r.createBuffers(vr) {
+		return errors.New("failed to create render target buffers")
+	}
+	return nil
 }
 
-func (o *oitFrameBuffers) createImages(vr *Vulkan) bool {
-	return o.createOitSolidImages(vr) &&
-		o.createOitTransparentImages(vr)
+func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color) {
+	vr := renderer.(*Vulkan)
+	frame := vr.currentFrame
+	cmdBuffIdx := frame * MaxCommandBuffers
+	for i := range drawings {
+		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+	}
+
+	// TODO:  The material will render entities not yet added to the host...
+	oRenderPass := r.opaqueRenderPass
+	oFrameBuffer := r.opaqueFrameBuffer
+	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	var opaqueClear [2]vk.ClearValue
+	cc := clearColor
+	opaqueClear[0].SetColor(cc[:])
+	opaqueClear[1].SetDepthStencil(1.0, 0.0)
+	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	for i := range drawings {
+		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
+	}
+	endRender(cmd1)
+
+	tRenderPass := r.transparentRenderPass
+	tFrameBuffer := r.transparentFrameBuffer
+	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	var transparentClear [2]vk.ClearValue
+	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
+	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
+	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
+	for i := range drawings {
+		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
+	}
+	offsets := vk.DeviceSize(0)
+	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
+	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, r.compositeShader.RenderId.graphicsPipeline)
+	imageInfos := [2]vk.DescriptorImageInfo{
+		imageInfo(r.weightedColor.View, r.weightedColor.Sampler),
+		imageInfo(r.weightedReveal.View, r.weightedReveal.Sampler),
+	}
+	set := r.descriptorSets[vr.currentFrame]
+	descriptorWrites := []vk.WriteDescriptorSet{
+		prepareSetWriteImage(set, imageInfos[0:1], 0, true),
+		prepareSetWriteImage(set, imageInfos[1:2], 1, true),
+	}
+	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
+	ds := [...]vk.DescriptorSet{r.descriptorSets[vr.currentFrame]}
+	dsOffsets := [...]uint32{0}
+	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics,
+		r.compositeShader.RenderId.pipelineLayout,
+		0, 1, &ds[0], 0, &dsOffsets[0])
+	mid := &r.compositeQuad.MeshId
+	vb := [...]vk.Buffer{mid.vertexBuffer}
+	vbOffsets := [...]vk.DeviceSize{offsets}
+	vk.CmdBindVertexBuffers(cmd2, 0, 1, &vb[0], &vbOffsets[0])
+	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
+	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
+	endRender(cmd2)
 }
 
-func (o *oitFrameBuffers) createBuffers(vr *Vulkan, pass *oitPass) bool {
-	return o.createOitFrameBufferOpaque(vr, pass) &&
-		o.createOitFrameBufferTransparent(vr, pass)
+func (r *RenderTargetOIT) reset(vr *Vulkan) {
+	r.opaqueRenderPass.Destroy()
+	r.transparentRenderPass.Destroy()
+	vr.textureIdFree(&r.color)
+	vr.textureIdFree(&r.depth)
+	vr.textureIdFree(&r.weightedColor)
+	vr.textureIdFree(&r.weightedReveal)
+	vk.DestroyFramebuffer(vr.device, r.opaqueFrameBuffer, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(r.opaqueFrameBuffer)))
+	vk.DestroyFramebuffer(vr.device, r.transparentFrameBuffer, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(r.transparentFrameBuffer)))
+	r.color = TextureId{}
+	r.depth = TextureId{}
+	r.weightedColor = TextureId{}
+	r.weightedReveal = TextureId{}
 }
 
-type oitPass struct {
-	compositeShader       *Shader
-	compositeQuad         *Mesh
-	opaqueRenderPass      vk.RenderPass
-	transparentRenderPass vk.RenderPass
+func (r *RenderTargetOIT) createImages(vr *Vulkan) bool {
+	return r.createSolidImages(vr) &&
+		r.createTransparentImages(vr)
 }
 
-func (o *oitPass) createOitResources(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
-	return o.createOitRenderPassOpaque(vr, defaultOitBuffers) &&
-		o.createOitRenderPassTransparent(vr, defaultOitBuffers)
+func (r *RenderTargetOIT) createBuffers(vr *Vulkan) bool {
+	return r.createOpaqueFrameBuffer(vr) &&
+		r.createTransparentFrameBuffer(vr)
 }
 
-func (o *oitPass) reset(vr *Vulkan) {
-	vk.DestroyRenderPass(vr.device, o.opaqueRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.opaqueRenderPass)))
-	vk.DestroyRenderPass(vr.device, o.transparentRenderPass, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(o.transparentRenderPass)))
+func (r *RenderTargetOIT) createRenderPasses(vr *Vulkan) bool {
+	return r.createOpaqueRenderPass(vr) &&
+		r.createTransparentRenderPass(vr)
 }
 
-func (o *oitFrameBuffers) createOitSolidImages(vr *Vulkan) bool {
+func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -110,29 +142,29 @@ func (o *oitFrameBuffers) createOitSolidImages(vr *Vulkan) bool {
 	imagesCreated := vr.CreateImage(w, h, 1, samples,
 		vk.FormatB8g8r8a8Unorm, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageTransferSrcBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &o.color, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&o.color,
+		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.color, 1)
+	imagesCreated = imagesCreated && vr.createImageView(&r.color,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
 	// Create the depth image
 	depthFormat := vr.findDepthFormat()
 	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1,
 		samples, depthFormat, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageDepthStencilAttachmentBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &o.depth, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&o.depth,
+		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.depth, 1)
+	imagesCreated = imagesCreated && vr.createImageView(&r.depth,
 		vk.ImageAspectFlags(vk.ImageAspectDepthBit))
 	if imagesCreated {
-		vr.transitionImageLayout(&o.color,
+		vr.transitionImageLayout(&r.color,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-		vr.transitionImageLayout(&o.depth,
+		vr.transitionImageLayout(&r.depth,
 			vk.ImageLayoutDepthStencilAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectDepthBit),
 			vk.AccessFlags(vk.AccessDepthStencilAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
 	}
 	return imagesCreated
 }
 
-func (o *oitFrameBuffers) createOitTransparentImages(vr *Vulkan) bool {
+func (r *RenderTargetOIT) createTransparentImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -141,32 +173,32 @@ func (o *oitFrameBuffers) createOitTransparentImages(vr *Vulkan) bool {
 	imagesCreated := vr.CreateImage(w, h, 1, samples,
 		vk.FormatR16g16b16a16Sfloat, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageInputAttachmentBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &o.weightedColor, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&o.weightedColor,
+		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.weightedColor, 1)
+	imagesCreated = imagesCreated && vr.createImageView(&r.weightedColor,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
 	// Create the transparent weighted reveal image
 	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1, samples,
 		vk.FormatR16Sfloat, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageInputAttachmentBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &o.weightedReveal, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&o.weightedReveal,
+		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.weightedReveal, 1)
+	imagesCreated = imagesCreated && vr.createImageView(&r.weightedReveal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
 	if imagesCreated {
-		vr.transitionImageLayout(&o.weightedColor,
+		vr.transitionImageLayout(&r.weightedColor,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-		vr.transitionImageLayout(&o.weightedReveal,
+		vr.transitionImageLayout(&r.weightedReveal,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
 	}
 	return imagesCreated
 }
 
-func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
+func (r *RenderTargetOIT) createOpaqueRenderPass(vr *Vulkan) bool {
 	var attachments [2]vk.AttachmentDescription
 	// Color attachment
-	attachments[0].Format = defaultOitBuffers.color.Format
-	attachments[0].Samples = defaultOitBuffers.color.Samples
+	attachments[0].Format = r.color.Format
+	attachments[0].Samples = r.color.Samples
 	attachments[0].LoadOp = vk.AttachmentLoadOpClear
 	attachments[0].StoreOp = vk.AttachmentStoreOpStore
 	attachments[0].StencilLoadOp = vk.AttachmentLoadOpDontCare
@@ -182,7 +214,7 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 
 	// Depth attachment
 	attachments[1] = attachments[0]
-	attachments[1].Format = defaultOitBuffers.depth.Format
+	attachments[1].Format = r.depth.Format
 	attachments[1].InitialLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 	attachments[1].FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 
@@ -209,32 +241,21 @@ func (o *oitPass) createOitRenderPassOpaque(vr *Vulkan, defaultOitBuffers *oitFr
 	selfDependency.DstAccessMask = selfDependency.SrcAccessMask
 	selfDependency.DependencyFlags = vk.DependencyFlags(vk.DependencyByRegionBit) // Required, since we use framebuffer-space stages
 
-	// No dependency on external data
-	rpInfo := vk.RenderPassCreateInfo{}
-	rpInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	rpInfo.AttachmentCount = uint32(len(attachments))
-	rpInfo.PAttachments = &attachments[0]
-	rpInfo.SubpassCount = 1
-	rpInfo.PSubpasses = &subpass
-	rpInfo.DependencyCount = 1
-	rpInfo.PDependencies = &selfDependency
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &rpInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create the render pass for opaque OIT")
+	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments[:],
+		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{selfDependency})
+	if err != nil {
+		slog.Error("Failed to create the solid OIT render pass")
 		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		o.opaqueRenderPass = renderPass
-		return true
 	}
+	r.opaqueRenderPass = pass
+	return true
 }
 
-func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *oitFrameBuffers) bool {
+func (r *RenderTargetOIT) createTransparentRenderPass(vr *Vulkan) bool {
 	// Describe the attachments at the beginning and end of the render pass.
 	weightedColorAttachment := vk.AttachmentDescription{}
-	weightedColorAttachment.Format = defaultOitBuffers.weightedColor.Format
-	weightedColorAttachment.Samples = defaultOitBuffers.weightedColor.Samples
+	weightedColorAttachment.Format = r.weightedColor.Format
+	weightedColorAttachment.Samples = r.weightedColor.Samples
 	weightedColorAttachment.LoadOp = vk.AttachmentLoadOpClear
 	weightedColorAttachment.StoreOp = vk.AttachmentStoreOpStore
 	weightedColorAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
@@ -243,18 +264,18 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	weightedColorAttachment.FinalLayout = vk.ImageLayoutColorAttachmentOptimal
 
 	weightedRevealAttachment := weightedColorAttachment
-	weightedRevealAttachment.Format = defaultOitBuffers.weightedReveal.Format
+	weightedRevealAttachment.Format = r.weightedReveal.Format
 
 	colorAttachment := weightedColorAttachment
-	colorAttachment.Format = defaultOitBuffers.color.Format
+	colorAttachment.Format = r.color.Format
 	colorAttachment.LoadOp = vk.AttachmentLoadOpLoad
 
 	depthAttachment := colorAttachment
-	depthAttachment.Format = defaultOitBuffers.depth.Format
+	depthAttachment.Format = r.depth.Format
 	depthAttachment.InitialLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 	depthAttachment.FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
 
-	allAttachments := []vk.AttachmentDescription{weightedColorAttachment,
+	attachments := []vk.AttachmentDescription{weightedColorAttachment,
 		weightedRevealAttachment, colorAttachment, depthAttachment}
 
 	var subpasses [2]vk.SubpassDescription
@@ -315,47 +336,44 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 	subpassDependencies[2].SrcAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 	subpassDependencies[2].DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
 
-	// Finally create the render pass
-	renderPassInfo := vk.RenderPassCreateInfo{}
-	renderPassInfo.SType = vk.StructureTypeRenderPassCreateInfo
-	renderPassInfo.AttachmentCount = uint32(len(allAttachments))
-	renderPassInfo.PAttachments = &allAttachments[0]
-	renderPassInfo.DependencyCount = uint32(len(subpassDependencies))
-	renderPassInfo.PDependencies = &subpassDependencies[0]
-	renderPassInfo.SubpassCount = uint32(len(subpasses))
-	renderPassInfo.PSubpasses = &subpasses[0]
-
-	var renderPass vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &renderPassInfo, nil, &renderPass) != vk.Success {
-		log.Fatalf("%s", "Failed to create render pass")
+	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments, subpasses[:], subpassDependencies[:])
+	if err != nil {
+		slog.Error("Failed to create the transparent OIT render pass")
 		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(renderPass)))
-		o.transparentRenderPass = renderPass
-		return true
 	}
+	r.transparentRenderPass = pass
+	return true
 }
 
-func (o *oitFrameBuffers) createOitFrameBufferOpaque(vr *Vulkan, pass *oitPass) bool {
-	attachments := []vk.ImageView{o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.opaqueRenderPass, attachments,
-		uint32(o.color.Width), uint32(o.color.Height), &o.opaqueFrameBuffer)
+func (r *RenderTargetOIT) createOpaqueFrameBuffer(vr *Vulkan) bool {
+	attachments := []vk.ImageView{r.color.View, r.depth.View}
+	return vr.CreateFrameBuffer(r.opaqueRenderPass, attachments,
+		uint32(r.color.Width), uint32(r.color.Height), &r.opaqueFrameBuffer)
 }
 
-func (o *oitFrameBuffers) createOitFrameBufferTransparent(vr *Vulkan, pass *oitPass) bool {
-	attachments := []vk.ImageView{o.weightedColor.View,
-		o.weightedReveal.View, o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.transparentRenderPass, attachments,
-		uint32(o.weightedColor.Width), uint32(o.weightedColor.Height),
-		&o.transparentFrameBuffer)
+func (r *RenderTargetOIT) createTransparentFrameBuffer(vr *Vulkan) bool {
+	attachments := []vk.ImageView{r.weightedColor.View,
+		r.weightedReveal.View, r.color.View, r.depth.View}
+	return vr.CreateFrameBuffer(r.transparentRenderPass, attachments,
+		uint32(r.weightedColor.Width), uint32(r.weightedColor.Height),
+		&r.transparentFrameBuffer)
 }
 
-func (o *oitPass) createCompositeResources(vr *Vulkan, windowWidth, windowHeight float32, shaderCache *ShaderCache, meshCache *MeshCache) bool {
+func (r *RenderTargetOIT) createSetsAndSamplers(vr *Vulkan) bool {
+	r.descriptorSets, r.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(r.compositeShader.RenderId.descriptorSetLayout, 0))
+	vr.createTextureSampler(&r.weightedColor.Sampler,
+		r.weightedColor.MipLevels, vk.FilterLinear)
+	vr.createTextureSampler(&r.weightedReveal.Sampler,
+		r.weightedReveal.MipLevels, vk.FilterLinear)
+	return true
+}
+
+func (r *RenderTargetOIT) createCompositeResources(vr *Vulkan, windowWidth, windowHeight float32, shaderCache *ShaderCache, meshCache *MeshCache) bool {
 	// TODO:  Resize on screen size change
 	var err error
-	vr.oitPass.compositeQuad = NewMeshUnitQuad(meshCache)
+	r.compositeQuad = NewMeshUnitQuad(meshCache)
 	meshCache.CreatePending()
-	vr.oitPass.compositeShader = shaderCache.ShaderFromDefinition(
+	r.compositeShader = shaderCache.ShaderFromDefinition(
 		assets.ShaderDefinitionOITComposite)
 	shaderCache.CreatePending()
 	if err != nil {
@@ -363,14 +381,5 @@ func (o *oitPass) createCompositeResources(vr *Vulkan, windowWidth, windowHeight
 		// TODO:  Return the error
 		return false
 	}
-	return true
-}
-
-func (o *oitFrameBuffers) createSetsAndSamplers(vr *Vulkan) bool {
-	o.descriptorSets, o.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(vr.oitPass.compositeShader.RenderId.descriptorSetLayout, 0))
-	vr.createTextureSampler(&o.weightedColor.Sampler,
-		o.weightedColor.MipLevels, vk.FilterLinear)
-	vr.createTextureSampler(&o.weightedReveal.Sampler,
-		o.weightedReveal.MipLevels, vk.FilterLinear)
 	return true
 }

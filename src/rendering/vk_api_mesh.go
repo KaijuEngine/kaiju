@@ -8,6 +8,10 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
+func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
+	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
+}
+
 func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id := &mesh.MeshId
 	vNum := uint32(len(verts))
@@ -18,14 +22,10 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
 }
 
-func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
-	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
-}
-
-func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.ImageView, width, height uint32, frameBuffer *vk.Framebuffer) bool {
+func (vr *Vulkan) CreateFrameBuffer(renderPass RenderPass, attachments []vk.ImageView, width, height uint32, frameBuffer *vk.Framebuffer) bool {
 	framebufferInfo := vk.FramebufferCreateInfo{}
 	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
-	framebufferInfo.RenderPass = renderPass
+	framebufferInfo.RenderPass = renderPass.Handle
 	framebufferInfo.AttachmentCount = uint32(len(attachments))
 	framebufferInfo.PAttachments = &attachments[0]
 	framebufferInfo.Width = width
@@ -40,35 +40,6 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass vk.RenderPass, attachments []vk.I
 	}
 	*frameBuffer = fb
 	return true
-}
-
-func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) {
-	currentCount := len(group.Instances)
-	lastCount := group.InstanceDriverData.lastInstanceCount
-	if currentCount > lastCount {
-		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
-			pd := bufferTrash{delay: maxFramesInFlight}
-			for i := 0; i < maxFramesInFlight; i++ {
-				pd.buffers[i] = group.instanceBuffers[i]
-				pd.memories[i] = group.instanceBuffersMemory[i]
-				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
-				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
-			}
-			vr.bufferTrash.Add(pd)
-		}
-		if currentCount > 0 {
-			group.generateInstanceDriverData(vr, shader)
-			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
-			for i := 0; i < maxFramesInFlight; i++ {
-				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
-					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
-					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
-					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
-			}
-			group.AlterPadding(int(iSize))
-		}
-		group.InstanceDriverData.lastInstanceCount = currentCount
-	}
 }
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
@@ -142,46 +113,4 @@ func (vr *Vulkan) DestroyMesh(mesh *Mesh) {
 	vk.FreeMemory(vr.device, id.vertexBufferMemory, nil)
 	vr.dbg.remove(uintptr(unsafe.Pointer(id.vertexBufferMemory)))
 	mesh.MeshId = MeshId{}
-}
-
-func (vr *Vulkan) Destroy() {
-	vk.DeviceWaitIdle(vr.device)
-	vr.bufferTrash.Purge()
-	if vr.device != vk.Device(vk.NullHandle) {
-		vr.defaultTarget.reset(vr)
-		vr.oitPass.reset(vr)
-		vr.defaultTexture = nil
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.imageSemaphores[i])))
-			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderSemaphores[i])))
-			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderFences[i])))
-		}
-		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.commandPool)))
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffers[i])))
-			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffersMemory[i])))
-		}
-		for i := range vr.descriptorPools {
-			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.descriptorPools[i])))
-		}
-		vk.DestroyRenderPass(vr.device, vr.renderPass, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderPass)))
-		vr.swapChainCleanup()
-		vk.DestroyDevice(vr.device, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))
-	}
-	if vr.instance != vk.Instance(vk.NullHandle) {
-		vk.DestroySurface(vr.instance, vr.surface, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.surface)))
-		vk.DestroyInstance(vr.instance, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.instance)))
-	}
-	vr.dbg.print()
 }
