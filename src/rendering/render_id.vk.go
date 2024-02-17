@@ -58,7 +58,6 @@ type ShaderDriverData struct {
 	CullMode              vk.CullModeFlagBits
 	DrawMode              MeshDrawMode
 	Stride                uint32
-	OverrideRenderPass    *RenderPass
 	AttributeDescriptions []vk.VertexInputAttributeDescription
 }
 

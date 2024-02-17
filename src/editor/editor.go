@@ -113,18 +113,19 @@ func (e *Editor) setupViewportGrid() {
 		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
 		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
 	}
-	grid := rendering.NewMeshGrid(e.Host().MeshCache(), "viewport_grid",
+	host := e.Host()
+	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	shader := e.Host().ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	e.Host().Drawings.AddDrawing(rendering.Drawing{
-		Renderer: e.Host().Window.Renderer,
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer: host.Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,
 		ShaderData: &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
-	}, e.Host().Window.Renderer.DefaultTarget())
+	}, host.Window.Renderer.DefaultTarget())
 }
 
 func (e *Editor) SetupUI() {

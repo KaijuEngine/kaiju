@@ -136,7 +136,7 @@ func (d *Drawings) PreparePending() {
 		if !ok {
 			newDraw := NewShaderDraw(drawing.Shader)
 			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
-			draw = &rtDraw.innerDraws[len(d.draws)-1]
+			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)

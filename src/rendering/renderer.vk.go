@@ -97,7 +97,6 @@ type Vulkan struct {
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
 	defaultTarget              RenderTargetOIT
-	oitPass                    oitPass
 	preRuns                    []func()
 	dbg                        debugVulkan
 	hasSwapChain               bool
@@ -263,14 +262,8 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if !vr.defaultTarget.createImages(vr) {
-		return nil, errors.New("failed to create OIT images")
-	}
-	if !vr.oitPass.createOitResources(vr, &vr.defaultTarget) {
-		return nil, errors.New("failed to create OIT render pass")
-	}
-	if !vr.defaultTarget.createBuffers(vr, &vr.oitPass) {
-		return nil, errors.New("failed to create OIT buffers")
+	if err := vr.defaultTarget.recreate(vr); err != nil {
+		return nil, err
 	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
 	return vr, nil
@@ -285,7 +278,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 		return err
 	}
 	caches.TextureCache().CreatePending()
-	vr.oitPass.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
+	vr.defaultTarget.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
 	vr.defaultTarget.createSetsAndSamplers(vr)
 	return nil
 }
@@ -305,10 +298,8 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
 	vr.defaultTarget.reset(vr)
-	vr.oitPass.reset(vr)
-	vr.defaultTarget.createImages(vr)
-	vr.oitPass.createOitResources(vr, &vr.defaultTarget)
-	vr.defaultTarget.createBuffers(vr, &vr.oitPass)
+	vr.defaultTarget.reset(vr)
+	vr.defaultTarget.recreate(vr)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -543,7 +534,6 @@ func (vr *Vulkan) Destroy() {
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {
 		vr.defaultTarget.reset(vr)
-		vr.oitPass.reset(vr)
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)

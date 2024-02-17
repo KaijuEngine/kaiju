@@ -12,7 +12,6 @@ import (
 func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
-	overrideRenderPass := shader.DriverData.OverrideRenderPass
 	vertStage := vk.PipelineShaderStageCreateInfo{}
 	vMem, err := assetDB.Read(shader.VertPath)
 	if err != nil {
@@ -124,14 +123,12 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		stages[moduleCount] = fragStage
 		moduleCount++
 	}
-	renderPass := vr.oitPass.opaqueRenderPass
+	renderPass := vr.defaultTarget.opaqueRenderPass
 	if strings.HasSuffix(shader.FragPath, oitSuffix) || shader.IsComposite() {
-		renderPass = vr.oitPass.transparentRenderPass
-	} else if overrideRenderPass != nil {
-		renderPass = *overrideRenderPass
+		renderPass = vr.defaultTarget.transparentRenderPass
 	}
 
-	isTransparentPipeline := renderPass == vr.oitPass.transparentRenderPass &&
+	isTransparentPipeline := renderPass == vr.defaultTarget.transparentRenderPass &&
 		!shader.IsComposite()
 	vr.createPipeline(shader, stages, moduleCount,
 		id.descriptorSetLayout, &id.pipelineLayout,
