@@ -53,7 +53,7 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 	}
 }
 
-func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
+func beginRender(renderPass RenderPass, frameBuffer vk.Framebuffer,
 	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
@@ -65,7 +65,7 @@ func beginRender(renderPass vk.RenderPass, frameBuffer vk.Framebuffer,
 	}
 	renderPassInfo := vk.RenderPassBeginInfo{}
 	renderPassInfo.SType = vk.StructureTypeRenderPassBeginInfo
-	renderPassInfo.RenderPass = renderPass
+	renderPassInfo.RenderPass = renderPass.Handle
 	renderPassInfo.Framebuffer = frameBuffer
 	renderPassInfo.RenderArea.Offset = vk.Offset2D{X: 0, Y: 0}
 	renderPassInfo.RenderArea.Extent = extent
@@ -188,7 +188,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	cc := clearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass.Handle, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -201,7 +201,7 @@ func (vr *Vulkan) DrawMeshes(clearColor matrix.Color, drawings []ShaderDraw, tar
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass.Handle, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
+	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
 	}
@@ -277,4 +277,33 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
 	vk.EndCommandBuffer(cmd3)
+}
+
+func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) {
+	currentCount := len(group.Instances)
+	lastCount := group.InstanceDriverData.lastInstanceCount
+	if currentCount > lastCount {
+		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
+			pd := bufferTrash{delay: maxFramesInFlight}
+			for i := 0; i < maxFramesInFlight; i++ {
+				pd.buffers[i] = group.instanceBuffers[i]
+				pd.memories[i] = group.instanceBuffersMemory[i]
+				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
+				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
+			}
+			vr.bufferTrash.Add(pd)
+		}
+		if currentCount > 0 {
+			group.generateInstanceDriverData(vr, shader)
+			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
+			for i := 0; i < maxFramesInFlight; i++ {
+				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
+					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
+					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
+					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
+			}
+			group.AlterPadding(int(iSize))
+		}
+		group.InstanceDriverData.lastInstanceCount = currentCount
+	}
 }

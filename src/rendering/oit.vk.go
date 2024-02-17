@@ -314,14 +314,14 @@ func (o *oitPass) createOitRenderPassTransparent(vr *Vulkan, defaultOitBuffers *
 
 func (o *oitFrameBuffers) createOitFrameBufferOpaque(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.opaqueRenderPass.Handle, attachments,
+	return vr.CreateFrameBuffer(pass.opaqueRenderPass, attachments,
 		uint32(o.color.Width), uint32(o.color.Height), &o.opaqueFrameBuffer)
 }
 
 func (o *oitFrameBuffers) createOitFrameBufferTransparent(vr *Vulkan, pass *oitPass) bool {
 	attachments := []vk.ImageView{o.weightedColor.View,
 		o.weightedReveal.View, o.color.View, o.depth.View}
-	return vr.CreateFrameBuffer(pass.transparentRenderPass.Handle, attachments,
+	return vr.CreateFrameBuffer(pass.transparentRenderPass, attachments,
 		uint32(o.weightedColor.Width), uint32(o.weightedColor.Height),
 		&o.transparentFrameBuffer)
 }

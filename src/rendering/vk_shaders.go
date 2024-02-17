@@ -25,7 +25,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo,
 	shaderStageCount int, descriptorSetLayout vk.DescriptorSetLayout,
 	pipelineLayout *vk.PipelineLayout, graphicsPipeline *vk.Pipeline,
-	renderPass vk.RenderPass, isTransparentPipeline bool) bool {
+	renderPass RenderPass, isTransparentPipeline bool) bool {
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
 	if shader.IsComposite() {
@@ -197,7 +197,7 @@ func (vr *Vulkan) createPipeline(shader *Shader, shaderStages []vk.PipelineShade
 	pipelineInfo.PColorBlendState = &colorBlending
 	pipelineInfo.PDynamicState = &dynamicState
 	pipelineInfo.Layout = *pipelineLayout
-	pipelineInfo.RenderPass = renderPass
+	pipelineInfo.RenderPass = renderPass.Handle
 	//pipelineInfo.Subpass = 0
 	//s := shader.SubShader
 	//for s != nil {

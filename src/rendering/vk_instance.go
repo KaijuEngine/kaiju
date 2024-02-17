@@ -6,7 +6,7 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-func (vr *Vulkan) createDefaultFrameBuffer() bool {
+func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 	count := vr.swapChainImageViewCount
 	vr.swapChainFrameBufferCount = count
 	vr.swapChainFrameBuffers = make([]vk.Framebuffer, count)
@@ -17,7 +17,7 @@ func (vr *Vulkan) createDefaultFrameBuffer() bool {
 			vr.depth.View,
 			vr.swapImages[i].View,
 		}
-		success = vr.CreateFrameBuffer(vr.renderPass, attachments,
+		success = vr.CreateFrameBuffer(vr.swapChainRenderPass, attachments,
 			vr.swapChainExtent.Width, vr.swapChainExtent.Height, &vr.swapChainFrameBuffers[i])
 	}
 	return success
