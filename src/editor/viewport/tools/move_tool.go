@@ -41,6 +41,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/editor/selection"
 	"kaiju/engine"
+	"kaiju/hid"
 	"kaiju/matrix"
 )
 
@@ -55,13 +56,20 @@ func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection)
 }
 
 func (t *MoveTool) Update() {
-	mp := t.host.Window.Mouse.Position()
+	m := &t.host.Window.Mouse
+	mp := m.Position()
 	if t.isDragging {
-		t.DragUpdate(mp, t.host.Camera)
+		if m.Released(hid.MouseButtonLeft) {
+			t.DragStop()
+		} else {
+			t.DragUpdate(mp, t.host.Camera)
+		}
 	} else {
 		t.updateScale(t.host.Camera.Position())
 		if t.CheckHover(mp, t.host.Camera) {
-
+			if m.Pressed(hid.MouseButtonLeft) {
+				t.DragStart(mp, t.host.Camera)
+			}
 		}
 	}
 }
