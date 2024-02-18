@@ -43,6 +43,7 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/rendering"
 )
 
 type MoveTool struct {
@@ -51,8 +52,8 @@ type MoveTool struct {
 	starts    []matrix.Vec3
 }
 
-func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection) {
-	t.init(host, selection, "editor/meshes/move-pointer.gltf")
+func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
+	t.init(host, selection, renderTarget, "editor/meshes/move-pointer.gltf")
 }
 
 func (t *MoveTool) Update() {

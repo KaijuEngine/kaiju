@@ -62,6 +62,9 @@ type RenderTargetOIT struct {
 	depth                  TextureId
 	weightedColor          TextureId
 	weightedReveal         TextureId
+	ClearColor             matrix.Color
+	colorTexture           Texture
+	depthTexture           Texture
 }
 
 func (r *RenderTargetOIT) Pass(name string) *RenderPass {
@@ -75,7 +78,10 @@ func (r *RenderTargetOIT) Pass(name string) *RenderPass {
 	}
 }
 
-func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color) {
+func (r *RenderTargetOIT) Color() *Texture { return &r.colorTexture }
+func (r *RenderTargetOIT) Depth() *Texture { return &r.depthTexture }
+
+func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw) {
 	vr := renderer.(*Vulkan)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -89,7 +95,7 @@ func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearCo
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
-	cc := clearColor
+	cc := r.ClearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
@@ -136,10 +142,21 @@ func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearCo
 	endRender(cmd2)
 }
 
-func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
+func (r *RenderTargetOIT) Initialize(renderer Renderer, width, height float32) {
+	vr := renderer.(*Vulkan)
+	r.ClearColor = matrix.ColorDarkBG()
+	r.createCompositeResources(vr, float32(width), float32(height),
+		vr.caches.ShaderCache(), vr.caches.MeshCache())
+	r.createSetsAndSamplers(vr)
+}
+
+func (r *RenderTargetOIT) Recreate(renderer Renderer) error {
+	vr := renderer.(*Vulkan)
 	if !r.createImages(vr) {
 		return errors.New("failed to create render target images")
 	}
+	r.colorTexture.RenderId = r.color
+	r.depthTexture.RenderId = r.depth
 	if !r.createRenderPasses(vr) {
 		return errors.New("failed to create OIT render pass")
 	}
@@ -193,6 +210,7 @@ func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.color, 1)
 	imagesCreated = imagesCreated && vr.createImageView(&r.color,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
+	vr.createTextureSampler(&r.color.Sampler, 1, vk.FilterLinear)
 	// Create the depth image
 	depthFormat := vr.findDepthFormat()
 	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1,
@@ -201,6 +219,7 @@ func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.depth, 1)
 	imagesCreated = imagesCreated && vr.createImageView(&r.depth,
 		vk.ImageAspectFlags(vk.ImageAspectDepthBit))
+	vr.createTextureSampler(&r.depth.Sampler, 1, vk.FilterLinear)
 	if imagesCreated {
 		vr.transitionImageLayout(&r.color,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),

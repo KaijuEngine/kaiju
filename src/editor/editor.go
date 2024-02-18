@@ -69,9 +69,10 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
 	// TODO:  Testing tools
-	moveTool   tools.MoveTool
-	rotateTool tools.RotateTool
-	scaleTool  tools.ScaleTool
+	moveTool      tools.MoveTool
+	rotateTool    tools.RotateTool
+	scaleTool     tools.ScaleTool
+	overlayTarget rendering.RenderTarget
 }
 
 func (e *Editor) Host() *engine.Host { return e.Container.Host }
@@ -144,9 +145,17 @@ func (e *Editor) SetupUI() {
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
-		e.moveTool.Initialize(e.Host(), &e.selection)
-		e.rotateTool.Initialize(e.Host(), &e.selection)
-		e.scaleTool.Initialize(e.Host(), &e.selection)
+		win := e.Host().Window
+		ot := &rendering.RenderTargetOIT{}
+		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
+		ot.Recreate(win.Renderer)
+		e.Host().Window.Renderer.DefaultTarget().(*rendering.RenderTargetOIT).ClearColor = matrix.ColorTransparent()
+		ot.ClearColor = matrix.ColorTransparent()
+		e.overlayTarget = ot
+
+		e.moveTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
+		e.rotateTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
+		e.scaleTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 
 		e.moveTool.Show()
 	}

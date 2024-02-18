@@ -37,11 +37,9 @@
 
 package rendering
 
-import (
-	"kaiju/matrix"
-)
-
 type RenderTarget interface {
-	Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color)
+	Draw(renderer Renderer, drawings []ShaderDraw)
 	Pass(name string) *RenderPass
+	Color() *Texture
+	Depth() *Texture
 }

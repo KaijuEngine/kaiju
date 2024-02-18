@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/selection"
 	"kaiju/engine"
 	"kaiju/matrix"
+	"kaiju/rendering"
 )
 
 type RotateTool struct {
@@ -49,9 +50,9 @@ type RotateTool struct {
 	starts []matrix.Vec3
 }
 
-func (t *RotateTool) Initialize(host *engine.Host, selection *selection.Selection) {
+func (t *RotateTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
 	// TODO:  Use a screen plane for rotation since the tool doesn't move
-	t.init(host, selection, "editor/meshes/rotate-pointer.gltf")
+	t.init(host, selection, renderTarget, "editor/meshes/rotate-pointer.gltf")
 }
 
 func (t *RotateTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {

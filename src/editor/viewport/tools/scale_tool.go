@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/selection"
 	"kaiju/engine"
 	"kaiju/matrix"
+	"kaiju/rendering"
 )
 
 type ScaleTool struct {
@@ -49,9 +50,9 @@ type ScaleTool struct {
 	starts []matrix.Vec3
 }
 
-func (t *ScaleTool) Initialize(host *engine.Host, selection *selection.Selection) {
+func (t *ScaleTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
 	// TODO:  Use a screen plane for scale since the tool doesn't move
-	t.init(host, selection, "editor/meshes/scale-pointer.gltf")
+	t.init(host, selection, renderTarget, "editor/meshes/scale-pointer.gltf")
 }
 
 func (t *ScaleTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {

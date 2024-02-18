@@ -72,7 +72,7 @@ type HandleTool struct {
 	shaderDatas    []rendering.ShaderDataBasic
 }
 
-func (t *HandleTool) loadModel(host *engine.Host, toolPath string) {
+func (t *HandleTool) loadModel(host *engine.Host, renderTarget rendering.RenderTarget, toolPath string) {
 	t.model = klib.MustReturn(loaders.GLTF(host.Window.Renderer, toolPath, host.AssetDatabase()))
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	t.shaderDatas = make([]rendering.ShaderDataBasic, len(t.model.Meshes))
@@ -91,7 +91,7 @@ func (t *HandleTool) loadModel(host *engine.Host, toolPath string) {
 			Textures:   []*rendering.Texture{tex},
 			ShaderData: &t.shaderDatas[i],
 			Transform:  &t.tool.Transform,
-		}, host.Window.Renderer.DefaultTarget())
+		}, renderTarget)
 		if strings.Contains(m.Name, "X") {
 			t.x = append(t.x, i)
 		}
@@ -104,7 +104,7 @@ func (t *HandleTool) loadModel(host *engine.Host, toolPath string) {
 	}
 }
 
-func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, toolPath string) {
+func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget, toolPath string) {
 	t.host = host
 	t.selection = selection
 	t.faceHit = -1
@@ -112,7 +112,7 @@ func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, too
 	t.faceHoverColor = matrix.ColorWhite()
 	t.iModel = matrix.Mat4Identity()
 	t.tool = host.NewEntity()
-	t.loadModel(host, toolPath)
+	t.loadModel(host, renderTarget, toolPath)
 	dist := host.Camera.Position().Distance(t.tool.Transform.Position())
 	scale := dist * toolScale
 	t.tool.Transform.SetScale(matrix.Vec3{scale, scale, scale})
