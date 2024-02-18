@@ -227,18 +227,23 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	c.updateView()
 }
 
-func (c *StandardCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
+func (c *StandardCamera) internalRaycast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
 	x := (2.0*screenPos.X())/c.width - 1.0
 	y := 1.0 - (2.0*screenPos.Y())/c.height
-	rayNdc := matrix.Vec3{x, y, -1.0}
-	rayClip := matrix.Vec4{rayNdc.X(), rayNdc.Y(), -1.0, 1.0}
+	// Normalized Device Coordinates
+	rayNds := matrix.Vec3{x, y, 1}
+	rayClip := matrix.Vec4{rayNds.X(), rayNds.Y(), -1, 1}
 	rayEye := rayClip.MultiplyMat4(c.iProjection)
-	origin := matrix.Vec3{rayEye.X() / rayEye.W(), rayEye.Y() / rayEye.W(), rayEye.Z() / rayEye.W()}
-	origin.AddAssign(c.position)
-	rayEye = matrix.Vec4{rayEye.X(), rayEye.Y(), -1.0, 0.0}
+	rayEye = matrix.Vec4{rayEye.X(), rayEye.Y(), -1, 0}
+	// Normalize up/down/left/right
 	res := rayEye.MultiplyMat4(c.view)
-	rayWorld := res.AsVec3().Normal()
-	return collision.Ray{Origin: origin, Direction: rayWorld}
+	rayWorld := matrix.Vec3{res.X(), res.Y(), res.Z()}
+	rayWorld.Normalize()
+	return collision.Ray{Origin: pos, Direction: rayWorld}
+}
+
+func (c *StandardCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
+	return c.internalRaycast(screenPos, c.position)
 }
 
 func (c *StandardCamera) TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool) {
