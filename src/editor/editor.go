@@ -44,11 +44,13 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
 	"kaiju/editor/content/content_opener"
-	"kaiju/editor/controls"
 	"kaiju/editor/project"
+	"kaiju/editor/selection"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
+	"kaiju/editor/viewport/controls"
+	"kaiju/editor/viewport/tools"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/matrix"
@@ -65,6 +67,11 @@ type Editor struct {
 	AssetImporters asset_importer.ImportRegistry
 	ContentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
+	selection      selection.Selection
+	// TODO:  Testing tools
+	moveTool   tools.MoveTool
+	rotateTool tools.RotateTool
+	scaleTool  tools.ScaleTool
 }
 
 func (e *Editor) Host() *engine.Host { return e.Container.Host }
@@ -78,12 +85,12 @@ func New(container *host_container.Container) *Editor {
 	ed := &Editor{
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
+		selection:      selection.New(),
 	}
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
 	ed.ContentOpener = content_opener.New(&ed.AssetImporters, container)
 	ed.ContentOpener.Register(content_opener.ObjOpener{})
-	host.Updater.AddUpdate(ed.update)
 	return ed
 }
 
@@ -135,13 +142,23 @@ func (e *Editor) SetupUI() {
 	e.logWindow = log_window.New(e.Host().LogStream)
 	e.menu = menu.New(e.Container, e.logWindow, &e.ContentOpener)
 	e.setupViewportGrid()
+	{
+		// TODO:  Testing tools
+		e.moveTool.Initialize(e.Host(), &e.selection)
+		e.rotateTool.Initialize(e.Host(), &e.selection)
+		e.scaleTool.Initialize(e.Host(), &e.selection)
+
+		e.moveTool.Show()
+	}
 	e.Host().DoneCreatingEditorEntities()
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
 	project.ScanContent(&e.AssetImporters)
+	e.Host().Updater.AddUpdate(e.update)
 }
 
 func (ed *Editor) update(delta float64) {
 	ed.cam.Update(ed.Host(), delta)
+	ed.moveTool.Update()
 }

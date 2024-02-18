@@ -107,6 +107,7 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 	}
 	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
 		def.Vulkan.Tesc, def.Vulkan.Tese, rt.Pass(def.RenderPass))
+	// TODO:  Only need to set the pipeline and do setup if the shader is new
 	var pl FuncPipeline
 	if pl, ok = s.pipelines[def.Pipeline]; !ok {
 		pl = defaultCreateShaderPipeline

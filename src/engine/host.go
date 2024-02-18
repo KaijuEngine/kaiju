@@ -95,10 +95,9 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		OnClose:        events.New(),
 		CloseSignal:    make(chan struct{}),
 		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3{0, 0, 1}),
-		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 1}),
+		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:      logStream,
 	}
-	host.UICamera.SetPosition(matrix.Vec3{0, 0, 250})
 	return host
 }
 
