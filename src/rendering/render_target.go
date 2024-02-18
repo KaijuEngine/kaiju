@@ -43,4 +43,5 @@ import (
 
 type RenderTarget interface {
 	Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color)
+	Pass(name string) *RenderPass
 }

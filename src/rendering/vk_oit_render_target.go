@@ -27,17 +27,15 @@ type RenderTargetOIT struct {
 	weightedReveal         TextureId
 }
 
-func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
-	if !r.createImages(vr) {
-		return errors.New("failed to create render target images")
+func (r *RenderTargetOIT) Pass(name string) *RenderPass {
+	switch name {
+	case "transparent":
+		return &r.transparentRenderPass
+	case "opaque":
+		fallthrough
+	default:
+		return &r.opaqueRenderPass
 	}
-	if !r.createRenderPasses(vr) {
-		return errors.New("failed to create OIT render pass")
-	}
-	if !r.createBuffers(vr) {
-		return errors.New("failed to create render target buffers")
-	}
-	return nil
 }
 
 func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color) {
@@ -99,6 +97,19 @@ func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearCo
 	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
 	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
 	endRender(cmd2)
+}
+
+func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
+	if !r.createImages(vr) {
+		return errors.New("failed to create render target images")
+	}
+	if !r.createRenderPasses(vr) {
+		return errors.New("failed to create OIT render pass")
+	}
+	if !r.createBuffers(vr) {
+		return errors.New("failed to create render target buffers")
+	}
+	return nil
 }
 
 func (r *RenderTargetOIT) reset(vr *Vulkan) {
