@@ -157,11 +157,11 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing Drawing, target RenderTarget) {
+func (d *Drawings) AddDrawing(drawing *Drawing, target RenderTarget) {
 	drawing.renderTarget = target
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.backDraws = append(d.backDraws, drawing)
+	d.backDraws = append(d.backDraws, *drawing)
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing, target RenderTarget) {

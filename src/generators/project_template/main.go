@@ -149,6 +149,12 @@ func zipTemplate(outPath string, srcEntries, contentEntries []fs.DirEntry, ignor
 	if err := os.Chdir("../content"); err != nil {
 		panic(err)
 	}
+	// TODO:  This is temporary
+	for i := range ignore {
+		if ignore[i] == "editor" {
+			slices.Delete(ignore, i, i+1)
+		}
+	}
 	for _, entry := range contentEntries {
 		err = filepath.Walk(entry.Name(), walker)
 		if err != nil {

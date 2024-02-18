@@ -72,7 +72,7 @@ func testDrawing(host *engine.Host) {
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-	host.Drawings.AddDrawing(rendering.Drawing{
+	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
 		Mesh:       mesh,
@@ -101,7 +101,7 @@ func testTwoDrawings(host *engine.Host) {
 		m.Rotate(matrix.Vec3{0.0, rots[i], 0.0})
 		m.Translate(positions[i])
 		tsd.SetModel(m)
-		host.Drawings.AddDrawing(rendering.Drawing{
+		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:   host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       mesh,
@@ -141,7 +141,7 @@ func testOIT(host *engine.Host) {
 		m := matrix.Mat4Identity()
 		m.Translate(positions[i])
 		tsd.SetModel(m)
-		host.Drawings.AddDrawing(rendering.Drawing{
+		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:    host.Window.Renderer,
 			Shader:      shader,
 			Mesh:        mesh,
@@ -252,7 +252,7 @@ func drawBasicMesh(host *engine.Host, res loaders.Result) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
-	host.Drawings.AddDrawing(rendering.Drawing{
+	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 		Mesh:       mesh,

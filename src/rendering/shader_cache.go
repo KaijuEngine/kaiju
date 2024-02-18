@@ -65,12 +65,12 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 	}
 }
 
-func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) *Shader {
+func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) (shader *Shader, isNew bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	shaderKey := createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath)
 	if shader, ok := s.shaders[shaderKey]; ok {
-		return shader
+		return shader, false
 	} else {
 		shader := NewShader(vertPath, fragPath,
 			geomPath, ctrlPath, evalPath, renderPass)
@@ -78,7 +78,7 @@ func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, 
 			s.pendingShaders = append(s.pendingShaders, shader)
 		}
 		s.shaders[shaderKey] = shader
-		return shader
+		return shader, true
 	}
 }
 
@@ -105,18 +105,19 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 				slog.String("renderTarget", def.RenderTarget))
 		}
 	}
-	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
+	shader, isNew := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
 		def.Vulkan.Tesc, def.Vulkan.Tese, rt.Pass(def.RenderPass))
-	// TODO:  Only need to set the pipeline and do setup if the shader is new
-	var pl FuncPipeline
-	if pl, ok = s.pipelines[def.Pipeline]; !ok {
-		pl = defaultCreateShaderPipeline
-		if def.Pipeline != "" {
-			slog.Error("A pipeline was requested that does not exist in the pipeline cache.",
-				slog.String("pipeline", def.Pipeline))
+	if isNew {
+		var pl FuncPipeline
+		if pl, ok = s.pipelines[def.Pipeline]; !ok {
+			pl = defaultCreateShaderPipeline
+			if def.Pipeline != "" {
+				slog.Error("A pipeline was requested that does not exist in the pipeline cache.",
+					slog.String("pipeline", def.Pipeline))
+			}
 		}
+		shader.DriverData.setup(def, baseVertexAttributeCount, pl)
 	}
-	shader.DriverData.setup(def, baseVertexAttributeCount, pl)
 	return shader
 }
 

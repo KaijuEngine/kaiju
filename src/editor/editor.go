@@ -124,7 +124,7 @@ func (e *Editor) setupViewportGrid() {
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	host.Drawings.AddDrawing(rendering.Drawing{
+	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer: host.Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,

@@ -1,4 +1,3 @@
-content/editor
 editor
 interpreter
 source
