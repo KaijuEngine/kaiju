@@ -152,7 +152,7 @@ func (s *FileWindow) reloadUI() {
 		e.Destroy()
 	}
 	s.list()
-	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("ui/editor/file_window.html"))
+	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("editor/ui/file_window.html"))
 	s.doc = markup.DocumentFromHTMLString(
 		s.container.Host, html, "", s, s.funcMap)
 	if elm, ok := s.doc.GetElementById("pathInput"); !ok {

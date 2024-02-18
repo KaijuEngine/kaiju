@@ -274,7 +274,7 @@ func (l *LogWindow) reloadUI() {
 		return
 	}
 	l.lastReload = frame
-	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("ui/editor/log_window.html"))
+	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("editor/ui/log_window.html"))
 	l.container.RunFunction(func() {
 		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
 			"clearAll":     l.clearAll,

@@ -1,4 +1,4 @@
-ui/editor
+content/editor
 editor
 interpreter
 source
