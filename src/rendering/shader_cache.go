@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"log/slog"
 	"sync"
 )
 
@@ -48,6 +49,8 @@ type ShaderCache struct {
 	shaders           map[string]*Shader
 	pendingShaders    []*Shader
 	shaderDefinitions map[string]ShaderDef
+	renderTargets     map[string]RenderTarget
+	pipelines         map[string]FuncPipeline
 	mutex             sync.Mutex
 }
 
@@ -94,16 +97,25 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 			}
 		}
 	}
-	// TODO:  Should use render pass lookup from definition key
-	var renderPass *RenderPass
-	if def.Vulkan.Vert == assets.ShaderOitCompositeVert { // Is composite?
-		renderPass = &s.renderer.(*Vulkan).defaultTarget.transparentRenderPass
-	} else {
-		renderPass = &s.renderer.(*Vulkan).defaultTarget.opaqueRenderPass
+	var rt RenderTarget
+	if rt, ok = s.renderTargets[def.RenderTarget]; !ok {
+		rt = s.renderer.DefaultTarget()
+		if def.RenderTarget != "" {
+			slog.Error("A render target was requested that does not exist in the render target cache.",
+				slog.String("renderTarget", def.RenderTarget))
+		}
 	}
-	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag,
-		def.Vulkan.Geom, def.Vulkan.Tesc, def.Vulkan.Tese, renderPass)
-	shader.DriverData.setup(def, baseVertexAttributeCount)
+	shader := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
+		def.Vulkan.Tesc, def.Vulkan.Tese, rt.Pass(def.RenderPass))
+	var pl FuncPipeline
+	if pl, ok = s.pipelines[def.Pipeline]; !ok {
+		pl = defaultCreateShaderPipeline
+		if def.Pipeline != "" {
+			slog.Error("A pipeline was requested that does not exist in the pipeline cache.",
+				slog.String("pipeline", def.Pipeline))
+		}
+	}
+	shader.DriverData.setup(def, baseVertexAttributeCount, pl)
 	return shader
 }
 
@@ -114,6 +126,22 @@ func (s *ShaderCache) CreatePending() {
 		shader.DelayedCreate(s.renderer, s.assetDatabase)
 	}
 	s.pendingShaders = s.pendingShaders[:0]
+}
+
+func (s *ShaderCache) RegisterRenderTarget(name string, renderTarget RenderTarget) {
+	if _, ok := s.renderTargets[name]; ok {
+		slog.Error("The supplied render target name is already registered", slog.String("name", name))
+		return
+	}
+	s.renderTargets[name] = renderTarget
+}
+
+func (s *ShaderCache) RegisterPipeline(name string, pipeline FuncPipeline) {
+	if _, ok := s.pipelines[name]; ok {
+		slog.Error("The supplied pipeline name is already registered", slog.String("name", name))
+		return
+	}
+	s.pipelines[name] = pipeline
 }
 
 func (s *ShaderCache) Destroy() {

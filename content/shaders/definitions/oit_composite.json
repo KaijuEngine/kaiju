@@ -1,5 +1,6 @@
 {
 	"CullMode": "None",
+	"RenderPass": "transparent",
 	"Vulkan": {
 		"Vert": "shaders/spv/oit_composite.vert.spv",
 		"Frag": "shaders/spv/oit_composite.frag.spv"

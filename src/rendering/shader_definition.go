@@ -153,15 +153,20 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 }
 
 type ShaderDef struct {
-	CullMode string
-	DrawMode string
-	Vulkan   ShaderDefDriver
-	Fields   []ShaderDefField
-	Layouts  []ShaderDefLayout
+	CullMode     string
+	DrawMode     string
+	Vulkan       ShaderDefDriver
+	Fields       []ShaderDefField
+	Layouts      []ShaderDefLayout
+	RenderTarget string
+	RenderPass   string
+	Pipeline     string
 }
 
-const floatSize = int(unsafe.Sizeof(matrix.Float(0.0)))
-const vec4Size = int(unsafe.Sizeof(matrix.Vec4{}))
+const (
+	floatSize = int(unsafe.Sizeof(matrix.Float(0.0)))
+	vec4Size  = int(unsafe.Sizeof(matrix.Vec4{}))
+)
 
 type defType struct {
 	size   uint32

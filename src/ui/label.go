@@ -177,8 +177,8 @@ func (label *Label) renderText() {
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if label.textLength > 0 {
-		label.runeDrawings = label.Host().FontCache().RenderMeshes(
-			label.Host(), label.text, 0.0, 0.0, 0.0, label.fontSize,
+		label.runeDrawings = label.host.FontCache().RenderMeshes(
+			label.host, label.text, 0.0, 0.0, 0.0, label.fontSize,
 			maxWidth, label.fgColor, label.bgColor, label.justify,
 			label.baseline, label.entity.Transform.WorldScale(), true,
 			false, label.fontFace, label.lineHeight)
