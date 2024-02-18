@@ -63,10 +63,11 @@ type TextureId struct {
 }
 
 type PBRMetallicRoughness struct {
-	BaseColorTexture         *TextureId `json:"baseColorTexture"`
-	MetallicRoughnessTexture *TextureId `json:"metallicRoughnessTexture"`
-	MetallicFactor           float32    `json:"metallicFactor"`
-	RoughnessFactor          float32    `json:"roughnessFactor"`
+	BaseColorTexture         *TextureId    `json:"baseColorTexture"`
+	MetallicRoughnessTexture *TextureId    `json:"metallicRoughnessTexture"`
+	MetallicFactor           float32       `json:"metallicFactor"`
+	RoughnessFactor          float32       `json:"roughnessFactor"`
+	BaseColorFactor          *matrix.Color `json:"baseColorFactor"`
 }
 
 type Materials struct {
