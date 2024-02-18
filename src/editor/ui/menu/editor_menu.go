@@ -111,7 +111,7 @@ func (m *Menu) openContentWindow(*document.DocElement) {
 
 func New(container *host_container.Container, logWindow *log_window.LogWindow, contentOpener *content_opener.Opener) *Menu {
 	host := container.Host
-	html := klib.MustReturn(host.AssetDatabase().ReadText("ui/editor/menu.html"))
+	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
 	m := &Menu{
 		container:     container,
 		logWindow:     logWindow,

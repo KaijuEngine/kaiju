@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<link rel="stylesheet" type="text/css" href="ui/editor/editor_style.css">
-		<link rel="stylesheet" type="text/css" href="ui/editor/file_window.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/file_window.css">
 	</head>
 	<body>
 		<div class="fill darkBG clip">
@@ -14,15 +14,15 @@
 			</div>
 			<div id="listing" class="listing">
 				<div class="listEntry" onclick="selectEntry" data-path="../">
-					<img class="listImg" src="textures/icons/folder.png" />
+					<img class="listImg" src="editor/textures/icons/folder.png" />
 					<span>..</span>
 				</div>
 				{{range .Dir}}
 				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
 					{{if .IsDir}}
-						<img class="listImg" src="textures/icons/folder.png" />
+						<img class="listImg" src="editor/textures/icons/folder.png" />
 					{{else}}
-						<img class="listImg" src="textures/icons/file.png" />
+						<img class="listImg" src="editor/textures/icons/file.png" />
 					{{end}}
 					<span>{{.Name}}</span>
 				</div>
