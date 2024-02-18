@@ -82,11 +82,11 @@ func (t *HandleTool) loadModel(host *engine.Host, toolPath string) {
 		host.MeshCache().AddMesh(mesh)
 		t.shaderDatas[i] = rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
+			Color:          m.Verts[0].Color,
 		}
 		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:   host.Window.Renderer,
-			Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+			Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasicColor),
 			Mesh:       mesh,
 			Textures:   []*rendering.Texture{tex},
 			ShaderData: &t.shaderDatas[i],
@@ -152,7 +152,6 @@ func (t *HandleTool) updateScale(camPos matrix.Vec3) {
 	dist := camPos.Distance(t.tool.Transform.Position())
 	scale := dist * toolScale
 	t.tool.Transform.SetScale(matrix.Vec3{scale, scale, scale})
-	println(scale)
 }
 
 func (t *HandleTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
@@ -200,7 +199,7 @@ func (t *HandleTool) dragUpdate(pointerPos matrix.Vec2, camera cameras.Camera, p
 
 func (t *HandleTool) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
 	if t.faceHover >= 0 {
-		t.shaderDatas[t.faceHover].Color = t.faceHoverColor
+		t.shaderDatas[t.faceHover].Color = t.model.Meshes[t.faceHover].Verts[0].Color
 		t.faceHover = -1
 	}
 	ray := camera.Raycast(pos)

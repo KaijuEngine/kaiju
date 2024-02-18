@@ -151,11 +151,11 @@ func (e *Editor) SetupUI() {
 		e.moveTool.Show()
 	}
 	e.Host().DoneCreatingEditorEntities()
+	e.Host().Updater.AddUpdate(e.update)
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
 	project.ScanContent(&e.AssetImporters)
-	e.Host().Updater.AddUpdate(e.update)
 }
 
 func (ed *Editor) update(delta float64) {

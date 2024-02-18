@@ -46,6 +46,7 @@ const (
 const (
 	ShaderDefinitionGrid         = "shaders/definitions/grid.json"
 	ShaderDefinitionBasic        = "shaders/definitions/basic.json"
+	ShaderDefinitionBasicColor   = "shaders/definitions/basic_color.json"
 	ShaderDefinitionText3D       = "shaders/definitions/text3d.json"
 	ShaderDefinitionText         = "shaders/definitions/text.json"
 	ShaderDefinitionOITComposite = "shaders/definitions/oit_composite.json"
