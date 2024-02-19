@@ -62,7 +62,9 @@ func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.Attachme
 	info.SubpassCount = uint32(len(subPasses))
 	info.PSubpasses = &subPasses[0]
 	info.DependencyCount = uint32(len(dependencies))
-	info.PDependencies = &dependencies[0]
+	if len(dependencies) > 0 {
+		info.PDependencies = &dependencies[0]
+	}
 	if vk.CreateRenderPass(device, &info, nil, &p.Handle) != vk.Success {
 		return p, errors.New("failed to create the render pass")
 	}

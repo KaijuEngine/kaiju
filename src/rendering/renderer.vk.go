@@ -97,8 +97,8 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	defaultTarget              RenderTargetOIT
-	combinedTarget             RenderTargetOIT
+	defaultCanvas              OITCanvas
+	combineCanvas              CombineCanvas
 	combinedDrawings           Drawings
 	preRuns                    []func()
 	dbg                        debugVulkan
@@ -110,7 +110,7 @@ func init() {
 	klib.Must(vk.Init())
 }
 
-func (vr *Vulkan) DefaultTarget() RenderTarget { return &vr.defaultTarget }
+func (vr *Vulkan) DefaultTarget() Canvas { return &vr.defaultCanvas }
 
 func (vr *Vulkan) WaitRender() {
 	fences := [2]vk.Fence{}
@@ -266,10 +266,10 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if err := vr.defaultTarget.Recreate(vr); err != nil {
+	if err := vr.defaultCanvas.Create(vr); err != nil {
 		return nil, err
 	}
-	if err := vr.combinedTarget.Recreate(vr); err != nil {
+	if err := vr.combineCanvas.Create(vr); err != nil {
 		return nil, err
 	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
@@ -286,8 +286,9 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	}
 	vr.caches = caches
 	caches.TextureCache().CreatePending()
-	vr.defaultTarget.Initialize(vr, float32(width), float32(height))
-	vr.combinedTarget.Initialize(vr, float32(width), float32(height))
+	vr.defaultCanvas.Initialize(vr, float32(width), float32(height))
+	caches.ShaderCache().RegisterRenderCanvas("default", &vr.defaultCanvas)
+	caches.ShaderCache().RegisterRenderCanvas("combine", &vr.combineCanvas)
 	return nil
 }
 
@@ -305,12 +306,10 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	vr.defaultTarget.reset(vr)
-	vr.defaultTarget.reset(vr)
-	vr.defaultTarget.Recreate(vr)
-	vr.combinedTarget.reset(vr)
-	vr.combinedTarget.reset(vr)
-	vr.combinedTarget.Recreate(vr)
+	vr.defaultCanvas.Destroy(vr)
+	vr.defaultCanvas.Create(vr)
+	vr.combineCanvas.Destroy(vr)
+	vr.combineCanvas.Create(vr)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -542,10 +541,11 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 func (vr *Vulkan) Destroy() {
 	vk.DeviceWaitIdle(vr.device)
+	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {
-		vr.defaultTarget.reset(vr)
-		vr.combinedTarget.reset(vr)
+		vr.defaultCanvas.Destroy(vr)
+		vr.combineCanvas.Destroy(vr)
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)

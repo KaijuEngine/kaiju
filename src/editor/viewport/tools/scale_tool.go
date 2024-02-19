@@ -50,7 +50,7 @@ type ScaleTool struct {
 	starts []matrix.Vec3
 }
 
-func (t *ScaleTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
+func (t *ScaleTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas) {
 	// TODO:  Use a screen plane for scale since the tool doesn't move
 	t.init(host, selection, renderTarget, "editor/meshes/scale-pointer.gltf")
 }

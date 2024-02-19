@@ -52,7 +52,7 @@ type MoveTool struct {
 	starts    []matrix.Vec3
 }
 
-func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
+func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas) {
 	t.init(host, selection, renderTarget, "editor/meshes/move-pointer.gltf")
 }
 

@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* render_target.go                                                          */
+/* canvas.go                                                                 */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -37,9 +37,11 @@
 
 package rendering
 
-type RenderTarget interface {
+type Canvas interface {
+	Create(renderer Renderer) error
 	Draw(renderer Renderer, drawings []ShaderDraw)
 	Pass(name string) *RenderPass
 	Color() *Texture
-	Depth() *Texture
+	ShaderPipeline(name string) FuncPipeline
+	Destroy(renderer Renderer)
 }

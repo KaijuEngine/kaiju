@@ -211,33 +211,31 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 	if len(vr.combinedDrawings.draws) != 1 ||
 		len(vr.combinedDrawings.draws[0].innerDraws) != 1 ||
 		len(vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups) != len(targets) {
-		combineShader := vr.caches.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+		combineShader := vr.caches.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionCombine)
 		vr.caches.ShaderCache().CreatePending()
 		mesh := NewMeshQuad(vr.caches.MeshCache())
 		sd := make([]ShaderDataBasic, len(targets))
 		for i := range targets {
-			color := targets[i].Target.Color()
 			//depth := targets[i].Target.Depth()
 			sd[i] = ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 			m := matrix.Mat4Identity()
 			m.Scale(matrix.Vec3{15, 15, 15})
 			sd[i].SetModel(m)
 			vr.combinedDrawings.AddDrawing(&Drawing{
-				Renderer: vr,
-				Shader:   combineShader,
-				Mesh:     mesh,
-				Textures: []*Texture{color},
-				//Textures:   []*Texture{color, depth},
+				Renderer:   vr,
+				Shader:     combineShader,
+				Mesh:       mesh,
+				Textures:   []*Texture{targets[i].Target.Color()},
 				ShaderData: &sd[i],
-			}, &vr.combinedTarget)
+			}, &vr.combineCanvas)
 		}
 		vr.combinedDrawings.PreparePending()
 	}
 }
 
-func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) *RenderTargetOIT {
+func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) Canvas {
 	if len(targets) == 1 {
-		return targets[0].Target.(*RenderTargetOIT)
+		return targets[0].Target.(*OITCanvas)
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -246,7 +244,7 @@ func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) *RenderTargetOIT {
 	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
 	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
 		slog.Error("Failed to begin recording command buffer")
-		return targets[0].Target.(*RenderTargetOIT)
+		return targets[0].Target.(*OITCanvas)
 	}
 	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
 		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
@@ -256,7 +254,7 @@ func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) *RenderTargetOIT {
 	vk.EndCommandBuffer(cmd3)
 	vr.combinedDrawings.PreparePending()
 	vr.Draw(vr.combinedDrawings.draws)
-	return &vr.combinedTarget
+	return &vr.combineCanvas
 }
 
 func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
@@ -314,12 +312,13 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	region.DstSubresource.LayerCount = 1
 	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
-	vr.transitionImageLayout(&combined.color, vk.ImageLayoutTransferSrcOptimal,
+	img := combined.Color().RenderId
+	vr.transitionImageLayout(&img, vk.ImageLayoutTransferSrcOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
-	vk.CmdBlitImage(cmd3, combined.color.Image, combined.color.Layout,
+	vk.CmdBlitImage(cmd3, img.Image, img.Layout,
 		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
 		1, &region, vk.FilterNearest)
-	vr.transitionImageLayout(&combined.color, vk.ImageLayoutColorAttachmentOptimal,
+	vr.transitionImageLayout(&img, vk.ImageLayoutColorAttachmentOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,

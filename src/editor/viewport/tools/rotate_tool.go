@@ -50,7 +50,7 @@ type RotateTool struct {
 	starts []matrix.Vec3
 }
 
-func (t *RotateTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.RenderTarget) {
+func (t *RotateTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas) {
 	// TODO:  Use a screen plane for rotation since the tool doesn't move
 	t.init(host, selection, renderTarget, "editor/meshes/rotate-pointer.gltf")
 }

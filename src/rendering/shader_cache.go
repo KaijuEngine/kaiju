@@ -49,8 +49,7 @@ type ShaderCache struct {
 	shaders           map[string]*Shader
 	pendingShaders    []*Shader
 	shaderDefinitions map[string]ShaderDef
-	renderTargets     map[string]RenderTarget
-	pipelines         map[string]FuncPipeline
+	renderCanvases    map[string]Canvas
 	mutex             sync.Mutex
 }
 
@@ -62,6 +61,7 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 		pendingShaders:    make([]*Shader, 0),
 		shaderDefinitions: make(map[string]ShaderDef),
 		mutex:             sync.Mutex{},
+		renderCanvases:    make(map[string]Canvas),
 	}
 }
 
@@ -97,26 +97,18 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 			}
 		}
 	}
-	var rt RenderTarget
-	if rt, ok = s.renderTargets[def.RenderTarget]; !ok {
-		rt = s.renderer.DefaultTarget()
-		if def.RenderTarget != "" {
+	var c Canvas
+	if c, ok = s.renderCanvases[def.Canvas]; !ok {
+		c = s.renderer.DefaultTarget()
+		if def.Canvas != "" {
 			slog.Error("A render target was requested that does not exist in the render target cache.",
-				slog.String("renderTarget", def.RenderTarget))
+				slog.String("renderTarget", def.Canvas))
 		}
 	}
 	shader, isNew := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
-		def.Vulkan.Tesc, def.Vulkan.Tese, rt.Pass(def.RenderPass))
+		def.Vulkan.Tesc, def.Vulkan.Tese, c.Pass(def.RenderPass))
 	if isNew {
-		var pl FuncPipeline
-		if pl, ok = s.pipelines[def.Pipeline]; !ok {
-			pl = defaultCreateShaderPipeline
-			if def.Pipeline != "" {
-				slog.Error("A pipeline was requested that does not exist in the pipeline cache.",
-					slog.String("pipeline", def.Pipeline))
-			}
-		}
-		shader.DriverData.setup(def, baseVertexAttributeCount, pl)
+		shader.DriverData.setup(def, baseVertexAttributeCount, c.ShaderPipeline(def.Pipeline))
 	}
 	return shader
 }
@@ -130,20 +122,12 @@ func (s *ShaderCache) CreatePending() {
 	s.pendingShaders = s.pendingShaders[:0]
 }
 
-func (s *ShaderCache) RegisterRenderTarget(name string, renderTarget RenderTarget) {
-	if _, ok := s.renderTargets[name]; ok {
+func (s *ShaderCache) RegisterRenderCanvas(name string, renderTarget Canvas) {
+	if _, ok := s.renderCanvases[name]; ok {
 		slog.Error("The supplied render target name is already registered", slog.String("name", name))
 		return
 	}
-	s.renderTargets[name] = renderTarget
-}
-
-func (s *ShaderCache) RegisterPipeline(name string, pipeline FuncPipeline) {
-	if _, ok := s.pipelines[name]; ok {
-		slog.Error("The supplied pipeline name is already registered", slog.String("name", name))
-		return
-	}
-	s.pipelines[name] = pipeline
+	s.renderCanvases[name] = renderTarget
 }
 
 func (s *ShaderCache) Destroy() {

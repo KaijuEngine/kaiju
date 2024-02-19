@@ -182,17 +182,6 @@ func (vr *Vulkan) createSwapChain() bool {
 	}
 }
 
-func (vr *Vulkan) textureIdFree(id *TextureId) {
-	vk.DestroyImageView(vr.device, id.View, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.View)))
-	vk.DestroyImage(vr.device, id.Image, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Image)))
-	vk.FreeMemory(vr.device, id.Memory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Memory)))
-	vk.DestroySampler(vr.device, id.Sampler, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Sampler)))
-}
-
 func (vr *Vulkan) swapChainCleanup() {
 	vr.textureIdFree(&vr.color)
 	vr.textureIdFree(&vr.depth)

@@ -72,7 +72,7 @@ type Editor struct {
 	moveTool      tools.MoveTool
 	rotateTool    tools.RotateTool
 	scaleTool     tools.ScaleTool
-	overlayTarget rendering.RenderTarget
+	overlayTarget rendering.Canvas
 }
 
 func (e *Editor) Host() *engine.Host { return e.Container.Host }
@@ -146,12 +146,15 @@ func (e *Editor) SetupUI() {
 	{
 		// TODO:  Testing tools
 		win := e.Host().Window
-		ot := &rendering.RenderTargetOIT{}
+		ot := &rendering.OITCanvas{}
 		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
-		ot.Recreate(win.Renderer)
-		e.Host().Window.Renderer.DefaultTarget().(*rendering.RenderTargetOIT).ClearColor = matrix.ColorTransparent()
+		ot.Create(win.Renderer)
+		e.Host().Window.Renderer.DefaultTarget().(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
 		e.overlayTarget = ot
+		e.Host().OnClose.Add(func() {
+			ot.Destroy(win.Renderer)
+		})
 
 		e.moveTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 		e.rotateTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
