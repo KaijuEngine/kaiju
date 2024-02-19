@@ -342,3 +342,14 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
 	// TODO:  Generate mips?
 }
+
+func (vr *Vulkan) textureIdFree(id *TextureId) {
+	vk.DestroyImageView(vr.device, id.View, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(id.View)))
+	vk.DestroyImage(vr.device, id.Image, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(id.Image)))
+	vk.FreeMemory(vr.device, id.Memory, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(id.Memory)))
+	vk.DestroySampler(vr.device, id.Sampler, nil)
+	vr.dbg.remove(uintptr(unsafe.Pointer(id.Sampler)))
+}

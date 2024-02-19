@@ -37,7 +37,10 @@
 
 package cameras
 
-import "kaiju/matrix"
+import (
+	"kaiju/collision"
+	"kaiju/matrix"
+)
 
 type TurntableCamera struct {
 	StandardCamera
@@ -220,4 +223,8 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 	c.setPitch(pitch)
 	c.setZoom(zoom)
 	c.updateViewAndPosition()
+}
+
+func (c *TurntableCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
+	return c.internalRaycast(screenPos, c.iView.Position())
 }

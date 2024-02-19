@@ -258,3 +258,9 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, 
 	vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.CommandBuffer(vk.NullHandle))
 }
+
+func (vr *Vulkan) DestroyTexture(texture *Texture) {
+	vk.DeviceWaitIdle(vr.device)
+	vr.textureIdFree(&texture.RenderId)
+	texture.RenderId = TextureId{}
+}

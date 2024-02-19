@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* vk_instance.go                                                            */
+/* draw_ray.go                                                               */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -35,75 +35,36 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
 /*****************************************************************************/
 
-package rendering
+package debug
 
 import (
-	"log/slog"
+	"kaiju/assets"
+	"kaiju/engine"
+	"kaiju/matrix"
+	"kaiju/rendering"
+	"time"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	"github.com/KaijuEngine/uuid"
 )
 
-func (vr *Vulkan) createSwapChainFrameBuffer() bool {
-	count := vr.swapChainImageViewCount
-	vr.swapChainFrameBufferCount = count
-	vr.swapChainFrameBuffers = make([]vk.Framebuffer, count)
-	success := true
-	for i := uint32(0); i < count && success; i++ {
-		attachments := []vk.ImageView{
-			vr.color.View,
-			vr.depth.View,
-			vr.swapImages[i].View,
-		}
-		vr.swapChainFrameBuffers[i], success = vr.CreateFrameBuffer(vr.swapChainRenderPass, attachments,
-			vr.swapChainExtent.Width, vr.swapChainExtent.Height)
+func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
+	// TODO:  Return the handle to delete this thing
+	grid := rendering.NewMeshGrid(host.MeshCache(),
+		"raycast_"+uuid.New().String(),
+		[]matrix.Vec3{from, to}, matrix.ColorWhite())
+	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	sd := &rendering.ShaderDataBasic{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 	}
-	return success
-}
-
-func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
-	windowExtensions := vr.window.GetInstanceExtensions()
-	added := make([]string, 0, 3)
-	if useValidationLayers {
-		added = append(added, vk.ExtDebugReportExtensionName+"\x00")
-	}
-	//	const char* added[] = {
-	//#ifdef ANDROID
-	//		VK_KHR_SURFACE_EXTENSION_NAME,
-	//		VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-	//#elif defined(USE_VALIDATION_LAYERS)
-	//		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-	//#endif
-	//	};
-	extensions := make([]string, 0, len(windowExtensions)+len(added))
-	extensions = append(extensions, windowExtensions...)
-	extensions = append(extensions, added...)
-	extensions = append(extensions, vkInstanceExtensions()...)
-
-	createInfo := vk.InstanceCreateInfo{
-		SType:            vk.StructureTypeInstanceCreateInfo,
-		PApplicationInfo: &appInfo,
-		Flags:            vkInstanceFlags,
-	}
-	defer createInfo.Free()
-	createInfo.SetEnabledExtensionNames(extensions)
-
-	validationLayers := validationLayers()
-	if len(validationLayers) > 0 {
-		if !checkValidationLayerSupport(validationLayers) {
-			slog.Error("Expected to have validation layers for debugging, but didn't find them")
-			return false
-		}
-		createInfo.SetEnabledLayerNames(validationLayers)
-	}
-
-	var instance vk.Instance
-	result := vk.CreateInstance(&createInfo, nil, &instance)
-	if result != vk.Success {
-		slog.Error("Failed to get the VK instance", slog.Int("code", int(result)))
-		return false
-	} else {
-		vr.instance = instance
-		vk.InitInstance(vr.instance)
-		return true
-	}
+	host.Drawings.AddDrawing(&rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     shader,
+		Mesh:       grid,
+		ShaderData: sd,
+	}, host.Window.Renderer.DefaultTarget())
+	func() {
+		time.Sleep(duration)
+		sd.Destroy()
+	}()
 }

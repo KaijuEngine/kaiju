@@ -153,14 +153,14 @@ func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits {
 }
 
 type ShaderDef struct {
-	CullMode     string
-	DrawMode     string
-	Vulkan       ShaderDefDriver
-	Fields       []ShaderDefField
-	Layouts      []ShaderDefLayout
-	RenderTarget string
-	RenderPass   string
-	Pipeline     string
+	CullMode   string
+	DrawMode   string
+	Vulkan     ShaderDefDriver
+	Fields     []ShaderDefField
+	Layouts    []ShaderDefLayout
+	Canvas     string
+	RenderPass string
+	Pipeline   string
 }
 
 const (

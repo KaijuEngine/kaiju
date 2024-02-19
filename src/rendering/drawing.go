@@ -50,7 +50,7 @@ type Drawing struct {
 	Textures     []*Texture
 	ShaderData   DrawInstance
 	Transform    *matrix.Transform
-	renderTarget RenderTarget
+	renderTarget Canvas
 	UseBlending  bool
 }
 
@@ -60,7 +60,7 @@ func (d *Drawing) IsValid() bool {
 
 type RenderTargetDraw struct {
 	innerDraws []ShaderDraw
-	Target     RenderTarget
+	Target     Canvas
 }
 
 func (t *RenderTargetDraw) findShaderDraw(shader *Shader) (*ShaderDraw, bool) {
@@ -86,7 +86,7 @@ func NewDrawings() Drawings {
 	}
 }
 
-func (d *Drawings) findRenderTargetDraw(target RenderTarget) (*RenderTargetDraw, bool) {
+func (d *Drawings) findRenderTargetDraw(target Canvas) (*RenderTargetDraw, bool) {
 	for i := range d.draws {
 		if d.draws[i].Target == target {
 			return &d.draws[i], true
@@ -157,14 +157,14 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing Drawing, target RenderTarget) {
+func (d *Drawings) AddDrawing(drawing *Drawing, target Canvas) {
 	drawing.renderTarget = target
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.backDraws = append(d.backDraws, drawing)
+	d.backDraws = append(d.backDraws, *drawing)
 }
 
-func (d *Drawings) AddDrawings(drawings []Drawing, target RenderTarget) {
+func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
 	for i := range drawings {
 		drawings[i].renderTarget = target
 	}

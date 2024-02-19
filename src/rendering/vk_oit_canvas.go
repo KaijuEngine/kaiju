@@ -1,5 +1,5 @@
 /*****************************************************************************/
-/* vk_oit_render_target.go                                                   */
+/* vk_oit_canvas.go                                                          */
 /*****************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
@@ -49,7 +49,7 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-type RenderTargetOIT struct {
+type OITCanvas struct {
 	compositeShader        *Shader
 	compositeQuad          *Mesh
 	opaqueRenderPass       RenderPass
@@ -62,9 +62,12 @@ type RenderTargetOIT struct {
 	depth                  TextureId
 	weightedColor          TextureId
 	weightedReveal         TextureId
+	ClearColor             matrix.Color
+	colorTexture           Texture
+	depthTexture           Texture
 }
 
-func (r *RenderTargetOIT) Pass(name string) *RenderPass {
+func (r *OITCanvas) Pass(name string) *RenderPass {
 	switch name {
 	case "transparent":
 		return &r.transparentRenderPass
@@ -75,7 +78,9 @@ func (r *RenderTargetOIT) Pass(name string) *RenderPass {
 	}
 }
 
-func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearColor matrix.Color) {
+func (r *OITCanvas) Color() *Texture { return &r.colorTexture }
+
+func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	vr := renderer.(*Vulkan)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -83,13 +88,12 @@ func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearCo
 		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
 	}
 
-	// TODO:  The material will render entities not yet added to the host...
 	oRenderPass := r.opaqueRenderPass
 	oFrameBuffer := r.opaqueFrameBuffer
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
-	cc := clearColor
+	cc := r.ClearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
@@ -136,7 +140,16 @@ func (r *RenderTargetOIT) Draw(renderer Renderer, drawings []ShaderDraw, clearCo
 	endRender(cmd2)
 }
 
-func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
+func (r *OITCanvas) Initialize(renderer Renderer, width, height float32) {
+	vr := renderer.(*Vulkan)
+	r.ClearColor = matrix.ColorDarkBG()
+	r.createCompositeResources(vr, float32(width), float32(height),
+		vr.caches.ShaderCache(), vr.caches.MeshCache())
+	r.createSetsAndSamplers(vr)
+}
+
+func (r *OITCanvas) Create(renderer Renderer) error {
+	vr := renderer.(*Vulkan)
 	if !r.createImages(vr) {
 		return errors.New("failed to create render target images")
 	}
@@ -146,10 +159,14 @@ func (r *RenderTargetOIT) recreate(vr *Vulkan) error {
 	if !r.createBuffers(vr) {
 		return errors.New("failed to create render target buffers")
 	}
+	r.colorTexture.RenderId = r.color
+	r.depthTexture.RenderId = r.depth
 	return nil
 }
 
-func (r *RenderTargetOIT) reset(vr *Vulkan) {
+func (r *OITCanvas) Destroy(renderer Renderer) {
+	vr := renderer.(*Vulkan)
+	vk.DeviceWaitIdle(vr.device)
 	r.opaqueRenderPass.Destroy()
 	r.transparentRenderPass.Destroy()
 	vr.textureIdFree(&r.color)
@@ -166,22 +183,22 @@ func (r *RenderTargetOIT) reset(vr *Vulkan) {
 	r.weightedReveal = TextureId{}
 }
 
-func (r *RenderTargetOIT) createImages(vr *Vulkan) bool {
+func (r *OITCanvas) createImages(vr *Vulkan) bool {
 	return r.createSolidImages(vr) &&
 		r.createTransparentImages(vr)
 }
 
-func (r *RenderTargetOIT) createBuffers(vr *Vulkan) bool {
+func (r *OITCanvas) createBuffers(vr *Vulkan) bool {
 	return r.createOpaqueFrameBuffer(vr) &&
 		r.createTransparentFrameBuffer(vr)
 }
 
-func (r *RenderTargetOIT) createRenderPasses(vr *Vulkan) bool {
+func (r *OITCanvas) createRenderPasses(vr *Vulkan) bool {
 	return r.createOpaqueRenderPass(vr) &&
 		r.createTransparentRenderPass(vr)
 }
 
-func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
+func (r *OITCanvas) createSolidImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -193,6 +210,7 @@ func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.color, 1)
 	imagesCreated = imagesCreated && vr.createImageView(&r.color,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
+	vr.createTextureSampler(&r.color.Sampler, 1, vk.FilterLinear)
 	// Create the depth image
 	depthFormat := vr.findDepthFormat()
 	imagesCreated = imagesCreated && vr.CreateImage(w, h, 1,
@@ -201,6 +219,7 @@ func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.depth, 1)
 	imagesCreated = imagesCreated && vr.createImageView(&r.depth,
 		vk.ImageAspectFlags(vk.ImageAspectDepthBit))
+	vr.createTextureSampler(&r.depth.Sampler, 1, vk.FilterLinear)
 	if imagesCreated {
 		vr.transitionImageLayout(&r.color,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
@@ -212,7 +231,7 @@ func (r *RenderTargetOIT) createSolidImages(vr *Vulkan) bool {
 	return imagesCreated
 }
 
-func (r *RenderTargetOIT) createTransparentImages(vr *Vulkan) bool {
+func (r *OITCanvas) createTransparentImages(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
@@ -242,7 +261,7 @@ func (r *RenderTargetOIT) createTransparentImages(vr *Vulkan) bool {
 	return imagesCreated
 }
 
-func (r *RenderTargetOIT) createOpaqueRenderPass(vr *Vulkan) bool {
+func (r *OITCanvas) createOpaqueRenderPass(vr *Vulkan) bool {
 	var attachments [2]vk.AttachmentDescription
 	// Color attachment
 	attachments[0].Format = r.color.Format
@@ -299,7 +318,7 @@ func (r *RenderTargetOIT) createOpaqueRenderPass(vr *Vulkan) bool {
 	return true
 }
 
-func (r *RenderTargetOIT) createTransparentRenderPass(vr *Vulkan) bool {
+func (r *OITCanvas) createTransparentRenderPass(vr *Vulkan) bool {
 	// Describe the attachments at the beginning and end of the render pass.
 	weightedColorAttachment := vk.AttachmentDescription{}
 	weightedColorAttachment.Format = r.weightedColor.Format
@@ -393,21 +412,30 @@ func (r *RenderTargetOIT) createTransparentRenderPass(vr *Vulkan) bool {
 	return true
 }
 
-func (r *RenderTargetOIT) createOpaqueFrameBuffer(vr *Vulkan) bool {
+func (r *OITCanvas) createOpaqueFrameBuffer(vr *Vulkan) bool {
 	attachments := []vk.ImageView{r.color.View, r.depth.View}
-	return vr.CreateFrameBuffer(r.opaqueRenderPass, attachments,
-		uint32(r.color.Width), uint32(r.color.Height), &r.opaqueFrameBuffer)
+	fb, ok := vr.CreateFrameBuffer(r.opaqueRenderPass, attachments,
+		uint32(r.color.Width), uint32(r.color.Height))
+	if !ok {
+		return false
+	}
+	r.opaqueFrameBuffer = fb
+	return true
 }
 
-func (r *RenderTargetOIT) createTransparentFrameBuffer(vr *Vulkan) bool {
+func (r *OITCanvas) createTransparentFrameBuffer(vr *Vulkan) bool {
 	attachments := []vk.ImageView{r.weightedColor.View,
 		r.weightedReveal.View, r.color.View, r.depth.View}
-	return vr.CreateFrameBuffer(r.transparentRenderPass, attachments,
-		uint32(r.weightedColor.Width), uint32(r.weightedColor.Height),
-		&r.transparentFrameBuffer)
+	fb, ok := vr.CreateFrameBuffer(r.transparentRenderPass, attachments,
+		uint32(r.weightedColor.Width), uint32(r.weightedColor.Height))
+	if !ok {
+		return false
+	}
+	r.transparentFrameBuffer = fb
+	return true
 }
 
-func (r *RenderTargetOIT) createSetsAndSamplers(vr *Vulkan) bool {
+func (r *OITCanvas) createSetsAndSamplers(vr *Vulkan) bool {
 	r.descriptorSets, r.descriptorPool = klib.MustReturn2(vr.createDescriptorSet(r.compositeShader.RenderId.descriptorSetLayout, 0))
 	vr.createTextureSampler(&r.weightedColor.Sampler,
 		r.weightedColor.MipLevels, vk.FilterLinear)
@@ -416,7 +444,7 @@ func (r *RenderTargetOIT) createSetsAndSamplers(vr *Vulkan) bool {
 	return true
 }
 
-func (r *RenderTargetOIT) createCompositeResources(vr *Vulkan, windowWidth, windowHeight float32, shaderCache *ShaderCache, meshCache *MeshCache) bool {
+func (r *OITCanvas) createCompositeResources(vr *Vulkan, windowWidth, windowHeight float32, shaderCache *ShaderCache, meshCache *MeshCache) bool {
 	// TODO:  Resize on screen size change
 	var err error
 	r.compositeQuad = NewMeshUnitQuad(meshCache)
@@ -430,4 +458,234 @@ func (r *RenderTargetOIT) createCompositeResources(vr *Vulkan, windowWidth, wind
 		return false
 	}
 	return true
+}
+
+func (r *OITCanvas) ShaderPipeline(name string) FuncPipeline {
+	return defaultOITPipeline
+}
+
+func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
+	vr := renderer.(*Vulkan)
+	isTransparentPipeline := !shader.IsComposite() &&
+		shader.RenderPass == &vr.defaultCanvas.transparentRenderPass
+	bDesc := vertexGetBindingDescription(shader)
+	bDescCount := uint32(len(bDesc))
+	if shader.IsComposite() {
+		bDescCount = 1
+	}
+	for i := uint32(1); i < bDescCount; i++ {
+		bDesc[i].Stride = uint32(vr.padUniformBufferSize(vk.DeviceSize(bDesc[i].Stride)))
+	}
+	aDesc := vertexGetAttributeDescription(shader)
+	vertexInputInfo := vk.PipelineVertexInputStateCreateInfo{
+		SType:                           vk.StructureTypePipelineVertexInputStateCreateInfo,
+		VertexBindingDescriptionCount:   bDescCount,
+		VertexAttributeDescriptionCount: uint32(len(aDesc)),
+		PVertexBindingDescriptions:      &bDesc[0],
+		PVertexAttributeDescriptions:    &aDesc[0],
+	}
+
+	topology := vk.PrimitiveTopologyTriangleList
+	switch shader.DriverData.DrawMode {
+	case MeshDrawModePoints:
+		topology = vk.PrimitiveTopologyPointList
+	case MeshDrawModeLines:
+		topology = vk.PrimitiveTopologyLineList
+	case MeshDrawModeTriangles:
+		topology = vk.PrimitiveTopologyTriangleList
+	case MeshDrawModePatches:
+		topology = vk.PrimitiveTopologyPatchList
+	}
+	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{
+		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
+		PrimitiveRestartEnable: vk.False,
+		Topology:               topology,
+	}
+
+	viewport := vk.Viewport{
+		X:        0.0,
+		Y:        0.0,
+		Width:    float32(vr.swapChainExtent.Width),
+		Height:   float32(vr.swapChainExtent.Height),
+		MinDepth: 0.0,
+		MaxDepth: 1.0,
+	}
+
+	scissor := vk.Rect2D{
+		Offset: vk.Offset2D{X: 0, Y: 0},
+		Extent: vr.swapChainExtent,
+	}
+
+	dynamicStates := []vk.DynamicState{
+		vk.DynamicStateViewport,
+		vk.DynamicStateScissor,
+	}
+
+	dynamicState := vk.PipelineDynamicStateCreateInfo{
+		SType:             vk.StructureTypePipelineDynamicStateCreateInfo,
+		DynamicStateCount: uint32(len(dynamicStates)),
+		PDynamicStates:    &dynamicStates[0],
+	}
+
+	viewportState := vk.PipelineViewportStateCreateInfo{
+		SType:         vk.StructureTypePipelineViewportStateCreateInfo,
+		ViewportCount: 1,
+		PViewports:    &viewport,
+		ScissorCount:  1,
+		PScissors:     &scissor,
+	}
+
+	rasterizer := vk.PipelineRasterizationStateCreateInfo{
+		SType:                   vk.StructureTypePipelineRasterizationStateCreateInfo,
+		DepthClampEnable:        vk.False,
+		RasterizerDiscardEnable: vk.False,
+		PolygonMode:             vk.PolygonModeFill,
+		LineWidth:               1.0,
+		CullMode:                vk.CullModeFlags(shader.DriverData.CullMode),
+		FrontFace:               vk.FrontFaceClockwise,
+		DepthBiasEnable:         vk.False,
+		DepthBiasConstantFactor: 0.0,
+		DepthBiasClamp:          0.0,
+		DepthBiasSlopeFactor:    0.0,
+	}
+
+	multisampling := vk.PipelineMultisampleStateCreateInfo{
+		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
+		SampleShadingEnable:   vk.True,
+		RasterizationSamples:  vk.SampleCount1Bit,
+		MinSampleShading:      0.2,
+		PSampleMask:           nil,
+		AlphaToCoverageEnable: vk.False,
+		AlphaToOneEnable:      vk.False,
+	}
+
+	allChannels := vk.ColorComponentFlags(vk.ColorComponentRBit | vk.ColorComponentGBit | vk.ColorComponentBBit | vk.ColorComponentABit)
+	colorBlendAttachment := [2]vk.PipelineColorBlendAttachmentState{
+		{
+			ColorWriteMask:      allChannels,
+			BlendEnable:         vk.True,
+			SrcColorBlendFactor: vk.BlendFactorOne,
+			DstColorBlendFactor: vk.BlendFactorOne,
+			ColorBlendOp:        vk.BlendOpAdd,
+			SrcAlphaBlendFactor: vk.BlendFactorOne,
+			DstAlphaBlendFactor: vk.BlendFactorOne,
+			AlphaBlendOp:        vk.BlendOpAdd,
+		},
+		{
+			ColorWriteMask:      allChannels,
+			BlendEnable:         vk.True,
+			SrcColorBlendFactor: vk.BlendFactorZero,
+			DstColorBlendFactor: vk.BlendFactorOneMinusSrcColor,
+			ColorBlendOp:        vk.BlendOpAdd,
+			SrcAlphaBlendFactor: vk.BlendFactorZero,
+			DstAlphaBlendFactor: vk.BlendFactorOneMinusSrcAlpha,
+			AlphaBlendOp:        vk.BlendOpAdd,
+		},
+	}
+	colorBlendAttachmentCount := len(colorBlendAttachment)
+
+	if !isTransparentPipeline {
+		if shader.IsComposite() {
+			colorBlendAttachment[0].SrcColorBlendFactor = vk.BlendFactorOneMinusSrcAlpha
+			colorBlendAttachment[0].DstColorBlendFactor = vk.BlendFactorSrcAlpha
+			colorBlendAttachment[0].SrcAlphaBlendFactor = vk.BlendFactorOneMinusSrcAlpha
+			colorBlendAttachment[0].DstAlphaBlendFactor = vk.BlendFactorSrcAlpha
+		} else {
+			colorBlendAttachment[0].SrcColorBlendFactor = vk.BlendFactorSrcAlpha
+			colorBlendAttachment[0].DstColorBlendFactor = vk.BlendFactorOneMinusSrcAlpha
+			colorBlendAttachment[0].SrcAlphaBlendFactor = vk.BlendFactorOne
+			colorBlendAttachment[0].DstAlphaBlendFactor = vk.BlendFactorZero
+		}
+		colorBlendAttachmentCount = 1
+	}
+
+	colorBlending := vk.PipelineColorBlendStateCreateInfo{
+		SType:           vk.StructureTypePipelineColorBlendStateCreateInfo,
+		LogicOpEnable:   vk.False,
+		LogicOp:         vk.LogicOpCopy,
+		AttachmentCount: uint32(colorBlendAttachmentCount),
+		PAttachments:    &colorBlendAttachment[0],
+		BlendConstants:  [4]float32{0.0, 0.0, 0.0, 0.0},
+	}
+
+	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
+		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
+		SetLayoutCount:         1,
+		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
+		PushConstantRangeCount: 0,
+		PPushConstantRanges:    nil,
+	}
+
+	var pLayout vk.PipelineLayout
+	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
+		slog.Error("Failed to create pipeline layout")
+		return false
+	} else {
+		vr.dbg.add(uintptr(unsafe.Pointer(pLayout)))
+	}
+	shader.RenderId.pipelineLayout = pLayout
+
+	depthStencil := vk.PipelineDepthStencilStateCreateInfo{
+		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
+		DepthTestEnable:       vk.True,
+		DepthCompareOp:        vk.CompareOpLess,
+		DepthBoundsTestEnable: vk.False,
+		StencilTestEnable:     vk.False,
+		//minDepthBounds: 0.0F,
+		//maxDepthBounds: 1.0F,
+	}
+	if isTransparentPipeline {
+		depthStencil.DepthWriteEnable = vk.False
+	} else {
+		depthStencil.DepthWriteEnable = vk.True
+	}
+
+	pipelineInfo := vk.GraphicsPipelineCreateInfo{
+		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
+		StageCount:          uint32(len(shaderStages)),
+		PStages:             &shaderStages[0],
+		PVertexInputState:   &vertexInputInfo,
+		PInputAssemblyState: &inputAssembly,
+		PViewportState:      &viewportState,
+		PRasterizationState: &rasterizer,
+		PMultisampleState:   &multisampling,
+		PColorBlendState:    &colorBlending,
+		PDynamicState:       &dynamicState,
+		Layout:              shader.RenderId.pipelineLayout,
+		RenderPass:          shader.RenderPass.Handle,
+		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
+		PDepthStencilState:  &depthStencil,
+	}
+	//pipelineInfo.Subpass = 0
+	//s := shader.SubShader
+	//for s != nil {
+	//	s = s.SubShader
+	//	pipelineInfo.Subpass++
+	//}
+	if shader.IsComposite() {
+		pipelineInfo.Subpass = 1
+	} else {
+		pipelineInfo.Subpass = 0
+	}
+
+	tess := vk.PipelineTessellationStateCreateInfo{}
+	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {
+		tess.SType = vk.StructureTypePipelineTessellationStateCreateInfo
+		// Quad patches = 4
+		// Triangle patches = 3
+		// Line patches = 2
+		tess.PatchControlPoints = 3
+		pipelineInfo.PTessellationState = &tess
+	}
+
+	success := true
+	pipelines := [1]vk.Pipeline{}
+	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, &pipelineInfo, nil, &pipelines[0]) != vk.Success {
+		success = false
+		slog.Error("Failed to create graphics pipeline")
+	} else {
+		vr.dbg.add(uintptr(unsafe.Pointer(pipelines[0])))
+	}
+	shader.RenderId.graphicsPipeline = pipelines[0]
+	return success
 }

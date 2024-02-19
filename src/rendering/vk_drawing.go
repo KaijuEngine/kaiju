@@ -38,6 +38,7 @@
 package rendering
 
 import (
+	"kaiju/assets"
 	"kaiju/matrix"
 	"log/slog"
 	"unsafe"
@@ -199,14 +200,91 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 
 func (vr *Vulkan) Draw(drawings []RenderTargetDraw) {
 	for i := range drawings {
-		drawings[i].Target.Draw(vr, drawings[i].innerDraws, matrix.ColorDarkBG())
+		drawings[i].Target.Draw(vr, drawings[i].innerDraws)
 	}
+}
+
+func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
+	if len(targets) == 1 {
+		return
+	}
+	if len(vr.combinedDrawings.draws) != 1 ||
+		len(vr.combinedDrawings.draws[0].innerDraws) != 1 ||
+		len(vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups) != len(targets) {
+		combineShader := vr.caches.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionCombine)
+		vr.caches.ShaderCache().CreatePending()
+		mesh := NewMeshQuad(vr.caches.MeshCache())
+		sd := make([]ShaderDataBasic, len(targets))
+		for i := range targets {
+			//depth := targets[i].Target.Depth()
+			sd[i] = ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
+			m := matrix.Mat4Identity()
+			m.Scale(matrix.Vec3{15, 15, 15})
+			sd[i].SetModel(m)
+			vr.combinedDrawings.AddDrawing(&Drawing{
+				Renderer:   vr,
+				Shader:     combineShader,
+				Mesh:       mesh,
+				Textures:   []*Texture{targets[i].Target.Color()},
+				ShaderData: &sd[i],
+			}, &vr.combineCanvas)
+		}
+		vr.combinedDrawings.PreparePending()
+	}
+}
+
+func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) Canvas {
+	if len(targets) == 1 {
+		return targets[0].Target.(*OITCanvas)
+	}
+	frame := vr.currentFrame
+	cmdBuffIdx := frame * MaxCommandBuffers
+	cmd3 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
+	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
+		slog.Error("Failed to begin recording command buffer")
+		return targets[0].Target.(*OITCanvas)
+	}
+	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
+		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
+		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
+			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
+	}
+	vk.EndCommandBuffer(cmd3)
+	vr.combinedDrawings.PreparePending()
+	vr.Draw(vr.combinedDrawings.draws)
+	return &vr.combineCanvas
+}
+
+func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
+	if len(targets) == 1 {
+		return
+	}
+	frame := vr.currentFrame
+	cmdBuffIdx := frame * MaxCommandBuffers
+	cmd3 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
+	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
+		slog.Error("Failed to begin recording command buffer")
+		return
+	}
+	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
+		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
+		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
+			vk.ImageAspectFlags(vk.ImageAspectColorBit),
+			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
+	}
+	vk.EndCommandBuffer(cmd3)
 }
 
 func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	if !vr.hasSwapChain {
 		return
 	}
+	vr.prepCombinedTargets(targets...)
+	combined := vr.combineTargets(targets...)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	idxSF := vr.imageIndex[frame]
@@ -220,34 +298,33 @@ func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
-	for i := range targets {
-		rt := targets[i].Target.(*RenderTargetOIT)
-		area := matrix.Vec4{0, 0, 1, 1}
-		region := vk.ImageBlit{}
-		region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
-		region.SrcOffsets[1].Y = int32(vr.swapChainExtent.Height)
-		region.SrcOffsets[1].Z = 1
-		region.DstOffsets[0].X = int32(float32(vr.swapChainExtent.Width) * area[0])
-		region.DstOffsets[0].Y = int32(float32(vr.swapChainExtent.Height) * area[1])
-		region.DstOffsets[1].X = int32(float32(vr.swapChainExtent.Width) * area[2])
-		region.DstOffsets[1].Y = int32(float32(vr.swapChainExtent.Height) * area[3])
-		region.DstOffsets[1].Z = 1
-		region.DstSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
-		region.DstSubresource.LayerCount = 1
-		region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
-		region.SrcSubresource.LayerCount = 1
-		vr.transitionImageLayout(&rt.color, vk.ImageLayoutTransferSrcOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
-		vk.CmdBlitImage(cmd3, rt.color.Image, rt.color.Layout,
-			vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
-			1, &region, vk.FilterNearest)
-		vr.transitionImageLayout(&rt.color, vk.ImageLayoutColorAttachmentOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
-	}
+	area := matrix.Vec4{0, 0, 1, 1}
+	region := vk.ImageBlit{}
+	region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
+	region.SrcOffsets[1].Y = int32(vr.swapChainExtent.Height)
+	region.SrcOffsets[1].Z = 1
+	region.DstOffsets[0].X = int32(float32(vr.swapChainExtent.Width) * area[0])
+	region.DstOffsets[0].Y = int32(float32(vr.swapChainExtent.Height) * area[1])
+	region.DstOffsets[1].X = int32(float32(vr.swapChainExtent.Width) * area[2])
+	region.DstOffsets[1].Y = int32(float32(vr.swapChainExtent.Height) * area[3])
+	region.DstOffsets[1].Z = 1
+	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+	region.DstSubresource.LayerCount = 1
+	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+	region.SrcSubresource.LayerCount = 1
+	img := combined.Color().RenderId
+	vr.transitionImageLayout(&img, vk.ImageLayoutTransferSrcOptimal,
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
+	vk.CmdBlitImage(cmd3, img.Image, img.Layout,
+		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
+		1, &region, vk.FilterNearest)
+	vr.transitionImageLayout(&img, vk.ImageLayoutColorAttachmentOptimal,
+		vk.ImageAspectFlags(vk.ImageAspectColorBit),
+		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd3)
 	vk.EndCommandBuffer(cmd3)
+	vr.cleanupCombined(targets...)
 }
 
 func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) {

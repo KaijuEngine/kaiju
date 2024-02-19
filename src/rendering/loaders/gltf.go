@@ -298,7 +298,13 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 		return []rendering.Vertex{}, errors.New("tex1 == NULL || tex1Acc.ComponentType == gltf.ComponentFloat && tex1Acc.Type == gltf.AccessorVec2")
 	}
 	vertData := make([]rendering.Vertex, vertCount)
-	vertColor := matrix.ColorWhite() // TODO:  This needs to be set
+	vertColor := matrix.ColorWhite()
+	if mesh.Primitives[0].Material != nil && len(doc.glTF.Materials) > int(*mesh.Primitives[0].Material) {
+		mat := doc.glTF.Materials[*mesh.Primitives[0].Material]
+		if mat.PBRMetallicRoughness.BaseColorFactor != nil {
+			vertColor = *mat.PBRMetallicRoughness.BaseColorFactor
+		}
+	}
 	const v4size = int32(unsafe.Sizeof(matrix.Vec4{}))
 	const v3size = int32(unsafe.Sizeof(matrix.Vec3{}))
 	const v2size = int32(unsafe.Sizeof(matrix.Vec2{}))

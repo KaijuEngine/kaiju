@@ -59,7 +59,7 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
 }
 
-func (vr *Vulkan) CreateFrameBuffer(renderPass RenderPass, attachments []vk.ImageView, width, height uint32, frameBuffer *vk.Framebuffer) bool {
+func (vr *Vulkan) CreateFrameBuffer(renderPass RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
 	framebufferInfo := vk.FramebufferCreateInfo{}
 	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
 	framebufferInfo.RenderPass = renderPass.Handle
@@ -71,12 +71,11 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass RenderPass, attachments []vk.Imag
 	var fb vk.Framebuffer
 	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
 		slog.Error("Failed to create framebuffer")
-		return false
+		return nil, false
 	} else {
 		vr.dbg.add(uintptr(unsafe.Pointer(fb)))
 	}
-	*frameBuffer = fb
-	return true
+	return fb, true
 }
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
@@ -101,12 +100,6 @@ func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 		pd.sets[i] = group.descriptorSets[i]
 	}
 	vr.bufferTrash.Add(pd)
-}
-
-func (vr *Vulkan) DestroyTexture(texture *Texture) {
-	vk.DeviceWaitIdle(vr.device)
-	vr.textureIdFree(&texture.RenderId)
-	texture.RenderId = TextureId{}
 }
 
 func (vr *Vulkan) DestroyShader(shader *Shader) {

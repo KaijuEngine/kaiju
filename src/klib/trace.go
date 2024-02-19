@@ -57,7 +57,7 @@ func TraceStrings(message string, skip int) []string {
 }
 
 func TraceString(message string) string {
-	return strings.Join(TraceStrings(message, 2), "\n")
+	return strings.Join(TraceStrings(message, 3), "\n")
 }
 
 func Trace(message string) {

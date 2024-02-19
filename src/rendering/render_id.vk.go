@@ -108,6 +108,10 @@ type ShaderId struct {
 	skinningUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
 }
 
+func (s ShaderId) IsValid() bool {
+	return s.graphicsPipeline != vk.NullPipeline
+}
+
 type TextureId struct {
 	Image      vk.Image
 	Memory     vk.DeviceMemory

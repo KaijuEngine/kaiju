@@ -1,0 +1,28 @@
+{
+	"Canvas": "combine",
+	"Vulkan": {
+		"Vert": "shaders/spv/combine.vert.spv",
+		"Frag": "shaders/spv/combine.frag.spv"
+	},
+	"Fields": [
+		{
+			"Name": "model",
+			"Type": "mat4"
+		},
+		{
+			"Name": "color",
+			"Type": "vec4"
+		}
+	],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "CombinedImageSampler",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}]
+}

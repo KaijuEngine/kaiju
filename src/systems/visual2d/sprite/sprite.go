@@ -125,7 +125,7 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	if s.drawing.IsValid() {
 		s.recreateDrawing()
 		s.drawing.Textures[0] = texture
-		s.host.Drawings.AddDrawing(s.drawing, s.host.Window.Renderer.DefaultTarget())
+		s.host.Drawings.AddDrawing(&s.drawing, s.host.Window.Renderer.DefaultTarget())
 	}
 }
 
@@ -147,7 +147,7 @@ func (s *Sprite) SetColor(color matrix.Color) {
 	if color.A() < 1 {
 		s.recreateDrawing()
 		s.drawing.UseBlending = true
-		s.host.Drawings.AddDrawing(s.drawing, s.host.Window.Renderer.DefaultTarget())
+		s.host.Drawings.AddDrawing(&s.drawing, s.host.Window.Renderer.DefaultTarget())
 	}
 }
 
@@ -228,7 +228,7 @@ func NewSprite(x, y, width, height matrix.Float, host *engine.Host, texture *ren
 			0.0, 0.0, float32(texture.Width), float32(texture.Height),
 		},
 	}
-	host.Drawings.AddDrawing(rendering.Drawing{
+	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
 		Mesh:       mesh,

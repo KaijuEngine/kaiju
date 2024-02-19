@@ -65,6 +65,7 @@ type vkSwapChainSupportDetails struct {
 type Vulkan struct {
 	defaultTexture             *Texture
 	swapImages                 []TextureId
+	caches                     RenderCaches
 	window                     RenderingContainer
 	instance                   vk.Instance
 	physicalDevice             vk.PhysicalDevice
@@ -96,7 +97,9 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	defaultTarget              RenderTargetOIT
+	defaultCanvas              OITCanvas
+	combineCanvas              CombineCanvas
+	combinedDrawings           Drawings
 	preRuns                    []func()
 	dbg                        debugVulkan
 	hasSwapChain               bool
@@ -107,7 +110,7 @@ func init() {
 	klib.Must(vk.Init())
 }
 
-func (vr *Vulkan) DefaultTarget() RenderTarget { return &vr.defaultTarget }
+func (vr *Vulkan) DefaultTarget() Canvas { return &vr.defaultCanvas }
 
 func (vr *Vulkan) WaitRender() {
 	fences := [2]vk.Fence{}
@@ -202,12 +205,13 @@ func (vr *Vulkan) createColorResources() bool {
 
 func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, error) {
 	vr := &Vulkan{
-		window:         window,
-		instance:       vk.Instance(vk.NullHandle),
-		physicalDevice: vk.PhysicalDevice(vk.NullHandle),
-		device:         vk.Device(vk.NullHandle),
-		msaaSamples:    vk.SampleCountFlagBits(vk.SampleCount1Bit),
-		dbg:            debugVulkanNew(),
+		window:           window,
+		instance:         vk.Instance(vk.NullHandle),
+		physicalDevice:   vk.PhysicalDevice(vk.NullHandle),
+		device:           vk.Device(vk.NullHandle),
+		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
+		dbg:              debugVulkanNew(),
+		combinedDrawings: NewDrawings(),
 	}
 
 	appInfo := vk.ApplicationInfo{}
@@ -262,7 +266,10 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if err := vr.defaultTarget.recreate(vr); err != nil {
+	if err := vr.defaultCanvas.Create(vr); err != nil {
+		return nil, err
+	}
+	if err := vr.combineCanvas.Create(vr); err != nil {
 		return nil, err
 	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
@@ -277,9 +284,11 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 		slog.Error(err.Error())
 		return err
 	}
+	vr.caches = caches
 	caches.TextureCache().CreatePending()
-	vr.defaultTarget.createCompositeResources(vr, float32(width), float32(height), caches.ShaderCache(), caches.MeshCache())
-	vr.defaultTarget.createSetsAndSamplers(vr)
+	vr.defaultCanvas.Initialize(vr, float32(width), float32(height))
+	caches.ShaderCache().RegisterRenderCanvas("default", &vr.defaultCanvas)
+	caches.ShaderCache().RegisterRenderCanvas("combine", &vr.combineCanvas)
 	return nil
 }
 
@@ -297,9 +306,10 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	vr.defaultTarget.reset(vr)
-	vr.defaultTarget.reset(vr)
-	vr.defaultTarget.recreate(vr)
+	vr.defaultCanvas.Destroy(vr)
+	vr.defaultCanvas.Create(vr)
+	vr.combineCanvas.Destroy(vr)
+	vr.combineCanvas.Create(vr)
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -531,9 +541,11 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 func (vr *Vulkan) Destroy() {
 	vk.DeviceWaitIdle(vr.device)
+	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {
-		vr.defaultTarget.reset(vr)
+		vr.defaultCanvas.Destroy(vr)
+		vr.combineCanvas.Destroy(vr)
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
