@@ -225,6 +225,6 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 	c.updateViewAndPosition()
 }
 
-func (c *TurntableCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
-	return c.internalRaycast(screenPos, c.iView.Position())
+func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+	return c.internalRayCast(screenPos, c.iView.Position())
 }

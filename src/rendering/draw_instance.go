@@ -73,8 +73,7 @@ type ShaderDataBasic struct {
 }
 
 func (t ShaderDataBasic) Size() int {
-	const size = int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
-	return size
+	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
 }
 
 func NewShaderDataBase() ShaderDataBase {

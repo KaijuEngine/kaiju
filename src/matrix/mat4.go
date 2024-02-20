@@ -162,7 +162,7 @@ func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
 		pos4.Y()*viewport.W() + viewport.Y(), z}
 }
 
-func (m Mat4) Mat4Unproject(pos Vec3, viewport Vec4) Vec3 {
+func (m Mat4) Mat4UnProject(pos Vec3, viewport Vec4) Vec3 {
 	var v Vec4
 	v.SetX(2.0*(pos.X()-viewport.X())/viewport.Z() - 1.0)
 	v.SetY(2.0*(pos.Y()-viewport.Y())/viewport.W() - 1.0)

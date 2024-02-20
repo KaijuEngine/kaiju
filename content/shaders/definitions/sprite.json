@@ -1,4 +1,5 @@
 {
+	"CullMode": "None",
 	"Vulkan": {
 		"Vert": "shaders/spv/sprite.vert.spv",
 		"Frag": "shaders/spv/sprite.frag.spv"
@@ -15,22 +16,6 @@
 		{
 			"Name": "fgColor",
 			"Type": "vec4"
-		},
-		{
-			"Name": "bgColor",
-			"Type": "vec4"
-		},
-		{
-			"Name": "scissor",
-			"Type": "vec4"
-		},
-		{
-			"Name": "size2D",
-			"Type": "vec4"
-		},
-		{
-			"Name": "borderLen",
-			"Type": "vec2"
 		}
 	],
 	"Layouts": [{

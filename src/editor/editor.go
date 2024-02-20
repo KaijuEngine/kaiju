@@ -86,7 +86,7 @@ func New(container *host_container.Container) *Editor {
 	ed := &Editor{
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
-		selection:      selection.New(),
+		selection:      selection.New(host),
 	}
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
@@ -171,6 +171,11 @@ func (e *Editor) SetupUI() {
 }
 
 func (ed *Editor) update(delta float64) {
-	ed.cam.Update(ed.Host(), delta)
+	if ed.cam.Update(ed.Host(), delta) {
+		return
+	}
+	ed.selection.Update(ed.Host())
+
+	// TODO:  This is for testing
 	ed.moveTool.Update()
 }

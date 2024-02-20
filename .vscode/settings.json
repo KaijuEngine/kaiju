@@ -67,4 +67,5 @@
 		"Unorm",
 		"Subpasses"
 	],
+	"editor.rulers": [80, 90],
 }

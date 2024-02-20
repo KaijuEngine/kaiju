@@ -69,7 +69,7 @@ func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 	}
 }
 
-func (e *EditorCamera) Update(host *engine.Host, delta float64) {
+func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	tc := host.Camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
@@ -83,18 +83,27 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) {
 		} else {
 			e.yawScale = -ROT_SCALE
 		}
+		if mouse.Pressed(hid.MouseButtonMiddle) {
+			changed = true
+		}
 	} else if mouse.Held(hid.MouseButtonLeft) {
 		if kb.KeyHeld(hid.KeyboardKeyLeftAlt) {
 			x := (e.lastMousePos.Y() - mp.Y()) * -ROT_SCALE
 			y := (e.lastMousePos.X() - mp.X()) * e.yawScale
 			tc.Orbit(matrix.Vec3{x, y, 0.0})
+			changed = true
 		} else if kb.KeyHeld(hid.KeyboardKeySpace) {
 			e.pan(tc, mp)
+			changed = true
 		}
 	} else if mouse.Held(hid.MouseButtonMiddle) {
 		e.pan(tc, mp)
+		changed = true
 	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) {
 		e.lastHit = matrix.Vec3Zero()
+		if mouse.Released(hid.MouseButtonMiddle) {
+			changed = true
+		}
 	}
 	if mouse.Scrolled() {
 		zoom := tc.Zoom()
@@ -103,6 +112,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) {
 			scale *= zoom / 1.0
 		}
 		tc.Dolly(mouse.Scroll().Y() * scale)
+		changed = true
 	}
 	e.lastMousePos = mp
+	return changed
 }

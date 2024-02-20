@@ -42,6 +42,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"kaiju/hid"
+	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"unsafe"
@@ -137,6 +138,10 @@ func (w *Window) IsClosed() bool  { return w.isClosed }
 func (w *Window) IsCrashed() bool { return w.isCrashed }
 func (w *Window) Width() int      { return w.width }
 func (w *Window) Height() int     { return w.height }
+
+func (w *Window) Viewport() matrix.Vec4 {
+	return matrix.Vec4{0, 0, float32(w.width), float32(w.height)}
+}
 
 func (w *Window) processEvent(evtType eventType) {
 	w.processWindowEvent(evtType)

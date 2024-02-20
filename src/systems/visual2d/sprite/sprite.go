@@ -91,6 +91,8 @@ func (s *Sprite) Move3D(x, y, z matrix.Float) {
 
 func (s *Sprite) SetPosition(x, y matrix.Float) {
 	p := s.Entity.Transform.Position()
+	x -= matrix.Float(s.host.Window.Width()) * 0.5
+	y -= matrix.Float(s.host.Window.Height()) * 0.5
 	s.Entity.Transform.SetPosition(matrix.Vec3{x, y, p.Z()})
 }
 
@@ -125,11 +127,14 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	if s.drawing.IsValid() {
 		s.recreateDrawing()
 		s.drawing.Textures[0] = texture
-		s.host.Drawings.AddDrawing(&s.drawing, s.host.Window.Renderer.DefaultTarget())
+		t := s.host.Window.Renderer.DefaultTarget()
+		s.host.Drawings.AddDrawing(&s.drawing, t)
 	}
 }
 
-func (s *Sprite) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture) {
+func (s *Sprite) SetFlipBookAnimation(
+	framesPerSecond float32, textures ...*rendering.Texture) {
+
 	count := len(textures)
 	s.flipBook = make([]*rendering.Texture, 0, count)
 	for i := 0; i < count; i++ {
@@ -147,7 +152,8 @@ func (s *Sprite) SetColor(color matrix.Color) {
 	if color.A() < 1 {
 		s.recreateDrawing()
 		s.drawing.UseBlending = true
-		s.host.Drawings.AddDrawing(&s.drawing, s.host.Window.Renderer.DefaultTarget())
+		t := s.host.Window.Renderer.DefaultTarget()
+		s.host.Drawings.AddDrawing(&s.drawing, t)
 	}
 }
 
@@ -202,7 +208,19 @@ func (s *Sprite) setSheetFrame(frame int) {
 	}
 }
 
-func NewSprite(x, y, width, height matrix.Float, host *engine.Host, texture *rendering.Texture) *Sprite {
+func (s *Sprite) Activate() {
+	s.Entity.Activate()
+	s.shaderData.Activate()
+}
+
+func (s *Sprite) Deactivate() {
+	s.Entity.Deactivate()
+	s.shaderData.Deactivate()
+}
+
+func NewSprite(x, y, width, height matrix.Float,
+	host *engine.Host, texture *rendering.Texture, color matrix.Color) *Sprite {
+
 	e := host.NewEntity()
 	sprite := &Sprite{
 		host:     host,
@@ -210,58 +228,56 @@ func NewSprite(x, y, width, height matrix.Float, host *engine.Host, texture *ren
 		flipBook: []*rendering.Texture{},
 	}
 	sprite.baseScale = matrix.Vec3{width, height, 1.0}
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionSprite)
+	sh := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionSprite)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	sprite.Entity.Transform.SetPosition(matrix.Vec3{x, y, 0})
 	sprite.Entity.Transform.SetScale(matrix.Vec3{width, height, 1})
 	sprite.texture = texture
 	sprite.shaderData = ShaderData{
 		ShaderDataBase: rendering.NewShaderDataBase(),
-		BorderLen:      matrix.Vec2{8.0, 8.0},
-		BgColor:        matrix.ColorWhite(),
-		FgColor:        matrix.ColorWhite(),
+		FgColor:        color,
 		UVs:            matrix.Vec4{0.0, 0.0, 1.0, 1.0},
-		Scissor: matrix.Vec4{
-			-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax,
-		},
-		Size2D: matrix.Vec4{
-			0.0, 0.0, float32(texture.Width), float32(texture.Height),
-		},
 	}
 	host.Drawings.AddDrawing(&rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Shader:     shader,
-		Mesh:       mesh,
-		Textures:   []*rendering.Texture{texture},
-		ShaderData: &sprite.shaderData,
-		Transform:  nil,
+		Renderer:    host.Window.Renderer,
+		Shader:      sh,
+		Mesh:        mesh,
+		Textures:    []*rendering.Texture{texture},
+		ShaderData:  &sprite.shaderData,
+		Transform:   &sprite.Entity.Transform,
+		UseBlending: color.A() < 1,
 	}, host.Window.Renderer.DefaultTarget())
 	return sprite
 }
 
-func NewSpriteFlipBook(x, y, width, height float32, host *engine.Host, images []*rendering.Texture, fps float32) *Sprite {
-	sprite := NewSprite(x, y, width, height, host, images[0])
-	sprite.fps = fps
-	sprite.flipBook = images
-	updateId := host.Updater.AddUpdate(sprite.update)
-	sprite.Entity.OnDestroy.Add(func() {
+func NewSpriteFlipBook(x, y, width, height float32,
+	host *engine.Host, images []*rendering.Texture, fps float32) *Sprite {
+
+	s := NewSprite(x, y, width, height, host, images[0], matrix.ColorWhite())
+	s.fps = fps
+	s.flipBook = images
+	updateId := host.Updater.AddUpdate(s.update)
+	s.Entity.OnDestroy.Add(func() {
 		host.Updater.RemoveUpdate(updateId)
 	})
-	return sprite
+	return s
 }
 
-func NewSpriteSheet(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, jsonStr string, fps float32, initialClip string) *Sprite {
-	sprite := NewSprite(x, y, width, height, host, texture)
+func NewSpriteSheet(x, y, width, height float32,
+	host *engine.Host, texture *rendering.Texture, jsonStr string,
+	fps float32, initialClip string) *Sprite {
+
+	s := NewSprite(x, y, width, height, host, texture, matrix.ColorWhite())
 	var err error
-	sprite.spriteSheet, err = ReadSpriteSheetData(jsonStr)
+	s.spriteSheet, err = ReadSpriteSheetData(jsonStr)
 	if err != nil {
 		panic(err)
 	}
-	sprite.fps = fps
-	sprite.SetSheetClip(initialClip)
-	updateId := host.Updater.AddUpdate(sprite.update)
-	sprite.Entity.OnDestroy.Add(func() {
+	s.fps = fps
+	s.SetSheetClip(initialClip)
+	updateId := host.Updater.AddUpdate(s.update)
+	s.Entity.OnDestroy.Add(func() {
 		host.Updater.RemoveUpdate(updateId)
 	})
-	return sprite
+	return s
 }

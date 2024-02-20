@@ -202,7 +202,7 @@ func (t *HandleTool) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
 		t.shaderDatas[t.faceHover].Color = t.model.Meshes[t.faceHover].Verts[0].Color
 		t.faceHover = -1
 	}
-	ray := camera.Raycast(pos)
+	ray := camera.RayCast(pos)
 	// Mesh order is y,x,z,y,x,z
 	for i := range t.model.Meshes {
 		if _, ok := t.model.Meshes[i].TrySelect(t.tool, ray); ok {
@@ -216,7 +216,7 @@ func (t *HandleTool) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
 
 func (t *HandleTool) TrySelect(pos matrix.Vec2, camera cameras.Camera) bool {
 	t.faceHit = -1
-	ray := camera.Raycast(pos)
+	ray := camera.RayCast(pos)
 	// Mesh order is y,x,z,y,x,z
 	for i := range t.model.Meshes {
 		if _, ok := t.model.Meshes[i].TrySelect(t.tool, ray); ok {
@@ -229,7 +229,7 @@ func (t *HandleTool) TrySelect(pos matrix.Vec2, camera cameras.Camera) bool {
 
 func (t *HandleTool) toolHit(pos matrix.Vec2, camera cameras.Camera) matrix.Vec3 {
 	var hit, nml matrix.Vec3
-	r := camera.Raycast(pos)
+	r := camera.RayCast(pos)
 	planePos := t.tool.Transform.Position()
 	if t.isX(t.faceHit) {
 		nml = t.tool.Transform.Forward()
