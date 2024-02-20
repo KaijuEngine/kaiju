@@ -202,36 +202,44 @@ func Vec3ApproxTo(a, b Vec3, delta Float) bool {
 		Abs(a.Z()-b.Z()) < delta
 }
 
-func Vec3Min(a, b Vec3) Vec3 {
-	return Vec3{
-		Min(a[Vx], b[Vx]),
-		Min(a[Vy], b[Vy]),
-		Min(a[Vz], b[Vz]),
+func Vec3Min(v ...Vec3) Vec3 {
+	res := v[0]
+	for i := 1; i < len(v); i++ {
+		res[0] = Min(res[0], v[i][0])
+		res[1] = Min(res[1], v[i][1])
+		res[2] = Min(res[2], v[i][2])
 	}
+	return res
 }
 
-func Vec3MinAbs(a, b Vec3) Vec3 {
-	return Vec3{
-		Min(Abs(a[Vx]), Abs(b[Vx])),
-		Min(Abs(a[Vy]), Abs(b[Vy])),
-		Min(Abs(a[Vz]), Abs(b[Vz])),
+func Vec3MinAbs(v ...Vec3) Vec3 {
+	res := v[0].Abs()
+	for i := 1; i < len(v); i++ {
+		res[0] = Min(res[0], Abs(v[i][0]))
+		res[1] = Min(res[1], Abs(v[i][1]))
+		res[2] = Min(res[2], Abs(v[i][2]))
 	}
+	return res
 }
 
-func Vec3Max(a, b Vec3) Vec3 {
-	return Vec3{
-		Max(a[Vx], b[Vx]),
-		Max(a[Vy], b[Vy]),
-		Max(a[Vz], b[Vz]),
+func Vec3Max(v ...Vec3) Vec3 {
+	res := v[0]
+	for i := 1; i < len(v); i++ {
+		res[0] = Max(res[0], v[i][0])
+		res[1] = Max(res[1], v[i][1])
+		res[2] = Max(res[2], v[i][2])
 	}
+	return res
 }
 
-func Vec3MaxAbs(a, b Vec3) Vec3 {
-	return Vec3{
-		Max(Abs(a[Vx]), Abs(b[Vx])),
-		Max(Abs(a[Vy]), Abs(b[Vy])),
-		Max(Abs(a[Vz]), Abs(b[Vz])),
+func Vec3MaxAbs(v ...Vec3) Vec3 {
+	res := v[0].Abs()
+	for i := 1; i < len(v); i++ {
+		res[0] = Max(res[0], Abs(v[i][0]))
+		res[1] = Max(res[1], Abs(v[i][1]))
+		res[2] = Max(res[2], Abs(v[i][2]))
 	}
+	return res
 }
 
 func (v Vec3) Abs() Vec3 {
@@ -296,4 +304,8 @@ func (v Vec3) MultiplyMat3(rhs Mat3) Vec3 {
 	row = rhs.RowVector(2)
 	result[Vz] = Vec3Dot(row, v)
 	return result
+}
+
+func Vec3Inf(sign int) Vec3 {
+	return Vec3{Inf(sign), Inf(sign), Inf(sign)}
 }

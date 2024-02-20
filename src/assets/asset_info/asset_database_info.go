@@ -100,6 +100,13 @@ func New(path string, id string) AssetDatabaseInfo {
 	}
 }
 
+func (a *AssetDatabaseInfo) MetaValue(key string) string {
+	if v, ok := a.Metadata[key]; ok {
+		return v
+	}
+	return ""
+}
+
 func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 	return AssetDatabaseInfo{
 		ID:       id,

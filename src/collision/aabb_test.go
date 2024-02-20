@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* obj_opener.go                                                              */
+/* aabb_test.go                                                               */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,80 +35,73 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_opener
+package collision
 
 import (
-	"kaiju/assets"
-	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/project_cache"
-	"kaiju/editor/editor_config"
-	"kaiju/engine"
-	"kaiju/host_container"
 	"kaiju/matrix"
-	"kaiju/rendering"
+	"testing"
 )
 
-type ObjOpener struct{}
-
-func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
-	return adi.Type == editor_config.AssetTypeObj
+func TestAABBHit(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	r := Ray{matrix.Vec3Right(), matrix.Vec3Left()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Left(), matrix.Vec3Right()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Up(), matrix.Vec3Down()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Down(), matrix.Vec3Up()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Forward(), matrix.Vec3Backward()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Backward(), matrix.Vec3Forward()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
 }
 
-func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
-	texId := assets.TextureSquare
-	if t, ok := adi.Metadata["texture"]; ok {
-		texId = t
+func TestAABBMiss(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	r := Ray{matrix.Vec3Right(), matrix.Vec3Up()}
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
 	}
-	tex, err := host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
-	if err != nil {
-		return err
+	r.Direction = matrix.Vec3Down()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
 	}
-	var data rendering.DrawInstance
-	var shader *rendering.Shader
-	if s, ok := adi.Metadata["shader"]; ok {
-		shader = host.ShaderCache().ShaderFromDefinition(s)
-		// TODO:  We need to create or generate shader data given the definition
-		data = &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	} else {
-		shader = host.ShaderCache().ShaderFromDefinition(
-			assets.ShaderDefinitionBasic)
-		data = &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
+	r.Direction = matrix.Vec3Right()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
 	}
-	mesh, ok := host.MeshCache().FindMesh(adi.ID)
-	if !ok {
-		m, err := project_cache.LoadCachedMesh(adi)
-		if err != nil {
-			return err
-		}
-		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
+	r.Direction = matrix.Vec3Forward()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
 	}
-	host.MeshCache().AddMesh(mesh)
-	e := host.NewEntity()
-	e.SetName(adi.MetaValue("name"))
-	host.Drawings.AddDrawing(&rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Shader:     shader,
-		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
-		ShaderData: data,
-		Transform:  &e.Transform,
-	}, host.Window.Renderer.DefaultTarget())
-	return nil
+	r.Direction = matrix.Vec3Backward()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
 }
 
-func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error {
-	host := container.Host
-	for i := range adi.Children {
-		if err := load(host, adi.Children[i]); err != nil {
-			return err
-		}
+func TestTriangleIntersect(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	points0 := [3]matrix.Vec3{
+		{-0.25, 0.0, 0.25},
+		{0.0, 0.0, -0.25},
+		{0.25, 0.0, 0.25},
 	}
-	container.Host.Window.Focus()
-	return nil
+	if !box.TriangleIntersect(DetailedTriangleFromPoints(points0)) {
+		t.Error("Expected intersect")
+	}
 }

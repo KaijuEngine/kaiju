@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* obj_opener.go                                                              */
+/* triangle.go                                                                */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,80 +35,43 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_opener
+package collision
 
-import (
-	"kaiju/assets"
-	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/project_cache"
-	"kaiju/editor/editor_config"
-	"kaiju/engine"
-	"kaiju/host_container"
-	"kaiju/matrix"
-	"kaiju/rendering"
-)
+import "kaiju/matrix"
 
-type ObjOpener struct{}
-
-func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
-	return adi.Type == editor_config.AssetTypeObj
+type Triangle struct {
+	P           Plane
+	EdgePlaneBC Plane
+	EdgePlaneCA Plane
 }
 
-func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
-	texId := assets.TextureSquare
-	if t, ok := adi.Metadata["texture"]; ok {
-		texId = t
-	}
-	tex, err := host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
-	if err != nil {
-		return err
-	}
-	var data rendering.DrawInstance
-	var shader *rendering.Shader
-	if s, ok := adi.Metadata["shader"]; ok {
-		shader = host.ShaderCache().ShaderFromDefinition(s)
-		// TODO:  We need to create or generate shader data given the definition
-		data = &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	} else {
-		shader = host.ShaderCache().ShaderFromDefinition(
-			assets.ShaderDefinitionBasic)
-		data = &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	}
-	mesh, ok := host.MeshCache().FindMesh(adi.ID)
-	if !ok {
-		m, err := project_cache.LoadCachedMesh(adi)
-		if err != nil {
-			return err
-		}
-		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
-	}
-	host.MeshCache().AddMesh(mesh)
-	e := host.NewEntity()
-	e.SetName(adi.MetaValue("name"))
-	host.Drawings.AddDrawing(&rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Shader:     shader,
-		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
-		ShaderData: data,
-		Transform:  &e.Transform,
-	}, host.Window.Renderer.DefaultTarget())
-	return nil
+type DetailedTriangle struct {
+	Points   [3]matrix.Vec3
+	Normal   matrix.Vec3
+	Centroid matrix.Vec3
+	Radius   matrix.Float
 }
 
-func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error {
-	host := container.Host
-	for i := range adi.Children {
-		if err := load(host, adi.Children[i]); err != nil {
-			return err
-		}
+func DetailedTriangleFromPoints(points [3]matrix.Vec3) DetailedTriangle {
+	tri := DetailedTriangle{
+		Points:   [3]matrix.Vec3{points[0], points[1], points[2]},
+		Normal:   matrix.Vec3Zero(),
+		Centroid: matrix.Vec3Zero(),
+		Radius:   0.0,
 	}
-	container.Host.Window.Focus()
-	return nil
+	e0 := tri.Points[2].Subtract(tri.Points[1])
+	e1 := tri.Points[0].Subtract(tri.Points[2])
+	tri.Normal = matrix.Vec3Cross(e0, e1).Normal()
+	tri.Centroid = matrix.Vec3{
+		(tri.Points[0].X() + tri.Points[1].X() + tri.Points[2].X()) / 3.0,
+		(tri.Points[0].Y() + tri.Points[1].Y() + tri.Points[2].Y()) / 3.0,
+		(tri.Points[0].Z() + tri.Points[1].Z() + tri.Points[2].Z()) / 3.0,
+	}
+	p := [3]matrix.Vec3{
+		tri.Centroid.Subtract(tri.Points[0]),
+		tri.Centroid.Subtract(tri.Points[1]),
+		tri.Centroid.Subtract(tri.Points[2]),
+	}
+	tri.Radius = max(p[0].Length(), max(p[1].Length(), p[2].Length()))
+	return tri
 }

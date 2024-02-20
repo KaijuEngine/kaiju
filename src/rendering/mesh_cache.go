@@ -75,11 +75,6 @@ func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
 func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh, true
-	} else if m.assetDatabase.Exists(key) {
-		//mesh := NewMeshFromAsset(key, m.assetDatabase)
-		//m.textures[key] = mesh
-		//return mesh, nil
-		panic("Not implemented")
 	} else {
 		return nil, false
 	}

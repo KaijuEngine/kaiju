@@ -116,7 +116,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	offsets := vk.DeviceSize(0)
 	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
 	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, r.compositeShader.RenderId.graphicsPipeline)
-	imageInfos := [2]vk.DescriptorImageInfo{
+	imageInfos := [...]vk.DescriptorImageInfo{
 		imageInfo(r.weightedColor.View, r.weightedColor.Sampler),
 		imageInfo(r.weightedReveal.View, r.weightedReveal.Sampler),
 	}

@@ -45,8 +45,8 @@ import (
 )
 
 type ResultMesh struct {
-	MeshName string
 	Name     string
+	MeshName string
 	Verts    []rendering.Vertex
 	Indexes  []uint32
 }

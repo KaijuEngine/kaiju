@@ -88,6 +88,7 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 		// TODO:  Write the correct material to the adi
 		info.Metadata["shader"] = assets.ShaderDefinitionBasic
 		info.Metadata["texture"] = assets.TextureSquare
+		info.Metadata["name"] = o.Name
 		adi.Children = append(adi.Children, info)
 	}
 	return nil

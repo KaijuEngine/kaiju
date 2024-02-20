@@ -52,6 +52,7 @@ import (
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools"
 	"kaiju/engine"
+	"kaiju/hid"
 	"kaiju/host_container"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -185,4 +186,15 @@ func (ed *Editor) update(delta float64) {
 		return
 	}
 	ed.selection.Update(ed.Host())
+	if ed.Host().Window.Keyboard.KeyDown(hid.KeyboardKeyF) {
+		b := ed.selection.Bounds()
+		c := ed.Host().Camera.(*cameras.TurntableCamera)
+		c.SetLookAt(b.Center)
+		z := b.Extent.Length()
+		if z <= 0.01 {
+			// TODO:  Work out the size of the selected object
+			z = 5
+		}
+		c.SetZoom(z)
+	}
 }

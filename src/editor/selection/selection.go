@@ -39,6 +39,7 @@ package selection
 
 import (
 	"kaiju/assets"
+	"kaiju/collision"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/klib"
@@ -180,4 +181,15 @@ func (s *Selection) Center() matrix.Vec3 {
 	}
 	centroid.ScaleAssign(1 / matrix.Float(len(s.entities)))
 	return centroid
+}
+
+func (s *Selection) Bounds() collision.AABB {
+	min := matrix.Vec3Inf(1)
+	max := matrix.Vec3Inf(-1)
+	for _, e := range s.entities {
+		p := e.Transform.Position()
+		min = matrix.Vec3Min(min, p)
+		max = matrix.Vec3Max(max, p)
+	}
+	return collision.AABBFromMinMax(min, max)
 }
