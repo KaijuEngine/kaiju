@@ -130,12 +130,16 @@ func (r *CombineCanvas) createRenderPass(renderer Renderer) bool {
 	pass, err := NewRenderPass(vr.device, &vr.dbg, []vk.AttachmentDescription{attachment},
 		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{})
 	if err != nil {
-		slog.Error("Failed to create the solid OIT render pass")
+		slog.Error("Failed to create the combine render pass")
 		return false
 	}
 	r.renderPass = pass
 	err = r.renderPass.CreateFrameBuffer(vr,
 		[]vk.ImageView{r.color.View}, r.color.Width, r.color.Height)
+	if err != nil {
+		slog.Error("Failed to create the combine frame buffer")
+		return false
+	}
 	return true
 }
 

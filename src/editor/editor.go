@@ -126,6 +126,7 @@ func (e *Editor) setupViewportGrid() {
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	dc, _ := host.Window.Renderer.Canvas("default")
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer: host.Window.Renderer,
 		Shader:   shader,
@@ -134,7 +135,7 @@ func (e *Editor) setupViewportGrid() {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
-	}, host.Window.Renderer.DefaultTarget())
+	}, dc)
 }
 
 func (e *Editor) SetupUI() {
@@ -150,7 +151,8 @@ func (e *Editor) SetupUI() {
 		ot := &rendering.OITCanvas{}
 		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
 		ot.Create(win.Renderer)
-		e.Host().Window.Renderer.DefaultTarget().(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
+		dc, _ := e.Host().Window.Renderer.Canvas("default")
+		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
 		e.overlayTarget = ot
 		e.Host().OnClose.Add(func() {

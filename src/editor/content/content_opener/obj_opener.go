@@ -91,14 +91,17 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 	host.MeshCache().AddMesh(mesh)
 	e := host.NewEntity()
 	e.SetName(adi.MetaValue("name"))
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	dc, _ := host.Window.Renderer.Canvas("default")
+	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
 		Transform:  &e.Transform,
-	}, host.Window.Renderer.DefaultTarget())
+	}
+	e.AddNamedData("drawing", &drawing)
+	host.Drawings.AddDrawing(&drawing, dc)
 	return nil
 }
 

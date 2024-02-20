@@ -49,7 +49,6 @@ type ShaderCache struct {
 	shaders           map[string]*Shader
 	pendingShaders    []*Shader
 	shaderDefinitions map[string]ShaderDef
-	renderCanvases    map[string]Canvas
 	mutex             sync.Mutex
 }
 
@@ -61,7 +60,6 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 		pendingShaders:    make([]*Shader, 0),
 		shaderDefinitions: make(map[string]ShaderDef),
 		mutex:             sync.Mutex{},
-		renderCanvases:    make(map[string]Canvas),
 	}
 }
 
@@ -98,8 +96,7 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 		}
 	}
 	var c Canvas
-	if c, ok = s.renderCanvases[def.Canvas]; !ok {
-		c = s.renderer.DefaultTarget()
+	if c, ok = s.renderer.Canvas(def.Canvas); !ok {
 		if def.Canvas != "" {
 			slog.Error("A render target was requested that does not exist in the render target cache.",
 				slog.String("renderTarget", def.Canvas))
@@ -120,14 +117,6 @@ func (s *ShaderCache) CreatePending() {
 		shader.DelayedCreate(s.renderer, s.assetDatabase)
 	}
 	s.pendingShaders = s.pendingShaders[:0]
-}
-
-func (s *ShaderCache) RegisterRenderCanvas(name string, renderTarget Canvas) {
-	if _, ok := s.renderCanvases[name]; ok {
-		slog.Error("The supplied render target name is already registered", slog.String("name", name))
-		return
-	}
-	s.renderCanvases[name] = renderTarget
 }
 
 func (s *ShaderCache) Destroy() {

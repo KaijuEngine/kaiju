@@ -98,9 +98,11 @@ type Vulkan struct {
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
 	defaultCanvas              OITCanvas
+	outlineCanvas              OutlineCanvas
 	combineCanvas              CombineCanvas
 	combinedDrawings           Drawings
 	preRuns                    []func()
+	canvases                   map[string]Canvas
 	dbg                        debugVulkan
 	hasSwapChain               bool
 }
@@ -110,7 +112,21 @@ func init() {
 	klib.Must(vk.Init())
 }
 
-func (vr *Vulkan) DefaultTarget() Canvas { return &vr.defaultCanvas }
+func (vr *Vulkan) Canvas(name string) (Canvas, bool) {
+	c, ok := vr.canvases[name]
+	if !ok {
+		return &vr.defaultCanvas, ok
+	}
+	return c, ok
+}
+
+func (vr *Vulkan) RegisterCanvas(name string, renderTarget Canvas) {
+	if _, ok := vr.canvases[name]; ok {
+		slog.Error("The supplied render target name is already registered", slog.String("name", name))
+		return
+	}
+	vr.canvases[name] = renderTarget
+}
 
 func (vr *Vulkan) WaitRender() {
 	fences := [2]vk.Fence{}
@@ -212,6 +228,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:              debugVulkanNew(),
 		combinedDrawings: NewDrawings(),
+		canvases:         make(map[string]Canvas),
 	}
 
 	appInfo := vk.ApplicationInfo{}
@@ -269,6 +286,9 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if err := vr.defaultCanvas.Create(vr); err != nil {
 		return nil, err
 	}
+	if err := vr.outlineCanvas.Create(vr); err != nil {
+		return nil, err
+	}
 	if err := vr.combineCanvas.Create(vr); err != nil {
 		return nil, err
 	}
@@ -287,8 +307,9 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	vr.caches = caches
 	caches.TextureCache().CreatePending()
 	vr.defaultCanvas.Initialize(vr, float32(width), float32(height))
-	caches.ShaderCache().RegisterRenderCanvas("default", &vr.defaultCanvas)
-	caches.ShaderCache().RegisterRenderCanvas("combine", &vr.combineCanvas)
+	vr.RegisterCanvas("default", &vr.defaultCanvas)
+	vr.RegisterCanvas("outline", &vr.outlineCanvas)
+	vr.RegisterCanvas("combine", &vr.combineCanvas)
 	return nil
 }
 
@@ -306,10 +327,10 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	vr.defaultCanvas.Destroy(vr)
-	vr.defaultCanvas.Create(vr)
-	vr.combineCanvas.Destroy(vr)
-	vr.combineCanvas.Create(vr)
+	for _, c := range vr.canvases {
+		c.Destroy(vr)
+		c.Create(vr)
+	}
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -544,8 +565,9 @@ func (vr *Vulkan) Destroy() {
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {
-		vr.defaultCanvas.Destroy(vr)
-		vr.combineCanvas.Destroy(vr)
+		for _, c := range vr.canvases {
+			c.Destroy(vr)
+		}
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)

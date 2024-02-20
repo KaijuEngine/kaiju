@@ -72,6 +72,7 @@ func testDrawing(host *engine.Host) {
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
+	dc, _ := host.Window.Renderer.Canvas("default")
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
@@ -79,7 +80,7 @@ func testDrawing(host *engine.Host) {
 		Textures:   []*rendering.Texture{droidTex},
 		ShaderData: &tsd,
 		Transform:  nil,
-	}, host.Window.Renderer.DefaultTarget())
+	}, dc)
 }
 
 func testTwoDrawings(host *engine.Host) {
@@ -101,6 +102,7 @@ func testTwoDrawings(host *engine.Host) {
 		m.Rotate(matrix.Vec3{0.0, rots[i], 0.0})
 		m.Translate(positions[i])
 		tsd.SetModel(m)
+		dc, _ := host.Window.Renderer.Canvas("default")
 		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:   host.Window.Renderer,
 			Shader:     shader,
@@ -108,7 +110,7 @@ func testTwoDrawings(host *engine.Host) {
 			Textures:   []*rendering.Texture{droidTex},
 			ShaderData: &tsd,
 			Transform:  nil,
-		}, host.Window.Renderer.DefaultTarget())
+		}, dc)
 	}
 }
 
@@ -117,7 +119,8 @@ func testFont(host *engine.Host) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, rendering.FontRegular, 0)
-	host.Drawings.AddDrawings(drawings, host.Window.Renderer.DefaultTarget())
+	dc, _ := host.Window.Renderer.Canvas("default")
+	host.Drawings.AddDrawings(drawings, dc)
 }
 
 func testOIT(host *engine.Host) {
@@ -141,6 +144,7 @@ func testOIT(host *engine.Host) {
 		m := matrix.Mat4Identity()
 		m.Translate(positions[i])
 		tsd.SetModel(m)
+		dc, _ := host.Window.Renderer.Canvas("default")
 		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:    host.Window.Renderer,
 			Shader:      shader,
@@ -149,7 +153,7 @@ func testOIT(host *engine.Host) {
 			ShaderData:  &tsd,
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
-		}, host.Window.Renderer.DefaultTarget())
+		}, dc)
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
@@ -252,13 +256,14 @@ func drawBasicMesh(host *engine.Host, res loaders.Result) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
+	dc, _ := host.Window.Renderer.Canvas("default")
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
-	}, host.Window.Renderer.DefaultTarget())
+	}, dc)
 }
 
 func testMonkeyOBJ(host *engine.Host) {

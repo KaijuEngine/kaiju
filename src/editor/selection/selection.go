@@ -55,10 +55,12 @@ const (
 )
 
 type Selection struct {
-	box      *sprite.Sprite
-	entities []*engine.Entity
-	downPos  matrix.Vec2
-	Changed  events.Event
+	host        *engine.Host
+	box         *sprite.Sprite
+	entities    []*engine.Entity
+	downPos     matrix.Vec2
+	Changed     events.Event
+	shaderDatas []rendering.ShaderDataBasic
 }
 
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
@@ -71,9 +73,11 @@ func New(host *engine.Host) Selection {
 	host.DoneCreatingEditorEntities()
 	b.Deactivate()
 	return Selection{
-		box:      b,
-		entities: make([]*engine.Entity, 0),
-		Changed:  events.New(),
+		host:        host,
+		box:         b,
+		entities:    make([]*engine.Entity, 0),
+		Changed:     events.New(),
+		shaderDatas: make([]rendering.ShaderDataBasic, 0),
 	}
 }
 
@@ -86,6 +90,18 @@ func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
 func (s *Selection) deactivateBox() {
 	s.box.Resize(0, 0)
 	s.box.Deactivate()
+}
+
+func (s *Selection) Clear() {
+	for i := range s.shaderDatas {
+		s.shaderDatas[i].Destroy()
+	}
+	s.shaderDatas = s.shaderDatas[:0]
+	s.entities = s.entities[:0]
+}
+
+func (s *Selection) Add(e *engine.Entity) {
+	s.entities = append(s.entities, e)
 }
 
 func (s *Selection) Update(host *engine.Host) {
@@ -119,7 +135,7 @@ func (s *Selection) clickSelect(host *engine.Host) {
 	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
 		changed = len(s.entities) > 0
-		s.entities = s.entities[:0]
+		s.Clear()
 	}
 	ray := host.Camera.RayCast(s.downPos)
 	all := host.Entities()
@@ -128,7 +144,7 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
-			s.entities = append(s.entities, all[i])
+			s.Add(all[i])
 			changed = true
 			break
 		}
@@ -142,7 +158,7 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
 		changed = len(s.entities) > 0
-		s.entities = s.entities[:0]
+		s.Clear()
 	}
 	all := host.Entities()
 	pts := make([]matrix.Vec3, len(all))
@@ -157,7 +173,7 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 	box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
 	for i := range pts {
 		if box.BoxContains(pts[i].X(), pts[i].Y()) {
-			s.entities = append(s.entities, all[i])
+			s.Add(all[i])
 			changed = true
 		}
 	}
