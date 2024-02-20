@@ -1,5 +1,6 @@
 {
 	"Canvas": "combine",
+	"CullMode": "None",
 	"Vulkan": {
 		"Vert": "shaders/spv/combine.vert.spv",
 		"Frag": "shaders/spv/combine.frag.spv"

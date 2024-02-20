@@ -12,31 +12,9 @@ layout (location = 7) in vec3 MorphTarget;
 layout(location = 8) in mat4 model;
 layout(location = 12) in vec4 uvs;
 layout(location = 13) in vec4 fgColor;
-layout(location = 14) in vec4 bgColor;
-layout(location = 15) in vec4 scissor;
-layout(location = 16) in vec4 size2D;
-layout(location = 17) in vec2 borderLen;
-//layout(location = 17) in vec4 borderRadius;
-//layout(location = 18) in vec4 borderSize;
-//layout(location = 19) in mat4 borderColor;
-//layout(location = 23) in vec2 borderLen;
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec4 fragBGColor;
-layout(location = 2) out vec4 fragSize2D;
-layout(location = 3) out vec4 fragScissor;
 layout(location = 4) out vec2 fragTexCoord;
-layout(location = 5) out vec2 fragBorderLen;
-
-struct InstanceData {
-	mat4 model;
-	vec4 uvs;
-	vec4 fgColor;
-	vec4 bgColor;
-	vec4 scissor;
-	vec4 size2D;
-	vec2 borderLen;
-};
 
 layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	mat4 view;
@@ -56,14 +34,5 @@ void main() {
 	uv.y += (1.0 - uvs.w) - uvs.y;
 	uv.x += uvs.x;
 	fragColor = Color * fgColor;
-	fragBGColor = bgColor;
-	fragSize2D = size2D;
-	fragScissor = scissor;
 	fragTexCoord = uv;
-	fragBorderLen = borderLen;
-
-	gl_ClipDistance[0] = vPos.x - scissor.x;
-	gl_ClipDistance[1] = vPos.y - scissor.y;
-	gl_ClipDistance[2] = scissor.z - vPos.x;
-	gl_ClipDistance[3] = scissor.w - vPos.y;
 }

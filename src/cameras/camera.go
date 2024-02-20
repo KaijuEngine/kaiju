@@ -1,10 +1,10 @@
-/*****************************************************************************/
-/* camera.go                                                                 */
-/*****************************************************************************/
+/******************************************************************************/
+/* camera.go                                                                  */
+/******************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
 /*                          https://kaijuengine.org                          */
-/*****************************************************************************/
+/******************************************************************************/
 /* MIT License                                                               */
 /*                                                                           */
 /* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).   */
@@ -33,7 +33,7 @@
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE     */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
-/*****************************************************************************/
+/******************************************************************************/
 
 package cameras
 
@@ -57,7 +57,7 @@ type Camera interface {
 	SetLookAt(position matrix.Vec3)
 	LookAt(point, up matrix.Vec3)
 	SetPositionAndLookAt(position, lookAt matrix.Vec3)
-	Raycast(screenPos matrix.Vec2) collision.Ray
+	RayCast(screenPos matrix.Vec2) collision.Ray
 	TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
 	ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool)
 	Position() matrix.Vec3

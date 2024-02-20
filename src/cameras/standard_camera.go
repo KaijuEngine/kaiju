@@ -1,10 +1,10 @@
-/*****************************************************************************/
-/* standard_camera.go                                                        */
-/*****************************************************************************/
+/******************************************************************************/
+/* standard_camera.go                                                         */
+/******************************************************************************/
 /*                           This file is part of:                           */
 /*                                KAIJU ENGINE                               */
 /*                          https://kaijuengine.org                          */
-/*****************************************************************************/
+/******************************************************************************/
 /* MIT License                                                               */
 /*                                                                           */
 /* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).   */
@@ -33,7 +33,7 @@
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE     */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                             */
-/*****************************************************************************/
+/******************************************************************************/
 
 package cameras
 
@@ -227,7 +227,7 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	c.updateView()
 }
 
-func (c *StandardCamera) internalRaycast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
+func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
 	x := (2.0*screenPos.X())/c.width - 1.0
 	y := 1.0 - (2.0*screenPos.Y())/c.height
 	// Normalized Device Coordinates
@@ -242,12 +242,12 @@ func (c *StandardCamera) internalRaycast(screenPos matrix.Vec2, pos matrix.Vec3)
 	return collision.Ray{Origin: pos, Direction: rayWorld}
 }
 
-func (c *StandardCamera) Raycast(screenPos matrix.Vec2) collision.Ray {
-	return c.internalRaycast(screenPos, c.position)
+func (c *StandardCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+	return c.internalRayCast(screenPos, c.position)
 }
 
 func (c *StandardCamera) TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool) {
-	r := c.Raycast(screenPos)
+	r := c.RayCast(screenPos)
 	d := matrix.Vec3Dot(planeNml, r.Direction)
 	if matrix.Abs(d) < matrix.FloatSmallestNonzero {
 		return hit, success
