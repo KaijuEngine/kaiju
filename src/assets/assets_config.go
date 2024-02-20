@@ -53,4 +53,5 @@ const (
 	ShaderDefinitionOITComposite = "shaders/definitions/oit_composite.json"
 	ShaderDefinitionUI           = "shaders/definitions/ui.json"
 	ShaderDefinitionSprite       = "shaders/definitions/sprite.json"
+	ShaderDefinitionOutline      = "shaders/definitions/outline.json"
 )

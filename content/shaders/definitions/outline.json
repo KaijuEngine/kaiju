@@ -1,0 +1,28 @@
+{
+	"CullMode": "back",
+	"Vulkan": {
+		"Vert": "shaders/spv/outline.vert.spv",
+		"Frag": "shaders/spv/outline.frag.spv"
+	},
+	"Fields": [
+		{
+			"Name": "model",
+			"Type": "mat4"
+		},
+		{
+			"Name": "color",
+			"Type": "vec4"
+		}
+	],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "CombinedImageSampler",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}]
+}

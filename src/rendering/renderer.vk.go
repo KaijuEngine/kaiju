@@ -42,6 +42,7 @@ import (
 	"kaiju/assets"
 	"kaiju/cameras"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"log/slog"
 	"math"
 	"unsafe"
@@ -203,6 +204,10 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 		CameraPosition:   camera.Position(),
 		UICameraPosition: uiCamera.Position(),
 		Time:             runtime,
+		ScreenSize: matrix.Vec2{
+			matrix.Float(vr.swapChainExtent.Width),
+			matrix.Float(vr.swapChainExtent.Height),
+		},
 	}
 	var data unsafe.Pointer
 	vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame], 0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)

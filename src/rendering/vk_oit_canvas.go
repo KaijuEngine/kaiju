@@ -54,14 +54,12 @@ type OITCanvas struct {
 	compositeQuad   *Mesh
 	opaquePass      RenderPass
 	transparentPass RenderPass
-	outlinePass     RenderPass
 	descriptorSets  [maxFramesInFlight]vk.DescriptorSet
 	descriptorPool  vk.DescriptorPool
 	color           TextureId
 	depth           TextureId
 	weightedColor   TextureId
 	weightedReveal  TextureId
-	outline         TextureId
 	ClearColor      matrix.Color
 	colorTexture    Texture
 	depthTexture    Texture
@@ -71,8 +69,6 @@ func (r *OITCanvas) Pass(name string) *RenderPass {
 	switch name {
 	case "transparent":
 		return &r.transparentPass
-	case "outline":
-		return &r.outlinePass
 	case "opaque":
 		fallthrough
 	default:
@@ -103,28 +99,19 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	endRender(cmd1)
 
 	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	beginRender(r.outlinePass, vr.swapChainExtent, cmd2, opaqueClear)
-	for i := range drawings {
-		vr.renderEach(cmd2,
-			drawings[i].shader.SubShader("outline"),
-			drawings[i].instanceGroups)
-	}
-	endRender(cmd2)
-
-	cmd3 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(r.transparentPass, vr.swapChainExtent, cmd3, transparentClear)
+	beginRender(r.transparentPass, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
-		vr.renderEachAlpha(cmd3,
+		vr.renderEachAlpha(cmd2,
 			drawings[i].shader.SubShader("transparent"),
 			drawings[i].TransparentGroups())
 	}
 	offsets := vk.DeviceSize(0)
-	vk.CmdNextSubpass(cmd3, vk.SubpassContentsInline)
-	vk.CmdBindPipeline(cmd3, vk.PipelineBindPointGraphics, r.compositeShader.RenderId.graphicsPipeline)
+	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
+	vk.CmdBindPipeline(cmd2, vk.PipelineBindPointGraphics, r.compositeShader.RenderId.graphicsPipeline)
 	imageInfos := [...]vk.DescriptorImageInfo{
 		imageInfo(r.weightedColor.View, r.weightedColor.Sampler),
 		imageInfo(r.weightedReveal.View, r.weightedReveal.Sampler),
@@ -137,16 +124,16 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
 	ds := [...]vk.DescriptorSet{r.descriptorSets[vr.currentFrame]}
 	dsOffsets := [...]uint32{0}
-	vk.CmdBindDescriptorSets(cmd3, vk.PipelineBindPointGraphics,
+	vk.CmdBindDescriptorSets(cmd2, vk.PipelineBindPointGraphics,
 		r.compositeShader.RenderId.pipelineLayout,
 		0, 1, &ds[0], 0, &dsOffsets[0])
 	mid := &r.compositeQuad.MeshId
 	vb := [...]vk.Buffer{mid.vertexBuffer}
 	vbOffsets := [...]vk.DeviceSize{offsets}
-	vk.CmdBindVertexBuffers(cmd3, 0, 1, &vb[0], &vbOffsets[0])
-	vk.CmdBindIndexBuffer(cmd3, mid.indexBuffer, 0, vk.IndexTypeUint32)
-	vk.CmdDrawIndexed(cmd3, mid.indexCount, 1, 0, 0, 0)
-	endRender(cmd3)
+	vk.CmdBindVertexBuffers(cmd2, 0, 1, &vb[0], &vbOffsets[0])
+	vk.CmdBindIndexBuffer(cmd2, mid.indexBuffer, 0, vk.IndexTypeUint32)
+	vk.CmdDrawIndexed(cmd2, mid.indexCount, 1, 0, 0, 0)
+	endRender(cmd2)
 }
 
 func (r *OITCanvas) Initialize(renderer Renderer, width, height float32) {
@@ -174,29 +161,24 @@ func (r *OITCanvas) Destroy(renderer Renderer) {
 	vr := renderer.(*Vulkan)
 	vk.DeviceWaitIdle(vr.device)
 	r.opaquePass.Destroy()
-	r.outlinePass.Destroy()
 	r.transparentPass.Destroy()
 	vr.textureIdFree(&r.color)
 	vr.textureIdFree(&r.depth)
 	vr.textureIdFree(&r.weightedColor)
 	vr.textureIdFree(&r.weightedReveal)
-	vr.textureIdFree(&r.outline)
 	r.color = TextureId{}
 	r.depth = TextureId{}
 	r.weightedColor = TextureId{}
 	r.weightedReveal = TextureId{}
-	r.outline = TextureId{}
 }
 
 func (r *OITCanvas) createImages(vr *Vulkan) bool {
 	return r.createSolidImages(vr) &&
-		r.createOutlineImages(vr) &&
 		r.createTransparentImages(vr)
 }
 
 func (r *OITCanvas) createRenderPasses(vr *Vulkan) bool {
 	return r.createOpaquePass(vr) &&
-		r.createOutlinePass(vr) &&
 		r.createTransparentPass(vr)
 }
 
@@ -229,25 +211,6 @@ func (r *OITCanvas) createSolidImages(vr *Vulkan) bool {
 		vr.transitionImageLayout(&r.depth,
 			vk.ImageLayoutDepthStencilAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectDepthBit),
 			vk.AccessFlags(vk.AccessDepthStencilAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
-	}
-	return imagesCreated
-}
-
-func (r *OITCanvas) createOutlineImages(vr *Vulkan) bool {
-	w := uint32(vr.swapChainExtent.Width)
-	h := uint32(vr.swapChainExtent.Height)
-	samples := vk.SampleCount1Bit
-	imagesCreated := vr.CreateImage(w, h, 1, samples,
-		vk.FormatB8g8r8a8Unorm, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageTransferSrcBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.outline, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&r.outline,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit))
-	vr.createTextureSampler(&r.outline.Sampler, 1, vk.FilterLinear)
-	if imagesCreated {
-		vr.transitionImageLayout(&r.outline,
-			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
 	}
 	return imagesCreated
 }
@@ -341,42 +304,6 @@ func (r *OITCanvas) createOpaquePass(vr *Vulkan) bool {
 		r.color.Width, r.color.Height)
 	if err != nil {
 		slog.Error(err.Error())
-		return false
-	}
-	return true
-}
-
-func (r *OITCanvas) createOutlinePass(vr *Vulkan) bool {
-	attachment := vk.AttachmentDescription{
-		Format:         r.outline.Format,
-		Samples:        r.outline.Samples,
-		LoadOp:         vk.AttachmentLoadOpClear,
-		StoreOp:        vk.AttachmentStoreOpStore,
-		StencilLoadOp:  vk.AttachmentLoadOpDontCare,
-		StencilStoreOp: vk.AttachmentStoreOpDontCare,
-		InitialLayout:  vk.ImageLayoutUndefined,
-		FinalLayout:    vk.ImageLayoutColorAttachmentOptimal,
-	}
-	colorAttachmentRef := vk.AttachmentReference{
-		Attachment: 0,
-		Layout:     vk.ImageLayoutColorAttachmentOptimal,
-	}
-	subpass := vk.SubpassDescription{
-		PipelineBindPoint:    vk.PipelineBindPointGraphics,
-		ColorAttachmentCount: 1,
-		PColorAttachments:    &colorAttachmentRef,
-	}
-	pass, err := NewRenderPass(vr.device, &vr.dbg, []vk.AttachmentDescription{attachment},
-		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{})
-	if err != nil {
-		slog.Error("Failed to create the outline render pass")
-		return false
-	}
-	r.outlinePass = pass
-	err = r.outlinePass.CreateFrameBuffer(vr,
-		[]vk.ImageView{r.outline.View}, r.outline.Width, r.outline.Height)
-	if err != nil {
-		slog.Error("Failed to create the outline frame buffer")
 		return false
 	}
 	return true
@@ -510,12 +437,7 @@ func (r *OITCanvas) createCompositeResources(vr *Vulkan, windowWidth, windowHeig
 }
 
 func (r *OITCanvas) ShaderPipeline(name string) FuncPipeline {
-	switch name {
-	case "outline":
-		return defaultOutlinePipeline
-	default:
-		return defaultOITPipeline
-	}
+	return defaultOITPipeline
 }
 
 func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
@@ -726,147 +648,6 @@ func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.Pip
 		pipelineInfo.PTessellationState = &tess
 	}
 
-	success := true
-	pipelines := [1]vk.Pipeline{}
-	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, &pipelineInfo, nil, &pipelines[0]) != vk.Success {
-		success = false
-		slog.Error("Failed to create graphics pipeline")
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(pipelines[0])))
-	}
-	shader.RenderId.graphicsPipeline = pipelines[0]
-	return success
-}
-
-func defaultOutlinePipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
-	vr := renderer.(*Vulkan)
-	viewport := vk.Viewport{
-		X:        0.0,
-		Y:        0.0,
-		Width:    float32(vr.swapChainExtent.Width),
-		Height:   float32(vr.swapChainExtent.Height),
-		MinDepth: 0.0,
-		MaxDepth: 1.0,
-	}
-	scissor := vk.Rect2D{
-		Offset: vk.Offset2D{X: 0, Y: 0},
-		Extent: vr.swapChainExtent,
-	}
-	viewportState := vk.PipelineViewportStateCreateInfo{
-		SType:         vk.StructureTypePipelineViewportStateCreateInfo,
-		ViewportCount: 1,
-		PViewports:    &viewport,
-		ScissorCount:  1,
-		PScissors:     &scissor,
-	}
-	dynamicStates := [...]vk.DynamicState{
-		vk.DynamicStateViewport,
-		vk.DynamicStateScissor,
-	}
-	dynamicState := vk.PipelineDynamicStateCreateInfo{
-		SType:             vk.StructureTypePipelineDynamicStateCreateInfo,
-		DynamicStateCount: uint32(len(dynamicStates)),
-		PDynamicStates:    &dynamicStates[0],
-	}
-	bDesc := vertexGetBindingDescription(shader)
-	bDescCount := uint32(len(bDesc))
-	for i := uint32(1); i < bDescCount; i++ {
-		bDesc[i].Stride = uint32(vr.padUniformBufferSize(vk.DeviceSize(bDesc[i].Stride)))
-	}
-	aDesc := vertexGetAttributeDescription(shader)
-	vertexInputInfo := vk.PipelineVertexInputStateCreateInfo{
-		SType:                           vk.StructureTypePipelineVertexInputStateCreateInfo,
-		VertexBindingDescriptionCount:   bDescCount,
-		VertexAttributeDescriptionCount: uint32(len(aDesc)),
-		PVertexBindingDescriptions:      &bDesc[0],
-		PVertexAttributeDescriptions:    &aDesc[0],
-	}
-	topology := vk.PrimitiveTopologyTriangleList
-	switch shader.DriverData.DrawMode {
-	case MeshDrawModePoints:
-		topology = vk.PrimitiveTopologyPointList
-	case MeshDrawModeLines:
-		topology = vk.PrimitiveTopologyLineList
-	case MeshDrawModeTriangles:
-		topology = vk.PrimitiveTopologyTriangleList
-	case MeshDrawModePatches:
-		topology = vk.PrimitiveTopologyPatchList
-	}
-	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{
-		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
-		PrimitiveRestartEnable: vk.False,
-		Topology:               topology,
-	}
-	rasterizer := vk.PipelineRasterizationStateCreateInfo{
-		SType:                   vk.StructureTypePipelineRasterizationStateCreateInfo,
-		DepthClampEnable:        vk.False,
-		RasterizerDiscardEnable: vk.False,
-		PolygonMode:             vk.PolygonModeFill,
-		LineWidth:               1.0,
-		CullMode:                vk.CullModeFlags(vk.CullModeNone),
-		FrontFace:               vk.FrontFaceClockwise,
-	}
-	multisampling := vk.PipelineMultisampleStateCreateInfo{
-		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
-		SampleShadingEnable:   vk.False,
-		RasterizationSamples:  vk.SampleCount1Bit,
-		MinSampleShading:      1.0,
-		PSampleMask:           nil,
-		AlphaToCoverageEnable: vk.False,
-		AlphaToOneEnable:      vk.False,
-	}
-	allChannels := vk.ColorComponentFlags(vk.ColorComponentRBit | vk.ColorComponentGBit | vk.ColorComponentBBit | vk.ColorComponentABit)
-	colorBlendAttachment := vk.PipelineColorBlendAttachmentState{
-		ColorWriteMask:      allChannels,
-		BlendEnable:         vk.False,
-		SrcColorBlendFactor: vk.BlendFactorOne,
-		DstColorBlendFactor: vk.BlendFactorZero,
-		ColorBlendOp:        vk.BlendOpAdd,
-		SrcAlphaBlendFactor: vk.BlendFactorOne,
-		DstAlphaBlendFactor: vk.BlendFactorZero,
-		AlphaBlendOp:        vk.BlendOpAdd,
-	}
-	colorBlending := vk.PipelineColorBlendStateCreateInfo{
-		SType:           vk.StructureTypePipelineColorBlendStateCreateInfo,
-		LogicOpEnable:   vk.False,
-		LogicOp:         vk.LogicOpCopy,
-		AttachmentCount: 1,
-		PAttachments:    &colorBlendAttachment,
-		BlendConstants:  [4]float32{0.0, 0.0, 0.0, 0.0},
-	}
-	layoutInfo := vk.PipelineLayoutCreateInfo{
-		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
-		SetLayoutCount:         1,
-		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
-		PushConstantRangeCount: 0,
-		PPushConstantRanges:    nil,
-	}
-	var layout vk.PipelineLayout
-	if vk.CreatePipelineLayout(vr.device, &layoutInfo, nil, &layout) != vk.Success {
-		slog.Error("Failed to create pipeline layout")
-		return false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(layout)))
-	}
-	shader.RenderId.pipelineLayout = layout
-	pipelineInfo := vk.GraphicsPipelineCreateInfo{
-		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
-		StageCount:          2,
-		PStages:             &shaderStages[0],
-		PVertexInputState:   &vertexInputInfo,
-		PInputAssemblyState: &inputAssembly,
-		PViewportState:      &viewportState,
-		PRasterizationState: &rasterizer,
-		PMultisampleState:   &multisampling,
-		PDepthStencilState:  nil,
-		PColorBlendState:    &colorBlending,
-		PDynamicState:       &dynamicState,
-		Layout:              layout,
-		RenderPass:          shader.RenderPass.Handle,
-		Subpass:             0,
-		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
-		BasePipelineIndex:   -1,
-	}
 	success := true
 	pipelines := [1]vk.Pipeline{}
 	if vk.CreateGraphicsPipelines(vr.device, vk.PipelineCache(vk.NullHandle), 1, &pipelineInfo, nil, &pipelines[0]) != vk.Success {

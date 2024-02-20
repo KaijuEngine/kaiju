@@ -60,7 +60,7 @@ type Selection struct {
 	entities    []*engine.Entity
 	downPos     matrix.Vec2
 	Changed     events.Event
-	shaderDatas []rendering.ShaderDataBasic
+	shaderDatas []*rendering.ShaderDataBasic
 }
 
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
@@ -77,7 +77,7 @@ func New(host *engine.Host) Selection {
 		box:         b,
 		entities:    make([]*engine.Entity, 0),
 		Changed:     events.New(),
-		shaderDatas: make([]rendering.ShaderDataBasic, 0),
+		shaderDatas: make([]*rendering.ShaderDataBasic, 0),
 	}
 }
 
@@ -101,7 +101,30 @@ func (s *Selection) Clear() {
 }
 
 func (s *Selection) Add(e *engine.Entity) {
+	for i := range s.entities {
+		if s.entities[i] == e {
+			return
+		}
+	}
 	s.entities = append(s.entities, e)
+	outline := s.host.ShaderCache().
+		ShaderFromDefinition(assets.ShaderDefinitionOutline)
+	dt, _ := s.host.Window.Renderer.Canvas("default")
+	for _, di := range e.NamedData("drawing") {
+		d := di.(*rendering.Drawing)
+		ds := &rendering.ShaderDataBasic{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorCrimson(),
+		}
+		ds.Color.SetA(3.0)     // Line width
+		d.Transform.SetDirty() // Make drawing snap to transform
+		s.shaderDatas = append(s.shaderDatas, ds)
+		cpy := *d
+		cpy.Shader = outline
+		cpy.ShaderData = ds
+		cpy.UseBlending = false
+		s.host.Drawings.AddDrawing(&cpy, dt)
+	}
 }
 
 func (s *Selection) Update(host *engine.Host) {
@@ -170,9 +193,9 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 		point := all[i].Transform.Position()
 		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
-	box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
+	box := matrix.Vec4Area(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
 	for i := range pts {
-		if box.BoxContains(pts[i].X(), pts[i].Y()) {
+		if box.AreaContains(pts[i].X(), pts[i].Y()) {
 			s.Add(all[i])
 			changed = true
 		}
