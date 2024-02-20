@@ -45,9 +45,10 @@ import (
 )
 
 type ResultMesh struct {
-	Name    string
-	Verts   []rendering.Vertex
-	Indexes []uint32
+	MeshName string
+	Name     string
+	Verts    []rendering.Vertex
+	Indexes  []uint32
 }
 
 type Result struct {
@@ -64,11 +65,14 @@ func NewResult() Result {
 
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
-func (r *Result) Add(name string, verts []rendering.Vertex, indexes []uint32, textures []string) {
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
+	indexes []uint32, textures []string) {
+
 	r.Meshes = append(r.Meshes, ResultMesh{
-		Name:    name,
-		Verts:   verts,
-		Indexes: indexes,
+		Name:     name,
+		MeshName: meshName,
+		Verts:    verts,
+		Indexes:  indexes,
 	})
 }
 

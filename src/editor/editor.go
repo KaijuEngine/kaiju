@@ -180,8 +180,9 @@ func (ed *Editor) update(delta float64) {
 	if ed.cam.Update(ed.Host(), delta) {
 		return
 	}
-	ed.selection.Update(ed.Host())
-
 	// TODO:  This is for testing
-	ed.moveTool.Update()
+	if ed.moveTool.Update() {
+		return
+	}
+	ed.selection.Update(ed.Host())
 }

@@ -56,23 +56,27 @@ func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection,
 	t.init(host, selection, renderTarget, "editor/meshes/move-pointer.gltf")
 }
 
-func (t *MoveTool) Update() {
+func (t *MoveTool) Update() (changed bool) {
 	m := &t.host.Window.Mouse
 	mp := m.Position()
 	if t.isDragging {
 		if m.Released(hid.MouseButtonLeft) {
 			t.DragStop()
+			changed = true
 		} else {
 			t.DragUpdate(mp, t.host.Camera)
+			changed = true
 		}
 	} else {
 		t.updateScale(t.host.Camera.Position())
 		if t.CheckHover(mp, t.host.Camera) {
 			if m.Pressed(hid.MouseButtonLeft) {
 				t.DragStart(mp, t.host.Camera)
+				changed = true
 			}
 		}
 	}
+	return changed
 }
 
 func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {

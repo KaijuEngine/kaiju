@@ -54,8 +54,17 @@ type Scene struct {
 }
 
 type Node struct {
-	Name string `json:"name"`
-	Mesh int32  `json:"mesh"`
+	Name        string             `json:"name"`
+	Mesh        *int32             `json:"mesh"`
+	Camera      *int32             `json:"camera"`
+	Skin        *int32             `json:"skin"`
+	Matrix      *matrix.Mat4       `json:"matrix"`
+	Rotation    *matrix.Quaternion `json:"rotation"`
+	Scale       *matrix.Vec3       `json:"scale"`
+	Translation *matrix.Vec3       `json:"translation"`
+	Weights     []float32          `json:"weights"`
+	//Extensions  interface{}       `json:"extensions"`
+	//Extras      interface{}       `json:"extras"`
 }
 
 type TextureId struct {

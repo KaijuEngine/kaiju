@@ -172,3 +172,12 @@ func (s *Selection) checkForBoxDrag(mouse *hid.Mouse) {
 		s.box.Activate()
 	}
 }
+
+func (s *Selection) Center() matrix.Vec3 {
+	centroid := matrix.Vec3Zero()
+	for _, e := range s.entities {
+		centroid.AddAssign(e.Transform.Position())
+	}
+	centroid.ScaleAssign(1 / matrix.Float(len(s.entities)))
+	return centroid
+}

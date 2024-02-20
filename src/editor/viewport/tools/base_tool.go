@@ -78,7 +78,7 @@ func (t *HandleTool) loadModel(host *engine.Host, renderTarget rendering.Canvas,
 	t.shaderDatas = make([]rendering.ShaderDataBasic, len(t.model.Meshes))
 	for i := range t.model.Meshes {
 		m := t.model.Meshes[i]
-		mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
+		mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 		host.MeshCache().AddMesh(mesh)
 		t.shaderDatas[i] = rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
@@ -129,16 +129,6 @@ func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, ren
 	t.Hide()
 }
 
-func (t *HandleTool) centerOnSelection() {
-	centroid := matrix.Vec3Zero()
-	s := t.selection.Entities()
-	for _, e := range s {
-		centroid.AddAssign(e.Transform.Position())
-	}
-	centroid.ScaleAssign(1 / matrix.Float(len(s)))
-	t.tool.Transform.SetPosition(centroid)
-}
-
 func (t *HandleTool) Hide() {
 	t.tool.Deactivate()
 }
@@ -146,7 +136,7 @@ func (t *HandleTool) Hide() {
 func (t *HandleTool) Show() {
 	t.refreshTransform()
 	t.tool.Activate()
-	t.centerOnSelection()
+	t.tool.Transform.SetPosition(t.selection.Center())
 }
 
 func (t *HandleTool) refreshTransform() {

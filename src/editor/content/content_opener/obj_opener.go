@@ -87,7 +87,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 	mesh := rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
 	e := host.NewEntity()
-	e.SetName(m.Name)
+	e.SetName(m.MeshName)
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,

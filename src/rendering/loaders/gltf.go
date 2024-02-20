@@ -157,15 +157,19 @@ func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (R
 
 func gltfParse(doc *fullGLTF) (Result, error) {
 	res := NewResult()
-	for i := range doc.glTF.Meshes {
-		mesh := &doc.glTF.Meshes[i]
-		if verts, err := gltfReadMeshVerts(mesh, doc); err != nil {
+	for i := range doc.glTF.Nodes {
+		n := &doc.glTF.Nodes[i]
+		if n.Mesh == nil {
+			continue
+		}
+		m := &doc.glTF.Meshes[*n.Mesh]
+		if verts, err := gltfReadMeshVerts(m, doc); err != nil {
 			return res, err
-		} else if indices, err := gltfReadMeshIndices(mesh, doc); err != nil {
+		} else if indices, err := gltfReadMeshIndices(m, doc); err != nil {
 			return res, err
 		} else {
-			textures := gltfReadMeshTextures(mesh, &doc.glTF)
-			res.Add(mesh.Name, verts, indices, klib.MapValues(textures))
+			textures := gltfReadMeshTextures(m, &doc.glTF)
+			res.Add(n.Name, m.Name, verts, indices, klib.MapValues(textures))
 		}
 	}
 	return res, nil

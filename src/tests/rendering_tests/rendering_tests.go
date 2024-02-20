@@ -250,7 +250,7 @@ func drawBasicMesh(host *engine.Host, res loaders.Result) {
 	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
 	m := res.Meshes[0]
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	mesh := rendering.NewMesh(m.Name, m.Verts, m.Indexes)
+	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
