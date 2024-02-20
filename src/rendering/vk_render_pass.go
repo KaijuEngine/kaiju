@@ -46,6 +46,7 @@ import (
 
 type RenderPass struct {
 	Handle vk.RenderPass
+	Buffer vk.Framebuffer
 	device vk.Device
 	dbg    *debugVulkan
 }
@@ -72,7 +73,20 @@ func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.Attachme
 	return p, nil
 }
 
+func (p *RenderPass) CreateFrameBuffer(vr *Vulkan,
+	imageViews []vk.ImageView, width, height int) error {
+
+	fb, ok := vr.CreateFrameBuffer(p, imageViews, uint32(width), uint32(height))
+	if !ok {
+		return errors.New("failed to create the frame buffer for the pass")
+	}
+	p.Buffer = fb
+	return nil
+}
+
 func (p *RenderPass) Destroy() {
 	vk.DestroyRenderPass(p.device, p.Handle, nil)
 	p.dbg.remove(uintptr(unsafe.Pointer(p.Handle)))
+	vk.DestroyFramebuffer(p.device, p.Buffer, nil)
+	p.dbg.remove(uintptr(unsafe.Pointer(p.Buffer)))
 }

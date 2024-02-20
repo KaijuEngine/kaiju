@@ -67,14 +67,13 @@ func (r *CombineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
 	}
 	oRenderPass := r.renderPass
-	oFrameBuffer := r.frameBuffer
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
 	cc := matrix.ColorDarkBG()
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(oRenderPass, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -88,9 +87,6 @@ func (r *CombineCanvas) Create(renderer Renderer) error {
 	}
 	if !r.createRenderPass(vr) {
 		return errors.New("failed to create OIT render pass")
-	}
-	if !r.createFrameBuffer(vr) {
-		return errors.New("failed to create render target buffers")
 	}
 	r.texture.RenderId = r.color
 	return nil
@@ -138,18 +134,8 @@ func (r *CombineCanvas) createRenderPass(renderer Renderer) bool {
 		return false
 	}
 	r.renderPass = pass
-	return true
-}
-
-func (r *CombineCanvas) createFrameBuffer(renderer Renderer) bool {
-	vr := renderer.(*Vulkan)
-	attachments := []vk.ImageView{r.color.View}
-	fb, ok := vr.CreateFrameBuffer(r.renderPass, attachments,
-		uint32(r.color.Width), uint32(r.color.Height))
-	if !ok {
-		return false
-	}
-	r.frameBuffer = fb
+	err = r.renderPass.CreateFrameBuffer(vr,
+		[]vk.ImageView{r.color.View}, r.color.Width, r.color.Height)
 	return true
 }
 

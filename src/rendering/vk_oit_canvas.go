@@ -50,31 +50,29 @@ import (
 )
 
 type OITCanvas struct {
-	compositeShader        *Shader
-	compositeQuad          *Mesh
-	opaqueRenderPass       RenderPass
-	transparentRenderPass  RenderPass
-	opaqueFrameBuffer      vk.Framebuffer
-	transparentFrameBuffer vk.Framebuffer
-	descriptorSets         [maxFramesInFlight]vk.DescriptorSet
-	descriptorPool         vk.DescriptorPool
-	color                  TextureId
-	depth                  TextureId
-	weightedColor          TextureId
-	weightedReveal         TextureId
-	ClearColor             matrix.Color
-	colorTexture           Texture
-	depthTexture           Texture
+	compositeShader *Shader
+	compositeQuad   *Mesh
+	opaquePass      RenderPass
+	transparentPass RenderPass
+	descriptorSets  [maxFramesInFlight]vk.DescriptorSet
+	descriptorPool  vk.DescriptorPool
+	color           TextureId
+	depth           TextureId
+	weightedColor   TextureId
+	weightedReveal  TextureId
+	ClearColor      matrix.Color
+	colorTexture    Texture
+	depthTexture    Texture
 }
 
 func (r *OITCanvas) Pass(name string) *RenderPass {
 	switch name {
 	case "transparent":
-		return &r.transparentRenderPass
+		return &r.transparentPass
 	case "opaque":
 		fallthrough
 	default:
-		return &r.opaqueRenderPass
+		return &r.opaquePass
 	}
 }
 
@@ -88,30 +86,30 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
 	}
 
-	oRenderPass := r.opaqueRenderPass
-	oFrameBuffer := r.opaqueFrameBuffer
+	oRenderPass := r.opaquePass
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
 	cc := r.ClearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, oFrameBuffer, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(oRenderPass, vr.swapChainExtent, cmd1, opaqueClear)
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
 	endRender(cmd1)
 
-	tRenderPass := r.transparentRenderPass
-	tFrameBuffer := r.transparentFrameBuffer
+	tRenderPass := r.transparentPass
 	cmd2 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(tRenderPass, tFrameBuffer, vr.swapChainExtent, cmd2, transparentClear)
+	beginRender(tRenderPass, vr.swapChainExtent, cmd2, transparentClear)
 	for i := range drawings {
-		vr.renderEachAlpha(cmd2, drawings[i].shader.SubShader, drawings[i].TransparentGroups())
+		vr.renderEachAlpha(cmd2,
+			drawings[i].shader.SubShader("transparent"),
+			drawings[i].TransparentGroups())
 	}
 	offsets := vk.DeviceSize(0)
 	vk.CmdNextSubpass(cmd2, vk.SubpassContentsInline)
@@ -156,9 +154,6 @@ func (r *OITCanvas) Create(renderer Renderer) error {
 	if !r.createRenderPasses(vr) {
 		return errors.New("failed to create OIT render pass")
 	}
-	if !r.createBuffers(vr) {
-		return errors.New("failed to create render target buffers")
-	}
 	r.colorTexture.RenderId = r.color
 	r.depthTexture.RenderId = r.depth
 	return nil
@@ -167,16 +162,12 @@ func (r *OITCanvas) Create(renderer Renderer) error {
 func (r *OITCanvas) Destroy(renderer Renderer) {
 	vr := renderer.(*Vulkan)
 	vk.DeviceWaitIdle(vr.device)
-	r.opaqueRenderPass.Destroy()
-	r.transparentRenderPass.Destroy()
+	r.opaquePass.Destroy()
+	r.transparentPass.Destroy()
 	vr.textureIdFree(&r.color)
 	vr.textureIdFree(&r.depth)
 	vr.textureIdFree(&r.weightedColor)
 	vr.textureIdFree(&r.weightedReveal)
-	vk.DestroyFramebuffer(vr.device, r.opaqueFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(r.opaqueFrameBuffer)))
-	vk.DestroyFramebuffer(vr.device, r.transparentFrameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(r.transparentFrameBuffer)))
 	r.color = TextureId{}
 	r.depth = TextureId{}
 	r.weightedColor = TextureId{}
@@ -188,14 +179,9 @@ func (r *OITCanvas) createImages(vr *Vulkan) bool {
 		r.createTransparentImages(vr)
 }
 
-func (r *OITCanvas) createBuffers(vr *Vulkan) bool {
-	return r.createOpaqueFrameBuffer(vr) &&
-		r.createTransparentFrameBuffer(vr)
-}
-
 func (r *OITCanvas) createRenderPasses(vr *Vulkan) bool {
-	return r.createOpaqueRenderPass(vr) &&
-		r.createTransparentRenderPass(vr)
+	return r.createOpaquePass(vr) &&
+		r.createTransparentPass(vr)
 }
 
 func (r *OITCanvas) createSolidImages(vr *Vulkan) bool {
@@ -261,7 +247,7 @@ func (r *OITCanvas) createTransparentImages(vr *Vulkan) bool {
 	return imagesCreated
 }
 
-func (r *OITCanvas) createOpaqueRenderPass(vr *Vulkan) bool {
+func (r *OITCanvas) createOpaquePass(vr *Vulkan) bool {
 	var attachments [2]vk.AttachmentDescription
 	// Color attachment
 	attachments[0].Format = r.color.Format
@@ -311,14 +297,21 @@ func (r *OITCanvas) createOpaqueRenderPass(vr *Vulkan) bool {
 	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments[:],
 		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{selfDependency})
 	if err != nil {
-		slog.Error("Failed to create the solid OIT render pass")
+		slog.Error(err.Error())
 		return false
 	}
-	r.opaqueRenderPass = pass
+	r.opaquePass = pass
+	err = r.opaquePass.CreateFrameBuffer(vr,
+		[]vk.ImageView{r.color.View, r.depth.View},
+		r.color.Width, r.color.Height)
+	if err != nil {
+		slog.Error(err.Error())
+		return false
+	}
 	return true
 }
 
-func (r *OITCanvas) createTransparentRenderPass(vr *Vulkan) bool {
+func (r *OITCanvas) createTransparentPass(vr *Vulkan) bool {
 	// Describe the attachments at the beginning and end of the render pass.
 	weightedColorAttachment := vk.AttachmentDescription{}
 	weightedColorAttachment.Format = r.weightedColor.Format
@@ -408,30 +401,15 @@ func (r *OITCanvas) createTransparentRenderPass(vr *Vulkan) bool {
 		slog.Error("Failed to create the transparent OIT render pass")
 		return false
 	}
-	r.transparentRenderPass = pass
-	return true
-}
-
-func (r *OITCanvas) createOpaqueFrameBuffer(vr *Vulkan) bool {
-	attachments := []vk.ImageView{r.color.View, r.depth.View}
-	fb, ok := vr.CreateFrameBuffer(r.opaqueRenderPass, attachments,
-		uint32(r.color.Width), uint32(r.color.Height))
-	if !ok {
-		return false
-	}
-	r.opaqueFrameBuffer = fb
-	return true
-}
-
-func (r *OITCanvas) createTransparentFrameBuffer(vr *Vulkan) bool {
-	attachments := []vk.ImageView{r.weightedColor.View,
+	r.transparentPass = pass
+	views := []vk.ImageView{r.weightedColor.View,
 		r.weightedReveal.View, r.color.View, r.depth.View}
-	fb, ok := vr.CreateFrameBuffer(r.transparentRenderPass, attachments,
-		uint32(r.weightedColor.Width), uint32(r.weightedColor.Height))
-	if !ok {
+	err = r.transparentPass.CreateFrameBuffer(vr,
+		views, r.weightedColor.Width, r.weightedColor.Height)
+	if err != nil {
+		slog.Error(err.Error())
 		return false
 	}
-	r.transparentFrameBuffer = fb
 	return true
 }
 
@@ -467,7 +445,7 @@ func (r *OITCanvas) ShaderPipeline(name string) FuncPipeline {
 func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	isTransparentPipeline := !shader.IsComposite() &&
-		shader.RenderPass == &vr.defaultCanvas.transparentRenderPass
+		shader.RenderPass == &vr.defaultCanvas.transparentPass
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
 	if shader.IsComposite() {
