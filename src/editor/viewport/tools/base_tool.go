@@ -129,6 +129,16 @@ func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, ren
 	t.Hide()
 }
 
+func (t *HandleTool) centerOnSelection() {
+	centroid := matrix.Vec3Zero()
+	s := t.selection.Entities()
+	for _, e := range s {
+		centroid.AddAssign(e.Transform.Position())
+	}
+	centroid.ScaleAssign(1 / matrix.Float(len(s)))
+	t.tool.Transform.SetPosition(centroid)
+}
+
 func (t *HandleTool) Hide() {
 	t.tool.Deactivate()
 }
@@ -136,6 +146,7 @@ func (t *HandleTool) Hide() {
 func (t *HandleTool) Show() {
 	t.refreshTransform()
 	t.tool.Activate()
+	t.centerOnSelection()
 }
 
 func (t *HandleTool) refreshTransform() {
@@ -155,6 +166,9 @@ func (t *HandleTool) updateScale(camPos matrix.Vec3) {
 }
 
 func (t *HandleTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
+	if !t.TrySelect(pointerPos, camera) {
+		return
+	}
 	t.drag = t.toolHit(pointerPos, camera)
 	t.isDragging = true
 	s := t.tool.Transform.Scale()

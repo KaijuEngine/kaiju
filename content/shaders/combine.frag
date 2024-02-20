@@ -9,7 +9,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     vec4 unWeightedColor = texture(texSampler, fragTexCoords) * fragColor;
-	if (unWeightedColor.a < (1.0 - 0.0001))
+	if (unWeightedColor.a < 0.01)
 		discard;
 	outColor = unWeightedColor;
 }

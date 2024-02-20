@@ -160,7 +160,13 @@ func (e *Editor) SetupUI() {
 		e.rotateTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 		e.scaleTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 
-		e.moveTool.Show()
+		e.selection.Changed.Add(func() {
+			if e.selection.IsEmpty() {
+				e.moveTool.Hide()
+			} else {
+				e.moveTool.Show()
+			}
+		})
 	}
 	e.Host().DoneCreatingEditorEntities()
 	e.Host().Updater.AddUpdate(e.update)

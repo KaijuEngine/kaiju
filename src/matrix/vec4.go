@@ -287,7 +287,7 @@ func (v Vec4) MultiplyMat4(rhs Mat4) Vec4 {
 }
 
 func Vec4Box(xa, ya, xb, yb Float) Vec4 {
-	return Vec4{min(xa, xb), max(ya, yb), max(xa, xb), min(ya, yb)}
+	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
 }
 
 func (v Vec4) BoxContains(x, y Float) bool {

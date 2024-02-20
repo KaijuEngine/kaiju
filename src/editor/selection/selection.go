@@ -44,6 +44,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"kaiju/systems/visual2d/sprite"
 )
 
@@ -56,6 +57,7 @@ type Selection struct {
 	box      *sprite.Sprite
 	entities []*engine.Entity
 	downPos  matrix.Vec2
+	Changed  events.Event
 }
 
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
@@ -64,12 +66,13 @@ func New(host *engine.Host) Selection {
 	tex := klib.MustReturn(host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear))
 	host.CreatingEditorEntities()
-	b := sprite.NewSprite(0, 0, 0, 0, host, tex, matrix.Color{1, 1, 1, 0.5})
+	b := sprite.NewSprite(0, 0, 0, 0, host, tex, matrix.Color{0.7, 0.7, 0.7, 0.5})
 	host.DoneCreatingEditorEntities()
 	b.Deactivate()
 	return Selection{
 		box:      b,
 		entities: make([]*engine.Entity, 0),
+		Changed:  events.New(),
 	}
 }
 
@@ -78,6 +81,11 @@ func (s *Selection) Entities() []*engine.Entity {
 }
 
 func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
+
+func (s *Selection) deactivateBox() {
+	s.box.Resize(0, 0)
+	s.box.Deactivate()
+}
 
 func (s *Selection) Update(host *engine.Host) {
 	if s.isBoxDrag() {
@@ -91,7 +99,7 @@ func (s *Selection) boxDrag(host *engine.Host) {
 	mouse := &host.Window.Mouse
 	pos := mouse.Position()
 	if mouse.Released(hid.MouseButtonLeft) {
-		s.box.Deactivate()
+		s.deactivateBox()
 		if pos.Distance(s.downPos) < minDragDistance {
 			s.clickSelect(host)
 		} else {
@@ -99,7 +107,6 @@ func (s *Selection) boxDrag(host *engine.Host) {
 		}
 		return
 	}
-	//box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), pos.X(), pos.Y())
 	box := matrix.Vec4{s.downPos.X(), s.downPos.Y(), pos.X(), pos.Y()}
 	w := box.Right() - box.Left()
 	h := box.Top() - box.Bottom()
@@ -108,7 +115,9 @@ func (s *Selection) boxDrag(host *engine.Host) {
 }
 
 func (s *Selection) clickSelect(host *engine.Host) {
+	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
+		changed = len(s.entities) > 0
 		s.entities = s.entities[:0]
 	}
 	ray := host.Camera.RayCast(s.downPos)
@@ -119,33 +128,46 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
 			s.entities = append(s.entities, all[i])
+			changed = true
 			break
 		}
+	}
+	if changed {
+		s.Changed.Execute()
 	}
 }
 
 func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
+	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
+		changed = len(s.entities) > 0
 		s.entities = s.entities[:0]
 	}
 	all := host.Entities()
 	pts := make([]matrix.Vec3, len(all))
 	vp := host.Window.Viewport()
+	view := host.Camera.View()
+	proj := host.Camera.Projection()
 	// TODO:  Parallel
 	for i := range all {
 		point := all[i].Transform.Position()
-		pts[i] = host.Camera.View().Mat4UnProject(point, vp)
+		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
 	box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
 	for i := range pts {
 		if box.BoxContains(pts[i].X(), pts[i].Y()) {
 			s.entities = append(s.entities, all[i])
+			changed = true
 		}
+	}
+	if changed {
+		s.Changed.Execute()
 	}
 }
 
 func (s *Selection) checkForBoxDrag(mouse *hid.Mouse) {
 	if mouse.Pressed(hid.MouseButtonLeft) {
+		// TODO:  Don't click through top menu
 		s.downPos = mouse.Position()
 		s.box.Activate()
 	}

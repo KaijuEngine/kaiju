@@ -86,12 +86,15 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 	}
 	mesh := rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
+	e := host.NewEntity()
+	e.SetName(m.Name)
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
+		Transform:  &e.Transform,
 	}, host.Window.Renderer.DefaultTarget())
 	return nil
 }

@@ -75,12 +75,16 @@ func (t *MoveTool) Update() {
 	}
 }
 
-func (t *MoveTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
+func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
+	t.HandleTool.DragStart(pointerPos, camera)
 	t.starts = t.starts[:0]
 	for _, e := range t.selection.Entities() {
 		t.starts = append(t.starts, e.Transform.Position())
 	}
 	t.toolStart = t.tool.Transform.Position()
+}
+
+func (t *MoveTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
 	t.HandleTool.dragUpdate(pointerPos, camera, t.processDelta)
 }
 

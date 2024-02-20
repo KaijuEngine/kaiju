@@ -61,8 +61,7 @@ type ProjectWindow struct {
 	picked    bool
 }
 
-func (p *ProjectWindow) newProject(elm *document.DocElement) {
-	path := <-files_window.Folder("Select Project Folder")
+func (p *ProjectWindow) openProjectFolder(path string) {
 	if path != "" {
 		dir, err := os.ReadDir(path)
 		if err != nil {
@@ -86,6 +85,11 @@ func (p *ProjectWindow) newProject(elm *document.DocElement) {
 	}
 }
 
+func (p *ProjectWindow) newProject(*document.DocElement) {
+	path := <-files_window.Folder("Select Project Folder")
+	p.openProjectFolder(path)
+}
+
 func (p *ProjectWindow) pick(path string) {
 	p.Selected <- path
 	p.picked = true
@@ -102,7 +106,7 @@ func (p *ProjectWindow) selectProject(elm *document.DocElement) {
 		editor_cache.RemoveProject(path)
 		p.load()
 	} else {
-		p.pick(path)
+		p.openProjectFolder(path)
 	}
 }
 
