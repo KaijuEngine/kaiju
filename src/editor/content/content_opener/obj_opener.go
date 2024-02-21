@@ -100,6 +100,10 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 		ShaderData: data,
 		Transform:  &e.Transform,
 	}
+	m := matrix.Mat4Identity()
+	//m.Rotate(matrix.Vec3{0, 90, 0})
+	m.RotateY(90)
+	data.SetModel(m)
 	e.AddNamedData("drawing", &drawing)
 	host.Drawings.AddDrawing(&drawing, dc)
 	return nil

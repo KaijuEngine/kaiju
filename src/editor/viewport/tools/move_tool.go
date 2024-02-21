@@ -41,13 +41,12 @@ import (
 	"kaiju/cameras"
 	"kaiju/editor/selection"
 	"kaiju/engine"
-	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
 
 type MoveTool struct {
-	HandleTool
+	HandleToolBase
 	toolStart matrix.Vec3
 	starts    []matrix.Vec3
 }
@@ -57,30 +56,11 @@ func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection,
 }
 
 func (t *MoveTool) Update() (changed bool) {
-	m := &t.host.Window.Mouse
-	mp := m.Position()
-	if t.isDragging {
-		if m.Released(hid.MouseButtonLeft) {
-			t.DragStop()
-			changed = true
-		} else {
-			t.DragUpdate(mp, t.host.Camera)
-			changed = true
-		}
-	} else {
-		t.updateScale(t.host.Camera.Position())
-		if t.CheckHover(mp, t.host.Camera) {
-			if m.Pressed(hid.MouseButtonLeft) {
-				t.DragStart(mp, t.host.Camera)
-				changed = true
-			}
-		}
-	}
-	return changed
+	return t.HandleToolBase.internalUpdate(t)
 }
 
 func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleTool.DragStart(pointerPos, camera)
+	t.HandleToolBase.DragStart(pointerPos, camera)
 	t.starts = t.starts[:0]
 	for _, e := range t.selection.Entities() {
 		t.starts = append(t.starts, e.Transform.Position())
@@ -89,11 +69,11 @@ func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
 }
 
 func (t *MoveTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleTool.dragUpdate(pointerPos, camera, t.processDelta)
+	t.HandleToolBase.dragUpdate(pointerPos, camera, t.processDelta)
 }
 
 func (t *MoveTool) DragStop() {
-	t.HandleTool.dragStop()
+	t.HandleToolBase.dragStop()
 	//_engine->history->add_memento(history_transform_move(
 	//	_engine, _selection, _starts, hierarchy_get_positions(_selection)));
 }

@@ -52,14 +52,6 @@ func NewQuaternion(w, x, y, z Float) Quaternion {
 	return Quaternion{w, x, y, z}
 }
 
-func QuaternionFromArray(v [4]Float) Quaternion {
-	return Quaternion{v[0], v[1], v[2], v[3]}
-}
-
-func QuaternionFromSlice(v []Float) Quaternion {
-	return Quaternion{v[0], v[1], v[2], v[3]}
-}
-
 func QuaternionIdentity() Quaternion {
 	return Quaternion{1, 0, 0, 0}
 }
@@ -136,10 +128,12 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 	s1 := Sin(x / 2.0)
 	s2 := Sin(y / 2.0)
 	s3 := Sin(z / 2.0)
-	return Quaternion{c1*c2*c3 - s1*s2*s3,
+	return Quaternion{
+		c1*c2*c3 - s1*s2*s3,
 		s1*c2*c3 + c1*s2*s3,
 		c1*s2*c3 - s1*c2*s3,
-		c1*c2*s3 + s1*s2*c3}
+		c1*c2*s3 + s1*s2*c3,
+	}
 }
 
 func (q Quaternion) ToEuler() Vec3 {

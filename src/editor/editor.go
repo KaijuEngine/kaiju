@@ -70,6 +70,7 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
 	// TODO:  Testing tools
+	handleTool    tools.HandleTool
 	moveTool      tools.MoveTool
 	rotateTool    tools.RotateTool
 	scaleTool     tools.ScaleTool
@@ -162,12 +163,13 @@ func (e *Editor) SetupUI() {
 		e.moveTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 		e.rotateTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
 		e.scaleTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
+		e.handleTool = &e.moveTool
 
 		e.selection.Changed.Add(func() {
 			if e.selection.IsEmpty() {
-				e.moveTool.Hide()
+				e.handleTool.Hide()
 			} else {
-				e.moveTool.Show()
+				e.handleTool.Show()
 			}
 		})
 	}
@@ -184,11 +186,12 @@ func (ed *Editor) update(delta float64) {
 		return
 	}
 	// TODO:  This is for testing
-	if ed.moveTool.Update() {
+	if ed.handleTool.Update() {
 		return
 	}
 	ed.selection.Update(ed.Host())
-	if ed.Host().Window.Keyboard.KeyDown(hid.KeyboardKeyF) {
+	kb := &ed.Host().Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyF) {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)
 		c.SetLookAt(b.Center)
@@ -198,5 +201,26 @@ func (ed *Editor) update(delta float64) {
 			z = 5
 		}
 		c.SetZoom(z)
+	} else if kb.KeyDown(hid.KeyboardKeyW) {
+		t := ed.handleTool
+		ed.handleTool = &ed.moveTool
+		if t.IsVisible() {
+			t.Hide()
+			ed.handleTool.Show()
+		}
+	} else if kb.KeyDown(hid.KeyboardKeyE) {
+		t := ed.handleTool
+		ed.handleTool = &ed.rotateTool
+		if t.IsVisible() {
+			t.Hide()
+			ed.handleTool.Show()
+		}
+	} else if kb.KeyDown(hid.KeyboardKeyR) {
+		t := ed.handleTool
+		ed.handleTool = &ed.scaleTool
+		if t.IsVisible() {
+			t.Hide()
+			ed.handleTool.Show()
+		}
 	}
 }

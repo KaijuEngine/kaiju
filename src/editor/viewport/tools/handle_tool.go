@@ -42,6 +42,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/editor/selection"
 	"kaiju/engine"
+	"kaiju/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -55,7 +56,21 @@ const (
 	rotateScale = matrix.Float(10.0)
 )
 
-type HandleTool struct {
+type HandleTool interface {
+	Initialize(*engine.Host, *selection.Selection, rendering.Canvas)
+	Update() (changed bool)
+	Hide()
+	Show()
+	IsVisible() bool
+	DragStart(pointerPos matrix.Vec2, camera cameras.Camera)
+	DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera)
+	DragStop()
+	Position() matrix.Vec3
+	CheckHover(pos matrix.Vec2, camera cameras.Camera) bool
+	TrySelect(pos matrix.Vec2, camera cameras.Camera) bool
+}
+
+type HandleToolBase struct {
 	host           *engine.Host
 	selection      *selection.Selection
 	tool           *engine.Entity
@@ -72,7 +87,7 @@ type HandleTool struct {
 	shaderDatas    []rendering.ShaderDataBasic
 }
 
-func (t *HandleTool) loadModel(host *engine.Host, renderTarget rendering.Canvas, toolPath string) {
+func (t *HandleToolBase) loadModel(host *engine.Host, renderTarget rendering.Canvas, toolPath string) {
 	t.model = klib.MustReturn(loaders.GLTF(host.Window.Renderer, toolPath, host.AssetDatabase()))
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	t.shaderDatas = make([]rendering.ShaderDataBasic, len(t.model.Meshes))
@@ -104,7 +119,7 @@ func (t *HandleTool) loadModel(host *engine.Host, renderTarget rendering.Canvas,
 	}
 }
 
-func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas, toolPath string) {
+func (t *HandleToolBase) init(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas, toolPath string) {
 	t.host = host
 	t.selection = selection
 	t.faceHit = -1
@@ -129,17 +144,19 @@ func (t *HandleTool) init(host *engine.Host, selection *selection.Selection, ren
 	t.Hide()
 }
 
-func (t *HandleTool) Hide() {
+func (t *HandleToolBase) IsVisible() bool { return t.tool.IsActive() }
+
+func (t *HandleToolBase) Hide() {
 	t.tool.Deactivate()
 }
 
-func (t *HandleTool) Show() {
+func (t *HandleToolBase) Show() {
 	t.refreshTransform()
 	t.tool.Activate()
 	t.tool.Transform.SetPosition(t.selection.Center())
 }
 
-func (t *HandleTool) refreshTransform() {
+func (t *HandleToolBase) refreshTransform() {
 	if !t.isDragging && !t.selection.IsEmpty() {
 		selection := t.selection.Entities()
 		// TODO:  Find the center
@@ -149,13 +166,13 @@ func (t *HandleTool) refreshTransform() {
 	}
 }
 
-func (t *HandleTool) updateScale(camPos matrix.Vec3) {
+func (t *HandleToolBase) updateScale(camPos matrix.Vec3) {
 	dist := camPos.Distance(t.tool.Transform.Position())
 	scale := dist * toolScale
 	t.tool.Transform.SetScale(matrix.Vec3{scale, scale, scale})
 }
 
-func (t *HandleTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
+func (t *HandleToolBase) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
 	if !t.TrySelect(pointerPos, camera) {
 		return
 	}
@@ -168,16 +185,39 @@ func (t *HandleTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
 	t.tool.Transform.SetScale(s)
 }
 
-func (t *HandleTool) dragStop()       { t.isDragging = false }
-func (t *HandleTool) isX(id int) bool { return slices.Contains(t.x, id) }
-func (t *HandleTool) isY(id int) bool { return slices.Contains(t.y, id) }
-func (t *HandleTool) isZ(id int) bool { return slices.Contains(t.z, id) }
+func (t *HandleToolBase) dragStop()       { t.isDragging = false }
+func (t *HandleToolBase) isX(id int) bool { return slices.Contains(t.x, id) }
+func (t *HandleToolBase) isY(id int) bool { return slices.Contains(t.y, id) }
+func (t *HandleToolBase) isZ(id int) bool { return slices.Contains(t.z, id) }
 
-func (t *HandleTool) Position() matrix.Vec3 {
+func (t *HandleToolBase) Position() matrix.Vec3 {
 	return t.tool.Transform.Position()
 }
 
-func (t *HandleTool) dragUpdate(pointerPos matrix.Vec2, camera cameras.Camera, processDelta func(matrix.Vec3)) {
+func (t *HandleToolBase) internalUpdate(tool HandleTool) (changed bool) {
+	m := &t.host.Window.Mouse
+	mp := m.Position()
+	if t.isDragging {
+		if m.Released(hid.MouseButtonLeft) {
+			tool.DragStop()
+			changed = true
+		} else {
+			tool.DragUpdate(mp, t.host.Camera)
+			changed = true
+		}
+	} else {
+		t.updateScale(t.host.Camera.Position())
+		if tool.CheckHover(mp, t.host.Camera) {
+			if m.Pressed(hid.MouseButtonLeft) {
+				tool.DragStart(mp, t.host.Camera)
+				changed = true
+			}
+		}
+	}
+	return changed
+}
+
+func (t *HandleToolBase) dragUpdate(pointerPos matrix.Vec2, camera cameras.Camera, processDelta func(matrix.Vec3)) {
 	newHit := t.toolHit(pointerPos, camera)
 	//auto diff = newHit - _drag;
 	length := newHit.Distance(t.drag)
@@ -201,7 +241,7 @@ func (t *HandleTool) dragUpdate(pointerPos matrix.Vec2, camera cameras.Camera, p
 	t.updateScale(camera.Position())
 }
 
-func (t *HandleTool) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
+func (t *HandleToolBase) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
 	if t.faceHover >= 0 {
 		t.shaderDatas[t.faceHover].Color = t.model.Meshes[t.faceHover].Verts[0].Color
 		t.faceHover = -1
@@ -218,7 +258,7 @@ func (t *HandleTool) CheckHover(pos matrix.Vec2, camera cameras.Camera) bool {
 	return t.faceHover >= 0
 }
 
-func (t *HandleTool) TrySelect(pos matrix.Vec2, camera cameras.Camera) bool {
+func (t *HandleToolBase) TrySelect(pos matrix.Vec2, camera cameras.Camera) bool {
 	t.faceHit = -1
 	ray := camera.RayCast(pos)
 	// Mesh order is y,x,z,y,x,z
@@ -231,7 +271,7 @@ func (t *HandleTool) TrySelect(pos matrix.Vec2, camera cameras.Camera) bool {
 	return t.faceHit >= 0
 }
 
-func (t *HandleTool) toolHit(pos matrix.Vec2, camera cameras.Camera) matrix.Vec3 {
+func (t *HandleToolBase) toolHit(pos matrix.Vec2, camera cameras.Camera) matrix.Vec3 {
 	var hit, nml matrix.Vec3
 	r := camera.RayCast(pos)
 	planePos := t.tool.Transform.Position()

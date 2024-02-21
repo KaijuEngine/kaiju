@@ -46,7 +46,7 @@ import (
 )
 
 type RotateTool struct {
-	HandleTool
+	HandleToolBase
 	starts []matrix.Vec3
 }
 
@@ -55,16 +55,24 @@ func (t *RotateTool) Initialize(host *engine.Host, selection *selection.Selectio
 	t.init(host, selection, renderTarget, "editor/meshes/rotate-pointer.gltf")
 }
 
-func (t *RotateTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
+func (t *RotateTool) Update() (changed bool) {
+	return t.HandleToolBase.internalUpdate(t)
+}
+
+func (t *RotateTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
+	t.HandleToolBase.DragStart(pointerPos, camera)
 	t.starts = t.starts[:0]
 	for _, e := range t.selection.Entities() {
 		t.starts = append(t.starts, e.Transform.Rotation())
 	}
-	t.HandleTool.dragUpdate(pointerPos, camera, t.processDelta)
+}
+
+func (t *RotateTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
+	t.HandleToolBase.dragUpdate(pointerPos, camera, t.processDelta)
 }
 
 func (t *RotateTool) DragStop() {
-	t.HandleTool.dragStop()
+	t.HandleToolBase.dragStop()
 	//_engine->history->add_memento(history_transform_rotate(_engine,
 	//	_selection, _starts, hierarchy_get_scales(_selection)));
 }
