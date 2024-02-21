@@ -91,7 +91,6 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 	host.MeshCache().AddMesh(mesh)
 	e := host.NewEntity()
 	e.SetName(adi.MetaValue("name"))
-	dc, _ := host.Window.Renderer.Canvas("default")
 	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
@@ -100,12 +99,8 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 		ShaderData: data,
 		Transform:  &e.Transform,
 	}
-	m := matrix.Mat4Identity()
-	//m.Rotate(matrix.Vec3{0, 90, 0})
-	m.RotateY(90)
-	data.SetModel(m)
 	e.AddNamedData("drawing", &drawing)
-	host.Drawings.AddDrawing(&drawing, dc)
+	host.Drawings.AddDrawing(&drawing, host.Window.Renderer.DefaultCanvas())
 	return nil
 }
 

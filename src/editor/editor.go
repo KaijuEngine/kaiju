@@ -50,7 +50,7 @@ import (
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/viewport/controls"
-	"kaiju/editor/viewport/tools"
+	"kaiju/editor/viewport/transform_tools"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/host_container"
@@ -69,12 +69,9 @@ type Editor struct {
 	ContentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
+	transformTool  transform_tools.TransformTool
 	// TODO:  Testing tools
-	handleTool    tools.HandleTool
-	moveTool      tools.MoveTool
-	rotateTool    tools.RotateTool
-	scaleTool     tools.ScaleTool
-	overlayTarget rendering.Canvas
+	overlayCanvas rendering.Canvas
 }
 
 func (e *Editor) Host() *engine.Host { return e.Container.Host }
@@ -127,7 +124,6 @@ func (e *Editor) setupViewportGrid() {
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	dc, _ := host.Window.Renderer.Canvas("default")
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer: host.Window.Renderer,
 		Shader:   shader,
@@ -136,7 +132,7 @@ func (e *Editor) setupViewportGrid() {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
-	}, dc)
+	}, host.Window.Renderer.DefaultCanvas())
 }
 
 func (e *Editor) SetupUI() {
@@ -152,25 +148,17 @@ func (e *Editor) SetupUI() {
 		ot := &rendering.OITCanvas{}
 		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
 		ot.Create(win.Renderer)
-		dc, _ := e.Host().Window.Renderer.Canvas("default")
+		dc := e.Host().Window.Renderer.DefaultCanvas()
 		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
-		e.overlayTarget = ot
+		e.overlayCanvas = ot
 		e.Host().OnClose.Add(func() {
 			ot.Destroy(win.Renderer)
 		})
 
-		e.moveTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
-		e.rotateTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
-		e.scaleTool.Initialize(e.Host(), &e.selection, e.overlayTarget)
-		e.handleTool = &e.moveTool
-
+		e.transformTool = transform_tools.New(e.Host(), &e.selection, e.overlayCanvas)
 		e.selection.Changed.Add(func() {
-			if e.selection.IsEmpty() {
-				e.handleTool.Hide()
-			} else {
-				e.handleTool.Show()
-			}
+			e.transformTool.Disable()
 		})
 	}
 	e.Host().DoneCreatingEditorEntities()
@@ -185,8 +173,7 @@ func (ed *Editor) update(delta float64) {
 	if ed.cam.Update(ed.Host(), delta) {
 		return
 	}
-	// TODO:  This is for testing
-	if ed.handleTool.Update() {
+	if ed.transformTool.Update(ed.Host()) {
 		return
 	}
 	ed.selection.Update(ed.Host())
@@ -201,26 +188,11 @@ func (ed *Editor) update(delta float64) {
 			z = 5
 		}
 		c.SetZoom(z)
-	} else if kb.KeyDown(hid.KeyboardKeyW) {
-		t := ed.handleTool
-		ed.handleTool = &ed.moveTool
-		if t.IsVisible() {
-			t.Hide()
-			ed.handleTool.Show()
-		}
-	} else if kb.KeyDown(hid.KeyboardKeyE) {
-		t := ed.handleTool
-		ed.handleTool = &ed.rotateTool
-		if t.IsVisible() {
-			t.Hide()
-			ed.handleTool.Show()
-		}
+	} else if kb.KeyDown(hid.KeyboardKeyG) {
+		ed.transformTool.Enable(transform_tools.ToolStateMove)
 	} else if kb.KeyDown(hid.KeyboardKeyR) {
-		t := ed.handleTool
-		ed.handleTool = &ed.scaleTool
-		if t.IsVisible() {
-			t.Hide()
-			ed.handleTool.Show()
-		}
+		ed.transformTool.Enable(transform_tools.ToolStateRotate)
+	} else if kb.KeyDown(hid.KeyboardKeyS) {
+		ed.transformTool.Enable(transform_tools.ToolStateScale)
 	}
 }

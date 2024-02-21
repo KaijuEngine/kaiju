@@ -109,7 +109,7 @@ func (s *Selection) Add(e *engine.Entity) {
 	s.entities = append(s.entities, e)
 	outline := s.host.ShaderCache().
 		ShaderFromDefinition(assets.ShaderDefinitionOutline)
-	dt, _ := s.host.Window.Renderer.Canvas("default")
+	dc := s.host.Window.Renderer.DefaultCanvas()
 	for _, di := range e.NamedData("drawing") {
 		d := di.(*rendering.Drawing)
 		ds := &rendering.ShaderDataBasic{
@@ -123,7 +123,7 @@ func (s *Selection) Add(e *engine.Entity) {
 		cpy.Shader = outline
 		cpy.ShaderData = ds
 		cpy.UseBlending = false
-		s.host.Drawings.AddDrawing(&cpy, dt)
+		s.host.Drawings.AddDrawing(&cpy, dc)
 	}
 }
 

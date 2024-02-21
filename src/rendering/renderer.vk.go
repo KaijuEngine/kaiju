@@ -113,6 +113,8 @@ func init() {
 	klib.Must(vk.Init())
 }
 
+func (vr *Vulkan) DefaultCanvas() Canvas { return &vr.defaultCanvas }
+
 func (vr *Vulkan) Canvas(name string) (Canvas, bool) {
 	c, ok := vr.canvases[name]
 	if !ok {

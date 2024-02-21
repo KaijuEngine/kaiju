@@ -63,4 +63,5 @@ type Renderer interface {
 	Destroy()
 	RegisterCanvas(name string, canvas Canvas)
 	Canvas(name string) (Canvas, bool)
+	DefaultCanvas() Canvas
 }

@@ -514,7 +514,7 @@ func (p *Panel) SetColor(bgColor matrix.Color) {
 	if hasBlending != shouldBlend {
 		p.recreateDrawing()
 		p.drawing.UseBlending = shouldBlend
-		dc, _ := p.host.Window.Renderer.Canvas("default")
+		dc := p.host.Window.Renderer.DefaultCanvas()
 		p.host.Drawings.AddDrawing(&p.drawing, dc)
 	}
 	p.shaderData.FgColor = bgColor
@@ -560,7 +560,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			ShaderData: &p.shaderData,
 			Transform:  &p.entity.Transform,
 		}
-		dc, _ := p.host.Window.Renderer.Canvas("default")
+		dc := p.host.Window.Renderer.DefaultCanvas()
 		p.host.Drawings.AddDrawing(&p.drawing, dc)
 	}
 }
@@ -576,7 +576,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	if p.drawing.IsValid() {
 		p.recreateDrawing()
 		p.drawing.Textures[0] = tex
-		dc, _ := p.host.Window.Renderer.Canvas("default")
+		dc := p.host.Window.Renderer.DefaultCanvas()
 		p.host.Drawings.AddDrawing(&p.drawing, dc)
 	}
 }
@@ -637,7 +637,7 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 func (p *Panel) SetUseBlending(useBlending bool) {
 	p.recreateDrawing()
 	p.drawing.UseBlending = useBlending
-	dc, _ := p.host.Window.Renderer.Canvas("default")
+	dc := p.host.Window.Renderer.DefaultCanvas()
 	p.host.Drawings.AddDrawing(&p.drawing, dc)
 }
 

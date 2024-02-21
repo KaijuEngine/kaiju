@@ -74,6 +74,9 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()
+	if kb.HasAlt() {
+		changed = true
+	}
 	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) {
 		e.mouseLeftDown = true
 		e.mouseDown = mp
@@ -87,7 +90,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			changed = true
 		}
 	} else if mouse.Held(hid.MouseButtonLeft) {
-		if kb.KeyHeld(hid.KeyboardKeyLeftAlt) {
+		if kb.HasAlt() {
 			x := (e.lastMousePos.Y() - mp.Y()) * -ROT_SCALE
 			y := (e.lastMousePos.X() - mp.X()) * e.yawScale
 			tc.Orbit(matrix.Vec3{x, y, 0.0})
