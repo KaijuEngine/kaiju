@@ -144,7 +144,7 @@ func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
 }
 
 func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3) {
-	c.lookAt = lookAt.Scale(-1)
+	c.lookAt = lookAt
 	c.updateViewAndPosition()
 }
 

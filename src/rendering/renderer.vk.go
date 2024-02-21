@@ -113,6 +113,8 @@ func init() {
 	klib.Must(vk.Init())
 }
 
+func (vr *Vulkan) DefaultCanvas() Canvas { return &vr.defaultCanvas }
+
 func (vr *Vulkan) Canvas(name string) (Canvas, bool) {
 	c, ok := vr.canvases[name]
 	if !ok {
@@ -210,7 +212,12 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 		},
 	}
 	var data unsafe.Pointer
-	vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame], 0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
+	r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
+		0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
+	if r != vk.Success {
+		slog.Error("Failed to map uniform buffer memory", slog.Int("code", int(r)))
+		return
+	}
 	vk.Memcopy(data, klib.StructToByteArray(ubo))
 	vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame])
 }
