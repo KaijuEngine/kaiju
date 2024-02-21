@@ -234,10 +234,11 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 }
 
 func (t *TransformTool) transform(delta, point matrix.Vec3) {
-	for _, e := range t.selection.Entities() {
+	for i, e := range t.selection.Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
-			et.SetPosition(point)
+			d := t.resets[i].Subtract(t.wireTransform.Position())
+			et.SetPosition(point.Add(d))
 		} else if t.state == ToolStateRotate {
 			et.SetRotation(et.Rotation().Add(delta))
 		} else if t.state == ToolStateScale {
