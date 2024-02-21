@@ -262,44 +262,22 @@ func (m *Mat4) NegateAssign() {
 	}
 }
 
-func (m Mat4) Multiply(rhs Mat4) Mat4 {
-	return Mat4{
-		m[x0y0]*rhs[x0y0] + m[x1y0]*rhs[x0y1] + m[x2y0]*rhs[x0y2] + m[x3y0]*rhs[x0y3],
-		m[x0y0]*rhs[x1y0] + m[x1y0]*rhs[x1y1] + m[x2y0]*rhs[x1y2] + m[x3y0]*rhs[x1y3],
-		m[x0y0]*rhs[x2y0] + m[x1y0]*rhs[x2y1] + m[x2y0]*rhs[x2y2] + m[x3y0]*rhs[x2y3],
-		m[x0y0]*rhs[x3y0] + m[x1y0]*rhs[x3y1] + m[x2y0]*rhs[x3y2] + m[x3y0]*rhs[x3y3],
-		m[x0y1]*rhs[x0y0] + m[x1y1]*rhs[x0y1] + m[x2y1]*rhs[x0y2] + m[x3y1]*rhs[x0y3],
-		m[x0y1]*rhs[x1y0] + m[x1y1]*rhs[x1y1] + m[x2y1]*rhs[x1y2] + m[x3y1]*rhs[x1y3],
-		m[x0y1]*rhs[x2y0] + m[x1y1]*rhs[x2y1] + m[x2y1]*rhs[x2y2] + m[x3y1]*rhs[x2y3],
-		m[x0y1]*rhs[x3y0] + m[x1y1]*rhs[x3y1] + m[x2y1]*rhs[x3y2] + m[x3y1]*rhs[x3y3],
-		m[x0y2]*rhs[x0y0] + m[x1y2]*rhs[x0y1] + m[x2y2]*rhs[x0y2] + m[x3y2]*rhs[x0y3],
-		m[x0y2]*rhs[x1y0] + m[x1y2]*rhs[x1y1] + m[x2y2]*rhs[x1y2] + m[x3y2]*rhs[x1y3],
-		m[x0y2]*rhs[x2y0] + m[x1y2]*rhs[x2y1] + m[x2y2]*rhs[x2y2] + m[x3y2]*rhs[x2y3],
-		m[x0y2]*rhs[x3y0] + m[x1y2]*rhs[x3y1] + m[x2y2]*rhs[x3y2] + m[x3y2]*rhs[x3y3],
-		m[x0y3]*rhs[x0y0] + m[x1y3]*rhs[x0y1] + m[x2y3]*rhs[x0y2] + m[x3y3]*rhs[x0y3],
-		m[x0y3]*rhs[x1y0] + m[x1y3]*rhs[x1y1] + m[x2y3]*rhs[x1y2] + m[x3y3]*rhs[x1y3],
-		m[x0y3]*rhs[x2y0] + m[x1y3]*rhs[x2y1] + m[x2y3]*rhs[x2y2] + m[x3y3]*rhs[x2y3],
-		m[x0y3]*rhs[x3y0] + m[x1y3]*rhs[x3y1] + m[x2y3]*rhs[x3y2] + m[x3y3]*rhs[x3y3],
+func (a Mat4) Multiply(b Mat4) Mat4 {
+	var result Mat4
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			var sum float32 = 0
+			for k := 0; k < 4; k++ {
+				sum += a[i*4+k] * b[k*4+j]
+			}
+			result[i*4+j] = sum
+		}
 	}
+	return result
 }
 
-func (m *Mat4) MultiplyAssign(rhs Mat4) {
-	m[x0y0] = m[x0y0]*rhs[x0y0] + m[x1y0]*rhs[x0y1] + m[x2y0]*rhs[x0y2] + m[x3y0]*rhs[x0y3]
-	m[x1y0] = m[x0y0]*rhs[x1y0] + m[x1y0]*rhs[x1y1] + m[x2y0]*rhs[x1y2] + m[x3y0]*rhs[x1y3]
-	m[x2y0] = m[x0y0]*rhs[x2y0] + m[x1y0]*rhs[x2y1] + m[x2y0]*rhs[x2y2] + m[x3y0]*rhs[x2y3]
-	m[x3y0] = m[x0y0]*rhs[x3y0] + m[x1y0]*rhs[x3y1] + m[x2y0]*rhs[x3y2] + m[x3y0]*rhs[x3y3]
-	m[x0y1] = m[x0y1]*rhs[x0y0] + m[x1y1]*rhs[x0y1] + m[x2y1]*rhs[x0y2] + m[x3y1]*rhs[x0y3]
-	m[x1y1] = m[x0y1]*rhs[x1y0] + m[x1y1]*rhs[x1y1] + m[x2y1]*rhs[x1y2] + m[x3y1]*rhs[x1y3]
-	m[x2y1] = m[x0y1]*rhs[x2y0] + m[x1y1]*rhs[x2y1] + m[x2y1]*rhs[x2y2] + m[x3y1]*rhs[x2y3]
-	m[x3y1] = m[x0y1]*rhs[x3y0] + m[x1y1]*rhs[x3y1] + m[x2y1]*rhs[x3y2] + m[x3y1]*rhs[x3y3]
-	m[x0y2] = m[x0y2]*rhs[x0y0] + m[x1y2]*rhs[x0y1] + m[x2y2]*rhs[x0y2] + m[x3y2]*rhs[x0y3]
-	m[x1y2] = m[x0y2]*rhs[x1y0] + m[x1y2]*rhs[x1y1] + m[x2y2]*rhs[x1y2] + m[x3y2]*rhs[x1y3]
-	m[x2y2] = m[x0y2]*rhs[x2y0] + m[x1y2]*rhs[x2y1] + m[x2y2]*rhs[x2y2] + m[x3y2]*rhs[x2y3]
-	m[x3y2] = m[x0y2]*rhs[x3y0] + m[x1y2]*rhs[x3y1] + m[x2y2]*rhs[x3y2] + m[x3y2]*rhs[x3y3]
-	m[x0y3] = m[x0y3]*rhs[x0y0] + m[x1y3]*rhs[x0y1] + m[x2y3]*rhs[x0y2] + m[x3y3]*rhs[x0y3]
-	m[x1y3] = m[x0y3]*rhs[x1y0] + m[x1y3]*rhs[x1y1] + m[x2y3]*rhs[x1y2] + m[x3y3]*rhs[x1y3]
-	m[x2y3] = m[x0y3]*rhs[x2y0] + m[x1y3]*rhs[x2y1] + m[x2y3]*rhs[x2y2] + m[x3y3]*rhs[x2y3]
-	m[x3y3] = m[x0y3]*rhs[x3y0] + m[x1y3]*rhs[x3y1] + m[x2y3]*rhs[x3y2] + m[x3y3]*rhs[x3y3]
+func (a *Mat4) MultiplyAssign(b Mat4) {
+	*a = a.Multiply(b)
 }
 
 func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {
@@ -373,28 +351,36 @@ func (m *Mat4) Rotate(rotate Vec3) {
 
 func (m *Mat4) RotateX(angles Float) {
 	rot := Mat4Identity()
-	rot[x1y1] = Cos(Deg2Rad(angles))
-	rot[x2y1] = -Sin(Deg2Rad(angles))
-	rot[x1y2] = Sin(Deg2Rad(angles))
-	rot[x2y2] = Cos(Deg2Rad(angles))
+	c := Cos(Deg2Rad(angles))
+	s := Sin(Deg2Rad(angles))
+	rot[x1y1] = c
+	rot[x2y1] = -s
+	rot[x1y2] = s
+	rot[x2y2] = c
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateY(angles Float) {
-	rot := Mat4Identity()
-	rot[x0y0] = Cos(Deg2Rad(angles))
-	rot[x2y0] = Sin(Deg2Rad(angles))
-	rot[x0y2] = -Sin(Deg2Rad(angles))
-	rot[x2y2] = Cos(Deg2Rad(angles))
+	rot := Mat4{}
+	c := Cos(Deg2Rad(angles))
+	s := Sin(Deg2Rad(angles))
+	rot[x0y0] = c
+	rot[x2y0] = -s
+	rot[x0y2] = s
+	rot[x2y2] = c
+	rot[x1y1] = 1
+	rot[x3y3] = 1
 	m.MultiplyAssign(rot)
 }
 
 func (m *Mat4) RotateZ(angles Float) {
 	rot := Mat4Identity()
-	rot[x0y0] = Cos(Deg2Rad(angles))
-	rot[x1y0] = -Sin(Deg2Rad(angles))
-	rot[x0y1] = Sin(Deg2Rad(angles))
-	rot[x1y1] = Cos(Deg2Rad(angles))
+	c := Cos(Deg2Rad(angles))
+	s := Sin(Deg2Rad(angles))
+	rot[x0y0] = c
+	rot[x1y0] = -s
+	rot[x0y1] = s
+	rot[x1y1] = c
 	m.MultiplyAssign(rot)
 }
 
