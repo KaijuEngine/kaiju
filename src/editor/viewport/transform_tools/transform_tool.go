@@ -14,10 +14,11 @@ type TransformTool struct {
 	axis           AxisState
 	state          ToolState
 	lastHit        matrix.Vec3
-	delta          matrix.Vec3
 	wires          [3]rendering.Drawing
 	wireTransform  *matrix.Transform
+	resets         []matrix.Vec3
 	transformDirty int
+	firstHitUpdate bool
 }
 
 func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
@@ -48,6 +49,7 @@ func New(host *engine.Host, selection *selection.Selection,
 	t := TransformTool{
 		selection:     selection,
 		wireTransform: &wt,
+		resets:        make([]matrix.Vec3, 0, 32),
 	}
 	left := matrix.Vec3{-10000, 0, 0}
 	right := matrix.Vec3{10000, 0, 0}
@@ -97,6 +99,8 @@ func (t *TransformTool) Enable(state ToolState) {
 		t.wires[2].ShaderData.Activate()
 	}
 	t.state = state
+	t.firstHitUpdate = true
+	t.updateResets()
 }
 
 func (t *TransformTool) Disable() {
@@ -109,12 +113,34 @@ func (t *TransformTool) Disable() {
 }
 
 func (t *TransformTool) resetChange() {
-	t.transform(t.delta.Negative())
-	t.delta = matrix.Vec3{0, 0, 0}
+	all := t.selection.Entities()
+	for i := range t.resets {
+		if t.state == ToolStateMove {
+			all[i].Transform.SetPosition(t.resets[i])
+		} else if t.state == ToolStateRotate {
+			all[i].Transform.SetRotation(t.resets[i])
+		} else if t.state == ToolStateScale {
+			all[i].Transform.SetScale(t.resets[i])
+		}
+	}
+	t.firstHitUpdate = true
+}
+
+func (t *TransformTool) updateResets() {
+	t.resets = t.resets[:0]
+	for _, e := range t.selection.Entities() {
+		if t.state == ToolStateMove {
+			t.resets = append(t.resets, e.Transform.Position())
+		} else if t.state == ToolStateRotate {
+			t.resets = append(t.resets, e.Transform.Rotation())
+		} else if t.state == ToolStateScale {
+			t.resets = append(t.resets, e.Transform.Scale())
+		}
+	}
 }
 
 func (t *TransformTool) commitChange() {
-	t.delta = matrix.Vec3{0, 0, 0}
+	t.resets = t.resets[:0]
 	t.Disable()
 }
 
@@ -176,32 +202,42 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	if dd > d {
 		nml = matrix.Vec3Down()
 	}
-	scale := matrix.Vec3{0, 0, 0}
-	if t.axis == AxisStateX {
-		scale.SetX(1)
-	} else if t.axis == AxisStateY {
-		scale.SetY(1)
-	} else if t.axis == AxisStateZ {
-		scale.SetZ(1)
-	}
 	hitPoint, ok := r.PlaneHit(center, nml)
 	if !ok {
 		return
+	}
+	point := hitPoint
+	scale := matrix.Vec3{0, 0, 0}
+	if t.axis == AxisStateX {
+		scale.SetX(1)
+		point.SetY(center.Y())
+		point.SetZ(center.Z())
+	} else if t.axis == AxisStateY {
+		scale.SetY(1)
+		point.SetX(center.X())
+		point.SetZ(center.Z())
+	} else if t.axis == AxisStateZ {
+		scale.SetZ(1)
+		point.SetX(center.X())
+		point.SetY(center.Y())
+	}
+	if t.firstHitUpdate {
+		t.lastHit = hitPoint
+		t.firstHitUpdate = false
 	}
 	delta := hitPoint.Subtract(t.lastHit).Multiply(scale)
 	if t.state == ToolStateRotate {
 		delta = delta.Scale(20)
 	}
-	t.delta.AddAssign(delta)
-	t.transform(delta)
+	t.transform(delta, point)
 	t.lastHit = hitPoint
 }
 
-func (t *TransformTool) transform(delta matrix.Vec3) {
+func (t *TransformTool) transform(delta, point matrix.Vec3) {
 	for _, e := range t.selection.Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
-			et.SetPosition(et.Position().Add(delta))
+			et.SetPosition(point)
 		} else if t.state == ToolStateRotate {
 			et.SetRotation(et.Rotation().Add(delta))
 		} else if t.state == ToolStateScale {
