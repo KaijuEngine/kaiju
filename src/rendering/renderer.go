@@ -61,5 +61,6 @@ type Renderer interface {
 	DestroyShader(shader *Shader)
 	DestroyMesh(mesh *Mesh)
 	Destroy()
-	DefaultTarget() Canvas
+	RegisterCanvas(name string, canvas Canvas)
+	Canvas(name string) (Canvas, bool)
 }

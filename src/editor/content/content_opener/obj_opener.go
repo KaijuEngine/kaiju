@@ -55,10 +55,6 @@ func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 }
 
 func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
-	m, err := project_cache.LoadCachedMesh(adi)
-	if err != nil {
-		return err
-	}
 	texId := assets.TextureSquare
 	if t, ok := adi.Metadata["texture"]; ok {
 		texId = t
@@ -84,15 +80,32 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 			Color:          matrix.ColorWhite(),
 		}
 	}
-	mesh := rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
+	mesh, ok := host.MeshCache().FindMesh(adi.ID)
+	if !ok {
+		m, err := project_cache.LoadCachedMesh(adi)
+		if err != nil {
+			return err
+		}
+		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
+	}
 	host.MeshCache().AddMesh(mesh)
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	e := host.NewEntity()
+	e.SetName(adi.MetaValue("name"))
+	dc, _ := host.Window.Renderer.Canvas("default")
+	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
-	}, host.Window.Renderer.DefaultTarget())
+		Transform:  &e.Transform,
+	}
+	m := matrix.Mat4Identity()
+	//m.Rotate(matrix.Vec3{0, 90, 0})
+	m.RotateY(90)
+	data.SetModel(m)
+	e.AddNamedData("drawing", &drawing)
+	host.Drawings.AddDrawing(&drawing, dc)
 	return nil
 }
 

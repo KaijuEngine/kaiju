@@ -46,7 +46,7 @@ import (
 )
 
 type ScaleTool struct {
-	HandleTool
+	HandleToolBase
 	starts []matrix.Vec3
 }
 
@@ -55,16 +55,24 @@ func (t *ScaleTool) Initialize(host *engine.Host, selection *selection.Selection
 	t.init(host, selection, renderTarget, "editor/meshes/scale-pointer.gltf")
 }
 
-func (t *ScaleTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
+func (t *ScaleTool) Update() (changed bool) {
+	return t.HandleToolBase.internalUpdate(t)
+}
+
+func (t *ScaleTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
+	t.HandleToolBase.DragStart(pointerPos, camera)
 	t.starts = t.starts[:0]
 	for _, e := range t.selection.Entities() {
 		t.starts = append(t.starts, e.Transform.Scale())
 	}
-	t.HandleTool.dragUpdate(pointerPos, camera, t.processDelta)
+}
+
+func (t *ScaleTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
+	t.HandleToolBase.dragUpdate(pointerPos, camera, t.processDelta)
 }
 
 func (t *ScaleTool) DragStop() {
-	t.HandleTool.dragStop()
+	t.HandleToolBase.dragStop()
 	//_engine->history->add_memento(history_transform_scale(_engine,
 	//	_selection, _starts, hierarchy_get_scales(_selection)));
 }

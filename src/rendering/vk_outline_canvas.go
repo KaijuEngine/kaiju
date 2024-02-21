@@ -46,27 +46,26 @@ import (
 	vk "github.com/KaijuEngine/go-vulkan"
 )
 
-type CombineCanvas struct {
-	renderPass  RenderPass
-	color       TextureId
-	frameBuffer vk.Framebuffer
-	texture     Texture
+type OutlineCanvas struct {
+	outlinePass    RenderPass
+	outline        TextureId
+	outlineTexture Texture
 }
 
-func (r *CombineCanvas) Pass(name string) *RenderPass {
-	return &r.renderPass
+func (r *OutlineCanvas) Pass(name string) *RenderPass {
+	return &r.outlinePass
 }
 
-func (r *CombineCanvas) Color() *Texture { return &r.texture }
+func (r *OutlineCanvas) Color() *Texture { return &r.outlineTexture }
 
-func (r *CombineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
+func (r *OutlineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	vr := renderer.(*Vulkan)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	for i := range drawings {
 		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
 	}
-	oRenderPass := r.renderPass
+	oRenderPass := r.outlinePass
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	var opaqueClear [2]vk.ClearValue
@@ -80,7 +79,7 @@ func (r *CombineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	endRender(cmd1)
 }
 
-func (r *CombineCanvas) Create(renderer Renderer) error {
+func (r *OutlineCanvas) Create(renderer Renderer) error {
 	vr := renderer.(*Vulkan)
 	if !r.createImage(vr) {
 		return errors.New("failed to create render target images")
@@ -88,29 +87,27 @@ func (r *CombineCanvas) Create(renderer Renderer) error {
 	if !r.createRenderPass(vr) {
 		return errors.New("failed to create OIT render pass")
 	}
-	r.texture.RenderId = r.color
+	r.outlineTexture.RenderId = r.outline
 	return nil
 }
 
-func (r *CombineCanvas) Destroy(renderer Renderer) {
+func (r *OutlineCanvas) Destroy(renderer Renderer) {
 	vr := renderer.(*Vulkan)
 	vk.DeviceWaitIdle(vr.device)
-	r.renderPass.Destroy()
-	vr.textureIdFree(&r.color)
-	vk.DestroyFramebuffer(vr.device, r.frameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(r.frameBuffer)))
-	r.color = TextureId{}
+	r.outlinePass.Destroy()
+	vr.textureIdFree(&r.outline)
+	r.outline = TextureId{}
 }
 
-func (r *CombineCanvas) ShaderPipeline(name string) FuncPipeline {
-	return defaultCombinePipeline
+func (r *OutlineCanvas) ShaderPipeline(name string) FuncPipeline {
+	return defaultOutlinePipeline
 }
 
-func (r *CombineCanvas) createRenderPass(renderer Renderer) bool {
+func (r *OutlineCanvas) createRenderPass(renderer Renderer) bool {
 	vr := renderer.(*Vulkan)
 	attachment := vk.AttachmentDescription{
-		Format:         r.color.Format,
-		Samples:        r.color.Samples,
+		Format:         r.outline.Format,
+		Samples:        r.outline.Samples,
 		LoadOp:         vk.AttachmentLoadOpClear,
 		StoreOp:        vk.AttachmentStoreOpStore,
 		StencilLoadOp:  vk.AttachmentLoadOpDontCare,
@@ -130,39 +127,39 @@ func (r *CombineCanvas) createRenderPass(renderer Renderer) bool {
 	pass, err := NewRenderPass(vr.device, &vr.dbg, []vk.AttachmentDescription{attachment},
 		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{})
 	if err != nil {
-		slog.Error("Failed to create the combine render pass")
+		slog.Error("Failed to create the outline render pass")
 		return false
 	}
-	r.renderPass = pass
-	err = r.renderPass.CreateFrameBuffer(vr,
-		[]vk.ImageView{r.color.View}, r.color.Width, r.color.Height)
+	r.outlinePass = pass
+	err = r.outlinePass.CreateFrameBuffer(vr,
+		[]vk.ImageView{r.outline.View}, r.outline.Width, r.outline.Height)
 	if err != nil {
-		slog.Error("Failed to create the combine frame buffer")
+		slog.Error("Failed to create the outline frame buffer")
 		return false
 	}
 	return true
 }
 
-func (r *CombineCanvas) createImage(vr *Vulkan) bool {
+func (r *OutlineCanvas) createImage(vr *Vulkan) bool {
 	w := uint32(vr.swapChainExtent.Width)
 	h := uint32(vr.swapChainExtent.Height)
 	samples := vk.SampleCount1Bit
 	imagesCreated := vr.CreateImage(w, h, 1, samples,
 		vk.FormatB8g8r8a8Unorm, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageTransferSrcBit|vk.ImageUsageSampledBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.color, 1)
-	imagesCreated = imagesCreated && vr.createImageView(&r.color,
+		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.outline, 1)
+	imagesCreated = imagesCreated && vr.createImageView(&r.outline,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
-	vr.createTextureSampler(&r.color.Sampler, 1, vk.FilterLinear)
+	vr.createTextureSampler(&r.outline.Sampler, 1, vk.FilterLinear)
 	if imagesCreated {
-		vr.transitionImageLayout(&r.color,
+		vr.transitionImageLayout(&r.outline,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
 	}
 	return imagesCreated
 }
 
-func defaultCombinePipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
+func defaultOutlinePipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	viewport := vk.Viewport{
 		X:        0.0,

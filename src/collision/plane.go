@@ -41,7 +41,7 @@ import "kaiju/matrix"
 
 type Plane struct {
 	Normal matrix.Vec3
-	Dot    float32
+	Dot    matrix.Float
 }
 
 func PlaneCCW(a, b, c matrix.Vec3) Plane {

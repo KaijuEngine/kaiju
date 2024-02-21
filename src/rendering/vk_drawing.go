@@ -91,8 +91,9 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 	}
 }
 
-func beginRender(renderPass RenderPass, frameBuffer vk.Framebuffer,
-	extent vk.Extent2D, commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
+func beginRender(pass RenderPass, extent vk.Extent2D,
+	commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
+
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
 	beginInfo.Flags = 0              // Optional
@@ -103,8 +104,8 @@ func beginRender(renderPass RenderPass, frameBuffer vk.Framebuffer,
 	}
 	renderPassInfo := vk.RenderPassBeginInfo{}
 	renderPassInfo.SType = vk.StructureTypeRenderPassBeginInfo
-	renderPassInfo.RenderPass = renderPass.Handle
-	renderPassInfo.Framebuffer = frameBuffer
+	renderPassInfo.RenderPass = pass.Handle
+	renderPassInfo.Framebuffer = pass.Buffer
 	renderPassInfo.RenderArea.Offset = vk.Offset2D{X: 0, Y: 0}
 	renderPassInfo.RenderArea.Extent = extent
 	renderPassInfo.ClearValueCount = uint32(len(clearColors))
@@ -130,7 +131,7 @@ func endRender(commandBuffer vk.CommandBuffer) {
 }
 
 func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, groups []DrawInstanceGroup) {
-	if shader.IsComposite() {
+	if shader == nil || shader.IsComposite() {
 		return
 	}
 	vk.CmdBindPipeline(commandBuffer, vk.PipelineBindPointGraphics,
@@ -163,6 +164,9 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 }
 
 func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader, groups []*DrawInstanceGroup) {
+	if shader == nil {
+		return
+	}
 	lastShader := (*Shader)(nil)
 	currentShader := (*Shader)(nil)
 	for i := range groups {
@@ -239,19 +243,19 @@ func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) Canvas {
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
-	cmd3 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
-	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
+	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
 		slog.Error("Failed to begin recording command buffer")
 		return targets[0].Target.(*OITCanvas)
 	}
 	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
 		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd3)
+			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
-	vk.EndCommandBuffer(cmd3)
+	vk.EndCommandBuffer(cmd)
 	vr.combinedDrawings.PreparePending()
 	vr.Draw(vr.combinedDrawings.draws)
 	return &vr.combineCanvas
@@ -263,10 +267,10 @@ func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
-	cmd3 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
 	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
-	if vk.BeginCommandBuffer(cmd3, &beginInfo) != vk.Success {
+	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
 		slog.Error("Failed to begin recording command buffer")
 		return
 	}
@@ -274,9 +278,9 @@ func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
 		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd3)
+			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
 	}
-	vk.EndCommandBuffer(cmd3)
+	vk.EndCommandBuffer(cmd)
 }
 
 func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {

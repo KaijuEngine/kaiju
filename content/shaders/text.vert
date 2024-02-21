@@ -38,13 +38,11 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
     mat4 uiProjection;
     vec3 cameraPosition;
     vec3 uiCameraPosition;
+	vec2 screenSize;
     float time;
-} globalData;
+};
 
 void main() {
-	mat4 uiView = globalData.uiView;
-	mat4 uiProjection = globalData.uiProjection;
-
 	vec4 vPos = model * vec4(inPosition, 1.0);
 	gl_Position = uiProjection * uiView * vPos;
 	vec2 uv = inTexCoord0;

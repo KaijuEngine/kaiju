@@ -58,7 +58,7 @@ func (e EditorEntities) ResetDirty() {
 }
 
 func (host *Host) addEntity(entity *Entity) {
-	if host.inEditorEntity {
+	if host.inEditorEntity > 0 {
 		host.editorEntities = append(host.editorEntities, entity)
 	} else {
 		host.entities = append(host.entities, entity)
@@ -66,7 +66,7 @@ func (host *Host) addEntity(entity *Entity) {
 }
 
 func (host *Host) addEntities(entities ...*Entity) {
-	if host.inEditorEntity {
+	if host.inEditorEntity > 0 {
 		host.editorEntities = append(host.editorEntities, entities...)
 	} else {
 		host.entities = append(host.entities, entities...)

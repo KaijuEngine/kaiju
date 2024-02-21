@@ -39,11 +39,13 @@ package selection
 
 import (
 	"kaiju/assets"
+	"kaiju/collision"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/events"
 	"kaiju/systems/visual2d/sprite"
 )
 
@@ -53,9 +55,12 @@ const (
 )
 
 type Selection struct {
-	box      *sprite.Sprite
-	entities []*engine.Entity
-	downPos  matrix.Vec2
+	host        *engine.Host
+	box         *sprite.Sprite
+	entities    []*engine.Entity
+	downPos     matrix.Vec2
+	Changed     events.Event
+	shaderDatas []*rendering.ShaderDataBasic
 }
 
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
@@ -64,12 +69,15 @@ func New(host *engine.Host) Selection {
 	tex := klib.MustReturn(host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear))
 	host.CreatingEditorEntities()
-	b := sprite.NewSprite(0, 0, 0, 0, host, tex, matrix.Color{1, 1, 1, 0.5})
+	b := sprite.NewSprite(0, 0, 0, 0, host, tex, matrix.Color{0.7, 0.7, 0.7, 0.5})
 	host.DoneCreatingEditorEntities()
 	b.Deactivate()
 	return Selection{
-		box:      b,
-		entities: make([]*engine.Entity, 0),
+		host:        host,
+		box:         b,
+		entities:    make([]*engine.Entity, 0),
+		Changed:     events.New(),
+		shaderDatas: make([]*rendering.ShaderDataBasic, 0),
 	}
 }
 
@@ -78,6 +86,46 @@ func (s *Selection) Entities() []*engine.Entity {
 }
 
 func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
+
+func (s *Selection) deactivateBox() {
+	s.box.Resize(0, 0)
+	s.box.Deactivate()
+}
+
+func (s *Selection) Clear() {
+	for i := range s.shaderDatas {
+		s.shaderDatas[i].Destroy()
+	}
+	s.shaderDatas = s.shaderDatas[:0]
+	s.entities = s.entities[:0]
+}
+
+func (s *Selection) Add(e *engine.Entity) {
+	for i := range s.entities {
+		if s.entities[i] == e {
+			return
+		}
+	}
+	s.entities = append(s.entities, e)
+	outline := s.host.ShaderCache().
+		ShaderFromDefinition(assets.ShaderDefinitionOutline)
+	dt, _ := s.host.Window.Renderer.Canvas("default")
+	for _, di := range e.NamedData("drawing") {
+		d := di.(*rendering.Drawing)
+		ds := &rendering.ShaderDataBasic{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorCrimson(),
+		}
+		ds.Color.SetA(3.0)     // Line width
+		d.Transform.SetDirty() // Make drawing snap to transform
+		s.shaderDatas = append(s.shaderDatas, ds)
+		cpy := *d
+		cpy.Shader = outline
+		cpy.ShaderData = ds
+		cpy.UseBlending = false
+		s.host.Drawings.AddDrawing(&cpy, dt)
+	}
+}
 
 func (s *Selection) Update(host *engine.Host) {
 	if s.isBoxDrag() {
@@ -91,7 +139,7 @@ func (s *Selection) boxDrag(host *engine.Host) {
 	mouse := &host.Window.Mouse
 	pos := mouse.Position()
 	if mouse.Released(hid.MouseButtonLeft) {
-		s.box.Deactivate()
+		s.deactivateBox()
 		if pos.Distance(s.downPos) < minDragDistance {
 			s.clickSelect(host)
 		} else {
@@ -99,7 +147,6 @@ func (s *Selection) boxDrag(host *engine.Host) {
 		}
 		return
 	}
-	//box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), pos.X(), pos.Y())
 	box := matrix.Vec4{s.downPos.X(), s.downPos.Y(), pos.X(), pos.Y()}
 	w := box.Right() - box.Left()
 	h := box.Top() - box.Bottom()
@@ -108,8 +155,10 @@ func (s *Selection) boxDrag(host *engine.Host) {
 }
 
 func (s *Selection) clickSelect(host *engine.Host) {
+	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
-		s.entities = s.entities[:0]
+		changed = len(s.entities) > 0
+		s.Clear()
 	}
 	ray := host.Camera.RayCast(s.downPos)
 	all := host.Entities()
@@ -118,35 +167,68 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
-			s.entities = append(s.entities, all[i])
+			s.Add(all[i])
+			changed = true
 			break
 		}
+	}
+	if changed {
+		s.Changed.Execute()
 	}
 }
 
 func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
+	changed := false
 	if !host.Window.Keyboard.HasCtrl() {
-		s.entities = s.entities[:0]
+		changed = len(s.entities) > 0
+		s.Clear()
 	}
 	all := host.Entities()
 	pts := make([]matrix.Vec3, len(all))
 	vp := host.Window.Viewport()
+	view := host.Camera.View()
+	proj := host.Camera.Projection()
 	// TODO:  Parallel
 	for i := range all {
 		point := all[i].Transform.Position()
-		pts[i] = host.Camera.View().Mat4UnProject(point, vp)
+		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
-	box := matrix.Vec4Box(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
+	box := matrix.Vec4Area(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
 	for i := range pts {
-		if box.BoxContains(pts[i].X(), pts[i].Y()) {
-			s.entities = append(s.entities, all[i])
+		if box.AreaContains(pts[i].X(), pts[i].Y()) {
+			s.Add(all[i])
+			changed = true
 		}
+	}
+	if changed {
+		s.Changed.Execute()
 	}
 }
 
 func (s *Selection) checkForBoxDrag(mouse *hid.Mouse) {
 	if mouse.Pressed(hid.MouseButtonLeft) {
+		// TODO:  Don't click through top menu
 		s.downPos = mouse.Position()
 		s.box.Activate()
 	}
+}
+
+func (s *Selection) Center() matrix.Vec3 {
+	centroid := matrix.Vec3Zero()
+	for _, e := range s.entities {
+		centroid.AddAssign(e.Transform.Position())
+	}
+	centroid.ScaleAssign(1 / matrix.Float(len(s.entities)))
+	return centroid
+}
+
+func (s *Selection) Bounds() collision.AABB {
+	min := matrix.Vec3Inf(1)
+	max := matrix.Vec3Inf(-1)
+	for _, e := range s.entities {
+		p := e.Transform.Position()
+		min = matrix.Vec3Min(min, p)
+		max = matrix.Vec3Max(max, p)
+	}
+	return collision.AABBFromMinMax(min, max)
 }

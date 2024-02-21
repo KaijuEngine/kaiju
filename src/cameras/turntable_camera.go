@@ -143,6 +143,11 @@ func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
 	c.updateViewAndPosition()
 }
 
+func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3) {
+	c.lookAt = lookAt.Scale(-1)
+	c.updateViewAndPosition()
+}
+
 func (c *TurntableCamera) Pan(delta matrix.Vec3) {
 	d := delta.Scale(c.zoom)
 	u := c.Up()

@@ -76,7 +76,7 @@ type Host struct {
 	OnClose        events.Event
 	CloseSignal    chan struct{}
 	frameRateLimit *time.Ticker
-	inEditorEntity bool
+	inEditorEntity int
 }
 
 func NewHost(name string, logStream *logging.LogStream) *Host {
@@ -132,11 +132,11 @@ func (host *Host) resized() {
 }
 
 func (host *Host) CreatingEditorEntities() {
-	host.inEditorEntity = true
+	host.inEditorEntity++
 }
 
 func (host *Host) DoneCreatingEditorEntities() {
-	host.inEditorEntity = false
+	host.inEditorEntity--
 }
 
 func (host *Host) ShaderCache() *rendering.ShaderCache   { return &host.shaderCache }

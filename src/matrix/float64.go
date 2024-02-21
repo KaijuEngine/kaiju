@@ -113,3 +113,7 @@ func IsNan(x Float) bool {
 func IsInf(x Float, sign int) bool {
 	return math.IsInf(x, sign)
 }
+
+func Inf(sign int) Float {
+	return math.Inf(sign)
+}

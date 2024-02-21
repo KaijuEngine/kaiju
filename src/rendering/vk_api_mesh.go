@@ -59,7 +59,7 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
 }
 
-func (vr *Vulkan) CreateFrameBuffer(renderPass RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
+func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
 	framebufferInfo := vk.FramebufferCreateInfo{}
 	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
 	framebufferInfo.RenderPass = renderPass.Handle
@@ -126,8 +126,8 @@ func (vr *Vulkan) DestroyShader(shader *Shader) {
 	}
 	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
 	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.descriptorSetLayout)))
-	if shader.SubShader != nil {
-		vr.DestroyShader(shader.SubShader)
+	for _, ss := range shader.subShaders {
+		vr.DestroyShader(ss)
 	}
 }
 

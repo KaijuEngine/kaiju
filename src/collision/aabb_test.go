@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* move_tool.go                                                               */
+/* aabb_test.go                                                               */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,73 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package tools
+package collision
 
 import (
-	"kaiju/cameras"
-	"kaiju/editor/selection"
-	"kaiju/engine"
 	"kaiju/matrix"
-	"kaiju/rendering"
+	"testing"
 )
 
-type MoveTool struct {
-	HandleToolBase
-	toolStart matrix.Vec3
-	starts    []matrix.Vec3
-}
-
-func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas) {
-	t.init(host, selection, renderTarget, "editor/meshes/move-pointer.gltf")
-}
-
-func (t *MoveTool) Update() (changed bool) {
-	return t.HandleToolBase.internalUpdate(t)
-}
-
-func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleToolBase.DragStart(pointerPos, camera)
-	t.starts = t.starts[:0]
-	for _, e := range t.selection.Entities() {
-		t.starts = append(t.starts, e.Transform.Position())
+func TestAABBHit(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	r := Ray{matrix.Vec3Right(), matrix.Vec3Left()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
 	}
-	t.toolStart = t.tool.Transform.Position()
+	r = Ray{matrix.Vec3Left(), matrix.Vec3Right()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Up(), matrix.Vec3Down()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Down(), matrix.Vec3Up()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Forward(), matrix.Vec3Backward()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
+	r = Ray{matrix.Vec3Backward(), matrix.Vec3Forward()}
+	if _, ok := box.RayHit(r); !ok {
+		t.Error("Expected hit")
+	}
 }
 
-func (t *MoveTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleToolBase.dragUpdate(pointerPos, camera, t.processDelta)
+func TestAABBMiss(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	r := Ray{matrix.Vec3Right(), matrix.Vec3Up()}
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
+	r.Direction = matrix.Vec3Down()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
+	r.Direction = matrix.Vec3Right()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
+	r.Direction = matrix.Vec3Forward()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
+	r.Direction = matrix.Vec3Backward()
+	if _, ok := box.RayHit(r); ok {
+		t.Error("Expected miss")
+	}
 }
 
-func (t *MoveTool) DragStop() {
-	t.HandleToolBase.dragStop()
-	//_engine->history->add_memento(history_transform_move(
-	//	_engine, _selection, _starts, hierarchy_get_positions(_selection)));
-}
-
-func (t *MoveTool) processDelta(length matrix.Vec3) {
-	t.tool.Transform.SetPosition(t.toolStart.Add(length))
-	for i := range t.starts {
-		t.selection.Entities()[i].Transform.SetPosition(t.starts[i].Add(length))
+func TestTriangleIntersect(t *testing.T) {
+	box := AABB{matrix.Vec3Zero(), matrix.Vec3{0.5, 0.5, 0.5}}
+	points0 := [3]matrix.Vec3{
+		{-0.25, 0.0, 0.25},
+		{0.0, 0.0, -0.25},
+		{0.25, 0.0, 0.25},
+	}
+	if !box.TriangleIntersect(DetailedTriangleFromPoints(points0)) {
+		t.Error("Expected intersect")
 	}
 }

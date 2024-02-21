@@ -286,8 +286,8 @@ func (v Vec4) MultiplyMat4(rhs Mat4) Vec4 {
 	return result
 }
 
-func Vec4Box(xa, ya, xb, yb Float) Vec4 {
-	return Vec4{min(xa, xb), max(ya, yb), max(xa, xb), min(ya, yb)}
+func Vec4Area(xa, ya, xb, yb Float) Vec4 {
+	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
 }
 
 func (v Vec4) BoxContains(x, y Float) bool {
@@ -295,7 +295,7 @@ func (v Vec4) BoxContains(x, y Float) bool {
 }
 
 func (v Vec4) AreaContains(x, y Float) bool {
-	return v.X() <= x && v.Right() >= x && v.Y() >= y && v.Bottom() <= y
+	return v.X() <= x && v.Right() >= x && v.Y() <= y && v.Bottom() >= y
 }
 
 func (v Vec4) ScreenAreaContains(x, y Float) bool {

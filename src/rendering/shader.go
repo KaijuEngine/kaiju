@@ -44,7 +44,6 @@ import (
 
 type Shader struct {
 	RenderId   ShaderId
-	SubShader  *Shader
 	KeyName    string
 	VertPath   string
 	FragPath   string
@@ -53,6 +52,19 @@ type Shader struct {
 	EvalPath   string
 	RenderPass *RenderPass
 	DriverData ShaderDriverData
+	subShaders map[string]*Shader
+}
+
+func (s *Shader) AddSubShader(key string, shader *Shader) {
+	s.subShaders[key] = shader
+}
+
+func (s *Shader) RemoveSubShader(key string) {
+	delete(s.subShaders, key)
+}
+
+func (s *Shader) SubShader(key string) *Shader {
+	return s.subShaders[key]
 }
 
 func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) string {
@@ -61,7 +73,7 @@ func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath
 
 func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) *Shader {
 	s := &Shader{
-		SubShader:  nil,
+		subShaders: make(map[string]*Shader),
 		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
 		VertPath:   vertPath,
 		FragPath:   fragPath,
@@ -76,8 +88,8 @@ func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath strin
 
 func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database) {
 	renderer.CreateShader(s, assetDatabase)
-	if s.SubShader != nil {
-		renderer.CreateShader(s.SubShader, assetDatabase)
+	for _, ss := range s.subShaders {
+		renderer.CreateShader(ss, assetDatabase)
 	}
 }
 

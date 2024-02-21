@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* move_tool.go                                                               */
+/* triangle.go                                                                */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,43 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package tools
+package collision
 
-import (
-	"kaiju/cameras"
-	"kaiju/editor/selection"
-	"kaiju/engine"
-	"kaiju/matrix"
-	"kaiju/rendering"
-)
+import "kaiju/matrix"
 
-type MoveTool struct {
-	HandleToolBase
-	toolStart matrix.Vec3
-	starts    []matrix.Vec3
+type Triangle struct {
+	P           Plane
+	EdgePlaneBC Plane
+	EdgePlaneCA Plane
 }
 
-func (t *MoveTool) Initialize(host *engine.Host, selection *selection.Selection, renderTarget rendering.Canvas) {
-	t.init(host, selection, renderTarget, "editor/meshes/move-pointer.gltf")
+type DetailedTriangle struct {
+	Points   [3]matrix.Vec3
+	Normal   matrix.Vec3
+	Centroid matrix.Vec3
+	Radius   matrix.Float
 }
 
-func (t *MoveTool) Update() (changed bool) {
-	return t.HandleToolBase.internalUpdate(t)
-}
-
-func (t *MoveTool) DragStart(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleToolBase.DragStart(pointerPos, camera)
-	t.starts = t.starts[:0]
-	for _, e := range t.selection.Entities() {
-		t.starts = append(t.starts, e.Transform.Position())
+func DetailedTriangleFromPoints(points [3]matrix.Vec3) DetailedTriangle {
+	tri := DetailedTriangle{
+		Points:   [3]matrix.Vec3{points[0], points[1], points[2]},
+		Normal:   matrix.Vec3Zero(),
+		Centroid: matrix.Vec3Zero(),
+		Radius:   0.0,
 	}
-	t.toolStart = t.tool.Transform.Position()
-}
-
-func (t *MoveTool) DragUpdate(pointerPos matrix.Vec2, camera cameras.Camera) {
-	t.HandleToolBase.dragUpdate(pointerPos, camera, t.processDelta)
-}
-
-func (t *MoveTool) DragStop() {
-	t.HandleToolBase.dragStop()
-	//_engine->history->add_memento(history_transform_move(
-	//	_engine, _selection, _starts, hierarchy_get_positions(_selection)));
-}
-
-func (t *MoveTool) processDelta(length matrix.Vec3) {
-	t.tool.Transform.SetPosition(t.toolStart.Add(length))
-	for i := range t.starts {
-		t.selection.Entities()[i].Transform.SetPosition(t.starts[i].Add(length))
+	e0 := tri.Points[2].Subtract(tri.Points[1])
+	e1 := tri.Points[0].Subtract(tri.Points[2])
+	tri.Normal = matrix.Vec3Cross(e0, e1).Normal()
+	tri.Centroid = matrix.Vec3{
+		(tri.Points[0].X() + tri.Points[1].X() + tri.Points[2].X()) / 3.0,
+		(tri.Points[0].Y() + tri.Points[1].Y() + tri.Points[2].Y()) / 3.0,
+		(tri.Points[0].Z() + tri.Points[1].Z() + tri.Points[2].Z()) / 3.0,
 	}
+	p := [3]matrix.Vec3{
+		tri.Centroid.Subtract(tri.Points[0]),
+		tri.Centroid.Subtract(tri.Points[1]),
+		tri.Centroid.Subtract(tri.Points[2]),
+	}
+	tri.Radius = max(p[0].Length(), max(p[1].Length(), p[2].Length()))
+	return tri
 }

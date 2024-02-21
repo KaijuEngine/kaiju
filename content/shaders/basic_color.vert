@@ -16,8 +16,9 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	mat4 uiProjection;
 	vec3 cameraPosition;
 	vec3 uiCameraPosition;
+	vec2 screenSize;
 	float time;
-} globalData;
+};
 
 layout(location = 8) in mat4 model;
 layout(location = 12) in vec4 color;
@@ -28,5 +29,5 @@ layout(location = 1) out vec2 fragTexCoords;
 void main() {
 	fragColor = color;
 	fragTexCoords = UV0;
-	gl_Position = globalData.projection * globalData.view * model * vec4(Position, 1.0);
+	gl_Position = projection * view * model * vec4(Position, 1.0);
 }
