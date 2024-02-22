@@ -41,6 +41,7 @@ import (
 	"context"
 	"kaiju/assets"
 	"kaiju/cameras"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
@@ -149,6 +150,19 @@ func (host *Host) AddEntity(entity *Entity) {
 	host.addEntity(entity)
 }
 
+func (host *Host) RemoveEntity(entity *Entity) {
+	if host.editorEntities.contains(entity) {
+		host.editorEntities.remove(entity)
+	} else {
+		for i, e := range host.entities {
+			if e == entity {
+				host.entities = klib.RemoveUnordered(host.entities, i)
+				break
+			}
+		}
+	}
+}
+
 func (host *Host) AddEntities(entities ...*Entity) {
 	host.addEntities(entities...)
 }
@@ -170,10 +184,15 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	for _, e := range host.entities {
-		e.TickCleanup()
+	back := len(host.entities)
+	for i, e := range host.entities {
+		if e.TickCleanup() {
+			host.entities[i] = host.entities[back-1]
+			back--
+		}
 	}
-	host.editorEntities.TickCleanup()
+	host.entities = host.entities[:back]
+	host.editorEntities.tickCleanup()
 	host.Window.EndUpdate()
 }
 
@@ -189,7 +208,7 @@ func (host *Host) Render() {
 	for _, e := range host.entities {
 		e.Transform.ResetDirty()
 	}
-	host.editorEntities.ResetDirty()
+	host.editorEntities.resetDirty()
 }
 
 func (host *Host) Frame() FrameId   { return host.frame }

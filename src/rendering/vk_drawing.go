@@ -62,7 +62,11 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		var data unsafe.Pointer
 		mapLen := instanceLen
-		vk.MapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame], 0, mapLen, 0, &data)
+		r := vk.MapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame], 0, mapLen, 0, &data)
+		if r != vk.Success {
+			slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
+			continue
+		}
 		vk.Memcopy(data, group.instanceData)
 		vk.UnmapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame])
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]

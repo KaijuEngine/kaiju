@@ -39,19 +39,44 @@
 
 package engine
 
+import "kaiju/klib"
+
 type EditorEntities []*Entity
 
 func newEditorEntities() EditorEntities {
 	return make([]*Entity, 0)
 }
 
-func (e EditorEntities) TickCleanup() {
-	for _, t := range e {
-		t.TickCleanup()
+func (e *EditorEntities) remove(entity *Entity) {
+	for i, t := range *e {
+		if t == entity {
+			*e = klib.RemoveUnordered(*e, i)
+			break
+		}
 	}
 }
 
-func (e EditorEntities) ResetDirty() {
+func (e EditorEntities) contains(entity *Entity) bool {
+	for _, t := range e {
+		if t == entity {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *EditorEntities) tickCleanup() {
+	back := len(*e)
+	for i, t := range *e {
+		if t.TickCleanup() {
+			(*e)[i] = (*e)[back-1]
+			back--
+		}
+	}
+	*e = (*e)[:back]
+}
+
+func (e EditorEntities) resetDirty() {
 	for _, t := range e {
 		t.Transform.ResetDirty()
 	}

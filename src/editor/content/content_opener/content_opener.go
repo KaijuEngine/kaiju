@@ -41,6 +41,7 @@ import (
 	"errors"
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/memento"
 	"kaiju/host_container"
 )
 
@@ -50,19 +51,23 @@ var (
 
 type ContentOpener interface {
 	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error
+	Open(adi asset_info.AssetDatabaseInfo,
+		container *host_container.Container, history *memento.History) error
 }
 
 type Opener struct {
 	openers   []ContentOpener
 	container *host_container.Container
 	importer  *asset_importer.ImportRegistry
+	history   *memento.History
 }
 
-func New(importer *asset_importer.ImportRegistry, container *host_container.Container) Opener {
+func New(importer *asset_importer.ImportRegistry,
+	container *host_container.Container, history *memento.History) Opener {
 	return Opener{
 		importer:  importer,
 		container: container,
+		history:   history,
 	}
 }
 
@@ -73,7 +78,7 @@ func (o *Opener) Register(opener ContentOpener) {
 func (o *Opener) Open(adi asset_info.AssetDatabaseInfo) error {
 	for i := range o.openers {
 		if o.openers[i].Handles(adi) {
-			return o.openers[i].Open(adi, o.container)
+			return o.openers[i].Open(adi, o.container, o.history)
 		}
 	}
 	return ErrNoOpener
