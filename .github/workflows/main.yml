@@ -17,6 +17,16 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@v1
 
+      - name: Setup Go environment
+        uses: actions/setup-go@v5.0.0
+        with:
+          # The Go version to download (if necessary) and use. Supports semver spec and ranges. Be sure to enclose this option in single quotation marks.
+          go-version: 1.22
+
+      - name: Build api docs
+        working-directory: ./src
+        run: go run ./generators/api/main.go
+
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
         env:
