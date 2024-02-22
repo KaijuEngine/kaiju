@@ -21,8 +21,8 @@
 go.work
 go.sum
 
-/project_template/
 bin/
+docs/api/raw
 external/bin
 interpreter/kaiju-*
 *.zip

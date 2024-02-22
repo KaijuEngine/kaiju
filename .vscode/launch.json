@@ -46,6 +46,14 @@
 			"env": {
 				"CGO_LDFLAGS": "-lX11"
 			}
+		},
+		{
+			"name": "Documentation Generator",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/api",
+			"cwd": "${workspaceFolder}",
 		}
 	]
 }
