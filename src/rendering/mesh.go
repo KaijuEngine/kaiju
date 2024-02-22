@@ -60,14 +60,17 @@ type Mesh struct {
 	key            string
 	pendingVerts   []Vertex
 	pendingIndexes []uint32
+	Details        meshDetails
 }
 
 func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
-	return &Mesh{
+	m := &Mesh{
 		key:            key,
 		pendingVerts:   verts,
 		pendingIndexes: indexes,
 	}
+	m.Details.Set(verts, indexes)
+	return m
 }
 
 func (m *Mesh) SetKey(key string) {
