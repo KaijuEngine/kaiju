@@ -85,9 +85,8 @@ func New(host *engine.Host, history *memento.History) Selection {
 	}
 }
 
-func (s *Selection) Entities() []*engine.Entity {
-	return s.entities
-}
+func (s *Selection) Entities() []*engine.Entity { return s.entities }
+func (s *Selection) HasSelection() bool         { return len(s.entities) > 0 }
 
 func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
 
@@ -337,8 +336,12 @@ func (s *Selection) Bounds() collision.AABB {
 	max := matrix.Vec3Inf(-1)
 	for _, e := range s.entities {
 		p := e.Transform.Position()
-		min = matrix.Vec3Min(min, p)
-		max = matrix.Vec3Max(max, p)
+		ex := matrix.Vec3Zero()
+		for _, d := range e.NamedData("drawing") {
+			ex = matrix.Vec3Max(ex, d.(*rendering.Drawing).Mesh.Details.Extents)
+		}
+		min = matrix.Vec3Min(min, p.Subtract(ex))
+		max = matrix.Vec3Max(max, p.Add(ex))
 	}
 	return collision.AABBFromMinMax(min, max)
 }
