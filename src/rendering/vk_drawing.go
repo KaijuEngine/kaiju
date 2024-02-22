@@ -66,6 +66,9 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		if r != vk.Success {
 			slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
 			continue
+		} else if data == nil {
+			slog.Error("MapMemory was a success, but data is nil")
+			continue
 		}
 		vk.Memcopy(data, group.instanceData)
 		vk.UnmapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame])

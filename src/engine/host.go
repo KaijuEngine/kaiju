@@ -55,10 +55,16 @@ type FrameId = uint64
 
 const InvalidFrameId = math.MaxUint64
 
+type frameRun struct {
+	frame FrameId
+	call  func()
+}
+
 type Host struct {
 	name           string
 	editorEntities EditorEntities
 	entities       []*Entity
+	frameRunner    []frameRun
 	Window         *windowing.Window
 	LogStream      *logging.LogStream
 	Camera         cameras.Camera
@@ -98,6 +104,7 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3{0, 0, 1}),
 		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:      logStream,
+		frameRunner:    make([]frameRun, 0),
 	}
 	return host
 }
@@ -179,6 +186,13 @@ func (host *Host) Update(deltaTime float64) {
 	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
+	for i := range host.frameRunner {
+		if host.frameRunner[i].frame == host.frame {
+			host.frameRunner[i].call()
+			host.frameRunner = klib.RemoveUnordered(host.frameRunner, i)
+			i--
+		}
+	}
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
@@ -213,6 +227,13 @@ func (host *Host) Render() {
 
 func (host *Host) Frame() FrameId   { return host.frame }
 func (host *Host) Runtime() float64 { return host.frameTime }
+
+func (host *Host) RunAfterFrames(wait int, call func()) {
+	host.frameRunner = append(host.frameRunner, frameRun{
+		frame: host.frame + uint64(wait),
+		call:  call,
+	})
+}
 
 func (host *Host) Teardown() {
 	host.OnClose.Execute()
