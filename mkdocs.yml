@@ -9,24 +9,24 @@ nav:
 theme:
     name: 'material'
     palette:
-         # Palette toggle for automatic mode
         - media: "(prefers-color-scheme)"
           toggle:
-            icon: material/brightness-auto
+            icon: material/link
             name: Switch to light mode
-        # Palette toggle for light mode
         - media: "(prefers-color-scheme: light)"
-          scheme: default 
+          scheme: default
+          primary: red
+          accent: deep orange
           toggle:
-            icon: material/brightness-7
+            icon: material/toggle-switch
             name: Switch to dark mode
-        # Palette toggle for dark mode
         - media: "(prefers-color-scheme: dark)"
           scheme: slate
+          primary: red
+          accent: deep orange
           toggle:
-            icon: material/brightness-4
+            icon: material/toggle-switch-off
             name: Switch to system preference
-        - primary: red
 markdown_extensions:
     - toc:
         permalink: true
