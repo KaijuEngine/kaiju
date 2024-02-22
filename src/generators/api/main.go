@@ -94,14 +94,15 @@ func rawToMarkdown(rawPath string) error {
 	if err != nil {
 		return err
 	}
-	markdownPath := filepath.Join(filepath.Dir(rawPath), "index.md")
+	mdDir := filepath.Dir(rawPath)
+	markdownPath := filepath.Join(mdDir, "index.md")
 	os.MkdirAll(filepath.Dir(markdownPath), os.ModePerm)
 	f, err := os.Create(markdownPath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	writeMarkdown(f, text)
+	writeMarkdown(f, mdDir, text)
 	return nil
 }
 
@@ -110,7 +111,7 @@ type startEnd struct {
 	end   int
 }
 
-func writeMarkdown(md io.StringWriter, text string) {
+func writeMarkdown(md io.StringWriter, dir, text string) {
 	text = strings.TrimSpace(text)
 	if len(text) == 0 {
 		return
@@ -123,7 +124,7 @@ func writeMarkdown(md io.StringWriter, text string) {
 	if end < 0 {
 		end = len(text)
 	}
-	writePackage(md, text[:end])
+	writePackage(md, dir, text[:end])
 	positions := make(map[string]startEnd)
 	positions["CONSTANTS"] = startEnd{strings.Index(text, "\nCONSTANTS"), e}
 	positions["VARIABLES"] = startEnd{strings.Index(text, "\nVARIABLES"), e}
@@ -163,12 +164,12 @@ func writeMarkdown(md io.StringWriter, text string) {
 	}
 }
 
-func writePackage(md io.StringWriter, line string) {
+func writePackage(md io.StringWriter, dir, line string) {
 	parts := strings.Split(line, " // ")
 	md.WriteString("# ")
 	md.WriteString(parts[0])
 	md.WriteString("\n```go\n")
-	md.WriteString(parts[1])
+	md.WriteString("import kaiju/" + dir)
 	md.WriteString("\n```\n\n")
 }
 
