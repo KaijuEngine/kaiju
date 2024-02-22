@@ -81,6 +81,8 @@ func toADI(path string) string {
 	return path + InfoExtension
 }
 
+// Exists checks to see if a given path has a generated ADI file
+// the file it searches for will be path/to/file.ext.adi
 func Exists(path string) bool {
 	s, err := os.Stat(toADI(path))
 	return err == nil && !s.IsDir()
@@ -118,6 +120,11 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 	}
 }
 
+// Read will read the ADI file for the given path and return the
+// AssetDatabaseInfo struct. Possible errors are:
+// - ErrNoInfo: if the file does not exist
+// - json.Unmarshal error: if the file is corrupted
+// - filesystem.ReadTextFile error: if the file cannot be read
 func Read(path string) (AssetDatabaseInfo, error) {
 	adi := AssetDatabaseInfo{}
 	if !Exists(path) {
@@ -170,6 +177,8 @@ func Move(info AssetDatabaseInfo, newPath string) error {
 	return os.Rename(oldAdiPath, newAdiFile)
 }
 
+// ID returns the ID of the asset within it's ADI file, if
+// the ADI file is not found, the read error is returned
 func ID(path string) (string, error) {
 	aid, err := Read(path)
 	if err != nil {

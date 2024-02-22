@@ -38,21 +38,23 @@
 package html_preview
 
 import (
+	"encoding/json"
 	"fmt"
 	"kaiju/engine"
 	"kaiju/filesystem"
 	"kaiju/host_container"
+	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/systems/console"
 	"os"
+	"strings"
 	"time"
 )
 
 type Preview struct {
 	doc         *document.Document
 	html        string
-	css         string
 	bindingData any
 	lastMod     time.Time
 }
@@ -62,24 +64,13 @@ func (p *Preview) fileChanged() bool {
 	if hErr != nil {
 		return false
 	}
-	if p.css != "" {
-		cs, cErr := os.Stat(p.css)
-		if cErr != nil {
-			return false
-		}
-		return hs.ModTime().After(p.lastMod) || cs.ModTime().After(p.lastMod)
-	} else {
-		return hs.ModTime().After(p.lastMod)
-	}
+	return hs.ModTime().After(p.lastMod)
 }
 
 func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
 		if html, err := filesystem.ReadTextFile(p.html); err == nil {
 			css := ""
-			if p.css != "" {
-				css, _ = filesystem.ReadTextFile(p.css)
-			}
 			if p.doc != nil {
 				for _, elm := range p.doc.Elements {
 					elm.UI.Entity().Destroy()
@@ -92,11 +83,27 @@ func (p *Preview) readHTML(container *host_container.Container) {
 	p.lastMod = time.Now()
 }
 
-func startPreview(previewContainer *host_container.Container, htmlFile, cssFile string, bindingData any) {
+func loadBindingData(htmlFile string) any {
+	bindingFile := htmlFile + ".json"
+	if _, err := os.Stat(bindingFile); os.IsNotExist(err) {
+		return nil
+	}
+	bindingData, err := filesystem.ReadTextFile(bindingFile)
+	if err != nil {
+		return nil
+	}
+	var out any
+	err = klib.JsonDecode(json.NewDecoder(strings.NewReader(bindingData)), &out)
+	if err != nil {
+		return nil
+	}
+	return out
+}
+
+func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	preview := Preview{
 		html:        htmlFile,
-		css:         cssFile,
-		bindingData: bindingData,
+		bindingData: loadBindingData(htmlFile),
 	}
 	preview.readHTML(previewContainer)
 	for !previewContainer.Host.Closing {
@@ -107,12 +114,12 @@ func startPreview(previewContainer *host_container.Container, htmlFile, cssFile 
 	}
 }
 
-func New(htmlFile, cssFile string, bindingData any) (*host_container.Container, error) {
+func New(htmlFile string) (*host_container.Container, error) {
 	c := host_container.New("HTML Preview", nil)
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 	<-c.PrepLock
-	go startPreview(c, htmlFile, cssFile, bindingData)
+	go startPreview(c, htmlFile)
 	return c, nil
 }
 
@@ -121,7 +128,7 @@ func SetupConsole(host *engine.Host) {
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}
-		if _, err := New(filePath, "", nil); err != nil {
+		if _, err := New(filePath); err != nil {
 			return fmt.Sprintf("Error creating preview: %s", err)
 		}
 		return fmt.Sprintf("Previewing file: %s", filePath)

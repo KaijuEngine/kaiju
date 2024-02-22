@@ -188,14 +188,15 @@ func (ed *Editor) update(delta float64) {
 	}
 	ed.selection.Update(ed.Host())
 	kb := &ed.Host().Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyF) {
+	if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)
 		c.SetLookAt(b.Center.Negative())
 		z := b.Extent.Length()
 		if z <= 0.01 {
-			// TODO:  Work out the size of the selected object
 			z = 5
+		} else {
+			z *= 2
 		}
 		c.SetZoom(z)
 	} else if kb.KeyDown(hid.KeyboardKeyG) {

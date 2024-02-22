@@ -1,31 +1,11 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<style>
-			body {
-				padding: 0;
-				margin: 0;
-			}
-			#console {
-				position: absolute;
-				top: 0;
-				height: 300px;
-				background-color: #000;
-				padding: 10px;
-				border-bottom: 1px solid white;
-				z-index: 100;
-			}
-			#consoleContent {
-				padding: 0;
-				height: calc(100% - 32px);
-				overflow-y: scroll;
-				color: white;
-			}
-		</style>
+		<link rel="stylesheet" type="text/css" href="ui/tests/binding_style.css">
 	</head>
 	<body>
-		<div id="console">
-			<div id="consoleContent">
+		<div class="container">
+			<div id="nameList">
 				{{range .EntityNames}}
 					<div>Entity: {{.}}</div>
 				{{end}}

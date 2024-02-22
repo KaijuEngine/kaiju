@@ -98,6 +98,14 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 	}
 }
 
+func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.DocElement)) (*document.Document, error) {
+	m, err := host.AssetDatabase().ReadText(htmlPath)
+	if err != nil {
+		return nil, err
+	}
+	return DocumentFromHTML(host, m, "", withData, funcMap), nil
+}
+
 func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.DocElement)) *document.Document {
 	doc := document.DocumentFromHTMLString(host, html, withData, funcMap)
 	s := rules.NewStyleSheet()
