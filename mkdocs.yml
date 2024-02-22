@@ -1,0 +1,32 @@
+site_name: Kaiju Engine
+site_description: 'The official documentation for the Kaiju game engine'
+site_author: 'Brent Farris'
+docs_dir: docs/
+repo_name: 'KaijuEngine/kaiju'
+repo_url: 'https://github.com/KaijuEngine/kaiju'
+nav:
+    - Home: index.md
+theme:
+    name: 'material'
+    palette:
+        - media: "(prefers-color-scheme)"
+          toggle:
+            icon: material/link
+            name: Switch to light mode
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          primary: red
+          accent: deep orange
+          toggle:
+            icon: material/toggle-switch
+            name: Switch to dark mode
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          primary: red
+          accent: deep orange
+          toggle:
+            icon: material/toggle-switch-off
+            name: Switch to system preference
+markdown_extensions:
+    - toc:
+        permalink: true
