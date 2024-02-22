@@ -22,7 +22,7 @@ go.work
 go.sum
 
 bin/
-docs/api/raw
+docs/api
 external/bin
 interpreter/kaiju-*
 *.zip

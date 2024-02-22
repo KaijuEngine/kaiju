@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"kaiju/filesystem"
@@ -10,8 +11,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 )
+
+//go:embed api_index.md
+var apiIndex string
 
 func findRootFolder() (string, error) {
 	wd, err := os.Getwd()
@@ -55,7 +60,8 @@ func generateRaw() {
 	})
 }
 
-func readRaw() {
+func readRaw() []string {
+	var paths []string
 	filepath.Walk("./raw", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -67,6 +73,10 @@ func readRaw() {
 			return nil
 		}
 		path = path[4:]
+		dir := strings.ReplaceAll(filepath.Dir(path), "\\", "/")
+		if dir != "" && dir != "." {
+			paths = append(paths, dir)
+		}
 		println("Reading the raw documentation for package:", path)
 		err = rawToMarkdown(path)
 		if err != nil {
@@ -75,6 +85,8 @@ func readRaw() {
 		println("Created the markdown documentation for package:", path)
 		return nil
 	})
+	slices.Sort(paths)
+	return paths
 }
 
 func rawToMarkdown(rawPath string) error {
@@ -197,10 +209,11 @@ func writeVar(md io.StringWriter, name, value string) {
 }
 
 func writeConstants(md io.StringWriter, text string) {
+	// TODO:  Add the comment documentation
 	md.WriteString("## Constants\n")
 	lineReg := regexp.MustCompile(`const\s+(\w+)\s+=\s+(\w+)$`)
 	blockReg := regexp.MustCompile(`(?s)const\s+\((.*?)\n\)`)
-	blockLineReg := regexp.MustCompile(`\s+(\w+)([ =]+([\w"'\.]+)|)`)
+	blockLineReg := regexp.MustCompile(`\s+(\w+)(\s+=\s+(.*)|)`)
 	blocks := blockReg.FindAllString(text, -1)
 	lines := lineReg.FindAllStringSubmatch(text, -1)
 	for _, match := range lines {
@@ -215,6 +228,7 @@ func writeConstants(md io.StringWriter, text string) {
 }
 
 func writeVariables(md io.StringWriter, text string) {
+	// TODO:  Add the comment documentation
 	md.WriteString("## Variables\n")
 	lineReg := regexp.MustCompile(`(?s)var\s+(\w+)\s+=\s+(.*?)[^{,]$`)
 	blockReg := regexp.MustCompile(`(?s)var\s+\((.*?)\n\)`)
@@ -322,6 +336,41 @@ func writeTypes(md io.StringWriter, text string) {
 	}
 }
 
+func writeIndex(paths []string) {
+	println("Writing the api/index.md file")
+	idx := klib.MustReturn(os.Create("index.md"))
+	defer idx.Close()
+	idx.WriteString(apiIndex)
+	idx.WriteString("\n")
+	mapping := make(map[string]bool)
+	for _, path := range paths {
+		mapping[path] = true
+	}
+	for k := range mapping {
+		parts := strings.Split(k, "/")
+		for i := 0; i < len(parts)-1; i++ {
+			k := strings.Join(parts[:i+1], "/")
+			if _, ok := mapping[k]; !ok {
+				mapping[k] = false
+			}
+		}
+	}
+	for _, path := range paths {
+		tabs := strings.Count(path, "/")
+		for i := 0; i < tabs; i++ {
+			idx.WriteString("\t")
+		}
+		if mapping[path] {
+			idx.WriteString(fmt.Sprintf("- [%s](%s/)\n", path, path))
+		} else {
+			idx.WriteString("- ")
+			idx.WriteString(path)
+			idx.WriteString("\n")
+		}
+	}
+	println("Finished writing the api/index.md file")
+}
+
 func main() {
 	root, err := findRootFolder()
 	if err != nil {
@@ -330,6 +379,8 @@ func main() {
 	klib.Must(os.Chdir(root))
 	generateRaw()
 	klib.Must(os.Chdir("../docs/api"))
-	readRaw()
-	//rawToMarkdown("assets/asset_info/raw.txt")
+	paths := readRaw()
+	writeIndex(paths)
+	//rawToMarkdown("assets/raw.txt")
+	println("Finished generating the api documentation")
 }
