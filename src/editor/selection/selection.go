@@ -40,6 +40,7 @@ package selection
 import (
 	"kaiju/assets"
 	"kaiju/collision"
+	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/klib"
@@ -47,6 +48,7 @@ import (
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/systems/visual2d/sprite"
+	"slices"
 )
 
 const (
@@ -61,11 +63,12 @@ type Selection struct {
 	downPos     matrix.Vec2
 	Changed     events.Event
 	shaderDatas []*rendering.ShaderDataBasic
+	history     *memento.History
 }
 
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
 
-func New(host *engine.Host) Selection {
+func New(host *engine.Host, history *memento.History) Selection {
 	tex := klib.MustReturn(host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear))
 	host.CreatingEditorEntities()
@@ -78,6 +81,7 @@ func New(host *engine.Host) Selection {
 		entities:    make([]*engine.Entity, 0),
 		Changed:     events.New(),
 		shaderDatas: make([]*rendering.ShaderDataBasic, 0),
+		history:     history,
 	}
 }
 
@@ -92,7 +96,10 @@ func (s *Selection) deactivateBox() {
 	s.box.Deactivate()
 }
 
-func (s *Selection) Clear() {
+func (s *Selection) clearInternal() {
+	if len(s.entities) == 0 {
+		return
+	}
 	for i := range s.shaderDatas {
 		s.shaderDatas[i].Destroy()
 	}
@@ -100,11 +107,43 @@ func (s *Selection) Clear() {
 	s.entities = s.entities[:0]
 }
 
-func (s *Selection) Add(e *engine.Entity) {
-	for i := range s.entities {
-		if s.entities[i] == e {
-			return
+func (s *Selection) Clear() {
+	if len(s.entities) == 0 {
+		return
+	}
+	s.history.Add(&selectHistory{
+		selection: s,
+		from:      slices.Clone(s.entities),
+		to:        make([]*engine.Entity, 0),
+	})
+	s.clearInternal()
+}
+
+func (s *Selection) setInternal(entities []*engine.Entity) {
+	for _, e := range s.entities {
+		if !slices.Contains(entities, e) {
+			s.removeInternal(e)
 		}
+	}
+	for _, e := range entities {
+		s.addInternal(e)
+	}
+}
+
+func (s *Selection) Set(e ...*engine.Entity) {
+	from := slices.Clone(s.entities)
+	s.setInternal(e)
+	s.history.Add(&selectHistory{
+		selection: s,
+		from:      from,
+		to:        slices.Clone(s.entities),
+	})
+	s.Changed.Execute()
+}
+
+func (s *Selection) addInternal(e *engine.Entity) {
+	if slices.Contains(s.entities, e) {
+		return
 	}
 	s.entities = append(s.entities, e)
 	outline := s.host.ShaderCache().
@@ -125,6 +164,49 @@ func (s *Selection) Add(e *engine.Entity) {
 		cpy.UseBlending = false
 		s.host.Drawings.AddDrawing(&cpy, dc)
 	}
+}
+
+func (s *Selection) removeInternal(e *engine.Entity) {
+	for i := range s.entities {
+		if s.entities[i] == e {
+			s.entities = append(s.entities[:i], s.entities[i+1:]...)
+			s.shaderDatas[i].Destroy()
+			s.shaderDatas = slices.Delete(s.shaderDatas, i, i+1)
+			break
+		}
+	}
+}
+
+func (s *Selection) Remove(e ...*engine.Entity) {
+	if len(e) == 0 {
+		return
+	}
+	from := slices.Clone(s.entities)
+	for i := range e {
+		s.removeInternal(e[i])
+	}
+	s.history.Add(&selectHistory{
+		selection: s,
+		from:      from,
+		to:        slices.Clone(s.entities),
+	})
+	s.Changed.Execute()
+}
+
+func (s *Selection) Add(e ...*engine.Entity) {
+	if len(e) == 0 {
+		return
+	}
+	from := slices.Clone(s.entities)
+	for i := range e {
+		s.addInternal(e[i])
+	}
+	s.history.Add(&selectHistory{
+		selection: s,
+		from:      from,
+		to:        slices.Clone(s.entities),
+	})
+	s.Changed.Execute()
 }
 
 func (s *Selection) Update(host *engine.Host) {
@@ -155,11 +237,6 @@ func (s *Selection) boxDrag(host *engine.Host) {
 }
 
 func (s *Selection) clickSelect(host *engine.Host) {
-	changed := false
-	if !host.Window.Keyboard.HasCtrl() {
-		changed = len(s.entities) > 0
-		s.Clear()
-	}
 	ray := host.Camera.RayCast(s.downPos)
 	all := host.Entities()
 	for i := range all {
@@ -167,22 +244,17 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
-			s.Add(all[i])
-			changed = true
+			if host.Window.Keyboard.HasCtrl() {
+				s.Add(all[i])
+			} else {
+				s.Set(all[i])
+			}
 			break
 		}
-	}
-	if changed {
-		s.Changed.Execute()
 	}
 }
 
 func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
-	changed := false
-	if !host.Window.Keyboard.HasCtrl() {
-		changed = len(s.entities) > 0
-		s.Clear()
-	}
 	all := host.Entities()
 	pts := make([]matrix.Vec3, len(all))
 	vp := host.Window.Viewport()
@@ -194,14 +266,20 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
 	box := matrix.Vec4Area(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
+	adding := make([]*engine.Entity, 0, len(all))
 	for i := range pts {
 		if box.AreaContains(pts[i].X(), pts[i].Y()) {
-			s.Add(all[i])
-			changed = true
+			adding = append(adding, all[i])
 		}
 	}
-	if changed {
-		s.Changed.Execute()
+	if len(adding) > 0 {
+		if host.Window.Keyboard.HasCtrl() {
+			s.Add(adding...)
+		} else {
+			s.Set(adding...)
+		}
+	} else {
+		s.Clear()
 	}
 }
 

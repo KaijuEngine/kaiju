@@ -1,6 +1,6 @@
 package transform_tools
 
-type ToolState = int
+type ToolState = uint8
 
 const (
 	ToolStateNone ToolState = iota

@@ -44,6 +44,7 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
 	"kaiju/editor/ui/log_window"
@@ -54,16 +55,20 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/host_container"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 type Editor struct {
 	Container      *host_container.Container
 	menu           *menu.Menu
+	editorDir      string
 	project        string
+	history        memento.History
 	cam            controls.EditorCamera
 	AssetImporters asset_importer.ImportRegistry
 	ContentOpener  content_opener.Opener
@@ -85,8 +90,10 @@ func New(container *host_container.Container) *Editor {
 	ed := &Editor{
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
-		selection:      selection.New(host),
+		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
+		history:        memento.NewHistory(),
 	}
+	ed.selection = selection.New(host, &ed.history)
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
 	ed.ContentOpener = content_opener.New(&ed.AssetImporters, container)
@@ -155,8 +162,8 @@ func (e *Editor) SetupUI() {
 		e.Host().OnClose.Add(func() {
 			ot.Destroy(win.Renderer)
 		})
-
-		e.transformTool = transform_tools.New(e.Host(), &e.selection, e.overlayCanvas)
+		e.transformTool = transform_tools.New(e.Host(),
+			&e.selection, e.overlayCanvas, &e.history)
 		e.selection.Changed.Add(func() {
 			e.transformTool.Disable()
 		})
@@ -181,7 +188,7 @@ func (ed *Editor) update(delta float64) {
 	if kb.KeyDown(hid.KeyboardKeyF) {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)
-		c.SetLookAt(b.Center)
+		c.SetLookAt(b.Center.Negative())
 		z := b.Extent.Length()
 		if z <= 0.01 {
 			// TODO:  Work out the size of the selected object
@@ -194,5 +201,11 @@ func (ed *Editor) update(delta float64) {
 		ed.transformTool.Enable(transform_tools.ToolStateRotate)
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
 		ed.transformTool.Enable(transform_tools.ToolStateScale)
+	} else if kb.HasCtrl() {
+		if kb.KeyDown(hid.KeyboardKeyZ) {
+			ed.history.Undo()
+		} else if kb.KeyDown(hid.KeyboardKeyY) {
+			ed.history.Redo()
+		}
 	}
 }

@@ -1,6 +1,6 @@
 package transform_tools
 
-type AxisState int
+type AxisState uint8
 
 const (
 	AxisStateNone AxisState = iota

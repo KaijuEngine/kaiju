@@ -2,11 +2,13 @@ package transform_tools
 
 import (
 	"kaiju/assets"
+	"kaiju/editor/memento"
 	"kaiju/editor/selection"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"slices"
 )
 
 type TransformTool struct {
@@ -17,6 +19,7 @@ type TransformTool struct {
 	wires          [3]rendering.Drawing
 	wireTransform  *matrix.Transform
 	resets         []matrix.Vec3
+	history        *memento.History
 	transformDirty int
 	firstHitUpdate bool
 }
@@ -43,13 +46,14 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
 }
 
 func New(host *engine.Host, selection *selection.Selection,
-	canvas rendering.Canvas) TransformTool {
+	canvas rendering.Canvas, history *memento.History) TransformTool {
 
 	wt := matrix.NewTransform()
 	t := TransformTool{
 		selection:     selection,
 		wireTransform: &wt,
 		resets:        make([]matrix.Vec3, 0, 32),
+		history:       history,
 	}
 	left := matrix.Vec3{-10000, 0, 0}
 	right := matrix.Vec3{10000, 0, 0}
@@ -139,7 +143,30 @@ func (t *TransformTool) updateResets() {
 	}
 }
 
+func (t *TransformTool) addHistory() {
+	all := t.selection.Entities()
+	to := make([]matrix.Vec3, len(all))
+	from := make([]matrix.Vec3, len(all))
+	for i, e := range all {
+		from[i] = t.resets[i]
+		if t.state == ToolStateMove {
+			to[i] = e.Transform.Position()
+		} else if t.state == ToolStateRotate {
+			to[i] = e.Transform.Rotation()
+		} else if t.state == ToolStateScale {
+			to[i] = e.Transform.Scale()
+		}
+	}
+	t.history.Add(&toolHistory{
+		entities: slices.Clone(t.selection.Entities()),
+		from:     from,
+		to:       to,
+		state:    t.state,
+	})
+}
+
 func (t *TransformTool) commitChange() {
+	t.addHistory()
 	t.resets = t.resets[:0]
 	t.Disable()
 }
