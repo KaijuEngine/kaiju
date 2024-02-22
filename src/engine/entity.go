@@ -46,20 +46,21 @@ import (
 )
 
 type Entity struct {
-	Transform                       matrix.Transform
-	Parent                          *Entity
-	Children                        []*Entity
-	matrix                          matrix.Mat4
-	namedData                       map[string][]interface{}
-	OnDestroy                       events.Event
-	OnActivate                      events.Event
-	OnDeactivate                    events.Event
-	name                            string
-	destroyedFrames                 int8
-	isDestroyed                     bool
-	isActive, deactivatedFromParent bool
-	relativeTransformations         bool
-	orderedChildren                 bool
+	Transform               matrix.Transform
+	Parent                  *Entity
+	Children                []*Entity
+	matrix                  matrix.Mat4
+	namedData               map[string][]interface{}
+	OnDestroy               events.Event
+	OnActivate              events.Event
+	OnDeactivate            events.Event
+	name                    string
+	destroyedFrames         int8
+	isDestroyed             bool
+	isActive                bool
+	deactivatedFromParent   bool
+	relativeTransformations bool
+	orderedChildren         bool
 }
 
 func NewEntity() *Entity {

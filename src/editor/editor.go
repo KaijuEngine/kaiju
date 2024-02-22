@@ -91,12 +91,13 @@ func New(container *host_container.Container) *Editor {
 		Container:      container,
 		AssetImporters: asset_importer.NewImportRegistry(),
 		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
-		history:        memento.NewHistory(),
+		history:        memento.NewHistory(100),
 	}
 	ed.selection = selection.New(host, &ed.history)
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
-	ed.ContentOpener = content_opener.New(&ed.AssetImporters, container)
+	ed.ContentOpener = content_opener.New(&ed.AssetImporters,
+		container, &ed.history)
 	ed.ContentOpener.Register(content_opener.ObjOpener{})
 	return ed
 }

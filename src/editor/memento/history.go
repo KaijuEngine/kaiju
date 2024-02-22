@@ -3,11 +3,13 @@ package memento
 type History struct {
 	undoStack []Memento
 	position  int
+	limit     int
 }
 
-func NewHistory() History {
+func NewHistory(limit int) History {
 	return History{
 		undoStack: make([]Memento, 0),
+		limit:     limit,
 	}
 }
 
@@ -18,6 +20,11 @@ func (h *History) Add(m Memento) {
 	h.undoStack = h.undoStack[:h.position]
 	h.undoStack = append(h.undoStack, m)
 	h.position++
+	if h.position > h.limit {
+		h.position = h.limit
+		h.undoStack[0].Exit()
+		h.undoStack = h.undoStack[1:]
+	}
 }
 
 func (h *History) Undo() {
@@ -34,6 +41,6 @@ func (h *History) Redo() {
 		return
 	}
 	m := h.undoStack[h.position]
-	m.Do()
+	m.Redo()
 	h.position++
 }

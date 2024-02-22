@@ -12,7 +12,7 @@ type selectHistory struct {
 	// code like this
 }
 
-func (h *selectHistory) Do() {
+func (h *selectHistory) Redo() {
 	h.selection.setInternal(h.to)
 }
 
@@ -21,3 +21,4 @@ func (h *selectHistory) Undo() {
 }
 
 func (h *selectHistory) Delete() {}
+func (h *selectHistory) Exit()   {}

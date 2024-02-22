@@ -12,7 +12,7 @@ type toolHistory struct {
 	state    ToolState
 }
 
-func (h *toolHistory) Do() {
+func (h *toolHistory) Redo() {
 	for i, e := range h.entities {
 		if h.state == ToolStateMove {
 			e.Transform.SetPosition(h.to[i])
@@ -37,3 +37,4 @@ func (h *toolHistory) Undo() {
 }
 
 func (h *toolHistory) Delete() {}
+func (h *toolHistory) Exit()   {}

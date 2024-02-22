@@ -45,8 +45,11 @@ func newEditorEntities() EditorEntities {
 	return EditorEntities{}
 }
 
-func (e EditorEntities) TickCleanup() {}
-func (e EditorEntities) ResetDirty()  {}
+func (e EditorEntities) tickCleanup()          {}
+func (e EditorEntities) resetDirty()           {}
+func (e EditorEntities) remove(entity *Entity) {}
+
+func (e EditorEntities) contains(entity *Entity) bool { return false }
 
 func (host *Host) addEntity(entity *Entity) {
 	host.entities = append(host.entities, entity)

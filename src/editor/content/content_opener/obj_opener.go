@@ -42,6 +42,7 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
+	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/matrix"
@@ -54,7 +55,7 @@ func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeObj
 }
 
-func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
+func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity) error {
 	texId := assets.TextureSquare
 	if t, ok := adi.Metadata["texture"]; ok {
 		texId = t
@@ -89,8 +90,6 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
 	}
 	host.MeshCache().AddMesh(mesh)
-	e := host.NewEntity()
-	e.SetName(adi.MetaValue("name"))
 	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Shader:     shader,
@@ -104,13 +103,27 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo) error {
 	return nil
 }
 
-func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, container *host_container.Container) error {
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo,
+	container *host_container.Container, history *memento.History) error {
+
 	host := container.Host
+	e := host.NewEntity()
+	e.SetName(adi.MetaValue("name"))
 	for i := range adi.Children {
-		if err := load(host, adi.Children[i]); err != nil {
+		if err := load(host, adi.Children[i], e); err != nil {
 			return err
 		}
 	}
+	nd := e.NamedData("drawing")
+	drawings := make([]rendering.Drawing, 0, len(nd))
+	for _, d := range nd {
+		drawings = append(drawings, *d.(*rendering.Drawing))
+	}
+	history.Add(&modelOpenHistory{
+		host:     host,
+		entity:   e,
+		drawings: drawings,
+	})
 	container.Host.Window.Focus()
 	return nil
 }

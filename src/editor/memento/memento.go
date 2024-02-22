@@ -1,7 +1,8 @@
 package memento
 
 type Memento interface {
-	Do()
+	Redo()
 	Undo()
 	Delete()
+	Exit()
 }

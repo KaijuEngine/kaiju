@@ -193,6 +193,20 @@ func (s *Selection) Remove(e ...*engine.Entity) {
 	s.Changed.Execute()
 }
 
+func (s *Selection) Toggle(e ...*engine.Entity) {
+	sub := make([]*engine.Entity, 0, len(e))
+	for i := range e {
+		if !slices.Contains(s.entities, e[i]) {
+			sub = append(sub, e[i])
+		}
+	}
+	if len(sub) > 0 {
+		s.Add(sub...)
+	} else {
+		s.Remove(e...)
+	}
+}
+
 func (s *Selection) Add(e ...*engine.Entity) {
 	if len(e) == 0 {
 		return
@@ -239,18 +253,24 @@ func (s *Selection) boxDrag(host *engine.Host) {
 func (s *Selection) clickSelect(host *engine.Host) {
 	ray := host.Camera.RayCast(s.downPos)
 	all := host.Entities()
-	for i := range all {
+	found := false
+	for i := 0; i < len(all) && !found; i++ {
 		pos := all[i].Transform.Position()
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
 			if host.Window.Keyboard.HasCtrl() {
+				s.Toggle(all[i])
+			} else if host.Window.Keyboard.HasShift() {
 				s.Add(all[i])
 			} else {
 				s.Set(all[i])
 			}
-			break
+			found = true
 		}
+	}
+	if !found {
+		s.Clear()
 	}
 }
 
@@ -274,6 +294,8 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 	}
 	if len(adding) > 0 {
 		if host.Window.Keyboard.HasCtrl() {
+			s.Toggle(adding...)
+		} else if host.Window.Keyboard.HasShift() {
 			s.Add(adding...)
 		} else {
 			s.Set(adding...)
