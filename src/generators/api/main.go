@@ -169,7 +169,7 @@ func writePackage(md io.StringWriter, dir, line string) {
 	md.WriteString("# ")
 	md.WriteString(parts[0])
 	md.WriteString("\n```go\n")
-	md.WriteString("import kaiju/" + dir)
+	md.WriteString(`import "kaiju/` + dir + `"`)
 	md.WriteString("\n```\n\n")
 }
 
