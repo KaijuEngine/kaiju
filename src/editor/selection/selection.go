@@ -207,6 +207,16 @@ func (s *Selection) Toggle(e ...*engine.Entity) {
 	}
 }
 
+func (s *Selection) UntrackedClear() {
+	s.clearInternal()
+}
+
+func (s *Selection) UntrackedAdd(e ...*engine.Entity) {
+	for i := range e {
+		s.addInternal(e[i])
+	}
+}
+
 func (s *Selection) Add(e ...*engine.Entity) {
 	if len(e) == 0 {
 		return

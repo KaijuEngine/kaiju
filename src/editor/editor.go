@@ -51,7 +51,8 @@ import (
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/viewport/controls"
-	"kaiju/editor/viewport/transform_tools"
+	"kaiju/editor/viewport/tools/deleter"
+	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/host_container"
@@ -60,6 +61,7 @@ import (
 	"kaiju/rendering"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -208,5 +210,8 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
 		}
+	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
+		deleter.DeleteSelected(&ed.history, &ed.selection,
+			slices.Clone(ed.selection.Entities()))
 	}
 }
