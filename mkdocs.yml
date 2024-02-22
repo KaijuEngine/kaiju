@@ -6,6 +6,12 @@ repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
     - Home: index.md
+    - Getting started:
+      - Build from source: getting_started/build_from_source.md
+    - UI:
+      - Writing: ui/writing.md
+      - Preview: ui/preview.md
+      - Go Access: ui/go_access.md
 theme:
     name: 'material'
     palette:
