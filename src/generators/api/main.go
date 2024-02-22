@@ -378,10 +378,10 @@ func main() {
 		panic(err)
 	}
 	klib.Must(os.Chdir(root))
-	//generateRaw()
+	generateRaw()
 	klib.Must(os.Chdir("../docs/api"))
-	//paths := readRaw()
-	//writeIndex(paths)
-	rawToMarkdown("assets/raw.txt")
+	paths := readRaw()
+	writeIndex(paths)
+	//rawToMarkdown("assets/raw.txt")
 	println("Finished generating the api documentation")
 }
