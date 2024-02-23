@@ -40,7 +40,6 @@ package deleter
 import (
 	"kaiju/editor/selection"
 	"kaiju/engine"
-	"kaiju/rendering"
 )
 
 type deleteHistory struct {
@@ -50,8 +49,9 @@ type deleteHistory struct {
 
 func (h *deleteHistory) Redo() {
 	for _, e := range h.entities {
-		for _, d := range e.NamedData("drawing") {
-			d.(*rendering.Drawing).ShaderData.Deactivate()
+		draws := e.EditorBindings.Drawings()
+		for _, d := range draws {
+			d.ShaderData.Deactivate()
 		}
 		e.Deactivate()
 	}
@@ -62,8 +62,9 @@ func (h *deleteHistory) Redo() {
 
 func (h *deleteHistory) Undo() {
 	for _, e := range h.entities {
-		for _, d := range e.NamedData("drawing") {
-			d.(*rendering.Drawing).ShaderData.Activate()
+		draws := e.EditorBindings.Drawings()
+		for _, d := range draws {
+			d.ShaderData.Activate()
 		}
 		e.Activate()
 	}
@@ -76,8 +77,9 @@ func (h *deleteHistory) Delete() {}
 
 func (h *deleteHistory) Exit() {
 	for _, e := range h.entities {
-		for _, d := range e.NamedData("drawing") {
-			d.(*rendering.Drawing).ShaderData.Destroy()
+		drawings := e.EditorBindings.Drawings()
+		for _, d := range drawings {
+			d.ShaderData.Destroy()
 		}
 		e.Destroy()
 	}

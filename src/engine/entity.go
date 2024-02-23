@@ -63,6 +63,7 @@ type Entity struct {
 	OnActivate            events.Event
 	OnDeactivate          events.Event
 	name                  string
+	EditorBindings        entityEditorBindings
 	destroyedFrames       int8
 	isDestroyed           bool
 	isActive              bool

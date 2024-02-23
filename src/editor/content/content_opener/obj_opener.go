@@ -47,6 +47,7 @@ import (
 	"kaiju/host_container"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"slices"
 )
 
 type ObjOpener struct{}
@@ -98,8 +99,8 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 		ShaderData: data,
 		Transform:  &e.Transform,
 	}
-	e.AddNamedData("drawing", &drawing)
 	host.Drawings.AddDrawing(&drawing, host.Window.Renderer.DefaultCanvas())
+	e.EditorBindings.AddDrawing(drawing)
 	return nil
 }
 
@@ -114,15 +115,10 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo,
 			return err
 		}
 	}
-	nd := e.NamedData("drawing")
-	drawings := make([]rendering.Drawing, 0, len(nd))
-	for _, d := range nd {
-		drawings = append(drawings, *d.(*rendering.Drawing))
-	}
 	history.Add(&modelOpenHistory{
 		host:     host,
 		entity:   e,
-		drawings: drawings,
+		drawings: slices.Clone(e.EditorBindings.Drawings()),
 	})
 	container.Host.Window.Focus()
 	return nil
