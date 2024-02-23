@@ -303,8 +303,7 @@ func writeFunctions(md io.StringWriter, text string) {
 			md.WriteString(line)
 			md.WriteString("\n```\n\n")
 		} else {
-			md.WriteString(strings.TrimSpace(line))
-			md.WriteString("\n")
+			writeDocLine(md, line)
 		}
 	}
 }
@@ -373,38 +372,42 @@ func writeTypes(md io.StringWriter, text string) {
 			md.WriteString(line)
 			md.WriteString("\n```\n\n")
 		} else {
-			skipNewline := false
-			words := strings.Fields(line)
-			out := make([]string, len(words))
-			for i := range words {
-				if strings.HasPrefix(words[i], "#") {
-					w := words[i][1:]
-					l := w
-					r := w
-					if idx := strings.LastIndex(w, "/"); idx > 0 {
-						l = strings.ToLower(w[:idx+1])
-						r = strings.ToLower(w[idx+1:])
-						r = strings.ReplaceAll(r, ".", "")
-						out[i] = fmt.Sprintf(absLinkFmt, w, l, r)
-					} else {
-						a := strings.ToLower(w)
-						a = strings.ReplaceAll(a, ".", "")
-						out[i] = fmt.Sprintf(linkFmt, w, a)
-					}
-				} else if words[i] == "[-]" {
-					out[i] = "\n-"
-					skipNewline = true
-				} else {
-					out[i] = words[i]
-				}
-			}
-			md.WriteString(strings.TrimSpace(strings.Join(out, " ")))
-			if skipNewline {
-				md.WriteString(" ")
-			} else {
-				md.WriteString("\n")
-			}
+			writeDocLine(md, line)
 		}
+	}
+}
+
+func writeDocLine(md io.StringWriter, line string) {
+	skipNewline := false
+	words := strings.Fields(line)
+	out := make([]string, len(words))
+	for i := range words {
+		if strings.HasPrefix(words[i], "#") {
+			w := words[i][1:]
+			l := w
+			r := w
+			if idx := strings.LastIndex(w, "/"); idx > 0 {
+				l = strings.ToLower(w[:idx+1])
+				r = strings.ToLower(w[idx+1:])
+				r = strings.ReplaceAll(r, ".", "")
+				out[i] = fmt.Sprintf(absLinkFmt, w, l, r)
+			} else {
+				a := strings.ToLower(w)
+				a = strings.ReplaceAll(a, ".", "")
+				out[i] = fmt.Sprintf(linkFmt, w, a)
+			}
+		} else if words[i] == "[-]" {
+			out[i] = "\n-"
+			skipNewline = true
+		} else {
+			out[i] = words[i]
+		}
+	}
+	md.WriteString(strings.TrimSpace(strings.Join(out, " ")))
+	if skipNewline {
+		md.WriteString(" ")
+	} else {
+		md.WriteString("\n")
 	}
 }
 
