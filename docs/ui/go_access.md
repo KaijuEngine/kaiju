@@ -18,3 +18,15 @@ In this case `ok` will be `false` if the element could not be found. Otherwise `
 
 ## Other accessors
 You can access other elements by class, tag, or group. Class and tag are the classic ways to access elements in HTML, and group is a way to access a group of elements that have the same value in the `group` html attribute.
+
+For example, the divs with ids `one`, `two`, and `three` all have the same group value of `group1`. You can access all of these divs by calling `GetElementsByGroup` on the document.
+
+```html
+<!-- ... -->
+<div>
+	<div id="one" class="red" group="group1"></div>
+</div>
+<div id="two" class="green" group="group1"></div>
+<div id="three" class="blue" group="group1"></div>
+<!-- ... -->
+```

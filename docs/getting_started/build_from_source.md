@@ -7,7 +7,8 @@ title: Kaiju Engine | Build from source
 Below are instructions on how to build the engine from source. Please take care to ensure you're using the Kaiju Engine Go compiler. It is modified for speed (relating to games) and has some features enabled that are currently disabled in Go until the next release.
 
 ## Prerequisites
-I have made modifications to the Go complier to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
+I have made modifications to the Go compiler to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
+
 - Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
   - This should be placed along side the Kaiju Engine repository
 - Ensure you have the standard Go compiler installed (Go builds Go)
@@ -24,16 +25,16 @@ I have made modifications to the Go complier to increase the performance of the 
 - To build the exe, run `go run build/build.go`
   - Make sure to use the Kaiju Engine Go compiler
 
-### Debug in VSCode
-- Open the project in VSCode
-- Press Ctrl+Shift+P and type "Choose Go Environment"
-  - Select the Kaiju Engine Go compiler `bin` folder
-- Select one of the Windows debug options
-- Press F5
-
 ## Linux development
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
 - To build the exe, run `go run build/build.go`
   - Make sure to use the Kaiju Engine Go compiler
+
+## Debug in VSCode
+- Open the project in VSCode
+- Press Ctrl+Shift+P and type "Choose Go Environment"
+  - Select the Kaiju Engine Go compiler `bin` folder
+- Select one of the debug options
+- Press F5
