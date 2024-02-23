@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* select_history.go                                                          */
+/* host_context.go                                                            */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,27 +35,30 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package selection
+package engine
 
-import "kaiju/engine"
+import (
+	"context"
+	"time"
+)
 
-type selectHistory struct {
-	selection *Selection
-	from      []*engine.Entity
-	to        []*engine.Entity
-	// TODO:  Pointers won't due when we delete/restore entities
-	// we'll likely want to not actually destroy the entity until
-	// it falls off the history stack as that greatly simplifies
-	// code like this
+/******************************************************************************/
+/* Functions to fulfil the context.Context interface                          */
+/******************************************************************************/
+
+// Deadline is here to fulfil context.Context and will return zero and false
+func (h *Host) Deadline() (time.Time, bool) { return time.Time{}, false }
+
+// Done is here to fulfil context.Context and will cose the #CloseSignal channel
+func (h *Host) Done() <-chan struct{} { return h.CloseSignal }
+
+// Err is here to fulfil context.Context and will return nil or context.Canceled
+func (h *Host) Err() error {
+	if h.Closing {
+		return context.Canceled
+	}
+	return nil
 }
 
-func (h *selectHistory) Redo() {
-	h.selection.setInternal(h.to)
-}
-
-func (h *selectHistory) Undo() {
-	h.selection.setInternal(h.from)
-}
-
-func (h *selectHistory) Delete() {}
-func (h *selectHistory) Exit()   {}
+// Value is here to fulfil context.Context and will always return nil
+func (h *Host) Value(key any) any { return nil }
