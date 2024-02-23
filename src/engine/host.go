@@ -73,7 +73,7 @@ type frameRun struct {
 // windows and game state.
 type Host struct {
 	name           string
-	editorEntities EditorEntities
+	editorEntities editorEntities
 	entities       []*Entity
 	frameRunner    []frameRun
 	Window         *windowing.Window

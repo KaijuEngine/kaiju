@@ -41,13 +41,13 @@ package engine
 
 import "kaiju/klib"
 
-type EditorEntities []*Entity
+type editorEntities []*Entity
 
-func newEditorEntities() EditorEntities {
+func newEditorEntities() editorEntities {
 	return make([]*Entity, 0)
 }
 
-func (e *EditorEntities) remove(entity *Entity) {
+func (e *editorEntities) remove(entity *Entity) {
 	for i, t := range *e {
 		if t == entity {
 			*e = klib.RemoveUnordered(*e, i)
@@ -56,7 +56,7 @@ func (e *EditorEntities) remove(entity *Entity) {
 	}
 }
 
-func (e EditorEntities) contains(entity *Entity) bool {
+func (e editorEntities) contains(entity *Entity) bool {
 	for _, t := range e {
 		if t == entity {
 			return true
@@ -65,7 +65,7 @@ func (e EditorEntities) contains(entity *Entity) bool {
 	return false
 }
 
-func (e *EditorEntities) tickCleanup() {
+func (e *editorEntities) tickCleanup() {
 	back := len(*e)
 	for i, t := range *e {
 		if t.TickCleanup() {
@@ -76,7 +76,7 @@ func (e *EditorEntities) tickCleanup() {
 	*e = (*e)[:back]
 }
 
-func (e EditorEntities) resetDirty() {
+func (e editorEntities) resetDirty() {
 	for _, t := range e {
 		t.Transform.ResetDirty()
 	}
