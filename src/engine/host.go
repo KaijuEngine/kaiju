@@ -38,7 +38,6 @@
 package engine
 
 import (
-	"context"
 	"kaiju/assets"
 	"kaiju/cameras"
 	"kaiju/klib"
@@ -253,6 +252,7 @@ func (host *Host) NewEntity() *Entity {
 // the window has been closed or crashed and set the closing flag accordingly.
 //
 // The update order is FrameRunner -> Update -> LateUpdate -> EndUpdate:
+//
 // [-] FrameRunner: Functions added to RunAfterFrames
 // [-] Update: Functions added to Updater
 // [-] LateUpdate: Functions added to LateUpdater
@@ -303,9 +303,14 @@ func (host *Host) Render() {
 	host.editorEntities.resetDirty()
 }
 
-func (host *Host) Frame() FrameId   { return host.frame }
+// Frame will return the current frame id
+func (host *Host) Frame() FrameId { return host.frame }
+
+// Runtime will return how long the host has been running in seconds
 func (host *Host) Runtime() float64 { return host.frameTime }
 
+// RunAfterFrames will call the given function after the given number of frames
+// have passed from the current frame
 func (host *Host) RunAfterFrames(wait int, call func()) {
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame + uint64(wait),
@@ -313,6 +318,8 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 	})
 }
 
+// Teardown will destroy the host and all of its resources. This will also
+// execute the OnClose event. This will also signal the CloseSignal channel.
 func (host *Host) Teardown() {
 	host.OnClose.Execute()
 	host.Updater.Destroy()
@@ -327,33 +334,18 @@ func (host *Host) Teardown() {
 	host.CloseSignal <- struct{}{}
 }
 
-/* context.Context implementation */
-
-func (h *Host) Deadline() (time.Time, bool) {
-	return time.Time{}, false
-}
-
-func (h *Host) Done() <-chan struct{} {
-	return h.CloseSignal
-}
-
-func (h *Host) Err() error {
-	if h.Closing {
-		return context.Canceled
-	}
-	return nil
-}
-
-func (h *Host) Value(key any) any {
-	return nil
-}
-
+// WaitForFrameRate will block until the desired frame rate limit is reached
 func (h *Host) WaitForFrameRate() {
 	if h.frameRateLimit != nil {
 		<-h.frameRateLimit.C
 	}
 }
 
+// SetFrameRateLimit will set the frame rate limit for the host. If the frame
+// rate is set to 0, then the frame rate limit will be removed.
+//
+// If a frame rate is set, then the host will block until the desired frame rate
+// is reached before continuing the update loop.
 func (h *Host) SetFrameRateLimit(fps int64) {
 	if fps == 0 {
 		h.frameRateLimit.Stop()
@@ -363,6 +355,8 @@ func (h *Host) SetFrameRateLimit(fps int64) {
 	}
 }
 
+// Close will set the closing flag to true and signal the host to clean up
+// resources and close the window.
 func (host *Host) Close() {
 	host.Closing = true
 }
