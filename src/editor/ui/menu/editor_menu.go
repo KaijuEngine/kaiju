@@ -39,6 +39,7 @@ package menu
 
 import (
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/stages"
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/log_window"
@@ -57,6 +58,7 @@ type Menu struct {
 	doc           *document.Document
 	isOpen        bool
 	logWindow     *log_window.LogWindow
+	stageManager  *stages.Manager
 	contentOpener *content_opener.Opener
 }
 
@@ -109,18 +111,28 @@ func (m *Menu) openContentWindow(*document.DocElement) {
 	content_window.New(m.contentOpener)
 }
 
-func New(container *host_container.Container, logWindow *log_window.LogWindow, contentOpener *content_opener.Opener) *Menu {
+func (m *Menu) saveStage(*document.DocElement) {
+	m.stageManager.Save()
+}
+
+func New(container *host_container.Container,
+	logWindow *log_window.LogWindow,
+	stageManager *stages.Manager,
+	contentOpener *content_opener.Opener) *Menu {
+
 	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
 	m := &Menu{
 		container:     container,
 		logWindow:     logWindow,
+		stageManager:  stageManager,
 		contentOpener: contentOpener,
 	}
 	funcMap := map[string]func(*document.DocElement){
 		"openLogWindow":     m.openLogWindow,
 		"openRepository":    openRepository,
 		"openAbout":         openAbout,
+		"saveStage":         m.saveStage,
 		"openContentWindow": m.openContentWindow,
 		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
 		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },

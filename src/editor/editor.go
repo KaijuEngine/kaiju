@@ -47,6 +47,7 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
+	"kaiju/editor/stages"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -73,7 +74,8 @@ type Editor struct {
 	history        memento.History
 	cam            controls.EditorCamera
 	AssetImporters asset_importer.ImportRegistry
-	ContentOpener  content_opener.Opener
+	stageManager   stages.Manager
+	contentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
 	transformTool  transform_tools.TransformTool
@@ -94,13 +96,14 @@ func New(container *host_container.Container) *Editor {
 		AssetImporters: asset_importer.NewImportRegistry(),
 		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
 		history:        memento.NewHistory(100),
+		stageManager:   stages.NewManager(host),
 	}
 	ed.selection = selection.New(host, &ed.history)
 	ed.AssetImporters.Register(asset_importer.OBJImporter{})
 	ed.AssetImporters.Register(asset_importer.PNGImporter{})
-	ed.ContentOpener = content_opener.New(&ed.AssetImporters,
+	ed.contentOpener = content_opener.New(&ed.AssetImporters,
 		container, &ed.history)
-	ed.ContentOpener.Register(content_opener.ObjOpener{})
+	ed.contentOpener.Register(content_opener.ObjOpener{})
 	return ed
 }
 
@@ -150,7 +153,8 @@ func (e *Editor) SetupUI() {
 	projectPath := <-projectWindow.Selected
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host().LogStream)
-	e.menu = menu.New(e.Container, e.logWindow, &e.ContentOpener)
+	e.menu = menu.New(e.Container, e.logWindow,
+		&e.stageManager, &e.contentOpener)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
