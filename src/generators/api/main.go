@@ -18,6 +18,10 @@ import (
 //go:embed api_index.md
 var apiIndex string
 
+const (
+	linkFmt = "[%s](#%s)"
+)
+
 func findRootFolder() (string, error) {
 	wd, err := os.Getwd()
 	if _, goMain, _, ok := runtime.Caller(0); ok {
@@ -306,7 +310,7 @@ func writeTypes(md io.StringWriter, text string) {
 				md.WriteString(line)
 			} else {
 				for j := i; j < len(lines); j++ {
-					if strings.Contains(lines[j], "}") {
+					if strings.Contains(lines[j], "}") && !strings.Contains(lines[j], "{") {
 						break
 					}
 					md.WriteString(lines[j])
@@ -331,8 +335,29 @@ func writeTypes(md io.StringWriter, text string) {
 			md.WriteString(line)
 			md.WriteString("\n```\n\n")
 		} else {
-			md.WriteString(strings.TrimSpace(line))
-			md.WriteString("\n")
+			skipNewline := false
+			words := strings.Fields(line)
+			out := make([]string, len(words))
+			for i := range words {
+				if strings.HasPrefix(words[i], "#") {
+					w := words[i][1:]
+					if idx := strings.LastIndex(w, "/"); idx > 0 {
+						w = w[idx+1:] + "#" + w[idx+1:]
+					}
+					out[i] = fmt.Sprintf(linkFmt, w, w)
+				} else if words[i] == "[-]" {
+					out[i] = "\n-"
+					skipNewline = true
+				} else {
+					out[i] = words[i]
+				}
+			}
+			md.WriteString(strings.TrimSpace(strings.Join(out, " ")))
+			if skipNewline {
+				md.WriteString(" ")
+			} else {
+				md.WriteString("\n")
+			}
 		}
 	}
 }

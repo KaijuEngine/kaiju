@@ -100,7 +100,9 @@ type Host struct {
 
 // NewHost creates a new host with the given name and log stream. The log stream
 // is the log handler that is used by the slog package functions. A Host that
-// is created through NewHost has no function until Initialize is called.
+// is created through NewHost has no function until #Initialize is called.
+//
+// This is primarily called from #host_container/HostContainer.New
 func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
@@ -163,14 +165,14 @@ func (host *Host) resized() {
 // separate editor entities from game entities.
 //
 // This will increment so it can be called many times, however it is expected
-// that DoneCreatingEditorEntities will be called the same number of times.
+// that #DoneCreatingEditorEntities will be called the same number of times.
 func (host *Host) CreatingEditorEntities() {
 	host.inEditorEntity++
 }
 
 // DoneCreatingEditorEntities is used to signal that the editor is done creating
 // entities. This should be called the same number of times as
-// CreatingEditorEntities. When the internal counter reaches 0, then any entity
+// #CreatingEditorEntities. When the internal counter reaches 0, then any entity
 // created on the host will go to the standard entity pool.
 func (host *Host) DoneCreatingEditorEntities() {
 	host.inEditorEntity--
@@ -250,11 +252,11 @@ func (host *Host) NewEntity() *Entity {
 // events, update the entities, and render the scene. This will also check if
 // the window has been closed or crashed and set the closing flag accordingly.
 //
-// The update order is FrameRunner -> Update -> LateUpdate -> EndUpdate
-// FrameRunner: Functions added to RunAfterFrames
-// Update: Functions added to Updater
-// LateUpdate: Functions added to LateUpdater
-// EndUpdate: Internal functions for preparing for the next frame
+// The update order is FrameRunner -> Update -> LateUpdate -> EndUpdate:
+// [-] FrameRunner: Functions added to RunAfterFrames
+// [-] Update: Functions added to Updater
+// [-] LateUpdate: Functions added to LateUpdater
+// [-] EndUpdate: Internal functions for preparing for the next frame
 //
 // Any destroyed entities will also be ticked for their cleanup. This will also
 // tick the editor entities for cleanup.
