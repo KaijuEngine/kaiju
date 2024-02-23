@@ -56,7 +56,8 @@ import (
 var apiIndex string
 
 const (
-	linkFmt = "[%s](#%s)"
+	linkFmt    = "[%s](#%s)"
+	absLinkFmt = "[%s](/api/%s#%s)"
 )
 
 func findRootFolder() (string, error) {
@@ -378,10 +379,18 @@ func writeTypes(md io.StringWriter, text string) {
 			for i := range words {
 				if strings.HasPrefix(words[i], "#") {
 					w := words[i][1:]
+					l := w
+					r := w
 					if idx := strings.LastIndex(w, "/"); idx > 0 {
-						w = w[idx+1:] + "#" + w[idx+1:]
+						l = strings.ToLower(w[:idx+1])
+						r = strings.ToLower(w[idx+1:])
+						r = strings.ReplaceAll(r, ".", "")
+						out[i] = fmt.Sprintf(absLinkFmt, w, l, r)
+					} else {
+						a := strings.ToLower(w)
+						a = strings.ReplaceAll(a, ".", "")
+						out[i] = fmt.Sprintf(linkFmt, w, a)
 					}
-					out[i] = fmt.Sprintf(linkFmt, w, w)
 				} else if words[i] == "[-]" {
 					out[i] = "\n-"
 					skipNewline = true

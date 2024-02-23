@@ -101,7 +101,7 @@ type Host struct {
 // is the log handler that is used by the slog package functions. A Host that
 // is created through NewHost has no function until #Host.Initialize is called.
 //
-// This is primarily called from #host_container/HostContainer.New
+// This is primarily called from #host_container/New
 func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
