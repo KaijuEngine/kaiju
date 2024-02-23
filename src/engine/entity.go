@@ -45,24 +45,32 @@ import (
 	"slices"
 )
 
+// Entity is a struct that represents an arbitrary object in the host system.
+// It contains a 3D transformation and can be a parent of, or a child to, other
+// entities. Entities can also contain arbitrary named data to make it easier
+// to access data that is specific to the entity.
+//
+// Child entities are unordered by default, you'll need to call
+// #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
+// children unordered unless you have a specific reason to order them.
 type Entity struct {
-	Transform               matrix.Transform
-	Parent                  *Entity
-	Children                []*Entity
-	matrix                  matrix.Mat4
-	namedData               map[string][]interface{}
-	OnDestroy               events.Event
-	OnActivate              events.Event
-	OnDeactivate            events.Event
-	name                    string
-	destroyedFrames         int8
-	isDestroyed             bool
-	isActive                bool
-	deactivatedFromParent   bool
-	relativeTransformations bool
-	orderedChildren         bool
+	Transform             matrix.Transform
+	Parent                *Entity
+	Children              []*Entity
+	matrix                matrix.Mat4
+	namedData             map[string][]any
+	OnDestroy             events.Event
+	OnActivate            events.Event
+	OnDeactivate          events.Event
+	name                  string
+	destroyedFrames       int8
+	isDestroyed           bool
+	isActive              bool
+	deactivatedFromParent bool
+	orderedChildren       bool
 }
 
+// NewEntity creates a new #Entity struct and returns it
 func NewEntity() *Entity {
 	return &Entity{
 		isActive:     true,
@@ -77,21 +85,46 @@ func NewEntity() *Entity {
 	}
 }
 
-func (e *Entity) IsRoot() bool            { return e.Parent == nil }
-func (e *Entity) ChildCount() int         { return len(e.Children) }
+// IsRoot returns true if the entity is the root entity in the hierarchy
+func (e *Entity) IsRoot() bool { return e.Parent == nil }
+
+// ChildCount returns the number of children the entity has
+func (e *Entity) ChildCount() int { return len(e.Children) }
+
+// ChildAt returns the child entity at the specified index
 func (e *Entity) ChildAt(idx int) *Entity { return e.Children[idx] }
 
+// Name returns the name of the entity
+func (e *Entity) Name() string { return e.name }
+
+// SetName sets the name of the entity
+func (e *Entity) SetName(name string) { e.name = name }
+
+// IsActive will return true if the entity is active, false otherwise
+func (e *Entity) IsActive() bool { return e.isActive }
+
+// IsDestroyed will return true if the entity is destroyed, false otherwise
+func (e *Entity) IsDestroyed() bool { return e.isDestroyed }
+
+// SetChildrenOrdered sets the children of the entity to be ordered
 func (e *Entity) SetChildrenOrdered() {
 	e.orderedChildren = true
 	e.Transform.SetChildrenOrdered()
 }
 
+// SetChildrenUnordered sets the children of the entity to be unordered
 func (e *Entity) SetChildrenUnordered() {
 	e.orderedChildren = false
 	e.Transform.SetChildrenUnordered()
 }
 
+// Activate will set an active flag on the entity that can be queried with
+// #Entity.IsActive. It will also set the active flag on all children of the
+// entity. If the entity is already active, this function will do nothing.
 func (e *Entity) Activate() {
+	if e.isActive {
+		return
+	}
 	e.Transform.SetDirty()
 	e.isActive = true
 	for i := range e.Children {
@@ -100,7 +133,13 @@ func (e *Entity) Activate() {
 	e.OnActivate.Execute()
 }
 
+// Deactivate will set an active flag on the entity that can be queried with
+// #Entity.IsActive. It will also set the active flag on all children of the
+// entity. If the entity is already inactive, this function will do nothing.
 func (e *Entity) Deactivate() {
+	if !e.isActive {
+		return
+	}
 	e.deactivatedFromParent = false
 	e.isActive = false
 	for i := range e.Children {
@@ -109,35 +148,9 @@ func (e *Entity) Deactivate() {
 	e.OnDeactivate.Execute()
 }
 
-func (e *Entity) RemoveFromParent() {
-	if e.Parent != nil {
-		for i := range e.Parent.Children {
-			me := e.Parent.Children[i]
-			if me == e {
-				if e.orderedChildren {
-					e.Parent.Children = slices.Delete(e.Parent.Children, i, i+1)
-				} else {
-					e.Parent.Children = klib.RemoveUnordered(e.Parent.Children, i)
-				}
-				break
-			}
-		}
-	}
-}
-
-func (e *Entity) activateFromParent() {
-	if e.deactivatedFromParent {
-		e.Activate()
-		e.deactivatedFromParent = false
-	}
-}
-
-func (e *Entity) deactivateFromParent() {
-	fromParent := e.deactivatedFromParent || e.isActive
-	e.Deactivate()
-	e.deactivatedFromParent = fromParent
-}
-
+// SetActive will set the active flag on the entity that can be queried with
+// #Entity.IsActive. It will also set the active flag on all children of the
+// entity. If the entity is already active, this function will do nothing.
 func (e *Entity) SetActive(isActive bool) {
 	if e.isActive != isActive {
 		if isActive {
@@ -150,6 +163,12 @@ func (e *Entity) SetActive(isActive bool) {
 	}
 }
 
+// Destroy will set the destroyed flag on the entity, this can be queried with
+// #Entity.IsDestroyed. The entity is not immediately destroyed as it may be
+// in use for the current frame. The #Entity.TickCleanup should be called for
+// each frame to check if the entity is ready to be completely destroyed.
+//
+// Destroying a parent will also destroy all children of the entity.
 func (e *Entity) Destroy() {
 	if !e.isDestroyed {
 		e.isDestroyed = true
@@ -157,10 +176,19 @@ func (e *Entity) Destroy() {
 		for i := len(e.Children) - 1; i >= 0; i-- {
 			e.Children[i].Destroy()
 		}
-		e.RemoveFromParent()
+		e.removeFromParent()
+		e.Transform.SetParent(nil)
 	}
 }
 
+// SetParent will set the parent of the entity. If the entity already has a
+// parent, it will be removed from the parent's children list. If the new parent
+// is nil, the entity will be removed from the hierarchy and will become the
+// root entity. If the new parent is not nil, the entity will be added to the
+// new parent's children list. If the new parent is not active, the entity will
+// be deactivated as well.
+//
+// This will also handle the transformation parenting internally
 func (e *Entity) SetParent(newParent *Entity) {
 	if e == newParent {
 		slog.Error("Can't set an entity to parent itself")
@@ -173,7 +201,7 @@ func (e *Entity) SetParent(newParent *Entity) {
 	if newParent == e.Parent {
 		return
 	}
-	e.RemoveFromParent()
+	e.removeFromParent()
 	e.Parent = newParent
 	if newParent != nil {
 		e.Transform.SetParent(&newParent.Transform)
@@ -182,56 +210,14 @@ func (e *Entity) SetParent(newParent *Entity) {
 	}
 	if e.Parent != nil {
 		e.Parent.Children = append(e.Parent.Children, e)
-		e.SetRelativeTransformations(e.Parent.relativeTransformations)
 	}
 	if e.Parent != nil && !e.Parent.isActive {
 		e.deactivateFromParent()
 	}
 }
 
-func (e *Entity) MatrixRelative(base *matrix.Mat4) {
-	e.Transform.UpdateMatrix()
-	m := e.Transform.Matrix()
-	base.MultiplyAssign(m)
-	if !e.IsRoot() {
-		e.Parent.MatrixRelative(base)
-	}
-}
-
-func (e *Entity) Matrix(base *matrix.Mat4) {
-	if e.relativeTransformations {
-		e.MatrixRelative(base)
-	}
-	e.Transform.CalcWorldMatrix(base)
-}
-
-func (e *Entity) Clone(parentOverride *Entity) *Entity {
-	clone := NewEntity()
-	if parentOverride == nil {
-		clone.SetParent(parentOverride)
-	} else {
-		clone.SetParent(e.Parent)
-	}
-	for _, c := range e.Children {
-		c.Clone(clone)
-	}
-	// TODO: Clone named data
-	clone.Transform.Copy(e.Transform)
-	clone.isDestroyed = e.isDestroyed
-	clone.name = e.name
-	clone.Transform.SetDirty()
-	clone.isActive = e.isActive
-	return clone
-}
-
-func (e *Entity) Name() string {
-	return e.name
-}
-
-func (e *Entity) SetName(name string) {
-	e.name = name
-}
-
+// FindByName will search the entity and the tree of children for the first
+// entity with the specified name. If no entity is found, nil will be returned.
 func (e *Entity) FindByName(name string) *Entity {
 	if e.name == name {
 		return e
@@ -244,13 +230,10 @@ func (e *Entity) FindByName(name string) *Entity {
 	return nil
 }
 
-func (e *Entity) SetRelativeTransformations(transformRelative bool) {
-	e.relativeTransformations = transformRelative
-	for _, c := range e.Children {
-		c.SetRelativeTransformations(transformRelative)
-	}
-}
-
+// ScaleWithoutChildren will temporarily remove all children from the entity,
+// scale the entity, and then re-add the children. This is useful when you want
+// to scale an entity without scaling its children. When the children are
+// re-added, they keep the world transformations they had before being removed.
 func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
 	count := len(e.Children)
 	arr := make([]*Entity, count)
@@ -267,39 +250,10 @@ func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
 	}
 }
 
-func (e *Entity) WorldForward() matrix.Vec3 {
-	m := matrix.Mat4Identity()
-	e.Matrix(&m)
-	f := m.Forward()
-	f.Normalize()
-	return f
-}
-
-func (e *Entity) WorldRight() matrix.Vec3 {
-	m := matrix.Mat4Identity()
-	e.Matrix(&m)
-	r := m.Right()
-	r.Normalize()
-	return r
-}
-
-func (e *Entity) WorldUp() matrix.Vec3 {
-	m := matrix.Mat4Identity()
-	e.Matrix(&m)
-	u := m.Up()
-	u.Normalize()
-	return u
-}
-
-func (e *Entity) LookAt(point matrix.Vec3) {
-	eye := e.Transform.WorldPosition()
-	var rot matrix.Mat4
-	rot.LookAt(eye, point, matrix.Vec3Up())
-	q := matrix.QuaternionFromMat4(rot)
-	r := q.ToEuler()
-	e.Transform.SetWorldRotation(r)
-}
-
+// TickCleanup will check if the entity is ready to be completely destroyed. If
+// the entity is ready to be destroyed, it will execute the #Entity.OnDestroy
+// event and return true. If the entity is not ready to be destroyed, it will
+// return false.
 func (e *Entity) TickCleanup() bool {
 	if e.isDestroyed {
 		if e.destroyedFrames <= 0 {
@@ -311,34 +265,7 @@ func (e *Entity) TickCleanup() bool {
 	return false
 }
 
-func (e *Entity) CanUpdate() bool {
-	return e.isActive && !e.isDestroyed
-}
-
-func (e *Entity) LocalPosition() matrix.Vec3 {
-	return e.Transform.Position()
-}
-
-func (e *Entity) LocalRotation() matrix.Vec3 {
-	return e.Transform.Rotation()
-}
-
-func (e *Entity) LocalScale() matrix.Vec3 {
-	return e.Transform.Scale()
-}
-
-func (e *Entity) LocalForward() matrix.Vec3 {
-	return e.Transform.Forward()
-}
-
-func (e *Entity) LocalRight() matrix.Vec3 {
-	return e.Transform.Right()
-}
-
-func (e *Entity) LocalUp() matrix.Vec3 {
-	return e.Transform.Up()
-}
-
+// Root will return the root entity of the entity's hierarchy
 func (e *Entity) Root() *Entity {
 	root := e
 	for root.Parent != nil {
@@ -347,14 +274,13 @@ func (e *Entity) Root() *Entity {
 	return root
 }
 
-func (e *Entity) IsActive() bool {
-	return e.isActive
-}
-
-func (e *Entity) IsDestroyed() bool {
-	return e.isDestroyed
-}
-
+// AddNamedData allows you to add arbitrary data to the entity that can be
+// accessed by a string key. This is useful for storing data that is specific
+// to the entity.
+//
+// Named data is stored in a map of slices, so you can add multiple pieces of
+// data to the same key. It is recommended to compile the data into a single
+// structure so the slice length is 1, but sometimes that's not reasonable.
 func (e *Entity) AddNamedData(key string, data interface{}) {
 	if _, ok := e.namedData[key]; !ok {
 		e.namedData[key] = make([]interface{}, 0)
@@ -362,6 +288,10 @@ func (e *Entity) AddNamedData(key string, data interface{}) {
 	e.namedData[key] = append(e.namedData[key], data)
 }
 
+// RemoveNamedData will remove the specified data from the entity's named data
+// map. If the key does not exist, this function will do nothing.
+//
+// *This will remove the entire slice and all of it's data*
 func (e *Entity) RemoveNamedData(key string, data interface{}) {
 	if _, ok := e.namedData[key]; ok {
 		for i := range e.namedData[key] {
@@ -373,9 +303,41 @@ func (e *Entity) RemoveNamedData(key string, data interface{}) {
 	}
 }
 
+// NamedData will return the data associated with the specified key. If the key
+// does not exist, nil will be returned.
 func (e *Entity) NamedData(key string) []interface{} {
 	if _, ok := e.namedData[key]; ok {
 		return e.namedData[key]
 	}
 	return nil
+}
+
+func (e *Entity) removeFromParent() {
+	if e.Parent == nil {
+		return
+	}
+	for i := range e.Parent.Children {
+		me := e.Parent.Children[i]
+		if me == e {
+			if e.orderedChildren {
+				e.Parent.Children = slices.Delete(e.Parent.Children, i, i+1)
+			} else {
+				e.Parent.Children = klib.RemoveUnordered(e.Parent.Children, i)
+			}
+			break
+		}
+	}
+}
+
+func (e *Entity) activateFromParent() {
+	if e.deactivatedFromParent {
+		e.Activate()
+		e.deactivatedFromParent = false
+	}
+}
+
+func (e *Entity) deactivateFromParent() {
+	fromParent := e.deactivatedFromParent || e.isActive
+	e.Deactivate()
+	e.deactivatedFromParent = fromParent
 }

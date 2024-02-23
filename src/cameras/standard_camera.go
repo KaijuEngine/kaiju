@@ -119,7 +119,7 @@ func (c *StandardCamera) internalUpdateProjection() {
 
 func (c *StandardCamera) internalUpdateView() {
 	if !c.isOrthographic {
-		c.view.LookAt(c.position, c.lookAt, c.up)
+		c.view = matrix.Mat4LookAt(c.position, c.lookAt, c.up)
 	} else {
 		iPos := c.position
 		iPos.ScaleAssign(-1.0)

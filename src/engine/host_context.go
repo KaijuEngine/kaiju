@@ -49,7 +49,7 @@ import (
 // Deadline is here to fulfil context.Context and will return zero and false
 func (h *Host) Deadline() (time.Time, bool) { return time.Time{}, false }
 
-// Done is here to fulfil context.Context and will cose the #CloseSignal channel
+// Done is here to fulfil context.Context and will cose the CloseSignal channel
 func (h *Host) Done() <-chan struct{} { return h.CloseSignal }
 
 // Err is here to fulfil context.Context and will return nil or context.Canceled

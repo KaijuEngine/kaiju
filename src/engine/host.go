@@ -153,12 +153,6 @@ func (host *Host) Initialize(width, height int) error {
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
 
-func (host *Host) resized() {
-	w, h := float32(host.Window.Width()), float32(host.Window.Height())
-	host.Camera.ViewportChanged(w, h)
-	host.UICamera.ViewportChanged(w, h)
-}
-
 // CreatingEditorEntities is used exclusively for the editor to know that the
 // entities that are being created are for the editor. This is used to logically
 // separate editor entities from game entities.
@@ -288,6 +282,10 @@ func (host *Host) Update(deltaTime float64) {
 	host.Window.EndUpdate()
 }
 
+// Render will render the scene. This starts by preparing any drawings that are
+// pending. It also creates any pending shaders, textures, and meshes before
+// the start of the render. The frame is then readied, buffers swapped, and any
+// transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
@@ -359,4 +357,10 @@ func (h *Host) SetFrameRateLimit(fps int64) {
 // resources and close the window.
 func (host *Host) Close() {
 	host.Closing = true
+}
+
+func (host *Host) resized() {
+	w, h := float32(host.Window.Width()), float32(host.Window.Height())
+	host.Camera.ViewportChanged(w, h)
+	host.UICamera.ViewportChanged(w, h)
 }

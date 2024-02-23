@@ -313,3 +313,11 @@ func (t *Transform) ContainsPoint(point Vec3) bool {
 	return point.X() >= l && point.X() <= r && point.Y() >= d &&
 		point.Y() <= u && point.Z() >= f && point.Z() <= b
 }
+
+func (t *Transform) LookAt(point Vec3) {
+	eye := t.WorldPosition()
+	rot := Mat4LookAt(eye, point, Vec3Up())
+	q := QuaternionFromMat4(rot)
+	r := q.ToEuler()
+	t.SetWorldRotation(r)
+}
