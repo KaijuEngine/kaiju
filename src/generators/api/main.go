@@ -169,7 +169,7 @@ func writePackage(md io.StringWriter, dir, line string) {
 	md.WriteString("# ")
 	md.WriteString(parts[0])
 	md.WriteString("\n```go\n")
-	md.WriteString(`import "kaiju/` + dir + `"`)
+	md.WriteString(`import "kaiju/` + strings.ReplaceAll(dir, "\\", "/") + `"`)
 	md.WriteString("\n```\n\n")
 }
 
@@ -233,7 +233,7 @@ func writeVariables(md io.StringWriter, text string) {
 	md.WriteString("## Variables\n")
 	lineReg := regexp.MustCompile(`(?s)var\s+(\w+)\s+=\s+(.*?)[^{,]$`)
 	blockReg := regexp.MustCompile(`(?s)var\s+\((.*?)\n\)`)
-	blockLineReg := regexp.MustCompile(`(?s)\s+(\w+)\s+=\s+(.*?)$`)
+	blockLineReg := regexp.MustCompile(`(?s)\s+(\w+)\s+=\s+(.*?)\n`)
 	blocks := blockReg.FindAllString(text, -1)
 	lines := lineReg.FindAllStringSubmatch(text, -1)
 	for _, match := range lines {
@@ -302,7 +302,7 @@ func writeTypes(md io.StringWriter, text string) {
 			}
 			md.WriteString("\n")
 			md.WriteString("```go\n")
-			if strings.Contains(lines[i], "}") {
+			if strings.Contains(lines[i], "}") || !strings.Contains(lines[i], "{") {
 				md.WriteString(line)
 			} else {
 				for j := i; j < len(lines); j++ {

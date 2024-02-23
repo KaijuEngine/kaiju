@@ -46,6 +46,11 @@ import (
 	"github.com/KaijuEngine/uuid"
 )
 
+// Importer is an interface for importing assets into the asset database.
+// It is used to allow for custom importers to be added to the system
+// to handle new asset types.
+// Handles should return true if the importer can handle the given path.
+// Import should import the asset into the asset database.
 type Importer interface {
 	Handles(path string) bool
 	Import(path string) error
