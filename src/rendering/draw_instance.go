@@ -38,10 +38,15 @@
 package rendering
 
 import (
+	"encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"unsafe"
 )
+
+func init() {
+	gob.Register(&ShaderDataBasic{})
+}
 
 type DrawInstance interface {
 	Destroy()
@@ -63,7 +68,7 @@ type ShaderDataBase struct {
 	deactivated bool
 	_           [2]byte
 	transform   *matrix.Transform
-	initModel   matrix.Mat4
+	InitModel   matrix.Mat4
 	model       matrix.Mat4
 }
 
@@ -98,7 +103,7 @@ func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 }
 
 func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
-	s.initModel = model
+	s.InitModel = model
 	if s.transform == nil {
 		s.model = model
 	}
@@ -106,7 +111,7 @@ func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 
 func (s *ShaderDataBase) UpdateModel() {
 	if s.transform != nil && s.transform.IsDirty() {
-		s.model = s.initModel.Multiply(s.transform.WorldMatrix())
+		s.model = s.InitModel.Multiply(s.transform.WorldMatrix())
 	}
 }
 

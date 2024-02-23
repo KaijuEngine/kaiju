@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* manager.go                                                                 */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,83 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package stages
 
 import (
-	"kaiju/editor/selection"
+	"bytes"
+	"kaiju/assets/asset_importer"
+	"kaiju/assets/asset_info"
+	"kaiju/editor/alert"
+	"kaiju/editor/editor_config"
 	"kaiju/engine"
+	"kaiju/filesystem"
+	"kaiju/klib"
+	"os"
+	"path/filepath"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+type Manager struct {
+	host     *engine.Host
+	registry *asset_importer.ImportRegistry
+	stage    string
 }
 
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
+func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry) Manager {
+	return Manager{
+		host:     host,
+		registry: registry,
 	}
 }
 
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
+func (m *Manager) Save() error {
+	if m.stage == "" {
+		name := <-alert.NewInput("Stage Name", "Name of stage...", "", "Save", "Cancel")
+		if name == "" {
+			return nil
 		}
-		e.Activate()
+		m.stage = filepath.Join("content/stages/", name+editor_config.FileExtensionStage)
 	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
+	stream := bytes.NewBuffer(make([]byte, 0))
+	all := m.host.Entities()
+	var err error = nil
+	klib.BinaryWrite(stream, int32(len(all)))
+	for i := 0; i < len(all) && err == nil; i++ {
+		err = all[i].EditorSerialize(stream)
 	}
+	if err != nil {
+		return err
+	}
+	os.MkdirAll(filepath.Dir(m.stage), os.ModePerm)
+	if err = filesystem.WriteFile(m.stage, stream.Bytes()); err != nil {
+		return err
+	}
+	m.registry.ImportIfNew(m.stage)
+	return nil
 }
 
-func (h *deleteHistory) Delete() {}
-
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
+func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error {
+	ok := <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No")
+	if !ok {
+		return nil
 	}
+	m.stage = adi.Path
+	data, err := filesystem.ReadFile(m.stage)
+	if err != nil {
+		return err
+	}
+	stream := bytes.NewBuffer(data)
+	eCount := int32(0)
+	klib.BinaryRead(stream, &eCount)
+	entities := make([]*engine.Entity, 0, eCount)
+	for i := int32(0); i < eCount && err == nil; i++ {
+		e := m.host.NewEntity()
+		entities = append(entities, e)
+		err = e.EditorDeserialize(stream, host)
+	}
+	if err != nil {
+		for i := 0; i < len(entities); i++ {
+			entities[i].Destroy()
+		}
+	}
+	return err
 }

@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/matrix"
+	"log/slog"
 	"slices"
 	"sync"
 )
@@ -50,8 +51,9 @@ type Drawing struct {
 	Textures     []*Texture
 	ShaderData   DrawInstance
 	Transform    *matrix.Transform
-	renderTarget Canvas
+	CanvasId     string
 	UseBlending  bool
+	renderTarget Canvas
 }
 
 func (d *Drawing) IsValid() bool {
@@ -157,8 +159,13 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing *Drawing, target Canvas) {
-	drawing.renderTarget = target
+func (d *Drawings) AddDrawing(drawing *Drawing) {
+	if t, ok := drawing.Renderer.Canvas(drawing.CanvasId); ok {
+		drawing.renderTarget = t
+	} else {
+		slog.Error("Could not find render target, using default",
+			slog.String("id", drawing.CanvasId))
+	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, *drawing)
@@ -174,6 +181,9 @@ func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
+	if len(d.draws) == 0 {
+		return
+	}
 	renderer.Draw(d.draws)
 	renderer.BlitTargets(d.draws...)
 }

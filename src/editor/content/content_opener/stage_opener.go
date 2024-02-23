@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* stage_opener.go                                                            */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,22 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package content_opener
 
 import (
-	"kaiju/editor/selection"
-	"kaiju/engine"
+	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
+	"kaiju/editor/interfaces"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+type StageOpener struct{}
+
+func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
+	return adi.Type == editor_config.AssetTypeStage
 }
 
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
-}
-
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
-	}
-}
-
-func (h *deleteHistory) Delete() {}
-
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
-	}
+func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+	err := ed.StageManager().Load(adi, ed.Host())
+	ed.Host().Window.Focus()
+	return err
 }

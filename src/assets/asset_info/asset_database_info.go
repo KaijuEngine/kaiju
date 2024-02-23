@@ -122,9 +122,10 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 
 // Read will read the ADI file for the given path and return the
 // AssetDatabaseInfo struct. Possible errors are:
-// - ErrNoInfo: if the file does not exist
-// - json.Unmarshal error: if the file is corrupted
-// - filesystem.ReadTextFile error: if the file cannot be read
+//
+// [-] ErrNoInfo: if the file does not exist
+// [-] json.Unmarshal error: if the file is corrupted
+// [-] filesystem.ReadTextFile error: if the file cannot be read
 func Read(path string) (AssetDatabaseInfo, error) {
 	adi := AssetDatabaseInfo{}
 	if !Exists(path) {
@@ -139,6 +140,26 @@ func Read(path string) (AssetDatabaseInfo, error) {
 		return adi, err
 	}
 	return adi, nil
+}
+
+func Lookup(id string) (AssetDatabaseInfo, error) {
+	adiFile := toIndexPath(id)
+	src, err := filesystem.ReadTextFile(adiFile)
+	if err != nil {
+		return AssetDatabaseInfo{}, err
+	}
+	adi, err := Read(src)
+	if err == nil {
+		if adi.ID != id {
+			for i := range adi.Children {
+				if adi.Children[i].ID == id {
+					adi = adi.Children[i]
+					break
+				}
+			}
+		}
+	}
+	return adi, err
 }
 
 func writeIndexes(info AssetDatabaseInfo) error {

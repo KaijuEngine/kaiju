@@ -39,6 +39,7 @@ package menu
 
 import (
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/log_window"
@@ -58,6 +59,7 @@ type Menu struct {
 	isOpen        bool
 	logWindow     *log_window.LogWindow
 	contentOpener *content_opener.Opener
+	editor        interfaces.Editor
 }
 
 func (m *Menu) close() {
@@ -106,21 +108,33 @@ func (m *Menu) openLogWindow(*document.DocElement) {
 }
 
 func (m *Menu) openContentWindow(*document.DocElement) {
-	content_window.New(m.contentOpener)
+	content_window.New(m.contentOpener, m.editor)
 }
 
-func New(container *host_container.Container, logWindow *log_window.LogWindow, contentOpener *content_opener.Opener) *Menu {
+func (m *Menu) saveStage(*document.DocElement) {
+	if err := m.editor.StageManager().Save(); err != nil {
+		slog.Error("Save stage failed", slog.String("error", err.Error()))
+	}
+}
+
+func New(container *host_container.Container,
+	logWindow *log_window.LogWindow,
+	contentOpener *content_opener.Opener,
+	editor interfaces.Editor) *Menu {
+
 	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
 	m := &Menu{
 		container:     container,
 		logWindow:     logWindow,
 		contentOpener: contentOpener,
+		editor:        editor,
 	}
 	funcMap := map[string]func(*document.DocElement){
 		"openLogWindow":     m.openLogWindow,
 		"openRepository":    openRepository,
 		"openAbout":         openAbout,
+		"saveStage":         m.saveStage,
 		"openContentWindow": m.openContentWindow,
 		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
 		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },

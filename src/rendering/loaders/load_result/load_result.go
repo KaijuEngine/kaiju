@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* load_result.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,51 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package load_result
 
 import (
-	"kaiju/editor/selection"
-	"kaiju/engine"
+	"kaiju/matrix"
+	"kaiju/rendering"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+type Mesh struct {
+	Name     string
+	MeshName string
+	Verts    []rendering.Vertex
+	Indexes  []uint32
 }
 
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
+type Result struct {
+	Meshes   []Mesh
+	Textures []string
 }
 
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
+func NewResult() Result {
+	return Result{
+		Meshes:   make([]Mesh, 0),
+		Textures: make([]string, 0),
 	}
 }
 
-func (h *deleteHistory) Delete() {}
+func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
+	indexes []uint32, textures []string) {
+
+	r.Meshes = append(r.Meshes, Mesh{
+		Name:     name,
+		MeshName: meshName,
+		Verts:    verts,
+		Indexes:  indexes,
+	})
+}
+
+func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
+	rad := matrix.Float(0)
+	// TODO:  Take scale into consideration
+	for i := range mesh.Verts {
+		pt := mesh.Verts[i].Position.Multiply(scale)
+		rad = max(rad, pt.Length())
 	}
+	return rad
 }

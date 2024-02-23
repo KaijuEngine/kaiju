@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* alert.go                                                                   */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,75 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package alert
 
 import (
-	"kaiju/editor/selection"
-	"kaiju/engine"
+	"kaiju/host_container"
+	"kaiju/klib"
+	"kaiju/markup"
+	"kaiju/markup/document"
+	"kaiju/ui"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+type alertMsg struct {
+	Title       string
+	Description string
+	Placeholder string
+	StrValue    string
+	Ok          string
+	Cancel      string
+	block       chan bool
+	inputBlock  chan string
+	container   *host_container.Container
+	doc         *document.Document
 }
 
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
+func (a *alertMsg) done(isOkay bool) {
+	if a.block != nil {
+		a.block <- true
+		close(a.block)
+	} else if a.inputBlock != nil {
+		if !isOkay {
+			a.inputBlock <- ""
+		} else {
+			input, _ := a.doc.GetElementById("str")
+			a.inputBlock <- input.UI.(*ui.Input).Text()
 		}
-		e.Deactivate()
+		close(a.inputBlock)
 	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
+	a.container.Close()
 }
 
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
+func create(title, description, placeholder, value, ok, cancel string) alertMsg {
+	container := host_container.New("!!! Alert !!!", nil)
+	a := alertMsg{
+		Title:       title,
+		Description: description,
+		Ok:          ok,
+		Cancel:      cancel,
+		container:   container,
+		Placeholder: placeholder,
+		StrValue:    value,
 	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
+	if placeholder != "" {
+		a.inputBlock = make(chan string)
+	} else {
+		a.block = make(chan bool)
 	}
+	go container.Run(300, 200)
+	<-container.PrepLock
+	a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
+		"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){
+			"okClick":     func(*document.DocElement) { a.done(true) },
+			"cancelClick": func(*document.DocElement) { a.done(false) },
+		}))
+	return a
 }
 
-func (h *deleteHistory) Delete() {}
+func New(title, description, ok, cancel string) chan bool {
+	return create(title, description, "", "", ok, cancel).block
+}
 
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
-	}
+func NewInput(title, hint, value, ok, cancel string) chan string {
+	return create(title, "", hint, value, ok, cancel).inputBlock
 }

@@ -238,7 +238,8 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 				Mesh:       mesh,
 				Textures:   []*Texture{targets[i].Target.Color()},
 				ShaderData: &sd[i],
-			}, &vr.combineCanvas)
+				CanvasId:   "combine",
+			})
 		}
 		vr.combinedDrawings.PreparePending()
 	}

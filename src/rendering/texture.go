@@ -143,6 +143,14 @@ type Texture struct {
 	pendingData       *TextureData
 }
 
+func TextureKeys(textures []*Texture) []string {
+	keys := make([]string, len(textures))
+	for i, t := range textures {
+		keys[i] = t.Key
+	}
+	return keys
+}
+
 func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 	var res TextureData
 	res.InputType = inputType

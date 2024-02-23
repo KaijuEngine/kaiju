@@ -41,6 +41,7 @@ import (
 	"io/fs"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/interfaces"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -65,6 +66,7 @@ type ContentWindow struct {
 	doc       *document.Document
 	input     *ui.Input
 	listing   *ui.Panel
+	editor    interfaces.Editor
 	container *host_container.Container
 	Dir       []contentEntry
 	path      string
@@ -76,11 +78,12 @@ type ContentWindow struct {
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 
-func New(opener *content_opener.Opener) {
+func New(opener *content_opener.Opener, editor interfaces.Editor) {
 	s := ContentWindow{
 		funcMap: make(map[string]func(*document.DocElement)),
 		opener:  opener,
 		path:    contentPath,
+		editor:  editor,
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
@@ -127,7 +130,7 @@ func (s *ContentWindow) openContent(elm *document.DocElement) {
 	} else if info.IsDir() {
 		s.reloadUI()
 	} else {
-		if err := s.opener.OpenPath(s.path); err != nil {
+		if err := s.opener.OpenPath(s.path, s.editor); err != nil {
 			slog.Error(err.Error())
 		}
 	}

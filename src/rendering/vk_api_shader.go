@@ -163,7 +163,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	if assetDB.Exists(subShaderCheck) {
 		subShader := NewShader(shader.VertPath, subShaderCheck,
 			shader.GeomPath, shader.CtrlPath, shader.EvalPath,
-			&vr.defaultCanvas.transparentPass)
+			shader.Key+oitSuffix, &vr.defaultCanvas.transparentPass)
 		subShader.DriverData = shader.DriverData
 		shader.AddSubShader("transparent", subShader)
 	}

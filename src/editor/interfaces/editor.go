@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* editor.go                                                                  */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,20 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package interfaces
 
 import (
+	"kaiju/editor/memento"
 	"kaiju/editor/selection"
+	"kaiju/editor/stages"
 	"kaiju/engine"
+	"kaiju/host_container"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
-}
-
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
-}
-
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
-	}
-}
-
-func (h *deleteHistory) Delete() {}
-
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
-	}
+type Editor interface {
+	Container() *host_container.Container
+	Host() *engine.Host
+	StageManager() *stages.Manager
+	Selection() *selection.Selection
+	History() *memento.History
 }

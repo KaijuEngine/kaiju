@@ -40,7 +40,7 @@ package project_cache
 import (
 	"encoding/gob"
 	"kaiju/assets/asset_info"
-	"kaiju/rendering/loaders"
+	"kaiju/rendering/loaders/load_result"
 	"os"
 	"path/filepath"
 )
@@ -49,7 +49,7 @@ func toCachedMeshPath(path string, adi asset_info.AssetDatabaseInfo) string {
 	return filepath.Join(path, adi.ID+".msh")
 }
 
-func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh loaders.ResultMesh) error {
+func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh load_result.Mesh) error {
 	path := cachePath(meshCache)
 	f, err := os.Create(toCachedMeshPath(path, adi))
 	if err != nil {
@@ -60,14 +60,14 @@ func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh loaders.ResultMesh) error 
 	return enc.Encode(mesh)
 }
 
-func LoadCachedMesh(adi asset_info.AssetDatabaseInfo) (loaders.ResultMesh, error) {
+func LoadCachedMesh(adi asset_info.AssetDatabaseInfo) (load_result.Mesh, error) {
 	path := cachePath(meshCache)
 	f, err := os.Open(toCachedMeshPath(path, adi))
 	if err != nil {
-		return loaders.ResultMesh{}, err
+		return load_result.Mesh{}, err
 	}
 	defer f.Close()
-	var mesh loaders.ResultMesh
+	var mesh load_result.Mesh
 	dec := gob.NewDecoder(f)
 	err = dec.Decode(&mesh)
 	return mesh, err

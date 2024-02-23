@@ -39,12 +39,11 @@ package rendering
 
 import (
 	"kaiju/assets"
-	"strings"
 )
 
 type Shader struct {
+	Key        string
 	RenderId   ShaderId
-	KeyName    string
 	VertPath   string
 	FragPath   string
 	GeomPath   string
@@ -67,14 +66,12 @@ func (s *Shader) SubShader(key string) *Shader {
 	return s.subShaders[key]
 }
 
-func createShaderKey(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string) string {
-	return strings.Join([]string{vertPath, fragPath, geomPath, ctrlPath, evalPath}, ";")
-}
+func NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath,
+	key string, renderPass *RenderPass) *Shader {
 
-func NewShader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) *Shader {
 	s := &Shader{
+		Key:        key,
 		subShaders: make(map[string]*Shader),
-		KeyName:    createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath),
 		VertPath:   vertPath,
 		FragPath:   fragPath,
 		GeomPath:   geomPath,

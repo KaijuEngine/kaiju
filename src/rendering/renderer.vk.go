@@ -123,12 +123,12 @@ func (vr *Vulkan) Canvas(name string) (Canvas, bool) {
 	return c, ok
 }
 
-func (vr *Vulkan) RegisterCanvas(name string, renderTarget Canvas) {
+func (vr *Vulkan) RegisterCanvas(name string, canvas Canvas) {
 	if _, ok := vr.canvases[name]; ok {
 		slog.Error("The supplied render target name is already registered", slog.String("name", name))
 		return
 	}
-	vr.canvases[name] = renderTarget
+	vr.canvases[name] = canvas
 }
 
 func (vr *Vulkan) WaitRender() {
@@ -516,7 +516,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
-	if !vr.hasSwapChain {
+	if !vr.hasSwapChain || vr.commandBuffersCount == 0 {
 		return false
 	}
 	submitInfo := vk.SubmitInfo{}

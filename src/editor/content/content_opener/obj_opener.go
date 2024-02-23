@@ -42,11 +42,11 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
-	"kaiju/editor/memento"
+	"kaiju/editor/interfaces"
 	"kaiju/engine"
-	"kaiju/host_container"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"slices"
 )
 
 type ObjOpener struct{}
@@ -97,16 +97,15 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
 		Transform:  &e.Transform,
+		CanvasId:   "default",
 	}
-	e.AddNamedData("drawing", &drawing)
-	host.Drawings.AddDrawing(&drawing, host.Window.Renderer.DefaultCanvas())
+	host.Drawings.AddDrawing(&drawing)
+	e.EditorBindings.AddDrawing(drawing)
 	return nil
 }
 
-func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo,
-	container *host_container.Container, history *memento.History) error {
-
-	host := container.Host
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+	host := ed.Host()
 	e := host.NewEntity()
 	e.SetName(adi.MetaValue("name"))
 	for i := range adi.Children {
@@ -114,16 +113,11 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo,
 			return err
 		}
 	}
-	nd := e.NamedData("drawing")
-	drawings := make([]rendering.Drawing, 0, len(nd))
-	for _, d := range nd {
-		drawings = append(drawings, *d.(*rendering.Drawing))
-	}
-	history.Add(&modelOpenHistory{
+	ed.History().Add(&modelOpenHistory{
 		host:     host,
 		entity:   e,
-		drawings: drawings,
+		drawings: slices.Clone(e.EditorBindings.Drawings()),
 	})
-	container.Host.Window.Focus()
+	host.Window.Focus()
 	return nil
 }

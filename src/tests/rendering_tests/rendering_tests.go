@@ -48,6 +48,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
+	"kaiju/rendering/loaders/load_result"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"log/slog"
@@ -79,7 +80,8 @@ func testDrawing(host *engine.Host) {
 		Textures:   []*rendering.Texture{droidTex},
 		ShaderData: &tsd,
 		Transform:  nil,
-	}, host.Window.Renderer.DefaultCanvas())
+		CanvasId:   "default",
+	})
 }
 
 func testTwoDrawings(host *engine.Host) {
@@ -108,7 +110,8 @@ func testTwoDrawings(host *engine.Host) {
 			Textures:   []*rendering.Texture{droidTex},
 			ShaderData: &tsd,
 			Transform:  nil,
-		}, host.Window.Renderer.DefaultCanvas())
+			CanvasId:   "default",
+		})
 	}
 }
 
@@ -149,7 +152,8 @@ func testOIT(host *engine.Host) {
 			ShaderData:  &tsd,
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
-		}, host.Window.Renderer.DefaultCanvas())
+			CanvasId:    "default",
+		})
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
@@ -246,7 +250,7 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func drawBasicMesh(host *engine.Host, res loaders.Result) {
+func drawBasicMesh(host *engine.Host, res load_result.Result) {
 	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
 	m := res.Meshes[0]
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
@@ -258,7 +262,8 @@ func drawBasicMesh(host *engine.Host, res loaders.Result) {
 		Mesh:       mesh,
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
-	}, host.Window.Renderer.DefaultCanvas())
+		CanvasId:   "default",
+	})
 }
 
 func testMonkeyOBJ(host *engine.Host) {

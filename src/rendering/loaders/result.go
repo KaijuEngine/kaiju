@@ -41,42 +41,12 @@ import (
 	"kaiju/collision"
 	"kaiju/engine"
 	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaiju/rendering/loaders/load_result"
 )
 
-type ResultMesh struct {
-	Name     string
-	MeshName string
-	Verts    []rendering.Vertex
-	Indexes  []uint32
-}
+func TrySelectResultMesh(mesh *load_result.Mesh,
+	e *engine.Entity, ray collision.Ray) (matrix.Float, bool) {
 
-type Result struct {
-	Meshes   []ResultMesh
-	Textures []string
-}
-
-func NewResult() Result {
-	return Result{
-		Meshes:   make([]ResultMesh, 0),
-		Textures: make([]string, 0),
-	}
-}
-
-func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
-
-func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
-	indexes []uint32, textures []string) {
-
-	r.Meshes = append(r.Meshes, ResultMesh{
-		Name:     name,
-		MeshName: meshName,
-		Verts:    verts,
-		Indexes:  indexes,
-	})
-}
-
-func (mesh *ResultMesh) TrySelect(e *engine.Entity, ray collision.Ray) (matrix.Float, bool) {
 	const rayLen = 10000.0
 	p, _, s := e.Transform.WorldTransform()
 	rad := mesh.ScaledRadius(s)
@@ -97,14 +67,4 @@ func (mesh *ResultMesh) TrySelect(e *engine.Entity, ray collision.Ray) (matrix.F
 		}
 	}
 	return 0, false
-}
-
-func (mesh *ResultMesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
-	rad := matrix.Float(0)
-	// TODO:  Take scale into consideration
-	for i := range mesh.Verts {
-		pt := mesh.Verts[i].Position.Multiply(scale)
-		rad = max(rad, pt.Length())
-	}
-	return rad
 }

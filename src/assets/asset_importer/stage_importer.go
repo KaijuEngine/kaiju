@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* delete_history.go                                                          */
+/* stage_importer.go                                                          */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,52 +35,25 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package deleter
+package asset_importer
 
 import (
-	"kaiju/editor/selection"
-	"kaiju/engine"
+	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
+	"path/filepath"
 )
 
-type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+type StageImporter struct{}
+
+func (m StageImporter) Handles(path string) bool {
+	return filepath.Ext(path) == editor_config.FileExtensionStage
 }
 
-func (h *deleteHistory) Redo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
+func (m StageImporter) Import(path string) error {
+	adi, err := createADI(path, nil)
+	if err != nil {
+		return err
 	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
-}
-
-func (h *deleteHistory) Undo() {
-	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
-	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
-	}
-}
-
-func (h *deleteHistory) Delete() {}
-
-func (h *deleteHistory) Exit() {
-	for _, e := range h.entities {
-		drawings := e.EditorBindings.Drawings()
-		for _, d := range drawings {
-			d.ShaderData.Destroy()
-		}
-		e.Destroy()
-	}
+	adi.Type = editor_config.AssetTypeStage
+	return asset_info.Write(adi)
 }

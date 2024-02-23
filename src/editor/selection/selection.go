@@ -147,9 +147,8 @@ func (s *Selection) addInternal(e *engine.Entity) {
 	s.entities = append(s.entities, e)
 	outline := s.host.ShaderCache().
 		ShaderFromDefinition(assets.ShaderDefinitionOutline)
-	dc := s.host.Window.Renderer.DefaultCanvas()
-	for _, di := range e.NamedData("drawing") {
-		d := di.(*rendering.Drawing)
+	draws := e.EditorBindings.Drawings()
+	for _, d := range draws {
 		ds := &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorCrimson(),
@@ -157,11 +156,10 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		ds.Color.SetA(3.0)     // Line width
 		d.Transform.SetDirty() // Make drawing snap to transform
 		s.shaderDatas = append(s.shaderDatas, ds)
-		cpy := *d
-		cpy.Shader = outline
-		cpy.ShaderData = ds
-		cpy.UseBlending = false
-		s.host.Drawings.AddDrawing(&cpy, dc)
+		d.Shader = outline
+		d.ShaderData = ds
+		d.UseBlending = false
+		s.host.Drawings.AddDrawing(&d)
 	}
 }
 
@@ -337,8 +335,9 @@ func (s *Selection) Bounds() collision.AABB {
 	for _, e := range s.entities {
 		p := e.Transform.Position()
 		ex := matrix.Vec3Zero()
-		for _, d := range e.NamedData("drawing") {
-			ex = matrix.Vec3Max(ex, d.(*rendering.Drawing).Mesh.Details.Extents)
+		draws := e.EditorBindings.Drawings()
+		for _, d := range draws {
+			ex = matrix.Vec3Max(ex, d.Mesh.Details.Extents)
 		}
 		min = matrix.Vec3Min(min, p.Subtract(ex))
 		max = matrix.Vec3Max(max, p.Add(ex))

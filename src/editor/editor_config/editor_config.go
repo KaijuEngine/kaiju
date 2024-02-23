@@ -48,15 +48,17 @@ const (
 	FileExtensionObj         FileExtension = ".obj"
 	FileExtensionPng         FileExtension = ".png"
 	FileExtensionMesh        FileExtension = ".msh"
+	FileExtensionStage       FileExtension = ".stg"
 	FileExtensionAssetDbInfo FileExtension = ".adi"
 )
 
 const (
-	AssetTypeH    AssetType = "h"
-	AssetTypeC    AssetType = "c"
-	AssetTypeGo   AssetType = "go"
-	AssetTypeMap  AssetType = "map"
-	AssetTypeObj  AssetType = "obj"
-	AssetTypePng  AssetType = "png"
-	AssetTypeMesh AssetType = "mesh"
+	AssetTypeH     AssetType = "h"
+	AssetTypeC     AssetType = "c"
+	AssetTypeGo    AssetType = "go"
+	AssetTypeMap   AssetType = "map"
+	AssetTypeObj   AssetType = "obj"
+	AssetTypePng   AssetType = "png"
+	AssetTypeMesh  AssetType = "mesh"
+	AssetTypeStage AssetType = "stg"
 )
