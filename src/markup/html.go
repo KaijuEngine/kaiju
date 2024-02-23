@@ -123,7 +123,6 @@ func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any
 				}
 				s.Parse(css)
 			}
-
 		}
 	}
 	css.Apply(s, doc, host)

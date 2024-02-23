@@ -55,29 +55,50 @@ import (
 type Preview struct {
 	doc         *document.Document
 	html        string
+	styles      []string
 	bindingData any
 	lastMod     time.Time
 }
 
-func (p *Preview) fileChanged() bool {
+func (p *Preview) filesChanged() bool {
 	hs, hErr := os.Stat(p.html)
 	if hErr != nil {
 		return false
 	}
-	return hs.ModTime().After(p.lastMod)
+	if hs.ModTime().After(p.lastMod) {
+		return true
+	}
+	for f := range p.styles {
+		if s, e := os.Stat(p.styles[f]); e == nil && s.ModTime().After(p.lastMod) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Preview) pullStyles() {
+	p.styles = p.styles[:0]
+	for i := range p.doc.HeadElements {
+		if p.doc.HeadElements[i].Data() == "link" {
+			if p.doc.HeadElements[i].Attribute("rel") == "stylesheet" {
+				cssPath := p.doc.HeadElements[i].Attribute("href")
+				p.styles = append(p.styles, "content/"+cssPath)
+			}
+		}
+	}
 }
 
 func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
 		if html, err := filesystem.ReadTextFile(p.html); err == nil {
-			css := ""
 			if p.doc != nil {
 				for _, elm := range p.doc.Elements {
 					elm.UI.Entity().Destroy()
 				}
 			}
 			p.doc = markup.DocumentFromHTMLString(
-				container.Host, html, css, p.bindingData, nil)
+				container.Host, html, "", p.bindingData, nil)
+			p.pullStyles()
 		}
 	})
 	p.lastMod = time.Now()
@@ -108,7 +129,7 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	preview.readHTML(previewContainer)
 	for !previewContainer.Host.Closing {
 		time.Sleep(time.Second * 1)
-		if preview.fileChanged() {
+		if preview.filesChanged() {
 			preview.readHTML(previewContainer)
 		}
 	}
