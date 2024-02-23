@@ -62,7 +62,7 @@ type TransformTool struct {
 }
 
 func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
-	from, to matrix.Vec3, color matrix.Color) rendering.Drawing {
+	from, to matrix.Vec3, color matrix.Color, canvas string) rendering.Drawing {
 
 	grid := rendering.NewMeshGrid(host.MeshCache(),
 		"_editor_wire_"+nameSuffix,
@@ -79,11 +79,12 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
+		CanvasId:   canvas,
 	}
 }
 
 func New(host *engine.Host, selection *selection.Selection,
-	canvas rendering.Canvas, history *memento.History) TransformTool {
+	canvas string, history *memento.History) TransformTool {
 
 	wt := matrix.NewTransform()
 	t := TransformTool{
@@ -98,11 +99,11 @@ func New(host *engine.Host, selection *selection.Selection,
 	down := matrix.Vec3{0, -10000, 0}
 	front := matrix.Vec3{0, 0, -10000}
 	back := matrix.Vec3{0, 0, 10000}
-	t.wires[0] = t.createWire("x", host, left, right, matrix.ColorRed())
-	t.wires[1] = t.createWire("y", host, down, up, matrix.ColorGreen())
-	t.wires[2] = t.createWire("z", host, back, front, matrix.ColorBlue())
+	t.wires[0] = t.createWire("x", host, left, right, matrix.ColorRed(), canvas)
+	t.wires[1] = t.createWire("y", host, down, up, matrix.ColorGreen(), canvas)
+	t.wires[2] = t.createWire("z", host, back, front, matrix.ColorBlue(), canvas)
 	for i := range t.wires {
-		host.Drawings.AddDrawing(&t.wires[i], canvas)
+		host.Drawings.AddDrawing(&t.wires[i])
 	}
 	return t
 }

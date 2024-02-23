@@ -147,7 +147,6 @@ func (s *Selection) addInternal(e *engine.Entity) {
 	s.entities = append(s.entities, e)
 	outline := s.host.ShaderCache().
 		ShaderFromDefinition(assets.ShaderDefinitionOutline)
-	dc := s.host.Window.Renderer.DefaultCanvas()
 	draws := e.EditorBindings.Drawings()
 	for _, d := range draws {
 		ds := &rendering.ShaderDataBasic{
@@ -160,7 +159,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		d.Shader = outline
 		d.ShaderData = ds
 		d.UseBlending = false
-		s.host.Drawings.AddDrawing(&d, dc)
+		s.host.Drawings.AddDrawing(&d)
 	}
 }
 

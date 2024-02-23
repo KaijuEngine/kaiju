@@ -98,8 +98,9 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
 		Transform:  &e.Transform,
+		CanvasId:   "default",
 	}
-	host.Drawings.AddDrawing(&drawing, host.Window.Renderer.DefaultCanvas())
+	host.Drawings.AddDrawing(&drawing)
 	e.EditorBindings.AddDrawing(drawing)
 	return nil
 }

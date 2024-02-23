@@ -141,11 +141,12 @@ func (e *Editor) setupViewportGrid() {
 		Renderer: host.Window.Renderer,
 		Shader:   shader,
 		Mesh:     grid,
+		CanvasId: "default",
 		ShaderData: &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 		},
-	}, host.Window.Renderer.DefaultCanvas())
+	})
 }
 
 func (e *Editor) SetupUI() {
@@ -162,6 +163,7 @@ func (e *Editor) SetupUI() {
 		ot := &rendering.OITCanvas{}
 		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
 		ot.Create(win.Renderer)
+		win.Renderer.RegisterCanvas("editor_overlay", ot)
 		dc := e.Host().Window.Renderer.DefaultCanvas()
 		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
@@ -170,7 +172,7 @@ func (e *Editor) SetupUI() {
 			ot.Destroy(win.Renderer)
 		})
 		e.transformTool = transform_tools.New(e.Host(),
-			&e.selection, e.overlayCanvas, &e.history)
+			&e.selection, "editor_overlay", &e.history)
 		e.selection.Changed.Add(func() {
 			e.transformTool.Disable()
 		})
