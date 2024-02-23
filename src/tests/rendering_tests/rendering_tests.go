@@ -48,6 +48,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
+	"kaiju/rendering/loaders/load_result"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"log/slog"
@@ -249,7 +250,7 @@ func testLayout(host *engine.Host) {
 	p2.AddChild(p3)
 }
 
-func drawBasicMesh(host *engine.Host, res loaders.Result) {
+func drawBasicMesh(host *engine.Host, res load_result.Result) {
 	sd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
 	m := res.Meshes[0]
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)

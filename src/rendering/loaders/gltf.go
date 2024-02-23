@@ -45,6 +45,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/gltf"
+	"kaiju/rendering/loaders/load_result"
 	"path/filepath"
 	"unsafe"
 )
@@ -135,28 +136,28 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (Result, error) {
+func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (load_result.Result, error) {
 	if !assetDB.Exists(path) {
-		return Result{}, errors.New("file does not exist")
+		return load_result.Result{}, errors.New("file does not exist")
 	} else if filepath.Ext(path) == ".glb" {
 		if g, err := readFileGLB(path, assetDB); err != nil {
-			return Result{}, err
+			return load_result.Result{}, err
 		} else {
 			return gltfParse(&g)
 		}
 	} else if filepath.Ext(path) == ".gltf" {
 		if g, err := readFileGLTF(path, assetDB); err != nil {
-			return Result{}, err
+			return load_result.Result{}, err
 		} else {
 			return gltfParse(&g)
 		}
 	} else {
-		return Result{}, errors.New("invalid file extension")
+		return load_result.Result{}, errors.New("invalid file extension")
 	}
 }
 
-func gltfParse(doc *fullGLTF) (Result, error) {
-	res := NewResult()
+func gltfParse(doc *fullGLTF) (load_result.Result, error) {
+	res := load_result.NewResult()
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		if n.Mesh == nil {

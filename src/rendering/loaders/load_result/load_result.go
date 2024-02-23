@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* result.go                                                                  */
+/* load_result.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,36 +35,51 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package loaders
+package load_result
 
 import (
-	"kaiju/collision"
-	"kaiju/engine"
 	"kaiju/matrix"
-	"kaiju/rendering/loaders/load_result"
+	"kaiju/rendering"
 )
 
-func TrySelectResultMesh(mesh *load_result.Mesh,
-	e *engine.Entity, ray collision.Ray) (matrix.Float, bool) {
+type Mesh struct {
+	Name     string
+	MeshName string
+	Verts    []rendering.Vertex
+	Indexes  []uint32
+}
 
-	const rayLen = 10000.0
-	p, _, s := e.Transform.WorldTransform()
-	rad := mesh.ScaledRadius(s)
-	if ray.SphereHit(p, rad, rayLen) {
-		mat := e.Transform.Matrix()
-		for j := 0; j < len(mesh.Indexes); j += 3 {
-			a := mat.TransformPoint(mesh.Verts[mesh.Indexes[j]].Position)
-			b := mat.TransformPoint(mesh.Verts[mesh.Indexes[j+1]].Position)
-			c := mat.TransformPoint(mesh.Verts[mesh.Indexes[j+2]].Position)
-			if ray.TriangleHit(rayLen, a, b, c) {
-				center := matrix.Vec3{
-					(a.X() + b.X() + c.X()) / 3.0,
-					(a.Y() + b.Y() + c.Y()) / 3.0,
-					(a.Z() + b.Z() + c.Z()) / 3.0,
-				}
-				return center.Distance(ray.Origin), true
-			}
-		}
+type Result struct {
+	Meshes   []Mesh
+	Textures []string
+}
+
+func NewResult() Result {
+	return Result{
+		Meshes:   make([]Mesh, 0),
+		Textures: make([]string, 0),
 	}
-	return 0, false
+}
+
+func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
+
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
+	indexes []uint32, textures []string) {
+
+	r.Meshes = append(r.Meshes, Mesh{
+		Name:     name,
+		MeshName: meshName,
+		Verts:    verts,
+		Indexes:  indexes,
+	})
+}
+
+func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
+	rad := matrix.Float(0)
+	// TODO:  Take scale into consideration
+	for i := range mesh.Verts {
+		pt := mesh.Verts[i].Position.Multiply(scale)
+		rad = max(rad, pt.Length())
+	}
+	return rad
 }

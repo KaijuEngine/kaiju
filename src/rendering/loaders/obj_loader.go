@@ -43,6 +43,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/rendering/loaders/load_result"
 	"strings"
 )
 
@@ -191,9 +192,9 @@ func (obj *objBuilder) readFace(line string) {
 	}
 }
 
-func OBJ(objData string) Result {
+func OBJ(objData string) load_result.Result {
 	builders := ObjToRaw(objData)
-	res := NewResult()
+	res := load_result.NewResult()
 	for i := range builders {
 		builder := &builders[i]
 		verts := make([]rendering.Vertex, len(builder.points))
