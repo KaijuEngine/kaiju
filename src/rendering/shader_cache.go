@@ -63,19 +63,19 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 	}
 }
 
-func (s *ShaderCache) Shader(vertPath string, fragPath string, geomPath string, ctrlPath string, evalPath string, renderPass *RenderPass) (shader *Shader, isNew bool) {
+func (s *ShaderCache) Shader(vertPath, fragPath, geomPath, ctrlPath,
+	evalPath, key string, renderPass *RenderPass) (shader *Shader, isNew bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	shaderKey := createShaderKey(vertPath, fragPath, geomPath, ctrlPath, evalPath)
-	if shader, ok := s.shaders[shaderKey]; ok {
+	if shader, ok := s.shaders[key]; ok {
 		return shader, false
 	} else {
 		shader := NewShader(vertPath, fragPath,
-			geomPath, ctrlPath, evalPath, renderPass)
+			geomPath, ctrlPath, evalPath, key, renderPass)
 		if shader != nil {
 			s.pendingShaders = append(s.pendingShaders, shader)
 		}
-		s.shaders[shaderKey] = shader
+		s.shaders[shader.Key] = shader
 		return shader, true
 	}
 }
@@ -103,7 +103,7 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 		}
 	}
 	shader, isNew := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
-		def.Vulkan.Tesc, def.Vulkan.Tese, c.Pass(def.RenderPass))
+		def.Vulkan.Tesc, def.Vulkan.Tese, definitionKey, c.Pass(def.RenderPass))
 	if isNew {
 		shader.DriverData.setup(def, baseVertexAttributeCount, c.ShaderPipeline(def.Pipeline))
 	}
