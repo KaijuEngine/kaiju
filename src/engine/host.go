@@ -51,8 +51,10 @@ import (
 	"time"
 )
 
+// FrameId is a unique identifier for a frame
 type FrameId = uint64
 
+// InvalidFrameId can be used to indicate that a frame id is invalid
 const InvalidFrameId = math.MaxUint64
 
 type frameRun struct {
@@ -60,6 +62,16 @@ type frameRun struct {
 	call  func()
 }
 
+// Host is the mediator to the entire runtime for the game/editor. It is the
+// main entry point for the game loop and is responsible for managing all
+// entities, the window, and the rendering context. The host can be used to
+// create and manage entities, call update functions on the main thread, and
+// access various caches and resources.
+//
+// The host is expected to be passed around quite often throughout the program.
+// It is designed to remove things like service locators, singletons, and other
+// global state. You can have multiple hosts in a program to isolate things like
+// windows and game state.
 type Host struct {
 	name           string
 	editorEntities EditorEntities
@@ -86,6 +98,9 @@ type Host struct {
 	inEditorEntity int
 }
 
+// NewHost creates a new host with the given name and log stream. The log stream
+// is the log handler that is used by the slog package functions. A Host that
+// is created through NewHost has no function until Initialize is called.
 func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
@@ -109,6 +124,9 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 	return host
 }
 
+// Initializes the various systems and caches that are mediated through the
+// host. This includes the window, the shader cache, the texture cache, the mesh
+// cache, and the font cache, and the camera systems.
 func (host *Host) Initialize(width, height int) error {
 	if width <= 0 {
 		width = DefaultWindowWidth
@@ -131,6 +149,7 @@ func (host *Host) Initialize(width, height int) error {
 	return nil
 }
 
+// Name returns the name of the host
 func (host *Host) Name() string { return host.name }
 
 func (host *Host) resized() {
@@ -139,24 +158,61 @@ func (host *Host) resized() {
 	host.UICamera.ViewportChanged(w, h)
 }
 
+// CreatingEditorEntities is used exclusively for the editor to know that the
+// entities that are being created are for the editor. This is used to logically
+// separate editor entities from game entities.
+//
+// This will increment so it can be called many times, however it is expected
+// that DoneCreatingEditorEntities will be called the same number of times.
 func (host *Host) CreatingEditorEntities() {
 	host.inEditorEntity++
 }
 
+// DoneCreatingEditorEntities is used to signal that the editor is done creating
+// entities. This should be called the same number of times as
+// CreatingEditorEntities. When the internal counter reaches 0, then any entity
+// created on the host will go to the standard entity pool.
 func (host *Host) DoneCreatingEditorEntities() {
 	host.inEditorEntity--
 }
 
-func (host *Host) ShaderCache() *rendering.ShaderCache   { return &host.shaderCache }
-func (host *Host) TextureCache() *rendering.TextureCache { return &host.textureCache }
-func (host *Host) MeshCache() *rendering.MeshCache       { return &host.meshCache }
-func (host *Host) FontCache() *rendering.FontCache       { return &host.fontCache }
-func (host *Host) AssetDatabase() *assets.Database       { return &host.assetDatabase }
+// ShaderCache returns the shader cache for the host
+func (host *Host) ShaderCache() *rendering.ShaderCache {
+	return &host.shaderCache
+}
 
+// TextureCache returns the texture cache for the host
+func (host *Host) TextureCache() *rendering.TextureCache {
+	return &host.textureCache
+}
+
+// MeshCache returns the mesh cache for the host
+func (host *Host) MeshCache() *rendering.MeshCache {
+	return &host.meshCache
+}
+
+// FontCache returns the font cache for the host
+func (host *Host) FontCache() *rendering.FontCache {
+	return &host.fontCache
+}
+
+// AssetDatabase returns the asset database for the host
+func (host *Host) AssetDatabase() *assets.Database {
+	return &host.assetDatabase
+}
+
+// AddEntity adds an entity to the host. This will add the entity to the
+// standard entity pool. If the host is in the process of creating editor
+// entities, then the entity will be added to the editor entity pool.
 func (host *Host) AddEntity(entity *Entity) {
 	host.addEntity(entity)
 }
 
+// RemoveEntity removes an entity from the host. This will remove the entity
+// from the standard entity pool. This will determine if the entity is in the
+// editor entity pool and remove it from there if so, otherwise it will be
+// removed from the standard entity pool. Entities are not ordered, so they are
+// removed in O(n) time. Do not assume the entities are ordered at any time.
 func (host *Host) RemoveEntity(entity *Entity) {
 	if host.editorEntities.contains(entity) {
 		host.editorEntities.remove(entity)
@@ -170,18 +226,38 @@ func (host *Host) RemoveEntity(entity *Entity) {
 	}
 }
 
+// AddEntities adds multiple entities to the host. This will add the entities
+// using the same rules as AddEntity. If the host is in the process of creating
+// editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
 	host.addEntities(entities...)
 }
 
+// Entities returns all the entities that are currently in the host. This will
+// return all entities in the standard entity pool only.
 func (host *Host) Entities() []*Entity { return host.entities }
 
+// NewEntity creates a new entity and adds it to the host. This will add the
+// entity to the standard entity pool. If the host is in the process of creating
+// editor entities, then the entity will be added to the editor entity pool.
 func (host *Host) NewEntity() *Entity {
 	entity := NewEntity()
 	host.AddEntity(entity)
 	return entity
 }
 
+// Update is the main update loop for the host. This will poll the window for
+// events, update the entities, and render the scene. This will also check if
+// the window has been closed or crashed and set the closing flag accordingly.
+//
+// The update order is FrameRunner -> Update -> LateUpdate -> EndUpdate
+// FrameRunner: Functions added to RunAfterFrames
+// Update: Functions added to Updater
+// LateUpdate: Functions added to LateUpdater
+// EndUpdate: Internal functions for preparing for the next frame
+//
+// Any destroyed entities will also be ticked for their cleanup. This will also
+// tick the editor entities for cleanup.
 func (host *Host) Update(deltaTime float64) {
 	host.frame++
 	host.frameTime += deltaTime
