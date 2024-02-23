@@ -5,35 +5,43 @@ docs_dir: docs/
 repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
-    - Home: index.md
-    - Getting started:
-      - Build from source: getting_started/build_from_source.md
-    - UI:
-      - Writing: ui/writing.md
-      - Preview: ui/preview.md
-      - Go Access: ui/go_access.md
-    - API: api/
+  - Home: index.md
+  - Getting started:
+    - Build from source: getting_started/build_from_source.md
+  - UI:
+    - Writing: ui/writing.md
+    - Preview: ui/preview.md
+    - Go Access: ui/go_access.md
+  - API: api/
 theme:
-    name: 'material'
-    palette:
-        - media: "(prefers-color-scheme)"
-          toggle:
-            icon: material/link
-            name: Switch to light mode
-        - media: "(prefers-color-scheme: light)"
-          scheme: default
-          primary: red
-          accent: deep orange
-          toggle:
-            icon: material/toggle-switch
-            name: Switch to dark mode
-        - media: "(prefers-color-scheme: dark)"
-          scheme: slate
-          primary: red
-          accent: deep orange
-          toggle:
-            icon: material/toggle-switch-off
-            name: Switch to system preference
+  name: 'material'
+  features:
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      accent: deep orange
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: red
+      accent: deep orange
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
 markdown_extensions:
-    - toc:
-        permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+#  - pymdownx.snippets
+#  - pymdownx.superfences
