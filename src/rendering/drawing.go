@@ -181,6 +181,9 @@ func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
+	if len(d.draws) == 0 {
+		return
+	}
 	renderer.Draw(d.draws)
 	renderer.BlitTargets(d.draws...)
 }

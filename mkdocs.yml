@@ -7,11 +7,15 @@ repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
   - Home: index.md
   - Getting started:
-    - Build from source: getting_started/build_from_source.md
+    - Launching the editor: getting_started/editor_launch.md
   - UI:
     - Writing: ui/writing.md
     - Preview: ui/preview.md
     - Go Access: ui/go_access.md
+  - Engine Developers:
+    - Build from source: engine_developers/build_from_source.md
+    - Editor windows: engine_developers/editor_windows.md
+    - Prompt popups: engine_developers/prompt_popup.md
   - API: api/
 theme:
   name: 'material'

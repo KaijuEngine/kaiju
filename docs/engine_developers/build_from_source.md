@@ -7,6 +7,8 @@ title: Kaiju Engine | Build from source
 Below are instructions on how to build the engine from source. Please take care to ensure you're using the Kaiju Engine Go compiler. It is modified for speed (relating to games) and has some features enabled that are currently disabled in Go until the next release.
 
 ## Prerequisites
+To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
+
 I have made modifications to the Go compiler to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
 
 - Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
@@ -38,3 +40,11 @@ I have made modifications to the Go compiler to increase the performance of the 
   - Select the Kaiju Engine Go compiler `bin` folder
 - Select one of the debug options
 - Press F5
+
+## Building content
+The source code is not deployed. with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
+```bash
+go run ./generators/project_template/main.go
+```
+
+This will generate the project template zip file. This zip file is extracted into the folder that you select when creating a new project. It has a copy of the source code and content.

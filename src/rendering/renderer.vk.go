@@ -516,7 +516,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
-	if !vr.hasSwapChain {
+	if !vr.hasSwapChain || vr.commandBuffersCount == 0 {
 		return false
 	}
 	submitInfo := vk.SubmitInfo{}
