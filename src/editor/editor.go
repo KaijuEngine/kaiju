@@ -48,6 +48,7 @@ import (
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
+	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -67,13 +68,13 @@ import (
 )
 
 type Editor struct {
-	Container      *host_container.Container
+	container      *host_container.Container
 	menu           *menu.Menu
 	editorDir      string
 	project        string
 	history        memento.History
 	cam            controls.EditorCamera
-	AssetImporters asset_importer.ImportRegistry
+	assetImporters asset_importer.ImportRegistry
 	stageManager   stages.Manager
 	contentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
@@ -83,7 +84,12 @@ type Editor struct {
 	overlayCanvas rendering.Canvas
 }
 
-func (e *Editor) Host() *engine.Host { return e.Container.Host }
+func (e *Editor) Container() *host_container.Container  { return e.container }
+func (e *Editor) Host() *engine.Host                    { return e.container.Host }
+func (e *Editor) StageManager() *stages.Manager         { return &e.stageManager }
+func (e *Editor) ContentOpener() *content_opener.Opener { return &e.contentOpener }
+func (e *Editor) Selection() *selection.Selection       { return &e.selection }
+func (e *Editor) History() *memento.History             { return &e.history }
 
 func New(container *host_container.Container) *Editor {
 	host := container.Host
@@ -92,18 +98,20 @@ func New(container *host_container.Container) *Editor {
 	host.Camera = tc
 	tc.SetYawPitchZoom(0, -25, 16)
 	ed := &Editor{
-		Container:      container,
-		AssetImporters: asset_importer.NewImportRegistry(),
+		container:      container,
+		assetImporters: asset_importer.NewImportRegistry(),
 		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
 		history:        memento.NewHistory(100),
-		stageManager:   stages.NewManager(host),
 	}
+	ed.stageManager = stages.NewManager(host, &ed.assetImporters)
 	ed.selection = selection.New(host, &ed.history)
-	ed.AssetImporters.Register(asset_importer.OBJImporter{})
-	ed.AssetImporters.Register(asset_importer.PNGImporter{})
-	ed.contentOpener = content_opener.New(&ed.AssetImporters,
-		container, &ed.history)
+	ed.assetImporters.Register(asset_importer.OBJImporter{})
+	ed.assetImporters.Register(asset_importer.PNGImporter{})
+	ed.assetImporters.Register(asset_importer.StageImporter{})
+	ed.contentOpener = content_opener.New(
+		&ed.assetImporters, container, &ed.history)
 	ed.contentOpener.Register(content_opener.ObjOpener{})
+	ed.contentOpener.Register(content_opener.StageOpener{})
 	return ed
 }
 
@@ -152,10 +160,13 @@ func (e *Editor) setupViewportGrid() {
 func (e *Editor) SetupUI() {
 	projectWindow, _ := project_window.New()
 	projectPath := <-projectWindow.Selected
+	if projectPath == "" {
+		e.Host().Close()
+		return
+	}
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host().LogStream)
-	e.menu = menu.New(e.Container, e.logWindow,
-		&e.stageManager, &e.contentOpener)
+	e.menu = menu.New(e.container, e.logWindow, &e.contentOpener, e)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
@@ -182,7 +193,7 @@ func (e *Editor) SetupUI() {
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
-	project.ScanContent(&e.AssetImporters)
+	project.ScanContent(&e.assetImporters)
 }
 
 func (ed *Editor) update(delta float64) {
@@ -216,6 +227,8 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Undo()
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
+		} else if kb.KeyDown(hid.KeyboardKeySpace) {
+			content_window.New(&ed.contentOpener, ed)
 		}
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,

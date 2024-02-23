@@ -203,6 +203,16 @@ func (host *Host) AddEntity(entity *Entity) {
 	host.addEntity(entity)
 }
 
+// ClearEntities will remove all entities from the host. This will remove all
+// entities from the standard entity pool only. The entities will be destroyed
+// using the standard destroy method, so they will take not be fully removed
+// during the frame that this function was called.
+func (host *Host) ClearEntities() {
+	for _, e := range host.entities {
+		e.Destroy()
+	}
+}
+
 // RemoveEntity removes an entity from the host. This will remove the entity
 // from the standard entity pool. This will determine if the entity is in the
 // editor entity pool and remove it from there if so, otherwise it will be

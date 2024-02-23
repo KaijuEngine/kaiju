@@ -73,7 +73,7 @@ type Entity struct {
 
 // NewEntity creates a new #Entity struct and returns it
 func NewEntity() *Entity {
-	return &Entity{
+	e := &Entity{
 		isActive:     true,
 		Children:     make([]*Entity, 0),
 		Transform:    matrix.NewTransform(),
@@ -84,6 +84,8 @@ func NewEntity() *Entity {
 		OnActivate:   events.New(),
 		OnDeactivate: events.New(),
 	}
+	e.EditorBindings.init()
+	return e
 }
 
 // IsRoot returns true if the entity is the root entity in the hierarchy

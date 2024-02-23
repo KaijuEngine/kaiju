@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_opener.go                                                          */
+/* stage_opener.go                                                            */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -38,61 +38,19 @@
 package content_opener
 
 import (
-	"errors"
-	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
-	"kaiju/editor/memento"
-	"kaiju/host_container"
 )
 
-var (
-	ErrNoOpener = errors.New("no opener found")
-)
+type StageOpener struct{}
 
-type ContentOpener interface {
-	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
+	return adi.Type == editor_config.AssetTypeStage
 }
 
-type Opener struct {
-	openers   []ContentOpener
-	container *host_container.Container
-	importer  *asset_importer.ImportRegistry
-	history   *memento.History
-}
-
-func New(importer *asset_importer.ImportRegistry,
-	container *host_container.Container, history *memento.History) Opener {
-	return Opener{
-		importer:  importer,
-		container: container,
-		history:   history,
-	}
-}
-
-func (o *Opener) Register(opener ContentOpener) {
-	o.openers = append(o.openers, opener)
-}
-
-func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
-	for i := range o.openers {
-		if o.openers[i].Handles(adi) {
-			return o.openers[i].Open(adi, ed)
-		}
-	}
-	return ErrNoOpener
-}
-
-func (o *Opener) OpenPath(path string, ed interfaces.Editor) error {
-	if !asset_info.Exists(path) {
-		if err := o.importer.Import(path); err != nil {
-			return err
-		}
-	}
-	if adi, err := asset_info.Read(path); err != nil {
-		return err
-	} else {
-		return o.Open(adi, ed)
-	}
+func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+	err := ed.StageManager().Load(adi, ed.Host())
+	ed.Host().Window.Focus()
+	return err
 }

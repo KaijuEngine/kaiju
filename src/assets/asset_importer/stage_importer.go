@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_opener.go                                                          */
+/* stage_importer.go                                                          */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,64 +35,25 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_opener
+package asset_importer
 
 import (
-	"errors"
-	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
-	"kaiju/editor/interfaces"
-	"kaiju/editor/memento"
-	"kaiju/host_container"
+	"kaiju/editor/editor_config"
+	"path/filepath"
 )
 
-var (
-	ErrNoOpener = errors.New("no opener found")
-)
+type StageImporter struct{}
 
-type ContentOpener interface {
-	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+func (m StageImporter) Handles(path string) bool {
+	return filepath.Ext(path) == editor_config.FileExtensionStage
 }
 
-type Opener struct {
-	openers   []ContentOpener
-	container *host_container.Container
-	importer  *asset_importer.ImportRegistry
-	history   *memento.History
-}
-
-func New(importer *asset_importer.ImportRegistry,
-	container *host_container.Container, history *memento.History) Opener {
-	return Opener{
-		importer:  importer,
-		container: container,
-		history:   history,
-	}
-}
-
-func (o *Opener) Register(opener ContentOpener) {
-	o.openers = append(o.openers, opener)
-}
-
-func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
-	for i := range o.openers {
-		if o.openers[i].Handles(adi) {
-			return o.openers[i].Open(adi, ed)
-		}
-	}
-	return ErrNoOpener
-}
-
-func (o *Opener) OpenPath(path string, ed interfaces.Editor) error {
-	if !asset_info.Exists(path) {
-		if err := o.importer.Import(path); err != nil {
-			return err
-		}
-	}
-	if adi, err := asset_info.Read(path); err != nil {
+func (m StageImporter) Import(path string) error {
+	adi, err := createADI(path, nil)
+	if err != nil {
 		return err
-	} else {
-		return o.Open(adi, ed)
 	}
+	adi.Type = editor_config.AssetTypeStage
+	return asset_info.Write(adi)
 }
