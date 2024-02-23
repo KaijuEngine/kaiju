@@ -99,7 +99,7 @@ type Host struct {
 
 // NewHost creates a new host with the given name and log stream. The log stream
 // is the log handler that is used by the slog package functions. A Host that
-// is created through NewHost has no function until #Initialize is called.
+// is created through NewHost has no function until #Host.Initialize is called.
 //
 // This is primarily called from #host_container/HostContainer.New
 func NewHost(name string, logStream *logging.LogStream) *Host {
@@ -164,15 +164,15 @@ func (host *Host) resized() {
 // separate editor entities from game entities.
 //
 // This will increment so it can be called many times, however it is expected
-// that #DoneCreatingEditorEntities will be called the same number of times.
+// that #Host.DoneCreatingEditorEntities is be called the same number of times.
 func (host *Host) CreatingEditorEntities() {
 	host.inEditorEntity++
 }
 
 // DoneCreatingEditorEntities is used to signal that the editor is done creating
 // entities. This should be called the same number of times as
-// #CreatingEditorEntities. When the internal counter reaches 0, then any entity
-// created on the host will go to the standard entity pool.
+// #Host.CreatingEditorEntities. When the internal counter reaches 0, then any
+// entity created on the host will go to the standard entity pool.
 func (host *Host) DoneCreatingEditorEntities() {
 	host.inEditorEntity--
 }
