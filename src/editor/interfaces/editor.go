@@ -53,4 +53,5 @@ type Editor interface {
 	Selection() *selection.Selection
 	History() *memento.History
 	WindowListing() *editor_window.Listing
+	OpenProject()
 }

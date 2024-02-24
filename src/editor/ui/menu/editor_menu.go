@@ -83,6 +83,7 @@ func New(container *host_container.Container,
 		"openAbout":         openAbout,
 		"newStage":          m.newStage,
 		"saveStage":         m.saveStage,
+		"openProject":       m.openProject,
 		"openContentWindow": m.openContentWindow,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
@@ -172,6 +173,10 @@ func (m *Menu) saveStage(*document.DocElement) {
 	if err := m.editor.StageManager().Save(); err != nil {
 		slog.Error("Save stage failed", slog.String("error", err.Error()))
 	}
+}
+
+func (m *Menu) openProject(*document.DocElement) {
+	m.editor.OpenProject()
 }
 
 func (m *Menu) setupConsoleCommands() {

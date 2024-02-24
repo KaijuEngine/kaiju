@@ -54,11 +54,12 @@ type windowData struct {
 }
 
 type ProjectWindow struct {
-	doc       *document.Document
-	container *host_container.Container
-	Selected  chan string
-	data      windowData
-	picked    bool
+	doc          *document.Document
+	container    *host_container.Container
+	Selected     chan string
+	data         windowData
+	picked       bool
+	templatePath string
 }
 
 func (p *ProjectWindow) openProjectFolder(path string) {
@@ -67,7 +68,7 @@ func (p *ProjectWindow) openProjectFolder(path string) {
 		if err != nil {
 			p.data.Error = "Error reading directory, check permissions and try again"
 		} else if len(dir) == 0 {
-			if err := project.CreateNew(path); err != nil {
+			if err := project.CreateNew(path, p.templatePath); err != nil {
 				p.data.Error = "Error creating project: " + err.Error()
 			} else {
 				p.picked = true
@@ -122,9 +123,10 @@ func (p *ProjectWindow) load() {
 		})
 }
 
-func New(cx, cy int) (*ProjectWindow, error) {
+func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 	p := &ProjectWindow{
-		Selected: make(chan string),
+		Selected:     make(chan string),
+		templatePath: templatePath,
 	}
 	p.container = host_container.New("Project Window", nil)
 	go p.container.Run(600, 400, cx-300, cy-200)

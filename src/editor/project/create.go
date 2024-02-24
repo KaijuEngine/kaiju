@@ -50,7 +50,7 @@ const (
 	sourceFolder          = "src/source"
 )
 
-func CreateNew(path string) error {
+func CreateNew(path, templatePath string) error {
 	if stat, err := os.Stat(path); err != nil {
 		if err = os.MkdirAll(path, 0755); err != nil {
 			return err
@@ -58,7 +58,7 @@ func CreateNew(path string) error {
 	} else if !stat.IsDir() {
 		return os.ErrExist
 	}
-	if err := unzipTemplate(path); err != nil {
+	if err := unzipTemplate(path, templatePath); err != nil {
 		return err
 	}
 	if err := createCache(path); err != nil {
@@ -67,8 +67,8 @@ func CreateNew(path string) error {
 	return createSource(path)
 }
 
-func unzipTemplate(into string) error {
-	r, err := zip.OpenReader("project_template.zip")
+func unzipTemplate(into, templatePath string) error {
+	r, err := zip.OpenReader(templatePath)
 	if err != nil {
 		return err
 	}

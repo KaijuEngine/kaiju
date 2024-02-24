@@ -243,9 +243,11 @@ func (ui *uiBase) GenerateScissor() {
 			p = FirstPanelOnEntity(p.entity.Parent)
 		}
 		if !p.entity.IsRoot() {
-			bounds = p.selfScissor()
-		} else {
-			bounds = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
+			ps := p.selfScissor()
+			bounds.SetX(max(bounds.X(), ps.X()))
+			bounds.SetY(max(bounds.Y(), ps.Y()))
+			bounds.SetZ(min(bounds.Z(), ps.Z()))
+			bounds.SetW(min(bounds.W(), ps.W()))
 		}
 	}
 	ui.setScissor(bounds)
