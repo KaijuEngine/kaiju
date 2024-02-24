@@ -179,9 +179,6 @@ func (e *Editor) SetupUI() {
 		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
 		e.overlayCanvas = ot
-		e.Host().OnClose.Add(func() {
-			ot.Destroy(win.Renderer)
-		})
 		e.transformTool = transform_tools.New(e.Host(),
 			&e.selection, "editor_overlay", &e.history)
 		e.selection.Changed.Add(func() {
