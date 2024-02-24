@@ -74,6 +74,10 @@ import (
 	"strings"
 )
 
+const (
+	projectTemplate = "project_template.zip"
+)
+
 type Editor struct {
 	container      *host_container.Container
 	menu           *menu.Menu
@@ -112,7 +116,7 @@ func New() *Editor {
 	logStream := logging.Initialize(nil)
 	ed := &Editor{
 		assetImporters: asset_importer.NewImportRegistry(),
-		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
+		editorDir:      filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/.."),
 		history:        memento.NewHistory(100),
 	}
 	ed.container = host_container.New("Kaiju Editor", logStream)
@@ -180,8 +184,27 @@ func (e *Editor) setupViewportGrid() {
 	})
 }
 
+func (e *Editor) OpenProject() {
+	cx, cy := e.Host().Window.Center()
+	projectWindow, _ := project_window.New(
+		filepath.Join(e.editorDir, projectTemplate), cx, cy)
+	projectPath := <-projectWindow.Selected
+	if projectPath == "" {
+		return
+	}
+	e.pickProject(projectPath)
+}
+
+func (e *Editor) pickProject(projectPath string) {
+	if err := e.setProject(projectPath); err != nil {
+		return
+	}
+	project.ScanContent(&e.assetImporters)
+}
+
 func (e *Editor) SetupUI() {
-	projectWindow, _ := project_window.New(e.Host().Window.Center())
+	cx, cy := e.Host().Window.Center()
+	projectWindow, _ := project_window.New(projectTemplate, cx, cy)
 	projectPath := <-projectWindow.Selected
 	if projectPath == "" {
 		e.Host().Close()
@@ -211,10 +234,7 @@ func (e *Editor) SetupUI() {
 	e.Host().DoneCreatingEditorEntities()
 	e.Host().Updater.AddUpdate(e.update)
 	e.windowListing.Add(e)
-	if err := e.setProject(projectPath); err != nil {
-		return
-	}
-	project.ScanContent(&e.assetImporters)
+	e.pickProject(projectPath)
 }
 
 func (ed *Editor) update(delta float64) {

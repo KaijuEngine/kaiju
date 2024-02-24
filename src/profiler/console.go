@@ -296,6 +296,6 @@ func SetupConsole(host *engine.Host) {
 			c.Data(traceCtxDataKey).(*contexts.Cancellable).Cancel()
 		}
 	})
-	console.For(host).AddCommand("GC", "Forces garbage collection", gc)
-	console.For(host).AddCommand("MemStats", "Shows current memory stats", memStats)
+	console.For(host).AddCommand("gc", "Forces garbage collection", gc)
+	console.For(host).AddCommand("memstats", "Shows current memory stats", memStats)
 }
