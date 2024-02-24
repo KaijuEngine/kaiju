@@ -301,7 +301,7 @@ func testMonkeyGLB(host *engine.Host) {
 }
 
 func SetupConsole(host *engine.Host) {
-	console.For(host).AddCommand("test", func(_ *engine.Host, t string) string {
+	console.For(host).AddCommand("test", "Open a rendering test given it's name", func(_ *engine.Host, t string) string {
 		var testFunc func(*engine.Host) = nil
 		switch strings.ToLower(t) {
 		case "drawing":

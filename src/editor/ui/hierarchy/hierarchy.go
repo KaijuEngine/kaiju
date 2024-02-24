@@ -42,7 +42,6 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/systems/console"
 	"kaiju/systems/events"
 	"kaiju/ui"
 	"strings"
@@ -95,21 +94,5 @@ func (h *Hierarchy) Create(host *engine.Host) {
 				entityList.HTML.Children[idx].DocumentElement.UI.Entity().Deactivate()
 			}
 		}
-	})
-}
-
-func SetupConsole(host *engine.Host) {
-	hrc := New()
-	console.For(host).AddCommand("hrc", func(_ *engine.Host, arg string) string {
-		log := ""
-		if arg == "show" {
-			hrc.Destroy()
-			hrc.Create(host)
-		} else if arg == "hide" {
-			hrc.Destroy()
-		} else {
-			log = "Invalid command"
-		}
-		return log
 	})
 }

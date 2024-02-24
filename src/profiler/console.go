@@ -286,8 +286,8 @@ func memStats(host *engine.Host, arg string) string {
 
 func SetupConsole(host *engine.Host) {
 	c := console.For(host)
-	c.AddCommand("pprof", pprofCommands)
-	c.AddCommand("trace", traceCommands)
+	c.AddCommand("pprof", "Run profiler commands like 'start cpu', 'start mem', 'stop cpu', 'web cpu', 'web mem', and 'web stop'", pprofCommands)
+	c.AddCommand("trace", "Run trace commands like 'start', 'stop', 'web start', and 'web stop'", traceCommands)
 	c.Host().OnClose.Add(func() {
 		if c.HasData(pprofCtxDataKey) {
 			c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
@@ -296,6 +296,6 @@ func SetupConsole(host *engine.Host) {
 			c.Data(traceCtxDataKey).(*contexts.Cancellable).Cancel()
 		}
 	})
-	console.For(host).AddCommand("GC", gc)
-	console.For(host).AddCommand("MemStats", memStats)
+	console.For(host).AddCommand("GC", "Forces garbage collection", gc)
+	console.For(host).AddCommand("MemStats", "Shows current memory stats", memStats)
 }

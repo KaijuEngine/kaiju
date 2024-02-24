@@ -38,13 +38,10 @@
 package main
 
 import (
-	"fmt"
 	"kaiju/bootstrap"
-	"kaiju/editor/ui/hierarchy"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/profiler"
-	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
@@ -56,11 +53,7 @@ func init() {
 }
 
 func addConsole(host *engine.Host) {
-	console.For(host).AddCommand("EntityCount", func(*engine.Host, string) string {
-		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
-	})
 	html_preview.SetupConsole(host)
-	hierarchy.SetupConsole(host)
 	profiler.SetupConsole(host)
 	tests.SetupConsole(host)
 }
