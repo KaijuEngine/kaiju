@@ -158,7 +158,7 @@ func (e *Editor) setupViewportGrid() {
 }
 
 func (e *Editor) SetupUI() {
-	projectWindow, _ := project_window.New()
+	projectWindow, _ := project_window.New(e.Host().Window.Center())
 	projectPath := <-projectWindow.Selected
 	if projectPath == "" {
 		e.Host().Close()

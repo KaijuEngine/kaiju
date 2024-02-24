@@ -8,7 +8,7 @@
 /* MIT License                                                                */
 /*                                                                            */
 /* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                      */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -122,12 +122,12 @@ func (p *ProjectWindow) load() {
 		})
 }
 
-func New() (*ProjectWindow, error) {
+func New(cx, cy int) (*ProjectWindow, error) {
 	p := &ProjectWindow{
 		Selected: make(chan string),
 	}
 	p.container = host_container.New("Project Window", nil)
-	go p.container.Run(600, 400, -1, -1)
+	go p.container.Run(600, 400, cx-300, cy-200)
 	var err error
 	p.data.ExistingProjects, err = editor_cache.ListProjects()
 	if err != nil {
