@@ -46,6 +46,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
 	"log/slog"
@@ -85,12 +86,31 @@ func New(editor interfaces.Editor) {
 		}))
 }
 
-func (h *Hierarchy) onSelectedEntity(e *document.DocElement) {
-	id := e.HTML.Attribute("id")
-	// TODO:  Check for ctrl or shift to add to selection
+func (h *Hierarchy) onSelectedEntity(elm *document.DocElement) {
+	id := elm.HTML.Attribute("id")
 	if e, ok := h.editor.Host().FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", id))
 	} else {
-		h.editor.Selection().Set(e)
+		kb := &h.container.Host.Window.Keyboard
+		if kb.HasCtrl() {
+			h.editor.Selection().Toggle(e)
+		} else if kb.HasShift() {
+			h.editor.Selection().Add(e)
+		} else {
+			h.editor.Selection().Set(e)
+		}
+		for i := range elm.HTML.Parent.Children {
+			elm.HTML.Parent.Children[i].DocumentElement.UIPanel.UnEnforceColor()
+		}
+		for i := range elm.HTML.Parent.Children {
+			child := &elm.HTML.Parent.Children[i]
+			id := child.Parent.Children[i].Attribute("id")
+			for _, se := range h.editor.Selection().Entities() {
+				if se.Id() == id {
+					child.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
+					break
+				}
+			}
+		}
 	}
 }
