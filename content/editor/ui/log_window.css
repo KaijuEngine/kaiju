@@ -25,23 +25,14 @@
 .logTrace {
 	font-size: 12px;
 }
-#infoEntryTemplate {
-	visibility: hidden;
-}
-#warnEntryTemplate {
-	visibility: hidden;
-}
-#errorEntryTemplate {
-	visibility: hidden;
-}
 .selectedView {
 	width: 100%;
 	height: calc(100% - 50px);
 	overflow-y: scroll;
 }
-#warn, #warningsBtn {
+#warn, #warningsBtn, .warn {
 	color: yellow;
 }
-#error, #errorsBtn {
+#error, #errorsBtn, .error {
 	color: lightcoral;
 }

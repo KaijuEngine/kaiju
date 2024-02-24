@@ -8,10 +8,19 @@
 		<div class="fill darkBG clip">
 			<div>
 				<button class="topBtn" onclick="clearAll">Clear</button>
-				<button id="infoBtn" class="topBtn" onclick="showInfos">Infos</button>
-				<button id="warningsBtn" class="topBtn" onclick="showWarns">Warnings</button>
-				<button id="errorsBtn" class="topBtn" onclick="showErrors">Errors</button>
+				<button id="allBtn" class="topBtn" onclick="showAll">All</button>
+				<button id="infoBtn" class="topBtn" onclick="showInfos">Info</button>
+				<button id="warningsBtn" class="topBtn" onclick="showWarns">Warning</button>
+				<button id="errorsBtn" class="topBtn" onclick="showErrors">Error</button>
 				<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
+			</div>
+			<div id="all" class="logGroup">
+				{{range $i, $v := .All}}
+				<div class="logEntry {{.Category}}" data-entry="{{$i}}" onclick="selectEntry">
+					<div class="logTime">{{$v.Time}}</div>
+					<div class="logMessage">{{$v.Message}}</div>
+				</div>
+				{{end}}
 			</div>
 			<div id="info" class="logGroup">
 				{{range $i, $v := .Infos}}
@@ -38,7 +47,7 @@
 				{{end}}
 			</div>
 			<div id="selected" class="selectedView">
-				Nothing selected, select a log from "Infos", "Warnings", or "Errors"
+				Nothing selected, select a log from "All", "Info", "Warning", or "Error"
 			</div>
 		</div>
 	</body>

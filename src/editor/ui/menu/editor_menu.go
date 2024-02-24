@@ -84,9 +84,6 @@ func New(container *host_container.Container,
 		"newStage":          m.newStage,
 		"saveStage":         m.saveStage,
 		"openContentWindow": m.openContentWindow,
-		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
-		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },
-		"sampleError":       func(*document.DocElement) { slog.Error("This is an error") },
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
@@ -179,9 +176,21 @@ func (m *Menu) saveStage(*document.DocElement) {
 
 func (m *Menu) setupConsoleCommands() {
 	c := console.For(m.editor.Host())
-	c.AddCommand("log", "Opens the log window", func(*engine.Host, string) string {
-		m.openLogWindow(nil)
-		return ""
+	c.AddCommand("log", "Opens the log window", func(_ *engine.Host, arg string) string {
+		switch arg {
+		case "info":
+			slog.Info("This is some info")
+			return "Generated a sample info message"
+		case "warn":
+			slog.Warn("This is a warning")
+			return "Generated a sample warning message"
+		case "error":
+			slog.Error("This is an error")
+			return "Generated a sample error message"
+		default:
+			m.openLogWindow(nil)
+			return ""
+		}
 	})
 	c.AddCommand("content", "Opens a content window", func(*engine.Host, string) string {
 		m.openContentWindow(nil)
