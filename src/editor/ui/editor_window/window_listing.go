@@ -19,6 +19,7 @@ func (l *Listing) Add(w EditorWindow) {
 	l.windows = append(l.windows, w)
 	w.Container().Host.OnClose.Add(func() {
 		saveLayout(w, false)
+		w.Closed()
 		l.Remove(w)
 	})
 }

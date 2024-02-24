@@ -160,7 +160,7 @@ func openRepository(*document.DocElement) {
 }
 
 func (m *Menu) openLogWindow(*document.DocElement) {
-	m.logWindow.Show()
+	m.logWindow.Show(m.editor.WindowListing())
 }
 
 func (m *Menu) openContentWindow(*document.DocElement) {

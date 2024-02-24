@@ -39,6 +39,7 @@ package log_window
 
 import (
 	"kaiju/editor/cache/editor_cache"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -137,28 +138,24 @@ func New(logStream *logging.LogStream) *LogWindow {
 	return l
 }
 
-func (l *LogWindow) Show() {
+func (l *LogWindow) Show(listing *editor_window.Listing) {
 	if l.container != nil {
 		return
 	}
 	l.container = host_container.New("Log Window", nil)
-	go l.container.Run(engine.DefaultWindowWidth,
+	editor_window.OpenWindow(l, editor_cache.MainWindow,
+		engine.DefaultWindowWidth,
 		engine.DefaultWindowWidth/3, -1, -1)
-	<-l.container.PrepLock
 	l.reloadUI()
-	host := l.container.Host
-	host.OnClose.Add(func() {
-		l.logStream.OnInfo.Remove(l.infoEvtId)
-		l.logStream.OnWarn.Remove(l.warnEvtId)
-		l.logStream.OnError.Remove(l.errEvtId)
-		l.container = nil
-		l.lastReload = engine.InvalidFrameId
-		x := host.Window.X()
-		y := host.Window.Y()
-		w := host.Window.Width()
-		h := host.Window.Height()
-		editor_cache.SetWindow(editor_cache.LogWindow, x, y, w, h, false)
-	})
+	listing.Add(l)
+}
+
+func (l *LogWindow) Closed() {
+	l.logStream.OnInfo.Remove(l.infoEvtId)
+	l.logStream.OnWarn.Remove(l.warnEvtId)
+	l.logStream.OnError.Remove(l.errEvtId)
+	l.container = nil
+	l.lastReload = engine.InvalidFrameId
 }
 
 func (l *LogWindow) Tag() string                          { return editor_cache.LogWindow }

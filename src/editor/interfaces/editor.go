@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/engine"
 	"kaiju/host_container"
 )
@@ -51,4 +52,5 @@ type Editor interface {
 	StageManager() *stages.Manager
 	Selection() *selection.Selection
 	History() *memento.History
+	WindowListing() *editor_window.Listing
 }
