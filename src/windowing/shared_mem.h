@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define SHARED_MEM_WINDOW_MOVE		0xFA
 #define SHARED_MEM_WINDOW_RESIZE	0xFB
 #define SHARED_MEM_AWAITING_CONTEXT	0xFC
 #define SHARED_MEM_AWAITING_START	0xFD
@@ -83,6 +84,11 @@ typedef struct {
 } ResizeEvent;
 
 typedef struct {
+	int32_t x;
+	int32_t y;
+} MoveEvent;
+
+typedef struct {
 	uint16_t buttons;
 	int16_t thumbLX;
 	int16_t thumbLY;
@@ -106,6 +112,7 @@ typedef struct {
 	union {
 		MouseEvent mouse;
 		KeyboardEvent keyboard;
+		MoveEvent move;
 		ResizeEvent resize;
 		ControllerEvent controllers;
 	};

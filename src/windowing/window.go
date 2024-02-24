@@ -69,6 +69,7 @@ const (
 	evtKeyDown
 	evtKeyUp
 	evtResize
+	evtMove
 	evtControllerStates
 )
 
@@ -83,6 +84,7 @@ type Window struct {
 	Cursor        hid.Cursor
 	Renderer      rendering.Renderer
 	evtSharedMem  *evtMem
+	x, y          int
 	width, height int
 	isClosed      bool
 	isCrashed     bool
@@ -136,6 +138,9 @@ func (w *Window) PlatformInstance() unsafe.Pointer { return w.cInstance() }
 
 func (w *Window) IsClosed() bool  { return w.isClosed }
 func (w *Window) IsCrashed() bool { return w.isCrashed }
+func (w *Window) X() int          { return w.x }
+func (w *Window) Y() int          { return w.y }
+func (w *Window) XY() (int, int)  { return w.x, w.y }
 func (w *Window) Width() int      { return w.width }
 func (w *Window) Height() int     { return w.height }
 
@@ -153,11 +158,15 @@ func (w *Window) processEvent(evtType eventType) {
 func (w *Window) processWindowEvent(evtType eventType) {
 	switch evtType {
 	case evtResize:
-		we := w.evtSharedMem.toWindowEvent()
+		we := w.evtSharedMem.toWindowResizeEvent()
 		w.width = int(we.width)
 		w.height = int(we.height)
 		w.Renderer.Resize(w.width, w.height)
 		w.OnResize.Execute()
+	case evtMove:
+		we := w.evtSharedMem.toWindowMoveEvent()
+		w.x = int(we.x)
+		w.y = int(we.y)
 	}
 }
 
@@ -305,7 +314,10 @@ func (w *Window) Focus() {
 }
 
 func (w *Window) Position() (x int, y int) {
-	return w.position()
+	x, y = w.position()
+	w.x = x
+	w.y = y
+	return x, y
 }
 
 func (w *Window) Center() (x int, y int) {
