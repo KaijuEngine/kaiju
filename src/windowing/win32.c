@@ -141,18 +141,22 @@ void process_message(SharedMem* sm, MSG *msg) {
 			setMouseEvent(sm->evt, msg->lParam, -1);
 			break;
 		case WM_LBUTTONDOWN:
+			SetCapture(msg->hwnd);
 		case WM_LBUTTONUP:
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
 			break;
 		case WM_MBUTTONDOWN:
+			SetCapture(msg->hwnd);
 		case WM_MBUTTONUP:
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
 			break;
 		case WM_RBUTTONDOWN:
+			SetCapture(msg->hwnd);
 		case WM_RBUTTONUP:
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
 			break;
 		case WM_XBUTTONDOWN:
+			SetCapture(msg->hwnd);
 		case WM_XBUTTONUP:
 			if (msg->wParam & 0x0010000) {
 				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X1);
@@ -221,7 +225,7 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
 	// Register the window class.
 	HMODULE hInstance = GetModuleHandle(NULL);
     const wchar_t className[]  = L"Kaiju Window Class";
-    WNDCLASS wc = { };
+    WNDCLASS wc = { 0 };
     wc.lpfnWndProc   = window_proc;
     wc.hInstance     = hInstance;
     wc.lpszClassName = className;
@@ -274,7 +278,7 @@ uint32_t window_poll_controller(void* hwnd) {
 uint32_t window_poll(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
  	// Run the message loop.
-    MSG msg = {};
+    MSG msg = { 0 };
 	if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
 		TranslateMessage(&msg);
 		// TODO:  Window resize happens in here, but would be clobbered by &msg which is different
