@@ -227,8 +227,10 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Undo()
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
-		} else if kb.KeyDown(hid.KeyboardKeySpace) {
+		} else if kb.KeyUp(hid.KeyboardKeySpace) {
 			content_window.New(&ed.contentOpener, ed)
+		} else if kb.KeyUp(hid.KeyboardKeyS) {
+			ed.stageManager.Save()
 		}
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,
