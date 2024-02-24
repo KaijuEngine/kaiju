@@ -103,7 +103,7 @@ func New(container *host_container.Container) *Editor {
 		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
 		history:        memento.NewHistory(100),
 	}
-	ed.stageManager = stages.NewManager(host, &ed.assetImporters)
+	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
 	ed.selection = selection.New(host, &ed.history)
 	ed.assetImporters.Register(asset_importer.OBJImporter{})
 	ed.assetImporters.Register(asset_importer.PNGImporter{})

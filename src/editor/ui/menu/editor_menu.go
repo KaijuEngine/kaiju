@@ -111,6 +111,10 @@ func (m *Menu) openContentWindow(*document.DocElement) {
 	content_window.New(m.contentOpener, m.editor)
 }
 
+func (m *Menu) newStage(*document.DocElement) {
+	m.editor.StageManager().New()
+}
+
 func (m *Menu) saveStage(*document.DocElement) {
 	if err := m.editor.StageManager().Save(); err != nil {
 		slog.Error("Save stage failed", slog.String("error", err.Error()))
@@ -134,6 +138,7 @@ func New(container *host_container.Container,
 		"openLogWindow":     m.openLogWindow,
 		"openRepository":    openRepository,
 		"openAbout":         openAbout,
+		"newStage":          m.newStage,
 		"saveStage":         m.saveStage,
 		"openContentWindow": m.openContentWindow,
 		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
