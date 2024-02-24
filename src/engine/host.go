@@ -128,14 +128,14 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 // Initializes the various systems and caches that are mediated through the
 // host. This includes the window, the shader cache, the texture cache, the mesh
 // cache, and the font cache, and the camera systems.
-func (host *Host) Initialize(width, height int) error {
+func (host *Host) Initialize(width, height, x, y int) error {
 	if width <= 0 {
 		width = DefaultWindowWidth
 	}
 	if height <= 0 {
 		height = DefaultWindowHeight
 	}
-	win, err := windowing.New(host.name, width, height)
+	win, err := windowing.New(host.name, width, height, x, y)
 	if err != nil {
 		return err
 	}

@@ -88,7 +88,8 @@ func New(opener *content_opener.Opener, editor interfaces.Editor) {
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
 	s.container = host_container.New("Content Browser", nil)
-	go s.container.Run(500, 300)
+	x, y := editor.Host().Window.Center()
+	go s.container.Run(500, 300, x-250, y-150)
 	<-s.container.PrepLock
 	s.container.RunFunction(func() {
 		s.reloadUI()

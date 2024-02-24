@@ -38,6 +38,7 @@
 package alert
 
 import (
+	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -74,7 +75,7 @@ func (a *alertMsg) done(isOkay bool) {
 	a.container.Close()
 }
 
-func create(title, description, placeholder, value, ok, cancel string) alertMsg {
+func create(title, description, placeholder, value, ok, cancel string, host *engine.Host) alertMsg {
 	container := host_container.New("!!! Alert !!!", nil)
 	a := alertMsg{
 		Title:       title,
@@ -90,7 +91,8 @@ func create(title, description, placeholder, value, ok, cancel string) alertMsg 
 	} else {
 		a.block = make(chan bool)
 	}
-	go container.Run(300, 200)
+	x, y := host.Window.Center()
+	go container.Run(300, 200, x-150, y-100)
 	<-container.PrepLock
 	a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
 		"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){
@@ -100,10 +102,10 @@ func create(title, description, placeholder, value, ok, cancel string) alertMsg 
 	return a
 }
 
-func New(title, description, ok, cancel string) chan bool {
-	return create(title, description, "", "", ok, cancel).block
+func New(title, description, ok, cancel string, host *engine.Host) chan bool {
+	return create(title, description, "", "", ok, cancel, host).block
 }
 
-func NewInput(title, hint, value, ok, cancel string) chan string {
-	return create(title, "", hint, value, ok, cancel).inputBlock
+func NewInput(title, hint, value, ok, cancel string, host *engine.Host) chan string {
+	return create(title, "", hint, value, ok, cancel, host).inputBlock
 }

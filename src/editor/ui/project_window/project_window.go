@@ -127,7 +127,7 @@ func New() (*ProjectWindow, error) {
 		Selected: make(chan string),
 	}
 	p.container = host_container.New("Project Window", nil)
-	go p.container.Run(600, 400)
+	go p.container.Run(600, 400, -1, -1)
 	var err error
 	p.data.ExistingProjects, err = editor_cache.ListProjects()
 	if err != nil {

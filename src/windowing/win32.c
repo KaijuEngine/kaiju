@@ -220,7 +220,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 	}
 }
 
-void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size) {
+void window_main(const wchar_t* windowTitle, int width, int height,
+	int x, int y, void* evtSharedMem, int size)
+{
 	char* esm = evtSharedMem;
 	// Register the window class.
 	HMODULE hInstance = GetModuleHandle(NULL);
@@ -234,13 +236,19 @@ void window_main(const wchar_t* windowTitle, int width, int height, void* evtSha
     RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};
 	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
+	if (x < 0) {
+		x = CW_USEDEFAULT;
+	}
+	if (y < 0) {
+		y = CW_USEDEFAULT;
+	}
     // Create the window.
     HWND hwnd = CreateWindowEx(
         0,									// Optional window styles.
         className,							// Window class
         windowTitle,						// Window text
         WS_OVERLAPPEDWINDOW,				// Window style
-        CW_USEDEFAULT, CW_USEDEFAULT,		// Position
+        x, y,								// Position
 		clientArea.right-clientArea.left,	// Width
 		clientArea.bottom-clientArea.top,	// Height
         NULL,								// Parent window

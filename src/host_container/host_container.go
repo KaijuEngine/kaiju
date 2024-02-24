@@ -55,9 +55,9 @@ func (c *Container) RunFunction(f func()) {
 	c.runFunctions = append(c.runFunctions, f)
 }
 
-func (c *Container) Run(width, height int) error {
+func (c *Container) Run(width, height, x, y int) error {
 	runtime.LockOSThread()
-	if err := c.Host.Initialize(width, height); err != nil {
+	if err := c.Host.Initialize(width, height, x, y); err != nil {
 		return err
 	}
 	c.Host.Window.Renderer.Initialize(c.Host, int32(c.Host.Window.Width()), int32(c.Host.Window.Height()))

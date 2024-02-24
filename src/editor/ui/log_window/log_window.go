@@ -141,7 +141,8 @@ func (l *LogWindow) Show() {
 		return
 	}
 	l.container = host_container.New("Log Window", nil)
-	go l.container.Run(engine.DefaultWindowWidth, engine.DefaultWindowWidth/3)
+	go l.container.Run(engine.DefaultWindowWidth,
+		engine.DefaultWindowWidth/3, -1, -1)
 	<-l.container.PrepLock
 	l.reloadUI()
 	l.container.Host.OnClose.Add(func() {

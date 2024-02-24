@@ -69,7 +69,9 @@ func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
 }
 
 func (m *Manager) confirmCheck() bool {
-	return <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No")
+	return <-alert.New("Save Changes",
+		"You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?",
+		"Yes", "No", m.host)
 }
 
 func (m *Manager) New() {
@@ -83,7 +85,8 @@ func (m *Manager) New() {
 
 func (m *Manager) Save() error {
 	if m.stage == "" {
-		name := <-alert.NewInput("Stage Name", "Name of stage...", "", "Save", "Cancel")
+		name := <-alert.NewInput("Stage Name", "Name of stage...",
+			"", "Save", "Cancel", m.host)
 		if name == "" {
 			return nil
 		}

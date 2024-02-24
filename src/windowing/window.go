@@ -94,7 +94,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height int) (*Window, error) {
+func New(windowName string, width, height, x, y int) (*Window, error) {
 	w := &Window{
 		Keyboard:     hid.NewKeyboard(),
 		Mouse:        hid.NewMouse(),
@@ -108,7 +108,7 @@ func New(windowName string, width, height int) (*Window, error) {
 	}
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
-	createWindow(windowName+"\x00\x00", w.width, w.height, w.evtSharedMem)
+	createWindow(windowName+"\x00\x00", w.width, w.height, x, y, w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
@@ -302,4 +302,13 @@ func (w *Window) Destroy() {
 func (w *Window) Focus() {
 	w.focus()
 	w.cursorStandard()
+}
+
+func (w *Window) Position() (x int, y int) {
+	return w.position()
+}
+
+func (w *Window) Center() (x int, y int) {
+	x, y = w.Position()
+	return x + w.Width()/2, y + w.Height()/2
 }

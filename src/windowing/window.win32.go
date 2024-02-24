@@ -53,6 +53,7 @@ import (
 #cgo noescape window_cursor_ibeam
 #cgo noescape get_dpi
 #cgo noescape window_focus
+#cgo noescape window_position
 
 #include "windowing.h"
 #include <windows.h>
@@ -65,6 +66,18 @@ float get_dpi(HWND hwnd) {
 void window_focus(void* hwnd) {
 	BringWindowToTop(hwnd);
 	SetFocus(hwnd);
+}
+
+void window_position(void* hwnd, int* x, int* y) {
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(WINDOWPLACEMENT);
+	if (GetWindowPlacement(hwnd, &wp)) {
+		*x = wp.rcNormalPosition.left;
+		*y = wp.rcNormalPosition.top;
+	} else {
+		*x = -1;
+		*y = -1;
+	}
 }
 */
 import "C"
@@ -118,10 +131,11 @@ func scaleScrollDelta(delta float32) float32 {
 	return delta / 120.0
 }
 
-func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
+func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
-	C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+	C.window_main(title, C.int(width), C.int(height),
+		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
@@ -178,4 +192,9 @@ func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) focus() {
 	C.window_focus(w.handle)
+}
+
+func (w *Window) position() (x int, y int) {
+	C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
+	return x, y
 }

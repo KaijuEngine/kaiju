@@ -56,7 +56,7 @@ func openContributions(*document.DocElement) {
 
 func New() {
 	container := host_container.New("About Window", nil)
-	go container.Run(500, 300)
+	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
 	html := klib.MustReturn(container.Host.AssetDatabase().ReadText("editor/ui/about_window.html"))
 	markup.DocumentFromHTMLString(container.Host, html, "", nil, map[string]func(*document.DocElement){

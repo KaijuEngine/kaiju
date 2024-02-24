@@ -107,10 +107,11 @@ func scaleScrollDelta(delta float32) float32 {
 	return delta
 }
 
-func createWindow(windowName string, width, height int, evtSharedMem *evtMem) {
+func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
 	title := C.CString(string(windowName))
 	defer C.free(unsafe.Pointer(title))
-	C.window_main(title, C.int(width), C.int(height), evtSharedMem.AsPointer(), evtSharedMemSize)
+	C.window_main(title, C.int(width), C.int(height),
+		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
@@ -163,4 +164,9 @@ func (w *Window) cInstance() unsafe.Pointer { return C.display(w.handle) }
 
 func (w *Window) focus() {
 	C.window_focus(w.handle)
+}
+
+func (w *Window) position() (x int, y int) {
+	klib.NotYetImplemented(222)
+	return -1, -1
 }

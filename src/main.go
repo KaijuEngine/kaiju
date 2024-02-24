@@ -68,7 +68,7 @@ func addConsole(host *engine.Host) {
 func main() {
 	logStream := logging.Initialize(nil)
 	container := host_container.New("Kaiju", logStream)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
+	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-container.PrepLock
 	container.RunFunction(func() {
 		addConsole(container.Host)
