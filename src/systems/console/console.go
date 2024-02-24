@@ -181,7 +181,7 @@ func (c *Console) IsActive() bool {
 }
 
 func (c *Console) AddCommand(key, description string, fn ConsoleFunc) {
-	c.commands[key] = consoleCommand{description, fn}
+	c.commands[strings.ToLower(key)] = consoleCommand{description, fn}
 }
 
 func (c *Console) Write(message string) {
