@@ -38,5 +38,8 @@
 package editor_cache
 
 const (
-	CacheFolder = "Kaiju"
+	CacheFolder   = "Kaiju"
+	MainWindow    = "main"
+	LogWindow     = "log"
+	ContentWindow = "content"
 )

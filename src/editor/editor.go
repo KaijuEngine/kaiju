@@ -43,12 +43,14 @@ import (
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -61,6 +63,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -80,10 +83,12 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
 	transformTool  transform_tools.TransformTool
+	windowListing  editor_window.Listing
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
 
+func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }
 func (e *Editor) StageManager() *stages.Manager         { return &e.stageManager }
@@ -190,6 +195,8 @@ func (e *Editor) SetupUI() {
 	}
 	e.Host().DoneCreatingEditorEntities()
 	e.Host().Updater.AddUpdate(e.update)
+	e.windowListing.Add(e)
+	e.windowListing.Add(e.logWindow)
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
@@ -235,5 +242,12 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,
 			slices.Clone(ed.selection.Entities()))
+	}
+}
+
+func (e *Editor) SaveLayout() {
+	e.windowListing.CloseAll()
+	if err := editor_cache.SaveWindowCache(); err != nil {
+		slog.Error("Failed to save the window cache", slog.String("error", err.Error()))
 	}
 }

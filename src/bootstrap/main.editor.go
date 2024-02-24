@@ -52,4 +52,5 @@ func Main(container *host_container.Container) {
 		editor.SetupUI()
 	})
 	<-editor.Host().Done()
+	editor.SaveLayout()
 }

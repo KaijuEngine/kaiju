@@ -40,6 +40,7 @@ package content_window
 import (
 	"io/fs"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
 	"kaiju/host_container"
@@ -217,4 +218,13 @@ func (s *ContentWindow) list() {
 	} else {
 		s.listAll()
 	}
+}
+
+func (s *ContentWindow) SaveLayout() {
+	host := s.container.Host
+	x := host.Window.X()
+	y := host.Window.Y()
+	w := host.Window.Width()
+	h := host.Window.Height()
+	editor_cache.SetWindow(editor_cache.MainWindow, x, y, w, h, true)
 }
