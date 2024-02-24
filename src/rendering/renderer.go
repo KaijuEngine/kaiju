@@ -64,4 +64,5 @@ type Renderer interface {
 	RegisterCanvas(name string, canvas Canvas)
 	Canvas(name string) (Canvas, bool)
 	DefaultCanvas() Canvas
+	WaitForRender()
 }

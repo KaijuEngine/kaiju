@@ -332,6 +332,7 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 // Teardown will destroy the host and all of its resources. This will also
 // execute the OnClose event. This will also signal the CloseSignal channel.
 func (host *Host) Teardown() {
+	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()

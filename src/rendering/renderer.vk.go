@@ -131,7 +131,8 @@ func (vr *Vulkan) RegisterCanvas(name string, canvas Canvas) {
 	vr.canvases[name] = canvas
 }
 
-func (vr *Vulkan) WaitRender() {
+func (vr *Vulkan) WaitForRender() {
+	vk.DeviceWaitIdle(vr.device)
 	fences := [2]vk.Fence{}
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
@@ -573,7 +574,6 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 }
 
 func (vr *Vulkan) Destroy() {
-	vk.DeviceWaitIdle(vr.device)
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {
