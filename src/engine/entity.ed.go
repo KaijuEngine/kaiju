@@ -10,7 +10,7 @@
 /* MIT License                                                                */
 /*                                                                            */
 /* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                      */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
