@@ -47,6 +47,9 @@ import (
 	"kaiju/editor/cache/project_cache"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
+
+	"github.com/KaijuEngine/uuid"
 )
 
 const (
@@ -121,6 +124,15 @@ func (e *entityEditorBindings) Remove(key string) {
 	delete(e.data, key)
 }
 
+func (e *Entity) GenerateId() string {
+	if e.id == "" {
+		e.id = uuid.New().String()
+	} else {
+		slog.Error("Generating entity ID when one already exists")
+	}
+	return e.id
+}
+
 func (e *Entity) EditorSerialize(stream io.Writer) error {
 	if e.IsDestroyed() {
 		return errors.New("destroyed entities cannot be serialized")
@@ -129,7 +141,9 @@ func (e *Entity) EditorSerialize(stream io.Writer) error {
 	var p, r, s = e.Transform.Position(), e.Transform.Rotation(), e.Transform.Scale()
 	cpyDrawings := e.EditorBindings.Drawings()
 	e.EditorBindings.Remove(editorDrawingBinding)
-	if err := enc.Encode(p); err != nil {
+	if err := enc.Encode(e.id); err != nil {
+		return err
+	} else if err := enc.Encode(p); err != nil {
 		return err
 	} else if err = enc.Encode(r); err != nil {
 		return err
@@ -154,7 +168,9 @@ func (e *Entity) EditorSerialize(stream io.Writer) error {
 func (e *Entity) EditorDeserialize(stream io.Reader, host *Host) error {
 	dec := gob.NewDecoder(stream)
 	var p, r, s matrix.Vec3
-	if err := dec.Decode(&p); err != nil {
+	if err := dec.Decode(&e.id); err != nil {
+		return err
+	} else if err := dec.Decode(&p); err != nil {
 		return err
 	} else if err = dec.Decode(&r); err != nil {
 		return err

@@ -54,6 +54,7 @@ import (
 // #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
 // children unordered unless you have a specific reason to order them.
 type Entity struct {
+	id                    string
 	Transform             matrix.Transform
 	Parent                *Entity
 	Children              []*Entity
@@ -87,6 +88,12 @@ func NewEntity() *Entity {
 	e.EditorBindings.init()
 	return e
 }
+
+// ID returns the unique identifier of the entity. The Id is only valid for
+// entities that are not generated through template instantiation. The Id may
+// also be stripped during game runtime if the entity is never externally
+// referenced by any other part of the system.
+func (e *Entity) Id() string { return e.id }
 
 // IsRoot returns true if the entity is the root entity in the hierarchy
 func (e *Entity) IsRoot() bool { return e.Parent == nil }

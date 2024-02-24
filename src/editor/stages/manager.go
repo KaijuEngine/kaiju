@@ -126,9 +126,10 @@ func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) erro
 	klib.BinaryRead(stream, &eCount)
 	entities := make([]*engine.Entity, 0, eCount)
 	for i := int32(0); i < eCount && err == nil; i++ {
-		e := m.host.NewEntity()
+		e := engine.NewEntity()
 		entities = append(entities, e)
 		err = e.EditorDeserialize(stream, host)
+		m.host.AddEntity(e)
 	}
 	if err != nil {
 		for i := 0; i < len(entities); i++ {
