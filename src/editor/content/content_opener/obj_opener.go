@@ -46,7 +46,6 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"slices"
 )
 
 type ObjOpener struct{}
@@ -101,6 +100,9 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 	}
 	host.Drawings.AddDrawing(&drawing)
 	e.EditorBindings.AddDrawing(drawing)
+	e.OnActivate.Add(func() { data.Activate() })
+	e.OnDeactivate.Add(func() { data.Deactivate() })
+	e.OnDestroy.Add(func() { data.Destroy() })
 	return nil
 }
 
@@ -114,9 +116,8 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 		}
 	}
 	ed.History().Add(&modelOpenHistory{
-		host:     host,
-		entity:   e,
-		drawings: slices.Clone(e.EditorBindings.Drawings()),
+		host:   host,
+		entity: e,
 	})
 	host.Window.Focus()
 	return nil
