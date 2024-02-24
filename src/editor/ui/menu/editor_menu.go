@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
 	"kaiju/engine"
 	"kaiju/host_container"
@@ -78,13 +79,14 @@ func New(container *host_container.Container,
 		editor:        editor,
 	}
 	funcMap := map[string]func(*document.DocElement){
-		"openLogWindow":     m.openLogWindow,
-		"openRepository":    openRepository,
-		"openAbout":         openAbout,
-		"newStage":          m.newStage,
-		"saveStage":         m.saveStage,
-		"openProject":       m.openProject,
-		"openContentWindow": m.openContentWindow,
+		"openLogWindow":       m.openLogWindow,
+		"openRepository":      openRepository,
+		"openAbout":           openAbout,
+		"newStage":            m.newStage,
+		"saveStage":           m.saveStage,
+		"openProject":         m.openProject,
+		"openContentWindow":   m.openContentWindow,
+		"openHierarchyWindow": m.openHierarchyWindow,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
@@ -163,6 +165,10 @@ func (m *Menu) openLogWindow(*document.DocElement) {
 
 func (m *Menu) openContentWindow(*document.DocElement) {
 	content_window.New(m.contentOpener, m.editor)
+}
+
+func (m *Menu) openHierarchyWindow(*document.DocElement) {
+	hierarchy.New(m.editor)
 }
 
 func (m *Menu) newStage(*document.DocElement) {

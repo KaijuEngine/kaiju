@@ -11,7 +11,7 @@ type EditorWindow interface {
 	Closed()
 }
 
-func OpenWindow(win EditorWindow, winTag string,
+func OpenWindow(win EditorWindow,
 	defaultWidth, defaultHeight, defaultX, defaultY int) {
 	w, h := defaultWidth, defaultHeight
 	x, y := defaultX, defaultY
