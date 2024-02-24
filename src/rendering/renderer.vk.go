@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -131,7 +131,8 @@ func (vr *Vulkan) RegisterCanvas(name string, canvas Canvas) {
 	vr.canvases[name] = canvas
 }
 
-func (vr *Vulkan) WaitRender() {
+func (vr *Vulkan) WaitForRender() {
+	vk.DeviceWaitIdle(vr.device)
 	fences := [2]vk.Fence{}
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
@@ -573,7 +574,6 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 }
 
 func (vr *Vulkan) Destroy() {
-	vk.DeviceWaitIdle(vr.device)
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.Device(vk.NullHandle) {

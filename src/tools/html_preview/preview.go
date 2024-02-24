@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -145,7 +145,7 @@ func New(htmlFile string) (*host_container.Container, error) {
 }
 
 func SetupConsole(host *engine.Host) {
-	console.For(host).AddCommand("preview", func(_ *engine.Host, filePath string) string {
+	console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}

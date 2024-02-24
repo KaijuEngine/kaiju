@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -50,43 +50,27 @@ const (
 	projectListFile = "projects.txt"
 )
 
-func projectCacheFolder() (string, error) {
-	cache, err := os.UserCacheDir()
+func writeProjectList(list []string) error {
+	cache, err := cacheFolder()
 	if err != nil {
-		return "", err
+		return err
 	}
-	cache = filepath.Join(cache, CacheFolder)
-	if _, err := os.Stat(cache); os.IsNotExist(err) {
-		os.Mkdir(cache, os.ModePerm)
-	}
-	return cache, nil
-}
-
-func writeProjectList(cache string, list []string) error {
 	return filesystem.WriteTextFile(filepath.Join(cache, projectListFile), strings.Join(list, "\n"))
 }
 
 func AddProject(project string) error {
-	cache, err := projectCacheFolder()
-	if err != nil {
-		return err
-	}
 	list, err := ListProjects()
 	if err != nil {
 		return err
 	}
 	if !slices.Contains(list, project) {
 		list = append(list, project)
-		return writeProjectList(cache, list)
+		return writeProjectList(list)
 	}
 	return nil
 }
 
 func RemoveProject(project string) error {
-	cache, err := projectCacheFolder()
-	if err != nil {
-		return err
-	}
 	list, err := ListProjects()
 	if err != nil {
 		return err
@@ -99,14 +83,14 @@ func RemoveProject(project string) error {
 		}
 	}
 	if removed {
-		return writeProjectList(cache, list)
+		return writeProjectList(list)
 	}
 	return nil
 
 }
 
 func ListProjects() ([]string, error) {
-	cache, err := projectCacheFolder()
+	cache, err := cacheFolder()
 	if err != nil {
 		return []string{}, err
 	}

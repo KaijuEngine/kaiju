@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -38,40 +38,9 @@
 package main
 
 import (
-	"fmt"
 	"kaiju/bootstrap"
-	"kaiju/editor/ui/hierarchy"
-	"kaiju/engine"
-	"kaiju/host_container"
-	"kaiju/profiler"
-	"kaiju/systems/console"
-	"kaiju/systems/logging"
-	tests "kaiju/tests/rendering_tests"
-	"kaiju/tools/html_preview"
-	"runtime"
 )
 
-func init() {
-	runtime.LockOSThread()
-}
-
-func addConsole(host *engine.Host) {
-	console.For(host).AddCommand("EntityCount", func(*engine.Host, string) string {
-		return fmt.Sprintf("Entity count: %d", len(host.Entities()))
-	})
-	html_preview.SetupConsole(host)
-	hierarchy.SetupConsole(host)
-	profiler.SetupConsole(host)
-	tests.SetupConsole(host)
-}
-
 func main() {
-	logStream := logging.Initialize(nil)
-	container := host_container.New("Kaiju", logStream)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	<-container.PrepLock
-	container.RunFunction(func() {
-		addConsole(container.Host)
-	})
-	bootstrap.Main(container)
+	bootstrap.Main()
 }

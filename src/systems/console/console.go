@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -46,6 +46,8 @@ import (
 	"kaiju/ui"
 	"strings"
 )
+
+type ConsoleFunc func(*engine.Host, string) string
 
 var consoles = map[*engine.Host]*Console{}
 
@@ -89,10 +91,15 @@ func (h *history) forward() string {
 
 type ConsoleData interface{}
 
+type consoleCommand struct {
+	description string
+	fn          ConsoleFunc
+}
+
 type Console struct {
 	doc        *document.Document
 	host       *engine.Host
-	commands   map[string]func(*engine.Host, string) string
+	commands   map[string]consoleCommand
 	history    history
 	historyIdx int
 	updateId   int
@@ -115,7 +122,7 @@ func For(host *engine.Host) *Console {
 func initialize(host *engine.Host) *Console {
 	console := &Console{
 		host:     host,
-		commands: map[string]func(*engine.Host, string) string{},
+		commands: map[string]consoleCommand{},
 		history:  newHistory(),
 		data:     make(map[string]ConsoleData),
 	}
@@ -132,8 +139,8 @@ func initialize(host *engine.Host) *Console {
 	console.input = input
 	input.Clean()
 	console.hide()
-	console.AddCommand("help", console.help)
-	console.AddCommand("clear", console.clear)
+	console.AddCommand("help", "Display list of commands and their descriptions", console.help)
+	console.AddCommand("clear", "Clears the console text", console.clear)
 	return console
 }
 
@@ -173,8 +180,8 @@ func (c *Console) IsActive() bool {
 	return c.isActive
 }
 
-func (c *Console) AddCommand(key string, fn func(*engine.Host, string) string) {
-	c.commands[key] = fn
+func (c *Console) AddCommand(key, description string, fn ConsoleFunc) {
+	c.commands[key] = consoleCommand{description, fn}
 }
 
 func (c *Console) Write(message string) {
@@ -185,8 +192,10 @@ func (c *Console) Write(message string) {
 func (c *Console) help(*engine.Host, string) string {
 	sb := strings.Builder{}
 	sb.WriteString("Available Commands:\n")
-	for name := range c.commands {
+	for name, cmd := range c.commands {
 		sb.WriteString(name)
+		sb.WriteString(":\t")
+		sb.WriteString(cmd.description)
 		sb.WriteRune('\n')
 	}
 
@@ -204,30 +213,30 @@ func (c *Console) outputLabel() *ui.Label {
 }
 
 func (c *Console) submit(input *ui.Input) {
-	cmd := strings.TrimSpace(input.Text())
-	if cmd == "" {
+	cmdStr := strings.TrimSpace(input.Text())
+	if cmdStr == "" {
 		return
 	}
 	input.SetText("")
-	c.history.add(cmd)
-	head := strings.Index(cmd, " ")
+	c.history.add(cmdStr)
+	head := strings.Index(cmdStr, " ")
 	var key, value string
 	if head != -1 {
-		key = cmd[:head]
-		value = strings.TrimSpace(cmd[head+1:])
+		key = cmdStr[:head]
+		value = strings.TrimSpace(cmdStr[head+1:])
 	} else {
-		key = cmd
+		key = cmdStr
 	}
 	var res string
-	if fn, ok := c.commands[key]; ok {
-		res = strings.TrimSpace(fn(c.host, value))
+	if cmd, ok := c.commands[key]; ok {
+		res = strings.TrimSpace(cmd.fn(c.host, value))
 	}
 	lblParent, _ := c.doc.GetElementById("consoleContent")
 	lbl := c.outputLabel()
 	if res != "" {
-		lbl.SetText(lbl.Text() + "\n" + cmd + "\n" + res)
+		lbl.SetText(lbl.Text() + "\n" + cmdStr + "\n" + res)
 	} else {
-		lbl.SetText(lbl.Text() + "\n" + cmd)
+		lbl.SetText(lbl.Text() + "\n" + cmdStr)
 	}
 	lblParent.UIPanel.SetScrollY(matrix.FloatMax)
 }

@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -67,11 +67,6 @@ void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouse.mouseY = GET_Y_LPARAM(lParam);
 }
 
-void setSizeEvent(InputEvent* evt, LONG width, LONG height) {
-	evt->resize.width = width;
-	evt->resize.height = height;
-}
-
 bool obtainControllerStates(SharedMem* sm) {
 	bool readControllerStates = false;
 	DWORD dwResult;
@@ -110,6 +105,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostQuitMessage(0);
 			return 0;
+		case WM_MOVE:
+			sm->evt->move.x = (int)(short)LOWORD(lParam);
+			sm->evt->move.y = (int)(short)HIWORD(lParam);
+			shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_MOVE);
+			break;
 		case WM_SIZE:
 			if (sm != NULL) {
 				RECT clientArea;

@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -42,6 +42,7 @@ import (
 )
 
 const (
+	sharedMemMove            = 0xFA
 	sharedMemResize          = 0xFB
 	sharedMemAwaitingContext = 0xFC
 	sharedMemAwaitingStart   = 0xFD
@@ -76,10 +77,16 @@ type mouseEvent struct {
 	delta    int32
 }
 
-type windowEvent struct {
+type windowResizeEvent struct {
 	baseEvent
 	width  int32
 	height int32
+}
+
+type windowMoveEvent struct {
+	baseEvent
+	x int32
+	y int32
 }
 
 type keyboardEvent struct {
@@ -110,6 +117,7 @@ func (e *evtMem) IsFatal() bool                 { return e[0] == sharedMemFatal 
 func (e *evtMem) FatalMessage() string          { return string([]byte(e[evtSharedMemDataStart:])) }
 func (e *evtMem) IsQuit() bool                  { return e[0] == sharedMemQuit }
 func (e *evtMem) IsResize() bool                { return e[0] == sharedMemResize }
+func (e *evtMem) IsMove() bool                  { return e[0] == sharedMemMove }
 func (e *evtMem) ResetHeader()                  { e[0] = 0 }
 
 func (e *evtMem) SetFatal(message string) {
@@ -120,8 +128,12 @@ func (e *evtMem) SetFatal(message string) {
 	}
 }
 
-func (e *evtMem) toWindowEvent() *windowEvent {
-	return (*windowEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func (e *evtMem) toWindowResizeEvent() *windowResizeEvent {
+	return (*windowResizeEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+}
+
+func (e *evtMem) toWindowMoveEvent() *windowMoveEvent {
+	return (*windowMoveEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
 func (e *evtMem) toMouseEvent() *mouseEvent {

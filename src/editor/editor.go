@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -163,7 +163,7 @@ func (e *Editor) setupViewportGrid() {
 }
 
 func (e *Editor) SetupUI() {
-	projectWindow, _ := project_window.New()
+	projectWindow, _ := project_window.New(e.Host().Window.Center())
 	projectPath := <-projectWindow.Selected
 	if projectPath == "" {
 		e.Host().Close()
@@ -184,9 +184,6 @@ func (e *Editor) SetupUI() {
 		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
 		e.overlayCanvas = ot
-		e.Host().OnClose.Add(func() {
-			ot.Destroy(win.Renderer)
-		})
 		e.transformTool = transform_tools.New(e.Host(),
 			&e.selection, "editor_overlay", &e.history)
 		e.selection.Changed.Add(func() {

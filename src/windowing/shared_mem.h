@@ -7,8 +7,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define SHARED_MEM_WINDOW_MOVE		0xFA
 #define SHARED_MEM_WINDOW_RESIZE	0xFB
 #define SHARED_MEM_AWAITING_CONTEXT	0xFC
 #define SHARED_MEM_AWAITING_START	0xFD
@@ -83,6 +84,11 @@ typedef struct {
 } ResizeEvent;
 
 typedef struct {
+	int32_t x;
+	int32_t y;
+} MoveEvent;
+
+typedef struct {
 	uint16_t buttons;
 	int16_t thumbLX;
 	int16_t thumbLY;
@@ -106,6 +112,7 @@ typedef struct {
 	union {
 		MouseEvent mouse;
 		KeyboardEvent keyboard;
+		MoveEvent move;
 		ResizeEvent resize;
 		ControllerEvent controllers;
 	};

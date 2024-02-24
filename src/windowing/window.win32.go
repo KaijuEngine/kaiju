@@ -9,8 +9,8 @@
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine contributors (CONTRIBUTORS.md).    */
-/* Copyright (c) 2015-2023 Brent Farris.                                      */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -88,6 +88,8 @@ func asEventType(msg uint32) eventType {
 		fallthrough
 	case 0x0012:
 		return evtQuit
+	case 0x0003:
+		return evtMove
 	case 0x0005:
 		return evtResize
 	case 0x0104:
@@ -157,6 +159,9 @@ func (w *Window) poll() {
 		t := asEventType(evtType)
 		if w.evtSharedMem.IsResize() {
 			t = evtResize
+			w.evtSharedMem.ResetHeader()
+		} else if w.evtSharedMem.IsMove() {
+			t = evtMove
 			w.evtSharedMem.ResetHeader()
 		}
 		if t != evtUnknown {
