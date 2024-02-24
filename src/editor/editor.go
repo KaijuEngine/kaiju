@@ -121,7 +121,7 @@ func New() *Editor {
 	}
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	host := ed.container.Host
-	editor_window.OpenWindow(ed, editor_cache.MainWindow,
+	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	ed.container.RunFunction(func() {
 		addConsole(ed.container.Host)

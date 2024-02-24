@@ -108,7 +108,9 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 
 func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
 	host := ed.Host()
-	e := host.NewEntity()
+	e := engine.NewEntity()
+	e.GenerateId()
+	host.AddEntity(e)
 	e.SetName(adi.MetaValue("name"))
 	for i := range adi.Children {
 		if err := load(host, adi.Children[i], e); err != nil {

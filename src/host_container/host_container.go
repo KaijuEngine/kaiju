@@ -63,6 +63,9 @@ func (c *Container) Run(width, height, x, y int) error {
 	c.Host.Window.Renderer.Initialize(c.Host, int32(c.Host.Window.Width()), int32(c.Host.Window.Height()))
 	c.Host.FontCache().Init(c.Host.Window.Renderer, c.Host.AssetDatabase(), c.Host)
 	lastTime := time.Now()
+	// Do one clean update and render before opening the prep lock
+	c.Host.Update(0)
+	c.Host.Render()
 	c.PrepLock <- struct{}{}
 	for !c.Host.Closing {
 		c.Host.WaitForFrameRate()

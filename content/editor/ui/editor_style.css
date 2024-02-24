@@ -19,6 +19,9 @@ body {
 .clip {
 	overflow: hidden;
 }
+.noClip {
+	overflow: scroll;
+}
 .fillWidth {
 	width: 100%;
 }

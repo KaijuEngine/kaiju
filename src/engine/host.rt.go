@@ -53,8 +53,16 @@ func (e EditorEntities) contains(entity *Entity) bool { return false }
 
 func (host *Host) addEntity(entity *Entity) {
 	host.entities = append(host.entities, entity)
+	if entity.id != "" {
+		host.entityLookup[entity.id] = entity
+	}
 }
 
 func (host *Host) addEntities(entities ...*Entity) {
 	host.entities = append(host.entities, entities...)
+	for _, e := range entities {
+		if e.id != "" {
+			host.entityLookup[e.id] = e
+		}
+	}
 }

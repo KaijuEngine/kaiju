@@ -38,6 +38,7 @@
 package asset_importer
 
 import (
+	"errors"
 	"kaiju/assets"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
@@ -78,6 +79,10 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 		return err
 	}
 	res := loaders.OBJ(src)
+	if len(res.Meshes) == 0 {
+		return errors.New("no meshes found in OBJ file")
+	}
+	adi.Metadata["name"] = res.Meshes[0].Name
 	for _, o := range res.Meshes {
 		info := adi.SpawnChild(uuid.New().String())
 		info.Type = editor_config.AssetTypeMesh
@@ -88,7 +93,7 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 		// TODO:  Write the correct material to the adi
 		info.Metadata["shader"] = assets.ShaderDefinitionBasic
 		info.Metadata["texture"] = assets.TextureSquare
-		info.Metadata["name"] = o.Name
+		info.Metadata["name"] = o.MeshName
 		adi.Children = append(adi.Children, info)
 	}
 	return nil
