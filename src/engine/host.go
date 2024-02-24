@@ -116,8 +116,8 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		assetDatabase:  assets.NewDatabase(),
 		Drawings:       rendering.NewDrawings(),
 		OnClose:        events.New(),
-		CloseSignal:    make(chan struct{}),
-		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3{0, 0, 1}),
+		CloseSignal:    make(chan struct{}, 1),
+		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3Backward()),
 		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:      logStream,
 		frameRunner:    make([]frameRun, 0),
@@ -301,8 +301,11 @@ func (host *Host) Render() {
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
-	host.Window.Renderer.ReadyFrame(host.Camera, host.UICamera, float32(host.Runtime()))
-	host.Drawings.Render(host.Window.Renderer)
+	if host.Drawings.HasDrawings() {
+		host.Window.Renderer.ReadyFrame(host.Camera,
+			host.UICamera, float32(host.Runtime()))
+		host.Drawings.Render(host.Window.Renderer)
+	}
 	host.Window.SwapBuffers()
 	// TODO:  Thread this or make the dirty on demand, and have a flag for the dirty frame
 	for _, e := range host.entities {

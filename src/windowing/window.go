@@ -108,7 +108,7 @@ func New(windowName string, width, height int) (*Window, error) {
 	}
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
-	createWindow(windowName, w.width, w.height, w.evtSharedMem)
+	createWindow(windowName+"\x00\x00", w.width, w.height, w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
@@ -299,4 +299,7 @@ func (w *Window) Destroy() {
 	w.destroy()
 }
 
-func (w *Window) Focus() { w.focus() }
+func (w *Window) Focus() {
+	w.focus()
+	w.cursorStandard()
+}

@@ -88,6 +88,8 @@ func NewDrawings() Drawings {
 	}
 }
 
+func (d *Drawings) HasDrawings() bool { return len(d.draws) > 0 }
+
 func (d *Drawings) findRenderTargetDraw(target Canvas) (*RenderTargetDraw, bool) {
 	for i := range d.draws {
 		if d.draws[i].Target == target {

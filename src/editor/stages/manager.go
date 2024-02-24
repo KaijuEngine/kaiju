@@ -43,6 +43,7 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
+	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/filesystem"
 	"kaiju/klib"
@@ -53,14 +54,31 @@ import (
 type Manager struct {
 	host     *engine.Host
 	registry *asset_importer.ImportRegistry
+	history  *memento.History
 	stage    string
 }
 
-func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry) Manager {
+func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
+	history *memento.History) Manager {
+
 	return Manager{
 		host:     host,
 		registry: registry,
+		history:  history,
 	}
+}
+
+func (m *Manager) confirmCheck() bool {
+	return <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No")
+}
+
+func (m *Manager) New() {
+	if !m.confirmCheck() {
+		return
+	}
+	m.stage = ""
+	m.history.Clear()
+	m.host.ClearEntities()
 }
 
 func (m *Manager) Save() error {
@@ -90,10 +108,11 @@ func (m *Manager) Save() error {
 }
 
 func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error {
-	ok := <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No")
-	if !ok {
+	if !m.confirmCheck() {
 		return nil
 	}
+	m.history.Clear()
+	m.host.ClearEntities()
 	m.stage = adi.Path
 	data, err := filesystem.ReadFile(m.stage)
 	if err != nil {

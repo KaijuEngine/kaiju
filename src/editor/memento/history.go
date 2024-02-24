@@ -81,3 +81,11 @@ func (h *History) Redo() {
 	m.Redo()
 	h.position++
 }
+
+func (h *History) Clear() {
+	for i := 0; i < len(h.undoStack); i++ {
+		h.undoStack[i].Exit()
+	}
+	h.undoStack = h.undoStack[:0]
+	h.position = 0
+}

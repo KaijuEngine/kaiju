@@ -148,8 +148,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.highlight)
 	data.highlight.entity.Deactivate()
 
-	input.AddEvent(EventTypeEnter, input.onHover)
-	input.AddEvent(EventTypeExit, input.onBlur)
+	input.AddEvent(EventTypeEnter, input.onEnter)
+	input.AddEvent(EventTypeExit, input.onExit)
 	input.AddEvent(EventTypeDown, input.onDown)
 	input.AddEvent(EventTypeClick, input.onClick)
 	input.AddEvent(EventTypeMiss, input.onMiss)
@@ -427,12 +427,12 @@ func (input *Input) onRebuild() {
 	input.updateCursorPosition()
 }
 
-func (input *Input) onHover() {
-	input.Host().Window.CursorIbeam()
+func (input *Input) onEnter() {
+	input.host.Window.CursorIbeam()
 }
 
-func (input *Input) onBlur() {
-	input.Host().Window.CursorStandard()
+func (input *Input) onExit() {
+	input.host.Window.CursorStandard()
 }
 
 func (input *Input) onDown() {

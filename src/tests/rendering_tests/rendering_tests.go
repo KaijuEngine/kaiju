@@ -268,7 +268,7 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 
 func testMonkeyOBJ(host *engine.Host) {
 	const monkeyObj = "meshes/monkey.obj"
-	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
 	res := loaders.OBJ(monkeyData)
 	if !res.IsValid() || len(res.Meshes) != 1 {
@@ -280,7 +280,7 @@ func testMonkeyOBJ(host *engine.Host) {
 
 func testMonkeyGLTF(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.gltf"
-	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
@@ -291,7 +291,7 @@ func testMonkeyGLTF(host *engine.Host) {
 
 func testMonkeyGLB(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.glb"
-	host.Camera.SetPosition(matrix.Vec3{0, 0, 3})
+	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
@@ -337,7 +337,7 @@ func SetupConsole(host *engine.Host) {
 			c := host_container.New("Test "+t, nil)
 			go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight)
 			<-c.PrepLock
-			c.Host.Camera.SetPosition(matrix.Vec3{0, 0, 2})
+			c.Host.Camera.SetPosition(matrix.Vec3Backward().Scale(2))
 			testFunc(c.Host)
 		}
 		return "Running test"
