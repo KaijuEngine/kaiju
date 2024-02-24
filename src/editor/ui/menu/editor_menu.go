@@ -43,10 +43,12 @@ import (
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/log_window"
+	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/systems/console"
 	"kaiju/ui"
 	"log/slog"
 	"os/exec"
@@ -60,6 +62,60 @@ type Menu struct {
 	logWindow     *log_window.LogWindow
 	contentOpener *content_opener.Opener
 	editor        interfaces.Editor
+}
+
+func New(container *host_container.Container,
+	logWindow *log_window.LogWindow,
+	contentOpener *content_opener.Opener,
+	editor interfaces.Editor) *Menu {
+
+	host := container.Host
+	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
+	m := &Menu{
+		container:     container,
+		logWindow:     logWindow,
+		contentOpener: contentOpener,
+		editor:        editor,
+	}
+	funcMap := map[string]func(*document.DocElement){
+		"openLogWindow":     m.openLogWindow,
+		"openRepository":    openRepository,
+		"openAbout":         openAbout,
+		"newStage":          m.newStage,
+		"saveStage":         m.saveStage,
+		"openContentWindow": m.openContentWindow,
+		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
+		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },
+		"sampleError":       func(*document.DocElement) { slog.Error("This is an error") },
+	}
+	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
+	allItems := m.doc.GetElementsByClass("menuItem")
+	for i := range allItems {
+		targetId := allItems[i].HTML.Attribute("data-target")
+		allItems[i].UI.AddEvent(ui.EventTypeClick, func() {
+			m.openMenu(targetId)
+		})
+		allItems[i].UI.AddEvent(ui.EventTypeEnter, func() {
+			m.hoverOpenMenu(targetId)
+		})
+		if t, ok := m.doc.GetElementById(targetId); ok {
+			l := t.UI.Layout()
+			pLayout := allItems[i].UI.Layout()
+			allItems[i].UI.AddEvent(ui.EventTypeRender, func() {
+				l.SetOffset(pLayout.CalcOffset().X(), l.Offset().Y())
+			})
+		}
+	}
+	if b, ok := m.doc.GetElementById("bar"); ok {
+		b.UI.AddEvent(ui.EventTypeMiss, func() {
+			if m.isOpen {
+				m.isOpen = false
+				m.close()
+			}
+		})
+	}
+	m.setupConsoleCommands()
+	return m
 }
 
 func (m *Menu) close() {
@@ -121,55 +177,14 @@ func (m *Menu) saveStage(*document.DocElement) {
 	}
 }
 
-func New(container *host_container.Container,
-	logWindow *log_window.LogWindow,
-	contentOpener *content_opener.Opener,
-	editor interfaces.Editor) *Menu {
-
-	host := container.Host
-	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
-	m := &Menu{
-		container:     container,
-		logWindow:     logWindow,
-		contentOpener: contentOpener,
-		editor:        editor,
-	}
-	funcMap := map[string]func(*document.DocElement){
-		"openLogWindow":     m.openLogWindow,
-		"openRepository":    openRepository,
-		"openAbout":         openAbout,
-		"newStage":          m.newStage,
-		"saveStage":         m.saveStage,
-		"openContentWindow": m.openContentWindow,
-		"sampleInfo":        func(*document.DocElement) { slog.Info("This is some info") },
-		"sampleWarn":        func(*document.DocElement) { slog.Warn("This is a warning") },
-		"sampleError":       func(*document.DocElement) { slog.Error("This is an error") },
-	}
-	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
-	allItems := m.doc.GetElementsByClass("menuItem")
-	for i := range allItems {
-		targetId := allItems[i].HTML.Attribute("data-target")
-		allItems[i].UI.AddEvent(ui.EventTypeClick, func() {
-			m.openMenu(targetId)
-		})
-		allItems[i].UI.AddEvent(ui.EventTypeEnter, func() {
-			m.hoverOpenMenu(targetId)
-		})
-		if t, ok := m.doc.GetElementById(targetId); ok {
-			l := t.UI.Layout()
-			pLayout := allItems[i].UI.Layout()
-			allItems[i].UI.AddEvent(ui.EventTypeRender, func() {
-				l.SetOffset(pLayout.CalcOffset().X(), l.Offset().Y())
-			})
-		}
-	}
-	if b, ok := m.doc.GetElementById("bar"); ok {
-		b.UI.AddEvent(ui.EventTypeMiss, func() {
-			if m.isOpen {
-				m.isOpen = false
-				m.close()
-			}
-		})
-	}
-	return m
+func (m *Menu) setupConsoleCommands() {
+	c := console.For(m.editor.Host())
+	c.AddCommand("log", "Opens the log window", func(*engine.Host, string) string {
+		m.openLogWindow(nil)
+		return ""
+	})
+	c.AddCommand("content", "Opens a content window", func(*engine.Host, string) string {
+		m.openContentWindow(nil)
+		return ""
+	})
 }
