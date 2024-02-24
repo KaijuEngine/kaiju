@@ -299,4 +299,7 @@ func (w *Window) Destroy() {
 	w.destroy()
 }
 
-func (w *Window) Focus() { w.focus() }
+func (w *Window) Focus() {
+	w.focus()
+	w.cursorStandard()
+}
