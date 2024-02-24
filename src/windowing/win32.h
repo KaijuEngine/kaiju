@@ -42,7 +42,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void window_main(const wchar_t* windowTitle, int width, int height, void* evtSharedMem, int size);
+void window_main(const wchar_t* windowTitle, int width, int height,
+	int x, int y, void* evtSharedMem, int size);
 void window_show(void* hwnd);
 uint32_t window_poll_controller(void* hwnd);
 uint32_t window_poll(void* hwnd);

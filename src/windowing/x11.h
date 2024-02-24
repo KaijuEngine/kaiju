@@ -48,7 +48,8 @@ typedef struct {
 	Atom WM_DELETE_WINDOW;
 } X11State;
 
-void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size);
+void window_main(const char* windowTitle, int width, int height,
+	int x, int y, void* evtSharedMem, int size);
 void window_show(void* x11State);
 int window_poll_controller(void* x11State);
 int window_poll(void* x11State);

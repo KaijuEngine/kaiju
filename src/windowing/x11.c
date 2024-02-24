@@ -70,13 +70,21 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
-void window_main(const char* windowTitle, int width, int height, void* evtSharedMem, int size) {
+void window_main(const char* windowTitle, int width, int height
+	int x, int y, void* evtSharedMem, int size)
+{
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
 		return;
 	}
-	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), 10, 10,
+	if (x < 0) {
+		x = 10;
+	}
+	if (y < 0) {
+		y = 10;
+	}
+	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), x, y,
 		width, height, 1, BlackPixel(d, DefaultScreen(d)), WhitePixel(d, DefaultScreen(d)));
 	if (w == None) {
 		write_fatal(evtSharedMem, size, "Failed to create window");
