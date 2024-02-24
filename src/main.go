@@ -39,32 +39,8 @@ package main
 
 import (
 	"kaiju/bootstrap"
-	"kaiju/engine"
-	"kaiju/host_container"
-	"kaiju/profiler"
-	"kaiju/systems/logging"
-	tests "kaiju/tests/rendering_tests"
-	"kaiju/tools/html_preview"
-	"runtime"
 )
 
-func init() {
-	runtime.LockOSThread()
-}
-
-func addConsole(host *engine.Host) {
-	html_preview.SetupConsole(host)
-	profiler.SetupConsole(host)
-	tests.SetupConsole(host)
-}
-
 func main() {
-	logStream := logging.Initialize(nil)
-	container := host_container.New("Kaiju", logStream)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	<-container.PrepLock
-	container.RunFunction(func() {
-		addConsole(container.Host)
-	})
-	bootstrap.Main(container)
+	bootstrap.Main()
 }

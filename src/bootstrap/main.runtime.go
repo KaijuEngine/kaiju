@@ -40,13 +40,17 @@
 package bootstrap
 
 import (
+	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/source"
-	"log/slog"
+	"kaiju/systems/logging"
 )
 
-func Main(container *host_container.Container) {
-	slog.Info("Starting runtime")
+func Main() {
+	logStream := logging.Initialize(nil)
+	container := host_container.New("Kaiju", logStream)
+	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	<-container.PrepLock
 	container.RunFunction(func() {
 		source.Main(container.Host)
 	})
