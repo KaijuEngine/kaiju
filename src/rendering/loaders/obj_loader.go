@@ -207,7 +207,7 @@ func OBJ(objData string) load_result.Result {
 				Color:    builder.colors[builder.vIndexes[vi]],
 			}
 		}
-		res.Add("", builder.name, verts, builder.vIndexes, nil)
+		res.Add(builder.name, builder.name, verts, builder.vIndexes, nil)
 	}
 	return res
 }
