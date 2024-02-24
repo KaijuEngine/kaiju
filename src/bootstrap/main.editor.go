@@ -41,46 +41,13 @@ package bootstrap
 
 import (
 	"kaiju/editor"
-	"kaiju/editor/cache/editor_cache"
-	"kaiju/engine"
-	"kaiju/host_container"
-	"kaiju/profiler"
-	"kaiju/systems/logging"
-	tests "kaiju/tests/rendering_tests"
-	"kaiju/tools/html_preview"
 )
 
-func addConsole(host *engine.Host) {
-	html_preview.SetupConsole(host)
-	profiler.SetupConsole(host)
-	tests.SetupConsole(host)
-}
-
 func Main() {
-	logStream := logging.Initialize(nil)
-	container := host_container.New("Kaiju Editor", logStream)
-	w := engine.DefaultWindowWidth
-	h := engine.DefaultWindowHeight
-	x, y := -1, -1
-	if win, err := editor_cache.Window(editor_cache.MainWindow); err == nil {
-		w = win.Width
-		h = win.Height
-		x = win.X
-		y = win.Y
-	}
-	go container.Run(w, h, x, y)
-	<-container.PrepLock
-	container.RunFunction(func() {
-		addConsole(container.Host)
-	})
-	editor := editor.New(container)
-	container.RunFunction(func() {
+	editor := editor.New()
+	editor.Container().RunFunction(func() {
 		editor.SetupUI()
 	})
 	<-editor.Host().Done()
-	x = editor.Host().Window.X()
-	y = editor.Host().Window.Y()
-	w = editor.Host().Window.Width()
-	h = editor.Host().Window.Height()
-	editor_cache.SetWindow(editor_cache.MainWindow, x, y, w, h)
+	editor.SaveLayout()
 }

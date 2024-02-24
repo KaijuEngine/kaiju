@@ -38,6 +38,8 @@
 package log_window
 
 import (
+	"kaiju/editor/cache/editor_cache"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -54,30 +56,33 @@ import (
 type viewGroup = int
 
 const (
-	viewGroupInfo viewGroup = iota
+	viewGroupAll viewGroup = iota
+	viewGroupInfo
 	viewGroupWarn
 	viewGroupError
 	viewGroupSelected
 )
 
 type visibleMessage struct {
-	Time    string
-	Message string
-	Trace   string
-	Data    map[string]string
+	Time     string
+	Message  string
+	Trace    string
+	Data     map[string]string
+	Category string
 }
 
-func newVisibleMessage(msg string, trace []string) visibleMessage {
+func newVisibleMessage(msg string, trace []string, cat string) visibleMessage {
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
 	message := mapping["msg"]
 	delete(mapping, "time")
 	delete(mapping, "msg")
 	return visibleMessage{
-		Time:    t.Format(time.StampMilli),
-		Message: message,
-		Trace:   strings.Join(trace, "\n"),
-		Data:    mapping,
+		Time:     t.Format(time.StampMilli),
+		Message:  message,
+		Trace:    strings.Join(trace, "\n"),
+		Data:     mapping,
+		Category: cat,
 	}
 }
 
@@ -85,9 +90,7 @@ type LogWindow struct {
 	doc        *document.Document
 	container  *host_container.Container
 	Group      viewGroup
-	infos      []visibleMessage
-	warnings   []visibleMessage
-	errors     []visibleMessage
+	all        []visibleMessage
 	lastReload engine.FrameId
 	logStream  *logging.LogStream
 	infoEvtId  logging.EventId
@@ -95,20 +98,36 @@ type LogWindow struct {
 	errEvtId   logging.EventId
 }
 
+func (l *LogWindow) All() []visibleMessage {
+	res := slices.Clone(l.all)
+	slices.Reverse(res)
+	return res
+}
+
+func (l *LogWindow) filter(typeName string) []visibleMessage {
+	res := make([]visibleMessage, 0, len(l.all))
+	for i := range l.all {
+		if l.all[i].Category == typeName {
+			res = append(res, l.all[i])
+		}
+	}
+	return res
+}
+
 func (l *LogWindow) Infos() []visibleMessage {
-	res := slices.Clone(l.infos)
+	res := l.filter("info")
 	slices.Reverse(res)
 	return res
 }
 
 func (l *LogWindow) Warnings() []visibleMessage {
-	res := slices.Clone(l.warnings)
+	res := l.filter("warn")
 	slices.Reverse(res)
 	return res
 }
 
 func (l *LogWindow) Errors() []visibleMessage {
-	res := slices.Clone(l.errors)
+	res := l.filter("error")
 	slices.Reverse(res)
 	return res
 }
@@ -116,64 +135,69 @@ func (l *LogWindow) Errors() []visibleMessage {
 func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
-		infos:      make([]visibleMessage, 0),
-		warnings:   make([]visibleMessage, 0),
-		errors:     make([]visibleMessage, 0),
+		all:        make([]visibleMessage, 0),
 		logStream:  logStream,
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
-		l.infos = append(l.infos, newVisibleMessage(msg, []string{}))
+		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
 		l.reloadUI()
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.warnings = append(l.warnings, newVisibleMessage(msg, trace))
+		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
 		l.reloadUI()
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
-		l.errors = append(l.errors, newVisibleMessage(msg, trace))
+		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
 		l.reloadUI()
 	})
 	return l
 }
 
-func (l *LogWindow) Show() {
+func (l *LogWindow) Show(listing *editor_window.Listing) {
 	if l.container != nil {
 		return
 	}
 	l.container = host_container.New("Log Window", nil)
-	go l.container.Run(engine.DefaultWindowWidth,
+	editor_window.OpenWindow(l, editor_cache.MainWindow,
+		engine.DefaultWindowWidth,
 		engine.DefaultWindowWidth/3, -1, -1)
-	<-l.container.PrepLock
 	l.reloadUI()
-	l.container.Host.OnClose.Add(func() {
-		l.logStream.OnInfo.Remove(l.infoEvtId)
-		l.logStream.OnWarn.Remove(l.warnEvtId)
-		l.logStream.OnError.Remove(l.errEvtId)
-		l.container = nil
-		l.lastReload = engine.InvalidFrameId
-	})
+	listing.Add(l)
 }
 
+func (l *LogWindow) Closed() {
+	l.logStream.OnInfo.Remove(l.infoEvtId)
+	l.logStream.OnWarn.Remove(l.warnEvtId)
+	l.logStream.OnError.Remove(l.errEvtId)
+	l.container = nil
+	l.lastReload = engine.InvalidFrameId
+}
+
+func (l *LogWindow) Tag() string                          { return editor_cache.LogWindow }
+func (l *LogWindow) Container() *host_container.Container { return l.container }
+
 func (l *LogWindow) clearAll(e *document.DocElement) {
-	l.infos = l.infos[:0]
-	l.warnings = l.warnings[:0]
-	l.errors = l.errors[:0]
+	l.all = l.all[:0]
 	l.reloadUI()
 }
 
 func (l *LogWindow) deactivateGroups() {
+	all, _ := l.doc.GetElementById("all")
 	info, _ := l.doc.GetElementById("info")
 	warn, _ := l.doc.GetElementById("warn")
 	err, _ := l.doc.GetElementById("error")
 	selected, _ := l.doc.GetElementById("selected")
+	all.UI.Entity().Deactivate()
 	info.UI.Entity().Deactivate()
 	warn.UI.Entity().Deactivate()
 	err.UI.Entity().Deactivate()
 	selected.UI.Entity().Deactivate()
+	ab, _ := l.doc.GetElementById("allBtn")
 	ib, _ := l.doc.GetElementById("infoBtn")
 	wb, _ := l.doc.GetElementById("warningsBtn")
 	eb, _ := l.doc.GetElementById("errorsBtn")
 	sb, _ := l.doc.GetElementById("selectedBtn")
+	ab.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
 	ib.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
 	wb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
 	eb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
@@ -182,6 +206,8 @@ func (l *LogWindow) deactivateGroups() {
 
 func (l *LogWindow) showCurrent() {
 	switch l.Group {
+	case viewGroupAll:
+		l.showAll(nil)
 	case viewGroupInfo:
 		l.showInfos(nil)
 	case viewGroupWarn:
@@ -191,6 +217,15 @@ func (l *LogWindow) showCurrent() {
 	case viewGroupSelected:
 		l.showSelected(nil)
 	}
+}
+
+func (l *LogWindow) showAll(*document.DocElement) {
+	l.Group = viewGroupAll
+	l.deactivateGroups()
+	e, _ := l.doc.GetElementById("all")
+	b, _ := l.doc.GetElementById("allBtn")
+	e.UI.Entity().Activate()
+	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showInfos(*document.DocElement) {
@@ -233,12 +268,14 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 	if id, err := strconv.Atoi(e.HTML.Attribute("data-entry")); err == nil {
 		var target []visibleMessage
 		switch l.Group {
+		case viewGroupAll:
+			target = l.all
 		case viewGroupInfo:
-			target = l.infos
+			target = l.filter("info")
 		case viewGroupWarn:
-			target = l.warnings
+			target = l.filter("warn")
 		case viewGroupError:
-			target = l.errors
+			target = l.filter("error")
 		}
 		if id >= 0 && id < len(target) {
 			// The lists are printed in reverse order, so we invert the index
@@ -279,6 +316,7 @@ func (l *LogWindow) reloadUI() {
 	l.container.RunFunction(func() {
 		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
 			"clearAll":     l.clearAll,
+			"showAll":      l.showAll,
 			"showInfos":    l.showInfos,
 			"showWarns":    l.showWarns,
 			"showErrors":   l.showErrors,

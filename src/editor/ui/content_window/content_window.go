@@ -40,8 +40,10 @@ package content_window
 import (
 	"io/fs"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -76,10 +78,16 @@ type ContentWindow struct {
 	selected  *ui.Panel
 }
 
+func (s *ContentWindow) Closed()      {}
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
+func (s *ContentWindow) Tag() string  { return editor_cache.ContentWindow }
+
+func (s *ContentWindow) Container() *host_container.Container {
+	return s.container
+}
 
 func New(opener *content_opener.Opener, editor interfaces.Editor) {
-	s := ContentWindow{
+	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.DocElement)),
 		opener:  opener,
 		path:    contentPath,
@@ -89,11 +97,12 @@ func New(opener *content_opener.Opener, editor interfaces.Editor) {
 	s.funcMap["contentClick"] = s.contentClick
 	s.container = host_container.New("Content Browser", nil)
 	x, y := editor.Host().Window.Center()
-	go s.container.Run(500, 300, x-250, y-150)
-	<-s.container.PrepLock
+	editor_window.OpenWindow(s, editor_cache.MainWindow,
+		500, 300, x-250, y-150)
 	s.container.RunFunction(func() {
 		s.reloadUI()
 	})
+	editor.WindowListing().Add(s)
 }
 
 func (s *ContentWindow) contentClick(elm *document.DocElement) {
@@ -217,4 +226,13 @@ func (s *ContentWindow) list() {
 	} else {
 		s.listAll()
 	}
+}
+
+func (s *ContentWindow) SaveLayout() {
+	host := s.container.Host
+	x := host.Window.X()
+	y := host.Window.Y()
+	w := host.Window.Width()
+	h := host.Window.Height()
+	editor_cache.SetWindow(editor_cache.MainWindow, x, y, w, h, true)
 }

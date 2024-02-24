@@ -43,12 +43,14 @@ import (
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -60,7 +62,12 @@ import (
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler"
 	"kaiju/rendering"
+	"kaiju/systems/logging"
+	tests "kaiju/tests/rendering_tests"
+	"kaiju/tools/html_preview"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -80,36 +87,52 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 	selection      selection.Selection
 	transformTool  transform_tools.TransformTool
+	windowListing  editor_window.Listing
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
 
+func (e *Editor) Closed()                               {}
+func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }
 func (e *Editor) StageManager() *stages.Manager         { return &e.stageManager }
 func (e *Editor) ContentOpener() *content_opener.Opener { return &e.contentOpener }
 func (e *Editor) Selection() *selection.Selection       { return &e.selection }
 func (e *Editor) History() *memento.History             { return &e.history }
+func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
 
-func New(container *host_container.Container) *Editor {
-	host := container.Host
-	host.SetFrameRateLimit(60)
-	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
-	host.Camera = tc
-	tc.SetYawPitchZoom(0, -25, 16)
+func addConsole(host *engine.Host) {
+	html_preview.SetupConsole(host)
+	profiler.SetupConsole(host)
+	tests.SetupConsole(host)
+}
+
+func New() *Editor {
+	logStream := logging.Initialize(nil)
 	ed := &Editor{
-		container:      container,
 		assetImporters: asset_importer.NewImportRegistry(),
 		editorDir:      filepath.Dir(klib.MustReturn(os.Executable())),
 		history:        memento.NewHistory(100),
 	}
+	ed.container = host_container.New("Kaiju Editor", logStream)
+	host := ed.container.Host
+	editor_window.OpenWindow(ed, editor_cache.MainWindow,
+		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	ed.container.RunFunction(func() {
+		addConsole(ed.container.Host)
+	})
+	host.SetFrameRateLimit(60)
+	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
+	host.Camera = tc
+	tc.SetYawPitchZoom(0, -25, 16)
 	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
 	ed.selection = selection.New(host, &ed.history)
 	ed.assetImporters.Register(asset_importer.OBJImporter{})
 	ed.assetImporters.Register(asset_importer.PNGImporter{})
 	ed.assetImporters.Register(asset_importer.StageImporter{})
 	ed.contentOpener = content_opener.New(
-		&ed.assetImporters, container, &ed.history)
+		&ed.assetImporters, ed.container, &ed.history)
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
 	return ed
@@ -187,6 +210,7 @@ func (e *Editor) SetupUI() {
 	}
 	e.Host().DoneCreatingEditorEntities()
 	e.Host().Updater.AddUpdate(e.update)
+	e.windowListing.Add(e)
 	if err := e.setProject(projectPath); err != nil {
 		return
 	}
@@ -232,5 +256,12 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,
 			slices.Clone(ed.selection.Entities()))
+	}
+}
+
+func (e *Editor) SaveLayout() {
+	e.windowListing.CloseAll()
+	if err := editor_cache.SaveWindowCache(); err != nil {
+		slog.Error("Failed to save the window cache", slog.String("error", err.Error()))
 	}
 }

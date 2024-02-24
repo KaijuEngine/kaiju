@@ -16,11 +16,12 @@ type WindowInfo struct {
 	Y      int
 	Width  int
 	Height int
+	Open   bool
 }
 
 var windows = map[string]WindowInfo{}
 
-func saveCache() error {
+func SaveWindowCache() error {
 	cache, err := cacheFolder()
 	if err != nil {
 		return err
@@ -44,10 +45,8 @@ func readCache() error {
 	return json.Unmarshal([]byte(str), &windows)
 }
 
-func SetWindow(key string, x, y, w, h int) error {
-	windows[key] = WindowInfo{x, y, w, h}
-	saveCache()
-	return nil
+func SetWindow(key string, x, y, w, h int, isOpen bool) {
+	windows[key] = WindowInfo{x, y, w, h, isOpen}
 }
 
 func Window(key string) (WindowInfo, error) {

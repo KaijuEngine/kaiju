@@ -47,4 +47,4 @@ The source code is not deployed. with the project template files generated. So y
 go run ./generators/project_template/main.go
 ```
 
-This will generate the project template zip file. This zip file is extracted into the folder that you select when creating a new project. It has a copy of the source code and content.
+This will generate the project template zip file. This zip file is extracted into the folder that you select when creating a new project. It has a copy of the source code and content. Also be sure that whenever you pull new changes in content from the repository, you run this command again to update the project template. This will also require you to re-extract the project template into your project folder.
