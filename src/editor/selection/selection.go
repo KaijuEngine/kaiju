@@ -290,7 +290,7 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 	proj := host.Camera.Projection()
 	// TODO:  Parallel
 	for i := range all {
-		point := all[i].Transform.Position()
+		point := all[i].Transform.WorldPosition()
 		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
 	box := matrix.Vec4Area(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())
