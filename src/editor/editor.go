@@ -98,6 +98,7 @@ type Editor struct {
 }
 
 func (e *Editor) Closed()                               {}
+func (e *Editor) Init()                                 {}
 func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }

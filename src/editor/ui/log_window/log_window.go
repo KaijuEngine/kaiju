@@ -160,8 +160,11 @@ func (l *LogWindow) Show(listing *editor_window.Listing) {
 	l.container = host_container.New("Log Window", nil)
 	editor_window.OpenWindow(l, engine.DefaultWindowWidth,
 		engine.DefaultWindowWidth/3, -1, -1)
-	l.reloadUI()
 	listing.Add(l)
+}
+
+func (l *LogWindow) Init() {
+	l.reloadUI()
 }
 
 func (l *LogWindow) Closed() {

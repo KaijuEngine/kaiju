@@ -79,7 +79,11 @@ func New(editor interfaces.Editor) {
 		container: host_container.New("Hierarchy", nil),
 	}
 	editor_window.OpenWindow(h, 300, 600, -1, -1)
-	allEntities := editor.Host().Entities()
+	editor.WindowListing().Add(h)
+}
+
+func (h *Hierarchy) Init() {
+	allEntities := h.editor.Host().Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
 	for _, entity := range allEntities {
 		entries = append(entries, entityEntry{entity, true})
@@ -89,7 +93,7 @@ func New(editor interfaces.Editor) {
 		map[string]func(*document.DocElement){
 			"selectedEntity": h.selectedEntity,
 		}))
-	h.selectChangeId = editor.Selection().Changed.Add(h.onSelectionChanged)
+	h.selectChangeId = h.editor.Selection().Changed.Add(h.onSelectionChanged)
 }
 
 func (h *Hierarchy) onSelectionChanged() {
