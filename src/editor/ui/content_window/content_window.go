@@ -227,12 +227,3 @@ func (s *ContentWindow) list() {
 		s.listAll()
 	}
 }
-
-func (s *ContentWindow) SaveLayout() {
-	host := s.container.Host
-	x := host.Window.X()
-	y := host.Window.Y()
-	w := host.Window.Width()
-	h := host.Window.Height()
-	editor_cache.SetWindow(editor_cache.MainWindow, x, y, w, h, true)
-}
