@@ -98,10 +98,11 @@ func New(opener *content_opener.Opener, editor interfaces.Editor) {
 	s.container = host_container.New("Content Browser", nil)
 	x, y := editor.Host().Window.Center()
 	editor_window.OpenWindow(s, 500, 300, x-250, y-150)
-	s.container.RunFunction(func() {
-		s.reloadUI()
-	})
 	editor.WindowListing().Add(s)
+}
+
+func (s *ContentWindow) Init() {
+	s.reloadUI()
 }
 
 func (s *ContentWindow) contentClick(elm *document.DocElement) {

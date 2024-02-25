@@ -51,6 +51,7 @@ import (
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/editor_window"
+	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -97,6 +98,7 @@ type Editor struct {
 }
 
 func (e *Editor) Closed()                               {}
+func (e *Editor) Init()                                 {}
 func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }
@@ -270,8 +272,12 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeySpace) {
 			content_window.New(&ed.contentOpener, ed)
+		} else if kb.KeyUp(hid.KeyboardKeyH) {
+			hierarchy.New(ed)
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
+		} else if kb.KeyUp(hid.KeyboardKeyP) {
+			ed.selection.Parent(&ed.history)
 		}
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,

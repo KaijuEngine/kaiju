@@ -104,6 +104,7 @@ func (s *Selection) clearInternal() {
 	}
 	s.shaderDatas = s.shaderDatas[:0]
 	s.entities = s.entities[:0]
+	s.Changed.Execute()
 }
 
 func (s *Selection) Clear() {
@@ -343,4 +344,32 @@ func (s *Selection) Bounds() collision.AABB {
 		max = matrix.Vec3Max(max, p.Add(ex))
 	}
 	return collision.AABBFromMinMax(min, max)
+}
+
+func (s *Selection) Parent(history *memento.History) {
+	if s.IsEmpty() {
+		return
+	}
+	var h selectParentingHistory
+	if len(s.entities) == 1 {
+		h = selectParentingHistory{
+			targets:     []*engine.Entity{s.entities[0]},
+			lastParents: []*engine.Entity{s.entities[0].Parent},
+			newParent:   nil,
+		}
+	} else {
+		children := s.entities[:len(s.entities)-1]
+		lastParents := make([]*engine.Entity, 0, len(children))
+		for _, e := range children {
+			lastParents = append(lastParents, e.Parent)
+		}
+		newParent := s.entities[len(s.entities)-1]
+		h = selectParentingHistory{
+			targets:     slices.Clone(children),
+			lastParents: lastParents,
+			newParent:   newParent,
+		}
+	}
+	history.Add(&h)
+	h.Redo()
 }

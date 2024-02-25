@@ -8,6 +8,7 @@ import (
 type EditorWindow interface {
 	Tag() string
 	Container() *host_container.Container
+	Init()
 	Closed()
 }
 
@@ -23,4 +24,5 @@ func OpenWindow(win EditorWindow,
 	}
 	go win.Container().Run(w, h, x, y)
 	<-win.Container().PrepLock
+	win.Container().RunFunction(win.Init)
 }

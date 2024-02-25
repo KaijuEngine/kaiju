@@ -62,6 +62,7 @@ func NewTransform() Transform {
 		rotation:    Vec3Zero(),
 		scale:       Vec3One(),
 		isDirty:     true,
+		children:    make([]*Transform, 0),
 	}
 }
 

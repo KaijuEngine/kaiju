@@ -21,3 +21,8 @@ The primary editor window gives you access to all other editor windows. The main
 | `Z`            | Open content browser          |
 | `Ctrl + S`     | Save the current stage        |
 | `Ctrl + Space` | Open content browser          |
+| `Ctrl + H`     | Open hierarchy window         |
+| `Ctrl + P`     | Parent selection [1]          |
+
+## Notes
+[1] Parenting selection will parent all selected entities to the last selected entity. If there is only 1 entity selected when parenting, then it will be removed from it's parent and moved to the root.

@@ -140,15 +140,15 @@ func New(logStream *logging.LogStream) *LogWindow {
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
-		l.reloadUI()
+		l.container.RunFunction(l.reloadUI)
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
 		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
-		l.reloadUI()
+		l.container.RunFunction(l.reloadUI)
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
-		l.reloadUI()
+		l.container.RunFunction(l.reloadUI)
 	})
 	return l
 }
@@ -160,8 +160,11 @@ func (l *LogWindow) Show(listing *editor_window.Listing) {
 	l.container = host_container.New("Log Window", nil)
 	editor_window.OpenWindow(l, engine.DefaultWindowWidth,
 		engine.DefaultWindowWidth/3, -1, -1)
-	l.reloadUI()
 	listing.Add(l)
+}
+
+func (l *LogWindow) Init() {
+	l.reloadUI()
 }
 
 func (l *LogWindow) Closed() {
@@ -312,16 +315,14 @@ func (l *LogWindow) reloadUI() {
 	}
 	l.lastReload = frame
 	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("editor/ui/log_window.html"))
-	l.container.RunFunction(func() {
-		l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
-			"clearAll":     l.clearAll,
-			"showAll":      l.showAll,
-			"showInfos":    l.showInfos,
-			"showWarns":    l.showWarns,
-			"showErrors":   l.showErrors,
-			"showSelected": l.showSelected,
-			"selectEntry":  l.selectEntry,
-		})
-		l.showCurrent()
+	l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
+		"clearAll":     l.clearAll,
+		"showAll":      l.showAll,
+		"showInfos":    l.showInfos,
+		"showWarns":    l.showWarns,
+		"showErrors":   l.showErrors,
+		"showSelected": l.showSelected,
+		"selectEntry":  l.selectEntry,
 	})
+	l.showCurrent()
 }

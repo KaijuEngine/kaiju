@@ -53,20 +53,35 @@ import (
 )
 
 type Hierarchy struct {
-	editor     interfaces.Editor
-	container  *host_container.Container
-	doc        *document.Document
-	input      *ui.Input
-	onChangeId events.Id
+	editor         interfaces.Editor
+	container      *host_container.Container
+	doc            *document.Document
+	input          *ui.Input
+	onChangeId     events.Id
+	selectChangeId events.Id
 }
 
 type entityEntry struct {
-	Entity *engine.Entity
+	Entity          *engine.Entity
+	ShowingChildren bool
+}
+
+func (e entityEntry) Depth() []struct{} {
+	depth := make([]struct{}, 0, 10)
+	p := e.Entity
+	for p.Parent != nil {
+		depth = append(depth, struct{}{})
+		p = p.Parent
+	}
+	return depth
 }
 
 func (h *Hierarchy) Tag() string                          { return editor_cache.HierarchyWindow }
 func (h *Hierarchy) Container() *host_container.Container { return h.container }
-func (h *Hierarchy) Closed()                              {}
+
+func (h *Hierarchy) Closed() {
+	h.editor.Selection().Changed.Remove(h.selectChangeId)
+}
 
 func New(editor interfaces.Editor) {
 	h := &Hierarchy{
@@ -74,19 +89,63 @@ func New(editor interfaces.Editor) {
 		container: host_container.New("Hierarchy", nil),
 	}
 	editor_window.OpenWindow(h, 300, 600, -1, -1)
-	allEntities := editor.Host().Entities()
+	editor.WindowListing().Add(h)
+}
+
+func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
+	allEntities := h.editor.Host().Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
+	roots := make([]*engine.Entity, 0, len(allEntities))
 	for _, entity := range allEntities {
-		entries = append(entries, entityEntry{Entity: entity})
+		if entity.IsRoot() {
+			roots = append(roots, entity)
+		}
 	}
+	var addChildren func(*engine.Entity)
+	addChildren = func(entity *engine.Entity) {
+		entries = append(entries, entityEntry{entity, false})
+		for _, c := range entity.Children {
+			addChildren(c)
+		}
+	}
+	for _, r := range roots {
+		addChildren(r)
+	}
+	return entries
+}
+
+func (h *Hierarchy) Init() {
+	entries := h.orderEntitiesVisually()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		h.container.Host, "editor/ui/hierarchy_window.html", entries,
 		map[string]func(*document.DocElement){
-			"selectedEntity": h.onSelectedEntity,
+			"selectedEntity": h.selectedEntity,
 		}))
+	h.selectChangeId = h.editor.Selection().Changed.Add(h.onSelectionChanged)
 }
 
-func (h *Hierarchy) onSelectedEntity(elm *document.DocElement) {
+func (h *Hierarchy) onSelectionChanged() {
+	elm, ok := h.doc.GetElementById("list")
+	if !ok {
+		slog.Error("Could not find hierarchy list, reopen the hierarchy window")
+		return
+	}
+	for i := range elm.HTML.Children {
+		elm.HTML.Children[i].DocumentElement.UIPanel.UnEnforceColor()
+	}
+	for i := range elm.HTML.Children {
+		c := &elm.HTML.Children[i]
+		id := c.Attribute("id")
+		for _, se := range h.editor.Selection().Entities() {
+			if se.Id() == id {
+				c.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
+				break
+			}
+		}
+	}
+}
+
+func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 	id := elm.HTML.Attribute("id")
 	if e, ok := h.editor.Host().FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", id))
@@ -99,18 +158,6 @@ func (h *Hierarchy) onSelectedEntity(elm *document.DocElement) {
 		} else {
 			h.editor.Selection().Set(e)
 		}
-		for i := range elm.HTML.Parent.Children {
-			elm.HTML.Parent.Children[i].DocumentElement.UIPanel.UnEnforceColor()
-		}
-		for i := range elm.HTML.Parent.Children {
-			child := &elm.HTML.Parent.Children[i]
-			id := child.Parent.Children[i].Attribute("id")
-			for _, se := range h.editor.Selection().Entities() {
-				if se.Id() == id {
-					child.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
-					break
-				}
-			}
-		}
+		h.onSelectionChanged()
 	}
 }
