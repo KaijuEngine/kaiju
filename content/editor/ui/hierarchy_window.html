@@ -5,26 +5,31 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/hierarchy_window.css">
 	</head>
 	<body>
-		<div id="list" class="fill darkBG noClip">
-			{{range .}}
-				<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity">
-					{{range .Depth}}
-						<span class="indent"></span>
-					{{end}}
-					<!--{{if .Entity.HasChildren}}
-						{{if .ShowingChildren}}
-							<span class="arrow">V</span>
-						{{else}}
-							<span class="arrow">&gt;</span>
+		<div class="fill darkBG noClip">
+			<div class="searchInput">
+				<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
+			</div>
+			<div id="list">
+				{{range .Entries}}
+					<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity">
+						{{range .Depth}}
+							<span class="indent"></span>
 						{{end}}
-					{{end}}-->
-					{{if .Entity.Name}}
-						<span>{{.Entity.Name}}</span>
-					{{else}}
-						<span>&lt;Unnamed&gt;</span>
-					{{end}}
-				</div>
-			{{end}}
+						<!--{{if .Entity.HasChildren}}
+							{{if .ShowingChildren}}
+								<span class="arrow">V</span>
+							{{else}}
+								<span class="arrow">&gt;</span>
+							{{end}}
+						{{end}}-->
+						{{if .Entity.Name}}
+							<span>{{.Entity.Name}}</span>
+						{{else}}
+							<span>&lt;Unnamed&gt;</span>
+						{{end}}
+					</div>
+				{{end}}
+			</div>
 		</div>
 	</body>
 </html>
