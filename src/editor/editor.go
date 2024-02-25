@@ -51,6 +51,7 @@ import (
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/editor_window"
+	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
@@ -270,6 +271,8 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeySpace) {
 			content_window.New(&ed.contentOpener, ed)
+		} else if kb.KeyUp(hid.KeyboardKeyH) {
+			hierarchy.New(ed)
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
