@@ -8,6 +8,13 @@
 		<div id="list" class="fill darkBG noClip">
 			{{range .}}
 				<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity">
+					{{if .Entity.HasChildren}}
+						{{if .ShowingChildren}}
+							<span class="arrow">V</span>
+						{{else}}
+							<span class="arrow">&gt;</span>
+						{{end}}
+					{{end}}
 					{{if .Entity.Name}}
 						<span>{{.Entity.Name}}</span>
 					{{else}}

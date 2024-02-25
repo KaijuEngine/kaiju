@@ -8,3 +8,7 @@
 .entry:hover {
 	background-color: #313232;
 }
+.arrow {
+	height: 24px;
+	width: 24px;
+}

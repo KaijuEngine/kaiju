@@ -62,7 +62,8 @@ type Hierarchy struct {
 }
 
 type entityEntry struct {
-	Entity *engine.Entity
+	Entity          *engine.Entity
+	ShowingChildren bool
 }
 
 func (h *Hierarchy) Tag() string                          { return editor_cache.HierarchyWindow }
@@ -81,7 +82,7 @@ func New(editor interfaces.Editor) {
 	allEntities := editor.Host().Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
 	for _, entity := range allEntities {
-		entries = append(entries, entityEntry{Entity: entity})
+		entries = append(entries, entityEntry{entity, true})
 	}
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		h.container.Host, "editor/ui/hierarchy_window.html", entries,
