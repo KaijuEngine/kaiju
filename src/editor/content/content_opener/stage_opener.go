@@ -52,5 +52,12 @@ func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
 	err := ed.StageManager().Load(adi, ed.Host())
 	ed.Host().Window.Focus()
+	// Trigger all the drawings to update their matrices the frame after
+	// the stage is loaded. Otherwise they may not be in the correct.
+	ed.Host().RunAfterFrames(1, func() {
+		for _, e := range ed.Host().Entities() {
+			e.Transform.SetDirty()
+		}
+	})
 	return err
 }
