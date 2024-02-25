@@ -50,6 +50,7 @@ import (
 	"kaiju/systems/events"
 	"kaiju/ui"
 	"log/slog"
+	"strings"
 )
 
 type Hierarchy struct {
@@ -59,11 +60,17 @@ type Hierarchy struct {
 	input          *ui.Input
 	onChangeId     events.Id
 	selectChangeId events.Id
+	query          string
 }
 
 type entityEntry struct {
 	Entity          *engine.Entity
 	ShowingChildren bool
+}
+
+type hierarchyData struct {
+	Entries []entityEntry
+	Query   string
 }
 
 func (e entityEntry) Depth() []struct{} {
@@ -115,13 +122,47 @@ func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
 }
 
 func (h *Hierarchy) Init() {
-	entries := h.orderEntitiesVisually()
+	h.Reload()
+}
+
+func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
+	if h.query == "" {
+		return entries
+	}
+	filtered := make([]entityEntry, 0, len(entries))
+	// TODO:  Append the entire path to the entity kf not already appended
+	for _, e := range entries {
+		if strings.Contains(strings.ToLower(e.Entity.Name()), h.query) {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
+func (h *Hierarchy) Reload() {
+	data := hierarchyData{
+		Entries: h.filter(h.orderEntitiesVisually()),
+		Query:   h.query,
+	}
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		h.container.Host, "editor/ui/hierarchy_window.html", entries,
+		h.container.Host, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.DocElement){
 			"selectedEntity": h.selectedEntity,
 		}))
 	h.selectChangeId = h.editor.Selection().Changed.Add(h.onSelectionChanged)
+	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
+		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
+		h.container.Host.Close()
+		return
+	} else {
+		h.input = elm.UI.(*ui.Input)
+		h.input.Data().OnSubmit.Add(h.submit)
+	}
+}
+
+func (h *Hierarchy) submit() {
+	h.query = strings.ToLower(strings.TrimSpace(h.input.Text()))
+	h.Reload()
 }
 
 func (h *Hierarchy) onSelectionChanged() {
