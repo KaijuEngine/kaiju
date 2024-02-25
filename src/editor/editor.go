@@ -98,7 +98,6 @@ type Editor struct {
 }
 
 func (e *Editor) Closed()                               {}
-func (e *Editor) Init()                                 {}
 func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }
@@ -204,7 +203,7 @@ func (e *Editor) pickProject(projectPath string) {
 	project.ScanContent(&e.assetImporters)
 }
 
-func (e *Editor) SetupUI() {
+func (e *Editor) Init() {
 	cx, cy := e.Host().Window.Center()
 	projectWindow, _ := project_window.New(projectTemplate, cx, cy)
 	projectPath := <-projectWindow.Selected
