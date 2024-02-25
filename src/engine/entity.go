@@ -98,6 +98,9 @@ func (e *Entity) Id() string { return e.id }
 // IsRoot returns true if the entity is the root entity in the hierarchy
 func (e *Entity) IsRoot() bool { return e.Parent == nil }
 
+// HasChildren returns true if the entity has any children
+func (e *Entity) HasChildren() bool { return len(e.Children) > 0 }
+
 // ChildCount returns the number of children the entity has
 func (e *Entity) ChildCount() int { return len(e.Children) }
 

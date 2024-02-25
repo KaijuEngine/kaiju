@@ -10,5 +10,6 @@
 }
 .arrow {
 	height: 24px;
-	width: 24px;
+	width: 16px;
+	text-align: center;
 }
