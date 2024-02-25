@@ -104,6 +104,7 @@ func (s *Selection) clearInternal() {
 	}
 	s.shaderDatas = s.shaderDatas[:0]
 	s.entities = s.entities[:0]
+	s.Changed.Execute()
 }
 
 func (s *Selection) Clear() {
