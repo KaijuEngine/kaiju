@@ -10,6 +10,8 @@
 }
 .arrow {
 	height: 24px;
-	width: 16px;
 	text-align: center;
+}
+.indent {
+	width: 10px;
 }

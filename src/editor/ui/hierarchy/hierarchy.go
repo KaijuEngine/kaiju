@@ -66,6 +66,16 @@ type entityEntry struct {
 	ShowingChildren bool
 }
 
+func (e entityEntry) Depth() []struct{} {
+	depth := make([]struct{}, 0, 10)
+	p := e.Entity
+	for p.Parent != nil {
+		depth = append(depth, struct{}{})
+		p = p.Parent
+	}
+	return depth
+}
+
 func (h *Hierarchy) Tag() string                          { return editor_cache.HierarchyWindow }
 func (h *Hierarchy) Container() *host_container.Container { return h.container }
 
