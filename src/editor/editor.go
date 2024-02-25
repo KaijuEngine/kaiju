@@ -98,7 +98,6 @@ type Editor struct {
 }
 
 func (e *Editor) Closed()                               {}
-func (e *Editor) Init()                                 {}
 func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
 func (e *Editor) Container() *host_container.Container  { return e.container }
 func (e *Editor) Host() *engine.Host                    { return e.container.Host }
@@ -204,7 +203,7 @@ func (e *Editor) pickProject(projectPath string) {
 	project.ScanContent(&e.assetImporters)
 }
 
-func (e *Editor) SetupUI() {
+func (e *Editor) Init() {
 	cx, cy := e.Host().Window.Center()
 	projectWindow, _ := project_window.New(projectTemplate, cx, cy)
 	projectPath := <-projectWindow.Selected
@@ -248,7 +247,21 @@ func (ed *Editor) update(delta float64) {
 	}
 	ed.selection.Update(ed.Host())
 	kb := &ed.Host().Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
+	if kb.HasCtrl() {
+		if kb.KeyDown(hid.KeyboardKeyZ) {
+			ed.history.Undo()
+		} else if kb.KeyDown(hid.KeyboardKeyY) {
+			ed.history.Redo()
+		} else if kb.KeyUp(hid.KeyboardKeySpace) {
+			content_window.New(&ed.contentOpener, ed)
+		} else if kb.KeyUp(hid.KeyboardKeyH) {
+			hierarchy.New(ed)
+		} else if kb.KeyUp(hid.KeyboardKeyS) {
+			ed.stageManager.Save()
+		} else if kb.KeyUp(hid.KeyboardKeyP) {
+			ed.selection.Parent(&ed.history)
+		}
+	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)
 		c.SetLookAt(b.Center.Negative())
@@ -265,20 +278,6 @@ func (ed *Editor) update(delta float64) {
 		ed.transformTool.Enable(transform_tools.ToolStateRotate)
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
 		ed.transformTool.Enable(transform_tools.ToolStateScale)
-	} else if kb.HasCtrl() {
-		if kb.KeyDown(hid.KeyboardKeyZ) {
-			ed.history.Undo()
-		} else if kb.KeyDown(hid.KeyboardKeyY) {
-			ed.history.Redo()
-		} else if kb.KeyUp(hid.KeyboardKeySpace) {
-			content_window.New(&ed.contentOpener, ed)
-		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			hierarchy.New(ed)
-		} else if kb.KeyUp(hid.KeyboardKeyS) {
-			ed.stageManager.Save()
-		} else if kb.KeyUp(hid.KeyboardKeyP) {
-			ed.selection.Parent(&ed.history)
-		}
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,
 			slices.Clone(ed.selection.Entities()))

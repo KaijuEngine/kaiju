@@ -154,14 +154,20 @@ func (s *Selection) addInternal(e *engine.Entity) {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorCrimson(),
 		}
-		ds.Color.SetA(3.0)     // Line width
-		d.Transform.SetDirty() // Make drawing snap to transform
+		ds.Color.SetA(3.0) // Line width
+		d.Transform.SetDirty()
 		s.shaderDatas = append(s.shaderDatas, ds)
 		d.Shader = outline
 		d.ShaderData = ds
 		d.UseBlending = false
 		s.host.Drawings.AddDrawing(&d)
 	}
+	s.host.RunAfterFrames(1, func() {
+		// Make drawings snap to transform
+		for _, d := range draws {
+			d.Transform.SetDirty()
+		}
+	})
 }
 
 func (s *Selection) removeInternal(e *engine.Entity) {
@@ -263,7 +269,7 @@ func (s *Selection) clickSelect(host *engine.Host) {
 	all := host.Entities()
 	found := false
 	for i := 0; i < len(all) && !found; i++ {
-		pos := all[i].Transform.Position()
+		pos := all[i].Transform.WorldPosition()
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
@@ -290,7 +296,7 @@ func (s *Selection) unProjectSelect(host *engine.Host, endPos matrix.Vec2) {
 	proj := host.Camera.Projection()
 	// TODO:  Parallel
 	for i := range all {
-		point := all[i].Transform.Position()
+		point := all[i].Transform.WorldPosition()
 		pts[i] = matrix.Mat4ToScreenSpace(point, view, proj, vp)
 	}
 	box := matrix.Vec4Area(s.downPos.X(), s.downPos.Y(), endPos.X(), endPos.Y())

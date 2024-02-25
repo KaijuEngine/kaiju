@@ -45,9 +45,6 @@ import (
 
 func Main() {
 	editor := editor.New()
-	editor.Container().RunFunction(func() {
-		editor.SetupUI()
-	})
 	<-editor.Host().Done()
 	editor.SaveLayout()
 }

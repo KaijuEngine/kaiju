@@ -59,6 +59,7 @@ func (m OBJImporter) Handles(path string) bool {
 func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
 	project_cache.DeleteMesh(adi)
 	adi.Children = adi.Children[:0]
+	adi.Metadata = make(map[string]string)
 }
 
 func (m OBJImporter) Import(path string) error {

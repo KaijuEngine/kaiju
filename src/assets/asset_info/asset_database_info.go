@@ -96,9 +96,11 @@ func New(path string, id string) AssetDatabaseInfo {
 		}
 	}
 	return AssetDatabaseInfo{
-		ID:   id,
-		Path: path,
-		Type: strings.TrimPrefix(filepath.Ext(path), "."),
+		ID:       id,
+		Path:     path,
+		Type:     strings.TrimPrefix(filepath.Ext(path), "."),
+		Children: make([]AssetDatabaseInfo, 0),
+		Metadata: make(map[string]string),
 	}
 }
 
@@ -138,6 +140,12 @@ func Read(path string) (AssetDatabaseInfo, error) {
 	}
 	if err := json.Unmarshal([]byte(src), &adi); err != nil {
 		return adi, err
+	}
+	if adi.Children == nil {
+		adi.Children = make([]AssetDatabaseInfo, 0)
+	}
+	if adi.Metadata == nil {
+		adi.Metadata = make(map[string]string)
 	}
 	return adi, nil
 }

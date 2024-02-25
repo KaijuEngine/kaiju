@@ -278,7 +278,7 @@ func (host *Host) Update(deltaTime float64) {
 	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
-	for i := range host.frameRunner {
+	for i := 0; i < len(host.frameRunner); i++ {
 		if host.frameRunner[i].frame == host.frame {
 			host.frameRunner[i].call()
 			host.frameRunner = klib.RemoveUnordered(host.frameRunner, i)
