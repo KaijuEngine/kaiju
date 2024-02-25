@@ -70,6 +70,7 @@ const (
 	evtKeyUp
 	evtResize
 	evtMove
+	evtActivity
 	evtControllerStates
 )
 
@@ -167,6 +168,14 @@ func (w *Window) processWindowEvent(evtType eventType) {
 		we := w.evtSharedMem.toWindowMoveEvent()
 		w.x = int(we.x)
 		w.y = int(we.y)
+	case evtActivity:
+		ee := w.evtSharedMem.toEnumEvent()
+		switch ee.value {
+		case 0:
+			w.becameInactive()
+		case 1:
+			w.becameActive()
+		}
 	}
 }
 
@@ -323,4 +332,16 @@ func (w *Window) Position() (x int, y int) {
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
 	return x + w.Width()/2, y + w.Height()/2
+}
+
+func (w *Window) becameInactive() {
+	w.Keyboard.Reset()
+	w.Mouse.Reset()
+	w.Touch.Reset()
+	w.Stylus.Reset()
+	w.Controller.Reset()
+}
+
+func (w *Window) becameActive() {
+
 }

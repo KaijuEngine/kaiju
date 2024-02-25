@@ -135,3 +135,9 @@ func (s *Stylus) EndUpdate() {
 func (s *Stylus) IsActive() bool {
 	return s.actionState != StylusActionNone
 }
+
+func (s *Stylus) Reset() {
+	if s.actionState == StylusActionDown || s.actionState == StylusActionHeld {
+		s.actionState = StylusActionUp
+	}
+}

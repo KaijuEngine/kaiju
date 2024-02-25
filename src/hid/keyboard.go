@@ -437,3 +437,11 @@ func (k *Keyboard) KeyToRune(key KeyboardKey) rune {
 	}
 	return f
 }
+
+func (k *Keyboard) Reset() {
+	for i := 0; i < KeyboardKeyMaximum; i++ {
+		if k.keyStates[i] == KeyStateDown || k.keyStates[i] == KeyStateHeld {
+			k.keyStates[i] = KeyStateUp
+		}
+	}
+}

@@ -92,6 +92,8 @@ func asEventType(msg uint32) eventType {
 		return evtMove
 	case 0x0005:
 		return evtResize
+	case 0x0006:
+		return evtActivity
 	case 0x0104:
 		fallthrough
 	case 0x0100:
@@ -162,6 +164,9 @@ func (w *Window) poll() {
 			w.evtSharedMem.ResetHeader()
 		} else if w.evtSharedMem.IsMove() {
 			t = evtMove
+			w.evtSharedMem.ResetHeader()
+		} else if w.evtSharedMem.IsActivity() {
+			t = evtActivity
 			w.evtSharedMem.ResetHeader()
 		}
 		if t != evtUnknown {

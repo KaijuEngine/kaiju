@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define SHARED_MEM_WINDOW_ACTIVITY	0xF9
 #define SHARED_MEM_WINDOW_MOVE		0xFA
 #define SHARED_MEM_WINDOW_RESIZE	0xFB
 #define SHARED_MEM_AWAITING_CONTEXT	0xFC
@@ -66,6 +67,10 @@
 // TODO:  Get the correct value for X11
 #define MAX_CONTROLLERS				4
 #endif
+
+typedef struct {
+	int32_t value;
+} EnumEvent;
 
 typedef struct {
 	int32_t mouseButtonId;
@@ -110,6 +115,7 @@ typedef struct {
 	};
 	uint32_t evtType;
 	union {
+		EnumEvent enumEvent;
 		MouseEvent mouse;
 		KeyboardEvent keyboard;
 		MoveEvent move;

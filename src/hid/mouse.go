@@ -177,3 +177,11 @@ func (m *Mouse) SetScroll(x, y float32) {
 	m.ScrollY = y
 	m.scrollPending = true
 }
+
+func (m *Mouse) Reset() {
+	for i := 0; i < MouseButtonLast; i++ {
+		if m.buttonStates[i] == MousePress || m.buttonStates[i] == MouseRepeat {
+			m.buttonStates[i] = MouseRelease
+		}
+	}
+}
