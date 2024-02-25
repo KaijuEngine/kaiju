@@ -272,6 +272,8 @@ func (ed *Editor) update(delta float64) {
 			content_window.New(&ed.contentOpener, ed)
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
+		} else if kb.KeyUp(hid.KeyboardKeyP) {
+			ed.selection.Parent(&ed.history)
 		}
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(&ed.history, &ed.selection,
