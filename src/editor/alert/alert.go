@@ -94,11 +94,13 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 	x, y := host.Window.Center()
 	go container.Run(300, 200, x-150, y-100)
 	<-container.PrepLock
-	a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
-		"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){
-			"okClick":     func(*document.DocElement) { a.done(true) },
-			"cancelClick": func(*document.DocElement) { a.done(false) },
-		}))
+	container.RunFunction(func() {
+		a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
+			"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){
+				"okClick":     func(*document.DocElement) { a.done(true) },
+				"cancelClick": func(*document.DocElement) { a.done(false) },
+			}))
+	})
 	return a
 }
 
