@@ -263,7 +263,7 @@ func (s *Selection) clickSelect(host *engine.Host) {
 	all := host.Entities()
 	found := false
 	for i := 0; i < len(all) && !found; i++ {
-		pos := all[i].Transform.Position()
+		pos := all[i].Transform.WorldPosition()
 		// TODO:  Use BVH or other acceleration structure. The sphere check
 		// here is just to get testing quickly
 		if ray.SphereHit(pos, 0.5, rayCastLength) {
