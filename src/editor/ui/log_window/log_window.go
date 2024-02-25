@@ -140,15 +140,21 @@ func New(logStream *logging.LogStream) *LogWindow {
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
-		l.container.RunFunction(l.reloadUI)
+		if l.container != nil {
+			l.container.RunFunction(l.reloadUI)
+		}
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
 		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
-		l.container.RunFunction(l.reloadUI)
+		if l.container != nil {
+			l.container.RunFunction(l.reloadUI)
+		}
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
-		l.container.RunFunction(l.reloadUI)
+		if l.container != nil {
+			l.container.RunFunction(l.reloadUI)
+		}
 	})
 	return l
 }
