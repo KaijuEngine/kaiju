@@ -155,6 +155,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 			Color:          matrix.ColorCrimson(),
 		}
 		ds.Color.SetA(3.0) // Line width
+		d.Transform.SetDirty()
 		s.shaderDatas = append(s.shaderDatas, ds)
 		d.Shader = outline
 		d.ShaderData = ds
