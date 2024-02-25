@@ -92,12 +92,30 @@ func New(editor interfaces.Editor) {
 	editor.WindowListing().Add(h)
 }
 
-func (h *Hierarchy) Init() {
+func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
 	allEntities := h.editor.Host().Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
+	roots := make([]*engine.Entity, 0, len(allEntities))
 	for _, entity := range allEntities {
-		entries = append(entries, entityEntry{entity, true})
+		if entity.IsRoot() {
+			roots = append(roots, entity)
+		}
 	}
+	var addChildren func(*engine.Entity)
+	addChildren = func(entity *engine.Entity) {
+		entries = append(entries, entityEntry{entity, false})
+		for _, c := range entity.Children {
+			addChildren(c)
+		}
+	}
+	for _, r := range roots {
+		addChildren(r)
+	}
+	return entries
+}
+
+func (h *Hierarchy) Init() {
+	entries := h.orderEntitiesVisually()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		h.container.Host, "editor/ui/hierarchy_window.html", entries,
 		map[string]func(*document.DocElement){
