@@ -105,6 +105,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostQuitMessage(0);
 			return 0;
+		case WM_ACTIVATE:
+			switch (LOWORD(wParam)) {
+				case WA_ACTIVE:
+				case WA_CLICKACTIVE:
+					sm->evt->enumEvent.value = 1;
+					break;
+				case WA_INACTIVE:
+					sm->evt->enumEvent.value = 0;
+					break;
+			}
+			shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_ACTIVITY);
+			break;
 		case WM_MOVE:
 			sm->evt->move.x = (int)(short)LOWORD(lParam);
 			sm->evt->move.y = (int)(short)HIWORD(lParam);

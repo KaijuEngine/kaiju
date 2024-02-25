@@ -42,8 +42,9 @@ import (
 )
 
 const (
-	sharedMemMove            = 0xFA
-	sharedMemResize          = 0xFB
+	sharedMemWindowActivity  = 0xF9
+	sharedMemWindowMove      = 0xFA
+	sharedMemWindowResize    = 0xFB
 	sharedMemAwaitingContext = 0xFC
 	sharedMemAwaitingStart   = 0xFD
 	sharedMemFatal           = 0xFE
@@ -67,6 +68,11 @@ type evtMem [evtSharedMemSize]byte
 
 type baseEvent struct {
 	eventType uint32
+}
+
+type enumEvent struct {
+	baseEvent
+	value int32
 }
 
 type mouseEvent struct {
@@ -116,8 +122,9 @@ func (e *evtMem) AsDataPointer() unsafe.Pointer { return unsafe.Pointer(&e[evtSh
 func (e *evtMem) IsFatal() bool                 { return e[0] == sharedMemFatal }
 func (e *evtMem) FatalMessage() string          { return string([]byte(e[evtSharedMemDataStart:])) }
 func (e *evtMem) IsQuit() bool                  { return e[0] == sharedMemQuit }
-func (e *evtMem) IsResize() bool                { return e[0] == sharedMemResize }
-func (e *evtMem) IsMove() bool                  { return e[0] == sharedMemMove }
+func (e *evtMem) IsResize() bool                { return e[0] == sharedMemWindowResize }
+func (e *evtMem) IsMove() bool                  { return e[0] == sharedMemWindowMove }
+func (e *evtMem) IsActivity() bool              { return e[0] == sharedMemWindowActivity }
 func (e *evtMem) ResetHeader()                  { e[0] = 0 }
 
 func (e *evtMem) SetFatal(message string) {
@@ -126,6 +133,10 @@ func (e *evtMem) SetFatal(message string) {
 	for i := 0; i < len(msg) && i < len(e)-evtSharedMemDataStart; i++ {
 		e[i+evtSharedMemDataStart] = msg[i]
 	}
+}
+
+func (e *evtMem) toEnumEvent() *enumEvent {
+	return (*enumEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
 }
 
 func (e *evtMem) toWindowResizeEvent() *windowResizeEvent {

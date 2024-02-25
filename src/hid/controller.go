@@ -175,3 +175,20 @@ func (c *Controller) IsButtonDown(id, button int) bool {
 func (c *Controller) IsButtonHeld(id, button int) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateHeld
 }
+
+func (c *Controller) Reset() {
+	for i := 0; i < ControllerMaxDevices; i++ {
+		for j := 0; j < ControllerButtonMax; j++ {
+			if c.devices[i].buttons[j] == controllerButtonStateDown ||
+				c.devices[i].buttons[j] == controllerButtonStateHeld {
+				c.devices[i].buttons[j] = controllerButtonStateUp
+			}
+		}
+		c.devices[i].axis[ControllerAxisLeftVertical] = 0.0
+		c.devices[i].axis[ControllerAxisLeftHorizontal] = 0.0
+		c.devices[i].axis[ControllerAxisRightVertical] = 0.0
+		c.devices[i].axis[ControllerAxisRightHorizontal] = 0.0
+		c.devices[i].axis[ControllerAxisLeftTrigger] = 0.0
+		c.devices[i].axis[ControllerAxisRightTrigger] = 0.0
+	}
+}

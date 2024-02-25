@@ -207,3 +207,11 @@ func (t *Touch) EndUpdate() {
 		}
 	}
 }
+
+func (t *Touch) Reset() {
+	for i := 0; i < MaxTouchPointersAvailable; i++ {
+		if t.Pool[i].State == TouchActionDown || t.Pool[i].State == TouchActionHeld {
+			t.Pool[i].State = TouchActionUp
+		}
+	}
+}
