@@ -154,14 +154,19 @@ func (s *Selection) addInternal(e *engine.Entity) {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorCrimson(),
 		}
-		ds.Color.SetA(3.0)     // Line width
-		d.Transform.SetDirty() // Make drawing snap to transform
+		ds.Color.SetA(3.0) // Line width
 		s.shaderDatas = append(s.shaderDatas, ds)
 		d.Shader = outline
 		d.ShaderData = ds
 		d.UseBlending = false
 		s.host.Drawings.AddDrawing(&d)
 	}
+	s.host.RunAfterFrames(1, func() {
+		// Make drawings snap to transform
+		for _, d := range draws {
+			d.Transform.SetDirty()
+		}
+	})
 }
 
 func (s *Selection) removeInternal(e *engine.Entity) {
