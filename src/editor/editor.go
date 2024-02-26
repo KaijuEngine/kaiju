@@ -55,6 +55,7 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
+	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
@@ -84,6 +85,7 @@ const (
 type Editor struct {
 	container       *host_container.Container
 	menu            *menu.Menu
+	statusBar       *status_bar.StatusBar
 	editorDir       string
 	project         string
 	history         memento.History
@@ -111,6 +113,7 @@ func (e *Editor) ContentOpener() *content_opener.Opener { return &e.contentOpene
 func (e *Editor) Selection() *selection.Selection       { return &e.selection }
 func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
+func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 
 func addConsole(host *engine.Host, group *ui.Group) {
 	html_preview.SetupConsole(host)
@@ -228,6 +231,7 @@ func (e *Editor) Init() {
 	e.hierarchyWindow = hierarchy.New(e, e.uiGroup)
 	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
 		e.hierarchyWindow, &e.contentOpener, e, e.uiGroup)
+	e.statusBar = status_bar.New(e.Host())
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
@@ -273,6 +277,7 @@ func (ed *Editor) update(delta float64) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
+			ed.statusBar.SetMessage("Parented entities")
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
 		ed.contentWindow.Toggle()

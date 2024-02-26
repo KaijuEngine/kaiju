@@ -47,6 +47,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -94,6 +95,7 @@ type LogWindow struct {
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
 	group      *ui.Group
+	mutex      sync.Mutex
 }
 
 func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *LogWindow {
@@ -105,16 +107,13 @@ func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *Lo
 		group:      uiGroup,
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
-		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
-		l.reloadUI()
+		l.add(msg, nil, "info")
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
-		l.reloadUI()
+		l.add(msg, trace, "warn")
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
-		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
-		l.reloadUI()
+		l.add(msg, trace, "error")
 	})
 	host.OnClose.Add(func() {
 		if l.doc != nil {
@@ -122,6 +121,16 @@ func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *Lo
 		}
 	})
 	return l
+}
+
+func (l *LogWindow) add(msg string, trace []string, cat string) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.all = append(l.all, newVisibleMessage(msg, trace, cat))
+	if l.isVisible() {
+		l.reloadUI()
+	}
+
 }
 
 func (l *LogWindow) All() []visibleMessage {
@@ -142,20 +151,21 @@ func (l *LogWindow) filter(typeName string) []visibleMessage {
 
 func (l *LogWindow) Infos() []visibleMessage {
 	res := l.filter("info")
-	slices.Reverse(res)
 	return res
 }
 
 func (l *LogWindow) Warnings() []visibleMessage {
 	res := l.filter("warn")
-	slices.Reverse(res)
 	return res
 }
 
 func (l *LogWindow) Errors() []visibleMessage {
 	res := l.filter("error")
-	slices.Reverse(res)
 	return res
+}
+
+func (l *LogWindow) isVisible() bool {
+	return l.doc != nil && l.doc.Elements[0].UI.Entity().IsActive()
 }
 
 func (l *LogWindow) Toggle() {
