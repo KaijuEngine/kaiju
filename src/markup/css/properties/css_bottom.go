@@ -77,7 +77,7 @@ func (p Bottom) Process(panel *ui.Panel, elm document.DocElement, values []rules
 				offset[matrix.Vw] += val
 			}
 		}
-		layout.SetInnerOffset(offset.Left(), offset.Top(), offset.Right(), -offset.Bottom())
+		layout.SetInnerOffset(offset.Left(), offset.Top(), offset.Right(), offset.Bottom())
 		layout.AnchorTo(layout.Anchor().ConvertToBottom())
 	}
 	return nil
