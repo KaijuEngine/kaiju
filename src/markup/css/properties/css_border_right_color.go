@@ -40,6 +40,7 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
+	"kaiju/markup/css/helpers"
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/matrix"
@@ -65,9 +66,15 @@ func (p BorderRightColor) Process(panel *ui.Panel, elm document.DocElement, valu
 				panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
 			}
 			return nil
-		} else if color, err := matrix.ColorFromHexString(values[0].Str); err != nil {
-			return err
 		} else {
+			hex := values[0].Str
+			if newHex, ok := helpers.ColorMap[hex]; ok {
+				hex = newHex
+			}
+			color, err := matrix.ColorFromHexString(hex)
+			if err != nil {
+				return err
+			}
 			colors := panel.BorderColor()
 			panel.SetBorderColor(colors[0], colors[1], color, colors[3])
 			return nil
