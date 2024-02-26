@@ -210,6 +210,9 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 }
 
 func (vr *Vulkan) Draw(drawings []RenderTargetDraw) {
+	if !vr.hasSwapChain {
+		return
+	}
 	for i := range drawings {
 		drawings[i].Target.Draw(vr, drawings[i].innerDraws)
 	}
