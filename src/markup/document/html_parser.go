@@ -310,6 +310,18 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 	return parsed
 }
 
+func (d *Document) Activate() {
+	for i := range d.Elements {
+		d.Elements[i].UI.Entity().Activate()
+	}
+}
+
+func (d *Document) Deactivate() {
+	for i := range d.Elements {
+		d.Elements[i].UI.Entity().Deactivate()
+	}
+}
+
 func (d *Document) Destroy() {
 	for i := range d.Elements {
 		d.Elements[i].UI.Entity().Destroy()
