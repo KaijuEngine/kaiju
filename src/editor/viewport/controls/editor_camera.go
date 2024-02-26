@@ -42,7 +42,6 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
-	"kaiju/ui"
 	"math"
 )
 
@@ -52,15 +51,12 @@ const (
 )
 
 type EditorCamera struct {
-	uiGroup      *ui.Group
 	lastMousePos matrix.Vec2
 	mouseDown    matrix.Vec2
 	lastHit      matrix.Vec3
 	yawScale     matrix.Float
 	dragging     bool
 }
-
-func (e *EditorCamera) SetUIGroup(group *ui.Group) { e.uiGroup = group }
 
 func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.Center()); ok {
@@ -74,9 +70,6 @@ func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
-	if e.uiGroup.HasRequests() {
-		return false
-	}
 	tc := host.Camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard

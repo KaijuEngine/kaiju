@@ -128,7 +128,6 @@ func New() *Editor {
 		history:        memento.NewHistory(100),
 		uiGroup:        ui.NewGroup(),
 	}
-	ed.cam.SetUIGroup(ed.uiGroup)
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	host := ed.container.Host
 	editor_window.OpenWindow(ed,
@@ -254,6 +253,9 @@ func (e *Editor) Init() {
 }
 
 func (ed *Editor) update(delta float64) {
+	if ed.uiGroup.HasRequests() {
+		return
+	}
 	if ed.cam.Update(ed.Host(), delta) {
 		return
 	}
@@ -267,17 +269,17 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Undo()
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
-		} else if kb.KeyUp(hid.KeyboardKeySpace) {
-			ed.contentWindow.Toggle()
-		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			ed.hierarchyWindow.Toggle()
-		} else if kb.KeyUp(hid.KeyboardKeyL) {
-			ed.logWindow.Toggle()
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
 		}
+	} else if kb.KeyUp(hid.KeyboardKeyC) {
+		ed.contentWindow.Toggle()
+	} else if kb.KeyUp(hid.KeyboardKeyH) {
+		ed.hierarchyWindow.Toggle()
+	} else if kb.KeyUp(hid.KeyboardKeyL) {
+		ed.logWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)
