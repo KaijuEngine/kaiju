@@ -48,6 +48,8 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 type TemplateIndexedAny struct {
@@ -308,6 +310,17 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 		}
 	}
 	return parsed
+}
+
+func (d *Document) SetGroup(group *ui.Group) {
+	for i := range d.Elements {
+		if d.Elements[i].HTML.node.Type == html.ElementNode {
+			data := d.Elements[i].HTML.Data()
+			if data != "body" && data != "tag" {
+				d.Elements[i].UI.SetGroup(group)
+			}
+		}
+	}
 }
 
 func (d *Document) Activate() {

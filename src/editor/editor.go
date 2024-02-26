@@ -65,9 +65,11 @@ import (
 	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/rendering"
+	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
+	"kaiju/ui"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -95,6 +97,7 @@ type Editor struct {
 	selection       selection.Selection
 	transformTool   transform_tools.TransformTool
 	windowListing   editor_window.Listing
+	uiGroup         *ui.Group
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -109,10 +112,12 @@ func (e *Editor) Selection() *selection.Selection       { return &e.selection }
 func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
 
-func addConsole(host *engine.Host) {
+func addConsole(host *engine.Host, group *ui.Group) {
 	html_preview.SetupConsole(host)
 	profiler.SetupConsole(host)
 	tests.SetupConsole(host)
+	console.For(host).SetUIGroup(group)
+	group.Attach(host)
 }
 
 func New() *Editor {
@@ -121,13 +126,15 @@ func New() *Editor {
 		assetImporters: asset_importer.NewImportRegistry(),
 		editorDir:      filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/.."),
 		history:        memento.NewHistory(100),
+		uiGroup:        ui.NewGroup(),
 	}
+	ed.cam.SetUIGroup(ed.uiGroup)
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	host := ed.container.Host
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	ed.container.RunFunction(func() {
-		addConsole(ed.container.Host)
+		addConsole(ed.container.Host, ed.uiGroup)
 	})
 	host.SetFrameRateLimit(60)
 	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
@@ -217,10 +224,11 @@ func (e *Editor) Init() {
 		return
 	}
 	e.Host().CreatingEditorEntities()
-	e.logWindow = log_window.New(e.Host().LogStream)
-	e.contentWindow = content_window.New(&e.contentOpener, e)
-	e.hierarchyWindow = hierarchy.New(e)
-	e.menu = menu.New(e.container, e.logWindow, e.contentWindow, e.hierarchyWindow, &e.contentOpener, e)
+	e.logWindow = log_window.New(e.Host(), e.Host().LogStream, e.uiGroup)
+	e.contentWindow = content_window.New(&e.contentOpener, e, e.uiGroup)
+	e.hierarchyWindow = hierarchy.New(e, e.uiGroup)
+	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
+		e.hierarchyWindow, &e.contentOpener, e, e.uiGroup)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
@@ -240,22 +248,9 @@ func (e *Editor) Init() {
 		})
 	}
 	e.Host().DoneCreatingEditorEntities()
-	e.Host().Updater.AddUpdate(e.update)
+	e.Host().LateUpdater.AddUpdate(e.update)
 	e.windowListing.Add(e)
 	e.pickProject(projectPath)
-	e.openPreviousWindows()
-}
-
-func (ed *Editor) openPreviousWindows() {
-	if editor_cache.WindowWasOpen(ed.logWindow.Tag()) {
-		ed.logWindow.Show(&ed.windowListing)
-	}
-	if editor_cache.WindowWasOpen(ed.contentWindow.Tag()) {
-		ed.contentWindow.Show()
-	}
-	if editor_cache.WindowWasOpen(ed.hierarchyWindow.Tag()) {
-		ed.hierarchyWindow.Show()
-	}
 }
 
 func (ed *Editor) update(delta float64) {
@@ -273,11 +268,11 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeySpace) {
-			ed.contentWindow.Show()
+			ed.contentWindow.Toggle()
 		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			ed.hierarchyWindow.Show()
+			ed.hierarchyWindow.Toggle()
 		} else if kb.KeyUp(hid.KeyboardKeyL) {
-			ed.logWindow.Show(&ed.windowListing)
+			ed.logWindow.Toggle()
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {

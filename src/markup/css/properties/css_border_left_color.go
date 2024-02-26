@@ -68,16 +68,16 @@ func (p BorderLeftColor) Process(panel *ui.Panel, elm document.DocElement, value
 			return nil
 		} else {
 			hex := values[0].Str
-			if newHex, ok := helpers.ColorMap[values[0].Str]; ok {
+			if newHex, ok := helpers.ColorMap[hex]; ok {
 				hex = newHex
 			}
-			if color, err := matrix.ColorFromHexString(hex); err != nil {
+			color, err := matrix.ColorFromHexString(hex)
+			if err != nil {
 				return err
-			} else {
-				colors := panel.BorderColor()
-				panel.SetBorderColor(color, colors[1], colors[2], colors[3])
-				return nil
 			}
+			colors := panel.BorderColor()
+			panel.SetBorderColor(color, colors[1], colors[2], colors[3])
+			return nil
 		}
 	}
 }

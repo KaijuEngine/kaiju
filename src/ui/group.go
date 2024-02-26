@@ -50,9 +50,10 @@ type groupRequest struct {
 }
 
 type Group struct {
-	requests []groupRequest
-	focus    UI
-	updateId int
+	requests    []groupRequest
+	focus       UI
+	updateId    int
+	hadRequests bool
 }
 
 func NewGroup() *Group {
@@ -61,6 +62,8 @@ func NewGroup() *Group {
 		focus:    nil,
 	}
 }
+
+func (group *Group) HasRequests() bool { return group.hadRequests }
 
 func (group *Group) requestEvent(ui UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
@@ -71,6 +74,7 @@ func (group *Group) requestEvent(ui UI, eType EventType) {
 		target:    ui,
 		eventType: eType,
 	})
+	group.hadRequests = true
 }
 
 func (group *Group) setFocus(ui UI) {
@@ -81,28 +85,30 @@ func (group *Group) setFocus(ui UI) {
 	group.focus.ExecuteEvent(EventTypeClick)
 }
 
-func (group *Group) attach(host *engine.Host) {
+func (group *Group) Attach(host *engine.Host) {
 	group.updateId = host.LateUpdater.AddUpdate(func(dt float64) {
 		group.lateUpdate()
 	})
 }
 
-func (group *Group) detach(host *engine.Host) {
+func (group *Group) Detach(host *engine.Host) {
 	host.LateUpdater.RemoveUpdate(group.updateId)
 	group.updateId = -1
 }
 
-func sortRequests(a *groupRequest, b *groupRequest) int {
-	return (int)((b.target.Entity().Transform.WorldPosition().Z() -
-		a.target.Entity().Transform.WorldPosition().Z()) * 1000.0)
+func sortRequests(a *groupRequest, b *groupRequest) bool {
+	return a.target.Entity().Transform.WorldPosition().Z() >
+		b.target.Entity().Transform.WorldPosition().Z()
 }
 
 func (group *Group) lateUpdate() {
-	if len(group.requests) > 0 {
+	group.hadRequests = len(group.requests) > 0
+	if group.hadRequests {
 		sort.Slice(group.requests, func(i, j int) bool {
-			return sortRequests(&group.requests[i], &group.requests[j]) < 0
+			return sortRequests(&group.requests[i], &group.requests[j])
 		})
 		available := bitmap.NewTrue(EventTypeEnd)
+		last := [EventTypeEnd]*engine.Entity{}
 		for i := 0; i < len(group.requests); i++ {
 			req := &group.requests[i]
 			if available.Check(req.eventType) {
@@ -121,8 +127,15 @@ func (group *Group) lateUpdate() {
 				case EventTypeUp:
 					fallthrough
 				case EventTypeScroll:
-					if req.target.ExecuteEvent(req.eventType) {
+					l := last[req.eventType]
+					e := req.target.Entity()
+					last[req.eventType] = e
+					if l != nil && l.Parent != e {
 						shouldContinue = false
+					} else {
+						if req.target.ExecuteEvent(req.eventType) {
+							shouldContinue = false
+						}
 					}
 				default:
 					slog.Error("Invalid UI event type")

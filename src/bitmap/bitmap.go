@@ -58,7 +58,7 @@ func LengthFor(byteCount int) int {
 }
 
 func (b Bitmap) Check(index int) bool {
-	return b[index/bitsInByte]&0x01<<(index%bitsInByte) != 0
+	return b[index/bitsInByte]&(0x01<<(index%bitsInByte)) != 0
 }
 
 func (b Bitmap) Set(index int) {

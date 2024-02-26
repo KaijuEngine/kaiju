@@ -141,8 +141,9 @@ func (ui *uiBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
 func (ui *uiBase) Host() *engine.Host       { return ui.host }
 func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
 func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
-func (ui *uiBase) SetGroup(group *Group)    { ui.group = group }
 func (ui *uiBase) postLayoutUpdate()        {}
+
+func (ui *uiBase) SetGroup(group *Group) { ui.group = group }
 
 func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
@@ -278,7 +279,7 @@ func (ui *uiBase) requestEvent(evtType EventType) {
 	}
 }
 
-func (ui *uiBase) Update(deltaTime float64) {
+func (ui *uiBase) eventUpdates() {
 	cursor := &ui.host.Window.Cursor
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
@@ -335,6 +336,9 @@ func (ui *uiBase) Update(deltaTime float64) {
 	if ui.host.Window.Mouse.Scrolled() && ui.hovering {
 		ui.requestEvent(EventTypeScroll)
 	}
+}
+
+func (ui *uiBase) Update(deltaTime float64) {
 	if ui.dirtyType != DirtyTypeNone {
 		ui.Clean()
 	}

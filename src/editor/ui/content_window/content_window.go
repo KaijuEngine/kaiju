@@ -40,11 +40,8 @@ package content_window
 import (
 	"io/fs"
 	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
-	"kaiju/editor/ui/editor_window"
-	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -65,55 +62,63 @@ type contentEntry struct {
 }
 
 type ContentWindow struct {
-	doc       *document.Document
-	input     *ui.Input
-	listing   *ui.Panel
-	editor    interfaces.Editor
-	container *host_container.Container
-	Dir       []contentEntry
-	path      string
-	Query     string
-	funcMap   map[string]func(*document.DocElement)
-	opener    *content_opener.Opener
-	selected  *ui.Panel
+	doc      *document.Document
+	input    *ui.Input
+	listing  *ui.Panel
+	editor   interfaces.Editor
+	Dir      []contentEntry
+	path     string
+	Query    string
+	funcMap  map[string]func(*document.DocElement)
+	opener   *content_opener.Opener
+	selected *ui.Panel
+	uiGroup  *ui.Group
 }
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
-func (s *ContentWindow) Tag() string  { return editor_cache.ContentWindow }
 
-func (s *ContentWindow) Closed() {
-	s.container = nil
-}
-
-func (s *ContentWindow) Container() *host_container.Container {
-	return s.container
-}
-
-func New(opener *content_opener.Opener, editor interfaces.Editor) *ContentWindow {
+func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Group) *ContentWindow {
 	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.DocElement)),
 		opener:  opener,
 		path:    contentPath,
 		editor:  editor,
+		uiGroup: uiGroup,
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
+	editor.Host().OnClose.Add(func() {
+		if s.doc != nil {
+			s.doc.Destroy()
+		}
+	})
 	return s
 }
 
-func (s *ContentWindow) Show() {
-	if s.container != nil {
-		s.container.Host.Window.Focus()
-		return
+func (c *ContentWindow) Toggle() {
+	if c.doc == nil {
+		c.Show()
+	} else {
+		if c.doc.Elements[0].UI.Entity().IsActive() {
+			c.Hide()
+		} else {
+			c.Show()
+		}
 	}
-	s.container = host_container.New("Content Browser", nil)
-	x, y := s.editor.Host().Window.Center()
-	editor_window.OpenWindow(s, 500, 300, x-250, y-150)
-	s.editor.WindowListing().Add(s)
 }
 
-func (s *ContentWindow) Init() {
-	s.reloadUI()
+func (c *ContentWindow) Show() {
+	if c.doc == nil {
+		c.reloadUI()
+	} else {
+		c.doc.Activate()
+	}
+}
+
+func (c *ContentWindow) Hide() {
+	if c.doc != nil {
+		c.doc.Deactivate()
+	}
 }
 
 func (s *ContentWindow) contentClick(elm *document.DocElement) {
@@ -146,7 +151,6 @@ func (s *ContentWindow) openContent(elm *document.DocElement) {
 	}
 	if info, err := os.Stat(s.path); err != nil {
 		slog.Error(err.Error())
-		s.container.Host.Close()
 		return
 	} else if info.IsDir() {
 		s.reloadUI()
@@ -166,25 +170,24 @@ func (s *ContentWindow) submit() {
 }
 
 func (s *ContentWindow) reloadUI() {
-	for _, e := range s.container.Host.Entities() {
-		e.Destroy()
+	const html = "editor/ui/content_window.html"
+	if s.doc != nil {
+		s.doc.Destroy()
 	}
 	s.list()
-	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("editor/ui/content_window.html"))
-	s.doc = markup.DocumentFromHTMLString(
-		s.container.Host, html, "", s, s.funcMap)
+	host := s.editor.Host()
+	host.CreatingEditorEntities()
+	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, s, s.funcMap))
+	s.doc.SetGroup(s.uiGroup)
+	host.DoneCreatingEditorEntities()
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
-		s.container.Host.Close()
-		return
 	} else {
 		s.input = elm.UI.(*ui.Input)
 		s.input.Data().OnSubmit.Add(s.submit)
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)
-		s.container.Host.Close()
-		return
 	} else {
 		s.listing = elm.UIPanel
 	}
@@ -216,7 +219,6 @@ func (s *ContentWindow) listAll() {
 	dir, err := os.ReadDir(s.path)
 	if err != nil {
 		slog.Error(err.Error())
-		s.container.Host.Close()
 		return
 	}
 	s.Dir = make([]contentEntry, 0, len(dir))

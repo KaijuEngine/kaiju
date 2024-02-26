@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/ui"
 	"math"
 )
 
@@ -51,12 +52,15 @@ const (
 )
 
 type EditorCamera struct {
-	lastMousePos  matrix.Vec2
-	mouseDown     matrix.Vec2
-	lastHit       matrix.Vec3
-	yawScale      matrix.Float
-	mouseLeftDown bool
+	uiGroup      *ui.Group
+	lastMousePos matrix.Vec2
+	mouseDown    matrix.Vec2
+	lastHit      matrix.Vec3
+	yawScale     matrix.Float
+	dragging     bool
 }
+
+func (e *EditorCamera) SetUIGroup(group *ui.Group) { e.uiGroup = group }
 
 func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.Center()); ok {
@@ -70,6 +74,9 @@ func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
+	if e.uiGroup.HasRequests() {
+		return false
+	}
 	tc := host.Camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
@@ -78,7 +85,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		changed = true
 	}
 	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) {
-		e.mouseLeftDown = true
+		e.dragging = true
 		e.mouseDown = mp
 		rg := int(math.Abs(float64(int(matrix.Rad2Deg(tc.Pitch())) % 360)))
 		if rg < 90 || rg > 270 {
@@ -89,7 +96,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		if mouse.Pressed(hid.MouseButtonMiddle) {
 			changed = true
 		}
-	} else if mouse.Held(hid.MouseButtonLeft) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonLeft) {
 		if kb.HasAlt() {
 			x := (e.lastMousePos.Y() - mp.Y()) * -ROT_SCALE
 			y := (e.lastMousePos.X() - mp.X()) * e.yawScale
@@ -99,7 +106,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			e.pan(tc, mp)
 			changed = true
 		}
-	} else if mouse.Held(hid.MouseButtonMiddle) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
 		e.pan(tc, mp)
 		changed = true
 	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) {
@@ -107,6 +114,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		if mouse.Released(hid.MouseButtonMiddle) {
 			changed = true
 		}
+		e.dragging = false
 	}
 	if mouse.Scrolled() {
 		zoom := tc.Zoom()
