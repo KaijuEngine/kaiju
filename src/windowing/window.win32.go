@@ -55,6 +55,7 @@ import (
 #cgo noescape window_focus
 #cgo noescape window_position
 #cgo noescape set_window_position
+#cgo noescape set_window_size
 #cgo noescape remove_border
 #cgo noescape add_border
 
@@ -191,6 +192,10 @@ func (w *Window) position() (x, y int) {
 
 func (w *Window) setPosition(x, y int) {
 	C.set_window_position(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) setSize(width, height int) {
+	C.set_window_size(w.handle, C.int(width), C.int(height))
 }
 
 func (w *Window) removeBorder() {

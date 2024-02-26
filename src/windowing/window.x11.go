@@ -175,6 +175,10 @@ func (w *Window) setPosition(x, y int) {
 	klib.NotYetImplemented(233)
 }
 
+func (w *Window) setSize(width, height int) {
+	klib.NotYetImplemented(236)
+}
+
 func (w *Window) removeBorder() {
 	klib.NotYetImplemented(234)
 }

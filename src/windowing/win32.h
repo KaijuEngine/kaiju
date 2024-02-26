@@ -54,6 +54,7 @@ float get_dpi(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void set_window_position(void* hwnd, int x, int y);
+void set_window_size(void* hwnd, int width, int height);
 void remove_border(void* hwnd);
 void add_border(void* hwnd);
 
