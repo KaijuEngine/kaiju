@@ -154,21 +154,29 @@ void process_message(SharedMem* sm, MSG *msg) {
 			break;
 		case WM_LBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
+			break;
 		case WM_LBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
 			break;
 		case WM_MBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
+			break;
 		case WM_MBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
 			break;
 		case WM_RBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
+			break;
 		case WM_RBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
 			break;
 		case WM_XBUTTONDOWN:
-			SetCapture(msg->hwnd);
 		case WM_XBUTTONUP:
 			if (msg->wParam & 0x0010000) {
 				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X1);
@@ -248,11 +256,13 @@ void window_main(const wchar_t* windowTitle, int width, int height,
     RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};
 	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
+	width = clientArea.right-clientArea.left;
+	height = clientArea.bottom-clientArea.top;
 	if (x < 0) {
 		x = CW_USEDEFAULT;
 	}
 	if (y < 0) {
-		y = CW_USEDEFAULT;
+		x = CW_USEDEFAULT;
 	}
     // Create the window.
     HWND hwnd = CreateWindowEx(
@@ -260,9 +270,7 @@ void window_main(const wchar_t* windowTitle, int width, int height,
         className,							// Window class
         windowTitle,						// Window text
         WS_OVERLAPPEDWINDOW,				// Window style
-        x, y,								// Position
-		clientArea.right-clientArea.left,	// Width
-		clientArea.bottom-clientArea.top,	// Height
+		x, y, width, height,				// Position & size
         NULL,								// Parent window
         NULL,								// Menu
         hInstance,							// Instance handle
@@ -322,6 +330,51 @@ void window_cursor_standard(void* hwnd) {
 
 void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
+}
+
+float get_dpi(void* hwnd) {
+	return GetDpiForWindow(hwnd);
+}
+
+void window_focus(void* hwnd) {
+	BringWindowToTop(hwnd);
+	SetFocus(hwnd);
+}
+
+void window_position(void* hwnd, int* x, int* y) {
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(WINDOWPLACEMENT);
+	if (GetWindowPlacement(hwnd, &wp)) {
+		*x = wp.rcNormalPosition.left;
+		*y = wp.rcNormalPosition.top;
+	} else {
+		*x = -1;
+		*y = -1;
+	}
+}
+
+void set_window_position(void* hwnd, int x, int y) {
+	SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
+
+void remove_border(void* hwnd) {
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	style &= ~WS_CAPTION;
+	style &= ~WS_THICKFRAME;
+	style &= ~WS_MINIMIZEBOX;
+	style &= ~WS_MAXIMIZEBOX;
+	style &= ~WS_SYSMENU;
+	SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
+void add_border(void* hwnd) {
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	style |= WS_CAPTION;
+	style |= WS_THICKFRAME;
+	style |= WS_MINIMIZEBOX;
+	style |= WS_MAXIMIZEBOX;
+	style |= WS_SYSMENU;
+	SetWindowLong(hwnd, GWL_STYLE, style);
 }
 
 #endif

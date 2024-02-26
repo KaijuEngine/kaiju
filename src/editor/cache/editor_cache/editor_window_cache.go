@@ -98,3 +98,10 @@ func Window(key string) (WindowInfo, error) {
 	}
 	return WindowInfo{}, errors.New("window info not found")
 }
+
+func WindowWasOpen(key string) bool {
+	if w, err := Window(key); err == nil && w.Open {
+		return true
+	}
+	return false
+}

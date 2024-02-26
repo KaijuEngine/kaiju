@@ -161,6 +161,7 @@ func New(logStream *logging.LogStream) *LogWindow {
 
 func (l *LogWindow) Show(listing *editor_window.Listing) {
 	if l.container != nil {
+		l.container.Host.Window.Focus()
 		return
 	}
 	l.container = host_container.New("Log Window", nil)

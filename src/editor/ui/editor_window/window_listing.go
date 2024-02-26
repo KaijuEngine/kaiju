@@ -40,28 +40,40 @@ package editor_window
 import (
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/klib"
+	"slices"
+	"sync"
 )
 
 type Listing struct {
 	windows []EditorWindow
+	mutex   sync.Mutex
 }
 
 func New() Listing {
 	return Listing{
 		windows: make([]EditorWindow, 0),
+		mutex:   sync.Mutex{},
 	}
 }
 
 func (l *Listing) Add(w EditorWindow) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.windows = append(l.windows, w)
 	w.Container().Host.OnClose.Add(func() {
-		saveLayout(w, false)
-		w.Closed()
-		l.Remove(w)
+		l.mutex.Lock()
+		if slices.Contains(l.windows, w) {
+			saveLayout(w, false)
+			w.Closed()
+			l.Remove(w)
+		}
+		l.mutex.Unlock()
 	})
 }
 
 func (l *Listing) Remove(w EditorWindow) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	for i, win := range l.windows {
 		if win == w {
 			l.windows = klib.RemoveUnordered(l.windows, i)
@@ -71,11 +83,14 @@ func (l *Listing) Remove(w EditorWindow) {
 }
 
 func (l *Listing) CloseAll() {
-	for _, win := range l.windows {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	cpy := slices.Clone(l.windows)
+	l.windows = l.windows[:0]
+	for _, win := range cpy {
 		saveLayout(win, true)
 		win.Container().Host.Close()
 	}
-	l.windows = l.windows[:0]
 }
 
 func saveLayout(win EditorWindow, isOpen bool) {

@@ -80,19 +80,21 @@ const (
 )
 
 type Editor struct {
-	container      *host_container.Container
-	menu           *menu.Menu
-	editorDir      string
-	project        string
-	history        memento.History
-	cam            controls.EditorCamera
-	assetImporters asset_importer.ImportRegistry
-	stageManager   stages.Manager
-	contentOpener  content_opener.Opener
-	logWindow      *log_window.LogWindow
-	selection      selection.Selection
-	transformTool  transform_tools.TransformTool
-	windowListing  editor_window.Listing
+	container       *host_container.Container
+	menu            *menu.Menu
+	editorDir       string
+	project         string
+	history         memento.History
+	cam             controls.EditorCamera
+	assetImporters  asset_importer.ImportRegistry
+	stageManager    stages.Manager
+	contentOpener   content_opener.Opener
+	logWindow       *log_window.LogWindow
+	hierarchyWindow *hierarchy.Hierarchy
+	contentWindow   *content_window.ContentWindow
+	selection       selection.Selection
+	transformTool   transform_tools.TransformTool
+	windowListing   editor_window.Listing
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -140,6 +142,9 @@ func New() *Editor {
 		&ed.assetImporters, ed.container, &ed.history)
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
+	host.OnClose.Add(func() {
+		ed.SaveLayout()
+	})
 	return ed
 }
 
@@ -213,7 +218,9 @@ func (e *Editor) Init() {
 	}
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host().LogStream)
-	e.menu = menu.New(e.container, e.logWindow, &e.contentOpener, e)
+	e.contentWindow = content_window.New(&e.contentOpener, e)
+	e.hierarchyWindow = hierarchy.New(e)
+	e.menu = menu.New(e.container, e.logWindow, e.contentWindow, e.hierarchyWindow, &e.contentOpener, e)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
@@ -236,6 +243,19 @@ func (e *Editor) Init() {
 	e.Host().Updater.AddUpdate(e.update)
 	e.windowListing.Add(e)
 	e.pickProject(projectPath)
+	e.openPreviousWindows()
+}
+
+func (ed *Editor) openPreviousWindows() {
+	if editor_cache.WindowWasOpen(ed.logWindow.Tag()) {
+		ed.logWindow.Show(&ed.windowListing)
+	}
+	if editor_cache.WindowWasOpen(ed.contentWindow.Tag()) {
+		ed.contentWindow.Show()
+	}
+	if editor_cache.WindowWasOpen(ed.hierarchyWindow.Tag()) {
+		ed.hierarchyWindow.Show()
+	}
 }
 
 func (ed *Editor) update(delta float64) {
@@ -253,9 +273,11 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeySpace) {
-			content_window.New(&ed.contentOpener, ed)
+			ed.contentWindow.Show()
 		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			hierarchy.New(ed)
+			ed.hierarchyWindow.Show()
+		} else if kb.KeyUp(hid.KeyboardKeyL) {
+			ed.logWindow.Show(&ed.windowListing)
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {

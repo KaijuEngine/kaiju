@@ -137,7 +137,7 @@ func (vr *Vulkan) WaitForRender() {
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
 	}
-	vk.WaitForFences(vr.device, maxFramesInFlight, &fences[0], vk.True, math.MaxUint64)
+	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vk.True, math.MaxUint64)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
@@ -327,7 +327,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 }
 
 func (vr *Vulkan) remakeSwapChain() {
-	vk.DeviceWaitIdle(vr.device)
+	vr.WaitForRender()
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
 	}
@@ -491,7 +491,10 @@ func (vr *Vulkan) createSwapChainRenderPass() bool {
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
 	if !vr.hasSwapChain {
-		return false
+		vr.remakeSwapChain()
+		if !vr.hasSwapChain {
+			return false
+		}
 	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
 	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
