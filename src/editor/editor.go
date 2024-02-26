@@ -142,6 +142,9 @@ func New() *Editor {
 		&ed.assetImporters, ed.container, &ed.history)
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
+	host.OnClose.Add(func() {
+		ed.SaveLayout()
+	})
 	return ed
 }
 
@@ -272,7 +275,9 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyUp(hid.KeyboardKeySpace) {
 			ed.contentWindow.Show()
 		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			hierarchy.New(ed)
+			ed.hierarchyWindow.Show()
+		} else if kb.KeyUp(hid.KeyboardKeyL) {
+			ed.logWindow.Show(&ed.windowListing)
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
