@@ -5,6 +5,8 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"regexp"
 	"strconv"
@@ -26,15 +28,25 @@ func New(host *engine.Host) *StatusBar {
 	s.msg = m.HTML.Children[0].DocumentElement.UI.(*ui.Label)
 	s.log = l.HTML.Children[0].DocumentElement.UI.(*ui.Label)
 	host.LogStream.OnInfo.Add(func(msg string) {
-		host.RunAfterFrames(1, func() { s.log.SetText(msg) })
+		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorWhite()) })
 	})
 	host.LogStream.OnWarn.Add(func(msg string, _ []string) {
-		host.RunAfterFrames(1, func() { s.log.SetText(msg) })
+		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorYellow()) })
 	})
-	host.LogStream.OnWarn.Add(func(msg string, _ []string) {
-		host.RunAfterFrames(1, func() { s.log.SetText(msg) })
+	host.LogStream.OnError.Add(func(msg string, _ []string) {
+		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorLightCoral()) })
 	})
 	return s
+}
+
+func (s *StatusBar) setLog(msg string, color matrix.Color) {
+	s.log.SetColor(color)
+	res := logging.ToMap(msg)
+	if m, ok := res["msg"]; ok {
+		s.log.SetText(m)
+	} else {
+		s.log.SetText(msg)
+	}
 }
 
 func (s *StatusBar) SetMessage(status string) {
