@@ -54,6 +54,7 @@ import (
 #cgo noescape get_dpi
 #cgo noescape window_focus
 #cgo noescape window_position
+#cgo noescape set_window_position
 
 #include "windowing.h"
 #include <windows.h>
@@ -78,6 +79,10 @@ void window_position(void* hwnd, int* x, int* y) {
 		*x = -1;
 		*y = -1;
 	}
+}
+
+void set_window_position(void* hwnd, int x, int y) {
+	SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 */
 import "C"
@@ -204,7 +209,11 @@ func (w *Window) focus() {
 	C.window_focus(w.handle)
 }
 
-func (w *Window) position() (x int, y int) {
+func (w *Window) position() (x, y int) {
 	C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
 	return x, y
+}
+
+func (w *Window) setWindowPos(x, y int) {
+	C.set_window_position(w.handle, C.int(x), C.int(y))
 }

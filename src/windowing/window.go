@@ -335,6 +335,12 @@ func (w *Window) Position() (x int, y int) {
 	return x, y
 }
 
+func (w *Window) SetWindowPos(x, y int) {
+	w.setWindowPos(x, y)
+	w.x = x
+	w.y = y
+}
+
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
 	return x + w.Width()/2, y + w.Height()/2

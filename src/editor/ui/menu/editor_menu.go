@@ -57,26 +57,32 @@ import (
 )
 
 type Menu struct {
-	container     *host_container.Container
-	doc           *document.Document
-	isOpen        bool
-	logWindow     *log_window.LogWindow
-	contentOpener *content_opener.Opener
-	editor        interfaces.Editor
+	container       *host_container.Container
+	doc             *document.Document
+	isOpen          bool
+	logWindow       *log_window.LogWindow
+	contentWindow   *content_window.ContentWindow
+	hierarchyWindow *hierarchy.Hierarchy
+	contentOpener   *content_opener.Opener
+	editor          interfaces.Editor
 }
 
 func New(container *host_container.Container,
 	logWindow *log_window.LogWindow,
+	contentWindow *content_window.ContentWindow,
+	hierarchyWindow *hierarchy.Hierarchy,
 	contentOpener *content_opener.Opener,
 	editor interfaces.Editor) *Menu {
 
 	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
 	m := &Menu{
-		container:     container,
-		logWindow:     logWindow,
-		contentOpener: contentOpener,
-		editor:        editor,
+		container:       container,
+		logWindow:       logWindow,
+		contentWindow:   contentWindow,
+		hierarchyWindow: hierarchyWindow,
+		contentOpener:   contentOpener,
+		editor:          editor,
 	}
 	funcMap := map[string]func(*document.DocElement){
 		"openLogWindow":       m.openLogWindow,
@@ -164,11 +170,11 @@ func (m *Menu) openLogWindow(*document.DocElement) {
 }
 
 func (m *Menu) openContentWindow(*document.DocElement) {
-	content_window.New(m.contentOpener, m.editor)
+	m.contentWindow.Show()
 }
 
 func (m *Menu) openHierarchyWindow(*document.DocElement) {
-	hierarchy.New(m.editor)
+	m.hierarchyWindow.Show()
 }
 
 func (m *Menu) newStage(*document.DocElement) {

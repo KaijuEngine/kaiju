@@ -88,15 +88,23 @@ func (h *Hierarchy) Container() *host_container.Container { return h.container }
 
 func (h *Hierarchy) Closed() {
 	h.editor.Selection().Changed.Remove(h.selectChangeId)
+	h.container = nil
 }
 
-func New(editor interfaces.Editor) {
-	h := &Hierarchy{
-		editor:    editor,
-		container: host_container.New("Hierarchy", nil),
+func New(editor interfaces.Editor) *Hierarchy {
+	return &Hierarchy{
+		editor: editor,
 	}
+}
+
+func (h *Hierarchy) Show() {
+	if h.container != nil {
+		h.container.Host.Window.Focus()
+		return
+	}
+	h.container = host_container.New("Hierarchy", nil)
 	editor_window.OpenWindow(h, 300, 600, -1, -1)
-	editor.WindowListing().Add(h)
+	h.editor.WindowListing().Add(h)
 }
 
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {

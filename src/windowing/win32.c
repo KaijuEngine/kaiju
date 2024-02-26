@@ -254,7 +254,7 @@ void window_main(const wchar_t* windowTitle, int width, int height,
 	wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
     RegisterClass(&wc);
-	RECT clientArea = {0, 0, width, height};
+	RECT clientArea = {x, y, x+width, y+height};
 	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
 	if (x < 0) {
 		x = CW_USEDEFAULT;
@@ -268,7 +268,8 @@ void window_main(const wchar_t* windowTitle, int width, int height,
         className,							// Window class
         windowTitle,						// Window text
         WS_OVERLAPPEDWINDOW,				// Window style
-        x, y,								// Position
+        clientArea.left,					// Position X
+		clientArea.top,						// Position Y
 		clientArea.right-clientArea.left,	// Width
 		clientArea.bottom-clientArea.top,	// Height
         NULL,								// Parent window

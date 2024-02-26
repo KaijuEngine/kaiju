@@ -78,15 +78,18 @@ type ContentWindow struct {
 	selected  *ui.Panel
 }
 
-func (s *ContentWindow) Closed()      {}
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 func (s *ContentWindow) Tag() string  { return editor_cache.ContentWindow }
+
+func (s *ContentWindow) Closed() {
+	s.container = nil
+}
 
 func (s *ContentWindow) Container() *host_container.Container {
 	return s.container
 }
 
-func New(opener *content_opener.Opener, editor interfaces.Editor) {
+func New(opener *content_opener.Opener, editor interfaces.Editor) *ContentWindow {
 	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.DocElement)),
 		opener:  opener,
@@ -95,10 +98,18 @@ func New(opener *content_opener.Opener, editor interfaces.Editor) {
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
+	return s
+}
+
+func (s *ContentWindow) Show() {
+	if s.container != nil {
+		s.container.Host.Window.Focus()
+		return
+	}
 	s.container = host_container.New("Content Browser", nil)
-	x, y := editor.Host().Window.Center()
+	x, y := s.editor.Host().Window.Center()
 	editor_window.OpenWindow(s, 500, 300, x-250, y-150)
-	editor.WindowListing().Add(s)
+	s.editor.WindowListing().Add(s)
 }
 
 func (s *ContentWindow) Init() {

@@ -170,3 +170,7 @@ func (w *Window) position() (x int, y int) {
 	klib.NotYetImplemented(222)
 	return -1, -1
 }
+
+func (w *Window) setWindowPos(x, y int) {
+	klib.NotYetImplemented(233)
+}
