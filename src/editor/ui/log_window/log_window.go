@@ -38,10 +38,7 @@
 package log_window
 
 import (
-	"kaiju/editor/cache/editor_cache"
-	"kaiju/editor/ui/editor_window"
 	"kaiju/engine"
-	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -88,7 +85,7 @@ func newVisibleMessage(msg string, trace []string, cat string) visibleMessage {
 
 type LogWindow struct {
 	doc        *document.Document
-	container  *host_container.Container
+	host       *engine.Host
 	Group      viewGroup
 	all        []visibleMessage
 	lastReload engine.FrameId
@@ -96,6 +93,35 @@ type LogWindow struct {
 	infoEvtId  logging.EventId
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
+	group      *ui.Group
+}
+
+func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *LogWindow {
+	l := &LogWindow{
+		lastReload: engine.InvalidFrameId,
+		all:        make([]visibleMessage, 0),
+		logStream:  logStream,
+		host:       host,
+		group:      uiGroup,
+	}
+	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
+		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
+		l.reloadUI()
+	})
+	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
+		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
+		l.reloadUI()
+	})
+	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
+		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
+		l.reloadUI()
+	})
+	host.OnClose.Add(func() {
+		if l.doc != nil {
+			l.doc.Destroy()
+		}
+	})
+	return l
 }
 
 func (l *LogWindow) All() []visibleMessage {
@@ -132,58 +158,32 @@ func (l *LogWindow) Errors() []visibleMessage {
 	return res
 }
 
-func New(logStream *logging.LogStream) *LogWindow {
-	l := &LogWindow{
-		lastReload: engine.InvalidFrameId,
-		all:        make([]visibleMessage, 0),
-		logStream:  logStream,
+func (l *LogWindow) Toggle() {
+	if l.doc == nil {
+		l.Show()
+	} else {
+		if l.doc.Elements[0].UI.Entity().IsActive() {
+			l.Hide()
+		} else {
+			l.Show()
+		}
 	}
-	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
-		l.all = append(l.all, newVisibleMessage(msg, []string{}, "info"))
-		if l.container != nil {
-			l.container.RunFunction(l.reloadUI)
-		}
-	})
-	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.all = append(l.all, newVisibleMessage(msg, trace, "warn"))
-		if l.container != nil {
-			l.container.RunFunction(l.reloadUI)
-		}
-	})
-	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
-		l.all = append(l.all, newVisibleMessage(msg, trace, "error"))
-		if l.container != nil {
-			l.container.RunFunction(l.reloadUI)
-		}
-	})
-	return l
 }
 
-func (l *LogWindow) Show(listing *editor_window.Listing) {
-	if l.container != nil {
-		l.container.Host.Window.Focus()
-		return
+func (l *LogWindow) Show() {
+	if l.doc == nil {
+		l.reloadUI()
+	} else {
+		l.doc.Activate()
+		l.showCurrent()
 	}
-	l.container = host_container.New("Log Window", nil)
-	editor_window.OpenWindow(l, engine.DefaultWindowWidth,
-		engine.DefaultWindowWidth/3, -1, -1)
-	listing.Add(l)
 }
 
-func (l *LogWindow) Init() {
-	l.reloadUI()
+func (l *LogWindow) Hide() {
+	if l.doc != nil {
+		l.doc.Deactivate()
+	}
 }
-
-func (l *LogWindow) Closed() {
-	l.logStream.OnInfo.Remove(l.infoEvtId)
-	l.logStream.OnWarn.Remove(l.warnEvtId)
-	l.logStream.OnError.Remove(l.errEvtId)
-	l.container = nil
-	l.lastReload = engine.InvalidFrameId
-}
-
-func (l *LogWindow) Tag() string                          { return editor_cache.LogWindow }
-func (l *LogWindow) Container() *host_container.Container { return l.container }
 
 func (l *LogWindow) clearAll(e *document.DocElement) {
 	l.all = l.all[:0]
@@ -310,26 +310,27 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 }
 
 func (l *LogWindow) reloadUI() {
-	if l.container == nil {
-		return
+	const html = "editor/ui/log_window.html"
+	if l.doc != nil {
+		l.doc.Destroy()
 	}
-	for _, e := range l.container.Host.Entities() {
-		e.Destroy()
-	}
-	frame := l.container.Host.Frame()
+	frame := l.host.Frame()
 	if l.lastReload == frame {
 		return
 	}
+	l.host.CreatingEditorEntities()
 	l.lastReload = frame
-	html := klib.MustReturn(l.container.Host.AssetDatabase().ReadText("editor/ui/log_window.html"))
-	l.doc = markup.DocumentFromHTMLString(l.container.Host, html, "", l, map[string]func(*document.DocElement){
-		"clearAll":     l.clearAll,
-		"showAll":      l.showAll,
-		"showInfos":    l.showInfos,
-		"showWarns":    l.showWarns,
-		"showErrors":   l.showErrors,
-		"showSelected": l.showSelected,
-		"selectEntry":  l.selectEntry,
-	})
+	l.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
+		l.host, html, l, map[string]func(*document.DocElement){
+			"clearAll":     l.clearAll,
+			"showAll":      l.showAll,
+			"showInfos":    l.showInfos,
+			"showWarns":    l.showWarns,
+			"showErrors":   l.showErrors,
+			"showSelected": l.showSelected,
+			"selectEntry":  l.selectEntry,
+		}))
+	l.doc.SetGroup(l.group)
+	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 }

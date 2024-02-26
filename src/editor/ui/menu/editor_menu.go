@@ -65,6 +65,7 @@ type Menu struct {
 	hierarchyWindow *hierarchy.Hierarchy
 	contentOpener   *content_opener.Opener
 	editor          interfaces.Editor
+	uiGroup         *ui.Group
 }
 
 func New(container *host_container.Container,
@@ -72,7 +73,8 @@ func New(container *host_container.Container,
 	contentWindow *content_window.ContentWindow,
 	hierarchyWindow *hierarchy.Hierarchy,
 	contentOpener *content_opener.Opener,
-	editor interfaces.Editor) *Menu {
+	editor interfaces.Editor,
+	uiGroup *ui.Group) *Menu {
 
 	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
@@ -95,6 +97,7 @@ func New(container *host_container.Container,
 		"openHierarchyWindow": m.openHierarchyWindow,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
+	m.doc.SetGroup(uiGroup)
 	allItems := m.doc.GetElementsByClass("menuItem")
 	for i := range allItems {
 		targetId := allItems[i].HTML.Attribute("data-target")
@@ -109,6 +112,8 @@ func New(container *host_container.Container,
 			pLayout := allItems[i].UI.Layout()
 			allItems[i].UI.AddEvent(ui.EventTypeRender, func() {
 				l.SetOffset(pLayout.CalcOffset().X(), l.Offset().Y())
+				// TODO:  The CSS isn't working here?
+				l.SetZ(5)
 			})
 		}
 	}
@@ -166,7 +171,7 @@ func openRepository(*document.DocElement) {
 }
 
 func (m *Menu) openLogWindow(*document.DocElement) {
-	m.logWindow.Show(m.editor.WindowListing())
+	m.logWindow.Show()
 }
 
 func (m *Menu) openContentWindow(*document.DocElement) {

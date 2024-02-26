@@ -38,11 +38,8 @@
 package hierarchy
 
 import (
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/interfaces"
-	"kaiju/editor/ui/editor_window"
 	"kaiju/engine"
-	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -55,12 +52,12 @@ import (
 
 type Hierarchy struct {
 	editor         interfaces.Editor
-	container      *host_container.Container
 	doc            *document.Document
 	input          *ui.Input
 	onChangeId     events.Id
 	selectChangeId events.Id
 	query          string
+	uiGroup        *ui.Group
 }
 
 type entityEntry struct {
@@ -83,28 +80,43 @@ func (e entityEntry) Depth() []struct{} {
 	return depth
 }
 
-func (h *Hierarchy) Tag() string                          { return editor_cache.HierarchyWindow }
-func (h *Hierarchy) Container() *host_container.Container { return h.container }
-
-func (h *Hierarchy) Closed() {
-	h.editor.Selection().Changed.Remove(h.selectChangeId)
-	h.container = nil
+func New(editor interfaces.Editor, uiGroup *ui.Group) *Hierarchy {
+	h := &Hierarchy{
+		editor:  editor,
+		uiGroup: uiGroup,
+	}
+	h.editor.Host().OnClose.Add(func() {
+		if h.doc != nil {
+			h.doc.Destroy()
+		}
+	})
+	return h
 }
 
-func New(editor interfaces.Editor) *Hierarchy {
-	return &Hierarchy{
-		editor: editor,
+func (h *Hierarchy) Toggle() {
+	if h.doc == nil {
+		h.Show()
+	} else {
+		if h.doc.Elements[0].UI.Entity().IsActive() {
+			h.Hide()
+		} else {
+			h.Show()
+		}
 	}
 }
 
 func (h *Hierarchy) Show() {
-	if h.container != nil {
-		h.container.Host.Window.Focus()
-		return
+	if h.doc == nil {
+		h.Reload()
+	} else {
+		h.doc.Activate()
 	}
-	h.container = host_container.New("Hierarchy", nil)
-	editor_window.OpenWindow(h, 300, 600, -1, -1)
-	h.editor.WindowListing().Add(h)
+}
+
+func (h *Hierarchy) Hide() {
+	if h.doc != nil {
+		h.doc.Deactivate()
+	}
 }
 
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
@@ -148,20 +160,25 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 }
 
 func (h *Hierarchy) Reload() {
+	if h.doc != nil {
+		h.doc.Destroy()
+	}
 	data := hierarchyData{
 		Entries: h.filter(h.orderEntitiesVisually()),
 		Query:   h.query,
 	}
+	host := h.editor.Host()
+	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		h.container.Host, "editor/ui/hierarchy_window.html", data,
+		host, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.DocElement){
 			"selectedEntity": h.selectedEntity,
 		}))
+	h.doc.SetGroup(h.uiGroup)
+	host.DoneCreatingEditorEntities()
 	h.selectChangeId = h.editor.Selection().Changed.Add(h.onSelectionChanged)
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
-		h.container.Host.Close()
-		return
 	} else {
 		h.input = elm.UI.(*ui.Input)
 		h.input.Data().OnSubmit.Add(h.submit)
@@ -199,7 +216,7 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 	if e, ok := h.editor.Host().FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", id))
 	} else {
-		kb := &h.container.Host.Window.Keyboard
+		kb := &h.editor.Host().Window.Keyboard
 		if kb.HasCtrl() {
 			h.editor.Selection().Toggle(e)
 		} else if kb.HasShift() {
