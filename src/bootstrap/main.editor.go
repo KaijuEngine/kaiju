@@ -46,5 +46,4 @@ import (
 func Main() {
 	editor := editor.New()
 	<-editor.Host().Done()
-	editor.SaveLayout()
 }
