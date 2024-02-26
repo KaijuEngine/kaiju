@@ -146,6 +146,7 @@ func initialize(host *engine.Host) *Console {
 
 func UnlinkHost(host *engine.Host) { delete(consoles, host) }
 
+func (c *Console) SetUIGroup(group *ui.Group)           { c.doc.SetGroup(group) }
 func (c *Console) Host() *engine.Host                   { return c.host }
 func (c *Console) SetData(key string, data ConsoleData) { c.data[key] = data }
 func (c *Console) HasData(key string) bool              { _, ok := c.data[key]; return ok }
