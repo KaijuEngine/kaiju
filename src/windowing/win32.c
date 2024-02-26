@@ -154,21 +154,29 @@ void process_message(SharedMem* sm, MSG *msg) {
 			break;
 		case WM_LBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
+			break;
 		case WM_LBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
 			break;
 		case WM_MBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
+			break;
 		case WM_MBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
 			break;
 		case WM_RBUTTONDOWN:
 			SetCapture(msg->hwnd);
+			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
+			break;
 		case WM_RBUTTONUP:
+			ReleaseCapture();
 			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
 			break;
 		case WM_XBUTTONDOWN:
-			SetCapture(msg->hwnd);
 		case WM_XBUTTONUP:
 			if (msg->wParam & 0x0010000) {
 				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X1);
