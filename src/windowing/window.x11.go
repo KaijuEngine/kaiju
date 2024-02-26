@@ -171,6 +171,14 @@ func (w *Window) position() (x int, y int) {
 	return -1, -1
 }
 
-func (w *Window) setWindowPos(x, y int) {
+func (w *Window) setPosition(x, y int) {
 	klib.NotYetImplemented(233)
+}
+
+func (w *Window) removeBorder() {
+	klib.NotYetImplemented(234)
+}
+
+func (w *Window) addBorder() {
+	klib.NotYetImplemented(234)
 }

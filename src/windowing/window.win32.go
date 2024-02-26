@@ -55,35 +55,10 @@ import (
 #cgo noescape window_focus
 #cgo noescape window_position
 #cgo noescape set_window_position
+#cgo noescape remove_border
+#cgo noescape add_border
 
 #include "windowing.h"
-#include <windows.h>
-#include <windowsx.h>
-
-float get_dpi(HWND hwnd) {
-	return GetDpiForWindow(hwnd);
-}
-
-void window_focus(void* hwnd) {
-	BringWindowToTop(hwnd);
-	SetFocus(hwnd);
-}
-
-void window_position(void* hwnd, int* x, int* y) {
-	WINDOWPLACEMENT wp;
-	wp.length = sizeof(WINDOWPLACEMENT);
-	if (GetWindowPlacement(hwnd, &wp)) {
-		*x = wp.rcNormalPosition.left;
-		*y = wp.rcNormalPosition.top;
-	} else {
-		*x = -1;
-		*y = -1;
-	}
-}
-
-void set_window_position(void* hwnd, int x, int y) {
-	SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-}
 */
 import "C"
 
@@ -198,7 +173,7 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) getDPI() (int, int, error) {
-	dpi := C.get_dpi(C.HWND(w.handle))
+	dpi := C.get_dpi(w.handle)
 	return int(dpi), int(dpi), nil
 }
 
@@ -214,6 +189,14 @@ func (w *Window) position() (x, y int) {
 	return x, y
 }
 
-func (w *Window) setWindowPos(x, y int) {
+func (w *Window) setPosition(x, y int) {
 	C.set_window_position(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) removeBorder() {
+	C.remove_border(w.handle)
+}
+
+func (w *Window) addBorder() {
+	C.add_border(w.handle)
 }

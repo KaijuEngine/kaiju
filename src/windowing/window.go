@@ -335,11 +335,14 @@ func (w *Window) Position() (x int, y int) {
 	return x, y
 }
 
-func (w *Window) SetWindowPos(x, y int) {
-	w.setWindowPos(x, y)
+func (w *Window) SetPosition(x, y int) {
+	w.setPosition(x, y)
 	w.x = x
 	w.y = y
 }
+
+func (w *Window) RemoveBorder() { w.removeBorder() }
+func (w *Window) AddBorder()    { w.addBorder() }
 
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()

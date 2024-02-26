@@ -332,4 +332,49 @@ void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
 }
 
+float get_dpi(void* hwnd) {
+	return GetDpiForWindow(hwnd);
+}
+
+void window_focus(void* hwnd) {
+	BringWindowToTop(hwnd);
+	SetFocus(hwnd);
+}
+
+void window_position(void* hwnd, int* x, int* y) {
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(WINDOWPLACEMENT);
+	if (GetWindowPlacement(hwnd, &wp)) {
+		*x = wp.rcNormalPosition.left;
+		*y = wp.rcNormalPosition.top;
+	} else {
+		*x = -1;
+		*y = -1;
+	}
+}
+
+void set_window_position(void* hwnd, int x, int y) {
+	SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
+
+void remove_border(void* hwnd) {
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	style &= ~WS_CAPTION;
+	style &= ~WS_THICKFRAME;
+	style &= ~WS_MINIMIZEBOX;
+	style &= ~WS_MAXIMIZEBOX;
+	style &= ~WS_SYSMENU;
+	SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
+void add_border(void* hwnd) {
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	style |= WS_CAPTION;
+	style |= WS_THICKFRAME;
+	style |= WS_MINIMIZEBOX;
+	style |= WS_MAXIMIZEBOX;
+	style |= WS_SYSMENU;
+	SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
 #endif
