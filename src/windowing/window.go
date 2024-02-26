@@ -285,8 +285,9 @@ func (w *Window) EndUpdate() {
 }
 
 func (w *Window) SwapBuffers() {
-	w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height()))
-	swapBuffers(w.handle)
+	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
+		swapBuffers(w.handle)
+	}
 }
 
 func (w *Window) GetDPI() (int, int, error) {

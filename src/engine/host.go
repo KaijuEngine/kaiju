@@ -312,9 +312,10 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
-		host.Window.Renderer.ReadyFrame(host.Camera,
-			host.UICamera, float32(host.Runtime()))
-		host.Drawings.Render(host.Window.Renderer)
+		if host.Window.Renderer.ReadyFrame(host.Camera,
+			host.UICamera, float32(host.Runtime())) {
+			host.Drawings.Render(host.Window.Renderer)
+		}
 	}
 	host.Window.SwapBuffers()
 	// TODO:  Thread this or make the dirty on demand, and have a flag for the dirty frame
