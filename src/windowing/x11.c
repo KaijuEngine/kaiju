@@ -70,9 +70,10 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
-void window_main(const char* windowTitle, int width, int height
+void window_main(const char* windowTitle, int width, int height,
 	int x, int y, void* evtSharedMem, int size)
 {
+	XInitThreads();
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
@@ -180,5 +181,11 @@ void window_destroy(void* x11State) {
 
 void* display(void* x11State) { return ((X11State*)x11State)->d; }
 void* window(void* x11State) { return &((X11State*)x11State)->w; }
+
+void window_focus(void* state) {
+	X11State* s = state;
+	XRaiseWindow(s->d, s->w);
+	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
+}
 
 #endif

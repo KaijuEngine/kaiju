@@ -45,14 +45,7 @@ package windowing
 #cgo noescape window_destroy
 #cgo noescape window_focus
 
-#include <stdlib.h>
 #include "windowing.h"
-
-void window_focus(void* window) {
-	X11State* s = state;
-	XRaiseWindow(s->d, s->w);
-	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
-}
 */
 import "C"
 import (
