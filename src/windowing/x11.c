@@ -119,16 +119,20 @@ int window_poll_controller(void* x11State) {
 
 int window_poll(void* x11State) {
 	X11State* s = x11State;
-	XEvent e = {};
+	XEvent e = { 0 };
 
 	if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
-		return 0;
+		if (!XCheckTypedEvent(s->d, ClientMessage, &e)) {
+			return 0;
+		}
 	}
-	bool filtered = XFilterEvent(&e, None);
+	bool filtered = XFilterEvent(&e, s->w);
 	s->sm.evt->evtType = e.type;
 	switch (e.type) {
+		case DestroyNotify:
+			shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
+			break;
 		case Expose:
-			//return 0;
 			break;
 		case KeyPress:
 		case KeyRelease:
@@ -165,6 +169,7 @@ int window_poll(void* x11State) {
 			if (!filtered) {
 				const Atom protocol = e.xclient.data.l[0];
 				if (protocol == s->WM_DELETE_WINDOW) {
+					XDestroyWindow(s->d, s->w);
 					shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
 				}
 			}
