@@ -498,13 +498,15 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
 	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
-	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain, math.MaxUint64,
-		vr.imageSemaphores[vr.currentFrame], vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
+	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain,
+		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
+		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
 	if vr.acquireImageResult == vk.ErrorOutOfDate {
 		vr.remakeSwapChain()
 		return false
 	} else if vr.acquireImageResult != vk.Success {
 		slog.Error("Failed to present swap chain image")
+		vr.hasSwapChain = false
 		return false
 	}
 	vk.ResetFences(vr.device, 1, &fences[0])

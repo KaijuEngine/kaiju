@@ -70,9 +70,10 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
-void window_main(const char* windowTitle, int width, int height
+void window_main(const char* windowTitle, int width, int height,
 	int x, int y, void* evtSharedMem, int size)
 {
+	XInitThreads();
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
 		write_fatal(evtSharedMem, size, "Failed to open display");
@@ -118,16 +119,20 @@ int window_poll_controller(void* x11State) {
 
 int window_poll(void* x11State) {
 	X11State* s = x11State;
-	XEvent e = {};
+	XEvent e = { 0 };
 
 	if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
-		return 0;
+		if (!XCheckTypedEvent(s->d, ClientMessage, &e)) {
+			return 0;
+		}
 	}
-	bool filtered = XFilterEvent(&e, None);
+	bool filtered = XFilterEvent(&e, s->w);
 	s->sm.evt->evtType = e.type;
 	switch (e.type) {
+		case DestroyNotify:
+			shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
+			break;
 		case Expose:
-			//return 0;
 			break;
 		case KeyPress:
 		case KeyRelease:
@@ -164,6 +169,7 @@ int window_poll(void* x11State) {
 			if (!filtered) {
 				const Atom protocol = e.xclient.data.l[0];
 				if (protocol == s->WM_DELETE_WINDOW) {
+					XDestroyWindow(s->d, s->w);
 					shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
 				}
 			}
@@ -180,5 +186,11 @@ void window_destroy(void* x11State) {
 
 void* display(void* x11State) { return ((X11State*)x11State)->d; }
 void* window(void* x11State) { return &((X11State*)x11State)->w; }
+
+void window_focus(void* state) {
+	X11State* s = state;
+	XRaiseWindow(s->d, s->w);
+	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
+}
 
 #endif

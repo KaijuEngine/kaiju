@@ -45,14 +45,7 @@ package windowing
 #cgo noescape window_destroy
 #cgo noescape window_focus
 
-#include <stdlib.h>
 #include "windowing.h"
-
-void window_focus(void* window) {
-	X11State* s = state;
-	XRaiseWindow(s->d, s->w);
-	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
-}
 */
 import "C"
 import (
@@ -173,6 +166,10 @@ func (w *Window) position() (x int, y int) {
 
 func (w *Window) setPosition(x, y int) {
 	klib.NotYetImplemented(233)
+}
+
+func (w *Window) setSize(width, height int) {
+	klib.NotYetImplemented(236)
 }
 
 func (w *Window) removeBorder() {

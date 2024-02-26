@@ -90,6 +90,7 @@ type Window struct {
 	isClosed      bool
 	isCrashed     bool
 	OnResize      events.Event
+	OnMove        events.Event
 }
 
 type FileSearch struct {
@@ -108,6 +109,7 @@ func New(windowName string, width, height, x, y int) (*Window, error) {
 		height:       height,
 		evtSharedMem: new(evtMem),
 		OnResize:     events.New(),
+		OnMove:       events.New(),
 		x:            x,
 		y:            y,
 	}
@@ -174,6 +176,7 @@ func (w *Window) processWindowEvent(evtType eventType) {
 			w.x = int(we.x)
 			w.y = int(we.y)
 		}
+		w.OnMove.Execute()
 	case evtActivity:
 		ee := w.evtSharedMem.toEnumEvent()
 		switch ee.value {
@@ -285,8 +288,9 @@ func (w *Window) EndUpdate() {
 }
 
 func (w *Window) SwapBuffers() {
-	w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height()))
-	swapBuffers(w.handle)
+	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
+		swapBuffers(w.handle)
+	}
 }
 
 func (w *Window) GetDPI() (int, int, error) {
@@ -339,6 +343,12 @@ func (w *Window) SetPosition(x, y int) {
 	w.setPosition(x, y)
 	w.x = x
 	w.y = y
+}
+
+func (w *Window) SetSize(width, height int) {
+	w.setSize(width, height)
+	w.width = width
+	w.height = height
 }
 
 func (w *Window) RemoveBorder() { w.removeBorder() }

@@ -56,5 +56,6 @@ int window_poll(void* x11State);
 void window_destroy(void* x11State);
 void* display(void* x11State);
 void* window(void* x11State);
+void window_focus(void* state);
 
 #endif
