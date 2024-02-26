@@ -108,6 +108,8 @@ func New(windowName string, width, height, x, y int) (*Window, error) {
 		height:       height,
 		evtSharedMem: new(evtMem),
 		OnResize:     events.New(),
+		x:            x,
+		y:            y,
 	}
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	// TODO:  Pass in width and height
@@ -166,8 +168,12 @@ func (w *Window) processWindowEvent(evtType eventType) {
 		w.OnResize.Execute()
 	case evtMove:
 		we := w.evtSharedMem.toWindowMoveEvent()
-		w.x = int(we.x)
-		w.y = int(we.y)
+		// When a window is created at a specific position, windows will
+		// sometimes report a move to position of 0,0 for some reason.
+		if we.x != 0 || we.y != 0 {
+			w.x = int(we.x)
+			w.y = int(we.y)
+		}
 	case evtActivity:
 		ee := w.evtSharedMem.toEnumEvent()
 		switch ee.value {
