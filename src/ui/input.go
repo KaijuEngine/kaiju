@@ -544,8 +544,8 @@ func (input *Input) SetFontSize(fontSize float32) {
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
-	if input.entity.IsActive() {
-		if input.Data().isActive && keyState == hid.KeyStateDown {
+	if input.entity.IsActive() && input.Data().isActive {
+		if keyState == hid.KeyStateDown {
 			kb := &input.host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
@@ -574,18 +574,19 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.arrowMoveCursor(kb, -1)
 				case hid.KeyboardKeyUp:
 					//input.exec_evt(input.onUpDown) // 1
-					break
 				case hid.KeyboardKeyDown:
 					//input.exec_evt(input.onUpDown) // -1
-					break
 				case hid.KeyboardKeyReturn:
 					fallthrough
 				case hid.KeyboardKeyEnter:
 					input.submit()
-				default:
-					break
 				}
 			}
+		}
+		if keyState == hid.KeyStateDown {
+			input.requestEvent(EventTypeKeyDown)
+		} else if keyState == hid.KeyStateUp {
+			input.requestEvent(EventTypeKeyUp)
 		}
 	}
 }

@@ -74,7 +74,7 @@ func (group *Group) requestEvent(ui UI, eType EventType) {
 		target:    ui,
 		eventType: eType,
 	})
-	group.hadRequests = true
+	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
 func (group *Group) setFocus(ui UI) {
@@ -102,14 +102,15 @@ func sortRequests(a *groupRequest, b *groupRequest) bool {
 }
 
 func (group *Group) lateUpdate() {
-	group.hadRequests = len(group.requests) > 0
-	if group.hadRequests {
+	has := false
+	if len(group.requests) > 0 {
 		sort.Slice(group.requests, func(i, j int) bool {
 			return sortRequests(&group.requests[i], &group.requests[j])
 		})
 		available := bitmap.NewTrue(EventTypeEnd)
 		last := [EventTypeEnd]*engine.Entity{}
 		for i := 0; i < len(group.requests); i++ {
+			has = has || group.requests[i].eventType != EventTypeMiss
 			req := &group.requests[i]
 			if available.Check(req.eventType) {
 				shouldContinue := true
@@ -119,6 +120,10 @@ func (group *Group) lateUpdate() {
 				case EventTypeExit:
 					fallthrough
 				case EventTypeMiss:
+					fallthrough
+				case EventTypeKeyDown:
+					fallthrough
+				case EventTypeKeyUp:
 					req.target.ExecuteEvent(req.eventType)
 				case EventTypeClick:
 					fallthrough
@@ -146,4 +151,5 @@ func (group *Group) lateUpdate() {
 		}
 		group.requests = group.requests[:0]
 	}
+	group.hadRequests = has
 }

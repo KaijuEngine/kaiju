@@ -55,6 +55,7 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
+	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
@@ -84,6 +85,7 @@ const (
 type Editor struct {
 	container       *host_container.Container
 	menu            *menu.Menu
+	statusBar       *status_bar.StatusBar
 	editorDir       string
 	project         string
 	history         memento.History
@@ -111,6 +113,7 @@ func (e *Editor) ContentOpener() *content_opener.Opener { return &e.contentOpene
 func (e *Editor) Selection() *selection.Selection       { return &e.selection }
 func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
+func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 
 func addConsole(host *engine.Host, group *ui.Group) {
 	html_preview.SetupConsole(host)
@@ -128,7 +131,6 @@ func New() *Editor {
 		history:        memento.NewHistory(100),
 		uiGroup:        ui.NewGroup(),
 	}
-	ed.cam.SetUIGroup(ed.uiGroup)
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	host := ed.container.Host
 	editor_window.OpenWindow(ed,
@@ -229,6 +231,7 @@ func (e *Editor) Init() {
 	e.hierarchyWindow = hierarchy.New(e, e.uiGroup)
 	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
 		e.hierarchyWindow, &e.contentOpener, e, e.uiGroup)
+	e.statusBar = status_bar.New(e.Host(), e.logWindow)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
@@ -254,6 +257,9 @@ func (e *Editor) Init() {
 }
 
 func (ed *Editor) update(delta float64) {
+	if ed.uiGroup.HasRequests() {
+		return
+	}
 	if ed.cam.Update(ed.Host(), delta) {
 		return
 	}
@@ -267,17 +273,18 @@ func (ed *Editor) update(delta float64) {
 			ed.history.Undo()
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
-		} else if kb.KeyUp(hid.KeyboardKeySpace) {
-			ed.contentWindow.Toggle()
-		} else if kb.KeyUp(hid.KeyboardKeyH) {
-			ed.hierarchyWindow.Toggle()
-		} else if kb.KeyUp(hid.KeyboardKeyL) {
-			ed.logWindow.Toggle()
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
 			ed.stageManager.Save()
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
+			ed.statusBar.SetMessage("Parented entities")
 		}
+	} else if kb.KeyUp(hid.KeyboardKeyC) {
+		ed.contentWindow.Toggle()
+	} else if kb.KeyUp(hid.KeyboardKeyH) {
+		ed.hierarchyWindow.Toggle()
+	} else if kb.KeyUp(hid.KeyboardKeyL) {
+		ed.logWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		b := ed.selection.Bounds()
 		c := ed.Host().Camera.(*cameras.TurntableCamera)

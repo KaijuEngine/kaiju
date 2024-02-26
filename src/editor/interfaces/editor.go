@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/editor_window"
+	"kaiju/editor/ui/status_bar"
 	"kaiju/engine"
 	"kaiju/host_container"
 )
@@ -53,5 +54,6 @@ type Editor interface {
 	Selection() *selection.Selection
 	History() *memento.History
 	WindowListing() *editor_window.Listing
+	StatusBar() *status_bar.StatusBar
 	OpenProject()
 }

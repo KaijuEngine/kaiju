@@ -1,0 +1,15 @@
+#bar {
+	width: 100%;
+	height: 20px;
+	color: white;
+	background-color: #1f1f1f;
+	padding: 0;
+	margin: 0;
+	bottom: 0;
+}
+.msg {
+	font-size: 12px;
+	background-color: #1f1f1f;
+	width: 50%;
+	height: 100%;
+}
