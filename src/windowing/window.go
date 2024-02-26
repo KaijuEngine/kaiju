@@ -349,5 +349,5 @@ func (w *Window) becameInactive() {
 }
 
 func (w *Window) becameActive() {
-
+	w.cursorStandard()
 }
