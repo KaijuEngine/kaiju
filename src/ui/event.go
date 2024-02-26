@@ -53,5 +53,7 @@ const (
 	EventTypeDestroy
 	EventTypeChange
 	EventTypeRender
+	EventTypeKeyDown
+	EventTypeKeyUp
 	EventTypeEnd
 )
