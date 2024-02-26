@@ -231,7 +231,7 @@ func (e *Editor) Init() {
 	e.hierarchyWindow = hierarchy.New(e, e.uiGroup)
 	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
 		e.hierarchyWindow, &e.contentOpener, e, e.uiGroup)
-	e.statusBar = status_bar.New(e.Host())
+	e.statusBar = status_bar.New(e.Host(), e.logWindow)
 	e.setupViewportGrid()
 	{
 		// TODO:  Testing tools
