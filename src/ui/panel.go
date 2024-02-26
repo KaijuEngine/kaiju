@@ -265,6 +265,7 @@ func panelOnDown(ui UI) {
 }
 
 func (p *Panel) update(deltaTime float64) {
+	p.uiBase.eventUpdates()
 	p.uiBase.Update(deltaTime)
 	if !p.frozen {
 		if p.isDown && p.dragging {
@@ -375,7 +376,8 @@ func (p *Panel) postLayoutUpdate() {
 	offsetStart := matrix.Vec2{-p.scroll.X(), p.scroll.Y()}
 	rows := make([]rowBuilder, 0)
 	ps := p.layout.PixelSize()
-	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z()
+	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z() -
+		p.layout.border.X() - p.layout.border.Z()
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -389,14 +391,18 @@ func (p *Panel) postLayoutUpdate() {
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
 			if kLayout.Anchor().IsTop() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Top() + p.layout.padding.Top())
+				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Top() +
+					p.layout.padding.Top() + p.layout.border.Top())
 			} else if kLayout.Anchor().IsBottom() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Bottom() + p.layout.padding.Bottom())
+				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Bottom() +
+					p.layout.padding.Bottom() + p.layout.border.Bottom())
 			}
 			if kLayout.Anchor().IsLeft() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Left() + p.layout.padding.Left())
+				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Left() +
+					p.layout.padding.Left() + p.layout.border.Left())
 			} else if kLayout.Anchor().IsRight() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Right() + p.layout.padding.Right())
+				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Right() +
+					p.layout.padding.Right() + p.layout.border.Right())
 			}
 		case PositioningRelative:
 			fallthrough
@@ -410,9 +416,9 @@ func (p *Panel) postLayoutUpdate() {
 		}
 	}
 	nextPos := offsetStart
-	nextPos[matrix.Vy] += p.layout.padding.Y()
+	nextPos[matrix.Vy] += p.layout.padding.Y() + p.layout.border.Y()
 	for i := range rows {
-		rows[i].setElements(p.layout.padding.X(), nextPos[matrix.Vy])
+		rows[i].setElements(p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
 		nextPos[matrix.Vy] += rows[i].Height()
 	}
 	if p.FittingContent() {
