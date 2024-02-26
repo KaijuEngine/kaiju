@@ -54,11 +54,11 @@ func NewTrue(length int) Bitmap {
 }
 
 func LengthFor(byteCount int) int {
-	return (byteCount / bitsInByte) + 1
+	return max((byteCount / bitsInByte), 1)
 }
 
 func (b Bitmap) Check(index int) bool {
-	return b[index/bitsInByte]&0x01<<(index%bitsInByte) != 0
+	return b[index/bitsInByte]&(0x01<<(index%bitsInByte)) != 0
 }
 
 func (b Bitmap) Set(index int) {
