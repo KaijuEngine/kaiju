@@ -276,7 +276,11 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
-			ed.stageManager.Save()
+			if err := ed.stageManager.Save(); err != nil {
+				slog.Error("Save stage failed", slog.String("error", err.Error()))
+			} else {
+				ed.statusBar.SetMessage("Stage saved")
+			}
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
 			ed.statusBar.SetMessage("Parented entities")
