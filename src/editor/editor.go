@@ -285,6 +285,8 @@ func (ed *Editor) update(delta float64) {
 			ed.selection.Parent(&ed.history)
 			ed.statusBar.SetMessage("Parented entities")
 			ed.hierarchy.Reload()
+		} else if kb.KeyUp(hid.KeyboardKeyF5) {
+			ed.runProject(false)
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyF1) {
 		klib.OpenWebsite("https://kaijuengine.org/")
