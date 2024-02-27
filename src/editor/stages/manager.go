@@ -39,7 +39,6 @@ package stages
 
 import (
 	"bytes"
-	"io"
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/alert"
@@ -48,6 +47,7 @@ import (
 	"kaiju/engine"
 	"kaiju/filesystem"
 	"kaiju/klib"
+	"kaiju/systems/stages"
 	"os"
 	"path/filepath"
 )
@@ -85,28 +85,6 @@ func (m *Manager) New() {
 	m.host.ClearEntities()
 }
 
-func serializeEntity(stream io.Writer, entity *engine.Entity) error {
-	err := entity.EditorSerialize(stream)
-	klib.BinaryWrite(stream, int32(len(entity.Children)))
-	for i := 0; i < len(entity.Children) && err == nil; i++ {
-		err = serializeEntity(stream, entity.Children[i])
-	}
-	return err
-}
-
-func deserializeEntity(stream io.Reader, to *engine.Entity, host *engine.Host) error {
-	err := to.EditorDeserialize(stream, host)
-	host.AddEntity(to)
-	childCount := int32(0)
-	klib.BinaryRead(stream, &childCount)
-	for i := int32(0); i < childCount && err == nil; i++ {
-		c := engine.NewEntity()
-		c.SetParent(to)
-		err = deserializeEntity(stream, c, host)
-	}
-	return err
-}
-
 func (m *Manager) Save() error {
 	if m.stage == "" {
 		name := <-alert.NewInput("Stage Name", "Name of stage...",
@@ -127,7 +105,7 @@ func (m *Manager) Save() error {
 	var err error = nil
 	klib.BinaryWrite(stream, int32(len(roots)))
 	for i := 0; i < len(roots) && err == nil; i++ {
-		err = serializeEntity(stream, roots[i])
+		err = stages.SerializeEntity(stream, roots[i])
 	}
 	if err != nil {
 		return err
@@ -147,23 +125,5 @@ func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) erro
 	m.history.Clear()
 	m.host.ClearEntities()
 	m.stage = adi.Path
-	data, err := filesystem.ReadFile(m.stage)
-	if err != nil {
-		return err
-	}
-	stream := bytes.NewBuffer(data)
-	eCount := int32(0)
-	klib.BinaryRead(stream, &eCount)
-	entities := make([]*engine.Entity, 0, eCount)
-	for i := int32(0); i < eCount && err == nil; i++ {
-		e := engine.NewEntity()
-		err = deserializeEntity(stream, e, host)
-		entities = append(entities, e)
-	}
-	if err != nil {
-		for i := 0; i < len(entities); i++ {
-			entities[i].Destroy()
-		}
-	}
-	return err
+	return stages.Load(adi, host)
 }

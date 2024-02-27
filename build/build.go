@@ -40,7 +40,7 @@ func main() {
 		"build",
 		"-tags", strings.Join(tags, ","),
 		"-o", "./bin/kaiju" + outExtension,
-		"-ldflags=-s -w",
+		`-ldflags="-s -w"`,
 		"./src/main.go",
 	}
 	cmd := exec.Command("go", args...)

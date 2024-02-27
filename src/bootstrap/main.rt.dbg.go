@@ -1,5 +1,7 @@
+//go:build debug && !editor
+
 /******************************************************************************/
-/* project_cache_config.go                                                    */
+/* main.rt.dbg.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,29 +37,51 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package project_cache
+package bootstrap
 
 import (
-	"kaiju/editor/cache"
+	"flag"
+	"kaiju/assets/asset_info"
+	"kaiju/engine"
+	"kaiju/profiler"
+	"kaiju/systems/stages"
+	"log/slog"
 	"os"
-	"path/filepath"
+	"strings"
 )
 
-const (
-	editorFile = "editor.json"
-	meshCache  = "meshes"
-)
+type cla struct {
+	stage string
+}
 
-var createdCachePaths = make(map[string]bool)
-
-func cachePath(category string) string {
-	// TODO:  If the developer manually deletes the .cache folder
-	// or any of the sub-folders, then we'd have a problem due to
-	// the createdCachePaths check here
-	path := filepath.Join(cache.ProjectCacheFolder, category)
-	if _, ok := createdCachePaths[path]; !ok {
-		os.MkdirAll(path, os.ModePerm)
-		createdCachePaths[path] = true
+func logOps() *slog.HandlerOptions {
+	return &slog.HandlerOptions{
+		Level: slog.LevelDebug,
 	}
-	return path
+}
+
+func setupDebug(host *engine.Host) error {
+	cla := buildCLA()
+	if cla.stage != "" {
+		path := strings.ReplaceAll(cla.stage, "\\", "/")
+		if !strings.HasPrefix(path, "content/") {
+			path = "content/stages/" + cla.stage + ".stg"
+		}
+		adi, err := asset_info.Read(path)
+		if err != nil {
+			return err
+		}
+		return stages.Load(adi, host)
+	}
+	profiler.SetupConsole(host)
+	return nil
+}
+
+func buildCLA() cla {
+	fs := flag.NewFlagSet("Kaiju Debug Args", flag.ContinueOnError)
+	stage := fs.String("stage", "", "The stage to immediately load into")
+	fs.Parse(os.Args[1:])
+	return cla{
+		stage: *stage,
+	}
 }

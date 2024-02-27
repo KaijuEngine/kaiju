@@ -126,7 +126,6 @@ const (
 	FontSemiBold                     = FontFace("fonts/OpenSans-SemiBold")
 	FontSemiBoldItalic               = FontFace("fonts/OpenSans-SemiBoldItalic")
 
-	fontDefaultFace   = FontRegular
 	DefaultFontEMSize = 14.0
 )
 

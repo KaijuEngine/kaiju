@@ -1,5 +1,7 @@
+//go:build !editor
+
 /******************************************************************************/
-/* camera.go                                                                  */
+/* main.runtime.go                                                           */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,37 +37,25 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package cameras
+package bootstrap
 
 import (
-	"kaiju/collision"
+	"kaiju/engine"
+	"kaiju/host_container"
 	"kaiju/matrix"
+	"kaiju/source"
+	"kaiju/systems/logging"
 )
 
-type Camera interface {
-	SetPosition(position matrix.Vec3)
-	SetFOV(fov float32)
-	SetNearPlane(near float32)
-	SetFarPlane(far float32)
-	SetWidth(width float32)
-	SetHeight(height float32)
-	ViewportChanged(width, height float32)
-	SetProperties(fov, nearPlane, farPlane, width, height float32)
-	Forward() matrix.Vec3
-	Right() matrix.Vec3
-	Up() matrix.Vec3
-	SetLookAt(position matrix.Vec3)
-	SetLookAtWithUp(point, up matrix.Vec3)
-	SetPositionAndLookAt(position, lookAt matrix.Vec3)
-	RayCast(screenPos matrix.Vec2) collision.Ray
-	TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
-	ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool)
-	Position() matrix.Vec3
-	Width() float32
-	Height() float32
-	View() matrix.Mat4
-	Projection() matrix.Mat4
-	LookAt() matrix.Vec3
-	NearPlane() float32
-	FarPlane() float32
+func Main() {
+	logStream := logging.Initialize(nil)
+	container := host_container.New("Kaiju", logStream)
+	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	<-container.PrepLock
+	container.RunFunction(func() {
+		container.Host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
+		setupDebug(container.Host)
+		source.Main(container.Host)
+	})
+	<-container.Host.Done()
 }

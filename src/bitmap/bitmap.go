@@ -41,10 +41,15 @@ const bitsInByte = 8
 
 type Bitmap []byte
 
+// New creates a new bitmap of the specified length. A bitmap is a slice of
+// bytes where each bit represents a boolean value. The length is the number
+// of bits that the bitmap will represent. The length is rounded up to the
+// nearest byte.
 func New(length int) Bitmap {
 	return make([]byte, LengthFor(length))
 }
 
+// NewTrue creates a new bitmap of the specified length with all bits true
 func NewTrue(length int) Bitmap {
 	b := make([]byte, LengthFor(length))
 	for i := 0; i < len(b); i++ {
@@ -53,18 +58,23 @@ func NewTrue(length int) Bitmap {
 	return b
 }
 
+// LengthFor returns the number of bytes needed to represent the specified
+// number of bits.
 func LengthFor(byteCount int) int {
 	return (byteCount / bitsInByte) + 1
 }
 
+// Check returns the value of the bit at the specified index.
 func (b Bitmap) Check(index int) bool {
 	return b[index/bitsInByte]&(0x01<<(index%bitsInByte)) != 0
 }
 
+// Set sets the bit at the specified index to true.
 func (b Bitmap) Set(index int) {
 	b[index/bitsInByte] |= 0x01 << (index % bitsInByte)
 }
 
+// Assign sets the bit at the specified index to the specified value.
 func (b Bitmap) Assign(index int, value bool) {
 	if value {
 		b.Set(index)
@@ -73,14 +83,17 @@ func (b Bitmap) Assign(index int, value bool) {
 	}
 }
 
+// Reset sets the bit at the specified index to false.
 func (b Bitmap) Reset(index int) {
 	b[index/bitsInByte] &= ^(0x01 << (index % bitsInByte))
 }
 
+// Toggle flips the value of the bit at the specified index.
 func (b Bitmap) Toggle(index int) {
 	b[index/bitsInByte] ^= 0x01 << (index % bitsInByte)
 }
 
+// Count returns the number of bits that are true.
 func (b Bitmap) Count() int {
 	count := 0
 	length := len(b) * bitsInByte
@@ -92,10 +105,12 @@ func (b Bitmap) Count() int {
 	return count
 }
 
+// CountInverse returns the number of bits that are false.
 func (b Bitmap) CountInverse() int {
 	return len(b)*bitsInByte - b.Count()
 }
 
+// Clear sets all bits to false.
 func (b Bitmap) Clear() {
 	clear(b)
 }

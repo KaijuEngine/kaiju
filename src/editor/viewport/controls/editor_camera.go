@@ -59,13 +59,13 @@ type EditorCamera struct {
 }
 
 func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
-	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.Center()); ok {
+	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.LookAt()); ok {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 			e.lastHit = hitPoint
 		}
 		delta := hitPoint.Subtract(e.lastHit)
-		tc.SetLookAt(tc.Center().Add(delta))
-		e.lastHit, _ = tc.ForwardPlaneHit(mp, tc.Center())
+		tc.SetLookAt(tc.LookAt().Add(delta))
+		e.lastHit, _ = tc.ForwardPlaneHit(mp, tc.LookAt())
 	}
 }
 

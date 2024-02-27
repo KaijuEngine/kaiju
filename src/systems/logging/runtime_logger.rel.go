@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* projects.go                                                                */
+/* runtime_logger.rel.go                                                      */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,8 +35,12 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package cache
+//go:build !editor && !debug
 
-const (
-	ProjectCacheFolder = ".cache"
-)
+package logging
+
+import "log/slog"
+
+func minLogLevel() slog.Level {
+	return slog.LevelWarn
+}

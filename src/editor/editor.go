@@ -73,6 +73,7 @@ import (
 	"kaiju/ui"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -100,6 +101,7 @@ type Editor struct {
 	transformTool  transform_tools.TransformTool
 	windowListing  editor_window.Listing
 	uiGroup        *ui.Group
+	runningProject *exec.Cmd
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -276,11 +278,21 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
 		} else if kb.KeyUp(hid.KeyboardKeyS) {
-			ed.stageManager.Save()
+			if err := ed.stageManager.Save(); err != nil {
+				slog.Error("Save stage failed", slog.String("error", err.Error()))
+			} else {
+				ed.statusBar.SetMessage("Stage saved")
+			}
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
 			ed.statusBar.SetMessage("Parented entities")
 			ed.hierarchy.Reload()
+		} else if kb.KeyUp(hid.KeyboardKeyF5) {
+			ed.runProject(false)
+		}
+	} else if kb.HasShift() {
+		if kb.KeyUp(hid.KeyboardKeyF5) {
+			ed.killDebug()
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyF1) {
 		klib.OpenWebsite("https://kaijuengine.org/")

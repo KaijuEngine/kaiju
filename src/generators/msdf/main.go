@@ -94,15 +94,16 @@ type FontData struct {
 func processFile(ttfName string) {
 	println("Processing", ttfName)
 	name := filepath.Base(ttfName)
-	ttfFile := binDir + ttfName + ".ttf"
-	jsonFile := binDir + name + ".json"
-	binFile := binDir + name + ".bin"
-	pngFile := binDir + name + ".png"
+	ttfDir := filepath.Dir(ttfName)
+	ttfFile := filepath.Join(binDir, ttfName+".ttf")
+	jsonFile := filepath.Join(ttfDir, "out", name+".json")
+	binFile := filepath.Join(ttfDir, "out", name+".bin")
+	pngFile := filepath.Join(ttfDir, "out", name+".png")
 	cmd := exec.Command(binDir+"msdf-atlas-gen.exe",
 		"-font", ttfFile,
 		"-pxrange", "4",
 		"-size", "64",
-		"-charset", binDir+"charset.txt",
+		"-charset", filepath.Join(binDir, ttfDir, "charset.txt"),
 		"-fontname", ttfName,
 		"-type", "msdf",
 		"-format", "png",
@@ -151,6 +152,7 @@ func main() {
 	if s, err := os.Stat(dirName); err != nil {
 		panic(err)
 	} else if s.IsDir() {
+		os.Mkdir(filepath.Join(dirName, "out"), os.ModePerm)
 		klib.Must(filepath.Walk(dirName, func(path string, _ os.FileInfo, err error) error {
 			if err != nil {
 				return err

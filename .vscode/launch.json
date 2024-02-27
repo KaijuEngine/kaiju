@@ -11,7 +11,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags editor",
+			"buildFlags": "-tags=editor",
 			"env": {
 				"CGO_LDFLAGS": "-lgdi32 -lXInput"
 			}
@@ -32,7 +32,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags editor",
+			"buildFlags": "-tags=editor",
 			"env": {
 				"CGO_LDFLAGS": "-lX11"
 			}

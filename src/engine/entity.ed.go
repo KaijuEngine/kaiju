@@ -41,11 +41,6 @@ package engine
 
 import (
 	"encoding/gob"
-	"errors"
-	"io"
-	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/project_cache"
-	"kaiju/matrix"
 	"kaiju/rendering"
 	"log/slog"
 
@@ -57,20 +52,6 @@ const (
 	editorDrawingDefinition = "drawingDefinition"
 )
 
-func init() {
-	gob.Register(edDrawingDef{})
-	gob.Register([]edDrawingDef(nil))
-}
-
-type edDrawingDef struct {
-	CanvasId         string
-	ShaderDefinition string
-	MeshKey          string
-	Textures         []string
-	UseBlending      bool
-	ShaderData       rendering.DrawInstance
-}
-
 type entityEditorBindings struct {
 	data map[string]any
 }
@@ -79,16 +60,19 @@ func (e *entityEditorBindings) init() {
 	e.data = make(map[string]any)
 }
 
+// AddDrawing will add a drawing to the entity
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 	drawings := e.Drawings()
 	defs := e.Data(editorDrawingDefinition)
 	if drawings == nil {
 		drawings = []rendering.Drawing{}
 		e.Set(editorDrawingBinding, drawings)
-		defs = []edDrawingDef{}
+		defs = []drawingDef{}
 	}
 	drawings = append(drawings, drawing)
-	defs = append(defs.([]edDrawingDef), edDrawingDef{
+	defs = append(defs.([]drawingDef), drawingDef{
 		ShaderDefinition: drawing.Shader.Key,
 		Textures:         rendering.TextureKeys(drawing.Textures),
 		MeshKey:          drawing.Mesh.Key(),
@@ -100,6 +84,9 @@ func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 	e.Set(editorDrawingDefinition, defs)
 }
 
+// Drawings will return the drawings associated with this entity
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Drawings() []rendering.Drawing {
 	if d, ok := e.data[editorDrawingBinding]; ok {
 		return d.([]rendering.Drawing)
@@ -108,10 +95,17 @@ func (e *entityEditorBindings) Drawings() []rendering.Drawing {
 	}
 }
 
+// Set will set the data associated with the key
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Set(key string, value any) {
 	e.data[key] = value
 }
 
+// Data will return the data associated with the key, if it does not exist
+// it will return nil
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Data(key string) any {
 	if d, ok := e.data[key]; ok {
 		return d
@@ -124,6 +118,10 @@ func (e *entityEditorBindings) Remove(key string) {
 	delete(e.data, key)
 }
 
+// GenerateId will create a unique ID for this entity, if one already exists
+// it will log an error and return the existing ID
+//
+// `EDITOR ONLY`
 func (e *Entity) GenerateId() string {
 	if e.id == "" {
 		e.id = uuid.New().String()
@@ -133,108 +131,28 @@ func (e *Entity) GenerateId() string {
 	return e.id
 }
 
-func (e *Entity) EditorSerialize(stream io.Writer) error {
-	if e.IsDestroyed() {
-		return errors.New("destroyed entities cannot be serialized")
-	}
-	enc := gob.NewEncoder(stream)
-	var p, r, s = e.Transform.Position(), e.Transform.Rotation(), e.Transform.Scale()
-	cpyDrawings := e.EditorBindings.Drawings()
-	e.EditorBindings.Remove(editorDrawingBinding)
-	if err := enc.Encode(e.id); err != nil {
+func (e *entityEditorBindings) serialize(enc *gob.Encoder) error {
+	cpyDrawings := e.Drawings()
+	drawingDefs := e.Data(editorDrawingDefinition).([]drawingDef)
+	e.Remove(editorDrawingBinding)
+	e.Remove(editorDrawingDefinition)
+	if err := enc.Encode(drawingDefs); err != nil {
 		return err
-	} else if err := enc.Encode(p); err != nil {
-		return err
-	} else if err = enc.Encode(r); err != nil {
-		return err
-	} else if err = enc.Encode(s); err != nil {
-		return err
-	} else if err = enc.Encode(e.name); err != nil {
-		return err
-	} else if err = enc.Encode(e.isActive); err != nil {
-		return err
-	} else if err = enc.Encode(e.deactivatedFromParent); err != nil {
-		return err
-	} else if err = enc.Encode(e.orderedChildren); err != nil {
-		return err
-	} else if err = enc.Encode(e.EditorBindings.data); err != nil {
+	} else if err := enc.Encode(e.data); err != nil {
 		return err
 	}
-	e.EditorBindings.Set(editorDrawingBinding, cpyDrawings)
-	// TODO:  Serialize the parent id and all the child ids
+	e.Set(editorDrawingBinding, cpyDrawings)
+	e.Set(editorDrawingDefinition, drawingDefs)
 	return nil
 }
 
-func (e *Entity) EditorDeserialize(stream io.Reader, host *Host) error {
-	dec := gob.NewDecoder(stream)
-	var p, r, s matrix.Vec3
-	if err := dec.Decode(&e.id); err != nil {
-		return err
-	} else if err := dec.Decode(&p); err != nil {
-		return err
-	} else if err = dec.Decode(&r); err != nil {
-		return err
-	} else if err = dec.Decode(&s); err != nil {
-		return err
-	} else if err = dec.Decode(&e.name); err != nil {
-		return err
-	} else if err = dec.Decode(&e.isActive); err != nil {
-		return err
-	} else if err = dec.Decode(&e.deactivatedFromParent); err != nil {
-		return err
-	} else if err = dec.Decode(&e.orderedChildren); err != nil {
-		return err
-	} else if err = dec.Decode(&e.EditorBindings.data); err != nil {
+func (e *entityEditorBindings) deserialize(entity *Entity,
+	dec *gob.Decoder, host *Host, drawings []rendering.Drawing) error {
+	if err := dec.Decode(&e.data); err != nil {
 		return err
 	}
-	e.Transform.SetPosition(p)
-	e.Transform.SetRotation(r)
-	e.Transform.SetScale(s)
-	if err := e.EditorBindings.setupDrawings(e, host); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (b *entityEditorBindings) setupDrawings(e *Entity, host *Host) error {
-	defs := e.EditorBindings.Data(editorDrawingDefinition)
-	if defs != nil {
-		for _, d := range defs.([]edDrawingDef) {
-			s := host.shaderCache.ShaderFromDefinition(d.ShaderDefinition)
-			m, ok := host.MeshCache().FindMesh(d.MeshKey)
-			if !ok {
-				adi, err := asset_info.Lookup(d.MeshKey)
-				if err != nil {
-					return err
-				}
-				md, err := project_cache.LoadCachedMesh(adi)
-				if err != nil {
-					return err
-				}
-				m = host.MeshCache().Mesh(adi.ID, md.Verts, md.Indexes)
-			}
-			textures := make([]*rendering.Texture, len(d.Textures))
-			for i, t := range d.Textures {
-				tex, err := host.TextureCache().Texture(
-					t, rendering.TextureFilterLinear)
-				if err != nil {
-					return err
-				}
-				textures[i] = tex
-			}
-			drawing := rendering.Drawing{
-				Renderer:    host.Window.Renderer,
-				Shader:      s,
-				Mesh:        m,
-				Textures:    textures,
-				ShaderData:  d.ShaderData,
-				Transform:   &e.Transform,
-				CanvasId:    d.CanvasId,
-				UseBlending: d.UseBlending,
-			}
-			host.Drawings.AddDrawing(&drawing)
-			b.AddDrawing(drawing)
-		}
+	for i := range drawings {
+		e.AddDrawing(drawings[i])
 	}
 	return nil
 }

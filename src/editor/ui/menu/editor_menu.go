@@ -183,6 +183,8 @@ func (m *Menu) newStage(*document.DocElement) {
 func (m *Menu) saveStage(*document.DocElement) {
 	if err := m.editor.StageManager().Save(); err != nil {
 		slog.Error("Save stage failed", slog.String("error", err.Error()))
+	} else {
+		m.editor.StatusBar().SetMessage("Stage saved")
 	}
 }
 

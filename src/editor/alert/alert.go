@@ -94,6 +94,8 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 	x, y := host.Window.Center()
 	go container.Run(300, 200, x-150, y-100)
 	<-container.PrepLock
+	container.Host.AssetDatabase().EditorContext.EditorPath =
+		host.AssetDatabase().EditorContext.EditorPath
 	container.RunFunction(func() {
 		a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
 			"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){

@@ -40,7 +40,7 @@ package content_opener
 import (
 	"kaiju/assets"
 	"kaiju/assets/asset_info"
-	"kaiju/editor/cache/project_cache"
+	"kaiju/cache/project_cache"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"

@@ -14,7 +14,7 @@ I have made modifications to the Go compiler to increase the performance of the 
 - Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
   - This should be placed along side the Kaiju Engine repository
 - Ensure you have the standard Go compiler installed (Go builds Go)
-- Run the make script file inside of the `src` directory
+- Run the `make` script file for your platform inside of the `src` directory
   - This will build the Kaiju Engine Go compiler into the `bin` directory
 
 ## Windows Development

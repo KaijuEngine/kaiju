@@ -50,7 +50,7 @@ type RuntimeLogHandler struct {
 }
 
 func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return level >= slog.LevelWarn
+	return level >= minLogLevel()
 }
 
 func newLogHandler(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
