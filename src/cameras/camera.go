@@ -55,7 +55,7 @@ type Camera interface {
 	Right() matrix.Vec3
 	Up() matrix.Vec3
 	SetLookAt(position matrix.Vec3)
-	LookAt(point, up matrix.Vec3)
+	SetLookAtWithUp(point, up matrix.Vec3)
 	SetPositionAndLookAt(position, lookAt matrix.Vec3)
 	RayCast(screenPos matrix.Vec2) collision.Ray
 	TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
@@ -65,7 +65,7 @@ type Camera interface {
 	Height() float32
 	View() matrix.Mat4
 	Projection() matrix.Mat4
-	Center() matrix.Vec3
+	LookAt() matrix.Vec3
 	NearPlane() float32
 	FarPlane() float32
 }

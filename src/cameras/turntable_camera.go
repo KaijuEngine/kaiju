@@ -49,10 +49,7 @@ type TurntableCamera struct {
 	zoom  float32
 }
 
-func (c *TurntableCamera) Yaw() float32   { return c.yaw }
-func (c *TurntableCamera) Pitch() float32 { return c.pitch }
-func (c *TurntableCamera) Zoom() float32  { return c.zoom }
-
+// ToTurntable converts a standard camera to a turntable camera.
 func ToTurntable(camera *StandardCamera) *TurntableCamera {
 	tc := &TurntableCamera{
 		StandardCamera: *camera,
@@ -61,6 +58,107 @@ func ToTurntable(camera *StandardCamera) *TurntableCamera {
 	}
 	tc.updateView = tc.internalUpdateView
 	return tc
+}
+
+// Yaw returns the yaw of the camera.
+func (c *TurntableCamera) Yaw() float32 { return c.yaw }
+
+// Pitch returns the pitch of the camera.
+func (c *TurntableCamera) Pitch() float32 { return c.pitch }
+
+// Zoom returns the zoom of the camera.
+func (c *TurntableCamera) Zoom() float32 { return c.zoom }
+
+// SetPosition sets the position of the camera.
+func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
+	c.position = position
+	c.zoom = position.Z()
+	c.updateViewAndPosition()
+}
+
+// SetLookAt sets the look at position of the camera.
+func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3) {
+	c.lookAt = lookAt
+	c.updateViewAndPosition()
+}
+
+// SetLookAtWithUp sets the look at position of the camera and the up vector to use.
+func (c *TurntableCamera) SetLookAtWithUp(point, up matrix.Vec3) {
+	c.lookAt = point
+	c.up = up
+	c.updateViewAndPosition()
+}
+
+// Pan pans the camera while keeping the same facing by the given delta.
+func (c *TurntableCamera) Pan(delta matrix.Vec3) {
+	d := delta.Scale(c.zoom)
+	u := c.Up()
+	u.ScaleAssign(-d.Y())
+	r := c.Right()
+	r.ScaleAssign(-d.X())
+	c.lookAt.AddAssign(u)
+	c.lookAt.AddAssign(r)
+	c.updateViewAndPosition()
+}
+
+// Dolly moves the camera closer/further from the look at point by the given delta.
+func (c *TurntableCamera) Dolly(delta float32) {
+	zoom := c.zoom
+	diff := c.position.Subtract(c.lookAt)
+	length := diff.Length()
+	zoom += delta * length
+	if c.position.Z() <= 0.0 {
+		zoom += 0.001
+	}
+	c.SetZoom(zoom)
+}
+
+// Orbit orbits the camera around the look at point by the given delta.
+func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
+	c.pitch += delta.X()
+	c.yaw += delta.Y()
+	c.updateViewAndPosition()
+}
+
+// Rotate rotates the camera around the look at point by the given delta.
+func (c *TurntableCamera) SetYaw(yaw float32) {
+	c.setYaw(yaw)
+	c.updateViewAndPosition()
+}
+
+// SetPitch sets the pitch of the camera.
+func (c *TurntableCamera) SetPitch(pitch float32) {
+	c.setPitch(pitch)
+	c.updateViewAndPosition()
+}
+
+// SetZoom sets the zoom of the camera.
+func (c *TurntableCamera) SetZoom(zoom float32) {
+	c.setZoom(zoom)
+	c.updateViewAndPosition()
+}
+
+// SetYawAndPitch sets the yaw and pitch of the camera. This helps skip
+// needless view matrix calculations by setting both before updating the view.
+func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
+	c.setYaw(yaw)
+	c.setPitch(pitch)
+	c.updateViewAndPosition()
+}
+
+// SetYawPitchZoom sets the yaw, pitch, and zoom of the camera. This helps skip
+// needless view matrix calculations by setting all three before updating the view.
+func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
+	c.setYaw(yaw)
+	c.setPitch(pitch)
+	c.setZoom(zoom)
+	c.updateViewAndPosition()
+}
+
+// RayCast will project a ray from the camera's position given a screen position
+// using the camera's view and projection matrices.
+func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+	return c.internalRayCast(screenPos, c.iView.Position())
 }
 
 func (c *TurntableCamera) internalUpdateView() {
@@ -137,45 +235,6 @@ func (c *TurntableCamera) updateViewAndPosition() {
 	c.position = c.iView.Position()
 }
 
-func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
-	c.position = position
-	c.zoom = position.Z()
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3) {
-	c.lookAt = lookAt
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) Pan(delta matrix.Vec3) {
-	d := delta.Scale(c.zoom)
-	u := c.Up()
-	u.ScaleAssign(-d.Y())
-	r := c.Right()
-	r.ScaleAssign(-d.X())
-	c.lookAt.AddAssign(u)
-	c.lookAt.AddAssign(r)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) Dolly(delta float32) {
-	zoom := c.zoom
-	diff := c.position.Subtract(c.lookAt)
-	length := diff.Length()
-	zoom += delta * length
-	if c.position.Z() <= 0.0 {
-		zoom += 0.001
-	}
-	c.SetZoom(zoom)
-}
-
-func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
-	c.pitch += delta.X()
-	c.yaw += delta.Y()
-	c.updateViewAndPosition()
-}
-
 func (c *TurntableCamera) setYaw(yaw float32) {
 	c.yaw = matrix.Deg2Rad(yaw)
 	direction := matrix.Vec3{
@@ -200,36 +259,4 @@ func (c *TurntableCamera) setPitch(pitch float32) {
 
 func (c *TurntableCamera) setZoom(zoom float32) {
 	c.zoom = zoom
-}
-
-func (c *TurntableCamera) SetYaw(yaw float32) {
-	c.setYaw(yaw)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) SetPitch(pitch float32) {
-	c.setPitch(pitch)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) SetZoom(zoom float32) {
-	c.setZoom(zoom)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
-	c.setYaw(yaw)
-	c.setPitch(pitch)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
-	c.setYaw(yaw)
-	c.setPitch(pitch)
-	c.setZoom(zoom)
-	c.updateViewAndPosition()
-}
-
-func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
-	return c.internalRayCast(screenPos, c.iView.Position())
 }
