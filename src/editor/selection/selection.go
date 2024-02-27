@@ -330,7 +330,7 @@ func (s *Selection) checkForBoxDrag(mouse *hid.Mouse) {
 func (s *Selection) Center() matrix.Vec3 {
 	centroid := matrix.Vec3Zero()
 	for _, e := range s.entities {
-		centroid.AddAssign(e.Transform.Position())
+		centroid.AddAssign(e.Transform.WorldPosition())
 	}
 	centroid.ScaleAssign(1 / matrix.Float(len(s.entities)))
 	return centroid
