@@ -51,21 +51,34 @@ type LogStream struct {
 	OnError TracedEvent
 }
 
-func (l *LogStream) Write(p []byte) (n int, err error) {
-	str := string(p)
+func (l *LogStream) writeLine(line string) {
+	if line == "" {
+		return
+	}
+	if !strings.HasPrefix(line, "time=") {
+		println(line)
+		return
+	}
 	levelOffset := 21
-	if strings.HasPrefix(str, "time=") {
+	if strings.HasPrefix(line, "time=") {
 		levelOffset = 41
 	}
-	level := str[levelOffset:]
+	level := line[levelOffset:]
 	if strings.HasPrefix(level, "INFO") {
-		l.OnInfo.Execute(str)
+		l.OnInfo.Execute(line)
 	} else if strings.HasPrefix(level, "WARN") {
-		l.OnWarn.Execute(str, klib.TraceStrings(str, 7))
+		l.OnWarn.Execute(line, klib.TraceStrings(line, 7))
 	} else if strings.HasPrefix(level, "ERROR") {
-		l.OnError.Execute(str, klib.TraceStrings(str, 7))
+		l.OnError.Execute(line, klib.TraceStrings(line, 7))
 	}
-	os.Stdout.WriteString(str)
+	os.Stdout.WriteString(line)
+}
+
+func (l *LogStream) Write(p []byte) (n int, err error) {
+	lines := strings.Split(string(p), "\n")
+	for i := range lines {
+		l.writeLine(lines[i])
+	}
 	return len(p), nil
 }
 

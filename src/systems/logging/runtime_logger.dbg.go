@@ -1,7 +1,5 @@
-//go:build !editor
-
 /******************************************************************************/
-/* runtime_logger.go                                                          */
+/* runtime_logger.dbg.go                                                      */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,24 +35,12 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
+//go:build !editor && debug
+
 package logging
 
-import (
-	"context"
-	"io"
-	"log/slog"
-)
+import "log/slog"
 
-type RuntimeLogHandler struct {
-	slog.Handler
-}
-
-func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return level >= minLogLevel()
-}
-
-func newLogHandler(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
-	return &RuntimeLogHandler{
-		Handler: slog.NewTextHandler(w, opts),
-	}
+func minLogLevel() slog.Level {
+	return slog.LevelDebug
 }
