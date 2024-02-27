@@ -60,6 +60,9 @@ func (e *entityEditorBindings) init() {
 	e.data = make(map[string]any)
 }
 
+// AddDrawing will add a drawing to the entity
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 	drawings := e.Drawings()
 	defs := e.Data(editorDrawingDefinition)
@@ -81,6 +84,9 @@ func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 	e.Set(editorDrawingDefinition, defs)
 }
 
+// Drawings will return the drawings associated with this entity
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Drawings() []rendering.Drawing {
 	if d, ok := e.data[editorDrawingBinding]; ok {
 		return d.([]rendering.Drawing)
@@ -89,10 +95,17 @@ func (e *entityEditorBindings) Drawings() []rendering.Drawing {
 	}
 }
 
+// Set will set the data associated with the key
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Set(key string, value any) {
 	e.data[key] = value
 }
 
+// Data will return the data associated with the key, if it does not exist
+// it will return nil
+//
+// `EDITOR ONLY`
 func (e *entityEditorBindings) Data(key string) any {
 	if d, ok := e.data[key]; ok {
 		return d
@@ -105,6 +118,10 @@ func (e *entityEditorBindings) Remove(key string) {
 	delete(e.data, key)
 }
 
+// GenerateId will create a unique ID for this entity, if one already exists
+// it will log an error and return the existing ID
+//
+// `EDITOR ONLY`
 func (e *Entity) GenerateId() string {
 	if e.id == "" {
 		e.id = uuid.New().String()

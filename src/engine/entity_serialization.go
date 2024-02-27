@@ -102,6 +102,10 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 	return drawings, nil
 }
 
+// Serialize will write the entity to the given stream and is reversed using
+// #Deserialize. This will not serialize the children of the entity, that is
+// the responsibility of the caller. All errors returned will be related to
+// decoding the binary stream
 func (e *Entity) Serialize(stream io.Writer) error {
 	if e.IsDestroyed() {
 		return errors.New("destroyed entities cannot be serialized")
@@ -128,6 +132,10 @@ func (e *Entity) Serialize(stream io.Writer) error {
 	return e.EditorBindings.serialize(enc)
 }
 
+// Deserialize will read the entity from the given stream and is reversed using
+// #Serialize. This will not deserialize the children of the entity, that is
+// the responsibility of the caller. All errors returned will be related to
+// decoding the binary stream
 func (e *Entity) Deserialize(stream io.Reader, host *Host) error {
 	dec := gob.NewDecoder(stream)
 	var p, r, s matrix.Vec3
