@@ -162,7 +162,9 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 }
 
 func (h *Hierarchy) Reload() {
+	isActive := false
 	if h.doc != nil {
+		isActive = h.doc.Elements[0].UI.Entity().IsActive()
 		h.doc.Destroy()
 	}
 	data := hierarchyData{
@@ -184,6 +186,9 @@ func (h *Hierarchy) Reload() {
 	} else {
 		h.input = elm.UI.(*ui.Input)
 		h.input.Data().OnSubmit.Add(h.submit)
+	}
+	if !isActive {
+		h.doc.Deactivate()
 	}
 }
 
