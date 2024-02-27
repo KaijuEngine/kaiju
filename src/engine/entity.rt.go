@@ -39,6 +39,21 @@
 
 package engine
 
+import (
+	"encoding/gob"
+	"kaiju/rendering"
+)
+
 type entityEditorBindings struct{}
 
-func (e *entityEditorBindings) init() {}
+func (e *entityEditorBindings) init()                            {}
+func (e *entityEditorBindings) serialize(enc *gob.Encoder) error { return nil }
+
+func (e *entityEditorBindings) deserialize(entity *Entity,
+	dec *gob.Decoder, host *Host, drawings []rendering.Drawing) error {
+	// TODO:  This is here because editor data exists (currently) in the saved
+	// stage file. When we go to full content compile, this should be expected
+	// to have been stripped.
+	var clip map[string]any
+	return dec.Decode(&clip)
+}

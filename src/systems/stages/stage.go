@@ -1,7 +1,5 @@
-//go:build editor
-
 /******************************************************************************/
-/* entity.ed.go                                                               */
+/* stage.go                                                                   */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,105 +35,57 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine
+package stages
 
 import (
-	"encoding/gob"
-	"kaiju/rendering"
-	"log/slog"
-
-	"github.com/KaijuEngine/uuid"
+	"bytes"
+	"io"
+	"kaiju/assets/asset_info"
+	"kaiju/engine"
+	"kaiju/filesystem"
+	"kaiju/klib"
 )
 
-const (
-	editorDrawingBinding    = "drawing"
-	editorDrawingDefinition = "drawingDefinition"
-)
-
-type entityEditorBindings struct {
-	data map[string]any
-}
-
-func (e *entityEditorBindings) init() {
-	e.data = make(map[string]any)
-}
-
-func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
-	drawings := e.Drawings()
-	defs := e.Data(editorDrawingDefinition)
-	if drawings == nil {
-		drawings = []rendering.Drawing{}
-		e.Set(editorDrawingBinding, drawings)
-		defs = []drawingDef{}
+func SerializeEntity(stream io.Writer, entity *engine.Entity) error {
+	err := entity.Serialize(stream)
+	klib.BinaryWrite(stream, int32(len(entity.Children)))
+	for i := 0; i < len(entity.Children) && err == nil; i++ {
+		err = SerializeEntity(stream, entity.Children[i])
 	}
-	drawings = append(drawings, drawing)
-	defs = append(defs.([]drawingDef), drawingDef{
-		ShaderDefinition: drawing.Shader.Key,
-		Textures:         rendering.TextureKeys(drawing.Textures),
-		MeshKey:          drawing.Mesh.Key(),
-		UseBlending:      drawing.UseBlending,
-		ShaderData:       drawing.ShaderData,
-		CanvasId:         drawing.CanvasId,
-	})
-	e.Set(editorDrawingBinding, drawings)
-	e.Set(editorDrawingDefinition, defs)
+	return err
 }
 
-func (e *entityEditorBindings) Drawings() []rendering.Drawing {
-	if d, ok := e.data[editorDrawingBinding]; ok {
-		return d.([]rendering.Drawing)
-	} else {
-		return nil
+func deserializeEntity(stream io.Reader, to *engine.Entity, host *engine.Host) error {
+	err := to.Deserialize(stream, host)
+	host.AddEntity(to)
+	childCount := int32(0)
+	klib.BinaryRead(stream, &childCount)
+	for i := int32(0); i < childCount && err == nil; i++ {
+		c := engine.NewEntity()
+		c.SetParent(to)
+		err = deserializeEntity(stream, c, host)
 	}
+	return err
 }
 
-func (e *entityEditorBindings) Set(key string, value any) {
-	e.data[key] = value
-}
-
-func (e *entityEditorBindings) Data(key string) any {
-	if d, ok := e.data[key]; ok {
-		return d
-	} else {
-		return nil
-	}
-}
-
-func (e *entityEditorBindings) Remove(key string) {
-	delete(e.data, key)
-}
-
-func (e *Entity) GenerateId() string {
-	if e.id == "" {
-		e.id = uuid.New().String()
-	} else {
-		slog.Error("Generating entity ID when one already exists")
-	}
-	return e.id
-}
-
-func (e *entityEditorBindings) serialize(enc *gob.Encoder) error {
-	cpyDrawings := e.Drawings()
-	drawingDefs := e.Data(editorDrawingDefinition).([]drawingDef)
-	e.Remove(editorDrawingBinding)
-	e.Remove(editorDrawingDefinition)
-	if err := enc.Encode(drawingDefs); err != nil {
-		return err
-	} else if err := enc.Encode(e.data); err != nil {
+func Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error {
+	data, err := filesystem.ReadFile(adi.Path)
+	if err != nil {
 		return err
 	}
-	e.Set(editorDrawingBinding, cpyDrawings)
-	e.Set(editorDrawingDefinition, drawingDefs)
-	return nil
-}
-
-func (e *entityEditorBindings) deserialize(entity *Entity,
-	dec *gob.Decoder, host *Host, drawings []rendering.Drawing) error {
-	if err := dec.Decode(&e.data); err != nil {
-		return err
+	stream := bytes.NewBuffer(data)
+	eCount := int32(0)
+	klib.BinaryRead(stream, &eCount)
+	entities := make([]*engine.Entity, 0, eCount)
+	for i := int32(0); i < eCount && err == nil; i++ {
+		e := engine.NewEntity()
+		err = deserializeEntity(stream, e, host)
+		entities = append(entities, e)
 	}
-	for i := range drawings {
-		e.AddDrawing(drawings[i])
+	if err != nil {
+		for i := 0; i < len(entities); i++ {
+			entities[i].Destroy()
+		}
 	}
-	return nil
+	return err
 }
