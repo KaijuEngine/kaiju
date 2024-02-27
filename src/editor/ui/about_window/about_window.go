@@ -42,16 +42,10 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"os/exec"
-	"runtime"
 )
 
 func openContributions(*document.DocElement) {
-	cmd := "open"
-	if runtime.GOOS == "windows" {
-		cmd = "explorer"
-	}
-	exec.Command(cmd, "https://github.com/KaijuEngine/kaiju/graphs/contributors").Run()
+	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/graphs/contributors")
 }
 
 func New() {

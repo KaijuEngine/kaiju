@@ -52,8 +52,6 @@ import (
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"log/slog"
-	"os/exec"
-	"runtime"
 )
 
 type Menu struct {
@@ -163,11 +161,7 @@ func openAbout(*document.DocElement) {
 }
 
 func openRepository(*document.DocElement) {
-	cmd := "open"
-	if runtime.GOOS == "windows" {
-		cmd = "explorer"
-	}
-	exec.Command(cmd, "https://github.com/KaijuEngine/kaiju").Run()
+	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju")
 }
 
 func (m *Menu) openLogWindow(*document.DocElement) {
