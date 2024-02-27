@@ -115,6 +115,8 @@ func zipTemplate(outPath string, srcEntries, contentEntries []fs.DirEntry, ignor
 		}
 		if info.IsDir() || slices.Contains(ignore, path) {
 			return nil
+		} else if strings.Contains(path, ".ed.") {
+			return nil
 		} else {
 			dir := filepath.Dir(path)
 			for i := range ignore {
