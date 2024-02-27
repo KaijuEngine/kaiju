@@ -61,13 +61,14 @@ type Manager struct {
 
 func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
 	history *memento.History) Manager {
-
 	return Manager{
 		host:     host,
 		registry: registry,
 		history:  history,
 	}
 }
+
+func (m *Manager) StageName() string { return m.stage }
 
 func (m *Manager) confirmCheck() bool {
 	return <-alert.New("Save Changes",

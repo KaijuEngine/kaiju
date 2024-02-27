@@ -39,17 +39,17 @@
 
 package engine
 
-type EditorEntities struct{}
+type editorEntities struct{}
 
-func newEditorEntities() EditorEntities {
-	return EditorEntities{}
+func newEditorEntities() editorEntities {
+	return editorEntities{}
 }
 
-func (e EditorEntities) tickCleanup()          {}
-func (e EditorEntities) resetDirty()           {}
-func (e EditorEntities) remove(entity *Entity) {}
+func (e editorEntities) tickCleanup()          {}
+func (e editorEntities) resetDirty()           {}
+func (e editorEntities) remove(entity *Entity) {}
 
-func (e EditorEntities) contains(entity *Entity) bool { return false }
+func (e editorEntities) contains(entity *Entity) bool { return false }
 
 func (host *Host) addEntity(entity *Entity) {
 	host.entities = append(host.entities, entity)

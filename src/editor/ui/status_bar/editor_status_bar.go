@@ -67,5 +67,5 @@ func (s *StatusBar) SetMessage(status string) {
 		}
 		status = "(" + strconv.Itoa(count) + ") " + status
 	}
-	s.msg.SetText(status)
+	s.log.Host().RunAfterFrames(1, func() { s.msg.SetText(status) })
 }
