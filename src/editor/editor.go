@@ -83,23 +83,23 @@ const (
 )
 
 type Editor struct {
-	container       *host_container.Container
-	menu            *menu.Menu
-	statusBar       *status_bar.StatusBar
-	editorDir       string
-	project         string
-	history         memento.History
-	cam             controls.EditorCamera
-	assetImporters  asset_importer.ImportRegistry
-	stageManager    stages.Manager
-	contentOpener   content_opener.Opener
-	logWindow       *log_window.LogWindow
-	hierarchyWindow *hierarchy.Hierarchy
-	contentWindow   *content_window.ContentWindow
-	selection       selection.Selection
-	transformTool   transform_tools.TransformTool
-	windowListing   editor_window.Listing
-	uiGroup         *ui.Group
+	container      *host_container.Container
+	menu           *menu.Menu
+	statusBar      *status_bar.StatusBar
+	editorDir      string
+	project        string
+	history        memento.History
+	cam            controls.EditorCamera
+	assetImporters asset_importer.ImportRegistry
+	stageManager   stages.Manager
+	contentOpener  content_opener.Opener
+	logWindow      *log_window.LogWindow
+	hierarchy      *hierarchy.Hierarchy
+	contentWindow  *content_window.ContentWindow
+	selection      selection.Selection
+	transformTool  transform_tools.TransformTool
+	windowListing  editor_window.Listing
+	uiGroup        *ui.Group
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -114,6 +114,7 @@ func (e *Editor) Selection() *selection.Selection       { return &e.selection }
 func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
 func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
+func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
 
 func addConsole(host *engine.Host, group *ui.Group) {
 	html_preview.SetupConsole(host)
@@ -228,9 +229,9 @@ func (e *Editor) Init() {
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host(), e.Host().LogStream, e.uiGroup)
 	e.contentWindow = content_window.New(&e.contentOpener, e, e.uiGroup)
-	e.hierarchyWindow = hierarchy.New(e, e.uiGroup)
+	e.hierarchy = hierarchy.New(e.Host(), &e.selection, e.uiGroup)
 	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
-		e.hierarchyWindow, &e.contentOpener, e, e.uiGroup)
+		e.hierarchy, &e.contentOpener, e, e.uiGroup)
 	e.statusBar = status_bar.New(e.Host(), e.logWindow)
 	e.setupViewportGrid()
 	{
@@ -278,11 +279,12 @@ func (ed *Editor) update(delta float64) {
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
 			ed.statusBar.SetMessage("Parented entities")
+			ed.hierarchy.Reload()
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
 		ed.contentWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyH) {
-		ed.hierarchyWindow.Toggle()
+		ed.hierarchy.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyL) {
 		ed.logWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
@@ -303,8 +305,7 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
 		ed.transformTool.Enable(transform_tools.ToolStateScale)
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
-		deleter.DeleteSelected(&ed.history, &ed.selection,
-			slices.Clone(ed.selection.Entities()))
+		deleter.DeleteSelected(ed, slices.Clone(ed.selection.Entities()))
 	}
 }
 

@@ -121,6 +121,7 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 		host:   host,
 		entity: e,
 	})
+	ed.Hierarchy().Reload()
 	host.Window.Focus()
 	return nil
 }

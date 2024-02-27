@@ -38,13 +38,13 @@
 package deleter
 
 import (
-	"kaiju/editor/selection"
+	"kaiju/editor/interfaces"
 	"kaiju/engine"
 )
 
 type deleteHistory struct {
-	entities  []*engine.Entity
-	selection *selection.Selection
+	entities []*engine.Entity
+	editor   interfaces.Editor
 }
 
 func (h *deleteHistory) Redo() {
@@ -55,9 +55,8 @@ func (h *deleteHistory) Redo() {
 		}
 		e.Deactivate()
 	}
-	if h.selection != nil {
-		h.selection.UntrackedClear()
-	}
+	h.editor.Selection().UntrackedClear()
+	h.editor.Hierarchy().Reload()
 }
 
 func (h *deleteHistory) Undo() {
@@ -68,9 +67,8 @@ func (h *deleteHistory) Undo() {
 		}
 		e.Activate()
 	}
-	if h.selection != nil {
-		h.selection.UntrackedAdd(h.entities...)
-	}
+	h.editor.Selection().UntrackedAdd(h.entities...)
+	h.editor.Hierarchy().Reload()
 }
 
 func (h *deleteHistory) Delete() {}

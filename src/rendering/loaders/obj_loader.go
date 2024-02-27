@@ -229,6 +229,9 @@ func ObjToRaw(objData string) []objBuilder {
 				builders = append(builders, builder)
 			}
 			builder = objNewObject(line)
+			if len(line) > 2 {
+				builder.name = line[2:]
+			}
 			builderSet = true
 		case objLineTypeVertex:
 			builder.readVertex(line)
