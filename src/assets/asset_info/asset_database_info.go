@@ -40,8 +40,6 @@ package asset_info
 import (
 	"encoding/json"
 	"errors"
-	"kaiju/editor/cache"
-	"kaiju/editor/editor_config"
 	"kaiju/filesystem"
 	"os"
 	"path/filepath"
@@ -49,7 +47,8 @@ import (
 )
 
 const (
-	InfoExtension = editor_config.FileExtensionAssetDbInfo
+	InfoExtension = ".adi"
+	ProjectCache  = ".cache"
 )
 
 var (
@@ -59,7 +58,7 @@ var (
 type AssetDatabaseInfo struct {
 	ID       string
 	Path     string
-	Type     editor_config.AssetType
+	Type     string
 	ParentID string
 	Children []AssetDatabaseInfo
 	Metadata map[string]string
@@ -70,7 +69,7 @@ func InitForCurrentProject() error {
 }
 
 func indexPath() string {
-	return filepath.Join(cache.ProjectCacheFolder, "index")
+	return filepath.Join(ProjectCache, "index")
 }
 
 func toIndexPath(id string) string {
@@ -171,7 +170,7 @@ func Lookup(id string) (AssetDatabaseInfo, error) {
 }
 
 func writeIndexes(info AssetDatabaseInfo) error {
-	idx := filepath.Join(cache.ProjectCacheFolder, "index", info.ID)
+	idx := filepath.Join(ProjectCache, "index", info.ID)
 	if err := filesystem.WriteTextFile(idx, info.Path); err != nil {
 		return err
 	}
