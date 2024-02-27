@@ -284,6 +284,8 @@ func (ed *Editor) update(delta float64) {
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyF1) {
 		klib.OpenWebsite("https://kaijuengine.org/")
+	} else if kb.KeyUp(hid.KeyboardKeyF5) {
+		ed.runProject(true)
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
 		ed.contentWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyH) {
