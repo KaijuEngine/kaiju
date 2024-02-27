@@ -117,8 +117,8 @@ func (ed *Editor) launchProject(isDebug bool) {
 	}
 	cmd := exec.Command("bin/kaiju"+klib.ExeExtension(), args...)
 	// TODO:  Create in/out pipes for bi-directional communication
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = ed.Host().LogStream
+	cmd.Stderr = ed.Host().LogStream
 	if err := cmd.Start(); err != nil {
 		slog.Error("failed to start the project")
 	}
