@@ -38,24 +38,21 @@
 package deleter
 
 import (
-	"kaiju/editor/memento"
-	"kaiju/editor/selection"
+	"kaiju/editor/interfaces"
 	"kaiju/engine"
 )
 
-func doDelete(h *deleteHistory, history *memento.History) {
+func doDelete(h *deleteHistory, editor interfaces.Editor) {
 	h.Redo()
-	history.Add(h)
+	editor.History().Add(h)
 }
 
-func Delete(history *memento.History, entities []*engine.Entity) {
-	h := &deleteHistory{entities, nil}
-	doDelete(h, history)
+func Delete(editor interfaces.Editor, entities []*engine.Entity) {
+	h := &deleteHistory{entities, editor}
+	doDelete(h, editor)
 }
 
-func DeleteSelected(history *memento.History,
-	selection *selection.Selection, entities []*engine.Entity) {
-
-	h := &deleteHistory{entities, selection}
-	doDelete(h, history)
+func DeleteSelected(editor interfaces.Editor, entities []*engine.Entity) {
+	h := &deleteHistory{entities, editor}
+	doDelete(h, editor)
 }

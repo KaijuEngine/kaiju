@@ -38,7 +38,7 @@
 package hierarchy
 
 import (
-	"kaiju/editor/interfaces"
+	"kaiju/editor/selection"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -51,7 +51,8 @@ import (
 )
 
 type Hierarchy struct {
-	editor         interfaces.Editor
+	host           *engine.Host
+	selection      *selection.Selection
 	doc            *document.Document
 	input          *ui.Input
 	onChangeId     events.Id
@@ -80,12 +81,13 @@ func (e entityEntry) Depth() []struct{} {
 	return depth
 }
 
-func New(editor interfaces.Editor, uiGroup *ui.Group) *Hierarchy {
+func New(host *engine.Host, selection *selection.Selection, uiGroup *ui.Group) *Hierarchy {
 	h := &Hierarchy{
-		editor:  editor,
-		uiGroup: uiGroup,
+		host:      host,
+		selection: selection,
+		uiGroup:   uiGroup,
 	}
-	h.editor.Host().OnClose.Add(func() {
+	h.host.OnClose.Add(func() {
 		if h.doc != nil {
 			h.doc.Destroy()
 		}
@@ -120,7 +122,7 @@ func (h *Hierarchy) Hide() {
 }
 
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
-	allEntities := h.editor.Host().Entities()
+	allEntities := h.host.Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
 	roots := make([]*engine.Entity, 0, len(allEntities))
 	for _, entity := range allEntities {
@@ -167,7 +169,7 @@ func (h *Hierarchy) Reload() {
 		Entries: h.filter(h.orderEntitiesVisually()),
 		Query:   h.query,
 	}
-	host := h.editor.Host()
+	host := h.host
 	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		host, "editor/ui/hierarchy_window.html", data,
@@ -176,7 +178,7 @@ func (h *Hierarchy) Reload() {
 		}))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
-	h.selectChangeId = h.editor.Selection().Changed.Add(h.onSelectionChanged)
+	h.selectChangeId = h.selection.Changed.Add(h.onSelectionChanged)
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
 	} else {
@@ -202,7 +204,7 @@ func (h *Hierarchy) onSelectionChanged() {
 	for i := range elm.HTML.Children {
 		c := &elm.HTML.Children[i]
 		id := c.Attribute("id")
-		for _, se := range h.editor.Selection().Entities() {
+		for _, se := range h.selection.Entities() {
 			if se.Id() == id {
 				c.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
 				break
@@ -213,16 +215,16 @@ func (h *Hierarchy) onSelectionChanged() {
 
 func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 	id := elm.HTML.Attribute("id")
-	if e, ok := h.editor.Host().FindEntity(id); !ok {
+	if e, ok := h.host.FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", id))
 	} else {
-		kb := &h.editor.Host().Window.Keyboard
+		kb := &h.host.Window.Keyboard
 		if kb.HasCtrl() {
-			h.editor.Selection().Toggle(e)
+			h.selection.Toggle(e)
 		} else if kb.HasShift() {
-			h.editor.Selection().Add(e)
+			h.selection.Add(e)
 		} else {
-			h.editor.Selection().Set(e)
+			h.selection.Set(e)
 		}
 		h.onSelectionChanged()
 	}
