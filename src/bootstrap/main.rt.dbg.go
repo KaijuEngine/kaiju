@@ -43,6 +43,7 @@ import (
 	"flag"
 	"kaiju/assets/asset_info"
 	"kaiju/engine"
+	"kaiju/profiler"
 	"kaiju/systems/stages"
 	"log/slog"
 	"os"
@@ -72,6 +73,7 @@ func setupDebug(host *engine.Host) error {
 		}
 		return stages.Load(adi, host)
 	}
+	profiler.SetupConsole(host)
 	return nil
 }
 
