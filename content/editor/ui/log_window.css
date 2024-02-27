@@ -1,6 +1,11 @@
 .topBtn {
 	margin-right: 5px;
 }
+.logView {
+	width: 100%;
+	height: calc(100% - 50px);
+	overflow-y: scroll;
+}
 .logGroup {
 	background-color: #232424;
 }
@@ -11,7 +16,6 @@
 	width: 100%;
 	height: 40px;
 	padding: 5px;
-	overflow: hidden;
 }
 .logTime {
 	font-size: 12px;
@@ -21,11 +25,6 @@
 }
 .logTrace {
 	font-size: 12px;
-}
-.selectedView {
-	width: 100%;
-	height: calc(100% - 50px);
-	overflow-y: scroll;
 }
 #warn, #warningsBtn, .warn {
 	color: yellow;

@@ -14,7 +14,7 @@
 				<button id="errorsBtn" class="topBtn" onclick="showErrors">Error</button>
 				<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
 			</div>
-			<div id="all" class="logGroup">
+			<div id="all" class="logGroup logView">
 				{{range $i, $v := .All}}
 				<div class="logEntry {{.Category}}" data-entry="{{$i}}" onclick="selectEntry">
 					<div class="logTime">{{$v.Time}}</div>
@@ -22,7 +22,7 @@
 				</div>
 				{{end}}
 			</div>
-			<div id="info" class="logGroup">
+			<div id="info" class="logGroup logView">
 				{{range $i, $v := .Infos}}
 				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
 					<div class="logTime">{{$v.Time}}</div>
@@ -30,7 +30,7 @@
 				</div>
 				{{end}}
 			</div>
-			<div id="warn" class="logGroup">
+			<div id="warn" class="logGroup logView">
 				{{range $i, $v := .Warnings}}
 				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
 					<div class="logTime">{{$v.Time}}</div>
@@ -38,7 +38,7 @@
 				</div>
 				{{end}}
 			</div>
-			<div id="error" class="logGroup">
+			<div id="error" class="logGroup logView">
 				{{range $i, $v := .Errors}}
 				<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
 					<div class="logTime">{{$v.Time}}</div>
@@ -46,7 +46,7 @@
 				</div>
 				{{end}}
 			</div>
-			<div id="selected" class="selectedView">
+			<div id="selected" class="logView">
 				Nothing selected, select a log from "All", "Info", "Warning", or "Error"
 			</div>
 		</div>
