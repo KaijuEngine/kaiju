@@ -39,10 +39,10 @@ package assets
 
 import (
 	"kaiju/filesystem"
-	"path/filepath"
 )
 
 type Database struct {
+	EditorContext EditorContext
 }
 
 func NewDatabase() Database {
@@ -50,18 +50,15 @@ func NewDatabase() Database {
 }
 
 func (a *Database) ReadText(key string) (string, error) {
-	key = filepath.Join("content", key)
-	return filesystem.ReadTextFile(key)
+	return filesystem.ReadTextFile(a.toContentPath(key))
 }
 
 func (a *Database) Read(key string) ([]byte, error) {
-	key = filepath.Join("content", key)
-	return filesystem.ReadFile(key)
+	return filesystem.ReadFile(a.toContentPath(key))
 }
 
 func (a *Database) Exists(key string) bool {
-	key = filepath.Join("content", key)
-	return filesystem.FileExists(key)
+	return filesystem.FileExists(a.toContentPath(key))
 }
 
 func (a *Database) Destroy() {
