@@ -134,6 +134,7 @@ func New() *Editor {
 	}
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	host := ed.container.Host
+	host.AssetDatabase().EditorContext.EditorPath = ed.editorDir
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	ed.container.RunFunction(func() {
