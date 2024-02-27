@@ -122,7 +122,9 @@ func (ed *Editor) launchProject(isDebug bool) {
 	if err := cmd.Start(); err != nil {
 		slog.Error("failed to start the project")
 	}
+	id := ed.Host().OnClose.Add(func() { cmd.Process.Kill() })
 	cmd.Wait()
+	ed.Host().OnClose.Remove(id)
 }
 
 func (ed *Editor) runCodeCommand(cmd *exec.Cmd) error {
