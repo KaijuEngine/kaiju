@@ -122,7 +122,7 @@ type Panel struct {
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
-		scrollEvent:     -1,
+		scrollEvent:     0,
 		scrollSpeed:     20.0,
 		scrollDirection: PanelScrollDirectionVertical,
 		color:           matrix.Color{1.0, 1.0, 1.0, 1.0},
@@ -135,7 +135,6 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	panel.updateId = host.Updater.AddUpdate(panel.update)
 	panel.init(host, ts, anchor, panel)
 	panel.entity.SetChildrenOrdered()
-	panel.scrollEvent = panel.AddEvent(EventTypeScroll, panel.onScroll)
 	if texture != nil {
 		panel.ensureBGExists(texture)
 	}
@@ -608,6 +607,14 @@ func (p *Panel) IsFrozen() bool {
 func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	p.scrollDirection = direction
 	p.SetDirty(DirtyTypeLayout)
+	if p.scrollDirection == PanelScrollDirectionNone {
+		if p.scrollEvent != 0 {
+			p.RemoveEvent(EventTypeScroll, p.scrollEvent)
+			p.scrollEvent = 0
+		}
+	} else if p.scrollEvent == 0 {
+		p.scrollEvent = p.AddEvent(EventTypeScroll, p.onScroll)
+	}
 }
 
 func (p *Panel) ScrollDirection() PanelScrollDirection { return p.scrollDirection }
