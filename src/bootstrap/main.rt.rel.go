@@ -1,7 +1,7 @@
-//go:build !editor
+//go:build !debug && !editor
 
 /******************************************************************************/
-/* main.runtime.go                                                           */
+/* main.rt.rel.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -41,18 +41,13 @@ package bootstrap
 
 import (
 	"kaiju/engine"
-	"kaiju/host_container"
-	"kaiju/source"
-	"kaiju/systems/logging"
+	"log/slog"
 )
 
-func Main() {
-	logStream := logging.Initialize(nil)
-	container := host_container.New("Kaiju", logStream)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	<-container.PrepLock
-	container.RunFunction(func() {
-		source.Main(container.Host)
-	})
-	<-container.Host.Done()
+func setupDebug(host *engine.Host) error { return nil }
+
+func logOps() *slog.HandlerOptions {
+	return &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
 }
