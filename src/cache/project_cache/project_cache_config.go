@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* projects.go                                                                */
+/* project_cache_config.go                                                    */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,8 +35,29 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package cache
+package project_cache
+
+import (
+	"os"
+	"path/filepath"
+)
 
 const (
-	ProjectCacheFolder = ".cache"
+	CacheFolder = ".cache"
+	editorFile  = "editor.json"
+	meshCache   = "meshes"
 )
+
+var createdCachePaths = make(map[string]bool)
+
+func cachePath(category string) string {
+	// TODO:  If the developer manually deletes the .cache folder
+	// or any of the sub-folders, then we'd have a problem due to
+	// the createdCachePaths check here
+	path := filepath.Join(CacheFolder, category)
+	if _, ok := createdCachePaths[path]; !ok {
+		os.MkdirAll(path, os.ModePerm)
+		createdCachePaths[path] = true
+	}
+	return path
+}
