@@ -40,6 +40,7 @@ package editor
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"kaiju/klib"
 	"log/slog"
 	"os"
@@ -49,7 +50,16 @@ import (
 	"slices"
 )
 
+func (ed *Editor) killDebug() {
+	if ed.runningProject != nil {
+		ed.statusBar.SetMessage("Killing running project...")
+		ed.runningProject.Process.Kill()
+		ed.runningProject = nil
+	}
+}
+
 func (ed *Editor) runProject(isDebug bool) {
+	ed.killDebug()
 	go func() {
 		ed.statusBar.SetMessage("Running code tidy...")
 		if err := ed.tidyProjectCode(); err != nil {
@@ -96,7 +106,9 @@ func (ed *Editor) compileProjectCode(isDebug bool) error {
 	}
 	args := []string{"build", "-v"}
 	if isDebug {
-		args = append(args, `-ldflags=-s -w`, "-tags=debug")
+		args = append(args, `-gcflags=all=-N -l`, "-tags=debug")
+	} else {
+		args = append(args, `-ldflags=-s -w`)
 	}
 	args = append(args, "-o", "../bin/kaiju"+klib.ExeExtension(), "main.go")
 	cmd := exec.Command(kaijuCompiler, args...)
@@ -111,20 +123,30 @@ func (ed *Editor) compileProjectCode(isDebug bool) error {
 }
 
 func (ed *Editor) launchProject(isDebug bool) {
-	args := []string{}
+	const addr = "127.0.0.1:15937"
+	exe := "bin/kaiju" + klib.ExeExtension()
+	var cmd *exec.Cmd
 	if isDebug {
-		args = append(args, `-stage=`+ed.stageManager.StageName())
+		cmd = exec.Command("dlv", "exec", exe, "--headless", "--listen="+addr)
+	} else {
+		cmd = exec.Command(exe)
 	}
-	cmd := exec.Command("bin/kaiju"+klib.ExeExtension(), args...)
-	// TODO:  Create in/out pipes for bi-directional communication
 	cmd.Stdout = ed.Host().LogStream
 	cmd.Stderr = ed.Host().LogStream
 	if err := cmd.Start(); err != nil {
 		slog.Error("failed to start the project")
+		return
 	}
+	ed.runningProject = cmd
 	id := ed.Host().OnClose.Add(func() { cmd.Process.Kill() })
+	if isDebug {
+		ed.statusBar.SetMessage(fmt.Sprintf(
+			"Waiting for debugger to connect to %s", addr))
+		exec.Command("code", ".").Run()
+	}
 	cmd.Wait()
 	ed.Host().OnClose.Remove(id)
+	ed.statusBar.SetMessage("Project has exited")
 }
 
 func (ed *Editor) runCodeCommand(cmd *exec.Cmd) error {

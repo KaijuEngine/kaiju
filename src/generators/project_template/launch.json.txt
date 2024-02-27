@@ -5,6 +5,12 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Attach to Process",
+			"type": "go",
+			"request": "attach",
+			"mode": "remote",
+			"port": 15937
+		}, {
 			"name": "Debug Windows",
 			"type": "go",
 			"request": "launch",

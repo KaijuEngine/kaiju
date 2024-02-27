@@ -73,6 +73,7 @@ import (
 	"kaiju/ui"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -100,6 +101,7 @@ type Editor struct {
 	transformTool  transform_tools.TransformTool
 	windowListing  editor_window.Listing
 	uiGroup        *ui.Group
+	runningProject *exec.Cmd
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -287,6 +289,10 @@ func (ed *Editor) update(delta float64) {
 			ed.hierarchy.Reload()
 		} else if kb.KeyUp(hid.KeyboardKeyF5) {
 			ed.runProject(false)
+		}
+	} else if kb.HasShift() {
+		if kb.KeyUp(hid.KeyboardKeyF5) {
+			ed.killDebug()
 		}
 	} else if kb.KeyUp(hid.KeyboardKeyF1) {
 		klib.OpenWebsite("https://kaijuengine.org/")
