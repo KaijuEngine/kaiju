@@ -11,9 +11,10 @@ The primary editor window gives you access to all other editor windows. The main
 | `MMB`	         | Pan viewport                      |
 | `Space + LMB`  | Pan viewport                      |
 | `Scroll`       | Zoom viewport                     |
-| `G`            | Grab/move selected objects        |
-| `R`            | Rotate selected objects           |
-| `S`            | Scale selected objects            |
+| `F`            | Focus the selection               |
+| `G`            | Grab/move selection               |
+| `R`            | Rotate selection                  |
+| `S`            | Scale selection                   |
 | `X`            | Locks transform mod to X axis     |
 | `Y`            | Locks transform mod to Y axis     |
 | `Z`            | Locks transform mod to Z axis     |
