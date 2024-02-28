@@ -262,9 +262,6 @@ func (m *Mat4) NegateAssign() {
 	}
 }
 
-//go:noescape
-func Mat4Multiply(a, b Mat4) Mat4
-
 func (a *Mat4) MultiplyAssign(b Mat4) {
 	*a = Mat4Multiply(*a, b)
 }
@@ -498,9 +495,6 @@ func (m *Mat4) Inverse() {
 	m[x3y2] *= det
 	m[x3y3] *= det
 }
-
-//go:noescape
-func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 
 func (m Mat4) TransformPoint(point Vec3) Vec3 {
 	pt0 := Vec4{point.X(), point.Y(), point.Z(), 1.0}
