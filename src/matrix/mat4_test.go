@@ -12,6 +12,16 @@ func TestMat4Multiply(t *testing.T) {
 	}
 }
 
+func TestMat4MultiplyVec4(t *testing.T) {
+	a := testMat4()
+	b := testVec4()
+	c := legacyMat4MultiplyVec4(a, b)
+	d := Mat4MultiplyVec4(a, b)
+	if c != d {
+		t.Errorf("\nc = %v\nd = %v", c, d)
+	}
+}
+
 func BenchmarkMat4Multiply(b *testing.B) {
 	a := testMat4()
 	c := testMat4()
@@ -25,6 +35,22 @@ func BenchmarkMat4MultiplySIMD(b *testing.B) {
 	c := testMat4()
 	for i := 0; i < b.N; i++ {
 		Mat4Multiply(a, c)
+	}
+}
+
+func BenchmarkMat4MultiplyVec4(b *testing.B) {
+	a := testMat4()
+	c := testVec4()
+	for i := 0; i < b.N; i++ {
+		legacyMat4MultiplyVec4(a, c)
+	}
+}
+
+func BenchmarkMat4MultiplyVec4SIMD(b *testing.B) {
+	a := testMat4()
+	c := testVec4()
+	for i := 0; i < b.N; i++ {
+		Mat4MultiplyVec4(a, c)
 	}
 }
 
@@ -48,5 +74,18 @@ func legacyMat4Multiply(a, b Mat4) Mat4 {
 			result[i*4+j] = sum
 		}
 	}
+	return result
+}
+
+func legacyMat4MultiplyVec4(a Mat4, b Vec4) Vec4 {
+	var result Vec4
+	c := a.ColumnVector(0)
+	result[Vx] = Vec4Dot(c, b)
+	c = a.ColumnVector(1)
+	result[Vy] = Vec4Dot(c, b)
+	c = a.ColumnVector(2)
+	result[Vz] = Vec4Dot(c, b)
+	c = a.ColumnVector(3)
+	result[Vw] = Vec4Dot(c, b)
 	return result
 }

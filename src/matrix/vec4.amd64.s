@@ -39,10 +39,10 @@
 
 #include "textflag.h"
 
-// func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
+// func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
 TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
-	MOVUPS    a+0(FP),  X0
 // x
+	MOVUPS    a+0(FP),  X0
 	MOVUPS    b+16(FP), X1
 	MULPS     X1,      X0
 	HADDPS    X0,      X0

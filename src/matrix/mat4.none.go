@@ -1,3 +1,5 @@
+//go:build !amd64
+
 /******************************************************************************/
 /* mat4.none.go                                                               */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build !amd64
-
 package matrix
 
 func mat4Multiply(a, b Mat4) Mat4 {
@@ -50,5 +50,18 @@ func mat4Multiply(a, b Mat4) Mat4 {
 			result[i*4+j] = sum
 		}
 	}
+	return result
+}
+
+func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4 {
+	var result Vec4
+	c := a.ColumnVector(0)
+	result[Vx] = Vec4Dot(c, b)
+	c = a.ColumnVector(1)
+	result[Vy] = Vec4Dot(c, b)
+	c = a.ColumnVector(2)
+	result[Vz] = Vec4Dot(c, b)
+	c = a.ColumnVector(3)
+	result[Vw] = Vec4Dot(c, b)
 	return result
 }
