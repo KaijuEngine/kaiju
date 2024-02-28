@@ -262,22 +262,11 @@ func (m *Mat4) NegateAssign() {
 	}
 }
 
-func (a Mat4) Multiply(b Mat4) Mat4 {
-	var result Mat4
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			var sum float32 = 0
-			for k := 0; k < 4; k++ {
-				sum += a[i*4+k] * b[k*4+j]
-			}
-			result[i*4+j] = sum
-		}
-	}
-	return result
-}
+//go:noescape
+func Mat4Multiply(a, b Mat4) Mat4
 
 func (a *Mat4) MultiplyAssign(b Mat4) {
-	*a = a.Multiply(b)
+	*a = Mat4Multiply(*a, b)
 }
 
 func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {

@@ -236,9 +236,8 @@ func (v Vec4) Distance(other Vec4) Float {
 	return v.Subtract(other).Length()
 }
 
-func Vec4Dot(v, other Vec4) Float {
-	return v[Vx]*other[Vx] + v[Vy]*other[Vy] + v[Vz]*other[Vz] + v[Vw]*other[Vw]
-}
+//go:noescape
+func Vec4Dot(a, b Vec4) Float
 
 func Vec4Lerp(from, to Vec4, t Float) Vec4 {
 	return from.Add(to.Subtract(from).Scale(t))

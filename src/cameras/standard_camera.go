@@ -297,7 +297,7 @@ func (c *StandardCamera) internalUpdateView() {
 }
 
 func (c *StandardCamera) updateFrustum() {
-	vp := c.view.Multiply(c.projection)
+	vp := matrix.Mat4Multiply(c.view, c.projection)
 	for i := 3; i >= 0; i-- {
 		c.frustum.Planes[0].SetFloatValue(vp[i*4+3]+vp[i*4+0], i)
 		c.frustum.Planes[1].SetFloatValue(vp[i*4+3]-vp[i*4+0], i)
