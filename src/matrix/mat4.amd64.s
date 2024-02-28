@@ -45,7 +45,7 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	INSERTPS  $14, b+68(FP),  X2	// x0y1
 	INSERTPS  $14, b+72(FP),  X3	// x0y2
 	INSERTPS  $14, b+76(FP),  X4	// x0y3
-	INSERTPS  $16, b+80(FP),  X1	// x1y0	
+	INSERTPS  $16, b+80(FP),  X1	// x1y0
 	INSERTPS  $16, b+84(FP),  X2	// x1y1
 	INSERTPS  $16, b+88(FP),  X3	// x1y2
 	INSERTPS  $16, b+92(FP),  X4	// x1y3
@@ -173,7 +173,6 @@ TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
 	INSERTPS  $48, b+52(FP), X2	// x3y1
 	INSERTPS  $48, b+56(FP), X3	// x3y2
 	INSERTPS  $48, b+60(FP), X4	// x3y3
-
 // x
 	MOVUPS    a+64(FP), X0
 	MULPS     X1,       X0

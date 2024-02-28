@@ -127,10 +127,12 @@ func (ed *Editor) launchProject(isDebug bool) {
 	exe := "bin/kaiju" + klib.ExeExtension()
 	var cmd *exec.Cmd
 	if isDebug {
-		cmd = exec.Command("dlv", "exec", exe, "--headless", "--listen="+addr)
+		cmd = exec.Command("dlv", "exec", exe, "--headless", "--listen="+addr,
+			"--", "-stage="+ed.stageManager.StageName())
 	} else {
 		cmd = exec.Command(exe)
 	}
+	cmd.Dir = ed.project
 	cmd.Stdout = ed.Host().LogStream
 	cmd.Stderr = ed.Host().LogStream
 	if err := cmd.Start(); err != nil {

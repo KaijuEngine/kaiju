@@ -162,7 +162,7 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 }
 
 func (h *Hierarchy) Reload() {
-	isActive := h.doc == nil
+	isActive := false
 	if h.doc != nil {
 		isActive = h.doc.Elements[0].UI.Entity().IsActive()
 		h.doc.Destroy()
