@@ -39,12 +39,34 @@
 
 #include "textflag.h"
 
-// func Vec4Dot(a, b Mat4) Mat4
-TEXT   ·Vec4Dot(SB),NOSPLIT,$0-48
-	MOVUPS    a+0(FP), X0
-	MOVUPS    a+16(FP), X1
-	MULPS     X1, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+32(FP)
+// func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
+TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
+	MOVUPS    a+0(FP),  X0
+// x
+	MOVUPS    b+16(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+80(FP)
+// y
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+32(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+84(FP)
+// z
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+48(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+88(FP)
+// w
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+64(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+92(FP)
 	RET

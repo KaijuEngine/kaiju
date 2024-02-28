@@ -41,7 +41,6 @@
 
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
-
 	INSERTPS  $14, b+64(FP),  X1	// x0y0
 	INSERTPS  $14, b+68(FP),  X2	// x0y1
 	INSERTPS  $14, b+72(FP),  X3	// x0y2
@@ -58,105 +57,100 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	INSERTPS  $48, b+116(FP), X2	// x3y1
 	INSERTPS  $48, b+120(FP), X3	// x3y2
 	INSERTPS  $48, b+124(FP), X4	// x3y3
-
 // x0y0
 	MOVUPS    a+0(FP), X0
-	MULPS     X1, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+128(FP)
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+128(FP)
 // x0y1
 	MOVUPS    a+0(FP), X0
-	MULPS     X2, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+132(FP)
+	MULPS     X2,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+132(FP)
 // x0y2
 	MOVUPS    a+0(FP), X0
-	MULPS     X3, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+136(FP)
+	MULPS     X3,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+136(FP)
 // x0y3
 	MOVUPS    a+0(FP), X0
-	MULPS     X4, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+140(FP)
-
+	MULPS     X4,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+140(FP)
 // x1y0
 	MOVUPS    a+16(FP), X0
-	MULPS     X1, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+144(FP)
+	MULPS     X1,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+144(FP)
 // x1y1
 	MOVUPS    a+16(FP), X0
-	MULPS     X2, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+148(FP)
+	MULPS     X2,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+148(FP)
 // x1y2
 	MOVUPS    a+16(FP), X0
-	MULPS     X3, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+152(FP)
+	MULPS     X3,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+152(FP)
 // x1y3
 	MOVUPS    a+16(FP), X0
-	MULPS     X4, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+156(FP)
-
+	MULPS     X4,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+156(FP)
 // x2y0
 	MOVUPS    a+32(FP), X0
-	MULPS     X1, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+160(FP)
+	MULPS     X1,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+160(FP)
 // x2y1
 	MOVUPS    a+32(FP), X0
-	MULPS     X2, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+164(FP)
+	MULPS     X2,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+164(FP)
 // x2y2
 	MOVUPS    a+32(FP), X0
-	MULPS     X3, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+168(FP)
+	MULPS     X3,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+168(FP)
 // x2y3
 	MOVUPS    a+32(FP), X0
-	MULPS     X4, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+172(FP)
-
+	MULPS     X4,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+172(FP)
 // x3y0
 	MOVUPS    a+48(FP), X0
-	MULPS     X1, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+176(FP)
+	MULPS     X1,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+176(FP)
 // x3y1
 	MOVUPS    a+48(FP), X0
-	MULPS     X2, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+180(FP)
+	MULPS     X2,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+180(FP)
 // x3y2
 	MOVUPS    a+48(FP), X0
-	MULPS     X3, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+184(FP)
+	MULPS     X3,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+184(FP)
 // x3y3
 	MOVUPS    a+48(FP), X0
-	MULPS     X4, X0
-	HADDPS    X0, X0
-	HADDPS    X0, X0
-	MOVUPS    X0, ret+188(FP)
-
+	MULPS     X4,       X0
+	HADDPS    X0,       X0
+	HADDPS    X0,       X0
+	MOVUPS    X0,       ret+188(FP)
 	RET
