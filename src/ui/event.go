@@ -51,6 +51,7 @@ const (
 	EventTypeScroll
 	EventTypeRebuild
 	EventTypeDestroy
+	EventTypeSubmit
 	EventTypeChange
 	EventTypeRender
 	EventTypeKeyDown
