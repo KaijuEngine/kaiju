@@ -76,8 +76,6 @@ type localInputData struct {
 	title                             string
 	description                       string
 	onUpDown                          events.Event
-	OnSubmit                          events.Event
-	OnChange                          events.Event
 	cursorOffset                      int
 	dragStartClick, cursorBlink       float32
 	selectStart, selectEnd, dragStart int
@@ -190,11 +188,11 @@ func (input *Input) moveCursor(newPos int) {
 }
 
 func (input *Input) submit() {
-	input.Data().OnSubmit.Execute()
+	input.requestEvent(EventTypeSubmit)
 }
 
 func (input *Input) change() {
-	input.Data().OnChange.Execute()
+	input.requestEvent(EventTypeChange)
 }
 
 func (input *Input) charX(index int) float32 {
@@ -525,9 +523,14 @@ func (input *Input) SetSelectColor(newColor matrix.Color) {
 }
 
 func (input *Input) Select() {
-	input.Data().isActive = true
-	input.resetSelect()
-	input.makeCursorVisible()
+	if !input.Data().isActive {
+		input.Data().isActive = true
+		input.resetSelect()
+		input.makeCursorVisible()
+		if input.group != nil {
+			input.group.setFocus(input)
+		}
+	}
 }
 
 func (input *Input) Deselect() {

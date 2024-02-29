@@ -44,21 +44,18 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
-	"kaiju/systems/events"
 	"kaiju/ui"
 	"log/slog"
 	"strings"
 )
 
 type Hierarchy struct {
-	host           *engine.Host
-	selection      *selection.Selection
-	doc            *document.Document
-	input          *ui.Input
-	onChangeId     events.Id
-	selectChangeId events.Id
-	query          string
-	uiGroup        *ui.Group
+	host      *engine.Host
+	selection *selection.Selection
+	doc       *document.Document
+	input     *ui.Input
+	query     string
+	uiGroup   *ui.Group
 }
 
 type entityEntry struct {
@@ -93,6 +90,7 @@ func New(host *engine.Host, selection *selection.Selection, uiGroup *ui.Group) *
 		}
 	})
 	h.Reload()
+	h.selection.Changed.Add(h.onSelectionChanged)
 	return h
 }
 
@@ -177,12 +175,11 @@ func (h *Hierarchy) Reload() {
 		}))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
-	h.selectChangeId = h.selection.Changed.Add(h.onSelectionChanged)
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
 	} else {
 		h.input = elm.UI.(*ui.Input)
-		h.input.Data().OnSubmit.Add(h.submit)
+		h.input.AddEvent(ui.EventTypeSubmit, h.submit)
 	}
 	if !isActive {
 		h.doc.Deactivate()

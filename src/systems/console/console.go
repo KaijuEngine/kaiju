@@ -135,7 +135,7 @@ func initialize(host *engine.Host) *Console {
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
 	input := inputElm.UI.(*ui.Input)
-	input.Data().OnSubmit.Add(func() { console.submit(input) })
+	input.AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
 	console.input = input
 	input.Clean()
 	console.hide()

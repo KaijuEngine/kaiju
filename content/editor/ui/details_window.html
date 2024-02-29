@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/details_window.css">
+	</head>
+	<body>
+		<div class="fillRightWide darkBG noClipY z3 thinBorder">
+			{{if eq .Count 1}}
+				<div class="nameRow">
+					<div>Name:</div>
+					<input id="name" class="nameInput" type="text" placeholder="Name..." value="{{.Name}}" onchange="changeName" />
+				</div>
+				<div class="transformation">
+					<div class="transformRow">
+						<div>Position:</div>
+						<input id="posX" class="tfmInput" type="text" placeholder="Position X..." value="{{.PosX}}" onchange="changePosX" />
+						<input id="posY" class="tfmInput" type="text" placeholder="Position Y..." value="{{.PosY}}" onchange="changePosY" />
+						<input id="posZ" class="tfmInput" type="text" placeholder="Position Z..." value="{{.PosZ}}" onchange="changePosZ" />
+					</div>
+					<div class="transformRow">
+						<div>Rotation:</div>
+						<input id="rotX" class="tfmInput" type="text" placeholder="Rotation X..." value="{{.RotX}}" onchange="changeRotX" />
+						<input id="rotY" class="tfmInput" type="text" placeholder="Rotation Y..." value="{{.RotY}}" onchange="changeRotY" />
+						<input id="rotZ" class="tfmInput" type="text" placeholder="Rotation Z..." value="{{.RotZ}}" onchange="changeRotZ" />
+					</div>
+					<div class="transformRow">
+						<div>Scale:</div>
+						<input id="scaleX" class="tfmInput" type="text" placeholder="Scale X..." value="{{.ScaleX}}" onchange="changeScaleX" />
+						<input id="scaleY" class="tfmInput" type="text" placeholder="Scale Y..." value="{{.ScaleY}}" onchange="changeScaleY" />
+						<input id="scaleZ" class="tfmInput" type="text" placeholder="Scale Z..." value="{{.ScaleZ}}" onchange="changeScaleZ" />
+					</div>
+				</div>
+				<div class="dataTable">
+					{{range .Data}}
+
+					{{end}}
+				</div>
+			{{else if eq .Count 0}}
+				<div class="fill">No entity selected</div>
+			{{else}}
+				<div class="fill">Multiple entities selected</div>
+			{{end}}
+		</div>
+	</body>
+</html>

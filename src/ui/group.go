@@ -124,6 +124,10 @@ func (group *Group) lateUpdate() {
 				case EventTypeKeyDown:
 					fallthrough
 				case EventTypeKeyUp:
+					fallthrough
+				case EventTypeChange:
+					fallthrough
+				case EventTypeSubmit:
 					req.target.ExecuteEvent(req.eventType)
 				case EventTypeClick:
 					fallthrough

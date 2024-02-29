@@ -50,6 +50,7 @@ import (
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/details_window"
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
@@ -97,6 +98,7 @@ type Editor struct {
 	logWindow      *log_window.LogWindow
 	hierarchy      *hierarchy.Hierarchy
 	contentWindow  *content_window.ContentWindow
+	detailsWindow  *details_window.Details
 	selection      selection.Selection
 	transformTool  transform_tools.TransformTool
 	windowListing  editor_window.Listing
@@ -232,6 +234,7 @@ func (e *Editor) Init() {
 	e.Host().CreatingEditorEntities()
 	e.logWindow = log_window.New(e.Host(), e.Host().LogStream, e.uiGroup)
 	e.contentWindow = content_window.New(&e.contentOpener, e, e.uiGroup)
+	e.detailsWindow = details_window.New(e, e.uiGroup)
 	e.hierarchy = hierarchy.New(e.Host(), &e.selection, e.uiGroup)
 	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
 		e.hierarchy, &e.contentOpener, e, e.uiGroup)
@@ -299,7 +302,11 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyUp(hid.KeyboardKeyF5) {
 		ed.runProject(true)
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
+		ed.detailsWindow.Hide()
 		ed.contentWindow.Toggle()
+	} else if kb.KeyUp(hid.KeyboardKeyD) {
+		ed.contentWindow.Hide()
+		ed.detailsWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyH) {
 		ed.hierarchy.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyL) {

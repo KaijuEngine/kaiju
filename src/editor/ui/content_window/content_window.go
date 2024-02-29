@@ -184,7 +184,7 @@ func (s *ContentWindow) reloadUI() {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
 	} else {
 		s.input = elm.UI.(*ui.Input)
-		s.input.Data().OnSubmit.Add(s.submit)
+		s.input.AddEvent(ui.EventTypeSubmit, s.submit)
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)
