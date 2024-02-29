@@ -153,7 +153,7 @@ func (m Mat4) ColumnVector(col int) Vec4 {
 
 func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
 	pos4 := Vec4{pos.X(), pos.Y(), pos.Z(), 1.0}
-	pos4 = m.MultiplyVec4(pos4)
+	pos4 = Mat4MultiplyVec4(m, pos4)
 	z := pos4.Z()
 	pos4.Shrink(pos4.W())
 	pos4.Scale(0.5)
@@ -163,7 +163,7 @@ func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
 }
 
 func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) Vec3 {
-	clip := projection.MultiplyVec4(view.MultiplyVec4(pos.AsVec4()))
+	clip := Mat4MultiplyVec4(projection, Mat4MultiplyVec4(view, pos.AsVec4()))
 	clip.ScaleAssign(1.0 / clip.W())
 	screenX := (clip.X() + 1) * (viewport.Width() * 0.5)
 	screenY := (1 - clip.Y()) * (viewport.Height() * 0.5)
@@ -176,7 +176,7 @@ func (m Mat4) Mat4UnProject(pos Vec3, viewport Vec4) Vec3 {
 	v.SetY(2.0*(pos.Y()-viewport.Y())/viewport.W() - 1.0)
 	v.SetZ(2.0*pos.Z() - 1.0)
 	v.SetW(1.0)
-	v = m.MultiplyVec4(v)
+	v = Mat4MultiplyVec4(m, v)
 	v.Scale(1.0 / v.W())
 	return Vec3{v.X(), v.Y(), v.Z()}
 }
@@ -262,22 +262,8 @@ func (m *Mat4) NegateAssign() {
 	}
 }
 
-func (a Mat4) Multiply(b Mat4) Mat4 {
-	var result Mat4
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			var sum float32 = 0
-			for k := 0; k < 4; k++ {
-				sum += a[i*4+k] * b[k*4+j]
-			}
-			result[i*4+j] = sum
-		}
-	}
-	return result
-}
-
 func (a *Mat4) MultiplyAssign(b Mat4) {
-	*a = a.Multiply(b)
+	*a = Mat4Multiply(*a, b)
 }
 
 func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {
@@ -510,22 +496,9 @@ func (m *Mat4) Inverse() {
 	m[x3y3] *= det
 }
 
-func (m Mat4) MultiplyVec4(rhs Vec4) Vec4 {
-	var result Vec4
-	row := m.ColumnVector(0)
-	result[Vx] = Vec4Dot(row, rhs)
-	row = m.ColumnVector(1)
-	result[Vy] = Vec4Dot(row, rhs)
-	row = m.ColumnVector(2)
-	result[Vz] = Vec4Dot(row, rhs)
-	row = m.ColumnVector(3)
-	result[Vw] = Vec4Dot(row, rhs)
-	return result
-}
-
 func (m Mat4) TransformPoint(point Vec3) Vec3 {
 	pt0 := Vec4{point.X(), point.Y(), point.Z(), 1.0}
-	res := m.MultiplyVec4(pt0)
+	res := Mat4MultiplyVec4(m, pt0)
 	v3 := Vec3{res.X(), res.Y(), res.Z()}
 	v3.Shrink(res.W())
 	return v3

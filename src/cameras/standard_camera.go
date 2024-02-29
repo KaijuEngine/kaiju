@@ -297,7 +297,7 @@ func (c *StandardCamera) internalUpdateView() {
 }
 
 func (c *StandardCamera) updateFrustum() {
-	vp := c.view.Multiply(c.projection)
+	vp := matrix.Mat4Multiply(c.view, c.projection)
 	for i := 3; i >= 0; i-- {
 		c.frustum.Planes[0].SetFloatValue(vp[i*4+3]+vp[i*4+0], i)
 		c.frustum.Planes[1].SetFloatValue(vp[i*4+3]-vp[i*4+0], i)
@@ -314,10 +314,10 @@ func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3)
 	// Normalized Device Coordinates
 	rayNds := matrix.Vec3{x, y, 1}
 	rayClip := matrix.Vec4{rayNds.X(), rayNds.Y(), -1, 1}
-	rayEye := rayClip.MultiplyMat4(c.iProjection)
+	rayEye := matrix.Vec4MultiplyMat4(rayClip, c.iProjection)
 	rayEye = matrix.Vec4{rayEye.X(), rayEye.Y(), -1, 0}
 	// Normalize up/down/left/right
-	res := rayEye.MultiplyMat4(c.view)
+	res := matrix.Vec4MultiplyMat4(rayEye, c.view)
 	rayWorld := matrix.Vec3{res.X(), res.Y(), res.Z()}
 	rayWorld.Normalize()
 	return collision.Ray{Origin: pos, Direction: rayWorld}

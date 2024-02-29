@@ -105,7 +105,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		if filepath.Ext(path) == ".go" {
+		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".s" {
 			f, err := os.Open(path)
 			if err != nil {
 				return err

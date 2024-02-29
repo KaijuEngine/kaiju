@@ -1,7 +1,5 @@
-//go:build debug && !editor
-
 /******************************************************************************/
-/* main.rt.dbg.go                                                             */
+/* vec4_test.go                                                               */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,78 +35,47 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package bootstrap
+package matrix
 
-import (
-	"flag"
-	"kaiju/assets/asset_info"
-	"kaiju/engine"
-	"kaiju/profiler"
-	"kaiju/systems/stages"
-	"log/slog"
-	"net"
-	"os"
-	"strings"
-)
+import "testing"
 
-type cla struct {
-	stage string
-}
-
-func logOps() *slog.HandlerOptions {
-	return &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+func TestVec4MultiplyMat4(t *testing.T) {
+	a := testVec4()
+	b := testMat4()
+	c := a.legacyMultiplyMat4(b)
+	d := Vec4MultiplyMat4(a, b)
+	if !Vec4Approx(c, d) {
+		t.Errorf("\nc = %v\nd = %v", c, d)
 	}
 }
 
-func setupDebug(host *engine.Host) error {
-	cla := buildCLA()
-	connectLoggingServer(host)
-	if cla.stage != "" {
-		path := strings.ReplaceAll(cla.stage, "\\", "/")
-		if !strings.HasPrefix(path, "content/") {
-			path = "content/stages/" + cla.stage + ".stg"
-		}
-		adi, err := asset_info.Read(path)
-		if err != nil {
-			return err
-		}
-		return stages.Load(adi, host)
-	}
-	profiler.SetupConsole(host)
-	return nil
-}
-
-func buildCLA() cla {
-	fs := flag.NewFlagSet("Kaiju Debug Args", flag.ContinueOnError)
-	stage := fs.String("stage", "", "The stage to immediately load into")
-	fs.Parse(os.Args[1:])
-	return cla{
-		stage: *stage,
+func BenchmarkVec4MultiplyMat4(b *testing.B) {
+	a := testVec4()
+	c := testMat4()
+	for i := 0; i < b.N; i++ {
+		a.legacyMultiplyMat4(c)
 	}
 }
 
-func connectLoggingServer(host *engine.Host) {
-	tcpServer, err := net.ResolveTCPAddr("tcp", "127.0.0.1:15938")
-	if err != nil {
-		return
+func BenchmarkVec4MultiplyMat4SIMD(b *testing.B) {
+	a := testVec4()
+	c := testMat4()
+	for i := 0; i < b.N; i++ {
+		Vec4MultiplyMat4(a, c)
 	}
-	conn, err := net.DialTCP("tcp", nil, tcpServer)
-	if err != nil {
-		return
-	}
-	host.LogStream.OnInfo.Add(func(msg string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte("\x00"))
-	})
-	host.LogStream.OnWarn.Add(func(msg string, trace []string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte(strings.Join(trace, "\n")))
-		conn.Write([]byte("\x00"))
-	})
-	host.LogStream.OnError.Add(func(msg string, trace []string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte(strings.Join(trace, "\n")))
-		conn.Write([]byte("\x00"))
-	})
+}
+
+func testVec4() Vec4 { return Vec4{1, 2, 3, 4} }
+
+func (v Vec4) legacyMultiplyMat4(rhs Mat4) Vec4 {
+	var result Vec4
+	row := rhs.RowVector(0)
+	result[Vx] = Vec4Dot(row, v)
+	row = rhs.RowVector(1)
+	result[Vy] = Vec4Dot(row, v)
+	row = rhs.RowVector(2)
+	result[Vz] = Vec4Dot(row, v)
+	row = rhs.RowVector(3)
+	result[Vw] = Vec4Dot(row, v)
+	return result
 }

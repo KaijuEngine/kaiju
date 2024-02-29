@@ -236,8 +236,8 @@ func (v Vec4) Distance(other Vec4) Float {
 	return v.Subtract(other).Length()
 }
 
-func Vec4Dot(v, other Vec4) Float {
-	return v[Vx]*other[Vx] + v[Vy]*other[Vy] + v[Vz]*other[Vz] + v[Vw]*other[Vw]
+func Vec4Dot(a, b Vec4) Float {
+	return a[Vx]*b[Vx] + a[Vy]*b[Vy] + a[Vz]*b[Vz] + a[Vw]*b[Vw]
 }
 
 func Vec4Lerp(from, to Vec4, t Float) Vec4 {
@@ -273,18 +273,8 @@ func (v Vec4) LargestAxis() Float {
 	return max(v[Vx], v[Vy], v[Vz], v[Vw])
 }
 
-func (v Vec4) MultiplyMat4(rhs Mat4) Vec4 {
-	var result Vec4
-	row := rhs.RowVector(0)
-	result[Vx] = Vec4Dot(row, v)
-	row = rhs.RowVector(1)
-	result[Vy] = Vec4Dot(row, v)
-	row = rhs.RowVector(2)
-	result[Vz] = Vec4Dot(row, v)
-	row = rhs.RowVector(3)
-	result[Vw] = Vec4Dot(row, v)
-	return result
-}
+//go:noescape
+func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
 
 func Vec4Area(xa, ya, xb, yb Float) Vec4 {
 	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}

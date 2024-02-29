@@ -1,7 +1,5 @@
-//go:build debug && !editor
-
 /******************************************************************************/
-/* main.rt.dbg.go                                                             */
+/* vec4.amd64.s                                                               */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,78 +35,38 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package bootstrap
+//go:build amd64
 
-import (
-	"flag"
-	"kaiju/assets/asset_info"
-	"kaiju/engine"
-	"kaiju/profiler"
-	"kaiju/systems/stages"
-	"log/slog"
-	"net"
-	"os"
-	"strings"
-)
+#include "textflag.h"
 
-type cla struct {
-	stage string
-}
-
-func logOps() *slog.HandlerOptions {
-	return &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}
-}
-
-func setupDebug(host *engine.Host) error {
-	cla := buildCLA()
-	connectLoggingServer(host)
-	if cla.stage != "" {
-		path := strings.ReplaceAll(cla.stage, "\\", "/")
-		if !strings.HasPrefix(path, "content/") {
-			path = "content/stages/" + cla.stage + ".stg"
-		}
-		adi, err := asset_info.Read(path)
-		if err != nil {
-			return err
-		}
-		return stages.Load(adi, host)
-	}
-	profiler.SetupConsole(host)
-	return nil
-}
-
-func buildCLA() cla {
-	fs := flag.NewFlagSet("Kaiju Debug Args", flag.ContinueOnError)
-	stage := fs.String("stage", "", "The stage to immediately load into")
-	fs.Parse(os.Args[1:])
-	return cla{
-		stage: *stage,
-	}
-}
-
-func connectLoggingServer(host *engine.Host) {
-	tcpServer, err := net.ResolveTCPAddr("tcp", "127.0.0.1:15938")
-	if err != nil {
-		return
-	}
-	conn, err := net.DialTCP("tcp", nil, tcpServer)
-	if err != nil {
-		return
-	}
-	host.LogStream.OnInfo.Add(func(msg string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte("\x00"))
-	})
-	host.LogStream.OnWarn.Add(func(msg string, trace []string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte(strings.Join(trace, "\n")))
-		conn.Write([]byte("\x00"))
-	})
-	host.LogStream.OnError.Add(func(msg string, trace []string) {
-		conn.Write([]byte(msg))
-		conn.Write([]byte(strings.Join(trace, "\n")))
-		conn.Write([]byte("\x00"))
-	})
-}
+// func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
+TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
+// x
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+16(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+80(FP)
+// y
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+32(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+84(FP)
+// z
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+48(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+88(FP)
+// w
+	MOVUPS    a+0(FP),  X0
+	MOVUPS    b+64(FP), X1
+	MULPS     X1,      X0
+	HADDPS    X0,      X0
+	HADDPS    X0,      X0
+	MOVUPS    X0,      ret+92(FP)
+	RET

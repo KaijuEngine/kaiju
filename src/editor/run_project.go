@@ -41,8 +41,10 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"kaiju/klib"
 	"log/slog"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -127,24 +129,29 @@ func (ed *Editor) launchProject(isDebug bool) {
 	exe := "bin/kaiju" + klib.ExeExtension()
 	var cmd *exec.Cmd
 	if isDebug {
-		cmd = exec.Command("dlv", "exec", exe, "--headless", "--listen="+addr)
+		cmd = exec.Command("dlv", "exec", exe, "--headless", "--listen="+addr,
+			"--", "-stage="+ed.stageManager.StageName())
 	} else {
 		cmd = exec.Command(exe)
 	}
-	cmd.Stdout = ed.Host().LogStream
-	cmd.Stderr = ed.Host().LogStream
+	cmd.Dir = ed.project
 	if err := cmd.Start(); err != nil {
 		slog.Error("failed to start the project")
 		return
 	}
 	ed.runningProject = cmd
 	id := ed.Host().OnClose.Add(func() { cmd.Process.Kill() })
+	dbgNetAlive := true
 	if isDebug {
 		ed.statusBar.SetMessage(fmt.Sprintf(
 			"Waiting for debugger to connect to %s", addr))
 		exec.Command("code", ".").Run()
+		go startNetworkLogging(ed, &dbgNetAlive)
 	}
 	cmd.Wait()
+	if isDebug {
+		dbgNetAlive = false
+	}
 	ed.Host().OnClose.Remove(id)
 	ed.statusBar.SetMessage("Project has exited")
 }
@@ -170,5 +177,31 @@ func (ed *Editor) runCodeCommand(cmd *exec.Cmd) error {
 		return errors.New("failed to compile the project")
 	} else {
 		return nil
+	}
+}
+
+func startNetworkLogging(ed *Editor, alive *bool) {
+	l, err := net.Listen("tcp", "127.0.0.1:15938")
+	if err != nil {
+		slog.Error("Failed to listen on 127.0.0.1:15938")
+		return
+	}
+	defer l.Close()
+	c, err := l.Accept()
+	if err != nil {
+		slog.Error("Client accept error", slog.String("err", err.Error()))
+		return
+	}
+	clientReader := bufio.NewReader(c)
+	host := ed.Host()
+	for *alive {
+		line, err := clientReader.ReadString('\x00')
+		host.LogStream.Write([]byte(line))
+		if err != nil {
+			if err != io.EOF {
+				slog.Error(err.Error())
+			}
+			return
+		}
 	}
 }

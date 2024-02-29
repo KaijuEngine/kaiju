@@ -111,7 +111,7 @@ func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 
 func (s *ShaderDataBase) UpdateModel() {
 	if s.transform != nil && s.transform.IsDirty() {
-		s.model = s.InitModel.Multiply(s.transform.WorldMatrix())
+		s.model = matrix.Mat4Multiply(s.InitModel, s.transform.WorldMatrix())
 	}
 }
 
