@@ -48,6 +48,7 @@ import (
 	"kaiju/markup/document"
 	"kaiju/systems/console"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -82,7 +83,7 @@ func (p *Preview) pullStyles() {
 		if p.doc.HeadElements[i].Data() == "link" {
 			if p.doc.HeadElements[i].Attribute("rel") == "stylesheet" {
 				cssPath := p.doc.HeadElements[i].Attribute("href")
-				p.styles = append(p.styles, "content/"+cssPath)
+				p.styles = append(p.styles, linkFile(cssPath))
 			}
 		}
 	}
@@ -90,14 +91,12 @@ func (p *Preview) pullStyles() {
 
 func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
-		if html, err := filesystem.ReadTextFile(p.html); err == nil {
+		if doc, err := markup.DocumentFromHTMLAsset(container.Host,
+			contentFile(p.html), p.bindingData, nil); err == nil {
 			if p.doc != nil {
-				for _, elm := range p.doc.Elements {
-					elm.UI.Entity().Destroy()
-				}
+				p.doc.Destroy()
 			}
-			p.doc = markup.DocumentFromHTMLString(
-				container.Host, html, "", p.bindingData, nil)
+			p.doc = doc
 			p.pullStyles()
 		}
 	})
@@ -121,6 +120,24 @@ func loadBindingData(htmlFile string) any {
 	return out
 }
 
+func contentFile(path string) string {
+	return path[strings.Index(path, "/content/")+len("/content/"):]
+}
+
+func linkFile(path string) string {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if p, err := os.Executable(); err == nil {
+			d := filepath.Dir(p)
+			if strings.HasPrefix(path, "content") {
+				path = filepath.Join(d, "../", path)
+			} else {
+				path = filepath.Join(d, "../content", path)
+			}
+		}
+	}
+	return strings.ReplaceAll(path, "\\", "/")
+}
+
 func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	preview := Preview{
 		html:        htmlFile,
@@ -135,21 +152,24 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	}
 }
 
-func New(htmlFile string) (*host_container.Container, error) {
+func New(htmlFile, edFolder string) (*host_container.Container, error) {
 	c := host_container.New("HTML Preview", nil)
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-c.PrepLock
+	c.Host.AssetDatabase().EditorContext.EditorPath = edFolder
 	go startPreview(c, htmlFile)
 	return c, nil
 }
 
 func SetupConsole(host *engine.Host) {
+	edFolder := host.AssetDatabase().EditorContext.EditorPath
 	console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
+		filePath = linkFile(filePath)
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}
-		if _, err := New(filePath); err != nil {
+		if _, err := New(filePath, edFolder); err != nil {
 			return fmt.Sprintf("Error creating preview: %s", err)
 		}
 		return fmt.Sprintf("Previewing file: %s", filePath)
