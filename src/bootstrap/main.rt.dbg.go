@@ -46,6 +46,7 @@ import (
 	"kaiju/profiler"
 	"kaiju/systems/stages"
 	"log/slog"
+	"net"
 	"os"
 	"strings"
 )
@@ -62,6 +63,7 @@ func logOps() *slog.HandlerOptions {
 
 func setupDebug(host *engine.Host) error {
 	cla := buildCLA()
+	connectLoggingServer(host)
 	if cla.stage != "" {
 		path := strings.ReplaceAll(cla.stage, "\\", "/")
 		if !strings.HasPrefix(path, "content/") {
@@ -84,4 +86,29 @@ func buildCLA() cla {
 	return cla{
 		stage: *stage,
 	}
+}
+
+func connectLoggingServer(host *engine.Host) {
+	tcpServer, err := net.ResolveTCPAddr("tcp", "127.0.0.1:15938")
+	if err != nil {
+		return
+	}
+	conn, err := net.DialTCP("tcp", nil, tcpServer)
+	if err != nil {
+		return
+	}
+	host.LogStream.OnInfo.Add(func(msg string) {
+		conn.Write([]byte(msg))
+		conn.Write([]byte("\x00"))
+	})
+	host.LogStream.OnWarn.Add(func(msg string, trace []string) {
+		conn.Write([]byte(msg))
+		conn.Write([]byte(strings.Join(trace, "\n")))
+		conn.Write([]byte("\x00"))
+	})
+	host.LogStream.OnError.Add(func(msg string, trace []string) {
+		conn.Write([]byte(msg))
+		conn.Write([]byte(strings.Join(trace, "\n")))
+		conn.Write([]byte("\x00"))
+	})
 }
