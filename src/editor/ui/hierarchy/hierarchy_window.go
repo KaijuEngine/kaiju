@@ -92,6 +92,7 @@ func New(host *engine.Host, selection *selection.Selection, uiGroup *ui.Group) *
 			h.doc.Destroy()
 		}
 	})
+	h.Reload()
 	return h
 }
 
@@ -141,10 +142,6 @@ func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
 		addChildren(r)
 	}
 	return entries
-}
-
-func (h *Hierarchy) Init() {
-	h.Reload()
 }
 
 func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
