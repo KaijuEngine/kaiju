@@ -340,3 +340,9 @@ func (d *Document) Destroy() {
 		d.Elements[i].UI.Entity().Destroy()
 	}
 }
+
+func (d *Document) Clean() {
+	if len(d.Elements) > 0 {
+		d.Elements[0].UI.Clean()
+	}
+}

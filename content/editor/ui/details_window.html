@@ -32,9 +32,20 @@
 					</div>
 				</div>
 				<div class="dataTable">
-					{{range .Data}}
-
+					{{range $i, $v := .Data}}
+					<div class="dataEntry">
+						<span>{{$v.Name}}</span>
+						{{range $v.Fields}}
+							{{if .IsInput}}
+								<span>{{.Name}}:</span>
+								<input id="{{$i}}_{{.Idx}}" class="dataInput" type="text" placeholder="{{.Name}}..." value="{{.Value}}" onchange="changeData" />
+							{{end}}
+						{{end}}
+					</div>
 					{{end}}
+				</div>
+				<div class="dataTable">
+					<button onclick="addData">Add data</button>
 				</div>
 			{{else if eq .Count 0}}
 				<div class="fill">No entity selected</div>

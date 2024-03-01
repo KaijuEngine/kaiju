@@ -43,6 +43,7 @@ import (
 	"encoding/gob"
 	"kaiju/rendering"
 	"log/slog"
+	"slices"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -131,6 +132,25 @@ func (e *Entity) GenerateId() string {
 	return e.id
 }
 
+// AddData will add the entity data to the entity
+//
+// `EDITOR ONLY`
+func (e *Entity) AddData(data EntityData) {
+	e.data = append(e.data, data)
+}
+
+// RemoveData will remove the entity data from the entity
+//
+// `EDITOR ONLY`
+func (e *Entity) RemoveData(idx int) {
+	e.data = slices.Delete(e.data, idx, idx+1)
+}
+
+// ListData will return the entity data
+//
+// `EDITOR ONLY`
+func (e *Entity) ListData() []EntityData { return e.data }
+
 func (e *entityEditorBindings) serialize(enc *gob.Encoder) error {
 	cpyDrawings := e.Drawings()
 	drawingDefs := e.Data(editorDrawingDefinition).([]drawingDef)
@@ -156,3 +176,5 @@ func (e *entityEditorBindings) deserialize(entity *Entity,
 	}
 	return nil
 }
+
+func (e *Entity) initialize(host *Host) {}

@@ -61,6 +61,12 @@ var vsSettings string
 //go:embed go.mod.txt
 var goMod string
 
+//go:embed kaiju.code-workspace.txt
+var workspace string
+
+//go:embed root_kaiju.code-workspace.txt
+var rootWorkspace string
+
 func findRootFolder() (string, error) {
 	wd, err := os.Getwd()
 	if _, goMain, _, ok := runtime.Caller(0); ok {
@@ -90,9 +96,11 @@ func main() {
 		ignoreEntries[i] = strings.TrimSpace(ignoreEntries[i])
 	}
 	addFiles := map[string]string{
-		".vscode/launch.json":   vsLaunch,
-		".vscode/settings.json": vsSettings,
-		"src/go.mod":            goMod,
+		".vscode/launch.json":             vsLaunch,
+		".vscode/settings.json":           vsSettings,
+		"src/go.mod":                      goMod,
+		"src/source/kaiju.code-workspace": workspace,
+		"kaiju.code-workspace":            rootWorkspace,
 	}
 	if err := os.Chdir(root); err != nil {
 		panic(err)

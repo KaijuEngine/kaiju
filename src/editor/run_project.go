@@ -145,7 +145,7 @@ func (ed *Editor) launchProject(isDebug bool) {
 	if isDebug {
 		ed.statusBar.SetMessage(fmt.Sprintf(
 			"Waiting for debugger to connect to %s", addr))
-		exec.Command("code", ".").Run()
+		exec.Command("code", "src/source/kaiju.code-workspace").Run()
 		go startNetworkLogging(ed, &dbgNetAlive)
 	}
 	cmd.Wait()

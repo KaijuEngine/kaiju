@@ -57,3 +57,9 @@ func (e *entityEditorBindings) deserialize(entity *Entity,
 	var clip map[string]any
 	return dec.Decode(&clip)
 }
+
+func (e *Entity) initialize(host *Host) {
+	for i := range e.data {
+		e.data[i].Init(e, host)
+	}
+}

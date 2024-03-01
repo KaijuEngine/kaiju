@@ -203,6 +203,7 @@ func (host *Host) AssetDatabase() *assets.Database {
 // entities, then the entity will be added to the editor entity pool.
 func (host *Host) AddEntity(entity *Entity) {
 	host.addEntity(entity)
+	entity.initialize(host)
 }
 
 // ClearEntities will remove all entities from the host. This will remove all

@@ -52,6 +52,18 @@ func init() {
 	gob.Register([]drawingDef(nil))
 }
 
+type entityStorage struct {
+	Id                    string
+	Position              matrix.Vec3
+	Rotation              matrix.Vec3
+	Scale                 matrix.Vec3
+	Name                  string
+	IsActive              bool
+	DeactivatedFromParent bool
+	OrderedChildren       bool
+	Data                  []EntityData
+}
+
 type drawingDef struct {
 	CanvasId         string
 	ShaderDefinition string
@@ -59,6 +71,44 @@ type drawingDef struct {
 	Textures         []string
 	UseBlending      bool
 	ShaderData       rendering.DrawInstance
+}
+
+// Serialize will write the entity to the given stream and is reversed using
+// #Deserialize. This will not serialize the children of the entity, that is
+// the responsibility of the caller. All errors returned will be related to
+// decoding the binary stream
+func (e *Entity) Serialize(stream io.Writer) error {
+	if e.IsDestroyed() {
+		return errors.New("destroyed entities cannot be serialized")
+	}
+	enc := gob.NewEncoder(stream)
+	var store entityStorage
+	store.fromEntity(e)
+	if err := enc.Encode(store); err != nil {
+		return err
+	}
+	return e.EditorBindings.serialize(enc)
+}
+
+// Deserialize will read the entity from the given stream and is reversed using
+// #Serialize. This will not deserialize the children of the entity, that is
+// the responsibility of the caller. All errors returned will be related to
+// decoding the binary stream
+func (e *Entity) Deserialize(stream io.Reader, host *Host) error {
+	dec := gob.NewDecoder(stream)
+	var drawingDefs []drawingDef
+	var store entityStorage
+	if err := dec.Decode(&store); err != nil {
+		return err
+	} else if err = dec.Decode(&drawingDefs); err != nil {
+		return err
+	}
+	store.toEntity(e)
+	if drawings, err := setupDrawings(e, host, drawingDefs); err != nil {
+		return err
+	} else {
+		return e.EditorBindings.deserialize(e, dec, host, drawings)
+	}
 }
 
 func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawing, error) {
@@ -102,69 +152,26 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 	return drawings, nil
 }
 
-// Serialize will write the entity to the given stream and is reversed using
-// #Deserialize. This will not serialize the children of the entity, that is
-// the responsibility of the caller. All errors returned will be related to
-// decoding the binary stream
-func (e *Entity) Serialize(stream io.Writer) error {
-	if e.IsDestroyed() {
-		return errors.New("destroyed entities cannot be serialized")
-	}
-	enc := gob.NewEncoder(stream)
-	var p, r, s = e.Transform.Position(), e.Transform.Rotation(), e.Transform.Scale()
-	if err := enc.Encode(e.id); err != nil {
-		return err
-	} else if err := enc.Encode(p); err != nil {
-		return err
-	} else if err = enc.Encode(r); err != nil {
-		return err
-	} else if err = enc.Encode(s); err != nil {
-		return err
-	} else if err = enc.Encode(e.name); err != nil {
-		return err
-	} else if err = enc.Encode(e.isActive); err != nil {
-		return err
-	} else if err = enc.Encode(e.deactivatedFromParent); err != nil {
-		return err
-	} else if err = enc.Encode(e.orderedChildren); err != nil {
-		return err
-	}
-	return e.EditorBindings.serialize(enc)
+func (s *entityStorage) fromEntity(e *Entity) {
+	s.Id = e.id
+	s.Position = e.Transform.Position()
+	s.Rotation = e.Transform.Rotation()
+	s.Scale = e.Transform.Scale()
+	s.Name = e.name
+	s.IsActive = e.isActive
+	s.DeactivatedFromParent = e.deactivatedFromParent
+	s.OrderedChildren = e.orderedChildren
+	s.Data = e.data
 }
 
-// Deserialize will read the entity from the given stream and is reversed using
-// #Serialize. This will not deserialize the children of the entity, that is
-// the responsibility of the caller. All errors returned will be related to
-// decoding the binary stream
-func (e *Entity) Deserialize(stream io.Reader, host *Host) error {
-	dec := gob.NewDecoder(stream)
-	var p, r, s matrix.Vec3
-	var drawingDefs []drawingDef
-	if err := dec.Decode(&e.id); err != nil {
-		return err
-	} else if err := dec.Decode(&p); err != nil {
-		return err
-	} else if err = dec.Decode(&r); err != nil {
-		return err
-	} else if err = dec.Decode(&s); err != nil {
-		return err
-	} else if err = dec.Decode(&e.name); err != nil {
-		return err
-	} else if err = dec.Decode(&e.isActive); err != nil {
-		return err
-	} else if err = dec.Decode(&e.deactivatedFromParent); err != nil {
-		return err
-	} else if err = dec.Decode(&e.orderedChildren); err != nil {
-		return err
-	} else if err = dec.Decode(&drawingDefs); err != nil {
-		return err
-	}
-	e.Transform.SetPosition(p)
-	e.Transform.SetRotation(r)
-	e.Transform.SetScale(s)
-	if drawings, err := setupDrawings(e, host, drawingDefs); err != nil {
-		return err
-	} else {
-		return e.EditorBindings.deserialize(e, dec, host, drawings)
-	}
+func (s *entityStorage) toEntity(e *Entity) {
+	e.id = s.Id
+	e.Transform.SetPosition(s.Position)
+	e.Transform.SetRotation(s.Rotation)
+	e.Transform.SetScale(s.Scale)
+	e.name = s.Name
+	e.isActive = s.IsActive
+	e.deactivatedFromParent = s.DeactivatedFromParent
+	e.orderedChildren = s.OrderedChildren
+	e.data = s.Data
 }

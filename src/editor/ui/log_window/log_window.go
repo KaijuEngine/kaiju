@@ -343,4 +343,5 @@ func (l *LogWindow) reloadUI() {
 	l.doc.SetGroup(l.group)
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
+	l.doc.Clean()
 }

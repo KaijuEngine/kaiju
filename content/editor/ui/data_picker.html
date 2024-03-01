@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/data_picker.css">
+	</head>
+	<body>
+		<div class="fill darkBG clip">
+			<div class="search">
+				<input id="search" type="text" placeholder="Search..." onsubmit="search" />
+			</div>
+			<div id="listing" class="listing">
+				{{range $i, $v := .}}
+				<div id="{{$i}}" class="listEntry" onclick="pick" data-name="{{$v.Name}}">
+					<span>{{$v.Name}}</span>
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>
