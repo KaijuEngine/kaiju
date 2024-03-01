@@ -80,8 +80,8 @@
 				"type": "go",
 				"request": "launch",
 				"mode": "auto",
-				"program": "${workspaceFolder}/../",
-				"cwd": "${workspaceFolder}/../../",
+				"program": "${workspaceFolder}/src",
+				"cwd": "${workspaceFolder}",
 				"buildFlags": ["-tags=debug"],
 				"env": {
 					"CGO_LDFLAGS": "-lgdi32 -lXInput"
@@ -91,8 +91,8 @@
 				"type": "go",
 				"request": "launch",
 				"mode": "auto",
-				"program": "${workspaceFolder}/../",
-				"cwd": "${workspaceFolder}/../../",
+				"program": "${workspaceFolder}/src",
+				"cwd": "${workspaceFolder}",
 				"env": {
 					"CGO_LDFLAGS": "-lgdi32 -lXInput"
 				}
@@ -101,8 +101,8 @@
 				"type": "go",
 				"request": "launch",
 				"mode": "auto",
-				"program": "${workspaceFolder}/../",
-				"cwd": "${workspaceFolder}/../../",
+				"program": "${workspaceFolder}/src",
+				"cwd": "${workspaceFolder}",
 				"buildFlags": ["-tags=debug"],
 				"env": {
 					"CGO_LDFLAGS": "-lX11"
@@ -112,8 +112,8 @@
 				"type": "go",
 				"request": "launch",
 				"mode": "auto",
-				"program": "${workspaceFolder}/../",
-				"cwd": "${workspaceFolder}/../../",
+				"program": "${workspaceFolder}/src",
+				"cwd": "${workspaceFolder}",
 				"env": {
 					"CGO_LDFLAGS": "-lX11"
 				}
