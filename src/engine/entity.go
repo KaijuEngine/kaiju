@@ -60,6 +60,7 @@ type Entity struct {
 	Children              []*Entity
 	matrix                matrix.Mat4
 	namedData             map[string][]any
+	data                  []EntityData
 	OnDestroy             events.Event
 	OnActivate            events.Event
 	OnDeactivate          events.Event
@@ -84,6 +85,7 @@ func NewEntity() *Entity {
 		OnDestroy:    events.New(),
 		OnActivate:   events.New(),
 		OnDeactivate: events.New(),
+		data:         make([]EntityData, 0),
 	}
 	e.EditorBindings.init()
 	return e
