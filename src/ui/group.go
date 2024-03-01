@@ -78,7 +78,7 @@ func (group *Group) requestEvent(ui UI, eType EventType) {
 }
 
 func (group *Group) setFocus(ui UI) {
-	if group.focus != nil {
+	if group.focus != nil && group.focus != ui {
 		group.focus.ExecuteEvent(EventTypeMiss)
 	}
 	group.focus = ui
