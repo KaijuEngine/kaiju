@@ -65,7 +65,8 @@
 		"Srgb",
 		"Astc",
 		"Unorm",
-		"Subpasses"
+		"Subpasses",
+		"codegen"
 	],
 	"editor.rulers": [80, 90],
 }
