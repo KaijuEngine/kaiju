@@ -98,6 +98,10 @@ func (f *entityDataField) IsInput() bool {
 	return false
 }
 
+func (f *entityDataField) IsCheckbox() bool {
+	return f.Type == "bool"
+}
+
 func New(editor interfaces.Editor, uiGroup *ui.Group) *Details {
 	d := &Details{
 		editor:  editor,
@@ -204,6 +208,8 @@ func (d *Details) changeData(elm *document.DocElement) {
 		v.SetFloat(toFloat(elm.UI.(*ui.Input).Text()))
 	case reflect.String:
 		v.SetString(inputString(elm))
+	case reflect.Bool:
+		v.SetBool(elm.UI.(*ui.Checkbox).IsChecked())
 	}
 }
 

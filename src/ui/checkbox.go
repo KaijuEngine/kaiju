@@ -98,7 +98,7 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 	p.AddEvent(EventTypeClick, cb.onClick)
 	p.localData = ld
 	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
-	(*Panel)(cb).SetBackground(ld.textures[texOffIdle])
+	p.ensureBGExists(ld.textures[texOffIdle])
 	return cb
 }
 
@@ -161,6 +161,9 @@ func (cb *Checkbox) onClick() {
 
 func (cb *Checkbox) SetChecked(isChecked bool) {
 	data := cb.data()
+	if data.isChecked == isChecked {
+		return
+	}
 	data.isChecked = isChecked
 	var target *rendering.Texture = nil
 	if data.isChecked {
@@ -177,6 +180,7 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 		}
 	}
 	(*Panel)(cb).SetBackground(target)
+	cb.requestEvent(EventTypeChange)
 }
 
 func (cb Checkbox) IsChecked() bool {
