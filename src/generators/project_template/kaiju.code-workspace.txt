@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "./src/source"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"glad_wgl.h": "c",
+			"stdint.h": "c",
+			"wchar.h": "c",
+			"windowing.h": "c",
+			"string.h": "c",
+			"win32.h": "c",
+			"x11.h": "c",
+			"xinput.h": "c",
+			"shared_mem.h": "c",
+			"*.rh": "c",
+			"stdbool.h": "c",
+			"windowsx.h": "c",
+			"strings.h": "c",
+			"windows.h": "c",
+			"xlib.h": "c",
+			"commdlg.h": "c",
+			"knownfolders.h": "c",
+			"glad.h": "c"
+		}
+	}
+}
