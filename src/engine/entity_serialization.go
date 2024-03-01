@@ -153,7 +153,7 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 }
 
 func (s *entityStorage) fromEntity(e *Entity) {
-	s.Id = e.id
+	s.Id = string(e.id)
 	s.Position = e.Transform.Position()
 	s.Rotation = e.Transform.Rotation()
 	s.Scale = e.Transform.Scale()
@@ -165,7 +165,7 @@ func (s *entityStorage) fromEntity(e *Entity) {
 }
 
 func (s *entityStorage) toEntity(e *Entity) {
-	e.id = s.Id
+	e.id = EntityId(s.Id)
 	e.Transform.SetPosition(s.Position)
 	e.Transform.SetRotation(s.Rotation)
 	e.Transform.SetScale(s.Scale)

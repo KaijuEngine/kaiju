@@ -203,7 +203,7 @@ func (h *Hierarchy) onSelectionChanged() {
 	}
 	for i := range elm.HTML.Children {
 		c := &elm.HTML.Children[i]
-		id := c.Attribute("id")
+		id := engine.EntityId(c.Attribute("id"))
 		for _, se := range h.selection.Entities() {
 			if se.Id() == id {
 				c.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
@@ -214,9 +214,9 @@ func (h *Hierarchy) onSelectionChanged() {
 }
 
 func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
-	id := elm.HTML.Attribute("id")
+	id := engine.EntityId(elm.HTML.Attribute("id"))
 	if e, ok := h.host.FindEntity(id); !ok {
-		slog.Error("Could not find entity", slog.String("id", id))
+		slog.Error("Could not find entity", slog.String("id", string(id)))
 	} else {
 		kb := &h.host.Window.Keyboard
 		if kb.HasCtrl() {

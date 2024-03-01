@@ -123,9 +123,9 @@ func (e *entityEditorBindings) Remove(key string) {
 // it will log an error and return the existing ID
 //
 // `EDITOR ONLY`
-func (e *Entity) GenerateId() string {
+func (e *Entity) GenerateId() EntityId {
 	if e.id == "" {
-		e.id = uuid.New().String()
+		e.id = EntityId(uuid.New().String())
 	} else {
 		slog.Error("Generating entity ID when one already exists")
 	}

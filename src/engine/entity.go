@@ -45,6 +45,12 @@ import (
 	"slices"
 )
 
+// EntityId is a string that represents a unique identifier for an entity. The
+// identifier is only valid for entities that are not generated through template
+// instantiation. The identifier may also be stripped during game runtime if the
+// entity is never externally referenced by any other part of the system.
+type EntityId string
+
 // Entity is a struct that represents an arbitrary object in the host system.
 // It contains a 3D transformation and can be a parent of, or a child to, other
 // entities. Entities can also contain arbitrary named data to make it easier
@@ -54,7 +60,7 @@ import (
 // #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
 // children unordered unless you have a specific reason to order them.
 type Entity struct {
-	id                    string
+	id                    EntityId
 	Transform             matrix.Transform
 	Parent                *Entity
 	Children              []*Entity
@@ -95,7 +101,7 @@ func NewEntity() *Entity {
 // entities that are not generated through template instantiation. The Id may
 // also be stripped during game runtime if the entity is never externally
 // referenced by any other part of the system.
-func (e *Entity) Id() string { return e.id }
+func (e *Entity) Id() EntityId { return e.id }
 
 // IsRoot returns true if the entity is the root entity in the hierarchy
 func (e *Entity) IsRoot() bool { return e.Parent == nil }
