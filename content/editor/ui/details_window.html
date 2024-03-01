@@ -35,6 +35,7 @@
 					{{range $i, $v := .Data}}
 					<div class="dataEntry">
 						<span>{{$v.Name}}</span>
+						<div></div>
 						{{range $v.Fields}}
 							{{if .IsInput}}
 								<span>{{.Name}}:</span>

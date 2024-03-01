@@ -167,6 +167,7 @@ func (d *Details) reload() {
 	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
+	go d.editor.ReloadEntityDataListing()
 	if !isActive {
 		d.doc.Deactivate()
 	}

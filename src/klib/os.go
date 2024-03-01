@@ -45,3 +45,7 @@ func ExeExtension() string {
 	}
 	return ""
 }
+
+func ToUnixPath(path string) string {
+	return ReplaceStringRecursive(path, "\\", "/")
+}

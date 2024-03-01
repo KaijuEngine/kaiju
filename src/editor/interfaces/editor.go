@@ -60,4 +60,5 @@ type Editor interface {
 	Hierarchy() *hierarchy.Hierarchy
 	OpenProject()
 	AvailableDataBindings() []codegen.GeneratedType
+	ReloadEntityDataListing()
 }
