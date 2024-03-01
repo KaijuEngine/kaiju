@@ -440,21 +440,11 @@ func (input *Input) onDown() {
 }
 
 func (input *Input) onClick() {
-	data := input.Data()
-	start := data.selectStart
-	end := data.selectEnd
-	input.onDown()
-	input.setSelect(start, end)
+	input.Select()
 }
 
 func (input *Input) onMiss() {
-	data := input.Data()
-	if data.isActive {
-		input.Deselect()
-		input.resetSelect()
-		input.makeCursorInvisible()
-		input.Host().Window.CursorStandard()
-	}
+	input.Deselect()
 }
 
 func (input *Input) Text() string {
@@ -534,10 +524,15 @@ func (input *Input) Select() {
 }
 
 func (input *Input) Deselect() {
-	input.Data().isActive = false
-	input.resetSelect()
-	input.makeCursorInvisible()
-	input.Host().Window.CursorStandard()
+	if input.Data().isActive {
+		input.Data().isActive = false
+		input.resetSelect()
+		input.makeCursorInvisible()
+		input.Host().Window.CursorStandard()
+		if input.group != nil {
+			input.group.setFocus(nil)
+		}
+	}
 }
 
 func (input *Input) SetFontSize(fontSize float32) {
@@ -549,6 +544,10 @@ func (input *Input) SetFontSize(fontSize float32) {
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 	if input.entity.IsActive() && input.Data().isActive {
 		if keyState == hid.KeyStateDown {
+			if keyId == hid.KeyboardKeyEscape {
+				input.Deselect()
+				return
+			}
 			kb := &input.host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {

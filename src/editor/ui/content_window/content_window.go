@@ -192,6 +192,7 @@ func (s *ContentWindow) reloadUI() {
 		s.listing = elm.UIPanel
 	}
 	s.doc.Clean()
+	s.input.Select()
 }
 
 func (s *ContentWindow) listSearch() {
