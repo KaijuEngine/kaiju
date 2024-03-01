@@ -102,13 +102,8 @@ func createCache(projectFolder string) error {
 
 func createSource(projectFolder string) error {
 	sourceDir := filepath.Join(projectFolder, sourceFolder)
-	err := os.Mkdir(sourceDir, 0755)
-	if err != nil {
-		return err
-	}
 	mainFile := filepath.Join(sourceDir, "/source.go")
-	_, err = os.Stat(mainFile)
-	if err == nil {
+	if _, err := os.Stat(mainFile); err == nil {
 		return errors.New("source file already exists and should not")
 	}
 	f, err := os.Create(mainFile)
