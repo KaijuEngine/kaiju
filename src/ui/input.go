@@ -541,6 +541,10 @@ func (input *Input) SetFontSize(fontSize float32) {
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 	if input.entity.IsActive() && input.Data().isActive {
 		if keyState == hid.KeyStateDown {
+			if keyId == hid.KeyboardKeyEscape {
+				input.Deselect()
+				return
+			}
 			kb := &input.host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
