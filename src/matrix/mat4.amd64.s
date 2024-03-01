@@ -41,22 +41,22 @@
 
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
-	INSERTPS  $14, b+64(FP),  X1	// x0y0
-	INSERTPS  $14, b+68(FP),  X2	// x0y1
-	INSERTPS  $14, b+72(FP),  X3	// x0y2
-	INSERTPS  $14, b+76(FP),  X4	// x0y3
-	INSERTPS  $16, b+80(FP),  X1	// x1y0
-	INSERTPS  $16, b+84(FP),  X2	// x1y1
-	INSERTPS  $16, b+88(FP),  X3	// x1y2
-	INSERTPS  $16, b+92(FP),  X4	// x1y3
-	INSERTPS  $32, b+96(FP),  X1	// x2y0
-	INSERTPS  $32, b+100(FP), X2	// x2y1
-	INSERTPS  $32, b+104(FP), X3	// x2y2
-	INSERTPS  $32, b+108(FP), X4	// x2y3
-	INSERTPS  $48, b+112(FP), X1	// x3y0
-	INSERTPS  $48, b+116(FP), X2	// x3y1
-	INSERTPS  $48, b+120(FP), X3	// x3y2
-	INSERTPS  $48, b+124(FP), X4	// x3y3
+	INSERTPS  $14, b+64(FP),  X1    // x0y0
+	INSERTPS  $14, b+68(FP),  X2    // x0y1
+	INSERTPS  $14, b+72(FP),  X3    // x0y2
+	INSERTPS  $14, b+76(FP),  X4    // x0y3
+	INSERTPS  $16, b+80(FP),  X1    // x1y0
+	INSERTPS  $16, b+84(FP),  X2    // x1y1
+	INSERTPS  $16, b+88(FP),  X3    // x1y2
+	INSERTPS  $16, b+92(FP),  X4    // x1y3
+	INSERTPS  $32, b+96(FP),  X1    // x2y0
+	INSERTPS  $32, b+100(FP), X2    // x2y1
+	INSERTPS  $32, b+104(FP), X3    // x2y2
+	INSERTPS  $32, b+108(FP), X4    // x2y3
+	INSERTPS  $48, b+112(FP), X1    // x3y0
+	INSERTPS  $48, b+116(FP), X2    // x3y1
+	INSERTPS  $48, b+120(FP), X3    // x3y2
+	INSERTPS  $48, b+124(FP), X4    // x3y3
 // x0y0
 	MOVUPS    a+0(FP), X0
 	MULPS     X1,      X0
@@ -157,22 +157,22 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
-	INSERTPS  $14, b+0(FP),  X1	// x0y0
-	INSERTPS  $14, b+4(FP),  X2	// x0y1
-	INSERTPS  $14, b+8(FP),  X3	// x0y2
-	INSERTPS  $14, b+12(FP),  X4	// x0y3
-	INSERTPS  $16, b+16(FP),  X1	// x1y0	
-	INSERTPS  $16, b+20(FP),  X2	// x1y1
-	INSERTPS  $16, b+24(FP),  X3	// x1y2
-	INSERTPS  $16, b+28(FP),  X4	// x1y3
-	INSERTPS  $32, b+32(FP),  X1	// x2y0
-	INSERTPS  $32, b+36(FP), X2	// x2y1
-	INSERTPS  $32, b+40(FP), X3	// x2y2
-	INSERTPS  $32, b+44(FP), X4	// x2y3
-	INSERTPS  $48, b+48(FP), X1	// x3y0
-	INSERTPS  $48, b+52(FP), X2	// x3y1
-	INSERTPS  $48, b+56(FP), X3	// x3y2
-	INSERTPS  $48, b+60(FP), X4	// x3y3
+	INSERTPS  $14, b+0(FP),   X1    // x0y0
+	INSERTPS  $14, b+4(FP),   X2    // x0y1
+	INSERTPS  $14, b+8(FP),   X3    // x0y2
+	INSERTPS  $14, b+12(FP),  X4    // x0y3
+	INSERTPS  $16, b+16(FP),  X1    // x1y0	
+	INSERTPS  $16, b+20(FP),  X2    // x1y1
+	INSERTPS  $16, b+24(FP),  X3    // x1y2
+	INSERTPS  $16, b+28(FP),  X4    // x1y3
+	INSERTPS  $32, b+32(FP),  X1    // x2y0
+	INSERTPS  $32, b+36(FP),  X2    // x2y1
+	INSERTPS  $32, b+40(FP),  X3    // x2y2
+	INSERTPS  $32, b+44(FP),  X4    // x2y3
+	INSERTPS  $48, b+48(FP),  X1    // x3y0
+	INSERTPS  $48, b+52(FP),  X2    // x3y1
+	INSERTPS  $48, b+56(FP),  X3    // x3y2
+	INSERTPS  $48, b+60(FP),  X4    // x3y3
 // x
 	MOVUPS    a+64(FP), X0
 	MULPS     X1,       X0
