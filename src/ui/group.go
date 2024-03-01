@@ -82,7 +82,9 @@ func (group *Group) setFocus(ui UI) {
 		group.focus.ExecuteEvent(EventTypeMiss)
 	}
 	group.focus = ui
-	group.focus.ExecuteEvent(EventTypeClick)
+	if group.focus != nil {
+		group.focus.ExecuteEvent(EventTypeClick)
+	}
 }
 
 func (group *Group) Attach(host *engine.Host) {

@@ -529,6 +529,9 @@ func (input *Input) Deselect() {
 		input.resetSelect()
 		input.makeCursorInvisible()
 		input.Host().Window.CursorStandard()
+		if input.group != nil {
+			input.group.setFocus(nil)
+		}
 	}
 }
 
