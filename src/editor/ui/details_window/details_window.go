@@ -97,12 +97,20 @@ func (d *Details) reload() {
 			"changeScaleX": d.changeScaleX,
 			"changeScaleY": d.changeScaleY,
 			"changeScaleZ": d.changeScaleZ,
+			"addData":      d.addData,
 		}))
 	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
 	if !isActive {
 		d.doc.Deactivate()
 	}
+}
+
+func (d *Details) addData(*document.DocElement) {
+	data := d.editor.AvailableDataBindings()
+	e := d.editor.Selection().Entities()[0]
+	e.AddData(data[0].New().Value)
+	d.reload()
 }
 
 func (d *Details) onSelectionChanged() {

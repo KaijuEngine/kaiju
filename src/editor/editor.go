@@ -44,6 +44,7 @@ import (
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
 	"kaiju/editor/cache/editor_cache"
+	"kaiju/editor/codegen"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
@@ -104,6 +105,7 @@ type Editor struct {
 	windowListing  editor_window.Listing
 	uiGroup        *ui.Group
 	runningProject *exec.Cmd
+	entityData     []codegen.GeneratedType
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
 }
@@ -119,6 +121,10 @@ func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
 func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
+
+func (e *Editor) AvailableDataBindings() []codegen.GeneratedType {
+	return e.entityData
+}
 
 func addConsole(host *engine.Host, group *ui.Group) {
 	html_preview.SetupConsole(host)
@@ -175,6 +181,9 @@ func (e *Editor) setProject(project string) error {
 	if err := os.Chdir(project); err != nil {
 		return err
 	}
+	go func() {
+		e.entityData, _ = codegen.Walk("src/source", "kaiju/source")
+	}()
 	return asset_info.InitForCurrentProject()
 }
 

@@ -38,6 +38,7 @@
 package interfaces
 
 import (
+	"kaiju/editor/codegen"
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
@@ -58,4 +59,5 @@ type Editor interface {
 	StatusBar() *status_bar.StatusBar
 	Hierarchy() *hierarchy.Hierarchy
 	OpenProject()
+	AvailableDataBindings() []codegen.GeneratedType
 }
