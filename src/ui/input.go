@@ -440,21 +440,11 @@ func (input *Input) onDown() {
 }
 
 func (input *Input) onClick() {
-	data := input.Data()
-	start := data.selectStart
-	end := data.selectEnd
-	input.onDown()
-	input.setSelect(start, end)
+	input.Select()
 }
 
 func (input *Input) onMiss() {
-	data := input.Data()
-	if data.isActive {
-		input.Deselect()
-		input.resetSelect()
-		input.makeCursorInvisible()
-		input.Host().Window.CursorStandard()
-	}
+	input.Deselect()
 }
 
 func (input *Input) Text() string {
@@ -534,10 +524,12 @@ func (input *Input) Select() {
 }
 
 func (input *Input) Deselect() {
-	input.Data().isActive = false
-	input.resetSelect()
-	input.makeCursorInvisible()
-	input.Host().Window.CursorStandard()
+	if input.Data().isActive {
+		input.Data().isActive = false
+		input.resetSelect()
+		input.makeCursorInvisible()
+		input.Host().Window.CursorStandard()
+	}
 }
 
 func (input *Input) SetFontSize(fontSize float32) {
