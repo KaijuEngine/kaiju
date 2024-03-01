@@ -181,6 +181,7 @@ func (h *Hierarchy) Reload() {
 		h.input = elm.UI.(*ui.Input)
 		h.input.AddEvent(ui.EventTypeSubmit, h.submit)
 	}
+	h.doc.Clean()
 	if !isActive {
 		h.doc.Deactivate()
 	}
