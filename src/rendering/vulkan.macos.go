@@ -39,7 +39,7 @@
 
 package rendering
 
-import vk "github.com/KaijuEngine/go-vulkan"
+import vk "kaiju/rendering/vulkan"
 
 const vkGeometryShaderValid = vk.False
 const vkUseValidationLayers = true

@@ -41,7 +41,7 @@ import (
 	"errors"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 type RenderPass struct {

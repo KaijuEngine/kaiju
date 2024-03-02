@@ -40,7 +40,7 @@ package rendering
 import (
 	"strings"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 type DescriptorSetLayoutStructureType struct {

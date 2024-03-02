@@ -41,7 +41,7 @@ import (
 	"slices"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 type bufferTrash struct {
