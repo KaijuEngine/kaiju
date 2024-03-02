@@ -48,13 +48,14 @@ func openContributions(*document.DocElement) {
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/graphs/contributors")
 }
 
-func New() {
+func New(edPath string) {
+	const html = "editor/ui/about_window.html"
 	container := host_container.New("About Window", nil)
 	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
-	html := klib.MustReturn(container.Host.AssetDatabase().ReadText("editor/ui/about_window.html"))
+	container.Host.AssetDatabase().EditorContext.EditorPath = edPath
 	container.RunFunction(func() {
-		markup.DocumentFromHTMLString(container.Host, html, "", nil, map[string]func(*document.DocElement){
+		markup.DocumentFromHTMLAsset(container.Host, html, nil, map[string]func(*document.DocElement){
 			"openContributions": openContributions,
 		})
 	})
