@@ -181,10 +181,12 @@ func (e *Editor) setProject(project string) error {
 	if err := os.Chdir(project); err != nil {
 		return err
 	}
-	go func() {
-		e.entityData, _ = codegen.Walk("src/source", "kaiju/source")
-	}()
+	go e.ReloadEntityDataListing()
 	return asset_info.InitForCurrentProject()
+}
+
+func (e *Editor) ReloadEntityDataListing() {
+	e.entityData, _ = codegen.Walk("src/source", "kaiju/source")
 }
 
 func (e *Editor) setupViewportGrid() {

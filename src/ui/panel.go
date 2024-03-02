@@ -566,6 +566,8 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			CanvasId:   "default",
 		}
 		p.host.Drawings.AddDrawing(&p.drawing)
+	} else if tex != nil {
+		p.SetBackground(tex)
 	}
 }
 

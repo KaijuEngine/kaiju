@@ -75,7 +75,7 @@ type Host struct {
 	name           string
 	editorEntities editorEntities
 	entities       []*Entity
-	entityLookup   map[string]*Entity
+	entityLookup   map[EntityId]*Entity
 	frameRunner    []frameRun
 	Window         *windowing.Window
 	LogStream      *logging.LogStream
@@ -122,7 +122,7 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:      logStream,
 		frameRunner:    make([]frameRun, 0),
-		entityLookup:   make(map[string]*Entity),
+		entityLookup:   make(map[EntityId]*Entity),
 	}
 	return host
 }
@@ -244,7 +244,7 @@ func (host *Host) AddEntities(entities ...*Entity) {
 // FindEntity will search for an entity contained in this host by its id. If the
 // entity is found, then it will return the entity and true, otherwise it will
 // return nil and false.
-func (host *Host) FindEntity(id string) (*Entity, bool) {
+func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 	e, ok := host.entityLookup[id]
 	return e, ok
 }

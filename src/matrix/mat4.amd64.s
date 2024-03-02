@@ -39,162 +39,69 @@
 
 #include "textflag.h"
 
+#define DOT(a, b, to) \
+	MOVUPS a,  X0     \
+	MULPS  b,  X0     \
+	HADDPS X0, X0     \
+	HADDPS X0, X0     \
+	MOVUPS X0, to
+
+#define PACK_COLUMNS(start)           \
+	INSERTPS  $14, b+start+0(FP),  X1 \  // x0y0
+	INSERTPS  $14, b+start+4(FP),  X2 \  // x0y1
+	INSERTPS  $14, b+start+8(FP),  X3 \  // x0y2
+	INSERTPS  $14, b+start+12(FP), X4 \  // x0y3
+	INSERTPS  $16, b+start+16(FP), X1 \  // x1y0
+	INSERTPS  $16, b+start+20(FP), X2 \  // x1y1
+	INSERTPS  $16, b+start+24(FP), X3 \  // x1y2
+	INSERTPS  $16, b+start+28(FP), X4 \  // x1y3
+	INSERTPS  $32, b+start+32(FP), X1 \  // x2y0
+	INSERTPS  $32, b+start+36(FP), X2 \  // x2y1
+	INSERTPS  $32, b+start+40(FP), X3 \  // x2y2
+	INSERTPS  $32, b+start+44(FP), X4 \  // x2y3
+	INSERTPS  $48, b+start+48(FP), X1 \  // x3y0
+	INSERTPS  $48, b+start+52(FP), X2 \  // x3y1
+	INSERTPS  $48, b+start+56(FP), X3 \  // x3y2
+	INSERTPS  $48, b+start+60(FP), X4    // x3y3
+
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
-	INSERTPS  $14, b+64(FP),  X1	// x0y0
-	INSERTPS  $14, b+68(FP),  X2	// x0y1
-	INSERTPS  $14, b+72(FP),  X3	// x0y2
-	INSERTPS  $14, b+76(FP),  X4	// x0y3
-	INSERTPS  $16, b+80(FP),  X1	// x1y0
-	INSERTPS  $16, b+84(FP),  X2	// x1y1
-	INSERTPS  $16, b+88(FP),  X3	// x1y2
-	INSERTPS  $16, b+92(FP),  X4	// x1y3
-	INSERTPS  $32, b+96(FP),  X1	// x2y0
-	INSERTPS  $32, b+100(FP), X2	// x2y1
-	INSERTPS  $32, b+104(FP), X3	// x2y2
-	INSERTPS  $32, b+108(FP), X4	// x2y3
-	INSERTPS  $48, b+112(FP), X1	// x3y0
-	INSERTPS  $48, b+116(FP), X2	// x3y1
-	INSERTPS  $48, b+120(FP), X3	// x3y2
-	INSERTPS  $48, b+124(FP), X4	// x3y3
-// x0y0
-	MOVUPS    a+0(FP), X0
-	MULPS     X1,      X0
-	HADDPS    X0,      X0
-	HADDPS    X0,      X0
-	MOVUPS    X0,      ret+128(FP)
-// x0y1
-	MOVUPS    a+0(FP), X0
-	MULPS     X2,      X0
-	HADDPS    X0,      X0
-	HADDPS    X0,      X0
-	MOVUPS    X0,      ret+132(FP)
-// x0y2
-	MOVUPS    a+0(FP), X0
-	MULPS     X3,      X0
-	HADDPS    X0,      X0
-	HADDPS    X0,      X0
-	MOVUPS    X0,      ret+136(FP)
-// x0y3
-	MOVUPS    a+0(FP), X0
-	MULPS     X4,      X0
-	HADDPS    X0,      X0
-	HADDPS    X0,      X0
-	MOVUPS    X0,      ret+140(FP)
-// x1y0
-	MOVUPS    a+16(FP), X0
-	MULPS     X1,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+144(FP)
-// x1y1
-	MOVUPS    a+16(FP), X0
-	MULPS     X2,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+148(FP)
-// x1y2
-	MOVUPS    a+16(FP), X0
-	MULPS     X3,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+152(FP)
-// x1y3
-	MOVUPS    a+16(FP), X0
-	MULPS     X4,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+156(FP)
-// x2y0
-	MOVUPS    a+32(FP), X0
-	MULPS     X1,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+160(FP)
-// x2y1
-	MOVUPS    a+32(FP), X0
-	MULPS     X2,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+164(FP)
-// x2y2
-	MOVUPS    a+32(FP), X0
-	MULPS     X3,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+168(FP)
-// x2y3
-	MOVUPS    a+32(FP), X0
-	MULPS     X4,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+172(FP)
-// x3y0
-	MOVUPS    a+48(FP), X0
-	MULPS     X1,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+176(FP)
-// x3y1
-	MOVUPS    a+48(FP), X0
-	MULPS     X2,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+180(FP)
-// x3y2
-	MOVUPS    a+48(FP), X0
-	MULPS     X3,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+184(FP)
-// x3y3
-	MOVUPS    a+48(FP), X0
-	MULPS     X4,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+188(FP)
+	PACK_COLUMNS(64)
+	DOT(a+0(FP), X1, ret+128(FP))   // x0y0
+	DOT(a+0(FP), X2, ret+132(FP))   // x0y1
+	DOT(a+0(FP), X3, ret+136(FP))   // x0y2
+	DOT(a+0(FP), X4, ret+140(FP))   // x0y3
+	DOT(a+16(FP), X1, ret+144(FP))  // x1y0
+	DOT(a+16(FP), X2, ret+148(FP))  // x1y1
+	DOT(a+16(FP), X3, ret+152(FP))  // x1y2
+	DOT(a+16(FP), X4, ret+156(FP))  // x1y3
+	DOT(a+32(FP), X1, ret+160(FP))  // x2y0
+	DOT(a+32(FP), X2, ret+164(FP))  // x2y1
+	DOT(a+32(FP), X3, ret+168(FP))  // x2y2
+	DOT(a+32(FP), X4, ret+172(FP))  // x2y3
+	DOT(a+48(FP), X1, ret+176(FP))  // x3y0
+	DOT(a+48(FP), X2, ret+180(FP))  // x3y1
+	DOT(a+48(FP), X3, ret+184(FP))  // x3y2
+	DOT(a+48(FP), X4, ret+188(FP))  // x3y3
 	RET
 
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
-	INSERTPS  $14, b+0(FP),  X1	// x0y0
-	INSERTPS  $14, b+4(FP),  X2	// x0y1
-	INSERTPS  $14, b+8(FP),  X3	// x0y2
-	INSERTPS  $14, b+12(FP),  X4	// x0y3
-	INSERTPS  $16, b+16(FP),  X1	// x1y0	
-	INSERTPS  $16, b+20(FP),  X2	// x1y1
-	INSERTPS  $16, b+24(FP),  X3	// x1y2
-	INSERTPS  $16, b+28(FP),  X4	// x1y3
-	INSERTPS  $32, b+32(FP),  X1	// x2y0
-	INSERTPS  $32, b+36(FP), X2	// x2y1
-	INSERTPS  $32, b+40(FP), X3	// x2y2
-	INSERTPS  $32, b+44(FP), X4	// x2y3
-	INSERTPS  $48, b+48(FP), X1	// x3y0
-	INSERTPS  $48, b+52(FP), X2	// x3y1
-	INSERTPS  $48, b+56(FP), X3	// x3y2
-	INSERTPS  $48, b+60(FP), X4	// x3y3
-// x
-	MOVUPS    a+64(FP), X0
-	MULPS     X1,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+80(FP)
-// y
-	MOVUPS    a+64(FP), X0
-	MULPS     X2,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+84(FP)
-// z
-	MOVUPS    a+64(FP), X0
-	MULPS     X3,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+88(FP)
-// w
-	MOVUPS    a+64(FP), X0
-	MULPS     X4,       X0
-	HADDPS    X0,       X0
-	HADDPS    X0,       X0
-	MOVUPS    X0,       ret+92(FP)
+	PACK_COLUMNS(0)
+	DOT(a+64(FP), X1, ret+80(FP))   // x
+	DOT(a+64(FP), X2, ret+84(FP))   // y
+	DOT(a+64(FP), X3, ret+88(FP))   // z
+	DOT(a+64(FP), X4, ret+92(FP))   // w
+	RET
+
+// func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
+TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
+	MOVUPS    b+16(FP), X1
+	MOVUPS    b+32(FP), X2
+	MOVUPS    b+48(FP), X3
+	MOVUPS    b+64(FP), X4
+	DOT(a+0(FP), X1, ret+80(FP))    // x
+	DOT(a+0(FP), X2, ret+84(FP))    // y
+	DOT(a+0(FP), X3, ret+88(FP))    // z
+	DOT(a+0(FP), X4, ret+92(FP))    // w
 	RET

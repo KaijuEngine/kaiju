@@ -36,9 +36,12 @@
 					<div class="dataEntry">
 						<span>{{$v.Name}}</span>
 						{{range $v.Fields}}
+							<div></div>
+							<span>{{.Name}}:</span>
 							{{if .IsInput}}
-								<span>{{.Name}}:</span>
 								<input id="{{$i}}_{{.Idx}}" class="dataInput" type="text" placeholder="{{.Name}}..." value="{{.Value}}" onchange="changeData" />
+							{{else if .IsCheckbox}}
+								<input id="{{$i}}_{{.Idx}}" class="dataCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="changeData" />
 							{{end}}
 						{{end}}
 					</div>

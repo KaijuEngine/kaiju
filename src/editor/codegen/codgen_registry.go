@@ -71,6 +71,7 @@ func init() {
 	RegisterType(matrix.Vec4{})
 	RegisterType(matrix.Vec4i{})
 	RegisterType(engine.Entity{})
+	RegisterType(engine.EntityId(""))
 	RegisterType(engine.Host{})
 }
 

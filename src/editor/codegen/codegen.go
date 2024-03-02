@@ -42,6 +42,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"kaiju/klib"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -61,25 +62,23 @@ type structure struct {
 
 func walkInternal(srcPath, pkgPrefix, ext string) ([]GeneratedType, error) {
 	gens := []GeneratedType{}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return gens, err
-	}
-	if err := os.Chdir(srcPath); err != nil {
-		return gens, err
-	}
 	skips := []string{}
-	wErr := filepath.Walk("./", func(path string, info os.FileInfo, err error) error {
+	sp := klib.ToUnixPath(srcPath) + "/"
+	wErr := filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() || filepath.Ext(path) != ext {
 			return nil
 		}
+		path = strings.TrimPrefix(klib.ToUnixPath(path), sp)
 		if slices.Contains(skips, path) {
 			return nil
 		}
-		if g, err := create(path, pkgPrefix, ext, &skips); err == nil {
+		if g, err := create(sp+path, ext, &skips); err == nil {
+			for i := range g {
+				g[i].PkgPath = pkgPrefix + "/" + strings.TrimPrefix(g[i].PkgPath, sp)
+			}
 			gens = append(gens, g...)
 			return nil
 		} else {
@@ -88,24 +87,21 @@ func walkInternal(srcPath, pkgPrefix, ext string) ([]GeneratedType, error) {
 		}
 		return nil
 	})
-	if wErr != nil {
-		return gens, wErr
-	}
-	return gens, os.Chdir(cwd)
+	return gens, wErr
 }
 
 func Walk(srcPath, pkgPrefix string) ([]GeneratedType, error) {
 	return walkInternal(srcPath, pkgPrefix, ".go")
 }
 
-func create(file, root, ext string, skips *[]string) ([]GeneratedType, error) {
+func create(file, ext string, skips *[]string) ([]GeneratedType, error) {
 	genTypes := []GeneratedType{}
 	fs := token.NewFileSet()
 	src, err := os.ReadFile(file)
 	if err != nil {
 		return genTypes, err
 	}
-	pkgPath := filepath.Join(root, filepath.Dir(file))
+	pkgPath := filepath.Dir(file)
 	a, err := parser.ParseFile(fs, "", src, parser.ParseComments)
 	if err != nil {
 		return genTypes, err
@@ -125,7 +121,7 @@ func create(file, root, ext string, skips *[]string) ([]GeneratedType, error) {
 					continue
 				}
 				*skips = append(*skips, p)
-				t, err := create(p, root, ext, skips)
+				t, err := create(p, ext, skips)
 				if err != nil {
 					return genTypes, err
 				}
@@ -323,6 +319,46 @@ func allTypes(a *ast.File) []structure {
 	return types
 }
 
+func hasInterfaceReceiver(f *ast.FuncDecl, name string) bool {
+	if len(f.Recv.List) != 1 {
+		return false
+	}
+	if t, ok := f.Recv.List[0].Type.(*ast.StarExpr); !ok {
+		return false
+	} else if id, ok := t.X.(*ast.Ident); !ok {
+		return false
+	} else if id.Name != name {
+		return false
+	}
+	return true
+}
+
+func hasEntityArg(t ast.Expr) bool {
+	if sx := t.(*ast.StarExpr); sx == nil {
+		return false
+	} else if sel := sx.X.(*ast.SelectorExpr); sel == nil {
+		return false
+	} else if sel.Sel.Name != "Entity" {
+		return false
+	} else if x := sel.X.(*ast.Ident); x == nil || x.Name != "engine" {
+		return false
+	}
+	return true
+}
+
+func hasHostArg(t ast.Expr) bool {
+	if sx := t.(*ast.StarExpr); sx == nil {
+		return false
+	} else if sel := sx.X.(*ast.SelectorExpr); sel == nil {
+		return false
+	} else if sel.Sel.Name != "Host" {
+		return false
+	} else if x := sel.X.(*ast.Ident); x == nil || x.Name != "engine" {
+		return false
+	}
+	return true
+}
+
 func satisfiesInterface(s *ast.TypeSpec, decl []ast.Decl) bool {
 	// TODO:  Use the reflect of the interface to validate
 	for _, d := range decl {
@@ -331,21 +367,18 @@ func satisfiesInterface(s *ast.TypeSpec, decl []ast.Decl) bool {
 				if len(f.Recv.List) == 0 {
 					continue
 				}
-				t, ok := f.Recv.List[0].Type.(*ast.StarExpr)
-				if !ok {
-					continue
-				}
-				id, ok := t.X.(*ast.Ident)
-				if !ok {
-					continue
-				}
-				if id.Name != s.Name.Name {
-					continue
-				}
 				if len(f.Type.Params.List) != 2 {
 					continue
 				}
-				// TODO:  Further validation using reflected interface
+				if !hasInterfaceReceiver(f, s.Name.Name) {
+					continue
+				}
+				if !hasEntityArg(f.Type.Params.List[0].Type) {
+					continue
+				}
+				if !hasHostArg(f.Type.Params.List[1].Type) {
+					continue
+				}
 				return true
 			}
 		}
