@@ -87,7 +87,7 @@ func New(container *host_container.Container,
 	funcMap := map[string]func(*document.DocElement){
 		"openLogWindow":       m.openLogWindow,
 		"openRepository":      openRepository,
-		"openAbout":           openAbout,
+		"openAbout":           m.openAbout,
 		"newStage":            m.newStage,
 		"saveStage":           m.saveStage,
 		"openProject":         m.openProject,
@@ -155,9 +155,9 @@ func (m *Menu) hoverOpenMenu(targetId string) {
 	}
 }
 
-func openAbout(*document.DocElement) {
+func (m *Menu) openAbout(*document.DocElement) {
 	// TODO:  Open the about in a new window
-	about_window.New()
+	about_window.New(m.editor.Host().AssetDatabase().EditorContext.EditorPath)
 }
 
 func openRepository(*document.DocElement) {
