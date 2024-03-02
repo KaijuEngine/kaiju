@@ -43,7 +43,7 @@ import (
 	"log/slog"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 type CombineCanvas struct {

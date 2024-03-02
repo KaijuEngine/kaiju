@@ -42,7 +42,7 @@ import (
 	"log/slog"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {

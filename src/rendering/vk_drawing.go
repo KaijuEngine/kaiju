@@ -43,7 +43,7 @@ import (
 	"log/slog"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGroup) {

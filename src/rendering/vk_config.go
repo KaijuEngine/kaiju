@@ -40,7 +40,7 @@ package rendering
 import (
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 const (

@@ -47,7 +47,7 @@ import (
 	"math"
 	"unsafe"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 type vkQueueFamilyIndices struct {

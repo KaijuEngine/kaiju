@@ -39,7 +39,7 @@
 
 package rendering
 
-import vk "github.com/KaijuEngine/go-vulkan"
+import vk "kaiju/rendering/vulkan"
 
 func (vr *Vulkan) createSurface(window RenderingContainer) bool {
 	var surface vk.Surface

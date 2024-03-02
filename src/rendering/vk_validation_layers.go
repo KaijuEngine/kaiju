@@ -41,7 +41,7 @@ import (
 	"kaiju/klib"
 	"log/slog"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 func checkValidationLayerSupport(validationLayers []string) bool {

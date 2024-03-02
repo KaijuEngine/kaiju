@@ -37,7 +37,7 @@
 
 package rendering
 
-import vk "github.com/KaijuEngine/go-vulkan"
+import vk "kaiju/rendering/vulkan"
 
 func (vr *Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
 	aInfo := vk.CommandBufferAllocateInfo{}

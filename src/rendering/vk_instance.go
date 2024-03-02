@@ -40,7 +40,7 @@ package rendering
 import (
 	"log/slog"
 
-	vk "github.com/KaijuEngine/go-vulkan"
+	vk "kaiju/rendering/vulkan"
 )
 
 func (vr *Vulkan) createSwapChainFrameBuffer() bool {
