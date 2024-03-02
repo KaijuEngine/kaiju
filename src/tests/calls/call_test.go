@@ -17,6 +17,12 @@ func BenchmarkAddCGO(b *testing.B) {
 	}
 }
 
+func BenchmarkAddCGONoEscape(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		callAdd2()
+	}
+}
+
 func BenchmarkAddBypassCGO(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		CAdd(1, 2)
