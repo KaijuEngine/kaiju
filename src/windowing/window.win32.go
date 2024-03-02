@@ -47,7 +47,6 @@ import (
 
 /*
 #cgo noescape window_main
-#cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape get_dpi
 
@@ -56,6 +55,7 @@ import (
 
 // Force the compiler not to strip functions called from assembly
 void forceLink() {
+	assert(&window_show != NULL);
 	assert(&window_cursor_standard != NULL);
 	assert(&window_cursor_ibeam != NULL);
 	assert(&window_focus != NULL);
@@ -131,7 +131,7 @@ func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtM
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
-	C.window_show(w.handle)
+	cShowWindow(w.handle)
 }
 
 func (w *Window) destroy() {

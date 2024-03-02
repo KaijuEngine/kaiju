@@ -5,6 +5,9 @@ package windowing
 import "unsafe"
 
 //go:noescape
+func cShowWindow(handle unsafe.Pointer)
+
+//go:noescape
 func cWindowPollController(handle unsafe.Pointer) uint32
 
 //go:noescape
