@@ -43,11 +43,13 @@ import (
 	"unsafe"
 )
 
+// AABB is an axis-aligned bounding box
 type AABB struct {
 	Center matrix.Vec3
 	Extent matrix.Vec3
 }
 
+// AABBFromMinMax creates an AABB from the minimum and maximum points
 func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	return AABB{
 		Center: min.Add(max).Scale(0.5),
@@ -55,9 +57,13 @@ func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	}
 }
 
+// Min returns the minimum point of the AABB
 func (box *AABB) Min() matrix.Vec3 { return box.Center.Subtract(box.Extent) }
+
+// Max returns the maximum point of the AABB
 func (box *AABB) Max() matrix.Vec3 { return box.Center.Add(box.Extent) }
 
+// RayHit returns the point of intersection and whether the ray hit the AABB
 func (box *AABB) RayHit(ray Ray) (matrix.Vec3, bool) {
 	tMin := matrix.Float(0)
 	tMax := matrix.Inf(1)
@@ -90,6 +96,7 @@ func (box *AABB) RayHit(ray Ray) (matrix.Vec3, bool) {
 	return hit, true
 }
 
+// Contains returns whether the AABB contains the point
 func (box *AABB) Contains(point matrix.Vec3) bool {
 	return point.X() >= (box.Center.X()-box.Extent.X()) &&
 		point.X() <= (box.Center.X()+box.Extent.X()) &&
@@ -99,12 +106,14 @@ func (box *AABB) Contains(point matrix.Vec3) bool {
 		point.Z() <= (box.Center.Z()+box.Extent.Z())
 }
 
+// AABBIntersect returns whether the AABB intersects another AABB
 func (a *AABB) AABBIntersect(b AABB) bool {
 	return matrix.Abs(a.Center.X()-b.Center.X()) <= (a.Extent.X()+b.Extent.X()) &&
 		matrix.Abs(a.Center.Y()-b.Center.Y()) <= (a.Extent.Y()+b.Extent.Y()) &&
 		matrix.Abs(a.Center.Z()-b.Center.Z()) <= (a.Extent.Z()+b.Extent.Z())
 }
 
+// PlaneIntersect returns whether the AABB intersects a plane
 func (box *AABB) PlaneIntersect(plane Plane) bool {
 	r := box.Extent.X()*matrix.Abs(plane.Normal.X()) +
 		box.Extent.Y()*matrix.Abs(plane.Normal.Y()) +
@@ -113,6 +122,7 @@ func (box *AABB) PlaneIntersect(plane Plane) bool {
 	return matrix.Abs(dist) <= r
 }
 
+// TriangleIntersect returns whether the AABB intersects a triangle
 func (box *AABB) TriangleIntersect(tri DetailedTriangle) bool {
 	var p0, p1, p2, r matrix.Float
 
@@ -258,6 +268,7 @@ func (box *AABB) TriangleIntersect(tri DetailedTriangle) bool {
 	return box.PlaneIntersect(p)
 }
 
+// FromTriangle returns an AABB that contains the triangle
 func (box *AABB) FromTriangle(triangle DetailedTriangle) AABB {
 	tMin := matrix.Vec3Min(triangle.Points[0],
 		triangle.Points[1], triangle.Points[2])
@@ -268,18 +279,7 @@ func (box *AABB) FromTriangle(triangle DetailedTriangle) AABB {
 	return AABB{mid, e}
 }
 
-func (a *AABB) FromAABB(b AABB) AABB {
-	center := a.Center.Add(b.Center).Scale(0.5)
-	aMax := a.Center.Add(a.Extent)
-	bMax := b.Center.Add(b.Extent)
-	aMin := a.Center.Subtract(a.Extent)
-	bMin := b.Center.Subtract(b.Extent)
-	mMax := matrix.Vec3MaxAbs(aMax, bMax)
-	mMin := matrix.Vec3MinAbs(aMin, bMin)
-	e := matrix.Vec3MaxAbs(mMax, mMin)
-	return AABB{center, e}
-}
-
+// InFrustum returns whether the AABB is in the frustum
 func (box *AABB) InFrustum(frustum Frustum) bool {
 	min := box.Min()
 	max := box.Max()
