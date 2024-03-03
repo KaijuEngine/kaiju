@@ -62,6 +62,7 @@ type Mouse struct {
 	CX, CY           float32
 	ScrollX, ScrollY float32
 	buttonStates     [MouseButtonLast]int
+	dragData         any
 	moved            bool
 	buttonChanged    bool
 	scrollPending    bool
@@ -87,6 +88,7 @@ func (m *Mouse) EndUpdate() {
 	for i := 0; i < MouseButtonLast; i++ {
 		if m.buttonStates[i] == MouseRelease {
 			m.buttonStates[i] = MouseButtonStateInvalid
+			m.dragData = nil
 		} else if m.buttonStates[i] == MousePress {
 			m.buttonStates[i] = MouseRepeat
 			m.buttonChanged = true

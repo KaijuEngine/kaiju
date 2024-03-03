@@ -120,3 +120,14 @@ func (c *Cursor) Position() matrix.Vec2 {
 		return c.mouse.Position()
 	}
 }
+
+func (c *Cursor) HasDragData() bool {
+	return c.mouse.dragData != nil
+}
+
+func (c *Cursor) DragData() (any, bool) {
+	if c.mouse.dragData != nil {
+		return c.mouse.dragData, true
+	}
+	return nil, false
+}
