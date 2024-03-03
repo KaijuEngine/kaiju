@@ -117,27 +117,13 @@ func (group *Group) lateUpdate() {
 			if available.Check(req.eventType) {
 				shouldContinue := true
 				switch req.eventType {
-				case EventTypeEnter:
-					fallthrough
-				case EventTypeExit:
-					fallthrough
-				case EventTypeMiss:
-					fallthrough
-				case EventTypeKeyDown:
-					fallthrough
-				case EventTypeKeyUp:
-					fallthrough
-				case EventTypeChange:
-					fallthrough
-				case EventTypeSubmit:
+				case EventTypeEnter, EventTypeExit, EventTypeMiss,
+					EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
+					EventTypeSubmit:
 					req.target.ExecuteEvent(req.eventType)
-				case EventTypeClick:
-					fallthrough
-				case EventTypeDown:
-					fallthrough
-				case EventTypeUp:
-					fallthrough
-				case EventTypeScroll:
+				case EventTypeClick, EventTypeDown, EventTypeUp,
+					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
+					EventTypeDrop, EventTypeScroll:
 					l := last[req.eventType]
 					e := req.target.Entity()
 					last[req.eventType] = e

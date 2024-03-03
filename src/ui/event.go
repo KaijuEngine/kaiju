@@ -48,6 +48,10 @@ const (
 	EventTypeDown
 	EventTypeUp
 	EventTypeMiss
+	EventTypeDragStart
+	EventTypeDrop
+	EventTypeDropEnter
+	EventTypeDropExit
 	EventTypeScroll
 	EventTypeRebuild
 	EventTypeDestroy

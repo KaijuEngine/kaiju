@@ -164,6 +164,10 @@ func (w *Window) cursorIbeam() {
 	C.window_cursor_ibeam(w.handle)
 }
 
+func (w *Window) cursorSizeAll() {
+	C.window_cursor_size_all(w.handle)
+}
+
 func (w *Window) copyToClipboard(text string) {
 	klib.NotYetImplemented(102)
 }

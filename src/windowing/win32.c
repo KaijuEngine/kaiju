@@ -58,8 +58,22 @@
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
 #define UWM_SET_CURSOR		(WM_USER + 0x0001)
-	#define CURSOR_ARROW	1
-	#define CURSOR_IBEAM	2
+	#define CURSOR_ARROW        1
+	#define CURSOR_IBEAM        2
+	#define CURSOR_WAIT         3
+	#define CURSOR_CROSS        4
+	#define CURSOR_UPARROW      5
+	#define CURSOR_SIZE_NWSE    6
+	#define CURSOR_SIZE_NESW    7
+	#define CURSOR_SIZE_WE      8
+	#define CURSOR_SIZE_NS      9
+	#define CURSOR_SIZE_ALL     10
+	#define CURSOR_NO           11
+	#define CURSOR_HAND         12
+	#define CURSOR_APP_STARTING 13
+	#define CURSOR_HELP         14
+	#define CURSOR_PIN          15
+	#define CURSOR_PERSON       16
 
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouse.mouseButtonId = buttonId;
@@ -230,6 +244,48 @@ void process_message(SharedMem* sm, MSG *msg) {
 				case CURSOR_IBEAM:
 					c = LoadCursor(NULL, IDC_IBEAM);
 					break;
+				case CURSOR_WAIT:
+					c = LoadCursor(NULL, IDC_WAIT);
+					break;
+				case CURSOR_CROSS:
+					c = LoadCursor(NULL, IDC_CROSS);
+					break;
+				case CURSOR_UPARROW:
+					c = LoadCursor(NULL, IDC_UPARROW);
+					break;
+				case CURSOR_SIZE_NWSE:
+					c = LoadCursor(NULL, IDC_SIZENWSE);
+					break;
+				case CURSOR_SIZE_NESW:
+					c = LoadCursor(NULL, IDC_SIZENESW);
+					break;
+				case CURSOR_SIZE_WE:
+					c = LoadCursor(NULL, IDC_SIZEWE);
+					break;
+				case CURSOR_SIZE_NS:
+					c = LoadCursor(NULL, IDC_SIZENS);
+					break;
+				case CURSOR_SIZE_ALL:
+					c = LoadCursor(NULL, IDC_SIZEALL);
+					break;
+				case CURSOR_NO:
+					c = LoadCursor(NULL, IDC_NO);
+					break;
+				case CURSOR_HAND:
+					c = LoadCursor(NULL, IDC_HAND);
+					break;
+				case CURSOR_APP_STARTING:
+					c = LoadCursor(NULL, IDC_APPSTARTING);
+					break;
+				case CURSOR_HELP:
+					c = LoadCursor(NULL, IDC_HELP);
+					break;
+				case CURSOR_PIN:
+					c = LoadCursor(NULL, IDC_PIN);
+					break;
+				case CURSOR_PERSON:
+					c = LoadCursor(NULL, IDC_PERSON);
+					break;
 			}
 			if (c != NULL) {
 				SetCursor(c);
@@ -330,6 +386,10 @@ void window_cursor_standard(void* hwnd) {
 
 void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
+}
+
+void window_cursor_size_all(void* hwnd) {
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_ALL, 0);
 }
 
 float get_dpi(void* hwnd) {

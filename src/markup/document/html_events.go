@@ -69,4 +69,8 @@ func setupEvents(elm *DocElement, funcMap map[string]func(*DocElement)) {
 	tryMap("onmouseup", elm, elm.UI.Event(ui.EventTypeUp), funcMap)
 	tryMap("onmousewheel", elm, elm.UI.Event(ui.EventTypeScroll), funcMap)
 	tryMap("onchange", elm, elm.UI.Event(ui.EventTypeChange), funcMap)
+	tryMap("ondragenter", elm, elm.UI.Event(ui.EventTypeDropEnter), funcMap)
+	tryMap("ondragleave", elm, elm.UI.Event(ui.EventTypeDropExit), funcMap)
+	tryMap("ondragstart", elm, elm.UI.Event(ui.EventTypeDragStart), funcMap)
+	tryMap("ondrop", elm, elm.UI.Event(ui.EventTypeDrop), funcMap)
 }

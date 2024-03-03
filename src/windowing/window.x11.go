@@ -138,6 +138,10 @@ func (w *Window) cursorIbeam() {
 	klib.NotYetImplemented(101)
 }
 
+func (w *Window) cursorSizeAll() {
+	klib.NotYetImplemented(258)
+}
+
 func (w *Window) copyToClipboard(text string) {
 	klib.NotYetImplemented(103)
 }

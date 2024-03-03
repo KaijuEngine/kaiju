@@ -317,6 +317,7 @@ func DPI2PX(pixels, mm, targetMM int) int {
 
 func (w *Window) CursorStandard() { w.cursorStandard() }
 func (w *Window) CursorIbeam()    { w.cursorIbeam() }
+func (w *Window) CursorSizeAll()  { w.cursorSizeAll() }
 
 func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
