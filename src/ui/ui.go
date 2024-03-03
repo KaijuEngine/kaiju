@@ -292,7 +292,7 @@ func (ui *uiBase) eventUpdates() {
 			if ui.downPos.Distance(pos) > float32(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
 				ui.drag = true
-				ui.requestEvent(EventTypeDrag)
+				ui.requestEvent(EventTypeDragStart)
 			}
 		}
 	}
@@ -365,11 +365,15 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	if !ui.hovering && contained {
 		ui.hovering = true
 		ui.requestEvent(EventTypeEnter)
-		ui.requestEvent(EventTypeDopEnter)
+		if cursor.HasDragData() {
+			ui.requestEvent(EventTypeDropEnter)
+		}
 	} else if ui.hovering && !contained {
 		ui.hovering = false
 		ui.requestEvent(EventTypeExit)
-		ui.requestEvent(EventTypeDopExit)
+		if cursor.HasDragData() {
+			ui.requestEvent(EventTypeDropExit)
+		}
 	}
 }
 

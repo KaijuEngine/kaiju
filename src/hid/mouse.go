@@ -39,6 +39,7 @@ package hid
 
 import (
 	"kaiju/matrix"
+	"kaiju/systems/events"
 	"math"
 )
 
@@ -62,6 +63,7 @@ type Mouse struct {
 	CX, CY           float32
 	ScrollX, ScrollY float32
 	buttonStates     [MouseButtonLast]int
+	OnDragStop       events.Event
 	dragData         any
 	moved            bool
 	buttonChanged    bool
@@ -88,7 +90,7 @@ func (m *Mouse) EndUpdate() {
 	for i := 0; i < MouseButtonLast; i++ {
 		if m.buttonStates[i] == MouseRelease {
 			m.buttonStates[i] = MouseButtonStateInvalid
-			m.dragData = nil
+			m.SetDragData(nil)
 		} else if m.buttonStates[i] == MousePress {
 			m.buttonStates[i] = MouseRepeat
 			m.buttonChanged = true
@@ -186,4 +188,15 @@ func (m *Mouse) Reset() {
 			m.buttonStates[i] = MouseRelease
 		}
 	}
+}
+
+func (m Mouse) DragData() any {
+	return m.dragData
+}
+
+func (m *Mouse) SetDragData(data any) {
+	if m.dragData != nil {
+		m.OnDragStop.Execute()
+	}
+	m.dragData = data
 }

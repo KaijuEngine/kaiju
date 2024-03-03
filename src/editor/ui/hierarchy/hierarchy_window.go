@@ -44,6 +44,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
+	"kaiju/systems/events"
 	"kaiju/ui"
 	"log/slog"
 	"strings"
@@ -172,6 +173,10 @@ func (h *Hierarchy) Reload() {
 		host, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.DocElement){
 			"selectedEntity": h.selectedEntity,
+			"dragStart":      h.dragStart,
+			"drop":           h.drop,
+			"dragEnter":      h.dragEnter,
+			"dragExit":       h.dragExit,
 		}))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
@@ -228,4 +233,39 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 		}
 		h.onSelectionChanged()
 	}
+}
+
+func (h *Hierarchy) drop(elm *document.DocElement) {
+	elm.UIPanel.UnEnforceColor()
+	to := engine.EntityId(elm.HTML.Attribute("id"))
+	from := h.host.Window.Mouse.DragData().(engine.EntityId)
+	if f, ok := h.host.FindEntity(from); ok {
+		if t, ok := h.host.FindEntity(to); ok {
+			f.SetParent(t)
+			h.Reload()
+		} else {
+			slog.Error("Could not find drop target entity", slog.String("id", string(to)))
+		}
+	} else {
+		slog.Error("Could not find drag entity", slog.String("id", string(from)))
+	}
+}
+
+func (h *Hierarchy) dragStart(elm *document.DocElement) {
+	id := engine.EntityId(elm.HTML.Attribute("id"))
+	h.host.Window.CursorSizeAll()
+	h.host.Window.Mouse.SetDragData(id)
+	var eid events.Id
+	eid = h.host.Window.Mouse.OnDragStop.Add(func() {
+		h.host.Window.CursorStandard()
+		h.host.Window.Mouse.OnDragStop.Remove(eid)
+	})
+}
+
+func (h *Hierarchy) dragEnter(elm *document.DocElement) {
+	elm.UIPanel.EnforceColor(matrix.ColorOrange())
+}
+
+func (h *Hierarchy) dragExit(elm *document.DocElement) {
+	elm.UIPanel.UnEnforceColor()
 }

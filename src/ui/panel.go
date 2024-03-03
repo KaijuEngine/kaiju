@@ -112,8 +112,7 @@ type Panel struct {
 	requestScrollX            requestScroll
 	requestScrollY            requestScroll
 	overflow                  Overflow
-	unEnforcedColor           matrix.Color
-	isForcedColor             bool
+	enforcedColorStack        []matrix.Color
 	isScrolling               bool
 	dragging                  bool
 	frozen                    bool
@@ -122,11 +121,12 @@ type Panel struct {
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
-		scrollEvent:     0,
-		scrollSpeed:     20.0,
-		scrollDirection: PanelScrollDirectionVertical,
-		color:           matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:      ContentFitBoth,
+		scrollEvent:        0,
+		scrollSpeed:        20.0,
+		scrollDirection:    PanelScrollDirectionVertical,
+		color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
+		fitContent:         ContentFitBoth,
+		enforcedColorStack: make([]matrix.Color, 0),
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
@@ -496,32 +496,24 @@ func (p *Panel) removeDrawing() {
 }
 
 func (p *Panel) EnforceColor(color matrix.Color) {
-	p.unEnforcedColor = p.shaderData.FgColor
-	p.SetColor(color)
-	p.isForcedColor = true
+	p.enforcedColorStack = append(p.enforcedColorStack, p.shaderData.FgColor)
+	p.setColorInternal(color)
 }
 
 func (p *Panel) UnEnforceColor() {
-	if !p.isForcedColor {
+	if !p.hasEnforcedColor() {
 		return
 	}
-	p.isForcedColor = false
-	p.SetColor(p.unEnforcedColor)
+	last := len(p.enforcedColorStack) - 1
+	p.setColorInternal(p.enforcedColorStack[last])
+	p.enforcedColorStack = p.enforcedColorStack[:last]
 }
 
 func (p *Panel) SetColor(bgColor matrix.Color) {
-	if p.isForcedColor || p.shaderData.FgColor.Equals(bgColor) {
+	if p.hasEnforcedColor() {
 		return
 	}
-	p.ensureBGExists(nil)
-	hasBlending := p.shaderData.FgColor.A() < 1.0
-	shouldBlend := bgColor.A() < 1.0
-	if hasBlending != shouldBlend {
-		p.recreateDrawing()
-		p.drawing.UseBlending = shouldBlend
-		p.host.Drawings.AddDrawing(&p.drawing)
-	}
-	p.shaderData.FgColor = bgColor
+	p.setColorInternal(bgColor)
 }
 
 func (p *Panel) SetScrollX(value float32) {
@@ -660,4 +652,21 @@ func (p *Panel) SetOverflow(overflow Overflow) {
 		p.overflow = overflow
 		p.SetDirty(DirtyTypeLayout)
 	}
+}
+
+func (p *Panel) hasEnforcedColor() bool { return len(p.enforcedColorStack) > 0 }
+
+func (p *Panel) setColorInternal(bgColor matrix.Color) {
+	if p.shaderData.FgColor.Equals(bgColor) {
+		return
+	}
+	p.ensureBGExists(nil)
+	hasBlending := p.shaderData.FgColor.A() < 1.0
+	shouldBlend := bgColor.A() < 1.0
+	if hasBlending != shouldBlend {
+		p.recreateDrawing()
+		p.drawing.UseBlending = shouldBlend
+		p.host.Drawings.AddDrawing(&p.drawing)
+	}
+	p.shaderData.FgColor = bgColor
 }

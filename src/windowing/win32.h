@@ -50,6 +50,7 @@ uint32_t window_poll(void* hwnd);
 void window_destroy(void* hwnd);
 void window_cursor_standard(void* hwnd);
 void window_cursor_ibeam(void* hwnd);
+void window_cursor_size_all(void* hwnd);
 float get_dpi(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
