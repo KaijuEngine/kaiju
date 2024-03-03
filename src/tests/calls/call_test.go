@@ -1,14 +1,28 @@
 package calls
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+	"time"
+)
 
 //go:noescape
 func CAdd(a, b int) int
 
 func TestCAdd(t *testing.T) {
-	if v := CAdd(9, 39); v != 48 {
-		t.Fatalf("CAdd(9, 39) != 48 it was %d", v)
+	s0 := time.Now()
+	for i := 0; i < 5000; i++ {
+		callAdd()
 	}
+	e0 := time.Now()
+	s1 := time.Now()
+	for i := 0; i < 5000; i++ {
+		runtime.SystemStack(func() {
+			CAdd(9, 39)
+		})
+	}
+	e1 := time.Now()
+	t.Fatalf("callAdd: %v, CAdd: %v\n", e0.Sub(s0), e1.Sub(s1))
 }
 
 func BenchmarkAddCGO(b *testing.B) {
@@ -25,6 +39,8 @@ func BenchmarkAddCGONoEscape(b *testing.B) {
 
 func BenchmarkAddBypassCGO(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		CAdd(1, 2)
+		runtime.SystemStack(func() {
+			CAdd(9, 39)
+		})
 	}
 }
