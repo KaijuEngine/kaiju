@@ -47,28 +47,21 @@ import (
 
 /*
 #cgo noescape window_main
+#cgo noescape window_show
 #cgo noescape window_destroy
+#cgo noescape window_cursor_standard
+#cgo noescape window_cursor_ibeam
 #cgo noescape get_dpi
+#cgo noescape window_focus
+#cgo noescape window_position
+#cgo noescape set_window_position
+#cgo noescape set_window_size
+#cgo noescape remove_border
+#cgo noescape add_border
 
-#include <assert.h>
 #include "windowing.h"
-
-// Force the compiler not to strip functions called from assembly
-void forceLink() {
-	assert(&window_show != NULL);
-	assert(&window_cursor_standard != NULL);
-	assert(&window_cursor_ibeam != NULL);
-	assert(&window_focus != NULL);
-	assert(&window_position != NULL);
-	assert(&set_window_position != NULL);
-	assert(&set_window_size != NULL);
-	assert(&remove_border != NULL);
-	assert(&add_border != NULL);
-}
 */
 import "C"
-
-func init() { C.forceLink() }
 
 func asEventType(msg uint32) eventType {
 	switch msg {
@@ -131,7 +124,7 @@ func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtM
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
-	cShowWindow(w.handle)
+	C.window_show(w.handle)
 }
 
 func (w *Window) destroy() {
@@ -139,13 +132,13 @@ func (w *Window) destroy() {
 }
 
 func (w *Window) poll() {
-	evtType := uint32(cWindowPollController(w.handle))
+	evtType := uint32(C.window_poll_controller(w.handle))
 	if evtType != 0 {
 		w.processControllerEvent(asEventType(evtType))
 	}
 	evtType = 1
 	for evtType != 0 && !w.evtSharedMem.IsQuit() {
-		evtType = uint32(cWindowPoll(w.handle))
+		evtType = uint32(C.window_poll(w.handle))
 		t := asEventType(evtType)
 		if w.evtSharedMem.IsResize() {
 			t = evtResize
@@ -164,11 +157,11 @@ func (w *Window) poll() {
 }
 
 func (w *Window) cursorStandard() {
-	cWindowCursorStandard(w.handle)
+	C.window_cursor_standard(w.handle)
 }
 
 func (w *Window) cursorIbeam() {
-	cWindowCursorIbeam(w.handle)
+	C.window_cursor_ibeam(w.handle)
 }
 
 func (w *Window) copyToClipboard(text string) {
@@ -189,27 +182,26 @@ func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) focus() {
-	cWindowFocus(w.handle)
+	C.window_focus(w.handle)
 }
 
-func (w *Window) position() (int, int) {
-	var px, py int32
-	cWindowPosition(w.handle, &px, &py)
-	return int(px), int(py)
+func (w *Window) position() (x, y int) {
+	C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
+	return x, y
 }
 
 func (w *Window) setPosition(x, y int) {
-	cSetWindowPosition(w.handle, int32(x), int32(y))
+	C.set_window_position(w.handle, C.int(x), C.int(y))
 }
 
 func (w *Window) setSize(width, height int) {
-	cSetWindowSize(w.handle, int32(width), int32(height))
+	C.set_window_size(w.handle, C.int(width), C.int(height))
 }
 
 func (w *Window) removeBorder() {
-	cRemoveBorder(w.handle)
+	C.remove_border(w.handle)
 }
 
 func (w *Window) addBorder() {
-	cAddBorder(w.handle)
+	C.add_border(w.handle)
 }
