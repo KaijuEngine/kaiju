@@ -94,6 +94,26 @@ func (d DocElement) InnerLabel() *ui.Label {
 	return nil
 }
 
+func (d *DocElement) EnforceColor(color matrix.Color) {
+	d.UIPanel.EnforceColor(matrix.ColorOrange())
+	setChildTextBackgroundColor(d, color)
+}
+
+func (d *DocElement) UnEnforceColor() {
+	d.UIPanel.UnEnforceColor()
+	color := d.UIPanel.ShaderData().FgColor
+	setChildTextBackgroundColor(d, color)
+}
+
+func setChildTextBackgroundColor(elm *DocElement, color matrix.Color) {
+	for _, c := range elm.HTML.Children {
+		if c.DocumentElement.HTML.IsText() {
+			c.DocumentElement.UI.(*ui.Label).SetBGColor(color)
+		}
+		setChildTextBackgroundColor(c.DocumentElement, color)
+	}
+}
+
 type Document struct {
 	Elements      []DocElement
 	TopElements   []*DocElement
