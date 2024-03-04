@@ -185,6 +185,14 @@ func (c *Console) AddCommand(key, description string, fn ConsoleFunc) {
 	c.commands[strings.ToLower(key)] = consoleCommand{description, fn}
 }
 
+func (c *Console) ExecCommand(key, arg string) (string, error) {
+	if cmd, ok := c.commands[strings.ToLower(key)]; ok {
+		return cmd.fn(c.host, arg), nil
+	} else {
+		return "", ErrCommandNotFound
+	}
+}
+
 func (c *Console) Write(message string) {
 	lbl := c.outputLabel()
 	lbl.SetText(lbl.Text() + "\n" + message)

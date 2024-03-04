@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_config.go                                                           */
+/* html_opener.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,32 +35,22 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor_config
+package content_opener
 
-type FileExtension = string
-type AssetType = string
-
-const (
-	FileExtensionH           FileExtension = ".h"
-	FileExtensionC           FileExtension = ".c"
-	FileExtensionGo          FileExtension = ".go"
-	FileExtensionMap         FileExtension = ".map"
-	FileExtensionObj         FileExtension = ".obj"
-	FileExtensionPng         FileExtension = ".png"
-	FileExtensionMesh        FileExtension = ".msh"
-	FileExtensionStage       FileExtension = ".stg"
-	FileExtensionHTML        FileExtension = ".html"
-	FileExtensionAssetDbInfo FileExtension = ".adi"
+import (
+	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
+	"kaiju/editor/interfaces"
+	"kaiju/systems/console"
 )
 
-const (
-	AssetTypeH     AssetType = "h"
-	AssetTypeC     AssetType = "c"
-	AssetTypeGo    AssetType = "go"
-	AssetTypeMap   AssetType = "map"
-	AssetTypeObj   AssetType = "obj"
-	AssetTypePng   AssetType = "png"
-	AssetTypeMesh  AssetType = "mesh"
-	AssetTypeStage AssetType = "stg"
-	AssetTypeHTML  AssetType = "html"
-)
+type HTMLOpener struct{}
+
+func (o HTMLOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
+	return adi.Type == editor_config.AssetTypeHTML
+}
+
+func (o HTMLOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+	_, err := console.For(ed.Host()).ExecCommand("preview", adi.Path)
+	return err
+}

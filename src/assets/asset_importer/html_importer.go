@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_config.go                                                           */
+/* html_importer.go                                                           */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,32 +35,25 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor_config
+package asset_importer
 
-type FileExtension = string
-type AssetType = string
-
-const (
-	FileExtensionH           FileExtension = ".h"
-	FileExtensionC           FileExtension = ".c"
-	FileExtensionGo          FileExtension = ".go"
-	FileExtensionMap         FileExtension = ".map"
-	FileExtensionObj         FileExtension = ".obj"
-	FileExtensionPng         FileExtension = ".png"
-	FileExtensionMesh        FileExtension = ".msh"
-	FileExtensionStage       FileExtension = ".stg"
-	FileExtensionHTML        FileExtension = ".html"
-	FileExtensionAssetDbInfo FileExtension = ".adi"
+import (
+	"kaiju/assets/asset_info"
+	"kaiju/editor/editor_config"
+	"path/filepath"
 )
 
-const (
-	AssetTypeH     AssetType = "h"
-	AssetTypeC     AssetType = "c"
-	AssetTypeGo    AssetType = "go"
-	AssetTypeMap   AssetType = "map"
-	AssetTypeObj   AssetType = "obj"
-	AssetTypePng   AssetType = "png"
-	AssetTypeMesh  AssetType = "mesh"
-	AssetTypeStage AssetType = "stg"
-	AssetTypeHTML  AssetType = "html"
-)
+type HTMLImporter struct{}
+
+func (m HTMLImporter) Handles(path string) bool {
+	return filepath.Ext(path) == editor_config.FileExtensionHTML
+}
+
+func (m HTMLImporter) Import(path string) error {
+	adi, err := createADI(path, nil)
+	if err != nil {
+		return err
+	}
+	adi.Type = editor_config.AssetTypeHTML
+	return asset_info.Write(adi)
+}

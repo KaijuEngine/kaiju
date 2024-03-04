@@ -159,10 +159,12 @@ func New() *Editor {
 	ed.assetImporters.Register(asset_importer.OBJImporter{})
 	ed.assetImporters.Register(asset_importer.PNGImporter{})
 	ed.assetImporters.Register(asset_importer.StageImporter{})
+	ed.assetImporters.Register(asset_importer.HTMLImporter{})
 	ed.contentOpener = content_opener.New(
 		&ed.assetImporters, ed.container, &ed.history)
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
+	ed.contentOpener.Register(content_opener.HTMLOpener{})
 	host.OnClose.Add(func() {
 		ed.SaveLayout()
 	})
