@@ -204,14 +204,14 @@ func (h *Hierarchy) onSelectionChanged() {
 		return
 	}
 	for i := range elm.HTML.Children {
-		elm.HTML.Children[i].DocumentElement.UIPanel.UnEnforceColor()
+		elm.HTML.Children[i].DocumentElement.UnEnforceColor()
 	}
 	for i := range elm.HTML.Children {
 		c := &elm.HTML.Children[i]
 		id := engine.EntityId(c.Attribute("id"))
 		for _, se := range h.selection.Entities() {
 			if se.Id() == id {
-				c.DocumentElement.UIPanel.EnforceColor(matrix.ColorDarkBlue())
+				c.DocumentElement.EnforceColor(matrix.ColorDarkBlue())
 				break
 			}
 		}
@@ -236,7 +236,7 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 }
 
 func (h *Hierarchy) drop(elm *document.DocElement) {
-	elm.UIPanel.UnEnforceColor()
+	elm.UnEnforceColor()
 	to := engine.EntityId(elm.HTML.Attribute("id"))
 	from := h.host.Window.Mouse.DragData().(engine.EntityId)
 	if f, ok := h.host.FindEntity(from); ok {
@@ -255,17 +255,33 @@ func (h *Hierarchy) dragStart(elm *document.DocElement) {
 	id := engine.EntityId(elm.HTML.Attribute("id"))
 	h.host.Window.CursorSizeAll()
 	h.host.Window.Mouse.SetDragData(id)
+	elm.EnforceColor(matrix.ColorPurple())
 	var eid events.Id
 	eid = h.host.Window.Mouse.OnDragStop.Add(func() {
 		h.host.Window.CursorStandard()
 		h.host.Window.Mouse.OnDragStop.Remove(eid)
+		elm.UnEnforceColor()
 	})
 }
 
 func (h *Hierarchy) dragEnter(elm *document.DocElement) {
-	elm.UIPanel.EnforceColor(matrix.ColorOrange())
+	myId := engine.EntityId(elm.HTML.Attribute("id"))
+	if dragId, ok := h.host.Window.Mouse.DragData().(engine.EntityId); !ok {
+		return
+	} else {
+		if myId != dragId {
+			elm.EnforceColor(matrix.ColorOrange())
+		}
+	}
 }
 
 func (h *Hierarchy) dragExit(elm *document.DocElement) {
-	elm.UIPanel.UnEnforceColor()
+	myId := engine.EntityId(elm.HTML.Attribute("id"))
+	if dragId, ok := h.host.Window.Mouse.DragData().(engine.EntityId); !ok {
+		return
+	} else {
+		if myId != dragId {
+			elm.UnEnforceColor()
+		}
+	}
 }

@@ -501,7 +501,7 @@ func (p *Panel) EnforceColor(color matrix.Color) {
 }
 
 func (p *Panel) UnEnforceColor() {
-	if !p.hasEnforcedColor() {
+	if !p.HasEnforcedColor() {
 		return
 	}
 	last := len(p.enforcedColorStack) - 1
@@ -510,7 +510,8 @@ func (p *Panel) UnEnforceColor() {
 }
 
 func (p *Panel) SetColor(bgColor matrix.Color) {
-	if p.hasEnforcedColor() {
+	if p.HasEnforcedColor() {
+		p.enforcedColorStack[0] = bgColor
 		return
 	}
 	p.setColorInternal(bgColor)
@@ -654,7 +655,7 @@ func (p *Panel) SetOverflow(overflow Overflow) {
 	}
 }
 
-func (p *Panel) hasEnforcedColor() bool { return len(p.enforcedColorStack) > 0 }
+func (p *Panel) HasEnforcedColor() bool { return len(p.enforcedColorStack) > 0 }
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	if p.shaderData.FgColor.Equals(bgColor) {

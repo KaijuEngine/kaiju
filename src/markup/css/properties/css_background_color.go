@@ -77,7 +77,9 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm document.DocElement, value
 		}
 		if color, err = matrix.ColorFromHexString(hex); err == nil {
 			panel.SetColor(color)
-			setChildTextBackgroundColor(elm, color)
+			if !panel.HasEnforcedColor() {
+				setChildTextBackgroundColor(elm, color)
+			}
 			return nil
 		} else {
 			return err
