@@ -47,9 +47,8 @@ import (
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
+	"log/slog"
 	"reflect"
-	"strconv"
-	"strings"
 )
 
 type Details struct {
@@ -84,10 +83,26 @@ type entityDataEntry struct {
 }
 
 type entityDataField struct {
+	host  *engine.Host
 	Idx   int
-	Type  string
 	Name  string
+	Type  string
+	Pkg   string
 	Value any
+}
+
+func (f *entityDataField) ValueAsEntityName() string {
+	id, ok := f.Value.(engine.EntityId)
+	if !ok {
+		slog.Error("Value is not an EntityId", f.Value)
+		return ""
+	}
+	e, ok := f.host.FindEntity(id)
+	if !ok {
+		slog.Error("Entity not found", id)
+		return ""
+	}
+	return e.Name()
 }
 
 func (f *entityDataField) IsInput() bool {
@@ -98,8 +113,10 @@ func (f *entityDataField) IsInput() bool {
 	return false
 }
 
-func (f *entityDataField) IsCheckbox() bool {
-	return f.Type == "bool"
+func (f *entityDataField) IsCheckbox() bool { return f.Type == "bool" }
+
+func (f *entityDataField) IsEntityId() bool {
+	return f.Pkg == "kaiju/engine" && f.Type == "EntityId"
 }
 
 func New(editor interfaces.Editor, uiGroup *ui.Group) *Details {
@@ -155,18 +172,22 @@ func (d *Details) reload() {
 	d.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		host, "editor/ui/details_window.html", d.viewData,
 		map[string]func(*document.DocElement){
-			"changeName":   d.changeName,
-			"changePosX":   d.changePosX,
-			"changePosY":   d.changePosY,
-			"changePosZ":   d.changePosZ,
-			"changeRotX":   d.changeRotX,
-			"changeRotY":   d.changeRotY,
-			"changeRotZ":   d.changeRotZ,
-			"changeScaleX": d.changeScaleX,
-			"changeScaleY": d.changeScaleY,
-			"changeScaleZ": d.changeScaleZ,
-			"changeData":   d.changeData,
-			"addData":      d.addData,
+			"changeName":          d.changeName,
+			"changePosX":          d.changePosX,
+			"changePosY":          d.changePosY,
+			"changePosZ":          d.changePosZ,
+			"changeRotX":          d.changeRotX,
+			"changeRotY":          d.changeRotY,
+			"changeRotZ":          d.changeRotZ,
+			"changeScaleX":        d.changeScaleX,
+			"changeScaleY":        d.changeScaleY,
+			"changeScaleZ":        d.changeScaleZ,
+			"changeData":          d.changeData,
+			"addData":             d.addData,
+			"entityIdDrop":        d.entityIdDrop,
+			"entityIdDragEnter":   d.entityIdDragEnter,
+			"entityIdDragExit":    d.entityIdDragExit,
+			"selectDroppedEntity": d.selectDroppedEntity,
 		}))
 	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
@@ -190,15 +211,10 @@ func (d *Details) addData(*document.DocElement) {
 }
 
 func (d *Details) changeData(elm *document.DocElement) {
-	id := elm.HTML.Attribute("id")
-	lr := strings.Split(id, "_")
-	if len(lr) != 2 {
+	v, ok := d.elmToReflectedValue(elm)
+	if !ok {
 		return
 	}
-	dataIdx, _ := strconv.Atoi(lr[0])
-	fieldIdx, _ := strconv.Atoi(lr[1])
-	data := d.viewData.Data[dataIdx]
-	v := data.entityData.(reflect.Value).Elem().Field(fieldIdx)
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(toInt(elm.UI.(*ui.Input).Text()))
@@ -261,47 +277,17 @@ func (d *Details) pullEntityData() []entityDataEntry {
 		for j := range g.Fields {
 			if g.Fields[j].IsExported() {
 				data[i].Fields = append(data[i].Fields, entityDataField{
+					host:  d.editor.Host(),
 					Idx:   j,
-					Type:  g.Fields[j].Type.Name(),
 					Name:  g.Fields[j].Name,
+					Type:  g.Fields[j].Type.Name(),
+					Pkg:   g.Fields[j].Type.PkgPath(),
 					Value: data[i].entityData.(reflect.Value).Elem().Field(j).Interface(),
 				})
 			}
 		}
 	}
 	return data
-}
-
-func inputString(input *document.DocElement) string { return input.UI.(*ui.Input).Text() }
-
-func toInt(str string) int64 {
-	if str == "" {
-		return 0
-	}
-	if i, err := strconv.ParseInt(str, 10, 64); err == nil {
-		return i
-	}
-	return 0
-}
-
-func toUint(str string) uint64 {
-	if str == "" {
-		return 0
-	}
-	if i, err := strconv.ParseUint(str, 10, 64); err == nil {
-		return i
-	}
-	return 0
-}
-
-func toFloat(str string) float64 {
-	if str == "" {
-		return 0
-	}
-	if f, err := strconv.ParseFloat(str, 64); err == nil {
-		return f
-	}
-	return 0
 }
 
 func (d *Details) changeName(input *document.DocElement) {
@@ -377,4 +363,45 @@ func (d *Details) changeScaleZ(input *document.DocElement) {
 	s := t.Scale()
 	s.SetZ(matrix.Float(toFloat(inputString(input))))
 	t.SetScale(s)
+}
+
+func (d *Details) entityIdDrop(input *document.DocElement) {
+	id, ok := entityDragData(d.editor.Host())
+	if !ok {
+		return
+	}
+	v, ok := d.elmToReflectedValue(input)
+	if !ok {
+		return
+	}
+	v.Set(reflect.ValueOf(id))
+	d.reload()
+}
+
+func (d *Details) entityIdDragEnter(input *document.DocElement) {
+	if _, ok := entityDragData(d.editor.Host()); !ok {
+		return
+	}
+	input.EnforceColor(matrix.ColorOrange())
+}
+
+func (d *Details) entityIdDragExit(input *document.DocElement) {
+	if _, ok := entityDragData(d.editor.Host()); !ok {
+		return
+	}
+	input.UnEnforceColor()
+}
+
+func (d *Details) selectDroppedEntity(input *document.DocElement) {
+	v, ok := d.elmToReflectedValue(input)
+	if !ok {
+		return
+	}
+	id := v.Interface().(engine.EntityId)
+	e, ok := d.editor.Host().FindEntity(id)
+	if !ok {
+		return
+	}
+	d.editor.Selection().Set(e)
+	d.editor.Selection().Focus(d.editor.Host().Camera)
 }

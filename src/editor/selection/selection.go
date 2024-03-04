@@ -39,6 +39,7 @@ package selection
 
 import (
 	"kaiju/assets"
+	"kaiju/cameras"
 	"kaiju/collision"
 	"kaiju/editor/memento"
 	"kaiju/engine"
@@ -378,4 +379,17 @@ func (s *Selection) Parent(history *memento.History) {
 	}
 	history.Add(&h)
 	h.Redo()
+}
+
+func (s *Selection) Focus(camera cameras.Camera) {
+	b := s.Bounds()
+	c := camera.(*cameras.TurntableCamera)
+	c.SetLookAt(b.Center.Negative())
+	z := b.Extent.Length()
+	if z <= 0.01 {
+		z = 5
+	} else {
+		z *= 2
+	}
+	c.SetZoom(z)
 }

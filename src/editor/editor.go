@@ -323,16 +323,7 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyUp(hid.KeyboardKeyL) {
 		ed.logWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
-		b := ed.selection.Bounds()
-		c := ed.Host().Camera.(*cameras.TurntableCamera)
-		c.SetLookAt(b.Center.Negative())
-		z := b.Extent.Length()
-		if z <= 0.01 {
-			z = 5
-		} else {
-			z *= 2
-		}
-		c.SetZoom(z)
+		ed.selection.Focus(ed.Host().Camera)
 	} else if kb.KeyDown(hid.KeyboardKeyG) {
 		ed.transformTool.Enable(transform_tools.ToolStateMove)
 	} else if kb.KeyDown(hid.KeyboardKeyR) {

@@ -42,6 +42,14 @@
 								<input id="{{$i}}_{{.Idx}}" class="dataInput" type="text" placeholder="{{.Name}}..." value="{{.Value}}" onchange="changeData" />
 							{{else if .IsCheckbox}}
 								<input id="{{$i}}_{{.Idx}}" class="dataCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="changeData" />
+							{{else if .IsEntityId}}
+								<div id="{{$i}}_{{.Idx}}" class="entityDrop" ondrop="entityIdDrop" ondragenter="entityIdDragEnter" ondragexit="entityIdDragExit" onclick="selectDroppedEntity">
+									{{if .Value}}
+										{{.ValueAsEntityName}}
+									{{else}}
+										Drop entity here...
+									{{end}}
+								</div>
 							{{end}}
 						{{end}}
 					</div>

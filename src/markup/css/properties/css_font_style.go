@@ -45,13 +45,13 @@ import (
 	"kaiju/ui"
 )
 
-func setChildrenFontStyle(elm document.DocElement, weight string, host *engine.Host) {
+func setChildrenFontStyle(elm document.DocElement, style string, host *engine.Host) {
 	if elm.HTML.IsText() {
 		lbl := elm.UI.(*ui.Label)
-		lbl.SetFontStyle(weight)
+		lbl.SetFontStyle(style)
 	} else {
 		for _, child := range elm.HTML.Children {
-			setChildrenFontStyle(*child.DocumentElement, weight, host)
+			setChildrenFontStyle(*child.DocumentElement, style, host)
 		}
 	}
 }
