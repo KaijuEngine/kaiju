@@ -222,6 +222,14 @@ func (e *Entity) SetParent(newParent *Entity) {
 	if newParent == e.Parent {
 		return
 	}
+	p := newParent
+	for p != nil {
+		if p.Parent == e {
+			slog.Error("Can't set an entity to a child of itself")
+			return
+		}
+		p = p.Parent
+	}
 	e.removeFromParent()
 	e.Parent = newParent
 	if newParent != nil {
