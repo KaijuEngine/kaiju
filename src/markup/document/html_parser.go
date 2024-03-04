@@ -95,7 +95,7 @@ func (d DocElement) InnerLabel() *ui.Label {
 }
 
 func (d *DocElement) EnforceColor(color matrix.Color) {
-	d.UIPanel.EnforceColor(matrix.ColorOrange())
+	d.UIPanel.EnforceColor(color)
 	setChildTextBackgroundColor(d, color)
 }
 
