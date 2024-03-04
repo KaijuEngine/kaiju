@@ -1,3 +1,6 @@
+//go:build 386 || arm
+// +build 386 arm
+
 /******************************************************************************/
 /* vk_null32.go                                                               */
 /******************************************************************************/
@@ -34,8 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-// +build 386 arm
 
 package vulkan
 

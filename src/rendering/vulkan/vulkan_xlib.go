@@ -1,3 +1,5 @@
+//go:build linux || darwin
+
 /******************************************************************************/
 /* vulkan_xlib.go                                                             */
 /******************************************************************************/
@@ -34,8 +36,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build linux || darwin
 
 package vulkan
 

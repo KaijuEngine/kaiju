@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 /******************************************************************************/
 /* vulkan_windows.go                                                          */
 /******************************************************************************/
@@ -34,9 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build windows
-// +build windows
 
 package vulkan
 

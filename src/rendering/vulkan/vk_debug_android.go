@@ -1,3 +1,6 @@
+//go:build android
+// +build android
+
 /******************************************************************************/
 /* vk_debug_android.go                                                        */
 /******************************************************************************/
@@ -34,8 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-// +build android
 
 package vulkan
 
