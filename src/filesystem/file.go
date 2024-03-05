@@ -43,6 +43,9 @@ import (
 	"strings"
 )
 
+// WriteFile writes the binary data to the file at the specified path. This will
+// use permissions 0644 for the file. If the file already exists, it will be
+// overwritten.
 func WriteFile(path string, data []byte) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -55,6 +58,9 @@ func WriteFile(path string, data []byte) error {
 	return f.Close()
 }
 
+// WriteTextFile writes the text data to the file at the specified path. This
+// will use permissions 0644 for the file. If the file already exists, it will
+// be overwritten.
 func WriteTextFile(path string, data string) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -67,11 +73,14 @@ func WriteTextFile(path string, data string) error {
 	return f.Close()
 }
 
+// FileExists returns true if the file exists at the specified path.
 func FileExists(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && !stat.IsDir()
 }
 
+// ReadFile reads the binary data from the file at the specified path. If the
+// file does not exist, an error will be returned.
 func ReadFile(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -82,6 +91,8 @@ func ReadFile(path string) ([]byte, error) {
 	return buff, err
 }
 
+// ReadTextFile reads the text data from the file at the specified path. If the
+// file does not exist, an error will be returned.
 func ReadTextFile(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -93,6 +104,8 @@ func ReadTextFile(path string) (string, error) {
 	return text.String(), err
 }
 
+// CopyFile copies the file from the source path to the destination path. If the
+// destination file already exists, an error will be returned.
 func CopyFile(src, dst string) error {
 	if strings.HasSuffix(src, ".go") {
 		return CopyGoSourceFile(src, dst)
@@ -116,6 +129,10 @@ func CopyFile(src, dst string) error {
 	}
 }
 
+// CopyGoSourceFile copies go specific source code from the source path to the
+// destination path. If the destination file already exists, an error will be
+// returned. This function is used to ensure that the generated files have the
+// correct header.
 func CopyGoSourceFile(src, dst string) error {
 	sf, err := os.Open(src)
 	if err != nil {

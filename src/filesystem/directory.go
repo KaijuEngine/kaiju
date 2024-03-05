@@ -42,23 +42,30 @@ import (
 	"path/filepath"
 )
 
+// CreateDirectory creates a directory at the specified path with full permissions.
 func CreateDirectory(path string) error {
-	return os.MkdirAll(path, 0755)
+	return os.MkdirAll(path, os.ModePerm)
 }
 
+// DirectoryExists returns true if the directory exists at the specified path.
 func DirectoryExists(path string) bool {
 	stat, err := os.Stat(path)
 	return err == nil && stat.IsDir()
 }
 
+// DeleteDirectory deletes the directory at the specified path.
 func DeleteDirectory(path string) error {
 	return os.RemoveAll(path)
 }
 
+// ImageDirectory will attempt to find the default user directory where
+// images are stored. This function is OS specific.
 func ImageDirectory() (string, error) {
 	return imageDirectory()
 }
 
+// ListRecursive returns a list of all files and directories in the specified,
+// it walks through all of the subdirectories as well.
 func ListRecursive(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -68,6 +75,8 @@ func ListRecursive(path string) ([]string, error) {
 	return files, err
 }
 
+// ListFoldersRecursive returns a list of all directories in the specified,
+// it walks through all of the subdirectories as well.
 func ListFoldersRecursive(path string) ([]string, error) {
 	var folders []string
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -79,6 +88,8 @@ func ListFoldersRecursive(path string) ([]string, error) {
 	return folders, err
 }
 
+// ListFilesRecursive returns a list of all files in the specified,
+// it walks through all of the subdirectories as well.
 func ListFilesRecursive(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -90,6 +101,7 @@ func ListFilesRecursive(path string) ([]string, error) {
 	return files, err
 }
 
+// CopyDirectory copies the directory at the source path to the destination path.
 func CopyDirectory(src, dst string) error {
 	dirInfo, err := os.Stat(src)
 	if err != nil {
