@@ -191,6 +191,16 @@ func (e *Editor) ReloadEntityDataListing() {
 	e.entityData, _ = codegen.Walk("src/source", "kaiju/source")
 }
 
+func (e *Editor) CreateEntity(name string) *engine.Entity {
+	entity := engine.NewEntity()
+	entity.GenerateId()
+	entity.SetName(name)
+	e.Host().AddEntity(entity)
+	e.selection.Set(entity)
+	e.hierarchy.Reload()
+	return entity
+}
+
 func (e *Editor) setupViewportGrid() {
 	const gridCount = 20
 	const halfGridCount = gridCount / 2
