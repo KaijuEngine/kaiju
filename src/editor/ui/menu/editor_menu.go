@@ -93,6 +93,7 @@ func New(container *host_container.Container,
 		"openProject":         m.openProject,
 		"openContentWindow":   m.openContentWindow,
 		"openHierarchyWindow": m.openHierarchyWindow,
+		"newEntity":           m.newEntity,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	m.doc.SetGroup(uiGroup)
@@ -174,6 +175,10 @@ func (m *Menu) openContentWindow(*document.DocElement) {
 
 func (m *Menu) openHierarchyWindow(*document.DocElement) {
 	m.hierarchyWindow.Show()
+}
+
+func (m *Menu) newEntity(*document.DocElement) {
+	m.editor.CreateEntity("Entity")
 }
 
 func (m *Menu) newStage(*document.DocElement) {

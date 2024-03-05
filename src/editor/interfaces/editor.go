@@ -61,4 +61,5 @@ type Editor interface {
 	OpenProject()
 	AvailableDataBindings() []codegen.GeneratedType
 	ReloadEntityDataListing()
+	CreateEntity(name string) *engine.Entity
 }
