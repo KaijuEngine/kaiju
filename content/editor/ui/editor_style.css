@@ -33,19 +33,19 @@ body {
 }
 .fillBottomContent {
 	width: 100%;
-	height: calc(100% - 3px);
+	height: calc(100% - 4px);
 }
 .fillLeftRightContent {
-	width: calc(100% - 4px);
+	width: calc(100% - 5px);
 	height: 100%;
 }
 .fillBottomResizeHandle {
 	width: 100%;
-	height: 3px;
+	height: 4px;
 	background-color: black;
 }
 .fillLeftRightResizeHandle {
-	width: 3px;
+	width: 4px;
 	height: 100%;
 	background-color: black;
 }
