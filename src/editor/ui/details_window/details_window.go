@@ -189,6 +189,10 @@ func (d *Details) reload() {
 			"entityIdDragEnter":   d.entityIdDragEnter,
 			"entityIdDragExit":    d.entityIdDragExit,
 			"selectDroppedEntity": d.selectDroppedEntity,
+			"resizeHover":         d.resizeHover,
+			"resizeExit":          d.resizeExit,
+			"resizeStart":         d.resizeStart,
+			"resizeStop":          d.resizeStop,
 		}))
 	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
@@ -405,4 +409,36 @@ func (d *Details) selectDroppedEntity(input *document.DocElement) {
 	}
 	d.editor.Selection().Set(e)
 	d.editor.Selection().Focus(d.editor.Host().Camera)
+}
+
+func (d *Details) resizeHover(e *document.DocElement) {
+	d.editor.Host().Window.CursorSizeWE()
+}
+
+func (d *Details) resizeExit(e *document.DocElement) {
+	dd := d.editor.Host().Window.Mouse.DragData()
+	if dd != d {
+		d.editor.Host().Window.CursorStandard()
+	}
+}
+
+func (d *Details) resizeStart(e *document.DocElement) {
+	d.editor.Host().Window.Mouse.SetDragData(d)
+}
+
+func (d *Details) resizeStop(e *document.DocElement) {
+	dd := d.editor.Host().Window.Mouse.DragData()
+	if dd != d {
+		return
+	}
+	d.editor.Host().Window.CursorStandard()
+}
+
+func (d *Details) DragUpdate() {
+	win, _ := d.doc.GetElementById("window")
+	w := d.editor.Host().Window.Width()
+	x := matrix.Float(w) - d.editor.Host().Window.Mouse.Position().X()
+	if int(x) < w-100 {
+		win.UIPanel.Layout().ScaleWidth(x)
+	}
 }
