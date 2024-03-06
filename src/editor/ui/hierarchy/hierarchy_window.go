@@ -178,6 +178,10 @@ func (h *Hierarchy) Reload() {
 			"drop":           h.drop,
 			"dragEnter":      h.dragEnter,
 			"dragExit":       h.dragExit,
+			"resizeHover":    h.resizeHover,
+			"resizeExit":     h.resizeExit,
+			"resizeStart":    h.resizeStart,
+			"resizeStop":     h.resizeStop,
 		}))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
@@ -284,5 +288,37 @@ func (h *Hierarchy) dragExit(elm *document.DocElement) {
 		if myId != dd.EntityId {
 			elm.UnEnforceColor()
 		}
+	}
+}
+
+func (h *Hierarchy) resizeHover(e *document.DocElement) {
+	h.host.Window.CursorSizeWE()
+}
+
+func (h *Hierarchy) resizeExit(e *document.DocElement) {
+	dd := h.host.Window.Mouse.DragData()
+	if dd != h {
+		h.host.Window.CursorStandard()
+	}
+}
+
+func (h *Hierarchy) resizeStart(e *document.DocElement) {
+	h.host.Window.Mouse.SetDragData(h)
+}
+
+func (h *Hierarchy) resizeStop(e *document.DocElement) {
+	dd := h.host.Window.Mouse.DragData()
+	if dd != h {
+		return
+	}
+	h.host.Window.CursorStandard()
+}
+
+func (h *Hierarchy) DragUpdate() {
+	win, _ := h.doc.GetElementById("window")
+	x := h.host.Window.Mouse.Position().X()
+	w := h.host.Window.Width()
+	if int(x) < w-100 {
+		win.UIPanel.Layout().ScaleWidth(x)
 	}
 }
