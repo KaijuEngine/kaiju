@@ -39,6 +39,7 @@ package hierarchy
 
 import (
 	"kaiju/editor/selection"
+	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -238,8 +239,8 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 func (h *Hierarchy) drop(elm *document.DocElement) {
 	elm.UnEnforceColor()
 	to := engine.EntityId(elm.HTML.Attribute("id"))
-	from := h.host.Window.Mouse.DragData().(engine.EntityId)
-	if f, ok := h.host.FindEntity(from); ok {
+	from := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
+	if f, ok := h.host.FindEntity(from.EntityId); ok {
 		if t, ok := h.host.FindEntity(to); ok {
 			f.SetParent(t)
 			h.Reload()
@@ -247,14 +248,14 @@ func (h *Hierarchy) drop(elm *document.DocElement) {
 			slog.Error("Could not find drop target entity", slog.String("id", string(to)))
 		}
 	} else {
-		slog.Error("Could not find drag entity", slog.String("id", string(from)))
+		slog.Error("Could not find drag entity", slog.String("id", string(from.EntityId)))
 	}
 }
 
 func (h *Hierarchy) dragStart(elm *document.DocElement) {
 	id := engine.EntityId(elm.HTML.Attribute("id"))
 	h.host.Window.CursorSizeAll()
-	h.host.Window.Mouse.SetDragData(id)
+	h.host.Window.Mouse.SetDragData(&drag_datas.EntityIdDragData{id})
 	elm.EnforceColor(matrix.ColorPurple())
 	var eid events.Id
 	eid = h.host.Window.Mouse.OnDragStop.Add(func() {
@@ -266,10 +267,10 @@ func (h *Hierarchy) dragStart(elm *document.DocElement) {
 
 func (h *Hierarchy) dragEnter(elm *document.DocElement) {
 	myId := engine.EntityId(elm.HTML.Attribute("id"))
-	if dragId, ok := h.host.Window.Mouse.DragData().(engine.EntityId); !ok {
+	if dd, ok := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
-		if myId != dragId {
+		if myId != dd.EntityId {
 			elm.EnforceColor(matrix.ColorOrange())
 		}
 	}
@@ -277,10 +278,10 @@ func (h *Hierarchy) dragEnter(elm *document.DocElement) {
 
 func (h *Hierarchy) dragExit(elm *document.DocElement) {
 	myId := engine.EntityId(elm.HTML.Attribute("id"))
-	if dragId, ok := h.host.Window.Mouse.DragData().(engine.EntityId); !ok {
+	if dd, ok := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
-		if myId != dragId {
+		if myId != dd.EntityId {
 			elm.UnEnforceColor()
 		}
 	}

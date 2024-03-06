@@ -40,6 +40,7 @@ package details_window
 import (
 	"kaiju/editor/codegen"
 	"kaiju/editor/interfaces"
+	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -92,14 +93,14 @@ type entityDataField struct {
 }
 
 func (f *entityDataField) ValueAsEntityName() string {
-	id, ok := f.Value.(engine.EntityId)
+	dd, ok := f.Value.(*drag_datas.EntityIdDragData)
 	if !ok {
 		slog.Error("Value is not an EntityId", f.Value)
 		return ""
 	}
-	e, ok := f.host.FindEntity(id)
+	e, ok := f.host.FindEntity(dd.EntityId)
 	if !ok {
-		slog.Error("Entity not found", id)
+		slog.Error("Entity not found", dd.EntityId)
 		return ""
 	}
 	return e.Name()
@@ -397,8 +398,8 @@ func (d *Details) selectDroppedEntity(input *document.DocElement) {
 	if !ok {
 		return
 	}
-	id := v.Interface().(engine.EntityId)
-	e, ok := d.editor.Host().FindEntity(id)
+	dd := v.Interface().(*drag_datas.EntityIdDragData)
+	e, ok := d.editor.Host().FindEntity(dd.EntityId)
 	if !ok {
 		return
 	}

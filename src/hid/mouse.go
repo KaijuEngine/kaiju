@@ -57,6 +57,10 @@ const (
 	MouseButtonStateInvalid = -1
 )
 
+type DragData interface {
+	DragUpdate()
+}
+
 type Mouse struct {
 	X, Y             float32
 	SX, SY           float32
@@ -64,7 +68,7 @@ type Mouse struct {
 	ScrollX, ScrollY float32
 	buttonStates     [MouseButtonLast]int
 	OnDragStop       events.Event
-	dragData         any
+	dragData         DragData
 	moved            bool
 	buttonChanged    bool
 	scrollPending    bool
@@ -110,6 +114,9 @@ func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32) {
 		m.CX = x - windowWidth/2.0
 		m.CY = windowHeight/2.0 - y
 		m.moved = true
+		if m.dragData != nil {
+			m.dragData.DragUpdate()
+		}
 	}
 }
 
@@ -194,7 +201,7 @@ func (m Mouse) DragData() any {
 	return m.dragData
 }
 
-func (m *Mouse) SetDragData(data any) {
+func (m *Mouse) SetDragData(data DragData) {
 	if m.dragData != nil {
 		m.OnDragStop.Execute()
 	}
