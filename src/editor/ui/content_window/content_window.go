@@ -87,6 +87,10 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Gr
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
+	s.funcMap["resizeHover"] = s.resizeHover
+	s.funcMap["resizeExit"] = s.resizeExit
+	s.funcMap["resizeStart"] = s.resizeStart
+	s.funcMap["resizeStop"] = s.resizeStop
 	editor.Host().OnClose.Add(func() {
 		if s.doc != nil {
 			s.doc.Destroy()
@@ -240,5 +244,37 @@ func (s *ContentWindow) list() {
 		s.listSearch()
 	} else {
 		s.listAll()
+	}
+}
+
+func (s *ContentWindow) resizeHover(e *document.DocElement) {
+	s.editor.Host().Window.CursorSizeNS()
+}
+
+func (s *ContentWindow) resizeExit(e *document.DocElement) {
+	dd := s.editor.Host().Window.Mouse.DragData()
+	if dd != s {
+		s.editor.Host().Window.CursorStandard()
+	}
+}
+
+func (l *ContentWindow) resizeStart(e *document.DocElement) {
+	l.editor.Host().Window.Mouse.SetDragData(l)
+}
+
+func (s *ContentWindow) resizeStop(e *document.DocElement) {
+	dd := s.editor.Host().Window.Mouse.DragData()
+	if dd != s {
+		return
+	}
+	s.editor.Host().Window.CursorStandard()
+}
+
+func (s *ContentWindow) DragUpdate() {
+	w, _ := s.doc.GetElementById("window")
+	y := s.editor.Host().Window.Mouse.Position().Y() - 20
+	h := s.editor.Host().Window.Height()
+	if int(y) < h-100 {
+		w.UIPanel.Layout().ScaleHeight(y)
 	}
 }

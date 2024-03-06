@@ -5,27 +5,30 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/content_window.css">
 	</head>
 	<body>
-		<div class="fillBottom darkBG clip z3 thinBorder">
-			<div class="searchInput">
-				<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
-			</div>
-			<div id="listing" class="listing">
-				{{if not .IsRoot}}
-				<div class="listEntry" onclick="contentClick" data-path="../">
-					<img class="listImg" src="editor/textures/icons/folder.png" />
-					<span>..</span>
+		<div id="window" class="fillBottom darkBG clip z3 thinBorder">
+			<div class="fillBottomResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
+			<div class="fillBottomContent">
+				<div class="searchInput">
+					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
 				</div>
-				{{end}}
-				{{range .Dir}}
-				<div class="listEntry" onclick="contentClick" data-path="{{.Path}}">
-					{{if .IsDir}}
+				<div id="listing" class="listing">
+					{{if not .IsRoot}}
+					<div class="listEntry" onclick="contentClick" data-path="../">
 						<img class="listImg" src="editor/textures/icons/folder.png" />
-					{{else}}
-						<img class="listImg" src="editor/textures/icons/file.png" />
+						<span>..</span>
+					</div>
 					{{end}}
-					<span>{{.Name}}</span>
+					{{range .Dir}}
+					<div class="listEntry" onclick="contentClick" data-path="{{.Path}}">
+						{{if .IsDir}}
+							<img class="listImg" src="editor/textures/icons/folder.png" />
+						{{else}}
+							<img class="listImg" src="editor/textures/icons/file.png" />
+						{{end}}
+						<span>{{.Name}}</span>
+					</div>
+					{{end}}
 				</div>
-				{{end}}
 			</div>
 		</div>
 	</body>
