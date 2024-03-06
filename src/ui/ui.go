@@ -293,14 +293,6 @@ func (ui *uiBase) eventUpdates() {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
 				ui.drag = true
 				ui.requestEvent(EventTypeDragStart)
-				if cursor.HasDragData() {
-					m := &ui.host.Window.Mouse
-					var did events.Id
-					did = m.OnDragStop.Add(func() {
-						ui.requestEvent(EventTypeDragEnd)
-						m.OnDragStop.Remove(did)
-					})
-				}
 			}
 		}
 	}
@@ -329,6 +321,7 @@ func (ui *uiBase) eventUpdates() {
 					dragged = ui.dragStartPos.Distance(p) > 5
 				}
 				ui.drag = false
+				ui.requestEvent(EventTypeDragEnd)
 				if ui.hovering && !dragged {
 					rt := ui.host.Runtime()
 					if rt-ui.lastClick < dblCLickTime && !ui.events[EventTypeDoubleClick].IsEmpty() {
