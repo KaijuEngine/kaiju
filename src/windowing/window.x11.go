@@ -142,6 +142,14 @@ func (w *Window) cursorSizeAll() {
 	klib.NotYetImplemented(258)
 }
 
+func (w *Window) cursorSizeNS() {
+	klib.NotYetImplemented(258)
+}
+
+func (w *Window) cursorSizeWE() {
+	klib.NotYetImplemented(258)
+}
+
 func (w *Window) copyToClipboard(text string) {
 	klib.NotYetImplemented(103)
 }

@@ -168,6 +168,14 @@ func (w *Window) cursorSizeAll() {
 	C.window_cursor_size_all(w.handle)
 }
 
+func (w *Window) cursorSizeNS() {
+	C.window_cursor_size_ns(w.handle)
+}
+
+func (w *Window) cursorSizeWE() {
+	C.window_cursor_size_we(w.handle)
+}
+
 func (w *Window) copyToClipboard(text string) {
 	klib.NotYetImplemented(102)
 }

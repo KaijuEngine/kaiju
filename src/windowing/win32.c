@@ -392,6 +392,14 @@ void window_cursor_size_all(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_ALL, 0);
 }
 
+void window_cursor_size_ns(void* hwnd) {
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_NS, 0);
+}
+
+void window_cursor_size_we(void* hwnd) {
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_WE, 0);
+}
+
 float get_dpi(void* hwnd) {
 	return GetDpiForWindow(hwnd);
 }
