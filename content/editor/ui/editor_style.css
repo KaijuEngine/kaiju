@@ -34,6 +34,18 @@ body {
 	width: 100%;
 	height: 150px;
 }
+.fillBottomContent {
+	width: 100%;
+	height: calc(100% - 3px);
+}
+.fillBottomResizeHandle {
+	width: 100%;
+	height: 3px;
+	background-color: black;
+}
+.fillBottomResizeHandle:hover {
+	background-color: blue;
+}
 .bolder { font-weight: bolder; }
 .hide { visibility: hidden; }
 .clip { overflow: hidden; }

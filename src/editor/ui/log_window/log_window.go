@@ -339,9 +339,45 @@ func (l *LogWindow) reloadUI() {
 			"showErrors":   l.showErrors,
 			"showSelected": l.showSelected,
 			"selectEntry":  l.selectEntry,
+			"resizeHover":  l.resizeHover,
+			"resizeExit":   l.resizeExit,
+			"resizeStart":  l.resizeStart,
+			"resizeStop":   l.resizeStop,
 		}))
 	l.doc.SetGroup(l.group)
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()
+}
+
+func (l *LogWindow) resizeHover(e *document.DocElement) {
+	l.host.Window.CursorSizeNS()
+}
+
+func (l *LogWindow) resizeExit(e *document.DocElement) {
+	dd := l.host.Window.Mouse.DragData()
+	if dd != l {
+		l.host.Window.CursorStandard()
+	}
+}
+
+func (l *LogWindow) resizeStart(e *document.DocElement) {
+	l.host.Window.Mouse.SetDragData(l)
+}
+
+func (l *LogWindow) resizeStop(e *document.DocElement) {
+	dd := l.host.Window.Mouse.DragData()
+	if dd != l {
+		return
+	}
+	l.host.Window.CursorStandard()
+}
+
+func (l *LogWindow) DragUpdate() {
+	w, _ := l.doc.GetElementById("window")
+	y := l.host.Window.Mouse.Position().Y() - 20
+	h := l.host.Window.Height()
+	if int(y) < h-100 {
+		w.UIPanel.Layout().ScaleHeight(y)
+	}
 }
