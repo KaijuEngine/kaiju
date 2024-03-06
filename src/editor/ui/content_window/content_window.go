@@ -259,6 +259,7 @@ func (s *ContentWindow) resizeExit(e *document.DocElement) {
 }
 
 func (l *ContentWindow) resizeStart(e *document.DocElement) {
+	s.editor.Host().Window.CursorSizeNS()
 	l.editor.Host().Window.Mouse.SetDragData(l)
 }
 

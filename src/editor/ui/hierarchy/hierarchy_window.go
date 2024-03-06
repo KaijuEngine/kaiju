@@ -303,6 +303,7 @@ func (h *Hierarchy) resizeExit(e *document.DocElement) {
 }
 
 func (h *Hierarchy) resizeStart(e *document.DocElement) {
+	h.host.Window.CursorSizeWE()
 	h.host.Window.Mouse.SetDragData(h)
 }
 

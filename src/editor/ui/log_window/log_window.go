@@ -362,6 +362,7 @@ func (l *LogWindow) resizeExit(e *document.DocElement) {
 }
 
 func (l *LogWindow) resizeStart(e *document.DocElement) {
+	l.host.Window.CursorSizeNS()
 	l.host.Window.Mouse.SetDragData(l)
 }
 
