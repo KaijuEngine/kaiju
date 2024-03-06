@@ -40,6 +40,7 @@ package properties
 import (
 	"fmt"
 	"kaiju/engine"
+	"kaiju/markup/css/functions"
 	"kaiju/markup/css/helpers"
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
@@ -73,6 +74,16 @@ func (p Width) Process(panel *ui.Panel, elm document.DocElement, values []rules.
 				w := s*width - p.X() - p.Z()
 				l.ScaleWidth(w)
 			})
+		} else if values[0].IsFunction() {
+			if values[0].Str == "calc" {
+				panel.Layout().AddFunction(func(l *ui.Layout) {
+					val := values[0]
+					val.Args = append(val.Args, "width")
+					res, _ := functions.Calc{}.Process(panel, elm, val)
+					width = helpers.NumFromLength(res, host.Window)
+					l.ScaleWidth(width)
+				})
+			}
 		} else {
 			panel.Layout().ScaleWidth(width)
 		}
