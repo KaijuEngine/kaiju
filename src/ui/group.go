@@ -123,7 +123,7 @@ func (group *Group) lateUpdate() {
 					req.target.ExecuteEvent(req.eventType)
 				case EventTypeClick, EventTypeDown, EventTypeUp,
 					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
-					EventTypeDrop, EventTypeScroll:
+					EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
 					l := last[req.eventType]
 					e := req.target.Entity()
 					last[req.eventType] = e

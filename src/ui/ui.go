@@ -293,6 +293,14 @@ func (ui *uiBase) eventUpdates() {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
 				ui.drag = true
 				ui.requestEvent(EventTypeDragStart)
+				if cursor.HasDragData() {
+					m := &ui.host.Window.Mouse
+					var did events.Id
+					did = m.OnDragStop.Add(func() {
+						ui.requestEvent(EventTypeDragEnd)
+						m.OnDragStop.Remove(did)
+					})
+				}
 			}
 		}
 	}

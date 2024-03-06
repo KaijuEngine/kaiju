@@ -73,4 +73,5 @@ func setupEvents(elm *DocElement, funcMap map[string]func(*DocElement)) {
 	tryMap("ondragleave", elm, elm.UI.Event(ui.EventTypeDropExit), funcMap)
 	tryMap("ondragstart", elm, elm.UI.Event(ui.EventTypeDragStart), funcMap)
 	tryMap("ondrop", elm, elm.UI.Event(ui.EventTypeDrop), funcMap)
+	tryMap("ondragend", elm, elm.UI.Event(ui.EventTypeDragEnd), funcMap)
 }
