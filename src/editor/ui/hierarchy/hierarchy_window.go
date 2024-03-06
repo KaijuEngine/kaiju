@@ -38,6 +38,7 @@
 package hierarchy
 
 import (
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/selection"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
@@ -50,6 +51,8 @@ import (
 	"log/slog"
 	"strings"
 )
+
+const sizeConfig = "hierarchyWindowSize"
 
 type Hierarchy struct {
 	host      *engine.Host
@@ -192,6 +195,10 @@ func (h *Hierarchy) Reload() {
 		h.input.AddEvent(ui.EventTypeSubmit, h.submit)
 	}
 	h.doc.Clean()
+	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+		w, _ := h.doc.GetElementById("window")
+		w.UIPanel.Layout().ScaleWidth(matrix.Float(s.(float64)))
+	}
 	if !isActive {
 		h.doc.Deactivate()
 	}
@@ -313,6 +320,9 @@ func (h *Hierarchy) resizeStop(e *document.DocElement) {
 		return
 	}
 	h.host.Window.CursorStandard()
+	w, _ := h.doc.GetElementById("window")
+	s := w.UIPanel.Layout().PixelSize().Width()
+	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
 func (h *Hierarchy) DragUpdate() {

@@ -38,6 +38,7 @@
 package details_window
 
 import (
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/codegen"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/drag_datas"
@@ -51,6 +52,8 @@ import (
 	"log/slog"
 	"reflect"
 )
+
+const sizeConfig = "detailsWindowSize"
 
 type Details struct {
 	editor             interfaces.Editor
@@ -198,6 +201,10 @@ func (d *Details) reload() {
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
 	go d.editor.ReloadEntityDataListing()
+	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+		w, _ := d.doc.GetElementById("window")
+		w.UIPanel.Layout().ScaleWidth(matrix.Float(s.(float64)))
+	}
 	if !isActive {
 		d.doc.Deactivate()
 	}
@@ -433,6 +440,9 @@ func (d *Details) resizeStop(e *document.DocElement) {
 		return
 	}
 	d.editor.Host().Window.CursorStandard()
+	w, _ := d.doc.GetElementById("window")
+	s := w.UIPanel.Layout().PixelSize().Width()
+	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
 func (d *Details) DragUpdate() {

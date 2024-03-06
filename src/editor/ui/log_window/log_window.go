@@ -38,10 +38,12 @@
 package log_window
 
 import (
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/systems/logging"
 	"kaiju/ui"
 	"slices"
@@ -50,6 +52,8 @@ import (
 	"sync"
 	"time"
 )
+
+const sizeConfig = "logWindowSize"
 
 type viewGroup = int
 
@@ -348,6 +352,10 @@ func (l *LogWindow) reloadUI() {
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()
+	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+		w, _ := l.doc.GetElementById("window")
+		w.UIPanel.Layout().ScaleHeight(matrix.Float(s.(float64)))
+	}
 }
 
 func (l *LogWindow) resizeHover(e *document.DocElement) {
@@ -372,6 +380,9 @@ func (l *LogWindow) resizeStop(e *document.DocElement) {
 		return
 	}
 	l.host.Window.CursorStandard()
+	w, _ := l.doc.GetElementById("window")
+	s := w.UIPanel.Layout().PixelSize().Height()
+	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
 func (l *LogWindow) DragUpdate() {

@@ -40,6 +40,7 @@ package content_window
 import (
 	"io/fs"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
 	"kaiju/klib"
@@ -53,7 +54,10 @@ import (
 	"strings"
 )
 
-const contentPath = "content"
+const (
+	contentPath = "content"
+	sizeConfig  = "contentWindowSize"
+)
 
 type contentEntry struct {
 	Path  string
@@ -196,6 +200,10 @@ func (s *ContentWindow) reloadUI() {
 		s.listing = elm.UIPanel
 	}
 	s.doc.Clean()
+	if h, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+		w, _ := s.doc.GetElementById("window")
+		w.UIPanel.Layout().ScaleHeight(matrix.Float(h.(float64)))
+	}
 	s.input.Select()
 }
 
@@ -259,7 +267,7 @@ func (s *ContentWindow) resizeExit(e *document.DocElement) {
 }
 
 func (l *ContentWindow) resizeStart(e *document.DocElement) {
-	s.editor.Host().Window.CursorSizeNS()
+	l.editor.Host().Window.CursorSizeNS()
 	l.editor.Host().Window.Mouse.SetDragData(l)
 }
 
@@ -269,6 +277,9 @@ func (s *ContentWindow) resizeStop(e *document.DocElement) {
 		return
 	}
 	s.editor.Host().Window.CursorStandard()
+	w, _ := s.doc.GetElementById("window")
+	h := w.UIPanel.Layout().PixelSize().Height()
+	editor_cache.SetEditorConfigValue(sizeConfig, h)
 }
 
 func (s *ContentWindow) DragUpdate() {
