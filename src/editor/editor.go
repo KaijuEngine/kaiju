@@ -325,14 +325,14 @@ func (ed *Editor) update(delta float64) {
 	} else if kb.KeyUp(hid.KeyboardKeyF5) {
 		ed.runProject(true)
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
-		ed.detailsWindow.Hide()
+		ed.logWindow.Hide()
 		ed.contentWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyD) {
-		ed.contentWindow.Hide()
 		ed.detailsWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyH) {
 		ed.hierarchy.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyL) {
+		ed.contentWindow.Hide()
 		ed.logWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		ed.selection.Focus(ed.Host().Camera)
