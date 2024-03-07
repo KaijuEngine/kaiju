@@ -47,8 +47,6 @@ package audio_system
 import "C"
 import (
 	"errors"
-	"time"
-	"unsafe"
 )
 
 func initialize() error {
@@ -62,4 +60,3 @@ func initialize() error {
 func quit() {
 	C.audio_quit()
 }
-
