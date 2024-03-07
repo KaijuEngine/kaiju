@@ -314,14 +314,14 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 	const v3size = int32(unsafe.Sizeof(matrix.Vec3{}))
 	const v2size = int32(unsafe.Sizeof(matrix.Vec2{}))
 	for i := int32(0); i < vertCount; i++ {
-		klib.Memcpy(unsafe.Pointer(&vertData[i].Position), unsafe.Pointer(&verts[i*v3size]), int(unsafe.Sizeof(vertData[i].Position)))
+		klib.Memcpy(unsafe.Pointer(&vertData[i].Position), unsafe.Pointer(&verts[i*v3size]), uint64(unsafe.Sizeof(vertData[i].Position)))
 		vertData[i].Color = vertColor
 		vertData[i].MorphTarget = vertData[i].Position
 		// NAN is being exported for colors, so skipping this line
 		//vertData[j].color = (vertColors != NULL ? ((color*)vertColors)[j] : color_white());
 		vertData[i].Color.MultiplyAssign(vertColor)
 		joint := [4]int{0, 0, 0, 0}
-		const jointSize = int(unsafe.Sizeof(joint))
+		const jointSize = uint64(unsafe.Sizeof(joint))
 		if len(jointIds) > 0 {
 			switch jnt0Acc.ComponentType {
 			case gltf.UNSIGNED_BYTE:
@@ -342,18 +342,18 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 		}
 		klib.Memcpy(unsafe.Pointer(&vertData[i].JointIds), unsafe.Pointer(&joint[0]), jointSize)
 		if len(weights) > 0 {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].JointWeights), unsafe.Pointer(&weights[i*v4size]), int(v4size))
+			klib.Memcpy(unsafe.Pointer(&vertData[i].JointWeights), unsafe.Pointer(&weights[i*v4size]), uint64(v4size))
 		} else {
 			vertData[i].JointWeights = matrix.Vec4Zero()
 		}
-		klib.Memcpy(unsafe.Pointer(&vertData[i].Normal), unsafe.Pointer(&vertNormals[i*v3size]), int(v3size))
+		klib.Memcpy(unsafe.Pointer(&vertData[i].Normal), unsafe.Pointer(&vertNormals[i*v3size]), uint64(v3size))
 		if tangent != nil {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].Tangent), unsafe.Pointer(&tangent[i*v4size]), int(v4size))
+			klib.Memcpy(unsafe.Pointer(&vertData[i].Tangent), unsafe.Pointer(&tangent[i*v4size]), uint64(v4size))
 		} else {
 			vertData[i].Tangent = matrix.Vec4Zero()
 		}
 		if texCoords0 != nil {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].UV0), unsafe.Pointer(&texCoords0[i*v2size]), int(v2size))
+			klib.Memcpy(unsafe.Pointer(&vertData[i].UV0), unsafe.Pointer(&texCoords0[i*v2size]), uint64(v2size))
 		} else {
 			vertData[i].UV0 = matrix.Vec2Zero()
 		}

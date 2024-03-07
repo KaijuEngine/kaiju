@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* audio.win32.h                                                              */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,15 +35,20 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+#ifndef AUDIO_H
+#define AUDIO_H
 
-import (
-	"kaiju/audio"
-	"kaiju/bootstrap"
-)
+#include "wav.h"
 
-func main() {
-	audio.Init()
-	bootstrap.Main()
-	audio.Quit()
-}
+typedef struct SpeakerDevice SpeakerDevice;
+
+int audio_init();
+void audio_quit();
+SpeakerDevice* audio_speaker_new(size_t msBufferLen);
+void audio_speaker_free(SpeakerDevice* speaker);
+int speaker_start(SpeakerDevice* speaker);
+int speaker_stop(SpeakerDevice* speaker);
+
+int speaker_load_wav_data(SpeakerDevice* speaker, const AudioWav* wav);
+
+#endif

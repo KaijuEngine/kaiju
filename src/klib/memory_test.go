@@ -59,7 +59,7 @@ func TestUnsafeMemcpy(t *testing.T) {
 			t.Errorf("data[%d] = %d, expected %d", i, data[i], i+1)
 		}
 	}
-	Memcpy(unsafe.Pointer(&data[0]), unsafe.Pointer(&fromData[0]), bufferSize)
+	Memcpy(unsafe.Pointer(&data[0]), unsafe.Pointer(&fromData[0]), uint64(bufferSize))
 	for i := 0; i < bufferSize; i++ {
 		if data[i] != byte(i+9) {
 			t.Errorf("data[%d] = %d, expected %d", i, data[i], i+9)

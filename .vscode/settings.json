@@ -21,7 +21,6 @@
 		"CGO_LDFLAGS": "-lgdi32 -lXInput"
 	},
 	"files.associations": {
-		"glad_wgl.h": "c",
 		"stdint.h": "c",
 		"wchar.h": "c",
 		"windowing.h": "c",
@@ -38,7 +37,8 @@
 		"xlib.h": "c",
 		"commdlg.h": "c",
 		"knownfolders.h": "c",
-		"glad.h": "c"
+		"audio.win32.h": "c",
+		"float.h": "c"
 	},
 	"cSpell.words": [
 		"Farris",

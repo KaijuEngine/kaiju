@@ -1,5 +1,7 @@
+//go:build windows
+
 /******************************************************************************/
-/* main.go                                                                    */
+/* audio.win32.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,15 +37,29 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package audio_system
 
+/*
+#cgo LDFLAGS: -lole32
+#include "audio.win32.h"
+#include "wav.h"
+*/
+import "C"
 import (
-	"kaiju/audio"
-	"kaiju/bootstrap"
+	"errors"
+	"time"
+	"unsafe"
 )
 
-func main() {
-	audio.Init()
-	bootstrap.Main()
-	audio.Quit()
+func initialize() error {
+	res := int(C.audio_init())
+	if res != 0 {
+		return errors.New("audio_init failed")
+	}
+	return nil
 }
+
+func quit() {
+	C.audio_quit()
+}
+

@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* mic.win32.h                                                                */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,15 +35,24 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+#ifndef MIC_H
+#define MIC_H
 
-import (
-	"kaiju/audio"
-	"kaiju/bootstrap"
-)
+#define TODO_OPUS 1
+#ifndef TODO_OPUS
+#include <stdint.h>
 
-func main() {
-	audio.Init()
-	bootstrap.Main()
-	audio.Quit()
-}
+typedef struct SpeakerDevice SpeakerDevice;
+typedef struct MicrophoneDevice MicrophoneDevice;
+
+MicrophoneDevice* audio_mic_new(size_t msBufferLen);
+void audio_mic_free(MicrophoneDevice* mic);
+int mic_start(MicrophoneDevice* mic);
+int mic_stop(MicrophoneDevice* mic);
+int mic_encode(MicrophoneDevice* mic, int32_t* outReadLen);
+int speaker_mic_decode(SpeakerDevice* speaker, const uint8_t* packet, int32_t len);
+const uint8_t* mic_get_packet(const MicrophoneDevice* mic, int32_t* len);
+*/
+
+#endif
+#endif

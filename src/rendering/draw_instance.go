@@ -206,7 +206,7 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 			count--
 		} else if instance.IsActive() {
 			to := unsafe.Pointer(uintptr(base) + offset)
-			klib.Memcpy(to, instance.DataPointer(), d.instanceSize)
+			klib.Memcpy(to, instance.DataPointer(), uint64(d.instanceSize))
 			offset += uintptr(d.instanceSize + d.padding)
 			d.visibleCount++
 		}

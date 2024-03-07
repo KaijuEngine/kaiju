@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* wav.h                                                                      */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,15 +35,28 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+#ifndef WAV_H
+#define WAV_H
 
-import (
-	"kaiju/audio"
-	"kaiju/bootstrap"
-)
+#include <stdint.h>
 
-func main() {
-	audio.Init()
-	bootstrap.Main()
-	audio.Quit()
-}
+typedef struct AudioWav {
+	uint8_t* rawData;
+	uint8_t* wavData;	// Data at top because we need to align on 64-bit
+	const char riff[4];
+	const int32_t size;
+	const char wave[4];
+	const char fmt[4];
+	const int32_t fmtLen;
+	const int16_t formatType;
+	const int16_t channels;
+	const int32_t sampleRate;
+	const int32_t averageSample;
+	const int16_t bitsPerSampleChannel;
+	const int16_t bitsPerSample;
+	const char data[4];
+	const int32_t dataSize;
+	const int32_t msDuration;
+} AudioWav;
+
+#endif

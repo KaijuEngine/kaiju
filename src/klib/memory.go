@@ -139,7 +139,7 @@ func FindFirstZeroInByteArray(arr []byte) int {
 	return end
 }
 
-func Memcpy(dst unsafe.Pointer, src unsafe.Pointer, size int) {
+func Memcpy(dst unsafe.Pointer, src unsafe.Pointer, size uint64) {
 	copy(unsafe.Slice((*byte)(dst), size), unsafe.Slice((*byte)(src), size))
 }
 
@@ -169,6 +169,6 @@ func StructSliceToByteArray[T any](s []T) []byte {
 func ConvertByteSliceType[T any](slice []byte) []T {
 	count := len(slice)
 	res := make([]T, count/int(unsafe.Sizeof(*(*T)(nil))))
-	Memcpy(unsafe.Pointer(&res[0]), unsafe.Pointer(&slice[0]), count)
+	Memcpy(unsafe.Pointer(&res[0]), unsafe.Pointer(&slice[0]), uint64(count))
 	return res
 }
