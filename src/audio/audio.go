@@ -10,3 +10,6 @@ func Quit() {
 	audio_system.Quit()
 }
 
+func Play(wav *audio_system.Wav) {
+	audio_system.PlayWav(wav)
+}

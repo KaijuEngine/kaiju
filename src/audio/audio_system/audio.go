@@ -8,3 +8,6 @@ func Quit() {
 	quit()
 }
 
+func PlayWav(wav *Wav) {
+	playWav(wav)
+}
