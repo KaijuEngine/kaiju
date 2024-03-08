@@ -94,6 +94,7 @@ func LoadWav(host *engine.Host, wavFile string) (*Wav, error) {
 	hWave := *(*int32)(unsafe.Pointer(&[]byte(wavHeaderWave)[0]))
 	hFmt := *(*int32)(unsafe.Pointer(&[]byte(wavHeaderFmt)[0]))
 	hData := *(*int32)(unsafe.Pointer(&[]byte(wavHeaderData)[0]))
+	fhData := *(*int32)(unsafe.Pointer(&[]byte(wavHeaderFact)[0]))
 	if *(*int32)(unsafe.Pointer(&wav.riff[0])) != hRiff {
 		return nil, errors.New("invalid riff")
 	}
@@ -103,7 +104,8 @@ func LoadWav(host *engine.Host, wavFile string) (*Wav, error) {
 	if *(*int32)(unsafe.Pointer(&wav.fmt[0])) != hFmt {
 		return nil, errors.New("invalid fmt")
 	}
-	if *(*int32)(unsafe.Pointer(&wav.data[0])) != hData {
+	if *(*int32)(unsafe.Pointer(&wav.data[0])) != hData &&
+		*(*int32)(unsafe.Pointer(&wav.data[0])) != fhData {
 		return nil, errors.New("invalid data")
 	}
 	offset := int(cpySize)
