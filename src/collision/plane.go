@@ -44,6 +44,7 @@ type Plane struct {
 	Dot    matrix.Float
 }
 
+// PlaneCCW creates a plane from three points in counter clockwise order
 func PlaneCCW(a, b, c matrix.Vec3) Plane {
 	var p Plane
 	e0 := b.Subtract(a)
@@ -53,6 +54,7 @@ func PlaneCCW(a, b, c matrix.Vec3) Plane {
 	return p
 }
 
+// SetFloatValue sets the value of the plane at the given index (X, Y, Z, Dot)
 func (p *Plane) SetFloatValue(value float32, index int) {
 	switch index {
 	case 0:
@@ -66,27 +68,32 @@ func (p *Plane) SetFloatValue(value float32, index int) {
 	}
 }
 
+// ToArray converts the plane to an array of 4 floats
 func (p Plane) ToArray() [4]float32 {
 	return [4]float32{p.Normal.X(), p.Normal.Y(), p.Normal.Z(), p.Dot}
 }
 
+// ToVec4 converts the plane to a Vec4 (analogous to ToArray)
 func (p Plane) ToVec4() matrix.Vec4 {
 	return matrix.Vec4{p.Normal.X(), p.Normal.Y(), p.Normal.Z(), p.Dot}
 }
 
+// ClosestPoint returns the closest point on the plane to the given point
 func (p Plane) ClosestPoint(point matrix.Vec3) matrix.Vec3 {
 	// If normalized, t := matrix.Vec3Dot(point, p.Normal) - p.Dot
 	t := (matrix.Vec3Dot(p.Normal, point) - p.Dot) / matrix.Vec3Dot(p.Normal, p.Normal)
 	return point.Subtract(p.Normal.Scale(t))
 }
 
+// Distance returns the distance from the plane to the given point
 func (p Plane) Distance(point matrix.Vec3) float32 {
 	// If normalized, return matrix.Vec3Dot(p.Normal, point) - p.Dot
 	return (matrix.Vec3Dot(p.Normal, point) - p.Dot) / matrix.Vec3Dot(p.Normal, p.Normal)
 }
 
+// PointOutsideOfPlane returns true if the given point is outside of the plane
 func PointOutsideOfPlane(p, a, b, c, d matrix.Vec3) bool {
-	signp := matrix.Vec3Dot(p.Subtract(a), matrix.Vec3Cross(b.Subtract(a), c.Subtract(a)))
-	signd := matrix.Vec3Dot(d.Subtract(a), matrix.Vec3Cross(b.Subtract(a), c.Subtract(a)))
-	return signp*signd < 0
+	signP := matrix.Vec3Dot(p.Subtract(a), matrix.Vec3Cross(b.Subtract(a), c.Subtract(a)))
+	signD := matrix.Vec3Dot(d.Subtract(a), matrix.Vec3Cross(b.Subtract(a), c.Subtract(a)))
+	return signP*signD < 0
 }

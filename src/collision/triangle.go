@@ -52,6 +52,9 @@ type DetailedTriangle struct {
 	Radius   matrix.Float
 }
 
+// DetailedTriangleFromPoints creates a detailed triangle from three points, a
+// detailed triangle is different from a regular triangle in that it contains
+// additional information such as the centroid and radius
 func DetailedTriangleFromPoints(points [3]matrix.Vec3) DetailedTriangle {
 	tri := DetailedTriangle{
 		Points:   [3]matrix.Vec3{points[0], points[1], points[2]},

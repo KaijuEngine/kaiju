@@ -46,15 +46,18 @@ type Ray struct {
 	Direction matrix.Vec3
 }
 
+// Point returns the point at the given distance along the ray
 func (r Ray) Point(distance float32) matrix.Vec3 {
 	return r.Origin.Add(r.Direction.Scale(distance))
 }
 
+// TriangleHit returns true if the ray hits the triangle defined by the three points
 func (r Ray) TriangleHit(rayLen float32, a, b, c matrix.Vec3) bool {
 	s := Segment{r.Origin, r.Point(rayLen)}
 	return s.TriangleHit(a, b, c)
 }
 
+// PlaneHit returns the point of intersection with the plane and true if the ray hits the plane
 func (r Ray) PlaneHit(planePosition, planeNormal matrix.Vec3) (hit matrix.Vec3, success bool) {
 	hit = matrix.Vec3{}
 	success = false
@@ -70,6 +73,7 @@ func (r Ray) PlaneHit(planePosition, planeNormal matrix.Vec3) (hit matrix.Vec3, 
 	return r.Point(distance), true
 }
 
+// SphereHit returns true if the ray hits the sphere
 func (r Ray) SphereHit(center matrix.Vec3, radius, maxLen float32) bool {
 	delta := center.Subtract(r.Origin)
 	lenght := matrix.Vec3Dot(r.Direction, delta)

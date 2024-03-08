@@ -44,10 +44,12 @@ type Segment struct {
 	B matrix.Vec3
 }
 
+// LineSegmentFromRay creates a line segment from a ray
 func LineSegmentFromRay(ray Ray, length float32) Segment {
 	return Segment{ray.Origin, ray.Point(length)}
 }
 
+// TriangleHit returns true if the segment hits the triangle defined by the three points
 func (l Segment) TriangleHit(a, b, c matrix.Vec3) bool {
 	p := l.A
 	q := l.B
