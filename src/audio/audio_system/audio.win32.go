@@ -332,16 +332,15 @@ func (s *SpeakerDevice) LoadWavData(wav *Wav) error {
 		ratio := float64(s.mixFormat.nSamplesPerSec) / float64(wav.sampleRate)
 		resampleTotal := int32(math.Ceil(float64(wav.dataSize)*ratio) + float64(ds))
 		wavResample := make([]byte, resampleTotal)
-		resample(wavResample, wav.wavData,
-			int32(s.mixFormat.nSamplesPerSec), wav.sampleRate, wav.dataSize,
-			wav.channels, wav.formatType)
+		if int32(s.mixFormat.nSamplesPerSec) != wav.sampleRate {
+			resample(wavResample, wav.wavData,
+				int32(s.mixFormat.nSamplesPerSec), wav.sampleRate, wav.dataSize,
+				wav.channels, wav.formatType)
+		}
 
 		speakerChannels := s.mixFormat.nChannels
 
-		// TODO:  Check to make sure this is correct
-		rechannelData := *(*[]byte)(unsafe.Pointer(data))
-		rechannelData = rechannelData[:numFramesAvailable:numFramesAvailable]
-
+		rechannelData := unsafe.Slice((*byte)(unsafe.Pointer(data)), numFramesAvailable)
 		if s.wavType == 1 && wav.formatType == 1 {
 			rechannel(rechannelData, wavResample, int16(speakerChannels), wav.channels, sampleSize)
 		} else if s.wavType == 3 && wav.formatType == 3 {
