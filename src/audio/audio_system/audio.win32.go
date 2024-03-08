@@ -132,6 +132,7 @@ import "C"
 import (
 	"errors"
 	"math"
+	"time"
 	"unsafe"
 )
 
@@ -366,213 +367,15 @@ func (s *SpeakerDevice) LoadWavData(wav *Wav) error {
 }
 
 func playWav(wav *Wav) {
-	//s, err := NewSpeakerDevice(1000)
-	//if err != nil {
-	//	return
-	//}
-
-	//C.speaker_start(s)
-	//w := cWav(wav)
-	//C.speaker_load_wav_data(s, &w)
-	//go func() {
-	//	time.Sleep(10000)
-	//	C.speaker_stop(s)
-	//	C.audio_speaker_free(s)
-	//}()
-}
-
-func resample(out, in []byte, outRate, inRate, total int32, channels, wavType int16) int {
-	// TODO:  Can this be skipped if the inRate and outRate are equal?
-	offset := 0
-	ratio := float64(outRate / inRate)
-	resampleTotal := int(math.Floor(float64(total) * ratio))
-	if wavType == 1 {
-		iOutLen := len(out) / int(unsafe.Sizeof(int16(0)))
-		iInLen := len(in) / int(unsafe.Sizeof(int16(0)))
-		iOut := *(*[]int16)(unsafe.Pointer(&out))
-		iOut = iOut[:iOutLen:iOutLen]
-		iIn := *(*[]int16)(unsafe.Pointer(&in))
-		iIn = iIn[:iInLen:iInLen]
-		// TODO:  This needs to be changed just like the float block below
-		length := resampleTotal / int(unsafe.Sizeof(int16(0)))
-		for i := 0; i < length; i++ {
-			idx := int(float64(i) / ratio)
-			sample := iIn[idx]
-			if idx+offset != i {
-				// Average the two
-				sample = (iOut[i-1] + sample) / 2
-				offset++
-			}
-			iOut[i] = sample
-		}
-	} else {
-		fOutLen := len(out) / int(unsafe.Sizeof(float32(0)))
-		fInLen := len(in) / int(unsafe.Sizeof(float32(0)))
-		fOut := *(*[]float32)(unsafe.Pointer(&out))
-		fOut = fOut[:fOutLen:fOutLen]
-		fIn := *(*[]float32)(unsafe.Pointer(&in))
-		fIn = fIn[:fInLen:fInLen]
-		length := resampleTotal / int(unsafe.Sizeof(float32(0)))
-		if channels == 1 {
-			for i := 0; i < length; i++ {
-				idx := int(float64(i) / ratio)
-				sample := fIn[idx]
-				if idx+offset != i {
-					sample = (fOut[i-1] + sample) / 2.0
-					offset++
-				}
-				fOut[i] = sample
-			}
-		} else {
-			// TODO:  If Opus changes to support more than 2 channels, review
-			for i := 0; i < length; i += int(channels) {
-				idx := int(float64(i)/ratio) & -1
-				if idx+offset != i && idx+2 < length {
-					fOut[i] = (fOut[i-2] + fIn[idx+2]) / 2.0
-					fOut[i+1] = (fOut[i-1] + fIn[idx+3]) / 2.0
-					offset += int(channels)
-				} else {
-					fOut[i] = fIn[idx]
-					fOut[i+1] = fIn[idx+1]
-				}
-			}
-		}
-	}
-	return resampleTotal
-}
-
-func rechannel(out, in []byte, outChannels, inChannels int16, sampleSize int) {
-	if len(in) == 0 || len(out) == 0 || &in[0] == &out[0] {
+	s, err := NewSpeakerDevice(1000)
+	if err != nil {
 		return
 	}
-	iOutLen := len(out) / int(unsafe.Sizeof(int16(0)))
-	iInLen := len(in) / int(unsafe.Sizeof(int16(0)))
-	d := *(*[]int16)(unsafe.Pointer(&out))
-	d = d[:iOutLen:iOutLen]
-	td := *(*[]int16)(unsafe.Pointer(&in))
-	td = td[:iInLen:iInLen]
-	idx := 0
-	if outChannels == 1 && inChannels > 1 {
-		for i := 0; i < sampleSize; i += 2 {
-			d[idx] = int16(float64(td[i])*0.5) + int16(float64(td[i+1])+0.5)
-			idx++
-		}
-	} else if outChannels > inChannels {
-		for i := 0; i < sampleSize; i += int(inChannels) {
-			val := int16(float64(td[i]) * 0.5)
-			if inChannels > 1 {
-				val += int16(float64(td[i+1]) * 0.5)
-			}
-			for j := 0; j < int(outChannels); j++ {
-				d[idx] = val
-				idx++
-			}
-		}
-	} else {
-		length := sampleSize * int(unsafe.Sizeof(int16(0)))
-		copy(out[:length], in[:length])
-	}
-}
-
-func rechannelFloat(out, in []byte, outChannels, inChannels int16, sampleSize int) {
-	if len(in) == 0 || len(out) == 0 || &in[0] == &out[0] {
-		return
-	}
-	fOutLen := len(out) / int(unsafe.Sizeof(float32(0)))
-	fInLen := len(in) / int(unsafe.Sizeof(float32(0)))
-	d := *(*[]float32)(unsafe.Pointer(&out))
-	d = d[:fOutLen:fOutLen]
-	td := *(*[]float32)(unsafe.Pointer(&in))
-	td = td[:fInLen:fInLen]
-	idx := 0
-	if outChannels == 1 && inChannels > 1 {
-		for i := 0; i < int(sampleSize); i += 2 {
-			d[idx] = (td[i] * 0.5) + (td[i+1] + 0.5)
-			idx++
-		}
-	} else if outChannels > inChannels {
-		for i := 0; i < sampleSize; i += int(inChannels) {
-			val := td[i] * 0.5
-			if inChannels > 1 {
-				val += td[i+1] * 0.5
-			}
-			for j := 0; j < int(outChannels); j++ {
-				d[idx] = val
-				idx++
-			}
-		}
-	} else {
-		length := sampleSize * int(unsafe.Sizeof(float32(0)))
-		copy(out[:length], in[:length])
-	}
-}
-
-func rechannelFl2pcm(out, in []byte, outChannels, inChannels int16, sampleSize int) {
-	// TODO:  Test this
-	if len(in) == 0 || len(out) == 0 || &in[0] == &out[0] {
-		return
-	}
-	iOutLen := len(out) / int(unsafe.Sizeof(int16(0)))
-	fInLen := len(in) / int(unsafe.Sizeof(float32(0)))
-	d := *(*[]int16)(unsafe.Pointer(&out))
-	d = d[:iOutLen:iOutLen]
-	td := *(*[]float32)(unsafe.Pointer(&in))
-	td = td[:fInLen:fInLen]
-	idx := 0
-	if outChannels == 1 && inChannels > 1 {
-		for i := 0; i < sampleSize; i += 2 {
-			d[idx] = int16((td[i] * 0.5) + (td[i+1]+0.5)*math.MaxInt16)
-			idx++
-		}
-	} else if outChannels > inChannels {
-		for i := 0; i < sampleSize; i += int(inChannels) {
-			val := td[i] * 0.5
-			if inChannels > 1 {
-				val += td[i+1] * 0.5
-			}
-			for j := 0; j < int(outChannels); j++ {
-				d[idx] = int16(val * math.MaxInt16)
-				idx++
-			}
-		}
-	} else {
-		for i := 0; i < sampleSize; i++ {
-			d[i] = int16(td[i] * math.MaxInt16)
-		}
-	}
-}
-
-func rechannelPcm2fl(out, in []byte, outChannels, inChannels int16, sampleSize int) {
-	// TODO:  Test this
-	if len(in) == 0 || len(out) == 0 || &in[0] == &out[0] {
-		return
-	}
-	fOutLen := len(out) / int(unsafe.Sizeof(float32(0)))
-	iInLen := len(in) / int(unsafe.Sizeof(int16(0)))
-	d := *(*[]float32)(unsafe.Pointer(&out))
-	d = d[:fOutLen:fOutLen]
-	td := *(*[]int16)(unsafe.Pointer(&in))
-	td = td[:iInLen:iInLen]
-	idx := 0
-	if outChannels == 1 && inChannels > 1 {
-		for i := 0; i < int(sampleSize); i += 2 {
-			d[idx] = ((float32(td[i]) * 0.5) + (float32(td[i+1]) + 0.5)) / math.MaxInt16
-			idx++
-		}
-	} else if outChannels > inChannels {
-		for i := 0; i < int(sampleSize); i += int(inChannels) {
-			val := float32(td[i]) * 0.5
-			if inChannels > 1 {
-				val += float32(td[i+1]) * 0.5
-			}
-			for j := 0; j < int(outChannels); j++ {
-				d[idx] = val / math.MaxInt16
-				idx++
-			}
-		}
-	} else {
-		for i := 0; i < int(sampleSize); i++ {
-			d[i] = float32(td[i]) / float32(math.MaxInt16)
-		}
-	}
+	s.Start()
+	s.LoadWavData(wav)
+	go func() {
+		time.Sleep(10000)
+		s.Stop()
+		s.Free()
+	}()
 }
