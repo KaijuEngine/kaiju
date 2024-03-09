@@ -99,6 +99,8 @@ func validateJoystick(id int) error {
 	}
 }
 
+// NewController creates a new controller. This is called
+// automatically by the system and should not be called by the end-developer
 func NewController() Controller {
 	c := Controller{}
 	for i := 0; i < ControllerMaxDevices; i++ {
@@ -107,11 +109,15 @@ func NewController() Controller {
 	return c
 }
 
+// Available returns true if the controller is available. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) Available(id int) bool {
 	err := validateJoystick(id)
 	return err == nil && c.devices[id].id >= 0
 }
 
+// Connected returns true if the controller is connected. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) Connected(id int) {
 	err := validateJoystick(id)
 	if err == nil && c.devices[id].id < 0 {
@@ -119,6 +125,8 @@ func (c *Controller) Connected(id int) {
 	}
 }
 
+// Disconnected returns true if the controller is disconnected. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) Disconnected(id int) {
 	err := validateJoystick(id)
 	if err == nil && c.devices[id].id >= 0 {
@@ -126,7 +134,7 @@ func (c *Controller) Disconnected(id int) {
 	}
 }
 
-func (device *ControllerDevice) EndUpdate() {
+func (device *ControllerDevice) endUpdate() {
 	if device.id >= 0 {
 		for i := 0; i < ControllerButtonMax; i++ {
 			if device.buttons[i] == controllerButtonStateDown {
@@ -138,44 +146,58 @@ func (device *ControllerDevice) EndUpdate() {
 	}
 }
 
+// EndUpdate is called at the end of the frame. It updates the state of each
+// controller for the next frame. This is called automatically by the system
+// and should not be called by the end-developer
 func (c *Controller) EndUpdate() {
 	for i := 0; i < ControllerMaxDevices; i++ {
-		c.devices[i].EndUpdate()
+		c.devices[i].endUpdate()
 	}
 }
 
+// SetButtonDown sets the button down on the given controller. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) SetButtonDown(id, button int) {
 	if c.devices[id].buttons[button] == controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateDown
 	}
 }
 
+// SetButtonUp sets the button up on the given controller. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) SetButtonUp(id, button int) {
 	if c.devices[id].buttons[button] != controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateUp
 	}
 }
 
+// SetAxis sets the axis on the given controller. This is called
+// automatically by the system and should not be called by the end-developer
 func (c *Controller) SetAxis(id, stick int, axis float32) {
 	c.devices[id].axis[stick] = axis
 }
 
+// Axis returns the axis value for the given controller and stick
 func (c *Controller) Axis(id, stick int) float32 {
 	return c.devices[id].axis[stick]
 }
 
+// IsButtonUp returns true if the button is up
 func (c *Controller) IsButtonUp(id, button int) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateUp
 }
 
+// IsButtonDown returns true if the button is down
 func (c *Controller) IsButtonDown(id, button int) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateDown
 }
 
+// IsButtonHeld returns true if the button is held
 func (c *Controller) IsButtonHeld(id, button int) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateHeld
 }
 
+// Reset will completely wipe the state of all controllers
 func (c *Controller) Reset() {
 	for i := 0; i < ControllerMaxDevices; i++ {
 		for j := 0; j < ControllerButtonMax; j++ {
