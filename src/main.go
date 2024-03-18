@@ -38,12 +38,9 @@
 package main
 
 import (
-	"kaiju/audio"
 	"kaiju/bootstrap"
 )
 
 func main() {
-	audio.Init()
 	bootstrap.Main()
-	audio.Quit()
 }

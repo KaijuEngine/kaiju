@@ -1,15 +1,47 @@
 package audio
 
-import "kaiju/audio/audio_system"
+import (
+	"bytes"
+	"kaiju/audio/audio_system"
+	"log/slog"
+	"time"
 
-func Init() {
-	audio_system.Init()
+	"github.com/ebitengine/oto/v3"
+)
+
+type Audio struct {
+	otoCtx  *oto.Context
+	options oto.NewContextOptions
 }
 
-func Quit() {
-	audio_system.Quit()
+func NewAudio() (*Audio, error) {
+	a := &Audio{
+		options: oto.NewContextOptions{},
+	}
+	a.options.SampleRate = 44100
+	a.options.ChannelCount = 2
+	a.options.Format = oto.FormatFloat32LE
+	otoCtx, readyChan, err := oto.NewContext(&a.options)
+	if err != nil {
+		return nil, err
+	}
+	a.otoCtx = otoCtx
+	<-readyChan
+	return a, nil
 }
 
-func Play(wav *audio_system.Wav) {
-	audio_system.PlayWav(wav)
+func (a *Audio) Play(wav *audio_system.Wav) {
+	// Resample if needed to a.options.SampleRate
+	// Rechannel if needed to a.options.ChannelCount
+	// Reformat if needed to a.options.Format
+	player := a.otoCtx.NewPlayer(bytes.NewReader(wav.Data))
+	player.Play()
+	go func() {
+		for player.IsPlaying() {
+			time.Sleep(time.Millisecond)
+		}
+		if err := player.Close(); err != nil {
+			slog.Error(err.Error())
+		}
+	}()
 }
