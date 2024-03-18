@@ -146,7 +146,7 @@ func Resample(w *Wav, sampleRate int32) []byte {
 func resample(out, in []byte, outRate, inRate, total int32, channels, wavType int16) int {
 	// TODO:  Can this be skipped if the inRate and outRate are equal?
 	offset := 0
-	ratio := float64(outRate / inRate)
+	ratio := float64(outRate) / float64(inRate)
 	resampleTotal := int(math.Floor(float64(total) * ratio))
 	if wavType == 1 {
 		iOutLen := len(out) / int(unsafe.Sizeof(int16(0)))
@@ -188,11 +188,12 @@ func resample(out, in []byte, outRate, inRate, total int32, channels, wavType in
 		} else {
 			// TODO:  If Opus changes to support more than 2 channels, review
 			for i := 0; i < length; i += int(channels) {
-				idx := int(float64(i)/ratio) & -1
-				if idx+offset != i && idx+2 < length {
-					fOut[i] = (fOut[i-2] + fIn[idx+2]) / 2.0
-					fOut[i+1] = (fOut[i-1] + fIn[idx+3]) / 2.0
-					offset += int(channels)
+				idx := int(float64(i) / ratio) // & -1
+				if idx+offset != i && idx+int(channels) < length {
+					for j := 0; j < int(channels); j++ {
+						fOut[i+j] = (fOut[i-j-1] + fIn[idx+j+2]) / float32(channels)
+						offset++
+					}
 				} else {
 					fOut[i] = fIn[idx]
 					fOut[i+1] = fIn[idx+1]
