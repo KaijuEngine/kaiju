@@ -117,3 +117,11 @@ func IsInf(x Float, sign int) bool {
 func Inf(sign int) Float {
 	return math.Inf(sign)
 }
+
+func Mod(x Float, y Float) Float {
+	return math.Mod(x, y)
+}
+
+func Round(x Float) Float {
+	return math.Round(x)
+}
