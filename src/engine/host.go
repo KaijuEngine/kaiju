@@ -39,6 +39,7 @@ package engine
 
 import (
 	"kaiju/assets"
+	"kaiju/audio"
 	"kaiju/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -81,6 +82,7 @@ type Host struct {
 	LogStream      *logging.LogStream
 	Camera         cameras.Camera
 	UICamera       cameras.Camera
+	audio          audio.Audio
 	shaderCache    rendering.ShaderCache
 	textureCache   rendering.TextureCache
 	meshCache      rendering.MeshCache
@@ -152,6 +154,15 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	return nil
 }
 
+func (host *Host) InitializeAudio() error {
+	if a, err := audio.NewAudio(); err != nil {
+		return err
+	} else {
+		host.audio = a
+		return nil
+	}
+}
+
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
 
@@ -196,6 +207,11 @@ func (host *Host) FontCache() *rendering.FontCache {
 // AssetDatabase returns the asset database for the host
 func (host *Host) AssetDatabase() *assets.Database {
 	return &host.assetDatabase
+}
+
+// Audio returns the audio system for the host
+func (host *Host) Audio() *audio.Audio {
+	return &host.audio
 }
 
 // AddEntity adds an entity to the host. This will add the entity to the
