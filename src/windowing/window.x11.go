@@ -40,6 +40,7 @@
 package windowing
 
 /*
+#cgo LDFLAGS: -lX11
 #cgo noescape window_main
 #cgo noescape window_show
 #cgo noescape window_destroy

@@ -38,7 +38,6 @@
 package menu
 
 import (
-	"kaiju/audio"
 	"kaiju/audio/audio_system"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
@@ -223,11 +222,11 @@ func (m *Menu) setupConsoleCommands() {
 	})
 
 	c.AddCommand("audio.test", "Tests playback of a wav", func(host *engine.Host, _ string) string {
-		wav, err := audio_system.LoadWav(host, "editor/audio/sfx/fanfare.wav")
+		wav, err := audio_system.LoadWav(host.AssetDatabase(), "editor/audio/sfx/fanfare.wav")
 		if err != nil {
 			return err.Error()
 		}
-		audio.Play(wav)
+		host.Audio().Play(wav)
 		return "Playing fanfare.wav"
 	})
 }

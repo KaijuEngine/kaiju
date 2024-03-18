@@ -39,7 +39,7 @@ package audio_system
 
 import (
 	"errors"
-	"kaiju/engine"
+	"kaiju/assets"
 	"kaiju/klib"
 	"math"
 	"unsafe"
@@ -55,17 +55,24 @@ const (
 	wavHeaderFact = "fact"
 )
 
+type WavFormat = int16
+
+const (
+	WavFormatPcm   WavFormat = 1
+	WavFormatFloat WavFormat = 3
+)
+
 type Wav struct {
 	rawData              []byte
-	wavData              []byte // Data at top because we need to align on 64-bit
+	WavData              []byte // Data at top because we need to align on 64-bit
 	riff                 [4]byte
 	size                 int32
 	wave                 [4]byte
 	fmt                  [4]byte
 	fmtLen               int32
-	formatType           int16
-	channels             int16
-	sampleRate           int32
+	FormatType           WavFormat
+	Channels             int16
+	SampleRate           int32
 	averageSample        int32
 	bitsPerSampleChannel int16
 	bitsPerSample        int16
@@ -74,8 +81,8 @@ type Wav struct {
 	msDuration           int32
 }
 
-func LoadWav(host *engine.Host, wavFile string) (*Wav, error) {
-	data, err := host.AssetDatabase().Read(wavFile)
+func LoadWav(assetDatabase *assets.Database, wavFile string) (*Wav, error) {
+	data, err := assetDatabase.Read(wavFile)
 	if err != nil {
 		return nil, err
 	}
@@ -116,15 +123,24 @@ func LoadWav(host *engine.Host, wavFile string) (*Wav, error) {
 		}
 	}
 	wav.rawData = data
-	wav.wavData = data[offset:]
+	wav.WavData = data[offset:]
 	wav.dataSize = int32(len(data) - offset)
 	ds := int(unsafe.Sizeof(float32(0)))
-	if wav.formatType == 1 {
+	if wav.FormatType == 1 {
 		ds = int(unsafe.Sizeof(int16(0)))
 	}
-	samples := wav.dataSize / int32(wav.channels) / int32(ds)
-	wav.msDuration = int32(float32(samples) / float32(wav.sampleRate) * 1000.0)
+	samples := wav.dataSize / int32(wav.Channels) / int32(ds)
+	wav.msDuration = int32(float32(samples) / float32(wav.SampleRate) * 1000.0)
 	return wav, nil
+}
+
+func Resample(w *Wav, sampleRate int32) []byte {
+	if w.SampleRate == sampleRate {
+		return w.WavData
+	}
+	newData := make([]byte, int(float64(w.dataSize)*float64(sampleRate)/float64(w.SampleRate)))
+	resample(newData, w.WavData, sampleRate, w.SampleRate, w.dataSize, w.Channels, w.FormatType)
+	return newData
 }
 
 func resample(out, in []byte, outRate, inRate, total int32, channels, wavType int16) int {
@@ -185,6 +201,15 @@ func resample(out, in []byte, outRate, inRate, total int32, channels, wavType in
 		}
 	}
 	return resampleTotal
+}
+
+func Rechannel(w *Wav, channels int16) []byte {
+	if w.Channels == channels {
+		return w.WavData
+	}
+	newData := make([]byte, int(w.dataSize)*int(channels)/int(w.Channels))
+	rechannel(newData, w.WavData, channels, w.Channels, len(newData)/int(unsafe.Sizeof(int16(0))))
+	return newData
 }
 
 func rechannel(out, in []byte, outChannels, inChannels int16, sampleSize int) {
@@ -321,4 +346,13 @@ func rechannelPcm2fl(out, in []byte, outChannels, inChannels int16, sampleSize i
 			d[i] = float32(td[i]) / float32(math.MaxInt16)
 		}
 	}
+}
+
+func Pcm2Float(wav *Wav) []byte {
+	if wav.FormatType == WavFormatFloat {
+		return wav.WavData
+	}
+	newData := make([]byte, int(wav.dataSize)*int(unsafe.Sizeof(float32(0)))/int(unsafe.Sizeof(int16(0))))
+	rechannelPcm2fl(newData, wav.WavData, wav.Channels, wav.Channels, len(newData)/int(unsafe.Sizeof(float32(0))))
+	return newData
 }

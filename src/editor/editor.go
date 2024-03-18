@@ -143,6 +143,7 @@ func New() *Editor {
 		uiGroup:        ui.NewGroup(),
 	}
 	ed.container = host_container.New("Kaiju Editor", logStream)
+	ed.container.Host.InitializeAudio()
 	host := ed.container.Host
 	host.AssetDatabase().EditorContext.EditorPath = ed.editorDir
 	editor_window.OpenWindow(ed,

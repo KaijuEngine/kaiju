@@ -323,32 +323,32 @@ func (s *SpeakerDevice) LoadWavData(wav *Wav) error {
 			return errors.New("could not get buffer")
 		}
 		ds := unsafe.Sizeof(int16(0))
-		if wav.formatType == 3 {
+		if wav.FormatType == 3 {
 			ds = unsafe.Sizeof(float32(0))
 		}
-		samples := int(wav.dataSize / int32(wav.channels) / int32(ds))
-		sampleSize := samples * int(wav.channels)
+		samples := int(wav.dataSize / int32(wav.Channels) / int32(ds))
+		sampleSize := samples * int(wav.Channels)
 
-		ratio := float64(s.mixFormat.nSamplesPerSec) / float64(wav.sampleRate)
+		ratio := float64(s.mixFormat.nSamplesPerSec) / float64(wav.SampleRate)
 		resampleTotal := int32(math.Ceil(float64(wav.dataSize)*ratio) + float64(ds))
 		wavResample := make([]byte, resampleTotal)
-		if int32(s.mixFormat.nSamplesPerSec) != wav.sampleRate {
-			resample(wavResample, wav.wavData,
-				int32(s.mixFormat.nSamplesPerSec), wav.sampleRate, wav.dataSize,
-				wav.channels, wav.formatType)
+		if int32(s.mixFormat.nSamplesPerSec) != wav.SampleRate {
+			resample(wavResample, wav.WavData,
+				int32(s.mixFormat.nSamplesPerSec), wav.SampleRate, wav.dataSize,
+				wav.Channels, wav.FormatType)
 		}
 
 		speakerChannels := s.mixFormat.nChannels
 
 		rechannelData := unsafe.Slice((*byte)(unsafe.Pointer(data)), numFramesAvailable)
-		if s.wavType == 1 && wav.formatType == 1 {
-			rechannel(rechannelData, wavResample, int16(speakerChannels), wav.channels, sampleSize)
-		} else if s.wavType == 3 && wav.formatType == 3 {
-			rechannelFloat(rechannelData, wavResample, int16(speakerChannels), wav.channels, sampleSize)
-		} else if s.wavType == 1 && wav.formatType == 3 {
-			rechannelFl2pcm(rechannelData, wavResample, int16(speakerChannels), wav.channels, sampleSize)
-		} else if s.wavType == 3 && wav.formatType == 1 {
-			rechannelPcm2fl(rechannelData, wavResample, int16(speakerChannels), wav.channels, sampleSize)
+		if s.wavType == 1 && wav.FormatType == 1 {
+			rechannel(rechannelData, wavResample, int16(speakerChannels), wav.Channels, sampleSize)
+		} else if s.wavType == 3 && wav.FormatType == 3 {
+			rechannelFloat(rechannelData, wavResample, int16(speakerChannels), wav.Channels, sampleSize)
+		} else if s.wavType == 1 && wav.FormatType == 3 {
+			rechannelFl2pcm(rechannelData, wavResample, int16(speakerChannels), wav.Channels, sampleSize)
+		} else if s.wavType == 3 && wav.FormatType == 1 {
+			rechannelPcm2fl(rechannelData, wavResample, int16(speakerChannels), wav.Channels, sampleSize)
 		}
 
 		framesWritten := numFramesAvailable

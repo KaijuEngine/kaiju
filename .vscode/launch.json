@@ -12,9 +12,6 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags=editor",
-			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lXInput"
-			}
 		}, {
 			"name": "Launch Windows Runtime",
 			"type": "go",
@@ -22,9 +19,6 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lXInput"
-			}
 		}, {
 			"name": "Launch X11 Editor",
 			"type": "go",
@@ -33,9 +27,6 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags=editor",
-			"env": {
-				"CGO_LDFLAGS": "-lX11"
-			}
 		}, {
 			"name": "Launch X11 Runtime",
 			"type": "go",
@@ -43,9 +34,6 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_LDFLAGS": "-lX11"
-			}
 		},
 		{
 			"name": "Documentation Generator",

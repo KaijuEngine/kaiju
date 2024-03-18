@@ -18,9 +18,6 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"buildFlags": ["-tags=debug"],
-			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lXInput"
-			}
 		}, {
 			"name": "NoDebug Windows",
 			"type": "go",
@@ -28,9 +25,6 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_LDFLAGS": "-lgdi32 -lXInput"
-			}
 		}, {
 			"name": "Debug X11",
 			"type": "go",
@@ -39,9 +33,6 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"buildFlags": ["-tags=debug"],
-			"env": {
-				"CGO_LDFLAGS": "-lX11"
-			}
 		}, {
 			"name": "NoDebug X11",
 			"type": "go",
@@ -49,9 +40,6 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_LDFLAGS": "-lX11"
-			}
 		}
 	]
 }
