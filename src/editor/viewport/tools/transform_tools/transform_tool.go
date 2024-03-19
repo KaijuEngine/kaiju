@@ -294,16 +294,34 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	if t.state == ToolStateRotate {
 		delta = delta.Scale(20)
 	}
-	t.transform(delta, point)
+	snap := host.Window.Keyboard.HasCtrl()
+	t.transform(delta, point, snap)
 	t.lastHit = hitPoint
 }
 
-func (t *TransformTool) transform(delta, point matrix.Vec3) {
+func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
+	// TODO:  Move this to configuration
+	const snapScale = 0.5
 	for i, e := range t.selection.Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
 			d := t.resets[i].Subtract(t.wireTransform.Position())
-			et.SetPosition(point.Add(d))
+			p := point.Add(d)
+			if snap {
+				switch t.axis {
+				case AxisStateX:
+					p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+				case AxisStateY:
+					p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+				case AxisStateZ:
+					p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+				case AxisStateNone:
+					p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+					p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+					p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+				}
+			}
+			et.SetPosition(p)
 		} else if t.state == ToolStateRotate {
 			et.SetRotation(et.Rotation().Add(delta))
 		} else if t.state == ToolStateScale {
