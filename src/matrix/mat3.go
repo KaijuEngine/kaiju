@@ -43,6 +43,14 @@ func NewMat3() Mat3 {
 	return Mat3Identity()
 }
 
+func (m Mat3) RowVector(row int) Vec3 {
+	return Vec3{m[row*4+0], m[row*4+1], m[row*4+2]}
+}
+
+func (m Mat3) ColumnVector(col int) Vec3 {
+	return Vec3{m[col+0], m[col+4], m[col+8]}
+}
+
 func Mat3Identity() Mat3 {
 	return Mat3{
 		1, 0, 0,
@@ -84,14 +92,6 @@ func (m *Mat3) Reset() {
 	m[8] = 1
 }
 
-func (m Mat3) RowVector(row int) Vec3 {
-	return Vec3{m[row*3+0], m[row*3+1], m[row*3+2]}
-}
-
-func (m Mat3) ColumnVector(col int) Vec3 {
-	return Vec3{m[col+0], m[col+3], m[col+6]}
-}
-
 func (m Mat3) Multiply(rhs Mat3) Mat3 {
 	return Mat3{
 		m[0]*rhs[0] + m[1]*rhs[3] + m[2]*rhs[6],
@@ -123,5 +123,13 @@ func (m Mat3) MultiplyVec3(v Vec3) Vec3 {
 		m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
 		m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
 		m[6]*v[0] + m[7]*v[1] + m[8]*v[2],
+	}
+}
+
+func (m Mat3) Transpose() Mat3 {
+	return Mat3{
+		m[0], m[3], m[6],
+		m[1], m[4], m[7],
+		m[2], m[5], m[8],
 	}
 }

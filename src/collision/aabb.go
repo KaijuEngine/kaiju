@@ -49,6 +49,14 @@ type AABB struct {
 	Extent matrix.Vec3
 }
 
+// AABBFromWidth creates an AABB from the center and half-width
+func AABBFromWidth(center matrix.Vec3, halfWidth matrix.Float) AABB {
+	return AABB{
+		Center: center,
+		Extent: matrix.Vec3{halfWidth, halfWidth, halfWidth},
+	}
+}
+
 // AABBFromMinMax creates an AABB from the minimum and maximum points
 func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	return AABB{
@@ -57,11 +65,34 @@ func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	}
 }
 
+// Union returns the union of two AABBs
+func AABBUnion(a, b AABB) AABB {
+	aMin := a.Min()
+	aMax := a.Max()
+	bMin := b.Min()
+	bMax := b.Max()
+	min := matrix.Vec3{
+		matrix.Min(aMin.X(), bMin.X()),
+		matrix.Min(aMin.Y(), bMin.Y()),
+		matrix.Min(aMin.Z(), bMin.Z()),
+	}
+	max := matrix.Vec3{
+		matrix.Max(aMax.X(), bMax.X()),
+		matrix.Max(aMax.Y(), bMax.Y()),
+		matrix.Max(aMax.Z(), bMax.Z()),
+	}
+	return AABBFromMinMax(min, max)
+}
+
 // Min returns the minimum point of the AABB
 func (box *AABB) Min() matrix.Vec3 { return box.Center.Subtract(box.Extent) }
 
 // Max returns the maximum point of the AABB
 func (box *AABB) Max() matrix.Vec3 { return box.Center.Add(box.Extent) }
+
+func (box *AABB) LongestAxis() int {
+	return box.Extent.LongestAxis()
+}
 
 // RayHit returns the point of intersection and whether the ray hit the AABB
 func (box *AABB) RayHit(ray Ray) (matrix.Vec3, bool) {
