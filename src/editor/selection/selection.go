@@ -274,10 +274,17 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		volume := all[i].EditorBindings.Data("bvh")
 		hit := false
 		if volume != nil {
-			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength)
+			m := all[i].Transform.WorldMatrix()
+			m.Inverse()
+			newRay := collision.Ray{
+				Origin:    m.TransformPoint(ray.Origin),
+				Direction: m.TransformPoint(ray.Direction),
+			}
+			_, hit = volume.(*collision.BVH).RayHit(newRay, rayCastLength)
+			// TODO:  This should work, but something's wrong with the inverse
+			// of the ray.  It's not hitting the BVH correctly, so do fallback
+			hit = hit || ray.SphereHit(pos, 0.5, rayCastLength)
 		} else {
-			// TODO:  Use BVH or other acceleration structure. The sphere check
-			// here is just to get testing quickly
 			hit = ray.SphereHit(pos, 0.5, rayCastLength)
 		}
 		if hit {
