@@ -67,29 +67,34 @@ func BVHBottomUp(triangles []DetailedTriangle) *BVH {
 	return nodes[0]
 }
 
-func (b *BVH) RayHit(ray Ray, rayLen matrix.Float) (matrix.Vec3, bool) {
+func (b *BVH) RayHit(ray Ray, rayLen matrix.Float, transform *matrix.Mat4) (matrix.Vec3, bool) {
 	min := matrix.Float(100000.0)
 	ls := LineSegmentFromRay(ray, rayLen)
-	return node_ray(b, ray, ls, &min)
+	return node_ray(b, ray, ls, &min, transform)
 }
 
-func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float) (matrix.Vec3, bool) {
+func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float, transform *matrix.Mat4) (matrix.Vec3, bool) {
 	if b == nil {
 		return matrix.Vec3{}, false
 	}
-	if _, ok := b.Bounds.RayHit(r); ok {
+	bounds := b.Bounds
+	bounds.Center = transform.TransformPoint(bounds.Center)
+	if _, ok := bounds.RayHit(r); ok {
 		if b.IsLeaf() {
 			t := b.Data.(*DetailedTriangle)
 			hit, _ := r.PlaneHit(t.Centroid, t.Normal)
 			d := r.Origin.Distance(hit)
-			if d < *min && ls.TriangleHit(t.Points[0], t.Points[1], t.Points[2]) {
+			p0 := transform.TransformPoint(t.Points[0])
+			p1 := transform.TransformPoint(t.Points[1])
+			p2 := transform.TransformPoint(t.Points[2])
+			if d < *min && ls.TriangleHit(p0, p1, p2) {
 				*min = d
 				return hit, true
 			}
 		} else {
-			outHit, success := node_ray(b.Left, r, ls, min)
+			outHit, success := node_ray(b.Left, r, ls, min, transform)
 			if !success {
-				outHit, success = node_ray(b.Right, r, ls, min)
+				outHit, success = node_ray(b.Right, r, ls, min, transform)
 			}
 			return outHit, success
 		}
