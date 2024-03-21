@@ -52,6 +52,23 @@ type DetailedTriangle struct {
 	Radius   matrix.Float
 }
 
+func (t *DetailedTriangle) Bounds() AABB {
+	min := t.Points[0]
+	max := t.Points[0]
+	for i := 1; i < 3; i++ {
+		min = matrix.Vec3Min(min, t.Points[i])
+		max = matrix.Vec3Max(max, t.Points[i])
+	}
+	return AABB{
+		Center: min.Add(max).Scale(0.5),
+		Extent: max.Subtract(min).Scale(0.5),
+	}
+}
+
+func (t *DetailedTriangle) RayIntersect(ray Ray, length float32) bool {
+	return ray.TriangleHit(length, t.Points[0], t.Points[1], t.Points[2])
+}
+
 // DetailedTriangleFromPoints creates a detailed triangle from three points, a
 // detailed triangle is different from a regular triangle in that it contains
 // additional information such as the centroid and radius

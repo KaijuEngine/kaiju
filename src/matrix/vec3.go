@@ -291,7 +291,20 @@ func (v Vec3) SquareDistance(b Vec3) Float {
 	return (v[Vx]-b[Vx])*(v[Vx]-b[Vx]) + (v[Vy]-b[Vy])*(v[Vy]-b[Vy]) + (v[Vz]-b[Vz])*(v[Vz]-b[Vz])
 }
 
-func (v Vec3) LargestAxis() Float {
+func (v Vec3) LongestAxis() int {
+	if v[Vx] > v[Vy] {
+		if v[Vx] > v[Vz] {
+			return Vx
+		}
+		return Vz
+	}
+	if v[Vy] > v[Vz] {
+		return Vy
+	}
+	return Vz
+}
+
+func (v Vec3) LongestAxisValue() Float {
 	return max(v[Vx], v[Vy], v[Vz])
 }
 

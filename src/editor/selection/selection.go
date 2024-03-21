@@ -271,9 +271,16 @@ func (s *Selection) clickSelect(host *engine.Host) {
 	found := false
 	for i := 0; i < len(all) && !found; i++ {
 		pos := all[i].Transform.WorldPosition()
-		// TODO:  Use BVH or other acceleration structure. The sphere check
-		// here is just to get testing quickly
-		if ray.SphereHit(pos, 0.5, rayCastLength) {
+		volume := all[i].EditorBindings.Data("bvh")
+		hit := false
+		if volume != nil {
+			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength)
+		} else {
+			// TODO:  Use BVH or other acceleration structure. The sphere check
+			// here is just to get testing quickly
+			hit = ray.SphereHit(pos, 0.5, rayCastLength)
+		}
+		if hit {
 			if host.Window.Keyboard.HasCtrl() {
 				s.Toggle(all[i])
 			} else if host.Window.Keyboard.HasShift() {
