@@ -41,6 +41,7 @@ import (
 	"kaiju/assets"
 	"kaiju/assets/asset_info"
 	"kaiju/cache/project_cache"
+	"kaiju/collision"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
@@ -87,6 +88,17 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 			return err
 		}
 		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
+		tris := []collision.DetailedTriangle{}
+		for i := 0; i < len(m.Indexes); i += 3 {
+			points := [3]matrix.Vec3{
+				m.Verts[m.Indexes[i]].Position,
+				m.Verts[m.Indexes[i+1]].Position,
+				m.Verts[m.Indexes[i+2]].Position,
+			}
+			tris = append(tris, collision.DetailedTriangleFromPoints(points))
+		}
+		bvh := collision.BVHBottomUp(tris)
+		e.EditorBindings.Set("bvh", bvh)
 	}
 	host.MeshCache().AddMesh(mesh)
 	drawing := rendering.Drawing{
