@@ -274,8 +274,7 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		volume := all[i].EditorBindings.Data("bvh")
 		hit := false
 		if volume != nil {
-			mat := all[i].Transform.WorldMatrix()
-			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength, &mat)
+			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength)
 		} else {
 			hit = ray.SphereHit(pos, 0.5, rayCastLength)
 		}
