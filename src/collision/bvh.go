@@ -85,6 +85,14 @@ func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
 	return nodes[0]
 }
 
+func (into *BVH) Insert(other *BVH) {
+	if !into.IsRoot() {
+		slog.Error("Insert should only be called on the root node, use BVHInsert instead")
+		return
+	}
+	BVHInsert(into, other)
+}
+
 // BVHInsert inserts a new BVH into an existing BVH, returning the new root
 func BVHInsert(into, other *BVH) *BVH {
 	ib := into.Bounds()
