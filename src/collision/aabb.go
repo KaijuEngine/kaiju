@@ -99,7 +99,7 @@ func (box *AABB) LongestAxis() int {
 func (box AABB) Size() matrix.Vec3 { return box.Extent.Scale(2) }
 
 // ClosestDistance returns the closest distance between two AABBs
-func (a *AABB) ClosestDistance(b AABB) matrix.Float {
+func (a AABB) ClosestDistance(b AABB) matrix.Float {
 	d := a.Center.Subtract(b.Center)
 	e := a.Extent.Add(b.Extent)
 	return matrix.Vec3Max(d.Subtract(e), matrix.Vec3Zero()).Length()

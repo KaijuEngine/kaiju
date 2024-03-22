@@ -8,12 +8,26 @@ type HitObject interface {
 }
 
 type BVH struct {
-	Bounds    AABB
+	bounds    AABB
 	Left      *BVH
 	Right     *BVH
 	Parent    *BVH
 	Transform *matrix.Transform
 	Data      HitObject
+}
+
+func (b *BVH) Bounds() AABB {
+	if b.Transform != nil {
+		return b.bounds
+	} else {
+		mat := b.Transform.WorldMatrix()
+		min := mat.TransformPoint(b.bounds.Min())
+		max := mat.TransformPoint(b.bounds.Max())
+		return AABB{
+			Center: min.Add(max).Shrink(2.0),
+			Extent: max.Subtract(min).Shrink(2.0),
+		}
+	}
 }
 
 // IsLeaf returns whether or not the BVH is a leaf node
@@ -38,7 +52,7 @@ func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
 	nodes := make([]*BVH, 0, len(triangles))
 	for i := range triangles {
 		nodes = append(nodes, &BVH{
-			Bounds:    triangles[i].Bounds(),
+			bounds:    triangles[i].Bounds(),
 			Data:      &triangles[i],
 			Transform: transform,
 		})
@@ -52,7 +66,7 @@ func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
 		a := nodes[x]
 		b := nodes[y]
 		node := &BVH{
-			Bounds:    AABBUnion(a.Bounds, b.Bounds),
+			bounds:    AABBUnion(a.Bounds(), b.Bounds()),
 			Left:      a,
 			Right:     b,
 			Transform: transform,
@@ -68,9 +82,11 @@ func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
 
 // BVHInsert inserts a new BVH into an existing BVH, returning the new root
 func BVHInsert(into, other *BVH) *BVH {
-	if !into.Bounds.ContainsAABB(other.Bounds) {
+	ib := into.Bounds()
+	ob := other.Bounds()
+	if !ib.ContainsAABB(ob) {
 		bvh := &BVH{
-			Bounds: AABBUnion(into.Bounds, other.Bounds),
+			bounds: AABBUnion(ib, ob),
 			Left:   into,
 			Right:  other,
 		}
@@ -127,7 +143,7 @@ func nearest(nodes []*BVH, x, y *int) {
 		a := nodes[i]
 		for j := i + 1; j < len(nodes); j++ {
 			b := nodes[j]
-			d := a.Bounds.ClosestDistance(b.Bounds)
+			d := a.Bounds().ClosestDistance(b.Bounds())
 			if d < nearest {
 				*x = i
 				*y = j
@@ -144,7 +160,7 @@ func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float) (matrix.Vec3, bool) 
 	if b == nil {
 		return matrix.Vec3{}, false
 	}
-	bounds := b.Bounds
+	bounds := b.bounds
 	mat := matrix.Mat4Identity()
 	if b.Transform != nil {
 		mat = b.Transform.WorldMatrix()
