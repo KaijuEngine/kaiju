@@ -103,9 +103,9 @@ func BVHInsert(into, other *BVH) *BVH {
 	}
 }
 
-// DestroyNode removes a node from the BVH and adjusts the tree accordingly. If
+// RemoveNode removes a node from the BVH and adjusts the tree accordingly. If
 // the node is the root, nothing is done.
-func (b *BVH) DestroyNode() {
+func (b *BVH) RemoveNode() {
 	if b.Parent == nil {
 		return
 	}
