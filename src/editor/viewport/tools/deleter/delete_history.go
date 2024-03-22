@@ -38,6 +38,7 @@
 package deleter
 
 import (
+	"kaiju/collision"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 )
@@ -54,6 +55,7 @@ func (h *deleteHistory) Redo() {
 			d.ShaderData.Deactivate()
 		}
 		e.Deactivate()
+		e.EditorBindings.Data("bvh").(*collision.BVH).RemoveNode()
 	}
 	h.editor.Selection().UntrackedClear()
 	h.editor.Hierarchy().Reload()
@@ -66,6 +68,7 @@ func (h *deleteHistory) Undo() {
 			d.ShaderData.Activate()
 		}
 		e.Activate()
+		h.editor.BVH().Insert(e.EditorBindings.Data("bvh").(*collision.BVH))
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
 	h.editor.Hierarchy().Reload()
