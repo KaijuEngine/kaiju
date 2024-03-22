@@ -155,6 +155,7 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 	if !bvh.IsLeaf() {
 		e.EditorBindings.Set("bvh", bvh)
 		ed.BVH().Insert(bvh)
+		e.OnDestroy.Add(func() { bvh.RemoveNode() })
 	}
 	ed.History().Add(&modelOpenHistory{
 		host:   host,
