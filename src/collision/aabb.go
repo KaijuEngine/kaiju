@@ -90,8 +90,19 @@ func (box *AABB) Min() matrix.Vec3 { return box.Center.Subtract(box.Extent) }
 // Max returns the maximum point of the AABB
 func (box *AABB) Max() matrix.Vec3 { return box.Center.Add(box.Extent) }
 
+// LongestAxis returns the longest axis of the AABB (0 = X, 1 = Y, 2 = Z)
 func (box *AABB) LongestAxis() int {
 	return box.Extent.LongestAxis()
+}
+
+// Size returns the size of the AABB
+func (box AABB) Size() matrix.Vec3 { return box.Extent.Scale(2) }
+
+// ClosestDistance returns the closest distance between two AABBs
+func (a *AABB) ClosestDistance(b AABB) matrix.Float {
+	d := a.Center.Subtract(b.Center)
+	e := a.Extent.Add(b.Extent)
+	return matrix.Vec3Max(d.Subtract(e), matrix.Vec3Zero()).Length()
 }
 
 // RayHit returns the point of intersection and whether the ray hit the AABB
@@ -135,6 +146,11 @@ func (box *AABB) Contains(point matrix.Vec3) bool {
 		point.Y() <= (box.Center.Y()+box.Extent.Y()) &&
 		point.Z() >= (box.Center.Z()-box.Extent.Z()) &&
 		point.Z() <= (box.Center.Z()+box.Extent.Z())
+}
+
+// ContainsAABB returns whether the AABB contains another AABB
+func (box *AABB) ContainsAABB(b AABB) bool {
+	return box.Contains(b.Min()) && box.Contains(b.Max())
 }
 
 // AABBIntersect returns whether the AABB intersects another AABB
