@@ -1,6 +1,9 @@
 package collision
 
-import "kaiju/matrix"
+import (
+	"kaiju/matrix"
+	"log/slog"
+)
 
 type HitObject interface {
 	Bounds() AABB
@@ -16,8 +19,10 @@ type BVH struct {
 	Data      HitObject
 }
 
+func NewBVH() *BVH { return &BVH{} }
+
 func (b *BVH) Bounds() AABB {
-	if b.Transform != nil {
+	if b.Transform == nil {
 		return b.bounds
 	} else {
 		mat := b.Transform.WorldMatrix()
@@ -103,11 +108,47 @@ func BVHInsert(into, other *BVH) *BVH {
 			return bvh
 		}
 	} else {
-		left := BVHInsert(into.Left, other)
-		if left != into.Left {
+		if into.Left == nil {
+			into.Left = other
+			other.Parent = into
+			return into
+		}
+		lb := into.Left.Bounds()
+		if lb.ContainsAABB(ob) {
+			if left := BVHInsert(into.Left, other); left != into.Left {
+				slog.Error(
+					"BVHInsert: Left child was replaced but should not have been",
+					slog.String("Left Center", lb.Center.String()),
+					slog.String("Left Extent", lb.Extent.String()),
+					slog.String("Insert Center", ob.Center.String()),
+					slog.String("Insert Extent", ob.Extent.String()),
+				)
+			}
+			return into
+		}
+		if into.Right == nil {
+			into.Right = other
+			other.Parent = into
+			return into
+		}
+		rb := into.Right.Bounds()
+		if rb.ContainsAABB(ob) {
+			if right := BVHInsert(into.Right, other); right != into.Right {
+				slog.Error(
+					"BVHInsert: Right child was replaced but should not have been",
+					slog.String("Right Center", rb.Center.String()),
+					slog.String("Right Extent", rb.Extent.String()),
+					slog.String("Insert Center", ob.Center.String()),
+					slog.String("Insert Extent", ob.Extent.String()),
+				)
+			}
+			return into
+		}
+		if lb.ClosestDistance(ob) <= rb.ClosestDistance(ob) {
+			into.Left = BVHInsert(into.Left, other)
+		} else {
 			into.Right = BVHInsert(into.Right, other)
 		}
-		into.Left = left
 		return into
 	}
 }
