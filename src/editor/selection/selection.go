@@ -274,10 +274,9 @@ func (s *Selection) clickSelect(host *engine.Host) {
 		volume := all[i].EditorBindings.Data("bvh")
 		hit := false
 		if volume != nil {
-			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength)
+			mat := all[i].Transform.WorldMatrix()
+			_, hit = volume.(*collision.BVH).RayHit(ray, rayCastLength, &mat)
 		} else {
-			// TODO:  Use BVH or other acceleration structure. The sphere check
-			// here is just to get testing quickly
 			hit = ray.SphereHit(pos, 0.5, rayCastLength)
 		}
 		if hit {

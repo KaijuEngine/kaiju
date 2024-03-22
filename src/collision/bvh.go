@@ -163,9 +163,9 @@ func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float) (matrix.Vec3, bool) 
 				return hit, true
 			}
 		} else {
-			outHit, success := node_ray(b.Left, r, ls, min)
+			outHit, success := node_ray(b.Left, r, ls, min, transform)
 			if !success {
-				outHit, success = node_ray(b.Right, r, ls, min)
+				outHit, success = node_ray(b.Right, r, ls, min, transform)
 			}
 			return outHit, success
 		}
