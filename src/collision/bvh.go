@@ -85,14 +85,23 @@ func BVHInsert(into, other *BVH) *BVH {
 	ib := into.Bounds()
 	ob := other.Bounds()
 	if !ib.ContainsAABB(ob) {
-		bvh := &BVH{
-			bounds: AABBUnion(ib, ob),
-			Left:   into,
-			Right:  other,
+		// The root node is a special case, it is expected to hold everything
+		// though we could return a new root, it is better to just expand the
+		// root node to hold everything
+		if into.IsRoot() {
+			into.bounds = AABBUnion(ib, ob)
+			into.bounds.Extent.Scale(1.001)
+			return BVHInsert(into, other)
+		} else {
+			bvh := &BVH{
+				bounds: AABBUnion(ib, ob),
+				Left:   into,
+				Right:  other,
+			}
+			into.Parent = bvh
+			other.Parent = bvh
+			return bvh
 		}
-		into.Parent = bvh
-		other.Parent = bvh
-		return bvh
 	} else {
 		left := BVHInsert(into.Left, other)
 		if left != into.Left {
