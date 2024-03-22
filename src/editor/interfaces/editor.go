@@ -38,6 +38,7 @@
 package interfaces
 
 import (
+	"kaiju/collision"
 	"kaiju/editor/codegen"
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
@@ -62,4 +63,5 @@ type Editor interface {
 	AvailableDataBindings() []codegen.GeneratedType
 	ReloadEntityDataListing()
 	CreateEntity(name string) *engine.Entity
+	BVH() *collision.BVH
 }

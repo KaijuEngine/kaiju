@@ -57,7 +57,7 @@ func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeObj
 }
 
-func buildBVH(m load_result.Mesh, e *engine.Entity) {
+func buildBVH(m load_result.Mesh, e *engine.Entity, bvh *collision.BVH, mutex *sync.Mutex) {
 	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
 	group := sync.WaitGroup{}
 	construct := func(from, to int) {
@@ -84,11 +84,14 @@ func buildBVH(m load_result.Mesh, e *engine.Entity) {
 		group.Done()
 	}
 	group.Wait()
-	bvh := collision.BVHBottomUp(tris, &e.Transform)
-	e.EditorBindings.Set("bvh", bvh)
+	h := collision.BVHBottomUp(tris, &e.Transform)
+	e.EditorBindings.Set("bvh", h)
+	mutex.Lock()
+	collision.BVHInsert(bvh, h)
+	mutex.Unlock()
 }
 
-func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity) error {
+func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity, bvh *collision.BVH, mutex *sync.Mutex) error {
 	texId := assets.TextureSquare
 	if t, ok := adi.Metadata["texture"]; ok {
 		texId = t
@@ -121,7 +124,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity)
 			return err
 		}
 		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
-		go buildBVH(m, e)
+		go buildBVH(m, e, bvh, mutex)
 	}
 	host.MeshCache().AddMesh(mesh)
 	drawing := rendering.Drawing{
@@ -147,8 +150,9 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 	e.GenerateId()
 	host.AddEntity(e)
 	e.SetName(adi.MetaValue("name"))
+	mutex := sync.Mutex{}
 	for i := range adi.Children {
-		if err := load(host, adi.Children[i], e); err != nil {
+		if err := load(host, adi.Children[i], e, ed.BVH(), &mutex); err != nil {
 			return err
 		}
 	}

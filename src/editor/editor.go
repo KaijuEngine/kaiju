@@ -43,6 +43,7 @@ import (
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/cameras"
+	"kaiju/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/codegen"
 	"kaiju/editor/content/content_opener"
@@ -87,6 +88,7 @@ const (
 
 type Editor struct {
 	container      *host_container.Container
+	bvh            *collision.BVH
 	menu           *menu.Menu
 	statusBar      *status_bar.StatusBar
 	editorDir      string
@@ -121,6 +123,7 @@ func (e *Editor) History() *memento.History             { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
 func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
+func (e *Editor) BVH() *collision.BVH                   { return e.bvh }
 
 func (e *Editor) AvailableDataBindings() []codegen.GeneratedType {
 	return e.entityData
@@ -141,6 +144,7 @@ func New() *Editor {
 		editorDir:      filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/.."),
 		history:        memento.NewHistory(100),
 		uiGroup:        ui.NewGroup(),
+		bvh:            collision.NewBVH(),
 	}
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	ed.container.Host.InitializeAudio()
