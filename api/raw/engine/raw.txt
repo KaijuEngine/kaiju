@@ -1,0 +1,397 @@
+package engine // import "."
+
+
+CONSTANTS
+
+const (
+	DefaultWindowWidth  = 944
+	DefaultWindowHeight = 500
+)
+const InvalidFrameId = math.MaxUint64
+    InvalidFrameId can be used to indicate that a frame id is invalid
+
+
+FUNCTIONS
+
+func RegisterEntityData(value EntityData) error
+
+TYPES
+
+type Entity struct {
+	Transform matrix.Transform
+	Parent    *Entity
+	Children  []*Entity
+
+	OnDestroy    events.Event
+	OnActivate   events.Event
+	OnDeactivate events.Event
+
+	EditorBindings entityEditorBindings
+
+	// Has unexported fields.
+}
+    Entity is a struct that represents an arbitrary object in the host system.
+    It contains a 3D transformation and can be a parent of, or a child to,
+    other entities. Entities can also contain arbitrary named data to make it
+    easier to access data that is specific to the entity.
+
+    Child entities are unordered by default, you'll need to call
+    #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
+    children unordered unless you have a specific reason to order them.
+
+func NewEntity() *Entity
+    NewEntity creates a new #Entity struct and returns it
+
+func (e *Entity) Activate()
+    Activate will set an active flag on the entity that can be queried with
+    #Entity.IsActive. It will also set the active flag on all children of the
+    entity. If the entity is already active, this function will do nothing.
+
+func (e *Entity) AddNamedData(key string, data interface{})
+    AddNamedData allows you to add arbitrary data to the entity that can be
+    accessed by a string key. This is useful for storing data that is specific
+    to the entity.
+
+    Named data is stored in a map of slices, so you can add multiple pieces of
+    data to the same key. It is recommended to compile the data into a single
+    structure so the slice length is 1, but sometimes that's not reasonable.
+
+func (e *Entity) ChildAt(idx int) *Entity
+    ChildAt returns the child entity at the specified index
+
+func (e *Entity) ChildCount() int
+    ChildCount returns the number of children the entity has
+
+func (e *Entity) Deactivate()
+    Deactivate will set an active flag on the entity that can be queried with
+    #Entity.IsActive. It will also set the active flag on all children of the
+    entity. If the entity is already inactive, this function will do nothing.
+
+func (e *Entity) Deserialize(stream io.Reader, host *Host) error
+    Deserialize will read the entity from the given stream and is reversed using
+    #Serialize. This will not deserialize the children of the entity, that is
+    the responsibility of the caller. All errors returned will be related to
+    decoding the binary stream
+
+func (e *Entity) Destroy()
+    Destroy will set the destroyed flag on the entity, this can be queried with
+    #Entity.IsDestroyed. The entity is not immediately destroyed as it may be in
+    use for the current frame. The #Entity.TickCleanup should be called for each
+    frame to check if the entity is ready to be completely destroyed.
+
+    Destroying a parent will also destroy all children of the entity.
+
+func (e *Entity) FindByName(name string) *Entity
+    FindByName will search the entity and the tree of children for the first
+    entity with the specified name. If no entity is found, nil will be returned.
+
+func (e *Entity) HasChildren() bool
+    HasChildren returns true if the entity has any children
+
+func (e *Entity) Id() EntityId
+    ID returns the unique identifier of the entity. The Id is only valid for
+    entities that are not generated through template instantiation. The Id may
+    also be stripped during game runtime if the entity is never externally
+    referenced by any other part of the system.
+
+func (e *Entity) IsActive() bool
+    IsActive will return true if the entity is active, false otherwise
+
+func (e *Entity) IsDestroyed() bool
+    IsDestroyed will return true if the entity is destroyed, false otherwise
+
+func (e *Entity) IsRoot() bool
+    IsRoot returns true if the entity is the root entity in the hierarchy
+
+func (e *Entity) Name() string
+    Name returns the name of the entity
+
+func (e *Entity) NamedData(key string) []interface{}
+    NamedData will return the data associated with the specified key. If the key
+    does not exist, nil will be returned.
+
+func (e *Entity) RemoveNamedData(key string, data interface{})
+    RemoveNamedData will remove the specified data from the entity's named data
+    map. If the key does not exist, this function will do nothing.
+
+    *This will remove the entire slice and all of it's data*
+
+func (e *Entity) Root() *Entity
+    Root will return the root entity of the entity's hierarchy
+
+func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3)
+    ScaleWithoutChildren will temporarily remove all children from the entity,
+    scale the entity, and then re-add the children. This is useful when you
+    want to scale an entity without scaling its children. When the children are
+    re-added, they keep the world transformations they had before being removed.
+
+func (e *Entity) Serialize(stream io.Writer) error
+    Serialize will write the entity to the given stream and is reversed using
+    #Deserialize. This will not serialize the children of the entity, that is
+    the responsibility of the caller. All errors returned will be related to
+    decoding the binary stream
+
+func (e *Entity) SetActive(isActive bool)
+    SetActive will set the active flag on the entity that can be queried with
+    #Entity.IsActive. It will also set the active flag on all children of the
+    entity. If the entity is already active, this function will do nothing.
+
+func (e *Entity) SetChildrenOrdered()
+    SetChildrenOrdered sets the children of the entity to be ordered
+
+func (e *Entity) SetChildrenUnordered()
+    SetChildrenUnordered sets the children of the entity to be unordered
+
+func (e *Entity) SetName(name string)
+    SetName sets the name of the entity
+
+func (e *Entity) SetParent(newParent *Entity)
+    SetParent will set the parent of the entity. If the entity already has
+    a parent, it will be removed from the parent's children list. If the new
+    parent is nil, the entity will be removed from the hierarchy and will become
+    the root entity. If the new parent is not nil, the entity will be added to
+    the new parent's children list. If the new parent is not active, the entity
+    will be deactivated as well.
+
+    This will also handle the transformation parenting internally
+
+func (e *Entity) TickCleanup() bool
+    TickCleanup will check if the entity is ready to be completely destroyed. If
+    the entity is ready to be destroyed, it will execute the #Entity.OnDestroy
+    event and return true. If the entity is not ready to be destroyed, it will
+    return false.
+
+type EntityData interface {
+	Init(entity *Entity, host *Host)
+}
+
+type EntityId string
+    EntityId is a string that represents a unique identifier for an entity.
+    The identifier is only valid for entities that are not generated through
+    template instantiation. The identifier may also be stripped during game
+    runtime if the entity is never externally referenced by any other part of
+    the system.
+
+type FrameId = uint64
+    FrameId is a unique identifier for a frame
+
+type Host struct {
+	Window    *windowing.Window
+	LogStream *logging.LogStream
+	Camera    cameras.Camera
+	UICamera  cameras.Camera
+
+	Drawings rendering.Drawings
+
+	Closing     bool
+	Updater     Updater
+	LateUpdater Updater
+
+	OnClose     events.Event
+	CloseSignal chan struct{}
+
+	// Has unexported fields.
+}
+    Host is the mediator to the entire runtime for the game/editor. It is the
+    main entry point for the game loop and is responsible for managing all
+    entities, the window, and the rendering context. The host can be used to
+    create and manage entities, call update functions on the main thread,
+    and access various caches and resources.
+
+    The host is expected to be passed around quite often throughout the program.
+    It is designed to remove things like service locators, singletons, and other
+    global state. You can have multiple hosts in a program to isolate things
+    like windows and game state.
+
+func NewHost(name string, logStream *logging.LogStream) *Host
+    NewHost creates a new host with the given name and log stream. The log
+    stream is the log handler that is used by the slog package functions. A Host
+    that is created through NewHost has no function until #Host.Initialize is
+    called.
+
+    This is primarily called from #host_container/New
+
+func (host *Host) AddEntities(entities ...*Entity)
+    AddEntities adds multiple entities to the host. This will add the entities
+    using the same rules as AddEntity. If the host is in the process of creating
+    editor entities, then the entities will be added to the editor entity pool.
+
+func (host *Host) AddEntity(entity *Entity)
+    AddEntity adds an entity to the host. This will add the entity to the
+    standard entity pool. If the host is in the process of creating editor
+    entities, then the entity will be added to the editor entity pool.
+
+func (host *Host) AssetDatabase() *assets.Database
+    AssetDatabase returns the asset database for the host
+
+func (host *Host) Audio() *audio.Audio
+    Audio returns the audio system for the host
+
+func (host *Host) ClearEntities()
+    ClearEntities will remove all entities from the host. This will remove all
+    entities from the standard entity pool only. The entities will be destroyed
+    using the standard destroy method, so they will take not be fully removed
+    during the frame that this function was called.
+
+func (host *Host) Close()
+    Close will set the closing flag to true and signal the host to clean up
+    resources and close the window.
+
+func (host *Host) CreatingEditorEntities()
+    CreatingEditorEntities is used exclusively for the editor to know that
+    the entities that are being created are for the editor. This is used to
+    logically separate editor entities from game entities.
+
+    This will increment so it can be called many times, however it is expected
+    that #Host.DoneCreatingEditorEntities is be called the same number of times.
+
+func (h *Host) Deadline() (time.Time, bool)
+    Deadline is here to fulfil context.Context and will return zero and false
+
+func (h *Host) Done() <-chan struct{}
+    Done is here to fulfil context.Context and will cose the CloseSignal channel
+
+func (host *Host) DoneCreatingEditorEntities()
+    DoneCreatingEditorEntities is used to signal that the editor is done
+    creating entities. This should be called the same number of times as
+    #Host.CreatingEditorEntities. When the internal counter reaches 0, then any
+    entity created on the host will go to the standard entity pool.
+
+func (host *Host) Entities() []*Entity
+    Entities returns all the entities that are currently in the host. This will
+    return all entities in the standard entity pool only.
+
+func (h *Host) Err() error
+    Err is here to fulfil context.Context and will return nil or
+    context.Canceled
+
+func (host *Host) FindEntity(id EntityId) (*Entity, bool)
+    FindEntity will search for an entity contained in this host by its id.
+    If the entity is found, then it will return the entity and true, otherwise
+    it will return nil and false.
+
+func (host *Host) FontCache() *rendering.FontCache
+    FontCache returns the font cache for the host
+
+func (host *Host) Frame() FrameId
+    Frame will return the current frame id
+
+func (host *Host) Initialize(width, height, x, y int) error
+    Initializes the various systems and caches that are mediated through the
+    host. This includes the window, the shader cache, the texture cache,
+    the mesh cache, and the font cache, and the camera systems.
+
+func (host *Host) InitializeAudio() error
+
+func (host *Host) MeshCache() *rendering.MeshCache
+    MeshCache returns the mesh cache for the host
+
+func (host *Host) Name() string
+    Name returns the name of the host
+
+func (host *Host) NewEntity() *Entity
+    NewEntity creates a new entity and adds it to the host. This will add
+    the entity to the standard entity pool. If the host is in the process of
+    creating editor entities, then the entity will be added to the editor entity
+    pool.
+
+func (host *Host) RemoveEntity(entity *Entity)
+    RemoveEntity removes an entity from the host. This will remove the entity
+    from the standard entity pool. This will determine if the entity is in the
+    editor entity pool and remove it from there if so, otherwise it will be
+    removed from the standard entity pool. Entities are not ordered, so they are
+    removed in O(n) time. Do not assume the entities are ordered at any time.
+
+func (host *Host) Render()
+    Render will render the scene. This starts by preparing any drawings that
+    are pending. It also creates any pending shaders, textures, and meshes
+    before the start of the render. The frame is then readied, buffers swapped,
+    and any transformations that are dirty on entities are then cleaned.
+
+func (host *Host) RunAfterFrames(wait int, call func())
+    RunAfterFrames will call the given function after the given number of frames
+    have passed from the current frame
+
+func (host *Host) Runtime() float64
+    Runtime will return how long the host has been running in seconds
+
+func (h *Host) SetFrameRateLimit(fps int64)
+    SetFrameRateLimit will set the frame rate limit for the host. If the frame
+    rate is set to 0, then the frame rate limit will be removed.
+
+    If a frame rate is set, then the host will block until the desired frame
+    rate is reached before continuing the update loop.
+
+func (host *Host) ShaderCache() *rendering.ShaderCache
+    ShaderCache returns the shader cache for the host
+
+func (host *Host) Teardown()
+    Teardown will destroy the host and all of its resources. This will also
+    execute the OnClose event. This will also signal the CloseSignal channel.
+
+func (host *Host) TextureCache() *rendering.TextureCache
+    TextureCache returns the texture cache for the host
+
+func (host *Host) Update(deltaTime float64)
+    Update is the main update loop for the host. This will poll the window for
+    events, update the entities, and render the scene. This will also check if
+    the window has been closed or crashed and set the closing flag accordingly.
+
+    The update order is FrameRunner -> Update -> LateUpdate -> EndUpdate:
+
+    [-] FrameRunner: Functions added to RunAfterFrames [-] Update: Functions
+    added to Updater [-] LateUpdate: Functions added to LateUpdater [-]
+    EndUpdate: Internal functions for preparing for the next frame
+
+    Any destroyed entities will also be ticked for their cleanup. This will also
+    tick the editor entities for cleanup.
+
+func (h *Host) Value(key any) any
+    Value is here to fulfil context.Context and will always return nil
+
+func (h *Host) WaitForFrameRate()
+    WaitForFrameRate will block until the desired frame rate limit is reached
+
+type Updater struct {
+	// Has unexported fields.
+}
+    Updater is a struct that stores update functions to be called when the
+    #Updater.Update function is called. This simply goes through the list from
+    top to bottom and calls each function.
+
+    *Note that update functions are unordered, so don't rely on the order*
+
+func NewUpdater() Updater
+    NewUpdater creates a new #Updater struct and returns it
+
+func (u *Updater) AddUpdate(update func(float64)) int
+    AddUpdate adds an update function to the list of updates to be called when
+    the #Updater.Update function is called. It returns the id of the update
+    function that was added so that it can be removed later.
+
+    The update function is added to a back-buffer so it will not begin updating
+    until the next call to #Updater.Update.
+
+func (u *Updater) Destroy()
+    Destroy cleans up the updater and should be called when the updater is no
+    longer needed. It will close the pending and complete channels and clear the
+    updates map.
+
+func (u *Updater) RemoveUpdate(id int)
+    RemoveUpdate removes an update function from the list of updates to be
+    called when the #Updater.Update function is called. It takes the id of the
+    update function that was returned when the update function was added.
+
+    The update function is removed from a back-buffer so it will not be removed
+    until the next call to #Updater.Update.
+
+func (u *Updater) StartConcurrent(goroutines int)
+    StartConcurrent starts the number of goroutines specified to handle updates
+    concurrently. This will no longer use inline updates once this function is
+    called and all updates will be handled through the goroutines.
+
+func (u *Updater) Update(deltaTime float64)
+    Update calls all of the update functions that have been added to the
+    updater. It takes a deltaTime parameter that is the approximate amount of
+    time since the last call to #Updater.Update.
+

@@ -1,0 +1,29 @@
+package log_window // import "."
+
+
+TYPES
+
+type LogWindow struct {
+	Group viewGroup
+
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *LogWindow
+
+func (l *LogWindow) All() []visibleMessage
+
+func (l *LogWindow) DragUpdate()
+
+func (l *LogWindow) Errors() []visibleMessage
+
+func (l *LogWindow) Hide()
+
+func (l *LogWindow) Infos() []visibleMessage
+
+func (l *LogWindow) Show()
+
+func (l *LogWindow) Toggle()
+
+func (l *LogWindow) Warnings() []visibleMessage
+

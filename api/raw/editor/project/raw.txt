@@ -1,0 +1,8 @@
+package project // import "."
+
+
+FUNCTIONS
+
+func CreateNew(path, templatePath string) error
+func IsProjectDirectory(path string) bool
+func ScanContent(importers *asset_importer.ImportRegistry) error

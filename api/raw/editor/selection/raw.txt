@@ -1,0 +1,43 @@
+package selection // import "."
+
+
+TYPES
+
+type Selection struct {
+	Changed events.Event
+
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, history *memento.History) Selection
+
+func (s *Selection) Add(e ...*engine.Entity)
+
+func (s *Selection) Bounds() collision.AABB
+
+func (s *Selection) Center() matrix.Vec3
+
+func (s *Selection) Clear()
+
+func (s *Selection) Entities() []*engine.Entity
+
+func (s *Selection) Focus(camera cameras.Camera)
+
+func (s *Selection) HasSelection() bool
+
+func (s *Selection) IsEmpty() bool
+
+func (s *Selection) Parent(history *memento.History)
+
+func (s *Selection) Remove(e ...*engine.Entity)
+
+func (s *Selection) Set(e ...*engine.Entity)
+
+func (s *Selection) Toggle(e ...*engine.Entity)
+
+func (s *Selection) UntrackedAdd(e ...*engine.Entity)
+
+func (s *Selection) UntrackedClear()
+
+func (s *Selection) Update(host *engine.Host)
+

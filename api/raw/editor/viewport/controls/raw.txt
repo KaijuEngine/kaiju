@@ -1,0 +1,18 @@
+package controls // import "."
+
+
+CONSTANTS
+
+const (
+	ROT_SCALE  = 0.01
+	ZOOM_SCALE = float32(0.05)
+)
+
+TYPES
+
+type EditorCamera struct {
+	// Has unexported fields.
+}
+
+func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool)
+

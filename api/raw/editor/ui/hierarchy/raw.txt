@@ -1,0 +1,21 @@
+package hierarchy // import "."
+
+
+TYPES
+
+type Hierarchy struct {
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, selection *selection.Selection, uiGroup *ui.Group) *Hierarchy
+
+func (h *Hierarchy) DragUpdate()
+
+func (h *Hierarchy) Hide()
+
+func (h *Hierarchy) Reload()
+
+func (h *Hierarchy) Show()
+
+func (h *Hierarchy) Toggle()
+

@@ -1,0 +1,20 @@
+package tests // import "."
+
+
+CONSTANTS
+
+const TriangleShaderDataSize = int(unsafe.Sizeof(TestBasicShaderData{}))
+
+FUNCTIONS
+
+func SetupConsole(host *engine.Host)
+
+TYPES
+
+type TestBasicShaderData struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t TestBasicShaderData) Size() int
+

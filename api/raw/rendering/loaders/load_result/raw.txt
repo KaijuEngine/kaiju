@@ -1,0 +1,26 @@
+package load_result // import "."
+
+
+TYPES
+
+type Mesh struct {
+	Name     string
+	MeshName string
+	Verts    []rendering.Vertex
+	Indexes  []uint32
+}
+
+func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float
+
+type Result struct {
+	Meshes   []Mesh
+	Textures []string
+}
+
+func NewResult() Result
+
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
+	indexes []uint32, textures []string)
+
+func (r *Result) IsValid() bool
+

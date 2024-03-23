@@ -1,0 +1,6 @@
+package interpreter // import "."
+
+
+VARIABLES
+
+var Symbols map[string]map[string]reflect.Value = make(map[string]map[string]reflect.Value)
