@@ -313,7 +313,7 @@ func (m *Mat4) Scale(scale Vec3) {
 	m[x2y2] *= scale.Z()
 }
 
-func Mat4LookAt(eye Vec3, center Vec3, up Vec3) Mat4 {
+func Mat4LookAt(eye, center, up Vec3) Mat4 {
 	f := eye.Subtract(center)
 	f.Normalize()
 	s := Vec3Cross(up, f)
