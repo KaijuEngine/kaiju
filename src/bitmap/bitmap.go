@@ -66,7 +66,7 @@ func LengthFor(byteCount int) int {
 
 // Check returns the value of the bit at the specified index.
 func (b Bitmap) Check(index int) bool {
-	return b[index/bitsInByte]&(0x01<<(index%bitsInByte)) != 0
+	return (b[index/bitsInByte] & (0x01 << (index % bitsInByte))) != 0
 }
 
 // Set sets the bit at the specified index to true.
