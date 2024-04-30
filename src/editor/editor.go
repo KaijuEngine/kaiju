@@ -125,6 +125,20 @@ func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
 func (e *Editor) BVH() *collision.BVH                   { return e.bvh }
 
+func (e *Editor) BVHEntityUpdates(entities ...*engine.Entity) {
+	root := e.bvh
+	for _, e := range entities {
+		d := e.EditorBindings.Data("bvh")
+		if d == nil {
+			continue
+		}
+		bvh := d.(*collision.BVH)
+		bvh.RemoveNode()
+		root = collision.BVHInsert(root, bvh)
+	}
+	e.bvh = root
+}
+
 func (e *Editor) AvailableDataBindings() []codegen.GeneratedType {
 	return e.entityData
 }
@@ -279,8 +293,7 @@ func (e *Editor) Init() {
 		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
 		ot.ClearColor = matrix.ColorTransparent()
 		e.overlayCanvas = ot
-		e.transformTool = transform_tools.New(e.Host(),
-			&e.selection, "editor_overlay", &e.history)
+		e.transformTool = transform_tools.New(e.Host(), e, "editor_overlay", &e.history)
 		e.selection.Changed.Add(func() {
 			e.transformTool.Disable()
 		})

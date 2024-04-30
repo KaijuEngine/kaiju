@@ -38,11 +38,13 @@
 package transform_tools
 
 import (
+	"kaiju/editor/interfaces"
 	"kaiju/engine"
 	"kaiju/matrix"
 )
 
 type toolHistory struct {
+	editor   interfaces.Editor
 	entities []*engine.Entity
 	from     []matrix.Vec3
 	to       []matrix.Vec3
@@ -59,6 +61,7 @@ func (h *toolHistory) Redo() {
 			e.Transform.SetScale(h.to[i])
 		}
 	}
+	h.editor.BVHEntityUpdates(h.editor.Selection().Entities()...)
 }
 
 func (h *toolHistory) Undo() {
@@ -71,6 +74,7 @@ func (h *toolHistory) Undo() {
 			e.Transform.SetScale(h.from[i])
 		}
 	}
+	h.editor.BVHEntityUpdates(h.editor.Selection().Entities()...)
 }
 
 func (h *toolHistory) Delete() {}

@@ -63,5 +63,7 @@ type Editor interface {
 	AvailableDataBindings() []codegen.GeneratedType
 	ReloadEntityDataListing()
 	CreateEntity(name string) *engine.Entity
+	// TODO:  BVH stuff can be encapsulated into another structure
 	BVH() *collision.BVH
+	BVHEntityUpdates(entities ...*engine.Entity)
 }

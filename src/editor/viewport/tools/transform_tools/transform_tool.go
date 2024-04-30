@@ -39,8 +39,8 @@ package transform_tools
 
 import (
 	"kaiju/assets"
+	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
-	"kaiju/editor/selection"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
@@ -49,7 +49,7 @@ import (
 )
 
 type TransformTool struct {
-	selection      *selection.Selection
+	editor         interfaces.Editor
 	axis           AxisState
 	state          ToolState
 	lastHit        matrix.Vec3
@@ -83,12 +83,12 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
 	}
 }
 
-func New(host *engine.Host, selection *selection.Selection,
+func New(host *engine.Host, editor interfaces.Editor,
 	canvas string, history *memento.History) TransformTool {
 
 	wt := matrix.NewTransform()
 	t := TransformTool{
-		selection:     selection,
+		editor:        editor,
 		wireTransform: &wt,
 		resets:        make([]matrix.Vec3, 0, 32),
 		history:       history,
@@ -129,7 +129,7 @@ func (t *TransformTool) Update(host *engine.Host) (busy bool) {
 func (t *TransformTool) Enable(state ToolState) {
 	for i := range t.wires {
 		t.wires[i].ShaderData.Deactivate()
-		t.wireTransform.SetPosition(t.selection.Center())
+		t.wireTransform.SetPosition(t.editor.Selection().Center())
 		t.transformDirty = 2
 	}
 	switch t.axis {
@@ -155,7 +155,7 @@ func (t *TransformTool) Disable() {
 }
 
 func (t *TransformTool) resetChange() {
-	all := t.selection.Entities()
+	all := t.editor.Selection().Entities()
 	for i := range t.resets {
 		if t.state == ToolStateMove {
 			all[i].Transform.SetPosition(t.resets[i])
@@ -170,7 +170,7 @@ func (t *TransformTool) resetChange() {
 
 func (t *TransformTool) updateResets() {
 	t.resets = t.resets[:0]
-	for _, e := range t.selection.Entities() {
+	for _, e := range t.editor.Selection().Entities() {
 		if t.state == ToolStateMove {
 			t.resets = append(t.resets, e.Transform.Position())
 		} else if t.state == ToolStateRotate {
@@ -182,7 +182,7 @@ func (t *TransformTool) updateResets() {
 }
 
 func (t *TransformTool) addHistory() {
-	all := t.selection.Entities()
+	all := t.editor.Selection().Entities()
 	to := make([]matrix.Vec3, len(all))
 	from := make([]matrix.Vec3, len(all))
 	for i, e := range all {
@@ -196,11 +196,13 @@ func (t *TransformTool) addHistory() {
 		}
 	}
 	t.history.Add(&toolHistory{
-		entities: slices.Clone(t.selection.Entities()),
+		editor:   t.editor,
+		entities: slices.Clone(t.editor.Selection().Entities()),
 		from:     from,
 		to:       to,
 		state:    t.state,
 	})
+	t.editor.BVHEntityUpdates(t.editor.Selection().Entities()...)
 }
 
 func (t *TransformTool) commitChange() {
@@ -231,7 +233,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 
 func (t *TransformTool) updateDrag(host *engine.Host) {
 	m := &host.Window.Mouse
-	center := t.selection.Center()
+	center := t.editor.Selection().Center()
 	nml := matrix.Vec3Forward()
 	r := host.Camera.RayCast(m.Position())
 	var df, db, dl, dr, du, dd matrix.Float = -1.0, -1.0, -1.0, -1.0, -1.0, -1.0
@@ -302,7 +304,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 	// TODO:  Move this to configuration
 	const snapScale = 0.5
-	for i, e := range t.selection.Entities() {
+	for i, e := range t.editor.Selection().Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
 			d := t.resets[i].Subtract(t.wireTransform.Position())

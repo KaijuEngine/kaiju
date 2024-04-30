@@ -67,20 +67,8 @@ func AABBFromMinMax(min, max matrix.Vec3) AABB {
 
 // Union returns the union of two AABBs
 func AABBUnion(a, b AABB) AABB {
-	aMin := a.Min()
-	aMax := a.Max()
-	bMin := b.Min()
-	bMax := b.Max()
-	min := matrix.Vec3{
-		matrix.Min(aMin.X(), bMin.X()),
-		matrix.Min(aMin.Y(), bMin.Y()),
-		matrix.Min(aMin.Z(), bMin.Z()),
-	}
-	max := matrix.Vec3{
-		matrix.Max(aMax.X(), bMax.X()),
-		matrix.Max(aMax.Y(), bMax.Y()),
-		matrix.Max(aMax.Z(), bMax.Z()),
-	}
+	min := matrix.Vec3Min(a.Min(), b.Min())
+	max := matrix.Vec3Max(a.Max(), b.Max())
 	return AABBFromMinMax(min, max)
 }
 

@@ -21,6 +21,14 @@ type BVH struct {
 
 func NewBVH() *BVH { return &BVH{} }
 
+func (b *BVH) Root() *BVH {
+	r := b
+	for r.Parent != nil {
+		r = r.Parent
+	}
+	return r
+}
+
 func (b *BVH) Bounds() AABB {
 	if b.Transform == nil {
 		return b.bounds
@@ -103,7 +111,7 @@ func BVHInsert(into, other *BVH) *BVH {
 		// root node to hold everything
 		if into.IsRoot() {
 			into.bounds = AABBUnion(ib, ob)
-			into.bounds.Extent.Scale(1.001)
+			into.bounds.Extent.ScaleAssign(1.001)
 			return BVHInsert(into, other)
 		} else {
 			bvh := &BVH{
@@ -173,10 +181,16 @@ func (b *BVH) RemoveNode() {
 		promote = parent.Right
 	}
 	if parent.IsRoot() {
-		*parent = *promote
-		parent.Parent = nil
-		parent.Left.Parent = parent
-		parent.Right.Parent = parent
+		if promote != nil {
+			*parent = *promote
+			parent.Parent = nil
+			parent.Left.Parent = parent
+			if parent.Right != nil {
+				parent.Right.Parent = parent
+			}
+		} else {
+			parent.Left = nil
+		}
 	} else {
 		if parent.IsLeft() {
 			parent.Parent.Left = promote
