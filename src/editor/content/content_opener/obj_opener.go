@@ -81,7 +81,6 @@ func buildBVH(m load_result.Mesh, e *engine.Entity) *collision.BVH {
 		}
 	} else {
 		construct(0, len(tris))
-		group.Done()
 	}
 	group.Wait()
 	return collision.BVHBottomUp(tris, &e.Transform)
