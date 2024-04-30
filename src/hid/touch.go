@@ -71,10 +71,8 @@ type TouchPointer struct {
 }
 
 type Touch struct {
-	Pointers        []*TouchPointer
-	Pool            [MaxTouchPointersAvailable]TouchPointer
-	Count           int
-	resetTouchCount bool
+	Pointers []*TouchPointer
+	Pool     [MaxTouchPointersAvailable]TouchPointer
 }
 
 func NewTouch() Touch {
@@ -151,11 +149,11 @@ func (t *Touch) Cancel() {
 }
 
 func (t *Touch) Pressed() bool {
-	return t.Count > 0 && t.Pointers[0].State == TouchActionDown
+	return len(t.Pointers) > 0 && t.Pointers[0].State == TouchActionDown
 }
 
 func (t *Touch) Held() bool {
-	if t.Count > 0 {
+	if len(t.Pointers) > 0 {
 		s := t.Pointers[0].State
 		return s == TouchActionHeld || s == TouchActionMove
 	} else {
@@ -164,19 +162,15 @@ func (t *Touch) Held() bool {
 }
 
 func (t *Touch) Moved() bool {
-	return t.Count > 0 && t.Pointers[0].State == TouchActionMove
+	return len(t.Pointers) > 0 && t.Pointers[0].State == TouchActionMove
 }
 
 func (t *Touch) Released() bool {
-	return t.Count > 0 && t.Pointers[0].State == TouchActionUp
+	return len(t.Pointers) > 0 && t.Pointers[0].State == TouchActionUp
 }
 
 func (t *Touch) Cancelled() bool {
-	return t.Count > 0 && t.Pointers[0].State == TouchActionCancel
-}
-
-func (t *Touch) SetCount(count int) {
-	t.Count = count
+	return len(t.Pointers) > 0 && t.Pointers[0].State == TouchActionCancel
 }
 
 func (t *Touch) Pointer(index int) *TouchPointer {
@@ -184,10 +178,6 @@ func (t *Touch) Pointer(index int) *TouchPointer {
 }
 
 func (t *Touch) EndUpdate() {
-	if t.resetTouchCount {
-		t.Count = 0
-		t.resetTouchCount = false
-	}
 	for i := MaxTouchPointersAvailable - 1; i >= 0; i-- {
 		switch t.Pool[i].State {
 		case TouchActionDown:
@@ -198,12 +188,10 @@ func (t *Touch) EndUpdate() {
 			t.Pool[i].State = TouchActionNone
 			t.Pool[i].Id = -1
 			t.Pointers = slices.Delete(t.Pointers, i, i+1)
-			t.Count = max(0, t.Count-1)
 		case TouchActionCancel:
 			t.Pool[i].State = TouchActionNone
 			t.Pool[i].Id = -1
 			t.Pointers = t.Pointers[:0]
-			t.Count = 0
 		}
 	}
 }

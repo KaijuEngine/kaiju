@@ -44,16 +44,16 @@ import (
 )
 
 const (
-	MouseButtonLeft         = 0
-	MouseButtonMiddle       = 1
-	MouseButtonRight        = 2
-	MouseButtonX1           = 3
-	MouseButtonX2           = 4
-	MouseButtonLast         = 5
-	MouseInvalid            = -1
-	MouseRelease            = 0
-	MousePress              = 1
-	MouseRepeat             = 2
+	MouseButtonLeft = iota
+	MouseButtonMiddle
+	MouseButtonRight
+	MouseButtonX1
+	MouseButtonX2
+	MouseButtonLast
+	MouseInvalid = -1
+	MouseRelease = iota
+	MousePress
+	MouseRepeat
 	MouseButtonStateInvalid = -1
 )
 

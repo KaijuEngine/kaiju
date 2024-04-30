@@ -120,7 +120,7 @@ func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	c.updateViewAndPosition()
 }
 
-// Rotate rotates the camera around the look at point by the given delta.
+// SetYaw sets the yaw of the camera.
 func (c *TurntableCamera) SetYaw(yaw float32) {
 	c.setYaw(yaw)
 	c.updateViewAndPosition()

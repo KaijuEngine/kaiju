@@ -76,7 +76,7 @@ func (c *Cursor) Released() bool {
 func (c *Cursor) Poll() {
 	c.lastPos = c.pos
 	c.pos = c.Position()
-	if c.touch.Count > 0 {
+	if len(c.touch.Pointers) > 0 {
 		c.pressure = c.touch.Pointers[0].Pressure
 	} else {
 		c.pressure = c.stylus.Pressure
@@ -85,7 +85,7 @@ func (c *Cursor) Poll() {
 }
 
 func (c *Cursor) ScreenPosition() matrix.Vec2 {
-	if c.touch.Count == 1 {
+	if len(c.touch.Pointers) == 1 {
 		p := c.touch.Pointer(0)
 		return matrix.Vec2{p.X, p.IY}
 	} else if c.stylus.IsActive() {
@@ -99,7 +99,7 @@ func (c *Cursor) UIPosition(uiSize, windowSize matrix.Vec2) matrix.Vec2 {
 	wRatio := uiSize.X() / windowSize.X()
 	hRatio := uiSize.Y() / windowSize.Y()
 	var pos matrix.Vec2
-	if c.touch.Count == 1 {
+	if len(c.touch.Pointers) == 1 {
 		p := c.touch.Pointer(0)
 		pos = matrix.Vec2{p.X * wRatio, p.IY * hRatio}
 	} else if c.stylus.IsActive() {
@@ -111,7 +111,7 @@ func (c *Cursor) UIPosition(uiSize, windowSize matrix.Vec2) matrix.Vec2 {
 }
 
 func (c *Cursor) Position() matrix.Vec2 {
-	if c.touch.Count == 1 {
+	if len(c.touch.Pointers) == 1 {
 		p := c.touch.Pointer(0)
 		return matrix.Vec2{p.X, p.Y}
 	} else if c.stylus.IsActive() {
