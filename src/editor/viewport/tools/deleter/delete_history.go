@@ -55,7 +55,10 @@ func (h *deleteHistory) Redo() {
 			d.ShaderData.Deactivate()
 		}
 		e.Deactivate()
-		e.EditorBindings.Data("bvh").(*collision.BVH).RemoveNode()
+		bvh := e.EditorBindings.Data("bvh")
+		if bvh != nil {
+			bvh.(*collision.BVH).RemoveNode()
+		}
 	}
 	h.editor.Selection().UntrackedClear()
 	h.editor.Hierarchy().Reload()
@@ -68,7 +71,10 @@ func (h *deleteHistory) Undo() {
 			d.ShaderData.Activate()
 		}
 		e.Activate()
-		h.editor.BVH().Insert(e.EditorBindings.Data("bvh").(*collision.BVH))
+		bvh := e.EditorBindings.Data("bvh")
+		if bvh != nil {
+			h.editor.BVH().Insert(bvh.(*collision.BVH))
+		}
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
 	h.editor.Hierarchy().Reload()
