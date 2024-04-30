@@ -57,7 +57,7 @@ func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeObj
 }
 
-func buildBVH(m load_result.Mesh, e *engine.Entity, bvh *collision.BVH) *collision.BVH {
+func buildBVH(m load_result.Mesh, e *engine.Entity) *collision.BVH {
 	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
 	group := sync.WaitGroup{}
 	construct := func(from, to int) {
@@ -120,7 +120,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity,
 			return err
 		}
 		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
-		buildBVH(m, e, bvh)
+		bvh.Insert(buildBVH(m, e))
 	}
 	host.MeshCache().AddMesh(mesh)
 	drawing := rendering.Drawing{
