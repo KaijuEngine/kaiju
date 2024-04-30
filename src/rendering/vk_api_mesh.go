@@ -38,8 +38,6 @@
 package rendering
 
 import (
-	"kaiju/matrix"
-	"log/slog"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -57,78 +55,6 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id.vertexCount = vNum
 	vr.createVertexBuffer(verts, &id.vertexBuffer, &id.vertexBufferMemory)
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
-}
-
-func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
-	framebufferInfo := vk.FramebufferCreateInfo{}
-	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
-	framebufferInfo.RenderPass = renderPass.Handle
-	framebufferInfo.AttachmentCount = uint32(len(attachments))
-	framebufferInfo.PAttachments = &attachments[0]
-	framebufferInfo.Width = width
-	framebufferInfo.Height = height
-	framebufferInfo.Layers = 1
-	var fb vk.Framebuffer
-	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
-		slog.Error("Failed to create framebuffer")
-		return nil, false
-	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(fb)))
-	}
-	return fb, true
-}
-
-func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
-	panic("not implemented")
-}
-
-func (vr *Vulkan) Resize(width, height int) {
-	vr.remakeSwapChain()
-}
-
-func (vr *Vulkan) AddPreRun(preRun func()) {
-	vr.preRuns = append(vr.preRuns, preRun)
-}
-
-func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
-	vk.DeviceWaitIdle(vr.device)
-	pd := bufferTrash{delay: maxFramesInFlight}
-	pd.pool = group.descriptorPool
-	for i := 0; i < maxFramesInFlight; i++ {
-		pd.buffers[i] = group.instanceBuffers[i]
-		pd.memories[i] = group.instanceBuffersMemory[i]
-		pd.sets[i] = group.descriptorSets[i]
-	}
-	vr.bufferTrash.Add(pd)
-}
-
-func (vr *Vulkan) DestroyShader(shader *Shader) {
-	vk.DeviceWaitIdle(vr.device)
-	vk.DestroyPipeline(vr.device, shader.RenderId.graphicsPipeline, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.graphicsPipeline)))
-	vk.DestroyPipelineLayout(vr.device, shader.RenderId.pipelineLayout, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.pipelineLayout)))
-	vk.DestroyShaderModule(vr.device, shader.RenderId.vertModule, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.vertModule)))
-	vk.DestroyShaderModule(vr.device, shader.RenderId.fragModule, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.fragModule)))
-	if shader.RenderId.geomModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.geomModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.geomModule)))
-	}
-	if shader.RenderId.tescModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.tescModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.tescModule)))
-	}
-	if shader.RenderId.teseModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.teseModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.teseModule)))
-	}
-	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.descriptorSetLayout)))
-	for _, ss := range shader.subShaders {
-		vr.DestroyShader(ss)
-	}
 }
 
 func (vr *Vulkan) DestroyMesh(mesh *Mesh) {

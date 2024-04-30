@@ -619,3 +619,42 @@ func (vr *Vulkan) Destroy() {
 	}
 	vr.dbg.print()
 }
+
+func (vr *Vulkan) Resize(width, height int) {
+	vr.remakeSwapChain()
+}
+
+func (vr *Vulkan) AddPreRun(preRun func()) {
+	vr.preRuns = append(vr.preRuns, preRun)
+}
+
+func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
+	vk.DeviceWaitIdle(vr.device)
+	pd := bufferTrash{delay: maxFramesInFlight}
+	pd.pool = group.descriptorPool
+	for i := 0; i < maxFramesInFlight; i++ {
+		pd.buffers[i] = group.instanceBuffers[i]
+		pd.memories[i] = group.instanceBuffersMemory[i]
+		pd.sets[i] = group.descriptorSets[i]
+	}
+	vr.bufferTrash.Add(pd)
+}
+
+func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
+	framebufferInfo := vk.FramebufferCreateInfo{}
+	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
+	framebufferInfo.RenderPass = renderPass.Handle
+	framebufferInfo.AttachmentCount = uint32(len(attachments))
+	framebufferInfo.PAttachments = &attachments[0]
+	framebufferInfo.Width = width
+	framebufferInfo.Height = height
+	framebufferInfo.Layers = 1
+	var fb vk.Framebuffer
+	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
+		slog.Error("Failed to create framebuffer")
+		return nil, false
+	} else {
+		vr.dbg.add(uintptr(unsafe.Pointer(fb)))
+	}
+	return fb, true
+}

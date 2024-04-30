@@ -68,7 +68,6 @@ func (s *Shader) SubShader(key string) *Shader {
 
 func NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath,
 	key string, renderPass *RenderPass) *Shader {
-
 	s := &Shader{
 		Key:        key,
 		subShaders: make(map[string]*Shader),
