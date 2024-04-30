@@ -249,14 +249,20 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 
 func (h *Hierarchy) drop(elm *document.DocElement) {
 	elm.UnEnforceColor()
-	to := engine.EntityId(elm.HTML.Attribute("id"))
 	from := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
 	if f, ok := h.host.FindEntity(from.EntityId); ok {
-		if t, ok := h.host.FindEntity(to); ok {
-			f.SetParent(t)
-			h.Reload()
+		toId := elm.HTML.Attribute("id")
+		if toId != "" {
+			to := engine.EntityId(toId)
+			if t, ok := h.host.FindEntity(to); ok {
+				f.SetParent(t)
+				h.Reload()
+			} else {
+				slog.Error("Could not find drop target entity", slog.String("id", string(to)))
+			}
 		} else {
-			slog.Error("Could not find drop target entity", slog.String("id", string(to)))
+			f.SetParent(nil)
+			h.Reload()
 		}
 	} else {
 		slog.Error("Could not find drag entity", slog.String("id", string(from.EntityId)))
