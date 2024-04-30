@@ -105,3 +105,21 @@ func TestTriangleIntersect(t *testing.T) {
 		t.Error("Expected intersect")
 	}
 }
+
+func TestAABBUnion(t *testing.T) {
+	a := AABB{
+		Center: matrix.Vec3{1, 0, 0},
+		Extent: matrix.Vec3{1, 1, 1},
+	}
+	b := AABB{
+		Center: matrix.Vec3{0, 0, 0},
+		Extent: matrix.Vec3{2, 2, 2},
+	}
+	c := AABBUnion(a, b)
+	if !c.ContainsAABB(a) {
+		t.Fail()
+	}
+	if !c.ContainsAABB(b) {
+		t.Fail()
+	}
+}
