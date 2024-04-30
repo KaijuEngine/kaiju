@@ -264,3 +264,7 @@ func (vr *Vulkan) DestroyTexture(texture *Texture) {
 	vr.textureIdFree(&texture.RenderId)
 	texture.RenderId = TextureId{}
 }
+
+func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
+	panic("not implemented")
+}
