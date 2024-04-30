@@ -266,7 +266,7 @@ func (a *Mat4) MultiplyAssign(b Mat4) {
 	*a = Mat4Multiply(*a, b)
 }
 
-func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, near Float, far Float) {
+func (m *Mat4) Orthographic(left, right, bottom, top, near, far Float) {
 	m.Zero()
 	m[x0y0] = 2.0 / (right - left)
 	// Vulkan inverts x1y1 (see mat4_projection_gl2vulkan)
@@ -279,7 +279,7 @@ func (m *Mat4) Orthographic(left Float, right Float, bottom Float, top Float, ne
 	m[x3y3] = 1.0
 }
 
-func (m *Mat4) Perspective(fovy Float, aspect Float, nearVal Float, farVal Float) {
+func (m *Mat4) Perspective(fovy, aspect, nearVal, farVal Float) {
 	var f, fn Float
 	m.Zero()
 	f = 1.0 / Tan(fovy*0.5)
