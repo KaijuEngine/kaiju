@@ -77,7 +77,7 @@ var borderStyleMap = map[string]ui.BorderStyle{
 	"outset": ui.BorderStyleOutset,
 }
 
-func borderStyleFromStr(str string, lrtb int, elm document.DocElement) (ui.BorderStyle, bool) {
+func borderStyleFromStr(str string, lrtb int, elm *document.DocElement) (ui.BorderStyle, bool) {
 	if val, ok := borderStyleMap[str]; ok {
 		return val, true
 	} else if str == "initial" {
@@ -91,7 +91,7 @@ func borderStyleFromStr(str string, lrtb int, elm document.DocElement) (ui.Borde
 }
 
 // border-width border-style border-color|initial|inherit
-func (p Border) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Border) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}

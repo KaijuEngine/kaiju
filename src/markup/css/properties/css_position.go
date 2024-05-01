@@ -46,7 +46,7 @@ import (
 )
 
 // static|absolute|fixed|relative|sticky|initial|inherit
-func (p Position) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Position) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("Position requires 1 value")
 	} else {

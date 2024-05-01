@@ -46,7 +46,7 @@ import (
 	"strconv"
 )
 
-func (p ZIndex) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p ZIndex) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("ZIndex requires exactly 1 value")
 	} else {

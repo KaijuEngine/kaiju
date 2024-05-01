@@ -46,7 +46,7 @@ import (
 )
 
 // none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset|initial|inherit
-func (p BorderTopStyle) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderTopStyle) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderTopStyle requires 1 value")
 	} else if border, ok := borderStyleFromStr(values[0].Str, 1, elm); !ok {

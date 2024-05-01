@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p BlockSize) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BlockSize) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("BlockSize not implemented")}
 
 	return problems[0]

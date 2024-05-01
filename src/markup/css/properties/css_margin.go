@@ -55,7 +55,7 @@ func marginSizeFromStr(str string, window *windowing.Window) float32 {
 	}
 }
 
-func (p Margin) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Margin) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	var err error
 	if len(values) == 1 {
 		err = MarginLeft{}.Process(panel, elm, values, host)

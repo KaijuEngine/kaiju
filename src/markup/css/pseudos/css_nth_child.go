@@ -70,14 +70,14 @@ func nth(args []string, count int) (int, int, error) {
 	}
 }
 
-func (p NthChild) Process(elm document.DocElement, value rules.SelectorPart) ([]document.DocElement, error) {
+func (p NthChild) Process(elm *document.DocElement, value rules.SelectorPart) ([]*document.DocElement, error) {
 	if start, skip, err := nth(value.Args, len(elm.HTML.Children)); err == nil {
-		selected := make([]document.DocElement, 0)
+		selected := make([]*document.DocElement, 0)
 		for i := start; i < len(elm.HTML.Children); i += skip {
-			selected = append(selected, *elm.HTML.Children[i].DocumentElement)
+			selected = append(selected, elm.HTML.Children[i].DocumentElement)
 		}
 		return selected, nil
 	} else {
-		return []document.DocElement{}, err
+		return []*document.DocElement{}, err
 	}
 }

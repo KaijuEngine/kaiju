@@ -47,7 +47,7 @@ import (
 )
 
 // visibility: visible|hidden|collapse|initial|inherit;
-func (p Visibility) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Visibility) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Visibility arguments expects 1 argument only but received: %d", len(values))
 	}

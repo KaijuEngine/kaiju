@@ -144,7 +144,7 @@ func (m *Menu) open(target *document.DocElement) {
 func (m *Menu) openMenu(targetId string) {
 	if t, ok := m.doc.GetElementById(targetId); ok {
 		m.isOpen = !m.isOpen
-		m.open(&t)
+		m.open(t)
 	}
 }
 
@@ -153,7 +153,7 @@ func (m *Menu) hoverOpenMenu(targetId string) {
 		return
 	}
 	if t, ok := m.doc.GetElementById(targetId); ok {
-		m.open(&t)
+		m.open(t)
 	}
 }
 

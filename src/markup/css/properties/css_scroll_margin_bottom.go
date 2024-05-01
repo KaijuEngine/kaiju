@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p ScrollMarginBottom) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p ScrollMarginBottom) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("ScrollMarginBottom not implemented")}
 
 	return problems[0]

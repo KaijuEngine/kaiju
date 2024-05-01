@@ -46,7 +46,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p BorderWidth) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderWidth) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	b := [4]float32{}
 	if len(values) == 1 {
 		b[0] = helpers.NumFromLength(values[0].Str, host.Window)

@@ -48,7 +48,7 @@ import (
 )
 
 // color|transparent|initial|inherit
-func (p BorderLeftColor) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderLeftColor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderLeftColor requires 1 value")
 	} else {

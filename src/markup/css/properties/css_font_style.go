@@ -45,19 +45,19 @@ import (
 	"kaiju/ui"
 )
 
-func setChildrenFontStyle(elm document.DocElement, style string, host *engine.Host) {
+func setChildrenFontStyle(elm *document.DocElement, style string, host *engine.Host) {
 	if elm.HTML.IsText() {
 		lbl := elm.UI.(*ui.Label)
 		lbl.SetFontStyle(style)
 	} else {
 		for _, child := range elm.HTML.Children {
-			setChildrenFontStyle(*child.DocumentElement, style, host)
+			setChildrenFontStyle(child.DocumentElement, style, host)
 		}
 	}
 }
 
 // normal|italic|oblique|initial|inherit
-func (p FontStyle) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p FontStyle) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("FontWeight requires exactly 1 value")
 	}

@@ -46,20 +46,20 @@ import (
 	"kaiju/ui"
 )
 
-func childLabels(elm document.DocElement) []*ui.Label {
+func childLabels(elm *document.DocElement) []*ui.Label {
 	labels := make([]*ui.Label, 0)
 	for _, c := range elm.HTML.Children {
 		if c.DocumentElement.HTML.IsText() {
 			labels = append(labels, c.DocumentElement.UI.(*ui.Label))
 		} else {
-			labels = append(labels, childLabels(*c.DocumentElement)...)
+			labels = append(labels, childLabels(c.DocumentElement)...)
 		}
 	}
 	return labels
 }
 
 // left|right|center|justify|initial|inherit
-func (p TextAlign) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p TextAlign) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	}

@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p TransitionTimingFunction) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p TransitionTimingFunction) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("TransitionTimingFunction not implemented")}
 
 	return problems[0]

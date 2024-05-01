@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p ListStyleImage) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p ListStyleImage) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("ListStyleImage not implemented")}
 
 	return problems[0]

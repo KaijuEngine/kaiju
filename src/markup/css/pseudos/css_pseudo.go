@@ -45,7 +45,7 @@ import (
 type Pseudo interface {
 	Key() string
 	IsFunction() bool
-	Process(elm document.DocElement, value rules.SelectorPart) ([]document.DocElement, error)
+	Process(elm *document.DocElement, value rules.SelectorPart) ([]*document.DocElement, error)
 	AlterRules(rules []rules.Rule) []rules.Rule
 }
 

@@ -43,6 +43,6 @@ import (
 	"kaiju/markup/document"
 )
 
-func (p Host) Process(elm document.DocElement, value rules.SelectorPart) ([]document.DocElement, error) {
-	return []document.DocElement{elm}, errors.New("not implemented")
+func (p Host) Process(elm *document.DocElement, value rules.SelectorPart) ([]*document.DocElement, error) {
+	return []*document.DocElement{elm}, errors.New("not implemented")
 }

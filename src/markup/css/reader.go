@@ -55,7 +55,7 @@ func (m CSSMap) add(elm ui.UI, rule []rules.Rule) {
 	m[elm] = append(m[elm], rule...)
 }
 
-func applyToElement(inRules []rules.Rule, elm document.DocElement, host *engine.Host) []error {
+func applyToElement(inRules []rules.Rule, elm *document.DocElement, host *engine.Host) []error {
 	panel := elm.UIPanel
 	hasHover := false
 	for i := 0; i < len(inRules) && !hasHover; i++ {
@@ -118,7 +118,7 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 }
 
 func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, host *engine.Host, cssMap CSSMap) {
-	elms := make([]document.DocElement, 0)
+	elms := make([]*document.DocElement, 0)
 	switch parts[0].SelectType {
 	case rules.ReadingId:
 		if elm, ok := doc.GetElementById(parts[0].Name); ok {
@@ -133,7 +133,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			elms = append(elms, elm)
 		}
 	}
-	targets := make([]document.DocElement, 0)
+	targets := make([]*document.DocElement, 0)
 	for _, part := range parts[1:] {
 		for _, elm := range elms {
 			if p, ok := pseudos.PseudoMap[part.Name]; ok {

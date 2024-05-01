@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p HangingPunctuation) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p HangingPunctuation) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("HangingPunctuation not implemented")}
 
 	return problems[0]

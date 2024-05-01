@@ -47,7 +47,7 @@ import (
 
 func sizeTexts(doc *document.Document, host *engine.Host) {
 	for i := range doc.Elements {
-		elm := &doc.Elements[i]
+		elm := doc.Elements[i]
 		e := elm.HTML
 		if e.IsText() {
 			parentWidth := float32(-1.0)
@@ -109,7 +109,7 @@ func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any
 			}
 		}
 	}
-	css.Apply(s, doc, host)
+	doc.ApplyStyle(s, host, css.Apply)
 	sizeTexts(doc, host)
 	return doc
 }

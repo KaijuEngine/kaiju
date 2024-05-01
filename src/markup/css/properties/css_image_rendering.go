@@ -46,7 +46,8 @@ import (
 	"kaiju/ui"
 )
 
-func (p ImageRendering) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) (err error) {
+func (p ImageRendering) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+	var err error = nil
 	if len(values) == 0 {
 		return errors.New("ImageRendering requires a value")
 	}

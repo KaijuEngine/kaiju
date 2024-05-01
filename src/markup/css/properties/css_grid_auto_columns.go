@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p GridAutoColumns) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p GridAutoColumns) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("GridAutoColumns not implemented")}
 
 	return problems[0]

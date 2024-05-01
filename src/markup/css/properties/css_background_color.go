@@ -47,16 +47,16 @@ import (
 	"kaiju/ui"
 )
 
-func setChildTextBackgroundColor(elm document.DocElement, color matrix.Color) {
+func setChildTextBackgroundColor(elm *document.DocElement, color matrix.Color) {
 	for _, c := range elm.HTML.Children {
 		if c.DocumentElement.HTML.IsText() {
 			c.DocumentElement.UI.(*ui.Label).SetBGColor(color)
 		}
-		setChildTextBackgroundColor(*c.DocumentElement, color)
+		setChildTextBackgroundColor(c.DocumentElement, color)
 	}
 }
 
-func (p BackgroundColor) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BackgroundColor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Expected exactly 1 value but got %d", len(values))
 	}

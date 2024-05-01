@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p GridAutoRows) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p GridAutoRows) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("GridAutoRows not implemented")}
 
 	return problems[0]

@@ -48,7 +48,7 @@ import (
 	"strings"
 )
 
-func (p Height) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Height) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	var height float32
 	var err error = nil
 	if len(values) != 1 {

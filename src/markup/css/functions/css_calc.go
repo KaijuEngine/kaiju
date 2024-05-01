@@ -61,7 +61,7 @@ type calcEntry struct {
 	op    calcOp
 }
 
-func (f Calc) Process(panel *ui.Panel, elm document.DocElement, value rules.PropertyValue) (string, error) {
+func (f Calc) Process(panel *ui.Panel, elm *document.DocElement, value rules.PropertyValue) (string, error) {
 	prop := value.Args[len(value.Args)-1]
 	value.Args = value.Args[:len(value.Args)-1]
 	entries := make([]calcEntry, len(value.Args))

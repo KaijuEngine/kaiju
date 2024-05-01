@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p BreakAfter) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BreakAfter) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("BreakAfter not implemented")}
 
 	return problems[0]

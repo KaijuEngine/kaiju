@@ -48,7 +48,7 @@ import (
 	"strings"
 )
 
-func (p Width) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Width) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	var width float32
 	var err error = nil
 	if values[0].Str == "initial" {

@@ -49,7 +49,7 @@ import (
 )
 
 // auto|length|initial|inherit
-func (p Left) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Left) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("left expects 1 value")
 	} else {

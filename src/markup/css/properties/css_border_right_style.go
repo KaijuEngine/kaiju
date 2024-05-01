@@ -46,7 +46,7 @@ import (
 )
 
 // none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset|initial|inherit
-func (p BorderRightStyle) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderRightStyle) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderRightStyle requires 1 value")
 	} else if border, ok := borderStyleFromStr(values[0].Str, 2, elm); !ok {

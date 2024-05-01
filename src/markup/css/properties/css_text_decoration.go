@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p TextDecoration) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p TextDecoration) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("TextDecoration not implemented")}
 
 	return problems[0]

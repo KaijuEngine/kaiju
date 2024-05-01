@@ -46,7 +46,7 @@ import (
 )
 
 // length|auto|initial|inherit
-func (p MarginBottom) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p MarginBottom) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("MarginBottom requires exactly 1 value")
 	} else {

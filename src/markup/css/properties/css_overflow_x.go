@@ -46,7 +46,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p OverflowX) Process(panel *ui.Panel, elm document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p OverflowX) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("Overflow expects 1 value")
 	} else {

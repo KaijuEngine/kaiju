@@ -44,6 +44,6 @@ import (
 	"kaiju/ui"
 )
 
-func (f Max) Process(panel *ui.Panel, elm document.DocElement, value rules.PropertyValue) (string, error) {
+func (f Max) Process(panel *ui.Panel, elm *document.DocElement, value rules.PropertyValue) (string, error) {
 	return "", errors.New("not implemented")
 }
