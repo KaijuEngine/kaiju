@@ -108,7 +108,7 @@ func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any
 			}
 		}
 	}
-	doc.ApplyStyle(s, host, css.Apply)
+	doc.SetupStylizer(s, host, css.Apply)
 	sizeTexts(doc, host)
 	return doc
 }

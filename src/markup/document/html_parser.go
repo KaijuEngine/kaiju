@@ -47,6 +47,7 @@ import (
 	"kaiju/rendering"
 	"kaiju/ui"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,7 @@ var funcMap = template.FuncMap{
 }
 
 type Document struct {
+	host          *engine.Host
 	Elements      []*Element
 	TopElements   []*Element
 	HeadElements  []*Element
@@ -92,15 +94,16 @@ type Document struct {
 	stylizer      func(rules.StyleSheet, *Document, *engine.Host)
 }
 
-func (d *Document) ApplyStyle(style rules.StyleSheet, host *engine.Host,
+func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host,
 	styleReader func(rules.StyleSheet, *Document, *engine.Host)) {
 	d.style = style
 	d.stylizer = styleReader
-	d.stylizer(d.style, d, host)
+	d.host = host
+	d.ApplyStyle()
 }
 
-func (d *Document) ReapplyStyle(host *engine.Host) {
-	d.stylizer(d.style, d, host)
+func (d *Document) ApplyStyle() {
+	d.stylizer(d.style, d, d.host)
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -228,11 +231,15 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 				d.classElements[c] = []*Element{entry}
 			}
 		}
-		if m, ok := d.tagElements[tag.Key()]; ok {
-			d.tagElements[tag.Key()] = append(m, entry)
-		} else {
-			d.tagElements[tag.Key()] = []*Element{entry}
-		}
+		d.tagElement(entry, tag.Key())
+	}
+}
+
+func (d *Document) tagElement(elm *Element, tag string) {
+	if m, ok := d.tagElements[tag]; ok {
+		d.tagElements[tag] = append(m, elm)
+	} else {
+		d.tagElements[tag] = []*Element{elm}
 	}
 }
 
@@ -329,4 +336,90 @@ func (d *Document) Clean() {
 	if len(d.Elements) > 0 {
 		d.Elements[0].UI.Clean()
 	}
+}
+
+func (d *Document) indexElement(elm *Element) {
+	d.Elements = append(d.Elements, elm)
+	if id := elm.Attribute("id"); id != "" {
+		d.ids[id] = elm
+	}
+	if group := elm.Attribute("group"); group != "" {
+		d.groups[group] = append(d.groups[group], elm)
+	}
+	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data())]; ok {
+		d.tagElement(elm, tag.Key())
+	}
+	for _, c := range strings.Split(elm.Attribute("class"), " ") {
+		if len(c) == 0 {
+			continue
+		}
+		if m, ok := d.classElements[c]; ok {
+			d.classElements[c] = append(m, elm)
+		} else {
+			d.classElements[c] = []*Element{elm}
+		}
+	}
+}
+
+func (d *Document) removeIndexedElement(elm *Element) {
+	for i, e := range d.Elements {
+		if e == elm {
+			klib.RemoveUnordered(d.Elements, i)
+			break
+		}
+	}
+	delete(d.ids, elm.Attribute("id"))
+	if group := elm.Attribute("group"); group != "" {
+		for i := range d.groups[group] {
+			if d.groups[group][i] == elm {
+				// TODO:  Is sorted remove required here?
+				d.groups[group] = slices.Delete(d.groups[group], i, i+1)
+				break
+			}
+		}
+	}
+	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data())]; ok {
+		if _, ok := d.tagElements[tag.Key()]; ok {
+			for i := range d.tagElements[tag.Key()] {
+				if d.tagElements[tag.Key()][i] == elm {
+					// TODO:  Is sorted remove required here?
+					d.tagElements[tag.Key()] = slices.Delete(d.tagElements[tag.Key()], i, i+1)
+					break
+				}
+			}
+		}
+	}
+	for _, c := range strings.Split(elm.Attribute("class"), " ") {
+		if len(c) == 0 {
+			continue
+		}
+		if _, ok := d.classElements[c]; !ok {
+			continue
+		}
+		for i := range d.classElements[c] {
+			if d.classElements[c][i] == elm {
+				// TODO:  Is sorted remove required here?
+				d.classElements[c] = slices.Delete(d.classElements[c], i, i+1)
+				break
+			}
+		}
+	}
+}
+
+func (d *Document) AddChildElement(parent *Element, elm *Element) {
+	parent.Children = append(parent.Children, elm)
+	d.indexElement(elm)
+}
+
+func (d *Document) RemoveElement(elm *Element) {
+	if elm.Parent != nil {
+		for i, c := range elm.Parent.Children {
+			if c == elm {
+				elm.Parent.Children = slices.Delete(elm.Parent.Children, i, i+1)
+				break
+			}
+		}
+	}
+	d.removeIndexedElement(elm)
+	d.ApplyStyle()
 }
