@@ -199,7 +199,7 @@ func (l *LogWindow) Hide() {
 	}
 }
 
-func (l *LogWindow) clearAll(e *document.DocElement) {
+func (l *LogWindow) clearAll(e *document.Element) {
 	l.all = l.all[:0]
 	l.reloadUI()
 }
@@ -220,11 +220,11 @@ func (l *LogWindow) deactivateGroups() {
 	wb, _ := l.doc.GetElementById("warningsBtn")
 	eb, _ := l.doc.GetElementById("errorsBtn")
 	sb, _ := l.doc.GetElementById("selectedBtn")
-	ab.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
-	ib.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
-	wb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
-	eb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
-	sb.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("normal")
+	ab.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	ib.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	wb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	eb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	sb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
 }
 
 func (l *LogWindow) showCurrent() {
@@ -242,53 +242,53 @@ func (l *LogWindow) showCurrent() {
 	}
 }
 
-func (l *LogWindow) showAll(*document.DocElement) {
+func (l *LogWindow) showAll(*document.Element) {
 	l.Group = viewGroupAll
 	l.deactivateGroups()
 	e, _ := l.doc.GetElementById("all")
 	b, _ := l.doc.GetElementById("allBtn")
 	e.UI.Entity().Activate()
-	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showInfos(*document.DocElement) {
+func (l *LogWindow) showInfos(*document.Element) {
 	l.Group = viewGroupInfo
 	l.deactivateGroups()
 	e, _ := l.doc.GetElementById("info")
 	b, _ := l.doc.GetElementById("infoBtn")
 	e.UI.Entity().Activate()
-	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showWarns(*document.DocElement) {
+func (l *LogWindow) showWarns(*document.Element) {
 	l.Group = viewGroupWarn
 	l.deactivateGroups()
 	e, _ := l.doc.GetElementById("warn")
 	b, _ := l.doc.GetElementById("warningsBtn")
 	e.UI.Entity().Activate()
-	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showErrors(*document.DocElement) {
+func (l *LogWindow) showErrors(*document.Element) {
 	l.Group = viewGroupError
 	l.deactivateGroups()
 	e, _ := l.doc.GetElementById("error")
 	b, _ := l.doc.GetElementById("errorsBtn")
 	e.UI.Entity().Activate()
-	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) showSelected(*document.DocElement) {
+func (l *LogWindow) showSelected(*document.Element) {
 	l.Group = viewGroupSelected
 	l.deactivateGroups()
 	e, _ := l.doc.GetElementById("selected")
 	b, _ := l.doc.GetElementById("selectedBtn")
 	e.UI.Entity().Activate()
-	b.HTML.Children[0].DocumentElement.UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
 }
 
-func (l *LogWindow) selectEntry(e *document.DocElement) {
-	if id, err := strconv.Atoi(e.HTML.Attribute("data-entry")); err == nil {
+func (l *LogWindow) selectEntry(e *document.Element) {
+	if id, err := strconv.Atoi(e.Attribute("data-entry")); err == nil {
 		var target []visibleMessage
 		switch l.Group {
 		case viewGroupAll:
@@ -304,7 +304,7 @@ func (l *LogWindow) selectEntry(e *document.DocElement) {
 			// The lists are printed in reverse order, so we invert the index
 			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
-			lbl := selectedElm.HTML.Children[0].DocumentElement.UI.(*ui.Label)
+			lbl := selectedElm.Children[0].UI.(*ui.Label)
 			sb := strings.Builder{}
 			sb.WriteString(target[id].Time)
 			sb.WriteRune('\n')
@@ -335,7 +335,7 @@ func (l *LogWindow) reloadUI() {
 	l.host.CreatingEditorEntities()
 	l.lastReload = frame
 	l.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		l.host, html, l, map[string]func(*document.DocElement){
+		l.host, html, l, map[string]func(*document.Element){
 			"clearAll":     l.clearAll,
 			"showAll":      l.showAll,
 			"showInfos":    l.showInfos,
@@ -358,23 +358,23 @@ func (l *LogWindow) reloadUI() {
 	}
 }
 
-func (l *LogWindow) resizeHover(e *document.DocElement) {
+func (l *LogWindow) resizeHover(e *document.Element) {
 	l.host.Window.CursorSizeNS()
 }
 
-func (l *LogWindow) resizeExit(e *document.DocElement) {
+func (l *LogWindow) resizeExit(e *document.Element) {
 	dd := l.host.Window.Mouse.DragData()
 	if dd != l {
 		l.host.Window.CursorStandard()
 	}
 }
 
-func (l *LogWindow) resizeStart(e *document.DocElement) {
+func (l *LogWindow) resizeStart(e *document.Element) {
 	l.host.Window.CursorSizeNS()
 	l.host.Window.Mouse.SetDragData(l)
 }
 
-func (l *LogWindow) resizeStop(e *document.DocElement) {
+func (l *LogWindow) resizeStop(e *document.Element) {
 	dd := l.host.Window.Mouse.DragData()
 	if dd != l {
 		return

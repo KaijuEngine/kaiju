@@ -45,19 +45,19 @@ import (
 	"kaiju/ui"
 )
 
-func setChildrenFontWeight(elm *document.DocElement, weight string, host *engine.Host) {
-	if elm.HTML.IsText() {
+func setChildrenFontWeight(elm *document.Element, weight string, host *engine.Host) {
+	if elm.IsText() {
 		lbl := elm.UI.(*ui.Label)
 		lbl.SetFontWeight(weight)
 	} else {
-		for _, child := range elm.HTML.Children {
-			setChildrenFontWeight(child.DocumentElement, weight, host)
+		for _, child := range elm.Children {
+			setChildrenFontWeight(child, weight, host)
 		}
 	}
 }
 
 // normal|bold|bolder|lighter|number|initial|inherit
-func (p FontWeight) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p FontWeight) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("FontWeight requires exactly 1 value")
 	}

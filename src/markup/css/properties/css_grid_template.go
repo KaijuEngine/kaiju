@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p GridTemplate) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p GridTemplate) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("GridTemplate not implemented")}
 
 	return problems[0]

@@ -55,7 +55,7 @@ func (m CSSMap) add(elm ui.UI, rule []rules.Rule) {
 	m[elm] = append(m[elm], rule...)
 }
 
-func applyToElement(inRules []rules.Rule, elm *document.DocElement, host *engine.Host) []error {
+func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Host) []error {
 	panel := elm.UIPanel
 	hasHover := false
 	for i := 0; i < len(inRules) && !hasHover; i++ {
@@ -118,7 +118,7 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 }
 
 func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, host *engine.Host, cssMap CSSMap) {
-	elms := make([]*document.DocElement, 0)
+	elms := make([]*document.Element, 0)
 	switch parts[0].SelectType {
 	case rules.ReadingId:
 		if elm, ok := doc.GetElementById(parts[0].Name); ok {
@@ -133,7 +133,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			elms = append(elms, elm)
 		}
 	}
-	targets := make([]*document.DocElement, 0)
+	targets := make([]*document.Element, 0)
 	for _, part := range parts[1:] {
 		for _, elm := range elms {
 			if p, ok := pseudos.PseudoMap[part.Name]; ok {
@@ -144,7 +144,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			} else {
 				tagged := doc.GetElementsByTagName(part.Name)
 				for _, t := range tagged {
-					if t.HTML.Parent == elm.HTML {
+					if t.Parent == elm {
 						targets = append(targets, t)
 					}
 				}
@@ -185,7 +185,7 @@ func Apply(s rules.StyleSheet, doc *document.Document, host *engine.Host) {
 	cleanMapDuplicates(cssMap)
 	applyMappings(doc, cssMap, host)
 	for _, elm := range doc.Elements {
-		if inlineStyle := elm.HTML.Attribute("style"); inlineStyle != "" {
+		if inlineStyle := elm.Attribute("style"); inlineStyle != "" {
 			group := s.ParseInline(inlineStyle)
 			applyToElement(group.Rules, elm, host)
 		}

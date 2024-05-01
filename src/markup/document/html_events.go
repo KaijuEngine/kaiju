@@ -43,8 +43,8 @@ import (
 	"log/slog"
 )
 
-func tryMap(attr string, elm *DocElement, evt *events.Event, funcMap map[string]func(*DocElement)) {
-	if funcName := elm.HTML.Attribute(attr); len(funcName) > 0 {
+func tryMap(attr string, elm *Element, evt *events.Event, funcMap map[string]func(*Element)) {
+	if funcName := elm.Attribute(attr); len(funcName) > 0 {
 		if f, ok := funcMap[funcName]; ok {
 			evt.Add(func() { f(elm) })
 		} else {
@@ -55,7 +55,7 @@ func tryMap(attr string, elm *DocElement, evt *events.Event, funcMap map[string]
 	}
 }
 
-func setupEvents(elm *DocElement, funcMap map[string]func(*DocElement)) {
+func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
 	tryMap("onsubmit", elm, elm.UI.Event(ui.EventTypeSubmit), funcMap)
 	tryMap("onkeydown", elm, elm.UI.Event(ui.EventTypeKeyDown), funcMap)

@@ -61,13 +61,13 @@ func New(host *engine.Host, logWindow *log_window.LogWindow) *StatusBar {
 	const html = "editor/ui/status.html"
 	s := &StatusBar{}
 	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, nil,
-		map[string]func(*document.DocElement){
-			"openLogWindow": func(*document.DocElement) { logWindow.Show() },
+		map[string]func(*document.Element){
+			"openLogWindow": func(*document.Element) { logWindow.Show() },
 		}))
 	m, _ := s.doc.GetElementById("msg")
 	l, _ := s.doc.GetElementById("log")
-	s.msg = m.HTML.Children[0].DocumentElement.UI.(*ui.Label)
-	s.log = l.HTML.Children[0].DocumentElement.UI.(*ui.Label)
+	s.msg = m.Children[0].UI.(*ui.Label)
+	s.log = l.Children[0].UI.(*ui.Label)
 	host.LogStream.OnInfo.Add(func(msg string) {
 		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorWhite()) })
 	})

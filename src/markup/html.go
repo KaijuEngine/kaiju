@@ -47,8 +47,7 @@ import (
 
 func sizeTexts(doc *document.Document, host *engine.Host) {
 	for i := range doc.Elements {
-		elm := doc.Elements[i]
-		e := elm.HTML
+		e := doc.Elements[i]
 		if e.IsText() {
 			parentWidth := float32(-1.0)
 			updateSize := func(l *ui.Layout) {
@@ -66,14 +65,14 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					l.Scale(parentWidth, height)
 				}
 			}
-			label := elm.UI.(*ui.Label)
+			label := e.UI.(*ui.Label)
 			updateSize(label.Layout())
 			label.Layout().AddFunction(updateSize)
 		}
-		height := elm.UI.Layout().PixelSize().Y()
-		p := elm.HTML.Parent
-		for p != nil && p.DocumentElement != nil {
-			pPanel := p.DocumentElement.UIPanel
+		height := e.UI.Layout().PixelSize().Y()
+		p := e.Parent
+		for p != nil && p.UIPanel != nil {
+			pPanel := p.UIPanel
 			if pPanel.FittingContent() && pPanel.Layout().PixelSize().Y() < height {
 				pPanel.Layout().ScaleHeight(height)
 			}
@@ -82,7 +81,7 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 	}
 }
 
-func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.DocElement)) (*document.Document, error) {
+func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
 	m, err := host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
@@ -90,7 +89,7 @@ func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, fun
 	return DocumentFromHTMLString(host, m, "", withData, funcMap), nil
 }
 
-func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.DocElement)) *document.Document {
+func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document {
 	doc := document.DocumentFromHTMLString(host, html, withData, funcMap)
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS)

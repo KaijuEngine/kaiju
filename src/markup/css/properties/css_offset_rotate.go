@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p OffsetRotate) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p OffsetRotate) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("OffsetRotate not implemented")}
 
 	return problems[0]

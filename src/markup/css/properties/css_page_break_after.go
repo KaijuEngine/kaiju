@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p PageBreakAfter) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p PageBreakAfter) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("PageBreakAfter not implemented")}
 
 	return problems[0]

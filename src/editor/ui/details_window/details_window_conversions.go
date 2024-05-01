@@ -47,8 +47,8 @@ import (
 	"strings"
 )
 
-func (d *Details) elmToReflectedValue(elm *document.DocElement) (reflect.Value, bool) {
-	id := elm.HTML.Attribute("id")
+func (d *Details) elmToReflectedValue(elm *document.Element) (reflect.Value, bool) {
+	id := elm.Attribute("id")
 	lr := strings.Split(id, "_")
 	if len(lr) != 2 {
 		return reflect.Value{}, false
@@ -59,7 +59,7 @@ func (d *Details) elmToReflectedValue(elm *document.DocElement) (reflect.Value, 
 	return data.entityData.(reflect.Value).Elem().Field(fieldIdx), true
 }
 
-func inputString(input *document.DocElement) string { return input.UI.(*ui.Input).Text() }
+func inputString(input *document.Element) string { return input.UI.(*ui.Input).Text() }
 
 func toInt(str string) int64 {
 	if str == "" {

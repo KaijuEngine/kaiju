@@ -46,7 +46,7 @@ import (
 )
 
 // border-width border-style border-color|initial|inherit
-func (p BorderTop) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderTop) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("BorderTop requires 1-3 values")
 	}

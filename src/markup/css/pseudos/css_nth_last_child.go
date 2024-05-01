@@ -42,14 +42,14 @@ import (
 	"kaiju/markup/document"
 )
 
-func (p NthLastChild) Process(elm *document.DocElement, value rules.SelectorPart) ([]*document.DocElement, error) {
-	if start, skip, err := nth(value.Args, len(elm.HTML.Children)); err == nil {
-		selected := make([]*document.DocElement, 0)
-		for i := len(elm.HTML.Children) - 1 - start; i >= 0; i -= skip {
-			selected = append(selected, elm.HTML.Children[i].DocumentElement)
+func (p NthLastChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
+	if start, skip, err := nth(value.Args, len(elm.Children)); err == nil {
+		selected := make([]*document.Element, 0)
+		for i := len(elm.Children) - 1 - start; i >= 0; i -= skip {
+			selected = append(selected, elm.Children[i])
 		}
 		return selected, nil
 	} else {
-		return []*document.DocElement{}, err
+		return []*document.Element{}, err
 	}
 }

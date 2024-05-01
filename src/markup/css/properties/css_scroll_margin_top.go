@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p ScrollMarginTop) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p ScrollMarginTop) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("ScrollMarginTop not implemented")}
 
 	return problems[0]

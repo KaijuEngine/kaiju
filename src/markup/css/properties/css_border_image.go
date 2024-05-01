@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p BorderImage) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderImage) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("BorderImage not implemented")}
 
 	return problems[0]

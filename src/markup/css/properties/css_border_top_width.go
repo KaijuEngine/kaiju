@@ -46,7 +46,7 @@ import (
 )
 
 // medium|thin|thick|length|initial|inherit
-func (p BorderTopWidth) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderTopWidth) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderTopWidth requires exactly 1 value")
 	} else {

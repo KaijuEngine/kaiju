@@ -44,7 +44,7 @@ import (
 	"kaiju/markup/document"
 )
 
-func openContributions(*document.DocElement) {
+func openContributions(*document.Element) {
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/graphs/contributors")
 }
 
@@ -55,7 +55,7 @@ func New(edPath string) {
 	<-container.PrepLock
 	container.Host.AssetDatabase().EditorContext.EditorPath = edPath
 	container.RunFunction(func() {
-		markup.DocumentFromHTMLAsset(container.Host, html, nil, map[string]func(*document.DocElement){
+		markup.DocumentFromHTMLAsset(container.Host, html, nil, map[string]func(*document.Element){
 			"openContributions": openContributions,
 		})
 	})

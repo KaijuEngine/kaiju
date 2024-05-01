@@ -61,7 +61,7 @@ type calcEntry struct {
 	op    calcOp
 }
 
-func (f Calc) Process(panel *ui.Panel, elm *document.DocElement, value rules.PropertyValue) (string, error) {
+func (f Calc) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {
 	prop := value.Args[len(value.Args)-1]
 	value.Args = value.Args[:len(value.Args)-1]
 	entries := make([]calcEntry, len(value.Args))
@@ -79,11 +79,11 @@ func (f Calc) Process(panel *ui.Panel, elm *document.DocElement, value rules.Pro
 			v := helpers.NumFromLength(value.Args[i], panel.Host().Window)
 			if strings.HasSuffix(value.Args[i], "%") {
 				if prop == "width" {
-					pl := elm.HTML.Parent.DocumentElement.UI.Layout()
+					pl := elm.Parent.UI.Layout()
 					p := pl.Padding()
 					v *= pl.PixelSize().Width() - p.X() - p.Z()
 				} else if prop == "height" {
-					pl := elm.HTML.Parent.DocumentElement.UI.Layout()
+					pl := elm.Parent.UI.Layout()
 					p := pl.Padding()
 					v *= pl.PixelSize().Height() - p.Y() - p.W()
 				}

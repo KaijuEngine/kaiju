@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p BorderInlineEndColor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderInlineEndColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("BorderInlineEndColor not implemented")}
 
 	return problems[0]

@@ -48,7 +48,7 @@ import (
 	"strings"
 )
 
-func (p Width) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	var width float32
 	var err error = nil
 	if values[0].Str == "initial" {
@@ -60,7 +60,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.DocElement, values []rules
 		width = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
-		if strings.HasSuffix(values[0].Str, "%") && elm.HTML.Parent != nil {
+		if strings.HasSuffix(values[0].Str, "%") && elm.Parent != nil {
 			panel.Layout().AddFunction(func(l *ui.Layout) {
 				if l.Ui().Entity().IsRoot() {
 					return

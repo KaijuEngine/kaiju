@@ -47,7 +47,7 @@ import (
 )
 
 // length|initial|inherit
-func (p PaddingTop) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p PaddingTop) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("PaddingTop: Expecting exactly one value")
 	}

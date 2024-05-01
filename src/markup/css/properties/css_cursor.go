@@ -46,7 +46,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p Cursor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 {
 		return errors.New("no cursor value")
 	}

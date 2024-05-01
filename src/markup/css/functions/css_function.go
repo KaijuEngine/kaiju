@@ -45,7 +45,7 @@ import (
 
 type Function interface {
 	Key() string
-	Process(panel *ui.Panel, elm *document.DocElement, value rules.PropertyValue) (string, error)
+	Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
 }
 
 var FunctionMap = map[string]Function{

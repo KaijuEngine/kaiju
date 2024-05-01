@@ -48,16 +48,16 @@ import (
 	"kaiju/windowing"
 )
 
-func paddingSizeFromString(elm *document.DocElement, str string, idx matrix.VectorComponent, window *windowing.Window) (matrix.Vec4, error) {
+func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorComponent, window *windowing.Window) (matrix.Vec4, error) {
 	current := elm.UI.Layout().Padding()
 	size := current[idx]
 	if str == "initial" {
 		size = 0
 	} else if str == "inherit" {
-		if elm.HTML.Parent == nil {
+		if elm.Parent == nil {
 			size = 0
 		} else {
-			size = elm.HTML.Parent.DocumentElement.UI.Layout().Padding()[idx]
+			size = elm.Parent.UI.Layout().Padding()[idx]
 		}
 	} else {
 		size = helpers.NumFromLength(str, window)
@@ -67,7 +67,7 @@ func paddingSizeFromString(elm *document.DocElement, str string, idx matrix.Vect
 }
 
 // length|initial|inherit
-func (p Padding) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Padding) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	var err error
 	if len(values) == 1 {
 		// all

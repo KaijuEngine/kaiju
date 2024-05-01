@@ -183,10 +183,10 @@ func testButton(host *engine.Host) {
 }
 
 func testHTML(host *engine.Host) {
-	events := map[string]func(*document.DocElement){
-		"playGame":     func(*document.DocElement) { slog.Info("Clicked playGame") },
-		"showSettings": func(*document.DocElement) { slog.Info("Clicked showSettings") },
-		"showRules":    func(*document.DocElement) { slog.Info("Clicked showRules") },
+	events := map[string]func(*document.Element){
+		"playGame":     func(*document.Element) { slog.Info("Clicked playGame") },
+		"showSettings": func(*document.Element) { slog.Info("Clicked showSettings") },
+		"showRules":    func(*document.Element) { slog.Info("Clicked showRules") },
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")

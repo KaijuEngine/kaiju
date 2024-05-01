@@ -49,7 +49,7 @@ import (
 )
 
 // auto|length|initial|inherit
-func (p Bottom) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Bottom) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("bottom expects 1 value")
 	} else {
@@ -60,8 +60,8 @@ func (p Bottom) Process(panel *ui.Panel, elm *document.DocElement, values []rule
 		case "auto":
 		case "initial":
 		case "inherit":
-			if elm.HTML.Parent != nil {
-				offset.SetBottom(elm.HTML.Parent.DocumentElement.UI.Layout().Offset().Y())
+			if elm.Parent != nil {
+				offset.SetBottom(elm.Parent.UI.Layout().Offset().Y())
 			}
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)

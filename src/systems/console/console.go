@@ -218,7 +218,7 @@ func (c *Console) clear(*engine.Host, string) string {
 
 func (c *Console) outputLabel() *ui.Label {
 	cc, _ := c.doc.GetElementById("consoleContent")
-	return ui.FirstOnEntity(cc.HTML.Children[0].DocumentElement.UI.Entity()).(*ui.Label)
+	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).(*ui.Label)
 }
 
 func (c *Console) submit(input *ui.Input) {

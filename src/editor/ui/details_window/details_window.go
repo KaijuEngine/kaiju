@@ -175,7 +175,7 @@ func (d *Details) reload() {
 	d.viewData.Data = d.pullEntityData()
 	d.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		host, "editor/ui/details_window.html", d.viewData,
-		map[string]func(*document.DocElement){
+		map[string]func(*document.Element){
 			"changeName":          d.changeName,
 			"changePosX":          d.changePosX,
 			"changePosY":          d.changePosY,
@@ -210,7 +210,7 @@ func (d *Details) reload() {
 	}
 }
 
-func (d *Details) addData(*document.DocElement) {
+func (d *Details) addData(*document.Element) {
 	types := d.editor.AvailableDataBindings()
 	idx := <-NewDataPicker(d.editor.Host(), types)
 	if idx < 0 {
@@ -222,7 +222,7 @@ func (d *Details) addData(*document.DocElement) {
 	d.reload()
 }
 
-func (d *Details) changeData(elm *document.DocElement) {
+func (d *Details) changeData(elm *document.Element) {
 	v, ok := d.elmToReflectedValue(elm)
 	if !ok {
 		return
@@ -302,7 +302,7 @@ func (d *Details) pullEntityData() []entityDataEntry {
 	return data
 }
 
-func (d *Details) changeName(input *document.DocElement) {
+func (d *Details) changeName(input *document.Element) {
 	d.editor.Selection().Entities()[0].SetName(inputString(input))
 	if d.hierarchyReloading {
 		return
@@ -314,70 +314,70 @@ func (d *Details) changeName(input *document.DocElement) {
 	})
 }
 
-func (d *Details) changePosX(input *document.DocElement) {
+func (d *Details) changePosX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
 	p.SetX(matrix.Float(toFloat(inputString(input))))
 	t.SetPosition(p)
 }
 
-func (d *Details) changePosY(input *document.DocElement) {
+func (d *Details) changePosY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
 	p.SetY(matrix.Float(toFloat(inputString(input))))
 	t.SetPosition(p)
 }
 
-func (d *Details) changePosZ(input *document.DocElement) {
+func (d *Details) changePosZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
 	p.SetZ(matrix.Float(toFloat(inputString(input))))
 	t.SetPosition(p)
 }
 
-func (d *Details) changeRotX(input *document.DocElement) {
+func (d *Details) changeRotX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
 	r.SetX(matrix.Float(toFloat(inputString(input))))
 	t.SetRotation(r)
 }
 
-func (d *Details) changeRotY(input *document.DocElement) {
+func (d *Details) changeRotY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
 	r.SetY(matrix.Float(toFloat(inputString(input))))
 	t.SetRotation(r)
 }
 
-func (d *Details) changeRotZ(input *document.DocElement) {
+func (d *Details) changeRotZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
 	r.SetZ(matrix.Float(toFloat(inputString(input))))
 	t.SetRotation(r)
 }
 
-func (d *Details) changeScaleX(input *document.DocElement) {
+func (d *Details) changeScaleX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
 	s.SetX(matrix.Float(toFloat(inputString(input))))
 	t.SetScale(s)
 }
 
-func (d *Details) changeScaleY(input *document.DocElement) {
+func (d *Details) changeScaleY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
 	s.SetY(matrix.Float(toFloat(inputString(input))))
 	t.SetScale(s)
 }
 
-func (d *Details) changeScaleZ(input *document.DocElement) {
+func (d *Details) changeScaleZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
 	s.SetZ(matrix.Float(toFloat(inputString(input))))
 	t.SetScale(s)
 }
 
-func (d *Details) entityIdDrop(input *document.DocElement) {
+func (d *Details) entityIdDrop(input *document.Element) {
 	id, ok := entityDragData(d.editor.Host())
 	if !ok {
 		return
@@ -390,21 +390,21 @@ func (d *Details) entityIdDrop(input *document.DocElement) {
 	d.reload()
 }
 
-func (d *Details) entityIdDragEnter(input *document.DocElement) {
+func (d *Details) entityIdDragEnter(input *document.Element) {
 	if _, ok := entityDragData(d.editor.Host()); !ok {
 		return
 	}
 	input.EnforceColor(matrix.ColorOrange())
 }
 
-func (d *Details) entityIdDragExit(input *document.DocElement) {
+func (d *Details) entityIdDragExit(input *document.Element) {
 	if _, ok := entityDragData(d.editor.Host()); !ok {
 		return
 	}
 	input.UnEnforceColor()
 }
 
-func (d *Details) selectDroppedEntity(input *document.DocElement) {
+func (d *Details) selectDroppedEntity(input *document.Element) {
 	v, ok := d.elmToReflectedValue(input)
 	if !ok {
 		return
@@ -418,23 +418,23 @@ func (d *Details) selectDroppedEntity(input *document.DocElement) {
 	d.editor.Selection().Focus(d.editor.Host().Camera)
 }
 
-func (d *Details) resizeHover(e *document.DocElement) {
+func (d *Details) resizeHover(e *document.Element) {
 	d.editor.Host().Window.CursorSizeWE()
 }
 
-func (d *Details) resizeExit(e *document.DocElement) {
+func (d *Details) resizeExit(e *document.Element) {
 	dd := d.editor.Host().Window.Mouse.DragData()
 	if dd != d {
 		d.editor.Host().Window.CursorStandard()
 	}
 }
 
-func (d *Details) resizeStart(e *document.DocElement) {
+func (d *Details) resizeStart(e *document.Element) {
 	d.editor.Host().Window.CursorSizeWE()
 	d.editor.Host().Window.Mouse.SetDragData(d)
 }
 
-func (d *Details) resizeStop(e *document.DocElement) {
+func (d *Details) resizeStop(e *document.Element) {
 	dd := d.editor.Host().Window.Mouse.DragData()
 	if dd != d {
 		return

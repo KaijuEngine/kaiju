@@ -48,7 +48,7 @@ import (
 	"strings"
 )
 
-func (p BackgroundImage) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("Expected exactly 1 value but got " + string(len(values)))
 	}

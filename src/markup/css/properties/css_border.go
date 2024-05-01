@@ -77,21 +77,21 @@ var borderStyleMap = map[string]ui.BorderStyle{
 	"outset": ui.BorderStyleOutset,
 }
 
-func borderStyleFromStr(str string, lrtb int, elm *document.DocElement) (ui.BorderStyle, bool) {
+func borderStyleFromStr(str string, lrtb int, elm *document.Element) (ui.BorderStyle, bool) {
 	if val, ok := borderStyleMap[str]; ok {
 		return val, true
 	} else if str == "initial" {
 		// TODO:  Based on tag
 		return ui.BorderStyleNone, true
-	} else if str == "inherit" && elm.HTML.Parent != nil {
-		return elm.HTML.Parent.DocumentElement.UI.(*ui.Panel).BorderStyle()[lrtb], true
+	} else if str == "inherit" && elm.Parent != nil {
+		return elm.Parent.UI.(*ui.Panel).BorderStyle()[lrtb], true
 	} else {
 		return ui.BorderStyleNone, false
 	}
 }
 
 // border-width border-style border-color|initial|inherit
-func (p Border) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Border) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}

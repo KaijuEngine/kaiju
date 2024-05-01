@@ -46,7 +46,7 @@ import (
 )
 
 // static|absolute|fixed|relative|sticky|initial|inherit
-func (p Position) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("Position requires 1 value")
 	} else {
@@ -65,8 +65,8 @@ func (p Position) Process(panel *ui.Panel, elm *document.DocElement, values []ru
 		case "initial":
 			panel.Layout().SetPositioning(ui.PositioningStatic)
 		case "inherit":
-			if elm.HTML.Parent != nil {
-				panel.Layout().SetPositioning(elm.HTML.DocumentElement.UI.Layout().Positioning())
+			if elm.Parent != nil {
+				panel.Layout().SetPositioning(elm.UI.Layout().Positioning())
 			}
 		default:
 			err = errors.New("Position invalid position value")

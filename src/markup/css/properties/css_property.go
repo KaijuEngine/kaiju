@@ -46,7 +46,7 @@ import (
 
 type Property interface {
 	Key() string
-	Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error
+	Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error
 }
 
 var PropertyMap = map[string]Property{

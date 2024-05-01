@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p MarginInlineStart) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p MarginInlineStart) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("MarginInlineStart not implemented")}
 
 	return problems[0]

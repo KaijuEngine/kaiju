@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p EmptyCells) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p EmptyCells) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("EmptyCells not implemented")}
 
 	return problems[0]

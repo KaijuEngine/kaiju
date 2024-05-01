@@ -44,6 +44,6 @@ import (
 	"kaiju/ui"
 )
 
-func (f Min) Process(panel *ui.Panel, elm *document.DocElement, value rules.PropertyValue) (string, error) {
+func (f Min) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {
 	return "", errors.New("not implemented")
 }

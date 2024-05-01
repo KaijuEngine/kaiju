@@ -49,7 +49,7 @@ import (
 )
 
 // auto|length|initial|inherit
-func (p Right) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("right expects 1 value")
 	} else {
@@ -62,8 +62,8 @@ func (p Right) Process(panel *ui.Panel, elm *document.DocElement, values []rules
 		case "initial":
 			return errors.New("right Not implemented [initial]")
 		case "inherit":
-			if elm.HTML.Parent != nil {
-				offset.SetRight(elm.HTML.Parent.DocumentElement.UI.Layout().Offset().X())
+			if elm.Parent != nil {
+				offset.SetRight(elm.Parent.UI.Layout().Offset().X())
 			}
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)

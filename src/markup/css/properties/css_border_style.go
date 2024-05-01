@@ -46,7 +46,7 @@ import (
 )
 
 // none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset|initial|inherit
-func (p BorderStyle) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderStyle) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("BorderStyle not implemented")}
 
 	return problems[0]

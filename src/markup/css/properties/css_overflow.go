@@ -47,7 +47,7 @@ import (
 )
 
 // overflow: visible|hidden|clip|scroll|auto|initial|inherit;
-func (p Overflow) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Overflow) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("Overflow expects 1 value")
 	} else {
@@ -66,8 +66,8 @@ func (p Overflow) Process(panel *ui.Panel, elm *document.DocElement, values []ru
 			panel.GenerateScissor()
 			panel.SetScrollDirection(ui.PanelScrollDirectionBoth)
 		case "inherit":
-			if elm.HTML.Parent != nil {
-				parentPanel := elm.HTML.Parent.DocumentElement.UIPanel
+			if elm.Parent != nil {
+				parentPanel := elm.Parent.UIPanel
 				panel.SetOverflow(parentPanel.Overflow())
 				panel.GenerateScissor()
 				panel.SetScrollDirection(parentPanel.ScrollDirection())

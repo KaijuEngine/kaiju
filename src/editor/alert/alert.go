@@ -98,9 +98,9 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 		host.AssetDatabase().EditorContext.EditorPath
 	container.RunFunction(func() {
 		a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
-			"editor/ui/alert_window.html", a, map[string]func(*document.DocElement){
-				"okClick":     func(*document.DocElement) { a.done(true) },
-				"cancelClick": func(*document.DocElement) { a.done(false) },
+			"editor/ui/alert_window.html", a, map[string]func(*document.Element){
+				"okClick":     func(*document.Element) { a.done(true) },
+				"cancelClick": func(*document.Element) { a.done(false) },
 			}))
 	})
 	return a

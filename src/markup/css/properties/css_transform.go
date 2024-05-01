@@ -73,7 +73,7 @@ func translateXYZ(str string, panel *ui.Panel, host *engine.Host, vc matrix.Vect
 }
 
 // none|transform-functions|initial|inherit
-func (p Transform) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p Transform) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("transform expects 1 value")
 	}

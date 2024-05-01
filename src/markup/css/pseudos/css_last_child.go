@@ -43,11 +43,11 @@ import (
 	"kaiju/markup/document"
 )
 
-func (p LastChild) Process(elm *document.DocElement, value rules.SelectorPart) ([]*document.DocElement, error) {
-	if len(elm.HTML.Children) == 0 {
-		return []*document.DocElement{}, errors.New("no children")
+func (p LastChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
+	if len(elm.Children) == 0 {
+		return []*document.Element{}, errors.New("no children")
 	} else {
-		idx := len(elm.HTML.Children) - 1
-		return []*document.DocElement{elm.HTML.Children[idx].DocumentElement}, nil
+		idx := len(elm.Children) - 1
+		return []*document.Element{elm.Children[idx]}, nil
 	}
 }

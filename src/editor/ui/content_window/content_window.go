@@ -73,7 +73,7 @@ type ContentWindow struct {
 	Dir      []contentEntry
 	path     string
 	Query    string
-	funcMap  map[string]func(*document.DocElement)
+	funcMap  map[string]func(*document.Element)
 	opener   *content_opener.Opener
 	selected *ui.Panel
 	uiGroup  *ui.Group
@@ -83,7 +83,7 @@ func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 
 func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Group) *ContentWindow {
 	s := &ContentWindow{
-		funcMap: make(map[string]func(*document.DocElement)),
+		funcMap: make(map[string]func(*document.Element)),
 		opener:  opener,
 		path:    contentPath,
 		editor:  editor,
@@ -129,13 +129,13 @@ func (c *ContentWindow) Hide() {
 	}
 }
 
-func (s *ContentWindow) contentClick(elm *document.DocElement) {
+func (s *ContentWindow) contentClick(elm *document.Element) {
 	if elm.UIPanel == s.selected {
 		s.openContent(elm)
 		return
 	}
-	for i := range elm.HTML.Parent.Children {
-		p := elm.HTML.Parent.Children[i].DocumentElement.UIPanel
+	for i := range elm.Parent.Children {
+		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
 		lbl := ui.FirstOnEntity(p.Entity().Children[1].Children[0]).(*ui.Label)
 		lbl.UnEnforceBGColor()
@@ -146,8 +146,8 @@ func (s *ContentWindow) contentClick(elm *document.DocElement) {
 	s.selected = elm.UIPanel
 }
 
-func (s *ContentWindow) openContent(elm *document.DocElement) {
-	path := elm.HTML.Attribute("data-path")
+func (s *ContentWindow) openContent(elm *document.Element) {
+	path := elm.Attribute("data-path")
 	if path == "../" {
 		if s.path == contentPath {
 			return
@@ -255,23 +255,23 @@ func (s *ContentWindow) list() {
 	}
 }
 
-func (s *ContentWindow) resizeHover(e *document.DocElement) {
+func (s *ContentWindow) resizeHover(e *document.Element) {
 	s.editor.Host().Window.CursorSizeNS()
 }
 
-func (s *ContentWindow) resizeExit(e *document.DocElement) {
+func (s *ContentWindow) resizeExit(e *document.Element) {
 	dd := s.editor.Host().Window.Mouse.DragData()
 	if dd != s {
 		s.editor.Host().Window.CursorStandard()
 	}
 }
 
-func (l *ContentWindow) resizeStart(e *document.DocElement) {
+func (l *ContentWindow) resizeStart(e *document.Element) {
 	l.editor.Host().Window.CursorSizeNS()
 	l.editor.Host().Window.Mouse.SetDragData(l)
 }
 
-func (s *ContentWindow) resizeStop(e *document.DocElement) {
+func (s *ContentWindow) resizeStop(e *document.Element) {
 	dd := s.editor.Host().Window.Mouse.DragData()
 	if dd != s {
 		return

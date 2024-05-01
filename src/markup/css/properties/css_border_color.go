@@ -59,7 +59,7 @@ func colorValues(values []rules.PropertyValue) []string {
 	return hexes
 }
 
-func (p BorderColor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	var err error
 	colors := [4]matrix.Color{}
 	if len(values) == 1 {

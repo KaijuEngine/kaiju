@@ -45,7 +45,7 @@ import (
 	"kaiju/ui"
 )
 
-func (p GridRowStart) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p GridRowStart) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("GridRowStart not implemented")}
 
 	return problems[0]

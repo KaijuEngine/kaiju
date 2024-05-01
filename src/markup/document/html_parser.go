@@ -80,59 +80,16 @@ var funcMap = template.FuncMap{
 	},
 }
 
-type DocElement struct {
-	UI      ui.UI
-	UIPanel *ui.Panel
-	HTML    *Element
-}
-
-func (d DocElement) InnerLabel() *ui.Label {
-	if len(d.HTML.Children) > 0 {
-		if lbl := d.HTML.Children[0].DocumentElement.UI.(*ui.Label); lbl != nil {
-			return lbl
-		}
-	}
-	return nil
-}
-
-func (d *DocElement) EnforceColor(color matrix.Color) {
-	d.UIPanel.EnforceColor(color)
-	setChildTextBackgroundColor(d, color)
-}
-
-func (d *DocElement) UnEnforceColor() {
-	d.UIPanel.UnEnforceColor()
-	color := d.UIPanel.ShaderData().FgColor
-	setChildTextBackgroundColor(d, color)
-}
-
-func setChildTextBackgroundColor(elm *DocElement, color matrix.Color) {
-	for _, c := range elm.HTML.Children {
-		if c.DocumentElement.HTML.IsText() {
-			c.DocumentElement.UI.(*ui.Label).SetBGColor(color)
-		}
-		setChildTextBackgroundColor(c.DocumentElement, color)
-	}
-}
-
 type Document struct {
-	Elements      []*DocElement
-	TopElements   []*DocElement
-	HeadElements  []Element
-	groups        map[string][]*DocElement
-	ids           map[string]*DocElement
-	classElements map[string][]*DocElement
-	tagElements   map[string][]*DocElement
+	Elements      []*Element
+	TopElements   []*Element
+	HeadElements  []*Element
+	groups        map[string][]*Element
+	ids           map[string]*Element
+	classElements map[string][]*Element
+	tagElements   map[string][]*Element
 	style         rules.StyleSheet
 	stylizer      func(rules.StyleSheet, *Document, *engine.Host)
-}
-
-type parseInfo struct {
-	doc          *Document
-	textureCache *rendering.TextureCache
-	elm          DocElement
-	attrValue    string
-	funcMap      map[string]func(DocElement, *Document)
 }
 
 func (d *Document) ApplyStyle(style rules.StyleSheet, host *engine.Host,
@@ -146,7 +103,7 @@ func (d *Document) ReapplyStyle(host *engine.Host) {
 	d.stylizer(d.style, d, host)
 }
 
-func (h *Document) GetElementById(id string) (*DocElement, bool) {
+func (h *Document) GetElementById(id string) (*Element, bool) {
 	if e, ok := h.ids[id]; ok {
 		return e, ok
 	} else {
@@ -154,27 +111,27 @@ func (h *Document) GetElementById(id string) (*DocElement, bool) {
 	}
 }
 
-func (h *Document) GetElementsByGroup(group string) []*DocElement {
+func (h *Document) GetElementsByGroup(group string) []*Element {
 	if e, ok := h.groups[group]; ok {
 		return e
 	} else {
-		return []*DocElement{}
+		return []*Element{}
 	}
 }
 
-func (h *Document) GetElementsByClass(class string) []*DocElement {
+func (h *Document) GetElementsByClass(class string) []*Element {
 	if e, ok := h.classElements[class]; ok {
 		return e
 	} else {
-		return []*DocElement{}
+		return []*Element{}
 	}
 }
 
-func (h *Document) GetElementsByTagName(tag string) []*DocElement {
+func (h *Document) GetElementsByTagName(tag string) []*Element {
 	if e, ok := h.tagElements[tag]; ok {
 		return e
 	} else {
-		return []*DocElement{}
+		return []*Element{}
 	}
 }
 
@@ -189,16 +146,12 @@ func TransformHTML(htmlStr string, withData any) string {
 }
 
 func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Panel) {
-	appendElement := func(uiElm ui.UI, panel *ui.Panel) *DocElement {
-		entry := &DocElement{
-			UI:      uiElm,
-			UIPanel: panel,
-			HTML:    e,
-		}
-		e.DocumentElement = entry
-		d.Elements = append(d.Elements, entry)
+	appendElement := func(uiElm ui.UI, panel *ui.Panel) *Element {
+		e.UI = uiElm
+		e.UIPanel = panel
+		d.Elements = append(d.Elements, e)
 		parent.AddChild(uiElm)
-		return entry
+		return e
 	}
 	if e.IsText() {
 		anchor := ui.AnchorTopLeft
@@ -253,7 +206,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		}
 		entry := appendElement(uiElm, panel)
 		for i := range e.Children {
-			d.createUIElement(host, &e.Children[i], panel)
+			d.createUIElement(host, e.Children[i], panel)
 		}
 		id := e.Attribute("id")
 		group := e.Attribute("group")
@@ -272,13 +225,13 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			if m, ok := d.classElements[c]; ok {
 				d.classElements[c] = append(m, entry)
 			} else {
-				d.classElements[c] = []*DocElement{entry}
+				d.classElements[c] = []*Element{entry}
 			}
 		}
 		if m, ok := d.tagElements[tag.Key()]; ok {
 			d.tagElements[tag.Key()] = append(m, entry)
 		} else {
-			d.tagElements[tag.Key()] = []*DocElement{entry}
+			d.tagElements[tag.Key()] = []*Element{entry}
 		}
 	}
 }
@@ -292,43 +245,40 @@ func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
 	})
 	bodyPanel.DontFitContent()
 	bodyPanel.Clean()
-	body.DocumentElement = &DocElement{
-		UI:      bodyPanel,
-		UIPanel: bodyPanel,
-		HTML:    body,
-	}
-	d.Elements = append(d.Elements, body.DocumentElement)
-	d.tagElements["body"] = []*DocElement{body.DocumentElement}
+	body.UI = bodyPanel
+	body.UIPanel = bodyPanel
+	d.Elements = append(d.Elements, body)
+	d.tagElements["body"] = []*Element{body}
 	bodyClasses := strings.Split(body.Attribute("class"), " ")
 	for _, c := range bodyClasses {
 		if len(c) == 0 {
 			continue
 		}
 		if m, ok := d.classElements[c]; ok {
-			d.classElements[c] = append(m, body.DocumentElement)
+			d.classElements[c] = append(m, body)
 		} else {
-			d.classElements[c] = []*DocElement{body.DocumentElement}
+			d.classElements[c] = []*Element{body}
 		}
 	}
 	return body
 }
 
-func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*DocElement)) *Document {
+func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
 	parsed := &Document{
-		Elements:      make([]*DocElement, 0),
-		groups:        map[string][]*DocElement{},
-		ids:           map[string]*DocElement{},
-		classElements: map[string][]*DocElement{},
-		tagElements:   map[string][]*DocElement{},
-		HeadElements:  make([]Element, 0),
+		Elements:      make([]*Element, 0),
+		groups:        map[string][]*Element{},
+		ids:           map[string]*Element{},
+		classElements: map[string][]*Element{},
+		tagElements:   map[string][]*Element{},
+		HeadElements:  make([]*Element, 0),
 	}
 	h := NewHTML(TransformHTML(htmlStr, withData))
 	body := parsed.setupBody(h, host)
-	bodyPanel := body.DocumentElement.UIPanel
+	bodyPanel := body.UIPanel
 	bodyPanel.Entity().SetName("body")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
-		parsed.createUIElement(host, &body.Children[i], bodyPanel)
+		parsed.createUIElement(host, body.Children[i], bodyPanel)
 		if idx < len(parsed.Elements) {
 			parsed.TopElements = append(parsed.TopElements, parsed.Elements[idx])
 		}
@@ -348,8 +298,8 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 
 func (d *Document) SetGroup(group *ui.Group) {
 	for i := range d.Elements {
-		if d.Elements[i].HTML.node.Type == html.ElementNode {
-			data := d.Elements[i].HTML.Data()
+		if d.Elements[i].node.Type == html.ElementNode {
+			data := d.Elements[i].Data()
 			if data != "body" && data != "tag" {
 				d.Elements[i].UI.SetGroup(group)
 			}

@@ -38,6 +38,7 @@
 package document
 
 import (
+	"kaiju/matrix"
 	"kaiju/ui"
 	"strings"
 
@@ -45,11 +46,41 @@ import (
 )
 
 type Element struct {
-	Parent          *Element
-	Children        []Element
-	node            *html.Node
-	attr            map[string]*html.Attribute
-	DocumentElement *DocElement
+	UI       ui.UI
+	UIPanel  *ui.Panel
+	Parent   *Element
+	Children []*Element
+	node     *html.Node
+	attr     map[string]*html.Attribute
+}
+
+func (d Element) InnerLabel() *ui.Label {
+	if len(d.Children) > 0 {
+		if lbl := d.Children[0].UI.(*ui.Label); lbl != nil {
+			return lbl
+		}
+	}
+	return nil
+}
+
+func (d *Element) EnforceColor(color matrix.Color) {
+	d.UIPanel.EnforceColor(color)
+	setChildTextBackgroundColor(d, color)
+}
+
+func (d *Element) UnEnforceColor() {
+	d.UIPanel.UnEnforceColor()
+	color := d.UIPanel.ShaderData().FgColor
+	setChildTextBackgroundColor(d, color)
+}
+
+func setChildTextBackgroundColor(elm *Element, color matrix.Color) {
+	for _, c := range elm.Children {
+		if c.IsText() {
+			c.UI.(*ui.Label).SetBGColor(color)
+		}
+		setChildTextBackgroundColor(c, color)
+	}
 }
 
 func (e *Element) IsText() bool {
@@ -76,7 +107,7 @@ func NewHTML(htmlStr string) *Element {
 func createElement(node *html.Node) *Element {
 	root := toElement(node)
 	root.setParents(nil)
-	return &root
+	return root
 }
 
 func (e *Element) setParents(parent *Element) {
@@ -86,11 +117,11 @@ func (e *Element) setParents(parent *Element) {
 	}
 }
 
-func toElement(node *html.Node) Element {
+func toElement(node *html.Node) *Element {
 	elm := Element{
 		node:     node,
 		attr:     make(map[string]*html.Attribute),
-		Children: make([]Element, 0),
+		Children: make([]*Element, 0),
 	}
 	for i := 0; i < len(node.Attr); i++ {
 		elm.attr[node.Attr[i].Key] = &node.Attr[i]
@@ -100,7 +131,7 @@ func toElement(node *html.Node) Element {
 			elm.Children = append(elm.Children, toElement(c))
 		}
 	}
-	return elm
+	return &elm
 }
 
 func (e *Element) Root() *Element {
@@ -112,7 +143,7 @@ func (e *Element) Root() *Element {
 
 func (e *Element) Html() *Element {
 	if e.Parent == nil {
-		return &e.Children[len(e.Children)-1]
+		return e.Children[len(e.Children)-1]
 	}
 	return e.Parent.Html()
 }
@@ -121,7 +152,7 @@ func (e *Element) Head() *Element {
 	res := e.Html()
 	for i, c := range res.Children {
 		if c.node.Data == "head" {
-			return &res.Children[i]
+			return res.Children[i]
 		}
 	}
 	return nil
@@ -131,7 +162,7 @@ func (e *Element) Body() *Element {
 	res := e.Html()
 	for i, c := range res.Children {
 		if c.node.Data == "body" {
-			return &res.Children[i]
+			return res.Children[i]
 		}
 	}
 	return nil
@@ -162,7 +193,7 @@ func (e *Element) FindElementById(id string) *Element {
 
 func (e *Element) FindElementLabelById(id string) *ui.Label {
 	elm := e.FindElementById(id)
-	return elm.DocumentElement.InnerLabel()
+	return elm.InnerLabel()
 }
 
 func (e *Element) FindElementByTag(tag string) *Element {

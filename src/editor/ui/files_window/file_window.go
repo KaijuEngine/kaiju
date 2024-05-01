@@ -58,7 +58,7 @@ type FileWindow struct {
 	Dir        []fs.DirEntry
 	Path       string
 	Extensions []string
-	funcMap    map[string]func(*document.DocElement)
+	funcMap    map[string]func(*document.Element)
 	Folders    bool
 	selected   bool
 	done       chan string
@@ -84,7 +84,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 		title = "File/Folder Select"
 	}
 	s := FileWindow{
-		funcMap:    make(map[string]func(*document.DocElement)),
+		funcMap:    make(map[string]func(*document.Element)),
 		Extensions: make([]string, 0, len(extensions)),
 		Folders:    foldersOnly,
 		done:       make(chan string),
@@ -123,14 +123,14 @@ func (s *FileWindow) CanSelectFolder() bool {
 	return s.Folders || len(s.Extensions) == 0
 }
 
-func (s *FileWindow) selectPath(*document.DocElement) {
+func (s *FileWindow) selectPath(*document.Element) {
 	s.done <- s.Path
 	s.selected = true
 	s.container.Host.Close()
 }
 
-func (s *FileWindow) selectEntry(elm *document.DocElement) {
-	path := elm.HTML.Attribute("data-path")
+func (s *FileWindow) selectEntry(elm *document.Element) {
+	path := elm.Attribute("data-path")
 	s.Path = filepath.Clean(s.Path + "/" + path)
 	if info, err := os.Stat(s.Path); err != nil {
 		slog.Error(err.Error())

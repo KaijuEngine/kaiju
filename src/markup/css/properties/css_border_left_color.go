@@ -48,7 +48,7 @@ import (
 )
 
 // color|transparent|initial|inherit
-func (p BorderLeftColor) Process(panel *ui.Panel, elm *document.DocElement, values []rules.PropertyValue, host *engine.Host) error {
+func (p BorderLeftColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderLeftColor requires 1 value")
 	} else {
@@ -61,8 +61,8 @@ func (p BorderLeftColor) Process(panel *ui.Panel, elm *document.DocElement, valu
 			panel.SetBorderColor(matrix.ColorWhite(), colors[1], colors[2], colors[3])
 			return nil
 		} else if values[0].Str == "inherit" {
-			if elm.HTML.Parent != nil {
-				colors := elm.HTML.Parent.DocumentElement.UI.(*ui.Panel).BorderColor()
+			if elm.Parent != nil {
+				colors := elm.Parent.UI.(*ui.Panel).BorderColor()
 				panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
 			}
 			return nil

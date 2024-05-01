@@ -85,7 +85,7 @@ func New(container *host_container.Container,
 		contentOpener:   contentOpener,
 		editor:          editor,
 	}
-	funcMap := map[string]func(*document.DocElement){
+	funcMap := map[string]func(*document.Element){
 		"openLogWindow":       m.openLogWindow,
 		"openRepository":      openRepository,
 		"openAbout":           m.openAbout,
@@ -100,7 +100,7 @@ func New(container *host_container.Container,
 	m.doc.SetGroup(uiGroup)
 	allItems := m.doc.GetElementsByClass("menuItem")
 	for i := range allItems {
-		targetId := allItems[i].HTML.Attribute("data-target")
+		targetId := allItems[i].Attribute("data-target")
 		allItems[i].UI.AddEvent(ui.EventTypeClick, func() {
 			m.openMenu(targetId)
 		})
@@ -136,7 +136,7 @@ func (m *Menu) close() {
 	}
 }
 
-func (m *Menu) open(target *document.DocElement) {
+func (m *Menu) open(target *document.Element) {
 	m.close()
 	target.UI.Entity().SetActive(m.isOpen)
 }
@@ -157,36 +157,36 @@ func (m *Menu) hoverOpenMenu(targetId string) {
 	}
 }
 
-func (m *Menu) openAbout(*document.DocElement) {
+func (m *Menu) openAbout(*document.Element) {
 	// TODO:  Open the about in a new window
 	about_window.New(m.editor.Host().AssetDatabase().EditorContext.EditorPath)
 }
 
-func openRepository(*document.DocElement) {
+func openRepository(*document.Element) {
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju")
 }
 
-func (m *Menu) openLogWindow(*document.DocElement) {
+func (m *Menu) openLogWindow(*document.Element) {
 	m.logWindow.Show()
 }
 
-func (m *Menu) openContentWindow(*document.DocElement) {
+func (m *Menu) openContentWindow(*document.Element) {
 	m.contentWindow.Show()
 }
 
-func (m *Menu) openHierarchyWindow(*document.DocElement) {
+func (m *Menu) openHierarchyWindow(*document.Element) {
 	m.hierarchyWindow.Show()
 }
 
-func (m *Menu) newEntity(*document.DocElement) {
+func (m *Menu) newEntity(*document.Element) {
 	m.editor.CreateEntity("Entity")
 }
 
-func (m *Menu) newStage(*document.DocElement) {
+func (m *Menu) newStage(*document.Element) {
 	m.editor.StageManager().New()
 }
 
-func (m *Menu) saveStage(*document.DocElement) {
+func (m *Menu) saveStage(*document.Element) {
 	if err := m.editor.StageManager().Save(); err != nil {
 		slog.Error("Save stage failed", slog.String("error", err.Error()))
 	} else {
@@ -194,7 +194,7 @@ func (m *Menu) saveStage(*document.DocElement) {
 	}
 }
 
-func (m *Menu) openProject(*document.DocElement) {
+func (m *Menu) openProject(*document.Element) {
 	m.editor.OpenProject()
 }
 

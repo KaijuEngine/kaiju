@@ -175,7 +175,7 @@ func (h *Hierarchy) Reload() {
 	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
 		host, "editor/ui/hierarchy_window.html", data,
-		map[string]func(*document.DocElement){
+		map[string]func(*document.Element){
 			"selectedEntity": h.selectedEntity,
 			"dragStart":      h.dragStart,
 			"drop":           h.drop,
@@ -215,23 +215,22 @@ func (h *Hierarchy) onSelectionChanged() {
 		slog.Error("Could not find hierarchy list, reopen the hierarchy window")
 		return
 	}
-	for i := range elm.HTML.Children {
-		elm.HTML.Children[i].DocumentElement.UnEnforceColor()
+	for i := range elm.Children {
+		elm.Children[i].UnEnforceColor()
 	}
-	for i := range elm.HTML.Children {
-		c := &elm.HTML.Children[i]
+	for _, c := range elm.Children {
 		id := engine.EntityId(c.Attribute("id"))
 		for _, se := range h.selection.Entities() {
 			if se.Id() == id {
-				c.DocumentElement.EnforceColor(matrix.ColorDarkBlue())
+				c.EnforceColor(matrix.ColorDarkBlue())
 				break
 			}
 		}
 	}
 }
 
-func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
-	id := engine.EntityId(elm.HTML.Attribute("id"))
+func (h *Hierarchy) selectedEntity(elm *document.Element) {
+	id := engine.EntityId(elm.Attribute("id"))
 	if e, ok := h.host.FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", string(id)))
 	} else {
@@ -247,11 +246,11 @@ func (h *Hierarchy) selectedEntity(elm *document.DocElement) {
 	}
 }
 
-func (h *Hierarchy) drop(elm *document.DocElement) {
+func (h *Hierarchy) drop(elm *document.Element) {
 	elm.UnEnforceColor()
 	from := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
 	if f, ok := h.host.FindEntity(from.EntityId); ok {
-		toId := elm.HTML.Attribute("id")
+		toId := elm.Attribute("id")
 		if toId != "" {
 			to := engine.EntityId(toId)
 			if t, ok := h.host.FindEntity(to); ok {
@@ -269,8 +268,8 @@ func (h *Hierarchy) drop(elm *document.DocElement) {
 	}
 }
 
-func (h *Hierarchy) dragStart(elm *document.DocElement) {
-	id := engine.EntityId(elm.HTML.Attribute("id"))
+func (h *Hierarchy) dragStart(elm *document.Element) {
+	id := engine.EntityId(elm.Attribute("id"))
 	h.host.Window.CursorSizeAll()
 	h.host.Window.Mouse.SetDragData(&drag_datas.EntityIdDragData{id})
 	elm.EnforceColor(matrix.ColorPurple())
@@ -282,8 +281,8 @@ func (h *Hierarchy) dragStart(elm *document.DocElement) {
 	})
 }
 
-func (h *Hierarchy) dragEnter(elm *document.DocElement) {
-	myId := engine.EntityId(elm.HTML.Attribute("id"))
+func (h *Hierarchy) dragEnter(elm *document.Element) {
+	myId := engine.EntityId(elm.Attribute("id"))
 	if dd, ok := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
@@ -293,8 +292,8 @@ func (h *Hierarchy) dragEnter(elm *document.DocElement) {
 	}
 }
 
-func (h *Hierarchy) dragExit(elm *document.DocElement) {
-	myId := engine.EntityId(elm.HTML.Attribute("id"))
+func (h *Hierarchy) dragExit(elm *document.Element) {
+	myId := engine.EntityId(elm.Attribute("id"))
 	if dd, ok := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
@@ -304,23 +303,23 @@ func (h *Hierarchy) dragExit(elm *document.DocElement) {
 	}
 }
 
-func (h *Hierarchy) resizeHover(e *document.DocElement) {
+func (h *Hierarchy) resizeHover(e *document.Element) {
 	h.host.Window.CursorSizeWE()
 }
 
-func (h *Hierarchy) resizeExit(e *document.DocElement) {
+func (h *Hierarchy) resizeExit(e *document.Element) {
 	dd := h.host.Window.Mouse.DragData()
 	if dd != h {
 		h.host.Window.CursorStandard()
 	}
 }
 
-func (h *Hierarchy) resizeStart(e *document.DocElement) {
+func (h *Hierarchy) resizeStart(e *document.Element) {
 	h.host.Window.CursorSizeWE()
 	h.host.Window.Mouse.SetDragData(h)
 }
 
-func (h *Hierarchy) resizeStop(e *document.DocElement) {
+func (h *Hierarchy) resizeStop(e *document.Element) {
 	dd := h.host.Window.Mouse.DragData()
 	if dd != h {
 		return

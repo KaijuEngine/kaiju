@@ -86,7 +86,7 @@ func (p *ProjectWindow) openProjectFolder(path string) {
 	}
 }
 
-func (p *ProjectWindow) newProject(*document.DocElement) {
+func (p *ProjectWindow) newProject(*document.Element) {
 	path := <-files_window.Folder("Select Project Folder")
 	p.openProjectFolder(path)
 }
@@ -100,8 +100,8 @@ func (p *ProjectWindow) pick(path string) {
 	p.container.Close()
 }
 
-func (p *ProjectWindow) selectProject(elm *document.DocElement) {
-	path := elm.HTML.Attribute("data-project")
+func (p *ProjectWindow) selectProject(elm *document.Element) {
+	path := elm.Attribute("data-project")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		p.data.Error = "Project folder no longer exists"
 		editor_cache.RemoveProject(path)
@@ -117,7 +117,7 @@ func (p *ProjectWindow) load() {
 	}
 	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("editor/ui/project_window.html"))
 	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
-		map[string]func(*document.DocElement){
+		map[string]func(*document.Element){
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
 		})
