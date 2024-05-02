@@ -45,6 +45,7 @@ package windowing
 #cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape window_focus
+#cgo noescape window_cursor_standard
 #cgo noescape window_cursor_size_all
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we

@@ -198,6 +198,13 @@ void window_focus(void* state) {
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
 }
 
+void window_cursor_standard(void* state) {
+	X11State* s = state;
+	Cursor c = XcursorLibraryLoadCursor(s->d, "arrow");
+	XDefineCursor(s->d, s->w, c);
+}
+
+
 void window_cursor_size_all(void* state) {
 	X11State* s = state;
 	Cursor c = XcursorLibraryLoadCursor(s->d, "sizing");
