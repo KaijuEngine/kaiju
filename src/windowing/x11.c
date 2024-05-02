@@ -251,9 +251,26 @@ void window_position(void* state, int* x, int* y) {
 	*y = attributes.y;
 }
 
-void set_window_position(void* state, int x, int y) {
+void window_set_position(void* state, int x, int y) {
 	X11State* s = state;
 	XMoveWindow(s->d, s->w, x, y);
+}
+
+void window_set_size(void* state, int width, int height) {
+	X11State* s = state;
+	XResizeWindow(s->d, s->w, width, height);
+}
+
+void remove_border(void* state) {
+	X11State* s = state;
+	XSetWindowAttributes attributes;
+	attributes.border_width = border_width;
+	XConfigureWindow(display, w, CWBorderWidth, &attributes);
+}
+
+void add_border(void* state) {
+	X11State* s = state;
+
 }
 
 #endif

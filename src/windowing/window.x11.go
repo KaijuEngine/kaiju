@@ -46,7 +46,8 @@ package windowing
 #cgo noescape window_destroy
 #cgo noescape window_focus
 #cgo noescape window_position
-#cgo noescape set_window_position
+#cgo noescape window_set_position
+#cgo noescape window_set_size
 #cgo noescape window_width_mm
 #cgo noescape window_height_mm
 #cgo noescape window_cursor_standard
@@ -188,11 +189,11 @@ func (w *Window) position() (x, y int) {
 }
 
 func (w *Window) setPosition(x, y int) {
-	C.set_window_position(w.handle, C.int(x), C.int(y))
+	C.window_set_position(w.handle, C.int(x), C.int(y))
 }
 
 func (w *Window) setSize(width, height int) {
-	klib.NotYetImplemented(236)
+	C.window_set_size(w.handle, C.int(width), C.int(height))
 }
 
 func (w *Window) removeBorder() {

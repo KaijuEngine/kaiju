@@ -421,11 +421,11 @@ void window_position(void* hwnd, int* x, int* y) {
 	}
 }
 
-void set_window_position(void* hwnd, int x, int y) {
+void window_set_position(void* hwnd, int x, int y) {
 	SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
-void set_window_size(void* hwnd, int width, int height) {
+void window_set_size(void* hwnd, int width, int height) {
 	SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER);
 }
 

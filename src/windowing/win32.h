@@ -56,8 +56,8 @@ void window_cursor_size_we(void* hwnd);
 float window_dpi(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
-void set_window_position(void* hwnd, int x, int y);
-void set_window_size(void* hwnd, int width, int height);
+void window_set_position(void* hwnd, int x, int y);
+void window_set_size(void* hwnd, int width, int height);
 void remove_border(void* hwnd);
 void add_border(void* hwnd);
 
