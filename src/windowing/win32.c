@@ -400,7 +400,7 @@ void window_cursor_size_we(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_WE, 0);
 }
 
-float get_dpi(void* hwnd) {
+float window_dpi(void* hwnd) {
 	return GetDpiForWindow(hwnd);
 }
 

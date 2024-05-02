@@ -52,7 +52,7 @@ import (
 #cgo noescape window_destroy
 #cgo noescape window_cursor_standard
 #cgo noescape window_cursor_ibeam
-#cgo noescape get_dpi
+#cgo noescape window_dpi
 #cgo noescape window_focus
 #cgo noescape window_position
 #cgo noescape set_window_position
@@ -186,9 +186,10 @@ func (w *Window) clipboardContents() string {
 	return ""
 }
 
-func (w *Window) getDPI() (int, int, error) {
-	dpi := C.get_dpi(w.handle)
-	return int(dpi), int(dpi), nil
+func (w *Window) sizeMM() (int, int, error) {
+	dpi := C.window_dpi(w.handle)
+	mm := dpi / 25.4
+	return int(w.width * mm), int(w.height * mm), nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }

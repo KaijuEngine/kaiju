@@ -53,7 +53,7 @@ void window_cursor_ibeam(void* hwnd);
 void window_cursor_size_all(void* hwnd);
 void window_cursor_size_ns(void* hwnd);
 void window_cursor_size_we(void* hwnd);
-float get_dpi(void* hwnd);
+float window_dpi(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void set_window_position(void* hwnd, int x, int y);

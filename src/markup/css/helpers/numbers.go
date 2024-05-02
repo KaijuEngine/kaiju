@@ -93,8 +93,8 @@ func ArithmeticString(args []string) (int, error) {
 func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float32) float32 {
 	w := window.Width()
 	//h := window.Height
-	//wmm, hmm, _ := window.GetDPI()
-	wmm, _, _ := window.GetDPI()
+	//wmm, hmm, _ := window.SizeMM()
+	wmm, _, _ := window.SizeMM()
 	var suffix string
 	if str[len(str)-1] == '%' {
 		suffix = "%"

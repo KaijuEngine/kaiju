@@ -45,6 +45,8 @@ package windowing
 #cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape window_focus
+#cgo noescape window_width_mm
+#cgo noescape window_height_mm
 #cgo noescape window_cursor_standard
 #cgo noescape window_cursor_ibeam
 #cgo noescape window_cursor_size_all
@@ -165,9 +167,10 @@ func (w *Window) clipboardContents() string {
 	return ""
 }
 
-func (w *Window) getDPI() (int, int, error) {
-	klib.NotYetImplemented(131)
-	return 96, 96, nil
+func (w *Window) sizeMM() (int, int, error) {
+	width := C.window_width_mm(w.handle)
+	height := C.window_height_mm(w.handle)
+	return int(width), int(height), nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }

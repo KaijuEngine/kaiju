@@ -293,17 +293,17 @@ func (w *Window) SwapBuffers() {
 	}
 }
 
-func (w *Window) GetDPI() (int, int, error) {
-	return w.getDPI()
+func (w *Window) SizeMM() (int, int, error) {
+	return w.sizeMM()
 }
 
 func (w *Window) IsPhoneSize() bool {
-	wmm, hmm, _ := w.GetDPI()
+	wmm, hmm, _ := w.SizeMM()
 	return wmm < 178 || hmm < 170
 }
 
 func (w *Window) IsPCSize() bool {
-	wmm, hmm, _ := w.GetDPI()
+	wmm, hmm, _ := w.SizeMM()
 	return wmm > 254 || hmm > 254
 }
 

@@ -287,7 +287,7 @@ func (ui *uiBase) eventUpdates() {
 		if ui.isDown && !ui.drag {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
-			wmm, hmm, _ := ui.host.Window.GetDPI()
+			wmm, hmm, _ := ui.host.Window.SizeMM()
 			threshold := max(windowing.DPI2PX(w, wmm, 1), windowing.DPI2PX(h, hmm, 1))
 			if ui.downPos.Distance(pos) > float32(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()

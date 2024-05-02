@@ -198,6 +198,18 @@ void window_focus(void* state) {
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
 }
 
+int window_width_mm(void* state) {
+	X11State* s = state;
+	int sid = DefaultScreen(s->d);
+	return XDisplayWidthMM(s->d, sid);
+}
+
+int window_height_mm(void* state) {
+	X11State* s = state;
+	int sid = DefaultScreen(s->d);
+	return XDisplayHeightMM(s->d, sid);
+}
+
 void window_cursor_standard(void* state) {
 	X11State* s = state;
 	Cursor c = XcursorLibraryLoadCursor(s->d, "arrow");
