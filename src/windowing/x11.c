@@ -44,6 +44,11 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <X11/Xlib.h>
+#include <X11/Xcursor/Xcursor.h>
+// Keeping the below include even though it's commented out so that I can
+// review what the different cursor names are.
+// https://tronche.com/gui/x/xlib/appendix/b/
+//#include <X11/cursorfont.h>
 
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
 
@@ -191,6 +196,24 @@ void window_focus(void* state) {
 	X11State* s = state;
 	XRaiseWindow(s->d, s->w);
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
+}
+
+void window_cursor_size_all(void* state) {
+	X11State* s = state;
+	Cursor c = XcursorLibraryLoadCursor(s->d, "sizing");
+	XDefineCursor(s->d, s->w, c);
+}
+
+void window_cursor_size_ns(void* state) {
+	X11State* s = state;
+	Cursor c = XcursorLibraryLoadCursor(s->d, "sb_v_double_arrow");
+	XDefineCursor(s->d, s->w, c);
+}
+
+void window_cursor_size_we(void* state) {
+	X11State* s = state;
+	Cursor c = XcursorLibraryLoadCursor(s->d, "sb_h_double_arrow");
+	XDefineCursor(s->d, s->w, c);
 }
 
 #endif

@@ -40,11 +40,14 @@
 package windowing
 
 /*
-#cgo LDFLAGS: -lX11
+#cgo LDFLAGS: -lX11 -lXcursor
 #cgo noescape window_main
 #cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape window_focus
+#cgo noescape window_cursor_size_all
+#cgo noescape window_cursor_size_ns
+#cgo noescape window_cursor_size_we
 
 #include "windowing.h"
 */
@@ -140,15 +143,15 @@ func (w *Window) cursorIbeam() {
 }
 
 func (w *Window) cursorSizeAll() {
-	klib.NotYetImplemented(258)
+	C.window_cursor_size_all(w.handle)
 }
 
 func (w *Window) cursorSizeNS() {
-	klib.NotYetImplemented(258)
+	C.window_cursor_size_ns(w.handle)
 }
 
 func (w *Window) cursorSizeWE() {
-	klib.NotYetImplemented(258)
+	C.window_cursor_size_we(w.handle)
 }
 
 func (w *Window) copyToClipboard(text string) {
