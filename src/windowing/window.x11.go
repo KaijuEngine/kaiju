@@ -56,6 +56,9 @@ package windowing
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
 
+#cgo noescape clipboard_copy
+#cgo noescape clipboard_contents
+
 #include "windowing.h"
 */
 import "C"
@@ -116,10 +119,10 @@ func scaleScrollDelta(delta float32) float32 {
 }
 
 func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
-	title := C.CString(string(windowName))
-	defer C.free(unsafe.Pointer(title))
+	title := C.CString(windowName)
 	C.window_main(title, C.int(width), C.int(height),
 		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
+	C.free(unsafe.Pointer(title))
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
@@ -166,12 +169,17 @@ func (w *Window) cursorSizeWE() {
 }
 
 func (w *Window) copyToClipboard(text string) {
-	klib.NotYetImplemented(103)
+	str := C.CString(text)
+	C.clipboard_copy(w.handle, str)
+	C.free(unsafe.Pointer(str))
 }
 
 func (w *Window) clipboardContents() string {
-	klib.NotYetImplemented(103)
-	return ""
+	var out *C.char = nil
+	C.clipboard_contents(w.handle, &out)
+	str := C.GoString(out)
+	C.free(unsafe.Pointer(out))
+	return str
 }
 
 func (w *Window) sizeMM() (int, int, error) {

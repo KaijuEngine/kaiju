@@ -53,7 +53,9 @@
 // XLib docs
 // https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
 
-#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask
+#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask | StructureNotifyMask
+
+Atom XA_ATOM = 4, XA_STRING = 31;
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -109,6 +111,14 @@ void window_main(const char* windowTitle, int width, int height,
 	x11State->w = w;
 	x11State->d = d;
 	x11State->WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
+	x11State->TARGETS = XInternAtom(d, "TARGETS", 0);
+	x11State->TEXT = XInternAtom(d, "TEXT", 0);
+	x11State->UTF8_STRING = XInternAtom(d, "UTF8_STRING", 1);
+	if (x11State->UTF8_STRING== None) {
+		x11State->UTF8_STRING = XA_STRING;
+	}
+	x11State->CLIPBOARD = XInternAtom(d, "CLIPBOARD", 0);
+
 	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
 	memcpy(evtSharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
 }
@@ -264,6 +274,29 @@ void window_set_position(void* state, int x, int y) {
 void window_set_size(void* state, int width, int height) {
 	X11State* s = state;
 	XResizeWindow(s->d, s->w, width, height);
+}
+
+void clipboard_copy(void* state, const char* str) {
+	/*
+	X11State* s = state;
+	XSetSelectionOwner(s->d, s->CLIPBOARD, s->w, CurrentTime);
+	XEvent event;
+	event.type = SelectionNotify;
+	event.xselection.property = s->UTF8_STRING;
+	event.xselection.requestor = s->w;
+	event.xselection.selection = s->CLIPBOARD;
+	event.xselection.target = s->UTF8_STRING;
+	event.xselection.time = CurrentTime;
+	XChangeProperty(s->d, s->w, event.xselection.property,
+		event.xselection.target, 8, PropModeReplace, str, strlen(str));
+	XSendEvent(s->d, DefaultScreen(s->d), False, 0, &event);
+	XFlush(s->d);
+	*/
+}
+
+void clipboard_contents(void* state, char** str) {
+	*str = NULL;
+	X11State* s = state;
 }
 
 #endif
