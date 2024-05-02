@@ -45,10 +45,13 @@
 #include <pthread.h>
 #include <X11/Xlib.h>
 #include <X11/Xcursor/Xcursor.h>
-// Keeping the below include even though it's commented out so that I can
-// review what the different cursor names are.
+
+// Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
 //#include <X11/cursorfont.h>
+
+// XLib docs
+// https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
 
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
 
