@@ -13,6 +13,7 @@ I have made modifications to the Go compiler to increase the performance of the 
 
 - Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
   - This should be placed along side the Kaiju Engine repository
+- Checkout kaiju-go1.22, run `git checkout kaiju-go1.22`, inside of the repository folder
 - Ensure you have the standard Go compiler installed (Go builds Go)
 - Run the `make` script file for your platform inside of the `src` directory
   - This will build the Kaiju Engine Go compiler into the `bin` directory
@@ -42,7 +43,7 @@ I have made modifications to the Go compiler to increase the performance of the 
 - Press F5
 
 ## Building content
-The source code is not deployed. with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
+The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
 ```bash
 go run ./generators/project_template/main.go
 ```
