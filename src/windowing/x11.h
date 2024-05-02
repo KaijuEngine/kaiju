@@ -58,6 +58,7 @@ void* display(void* x11State);
 void* window(void* x11State);
 void window_focus(void* state);
 void window_position(void* state, int* x, int* y);
+void set_window_position(void* state, int x, int y);
 int window_width_mm(void* state);
 int window_height_mm(void* state);
 void window_cursor_standard(void* state);

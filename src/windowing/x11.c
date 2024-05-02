@@ -251,4 +251,9 @@ void window_position(void* state, int* x, int* y) {
 	*y = attributes.y;
 }
 
+void set_window_position(void* state, int x, int y) {
+	X11State* s = state;
+	XMoveWindow(s->d, s->w, x, y);
+}
+
 #endif
