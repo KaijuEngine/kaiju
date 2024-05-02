@@ -261,13 +261,6 @@ void window_set_size(void* state, int width, int height) {
 	XResizeWindow(s->d, s->w, width, height);
 }
 
-void remove_border(void* state) {
-	X11State* s = state;
-	XSetWindowAttributes attributes;
-	attributes.border_width = border_width;
-	XConfigureWindow(display, w, CWBorderWidth, &attributes);
-}
-
 void add_border(void* state) {
 	X11State* s = state;
 
