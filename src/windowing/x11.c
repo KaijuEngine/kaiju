@@ -53,7 +53,7 @@
 // XLib docs
 // https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
 
-#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask
+#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -128,7 +128,6 @@ int window_poll_controller(void* x11State) {
 int window_poll(void* x11State) {
 	X11State* s = x11State;
 	XEvent e = { 0 };
-
 	if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
 		if (!XCheckTypedEvent(s->d, ClientMessage, &e)) {
 			return 0;
@@ -141,6 +140,12 @@ int window_poll(void* x11State) {
 			shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
 			break;
 		case Expose:
+			break;
+		case FocusIn:
+			s->sm.evt->enumEvent.value = 1;
+			break;
+		case FocusOut:
+			s->sm.evt->enumEvent.value = 0;
 			break;
 		case KeyPress:
 		case KeyRelease:
@@ -259,11 +264,6 @@ void window_set_position(void* state, int x, int y) {
 void window_set_size(void* state, int width, int height) {
 	X11State* s = state;
 	XResizeWindow(s->d, s->w, width, height);
-}
-
-void add_border(void* state) {
-	X11State* s = state;
-
 }
 
 #endif

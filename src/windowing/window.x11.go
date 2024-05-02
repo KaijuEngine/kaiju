@@ -102,6 +102,10 @@ func asEventType(msg int, e *evtMem) eventType {
 		default:
 			return evtUnknown
 		}
+	case 9:
+		fallthrough
+	case 10:
+		return evtActivity
 	default:
 		return evtUnknown
 	}
