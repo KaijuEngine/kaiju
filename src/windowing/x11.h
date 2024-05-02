@@ -72,7 +72,4 @@ void window_cursor_size_all(void* state);
 void window_cursor_size_ns(void* state);
 void window_cursor_size_we(void* state);
 
-void clipboard_copy(void* state, const char* str);
-void clipboard_contents(void* state, char** str);
-
 #endif

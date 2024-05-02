@@ -449,24 +449,4 @@ void window_add_border(void* hwnd) {
 	SetWindowLong(hwnd, GWL_STYLE, style);
 }
 
-void clipboard_copy(const char* str) {
-	size_t len = strlen(str) + 1;
-	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
-	memcpy(GlobalLock(hMem), str, len);
-	GlobalUnlock(hMem);
-	OpenClipboard(0);
-	EmptyClipboard();
-	SetClipboardData(CF_TEXT, hMem);
-	CloseClipboard();
-}
-
-void clipboard_contents(char** str) {
-	*outStr = NULL;
-	OpenClipboard(0);
-	HANDLE cbdHandle = GetClipboardData(CF_TEXT);
-	char* str = GlobalLock(cbdHandle);
-	strclone(str, outStr);
-	CloseClipboard();
-}
-
 #endif

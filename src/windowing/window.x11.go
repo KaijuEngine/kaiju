@@ -56,15 +56,14 @@ package windowing
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
 
-#cgo noescape clipboard_copy
-#cgo noescape clipboard_contents
-
 #include "windowing.h"
 */
 import "C"
 import (
 	"kaiju/klib"
 	"unsafe"
+
+	"golang.design/x/clipboard"
 )
 
 func asEventType(msg int, e *evtMem) eventType {
@@ -169,17 +168,11 @@ func (w *Window) cursorSizeWE() {
 }
 
 func (w *Window) copyToClipboard(text string) {
-	str := C.CString(text)
-	C.clipboard_copy(w.handle, str)
-	C.free(unsafe.Pointer(str))
+	clipboard.Write(clipboard.FmtText, []byte(text))
 }
 
 func (w *Window) clipboardContents() string {
-	var out *C.char = nil
-	C.clipboard_contents(w.handle, &out)
-	str := C.GoString(out)
-	C.free(unsafe.Pointer(out))
-	return str
+	return string(clipboard.Read(clipboard.FmtText))
 }
 
 func (w *Window) sizeMM() (int, int, error) {

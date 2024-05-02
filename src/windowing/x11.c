@@ -276,27 +276,4 @@ void window_set_size(void* state, int width, int height) {
 	XResizeWindow(s->d, s->w, width, height);
 }
 
-void clipboard_copy(void* state, const char* str) {
-	/*
-	X11State* s = state;
-	XSetSelectionOwner(s->d, s->CLIPBOARD, s->w, CurrentTime);
-	XEvent event;
-	event.type = SelectionNotify;
-	event.xselection.property = s->UTF8_STRING;
-	event.xselection.requestor = s->w;
-	event.xselection.selection = s->CLIPBOARD;
-	event.xselection.target = s->UTF8_STRING;
-	event.xselection.time = CurrentTime;
-	XChangeProperty(s->d, s->w, event.xselection.property,
-		event.xselection.target, 8, PropModeReplace, str, strlen(str));
-	XSendEvent(s->d, DefaultScreen(s->d), False, 0, &event);
-	XFlush(s->d);
-	*/
-}
-
-void clipboard_contents(void* state, char** str) {
-	*str = NULL;
-	X11State* s = state;
-}
-
 #endif
