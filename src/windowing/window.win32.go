@@ -40,7 +40,6 @@
 package windowing
 
 import (
-	"kaiju/klib"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -57,8 +56,11 @@ import (
 #cgo noescape window_position
 #cgo noescape window_set_position
 #cgo noescape window_set_size
-#cgo noescape remove_border
-#cgo noescape add_border
+#cgo noescape window_remove_border
+#cgo noescape window_add_border
+
+#cgo noescape clipboard_copy
+#cgo noescape clipboard_contents
 
 #include "windowing.h"
 */
@@ -178,12 +180,17 @@ func (w *Window) cursorSizeWE() {
 }
 
 func (w *Window) copyToClipboard(text string) {
-	klib.NotYetImplemented(102)
+	str := C.CString(text)
+	C.clipboard_copy(str)
+	C.free(unsafe.Pointer(str))
 }
 
 func (w *Window) clipboardContents() string {
-	klib.NotYetImplemented(102)
-	return ""
+	var out *C.char = nil
+	C.clipboard_contents(&out)
+	str := C.GoString(out)
+	C.free(unsafe.Pointer(out))
+	return str
 }
 
 func (w *Window) sizeMM() (int, int, error) {

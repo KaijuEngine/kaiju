@@ -58,7 +58,10 @@ void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void window_set_position(void* hwnd, int x, int y);
 void window_set_size(void* hwnd, int width, int height);
-void remove_border(void* hwnd);
-void add_border(void* hwnd);
+void window_remove_border(void* hwnd);
+void window_add_border(void* hwnd);
+
+void clipboard_copy(const char* str);
+void clipboard_contents(char** str);
 
 #endif

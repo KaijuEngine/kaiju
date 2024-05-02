@@ -429,7 +429,7 @@ void window_set_size(void* hwnd, int width, int height) {
 	SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER);
 }
 
-void remove_border(void* hwnd) {
+void window_remove_border(void* hwnd) {
 	LONG style = GetWindowLong(hwnd, GWL_STYLE);
 	style &= ~WS_CAPTION;
 	style &= ~WS_THICKFRAME;
@@ -439,7 +439,7 @@ void remove_border(void* hwnd) {
 	SetWindowLong(hwnd, GWL_STYLE, style);
 }
 
-void add_border(void* hwnd) {
+void window_add_border(void* hwnd) {
 	LONG style = GetWindowLong(hwnd, GWL_STYLE);
 	style |= WS_CAPTION;
 	style |= WS_THICKFRAME;
@@ -447,6 +447,26 @@ void add_border(void* hwnd) {
 	style |= WS_MAXIMIZEBOX;
 	style |= WS_SYSMENU;
 	SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
+void clipboard_copy(const char* str) {
+	size_t len = strlen(str) + 1;
+	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+	memcpy(GlobalLock(hMem), str, len);
+	GlobalUnlock(hMem);
+	OpenClipboard(0);
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, hMem);
+	CloseClipboard();
+}
+
+void clipboard_contents(char** str) {
+	*outStr = NULL;
+	OpenClipboard(0);
+	HANDLE cbdHandle = GetClipboardData(CF_TEXT);
+	char* str = GlobalLock(cbdHandle);
+	strclone(str, outStr);
+	CloseClipboard();
 }
 
 #endif
