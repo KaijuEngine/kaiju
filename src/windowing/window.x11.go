@@ -45,6 +45,7 @@ package windowing
 #cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape window_focus
+#cgo noescape window_position
 #cgo noescape window_width_mm
 #cgo noescape window_height_mm
 #cgo noescape window_cursor_standard
@@ -180,9 +181,9 @@ func (w *Window) focus() {
 	C.window_focus(w.handle)
 }
 
-func (w *Window) position() (x int, y int) {
-	klib.NotYetImplemented(222)
-	return -1, -1
+func (w *Window) position() (x, y int) {
+	C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
+	return x, y
 }
 
 func (w *Window) setPosition(x, y int) {

@@ -243,4 +243,12 @@ void window_cursor_size_we(void* state) {
 	XDefineCursor(s->d, s->w, c);
 }
 
+void window_position(void* state, int* x, int* y) {
+	X11State* s = state;
+	XWindowAttributes attributes;
+	XGetWindowAttributes(s->d, s->w, &attributes);
+	*x = attributes.x;
+	*y = attributes.y;
+}
+
 #endif
