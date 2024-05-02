@@ -38,7 +38,9 @@
 		"commdlg.h": "c",
 		"knownfolders.h": "c",
 		"audio.win32.h": "c",
-		"float.h": "c"
+		"float.h": "c",
+		"cursorfont.h": "c",
+		"xcursor.h": "c"
 	},
 	"cSpell.words": [
 		"Farris",
