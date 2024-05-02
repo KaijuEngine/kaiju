@@ -204,6 +204,11 @@ void window_cursor_standard(void* state) {
 	XDefineCursor(s->d, s->w, c);
 }
 
+void window_cursor_ibeam(void* state) {
+	X11State* s = state;
+	Cursor c = XcursorLibraryLoadCursor(s->d, "xterm");
+	XDefineCursor(s->d, s->w, c);
+}
 
 void window_cursor_size_all(void* state) {
 	X11State* s = state;

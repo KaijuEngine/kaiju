@@ -46,6 +46,7 @@ package windowing
 #cgo noescape window_destroy
 #cgo noescape window_focus
 #cgo noescape window_cursor_standard
+#cgo noescape window_cursor_ibeam
 #cgo noescape window_cursor_size_all
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
@@ -136,11 +137,11 @@ func (w *Window) poll() {
 }
 
 func (w *Window) cursorStandard() {
-	klib.NotYetImplemented(100)
+	C.window_cursor_standard(w.handle)
 }
 
 func (w *Window) cursorIbeam() {
-	klib.NotYetImplemented(101)
+	C.window_cursor_ibeam(w.handle)
 }
 
 func (w *Window) cursorSizeAll() {

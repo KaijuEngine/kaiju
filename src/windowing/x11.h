@@ -58,6 +58,7 @@ void* display(void* x11State);
 void* window(void* x11State);
 void window_focus(void* state);
 void window_cursor_standard(void* state);
+void window_cursor_ibeam(void* state);
 void window_cursor_size_all(void* state);
 void window_cursor_size_ns(void* state);
 void window_cursor_size_we(void* state);
