@@ -187,9 +187,9 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	dpi := C.window_dpi(w.handle)
+	dpi := float64(C.window_dpi(w.handle))
 	mm := dpi / 25.4
-	return int(w.width * mm), int(w.height * mm), nil
+	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
@@ -213,9 +213,9 @@ func (w *Window) setSize(width, height int) {
 }
 
 func (w *Window) removeBorder() {
-	C.remove_border(w.handle)
+	C.window_remove_border(w.handle)
 }
 
 func (w *Window) addBorder() {
-	C.add_border(w.handle)
+	C.window_add_border(w.handle)
 }
