@@ -42,6 +42,24 @@ import (
 	"kaiju/rendering"
 )
 
+type AnimationPathType = int
+type AnimationInterpolation = int
+
+const (
+	AnimPathInvalid AnimationPathType = iota - 1
+	AnimPathTranslation
+	AnimPathRotation
+	AnimPathScale
+	AnimPathWeights
+)
+
+const (
+	AnimInterpolateInvalid AnimationInterpolation = iota - 1
+	AnimInterpolateLinear
+	AnimInterpolateStep
+	AnimInterpolateCubicSpline
+)
+
 type Mesh struct {
 	Name     string
 	MeshName string
@@ -49,9 +67,34 @@ type Mesh struct {
 	Indexes  []uint32
 }
 
+type AnimBone struct {
+	NodeIndex     int
+	PathType      AnimationPathType
+	Interpolation AnimationInterpolation
+	// Could be Vec3 or Quaternion, doing this because Go doesn't have a union
+	Data [4]matrix.Float
+}
+
+type AnimKeyFrame struct {
+	Bones []AnimBone
+	Time  float32
+}
+
+type Animation struct {
+	Name   string
+	Frames []AnimKeyFrame
+}
+
+type Node struct {
+	Name      string
+	Transform matrix.Transform
+}
+
 type Result struct {
-	Meshes   []Mesh
-	Textures []string
+	Nodes      []Node
+	Meshes     []Mesh
+	Textures   []string
+	Animations []Animation
 }
 
 func NewResult() Result {
