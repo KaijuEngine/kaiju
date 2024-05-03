@@ -38,6 +38,7 @@
 package project_window
 
 import (
+	"kaiju/editor/alert"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/project"
 	"kaiju/editor/ui/files_window"
@@ -46,11 +47,12 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"os"
+	"slices"
 )
 
 type windowData struct {
-	ExistingProjects []string
-	Error            string
+	ProjectList []string
+	Error       string
 }
 
 type ProjectWindow struct {
@@ -104,16 +106,27 @@ func (p *ProjectWindow) selectProject(elm *document.Element) {
 	path := elm.Attribute("data-project")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		p.data.Error = "Project folder no longer exists"
-		editor_cache.RemoveProject(path)
-		p.load()
+		ok := <-alert.New("Project Missing",
+			"The selected project no longer exists, would you like to remove it?",
+			"Yes", "No", p.container.Host)
+		if ok {
+			for i := range p.data.ProjectList {
+				if p.data.ProjectList[i] == path {
+					p.data.ProjectList = slices.Delete(p.data.ProjectList, i, i+1)
+					break
+				}
+			}
+			editor_cache.RemoveProject(path)
+			p.load()
+		}
 	} else {
 		p.openProjectFolder(path)
 	}
 }
 
 func (p *ProjectWindow) load() {
-	for _, e := range p.container.Host.Entities() {
-		e.Destroy()
+	if p.doc != nil {
+		p.doc.Destroy()
 	}
 	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("editor/ui/project_window.html"))
 	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
@@ -132,7 +145,7 @@ func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 	p.container = host_container.New("Project Window", nil)
 	go p.container.Run(600, 400, cx-300, cy-200)
 	var err error
-	p.data.ExistingProjects, err = editor_cache.ListProjects()
+	p.data.ProjectList, err = editor_cache.ListProjects()
 	if err != nil {
 		return nil, err
 	}

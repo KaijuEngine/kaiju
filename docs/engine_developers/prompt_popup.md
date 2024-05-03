@@ -7,12 +7,12 @@ There are times in the engine code where you need to get some sort of feedback i
 
 ## New
 ```go
-ok := <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No")
+ok := <-alert.New("Save Changes", "You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?", "Yes", "No", host)
 // ok will be true if the "Yes" (ok) button was clicked
 ```
 
 ## NewInput
 ```go
-name := <-alert.NewInput("Stage Name", "Name of stage...", "", "Save", "Cancel")
+name := <-alert.NewInput("Stage Name", "Name of stage...", "", "Save", "Cancel", host)
 // The result will be "" if cancel was clicked, otherwise it's the input text
 ```
