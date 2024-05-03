@@ -17,7 +17,7 @@ layout(location = 4) out vec2 fragTexRange;
 void main() {
 	vec4 vPos = model * vec4(Position, 1.0);
 	gl_Position = uiProjection * uiView * vPos;
-	vec2 uv = TexCoord0;
+	vec2 uv = UV0;
 	uv *= uvs.zw;
 	uv.y += (1.0 - uvs.w) - uvs.y;
 	uv.x += uvs.x;

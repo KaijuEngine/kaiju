@@ -15,7 +15,7 @@ layout(location = 3) out vec2 fragPxRange;
 layout(location = 4) out vec2 fragTexRange;
 
 void main() {
-    vec2 uv = TexCoord0;
+    vec2 uv = UV0;
 	uv *= uvs.zw;
 	uv.y += (1.0 - uvs.w) - uvs.y;
 	uv.x += uvs.x;

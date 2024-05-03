@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-func compile(args ...string) {
+func compile(args ...string) error {
 	cmd := exec.Command("glslc", args...)
-	outPipe := klib.MustReturn(cmd.StdoutPipe())
+	outPipe := klib.MustReturn(cmd.StderrPipe())
 	scanner := bufio.NewScanner(outPipe)
 	err := cmd.Start()
 	if err != nil {
@@ -30,7 +30,11 @@ func compile(args ...string) {
 	for scanner.Scan() {
 		println(scanner.Text())
 	}
-	klib.Must(cmd.Wait())
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+	println("Compiled " + args[2])
+	return nil
 }
 
 func hasOIT(path string) bool {
@@ -65,10 +69,13 @@ func main() {
 	if *dbg {
 		args = append(args, "-g")
 	}
-	compile(args...)
-	if hasOIT(*in) {
+	err := compile(args...)
+	if err == nil && hasOIT(*in) {
 		args[2] = strings.TrimSuffix(args[2], ".spv") + ".oit.spv"
 		args = append(args, "-DOIT")
-		compile(args...)
+		err = compile(args...)
+	}
+	if err != nil {
+		println("Exiting due to compile error")
 	}
 }
