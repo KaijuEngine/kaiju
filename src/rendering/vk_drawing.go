@@ -75,6 +75,12 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]
 		globalInfo := bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
 			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
+
+		// TODO:  Add skinning
+		//skinInfo := bufferInfo(
+		//	shaderId->skinningUniformBuffers[ps->renderer->currentFrame],
+		//	sizeof(ValkShaderDataSkinning) * MAX_SKIN_INSTANCES);
+
 		texCount := len(group.Textures)
 		if texCount > 0 {
 			for j := 0; j < texCount; j++ {
@@ -82,10 +88,18 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
 			descriptorWrites := []vk.WriteDescriptorSet{
-				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo}, 0, vk.DescriptorTypeUniformBuffer),
+				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
+					0, vk.DescriptorTypeUniformBuffer),
 				prepareSetWriteImage(set, group.imageInfos, 1, false),
+				// TODO:  Add skinning
+				//prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{skinInfo},
+				//	10, vk.DescriptorTypeUniformBuffer),
 			}
 			count := uint32(len(descriptorWrites))
+			// TODO:  Add skinning
+			//if (key->uniformType != SHADER_UNIFORM_TYPE_BASIC_SKINNED) {
+			//	count--;
+			//}
 			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
 		} else {
 			descriptorWrites := []vk.WriteDescriptorSet{

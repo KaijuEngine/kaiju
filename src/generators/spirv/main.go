@@ -38,7 +38,9 @@ func hasOIT(path string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(data), "#ifdef OIT")
+	src := string(data)
+	return strings.Contains(src, `"inc_fragment_oit_block.inl"`) ||
+		strings.Contains(src, "#ifdef OIT")
 }
 
 func main() {
