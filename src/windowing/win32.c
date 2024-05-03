@@ -429,7 +429,7 @@ void window_set_size(void* hwnd, int width, int height) {
 	SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER);
 }
 
-void remove_border(void* hwnd) {
+void window_remove_border(void* hwnd) {
 	LONG style = GetWindowLong(hwnd, GWL_STYLE);
 	style &= ~WS_CAPTION;
 	style &= ~WS_THICKFRAME;
@@ -439,7 +439,7 @@ void remove_border(void* hwnd) {
 	SetWindowLong(hwnd, GWL_STYLE, style);
 }
 
-void add_border(void* hwnd) {
+void window_add_border(void* hwnd) {
 	LONG style = GetWindowLong(hwnd, GWL_STYLE);
 	style |= WS_CAPTION;
 	style |= WS_THICKFRAME;

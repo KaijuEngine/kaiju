@@ -46,6 +46,10 @@ typedef struct {
 	Window w;
 	Display* d;
 	Atom WM_DELETE_WINDOW;
+	Atom TARGETS;
+	Atom TEXT;
+	Atom UTF8_STRING;
+	Atom CLIPBOARD;
 } X11State;
 
 void window_main(const char* windowTitle, int width, int height,

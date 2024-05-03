@@ -62,6 +62,8 @@ import "C"
 import (
 	"kaiju/klib"
 	"unsafe"
+
+	"golang.design/x/clipboard"
 )
 
 func asEventType(msg int, e *evtMem) eventType {
@@ -116,10 +118,10 @@ func scaleScrollDelta(delta float32) float32 {
 }
 
 func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
-	title := C.CString(string(windowName))
-	defer C.free(unsafe.Pointer(title))
+	title := C.CString(windowName)
 	C.window_main(title, C.int(width), C.int(height),
 		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
+	C.free(unsafe.Pointer(title))
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
@@ -166,12 +168,11 @@ func (w *Window) cursorSizeWE() {
 }
 
 func (w *Window) copyToClipboard(text string) {
-	klib.NotYetImplemented(103)
+	clipboard.Write(clipboard.FmtText, []byte(text))
 }
 
 func (w *Window) clipboardContents() string {
-	klib.NotYetImplemented(103)
-	return ""
+	return string(clipboard.Read(clipboard.FmtText))
 }
 
 func (w *Window) sizeMM() (int, int, error) {

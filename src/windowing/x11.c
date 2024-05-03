@@ -53,7 +53,9 @@
 // XLib docs
 // https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
 
-#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask
+#define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask | StructureNotifyMask
+
+Atom XA_ATOM = 4, XA_STRING = 31;
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -109,6 +111,14 @@ void window_main(const char* windowTitle, int width, int height,
 	x11State->w = w;
 	x11State->d = d;
 	x11State->WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
+	x11State->TARGETS = XInternAtom(d, "TARGETS", 0);
+	x11State->TEXT = XInternAtom(d, "TEXT", 0);
+	x11State->UTF8_STRING = XInternAtom(d, "UTF8_STRING", 1);
+	if (x11State->UTF8_STRING== None) {
+		x11State->UTF8_STRING = XA_STRING;
+	}
+	x11State->CLIPBOARD = XInternAtom(d, "CLIPBOARD", 0);
+
 	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
 	memcpy(evtSharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
 }

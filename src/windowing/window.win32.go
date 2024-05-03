@@ -40,9 +40,10 @@
 package windowing
 
 import (
-	"kaiju/klib"
 	"unicode/utf16"
 	"unsafe"
+
+	"golang.design/x/clipboard"
 )
 
 /*
@@ -57,8 +58,8 @@ import (
 #cgo noescape window_position
 #cgo noescape window_set_position
 #cgo noescape window_set_size
-#cgo noescape remove_border
-#cgo noescape add_border
+#cgo noescape window_remove_border
+#cgo noescape window_add_border
 
 #include "windowing.h"
 */
@@ -178,12 +179,11 @@ func (w *Window) cursorSizeWE() {
 }
 
 func (w *Window) copyToClipboard(text string) {
-	klib.NotYetImplemented(102)
+	clipboard.Write(clipboard.FmtText, []byte(text))
 }
 
 func (w *Window) clipboardContents() string {
-	klib.NotYetImplemented(102)
-	return ""
+	return string(clipboard.Read(clipboard.FmtText))
 }
 
 func (w *Window) sizeMM() (int, int, error) {
