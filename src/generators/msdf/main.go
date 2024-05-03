@@ -48,7 +48,7 @@ import (
 	"strings"
 )
 
-const binDir = "../bin/"
+const binDir = "../tools/content_tools/"
 
 type Rect struct {
 	Left   float32 `json:"left"`
@@ -147,6 +147,9 @@ func processFile(ttfName string) {
 }
 
 func main() {
+	if len(os.Args) == 1 {
+		panic("Expected the first argument to be the TTF file to convert")
+	}
 	ttfName := os.Args[1]
 	dirName := filepath.Join(binDir, ttfName)
 	if s, err := os.Stat(dirName); err != nil {
