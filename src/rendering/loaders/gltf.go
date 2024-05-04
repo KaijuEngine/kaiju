@@ -136,7 +136,7 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (load_result.Result, error) {
+func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
 	if !assetDB.Exists(path) {
 		return load_result.Result{}, errors.New("file does not exist")
 	} else if filepath.Ext(path) == ".glb" {
@@ -158,8 +158,23 @@ func GLTF(renderer rendering.Renderer, path string, assetDB *assets.Database) (l
 
 func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	res := load_result.NewResult()
+	res.Nodes = make([]load_result.Node, len(doc.glTF.Nodes))
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
+		res.Nodes[i].Name = n.Name
+		res.Nodes[i].Transform = matrix.NewTransform()
+		// TODO:  Come back for this scenario
+		//if n.Matrix != nil {
+		//}
+		if n.Scale != nil {
+			res.Nodes[i].Transform.SetScale(*n.Scale)
+		}
+		if n.Rotation != nil {
+			res.Nodes[i].Transform.SetRotation(n.Rotation.ToEuler())
+		}
+		if n.Translation != nil {
+			res.Nodes[i].Transform.SetRotation(*n.Translation)
+		}
 		if n.Mesh == nil {
 			continue
 		}
@@ -172,6 +187,7 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			textures := gltfReadMeshTextures(m, &doc.glTF)
 			res.Add(n.Name, m.Name, verts, indices, klib.MapValues(textures))
 		}
+		res.Animations = gltfReadAnimations(doc)
 	}
 	return res, nil
 }
@@ -433,4 +449,63 @@ func gltfReadMeshTextures(mesh *gltf.Mesh, doc *gltf.GLTF) map[string]string {
 		textures["emissive"] = doc.Images[mat.EmissiveTexture.Index].URI
 	}
 	return textures
+}
+
+func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
+	anims := make([]load_result.Animation, len(doc.glTF.Animations))
+	for i := range doc.glTF.Animations {
+		a := &doc.glTF.Animations[i]
+		anims[i] = load_result.Animation{
+			Name:   a.Name,
+			Frames: make([]load_result.AnimKeyFrame, 0),
+		}
+		for j := range doc.glTF.Animations[i].Channels {
+			c := a.Channels[j]
+			sampler := &a.Samplers[c.Sampler]
+			iv := &doc.glTF.BufferViews[sampler.Input]
+			ov := &doc.glTF.BufferViews[sampler.Output]
+			// Times ([]float32) of the key frames of the animation
+			in := doc.bins[iv.Buffer][iv.ByteOffset : iv.ByteOffset+iv.ByteLength]
+			// Values for the animated properties at the respective key frames
+			out := doc.bins[ov.Buffer][ov.ByteOffset : ov.ByteOffset+ov.ByteLength]
+			fIn := klib.ByteSliceToFloat32Slice(in)
+			fOut := klib.ByteSliceToFloat32Slice(out)
+			for k := 0; k < len(fIn); k++ {
+				var key *load_result.AnimKeyFrame = nil
+				for l := range anims[i].Frames {
+					if matrix.Approx(anims[i].Frames[l].Time, fIn[k]) {
+						key = &anims[i].Frames[l]
+						break
+					}
+				}
+				if key == nil {
+					anims[i].Frames = append(anims[i].Frames, load_result.AnimKeyFrame{
+						Bones: make([]load_result.AnimBone, 0),
+						Time:  fIn[k],
+					})
+					key = &anims[i].Frames[len(anims[i].Frames)-1]
+				}
+				bone := load_result.AnimBone{
+					PathType:      c.Target.Path(),
+					Interpolation: sampler.Interpolation(),
+					NodeIndex:     int(c.Target.Node),
+				}
+				switch bone.PathType {
+				case load_result.AnimPathTranslation:
+					bone.Data = matrix.Vec3FromSlice(fOut).AsAligned16()
+					fOut = fOut[3:]
+				case load_result.AnimPathRotation:
+					bone.Data = matrix.Vec4FromSlice(fOut)
+					fOut = fOut[4:]
+				case load_result.AnimPathScale:
+					bone.Data = matrix.Vec3FromSlice(fOut).AsAligned16()
+					fOut = fOut[3:]
+				case load_result.AnimPathWeights:
+					// TODO:  Implement reading weights data
+				}
+				key.Bones = append(key.Bones, bone)
+			}
+		}
+	}
+	return anims
 }

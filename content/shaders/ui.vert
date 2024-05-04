@@ -1,24 +1,16 @@
 #version 460
 
-layout (location = 0) in vec3 Position;
-layout (location = 1) in vec3 Normal;
-layout (location = 2) in vec4 Tangent;
-layout (location = 3) in vec2 UV0;
-layout (location = 4) in vec4 Color;
-layout (location = 5) in ivec4 JointIds;
-layout (location = 6) in vec4 JointWeights;
-layout (location = 7) in vec3 MorphTarget;
+#include "inc_vertex.inl"
 
-layout(location = 8) in mat4 model;
-layout(location = 12) in vec4 uvs;
-layout(location = 13) in vec4 fgColor;
-layout(location = 14) in vec4 bgColor;
-layout(location = 15) in vec4 scissor;
-layout(location = 16) in vec4 size2D;
-layout(location = 17) in vec4 borderRadius;
-layout(location = 18) in vec4 borderSize;
-layout(location = 19) in mat4 borderColor;
-layout(location = 23) in vec2 borderLen;
+layout(location = LOCATION_START) in vec4 uvs;
+layout(location = LOCATION_START+1) in vec4 fgColor;
+layout(location = LOCATION_START+2) in vec4 bgColor;
+layout(location = LOCATION_START+3) in vec4 scissor;
+layout(location = LOCATION_START+4) in vec4 size2D;
+layout(location = LOCATION_START+5) in vec4 borderRadius;
+layout(location = LOCATION_START+6) in vec4 borderSize;
+layout(location = LOCATION_START+7) in mat4 borderColor;
+layout(location = LOCATION_START+11) in vec2 borderLen;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragBGColor;
@@ -28,30 +20,6 @@ layout(location = 4) out vec4 fragBorderSize;
 layout(location = 5) out mat4 fragBorderColor;
 layout(location = 9) out vec2 fragTexCoord;
 layout(location = 10) out vec2 fragBorderLen;
-
-struct InstanceData {
-	mat4 model;
-	vec4 uvs;
-	vec4 fgColor;
-	vec4 bgColor;
-	vec4 scissor;
-	vec4 size2D;
-	vec4 borderRadius;
-	vec4 borderSize;
-	mat4 borderColor;
-	vec2 borderLen;
-};
-
-layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
-	mat4 view;
-	mat4 projection;
-	mat4 uiView;
-	mat4 uiProjection;
-	vec3 cameraPosition;
-	vec3 uiCameraPosition;
-	vec2 screenSize;
-	float time;
-};
 
 void main() {
 	vec4 vPos = model * vec4(Position, 1.0);

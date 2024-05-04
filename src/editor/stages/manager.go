@@ -39,17 +39,24 @@ package stages
 
 import (
 	"bytes"
+	"errors"
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/memento"
+	"kaiju/editor/ui/status_bar"
 	"kaiju/engine"
 	"kaiju/filesystem"
 	"kaiju/klib"
 	"kaiju/systems/stages"
+	"log/slog"
 	"os"
 	"path/filepath"
+)
+
+var (
+	ErrorSaveCancelled = errors.New("save was requested then cancelled")
 )
 
 type Manager struct {
@@ -85,14 +92,23 @@ func (m *Manager) New() {
 	m.host.ClearEntities()
 }
 
-func (m *Manager) Save() error {
+func (m *Manager) saveInternal() error {
 	if m.stage == "" {
 		name := <-alert.NewInput("Stage Name", "Name of stage...",
 			"", "Save", "Cancel", m.host)
 		if name == "" {
-			return nil
+			return ErrorSaveCancelled
 		}
-		m.stage = filepath.Join("content/stages/", name+editor_config.FileExtensionStage)
+		path := filepath.Join("content/stages/", name+editor_config.FileExtensionStage)
+		if _, err := os.Stat(path); err == nil {
+			ok := <-alert.New("Overwrite stage?",
+				"The stage "+path+" already exists. Would you like to overwrite it?",
+				"Yes", "No", m.host)
+			if !ok {
+				return ErrorSaveCancelled
+			}
+		}
+		m.stage = path
 	}
 	stream := bytes.NewBuffer(make([]byte, 0))
 	all := m.host.Entities()
@@ -116,6 +132,20 @@ func (m *Manager) Save() error {
 	}
 	m.registry.ImportIfNew(m.stage)
 	return nil
+}
+
+func (m *Manager) Save(statusBar *status_bar.StatusBar) error {
+	err := m.saveInternal()
+	if err == nil {
+		if statusBar != nil {
+			statusBar.SetMessage("Stage saved")
+		}
+	} else if errors.Is(err, ErrorSaveCancelled) && statusBar != nil {
+		statusBar.SetMessage("Stage save cancelled")
+	} else {
+		slog.Error("Save stage failed", slog.String("error", err.Error()))
+	}
+	return err
 }
 
 func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error {

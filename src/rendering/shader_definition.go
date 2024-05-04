@@ -200,11 +200,13 @@ type defType struct {
 }
 
 var defTypes = map[string]defType{
-	"float": {uint32(floatSize), vk.FormatR32Sfloat, 1},
-	"vec2":  {uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
-	"vec3":  {uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
-	"vec4":  {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
-	"mat4":  {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
+	"float":  {uint32(floatSize), vk.FormatR32Sfloat, 1},
+	"vec2":   {uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
+	"vec3":   {uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
+	"vec4":   {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
+	"mat4":   {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
+	"int32":  {uint32(int32Size), vk.FormatR32Sint, 1},
+	"uint32": {uint32(uint32Size), vk.FormatR32Uint, 1},
 }
 
 func (sd *ShaderDef) AddField(name, glslType string) {

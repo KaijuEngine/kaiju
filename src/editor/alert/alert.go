@@ -61,7 +61,7 @@ type alertMsg struct {
 
 func (a *alertMsg) done(isOkay bool) {
 	if a.block != nil {
-		a.block <- true
+		a.block <- isOkay
 		close(a.block)
 	} else if a.inputBlock != nil {
 		if !isOkay {

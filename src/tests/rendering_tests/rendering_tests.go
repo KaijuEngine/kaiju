@@ -281,7 +281,7 @@ func testMonkeyOBJ(host *engine.Host) {
 func testMonkeyGLTF(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.gltf"
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
-	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
+	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
 		return
@@ -292,7 +292,7 @@ func testMonkeyGLTF(host *engine.Host) {
 func testMonkeyGLB(host *engine.Host) {
 	const monkeyGLTF = "meshes/monkey.glb"
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
-	res := klib.MustReturn(loaders.GLTF(host.Window.Renderer, monkeyGLTF, host.AssetDatabase()))
+	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
 		return

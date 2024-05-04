@@ -39,6 +39,11 @@ package rendering
 
 import "kaiju/matrix"
 
+const (
+	MaxJoints        = 50
+	MaxSkinInstances = 20
+)
+
 type GlobalShaderData struct {
 	View             matrix.Mat4
 	Projection       matrix.Mat4
@@ -50,4 +55,8 @@ type GlobalShaderData struct {
 	_                matrix.Float
 	ScreenSize       matrix.Vec2
 	Time             float32
+}
+
+type SkinnedShaderData struct {
+	jointTransforms [MaxJoints]matrix.Mat4
 }

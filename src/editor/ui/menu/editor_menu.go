@@ -187,11 +187,7 @@ func (m *Menu) newStage(*document.Element) {
 }
 
 func (m *Menu) saveStage(*document.Element) {
-	if err := m.editor.StageManager().Save(); err != nil {
-		slog.Error("Save stage failed", slog.String("error", err.Error()))
-	} else {
-		m.editor.StatusBar().SetMessage("Stage saved")
-	}
+	m.editor.StageManager().Save(m.editor.StatusBar())
 }
 
 func (m *Menu) openProject(*document.Element) {

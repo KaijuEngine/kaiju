@@ -37,7 +37,10 @@
 
 package klib
 
-import "math/rand"
+import (
+	"math/rand"
+	"unsafe"
+)
 
 func RemoveUnordered[T any](slice []T, idx int) []T {
 	last := len(slice) - 1
@@ -59,4 +62,10 @@ func Contains[T comparable](slice []T, item T) bool {
 		}
 	}
 	return false
+}
+
+func ByteSliceToFloat32Slice(data []byte) []float32 {
+	fLen := len(data) / int(unsafe.Sizeof(float32(0)))
+	f := *(*[]float32)(unsafe.Pointer(&data))
+	return f[:fLen:fLen]
 }

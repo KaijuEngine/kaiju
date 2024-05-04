@@ -40,6 +40,7 @@ package gltf
 import (
 	"encoding/json"
 	"kaiju/matrix"
+	"kaiju/rendering/loaders/load_result"
 	"strings"
 )
 
@@ -67,6 +68,54 @@ type Node struct {
 	//Extras      interface{}       `json:"extras"`
 }
 
+type ChannelTarget struct {
+	Node    int32  `json:"node"`
+	PathStr string `json:"path"`
+}
+
+func (t *ChannelTarget) Path() load_result.AnimationPathType {
+	switch t.PathStr {
+	case "translation":
+		return load_result.AnimPathTranslation
+	case "rotation":
+		return load_result.AnimPathRotation
+	case "scale":
+		return load_result.AnimPathScale
+	case "weights":
+		return load_result.AnimPathWeights
+	}
+	return -1
+}
+
+type AnimationChannel struct {
+	Sampler int32         `json:"sampler"`
+	Target  ChannelTarget `json:"target"`
+}
+
+type AnimationSampler struct {
+	Input            int32  `json:"input"`
+	InterpolationStr string `json:"interpolation"`
+	Output           int32  `json:"output"`
+}
+
+func (a *AnimationSampler) Interpolation() load_result.AnimationInterpolation {
+	switch a.InterpolationStr {
+	case "LINEAR":
+		return load_result.AnimInterpolateLinear
+	case "STEP":
+		return load_result.AnimInterpolateStep
+	case "CUBICSPLINE":
+		return load_result.AnimInterpolateCubicSpline
+	}
+	return -1
+}
+
+type Animation struct {
+	Name     string             `json:"name"`
+	Channels []AnimationChannel `json:"channels"`
+	Samplers []AnimationSampler `json:"samplers"`
+}
+
 type TextureId struct {
 	Index int32 `json:"index"`
 }
@@ -79,7 +128,7 @@ type PBRMetallicRoughness struct {
 	BaseColorFactor          *matrix.Color `json:"baseColorFactor"`
 }
 
-type Materials struct {
+type Material struct {
 	Name                 string               `json:"name"`
 	DoubleSided          bool                 `json:"doubleSided"`
 	NormalTexture        *TextureId           `json:"normalTexture"`
@@ -111,6 +160,12 @@ type Primitive struct {
 type Mesh struct {
 	Name       string      `json:"name"`
 	Primitives []Primitive `json:"primitives"`
+}
+
+type Skin struct {
+	Name                string  `json:"name"`
+	InverseBindMatrices int32   `json:"inverseBindMatrices"`
+	Joints              []int32 `json:"joints"`
 }
 
 type Texture struct {
@@ -153,18 +208,21 @@ type Buffer struct {
 }
 
 type GLTF struct {
-	Asset       Asset        `json:"asset"`
-	Scene       int32        `json:"scene"`
-	Scenes      []Scene      `json:"scenes"`
-	Nodes       []Node       `json:"nodes"`
-	Materials   []Materials  `json:"materials"`
-	Meshes      []Mesh       `json:"meshes"`
-	Textures    []Texture    `json:"textures"`
-	Images      []Image      `json:"images"`
-	Accessors   []Accessor   `json:"accessors"`
-	BufferViews []BufferView `json:"bufferViews"`
-	Samplers    []Sampler    `json:"samplers"`
-	Buffers     []Buffer     `json:"buffers"`
+	Asset          Asset        `json:"asset"`
+	ExtensionsUsed []string     `json:"extensionsUsed"`
+	Scene          int32        `json:"scene"`
+	Scenes         []Scene      `json:"scenes"`
+	Nodes          []Node       `json:"nodes"`
+	Animations     []Animation  `json:"animations"`
+	Materials      []Material   `json:"materials"`
+	Meshes         []Mesh       `json:"meshes"`
+	Skins          []Skin       `json:"skins"`
+	Textures       []Texture    `json:"textures"`
+	Images         []Image      `json:"images"`
+	Accessors      []Accessor   `json:"accessors"`
+	BufferViews    []BufferView `json:"bufferViews"`
+	Samplers       []Sampler    `json:"samplers"`
+	Buffers        []Buffer     `json:"buffers"`
 }
 
 func LoadGLTF(jsonStr string) (GLTF, error) {
