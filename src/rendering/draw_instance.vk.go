@@ -47,6 +47,8 @@ type ShaderBuffer struct {
 	size      vk.DeviceSize
 	buffers   [maxFramesInFlight]vk.Buffer
 	memories  [maxFramesInFlight]vk.DeviceMemory
+	stride    int
+	capacity  int
 }
 
 type InstanceDriverData struct {
@@ -67,6 +69,19 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader
 		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.Textures))
 		d.generatedSets = true
 		d.instanceBuffer.bindingId = 1
+		d.namedBuffers = make(map[string]ShaderBuffer)
+		if shader.definition != nil {
+			for i := range shader.definition.Layouts {
+				if shader.definition.Layouts[i].Buffer != nil {
+					b := shader.definition.Layouts[i].Buffer
+					d.namedBuffers[b.Name] = ShaderBuffer{
+						bindingId: shader.definition.Layouts[i].Binding,
+						stride:    b.TypeSize(),
+						capacity:  b.Capacity,
+					}
+				}
+			}
+		}
 	}
 }
 

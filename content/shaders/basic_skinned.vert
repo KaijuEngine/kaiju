@@ -5,7 +5,7 @@
 #define MAX_JOINTS			50
 #define MAX_SKIN_INSTANCES	50
 
-layout(set = 0, binding = 10) readonly uniform SkinnedUBO {
+layout(set = 0, binding = 2) readonly uniform SkinnedUBO {
 	mat4 jointTransforms[MAX_SKIN_INSTANCES][MAX_JOINTS];
 };
 

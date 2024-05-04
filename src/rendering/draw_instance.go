@@ -58,6 +58,9 @@ type DrawInstance interface {
 	SetModel(model matrix.Mat4)
 	UpdateModel()
 	DataPointer() unsafe.Pointer
+	// Returns true if it should write the data, otherwise false
+	UpdateNamedData(index, capacity int, name string) bool
+	NamedDataPointer(name string) unsafe.Pointer
 	setTransform(transform *matrix.Transform)
 }
 
@@ -83,8 +86,12 @@ func (t ShaderDataBasic) Size() int {
 
 func NewShaderDataBase() ShaderDataBase {
 	sdb := ShaderDataBase{}
-	sdb.SetModel(matrix.Mat4Identity())
+	sdb.Setup()
 	return sdb
+}
+
+func (s *ShaderDataBase) Setup() {
+	s.SetModel(matrix.Mat4Identity())
 }
 
 func (s *ShaderDataBase) Size() int {
@@ -119,16 +126,31 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 	return unsafe.Pointer(&s.model[0])
 }
 
+func (s *ShaderDataBase) UpdateNamedData(index, capacity int, name string) bool { return false }
+
+func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer { return nil }
+
+type InstanceCopyData struct {
+	bytes   []byte
+	padding int
+}
+
+func InstanceCopyDataNew(padding int) InstanceCopyData {
+	return InstanceCopyData{
+		bytes:   make([]byte, 0),
+		padding: padding,
+	}
+}
+
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
 	Textures          []*Texture
 	Instances         []DrawInstance
-	instanceData      []byte
-	namedInstanceData map[string][]byte
+	rawData           InstanceCopyData
+	namedInstanceData map[string]InstanceCopyData
 	instanceSize      int
 	visibleCount      int
-	padding           int
 	useBlending       bool
 	destroyed         bool
 }
@@ -137,19 +159,18 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 	return DrawInstanceGroup{
 		Mesh:              mesh,
 		Instances:         make([]DrawInstance, 0),
-		instanceData:      make([]byte, 0),
-		namedInstanceData: make(map[string][]byte),
+		rawData:           InstanceCopyDataNew(dataSize % 16),
+		namedInstanceData: make(map[string]InstanceCopyData),
 		instanceSize:      dataSize,
-		padding:           dataSize % 16,
 		destroyed:         false,
 	}
 }
 
 func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
 	newPadding := blockSize - d.instanceSize%blockSize
-	if d.padding != newPadding {
-		d.padding = newPadding
-		d.instanceData = make([]byte, d.TotalSize())
+	if d.rawData.padding != newPadding {
+		d.rawData.padding = newPadding
+		d.rawData.bytes = make([]byte, d.TotalSize())
 	}
 }
 
@@ -163,17 +184,29 @@ func (d *DrawInstanceGroup) IsReady() bool {
 }
 
 func (d *DrawInstanceGroup) TotalSize() int {
-	return len(d.Instances) * (d.instanceSize + d.padding)
+	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
 }
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader) {
 	d.Instances = append(d.Instances, instance)
-	d.instanceData = append(d.instanceData, make([]byte, d.instanceSize+d.padding)...)
+	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
+	if shader.definition != nil {
+		for i := range shader.definition.Layouts {
+			if shader.definition.Layouts[i].Buffer != nil {
+				b := shader.definition.Layouts[i].Buffer
+				s := d.namedInstanceData[b.Name]
+				if len(s.bytes) < b.TypeSize()*b.Capacity {
+					s.bytes = append(s.bytes, make([]byte, b.TypeSize()+s.padding)...)
+					d.namedInstanceData[b.Name] = s
+				}
+			}
+		}
+	}
 }
 
 func (d *DrawInstanceGroup) texSize() (int32, int32) {
 	// Low end devices have a max 2048 texture size
-	pixelCount := int32(len(d.instanceData)) / 4 / 4
+	pixelCount := int32(len(d.rawData.bytes)) / 4 / 4
 	width := min(pixelCount, 2048)
 	height := int32(1)
 	for pixelCount > 2048 {
@@ -191,14 +224,27 @@ func (d *DrawInstanceGroup) AnyVisible() bool  { return d.visibleCount > 0 }
 func (d *DrawInstanceGroup) VisibleCount() int { return d.visibleCount }
 
 func (d *DrawInstanceGroup) VisibleSize() int {
-	return d.visibleCount * (d.instanceSize + d.padding)
+	return d.visibleCount * (d.instanceSize + d.rawData.padding)
+}
+
+func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, name string) {
+	if !instance.UpdateNamedData(index, d.namedBuffers[name].capacity, name) {
+		return
+	}
+	if ptr := instance.NamedDataPointer(name); ptr != nil {
+		offset := uintptr(d.namedBuffers[name].stride * index)
+		base := unsafe.Pointer(&d.namedInstanceData[name].bytes[0])
+		to := unsafe.Pointer(uintptr(base) + offset)
+		klib.Memcpy(to, ptr, uint64(d.instanceSize))
+	}
 }
 
 func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
-	base := unsafe.Pointer(&d.instanceData[0])
+	base := unsafe.Pointer(&d.rawData.bytes[0])
 	offset := uintptr(0)
 	count := len(d.Instances)
 	d.visibleCount = 0
+	instanceIndex := 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
 		instance.UpdateModel()
@@ -207,16 +253,22 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 			i--
 			count--
 		} else if instance.IsActive() {
+			if d.generatedSets {
+				for k := range d.namedInstanceData {
+					d.updateNamedData(instanceIndex, instance, k)
+				}
+			}
 			to := unsafe.Pointer(uintptr(base) + offset)
 			klib.Memcpy(to, instance.DataPointer(), uint64(d.instanceSize))
-			offset += uintptr(d.instanceSize + d.padding)
+			offset += uintptr(d.instanceSize + d.rawData.padding)
 			d.visibleCount++
+			instanceIndex++
 		}
 	}
 	if count < len(d.Instances) {
-		newMemLen := count * (d.instanceSize + d.padding)
+		newMemLen := count * (d.instanceSize + d.rawData.padding)
 		d.Instances = d.Instances[:count]
-		d.instanceData = d.instanceData[:newMemLen]
+		d.rawData.bytes = d.rawData.bytes[:newMemLen]
 	}
 	d.bindInstanceDriverData()
 	if len(d.Instances) == 0 {

@@ -27,7 +27,7 @@
 		"Type": "UniformBuffer",
 		"Flags": ["Vertex"],
 		"Count": 1,
-		"Binding": 10,
+		"Binding": 2,
 		"Buffer": {
 			"Name": "Skinning",
 			"Type": "mat4",

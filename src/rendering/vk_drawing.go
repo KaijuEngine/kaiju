@@ -76,12 +76,12 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		vr.resizeUniformBuffer(key, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		mapLen := instanceLen
-		if !vr.mapAndCopy(group.instanceData, group.instanceBuffer, mapLen) {
+		if !vr.mapAndCopy(group.rawData.bytes, group.instanceBuffer, mapLen) {
 			continue
 		}
 		skip := false
 		for k := range group.namedInstanceData {
-			if !vr.mapAndCopy(group.namedInstanceData[k],
+			if !vr.mapAndCopy(group.namedInstanceData[k].bytes,
 				group.namedBuffers[k], group.namedBuffers[k].size) {
 				skip = true
 				break
@@ -93,32 +93,36 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]
 		globalInfo := bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
 			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
-
-		// TODO:  Add skinning
-		//skinInfo := bufferInfo(
-		//	shaderId->skinningUniformBuffers[ps->renderer->currentFrame],
-		//	sizeof(ValkShaderDataSkinning) * MAX_SKIN_INSTANCES);
-
+		namedInfos := map[string]vk.DescriptorBufferInfo{}
+		for k := range group.namedBuffers {
+			namedInfos[k] = bufferInfo(group.namedBuffers[k].buffers[vr.currentFrame],
+				group.namedBuffers[k].size)
+		}
 		texCount := len(group.Textures)
 		if texCount > 0 {
 			for j := 0; j < texCount; j++ {
 				t := group.Textures[j]
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
-			descriptorWrites := []vk.WriteDescriptorSet{
+			const maxDescriptorWrites = 4
+			descriptorWrites := [maxDescriptorWrites]vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
 					0, vk.DescriptorTypeUniformBuffer),
 				prepareSetWriteImage(set, group.imageInfos, 1, false),
-				// TODO:  Add skinning
-				//prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{skinInfo},
-				//	10, vk.DescriptorTypeUniformBuffer),
 			}
-			count := uint32(len(descriptorWrites))
-			// TODO:  Add skinning
-			//if (key->uniformType != SHADER_UNIFORM_TYPE_BASIC_SKINNED) {
-			//	count--;
-			//}
-			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
+			count := 2
+			for k := range group.namedBuffers {
+				if count >= maxDescriptorWrites {
+					slog.Error("need to increase max descriptor writes array size")
+					break
+				}
+				descriptorWrites[count] = prepareSetWriteBuffer(set,
+					[]vk.DescriptorBufferInfo{namedInfos[k]},
+					uint32(group.namedBuffers[k].bindingId),
+					vk.DescriptorTypeUniformBuffer)
+				count++
+			}
+			vk.UpdateDescriptorSets(vr.device, uint32(count), &descriptorWrites[0], 0, nil)
 		} else {
 			descriptorWrites := []vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
@@ -220,9 +224,6 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 			continue
 		}
 		if lastShader != shader {
-			if shader == nil {
-				continue
-			}
 			vk.CmdBindPipeline(commandBuffer,
 				vk.PipelineBindPointGraphics, shader.RenderId.graphicsPipeline)
 			lastShader = shader
@@ -398,11 +399,14 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 				group.instanceBuffer.buffers[i] = vk.Buffer(vk.NullHandle)
 				group.instanceBuffer.memories[i] = vk.DeviceMemory(vk.NullHandle)
 				for k := range group.namedBuffers {
-					pd.namedBuffers[i] = append(pd.namedBuffers[i], group.namedBuffers[k].buffers[i])
-					pd.namedMemories[i] = append(pd.namedMemories[i], group.namedBuffers[k].memories[i])
+					nb := group.namedBuffers[k]
+					pd.namedBuffers[i] = append(pd.namedBuffers[i], nb.buffers[i])
+					pd.namedMemories[i] = append(pd.namedMemories[i], nb.memories[i])
+					nb.buffers[i] = vk.Buffer(vk.NullHandle)
+					nb.memories[i] = vk.DeviceMemory(vk.NullHandle)
+					group.namedBuffers[k] = nb
 				}
 			}
-			clear(group.namedBuffers)
 			vr.bufferTrash.Add(pd)
 		}
 		if currentCount > 0 {
@@ -414,19 +418,21 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
 					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
 					&group.instanceBuffer.buffers[i], &group.instanceBuffer.memories[i])
-				if shader.definition != nil {
-					for i := range shader.definition.Layouts {
-						if shader.definition.Layouts[i].Buffer != nil {
-							b := shader.definition.Layouts[i].Buffer
-							buff := ShaderBuffer{}
-							count := min(currentCount, b.Capacity)
-							buff.size = vr.padUniformBufferSize(vk.DeviceSize(b.TypeSize()))
+			}
+			if shader.definition != nil {
+				for i := range shader.definition.Layouts {
+					if shader.definition.Layouts[i].Buffer != nil {
+						b := shader.definition.Layouts[i].Buffer
+						buff := group.namedBuffers[b.Name]
+						count := min(currentCount, b.Capacity)
+						buff.size = vr.padUniformBufferSize(vk.DeviceSize(b.TypeSize()))
+						buff.bindingId = shader.definition.Layouts[i].Binding
+						for j := 0; j < maxFramesInFlight; j++ {
 							vr.CreateBuffer(buff.size*vk.DeviceSize(count),
-								vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
-								vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[i], &buff.memories[i])
-							buff.bindingId = shader.definition.Layouts[i].Binding
-							group.namedBuffers[b.Name] = buff
+								vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit|vk.BufferUsageUniformBufferBit),
+								vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
 						}
+						group.namedBuffers[b.Name] = buff
 					}
 				}
 			}
