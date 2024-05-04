@@ -134,7 +134,6 @@ func (p *ProjectWindow) load() {
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
 		})
-	p.container.Host.Window.CopyToClipboard("Test copy from code")
 }
 
 func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
