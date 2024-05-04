@@ -90,7 +90,7 @@ func (b *bufferDestroyer) Cycle() {
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.buffers[j])))
 				vk.FreeMemory(b.device, pd.memories[j], nil)
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.memories[j])))
-				for k := range pd.namedBuffers {
+				for k := range pd.namedBuffers[j] {
 					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
 					b.dbg.remove(uintptr(unsafe.Pointer(pd.namedBuffers[j][k])))
 					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
