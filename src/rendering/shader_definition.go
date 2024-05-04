@@ -47,6 +47,16 @@ import (
 	vk "kaiju/rendering/vulkan"
 )
 
+const (
+	mat4Size       = int(unsafe.Sizeof(matrix.Mat4{}))
+	mat3Size       = int(unsafe.Sizeof(matrix.Mat3{}))
+	QuaternionSize = int(unsafe.Sizeof(matrix.Quaternion{}))
+	vec4Size       = int(unsafe.Sizeof(matrix.Vec4{}))
+	int32Size      = int(unsafe.Sizeof(int32(0)))
+	floatSize      = int(unsafe.Sizeof(matrix.Float(0.0)))
+	uint32Size     = int(unsafe.Sizeof(uint32(0)))
+)
+
 type ShaderDefDriver struct {
 	Vert string
 	Frag string
@@ -68,11 +78,31 @@ func (f ShaderDefField) Format() vk.Format {
 	return defTypes[f.Type].format
 }
 
+type LayoutBufferDescription struct {
+	Name     string
+	Type     string
+	Capacity int
+}
+
+func (l *LayoutBufferDescription) TypeSize() int {
+	switch l.Type {
+	case "mat4":
+		return mat4Size
+	case "vec4":
+		return vec4Size
+	case "float":
+		return floatSize
+	}
+	slog.Warn("Unexpected type found in Layout buffer description", slog.String("type", l.Type))
+	return 0
+}
+
 type ShaderDefLayout struct {
 	Type    string
 	Flags   []string
 	Count   int
 	Binding int
+	Buffer  *LayoutBufferDescription
 }
 
 func (l ShaderDefLayout) DescriptorType() vk.DescriptorType {
@@ -162,11 +192,6 @@ type ShaderDef struct {
 	RenderPass string
 	Pipeline   string
 }
-
-const (
-	floatSize = int(unsafe.Sizeof(matrix.Float(0.0)))
-	vec4Size  = int(unsafe.Sizeof(matrix.Vec4{}))
-)
 
 type defType struct {
 	size   uint32

@@ -122,24 +122,26 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
-	Textures     []*Texture
-	Instances    []DrawInstance
-	instanceData []byte
-	instanceSize int
-	visibleCount int
-	padding      int
-	useBlending  bool
-	destroyed    bool
+	Textures          []*Texture
+	Instances         []DrawInstance
+	instanceData      []byte
+	namedInstanceData map[string][]byte
+	instanceSize      int
+	visibleCount      int
+	padding           int
+	useBlending       bool
+	destroyed         bool
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 	return DrawInstanceGroup{
-		Mesh:         mesh,
-		Instances:    make([]DrawInstance, 0),
-		instanceData: make([]byte, 0),
-		instanceSize: dataSize,
-		padding:      dataSize % 16,
-		destroyed:    false,
+		Mesh:              mesh,
+		Instances:         make([]DrawInstance, 0),
+		instanceData:      make([]byte, 0),
+		namedInstanceData: make(map[string][]byte),
+		instanceSize:      dataSize,
+		padding:           dataSize % 16,
+		destroyed:         false,
 	}
 }
 

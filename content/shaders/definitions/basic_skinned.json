@@ -1,0 +1,37 @@
+{
+	"Vulkan": {
+		"Vert": "shaders/spv/basic_skinned.vert.spv",
+		"Frag": "shaders/spv/basic.frag.spv"
+	},
+	"Fields": [{
+		"Name": "model",
+		"Type": "mat4"
+	}, {
+		"Name": "color",
+		"Type": "vec4"
+	}, {
+		"Name": "skinIndex",
+		"Type": "int32"
+	}],
+	"Layouts": [{
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex", "Fragment"],
+		"Count": 1,
+		"Binding": 0
+	}, {
+		"Type": "CombinedImageSampler",
+		"Flags": ["Fragment"],
+		"Count": 1,
+		"Binding": 1
+	}, {
+		"Type": "UniformBuffer",
+		"Flags": ["Vertex"],
+		"Count": 1,
+		"Binding": 10,
+		"Buffer": {
+			"Name": "Skinning",
+			"Type": "mat4",
+			"Capacity": 2500
+		}
+	}]
+}

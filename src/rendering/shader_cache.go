@@ -105,6 +105,7 @@ func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
 	shader, isNew := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
 		def.Vulkan.Tesc, def.Vulkan.Tese, definitionKey, c.Pass(def.RenderPass))
 	if isNew {
+		shader.definition = &def
 		shader.DriverData.setup(def, baseVertexAttributeCount, c.ShaderPipeline(def.Pipeline))
 	}
 	return shader

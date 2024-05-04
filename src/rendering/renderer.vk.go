@@ -633,10 +633,15 @@ func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 	pd := bufferTrash{delay: maxFramesInFlight}
 	pd.pool = group.descriptorPool
 	for i := 0; i < maxFramesInFlight; i++ {
-		pd.buffers[i] = group.instanceBuffers[i]
-		pd.memories[i] = group.instanceBuffersMemory[i]
+		pd.buffers[i] = group.instanceBuffer.buffers[i]
+		pd.memories[i] = group.instanceBuffer.memories[i]
 		pd.sets[i] = group.descriptorSets[i]
+		for k := range group.namedBuffers {
+			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.namedBuffers[k].buffers[i])
+			pd.namedMemories[i] = append(pd.namedMemories[i], group.namedBuffers[k].memories[i])
+		}
 	}
+	clear(group.namedBuffers)
 	vr.bufferTrash.Add(pd)
 }
 

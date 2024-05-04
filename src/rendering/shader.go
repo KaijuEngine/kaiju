@@ -52,6 +52,7 @@ type Shader struct {
 	RenderPass *RenderPass
 	DriverData ShaderDriverData
 	subShaders map[string]*Shader
+	definition *ShaderDef
 }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {

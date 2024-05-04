@@ -39,14 +39,24 @@ package rendering
 
 import vk "kaiju/rendering/vulkan"
 
+type InstanceGroupSkinningData struct {
+}
+
+type ShaderBuffer struct {
+	bindingId int
+	size      vk.DeviceSize
+	buffers   [maxFramesInFlight]vk.Buffer
+	memories  [maxFramesInFlight]vk.DeviceMemory
+}
+
 type InstanceDriverData struct {
-	descriptorPool        vk.DescriptorPool
-	descriptorSets        [maxFramesInFlight]vk.DescriptorSet
-	instanceBuffers       [maxFramesInFlight]vk.Buffer
-	instanceBuffersMemory [maxFramesInFlight]vk.DeviceMemory
-	imageInfos            []vk.DescriptorImageInfo
-	lastInstanceCount     int
-	generatedSets         bool
+	descriptorPool    vk.DescriptorPool
+	descriptorSets    [maxFramesInFlight]vk.DescriptorSet
+	instanceBuffer    ShaderBuffer
+	imageInfos        []vk.DescriptorImageInfo
+	namedBuffers      map[string]ShaderBuffer
+	lastInstanceCount int
+	generatedSets     bool
 }
 
 func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader *Shader) {
@@ -56,9 +66,9 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader
 			shader.RenderId.descriptorSetLayout, 0)
 		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.Textures))
 		d.generatedSets = true
+		d.instanceBuffer.bindingId = 1
 	}
 }
 
 func (d *DrawInstanceGroup) bindInstanceDriverData() {
-
 }

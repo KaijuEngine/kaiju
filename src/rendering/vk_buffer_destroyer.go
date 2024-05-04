@@ -45,11 +45,13 @@ import (
 )
 
 type bufferTrash struct {
-	delay    int
-	pool     vk.DescriptorPool
-	sets     [maxFramesInFlight]vk.DescriptorSet
-	buffers  [maxFramesInFlight]vk.Buffer
-	memories [maxFramesInFlight]vk.DeviceMemory
+	delay         int
+	pool          vk.DescriptorPool
+	sets          [maxFramesInFlight]vk.DescriptorSet
+	buffers       [maxFramesInFlight]vk.Buffer
+	memories      [maxFramesInFlight]vk.DeviceMemory
+	namedBuffers  [maxFramesInFlight][]vk.Buffer
+	namedMemories [maxFramesInFlight][]vk.DeviceMemory
 }
 
 type bufferDestroyer struct {
@@ -88,6 +90,12 @@ func (b *bufferDestroyer) Cycle() {
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.buffers[j])))
 				vk.FreeMemory(b.device, pd.memories[j], nil)
 				b.dbg.remove(uintptr(unsafe.Pointer(pd.memories[j])))
+				for k := range pd.namedBuffers {
+					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
+					b.dbg.remove(uintptr(unsafe.Pointer(pd.namedBuffers[j][k])))
+					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
+					b.dbg.remove(uintptr(unsafe.Pointer(pd.namedMemories[j][k])))
+				}
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
 				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])

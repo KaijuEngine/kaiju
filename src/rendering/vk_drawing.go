@@ -46,6 +46,21 @@ import (
 	vk "kaiju/rendering/vulkan"
 )
 
+func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
+	var data unsafe.Pointer
+	r := vk.MapMemory(vr.device, sb.memories[vr.currentFrame], 0, mapLen, 0, &data)
+	if r != vk.Success {
+		slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
+		return false
+	} else if data == nil {
+		slog.Error("MapMemory was a success, but data is nil")
+		return false
+	}
+	vk.Memcopy(data, fromBuffer)
+	vk.UnmapMemory(vr.device, sb.memories[vr.currentFrame])
+	return true
+}
+
 func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGroup) {
 	shaderDataSize := key.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
@@ -60,18 +75,21 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 		}
 		vr.resizeUniformBuffer(key, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
-		var data unsafe.Pointer
 		mapLen := instanceLen
-		r := vk.MapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame], 0, mapLen, 0, &data)
-		if r != vk.Success {
-			slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
-			continue
-		} else if data == nil {
-			slog.Error("MapMemory was a success, but data is nil")
+		if !vr.mapAndCopy(group.instanceData, group.instanceBuffer, mapLen) {
 			continue
 		}
-		vk.Memcopy(data, group.instanceData)
-		vk.UnmapMemory(vr.device, group.instanceBuffersMemory[vr.currentFrame])
+		skip := false
+		for k := range group.namedInstanceData {
+			if !vr.mapAndCopy(group.namedInstanceData[k],
+				group.namedBuffers[k], group.namedBuffers[k].size) {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]
 		globalInfo := bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
 			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
@@ -160,9 +178,15 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		vbOffsets := [...]vk.DeviceSize{0}
 		vb := [...]vk.Buffer{meshId.vertexBuffer}
 		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, &vb[0], &vbOffsets[0])
-		instanceBuffers := [...]vk.Buffer{group.instanceBuffers[vr.currentFrame]}
+		instanceBuffers := [...]vk.Buffer{group.instanceBuffer.buffers[vr.currentFrame]}
 		ibOffsets := [...]vk.DeviceSize{0}
-		vk.CmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffers[0], &ibOffsets[0])
+		vk.CmdBindVertexBuffers(commandBuffer, uint32(group.instanceBuffer.bindingId),
+			1, &instanceBuffers[0], &ibOffsets[0])
+		for k := range group.namedBuffers {
+			namedBuffers := [...]vk.Buffer{group.namedBuffers[k].buffers[vr.currentFrame]}
+			vk.CmdBindVertexBuffers(commandBuffer, uint32(group.namedBuffers[k].bindingId),
+				1, &namedBuffers[0], &ibOffsets[0])
+		}
 		//shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
@@ -199,9 +223,15 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 		vb := [...]vk.Buffer{meshId.vertexBuffer}
 		vbOffsets := [...]vk.DeviceSize{offsets}
 		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, &vb[0], &vbOffsets[0])
-		instanceBuffers := [...]vk.Buffer{group.instanceBuffers[vr.currentFrame]}
+		instanceBuffers := [...]vk.Buffer{group.instanceBuffer.buffers[vr.currentFrame]}
 		ibOffsets := [...]vk.DeviceSize{0}
-		vk.CmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffers[0], &ibOffsets[0])
+		vk.CmdBindVertexBuffers(commandBuffer, uint32(group.instanceBuffer.bindingId),
+			1, &instanceBuffers[0], &ibOffsets[0])
+		for k := range group.namedBuffers {
+			namedBuffers := [...]vk.Buffer{group.namedBuffers[k].buffers[vr.currentFrame]}
+			vk.CmdBindVertexBuffers(commandBuffer, uint32(group.namedBuffers[k].bindingId),
+				1, &namedBuffers[0], &ibOffsets[0])
+		}
 		//draw.shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
@@ -346,24 +376,45 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 	currentCount := len(group.Instances)
 	lastCount := group.InstanceDriverData.lastInstanceCount
 	if currentCount > lastCount {
-		if group.instanceBuffers[0] != vk.Buffer(vk.NullHandle) {
+		if group.instanceBuffer.buffers[0] != vk.Buffer(vk.NullHandle) {
 			pd := bufferTrash{delay: maxFramesInFlight}
 			for i := 0; i < maxFramesInFlight; i++ {
-				pd.buffers[i] = group.instanceBuffers[i]
-				pd.memories[i] = group.instanceBuffersMemory[i]
-				group.instanceBuffers[i] = vk.Buffer(vk.NullHandle)
-				group.instanceBuffersMemory[i] = vk.DeviceMemory(vk.NullHandle)
+				pd.buffers[i] = group.instanceBuffer.buffers[i]
+				pd.memories[i] = group.instanceBuffer.memories[i]
+				group.instanceBuffer.buffers[i] = vk.Buffer(vk.NullHandle)
+				group.instanceBuffer.memories[i] = vk.DeviceMemory(vk.NullHandle)
+				for k := range group.namedBuffers {
+					pd.namedBuffers[i] = append(pd.namedBuffers[i], group.namedBuffers[k].buffers[i])
+					pd.namedMemories[i] = append(pd.namedMemories[i], group.namedBuffers[k].memories[i])
+				}
 			}
+			clear(group.namedBuffers)
 			vr.bufferTrash.Add(pd)
 		}
 		if currentCount > 0 {
 			group.generateInstanceDriverData(vr, shader)
 			iSize := vr.padUniformBufferSize(vk.DeviceSize(shader.DriverData.Stride))
+			group.instanceBuffer.size = iSize
 			for i := 0; i < maxFramesInFlight; i++ {
 				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
 					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
 					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
-					&group.instanceBuffers[i], &group.instanceBuffersMemory[i])
+					&group.instanceBuffer.buffers[i], &group.instanceBuffer.memories[i])
+				if shader.definition != nil {
+					for i := range shader.definition.Layouts {
+						if shader.definition.Layouts[i].Buffer != nil {
+							b := shader.definition.Layouts[i].Buffer
+							buff := ShaderBuffer{}
+							count := min(currentCount, b.Capacity)
+							buff.size = vr.padUniformBufferSize(vk.DeviceSize(b.TypeSize()))
+							vr.CreateBuffer(buff.size*vk.DeviceSize(count),
+								vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
+								vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[i], &buff.memories[i])
+							buff.bindingId = shader.definition.Layouts[i].Binding
+							group.namedBuffers[b.Name] = buff
+						}
+					}
+				}
 			}
 			group.AlterPadding(int(iSize))
 		}

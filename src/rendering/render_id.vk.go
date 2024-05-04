@@ -94,18 +94,16 @@ func NewShaderDriverData() ShaderDriverData {
 }
 
 type ShaderId struct {
-	instanceCount                int
-	currentUBSizes               [maxFramesInFlight]uint64
-	graphicsPipeline             vk.Pipeline
-	pipelineLayout               vk.PipelineLayout
-	descriptorSetLayout          vk.DescriptorSetLayout
-	vertModule                   vk.ShaderModule
-	fragModule                   vk.ShaderModule
-	geomModule                   vk.ShaderModule
-	tescModule                   vk.ShaderModule
-	teseModule                   vk.ShaderModule
-	skinningUniformBuffers       [maxFramesInFlight]vk.Buffer
-	skinningUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
+	instanceCount       int
+	currentUBSizes      [maxFramesInFlight]uint64
+	graphicsPipeline    vk.Pipeline
+	pipelineLayout      vk.PipelineLayout
+	descriptorSetLayout vk.DescriptorSetLayout
+	vertModule          vk.ShaderModule
+	fragModule          vk.ShaderModule
+	geomModule          vk.ShaderModule
+	tescModule          vk.ShaderModule
+	teseModule          vk.ShaderModule
 }
 
 func (s ShaderId) IsValid() bool {
