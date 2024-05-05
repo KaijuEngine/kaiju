@@ -425,7 +425,7 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 						b := shader.definition.Layouts[i].Buffer
 						buff := group.namedBuffers[b.Name]
 						count := min(currentCount, b.Capacity)
-						buff.size = vr.padUniformBufferSize(vk.DeviceSize(b.TypeSize()))
+						buff.size = vr.padUniformBufferSize(vk.DeviceSize(len(group.namedInstanceData[b.Name].bytes)))
 						buff.bindingId = shader.definition.Layouts[i].Binding
 						for j := 0; j < maxFramesInFlight; j++ {
 							vr.CreateBuffer(buff.size*vk.DeviceSize(count),
