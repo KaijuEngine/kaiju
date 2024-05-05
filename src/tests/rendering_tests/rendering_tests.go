@@ -68,6 +68,42 @@ func (t TestBasicShaderData) Size() int {
 	return size
 }
 
+type BoneTransform struct {
+	Transform *matrix.Transform
+	Skin      matrix.Mat4
+}
+
+type TestBasicSkinnedShaderData struct {
+	Bones           []BoneTransform
+	jointTransforms [rendering.MaxJoints]matrix.Mat4
+	rendering.ShaderDataBase
+	Color     matrix.Color
+	SkinIndex int32
+}
+
+func (t TestBasicSkinnedShaderData) Size() int {
+	const size = int(unsafe.Sizeof(TestBasicSkinnedShaderData{}) - rendering.ShaderBaseDataStart)
+	return size
+}
+
+func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name string) bool {
+	cap := capacity / rendering.MaxJoints
+	if index > cap {
+		t.SkinIndex = int32(index % cap)
+		return false
+	}
+	t.SkinIndex = int32(index)
+	for i := range t.Bones {
+		b := &t.Bones[i]
+		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
+	}
+	return true
+}
+
+func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointer {
+	return unsafe.Pointer(&t.jointTransforms)
+}
+
 func testDrawing(host *engine.Host) {
 	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
@@ -300,6 +336,93 @@ func testMonkeyGLB(host *engine.Host) {
 	drawBasicMesh(host, res)
 }
 
+func testAnimationGLTF(host *engine.Host) {
+	const farmerGLTF = "editor/meshes/cube_animation.gltf"
+	host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
+	//host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
+	res := klib.MustReturn(loaders.GLTF(farmerGLTF, host.AssetDatabase()))
+	m := res.Meshes[0]
+	textures := make([]*rendering.Texture, 0)
+	for i := range res.Textures {
+		tex, _ := host.TextureCache().Texture(res.Textures[i], rendering.TextureFilterLinear)
+		textures = append(textures, tex)
+	}
+	if len(textures) == 0 {
+		tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		textures = append(textures, tex)
+	}
+	entities := make([]*engine.Entity, len(res.Nodes))
+	boneTransforms := make([]BoneTransform, len(res.Joints))
+	for i := range res.Nodes {
+		entities[i] = engine.NewEntity()
+		entities[i].SetName(res.Nodes[i].Name)
+		entities[i].Transform = res.Nodes[i].Transform
+	}
+	for i := range res.Joints {
+		boneTransforms[i] = BoneTransform{
+			&entities[res.Joints[i].Id].Transform,
+			res.Joints[i].Skin,
+		}
+	}
+	for i := range entities {
+		if res.Nodes[i].Parent >= 0 {
+			entities[i].SetParent(entities[res.Nodes[i].Parent])
+		}
+	}
+	host.AddEntities(entities...)
+	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
+	host.MeshCache().AddMesh(mesh)
+	sd := TestBasicSkinnedShaderData{
+		Bones:     boneTransforms,
+		Color:     matrix.ColorWhite(),
+		SkinIndex: 0,
+	}
+	sd.Setup()
+	host.Drawings.AddDrawing(&rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasicSkinned),
+		Mesh:       mesh,
+		Textures:   textures,
+		ShaderData: &sd,
+		CanvasId:   "default",
+	})
+	{
+		frame := 0
+		animTime := 0.0
+		host.Updater.AddUpdate(func(f float64) {
+			animTime += f
+			if animTime >= float64(res.Animations[0].Frames[frame].Time) {
+				frame++
+				if frame >= len(res.Animations[0].Frames) {
+					frame = 0
+					animTime = 0
+				}
+			}
+			for i := range res.Animations[0].Frames[frame].Bones {
+				b := &res.Animations[0].Frames[frame].Bones[i]
+				var bone *matrix.Transform
+				for j := range sd.Bones {
+					if sd.Bones[j].Transform.Identifier == uint8(b.NodeIndex) {
+						bone = sd.Bones[j].Transform
+						break
+					}
+				}
+				if bone == nil {
+					continue
+				}
+				switch b.PathType {
+				case load_result.AnimPathTranslation:
+					bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
+				case load_result.AnimPathRotation:
+					bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
+				case load_result.AnimPathScale:
+					bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
+				}
+			}
+		})
+	}
+}
+
 func SetupConsole(host *engine.Host) {
 	console.For(host).AddCommand("render.test", "Open a rendering test given it's name", func(_ *engine.Host, t string) string {
 		var testFunc func(*engine.Host) = nil
@@ -332,12 +455,15 @@ func SetupConsole(host *engine.Host) {
 			testFunc = testMonkeyGLTF
 		case "glb":
 			testFunc = testMonkeyGLB
+		case "animation":
+			testFunc = testAnimationGLTF
 		}
 		if testFunc != nil {
 			c := host_container.New("Test "+t, nil)
 			go c.Run(engine.DefaultWindowWidth,
 				engine.DefaultWindowHeight, -1, -1)
 			<-c.PrepLock
+			c.Host.AssetDatabase().EditorContext.EditorPath = host.AssetDatabase().EditorContext.EditorPath
 			c.Host.Camera.SetPosition(matrix.Vec3Backward().Scale(2))
 			testFunc(c.Host)
 		}

@@ -182,6 +182,7 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Name = n.Name
 		res.Nodes[i].Transform = matrix.NewTransform()
+		res.Nodes[i].Transform.Identifier = uint8(i)
 		for j := range n.Children {
 			res.Nodes[n.Children[j]].Parent = i
 		}
