@@ -47,6 +47,7 @@ import (
 	"kaiju/rendering/loaders/gltf"
 	"kaiju/rendering/loaders/load_result"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unsafe"
 )
@@ -529,6 +530,15 @@ func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
 				key.Bones = append(key.Bones, bone)
 			}
 		}
+		slices.SortFunc(anims[i].Frames, func(a, b load_result.AnimKeyFrame) int {
+			return int((a.Time - b.Time) * 10000)
+		})
+		// Convert frame from absolute time to relative time length
+		for j := range anims[i].Frames[:len(anims[i].Frames)-1] {
+			anims[i].Frames[j].Time = anims[i].Frames[j+1].Time - anims[i].Frames[j].Time
+		}
+		// Last frame should be a goal and not have time?
+		anims[i].Frames[len(anims[i].Frames)-1].Time = 0.0
 	}
 	return anims
 }
