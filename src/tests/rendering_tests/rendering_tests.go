@@ -86,7 +86,17 @@ func (t TestBasicSkinnedShaderData) Size() int {
 	return size
 }
 
+func (t *TestBasicSkinnedShaderData) NamedDataInstanceSize(name string) int {
+	if name != "Skinning" {
+		return 0
+	}
+	return int(unsafe.Sizeof(t.jointTransforms))
+}
+
 func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name string) bool {
+	if name != "Skinning" {
+		return false
+	}
 	cap := capacity / rendering.MaxJoints
 	if index > cap {
 		t.SkinIndex = int32(index % cap)
@@ -95,12 +105,15 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 	t.SkinIndex = int32(index)
 	for i := range t.Bones {
 		b := &t.Bones[i]
-		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
+		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 	}
 	return true
 }
 
 func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointer {
+	if name != "Skinning" {
+		return nil
+	}
 	return unsafe.Pointer(&t.jointTransforms)
 }
 
@@ -393,9 +406,9 @@ func testAnimationGLTF(host *engine.Host) {
 			animTime += f
 			if animTime >= float64(res.Animations[0].Frames[frame].Time) {
 				frame++
+				animTime = 0
 				if frame >= len(res.Animations[0].Frames) {
 					frame = 0
-					animTime = 0
 				}
 			}
 			for i := range res.Animations[0].Frames[frame].Bones {
