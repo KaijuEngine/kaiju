@@ -52,6 +52,7 @@ type Transform struct {
 	isDirty                   bool
 	isLive                    bool
 	orderedChildren           bool
+	Identifier                uint8 // Typically just used for bone index right now
 }
 
 func NewTransform() Transform {

@@ -39,6 +39,7 @@ package klib
 
 import (
 	"math/rand"
+	"slices"
 	"unsafe"
 )
 
@@ -62,6 +63,15 @@ func Contains[T comparable](slice []T, item T) bool {
 		}
 	}
 	return false
+}
+
+func AppendUnique[T comparable](slice []T, values ...T) []T {
+	for i := range values {
+		if !slices.Contains(slice, values[i]) {
+			slice = append(slice, values[i])
+		}
+	}
+	return slice
 }
 
 func ByteSliceToFloat32Slice(data []byte) []float32 {

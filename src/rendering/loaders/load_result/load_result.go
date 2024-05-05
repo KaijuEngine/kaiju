@@ -87,7 +87,13 @@ type Animation struct {
 
 type Node struct {
 	Name      string
+	Parent    int
 	Transform matrix.Transform
+}
+
+type Joint struct {
+	Id   int32
+	Skin matrix.Mat4
 }
 
 type Result struct {
@@ -95,6 +101,7 @@ type Result struct {
 	Meshes     []Mesh
 	Textures   []string
 	Animations []Animation
+	Joints     []Joint
 }
 
 func NewResult() Result {

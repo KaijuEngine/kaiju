@@ -47,6 +47,7 @@ import (
 	"kaiju/rendering/loaders/gltf"
 	"kaiju/rendering/loaders/load_result"
 	"path/filepath"
+	"strings"
 	"unsafe"
 )
 
@@ -159,10 +160,31 @@ func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
 func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	res := load_result.NewResult()
 	res.Nodes = make([]load_result.Node, len(doc.glTF.Nodes))
+	for i := range res.Nodes {
+		res.Nodes[i].Parent = -1
+	}
+	// TODO:  Deal with multiple skins
+	if len(doc.glTF.Skins) > 0 {
+		bv := doc.glTF.BufferViews[doc.glTF.Skins[0].InverseBindMatrices]
+		bin := klib.ByteSliceToFloat32Slice(doc.bins[bv.Buffer][bv.ByteOffset : bv.ByteOffset+bv.ByteLength])
+		for _, id := range doc.glTF.Skins[0].Joints {
+			if !strings.HasPrefix(doc.glTF.Nodes[id].Name, "DRV_") &&
+				!strings.HasPrefix(doc.glTF.Nodes[id].Name, "CTRL_") {
+				res.Joints = append(res.Joints, load_result.Joint{
+					Id:   id,
+					Skin: matrix.Mat4FromSlice(bin),
+				})
+			}
+			bin = bin[16:]
+		}
+	}
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Name = n.Name
 		res.Nodes[i].Transform = matrix.NewTransform()
+		for j := range n.Children {
+			res.Nodes[n.Children[j]].Parent = i
+		}
 		// TODO:  Come back for this scenario
 		//if n.Matrix != nil {
 		//}

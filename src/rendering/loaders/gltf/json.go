@@ -56,6 +56,7 @@ type Scene struct {
 
 type Node struct {
 	Name        string             `json:"name"`
+	Children    []int32            `json:"children"`
 	Mesh        *int32             `json:"mesh"`
 	Camera      *int32             `json:"camera"`
 	Skin        *int32             `json:"skin"`
