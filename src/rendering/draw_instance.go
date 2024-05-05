@@ -61,6 +61,7 @@ type DrawInstance interface {
 	// Returns true if it should write the data, otherwise false
 	UpdateNamedData(index, capacity int, name string) bool
 	NamedDataPointer(name string) unsafe.Pointer
+	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
 }
 
@@ -130,6 +131,8 @@ func (s *ShaderDataBase) UpdateNamedData(index, capacity int, name string) bool 
 
 func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer { return nil }
 
+func (s *ShaderDataBase) NamedDataInstanceSize(name string) int { return 0 }
+
 type InstanceCopyData struct {
 	bytes   []byte
 	padding int
@@ -196,7 +199,7 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer
 				b := shader.definition.Layouts[i].Buffer
 				s := d.namedInstanceData[b.Name]
 				if len(s.bytes) < b.TypeSize()*b.Capacity {
-					s.bytes = append(s.bytes, make([]byte, b.TypeSize()+s.padding)...)
+					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(b.Name)+s.padding)...)
 					d.namedInstanceData[b.Name] = s
 				}
 			}
@@ -235,7 +238,7 @@ func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, na
 		offset := uintptr(d.namedBuffers[name].stride * index)
 		base := unsafe.Pointer(&d.namedInstanceData[name].bytes[0])
 		to := unsafe.Pointer(uintptr(base) + offset)
-		klib.Memcpy(to, ptr, uint64(d.instanceSize))
+		klib.Memcpy(to, ptr, uint64(len(d.namedInstanceData[name].bytes)))
 	}
 }
 
