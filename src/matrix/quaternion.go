@@ -56,6 +56,14 @@ func QuaternionIdentity() Quaternion {
 	return Quaternion{1, 0, 0, 0}
 }
 
+func QuaternionFromXYZW(xyzw [4]Float) Quaternion {
+	return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]}
+}
+
+func QuaternionFromXYZWSlice(xyzw []Float) Quaternion {
+	return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]}
+}
+
 func QuaternionFromVec4(v Vec4) Quaternion {
 	return Quaternion{v.X(), v.Y(), v.Z(), v.W()}
 }
@@ -94,28 +102,22 @@ func QuaternionFromMat4(m Mat4) Quaternion {
 }
 
 func (q Quaternion) ToMat4() Mat4 {
-	out := Mat4Identity()
-	sqw := q.W() * q.W()
-	sqx := q.X() * q.X()
-	sqy := q.Y() * q.Y()
-	sqz := q.Z() * q.Z()
-	invs := 1.0 / (sqx + sqy + sqz + sqw)
-	out[x0y0] = (sqx - sqy - sqz + sqw) * invs
-	out[x1y1] = (-sqx + sqy - sqz + sqw) * invs
-	out[x2y2] = (-sqx - sqy + sqz + sqw) * invs
-	tmp1 := q.X() * q.Y()
-	tmp2 := q.Z() * q.W()
-	out[x1y0] = 2.0 * (tmp1 + tmp2) * invs
-	out[x0y1] = 2.0 * (tmp1 - tmp2) * invs
-	tmp1 = q.X() * q.Z()
-	tmp2 = q.Y() * q.W()
-	out[x2y0] = 2.0 * (tmp1 - tmp2) * invs
-	out[x0y2] = 2.0 * (tmp1 + tmp2) * invs
-	tmp1 = q.Y() * q.Z()
-	tmp2 = q.X() * q.W()
-	out[x2y1] = 2.0 * (tmp1 + tmp2) * invs
-	out[x1y2] = 2.0 * (tmp1 - tmp2) * invs
-	return out
+	x, y, z, w := q.X(), q.Y(), q.Z(), q.W()
+	xx := x * x
+	xy := x * y
+	xz := x * z
+	xw := x * w
+	yy := y * y
+	yz := y * z
+	yw := y * w
+	zz := z * z
+	zw := z * w
+	return Mat4{
+		1 - 2*(yy+zz), 2 * (xy - zw), 2 * (xz + yw), 0,
+		2 * (xy + zw), 1 - 2*(xx+zz), 2 * (yz - xw), 0,
+		2 * (xz - yw), 2 * (yz + xw), 1 - 2*(xx+yy), 0,
+		0, 0, 0, 1,
+	}
 }
 
 func QuaternionFromEuler(v Vec3) Quaternion {
