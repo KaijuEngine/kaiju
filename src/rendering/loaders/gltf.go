@@ -194,7 +194,8 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			res.Nodes[i].Transform.SetScale(*n.Scale)
 		}
 		if n.Rotation != nil {
-			res.Nodes[i].Transform.SetRotation(n.Rotation.ToEuler())
+			q := matrix.QuaternionFromXYZW(*n.Rotation)
+			res.Nodes[i].Transform.SetRotation(q.ToEuler())
 		}
 		if n.Translation != nil {
 			res.Nodes[i].Transform.SetRotation(*n.Translation)
@@ -519,7 +520,8 @@ func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
 					bone.Data = matrix.Vec3FromSlice(fOut).AsAligned16()
 					fOut = fOut[3:]
 				case load_result.AnimPathRotation:
-					bone.Data = matrix.Vec4FromSlice(fOut)
+					// glTF has the specification as XYZW instead of WXYZ
+					bone.Data = matrix.QuaternionFromXYZWSlice(fOut)
 					fOut = fOut[4:]
 				case load_result.AnimPathScale:
 					bone.Data = matrix.Vec3FromSlice(fOut).AsAligned16()
