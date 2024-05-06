@@ -293,27 +293,27 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 	}
 
 	// TODO:  Probably need to support multiple buffers, but they are NULL?
-	verts := gltfViewBytes(doc, pos)
-	vertNormals := gltfViewBytes(doc, nml)
-	var texCoords0 []byte
-	var tangent []byte
+	verts := klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, pos))
+	vertNormals := klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, nml))
+	var texCoords0 []float32
+	var tangent []float32
 	if tex0 != nil {
-		texCoords0 = gltfViewBytes(doc, tex0)
+		texCoords0 = klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, tex0))
 	} else {
 		texCoords0 = nil
 	}
 	if tan != nil {
-		tangent = gltfViewBytes(doc, tan)
+		tangent = klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, tan))
 	} else {
 		tangent = nil
 	}
 	//const uint8_t* vertColors = col0 != NULL
 	//	? (uint8_t*)gltfData.bin + col0.data.buffer_view.offset : NULL;
 	jointIds := make([]byte, 0)
-	weights := make([]byte, 0)
+	weights := make([]float32, 0)
 	if jnt0 != nil {
 		jointIds = gltfViewBytes(doc, jnt0)
-		weights = gltfViewBytes(doc, wei0)
+		weights = klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, wei0))
 	}
 
 	//size_t vertNormalsSize = nml.data.buffer_view.size;
@@ -355,46 +355,53 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 	const v3size = int32(unsafe.Sizeof(matrix.Vec3{}))
 	const v2size = int32(unsafe.Sizeof(matrix.Vec2{}))
 	for i := int32(0); i < vertCount; i++ {
-		klib.Memcpy(unsafe.Pointer(&vertData[i].Position), unsafe.Pointer(&verts[i*v3size]), uint64(unsafe.Sizeof(vertData[i].Position)))
+		vertData[i].Position = matrix.Vec3FromSlice(verts)
+		verts = verts[3:]
 		vertData[i].Color = vertColor
 		vertData[i].MorphTarget = vertData[i].Position
 		// NAN is being exported for colors, so skipping this line
 		//vertData[j].color = (vertColors != NULL ? ((color*)vertColors)[j] : color_white());
 		vertData[i].Color.MultiplyAssign(vertColor)
-		joint := [4]int{0, 0, 0, 0}
+		joint := [4]int32{0, 0, 0, 0}
 		const jointSize = uint64(unsafe.Sizeof(joint))
 		if len(jointIds) > 0 {
 			switch jnt0Acc.ComponentType {
 			case gltf.UNSIGNED_BYTE:
-				ptr := jointIds[i*4:]
-				joint[0] = int(ptr[0])
-				joint[1] = int(ptr[1])
-				joint[2] = int(ptr[2])
-				joint[3] = int(ptr[3])
+				joint[0] = int32(jointIds[0])
+				joint[1] = int32(jointIds[1])
+				joint[2] = int32(jointIds[2])
+				joint[3] = int32(jointIds[3])
+				jointIds = jointIds[4:]
 			case gltf.UNSIGNED_SHORT:
-				ptr := jointIds[i*4*2:]
-				joint[0] = int(ptr[0])
-				joint[1] = int(ptr[1])
-				joint[2] = int(ptr[2])
-				joint[3] = int(ptr[3])
+				ptr := klib.ByteSliceToUInt16Slice(jointIds)
+				joint[0] = int32(ptr[0])
+				joint[1] = int32(ptr[1])
+				joint[2] = int32(ptr[2])
+				joint[3] = int32(ptr[3])
+				jointIds = jointIds[4*2:]
 			default:
-				klib.Memcpy(unsafe.Pointer(&joint[0]), unsafe.Pointer(&jointIds[i]), jointSize)
+				klib.Memcpy(unsafe.Pointer(&joint[0]), unsafe.Pointer(&jointIds[0]), jointSize)
+				jointIds = jointIds[jointSize:]
 			}
 		}
-		klib.Memcpy(unsafe.Pointer(&vertData[i].JointIds), unsafe.Pointer(&joint[0]), jointSize)
+		vertData[i].JointIds = matrix.Vec4i{joint[0], joint[1], joint[2], joint[3]}
 		if len(weights) > 0 {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].JointWeights), unsafe.Pointer(&weights[i*v4size]), uint64(v4size))
+			vertData[i].JointWeights = matrix.Vec4FromSlice(weights)
+			weights = weights[4:]
 		} else {
 			vertData[i].JointWeights = matrix.Vec4Zero()
 		}
-		klib.Memcpy(unsafe.Pointer(&vertData[i].Normal), unsafe.Pointer(&vertNormals[i*v3size]), uint64(v3size))
+		vertData[i].Normal = matrix.Vec3FromSlice(vertNormals)
+		vertNormals = vertNormals[3:]
 		if tangent != nil {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].Tangent), unsafe.Pointer(&tangent[i*v4size]), uint64(v4size))
+			vertData[i].Tangent = matrix.Vec4FromSlice(tangent)
+			tangent = tangent[4:]
 		} else {
 			vertData[i].Tangent = matrix.Vec4Zero()
 		}
 		if texCoords0 != nil {
-			klib.Memcpy(unsafe.Pointer(&vertData[i].UV0), unsafe.Pointer(&texCoords0[i*v2size]), uint64(v2size))
+			vertData[i].UV0 = matrix.Vec2FromSlice(texCoords0)
+			texCoords0 = texCoords0[2:]
 		} else {
 			vertData[i].UV0 = matrix.Vec2Zero()
 		}
@@ -490,9 +497,9 @@ func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
 			iv := &doc.glTF.BufferViews[sampler.Input]
 			ov := &doc.glTF.BufferViews[sampler.Output]
 			// Times ([]float32) of the key frames of the animation
-			in := doc.bins[iv.Buffer][iv.ByteOffset : iv.ByteOffset+iv.ByteLength]
+			in := gltfViewBytes(doc, iv)
 			// Values for the animated properties at the respective key frames
-			out := doc.bins[ov.Buffer][ov.ByteOffset : ov.ByteOffset+ov.ByteLength]
+			out := gltfViewBytes(doc, ov)
 			fIn := klib.ByteSliceToFloat32Slice(in)
 			fOut := klib.ByteSliceToFloat32Slice(out)
 			for k := 0; k < len(fIn); k++ {
