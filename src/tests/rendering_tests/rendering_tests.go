@@ -105,7 +105,11 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 	t.SkinIndex = int32(index)
 	for i := range t.Bones {
 		b := &t.Bones[i]
-		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
+		global := b.Transform.WorldMatrix()
+		inverseRoot := b.Transform.RootMatrix()
+		inverseRoot.Inverse()
+		global.MultiplyAssign(inverseRoot)
+		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
 	}
 	return true
 }
@@ -351,8 +355,8 @@ func testMonkeyGLB(host *engine.Host) {
 
 func testAnimationGLTF(host *engine.Host) {
 	const farmerGLTF = "editor/meshes/cube_animation.gltf"
-	host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
-	//host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
+	//host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
+	host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
 	res := klib.MustReturn(loaders.GLTF(farmerGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
