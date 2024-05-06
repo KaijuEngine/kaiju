@@ -166,8 +166,9 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	}
 	// TODO:  Deal with multiple skins
 	if len(doc.glTF.Skins) > 0 {
-		bv := doc.glTF.BufferViews[doc.glTF.Skins[0].InverseBindMatrices]
-		bin := klib.ByteSliceToFloat32Slice(doc.bins[bv.Buffer][bv.ByteOffset : bv.ByteOffset+bv.ByteLength])
+		skinAcc := doc.glTF.Accessors[doc.glTF.Skins[0].InverseBindMatrices]
+		bv := doc.glTF.BufferViews[skinAcc.BufferView]
+		bin := klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, &bv))
 		for _, id := range doc.glTF.Skins[0].Joints {
 			if !strings.HasPrefix(doc.glTF.Nodes[id].Name, "DRV_") &&
 				!strings.HasPrefix(doc.glTF.Nodes[id].Name, "CTRL_") {
@@ -351,9 +352,6 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 			vertColor = *mat.PBRMetallicRoughness.BaseColorFactor
 		}
 	}
-	const v4size = int32(unsafe.Sizeof(matrix.Vec4{}))
-	const v3size = int32(unsafe.Sizeof(matrix.Vec3{}))
-	const v2size = int32(unsafe.Sizeof(matrix.Vec2{}))
 	for i := int32(0); i < vertCount; i++ {
 		vertData[i].Position = matrix.Vec3FromSlice(verts)
 		verts = verts[3:]
@@ -494,8 +492,10 @@ func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
 		for j := range doc.glTF.Animations[i].Channels {
 			c := a.Channels[j]
 			sampler := &a.Samplers[c.Sampler]
-			iv := &doc.glTF.BufferViews[sampler.Input]
-			ov := &doc.glTF.BufferViews[sampler.Output]
+			inAcc := &doc.glTF.Accessors[sampler.Input]
+			outAcc := &doc.glTF.Accessors[sampler.Output]
+			iv := &doc.glTF.BufferViews[inAcc.BufferView]
+			ov := &doc.glTF.BufferViews[outAcc.BufferView]
 			// Times ([]float32) of the key frames of the animation
 			in := gltfViewBytes(doc, iv)
 			// Values for the animated properties at the respective key frames
