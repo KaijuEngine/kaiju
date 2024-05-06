@@ -103,13 +103,16 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 		return false
 	}
 	t.SkinIndex = int32(index)
-	for i := range t.Bones {
-		b := &t.Bones[i]
-		global := b.Transform.WorldMatrix()
-		inverseRoot := b.Transform.RootMatrix()
+	if len(t.Bones) > 0 {
+		// TODO:  This expects all bones to have a common root
+		inverseRoot := t.Bones[0].Transform.RootMatrix()
 		inverseRoot.Inverse()
-		global.MultiplyAssign(inverseRoot)
-		t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
+		for i := range t.Bones {
+			b := &t.Bones[i]
+			global := b.Transform.WorldMatrix()
+			global.MultiplyAssign(inverseRoot)
+			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
+		}
 	}
 	return true
 }
@@ -354,10 +357,10 @@ func testMonkeyGLB(host *engine.Host) {
 }
 
 func testAnimationGLTF(host *engine.Host) {
-	const farmerGLTF = "editor/meshes/cube_animation.gltf"
+	const animationGLTF = "editor/meshes/fox/fox.gltf"
 	//host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
-	host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
-	res := klib.MustReturn(loaders.GLTF(farmerGLTF, host.AssetDatabase()))
+	host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
+	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
 	for i := range res.Textures {
