@@ -131,10 +131,10 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 	s2 := Sin(y / 2.0)
 	s3 := Sin(z / 2.0)
 	return Quaternion{
-		c1*c2*c3 - s1*s2*s3,
-		s1*c2*c3 + c1*s2*s3,
-		c1*s2*c3 - s1*c2*s3,
-		c1*c2*s3 + s1*s2*c3,
+		c1*c2*c3 + s1*s2*s3,
+		s1*c2*c3 - c1*s2*s3,
+		c1*s2*c3 + s1*c2*s3,
+		c1*c2*s3 - s1*s2*c3,
 	}
 }
 
@@ -142,12 +142,9 @@ func (q Quaternion) ToEuler() Vec3 {
 	out := Vec3{}
 	m := q.ToMat4()
 	out[Vy] = Rad2Deg(Asin(Clamp(m[x0y2], -1.0, 1.0)))
+	out.SetX(Rad2Deg(Atan2(m[x1y2], m[x2y2])))
 	if Abs(m[x0y2]) < 0.9999999 {
-		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
 		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
-	} else {
-		out.SetX(Rad2Deg(Atan2(m[x2y1], m[x1y1])))
-		out.SetZ(0.0)
 	}
 	return out
 }
