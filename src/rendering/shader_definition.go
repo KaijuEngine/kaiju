@@ -97,6 +97,10 @@ func (l *LayoutBufferDescription) TypeSize() int {
 	return 0
 }
 
+func (l *LayoutBufferDescription) TotalByteCapacity() int {
+	return l.TypeSize() * l.Capacity
+}
+
 type ShaderDefLayout struct {
 	Type    string
 	Flags   []string

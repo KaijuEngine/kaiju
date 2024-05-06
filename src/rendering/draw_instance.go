@@ -198,7 +198,7 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer
 			if shader.definition.Layouts[i].Buffer != nil {
 				b := shader.definition.Layouts[i].Buffer
 				s := d.namedInstanceData[b.Name]
-				if len(s.bytes) < b.TypeSize()*b.Capacity {
+				if len(s.bytes) < b.TotalByteCapacity() {
 					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(b.Name)+s.padding)...)
 					d.namedInstanceData[b.Name] = s
 				}
