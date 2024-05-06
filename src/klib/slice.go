@@ -79,3 +79,9 @@ func ByteSliceToFloat32Slice(data []byte) []float32 {
 	f := *(*[]float32)(unsafe.Pointer(&data))
 	return f[:fLen:fLen]
 }
+
+func ByteSliceToUInt16Slice(data []byte) []uint16 {
+	ui16Len := len(data) / int(unsafe.Sizeof(uint16(0)))
+	u := *(*[]uint16)(unsafe.Pointer(&data))
+	return u[:ui16Len:ui16Len]
+}
