@@ -190,6 +190,14 @@ func (t *Transform) Matrix() Mat4 {
 	return t.localMatrix
 }
 
+func (t *Transform) RootMatrix() Mat4 {
+	p := t
+	for p.parent != nil {
+		p = p.parent
+	}
+	return p.Matrix()
+}
+
 func (t *Transform) WorldMatrix() Mat4 {
 	if t.isDirty {
 		t.updateMatrices()
