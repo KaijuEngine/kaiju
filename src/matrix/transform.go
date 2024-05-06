@@ -174,7 +174,7 @@ func (t *Transform) UpdateMatrix() {
 func (t *Transform) UpdateWorldMatrix() {
 	if t.isDirty || t.isLive {
 		t.worldMatrix.Reset()
-		t.CalcWorldMatrix(&t.worldMatrix)
+		t.worldMatrix = t.CalcWorldMatrix()
 	}
 }
 
@@ -197,17 +197,22 @@ func (t *Transform) WorldMatrix() Mat4 {
 	return t.worldMatrix
 }
 
-func (t *Transform) CalcWorldMatrix(base *Mat4) {
+func (t *Transform) CalcWorldMatrix() Mat4 {
 	m := Mat4Identity()
+	p := Mat4Identity()
 	m.Scale(t.scale)
 	m.Rotate(t.rotation)
 	m.Translate(t.position)
-	dPos := t.position.Add(base.Position())
-	base.MultiplyAssign(m)
-	base.SetTranslation(dPos)
-	if t.parent != nil {
-		t.parent.CalcWorldMatrix(base)
+	parent := t.parent
+	for parent != nil {
+		p.Reset()
+		p.Scale(parent.scale)
+		p.Rotate(parent.rotation)
+		p.Translate(parent.position)
+		m = Mat4Multiply(p, m)
+		parent = parent.parent
 	}
+	return m
 }
 
 func (t *Transform) Copy(other Transform) {
