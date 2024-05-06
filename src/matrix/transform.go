@@ -198,20 +198,11 @@ func (t *Transform) WorldMatrix() Mat4 {
 }
 
 func (t *Transform) CalcWorldMatrix() Mat4 {
+	p, r, s := t.WorldTransform()
 	m := Mat4Identity()
-	p := Mat4Identity()
-	m.Scale(t.scale)
-	m.Rotate(t.rotation)
-	m.Translate(t.position)
-	parent := t.parent
-	for parent != nil {
-		p.Reset()
-		p.Scale(parent.scale)
-		p.Rotate(parent.rotation)
-		p.Translate(parent.position)
-		m = Mat4Multiply(p, m)
-		parent = parent.parent
-	}
+	m.Scale(s)
+	m.Rotate(r)
+	m.Translate(p)
 	return m
 }
 
@@ -225,46 +216,42 @@ func (t *Transform) Copy(other Transform) {
 }
 
 func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3) {
-	pos, rot, scale := Vec3{}, Vec3{}, Vec3One()
-	p := t
+	pos, rot, scale := t.position, t.rotation, t.scale
+	p := t.parent
 	for p != nil {
-		pp, rr, ss := p.position, p.rotation, p.scale
-		pos.AddAssign(pp)
-		rot.AddAssign(rr)
-		scale.MultiplyAssign(ss)
+		pos.AddAssign(p.position)
+		rot.AddAssign(p.rotation)
+		scale.MultiplyAssign(p.scale)
 		p = p.parent
 	}
 	return pos, rot, scale
 }
 
 func (t *Transform) WorldPosition() Vec3 {
-	pos := Vec3{}
-	p := t
+	pos := t.position
+	p := t.parent
 	for p != nil {
-		pp := p.position
-		pos.AddAssign(pp)
+		pos.AddAssign(p.position)
 		p = p.parent
 	}
 	return pos
 }
 
 func (t *Transform) WorldRotation() Vec3 {
-	rot := Vec3{}
-	p := t
+	rot := t.rotation
+	p := t.parent
 	for p != nil {
-		r := p.rotation
-		rot.AddAssign(r)
+		rot.AddAssign(p.rotation)
 		p = p.parent
 	}
 	return rot
 }
 
 func (t *Transform) WorldScale() Vec3 {
-	scale := Vec3One()
-	p := t
+	scale := t.scale
+	p := t.parent
 	for p != nil {
-		s := p.scale
-		scale.MultiplyAssign(s)
+		scale.MultiplyAssign(p.scale)
 		p = p.parent
 	}
 	return scale
