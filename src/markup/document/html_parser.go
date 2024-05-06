@@ -216,6 +216,8 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		if len(id) > 0 {
 			d.ids[id] = entry
 			uiElm.Entity().SetName(id)
+		} else {
+			uiElm.Entity().SetName(e.Attribute("name"))
 		}
 		if len(group) > 0 {
 			d.groups[group] = append(d.groups[group], entry)
