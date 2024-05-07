@@ -104,17 +104,17 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 	}
 	t.SkinIndex = int32(index)
 	if len(t.Bones) > 0 {
-		// TODO:  This is working for very simple animations but is completely
-		// broken for complex animations, it needs to be reviewed
 		inverseRoot := t.Model()
 		inverseRoot.Inverse()
 		for i := range t.Bones {
 			b := &t.Bones[i]
-			//global := b.Transform.MultipliedWorldMatrix(b.Skin)
-			global := b.Transform.WorldMatrix()
-			global.MultiplyAssign(inverseRoot)
-			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
-			//t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
+			m := matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
+			parent := b.Transform.Parent()
+			for parent != nil {
+				m.MultiplyAssign(parent.Matrix())
+				parent = parent.Parent()
+			}
+			t.jointTransforms[i] = m
 		}
 	}
 	return true
@@ -360,12 +360,12 @@ func testMonkeyGLB(host *engine.Host) {
 }
 
 func testAnimationGLTF(host *engine.Host) {
-	//const animationGLTF = "editor/meshes/fox/Fox.gltf"
-	//host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
+	const animationGLTF = "editor/meshes/fox/Fox.gltf"
+	host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
 	//const animationGLTF = "editor/meshes/cube_animation.gltf"
 	//const animationGLTF = "editor/meshes/cube_animation_slow.gltf"
-	const animationGLTF = "editor/meshes/cube_animation_slow_2.gltf"
-	host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
+	//const animationGLTF = "editor/meshes/cube_animation_slow_2.gltf"
+	//host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
 	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
@@ -390,12 +390,9 @@ func testAnimationGLTF(host *engine.Host) {
 		}
 	}
 	for i := range res.Joints {
-		skin := entities[res.Joints[i].Id].Transform.Matrix()
-		skin.Inverse()
 		boneTransforms[i] = BoneTransform{
 			&entities[res.Joints[i].Id].Transform,
-			skin,
-			//res.Joints[i].Skin,
+			res.Joints[i].Skin,
 		}
 	}
 	host.AddEntities(entities...)
