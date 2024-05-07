@@ -110,11 +110,11 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 		inverseRoot.Inverse()
 		for i := range t.Bones {
 			b := &t.Bones[i]
+			//global := b.Transform.MultipliedWorldMatrix(b.Skin)
 			global := b.Transform.WorldMatrix()
 			global.MultiplyAssign(inverseRoot)
 			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
-			m := b.Transform.Matrix()
-			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, m)
+			//t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
 		}
 	}
 	return true
@@ -360,10 +360,12 @@ func testMonkeyGLB(host *engine.Host) {
 }
 
 func testAnimationGLTF(host *engine.Host) {
-	const animationGLTF = "editor/meshes/fox/Fox.gltf"
-	host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
+	//const animationGLTF = "editor/meshes/fox/Fox.gltf"
+	//host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
 	//const animationGLTF = "editor/meshes/cube_animation.gltf"
-	//host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
+	//const animationGLTF = "editor/meshes/cube_animation_slow.gltf"
+	const animationGLTF = "editor/meshes/cube_animation_slow_2.gltf"
+	host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
 	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
@@ -437,14 +439,14 @@ func testAnimationGLTF(host *engine.Host) {
 				if bone == nil {
 					continue
 				}
-				//switch b.PathType {
-				//case load_result.AnimPathTranslation:
-				//	bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
-				//case load_result.AnimPathRotation:
-				//	bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
-				//case load_result.AnimPathScale:
-				//	bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
-				//}
+				switch b.PathType {
+				case load_result.AnimPathTranslation:
+					bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
+				case load_result.AnimPathRotation:
+					bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
+				case load_result.AnimPathScale:
+					bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
+				}
 			}
 		})
 	}
