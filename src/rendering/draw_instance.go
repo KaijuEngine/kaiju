@@ -99,12 +99,13 @@ func (s *ShaderDataBase) Size() int {
 	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
 }
 
-func (s *ShaderDataBase) Destroy()          { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()    { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool { return s.destroyed }
-func (s *ShaderDataBase) Activate()         { s.deactivated = false }
-func (s *ShaderDataBase) Deactivate()       { s.deactivated = true }
-func (s *ShaderDataBase) IsActive() bool    { return !s.deactivated }
+func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
+func (s *ShaderDataBase) Activate()          { s.deactivated = false }
+func (s *ShaderDataBase) Deactivate()        { s.deactivated = true }
+func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }
+func (s *ShaderDataBase) Model() matrix.Mat4 { return s.model }
 
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform

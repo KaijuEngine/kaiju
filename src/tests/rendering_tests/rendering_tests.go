@@ -104,6 +104,8 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 	}
 	t.SkinIndex = int32(index)
 	if len(t.Bones) > 0 {
+		// TODO:  This is working for very simple animations but is completely
+		// broken for complex animations, it needs to be reviewed
 		inverseRoot := t.Model()
 		inverseRoot.Inverse()
 		for i := range t.Bones {
@@ -111,6 +113,8 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 			global := b.Transform.WorldMatrix()
 			global.MultiplyAssign(inverseRoot)
 			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, global)
+			m := b.Transform.Matrix()
+			t.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, m)
 		}
 	}
 	return true
@@ -378,15 +382,18 @@ func testAnimationGLTF(host *engine.Host) {
 		entities[i].SetName(res.Nodes[i].Name)
 		entities[i].Transform = res.Nodes[i].Transform
 	}
-	for i := range res.Joints {
-		boneTransforms[i] = BoneTransform{
-			&entities[res.Joints[i].Id].Transform,
-			res.Joints[i].Skin,
-		}
-	}
 	for i := range entities {
 		if res.Nodes[i].Parent >= 0 {
 			entities[i].SetParent(entities[res.Nodes[i].Parent])
+		}
+	}
+	for i := range res.Joints {
+		skin := entities[res.Joints[i].Id].Transform.Matrix()
+		skin.Inverse()
+		boneTransforms[i] = BoneTransform{
+			&entities[res.Joints[i].Id].Transform,
+			skin,
+			//res.Joints[i].Skin,
 		}
 	}
 	host.AddEntities(entities...)
@@ -430,14 +437,14 @@ func testAnimationGLTF(host *engine.Host) {
 				if bone == nil {
 					continue
 				}
-				switch b.PathType {
-				case load_result.AnimPathTranslation:
-					bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
-				case load_result.AnimPathRotation:
-					bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
-				case load_result.AnimPathScale:
-					bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
-				}
+				//switch b.PathType {
+				//case load_result.AnimPathTranslation:
+				//	bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
+				//case load_result.AnimPathRotation:
+				//	bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
+				//case load_result.AnimPathScale:
+				//	bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
+				//}
 			}
 		})
 	}

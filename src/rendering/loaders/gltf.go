@@ -199,7 +199,7 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			res.Nodes[i].Transform.SetRotation(q.ToEuler())
 		}
 		if n.Translation != nil {
-			res.Nodes[i].Transform.SetRotation(*n.Translation)
+			res.Nodes[i].Transform.SetPosition(*n.Translation)
 		}
 		if n.Mesh == nil {
 			continue
@@ -213,8 +213,8 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			textures := gltfReadMeshTextures(m, &doc.glTF)
 			res.Add(n.Name, m.Name, verts, indices, klib.MapValues(textures))
 		}
-		res.Animations = gltfReadAnimations(doc)
 	}
+	res.Animations = gltfReadAnimations(doc)
 	return res, nil
 }
 
@@ -494,12 +494,10 @@ func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
 			sampler := &a.Samplers[c.Sampler]
 			inAcc := &doc.glTF.Accessors[sampler.Input]
 			outAcc := &doc.glTF.Accessors[sampler.Output]
-			iv := &doc.glTF.BufferViews[inAcc.BufferView]
-			ov := &doc.glTF.BufferViews[outAcc.BufferView]
 			// Times ([]float32) of the key frames of the animation
-			in := gltfViewBytes(doc, iv)
+			in := gltfViewBytes(doc, &doc.glTF.BufferViews[inAcc.BufferView])
 			// Values for the animated properties at the respective key frames
-			out := gltfViewBytes(doc, ov)
+			out := gltfViewBytes(doc, &doc.glTF.BufferViews[outAcc.BufferView])
 			fIn := klib.ByteSliceToFloat32Slice(in)
 			fOut := klib.ByteSliceToFloat32Slice(out)
 			for k := 0; k < len(fIn); k++ {

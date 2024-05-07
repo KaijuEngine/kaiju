@@ -110,22 +110,28 @@ func QuaternionFromMat4(m Mat4) Quaternion {
 }
 
 func (q Quaternion) ToMat4() Mat4 {
-	x, y, z, w := q.X(), q.Y(), q.Z(), q.W()
-	xx := x * x
-	xy := x * y
-	xz := x * z
-	xw := x * w
-	yy := y * y
-	yz := y * z
-	yw := y * w
-	zz := z * z
-	zw := z * w
-	return Mat4{
-		1 - 2*(yy+zz), 2 * (xy - zw), 2 * (xz + yw), 0,
-		2 * (xy + zw), 1 - 2*(xx+zz), 2 * (yz - xw), 0,
-		2 * (xz - yw), 2 * (yz + xw), 1 - 2*(xx+yy), 0,
-		0, 0, 0, 1,
-	}
+	out := Mat4Identity()
+	sqw := q.W() * q.W()
+	sqx := q.X() * q.X()
+	sqy := q.Y() * q.Y()
+	sqz := q.Z() * q.Z()
+	invs := 1.0 / (sqx + sqy + sqz + sqw)
+	out[x0y0] = (sqx - sqy - sqz + sqw) * invs
+	out[x1y1] = (-sqx + sqy - sqz + sqw) * invs
+	out[x2y2] = (-sqx - sqy + sqz + sqw) * invs
+	tmp1 := q.X() * q.Y()
+	tmp2 := q.Z() * q.W()
+	out[x1y0] = 2.0 * (tmp1 + tmp2) * invs
+	out[x0y1] = 2.0 * (tmp1 - tmp2) * invs
+	tmp1 = q.X() * q.Z()
+	tmp2 = q.Y() * q.W()
+	out[x2y0] = 2.0 * (tmp1 - tmp2) * invs
+	out[x0y2] = 2.0 * (tmp1 + tmp2) * invs
+	tmp1 = q.Y() * q.Z()
+	tmp2 = q.X() * q.W()
+	out[x2y1] = 2.0 * (tmp1 + tmp2) * invs
+	out[x1y2] = 2.0 * (tmp1 - tmp2) * invs
+	return out
 }
 
 func QuaternionFromEuler(v Vec3) Quaternion {
@@ -139,10 +145,10 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 	s2 := Sin(y / 2.0)
 	s3 := Sin(z / 2.0)
 	return Quaternion{
-		c1*c2*c3 + s1*s2*s3,
-		s1*c2*c3 - c1*s2*s3,
-		c1*s2*c3 + s1*c2*s3,
-		c1*c2*s3 - s1*s2*c3,
+		c1*c2*c3 - s1*s2*s3,
+		s1*c2*c3 + c1*s2*s3,
+		c1*s2*c3 - s1*c2*s3,
+		c1*c2*s3 + s1*s2*c3,
 	}
 }
 
@@ -150,9 +156,12 @@ func (q Quaternion) ToEuler() Vec3 {
 	out := Vec3{}
 	m := q.ToMat4()
 	out[Vy] = Rad2Deg(Asin(Clamp(m[x0y2], -1.0, 1.0)))
-	out.SetX(Rad2Deg(Atan2(m[x1y2], m[x2y2])))
 	if Abs(m[x0y2]) < 0.9999999 {
+		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
 		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
+	} else {
+		out.SetX(Rad2Deg(Atan2(m[x2y1], m[x1y1])))
+		out.SetZ(0.0)
 	}
 	return out
 }
