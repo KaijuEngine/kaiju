@@ -50,6 +50,7 @@ type Transform struct {
 	children                  []*Transform
 	position, rotation, scale Vec3
 	isDirty                   bool
+	frameDirty                bool
 	isLive                    bool
 	orderedChildren           bool
 	Identifier                uint8 // Typically just used for bone index right now
@@ -63,6 +64,7 @@ func NewTransform() Transform {
 		rotation:    Vec3Zero(),
 		scale:       Vec3One(),
 		isDirty:     true,
+		frameDirty:  true,
 		children:    make([]*Transform, 0),
 	}
 }
@@ -70,15 +72,16 @@ func NewTransform() Transform {
 func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
 func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
 
-func (t *Transform) StartLive()     { t.isLive = true }
-func (t *Transform) StopLive()      { t.isLive = false }
-func (t *Transform) IsDirty() bool  { return t.isDirty }
-func (t *Transform) Position() Vec3 { return t.position }
-func (t *Transform) Rotation() Vec3 { return t.rotation }
-func (t *Transform) Scale() Vec3    { return t.scale }
-func (t *Transform) Right() Vec3    { return t.localMatrix.Right().Normal() }
-func (t *Transform) Up() Vec3       { return t.localMatrix.Up().Normal() }
-func (t *Transform) Forward() Vec3  { return t.localMatrix.Forward().Normal() }
+func (t *Transform) StartLive()         { t.isLive = true }
+func (t *Transform) StopLive()          { t.isLive = false }
+func (t *Transform) IsDirty() bool      { return t.frameDirty }
+func (t *Transform) Position() Vec3     { return t.position }
+func (t *Transform) Rotation() Vec3     { return t.rotation }
+func (t *Transform) Scale() Vec3        { return t.scale }
+func (t *Transform) Right() Vec3        { return t.localMatrix.Right().Normal() }
+func (t *Transform) Up() Vec3           { return t.localMatrix.Up().Normal() }
+func (t *Transform) Forward() Vec3      { return t.localMatrix.Forward().Normal() }
+func (t *Transform) Parent() *Transform { return t.parent }
 
 func (t *Transform) removeChild(child *Transform) {
 	for i, c := range t.children {
@@ -129,6 +132,7 @@ func (t *Transform) SetParent(parent *Transform) {
 
 func (t *Transform) SetDirty() {
 	t.isDirty = true
+	t.frameDirty = true
 	for _, child := range t.children {
 		child.SetDirty()
 	}
@@ -138,6 +142,7 @@ func (t *Transform) ResetDirty() {
 	if t.isDirty {
 		t.UpdateMatrix()
 		t.isDirty = false
+		t.frameDirty = false
 	}
 }
 
@@ -181,6 +186,7 @@ func (t *Transform) UpdateWorldMatrix() {
 func (t *Transform) updateMatrices() {
 	t.UpdateMatrix()
 	t.UpdateWorldMatrix()
+	t.isDirty = false
 }
 
 func (t *Transform) Matrix() Mat4 {
