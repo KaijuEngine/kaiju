@@ -64,6 +64,14 @@ func QuaternionFromXYZWSlice(xyzw []Float) Quaternion {
 	return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]}
 }
 
+func QuaternionFromArray(xyzw [4]Float) Quaternion {
+	return Quaternion{xyzw[0], xyzw[1], xyzw[2], xyzw[3]}
+}
+
+func QuaternionFromSlice(xyzw []Float) Quaternion {
+	return Quaternion{xyzw[0], xyzw[1], xyzw[2], xyzw[3]}
+}
+
 func QuaternionFromVec4(v Vec4) Quaternion {
 	return Quaternion{v.X(), v.Y(), v.Z(), v.W()}
 }
