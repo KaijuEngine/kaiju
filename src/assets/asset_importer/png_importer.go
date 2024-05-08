@@ -49,5 +49,5 @@ func (m PNGImporter) Handles(path string) bool {
 }
 
 func (m PNGImporter) Import(path string) error {
-	return noMutationImport(path, editor_config.AssetTypePng)
+	return noMutationImport(path, editor_config.AssetTypeImage)
 }

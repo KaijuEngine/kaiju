@@ -59,7 +59,7 @@ const (
 	AssetTypeGo    AssetType = "go"
 	AssetTypeMap   AssetType = "map"
 	AssetTypeObj   AssetType = "obj"
-	AssetTypePng   AssetType = "png"
+	AssetTypeImage AssetType = "image"
 	AssetTypeMesh  AssetType = "mesh"
 	AssetTypeStage AssetType = "stg"
 	AssetTypeHTML  AssetType = "html"

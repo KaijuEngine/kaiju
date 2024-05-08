@@ -182,6 +182,7 @@ func New() *Editor {
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
 	ed.contentOpener.Register(content_opener.HTMLOpener{})
+	ed.contentOpener.Register(content_opener.ImageOpener{})
 	host.OnClose.Add(func() {
 		ed.SaveLayout()
 	})
