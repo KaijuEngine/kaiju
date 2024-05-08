@@ -354,7 +354,11 @@ func (l *LogWindow) reloadUI() {
 	l.doc.Clean()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := l.doc.GetElementById("window")
-		w.UIPanel.Layout().ScaleHeight(matrix.Float(s.(float64)))
+		if f32, ok := s.(float32); ok {
+			w.UIPanel.Layout().ScaleHeight(matrix.Float(f32))
+		} else if f64, ok := s.(float64); ok {
+			w.UIPanel.Layout().ScaleHeight(matrix.Float(f64))
+		}
 	}
 }
 
