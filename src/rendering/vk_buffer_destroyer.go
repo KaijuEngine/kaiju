@@ -98,7 +98,9 @@ func (b *bufferDestroyer) Cycle() {
 				}
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
-				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &pd.sets[0])
+				// TODO:  This is temp to fix close crash
+				var tmp [maxFramesInFlight]vk.DescriptorSet = pd.sets
+				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &tmp[0])
 			}
 			// TODO:  Does this need to be ordered delete?
 			b.trash = slices.Delete(b.trash, i, i+1)
