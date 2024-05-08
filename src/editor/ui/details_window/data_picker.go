@@ -66,7 +66,6 @@ func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int {
 	cx, cy := host.Window.Center()
 	go dp.container.Run(300, 600, cx-150, cy-300)
 	<-dp.container.PrepLock
-	dp.container.Host.AssetDatabase().EditorContext.EditorPath = host.AssetDatabase().EditorContext.EditorPath
 	dp.container.RunFunction(func() {
 		dp.doc, _ = markup.DocumentFromHTMLAsset(dp.container.Host, html, types,
 			map[string]func(*document.Element){

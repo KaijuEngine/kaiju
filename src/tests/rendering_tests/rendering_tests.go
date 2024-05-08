@@ -489,7 +489,6 @@ func SetupConsole(host *engine.Host) {
 			go c.Run(engine.DefaultWindowWidth,
 				engine.DefaultWindowHeight, -1, -1)
 			<-c.PrepLock
-			c.Host.AssetDatabase().EditorContext.EditorPath = host.AssetDatabase().EditorContext.EditorPath
 			c.Host.Camera.SetPosition(matrix.Vec3Backward().Scale(2))
 			testFunc(c.Host)
 		}

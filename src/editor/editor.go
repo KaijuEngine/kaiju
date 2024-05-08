@@ -155,7 +155,6 @@ func New() *Editor {
 	logStream := logging.Initialize(nil)
 	ed := &Editor{
 		assetImporters: asset_importer.NewImportRegistry(),
-		editorDir:      filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/.."),
 		history:        memento.NewHistory(100),
 		uiGroup:        ui.NewGroup(),
 		bvh:            collision.NewBVH(),
@@ -163,7 +162,6 @@ func New() *Editor {
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	ed.container.Host.InitializeAudio()
 	host := ed.container.Host
-	host.AssetDatabase().EditorContext.EditorPath = ed.editorDir
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	ed.container.RunFunction(func() {

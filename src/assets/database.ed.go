@@ -1,3 +1,5 @@
+//go:build editor
+
 /******************************************************************************/
 /* database.ed.go                                                             */
 /******************************************************************************/
@@ -35,11 +37,11 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build editor
-
 package assets
 
 import (
+	"kaiju/klib"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -50,9 +52,13 @@ type EditorContext struct {
 
 func (a *Database) toContentPath(key string) string {
 	const contentPath = "content"
+	if a.EditorContext.EditorPath == "" {
+		a.EditorContext.EditorPath = filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/..")
+	}
 	key = strings.ReplaceAll(key, "\\", "/")
-	if strings.HasPrefix(key, "editor/") || strings.Contains(key, "/editor/") {
-		return filepath.Join(a.EditorContext.EditorPath, contentPath, key)
+	edKey := filepath.Join(a.EditorContext.EditorPath, contentPath, key)
+	if _, err := os.Stat(edKey); err == nil {
+		return edKey
 	} else {
 		return filepath.Join(contentPath, key)
 	}

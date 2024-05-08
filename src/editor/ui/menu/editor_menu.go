@@ -159,7 +159,7 @@ func (m *Menu) hoverOpenMenu(targetId string) {
 
 func (m *Menu) openAbout(*document.Element) {
 	// TODO:  Open the about in a new window
-	about_window.New(m.editor.Host().AssetDatabase().EditorContext.EditorPath)
+	about_window.New()
 }
 
 func openRepository(*document.Element) {

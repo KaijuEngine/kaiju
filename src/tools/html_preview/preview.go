@@ -152,24 +152,22 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	}
 }
 
-func New(htmlFile, edFolder string) (*host_container.Container, error) {
+func New(htmlFile string) (*host_container.Container, error) {
 	c := host_container.New("HTML Preview", nil)
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-c.PrepLock
-	c.Host.AssetDatabase().EditorContext.EditorPath = edFolder
 	go startPreview(c, htmlFile)
 	return c, nil
 }
 
 func SetupConsole(host *engine.Host) {
-	edFolder := host.AssetDatabase().EditorContext.EditorPath
 	console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
 		filePath = linkFile(filePath)
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			return fmt.Sprintf("File not found: %s", filePath)
 		}
-		if _, err := New(filePath, edFolder); err != nil {
+		if _, err := New(filePath); err != nil {
 			return fmt.Sprintf("Error creating preview: %s", err)
 		}
 		return fmt.Sprintf("Previewing file: %s", filePath)
