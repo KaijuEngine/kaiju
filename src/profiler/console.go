@@ -128,21 +128,29 @@ func launchWeb(c *console.Console, webType, ctxKey string) (*contexts.Cancellabl
 	return ctx, err
 }
 
-func pprofStart(c *console.Console, arg string) string {
-	pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
-	pprof.StartCPUProfile(pprofFile)
-	c.SetData(pprofFileKey, pprofFile)
-	return "CPU profile started"
+func pprofStart(c *console.Console, args []string) string {
+	if args[0] == "cpu" {
+		pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
+		pprof.StartCPUProfile(pprofFile)
+		c.SetData(pprofFileKey, pprofFile)
+		return "CPU profile started"
+	} else if args[0] == "mem" {
+		return pprofHeap()
+	}
+	return ""
 }
 
-func pprofStop(c *console.Console, arg string) string {
-	pprofFile, ok := c.Data(pprofFileKey).(*os.File)
-	if !ok || pprofFile == nil {
-		return "CPU profile not yet started"
+func pprofStop(c *console.Console, args []string) string {
+	if args[0] == "cpu" {
+		pprofFile, ok := c.Data(pprofFileKey).(*os.File)
+		if !ok || pprofFile == nil {
+			return "CPU profile not yet started"
+		}
+		pprof.StopCPUProfile()
+		pprofFile.Close()
+		return "CPU profile written to " + pprofCPUFile
 	}
-	pprof.StopCPUProfile()
-	pprofFile.Close()
-	return "CPU profile written to " + pprofCPUFile
+	return ""
 }
 
 func pprofHeap() string {
@@ -199,21 +207,20 @@ func pprofCommands(host *engine.Host, arg string) string {
 	c := console.For(host)
 	arg = klib.ReplaceStringRecursive(arg, "  ", " ")
 	args := strings.Split(arg, " ")
-	if arg == "start" {
-		return pprofStart(c, arg)
-	} else if arg == "stop" {
-		return pprofStop(c, arg)
-	} else if arg == "mem" {
-		return pprofHeap()
-	} else if arg == "top" {
+	if len(args) > 1 {
+		if args[0] == "start" {
+			return pprofStart(c, args[1:])
+		} else if args[0] == "stop" {
+			return pprofStop(c, args[1:])
+		} else if args[0] == "web" {
+			return pprofWeb(c, args[1:])
+		}
+	} else if args[0] == "top" {
 		return consoleTop(host)
-	} else if args[0] == "web" {
-		return pprofWeb(c, args[1:])
-	} else if strings.HasPrefix(arg, "merge") {
+	} else if args[0] == "merge" {
 		return consoleMerge(host, arg)
-	} else {
-		return ""
 	}
+	return ""
 }
 
 func traceStart() string {
