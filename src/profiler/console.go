@@ -134,7 +134,7 @@ func pprofStart(c *console.Console, args []string) string {
 		pprof.StartCPUProfile(pprofFile)
 		c.SetData(pprofFileKey, pprofFile)
 		return "CPU profile started"
-	} else if args[0] == "mem" {
+	} else if args[0] == "mem" || args[0] == "heap" {
 		return pprofHeap()
 	}
 	return ""
