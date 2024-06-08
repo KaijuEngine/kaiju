@@ -40,30 +40,66 @@
 package windowing
 
 import (
+	"syscall"
 	"unicode/utf16"
 	"unsafe"
 
 	"golang.design/x/clipboard"
+	"golang.org/x/sys/windows"
 )
 
 /*
 #cgo LDFLAGS: -lgdi32 -lXInput
 #cgo noescape window_main
-#cgo noescape window_show
+//#cgo noescape window_show
 #cgo noescape window_destroy
-#cgo noescape window_cursor_standard
-#cgo noescape window_cursor_ibeam
-#cgo noescape window_dpi
-#cgo noescape window_focus
-#cgo noescape window_position
-#cgo noescape window_set_position
-#cgo noescape window_set_size
-#cgo noescape window_remove_border
-#cgo noescape window_add_border
+//#cgo noescape window_cursor_standard
+//#cgo noescape window_cursor_ibeam
+//#cgo noescape window_dpi
+//#cgo noescape window_focus
+//#cgo noescape window_position
+//#cgo noescape window_set_position
+//#cgo noescape window_set_size
+//#cgo noescape window_remove_border
+//#cgo noescape window_add_border
 
 #include "windowing.h"
 */
 import "C"
+
+var (
+	user32                 = windows.NewLazySystemDLL("user32.dll")
+	procShowWindow         = user32.NewProc("ShowWindow")
+	procPostMessageA       = user32.NewProc("PostMessageA")
+	procGetDpiForWindow    = user32.NewProc("GetDpiForWindow")
+	procBringWindowToTop   = user32.NewProc("BringWindowToTop")
+	procSetFocus           = user32.NewProc("SetFocus")
+	procGetWindowPlacement = user32.NewProc("GetWindowPlacement")
+	procSetWindowPos       = user32.NewProc("SetWindowPos")
+	procGetWindowLongW     = user32.NewProc("GetWindowLongW")
+	procSetWindowLongW     = user32.NewProc("SetWindowLongW")
+)
+
+type POINT struct {
+	X int32
+	Y int32
+}
+
+type RECT struct {
+	Left   int32
+	Top    int32
+	Right  int32
+	Bottom int32
+}
+
+type WINDOWPLACEMENT struct {
+	Length           uint32
+	Flags            uint32
+	ShowCmd          uint32
+	PtMinPosition    POINT
+	PtMaxPosition    POINT
+	RcNormalPosition RECT
+}
 
 func asEventType(msg uint32) eventType {
 	switch msg {
@@ -126,7 +162,8 @@ func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtM
 }
 
 func (w *Window) showWindow(evtSharedMem *evtMem) {
-	C.window_show(w.handle)
+	syscall.SyscallN(procShowWindow.Addr(), uintptr(w.handle), 5 /*SW_SHOW*/)
+	//C.window_show(w.handle)
 }
 
 func (w *Window) destroy() {
@@ -159,11 +196,15 @@ func (w *Window) poll() {
 }
 
 func (w *Window) cursorStandard() {
-	C.window_cursor_standard(w.handle)
+	syscall.SyscallN(procPostMessageA.Addr(), uintptr(w.handle),
+		0x0400+0x0001 /*UWM_SET_CURSOR*/, 1 /*CURSOR_ARROW*/, 0)
+	//C.window_cursor_standard(w.handle)
 }
 
 func (w *Window) cursorIbeam() {
-	C.window_cursor_ibeam(w.handle)
+	syscall.SyscallN(procPostMessageA.Addr(), uintptr(w.handle),
+		0x0400+0x0001 /*UWM_SET_CURSOR*/, 2 /*CURSOR_IBEAM*/, 0)
+	//C.window_cursor_ibeam(w.handle)
 }
 
 func (w *Window) cursorSizeAll() {
@@ -187,7 +228,9 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	dpi := float64(C.window_dpi(w.handle))
+	r1, _, _ := syscall.SyscallN(procGetDpiForWindow.Addr(), uintptr(w.handle))
+	dpi := float64(r1)
+	//dpi := float64(C.window_dpi(w.handle))
 	mm := dpi / 25.4
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
@@ -196,26 +239,64 @@ func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) focus() {
-	C.window_focus(w.handle)
+	syscall.SyscallN(procBringWindowToTop.Addr(), uintptr(w.handle))
+	syscall.SyscallN(procSetFocus.Addr(), uintptr(w.handle))
+	//C.window_focus(w.handle)
 }
 
 func (w *Window) position() (x, y int) {
-	C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
-	return x, y
+	wp := WINDOWPLACEMENT{}
+	wp.Length = uint32(unsafe.Sizeof(wp))
+	r1, _, _ := syscall.SyscallN(procGetWindowPlacement.Addr(),
+		uintptr(w.handle), uintptr(unsafe.Pointer(&wp)))
+	if r1 == 0 {
+		return 0, 0
+	}
+	return int(wp.RcNormalPosition.Left), int(wp.RcNormalPosition.Top)
+	//C.window_position(w.handle, (*C.int)(unsafe.Pointer(&x)), (*C.int)(unsafe.Pointer(&y)))
+	//return x, y
 }
 
 func (w *Window) setPosition(x, y int) {
-	C.window_set_position(w.handle, C.int(x), C.int(y))
+	syscall.SyscallN(procSetWindowPos.Addr(), uintptr(w.handle),
+		0, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)),
+		0, 0, 0x0001|0x0004 /*SWP_NOSIZE|SWP_NOZORDER*/)
+	//C.window_set_position(w.handle, C.int(x), C.int(y))
 }
 
 func (w *Window) setSize(width, height int) {
-	C.window_set_size(w.handle, C.int(width), C.int(height))
+	syscall.SyscallN(procSetWindowPos.Addr(), uintptr(w.handle),
+		0, 0, 0, uintptr(unsafe.Pointer(&width)),
+		uintptr(unsafe.Pointer(&height)), 0x0002|0x0004 /*SWP_NOMOVE|SWP_NOZORDER*/)
+	//C.window_set_size(w.handle, C.int(width), C.int(height))
 }
 
 func (w *Window) removeBorder() {
-	C.window_remove_border(w.handle)
+	gwlStyle := -16 /*GWL_STYLE*/
+	r1, _, _ := syscall.SyscallN(procGetWindowLongW.Addr(),
+		uintptr(w.handle), uintptr(gwlStyle))
+	style := int32(r1)
+	style &= ^0x00C00000 /*WS_CAPTION*/
+	style &= ^0x00040000 /*WS_THICKFRAME*/
+	style &= ^0x00020000 /*WS_MINIMIZEBOX*/
+	style &= ^0x00010000 /*WS_MAXIMIZEBOX*/
+	style &= ^0x00080000 /*WS_SYSMENU*/
+	syscall.SyscallN(procSetWindowLongW.Addr(),
+		uintptr(w.handle), uintptr(gwlStyle), uintptr(style))
+	//C.window_remove_border(w.handle)
 }
 
 func (w *Window) addBorder() {
-	C.window_add_border(w.handle)
+	gwlStyle := -16 /*GWL_STYLE*/
+	r1, _, _ := syscall.SyscallN(procGetWindowLongW.Addr(),
+		uintptr(w.handle), uintptr(gwlStyle))
+	style := int32(r1)
+	style |= 0x00C00000 /*WS_CAPTION*/
+	style |= 0x00040000 /*WS_THICKFRAME*/
+	style |= 0x00020000 /*WS_MINIMIZEBOX*/
+	style |= 0x00010000 /*WS_MAXIMIZEBOX*/
+	style |= 0x00080000 /*WS_SYSMENU*/
+	syscall.SyscallN(procSetWindowLongW.Addr(),
+		uintptr(w.handle), uintptr(gwlStyle), uintptr(style))
+	//C.window_add_border(w.handle)
 }
