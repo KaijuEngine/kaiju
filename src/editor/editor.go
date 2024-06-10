@@ -38,11 +38,8 @@
 package editor
 
 import (
-	"errors"
-	"kaiju/assets"
 	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
-	"kaiju/cameras"
 	"kaiju/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/codegen"
@@ -60,25 +57,16 @@ import (
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
-	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
-	"kaiju/hid"
 	"kaiju/host_container"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/profiler"
 	"kaiju/rendering"
-	"kaiju/systems/console"
 	"kaiju/systems/logging"
-	tests "kaiju/tests/rendering_tests"
-	"kaiju/tools/html_preview"
 	"kaiju/ui"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 )
 
@@ -125,6 +113,8 @@ func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
 func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
 func (e *Editor) BVH() *collision.BVH                   { return e.bvh }
 
+func (e *Editor) RunOnHost(fn func()) { e.container.RunFunction(fn) }
+
 func (e *Editor) BVHEntityUpdates(entities ...*engine.Entity) {
 	root := e.bvh
 	for _, e := range entities {
@@ -143,14 +133,6 @@ func (e *Editor) AvailableDataBindings() []codegen.GeneratedType {
 	return e.entityData
 }
 
-func addConsole(host *engine.Host, group *ui.Group) {
-	html_preview.SetupConsole(host)
-	profiler.SetupConsole(host)
-	tests.SetupConsole(host)
-	console.For(host).SetUIGroup(group)
-	group.Attach(host)
-}
-
 func New() *Editor {
 	logStream := logging.Initialize(nil)
 	ed := &Editor{
@@ -159,50 +141,18 @@ func New() *Editor {
 		uiGroup:        ui.NewGroup(),
 		bvh:            collision.NewBVH(),
 	}
-	ed.container = host_container.New("Kaiju Editor", logStream)
-	ed.container.Host.InitializeAudio()
+	setupEditorWindow(ed, logStream)
 	host := ed.container.Host
-	editor_window.OpenWindow(ed,
-		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	ed.container.RunFunction(func() {
-		addConsole(ed.container.Host, ed.uiGroup)
-	})
 	host.SetFrameRateLimit(60)
-	tc := cameras.ToTurntable(host.Camera.(*cameras.StandardCamera))
-	host.Camera = tc
-	tc.SetYawPitchZoom(0, -25, 16)
+	setupEditorCamera(ed)
 	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
 	ed.selection = selection.New(host, &ed.history)
-	ed.assetImporters.Register(asset_importer.OBJImporter{})
-	ed.assetImporters.Register(asset_importer.PNGImporter{})
-	ed.assetImporters.Register(asset_importer.StageImporter{})
-	ed.assetImporters.Register(asset_importer.HTMLImporter{})
+	registerAssetImporters(ed)
 	ed.contentOpener = content_opener.New(
 		&ed.assetImporters, ed.container, &ed.history)
-	ed.contentOpener.Register(content_opener.ObjOpener{})
-	ed.contentOpener.Register(content_opener.StageOpener{})
-	ed.contentOpener.Register(content_opener.HTMLOpener{})
-	ed.contentOpener.Register(content_opener.ImageOpener{})
-	host.OnClose.Add(func() {
-		ed.SaveLayout()
-	})
+	registerContentOpeners(ed)
+	host.OnClose.Add(ed.SaveLayout)
 	return ed
-}
-
-func (e *Editor) setProject(project string) error {
-	project = strings.TrimSpace(project)
-	if project == "" {
-		return errors.New("target project is not possible")
-	}
-	if _, err := os.Stat(project); os.IsNotExist(err) {
-		return err
-	}
-	e.project = project
-	if err := os.Chdir(project); err != nil {
-		return err
-	}
-	go e.ReloadEntityDataListing()
-	return asset_info.InitForCurrentProject()
 }
 
 func (e *Editor) ReloadEntityDataListing() {
@@ -219,33 +169,6 @@ func (e *Editor) CreateEntity(name string) *engine.Entity {
 	return entity
 }
 
-func (e *Editor) setupViewportGrid() {
-	const gridCount = 20
-	const halfGridCount = gridCount / 2
-	points := make([]matrix.Vec3, 0, gridCount*4)
-	for i := -halfGridCount; i <= halfGridCount; i++ {
-		fi := float32(i)
-		points = append(points, matrix.Vec3{fi, 0, -halfGridCount})
-		points = append(points, matrix.Vec3{fi, 0, halfGridCount})
-		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
-		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
-	}
-	host := e.Host()
-	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
-		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
-	host.Drawings.AddDrawing(&rendering.Drawing{
-		Renderer: host.Window.Renderer,
-		Shader:   shader,
-		Mesh:     grid,
-		CanvasId: "default",
-		ShaderData: &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
-		},
-	})
-}
-
 func (e *Editor) OpenProject() {
 	cx, cy := e.Host().Window.Center()
 	projectWindow, _ := project_window.New(
@@ -258,46 +181,34 @@ func (e *Editor) OpenProject() {
 }
 
 func (e *Editor) pickProject(projectPath string) {
-	if err := e.setProject(projectPath); err != nil {
+	projectPath = strings.TrimSpace(projectPath)
+	if projectPath == "" {
+		slog.Error("target project is not possible")
+		return
+	}
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		slog.Error("target project does not exist")
+		return
+	}
+	e.project = projectPath
+	if err := os.Chdir(projectPath); err != nil {
+		slog.Error("unable to access target project path")
+		return
+	}
+	go e.ReloadEntityDataListing()
+	if err := asset_info.InitForCurrentProject(); err != nil {
+		slog.Error("failed to init the project folder")
 		return
 	}
 	project.ScanContent(&e.assetImporters)
 }
 
 func (e *Editor) Init() {
-	cx, cy := e.Host().Window.Center()
-	projectWindow, _ := project_window.New(projectTemplate, cx, cy)
-	projectPath := <-projectWindow.Selected
-	if projectPath == "" {
-		e.Host().Close()
+	projectPath, err := waitForProjectSelectWindow(e)
+	if err != nil {
 		return
 	}
-	e.Host().CreatingEditorEntities()
-	e.logWindow = log_window.New(e.Host(), e.Host().LogStream, e.uiGroup)
-	e.contentWindow = content_window.New(&e.contentOpener, e, e.uiGroup)
-	e.detailsWindow = details_window.New(e, e.uiGroup)
-	e.hierarchy = hierarchy.New(e.Host(), &e.selection, e.uiGroup)
-	e.menu = menu.New(e.container, e.logWindow, e.contentWindow,
-		e.hierarchy, &e.contentOpener, e, e.uiGroup)
-	e.statusBar = status_bar.New(e.Host(), e.logWindow)
-	e.setupViewportGrid()
-	{
-		// TODO:  Testing tools
-		win := e.Host().Window
-		ot := &rendering.OITCanvas{}
-		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
-		ot.Create(win.Renderer)
-		win.Renderer.RegisterCanvas("editor_overlay", ot)
-		dc := e.Host().Window.Renderer.DefaultCanvas()
-		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
-		ot.ClearColor = matrix.ColorTransparent()
-		e.overlayCanvas = ot
-		e.transformTool = transform_tools.New(e.Host(), e, "editor_overlay", &e.history)
-		e.selection.Changed.Add(func() {
-			e.transformTool.Disable()
-		})
-	}
-	e.Host().DoneCreatingEditorEntities()
+	constructEditorUI(e)
 	e.Host().LateUpdater.AddUpdate(e.update)
 	e.windowListing.Add(e)
 	e.pickProject(projectPath)
@@ -314,50 +225,7 @@ func (ed *Editor) update(delta float64) {
 		return
 	}
 	ed.selection.Update(ed.Host())
-	kb := &ed.Host().Window.Keyboard
-	if kb.HasCtrl() {
-		if kb.KeyDown(hid.KeyboardKeyZ) {
-			ed.history.Undo()
-		} else if kb.KeyDown(hid.KeyboardKeyY) {
-			ed.history.Redo()
-		} else if kb.KeyUp(hid.KeyboardKeyS) {
-			ed.stageManager.Save(ed.statusBar)
-		} else if kb.KeyUp(hid.KeyboardKeyP) {
-			ed.selection.Parent(&ed.history)
-			ed.statusBar.SetMessage("Parented entities")
-			ed.hierarchy.Reload()
-		} else if kb.KeyUp(hid.KeyboardKeyF5) {
-			ed.runProject(false)
-		}
-	} else if kb.HasShift() {
-		if kb.KeyUp(hid.KeyboardKeyF5) {
-			ed.killDebug()
-		}
-	} else if kb.KeyUp(hid.KeyboardKeyF1) {
-		klib.OpenWebsite("https://kaijuengine.org/")
-	} else if kb.KeyUp(hid.KeyboardKeyF5) {
-		ed.runProject(true)
-	} else if kb.KeyUp(hid.KeyboardKeyC) {
-		ed.logWindow.Hide()
-		ed.contentWindow.Toggle()
-	} else if kb.KeyUp(hid.KeyboardKeyD) {
-		ed.detailsWindow.Toggle()
-	} else if kb.KeyUp(hid.KeyboardKeyH) {
-		ed.hierarchy.Toggle()
-	} else if kb.KeyUp(hid.KeyboardKeyL) {
-		ed.contentWindow.Hide()
-		ed.logWindow.Toggle()
-	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
-		ed.selection.Focus(ed.Host().Camera)
-	} else if kb.KeyDown(hid.KeyboardKeyG) {
-		ed.transformTool.Enable(transform_tools.ToolStateMove)
-	} else if kb.KeyDown(hid.KeyboardKeyR) {
-		ed.transformTool.Enable(transform_tools.ToolStateRotate)
-	} else if kb.KeyDown(hid.KeyboardKeyS) {
-		ed.transformTool.Enable(transform_tools.ToolStateScale)
-	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
-		deleter.DeleteSelected(ed, slices.Clone(ed.selection.Entities()))
-	}
+	checkHotkeys(ed)
 }
 
 func (e *Editor) SaveLayout() {
