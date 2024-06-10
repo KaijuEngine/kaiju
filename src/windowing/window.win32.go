@@ -60,6 +60,8 @@ import (
 #cgo noescape window_set_size
 #cgo noescape window_remove_border
 #cgo noescape window_add_border
+#cgo noescape window_poll_controller
+#cgo noescape window_poll
 
 #include "windowing.h"
 */
