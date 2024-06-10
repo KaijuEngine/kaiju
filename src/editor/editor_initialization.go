@@ -104,7 +104,7 @@ func constructEditorUI(ed *Editor) {
 	ed.menu = menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, ed.uiGroup)
 	ed.statusBar = status_bar.New(ed.Host(), ed.logWindow)
-	ed.setupViewportGrid()
+	setupViewportGrid(ed)
 	{
 		// TODO:  Testing tools
 		win := ed.Host().Window
