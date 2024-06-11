@@ -39,6 +39,7 @@ package files_window
 
 import (
 	"io/fs"
+	"kaiju/editor/alert"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -97,6 +98,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 			s.Extensions = append(s.Extensions, ext)
 		}
 	}
+	s.funcMap["createFolder"] = s.createFolder
 	s.funcMap["selectEntry"] = s.selectEntry
 	s.funcMap["selectPath"] = s.selectPath
 	s.container = host_container.New(title, nil)
@@ -127,6 +129,15 @@ func (s *FileWindow) selectPath(*document.Element) {
 	s.done <- s.Path
 	s.selected = true
 	s.container.Host.Close()
+}
+
+func (s *FileWindow) createFolder(elm *document.Element) {
+	name := <-alert.NewInput("Folder Name", "Name of folder...", "", "Create", "Cancel", s.container.Host)
+	if name == "" {
+		return
+	}
+	os.Mkdir(filepath.Join(s.Path, name), os.ModePerm)
+	s.reloadUI()
 }
 
 func (s *FileWindow) selectEntry(elm *document.Element) {
