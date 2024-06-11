@@ -182,22 +182,23 @@ func (e *Editor) OpenProject() {
 
 func (e *Editor) pickProject(projectPath string) {
 	projectPath = strings.TrimSpace(projectPath)
+	pathErr := slog.String("Path", projectPath)
 	if projectPath == "" {
-		slog.Error("target project is not possible")
+		slog.Error("Target project is not possible", pathErr)
 		return
 	}
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
-		slog.Error("target project does not exist")
+		slog.Error("Target project does not exist", pathErr)
 		return
 	}
 	e.project = projectPath
 	if err := os.Chdir(projectPath); err != nil {
-		slog.Error("unable to access target project path")
+		slog.Error("Unable to access target project path", pathErr)
 		return
 	}
 	go e.ReloadEntityDataListing()
 	if err := asset_info.InitForCurrentProject(); err != nil {
-		slog.Error("failed to init the project folder")
+		slog.Error("Failed to init the project folder", pathErr)
 		return
 	}
 	project.ScanContent(&e.assetImporters)
