@@ -17,12 +17,12 @@
 					<img class="listImg" src="editor/textures/icons/folder.png" />
 					<span>&lt;Create Folder&gt;</span>
 				</div>
-				<div class="listEntry" onclick="selectEntry" data-path="../">
+				<div class="listEntry" ondblclick="selectEntry" data-path="../">
 					<img class="listImg" src="editor/textures/icons/folder.png" />
 					<span>..</span>
 				</div>
 				{{range .Dir}}
-				<div class="listEntry" onclick="selectEntry" data-path="{{.Name}}">
+				<div class="listEntry" ondblclick="selectEntry" data-path="{{.Name}}">
 					{{if .IsDir}}
 						<img class="listImg" src="editor/textures/icons/folder.png" />
 					{{else}}

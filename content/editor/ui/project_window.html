@@ -15,7 +15,7 @@
 			</div>
 			<div class="existingProjects">
 				{{range .ProjectList}}
-					<div class="project" onclick="selectProject" data-project="{{.}}">
+					<div class="project" ondblclick="selectProject" data-project="{{.}}">
 						<span>{{.}}</span>
 					</div>
 				{{end}}
