@@ -81,12 +81,17 @@ type localInputData struct {
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	isActive                          bool
+	nextFocusInput                    *Input
 }
 
 type Input Panel
 
 func (input *Input) Data() *localInputData {
 	return input.localData.(*localInputData)
+}
+
+func (input *Input) SetNextFocusedInput(next *Input) {
+	input.Data().nextFocusInput = next
 }
 
 func (p *Panel) ConvertToInput(placeholderText string) *Input {
@@ -582,10 +587,16 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					fallthrough
 				case hid.KeyboardKeyEnter:
 					input.submit()
+				case hid.KeyboardKeyTab:
+					// Delay a frame so we don't hit a loop of going to next
+					input.host.RunAfterFrames(1, func() {
+						next := input.Data().nextFocusInput
+						if next != nil {
+							next.Select()
+						}
+					})
 				}
 			}
-		}
-		if keyState == hid.KeyStateDown {
 			input.requestEvent(EventTypeKeyDown)
 		} else if keyState == hid.KeyStateUp {
 			input.requestEvent(EventTypeKeyUp)

@@ -92,6 +92,9 @@ type Document struct {
 	tagElements   map[string][]*Element
 	style         rules.StyleSheet
 	stylizer      func(rules.StyleSheet, *Document, *engine.Host)
+	// TODO:  Should this be here?
+	firstInput *ui.Input
+	lastInput  *ui.Input
 }
 
 func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host,
@@ -205,6 +208,14 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 				input := panel.ConvertToInput(e.Attribute("placeholder"))
 				input.SetText(e.Attribute("value"))
 				uiElm = input
+				if d.firstInput == nil {
+					d.firstInput = input
+				}
+				if d.lastInput != nil {
+					d.lastInput.SetNextFocusedInput(input)
+				}
+				d.lastInput = input
+				input.SetNextFocusedInput(d.firstInput)
 			}
 		}
 		entry := appendElement(uiElm, panel)
