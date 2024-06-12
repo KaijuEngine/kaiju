@@ -51,6 +51,7 @@ type deleteHistory struct {
 func (h *deleteHistory) Redo() {
 	for _, e := range h.entities {
 		draws := e.EditorBindings.Drawings()
+		e.EditorBindings.IsDeleted = true
 		for _, d := range draws {
 			d.ShaderData.Deactivate()
 		}
@@ -67,6 +68,7 @@ func (h *deleteHistory) Redo() {
 func (h *deleteHistory) Undo() {
 	for _, e := range h.entities {
 		draws := e.EditorBindings.Drawings()
+		e.EditorBindings.IsDeleted = false
 		for _, d := range draws {
 			d.ShaderData.Activate()
 		}

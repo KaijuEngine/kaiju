@@ -54,7 +54,8 @@ const (
 )
 
 type entityEditorBindings struct {
-	data map[string]any
+	data      map[string]any
+	IsDeleted bool
 }
 
 func (e *entityEditorBindings) init() {

@@ -130,12 +130,15 @@ func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
 	entries := make([]entityEntry, 0, len(allEntities))
 	roots := make([]*engine.Entity, 0, len(allEntities))
 	for _, entity := range allEntities {
-		if entity.IsRoot() {
+		if entity.IsRoot() && !entity.EditorBindings.IsDeleted {
 			roots = append(roots, entity)
 		}
 	}
 	var addChildren func(*engine.Entity)
 	addChildren = func(entity *engine.Entity) {
+		if entity.EditorBindings.IsDeleted {
+			return
+		}
 		entries = append(entries, entityEntry{entity, false})
 		for _, c := range entity.Children {
 			addChildren(c)
