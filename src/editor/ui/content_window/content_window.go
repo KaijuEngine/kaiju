@@ -60,9 +60,14 @@ const (
 )
 
 type contentEntry struct {
-	Path  string
-	Name  string
-	IsDir bool
+	Path     string
+	Name     string
+	Children []contentEntry
+	IsDir    bool
+}
+
+func (c contentEntry) Depth() int {
+	return strings.Count(c.Path, "/") + strings.Count(c.Path, "\\")
 }
 
 type ContentWindow struct {
@@ -70,6 +75,7 @@ type ContentWindow struct {
 	input    *ui.Input
 	listing  *ui.Panel
 	editor   interfaces.Editor
+	DirTree  []contentEntry
 	Dir      []contentEntry
 	path     string
 	Query    string
@@ -137,11 +143,13 @@ func (s *ContentWindow) contentClick(elm *document.Element) {
 	for i := range elm.Parent.Children {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
-		lbl := ui.FirstOnEntity(p.Entity().Children[1].Children[0]).(*ui.Label)
+		c := p.Entity().Children
+		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.Label)
 		lbl.UnEnforceBGColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
-	lbl := ui.FirstOnEntity(elm.UI.Entity().Children[1].Children[0]).(*ui.Label)
+	c := elm.UI.Entity().Children
+	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.Label)
 	lbl.EnforceBGColor(matrix.ColorDarkBlue())
 	s.selected = elm.UIPanel
 }
@@ -179,7 +187,11 @@ func (s *ContentWindow) submit() {
 
 func (s *ContentWindow) reloadUI() {
 	const html = "editor/ui/content_window.html"
+	folderPanelScroll := float32(0)
 	if s.doc != nil {
+		if fp, ok := s.doc.GetElementById("folderListing"); ok {
+			folderPanelScroll = fp.UIPanel.ScrollY()
+		}
 		s.doc.Destroy()
 	}
 	s.list()
@@ -204,12 +216,15 @@ func (s *ContentWindow) reloadUI() {
 		w, _ := s.doc.GetElementById("window")
 		w.UIPanel.Layout().ScaleHeight(matrix.Float(h.(float64)))
 	}
+	if fp, ok := s.doc.GetElementById("folderListing"); ok {
+		fp.UIPanel.SetScrollY(folderPanelScroll)
+	}
 	s.input.Select()
 }
 
 func (s *ContentWindow) listSearch() {
 	s.Dir = s.Dir[:0]
-	filepath.Walk("content", func(path string, info fs.FileInfo, err error) error {
+	filepath.Walk(contentPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			slog.Error(err.Error())
 			return nil
@@ -253,6 +268,28 @@ func (s *ContentWindow) list() {
 	} else {
 		s.listAll()
 	}
+	s.DirTree = s.DirTree[:0]
+	parentMap := map[string]*contentEntry{}
+	filepath.Walk(contentPath, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() {
+			self := contentEntry{
+				Path:     path,
+				Name:     info.Name(),
+				IsDir:    true,
+				Children: make([]contentEntry, 0),
+			}
+			parent := filepath.Dir(path)
+			if parent == "." {
+				s.DirTree = append(s.DirTree, self)
+				parentMap[path] = &s.DirTree[len(s.DirTree)-1]
+			} else {
+				p := parentMap[parent]
+				p.Children = append(p.Children, self)
+				parentMap[path] = &p.Children[len(p.Children)-1]
+			}
+		}
+		return nil
+	})
 }
 
 func (s *ContentWindow) resizeHover(e *document.Element) {

@@ -155,6 +155,8 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	return panel
 }
 
+func (p *Panel) ScrollX() float32   { return p.scroll.X() }
+func (p *Panel) ScrollY() float32   { return -p.scroll.Y() }
 func (p *Panel) EnableDragScroll()  { p.allowDragScroll = true }
 func (p *Panel) DisableDragScroll() { p.allowDragScroll = false }
 
