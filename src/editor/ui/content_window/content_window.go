@@ -97,6 +97,7 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Gr
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
+	s.funcMap["contentDblClick"] = s.contentDblClick
 	s.funcMap["resizeHover"] = s.resizeHover
 	s.funcMap["resizeExit"] = s.resizeExit
 	s.funcMap["resizeStart"] = s.resizeStart
@@ -135,11 +136,11 @@ func (c *ContentWindow) Hide() {
 	}
 }
 
+func (s *ContentWindow) contentDblClick(elm *document.Element) {
+	s.openContent(elm)
+}
+
 func (s *ContentWindow) contentClick(elm *document.Element) {
-	if elm.UIPanel == s.selected {
-		s.openContent(elm)
-		return
-	}
 	for i := range elm.Parent.Children {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
