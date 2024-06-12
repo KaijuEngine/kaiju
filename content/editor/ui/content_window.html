@@ -1,6 +1,9 @@
 {{define "folderTree"}}
 	{{range .}}
 		<div class="folderEntry" onclick="contentClick" data-path="{{.Path}}">
+			{{range count .Depth}}
+				<span class="indent"></span>
+			{{end}}
 			<img class="folderImg" src="editor/textures/icons/folder-small.png" />
 			<span>{{.Name}}</span>
 		</div>
