@@ -52,6 +52,11 @@ body {
 .fillBottomResizeHandle:hover, .fillLeftRightResizeHandle:hover {
 	background-color: blue;
 }
+.fillHalf {
+	width: 50%;
+	height: 100%;
+}
+.indent { width: 10px; }
 .bolder { font-weight: bolder; }
 .hide { visibility: hidden; }
 .clip { overflow: hidden; }
