@@ -73,11 +73,11 @@ type hierarchyData struct {
 	Query   string
 }
 
-func (e entityEntry) Depth() []struct{} {
-	depth := make([]struct{}, 0, 10)
+func (e entityEntry) Depth() int {
+	depth := 0
 	p := e.Entity
 	for p.Parent != nil {
-		depth = append(depth, struct{}{})
+		depth++
 		p = p.Parent
 	}
 	return depth

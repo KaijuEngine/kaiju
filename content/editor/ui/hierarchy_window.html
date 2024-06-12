@@ -13,7 +13,7 @@
 				<div id="list">
 					{{range .Entries}}
 						<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity" ondragstart="dragStart" ondrop="drop" ondragenter="dragEnter" ondragleave="dragExit">
-							{{range .Depth}}
+							{{range count .Depth}}
 								<span class="indent"></span>
 							{{end}}
 							<!--{{if .Entity.HasChildren}}
