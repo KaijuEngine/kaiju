@@ -273,9 +273,6 @@ func (v Vec4) LargestAxis() Float {
 	return max(v[Vx], v[Vy], v[Vz], v[Vw])
 }
 
-//go:noescape
-func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
-
 func Vec4Area(xa, ya, xb, yb Float) Vec4 {
 	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
 }
