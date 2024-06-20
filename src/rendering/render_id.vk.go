@@ -139,5 +139,6 @@ type MeshId struct {
 }
 
 func (m MeshId) IsValid() bool {
-	return m.vertexBuffer != nil && m.indexBuffer != nil
+	return m.vertexBuffer != vk.Buffer(vk.NullHandle) &&
+		m.indexBuffer != vk.Buffer(vk.NullHandle)
 }

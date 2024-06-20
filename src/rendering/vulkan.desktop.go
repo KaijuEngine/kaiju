@@ -1,4 +1,4 @@
-//go:build windows || darwin || linux
+//go:build windows || darwin || (linux && !android)
 
 /******************************************************************************/
 /* vulkan.desktop.go                                                         */

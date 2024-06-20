@@ -45,6 +45,7 @@ func preTransform(scs vkSwapChainSupportDetails) vk.SurfaceTransformFlagBits {
 	return vk.SurfaceTransformIdentityBit
 }
 
+const vkGeometryShaderValid = vk.True
 const compositeAlpha = vk.CompositeAlphaInheritBit
 const vkUseValidationLayers = false
 const vkInstanceFlags = 1

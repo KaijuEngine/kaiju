@@ -46,6 +46,7 @@ package vulkan
 
 #include <android/native_window.h>
 
+#include <stdlib.h>
 #include "vulkan/vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"

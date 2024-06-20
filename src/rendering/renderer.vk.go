@@ -193,7 +193,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 				return vr.createDescriptorSet(layout, poolIdx+1)
 			}
 		}
-		return sets, nil, errors.New("failed to allocate descriptor sets")
+		return sets, vk.DescriptorPool(vk.NullHandle), errors.New("failed to allocate descriptor sets")
 	}
 	return sets, vr.descriptorPools[poolIdx], nil
 }
