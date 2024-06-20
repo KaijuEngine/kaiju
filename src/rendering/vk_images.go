@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -139,7 +139,7 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 		slog.Error("Failed to create texture image view")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(idView)))
+		vr.dbg.add(vk.TypeToUintPtr(idView))
 	}
 	id.View = idView
 	return true
@@ -193,7 +193,7 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 		slog.Error("Failed to create texture sampler")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(localSampler)))
+		vr.dbg.add(vk.TypeToUintPtr(localSampler))
 	}
 	*sampler = localSampler
 	return true
@@ -271,7 +271,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 		}
 	}
 	commandBuffer := cmd
-	if cmd == vk.CommandBuffer(vk.NullHandle) {
+	if cmd == vk.NullCommandBuffer {
 		commandBuffer = vr.beginSingleTimeCommands()
 	}
 	barrier := vk.ImageMemoryBarrier{}
@@ -291,7 +291,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
 	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
-	if cmd == vk.CommandBuffer(vk.NullHandle) {
+	if cmd == vk.NullCommandBuffer {
 		vr.endSingleTimeCommands(commandBuffer)
 	}
 	vt.Layout = newLayout
@@ -339,17 +339,17 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 		vk.ImageLayoutTransferDstOptimal, 1, &region)
 	vr.endSingleTimeCommands(commandBuffer)
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 	// TODO:  Generate mips?
 }
 
 func (vr *Vulkan) textureIdFree(id *TextureId) {
 	vk.DestroyImageView(vr.device, id.View, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.View)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.View))
 	vk.DestroyImage(vr.device, id.Image, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Image)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.Image))
 	vk.FreeMemory(vr.device, id.Memory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Memory)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.Memory))
 	vk.DestroySampler(vr.device, id.Sampler, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.Sampler)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.Sampler))
 }

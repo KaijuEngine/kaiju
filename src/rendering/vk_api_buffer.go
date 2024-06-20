@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -39,7 +39,6 @@ package rendering
 
 import (
 	"log/slog"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -58,7 +57,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 		slog.Error("Failed to create vertex buffer")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(localBuffer)))
+		vr.dbg.add(vk.TypeToUintPtr(localBuffer))
 	}
 	*buffer = localBuffer
 	var memRequirements vk.MemoryRequirements
@@ -77,7 +76,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 		slog.Error("Failed to allocate vertex buffer memory")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(localBufferMemory)))
+		vr.dbg.add(vk.TypeToUintPtr(localBufferMemory))
 	}
 	*bufferMemory = localBufferMemory
 	vk.BindBufferMemory(vr.device, *buffer, *bufferMemory, 0)

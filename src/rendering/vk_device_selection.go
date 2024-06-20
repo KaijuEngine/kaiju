@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -201,16 +201,16 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 	}
 	devices := make([]vk.PhysicalDevice, deviceCount)
 	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, &devices[0])
-	var currentPhysicalDevice vk.PhysicalDevice = vk.PhysicalDevice(vk.NullHandle)
+	var currentPhysicalDevice vk.PhysicalDevice = vk.NullPhysicalDevice
 	currentProperties := vk.PhysicalDeviceProperties{}
-	var physicalDevice vk.PhysicalDevice = vk.PhysicalDevice(vk.NullHandle)
+	var physicalDevice vk.PhysicalDevice = vk.NullPhysicalDevice
 	properties := vk.PhysicalDeviceProperties{}
 	for i := 0; i < int(deviceCount); i++ {
 		if vr.isPhysicalDeviceSuitable(devices[i]) {
 			currentPhysicalDevice = devices[i]
 		}
 		vk.GetPhysicalDeviceProperties(devices[i], &currentProperties)
-		pick := physicalDevice == vk.PhysicalDevice(vk.NullHandle)
+		pick := physicalDevice == vk.NullPhysicalDevice
 		if !pick {
 			t := properties.DeviceType
 			ct := currentProperties.DeviceType
@@ -234,7 +234,7 @@ func (vr *Vulkan) selectPhysicalDevice() bool {
 			vr.msaaSamples = getMaxUsableSampleCount(currentPhysicalDevice)
 		}
 	}
-	if physicalDevice == vk.PhysicalDevice(vk.NullHandle) {
+	if physicalDevice == vk.NullPhysicalDevice {
 		slog.Error("Failed to find a compatible physical device")
 		return false
 	} else {

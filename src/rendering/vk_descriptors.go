@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -39,7 +39,6 @@ package rendering
 
 import (
 	"errors"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -63,7 +62,7 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vk.Success {
 		return layout, errors.New("failed to create descriptor set layout")
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(layout)))
+		vr.dbg.add(vk.TypeToUintPtr(layout))
 	}
 	return layout, nil
 }

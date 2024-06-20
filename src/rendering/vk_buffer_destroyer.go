@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -39,7 +39,6 @@ package rendering
 
 import (
 	"slices"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -87,14 +86,14 @@ func (b *bufferDestroyer) Cycle() {
 		if pd.delay == 0 {
 			for j := range maxFramesInFlight {
 				vk.DestroyBuffer(b.device, pd.buffers[j], nil)
-				b.dbg.remove(uintptr(unsafe.Pointer(pd.buffers[j])))
+				b.dbg.remove(vk.TypeToUintPtr(pd.buffers[j]))
 				vk.FreeMemory(b.device, pd.memories[j], nil)
-				b.dbg.remove(uintptr(unsafe.Pointer(pd.memories[j])))
+				b.dbg.remove(vk.TypeToUintPtr(pd.memories[j]))
 				for k := range pd.namedBuffers[j] {
 					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
-					b.dbg.remove(uintptr(unsafe.Pointer(pd.namedBuffers[j][k])))
+					b.dbg.remove(vk.TypeToUintPtr(pd.namedBuffers[j][k]))
 					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
-					b.dbg.remove(uintptr(unsafe.Pointer(pd.namedMemories[j][k])))
+					b.dbg.remove(vk.TypeToUintPtr(pd.namedMemories[j][k]))
 				}
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {

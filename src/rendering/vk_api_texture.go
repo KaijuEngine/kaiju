@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -65,7 +65,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 		slog.Error("Failed to create image")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(image)))
+		vr.dbg.add(vk.TypeToUintPtr(image))
 	}
 
 	textureId.Image = image
@@ -85,7 +85,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 		slog.Error("Failed to allocate image memory")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(tidMemory)))
+		vr.dbg.add(vk.TypeToUintPtr(tidMemory))
 	}
 	textureId.Memory = tidMemory
 	vk.BindImageMemory(vr.device, textureId.Image, textureId.Memory, 0)
@@ -231,13 +231,13 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	texture.RenderId.LayerCount = layerCount
 	vr.transitionImageLayout(&texture.RenderId,
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		texture.RenderId.Access, vk.CommandBuffer(vk.NullHandle))
+		texture.RenderId.Access, vk.NullCommandBuffer)
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
 		uint32(data.Width), uint32(data.Height))
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBuffer)))
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 	vr.generateMipmaps(texture.RenderId.Image, format,
 		uint32(data.Width), uint32(data.Height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
@@ -253,10 +253,10 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, 
 	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	id := &texture.RenderId
 	vr.transitionImageLayout(id, vk.ImageLayoutTransferDstOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.CommandBuffer(vk.NullHandle))
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.NullCommandBuffer)
 	vr.writeBufferToImageRegion(id.Image, pixels, x, y, width, height)
 	vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.CommandBuffer(vk.NullHandle))
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.NullCommandBuffer)
 }
 
 func (vr *Vulkan) DestroyTexture(texture *Texture) {

@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -44,7 +44,6 @@ import (
 	"kaiju/matrix"
 	"log"
 	"log/slog"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -207,10 +206,10 @@ func (r *OITCanvas) createSolidImages(vr *Vulkan) bool {
 	if imagesCreated {
 		vr.transitionImageLayout(&r.color,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
+			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.NullCommandBuffer)
 		vr.transitionImageLayout(&r.depth,
 			vk.ImageLayoutDepthStencilAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectDepthBit),
-			vk.AccessFlags(vk.AccessDepthStencilAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
+			vk.AccessFlags(vk.AccessDepthStencilAttachmentWriteBit), vk.NullCommandBuffer)
 	}
 	return imagesCreated
 }
@@ -237,10 +236,10 @@ func (r *OITCanvas) createTransparentImages(vr *Vulkan) bool {
 	if imagesCreated {
 		vr.transitionImageLayout(&r.weightedColor,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
+			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.NullCommandBuffer)
 		vr.transitionImageLayout(&r.weightedReveal,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
+			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.NullCommandBuffer)
 	}
 	return imagesCreated
 }
@@ -597,7 +596,7 @@ func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.Pip
 		slog.Error("Failed to create pipeline layout")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(pLayout)))
+		vr.dbg.add(vk.TypeToUintPtr(pLayout))
 	}
 	shader.RenderId.pipelineLayout = pLayout
 
@@ -654,7 +653,7 @@ func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.Pip
 		success = false
 		slog.Error("Failed to create graphics pipeline")
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(pipelines[0])))
+		vr.dbg.add(vk.TypeToUintPtr(pipelines[0]))
 	}
 	shader.RenderId.graphicsPipeline = pipelines[0]
 	return success

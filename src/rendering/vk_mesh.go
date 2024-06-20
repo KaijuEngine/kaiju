@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -66,9 +66,9 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 		} else {
 			vr.CopyBuffer(stagingBuffer, *vertexBuffer, bufferSize)
 			vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(stagingBuffer)))
+			vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
 			vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
+			vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 		}
 		return true
 	}
@@ -95,8 +95,8 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	}
 	vr.CopyBuffer(stagingBuffer, *indexBuffer, bufferSize)
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBuffer)))
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(stagingBufferMemory)))
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 	return true
 }

@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -179,7 +179,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 		slog.Error("Failed to create shader module", slog.String("module", string(mem)))
 		return outModule, false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(outModule)))
+		vr.dbg.add(vk.TypeToUintPtr(outModule))
 		return outModule, true
 	}
 }
@@ -187,27 +187,27 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 func (vr *Vulkan) DestroyShader(shader *Shader) {
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyPipeline(vr.device, shader.RenderId.graphicsPipeline, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.graphicsPipeline)))
+	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.graphicsPipeline))
 	vk.DestroyPipelineLayout(vr.device, shader.RenderId.pipelineLayout, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.pipelineLayout)))
+	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.pipelineLayout))
 	vk.DestroyShaderModule(vr.device, shader.RenderId.vertModule, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.vertModule)))
+	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.vertModule))
 	vk.DestroyShaderModule(vr.device, shader.RenderId.fragModule, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.fragModule)))
+	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.fragModule))
 	if shader.RenderId.geomModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, shader.RenderId.geomModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.geomModule)))
+		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.geomModule))
 	}
 	if shader.RenderId.tescModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, shader.RenderId.tescModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.tescModule)))
+		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.tescModule))
 	}
 	if shader.RenderId.teseModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, shader.RenderId.teseModule, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.teseModule)))
+		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.teseModule))
 	}
 	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(shader.RenderId.descriptorSetLayout)))
+	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.descriptorSetLayout))
 	for _, ss := range shader.subShaders {
 		vr.DestroyShader(ss)
 	}

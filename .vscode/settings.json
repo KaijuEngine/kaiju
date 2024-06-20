@@ -40,7 +40,9 @@
 		"audio.win32.h": "c",
 		"float.h": "c",
 		"cursorfont.h": "c",
-		"xcursor.h": "c"
+		"xcursor.h": "c",
+		"vulkan_core.h": "c",
+		"mic.win32.h": "c"
 	},
 	"cSpell.words": [
 		"AABB",

@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -41,7 +41,6 @@ import (
 	"errors"
 	"kaiju/matrix"
 	"log/slog"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -98,7 +97,7 @@ func (r *CombineCanvas) Destroy(renderer Renderer) {
 	r.renderPass.Destroy()
 	vr.textureIdFree(&r.color)
 	vk.DestroyFramebuffer(vr.device, r.frameBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(r.frameBuffer)))
+	vr.dbg.remove(vk.TypeToUintPtr(r.frameBuffer))
 	r.color = TextureId{}
 }
 
@@ -157,7 +156,7 @@ func (r *CombineCanvas) createImage(vr *Vulkan) bool {
 	if imagesCreated {
 		vr.transitionImageLayout(&r.color,
 			vk.ImageLayoutColorAttachmentOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.CommandBuffer(vk.NullHandle))
+			vk.AccessFlags(vk.AccessColorAttachmentWriteBit), vk.NullCommandBuffer)
 	}
 	return imagesCreated
 }
@@ -270,7 +269,7 @@ func defaultCombinePipeline(renderer Renderer, shader *Shader, shaderStages []vk
 		slog.Error("Failed to create pipeline layout")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(layout)))
+		vr.dbg.add(vk.TypeToUintPtr(layout))
 	}
 	shader.RenderId.pipelineLayout = layout
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
@@ -297,7 +296,7 @@ func defaultCombinePipeline(renderer Renderer, shader *Shader, shaderStages []vk
 		success = false
 		slog.Error("Failed to create graphics pipeline")
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(pipelines[0])))
+		vr.dbg.add(vk.TypeToUintPtr(pipelines[0]))
 	}
 	shader.RenderId.graphicsPipeline = pipelines[0]
 	return success

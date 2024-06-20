@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -38,8 +38,6 @@
 package rendering
 
 import (
-	"unsafe"
-
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -61,12 +59,12 @@ func (vr *Vulkan) DestroyMesh(mesh *Mesh) {
 	vk.DeviceWaitIdle(vr.device)
 	id := &mesh.MeshId
 	vk.DestroyBuffer(vr.device, id.indexBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.indexBuffer)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.indexBuffer))
 	vk.FreeMemory(vr.device, id.indexBufferMemory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.indexBufferMemory)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.indexBufferMemory))
 	vk.DestroyBuffer(vr.device, id.vertexBuffer, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.vertexBuffer)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.vertexBuffer))
 	vk.FreeMemory(vr.device, id.vertexBufferMemory, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(id.vertexBufferMemory)))
+	vr.dbg.remove(vk.TypeToUintPtr(id.vertexBufferMemory))
 	mesh.MeshId = MeshId{}
 }

@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -41,7 +41,6 @@ import (
 	"kaiju/klib"
 	"log/slog"
 	"math"
-	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -160,7 +159,7 @@ func (vr *Vulkan) createSwapChain() bool {
 		slog.Error("Failed to create swap chain")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(swapChain)))
+		vr.dbg.add(vk.TypeToUintPtr(swapChain))
 		vr.swapChain = swapChain
 		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, nil)
 		vr.swapImages = make([]TextureId, vr.swapImageCount)
@@ -187,12 +186,12 @@ func (vr *Vulkan) swapChainCleanup() {
 	vr.textureIdFree(&vr.depth)
 	for i := uint32(0); i < vr.swapChainFrameBufferCount; i++ {
 		vk.DestroyFramebuffer(vr.device, vr.swapChainFrameBuffers[i], nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.swapChainFrameBuffers[i])))
+		vr.dbg.remove(vk.TypeToUintPtr(vr.swapChainFrameBuffers[i]))
 	}
 	for i := uint32(0); i < vr.swapChainImageViewCount; i++ {
 		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.swapImages[i].View)))
+		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].View))
 	}
 	vk.DestroySwapchain(vr.device, vr.swapChain, nil)
-	vr.dbg.remove(uintptr(unsafe.Pointer(vr.swapChain)))
+	vr.dbg.remove(vk.TypeToUintPtr(vr.swapChain))
 }

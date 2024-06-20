@@ -29,7 +29,7 @@
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
 /* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE /* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
 /* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
@@ -169,7 +169,7 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 		slog.Error("Failed to create descriptor pool")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(descriptorPool)))
+		vr.dbg.add(vk.TypeToUintPtr(descriptorPool))
 		vr.descriptorPools = append(vr.descriptorPools, descriptorPool)
 		return true
 	}
@@ -235,9 +235,9 @@ func (vr *Vulkan) createColorResources() bool {
 func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, error) {
 	vr := &Vulkan{
 		window:           window,
-		instance:         vk.Instance(vk.NullHandle),
-		physicalDevice:   vk.PhysicalDevice(vk.NullHandle),
-		device:           vk.Device(vk.NullHandle),
+		instance:         vk.NullInstance,
+		physicalDevice:   vk.NullPhysicalDevice,
+		device:           vk.NullDevice,
 		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:              debugVulkanNew(),
 		combinedDrawings: NewDrawings(),
@@ -363,9 +363,9 @@ func (vr *Vulkan) createSyncObjects() bool {
 			success = false
 			slog.Error("Failed to create semaphores")
 		} else {
-			vr.dbg.add(uintptr(unsafe.Pointer(imgSemaphore)))
-			vr.dbg.add(uintptr(unsafe.Pointer(rdrSemaphore)))
-			vr.dbg.add(uintptr(unsafe.Pointer(fence)))
+			vr.dbg.add(vk.TypeToUintPtr(imgSemaphore))
+			vr.dbg.add(vk.TypeToUintPtr(rdrSemaphore))
+			vr.dbg.add(vk.TypeToUintPtr(fence))
 		}
 		vr.imageSemaphores[i] = imgSemaphore
 		vr.renderSemaphores[i] = rdrSemaphore
@@ -374,11 +374,11 @@ func (vr *Vulkan) createSyncObjects() bool {
 	if !success {
 		for i := 0; i < maxFramesInFlight && success; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.imageSemaphores[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
 			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderSemaphores[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderFences[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
 	}
 	return success
@@ -395,7 +395,7 @@ func (vr *Vulkan) createCmdPool() bool {
 		slog.Error("Failed to create command pool")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(commandPool)))
+		vr.dbg.add(vk.TypeToUintPtr(commandPool))
 		vr.commandPool = commandPool
 		return true
 	}
@@ -581,39 +581,39 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 func (vr *Vulkan) Destroy() {
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
-	if vr.device != vk.Device(vk.NullHandle) {
+	if vr.device != vk.NullDevice {
 		for _, c := range vr.canvases {
 			c.Destroy(vr)
 		}
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.imageSemaphores[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
 			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderSemaphores[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.renderFences[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
 		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.commandPool)))
+		vr.dbg.remove(vk.TypeToUintPtr(vr.commandPool))
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffers[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
 			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.globalUniformBuffersMemory[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
 		}
 		for i := range vr.descriptorPools {
 			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
-			vr.dbg.remove(uintptr(unsafe.Pointer(vr.descriptorPools[i])))
+			vr.dbg.remove(vk.TypeToUintPtr(vr.descriptorPools[i]))
 		}
 		vr.swapChainRenderPass.Destroy()
 		vr.swapChainCleanup()
 		vk.DestroyDevice(vr.device, nil)
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))
 	}
-	if vr.instance != vk.Instance(vk.NullHandle) {
+	if vr.instance != vk.NullInstance {
 		vk.DestroySurface(vr.instance, vr.surface, nil)
-		vr.dbg.remove(uintptr(unsafe.Pointer(vr.surface)))
+		vr.dbg.remove(vk.TypeToUintPtr(vr.surface))
 		vk.DestroyInstance(vr.instance, nil)
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.instance)))
 	}
@@ -657,9 +657,9 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.Ima
 	var fb vk.Framebuffer
 	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
 		slog.Error("Failed to create framebuffer")
-		return nil, false
+		return vk.NullFramebuffer, false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(fb)))
+		vr.dbg.add(vk.TypeToUintPtr(fb))
 	}
 	return fb, true
 }
