@@ -1,7 +1,7 @@
-//go:build !android
+//go:build android
 
 /******************************************************************************/
-/* main.go                                                                    */
+/* vulkan.android.go                                                          */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,12 +37,14 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package rendering
 
-import (
-	"kaiju/bootstrap"
-)
+import vk "kaiju/rendering/vulkan"
 
-func main() {
-	bootstrap.Main()
+func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+	// TODO:  Fill in the nil args
+	var surface vk.Surface
+	result := vk.CreateAndroidSurface(vr.instance, nil, nil, &surface)
+	vr.surface = surface
+	return result == vk.Success
 }

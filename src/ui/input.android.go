@@ -1,7 +1,7 @@
-//go:build !android
+//go:build android
 
 /******************************************************************************/
-/* main.go                                                                    */
+/* input.android.go                                                           */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,12 +37,16 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package ui
 
-import (
-	"kaiju/bootstrap"
-)
+func (input *Input) internalCopyToClipboard() {
+	// TODO:  Fill out this clipboard code
+}
 
-func main() {
-	bootstrap.Main()
+func (input *Input) internalCutToClipboard() {
+	// TODO:  Fill out this clipboard code
+}
+
+func (input *Input) internalPasteFromClipboard() {
+	// TODO:  Fill out this clipboard code
 }

@@ -1,7 +1,7 @@
-//go:build !android
+//go:build android
 
 /******************************************************************************/
-/* main.go                                                                    */
+/* window.android.go                                                          */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,12 +37,72 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package windowing
 
 import (
-	"kaiju/bootstrap"
+	"errors"
+	"unsafe"
 )
 
-func main() {
-	bootstrap.Main()
+func asEventType(msg int, e *evtMem) eventType {
+	switch msg {
+	// TODO:  Fill out the other cases
+	default:
+		return evtUnknown
+	}
 }
+
+func scaleScrollDelta(delta float32) float32 { return delta }
+
+func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
+	// TODO:  implement
+}
+
+func (w *Window) showWindow(evtSharedMem *evtMem) {
+	// TODO:  implement
+}
+
+func (w *Window) destroy() {
+	// TODO:  implement
+}
+
+func (w *Window) poll() {
+	// TODO:  implement
+}
+
+func (w *Window) cursorStandard() {}
+func (w *Window) cursorIbeam()    {}
+func (w *Window) cursorSizeAll()  {}
+func (w *Window) cursorSizeNS()   {}
+func (w *Window) cursorSizeWE()   {}
+
+func (w *Window) copyToClipboard(text string) {
+	// TODO:  implement
+}
+
+func (w *Window) clipboardContents() string {
+	// TODO:  implement
+	return ""
+}
+
+func (w *Window) sizeMM() (int, int, error) {
+	// TODO:  implement
+	return 0, 0, errors.New("not implemented")
+}
+
+func (w *Window) cHandle() unsafe.Pointer {
+	// TODO:  implement
+	return nil
+}
+
+func (w *Window) cInstance() unsafe.Pointer {
+	// TODO:  implement
+	return nil
+}
+
+func (w *Window) focus()                    {}
+func (w *Window) position() (x, y int)      { return 0, 0 }
+func (w *Window) setPosition(x, y int)      {}
+func (w *Window) setSize(width, height int) {}
+func (w *Window) removeBorder()             {}
+func (w *Window) addBorder()                {}
