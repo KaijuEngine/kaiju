@@ -46,6 +46,7 @@ import (
 	"kaiju/systems/events"
 	"math"
 	"unicode"
+	"unicode/utf8"
 )
 
 type InputType = int32
@@ -337,7 +338,7 @@ func (input *Input) InsertText(text string) {
 		rhs := data.label.text[data.cursorOffset:]
 		str := lhs + text + rhs
 		input.setText(str)
-		data.cursorOffset += len(text)
+		data.cursorOffset += utf8.RuneCountInString(text)
 		input.makeCursorVisible()
 		input.updateCursorPosition()
 	}
@@ -460,7 +461,7 @@ func (input *Input) SetText(text string) {
 	if input.Text() != text {
 		input.moveCursor(0)
 		input.setText(text)
-		input.moveCursor(len(text))
+		input.moveCursor(utf8.RuneCountInString(text))
 	}
 }
 

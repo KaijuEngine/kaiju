@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"unicode/utf8"
 )
 
 const (
@@ -80,7 +81,7 @@ type Label struct {
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{
 		text:            text,
-		textLength:      len(text),
+		textLength:      utf8.RuneCountInString(text),
 		fgColor:         matrix.ColorWhite(),
 		bgColor:         matrix.ColorBlack(),
 		fontSize:        LabelFontSize,
@@ -241,7 +242,7 @@ func (label *Label) SetText(text string) {
 	label.text = text
 	label.renderRequired = true
 	// TODO:  Put a cap on the length of the string
-	label.textLength = len(label.text)
+	label.textLength = utf8.RuneCountInString(label.text)
 	label.SetDirty(DirtyTypeGenerated)
 	label.colorRanges = label.colorRanges[:0]
 }

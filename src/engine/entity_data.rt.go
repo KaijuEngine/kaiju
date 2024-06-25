@@ -46,6 +46,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 )
 
 type EntityData interface {
@@ -64,7 +65,8 @@ func RegisterEntityData(value EntityData) error {
 	if start == -1 {
 		return errors.New("failed to find the source package")
 	}
-	pkg = "*" + pkgPrefix + pkg[start+len(lookFor):]
+
+	pkg = "*" + pkgPrefix + pkg[start+utf8.RuneCountInString(lookFor):]
 	typ := reflect.TypeOf(value).Elem()
 	pkg += "." + typ.Name()
 	gob.RegisterName(pkg, value)

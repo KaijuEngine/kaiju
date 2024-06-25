@@ -50,6 +50,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 //go:embed api_index.md
@@ -158,13 +159,13 @@ func writeMarkdown(md io.StringWriter, dir, text string) {
 	if len(text) == 0 {
 		return
 	}
-	e := len(text)
+	e := utf8.RuneCountInString(text)
 	if !strings.HasPrefix(text, "package") {
 		return
 	}
 	end := strings.Index(text, "\n")
 	if end < 0 {
-		end = len(text)
+		end = utf8.RuneCountInString(text)
 	}
 	writePackage(md, dir, text[:end])
 	positions := make(map[string]startEnd)
@@ -189,7 +190,7 @@ func writeMarkdown(md io.StringWriter, dir, text string) {
 		}
 	}
 	for k, v := range positions {
-		v.start += len(k) + 2
+		v.start += utf8.RuneCountInString(k) + 2
 		positions[k] = v
 	}
 	if p, ok := positions["CONSTANTS"]; ok {

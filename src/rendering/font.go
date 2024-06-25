@@ -47,6 +47,7 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -645,7 +646,7 @@ func (cache FontCache) MeasureCharacter(face string, r rune, pixelSize float32) 
 
 func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
 	cache.requireFace(face)
-	textLen := len(text)
+	textLen := utf8.RuneCountInString(text)
 	idx := textLen
 	rects := cache.StringRectsWithinNew(face, text, scale, maxWidth)
 	for i := 0; i < textLen; i++ {

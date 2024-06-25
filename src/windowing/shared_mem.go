@@ -131,6 +131,7 @@ func (e *evtMem) SetFatal(message string) {
 	e[0] = sharedMemFatal
 	msg := []byte(message)
 	for i := 0; i < len(msg) && i < len(e)-evtSharedMemDataStart; i++ {
+		// TODO:  This could cut off right in the middle of a rune (utf8 char)
 		e[i+evtSharedMemDataStart] = msg[i]
 	}
 }

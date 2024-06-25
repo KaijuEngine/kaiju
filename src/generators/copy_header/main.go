@@ -43,6 +43,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 )
 
 const containsCheck = "Copyright (c) 2015-present Brent Farris."
@@ -117,7 +118,7 @@ func main() {
 			}
 			if !strings.Contains(src, containsCheck) {
 				nameInsert := filepath.Base(path)
-				nameInsert = nameInsert + strings.Repeat(" ", 80-6-len(nameInsert))
+				nameInsert = nameInsert + strings.Repeat(" ", 80-6-utf8.RuneCountInString(nameInsert))
 				namedHeader := strings.Replace(header, "[NAME]", nameInsert, 1)
 				newSrc := namedHeader + "\n\n" + src
 				if err = filesystem.WriteTextFile(path, newSrc); err != nil {
