@@ -1,0 +1,26 @@
+package content_window // import "."
+
+
+TYPES
+
+type ContentWindow struct {
+	DirTree []contentEntry
+	Dir     []contentEntry
+
+	Query string
+
+	// Has unexported fields.
+}
+
+func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Group) *ContentWindow
+
+func (s *ContentWindow) DragUpdate()
+
+func (c *ContentWindow) Hide()
+
+func (s *ContentWindow) IsRoot() bool
+
+func (c *ContentWindow) Show()
+
+func (c *ContentWindow) Toggle()
+

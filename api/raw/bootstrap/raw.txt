@@ -1,0 +1,6 @@
+package bootstrap // import "."
+
+
+FUNCTIONS
+
+func Main()

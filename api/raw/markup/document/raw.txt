@@ -1,0 +1,96 @@
+package document // import "."
+
+
+FUNCTIONS
+
+func TransformHTML(htmlStr string, withData any) string
+
+TYPES
+
+type Document struct {
+	Elements     []*Element
+	TopElements  []*Element
+	HeadElements []*Element
+
+	// Has unexported fields.
+}
+
+func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document
+
+func (d *Document) Activate()
+
+func (d *Document) AddChildElement(parent *Element, elm *Element)
+
+func (d *Document) ApplyStyle()
+
+func (d *Document) Clean()
+
+func (d *Document) Deactivate()
+
+func (d *Document) Destroy()
+
+func (h *Document) GetElementById(id string) (*Element, bool)
+
+func (h *Document) GetElementsByClass(class string) []*Element
+
+func (h *Document) GetElementsByGroup(group string) []*Element
+
+func (h *Document) GetElementsByTagName(tag string) []*Element
+
+func (d *Document) RemoveElement(elm *Element)
+
+func (d *Document) SetGroup(group *ui.Group)
+
+func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host,
+	styleReader func(rules.StyleSheet, *Document, *engine.Host))
+
+type Element struct {
+	UI       ui.UI
+	UIPanel  *ui.Panel
+	Parent   *Element
+	Children []*Element
+
+	// Has unexported fields.
+}
+
+func NewHTML(htmlStr string) *Element
+
+func (e *Element) Attribute(key string) string
+
+func (e *Element) Body() *Element
+
+func (e *Element) Data() string
+
+func (d *Element) EnforceColor(color matrix.Color)
+
+func (e *Element) FindElementById(id string) *Element
+
+func (e *Element) FindElementByTag(tag string) *Element
+
+func (e *Element) FindElementLabelById(id string) *ui.Label
+
+func (e *Element) FindElementsByTag(tag string) []*Element
+
+func (e *Element) Head() *Element
+
+func (e *Element) Html() *Element
+
+func (d Element) InnerLabel() *ui.Label
+
+func (e *Element) IsButton() bool
+
+func (e *Element) IsImage() bool
+
+func (e *Element) IsInput() bool
+
+func (e *Element) IsText() bool
+
+func (e *Element) Root() *Element
+
+func (d *Element) UnEnforceColor()
+
+type TemplateIndexedAny struct {
+	Idx   int
+	Value any
+}
+

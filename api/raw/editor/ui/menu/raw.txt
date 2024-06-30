@@ -1,0 +1,17 @@
+package menu // import "."
+
+
+TYPES
+
+type Menu struct {
+	// Has unexported fields.
+}
+
+func New(container *host_container.Container,
+	logWindow *log_window.LogWindow,
+	contentWindow *content_window.ContentWindow,
+	hierarchyWindow *hierarchy.Hierarchy,
+	contentOpener *content_opener.Opener,
+	editor interfaces.Editor,
+	uiGroup *ui.Group) *Menu
+

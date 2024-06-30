@@ -1,0 +1,589 @@
+package ui // import "."
+
+
+CONSTANTS
+
+const (
+	EventTypeInvalid = iota
+	EventTypeEnter
+	EventTypeExit
+	EventTypeClick
+	EventTypeDoubleClick
+	EventTypeDown
+	EventTypeUp
+	EventTypeMiss
+	EventTypeDragStart
+	EventTypeDragEnd
+	EventTypeDrop
+	EventTypeDropEnter
+	EventTypeDropExit
+	EventTypeScroll
+	EventTypeRebuild
+	EventTypeDestroy
+	EventTypeSubmit
+	EventTypeChange
+	EventTypeRender
+	EventTypeKeyDown
+	EventTypeKeyUp
+	EventTypeEnd
+)
+const (
+	InputTypeDefault = iota
+	InputTypeText
+	InputTypeNumber
+	InputTypePhone
+	InputTypeDatetime
+)
+const (
+	AnchorTopLeft = Anchor(1 + iota)
+	AnchorTopCenter
+	AnchorTopRight
+	AnchorLeft
+	AnchorCenter
+	AnchorRight
+	AnchorBottomLeft
+	AnchorBottomCenter
+	AnchorBottomRight
+	AnchorStretchLeft
+	AnchorStretchTop
+	AnchorStretchRight
+	AnchorStretchBottom
+	AnchorStretchCenter
+)
+const (
+	PositioningStatic = Positioning(iota)
+	PositioningAbsolute
+	PositioningFixed
+	PositioningRelative
+	PositioningSticky
+)
+const (
+	PanelScrollDirectionNone       = 0x00
+	PanelScrollDirectionVertical   = 0x01
+	PanelScrollDirectionHorizontal = 0x02
+	PanelScrollDirectionBoth       = 0x03
+)
+const (
+	BorderStyleNone = iota
+	BorderStyleHidden
+	BorderStyleDotted
+	BorderStyleDashed
+	BorderStyleSolid
+	BorderStyleDouble
+	BorderStyleGroove
+	BorderStyleRidge
+	BorderStyleInset
+	BorderStyleOutset
+)
+const (
+	ContentFitNone = iota
+	ContentFitWidth
+	ContentFitHeight
+	ContentFitBoth
+)
+const (
+	OverflowScroll = iota
+	OverflowVisible
+	OverflowHidden
+)
+const (
+	DirtyTypeNone = iota
+	DirtyTypeLayout
+	DirtyTypeResize
+	DirtyTypeGenerated
+	DirtyTypeColorChange
+	DirtyTypeScissor
+	DirtyTypeParent
+	DirtyTypeParentLayout
+	DirtyTypeParentResize
+	DirtyTypeParentGenerated
+	DirtyTypeParentReGenerated
+	DirtyTypeParentColorChange
+	DirtyTypeParentScissor
+)
+const (
+	EntityDataName = "ui"
+)
+const (
+	LabelFontSize = 14.0
+)
+
+TYPES
+
+type Anchor int32
+
+func (a Anchor) ConvertToBottom() Anchor
+
+func (a Anchor) ConvertToCenter() Anchor
+
+func (a Anchor) ConvertToLeft() Anchor
+
+func (a Anchor) ConvertToRight() Anchor
+
+func (a Anchor) ConvertToTop() Anchor
+
+func (a Anchor) IsBottom() bool
+
+func (a Anchor) IsLeft() bool
+
+func (a Anchor) IsRight() bool
+
+func (a Anchor) IsTop() bool
+
+type BorderStyle = int32
+
+type Button Panel
+
+func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button
+
+func (b *Button) Label() *Label
+
+func (b *Button) SetColor(color matrix.Color)
+
+type Checkbox Panel
+
+func (cb Checkbox) IsChecked() bool
+
+func (cb *Checkbox) SetChecked(isChecked bool)
+
+type ContentFit = int32
+
+type DirtyType = int
+
+type EventType = int
+
+type Group struct {
+	// Has unexported fields.
+}
+
+func NewGroup() *Group
+
+func (group *Group) Attach(host *engine.Host)
+
+func (group *Group) Detach(host *engine.Host)
+
+func (group *Group) HasRequests() bool
+
+type Image Panel
+
+func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image
+
+func (img *Image) PlayAnimation()
+
+func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture)
+
+func (img *Image) SetFrameRate(framesPerSecond float32)
+
+func (img *Image) SetTexture(texture *rendering.Texture)
+
+func (img *Image) StopAnimation()
+
+type Input Panel
+
+func (input *Input) Data() *localInputData
+
+func (input *Input) Deselect()
+
+func (input *Input) InsertText(text string)
+
+func (input *Input) Select()
+
+func (input *Input) SelectAll()
+
+func (input *Input) SetBGColor(newColor matrix.Color)
+
+func (input *Input) SetCursorColor(newColor matrix.Color)
+
+func (input *Input) SetDescription(text string)
+
+func (input *Input) SetFGColor(newColor matrix.Color)
+
+func (input *Input) SetFontSize(fontSize float32)
+
+func (input *Input) SetNextFocusedInput(next *Input)
+
+func (input *Input) SetPlaceholder(text string)
+
+func (input *Input) SetSelectColor(newColor matrix.Color)
+
+func (input *Input) SetText(text string)
+
+func (input *Input) SetTextColor(newColor matrix.Color)
+
+func (input *Input) SetTitle(text string)
+
+func (input *Input) SetType(inputType InputType)
+
+func (input *Input) Text() string
+
+type InputType = int32
+
+type Label struct {
+	// Has unexported fields.
+}
+
+func NewLabel(host *engine.Host, text string, anchor Anchor) *Label
+
+func (ui *Label) AddEvent(evtType EventType, evt func()) events.Id
+
+func (label *Label) BoldRange(start, end int)
+
+func (label *Label) CalculateMaxWidth() float32
+
+func (ui *Label) Clean()
+
+func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color)
+
+func (label *Label) EnforceBGColor(color matrix.Color)
+
+func (label *Label) EnforceFGColor(color matrix.Color)
+
+func (ui *Label) Entity() *engine.Entity
+
+func (ui *Label) Event(evtType EventType) *events.Event
+
+func (ui *Label) ExecuteEvent(evtType EventType) bool
+
+func (label *Label) FontFace() rendering.FontFace
+
+func (label *Label) FontSize() float32
+
+func (ui *Label) GenerateScissor()
+
+func (ui *Label) Host() *engine.Host
+
+func (ui *Label) Layout() *Layout
+
+func (label *Label) LineHeight() float32
+
+func (label *Label) MaxWidth() float32
+
+func (label *Label) Measure() matrix.Vec2
+
+func (ui *Label) RemoveEvent(evtType EventType, evtId events.Id)
+
+func (label *Label) SetBGColor(newColor matrix.Color)
+
+func (label *Label) SetBaseline(baseline rendering.FontBaseline)
+
+func (label *Label) SetColor(newColor matrix.Color)
+
+func (ui *Label) SetDirty(dirtyType DirtyType)
+
+func (label *Label) SetFontSize(size float32)
+
+func (label *Label) SetFontStyle(style string)
+
+func (label *Label) SetFontWeight(weight string)
+
+func (ui *Label) SetGroup(group *Group)
+
+func (label *Label) SetJustify(justify rendering.FontJustify)
+
+func (label *Label) SetLineHeight(height float32)
+
+func (label *Label) SetMaxWidth(maxWidth float32)
+
+func (label *Label) SetText(text string)
+
+func (label *Label) SetWidthAutoHeight(width float32)
+
+func (label *Label) SetWrap(wrapText bool)
+
+func (ui *Label) ShaderData() *ShaderData
+
+func (label *Label) Text() string
+
+func (label *Label) UnEnforceBGColor()
+
+func (label *Label) UnEnforceFGColor()
+
+func (ui *Label) Update(deltaTime float64)
+
+type Layout struct {
+	// Has unexported fields.
+}
+
+func (l *Layout) AddFunction(fn func(layout *Layout)) LayoutFuncId
+
+func (l *Layout) Anchor() Anchor
+
+func (l *Layout) AnchorTo(anchorPosition Anchor)
+
+func (l *Layout) Border() matrix.Vec4
+
+func (l *Layout) CalcOffset() matrix.Vec2
+
+func (l *Layout) ClearFunctions()
+
+func (l *Layout) ContentSize() (float32, float32)
+
+func (l *Layout) InnerOffset() matrix.Vec4
+
+func (l *Layout) LocalInnerOffset() matrix.Vec4
+
+func (l *Layout) Margin() matrix.Vec4
+
+func (l *Layout) Offset() matrix.Vec2
+
+func (l *Layout) Padding() matrix.Vec4
+
+func (l *Layout) PixelSize() matrix.Vec2
+
+func (l *Layout) Positioning() Positioning
+
+func (l *Layout) RemoveFunction(id LayoutFuncId)
+
+func (l *Layout) Scale(width, height float32) bool
+
+func (l *Layout) ScaleHeight(height float32) bool
+
+func (l *Layout) ScaleWidth(width float32) bool
+
+func (l *Layout) SetBorder(left, top, right, bottom float32)
+
+func (l *Layout) SetInnerOffset(left, top, right, bottom float32)
+
+func (l *Layout) SetInnerOffsetBottom(offset float32)
+
+func (l *Layout) SetInnerOffsetLeft(offset float32)
+
+func (l *Layout) SetInnerOffsetRight(offset float32)
+
+func (l *Layout) SetInnerOffsetTop(offset float32)
+
+func (l *Layout) SetLocalInnerOffset(left, top, right, bottom float32)
+
+func (l *Layout) SetMargin(left, top, right, bottom float32)
+
+func (l *Layout) SetOffset(x, y float32)
+
+func (l *Layout) SetPadding(left, top, right, bottom float32)
+
+func (l *Layout) SetPositioning(pos Positioning)
+
+func (l *Layout) SetRowLayoutOffset(offset matrix.Vec2)
+
+func (l *Layout) SetStretch(left, top, right, bottom float32)
+
+func (l *Layout) SetStretchRatio(leftRatio, topRatio, rightRatio, bottomRatio float32)
+
+func (l *Layout) SetZ(z float32)
+
+func (l *Layout) Stretch() matrix.Vec4
+
+func (l *Layout) Ui() UI
+
+func (l *Layout) Z() float32
+
+type LayoutFuncId = int64
+
+type LayoutFunctions struct {
+	// Has unexported fields.
+}
+
+func NewEvent() LayoutFunctions
+
+func (lf *LayoutFunctions) Add(call func(layout *Layout)) LayoutFuncId
+
+func (lf *LayoutFunctions) Clear()
+
+func (lf *LayoutFunctions) Execute(layout *Layout)
+
+func (lf *LayoutFunctions) IsEmpty() bool
+
+func (e *LayoutFunctions) Remove(id LayoutFuncId)
+
+type Overflow = int
+
+type Panel struct {
+	// Has unexported fields.
+}
+
+func FirstPanelOnEntity(entity *engine.Entity) *Panel
+
+func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel
+
+func (p *Panel) AddChild(target UI)
+
+func (ui *Panel) AddEvent(evtType EventType, evt func()) events.Id
+
+func (p *Panel) Background() *rendering.Texture
+
+func (p *Panel) BorderColor() [4]matrix.Color
+
+func (p *Panel) BorderSize() matrix.Vec4
+
+func (p *Panel) BorderStyle() [4]BorderStyle
+
+func (p *Panel) Child(index int) UI
+
+func (ui *Panel) Clean()
+
+func (p *Panel) ConvertToButton() *Button
+
+func (p *Panel) ConvertToCheckbox() *Checkbox
+
+func (p *Panel) ConvertToInput(placeholderText string) *Input
+
+func (p *Panel) ConvertToSlider() *Slider
+
+func (p *Panel) DisableDragScroll()
+
+func (p *Panel) DontFitContent()
+
+func (p *Panel) DontFitContentHeight()
+
+func (p *Panel) DontFitContentWidth()
+
+func (p *Panel) EnableDragScroll()
+
+func (p *Panel) EnforceColor(color matrix.Color)
+
+func (ui *Panel) Entity() *engine.Entity
+
+func (ui *Panel) Event(evtType EventType) *events.Event
+
+func (ui *Panel) ExecuteEvent(evtType EventType) bool
+
+func (p *Panel) FitContent()
+
+func (p *Panel) FitContentHeight()
+
+func (p *Panel) FitContentWidth()
+
+func (p *Panel) FittingContent() bool
+
+func (p *Panel) Freeze()
+
+func (ui *Panel) GenerateScissor()
+
+func (p *Panel) HasEnforcedColor() bool
+
+func (ui *Panel) Host() *engine.Host
+
+func (p *Panel) InsertChild(target UI, idx int)
+
+func (p *Panel) IsFrozen() bool
+
+func (p *Panel) IsScrolling() bool
+
+func (ui *Panel) Layout() *Layout
+
+func (p *Panel) Overflow() Overflow
+
+func (p *Panel) RemoveBackground()
+
+func (p *Panel) RemoveChild(target UI)
+
+func (ui *Panel) RemoveEvent(evtType EventType, evtId events.Id)
+
+func (p *Panel) ResetScroll()
+
+func (p *Panel) ScrollDirection() PanelScrollDirection
+
+func (p *Panel) ScrollX() float32
+
+func (p *Panel) ScrollY() float32
+
+func (p *Panel) SetBackground(tex *rendering.Texture)
+
+func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color)
+
+func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32)
+
+func (p *Panel) SetBorderSize(left, top, right, bottom float32)
+
+func (p *Panel) SetBorderStyle(left, top, right, bottom BorderStyle)
+
+func (p *Panel) SetColor(bgColor matrix.Color)
+
+func (ui *Panel) SetDirty(dirtyType DirtyType)
+
+func (ui *Panel) SetGroup(group *Group)
+
+func (p *Panel) SetOverflow(overflow Overflow)
+
+func (p *Panel) SetScrollDirection(direction PanelScrollDirection)
+
+func (p *Panel) SetScrollX(value float32)
+
+func (p *Panel) SetScrollY(value float32)
+
+func (p *Panel) SetSpeed(speed float32)
+
+func (p *Panel) SetUseBlending(useBlending bool)
+
+func (ui *Panel) ShaderData() *ShaderData
+
+func (p *Panel) UnEnforceColor()
+
+func (p *Panel) UnFreeze()
+
+func (ui *Panel) Update(deltaTime float64)
+
+type PanelScrollDirection = int32
+
+type Positioning = int
+
+type ProgressBar Panel
+
+func NewProgressBar(host *engine.Host, fgTexture, bgTexture *rendering.Texture, anchor Anchor) *ProgressBar
+
+func (b *ProgressBar) SetBGColor(bgColor matrix.Color)
+
+func (b *ProgressBar) SetFGColor(fgColor matrix.Color)
+
+func (b *ProgressBar) SetValue(value float32)
+
+func (b ProgressBar) Value() float32
+
+type ShaderData struct {
+	rendering.ShaderDataBase
+	UVs          matrix.Vec4
+	FgColor      matrix.Color
+	BgColor      matrix.Color
+	Scissor      matrix.Vec4
+	Size2D       matrix.Vec4
+	BorderRadius matrix.Vec4
+	BorderSize   matrix.Vec4
+	BorderColor  [4]matrix.Color
+	BorderLen    matrix.Vec2
+}
+
+func (s ShaderData) Size() int
+
+type Slider Panel
+
+func (slider Slider) Delta() float32
+
+func (slider *Slider) SetBGColor(bgColor matrix.Color)
+
+func (slider *Slider) SetFGColor(fgColor matrix.Color)
+
+func (slider *Slider) SetValue(value float32)
+
+func (slider Slider) Value() float32
+
+type UI interface {
+	Entity() *engine.Entity
+	ExecuteEvent(evtType EventType) bool
+	AddEvent(evtType EventType, evt func()) events.Id
+	RemoveEvent(evtType EventType, evtId events.Id)
+	Event(evtType EventType) *events.Event
+	Update(deltaTime float64)
+	SetDirty(dirtyType DirtyType)
+	Layout() *Layout
+	ShaderData() *ShaderData
+	Clean()
+	SetGroup(group *Group)
+	Host() *engine.Host
+	GenerateScissor()
+
+	// Has unexported methods.
+}
+
+func AllOnEntity(entity *engine.Entity) []UI
+
+func FirstOnEntity(entity *engine.Entity) UI
+

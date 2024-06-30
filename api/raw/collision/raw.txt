@@ -1,0 +1,225 @@
+package collision // import "."
+
+
+FUNCTIONS
+
+func PointOutsideOfPlane(p, a, b, c, d matrix.Vec3) bool
+    PointOutsideOfPlane returns true if the given point is outside of the plane
+
+
+TYPES
+
+type AABB struct {
+	Center matrix.Vec3
+	Extent matrix.Vec3
+}
+    AABB is an axis-aligned bounding box
+
+func AABBFromMinMax(min, max matrix.Vec3) AABB
+    AABBFromMinMax creates an AABB from the minimum and maximum points
+
+func AABBFromWidth(center matrix.Vec3, halfWidth matrix.Float) AABB
+    AABBFromWidth creates an AABB from the center and half-width
+
+func AABBUnion(a, b AABB) AABB
+    Union returns the union of two AABBs
+
+func (a *AABB) AABBIntersect(b AABB) bool
+    AABBIntersect returns whether the AABB intersects another AABB
+
+func (a AABB) ClosestDistance(b AABB) matrix.Float
+    ClosestDistance returns the closest distance between two AABBs
+
+func (box *AABB) Contains(point matrix.Vec3) bool
+    Contains returns whether the AABB contains the point
+
+func (box *AABB) ContainsAABB(b AABB) bool
+    ContainsAABB returns whether the AABB contains another AABB
+
+func (box *AABB) FromTriangle(triangle DetailedTriangle) AABB
+    FromTriangle returns an AABB that contains the triangle
+
+func (box *AABB) InFrustum(frustum Frustum) bool
+    InFrustum returns whether the AABB is in the frustum
+
+func (box *AABB) LongestAxis() int
+    LongestAxis returns the longest axis of the AABB (0 = X, 1 = Y, 2 = Z)
+
+func (box *AABB) Max() matrix.Vec3
+    Max returns the maximum point of the AABB
+
+func (box *AABB) Min() matrix.Vec3
+    Min returns the minimum point of the AABB
+
+func (box *AABB) PlaneIntersect(plane Plane) bool
+    PlaneIntersect returns whether the AABB intersects a plane
+
+func (box *AABB) RayHit(ray Ray) (matrix.Vec3, bool)
+    RayHit returns the point of intersection and whether the ray hit the AABB
+
+func (box AABB) Size() matrix.Vec3
+    Size returns the size of the AABB
+
+func (box *AABB) TriangleIntersect(tri DetailedTriangle) bool
+    TriangleIntersect returns whether the AABB intersects a triangle
+
+type BVH struct {
+	Left      *BVH
+	Right     *BVH
+	Parent    *BVH
+	Transform *matrix.Transform
+	Data      HitObject
+	// Has unexported fields.
+}
+
+func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
+    BVHBottomUp constructs a BVH from a list of triangles
+
+func BVHInsert(into, other *BVH) *BVH
+    BVHInsert inserts a new BVH into an existing BVH, returning the new root
+
+func NewBVH() *BVH
+
+func (b *BVH) Bounds() AABB
+
+func (into *BVH) Insert(other *BVH)
+
+func (b *BVH) IsLeaf() bool
+    IsLeaf returns whether or not the BVH is a leaf node
+
+func (b *BVH) IsLeft() bool
+    IsLeft returns whether or not the BVH is the left child of its parent
+
+func (b *BVH) IsRight() bool
+    IsRight returns whether or not the BVH is the right child of its parent
+
+func (b *BVH) IsRoot() bool
+    IsRoot returns whether or not the BVH is the root node
+
+func (b *BVH) RayHit(ray Ray, rayLen matrix.Float) (matrix.Vec3, bool)
+    RayHit returns the point of intersection and whether or not the ray hit the
+    BVH. The point of intersection is the closest point of intersection along
+    the ray.
+
+func (b *BVH) RemoveNode()
+    RemoveNode removes a node from the BVH and adjusts the tree accordingly.
+    If the node is the root, nothing is done.
+
+func (b *BVH) Root() *BVH
+
+type DetailedTriangle struct {
+	Points   [3]matrix.Vec3
+	Normal   matrix.Vec3
+	Centroid matrix.Vec3
+	Radius   matrix.Float
+}
+
+func DetailedTriangleFromPoints(points [3]matrix.Vec3) DetailedTriangle
+    DetailedTriangleFromPoints creates a detailed triangle from three points,
+    a detailed triangle is different from a regular triangle in that it contains
+    additional information such as the centroid and radius
+
+func (t *DetailedTriangle) Bounds() AABB
+
+func (t *DetailedTriangle) RayIntersect(ray Ray, length float32) bool
+
+type Frustum struct {
+	Planes [6]Plane
+}
+
+type HitObject interface {
+	Bounds() AABB
+	RayIntersect(ray Ray, length float32) bool
+}
+
+type OBB struct {
+	Center      matrix.Vec3
+	Extent      matrix.Vec3
+	Orientation matrix.Mat3
+}
+
+func OBBFromAABB(aabb AABB) OBB
+
+func (o OBB) ContainsPoint(point matrix.Vec3) bool
+
+func (o OBB) Intersect(other OBB) bool
+
+func (o OBB) Overlaps(other OBB) bool
+
+func (o OBB) ProjectOntoAxis(axis matrix.Vec3) OBB
+
+type Octree struct {
+	Center    matrix.Vec3
+	HalfWidth matrix.Float
+	Children  [8]*Octree
+	Objects   []HitObject
+}
+
+func NewOctree(center matrix.Vec3, halfWidth matrix.Float, maxDepth int) *Octree
+
+func OctreeForMesh(mesh []matrix.Vec3) *Octree
+
+func (o *Octree) AsAABB() AABB
+
+func (node *Octree) Insert(obj HitObject)
+
+type Plane struct {
+	Normal matrix.Vec3
+	Dot    matrix.Float
+}
+
+func PlaneCCW(a, b, c matrix.Vec3) Plane
+    PlaneCCW creates a plane from three points in counter clockwise order
+
+func (p Plane) ClosestPoint(point matrix.Vec3) matrix.Vec3
+    ClosestPoint returns the closest point on the plane to the given point
+
+func (p Plane) Distance(point matrix.Vec3) float32
+    Distance returns the distance from the plane to the given point
+
+func (p *Plane) SetFloatValue(value float32, index int)
+    SetFloatValue sets the value of the plane at the given index (X, Y, Z, Dot)
+
+func (p Plane) ToArray() [4]float32
+    ToArray converts the plane to an array of 4 floats
+
+func (p Plane) ToVec4() matrix.Vec4
+    ToVec4 converts the plane to a Vec4 (analogous to ToArray)
+
+type Ray struct {
+	Origin    matrix.Vec3
+	Direction matrix.Vec3
+}
+
+func (r Ray) PlaneHit(planePosition, planeNormal matrix.Vec3) (hit matrix.Vec3, success bool)
+    PlaneHit returns the point of intersection with the plane and true if the
+    ray hits the plane
+
+func (r Ray) Point(distance float32) matrix.Vec3
+    Point returns the point at the given distance along the ray
+
+func (r Ray) SphereHit(center matrix.Vec3, radius, maxLen float32) bool
+    SphereHit returns true if the ray hits the sphere
+
+func (r Ray) TriangleHit(rayLen float32, a, b, c matrix.Vec3) bool
+    TriangleHit returns true if the ray hits the triangle defined by the three
+    points
+
+type Segment struct {
+	A matrix.Vec3
+	B matrix.Vec3
+}
+
+func LineSegmentFromRay(ray Ray, length float32) Segment
+    LineSegmentFromRay creates a line segment from a ray
+
+func (l Segment) TriangleHit(a, b, c matrix.Vec3) bool
+    TriangleHit returns true if the segment hits the triangle defined by the
+    three points
+
+type Triangle struct {
+	P           Plane
+	EdgePlaneBC Plane
+	EdgePlaneCA Plane
+}
+

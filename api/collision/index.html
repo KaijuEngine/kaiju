@@ -1,0 +1,1645 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package collision - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-collision" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package collision
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/editor_launch/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go Access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Engine Developers
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Engine Developers
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine_developers/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine_developers/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine_developers/editor_windows/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor windows
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine_developers/prompt_popup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prompt popups
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pointoutsideofplane" class="md-nav__link">
+    <span class="md-ellipsis">
+      PointOutsideOfPlane
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aabb" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AABB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aabbfromminmax" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABBFromMinMax
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbfromwidth" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABBFromWidth
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbunion" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABBUnion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbaabbintersect" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.AABBIntersect
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbclosestdistance" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.ClosestDistance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbcontains" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.Contains
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbcontainsaabb" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.ContainsAABB
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbfromtriangle" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.FromTriangle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbinfrustum" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.InFrustum
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabblongestaxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.LongestAxis
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbmax" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.Max
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbmin" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.Min
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbplaneintersect" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.PlaneIntersect
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbrayhit" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.RayHit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbsize" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.Size
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aabbtriangleintersect" class="md-nav__link">
+    <span class="md-ellipsis">
+      AABB.TriangleIntersect
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvh" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BVH">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bvhbottomup" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVHBottomUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhinsert" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVHInsert
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newbvh" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewBVH
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhbounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.Bounds
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhinsert_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.Insert
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhisleaf" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.IsLeaf
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhisleft" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.IsLeft
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhisright" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.IsRight
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhisroot" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.IsRoot
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhrayhit" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.RayHit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhremovenode" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.RemoveNode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvhroot" class="md-nav__link">
+    <span class="md-ellipsis">
+      BVH.Root
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailedtriangle" class="md-nav__link">
+    <span class="md-ellipsis">
+      DetailedTriangle
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DetailedTriangle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#detailedtrianglefrompoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      DetailedTriangleFromPoints
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailedtrianglebounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      DetailedTriangle.Bounds
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailedtrianglerayintersect" class="md-nav__link">
+    <span class="md-ellipsis">
+      DetailedTriangle.RayIntersect
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frustum" class="md-nav__link">
+    <span class="md-ellipsis">
+      Frustum
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hitobject" class="md-nav__link">
+    <span class="md-ellipsis">
+      HitObject
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#obb" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBB
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OBB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#obbfromaabb" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBBFromAABB
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#obbcontainspoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBB.ContainsPoint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#obbintersect" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBB.Intersect
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#obboverlaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBB.Overlaps
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#obbprojectontoaxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      OBB.ProjectOntoAxis
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#octree" class="md-nav__link">
+    <span class="md-ellipsis">
+      Octree
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Octree">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newoctree" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewOctree
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#octreeformesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      OctreeForMesh
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#octreeasaabb" class="md-nav__link">
+    <span class="md-ellipsis">
+      Octree.AsAABB
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#octreeinsert" class="md-nav__link">
+    <span class="md-ellipsis">
+      Octree.Insert
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plane">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#planeccw" class="md-nav__link">
+    <span class="md-ellipsis">
+      PlaneCCW
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planeclosestpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane.ClosestPoint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planedistance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane.Distance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planesetfloatvalue" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane.SetFloatValue
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planetoarray" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane.ToArray
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planetovec4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Plane.ToVec4
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ray" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ray
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ray">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rayplanehit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ray.PlaneHit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raypoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ray.Point
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rayspherehit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ray.SphereHit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raytrianglehit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ray.TriangleHit
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Segment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Segment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linesegmentfromray" class="md-nav__link">
+    <span class="md-ellipsis">
+      LineSegmentFromRay
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segmenttrianglehit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Segment.TriangleHit
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#triangle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Triangle
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-collision">package collision</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/collision&quot;</span>
+</span></code></pre></div>
+<h2 id="functions">Functions</h2>
+<h3 id="pointoutsideofplane">PointOutsideOfPlane</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">PointOutsideOfPlane</span><span class="p">(</span><span class="nx">p</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">d</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>PointOutsideOfPlane returns true if the given point is outside of the plane</p>
+<h2 id="types">Types</h2>
+<h3 id="aabb">AABB</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">AABB</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">Center</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">Extent</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>AABB is an axis-aligned bounding box</p>
+<h4 id="aabbfromminmax">AABBFromMinMax</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">AABBFromMinMax</span><span class="p">(</span><span class="nx">min</span><span class="p">,</span><span class="w"> </span><span class="nx">max</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<p>AABBFromMinMax creates an AABB from the minimum and maximum points</p>
+<h4 id="aabbfromwidth">AABBFromWidth</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">AABBFromWidth</span><span class="p">(</span><span class="nx">center</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">halfWidth</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<p>AABBFromWidth creates an AABB from the center and half-width</p>
+<h4 id="aabbunion">AABBUnion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">AABBUnion</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<p>Union returns the union of two AABBs</p>
+<h4 id="aabbaabbintersect">AABB.AABBIntersect</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">AABBIntersect</span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>AABBIntersect returns whether the AABB intersects another AABB</p>
+<h4 id="aabbclosestdistance">AABB.ClosestDistance</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">ClosestDistance</span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<p>ClosestDistance returns the closest distance between two AABBs</p>
+<h4 id="aabbcontains">AABB.Contains</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">Contains</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>Contains returns whether the AABB contains the point</p>
+<h4 id="aabbcontainsaabb">AABB.ContainsAABB</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">ContainsAABB</span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>ContainsAABB returns whether the AABB contains another AABB</p>
+<h4 id="aabbfromtriangle">AABB.FromTriangle</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">FromTriangle</span><span class="p">(</span><span class="nx">triangle</span><span class="w"> </span><span class="nx">DetailedTriangle</span><span class="p">)</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<p>FromTriangle returns an AABB that contains the triangle</p>
+<h4 id="aabbinfrustum">AABB.InFrustum</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">InFrustum</span><span class="p">(</span><span class="nx">frustum</span><span class="w"> </span><span class="nx">Frustum</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>InFrustum returns whether the AABB is in the frustum</p>
+<h4 id="aabblongestaxis">AABB.LongestAxis</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">LongestAxis</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<p>LongestAxis returns the longest axis of the AABB (0 = X, 1 = Y, 2 = Z)</p>
+<h4 id="aabbmax">AABB.Max</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">Max</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<p>Max returns the maximum point of the AABB</p>
+<h4 id="aabbmin">AABB.Min</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">Min</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<p>Min returns the minimum point of the AABB</p>
+<h4 id="aabbplaneintersect">AABB.PlaneIntersect</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">PlaneIntersect</span><span class="p">(</span><span class="nx">plane</span><span class="w"> </span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>PlaneIntersect returns whether the AABB intersects a plane</p>
+<h4 id="aabbrayhit">AABB.RayHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">RayHit</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<p>RayHit returns the point of intersection and whether the ray hit the AABB</p>
+<h4 id="aabbsize">AABB.Size</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">Size</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<p>Size returns the size of the AABB</p>
+<h4 id="aabbtriangleintersect">AABB.TriangleIntersect</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">box</span><span class="w"> </span><span class="o">*</span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">TriangleIntersect</span><span class="p">(</span><span class="nx">tri</span><span class="w"> </span><span class="nx">DetailedTriangle</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>TriangleIntersect returns whether the AABB intersects a triangle</p>
+<h3 id="bvh">BVH</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">BVH</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span><span class="nx">Left</span><span class="w">      </span><span class="o">*</span><span class="nx">BVH</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">Right</span><span class="w">     </span><span class="o">*</span><span class="nx">BVH</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nx">Parent</span><span class="w">    </span><span class="o">*</span><span class="nx">BVH</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nx">Transform</span><span class="w"> </span><span class="o">*</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Transform</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">    </span><span class="nx">Data</span><span class="w">      </span><span class="nx">HitObject</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="bvhbottomup">BVHBottomUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BVHBottomUp</span><span class="p">(</span><span class="nx">triangles</span><span class="w"> </span><span class="p">[]</span><span class="nx">DetailedTriangle</span><span class="p">,</span><span class="w"> </span><span class="nx">transform</span><span class="w"> </span><span class="o">*</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Transform</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span>
+</span></code></pre></div>
+<p>BVHBottomUp constructs a BVH from a list of triangles</p>
+<h4 id="bvhinsert">BVHInsert</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BVHInsert</span><span class="p">(</span><span class="nx">into</span><span class="p">,</span><span class="w"> </span><span class="nx">other</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span>
+</span></code></pre></div>
+<p>BVHInsert inserts a new BVH into an existing BVH, returning the new root</p>
+<h4 id="newbvh">NewBVH</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewBVH</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span>
+</span></code></pre></div>
+<h4 id="bvhbounds">BVH.Bounds</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">Bounds</span><span class="p">()</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<h4 id="bvhinsert_1">BVH.Insert</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">into</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">Insert</span><span class="p">(</span><span class="nx">other</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="bvhisleaf">BVH.IsLeaf</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">IsLeaf</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsLeaf returns whether or not the BVH is a leaf node</p>
+<h4 id="bvhisleft">BVH.IsLeft</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">IsLeft</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsLeft returns whether or not the BVH is the left child of its parent</p>
+<h4 id="bvhisright">BVH.IsRight</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">IsRight</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsRight returns whether or not the BVH is the right child of its parent</p>
+<h4 id="bvhisroot">BVH.IsRoot</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">IsRoot</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsRoot returns whether or not the BVH is the root node</p>
+<h4 id="bvhrayhit">BVH.RayHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">RayHit</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">Ray</span><span class="p">,</span><span class="w"> </span><span class="nx">rayLen</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<p>RayHit returns the point of intersection and whether or not the ray hit the
+BVH. The point of intersection is the closest point of intersection along
+the ray.</p>
+<h4 id="bvhremovenode">BVH.RemoveNode</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveNode</span><span class="p">()</span>
+</span></code></pre></div>
+<p>RemoveNode removes a node from the BVH and adjusts the tree accordingly.
+If the node is the root, nothing is done.</p>
+<h4 id="bvhroot">BVH.Root</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span><span class="p">)</span><span class="w"> </span><span class="nx">Root</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">BVH</span>
+</span></code></pre></div>
+<h3 id="detailedtriangle">DetailedTriangle</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">DetailedTriangle</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">    </span><span class="nx">Points</span><span class="w">   </span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">    </span><span class="nx">Normal</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nx">Centroid</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">    </span><span class="nx">Radius</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="detailedtrianglefrompoints">DetailedTriangleFromPoints</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">DetailedTriangleFromPoints</span><span class="p">(</span><span class="nx">points</span><span class="w"> </span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">DetailedTriangle</span>
+</span></code></pre></div>
+<p>DetailedTriangleFromPoints creates a detailed triangle from three points,
+a detailed triangle is different from a regular triangle in that it contains
+additional information such as the centroid and radius</p>
+<h4 id="detailedtrianglebounds">DetailedTriangle.Bounds</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">DetailedTriangle</span><span class="p">)</span><span class="w"> </span><span class="nx">Bounds</span><span class="p">()</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<h4 id="detailedtrianglerayintersect">DetailedTriangle.RayIntersect</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">DetailedTriangle</span><span class="p">)</span><span class="w"> </span><span class="nx">RayIntersect</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">Ray</span><span class="p">,</span><span class="w"> </span><span class="nx">length</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="frustum">Frustum</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Frustum</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">    </span><span class="nx">Planes</span><span class="w"> </span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="nx">Plane</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="hitobject">HitObject</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">HitObject</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="w">    </span><span class="nx">Bounds</span><span class="p">()</span><span class="w"> </span><span class="nx">AABB</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="w">    </span><span class="nx">RayIntersect</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">Ray</span><span class="p">,</span><span class="w"> </span><span class="nx">length</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="obb">OBB</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">OBB</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="w">    </span><span class="nx">Center</span><span class="w">      </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">    </span><span class="nx">Extent</span><span class="w">      </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="w">    </span><span class="nx">Orientation</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Mat3</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="obbfromaabb">OBBFromAABB</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">OBBFromAABB</span><span class="p">(</span><span class="nx">aabb</span><span class="w"> </span><span class="nx">AABB</span><span class="p">)</span><span class="w"> </span><span class="nx">OBB</span>
+</span></code></pre></div>
+<h4 id="obbcontainspoint">OBB.ContainsPoint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="nx">ContainsPoint</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="obbintersect">OBB.Intersect</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="nx">Intersect</span><span class="p">(</span><span class="nx">other</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="obboverlaps">OBB.Overlaps</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="nx">Overlaps</span><span class="p">(</span><span class="nx">other</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="obbprojectontoaxis">OBB.ProjectOntoAxis</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">OBB</span><span class="p">)</span><span class="w"> </span><span class="nx">ProjectOntoAxis</span><span class="p">(</span><span class="nx">axis</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">OBB</span>
+</span></code></pre></div>
+<h3 id="octree">Octree</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Octree</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="w">    </span><span class="nx">Center</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="w">    </span><span class="nx">HalfWidth</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="w">    </span><span class="nx">Children</span><span class="w">  </span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="o">*</span><span class="nx">Octree</span>
+</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="w">    </span><span class="nx">Objects</span><span class="w">   </span><span class="p">[]</span><span class="nx">HitObject</span>
+</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newoctree">NewOctree</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewOctree</span><span class="p">(</span><span class="nx">center</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">halfWidth</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">,</span><span class="w"> </span><span class="nx">maxDepth</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">Octree</span>
+</span></code></pre></div>
+<h4 id="octreeformesh">OctreeForMesh</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">OctreeForMesh</span><span class="p">(</span><span class="nx">mesh</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">Octree</span>
+</span></code></pre></div>
+<h4 id="octreeasaabb">Octree.AsAABB</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="o">*</span><span class="nx">Octree</span><span class="p">)</span><span class="w"> </span><span class="nx">AsAABB</span><span class="p">()</span><span class="w"> </span><span class="nx">AABB</span>
+</span></code></pre></div>
+<h4 id="octreeinsert">Octree.Insert</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">node</span><span class="w"> </span><span class="o">*</span><span class="nx">Octree</span><span class="p">)</span><span class="w"> </span><span class="nx">Insert</span><span class="p">(</span><span class="nx">obj</span><span class="w"> </span><span class="nx">HitObject</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="plane">Plane</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Plane</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a><span class="w">    </span><span class="nx">Normal</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a><span class="w">    </span><span class="nx">Dot</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="planeccw">PlaneCCW</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">PlaneCCW</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">Plane</span>
+</span></code></pre></div>
+<p>PlaneCCW creates a plane from three points in counter clockwise order</p>
+<h4 id="planeclosestpoint">Plane.ClosestPoint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="nx">ClosestPoint</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<p>ClosestPoint returns the closest point on the plane to the given point</p>
+<h4 id="planedistance">Plane.Distance</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="nx">Distance</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">float32</span>
+</span></code></pre></div>
+<p>Distance returns the distance from the plane to the given point</p>
+<h4 id="planesetfloatvalue">Plane.SetFloatValue</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="nx">SetFloatValue</span><span class="p">(</span><span class="nx">value</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<p>SetFloatValue sets the value of the plane at the given index (X, Y, Z, Dot)</p>
+<h4 id="planetoarray">Plane.ToArray</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="nx">ToArray</span><span class="p">()</span><span class="w"> </span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">float32</span>
+</span></code></pre></div>
+<p>ToArray converts the plane to an array of 4 floats</p>
+<h4 id="planetovec4">Plane.ToVec4</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Plane</span><span class="p">)</span><span class="w"> </span><span class="nx">ToVec4</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec4</span>
+</span></code></pre></div>
+<p>ToVec4 converts the plane to a Vec4 (analogous to ToArray)</p>
+<h3 id="ray">Ray</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Ray</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="w">    </span><span class="nx">Origin</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a><span class="w">    </span><span class="nx">Direction</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="rayplanehit">Ray.PlaneHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="nx">PlaneHit</span><span class="p">(</span><span class="nx">planePosition</span><span class="p">,</span><span class="w"> </span><span class="nx">planeNormal</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">hit</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">success</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<p>PlaneHit returns the point of intersection with the plane and true if the
+ray hits the plane</p>
+<h4 id="raypoint">Ray.Point</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="nx">Point</span><span class="p">(</span><span class="nx">distance</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<p>Point returns the point at the given distance along the ray</p>
+<h4 id="rayspherehit">Ray.SphereHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="nx">SphereHit</span><span class="p">(</span><span class="nx">center</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="nx">maxLen</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>SphereHit returns true if the ray hits the sphere</p>
+<h4 id="raytrianglehit">Ray.TriangleHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="nx">TriangleHit</span><span class="p">(</span><span class="nx">rayLen</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>TriangleHit returns true if the ray hits the triangle defined by the three
+points</p>
+<h3 id="segment">Segment</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Segment</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a><span class="w">    </span><span class="nx">A</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a><span class="w">    </span><span class="nx">B</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="linesegmentfromray">LineSegmentFromRay</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">LineSegmentFromRay</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">Ray</span><span class="p">,</span><span class="w"> </span><span class="nx">length</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="nx">Segment</span>
+</span></code></pre></div>
+<p>LineSegmentFromRay creates a line segment from a ray</p>
+<h4 id="segmenttrianglehit">Segment.TriangleHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">l</span><span class="w"> </span><span class="nx">Segment</span><span class="p">)</span><span class="w"> </span><span class="nx">TriangleHit</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>TriangleHit returns true if the segment hits the triangle defined by the
+three points</p>
+<h3 id="triangle">Triangle</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Triangle</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a><span class="w">    </span><span class="nx">P</span><span class="w">           </span><span class="nx">Plane</span>
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a><span class="w">    </span><span class="nx">EdgePlaneBC</span><span class="w"> </span><span class="nx">Plane</span>
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a><span class="w">    </span><span class="nx">EdgePlaneCA</span><span class="w"> </span><span class="nx">Plane</span>
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a><span class="p">}</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

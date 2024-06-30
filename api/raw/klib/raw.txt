@@ -1,0 +1,106 @@
+package klib // import "."
+
+
+CONSTANTS
+
+const (
+	ISO8601 = "2006-01-02T15:04:05Z"
+)
+
+FUNCTIONS
+
+func AppendUnique[T comparable](slice []T, values ...T) []T
+func BinaryRead(r io.Reader, data any)
+func BinaryReadLen(r io.Reader) (int32, error)
+func BinaryReadString(r io.Reader) (string, error)
+func BinaryReadVar[T any](r io.Reader) (T, error)
+func BinaryReadVarSlice[T any](r io.Reader) ([]T, error)
+func BinaryWrite(w io.Writer, data any)
+func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V)
+func BinaryWriteMapLen[K comparable, V any](w io.Writer, data map[K]V)
+func BinaryWriteSlice[T any](w io.Writer, data []T)
+func BinaryWriteSliceLen[T any](w io.Writer, data []T)
+func BinaryWriteString(w io.Writer, str string)
+func ByteSliceToFloat32Slice(data []byte) []float32
+func ByteSliceToUInt16Slice(data []byte) []uint16
+func Clamp[T cmp.Ordered](current, minimum, maximum T) T
+func Contains[T comparable](slice []T, item T) bool
+func ConvertByteSliceType[T any](slice []byte) []T
+func Decrypt(encryptedData []byte, key []byte) ([]byte, error)
+func DelayCall(d time.Duration, f func(), ctx context.Context)
+func Encrypt(rawData []byte, key []byte) ([]byte, error)
+func ExeExtension() string
+func FindFirstZeroInByteArray(arr []byte) int
+func FloatEquals[T Float](a, b T) bool
+func InterfaceUnderlyingPointer[T any](s T) unsafe.Pointer
+func JsonDecode[T any](decoder *json.Decoder, container *T) error
+func MM2PX[T Number](pixels, mm, targetMM T) T
+func MapKeys[T comparable, U any](m map[T]U) []T
+func MapValues[T comparable, U any](m map[T]U) []U
+func Memcpy(dst unsafe.Pointer, src unsafe.Pointer, size uint64)
+func Must(err error)
+func MustReturn[T any](ret T, err error) T
+func MustReturn2[T, U any](ret1 T, ret2 U, err error) (T, U)
+func NotYetImplemented(issueId int)
+func OpenWebsite(url string)
+func RemoveUnordered[T any](slice []T, idx int) []T
+func ReplaceStringRecursive(s string, old string, new string) string
+func Should(err error) bool
+func ShouldReturn[T any](ret T, err error) T
+func Shuffle[T any](slice []T, rng *rand.Rand)
+func SizedStructToByteArray(s unsafe.Pointer, size int) []byte
+func StructSliceToByteArray[T any](s []T) []byte
+func StructToByteArray[T any](s T) []byte
+func TickerWait(interval, limit time.Duration, condition func() bool) bool
+func ToUnixPath(path string) string
+func Trace(message string)
+func TraceString(message string) string
+func TraceStrings(message string, skip int) []string
+
+TYPES
+
+type Complex interface {
+	~complex64 | ~complex128
+}
+
+type ErrorList struct {
+	Errors []error
+}
+
+func NewErrorList() ErrorList
+
+func (e *ErrorList) AddAny(err error)
+
+func (e *ErrorList) Any() bool
+
+func (e *ErrorList) First() error
+
+type Float interface {
+	~float32 | ~float64
+}
+
+type Integer interface {
+	Signed | Unsigned
+}
+
+type Number interface {
+	Integer | Float
+}
+
+type Ordered interface {
+	Integer | Float | ~string
+}
+
+type Serializable interface {
+	Serialize(stream io.Writer)
+	Deserialize(stream io.Reader)
+}
+
+type Signed interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+type Unsigned interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+

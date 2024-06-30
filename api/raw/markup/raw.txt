@@ -1,0 +1,7 @@
+package markup // import "."
+
+
+FUNCTIONS
+
+func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error)
+func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document

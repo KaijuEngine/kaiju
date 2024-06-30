@@ -1,0 +1,15 @@
+package css // import "."
+
+
+VARIABLES
+
+var DefaultCSS string
+
+FUNCTIONS
+
+func Apply(s rules.StyleSheet, doc *document.Document, host *engine.Host)
+
+TYPES
+
+type CSSMap map[ui.UI][]rules.Rule
+
