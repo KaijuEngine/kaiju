@@ -47,22 +47,22 @@
 	MOVUPS X0, to
 
 #define PACK_COLUMNS(start)           \
-	INSERTPS  $14, b+start+0(FP),  X1 \  // x0y0
-	INSERTPS  $14, b+start+4(FP),  X2 \  // x0y1
-	INSERTPS  $14, b+start+8(FP),  X3 \  // x0y2
-	INSERTPS  $14, b+start+12(FP), X4 \  // x0y3
-	INSERTPS  $16, b+start+16(FP), X1 \  // x1y0
-	INSERTPS  $16, b+start+20(FP), X2 \  // x1y1
-	INSERTPS  $16, b+start+24(FP), X3 \  // x1y2
-	INSERTPS  $16, b+start+28(FP), X4 \  // x1y3
-	INSERTPS  $32, b+start+32(FP), X1 \  // x2y0
-	INSERTPS  $32, b+start+36(FP), X2 \  // x2y1
-	INSERTPS  $32, b+start+40(FP), X3 \  // x2y2
-	INSERTPS  $32, b+start+44(FP), X4 \  // x2y3
-	INSERTPS  $48, b+start+48(FP), X1 \  // x3y0
-	INSERTPS  $48, b+start+52(FP), X2 \  // x3y1
-	INSERTPS  $48, b+start+56(FP), X3 \  // x3y2
-	INSERTPS  $48, b+start+60(FP), X4    // x3y3
+	INSERTPS  $14, m+start+0(FP),  X1 \  // x0y0
+	INSERTPS  $14, m+start+4(FP),  X2 \  // x0y1
+	INSERTPS  $14, m+start+8(FP),  X3 \  // x0y2
+	INSERTPS  $14, m+start+12(FP), X4 \  // x0y3
+	INSERTPS  $16, m+start+16(FP), X1 \  // x1y0
+	INSERTPS  $16, m+start+20(FP), X2 \  // x1y1
+	INSERTPS  $16, m+start+24(FP), X3 \  // x1y2
+	INSERTPS  $16, m+start+28(FP), X4 \  // x1y3
+	INSERTPS  $32, m+start+32(FP), X1 \  // x2y0
+	INSERTPS  $32, m+start+36(FP), X2 \  // x2y1
+	INSERTPS  $32, m+start+40(FP), X3 \  // x2y2
+	INSERTPS  $32, m+start+44(FP), X4 \  // x2y3
+	INSERTPS  $48, m+start+48(FP), X1 \  // x3y0
+	INSERTPS  $48, m+start+52(FP), X2 \  // x3y1
+	INSERTPS  $48, m+start+56(FP), X3 \  // x3y2
+	INSERTPS  $48, m+start+60(FP), X4    // x3y3
 
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
@@ -88,10 +88,10 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
 	PACK_COLUMNS(0)
-	DOT(a+64(FP), X1, ret+80(FP))   // x
-	DOT(a+64(FP), X2, ret+84(FP))   // y
-	DOT(a+64(FP), X3, ret+88(FP))   // z
-	DOT(a+64(FP), X4, ret+92(FP))   // w
+	DOT(b+64(FP), X1, ret+80(FP))   // x
+	DOT(b+64(FP), X2, ret+84(FP))   // y
+	DOT(b+64(FP), X3, ret+88(FP))   // z
+	DOT(b+64(FP), X4, ret+92(FP))   // w
 	RET
 
 // func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
