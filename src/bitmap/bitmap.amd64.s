@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* bitmap.go                                                                  */
+/* bitmap.amd64.s                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,65 +35,35 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package bitmap
+//go:build amd64
 
-const bitsInByte = 8
+#include "textflag.h"
 
-type Bitmap []byte
+// func Check(b Bitmap, index int) bool
+TEXT   ·Check(SB),NOSPLIT,$0-32
+	MOVQ b+0(FP), DX        // Head address to slice data 
+	MOVL index+24(FP), CX   // index
+	SHRL $3, CX             // Divide by 8 (8-bits in byte)
+	ADDQ CX, DX             // Offset into bit map
+	MOVB (DX), AX           // Read the specified byte
+	MOVL index+24(FP), CX   // index
+	BTW CX, AX
+	//SETCS AL              // Typically in Go, a boolean is returned in
+	//MOVB AL, index+32(FP) // AX but that doesn't seem to be the case
+	SETCS index+32(FP)      // for embedded assembly in Go
+	RET
 
-// New creates a new bitmap of the specified length. A bitmap is a slice of
-// bytes where each bit represents a boolean value. The length is the number
-// of bits that the bitmap will represent. The length is rounded up to the
-// nearest byte.
-func New(length int) Bitmap {
-	return make([]byte, LengthFor(length))
-}
-
-// NewTrue creates a new bitmap of the specified length with all bits true
-func NewTrue(length int) Bitmap {
-	b := make([]byte, LengthFor(length))
-	for i := 0; i < len(b); i++ {
-		b[i] = 0xFF
-	}
-	return b
-}
-
-// LengthFor returns the number of bytes needed to represent the specified
-// number of bits.
-func LengthFor(byteCount int) int {
-	return (byteCount / bitsInByte) + 1
-}
-
-// Set sets the bit at the specified index to true.
-func (b Bitmap) Set(index int) {
-	b[index/bitsInByte] |= 0x01 << (index % bitsInByte)
-}
-
-// Assign sets the bit at the specified index to the specified value.
-func (b Bitmap) Assign(index int, value bool) {
-	if value {
-		b.Set(index)
-	} else {
-		b.Reset(index)
-	}
-}
-
-// Reset sets the bit at the specified index to false.
-func (b Bitmap) Reset(index int) {
-	b[index/bitsInByte] &= ^(0x01 << (index % bitsInByte))
-}
-
-// Toggle flips the value of the bit at the specified index.
-func (b Bitmap) Toggle(index int) {
-	b[index/bitsInByte] ^= 0x01 << (index % bitsInByte)
-}
-
-// CountInverse returns the number of bits that are false.
-func (b Bitmap) CountInverse() int {
-	return len(b)*bitsInByte - Count(b)
-}
-
-// Clear sets all bits to false.
-func (b Bitmap) Clear() {
-	clear(b)
-}
+// func Count(b Bitmap) int
+TEXT   ·Count(SB),NOSPLIT,$0-28
+	MOVQ b+0(FP), DX        // Head address to slice data 
+	MOVW b+8(FP), CX		// Byte length
+	XORW R8, R8
+	MOVL $0, index+24(FP)
+count:
+	MOVB (DX), R8
+	INCQ DX
+	POPCNTW R8, R9
+	ADDW R9, index+24(FP)
+	SUBW $1, CX
+	JNE count
+	RET

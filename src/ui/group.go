@@ -114,7 +114,7 @@ func (group *Group) lateUpdate() {
 		for i := 0; i < len(group.requests); i++ {
 			has = has || group.requests[i].eventType != EventTypeMiss
 			req := &group.requests[i]
-			if available.Check(req.eventType) {
+			if bitmap.Check(available, req.eventType) {
 				shouldContinue := true
 				switch req.eventType {
 				case EventTypeEnter, EventTypeExit, EventTypeMiss,

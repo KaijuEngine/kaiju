@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* bitmap.go                                                                  */
+/* bitmap_test.go                                                             */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,63 +37,98 @@
 
 package bitmap
 
-const bitsInByte = 8
+import (
+	"testing"
+)
 
-type Bitmap []byte
-
-// New creates a new bitmap of the specified length. A bitmap is a slice of
-// bytes where each bit represents a boolean value. The length is the number
-// of bits that the bitmap will represent. The length is rounded up to the
-// nearest byte.
-func New(length int) Bitmap {
-	return make([]byte, LengthFor(length))
-}
-
-// NewTrue creates a new bitmap of the specified length with all bits true
-func NewTrue(length int) Bitmap {
-	b := make([]byte, LengthFor(length))
-	for i := 0; i < len(b); i++ {
-		b[i] = 0xFF
-	}
-	return b
-}
-
-// LengthFor returns the number of bytes needed to represent the specified
-// number of bits.
-func LengthFor(byteCount int) int {
-	return (byteCount / bitsInByte) + 1
-}
-
-// Set sets the bit at the specified index to true.
-func (b Bitmap) Set(index int) {
-	b[index/bitsInByte] |= 0x01 << (index % bitsInByte)
-}
-
-// Assign sets the bit at the specified index to the specified value.
-func (b Bitmap) Assign(index int, value bool) {
-	if value {
-		b.Set(index)
-	} else {
-		b.Reset(index)
+func TestCheck(t *testing.T) {
+	bits := New(8)
+	bits.Set(0)
+	bits.Set(2)
+	bits.Set(4)
+	expected := []bool{true, false, true, false, true, false, false, false}
+	for i, v := range expected {
+		if legacyCheck(bits, i) != v {
+			t.Error("failed to correctly check the bits using Go")
+		}
+		if Check(bits, i) != v {
+			t.Error("failed to correctly check the bits using Assembly")
+		}
 	}
 }
 
-// Reset sets the bit at the specified index to false.
-func (b Bitmap) Reset(index int) {
-	b[index/bitsInByte] &= ^(0x01 << (index % bitsInByte))
+func TestCount(t *testing.T) {
+	bits := New(16)
+	sets := []int{0, 2, 4, 6, 7, 10}
+	for i := range sets {
+		bits.Set(sets[i])
+	}
+	if legacyCount(bits) != len(sets) {
+		t.Error("failed to correctly count the bits using Go")
+	}
+	if Count(bits) != len(sets) {
+		t.Error("failed to correctly count the bits using Assembly")
+	}
+}
+func BenchmarkCheckGo(b *testing.B) {
+	bits := New(8)
+	bits.Set(0)
+	bits.Set(2)
+	bits.Set(4)
+	k := 0
+	for i := 0; i < b.N; i++ {
+		legacyCheck(bits, k)
+		k = (k + 1) % 8
+	}
 }
 
-// Toggle flips the value of the bit at the specified index.
-func (b Bitmap) Toggle(index int) {
-	b[index/bitsInByte] ^= 0x01 << (index % bitsInByte)
+func BenchmarkCheckAmd64(b *testing.B) {
+	bits := New(8)
+	bits.Set(0)
+	bits.Set(2)
+	bits.Set(4)
+	k := 0
+	for i := 0; i < b.N; i++ {
+		Check(bits, k)
+		k = (k + 1) % 8
+	}
 }
 
-// CountInverse returns the number of bits that are false.
-func (b Bitmap) CountInverse() int {
-	return len(b)*bitsInByte - Count(b)
+func BenchmarkCountGo(b *testing.B) {
+	bits := New(16)
+	sets := []int{0, 2, 4, 6, 7, 10}
+	for i := range sets {
+		bits.Set(sets[i])
+	}
+	for i := 0; i < b.N; i++ {
+		legacyCount(bits)
+	}
 }
 
-// Clear sets all bits to false.
-func (b Bitmap) Clear() {
-	clear(b)
+func BenchmarkCountAmd64(b *testing.B) {
+	bits := New(16)
+	sets := []int{0, 2, 4, 6, 7, 10}
+	for i := range sets {
+		bits.Set(sets[i])
+	}
+	for i := 0; i < b.N; i++ {
+		Count(bits)
+	}
+}
+
+// Legacy functions for benchmarking
+func legacyCheck(b Bitmap, index int) bool {
+	return (b[index/bitsInByte] & (0x01 << (index % bitsInByte))) != 0
+}
+
+// Count returns the number of bits that are true.
+func legacyCount(b Bitmap) int {
+	count := 0
+	length := len(b) * bitsInByte
+	for i := 0; i < length; i++ {
+		if Check(b, i) {
+			count++
+		}
+	}
+	return count
 }
