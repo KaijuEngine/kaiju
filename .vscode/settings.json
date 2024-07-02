@@ -3,6 +3,10 @@
 	"go.alternateTools": {
 		"go": "${workspaceFolder}/../go/bin/go.exe"
 	},
+	"go.delveConfig": {
+		"debugAdapter": "dlv-dap",
+		"showRegisters": true
+	},
 	"gopls": {
 		"build.env": {
 			"CGO_LDFLAGS": "-lgdi32 -lXInput"
