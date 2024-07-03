@@ -56,10 +56,6 @@ TEXT   ·Check(SB),NOSPLIT,$0-32
 
 // func CountASM(b Bitmap) int
 TEXT   ·CountASM(SB),NOSPLIT,$0-28
-	MOVQ $0x1234567812345678, CX
-	MOVQ $0x1234567812345678, AX
-	MOVQ $0x1234567812345678, DX
-	MOVQ $0x1234567812345678, R8
 	MOVQ b+0(FP), DX       // Head address to slice data 
 	MOVWLZX b+8(FP), CX    // Byte length
 	XORQ R8, R8            // 0
