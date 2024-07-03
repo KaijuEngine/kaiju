@@ -38,43 +38,71 @@
 package bitmap
 
 import (
+	"kaiju/klib"
+	"math/rand"
+	"slices"
 	"testing"
+	"time"
 )
 
+func seededRandomTestSet(maxMapLen int, seed int64) []int {
+	rnd := rand.New(rand.NewSource(seed))
+	mapLen := rnd.Intn(maxMapLen)
+	onBits := rnd.Intn(mapLen)
+	choices := make([]int, onBits)
+	for i := range onBits {
+		choices[i] = i
+	}
+	klib.Shuffle(choices, rnd)
+	return choices[:onBits]
+}
+
+func randomTestSet(maxMapLen int) ([]int, int64) {
+	seed := time.Now().UnixNano()
+	return seededRandomTestSet(maxMapLen, seed), seed
+}
+
 func TestCheck(t *testing.T) {
-	bits := New(8)
-	bits.Set(0)
-	bits.Set(2)
-	bits.Set(4)
-	expected := []bool{true, false, true, false, true, false, false, false}
+	sets, seed := randomTestSet(64)
+	count := slices.Max(sets) + 1
+	bits := New(count)
+	expected := make([]bool, count)
+	for i := range sets {
+		expected[sets[i]] = true
+		bits.Set(sets[i])
+	}
 	for i, v := range expected {
 		if legacyCheck(bits, i) != v {
-			t.Error("failed to correctly check the bits using Go")
+			t.Fatalf("[Go] Index %d was expected to be %v but was %v for seed %d", i, v, legacyCheck(bits, i), seed)
 		}
 		if Check(bits, i) != v {
-			t.Error("failed to correctly check the bits using Assembly")
+			t.Fatalf("[Asm] Index %d was expected to be %v but was %v for seed %d", i, v, Check(bits, i), seed)
 		}
 	}
 }
 
 func TestCount(t *testing.T) {
-	bits := New(16)
-	sets := []int{0, 2, 4, 6, 7, 10}
+	sets, seed := randomTestSet(64)
+	bits := New(slices.Max(sets) + 1)
 	for i := range sets {
 		bits.Set(sets[i])
 	}
 	if legacyCount(bits) != len(sets) {
-		t.Error("failed to correctly count the bits using Go")
+		t.Fatalf("[Go] Count was expected to be %d but was %d for seed %d", len(sets), legacyCount(bits), seed)
 	}
 	if Count(bits) != len(sets) {
-		t.Error("failed to correctly count the bits using Assembly")
+		t.Fatalf("[Asm] Count was expected to be %d but was %d for seed %d", len(sets), Count(bits), seed)
 	}
 }
 func BenchmarkCheckGo(b *testing.B) {
-	bits := New(8)
-	bits.Set(0)
-	bits.Set(2)
-	bits.Set(4)
+	const last = 22
+	sets := []int{0, 2, 4, 6, 7, 10, 13, 15, 17, 18, 19, 20, last}
+	bits := New(last + 1)
+	expected := make([]bool, last+1)
+	for i := range sets {
+		expected[sets[i]] = true
+		bits.Set(sets[i])
+	}
 	k := 0
 	for i := 0; i < b.N; i++ {
 		legacyCheck(bits, k)
@@ -83,10 +111,14 @@ func BenchmarkCheckGo(b *testing.B) {
 }
 
 func BenchmarkCheckAmd64(b *testing.B) {
-	bits := New(8)
-	bits.Set(0)
-	bits.Set(2)
-	bits.Set(4)
+	const last = 22
+	sets := []int{0, 2, 4, 6, 7, 10, 13, 15, 17, 18, 19, 20, last}
+	bits := New(last + 1)
+	expected := make([]bool, last+1)
+	for i := range sets {
+		expected[sets[i]] = true
+		bits.Set(sets[i])
+	}
 	k := 0
 	for i := 0; i < b.N; i++ {
 		Check(bits, k)
@@ -95,8 +127,8 @@ func BenchmarkCheckAmd64(b *testing.B) {
 }
 
 func BenchmarkCountGo(b *testing.B) {
-	bits := New(16)
-	sets := []int{0, 2, 4, 6, 7, 10}
+	sets := seededRandomTestSet(64, 99)
+	bits := New(slices.Max(sets) + 1)
 	for i := range sets {
 		bits.Set(sets[i])
 	}
@@ -106,8 +138,8 @@ func BenchmarkCountGo(b *testing.B) {
 }
 
 func BenchmarkCountAmd64(b *testing.B) {
-	bits := New(16)
-	sets := []int{0, 2, 4, 6, 7, 10}
+	sets := seededRandomTestSet(64, 99)
+	bits := New(slices.Max(sets) + 1)
 	for i := range sets {
 		bits.Set(sets[i])
 	}
@@ -126,7 +158,7 @@ func legacyCount(b Bitmap) int {
 	count := 0
 	length := len(b) * bitsInByte
 	for i := 0; i < length; i++ {
-		if Check(b, i) {
+		if legacyCheck(b, i) {
 			count++
 		}
 	}
