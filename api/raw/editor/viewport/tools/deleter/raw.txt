@@ -1,0 +1,7 @@
+package deleter // import "."
+
+
+FUNCTIONS
+
+func Delete(editor interfaces.Editor, entities []*engine.Entity)
+func DeleteSelected(editor interfaces.Editor, entities []*engine.Entity)

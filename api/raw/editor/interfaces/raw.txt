@@ -1,0 +1,23 @@
+package interfaces // import "."
+
+
+TYPES
+
+type Editor interface {
+	Container() *host_container.Container
+	Host() *engine.Host
+	StageManager() *stages.Manager
+	Selection() *selection.Selection
+	History() *memento.History
+	WindowListing() *editor_window.Listing
+	StatusBar() *status_bar.StatusBar
+	Hierarchy() *hierarchy.Hierarchy
+	OpenProject()
+	AvailableDataBindings() []codegen.GeneratedType
+	ReloadEntityDataListing()
+	CreateEntity(name string) *engine.Entity
+	// TODO:  BVH stuff can be encapsulated into another structure
+	BVH() *collision.BVH
+	BVHEntityUpdates(entities ...*engine.Entity)
+}
+

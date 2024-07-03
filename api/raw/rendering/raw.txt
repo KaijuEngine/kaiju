@@ -1,0 +1,837 @@
+package rendering // import "."
+
+
+CONSTANTS
+
+const (
+	FontJustifyLeft = FontJustify(iota)
+	FontJustifyCenter
+	FontJustifyRight
+)
+const (
+	FontBaselineBottom = FontBaseline(iota)
+	FontBaselineCenter
+	FontBaselineTop
+)
+const (
+	FontCondensedBold                = FontFace("fonts/OpenSans_Condensed-Bold")
+	FontCondensedBoldItalic          = FontFace("fonts/OpenSans_Condensed-BoldItalic")
+	FontCondensedExtraBold           = FontFace("fonts/OpenSans_Condensed-ExtraBold")
+	FontCondensedExtraBoldItalic     = FontFace("fonts/OpenSans_Condensed-ExtraBoldItalic")
+	FontCondensedItalic              = FontFace("fonts/OpenSans_Condensed-Italic")
+	FontCondensedLight               = FontFace("fonts/OpenSans_Condensed-Light")
+	FontCondensedLightItalic         = FontFace("fonts/OpenSans_Condensed-LightItalic")
+	FontCondensedMedium              = FontFace("fonts/OpenSans_Condensed-Medium")
+	FontCondensedMediumItalic        = FontFace("fonts/OpenSans_Condensed-MediumItalic")
+	FontCondensedRegular             = FontFace("fonts/OpenSans_Condensed-Regular")
+	FontCondensedSemiBold            = FontFace("fonts/OpenSans_Condensed-SemiBold")
+	FontCondensedSemiBoldItalic      = FontFace("fonts/OpenSans_Condensed-SemiBoldItalic")
+	FontSemiCondensedBold            = FontFace("fonts/OpenSans_SemiCondensed-Bold")
+	FontSemiCondensedBoldItalic      = FontFace("fonts/OpenSans_SemiCondensed-BoldItalic")
+	FontSemiCondensedExtraBold       = FontFace("fonts/OpenSans_SemiCondensed-ExtraBold")
+	FontSemiCondensedExtraBoldItalic = FontFace("fonts/OpenSans_SemiCondensed-ExtraBoldItalic")
+	FontSemiCondensedItalic          = FontFace("fonts/OpenSans_SemiCondensed-Italic")
+	FontSemiCondensedLight           = FontFace("fonts/OpenSans_SemiCondensed-Light")
+	FontSemiCondensedLightItalic     = FontFace("fonts/OpenSans_SemiCondensed-LightItalic")
+	FontSemiCondensedMedium          = FontFace("fonts/OpenSans_SemiCondensed-Medium")
+	FontSemiCondensedMediumItalic    = FontFace("fonts/OpenSans_SemiCondensed-MediumItalic")
+	FontSemiCondensedRegular         = FontFace("fonts/OpenSans_SemiCondensed-Regular")
+	FontSemiCondensedSemiBold        = FontFace("fonts/OpenSans_SemiCondensed-SemiBold")
+	FontSemiCondensedSemiBoldItalic  = FontFace("fonts/OpenSans_SemiCondensed-SemiBoldItalic")
+	FontBold                         = FontFace("fonts/OpenSans-Bold")
+	FontBoldItalic                   = FontFace("fonts/OpenSans-BoldItalic")
+	FontExtraBold                    = FontFace("fonts/OpenSans-ExtraBold")
+	FontExtraBoldItalic              = FontFace("fonts/OpenSans-ExtraBoldItalic")
+	FontItalic                       = FontFace("fonts/OpenSans-Italic")
+	FontLight                        = FontFace("fonts/OpenSans-Light")
+	FontLightItalic                  = FontFace("fonts/OpenSans-LightItalic")
+	FontMedium                       = FontFace("fonts/OpenSans-Medium")
+	FontMediumItalic                 = FontFace("fonts/OpenSans-MediumItalic")
+	FontRegular                      = FontFace("fonts/OpenSans-Regular")
+	FontSemiBold                     = FontFace("fonts/OpenSans-SemiBold")
+	FontSemiBoldItalic               = FontFace("fonts/OpenSans-SemiBoldItalic")
+
+	DefaultFontEMSize = 14.0
+)
+const (
+	MaxJoints        = 50
+	MaxSkinInstances = 20
+)
+const (
+	QuaternionSize = int(unsafe.Sizeof(matrix.Quaternion{}))
+)
+const (
+	CubeMapSides = 6
+)
+const (
+	BytesInPixel      = 4
+	MaxCommandBuffers = 15
+)
+const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
+
+FUNCTIONS
+
+func TextureKeys(textures []*Texture) []string
+func VertexFaceNormal(verts [3]Vertex) matrix.Vec3
+
+TYPES
+
+type Canvas interface {
+	Create(renderer Renderer) error
+	Draw(renderer Renderer, drawings []ShaderDraw)
+	Pass(name string) *RenderPass
+	Color() *Texture
+	ShaderPipeline(name string) FuncPipeline
+	Destroy(renderer Renderer)
+}
+
+type CombineCanvas struct {
+	// Has unexported fields.
+}
+
+func (r *CombineCanvas) Color() *Texture
+
+func (r *CombineCanvas) Create(renderer Renderer) error
+
+func (r *CombineCanvas) Destroy(renderer Renderer)
+
+func (r *CombineCanvas) Draw(renderer Renderer, drawings []ShaderDraw)
+
+func (r *CombineCanvas) Pass(name string) *RenderPass
+
+func (r *CombineCanvas) ShaderPipeline(name string) FuncPipeline
+
+type DescriptorSetLayoutStructure struct {
+	Types []DescriptorSetLayoutStructureType
+}
+
+type DescriptorSetLayoutStructureType struct {
+	Type           vk.DescriptorType
+	Flags          vk.ShaderStageFlagBits
+	Count, Binding uint32
+}
+
+type DrawInstance interface {
+	Destroy()
+	IsDestroyed() bool
+	Activate()
+	Deactivate()
+	IsActive() bool
+	Size() int
+	SetModel(model matrix.Mat4)
+	UpdateModel()
+	DataPointer() unsafe.Pointer
+	// Returns true if it should write the data, otherwise false
+	UpdateNamedData(index, capacity int, name string) bool
+	NamedDataPointer(name string) unsafe.Pointer
+	NamedDataInstanceSize(name string) int
+	// Has unexported methods.
+}
+
+type DrawInstanceGroup struct {
+	Mesh *Mesh
+	InstanceDriverData
+	Textures  []*Texture
+	Instances []DrawInstance
+
+	// Has unexported fields.
+}
+
+func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup
+
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader)
+
+func (d *DrawInstanceGroup) AlterPadding(blockSize int)
+
+func (d *DrawInstanceGroup) AnyVisible() bool
+
+func (d *DrawInstanceGroup) Destroy(renderer Renderer)
+
+func (d *DrawInstanceGroup) IsEmpty() bool
+
+func (d *DrawInstanceGroup) IsReady() bool
+
+func (d *DrawInstanceGroup) TotalSize() int
+
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer)
+
+func (d *DrawInstanceGroup) VisibleCount() int
+
+func (d *DrawInstanceGroup) VisibleSize() int
+
+type Drawing struct {
+	Renderer    Renderer
+	Shader      *Shader
+	Mesh        *Mesh
+	Textures    []*Texture
+	ShaderData  DrawInstance
+	Transform   *matrix.Transform
+	CanvasId    string
+	UseBlending bool
+	// Has unexported fields.
+}
+
+func (d *Drawing) IsValid() bool
+
+type Drawings struct {
+	// Has unexported fields.
+}
+
+func NewDrawings() Drawings
+
+func (d *Drawings) AddDrawing(drawing *Drawing)
+
+func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas)
+
+func (d *Drawings) Destroy(renderer Renderer)
+
+func (d *Drawings) HasDrawings() bool
+
+func (d *Drawings) PreparePending()
+
+func (d *Drawings) Render(renderer Renderer)
+
+type FontBaseline int
+
+type FontCache struct {
+	FaceMutex sync.RWMutex
+	// Has unexported fields.
+}
+
+func NewFontCache(renderer Renderer, assetDb *assets.Database) FontCache
+
+func (cache *FontCache) Destroy()
+
+func (cache *FontCache) EMSize(face FontFace) float32
+
+func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches)
+
+func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int
+
+func (cache FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2
+
+func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32
+
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2
+
+func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int
+
+func (cache *FontCache) RenderMeshes(caches RenderCaches,
+	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
+	is3D bool, face FontFace, lineHeight float32) []Drawing
+
+func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4
+
+type FontFace string
+
+func (f FontFace) IsBold() bool
+
+func (f FontFace) IsExtraBold() bool
+
+func (f FontFace) IsItalic() bool
+
+type FontJustify int
+
+type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
+
+type GlobalShaderData struct {
+	View           matrix.Mat4
+	Projection     matrix.Mat4
+	UIView         matrix.Mat4
+	UIProjection   matrix.Mat4
+	CameraPosition matrix.Vec3
+
+	UICameraPosition matrix.Vec3
+
+	ScreenSize matrix.Vec2
+	Time       float32
+	// Has unexported fields.
+}
+
+type InstanceCopyData struct {
+	// Has unexported fields.
+}
+
+func InstanceCopyDataNew(padding int) InstanceCopyData
+
+type InstanceDriverData struct {
+	// Has unexported fields.
+}
+
+type InstanceGroupSkinningData struct {
+}
+
+type LayoutBufferDescription struct {
+	Name     string
+	Type     string
+	Capacity int
+}
+
+func (l *LayoutBufferDescription) TotalByteCapacity() int
+
+func (l *LayoutBufferDescription) TypeSize() int
+
+type Mesh struct {
+	MeshId MeshId
+
+	Details meshDetails
+	// Has unexported fields.
+}
+
+func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+func NewMeshCube(cache *MeshCache) *Mesh
+
+func NewMeshCubeInverse(cache *MeshCache) *Mesh
+
+func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh
+
+func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshLine(cache *MeshCache, key string, p0, p1 matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshOffsetQuad(cache *MeshCache, key string, sideOffsets matrix.Vec4) *Mesh
+
+func NewMeshPlane(cache *MeshCache) *Mesh
+
+func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshQuad(cache *MeshCache) *Mesh
+
+func NewMeshScreenQuad(cache *MeshCache) *Mesh
+
+func NewMeshSkyboxCube(cache *MeshCache) *Mesh
+
+func NewMeshTexturableCube(cache *MeshCache) *Mesh
+
+func NewMeshTriangle(cache *MeshCache) *Mesh
+
+func NewMeshUnitQuad(cache *MeshCache) *Mesh
+
+func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func NewMeshWireQuad(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func (m *Mesh) DelayedCreate(renderer Renderer)
+
+func (m *Mesh) Destroy(renderer Renderer)
+
+func (m Mesh) IsReady() bool
+
+func (m Mesh) Key() string
+
+func (m *Mesh) SetKey(key string)
+
+type MeshCache struct {
+	// Has unexported fields.
+}
+
+func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache
+
+func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh
+    Try to add the mesh to the cache, if it already exists, return the existing
+    mesh
+
+func (m *MeshCache) CreatePending()
+
+func (m *MeshCache) Destroy()
+
+func (m *MeshCache) FindMesh(key string) (*Mesh, bool)
+
+func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+type MeshCullMode = int
+
+const (
+	MeshCullModeBack MeshCullMode = iota
+	MeshCullModeFront
+	MeshCullModeNone
+)
+type MeshDrawMode = int
+
+const (
+	MeshDrawModePoints MeshDrawMode = iota
+	MeshDrawModeLines
+	MeshDrawModeTriangles
+	MeshDrawModePatches
+)
+type MeshId struct {
+	// Has unexported fields.
+}
+
+func (m MeshId) IsValid() bool
+
+type OITCanvas struct {
+	ClearColor matrix.Color
+
+	// Has unexported fields.
+}
+
+func (r *OITCanvas) Color() *Texture
+
+func (r *OITCanvas) Create(renderer Renderer) error
+
+func (r *OITCanvas) Destroy(renderer Renderer)
+
+func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw)
+
+func (r *OITCanvas) Initialize(renderer Renderer, width, height float32)
+
+func (r *OITCanvas) Pass(name string) *RenderPass
+
+func (r *OITCanvas) ShaderPipeline(name string) FuncPipeline
+
+type OutlineCanvas struct {
+	// Has unexported fields.
+}
+
+func (r *OutlineCanvas) Color() *Texture
+
+func (r *OutlineCanvas) Create(renderer Renderer) error
+
+func (r *OutlineCanvas) Destroy(renderer Renderer)
+
+func (r *OutlineCanvas) Draw(renderer Renderer, drawings []ShaderDraw)
+
+func (r *OutlineCanvas) Pass(name string) *RenderPass
+
+func (r *OutlineCanvas) ShaderPipeline(name string) FuncPipeline
+
+type RenderCaches interface {
+	ShaderCache() *ShaderCache
+	TextureCache() *TextureCache
+	MeshCache() *MeshCache
+	FontCache() *FontCache
+}
+
+type RenderPass struct {
+	Handle vk.RenderPass
+	Buffer vk.Framebuffer
+
+	// Has unexported fields.
+}
+
+func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency) (RenderPass, error)
+
+func (p *RenderPass) CreateFrameBuffer(vr *Vulkan,
+	imageViews []vk.ImageView, width, height int) error
+
+func (p *RenderPass) Destroy()
+
+type RenderTargetDraw struct {
+	Target Canvas
+	// Has unexported fields.
+}
+
+type Renderer interface {
+	Initialize(caches RenderCaches, width, height int32) error
+	ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool
+	CreateShader(shader *Shader, assetDatabase *assets.Database)
+	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
+	CreateTexture(texture *Texture, textureData *TextureData)
+	TextureReadPixel(texture *Texture, x, y int) matrix.Color
+	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
+	Draw(drawings []RenderTargetDraw)
+	BlitTargets(targets ...RenderTargetDraw)
+	SwapFrame(width, height int32) bool
+	Resize(width, height int)
+	AddPreRun(preRun func())
+	DestroyGroup(group *DrawInstanceGroup)
+	DestroyTexture(texture *Texture)
+	DestroyShader(shader *Shader)
+	DestroyMesh(mesh *Mesh)
+	Destroy()
+	RegisterCanvas(name string, canvas Canvas)
+	Canvas(name string) (Canvas, bool)
+	DefaultCanvas() Canvas
+	WaitForRender()
+}
+
+type RenderingContainer interface {
+	GetDrawableSize() (int32, int32)
+	GetInstanceExtensions() []string
+	PlatformWindow() unsafe.Pointer
+	PlatformInstance() unsafe.Pointer
+}
+
+type Shader struct {
+	Key        string
+	RenderId   ShaderId
+	VertPath   string
+	FragPath   string
+	GeomPath   string
+	CtrlPath   string
+	EvalPath   string
+	RenderPass *RenderPass
+	DriverData ShaderDriverData
+
+	// Has unexported fields.
+}
+
+func NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath,
+	key string, renderPass *RenderPass) *Shader
+
+func (s *Shader) AddSubShader(key string, shader *Shader)
+
+func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database)
+
+func (s *Shader) Destroy(renderer Renderer)
+
+func (s *Shader) IsComposite() bool
+
+func (s *Shader) RemoveSubShader(key string)
+
+func (s *Shader) SubShader(key string) *Shader
+
+type ShaderBuffer struct {
+	// Has unexported fields.
+}
+
+type ShaderCache struct {
+	// Has unexported fields.
+}
+
+func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCache
+
+func (s *ShaderCache) CreatePending()
+
+func (s *ShaderCache) Destroy()
+
+func (s *ShaderCache) Shader(vertPath, fragPath, geomPath, ctrlPath,
+	evalPath, key string, renderPass *RenderPass) (shader *Shader, isNew bool)
+
+func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader
+
+type ShaderDataBase struct {
+	InitModel matrix.Mat4
+	// Has unexported fields.
+}
+
+func NewShaderDataBase() ShaderDataBase
+
+func (s *ShaderDataBase) Activate()
+
+func (s *ShaderDataBase) CancelDestroy()
+
+func (s *ShaderDataBase) DataPointer() unsafe.Pointer
+
+func (s *ShaderDataBase) Deactivate()
+
+func (s *ShaderDataBase) Destroy()
+
+func (s *ShaderDataBase) IsActive() bool
+
+func (s *ShaderDataBase) IsDestroyed() bool
+
+func (s *ShaderDataBase) Model() matrix.Mat4
+
+func (s *ShaderDataBase) NamedDataInstanceSize(name string) int
+
+func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer
+
+func (s *ShaderDataBase) SetModel(model matrix.Mat4)
+
+func (s *ShaderDataBase) Setup()
+
+func (s *ShaderDataBase) Size() int
+
+func (s *ShaderDataBase) UpdateModel()
+
+func (s *ShaderDataBase) UpdateNamedData(index, capacity int, name string) bool
+
+type ShaderDataBasic struct {
+	ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataBasic) Size() int
+
+type ShaderDef struct {
+	CullMode   string
+	DrawMode   string
+	Vulkan     ShaderDefDriver
+	Fields     []ShaderDefField
+	Layouts    []ShaderDefLayout
+	Canvas     string
+	RenderPass string
+	Pipeline   string
+}
+
+func ShaderDefFromJson(jsonStr string) (ShaderDef, error)
+
+func (sd *ShaderDef) AddField(name, glslType string)
+
+func (sd ShaderDef) Stride() uint32
+
+func (sd ShaderDef) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription
+
+func (sd ShaderDef) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure
+
+type ShaderDefDriver struct {
+	Vert string
+	Frag string
+	Geom string
+	Tesc string
+	Tese string
+}
+
+type ShaderDefField struct {
+	Name string
+	Type string
+}
+
+func (f ShaderDefField) Format() vk.Format
+
+func (f ShaderDefField) Vec4Size() uint32
+
+type ShaderDefLayout struct {
+	Type    string
+	Flags   []string
+	Count   int
+	Binding int
+	Buffer  *LayoutBufferDescription
+}
+
+func (l ShaderDefLayout) DescriptorFlags() vk.ShaderStageFlagBits
+
+func (l ShaderDefLayout) DescriptorType() vk.DescriptorType
+
+type ShaderDraw struct {
+	// Has unexported fields.
+}
+
+func NewShaderDraw(shader *Shader) ShaderDraw
+
+func (s *ShaderDraw) AddInstanceGroup(group DrawInstanceGroup)
+
+func (s *ShaderDraw) Destroy(renderer Renderer)
+
+func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanceGroup
+
+func (s *ShaderDraw) SolidGroups() []*DrawInstanceGroup
+
+func (s *ShaderDraw) TransparentGroups() []*DrawInstanceGroup
+
+type ShaderDriverData struct {
+	DescriptorSetLayoutStructure
+	CullMode              vk.CullModeFlagBits
+	DrawMode              MeshDrawMode
+	Stride                uint32
+	AttributeDescriptions []vk.VertexInputAttributeDescription
+	// Has unexported fields.
+}
+
+func NewShaderDriverData() ShaderDriverData
+
+type ShaderId struct {
+	// Has unexported fields.
+}
+
+func (s ShaderId) IsValid() bool
+
+type SkinnedShaderData struct {
+	// Has unexported fields.
+}
+
+type TextShaderData struct {
+	ShaderDataBase
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+	BgColor matrix.Color
+	Scissor matrix.Vec4
+	PxRange matrix.Vec2
+}
+
+func (s TextShaderData) Size() int
+
+type Texture struct {
+	Key               string
+	TexturePixelCache []byte
+	RenderId          TextureId
+	Channels          int
+	Filter            int
+	MipLevels         int
+	Width             int
+	Height            int
+	CacheInvalid      bool
+	// Has unexported fields.
+}
+
+func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, filter TextureFilter) (*Texture, error)
+
+func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error)
+
+func (t *Texture) DelayedCreate(renderer Renderer)
+
+func (t *Texture) Destroy(renderer Renderer)
+
+func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color
+
+func (t Texture) Size() matrix.Vec2
+
+func (t *Texture) WritePixels(renderer Renderer, x, y, width, height int, pixels []byte)
+
+type TextureCache struct {
+	// Has unexported fields.
+}
+
+func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache
+
+func (t *TextureCache) CreatePending()
+
+func (t *TextureCache) Destroy()
+
+func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error)
+
+type TextureColorFormat int
+
+const (
+	TextureColorFormatRgbaUnorm TextureColorFormat = iota
+	TextureColorFormatRgbUnorm
+	TextureColorFormatRgbaSrgb
+	TextureColorFormatRgbSrgb
+	TextureColorFormatLuminance
+)
+type TextureData struct {
+	Mem            []byte
+	InternalFormat TextureInputType
+	Format         TextureColorFormat
+	Type           TextureMemType
+	Width          int
+	Height         int
+	InputType      TextureFileFormat
+}
+
+func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData
+
+func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (TextureData, error)
+
+type TextureFileFormat = int
+
+const (
+	TextureFileFormatAstc TextureFileFormat = iota
+	TextureFileFormatPng
+	TextureFileFormatRaw
+)
+type TextureFilter = int
+
+const (
+	TextureFilterLinear TextureFilter = iota
+	TextureFilterNearest
+	TextureFilterMax
+)
+type TextureId struct {
+	Image      vk.Image
+	Memory     vk.DeviceMemory
+	View       vk.ImageView
+	Sampler    vk.Sampler
+	Format     vk.Format
+	MipLevels  uint32
+	Layout     vk.ImageLayout
+	Access     vk.AccessFlags
+	Samples    vk.SampleCountFlagBits
+	Width      int
+	Height     int
+	LayerCount int
+}
+
+func (t TextureId) IsValid() bool
+
+type TextureInputType int
+
+const (
+	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
+	TextureInputTypeCompressedRgbaAstc5x4
+	TextureInputTypeCompressedRgbaAstc5x5
+	TextureInputTypeCompressedRgbaAstc6x5
+	TextureInputTypeCompressedRgbaAstc6x6
+	TextureInputTypeCompressedRgbaAstc8x5
+	TextureInputTypeCompressedRgbaAstc8x6
+	TextureInputTypeCompressedRgbaAstc8x8
+	TextureInputTypeCompressedRgbaAstc10x5
+	TextureInputTypeCompressedRgbaAstc10x6
+	TextureInputTypeCompressedRgbaAstc10x8
+	TextureInputTypeCompressedRgbaAstc10x10
+	TextureInputTypeCompressedRgbaAstc12x10
+	TextureInputTypeCompressedRgbaAstc12x12
+	TextureInputTypeRgba8
+	TextureInputTypeRgb8
+	TextureInputTypeLuminance
+)
+type TextureMemType = int
+
+const (
+	TextureMemTypeUnsignedByte TextureMemType = iota
+)
+type Vertex struct {
+	Position     matrix.Vec3
+	Normal       matrix.Vec3
+	Tangent      matrix.Vec4
+	UV0          matrix.Vec2
+	Color        matrix.Color
+	JointIds     matrix.Vec4i
+	JointWeights matrix.Vec4
+	MorphTarget  matrix.Vec3
+}
+
+type Vulkan struct {
+	// Has unexported fields.
+}
+
+func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, error)
+
+func (vr *Vulkan) AddPreRun(preRun func())
+
+func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw)
+
+func (vr *Vulkan) Canvas(name string) (Canvas, bool)
+
+func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize)
+
+func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags, buffer *vk.Buffer, bufferMemory *vk.DeviceMemory) bool
+
+func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool)
+
+func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool
+
+func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
+
+func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database)
+
+func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData)
+
+func (vr *Vulkan) DefaultCanvas() Canvas
+
+func (vr *Vulkan) Destroy()
+
+func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup)
+
+func (vr *Vulkan) DestroyMesh(mesh *Mesh)
+
+func (vr *Vulkan) DestroyShader(shader *Shader)
+
+func (vr *Vulkan) DestroyTexture(texture *Texture)
+
+func (vr *Vulkan) Draw(drawings []RenderTargetDraw)
+
+func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error
+
+func (vr *Vulkan) MeshIsReady(mesh Mesh) bool
+
+func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool
+
+func (vr *Vulkan) RegisterCanvas(name string, canvas Canvas)
+
+func (vr *Vulkan) Resize(width, height int)
+
+func (vr *Vulkan) SwapFrame(width, height int32) bool
+
+func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId)
+
+func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color
+
+func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8)
+
+func (vr *Vulkan) WaitForRender()
+

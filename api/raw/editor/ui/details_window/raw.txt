@@ -1,0 +1,27 @@
+package details_window // import "."
+
+
+FUNCTIONS
+
+func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int
+
+TYPES
+
+type DataPicker struct {
+	// Has unexported fields.
+}
+
+type Details struct {
+	// Has unexported fields.
+}
+
+func New(editor interfaces.Editor, uiGroup *ui.Group) *Details
+
+func (d *Details) DragUpdate()
+
+func (d *Details) Hide()
+
+func (d *Details) Show()
+
+func (d *Details) Toggle()
+

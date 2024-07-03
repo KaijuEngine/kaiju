@@ -1,0 +1,37 @@
+package editor_cache // import "."
+
+
+CONSTANTS
+
+const (
+	CacheFolder = "Kaiju"
+
+	MainWindow      = "main"
+	LogWindow       = "log"
+	ContentWindow   = "content"
+	HierarchyWindow = "hierarchy"
+)
+
+FUNCTIONS
+
+func AddProject(project string) error
+func EditorConfigValue(key string) (any, bool)
+func ListProjects() ([]string, error)
+func RemoveProject(project string) error
+func SaveWindowCache() error
+func SetEditorConfigValue(key string, value any)
+func SetWindow(key string, x, y, w, h int, isOpen bool)
+func WindowWasOpen(key string) bool
+
+TYPES
+
+type WindowInfo struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+	Open   bool
+}
+
+func Window(key string) (WindowInfo, error)
+

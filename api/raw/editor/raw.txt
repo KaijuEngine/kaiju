@@ -1,0 +1,51 @@
+package editor // import "."
+
+
+TYPES
+
+type Editor struct {
+	// Has unexported fields.
+}
+
+func New() *Editor
+
+func (e *Editor) AvailableDataBindings() []codegen.GeneratedType
+
+func (e *Editor) BVH() *collision.BVH
+
+func (e *Editor) BVHEntityUpdates(entities ...*engine.Entity)
+
+func (e *Editor) Closed()
+
+func (e *Editor) Container() *host_container.Container
+
+func (e *Editor) ContentOpener() *content_opener.Opener
+
+func (e *Editor) CreateEntity(name string) *engine.Entity
+
+func (e *Editor) Hierarchy() *hierarchy.Hierarchy
+
+func (e *Editor) History() *memento.History
+
+func (e *Editor) Host() *engine.Host
+
+func (e *Editor) Init()
+
+func (e *Editor) OpenProject()
+
+func (e *Editor) ReloadEntityDataListing()
+
+func (e *Editor) RunOnHost(fn func())
+
+func (e *Editor) SaveLayout()
+
+func (e *Editor) Selection() *selection.Selection
+
+func (e *Editor) StageManager() *stages.Manager
+
+func (e *Editor) StatusBar() *status_bar.StatusBar
+
+func (e *Editor) Tag() string
+
+func (e *Editor) WindowListing() *editor_window.Listing
+

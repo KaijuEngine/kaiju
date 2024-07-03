@@ -1,0 +1,98 @@
+package windowing // import "."
+
+
+FUNCTIONS
+
+func DPI2PX(pixels, mm, targetMM int) int
+
+TYPES
+
+type FileSearch struct {
+	Title     string
+	Extension string
+}
+
+type Window struct {
+	Mouse      hid.Mouse
+	Keyboard   hid.Keyboard
+	Touch      hid.Touch
+	Stylus     hid.Stylus
+	Controller hid.Controller
+	Cursor     hid.Cursor
+	Renderer   rendering.Renderer
+
+	OnResize events.Event
+	OnMove   events.Event
+	// Has unexported fields.
+}
+
+func New(windowName string, width, height, x, y int) (*Window, error)
+
+func (w *Window) AddBorder()
+
+func (w *Window) Center() (x int, y int)
+
+func (w *Window) ClipboardContents() string
+
+func (w *Window) CopyToClipboard(text string)
+
+func (w *Window) CursorIbeam()
+
+func (w *Window) CursorSizeAll()
+
+func (w *Window) CursorSizeNS()
+
+func (w *Window) CursorSizeWE()
+
+func (w *Window) CursorStandard()
+
+func (w *Window) Destroy()
+
+func (w *Window) EndUpdate()
+
+func (w *Window) Focus()
+
+func (w *Window) GetDrawableSize() (int32, int32)
+
+func (w *Window) GetInstanceExtensions() []string
+
+func (w *Window) Height() int
+
+func (w *Window) IsClosed() bool
+
+func (w *Window) IsCrashed() bool
+
+func (w *Window) IsPCSize() bool
+
+func (w *Window) IsPhoneSize() bool
+
+func (w *Window) IsTabletSize() bool
+
+func (w *Window) PlatformInstance() unsafe.Pointer
+
+func (w *Window) PlatformWindow() unsafe.Pointer
+
+func (w *Window) Poll()
+
+func (w *Window) Position() (x int, y int)
+
+func (w *Window) RemoveBorder()
+
+func (w *Window) SetPosition(x, y int)
+
+func (w *Window) SetSize(width, height int)
+
+func (w *Window) SizeMM() (int, int, error)
+
+func (w *Window) SwapBuffers()
+
+func (w *Window) Viewport() matrix.Vec4
+
+func (w *Window) Width() int
+
+func (w *Window) X() int
+
+func (w *Window) XY() (int, int)
+
+func (w *Window) Y() int
+

@@ -1,0 +1,13 @@
+package status_bar // import "."
+
+
+TYPES
+
+type StatusBar struct {
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, logWindow *log_window.LogWindow) *StatusBar
+
+func (s *StatusBar) SetMessage(status string)
+

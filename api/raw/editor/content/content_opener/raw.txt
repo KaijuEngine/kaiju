@@ -1,0 +1,53 @@
+package content_opener // import "."
+
+
+VARIABLES
+
+var (
+	ErrNoOpener = errors.New("no opener found")
+)
+
+TYPES
+
+type ContentOpener interface {
+	Handles(adi asset_info.AssetDatabaseInfo) bool
+	Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+}
+
+type HTMLOpener struct{}
+
+func (o HTMLOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o HTMLOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+
+type ImageOpener struct{}
+
+func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+
+type ObjOpener struct{}
+
+func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+
+type Opener struct {
+	// Has unexported fields.
+}
+
+func New(importer *asset_importer.ImportRegistry,
+	container *host_container.Container, history *memento.History) Opener
+
+func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+
+func (o *Opener) OpenPath(path string, ed interfaces.Editor) error
+
+func (o *Opener) Register(opener ContentOpener)
+
+type StageOpener struct{}
+
+func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+
