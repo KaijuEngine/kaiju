@@ -41,16 +41,17 @@
 
 // func Check(b Bitmap, index int) bool
 TEXT   ·Check(SB),NOSPLIT,$0-32
-	MOVQ b+0(FP), DX        // Head address to slice data 
-	MOVL index+24(FP), CX   // index
-	SHRL $3, CX             // Divide by 8 (8-bits in byte)
-	ADDQ CX, DX             // Offset into bit map
-	MOVB (DX), AX           // Read the specified byte
-	MOVL index+24(FP), CX   // index
+	MOVQ b+0(FP), DX          // Head address to slice data 
+	MOVBLZX index+24(FP), CX  // index
+	SHRL $3, CX               // Divide by 8 (8-bits in byte)
+	ADDQ CX, DX               // Offset into bit map
+	MOVB (DX), AX             // Read the specified byte
+	MOVL index+24(FP), CX     // index
+	ANDL $7, CX
 	BTW CX, AX
-	//SETCS AL              // Typically in Go, a boolean is returned in
-	//MOVB AL, index+32(FP) // AX but that doesn't seem to be the case
-	SETCS index+32(FP)      // for embedded assembly in Go
+	//SETCS AL                // Typically in Go, a boolean is returned in
+	//MOVB AL, index+32(FP)   // AX but that doesn't seem to be the case
+	SETCS index+32(FP)        // for embedded assembly in Go
 	RET
 
 // func Count(b Bitmap) int
@@ -62,8 +63,8 @@ TEXT   ·Count(SB),NOSPLIT,$0-28
 count:
 	MOVB (DX), R8
 	INCQ DX
-	POPCNTW R8, R9
-	ADDW R9, index+24(FP)
+	POPCNTW R8, AX
+	ADDW AX, index+24(FP)
 	SUBW $1, CX
 	JNE count
 	RET
