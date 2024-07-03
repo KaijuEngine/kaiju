@@ -44,14 +44,6 @@ func Check(b Bitmap, index int) bool {
 	return (b[index/bitsInByte] & (0x01 << (index % bitsInByte))) != 0
 }
 
-// Count returns the number of bits that are true.
-func Count(b Bitmap) int {
-	count := 0
-	length := len(b) * bitsInByte
-	for i := 0; i < length; i++ {
-		if Check(b, i) {
-			count++
-		}
-	}
-	return count
-}
+func CountASM(b Bitmap) int { return Count(b) }
+
+func CountASMUsingTable(b Bitmap) int { return Count(b) }

@@ -43,4 +43,7 @@ package bitmap
 func Check(b Bitmap, index int) bool
 
 //go:noescape
-func Count(b Bitmap) int
+func CountASM(b Bitmap) int
+
+//go:noescape
+func CountASMUsingTable(b Bitmap) int

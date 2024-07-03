@@ -37,7 +37,10 @@
 
 package bitmap
 
-import "math"
+import (
+	"math"
+	"math/bits"
+)
 
 const bitsInByte = 8
 
@@ -98,4 +101,13 @@ func (b Bitmap) CountInverse() int {
 // Clear sets all bits to false.
 func (b Bitmap) Clear() {
 	clear(b)
+}
+
+// Count returns the number of bits that are true.
+func Count(b Bitmap) int {
+	count := 0
+	for i := 0; i < len(b); i++ {
+		count += bits.OnesCount(uint(b[i]))
+	}
+	return count
 }

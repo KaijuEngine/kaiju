@@ -47,8 +47,8 @@ import (
 
 func seededRandomTestSet(maxMapLen int, seed int64) []int {
 	rnd := rand.New(rand.NewSource(seed))
-	mapLen := rnd.Intn(maxMapLen)
-	onBits := rnd.Intn(mapLen)
+	mapLen := rnd.Intn(maxMapLen) + 1
+	onBits := rnd.Intn(mapLen) + 1
 	choices := make([]int, onBits)
 	for i := range onBits {
 		choices[i] = i
@@ -82,16 +82,22 @@ func TestCheck(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
+	//seed := int64(1720034999808757000)
+	//seed := int64(1720034181037542000)
+	//sets := seededRandomTestSet(64, seed)
 	sets, seed := randomTestSet(64)
 	bits := New(slices.Max(sets) + 1)
 	for i := range sets {
 		bits.Set(sets[i])
 	}
+	if Count(bits) != len(sets) {
+		t.Fatalf("[Go] Count was expected to be %d but was %d for seed %d", len(sets), Count(bits), seed)
+	}
 	if legacyCount(bits) != len(sets) {
 		t.Fatalf("[Go] Count was expected to be %d but was %d for seed %d", len(sets), legacyCount(bits), seed)
 	}
-	if Count(bits) != len(sets) {
-		t.Fatalf("[Asm] Count was expected to be %d but was %d for seed %d", len(sets), Count(bits), seed)
+	if CountASM(bits) != len(sets) {
+		t.Fatalf("[Asm] Count was expected to be %d but was %d for seed %d", len(sets), CountASM(bits), seed)
 	}
 }
 func BenchmarkCheckGo(b *testing.B) {
@@ -138,6 +144,17 @@ func BenchmarkCountGo(b *testing.B) {
 }
 
 func BenchmarkCountAmd64(b *testing.B) {
+	sets := seededRandomTestSet(64, 99)
+	bits := New(slices.Max(sets) + 1)
+	for i := range sets {
+		bits.Set(sets[i])
+	}
+	for i := 0; i < b.N; i++ {
+		CountASM(bits)
+	}
+}
+
+func BenchmarkFastCountGo(b *testing.B) {
 	sets := seededRandomTestSet(64, 99)
 	bits := New(slices.Max(sets) + 1)
 	for i := range sets {
