@@ -37,6 +37,8 @@
 
 package bitmap
 
+import "math"
+
 const bitsInByte = 8
 
 type Bitmap []byte
@@ -61,7 +63,7 @@ func NewTrue(length int) Bitmap {
 // LengthFor returns the number of bytes needed to represent the specified
 // number of bits.
 func LengthFor(byteCount int) int {
-	return (byteCount / bitsInByte) + 1
+	return int(math.Ceil(float64(byteCount) / float64(bitsInByte)))
 }
 
 // Set sets the bit at the specified index to true.
