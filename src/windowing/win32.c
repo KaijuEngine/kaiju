@@ -280,12 +280,12 @@ void process_message(SharedMem* sm, MSG *msg) {
 				case CURSOR_HELP:
 					c = LoadCursor(NULL, IDC_HELP);
 					break;
-				case CURSOR_PIN:
-					c = LoadCursor(NULL, IDC_PIN);
-					break;
-				case CURSOR_PERSON:
-					c = LoadCursor(NULL, IDC_PERSON);
-					break;
+				//case CURSOR_PIN:
+				//	c = LoadCursor(NULL, IDC_PIN);
+				//	break;
+				//case CURSOR_PERSON:
+				//	c = LoadCursor(NULL, IDC_PERSON);
+				//	break;
 			}
 			if (c != NULL) {
 				SetCursor(c);
