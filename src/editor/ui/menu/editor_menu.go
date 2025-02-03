@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/editor_settings_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
 	"kaiju/engine"
@@ -95,6 +96,7 @@ func New(container *host_container.Container,
 		"openContentWindow":   m.openContentWindow,
 		"openHierarchyWindow": m.openHierarchyWindow,
 		"newEntity":           m.newEntity,
+		"showEditorSettings":  m.showEditorSettings,
 	}
 	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
 	m.doc.SetGroup(uiGroup)
@@ -180,6 +182,10 @@ func (m *Menu) openHierarchyWindow(*document.Element) {
 
 func (m *Menu) newEntity(*document.Element) {
 	m.editor.CreateEntity("Entity")
+}
+
+func (m *Menu) showEditorSettings(*document.Element) {
+	editor_settings_window.New()
 }
 
 func (m *Menu) newStage(*document.Element) {

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_settings_window.css">
+	</head>
+	<body>
+		<div class="fill darkBG clip">
+			<h1>Editor Settings</h1>
+			<br/>
+			<div class="listEntry">
+				<span class="entryLabel">Kaiju Go Compiler Path:</span>
+				<input id="compilerPath" class="entryInput" type="text" placeholder="/path/to/kaiju/go" value="{{.GoCompilerPath}}" onchange="updateCompilerPath" />
+			</div>
+		</div>
+	</body>
+</html>

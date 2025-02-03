@@ -44,4 +44,5 @@ const (
 	LogWindow       = "log"
 	ContentWindow   = "content"
 	HierarchyWindow = "hierarchy"
+	KaijuGoCompiler = "goCompilerPath"
 )
