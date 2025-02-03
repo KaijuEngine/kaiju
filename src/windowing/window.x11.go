@@ -56,6 +56,21 @@ package windowing
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
 
+#cgo nocallback window_main
+#cgo nocallback window_show
+#cgo nocallback window_destroy
+#cgo nocallback window_focus
+#cgo nocallback window_position
+#cgo nocallback window_set_position
+#cgo nocallback window_set_size
+#cgo nocallback window_width_mm
+#cgo nocallback window_height_mm
+#cgo nocallback window_cursor_standard
+#cgo nocallback window_cursor_ibeam
+#cgo nocallback window_cursor_size_all
+#cgo nocallback window_cursor_size_ns
+#cgo nocallback window_cursor_size_we
+
 #include "windowing.h"
 */
 import "C"
