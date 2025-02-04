@@ -166,7 +166,7 @@ func (c *Console) show() {
 		c.doc.Elements[i].UI.Entity().Activate()
 	}
 	c.isActive = true
-	c.input.Select()
+	c.input.Focus()
 }
 
 func (c *Console) hide() {

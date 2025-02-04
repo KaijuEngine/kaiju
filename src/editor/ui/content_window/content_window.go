@@ -220,7 +220,7 @@ func (s *ContentWindow) reloadUI() {
 	if fp, ok := s.doc.GetElementById("folderListing"); ok {
 		fp.UIPanel.SetScrollY(folderPanelScroll)
 	}
-	s.input.Select()
+	s.input.Focus()
 }
 
 func (s *ContentWindow) listSearch() {

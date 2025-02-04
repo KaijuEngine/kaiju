@@ -115,6 +115,20 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	return label
 }
 
+func (label *Label) Show() {
+	if !label.entity.IsActive() {
+		label.entity.Activate()
+		label.activateDrawings()
+	}
+}
+
+func (label *Label) Hide() {
+	if label.entity.IsActive() {
+		label.entity.Deactivate()
+		label.deactivateDrawings()
+	}
+}
+
 func (label *Label) activateDrawings() {
 	for i := range label.runeDrawings {
 		label.runeDrawings[i].ShaderData.Activate()
