@@ -56,6 +56,21 @@ package audio_system
 #cgo noescape macro_IAudioRenderClient_GetBuffer
 #cgo noescape macro_IAudioRenderClient_ReleaseBuffer
 
+#cgo nocallback macro_IMMDeviceEnumerator_GetDefaultAudioEndpoint
+#cgo nocallback macro_IMMDevice_Activate
+#cgo nocallback macro_IAudioClient_GetMixFormat
+#cgo nocallback macro_IAudioClient_Initialize
+#cgo nocallback macro_IAudioClient_GetBufferSize
+#cgo nocallback macro_IAudioClient_GetService
+#cgo nocallback macro_IMMDeviceEnumerator_Release
+#cgo nocallback macro_IMMDevice_Release
+#cgo nocallback macro_IAudioClient_Release
+#cgo nocallback macro_IAudioClient_Start
+#cgo nocallback macro_IAudioClient_Stop
+#cgo nocallback macro_IAudioClient_GetCurrentPadding
+#cgo nocallback macro_IAudioRenderClient_GetBuffer
+#cgo nocallback macro_IAudioRenderClient_ReleaseBuffer
+
 #if defined(_WIN32) || defined(_WIN64)
 #define WIN32_LEAN_AND_MEAN
 #define WINDOWS_NETWORKING

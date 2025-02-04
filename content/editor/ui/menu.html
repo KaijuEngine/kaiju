@@ -7,6 +7,7 @@
 	<body>
 		<div id="bar" class="z5">
 			<span class="menuItem" data-target="FilesList"><span>File</span></span>
+			<span class="menuItem" data-target="EditList"><span>Edit</span></span>
 			<span class="menuItem" data-target="CreateList"><span>Create</span></span>
 			<span class="menuItem" data-target="WindowList"><span>Window</span></span>
 			<span class="menuItem" data-target="HelpList"><span>Help</span></span>
@@ -14,6 +15,9 @@
 				<div class="menuItemListItem" onclick="newStage">New stage...</div>
 				<div class="menuItemListItem" onclick="openProject">Open project...</div>
 				<div class="menuItemListItem" onclick="saveStage">Save stage...</div>
+			</div>
+			<div id="EditList" class="menuItemList">
+				<div class="menuItemListItem" onclick="showEditorSettings">Editor Settings...</div>
 			</div>
 			<div id="CreateList" class="menuItemList">
 				<div class="menuItemListItem" onclick="newEntity">New Entity</div>

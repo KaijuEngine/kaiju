@@ -1,0 +1,13 @@
+.listEntry {
+	width: 100%;
+	height: 32px;
+}
+.entryLabel {
+	margin-left: 10px;
+	margin-right: 10px;
+	line-height: 28px;
+}
+.entryInput {
+	width: 250px;
+	height: 100%;
+}

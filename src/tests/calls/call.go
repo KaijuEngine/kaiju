@@ -39,6 +39,7 @@ package calls
 
 /*
 #cgo noescape add2
+#cgo nocallback add2
 
 int add(int a, int b) {
 	return a + b;
