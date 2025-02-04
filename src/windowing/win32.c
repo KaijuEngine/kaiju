@@ -41,6 +41,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef WINVER
+#define WINVER 0x0605
+#endif
+
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -58,22 +62,22 @@
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
 #define UWM_SET_CURSOR		(WM_USER + 0x0001)
-	#define CURSOR_ARROW        1
-	#define CURSOR_IBEAM        2
-	#define CURSOR_WAIT         3
-	#define CURSOR_CROSS        4
-	#define CURSOR_UPARROW      5
-	#define CURSOR_SIZE_NWSE    6
-	#define CURSOR_SIZE_NESW    7
-	#define CURSOR_SIZE_WE      8
-	#define CURSOR_SIZE_NS      9
-	#define CURSOR_SIZE_ALL     10
-	#define CURSOR_NO           11
-	#define CURSOR_HAND         12
-	#define CURSOR_APP_STARTING 13
-	#define CURSOR_HELP         14
-	#define CURSOR_PIN          15
-	#define CURSOR_PERSON       16
+#define CURSOR_ARROW        1
+#define CURSOR_IBEAM        2
+#define CURSOR_WAIT         3
+#define CURSOR_CROSS        4
+#define CURSOR_UPARROW      5
+#define CURSOR_SIZE_NWSE    6
+#define CURSOR_SIZE_NESW    7
+#define CURSOR_SIZE_WE      8
+#define CURSOR_SIZE_NS      9
+#define CURSOR_SIZE_ALL     10
+#define CURSOR_NO           11
+#define CURSOR_HAND         12
+#define CURSOR_APP_STARTING 13
+#define CURSOR_HELP         14
+#define CURSOR_PIN          15
+#define CURSOR_PERSON       16
 
 void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
 	evt->mouse.mouseButtonId = buttonId;
@@ -401,7 +405,7 @@ void window_cursor_size_we(void* hwnd) {
 }
 
 float window_dpi(void* hwnd) {
-	return GetDpiForWindow(hwnd);
+	return ((float)GetDpiForWindow(hwnd)) / 25.4F;
 }
 
 void window_focus(void* hwnd) {
