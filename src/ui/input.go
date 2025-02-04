@@ -110,10 +110,11 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.label)
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
+	data.label.wordWrap = false
 	data.label.layout.ClearFunctions()
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
-		l.SetOffset(horizontalPadding, 0)
+		l.SetOffset(horizontalPadding+input.Data().labelShift, 0)
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		ps := pLayout.PixelSize()
 		l.ScaleWidth(ps.Width())
@@ -124,6 +125,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild(data.placeholder)
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
+	data.placeholder.wordWrap = false
 	data.placeholder.layout.ClearFunctions()
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
@@ -469,7 +471,7 @@ func (input *Input) updateCursorPosition() {
 	if x > bounds.X()-5 {
 		data.labelShift = -(x - bounds.X() + 5)
 		x = bounds.X() - 5
-		data.label.layout.SetOffset(data.labelShift, 0)
+		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
 	} else {
 		data.labelShift = 0
 	}

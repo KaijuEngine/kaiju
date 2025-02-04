@@ -262,8 +262,13 @@ func (label *Label) SetText(text string) {
 }
 
 func (label *Label) setLabelScissors() {
+	s := label.uiBase.selfScissor()
+	if label.entity.Parent != nil {
+		p := FirstOnEntity(label.entity.Parent)
+		s = p.selfScissor()
+	}
 	for i := 0; i < len(label.runeDrawings); i++ {
-		label.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = label.shaderData.Scissor
+		label.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = s
 	}
 }
 
@@ -340,18 +345,21 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 
 func (label *Label) nonOverrideMaxWidth() float32 {
 	if label.entity.IsRoot() {
+		// TODO:  Return a the window width?
 		return 100000.0
-	} else {
+	} else if label.wordWrap {
 		return label.CalculateMaxWidth()
+	} else {
+		return label.entity.Transform.WorldScale().X()
 	}
 }
 
 func (label *Label) MaxWidth() float32 {
-	if label.overrideMaxWidth > 0.0 {
-		return label.overrideMaxWidth
-	} else {
-		return label.nonOverrideMaxWidth()
+	mw := label.overrideMaxWidth
+	if mw <= 0 {
+		mw = label.nonOverrideMaxWidth()
 	}
+	return mw
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {

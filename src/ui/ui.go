@@ -243,13 +243,13 @@ func (ui *uiBase) GenerateScissor() {
 		for p.overflow == OverflowVisible && !p.entity.IsRoot() {
 			p = FirstPanelOnEntity(p.entity.Parent)
 		}
-		if !p.entity.IsRoot() {
-			ps := p.selfScissor()
-			bounds.SetX(max(bounds.X(), ps.X()))
-			bounds.SetY(max(bounds.Y(), ps.Y()))
-			bounds.SetZ(min(bounds.Z(), ps.Z()))
-			bounds.SetW(min(bounds.W(), ps.W()))
-		}
+		//if !p.entity.IsRoot() {
+		ps := p.selfScissor()
+		bounds.SetX(max(bounds.X(), ps.X()))
+		bounds.SetY(max(bounds.Y(), ps.Y()))
+		bounds.SetZ(min(bounds.Z(), ps.Z()))
+		bounds.SetW(min(bounds.W(), ps.W()))
+		//}
 	}
 	ui.setScissor(bounds)
 }
@@ -258,7 +258,6 @@ func (ui *uiBase) setScissor(scissor matrix.Vec4) {
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
-	ui.shaderData.Scissor = scissor
 	for i := 0; i < len(ui.entity.Children); i++ {
 		cUI := FirstOnEntity(ui.entity.Children[i])
 		if cUI != nil {
@@ -266,8 +265,11 @@ func (ui *uiBase) setScissor(scissor matrix.Vec4) {
 		}
 	}
 	ui.shaderData.Scissor = scissor
-	if ui.dirtyType == DirtyTypeNone {
-		ui.SetDirty(DirtyTypeScissor)
+	me := FirstOnEntity(ui.entity)
+	if lbl, ok := me.(*Label); ok {
+		for i := range lbl.runeDrawings {
+			lbl.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
+		}
 	}
 }
 
