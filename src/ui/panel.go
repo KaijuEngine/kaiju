@@ -233,7 +233,7 @@ func (p *Panel) onScroll() {
 		delta[matrix.Vy] *= -1.0
 	} else {
 		p.offset = p.scroll
-		delta.ScaleAssign(1.0 * p.scrollSpeed)
+		delta.ScaleAssign(p.scrollSpeed)
 	}
 	if (p.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
 		x := matrix.Clamp(delta.X()+p.offset.X(), 0.0, p.maxScroll.X())

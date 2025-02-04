@@ -145,10 +145,10 @@ func (d *Drawings) PreparePending() {
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
 		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
+			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Shader)
 		} else {
 			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.AddInstance(drawing.ShaderData, drawing.Renderer, drawing.Shader)
+			group.AddInstance(drawing.ShaderData, drawing.Shader)
 			group.Textures = drawing.Textures
 			group.useBlending = drawing.UseBlending
 			if idx >= 0 {

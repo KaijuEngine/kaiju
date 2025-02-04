@@ -191,7 +191,7 @@ func (d *DrawInstanceGroup) TotalSize() int {
 	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, renderer Renderer, shader *Shader) {
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, shader *Shader) {
 	d.Instances = append(d.Instances, instance)
 	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
 	if shader.definition != nil {
