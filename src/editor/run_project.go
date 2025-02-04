@@ -42,6 +42,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/klib"
 	"log/slog"
 	"net"
@@ -81,9 +82,18 @@ func (ed *Editor) runProject(isDebug bool) {
 func (ed *Editor) codeCompilerPath() (string, error) {
 	const releasePath = "/bin/go/bin/go"
 	const developPath = "/../go/bin/go"
-	kaijuCompiler := filepath.Join(ed.editorDir, releasePath+klib.ExeExtension())
-	if _, err := os.Stat(kaijuCompiler); os.IsNotExist(err) {
-		kaijuCompiler = filepath.Join(ed.editorDir, developPath+klib.ExeExtension())
+
+	var kaijuCompiler string
+	if v, ok := editor_cache.EditorConfigValue(editor_cache.KaijuGoCompiler); ok {
+		if root, ok := v.(string); ok {
+			kaijuCompiler = filepath.Join(root, "go"+klib.ExeExtension())
+		}
+	}
+	if len(kaijuCompiler) == 0 {
+		kaijuCompiler = filepath.Join(ed.editorDir, releasePath+klib.ExeExtension())
+		if _, err := os.Stat(kaijuCompiler); os.IsNotExist(err) {
+			kaijuCompiler = filepath.Join(ed.editorDir, developPath+klib.ExeExtension())
+		}
 	}
 	if _, err := os.Stat(kaijuCompiler); os.IsNotExist(err) {
 		return "", errors.New("failed to find the Kaiju Go compiler")
