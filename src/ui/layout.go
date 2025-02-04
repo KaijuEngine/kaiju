@@ -176,7 +176,7 @@ type Layout struct {
 	bottom           float32
 	z                float32
 	anchor           matrix.Vec2
-	ui               UI
+	ui               *UI
 	screenAnchor     Anchor
 	layoutFunction   func(layout *Layout)
 	anchorFunction   func(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4
@@ -203,10 +203,10 @@ func (l *Layout) ClearFunctions() {
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
-	return l.ui.Entity().Transform.WorldScale().AsVec2()
+	return l.ui.entity.Transform.WorldScale().AsVec2()
 }
 
-func (l *Layout) Ui() UI { return l.ui }
+func (l *Layout) Ui() *UI { return l.ui }
 
 func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return -w*0.5 + size.X()*0.5 + edges.Left()
@@ -281,7 +281,7 @@ func anchorBottomRight(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4
 }
 
 func layoutFloating(self *Layout) {
-	t := &self.ui.Entity().Transform
+	t := &self.ui.entity.Transform
 	s := self.PixelSize()
 	bounds := self.bounds()
 	pos := self.anchorFunction(self, bounds.X(), bounds.Y(), s)
@@ -330,7 +330,7 @@ func anchorStretchCenter(self *Layout, w, h float32, size matrix.Vec2) matrix.Ve
 }
 
 func layoutStretch(self *Layout) {
-	t := &self.ui.Entity().Transform
+	t := &self.ui.entity.Transform
 	bounds := self.bounds()
 	res := self.anchorFunction(self, bounds.X(), bounds.Y(), matrix.Vec2Zero())
 	x := res.X() + self.CalcOffset().X()
@@ -340,7 +340,7 @@ func layoutStretch(self *Layout) {
 	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), 1}
 	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / bounds.X()
 	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / bounds.Y()
-	self.ui.Entity().ScaleWithoutChildren(scale)
+	self.ui.entity.ScaleWithoutChildren(scale)
 	pos := matrix.Vec3{
 		x + bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
 		y + bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
@@ -359,19 +359,19 @@ func (l *Layout) prepare() {
 }
 
 func (l *Layout) bounds() matrix.Vec2 {
-	if l.ui.Entity().IsRoot() {
+	if l.ui.entity.IsRoot() {
 		return matrix.Vec2{
-			matrix.Float(l.ui.Host().Window.Width()),
-			matrix.Float(l.ui.Host().Window.Height()),
+			matrix.Float(l.ui.man.host.Window.Width()),
+			matrix.Float(l.ui.man.host.Window.Height()),
 		}
 	} else {
-		parent := l.ui.Entity().Parent
+		parent := l.ui.entity.Parent
 		s := parent.Transform.WorldScale()
 		return matrix.Vec2{s.X(), s.Y()}
 	}
 }
 
-func (l *Layout) initialize(ui UI, anchor Anchor) {
+func (l *Layout) initialize(ui *UI, anchor Anchor) {
 	l.anchor = matrix.Vec2Zero()
 	l.ui = ui
 	l.AnchorTo(anchor)
@@ -479,10 +479,10 @@ func (l *Layout) Scale(width, height float32) bool {
 		return false
 	}
 	size := matrix.Vec3{width, height, 1.0}
-	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+	if l.ui.entity.Parent != nil {
+		size.DivideAssign(l.ui.entity.Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.entity.ScaleWithoutChildren(size)
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
 }
@@ -494,10 +494,10 @@ func (l *Layout) ScaleWidth(width float32) bool {
 		return false
 	}
 	size := matrix.Vec3{width, ps.Height(), 1.0}
-	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+	if l.ui.entity.Parent != nil {
+		size.DivideAssign(l.ui.entity.Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.entity.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
@@ -513,10 +513,10 @@ func (l *Layout) ScaleHeight(height float32) bool {
 		return false
 	}
 	size := matrix.Vec3{ps.Width(), height, 1.0}
-	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+	if l.ui.entity.Parent != nil {
+		size.DivideAssign(l.ui.entity.Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.entity.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true

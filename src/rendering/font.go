@@ -58,6 +58,8 @@ const (
 )
 
 type FontJustify int
+type FontBaseline int
+type FontStyle int
 
 const (
 	FontJustifyLeft = FontJustify(iota)
@@ -65,12 +67,19 @@ const (
 	FontJustifyRight
 )
 
-type FontBaseline int
-
 const (
 	FontBaselineBottom = FontBaseline(iota)
 	FontBaselineCenter
 	FontBaselineTop
+)
+
+const (
+	FontStyleNone      = FontStyle(0x00)
+	FontStyleBold      = FontStyle(0x01)
+	FontStyleItalic    = FontStyle(0x02)
+	FontStyleSemiBold  = FontStyle(0x04)
+	FontStyleExtraBold = FontStyle(0x08)
+	FontStyleThin      = FontStyle(0x10)
 )
 
 type FontFace string

@@ -40,18 +40,20 @@ package ui
 import (
 	"kaiju/bitmap"
 	"kaiju/engine"
+	"kaiju/klib"
 	"log/slog"
 	"sort"
 )
 
 type groupRequest struct {
-	target    UI
+	target    *UI
 	eventType EventType
 }
 
 type Group struct {
 	requests    []groupRequest
-	focus       UI
+	focus       *UI
+	downElement *UI
 	updateId    int
 	hadRequests bool
 }
@@ -65,7 +67,7 @@ func NewGroup() *Group {
 
 func (group *Group) HasRequests() bool { return group.hadRequests }
 
-func (group *Group) requestEvent(ui UI, eType EventType) {
+func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
 		slog.Error("Invalid UI event type")
 		return
@@ -77,7 +79,7 @@ func (group *Group) requestEvent(ui UI, eType EventType) {
 	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
-func (group *Group) setFocus(ui UI) {
+func (group *Group) setFocus(ui *UI) {
 	if group.focus != nil && group.focus != ui {
 		group.focus.ExecuteEvent(EventTypeMiss)
 	}
@@ -99,8 +101,8 @@ func (group *Group) Detach(host *engine.Host) {
 }
 
 func sortRequests(a *groupRequest, b *groupRequest) bool {
-	return a.target.Entity().Transform.WorldPosition().Z() >
-		b.target.Entity().Transform.WorldPosition().Z()
+	return a.target.entity.Transform.WorldPosition().Z() >
+		b.target.entity.Transform.WorldPosition().Z()
 }
 
 func (group *Group) lateUpdate() {
@@ -125,7 +127,7 @@ func (group *Group) lateUpdate() {
 					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
 					EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
 					l := last[req.eventType]
-					e := req.target.Entity()
+					e := &req.target.entity
 					last[req.eventType] = e
 					if l != nil && l.Parent != e {
 						shouldContinue = false
@@ -144,4 +146,37 @@ func (group *Group) lateUpdate() {
 		group.requests = group.requests[:0]
 	}
 	group.hadRequests = has
+}
+
+func (group *Group) setDownElement(ui *UI) {
+	if ui.events[EventTypeClick].IsEmpty() &&
+		ui.events[EventTypeRightClick].IsEmpty() &&
+		ui.events[EventTypeDoubleClick].IsEmpty() {
+		return
+	}
+	if group.downElement != nil {
+		z0 := group.downElement.entity.Transform.WorldPosition().Z()
+		z1 := ui.entity.Transform.WorldPosition().Z()
+		if z0 < z1 {
+			group.downElement = ui
+		}
+	} else {
+		group.downElement = ui
+	}
+}
+
+func (group *Group) downIsMe(ui *UI) bool {
+	return group == nil || group.downElement == nil || group.downElement == ui
+}
+
+func (group *Group) removeUI(ui *UI) {
+	for i := range group.requests {
+		if group.requests[i].target == ui {
+			klib.RemoveUnordered(group.requests, i)
+			i--
+		}
+	}
+	if group.downElement == ui {
+		group.downElement = nil
+	}
 }

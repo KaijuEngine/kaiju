@@ -49,16 +49,6 @@ import (
 	"unicode/utf8"
 )
 
-type InputType = int32
-
-const (
-	InputTypeDefault = iota
-	InputTypeText
-	InputTypeNumber
-	InputTypePhone
-	InputTypeDatetime
-)
-
 const (
 	horizontalPadding float32 = 5.0
 	cursorWidth       float32 = 2.0

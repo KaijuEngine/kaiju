@@ -91,6 +91,8 @@ type Host struct {
 	frame          FrameId
 	frameTime      float64
 	Closing        bool
+	UIUpdater      Updater
+	UILateUpdater  Updater
 	Updater        Updater
 	LateUpdater    Updater
 	assetDatabase  assets.Database
@@ -114,6 +116,8 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		entities:       make([]*Entity, 0),
 		frameTime:      0,
 		Closing:        false,
+		UIUpdater:      NewUpdater(),
+		UILateUpdater:  NewUpdater(),
 		Updater:        NewUpdater(),
 		LateUpdater:    NewUpdater(),
 		assetDatabase:  assets.NewDatabase(),
@@ -302,6 +306,8 @@ func (host *Host) Update(deltaTime float64) {
 			i--
 		}
 	}
+	host.UIUpdater.Update(deltaTime)
+	host.UILateUpdater.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
@@ -362,6 +368,8 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 func (host *Host) Teardown() {
 	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
+	host.UIUpdater.Destroy()
+	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
 	host.Drawings.Destroy(host.Window.Renderer)

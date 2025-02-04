@@ -46,44 +46,6 @@ import (
 	"log/slog"
 )
 
-type PanelScrollDirection = int32
-type BorderStyle = int32
-type ContentFit = int32
-type Overflow = int
-
-const (
-	PanelScrollDirectionNone       = 0x00
-	PanelScrollDirectionVertical   = 0x01
-	PanelScrollDirectionHorizontal = 0x02
-	PanelScrollDirectionBoth       = 0x03
-)
-
-const (
-	BorderStyleNone = iota
-	BorderStyleHidden
-	BorderStyleDotted
-	BorderStyleDashed
-	BorderStyleSolid
-	BorderStyleDouble
-	BorderStyleGroove
-	BorderStyleRidge
-	BorderStyleInset
-	BorderStyleOutset
-)
-
-const (
-	ContentFitNone = iota
-	ContentFitWidth
-	ContentFitHeight
-	ContentFitBoth
-)
-
-const (
-	OverflowScroll = iota
-	OverflowVisible
-	OverflowHidden
-)
-
 type childScrollEvent struct {
 	down   events.Id
 	scroll events.Id
