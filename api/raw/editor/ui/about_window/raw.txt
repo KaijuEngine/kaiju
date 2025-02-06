@@ -1,0 +1,6 @@
+package about_window // import "."
+
+
+FUNCTIONS
+
+func New()

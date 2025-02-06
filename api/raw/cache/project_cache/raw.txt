@@ -1,0 +1,20 @@
+package project_cache // import "."
+
+
+CONSTANTS
+
+const (
+	CacheFolder = ".cache"
+)
+
+FUNCTIONS
+
+func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh load_result.Mesh) error
+func DeleteMesh(adi asset_info.AssetDatabaseInfo) error
+func LoadCachedMesh(adi asset_info.AssetDatabaseInfo) (load_result.Mesh, error)
+
+TYPES
+
+type ProjectEditorCache struct {
+}
+

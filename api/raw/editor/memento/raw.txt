@@ -1,0 +1,26 @@
+package memento // import "."
+
+
+TYPES
+
+type History struct {
+	// Has unexported fields.
+}
+
+func NewHistory(limit int) History
+
+func (h *History) Add(m Memento)
+
+func (h *History) Clear()
+
+func (h *History) Redo()
+
+func (h *History) Undo()
+
+type Memento interface {
+	Redo()
+	Undo()
+	Delete()
+	Exit()
+}
+

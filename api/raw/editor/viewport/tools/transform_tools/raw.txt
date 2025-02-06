@@ -1,0 +1,36 @@
+package transform_tools // import "."
+
+
+TYPES
+
+type AxisState uint8
+
+const (
+	AxisStateNone AxisState = iota
+	AxisStateX
+	AxisStateY
+	AxisStateZ
+)
+func (a *AxisState) Toggle(axis AxisState)
+
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
+)
+type TransformTool struct {
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, editor interfaces.Editor,
+	canvas string, history *memento.History) TransformTool
+
+func (t *TransformTool) Disable()
+
+func (t *TransformTool) Enable(state ToolState)
+
+func (t *TransformTool) Update(host *engine.Host) (busy bool)
+

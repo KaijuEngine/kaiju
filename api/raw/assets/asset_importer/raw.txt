@@ -1,0 +1,60 @@
+package asset_importer // import "."
+
+
+VARIABLES
+
+var (
+	ErrNoImporter = errors.New("no importer found for file")
+)
+
+TYPES
+
+type HTMLImporter struct{}
+
+func (m HTMLImporter) Handles(path string) bool
+
+func (m HTMLImporter) Import(path string) error
+
+type ImportRegistry struct {
+	// Has unexported fields.
+}
+
+func NewImportRegistry() ImportRegistry
+
+func (r *ImportRegistry) Import(path string) error
+
+func (r *ImportRegistry) ImportIfNew(path string) error
+
+func (r *ImportRegistry) ImportUsingDefault(path string) error
+
+func (r *ImportRegistry) Register(importer Importer)
+
+type ImportType = string
+
+type Importer interface {
+	Handles(path string) bool
+	Import(path string) error
+}
+    Importer is an interface for importing assets into the asset database.
+    It is used to allow for custom importers to be added to the system to handle
+    new asset types. Handles should return true if the importer can handle the
+    given path. Import should import the asset into the asset database.
+
+type OBJImporter struct{}
+
+func (m OBJImporter) Handles(path string) bool
+
+func (m OBJImporter) Import(path string) error
+
+type PNGImporter struct{}
+
+func (m PNGImporter) Handles(path string) bool
+
+func (m PNGImporter) Import(path string) error
+
+type StageImporter struct{}
+
+func (m StageImporter) Handles(path string) bool
+
+func (m StageImporter) Import(path string) error
+

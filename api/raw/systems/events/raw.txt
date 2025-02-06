@@ -1,0 +1,21 @@
+package events // import "."
+
+
+TYPES
+
+type Event struct {
+	// Has unexported fields.
+}
+
+func New() Event
+
+func (e *Event) Add(call func()) Id
+
+func (e *Event) Execute()
+
+func (e Event) IsEmpty() bool
+
+func (e *Event) Remove(id Id)
+
+type Id = int64
+
