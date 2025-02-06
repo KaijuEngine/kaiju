@@ -11,4 +11,4 @@ The engine is not released and is under heavy development. Now is a great time t
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
 - [Discord server](https://discord.gg/8rFPEu8U52)
-- [Brent Farris on X/Twitter](https://twitter.com/KaijuCoder)
+- [Brent Farris on X/Twitter](https://twitter.com/ShieldCrush)

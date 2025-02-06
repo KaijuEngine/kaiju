@@ -11,9 +11,9 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 
 I have made modifications to the Go compiler to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
 
-- Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.22) (release version 1.22)
+- Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.24) (release version 1.24)
   - This should be placed along side the Kaiju Engine repository
-- Checkout kaiju-go1.22, run `git checkout kaiju-go1.22`, inside of the repository folder
+- Checkout kaiju-go1.24, run `git checkout kaiju-go1.24`, inside of the repository folder
 - Ensure you have the standard Go compiler installed (Go builds Go)
 - Run the `make` script file for your platform inside of the `src` directory
   - This will build the Kaiju Engine Go compiler into the `bin` directory

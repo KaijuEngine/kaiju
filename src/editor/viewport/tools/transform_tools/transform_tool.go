@@ -303,7 +303,6 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 }
 
 func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
-	// TODO:  Move this to configuration
 	snapScale := float32(0.5)
 	if s, ok := editor_cache.EditorConfigValue(editor_cache.GridSnapping); ok {
 		snapScale = float32(s.(float64))
