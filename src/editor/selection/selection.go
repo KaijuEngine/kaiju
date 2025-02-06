@@ -63,7 +63,7 @@ type Selection struct {
 	entities    []*engine.Entity
 	downPos     matrix.Vec2
 	Changed     events.Event
-	shaderDatas []*rendering.ShaderDataBasic
+	shaderDatas map[*engine.Entity][]*rendering.ShaderDataBasic
 	history     *memento.History
 }
 
@@ -81,7 +81,7 @@ func New(host *engine.Host, history *memento.History) Selection {
 		box:         b,
 		entities:    make([]*engine.Entity, 0),
 		Changed:     events.New(),
-		shaderDatas: make([]*rendering.ShaderDataBasic, 0),
+		shaderDatas: make(map[*engine.Entity][]*rendering.ShaderDataBasic),
 		history:     history,
 	}
 }
@@ -100,10 +100,12 @@ func (s *Selection) clearInternal() {
 	if len(s.entities) == 0 {
 		return
 	}
-	for i := range s.shaderDatas {
-		s.shaderDatas[i].Destroy()
+	for k, v := range s.shaderDatas {
+		for i := range v {
+			s.shaderDatas[k][i].Destroy()
+		}
 	}
-	s.shaderDatas = s.shaderDatas[:0]
+	clear(s.shaderDatas)
 	s.entities = s.entities[:0]
 	s.Changed.Execute()
 }
@@ -150,6 +152,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 	outline := s.host.ShaderCache().
 		ShaderFromDefinition(assets.ShaderDefinitionOutline)
 	draws := e.EditorBindings.Drawings()
+	s.shaderDatas[e] = []*rendering.ShaderDataBasic{}
 	for _, d := range draws {
 		ds := &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
@@ -157,7 +160,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		}
 		ds.Color.SetA(3.0) // Line width
 		d.Transform.SetDirty()
-		s.shaderDatas = append(s.shaderDatas, ds)
+		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
 		d.Shader = outline
 		d.ShaderData = ds
 		d.UseBlending = false
@@ -174,9 +177,11 @@ func (s *Selection) addInternal(e *engine.Entity) {
 func (s *Selection) removeInternal(e *engine.Entity) {
 	for i := range s.entities {
 		if s.entities[i] == e {
-			s.entities = append(s.entities[:i], s.entities[i+1:]...)
-			s.shaderDatas[i].Destroy()
-			s.shaderDatas = slices.Delete(s.shaderDatas, i, i+1)
+			s.entities = slices.Delete(s.entities, i, i+1)
+			for j := range s.shaderDatas[e] {
+				s.shaderDatas[e][j].Destroy()
+			}
+			delete(s.shaderDatas, e)
 			break
 		}
 	}

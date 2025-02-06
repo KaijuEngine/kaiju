@@ -40,6 +40,7 @@ package hierarchy
 import (
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/selection"
+	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
 	"kaiju/klib"
@@ -55,12 +56,14 @@ import (
 const sizeConfig = "hierarchyWindowSize"
 
 type Hierarchy struct {
-	host      *engine.Host
-	selection *selection.Selection
-	doc       *document.Document
-	input     *ui.Input
-	query     string
-	uiGroup   *ui.Group
+	host              *engine.Host
+	ctxMenu           *context_menu.ContextMenu
+	doDeleteSelection func(*engine.Entity)
+	selection         *selection.Selection
+	doc               *document.Document
+	input             *ui.Input
+	query             string
+	uiGroup           *ui.Group
 }
 
 type entityEntry struct {
@@ -83,11 +86,13 @@ func (e entityEntry) Depth() int {
 	return depth
 }
 
-func New(host *engine.Host, selection *selection.Selection, uiGroup *ui.Group) *Hierarchy {
+func New(host *engine.Host, selection *selection.Selection, ctxMenu *context_menu.ContextMenu, doDeleteSelection func(*engine.Entity), uiGroup *ui.Group) *Hierarchy {
 	h := &Hierarchy{
-		host:      host,
-		selection: selection,
-		uiGroup:   uiGroup,
+		host:              host,
+		selection:         selection,
+		ctxMenu:           ctxMenu,
+		doDeleteSelection: doDeleteSelection,
+		uiGroup:           uiGroup,
 	}
 	h.host.OnClose.Add(func() {
 		if h.doc != nil {
@@ -188,6 +193,7 @@ func (h *Hierarchy) Reload() {
 			"resizeExit":     h.resizeExit,
 			"resizeStart":    h.resizeStart,
 			"resizeStop":     h.resizeStop,
+			"entryCtxMenu":   h.entryCtxMenu,
 		}))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
@@ -331,6 +337,22 @@ func (h *Hierarchy) resizeStop(e *document.Element) {
 	w, _ := h.doc.GetElementById("window")
 	s := w.UIPanel.Layout().PixelSize().Width()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
+}
+
+func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
+	eid := engine.EntityId(elm.Attribute("id"))
+	e, ok := h.host.FindEntity(eid)
+	if !ok {
+		return
+	}
+	h.selection.Set(e)
+	h.ctxMenu.Show([]context_menu.ContextMenuEntry{
+		{Id: "delete", Label: "Delete", OnClick: func() {
+			if e, ok := h.host.FindEntity(eid); ok {
+				h.doDeleteSelection(e)
+			}
+		}},
+	})
 }
 
 func (h *Hierarchy) DragUpdate() {

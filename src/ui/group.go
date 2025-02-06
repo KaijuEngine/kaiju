@@ -121,7 +121,7 @@ func (group *Group) lateUpdate() {
 					EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
 					EventTypeSubmit:
 					req.target.ExecuteEvent(req.eventType)
-				case EventTypeClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
+				case EventTypeClick, EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
 					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
 					EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
 					l := last[req.eventType]

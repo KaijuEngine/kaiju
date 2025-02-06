@@ -40,6 +40,7 @@ package deleter
 import (
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
+	"slices"
 )
 
 func doDelete(h *deleteHistory, editor interfaces.Editor) {
@@ -52,7 +53,7 @@ func Delete(editor interfaces.Editor, entities []*engine.Entity) {
 	doDelete(h, editor)
 }
 
-func DeleteSelected(editor interfaces.Editor, entities []*engine.Entity) {
-	h := &deleteHistory{entities, editor}
+func DeleteSelected(editor interfaces.Editor) {
+	h := &deleteHistory{slices.Clone(editor.Selection().Entities()), editor}
 	doDelete(h, editor)
 }

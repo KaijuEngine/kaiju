@@ -42,7 +42,6 @@ import (
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/hid"
 	"kaiju/klib"
-	"slices"
 )
 
 func checkHotkeys(ed *Editor) {
@@ -88,6 +87,6 @@ func checkHotkeys(ed *Editor) {
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
 		ed.transformTool.Enable(transform_tools.ToolStateScale)
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
-		deleter.DeleteSelected(ed, slices.Clone(ed.selection.Entities()))
+		deleter.DeleteSelected(ed)
 	}
 }

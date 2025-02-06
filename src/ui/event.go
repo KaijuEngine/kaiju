@@ -44,6 +44,7 @@ const (
 	EventTypeEnter
 	EventTypeExit
 	EventTypeClick
+	EventTypeRightClick
 	EventTypeDoubleClick
 	EventTypeDown
 	EventTypeUp

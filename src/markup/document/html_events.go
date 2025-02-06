@@ -57,6 +57,8 @@ func tryMap(attr string, elm *Element, evt *events.Event, funcMap map[string]fun
 
 func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
+	tryMap("onrightclick", elm, elm.UI.Event(ui.EventTypeRightClick), funcMap)
+	tryMap("onmiss", elm, elm.UI.Event(ui.EventTypeMiss), funcMap)
 	tryMap("onsubmit", elm, elm.UI.Event(ui.EventTypeSubmit), funcMap)
 	tryMap("onkeydown", elm, elm.UI.Event(ui.EventTypeKeyDown), funcMap)
 	tryMap("onkeyup", elm, elm.UI.Event(ui.EventTypeKeyUp), funcMap)

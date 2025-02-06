@@ -104,6 +104,7 @@ type uiBase struct {
 	hovering     bool
 	cantMiss     bool
 	isDown       bool
+	isRightDown  bool
 	drag         bool
 	lastActive   bool
 }
@@ -283,6 +284,7 @@ func (ui *uiBase) requestEvent(evtType EventType) {
 
 func (ui *uiBase) eventUpdates() {
 	cursor := &ui.host.Window.Cursor
+	mouse := &ui.host.Window.Mouse
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
 		ui.containedCheck(cursor, ui.entity)
@@ -305,6 +307,12 @@ func (ui *uiBase) eventUpdates() {
 			ui.downPos = ui.cursorPos(cursor)
 			ui.requestEvent(EventTypeDown)
 			ui.cantMiss = true
+		}
+	}
+	if mouse.Pressed(hid.MouseButtonRight) {
+		ui.containedCheck(cursor, ui.entity)
+		if ui.hovering && !ui.isRightDown {
+			ui.isRightDown = true
 		}
 	}
 	if cursor.Released() {
@@ -340,7 +348,13 @@ func (ui *uiBase) eventUpdates() {
 			ui.cantMiss = false
 		}
 	}
-	if ui.host.Window.Mouse.Scrolled() && ui.hovering {
+	if mouse.Released(hid.MouseButtonRight) {
+		if ui.isRightDown && ui.hovering {
+			ui.requestEvent(EventTypeRightClick)
+		}
+		ui.isRightDown = false
+	}
+	if mouse.Scrolled() && ui.hovering {
 		ui.requestEvent(EventTypeScroll)
 	}
 }

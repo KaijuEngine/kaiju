@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
+	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/status_bar"
@@ -59,6 +60,7 @@ type Editor interface {
 	WindowListing() *editor_window.Listing
 	StatusBar() *status_bar.StatusBar
 	Hierarchy() *hierarchy.Hierarchy
+	ContextMenu() *context_menu.ContextMenu
 	OpenProject()
 	AvailableDataBindings() []codegen.GeneratedType
 	ReloadEntityDataListing()

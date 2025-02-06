@@ -49,6 +49,7 @@ import (
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/content_window"
+	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
@@ -87,6 +88,7 @@ type Editor struct {
 	stageManager   stages.Manager
 	contentOpener  content_opener.Opener
 	logWindow      *log_window.LogWindow
+	contextMenu    *context_menu.ContextMenu
 	hierarchy      *hierarchy.Hierarchy
 	contentWindow  *content_window.ContentWindow
 	detailsWindow  *details_window.Details
@@ -100,18 +102,19 @@ type Editor struct {
 	overlayCanvas rendering.Canvas
 }
 
-func (e *Editor) Closed()                               {}
-func (e *Editor) Tag() string                           { return editor_cache.MainWindow }
-func (e *Editor) Container() *host_container.Container  { return e.container }
-func (e *Editor) Host() *engine.Host                    { return e.container.Host }
-func (e *Editor) StageManager() *stages.Manager         { return &e.stageManager }
-func (e *Editor) ContentOpener() *content_opener.Opener { return &e.contentOpener }
-func (e *Editor) Selection() *selection.Selection       { return &e.selection }
-func (e *Editor) History() *memento.History             { return &e.history }
-func (e *Editor) WindowListing() *editor_window.Listing { return &e.windowListing }
-func (e *Editor) StatusBar() *status_bar.StatusBar      { return e.statusBar }
-func (e *Editor) Hierarchy() *hierarchy.Hierarchy       { return e.hierarchy }
-func (e *Editor) BVH() *collision.BVH                   { return e.bvh }
+func (e *Editor) Closed()                                {}
+func (e *Editor) Tag() string                            { return editor_cache.MainWindow }
+func (e *Editor) Container() *host_container.Container   { return e.container }
+func (e *Editor) Host() *engine.Host                     { return e.container.Host }
+func (e *Editor) StageManager() *stages.Manager          { return &e.stageManager }
+func (e *Editor) ContentOpener() *content_opener.Opener  { return &e.contentOpener }
+func (e *Editor) Selection() *selection.Selection        { return &e.selection }
+func (e *Editor) History() *memento.History              { return &e.history }
+func (e *Editor) WindowListing() *editor_window.Listing  { return &e.windowListing }
+func (e *Editor) StatusBar() *status_bar.StatusBar       { return e.statusBar }
+func (e *Editor) Hierarchy() *hierarchy.Hierarchy        { return e.hierarchy }
+func (e *Editor) ContextMenu() *context_menu.ContextMenu { return e.contextMenu }
+func (e *Editor) BVH() *collision.BVH                    { return e.bvh }
 
 func (e *Editor) RunOnHost(fn func()) { e.container.RunFunction(fn) }
 
