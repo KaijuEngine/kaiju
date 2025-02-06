@@ -12,6 +12,7 @@ nav:
     - Writing: ui/writing.md
     - Preview: ui/preview.md
     - Go Access: ui/go_access.md
+    - HTML Attributes: ui/html_attributes.md
   - Engine Developers:
     - Build from source: engine_developers/build_from_source.md
     - Building new fonts: engine_developers/building_fonts.md
