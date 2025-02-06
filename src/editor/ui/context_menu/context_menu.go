@@ -43,8 +43,17 @@ func (c *ContextMenu) reload() {
 	c.doc = markup.DocumentFromHTMLString(c.container.Host, html, "", c.entries, funcMap)
 	c.doc.SetGroup(c.uiGroup)
 	m, _ := c.doc.GetElementById("contextMenu")
-	m.UIPanel.Layout().SetOffset(c.x, c.y)
 	c.container.Host.DoneCreatingEditorEntities()
+	ww := float32(c.container.Host.Window.Width())
+	wh := float32(c.container.Host.Window.Height())
+	ps := m.UIPanel.Layout().PixelSize()
+	if c.x+ps.Width() > ww {
+		c.x = ww - ps.Width()
+	}
+	if c.y+ps.Height() > wh {
+		c.y = wh - ps.Height()
+	}
+	m.UIPanel.Layout().SetOffset(c.x, c.y)
 }
 
 func (c *ContextMenu) Show(entries []ContextMenuEntry) {
