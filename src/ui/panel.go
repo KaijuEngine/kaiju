@@ -425,12 +425,14 @@ func (p *Panel) postLayoutUpdate() {
 	if p.FittingContent() {
 		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)
+		border := p.layout.border
 		if p.fitContent == ContentFitWidth {
-			p.layout.ScaleWidth(max(1, bounds.X()))
+			p.layout.ScaleWidth(max(1, bounds.X()+border.Left()+border.Right()))
 		} else if p.fitContent == ContentFitHeight {
-			p.layout.ScaleHeight(max(1, bounds.Y()))
+			p.layout.ScaleHeight(max(1, bounds.Y()+border.Top()+border.Bottom()))
 		} else if p.fitContent == ContentFitBoth {
-			p.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))
+			p.layout.Scale(max(1, bounds.X()+border.Left()+border.Right()),
+				max(1, bounds.Y()+border.Top()+border.Bottom()))
 		}
 	}
 	length := nextPos.Subtract(offsetStart)
