@@ -56,14 +56,14 @@ import (
 const sizeConfig = "hierarchyWindowSize"
 
 type Hierarchy struct {
-	host              *engine.Host
-	ctxMenu           *context_menu.ContextMenu
-	doDeleteSelection func(*engine.Entity)
-	selection         *selection.Selection
-	doc               *document.Document
-	input             *ui.Input
-	query             string
-	uiGroup           *ui.Group
+	host                 *engine.Host
+	entityCtxMenuActions []context_menu.ContextMenuEntry
+	ctxMenuSet           context_menu.ContextMenuSet
+	selection            *selection.Selection
+	doc                  *document.Document
+	input                *ui.Input
+	query                string
+	uiGroup              *ui.Group
 }
 
 type entityEntry struct {
@@ -86,13 +86,13 @@ func (e entityEntry) Depth() int {
 	return depth
 }
 
-func New(host *engine.Host, selection *selection.Selection, ctxMenu *context_menu.ContextMenu, doDeleteSelection func(*engine.Entity), uiGroup *ui.Group) *Hierarchy {
+func New(host *engine.Host, selection *selection.Selection,
+	ctxMenuSet context_menu.ContextMenuSet, uiGroup *ui.Group) *Hierarchy {
 	h := &Hierarchy{
-		host:              host,
-		selection:         selection,
-		ctxMenu:           ctxMenu,
-		doDeleteSelection: doDeleteSelection,
-		uiGroup:           uiGroup,
+		host:       host,
+		selection:  selection,
+		ctxMenuSet: ctxMenuSet,
+		uiGroup:    uiGroup,
 	}
 	h.host.OnClose.Add(func() {
 		if h.doc != nil {
@@ -345,14 +345,10 @@ func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
 	if !ok {
 		return
 	}
-	h.selection.Set(e)
-	h.ctxMenu.Show([]context_menu.ContextMenuEntry{
-		{Id: "delete", Label: "Delete", OnClick: func() {
-			if e, ok := h.host.FindEntity(eid); ok {
-				h.doDeleteSelection(e)
-			}
-		}},
-	})
+	if !h.selection.Contains(e) {
+		h.selection.Set(e)
+	}
+	h.ctxMenuSet.Show()
 }
 
 func (h *Hierarchy) DragUpdate() {

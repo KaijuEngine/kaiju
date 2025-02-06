@@ -50,7 +50,6 @@ import (
 	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
-	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/host_container"
@@ -97,17 +96,14 @@ func waitForProjectSelectWindow(ed *Editor) (string, error) {
 	return projectPath, nil
 }
 
-func (ed *Editor) doDeleteSelection(entity *engine.Entity) {
-	deleter.DeleteSelected(ed)
-}
-
 func constructEditorUI(ed *Editor) {
 	ed.Host().CreatingEditorEntities()
 	ed.logWindow = log_window.New(ed.Host(), ed.Host().LogStream, ed.uiGroup)
 	ed.contentWindow = content_window.New(&ed.contentOpener, ed, ed.uiGroup)
 	ed.detailsWindow = details_window.New(ed, ed.uiGroup)
 	ed.contextMenu = context_menu.New(ed.container, ed.uiGroup)
-	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection, ed.contextMenu, ed.doDeleteSelection, ed.uiGroup)
+	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
+		hierarchyContextMenuActions(ed), ed.uiGroup)
 	ed.menu = menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, ed.uiGroup)
 	ed.statusBar = status_bar.New(ed.Host(), ed.logWindow)

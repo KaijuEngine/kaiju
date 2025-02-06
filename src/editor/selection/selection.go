@@ -89,6 +89,15 @@ func New(host *engine.Host, history *memento.History) Selection {
 func (s *Selection) Entities() []*engine.Entity { return s.entities }
 func (s *Selection) HasSelection() bool         { return len(s.entities) > 0 }
 
+func (s *Selection) Contains(e *engine.Entity) bool {
+	for i := range s.entities {
+		if s.entities[i] == e {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
 
 func (s *Selection) deactivateBox() {
