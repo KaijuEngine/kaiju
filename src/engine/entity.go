@@ -81,20 +81,23 @@ type Entity struct {
 
 // NewEntity creates a new #Entity struct and returns it
 func NewEntity() *Entity {
-	e := &Entity{
-		isActive:     true,
-		Children:     make([]*Entity, 0),
-		Transform:    matrix.NewTransform(),
-		matrix:       matrix.Mat4Identity(),
-		namedData:    make(map[string][]interface{}),
-		name:         "Entity",
-		OnDestroy:    events.New(),
-		OnActivate:   events.New(),
-		OnDeactivate: events.New(),
-		data:         make([]EntityData, 0),
-	}
-	e.EditorBindings.init()
+	e := &Entity{}
+	e.Init()
 	return e
+}
+
+func (e *Entity) Init() {
+	e.isActive = true
+	e.Children = make([]*Entity, 0)
+	e.Transform = matrix.NewTransform()
+	e.matrix = matrix.Mat4Identity()
+	e.namedData = make(map[string][]interface{})
+	e.name = "Entity"
+	e.OnDestroy = events.New()
+	e.OnActivate = events.New()
+	e.OnDeactivate = events.New()
+	e.data = make([]EntityData, 0)
+	e.EditorBindings.init()
 }
 
 // ID returns the unique identifier of the entity. The Id is only valid for

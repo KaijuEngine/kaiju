@@ -195,9 +195,8 @@ func (ui *UI) Init(man *Manager, anchor Anchor, elmType ElementType, construct i
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
 	}
-	ui.entity.Init(false)
+	ui.entity.Init()
 	ui.man.host.AddEntity(&ui.entity)
-	ui.entity.Transform.absolutePositions = true
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.layout.initialize(ui, anchor)
 	if ui.resizeId == 0 {
@@ -505,7 +504,7 @@ func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	if ui.events[evtType].IsEmpty() {
 		return false
 	}
-	ui.events[evtType].ExecuteWithSender(ui)
+	ui.events[evtType].Execute()
 	return true
 }
 

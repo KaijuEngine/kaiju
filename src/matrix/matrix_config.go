@@ -41,6 +41,11 @@ import (
 	"math"
 )
 
+const (
+	RealTiny    = 0.0001
+	RealRoughly = 0.001
+)
+
 type ColorComponent = int
 type VectorComponent = int
 type QuaternionComponent = int

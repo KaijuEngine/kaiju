@@ -165,6 +165,12 @@ func (a Anchor) IsBottom() bool {
 	return a == AnchorBottomLeft || a == AnchorBottomCenter || a == AnchorBottomRight || a == AnchorStretchBottom
 }
 
+func (a Anchor) IsStretch() bool {
+	return a == AnchorStretchLeft || a == AnchorStretchTop ||
+		a == AnchorStretchRight || a == AnchorStretchBottom ||
+		a == AnchorStretchCenter
+}
+
 type Layout struct {
 	offset           matrix.Vec2
 	rowLayoutOffset  matrix.Vec2

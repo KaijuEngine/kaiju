@@ -53,30 +53,32 @@ type colorRange struct {
 	hue, bgHue matrix.Color
 }
 
-type Label struct {
-	uiBase
-	colorRanges       []colorRange
-	text              string
-	textLength        int
-	fontSize          float32
-	lineHeight        float32
-	overrideMaxWidth  float32
-	fgColor           matrix.Color
-	bgColor           matrix.Color
-	justify           rendering.FontJustify
-	baseline          rendering.FontBaseline
-	diffScore         int
-	runeShaderData    []*rendering.TextShaderData
-	runeDrawings      []rendering.Drawing
-	fontFace          rendering.FontFace
-	lastRenderWidth   float32
-	unEnforcedFGColor matrix.Color
-	unEnforcedBGColor matrix.Color
-	isForcedFGColor   bool
-	isForcedBGColor   bool
-	wordWrap          bool
-	renderRequired    bool
-}
+type Label = UI
+
+//type Label struct {
+//	uiBase
+//	colorRanges       []colorRange
+//	text              string
+//	textLength        int
+//	fontSize          float32
+//	lineHeight        float32
+//	overrideMaxWidth  float32
+//	fgColor           matrix.Color
+//	bgColor           matrix.Color
+//	justify           rendering.FontJustify
+//	baseline          rendering.FontBaseline
+//	diffScore         int
+//	runeShaderData    []*rendering.TextShaderData
+//	runeDrawings      []rendering.Drawing
+//	fontFace          rendering.FontFace
+//	lastRenderWidth   float32
+//	unEnforcedFGColor matrix.Color
+//	unEnforcedBGColor matrix.Color
+//	isForcedFGColor   bool
+//	isForcedBGColor   bool
+//	wordWrap          bool
+//	renderRequired    bool
+//}
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{

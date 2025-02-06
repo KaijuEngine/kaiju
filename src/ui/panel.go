@@ -39,11 +39,15 @@ package ui
 
 import (
 	"kaiju/assets"
-	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"log/slog"
+)
+
+const (
+	baseScrollSpeed = 24
 )
 
 type childScrollEvent struct {
@@ -59,101 +63,50 @@ type requestScroll struct {
 	requested bool
 }
 
-type Panel struct {
-	uiBase
-	scroll, offset, maxScroll matrix.Vec2
-	scrollSpeed               float32
-	scrollDirection           PanelScrollDirection
-	scrollEvent               events.Id
-	borderStyle               [4]BorderStyle
-	color                     matrix.Color
-	drawing                   rendering.Drawing
-	localData                 localData
-	innerUpdate               func(deltaTime float64)
-	fitContent                ContentFit
-	requestScrollX            requestScroll
-	requestScrollY            requestScroll
-	overflow                  Overflow
-	enforcedColorStack        []matrix.Color
-	isScrolling               bool
-	dragging                  bool
-	frozen                    bool
-	allowDragScroll           bool
+type Panel = UI
+
+// TODO:  On destroy call removeDrawings
+
+func (p *Panel) EnforcingColor() bool {
+	return len(p.PanelData().enforcedColorStack) > 0
 }
 
-func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
-	panel := &Panel{
-		scrollEvent:        0,
-		scrollSpeed:        20.0,
-		scrollDirection:    PanelScrollDirectionVertical,
-		color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:         ContentFitBoth,
-		enforcedColorStack: make([]matrix.Color, 0),
-	}
-	ts := matrix.Vec2Zero()
-	if texture != nil {
-		ts = texture.Size()
-	}
-	panel.updateId = host.Updater.AddUpdate(panel.update)
-	panel.init(host, ts, anchor, panel)
-	panel.entity.SetChildrenOrdered()
-	if texture != nil {
-		panel.ensureBGExists(texture)
-	}
-	panel.entity.OnActivate.Add(func() {
-		panel.shaderData.Activate()
-		panel.updateId = host.Updater.AddUpdate(panel.update)
-		panel.SetDirty(DirtyTypeLayout)
-		panel.Clean()
-	})
-	panel.entity.OnDeactivate.Add(func() {
-		panel.shaderData.Deactivate()
-		host.Updater.RemoveUpdate(panel.updateId)
-		panel.updateId = 0
-	})
-	panel.entity.OnDestroy.Add(func() {
-		panel.shaderData.Destroy()
-	})
-	return panel
-}
-
-func (p *Panel) ScrollX() float32   { return p.scroll.X() }
-func (p *Panel) ScrollY() float32   { return -p.scroll.Y() }
-func (p *Panel) EnableDragScroll()  { p.allowDragScroll = true }
-func (p *Panel) DisableDragScroll() { p.allowDragScroll = false }
+func (p *Panel) ScrollX() float32        { return p.PanelData().scroll.X() }
+func (p *Panel) ScrollY() float32        { return -p.PanelData().scroll.Y() }
+func (p *Panel) EnableDragScroll()       { p.PanelData().allowDragScroll = true }
+func (p *Panel) DisableDragScroll()      { p.PanelData().allowDragScroll = false }
+func (p *Panel) DontFitContent()         { p.PanelData().fitContent = ContentFitNone }
+func (p *Panel) FittingContent() bool    { return p.PanelData().fitContent != ContentFitNone }
+func (p *Panel) SetSpeed(speed float32)  { p.PanelData().scrollSpeed = speed }
+func (p *Panel) ResetScroll()            { p.PanelData().scroll = matrix.Vec2Zero() }
+func (p *Panel) Freeze()                 { p.PanelData().frozen = true }
+func (p *Panel) Unfreeze()               { p.PanelData().frozen = false }
+func (p *Panel) BorderSize() matrix.Vec4 { return p.layout.border }
 
 func (p *Panel) DontFitContentWidth() {
-	switch p.fitContent {
+	switch p.PanelData().fitContent {
 	case ContentFitBoth:
-		p.fitContent = ContentFitHeight
+		p.PanelData().fitContent = ContentFitHeight
 	case ContentFitWidth:
-		p.fitContent = ContentFitNone
+		p.PanelData().fitContent = ContentFitNone
 	}
 }
 
 func (p *Panel) DontFitContentHeight() {
-	switch p.fitContent {
+	switch p.PanelData().fitContent {
 	case ContentFitBoth:
-		p.fitContent = ContentFitWidth
+		p.PanelData().fitContent = ContentFitWidth
 	case ContentFitHeight:
-		p.fitContent = ContentFitNone
+		p.PanelData().fitContent = ContentFitNone
 	}
 }
 
-func (p *Panel) DontFitContent() {
-	p.fitContent = ContentFitNone
-}
-
-func (p *Panel) FittingContent() bool {
-	return p.fitContent != ContentFitNone
-}
-
 func (p *Panel) FitContentWidth() {
-	switch p.fitContent {
+	switch p.PanelData().fitContent {
 	case ContentFitNone:
-		p.fitContent = ContentFitWidth
+		p.PanelData().fitContent = ContentFitWidth
 	case ContentFitHeight:
-		p.fitContent = ContentFitBoth
+		p.PanelData().fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
@@ -163,11 +116,11 @@ func (p *Panel) FitContentWidth() {
 }
 
 func (p *Panel) FitContentHeight() {
-	switch p.fitContent {
+	switch p.PanelData().fitContent {
 	case ContentFitNone:
-		p.fitContent = ContentFitHeight
+		p.PanelData().fitContent = ContentFitHeight
 	case ContentFitWidth:
-		p.fitContent = ContentFitBoth
+		p.PanelData().fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
@@ -177,7 +130,7 @@ func (p *Panel) FitContentHeight() {
 }
 
 func (p *Panel) FitContent() {
-	p.fitContent = ContentFitBoth
+	p.PanelData().fitContent = ContentFitBoth
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
 	} else {
@@ -185,142 +138,179 @@ func (p *Panel) FitContent() {
 	}
 }
 
-func (p *Panel) onScroll() {
-	mouse := &p.host.Window.Mouse
-	delta := mouse.Scroll()
-	scroll := p.scroll
-	if !mouse.Scrolled() {
-		pos := p.cursorPos(&p.host.Window.Cursor)
-		delta = pos.Subtract(p.downPos)
-		delta[matrix.Vy] *= -1.0
-	} else {
-		p.offset = p.scroll
-		delta.ScaleAssign(p.scrollSpeed)
-	}
-	if (p.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
-		x := matrix.Clamp(delta.X()+p.offset.X(), 0.0, p.maxScroll.X())
-		scroll.SetX(x)
-	}
-	if (p.scrollDirection & PanelScrollDirectionVertical) != 0 {
-		y := matrix.Clamp(delta.Y()+p.offset.Y(), -p.maxScroll.Y(), 0)
-		scroll.SetY(y)
-	}
-	if !matrix.Vec2Approx(scroll, p.scroll) {
-		p.scroll = scroll
+func (p *Panel) SetScrollX(value float32) {
+	p.PanelData().requestScrollX.to = value
+	p.PanelData().requestScrollX.requested = true
+	p.SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetScrollY(value float32) {
+	p.PanelData().requestScrollY.to = value
+	p.PanelData().requestScrollY.requested = true
+	p.SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetOverflow(overflow Overflow) {
+	if p.PanelData().overflow != overflow {
+		p.PanelData().overflow = overflow
 		p.SetDirty(DirtyTypeLayout)
-		p.isScrolling = true
 	}
 }
 
-func panelOnDown(ui UI) {
-	var target UI = ui
-	ok := false
-	var panel *Panel
-	for !ok {
-		target = FirstOnEntity(target.Entity().Parent)
-		panel, ok = target.(*Panel)
+func (p *Panel) Background(drawing int) *rendering.Texture {
+	if p.PanelData().drawings[drawing].IsValid() {
+		return p.PanelData().drawings[drawing].Textures[0]
 	}
-	panel.offset = panel.scroll
-	panel.dragging = true
-	if !panel.allowDragScroll {
+	return nil
+}
+
+func (p *Panel) recreateDrawing(drawing int) {
+	var shader *rendering.Shader
+	pd := p.PanelData()
+	if len(p.overrideShaderDefinition) > 0 {
+		shader = p.man.host.ShaderCache().ShaderFromDefinition(p.overrideShaderDefinition)
+	} else {
+		switch pd.shaderType {
+		case PanelShaderTypeNine:
+			shader = p.man.host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionUI)
+		case PanelShaderTypeImage:
+			shader = p.man.host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionUIImage)
+		}
+	}
+	mesh := rendering.NewMeshQuad(p.man.host.MeshCache())
+	d := &pd.drawings[drawing]
+	var sd *ShaderData
+	d.UseBlending = p.useBlending || pd.color.A() < 1
+	if d.ShaderData != nil {
+		sd = d.ShaderData.(*ShaderData)
+		proxy := *sd
+		sd.Destroy()
+		d.ShaderData = nil
+		*sd = proxy
+	} else {
+		d.Shader = shader
+		d.Mesh = mesh
+		d.Transform = &p.entity.Transform
+		sd.ShaderDataBase = rendering.NewShaderDataBase()
+		sd.BorderLen = matrix.NewVec2(8, 8)
+		sd.BgColor = pd.color
+		sd.FgColor = pd.color
+		sd.UVs = matrix.NewVec4(0, 0, 1, 1)
+		if len(d.Textures) > 0 {
+			sd.setSize2d(p, float32(d.Textures[0].Width), float32(d.Textures[0].Height))
+		}
+		p.scissor = matrix.NewVec4(-matrix.FloatMax, -matrix.FloatMax,
+			matrix.FloatMax, matrix.FloatMax)
+		sd.Scissor = p.scissor
+	}
+	d.ShaderData = sd
+}
+
+func (p *Panel) recreateDrawings() {
+	pd := p.PanelData()
+	for i := range pd.drawings {
+		p.recreateDrawing(i)
+	}
+}
+
+func (p *Panel) removeDrawings() {
+	pd := p.PanelData()
+	for i := range pd.drawings {
+		// TODO:  Does anything need to be released for the drawing?
+		pd.drawings[i].ShaderData.Destroy()
+	}
+	pd.drawings = pd.drawings[:0]
+}
+
+func (p *Panel) ShaderData(drawing int) *ShaderData {
+	return p.PanelData().drawings[drawing].ShaderData.(*ShaderData)
+}
+
+func (p *Panel) onScroll() {
+	pd := p.PanelData()
+	if pd.frozen {
+		return
+	}
+	mouse := &p.man.host.Window.Mouse
+	delta := mouse.Scroll()
+	scroll := pd.scroll
+	if !mouse.Scrolled() {
+		pos := p.cursorPos(&p.man.host.Window.Cursor)
+		delta = pos.Subtract(p.downPos)
+		delta[matrix.Vy] *= -1.0
+	} else {
+		pd.offset = pd.scroll
+		delta.ScaleAssign(pd.scrollSpeed)
+	}
+	// If the panel can only scroll horizontally, use the Y scroll if there is no X
+	if pd.scrollDirection == PanelScrollDirectionHorizontal {
+		if matrix.ApproxTo(delta.X(), 0, matrix.RealTiny) {
+			delta.SetX(-delta.Y())
+		}
+	}
+	if (pd.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
+		x := klib.Clamp(delta.X()+pd.offset.X(), 0, pd.maxScroll.X())
+		scroll.SetX(x)
+	}
+	if (pd.scrollDirection & PanelScrollDirectionVertical) != 0 {
+		y := klib.Clamp(delta.Y()+pd.offset.Y(), -pd.maxScroll.Y(), 0.0)
+		scroll.SetY(y)
+	}
+	if scroll.Equals(pd.scroll) {
+		pd.scroll = scroll
+		p.SetDirty(DirtyTypeLayout)
+		pd.isScrolling = true
+	}
+}
+
+func (p *Panel) onDown() {
+	if len(p.man.host.Window.Touch.Pointers) != 1 {
+		return
+	}
+	target := p
+	for target != nil && target.PanelData().scrollDirection == PanelScrollDirectionNone {
+		found := FirstOnEntity(target.entity.Parent)
+		target = found
+	}
+	if target == nil {
+		return
+	}
+	pd := target.PanelData()
+	pd.offset = pd.scroll
+	pd.dragging = true
+	if !pd.allowDragScroll {
 		// TODO:  Change the mouse cursor to look like it's dragging something
 	}
 }
 
-func (p *Panel) update(deltaTime float64) {
-	p.uiBase.eventUpdates()
-	p.uiBase.Update(deltaTime)
-	if !p.frozen {
-		if p.isDown && p.dragging {
-			if p.allowDragScroll {
-				p.onScroll()
-			}
-		} else if p.dragging {
-			p.dragging = false
-		} else {
-			p.isScrolling = false
-		}
-	}
-	if p.innerUpdate != nil {
-		p.innerUpdate(deltaTime)
-	}
-}
-
-type rowBuilder struct {
-	elements        []UI
-	maxMarginTop    float32
-	maxMarginBottom float32
-	x               float32
-	height          float32
-}
-
-func (rb *rowBuilder) addElement(areaWidth float32, e UI) bool {
-	eSize := e.Layout().PixelSize()
-	w := eSize.Width()
-	if len(rb.elements) > 0 && rb.x+w > areaWidth {
-		return false
-	}
-	rb.elements = append(rb.elements, e)
-	rb.maxMarginTop = matrix.Max(rb.maxMarginTop, e.Layout().margin.Y())
-	rb.maxMarginBottom = matrix.Max(rb.maxMarginBottom, e.Layout().margin.W())
-	rb.x += w
-	rb.height = matrix.Max(rb.height, eSize.Height())
-	return true
-}
-
-func (rb rowBuilder) Width() float32 {
-	return rb.x
-}
-
-func (rb rowBuilder) Height() float32 {
-	return rb.height + rb.maxMarginTop + rb.maxMarginBottom
-}
-
-func (rb rowBuilder) setElements(offsetX, offsetY float32) {
-	for _, e := range rb.elements {
-		layout := e.Layout()
-		x, y := offsetX, offsetY
-		switch e.Layout().Positioning() {
-		case PositioningAbsolute:
-			fallthrough
-		case PositioningRelative:
-			if layout.Anchor().IsLeft() {
-				x += layout.InnerOffset().Left()
-			} else {
-				x += layout.InnerOffset().Right()
-			}
-			if layout.Anchor().IsTop() {
-				y += layout.InnerOffset().Top()
-			} else {
-				y += layout.InnerOffset().Bottom()
-			}
-		}
-		x += layout.margin.X()
-		y += rb.maxMarginTop
-		layout.SetRowLayoutOffset(matrix.Vec2{x, y})
-		offsetX += layout.PixelSize().Width() + layout.margin.X() + layout.margin.Z()
-	}
+func (p *Panel) onUI() {
+	p.PanelData().dragging = false
 }
 
 func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
-	for _, kid := range p.entity.Children {
+	for i := range p.entity.Children {
+		kid := p.entity.Children[i]
 		pos := kid.Transform.Position()
 		kui := FirstOnEntity(kid)
-		if kui.Layout().Positioning() == PositioningAbsolute {
+		if kui == nil {
+			slog.Error("child of ui is not a ui element")
+			continue
+		}
+		if kui.layout.positioning == PositioningAbsolute {
 			continue
 		}
 		var size matrix.Vec2
-		if lbl, ok := kui.(*Label); ok {
-			size = lbl.Measure()
+		if kui.elmType == ElementTypeLabel {
+			size = (*Label)(kui).Measure()
 			// Give a little margin for error on text
 			size[matrix.Vx] += 0.1
 		} else {
 			size = kid.Transform.WorldScale().AsVec2()
-			kui.(*Panel).boundsChildren(bounds)
+			kui.boundsChildren(bounds)
 		}
 		r := pos.X() + size.X()
 		b := pos.Y() + size.Y()
-		*bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
+		*bounds = matrix.NewVec2(max(bounds.X(), r), max(bounds.Y(), b))
 	}
 }
 
@@ -328,310 +318,90 @@ func (p *Panel) postLayoutUpdate() {
 	if len(p.entity.Children) == 0 {
 		return
 	}
-	if p.requestScrollX.requested {
-		x := matrix.Clamp(p.requestScrollX.to, 0.0, p.maxScroll.X())
-		p.scroll.SetX(x)
+	pd := p.PanelData()
+	if pd.requestScrollX.requested {
+		x := klib.Clamp(pd.requestScrollX.to, 0, pd.maxScroll.X())
+		pd.scroll.SetX(x)
+		pd.requestScrollX.requested = false
 	}
-	if p.requestScrollY.requested {
-		y := matrix.Clamp(-p.requestScrollY.to, -p.maxScroll.Y(), 0)
-		p.scroll.SetY(y)
+	if pd.requestScrollY.requested {
+		y := klib.Clamp(-pd.requestScrollY.to, -pd.maxScroll.Y(), 0)
+		pd.scroll.SetY(y)
+		pd.requestScrollY.requested = true
 	}
-	offsetStart := matrix.Vec2{-p.scroll.X(), p.scroll.Y()}
-	rows := make([]rowBuilder, 0)
+	offsetStart := matrix.NewVec2(-pd.scroll.X(), pd.scroll.Y())
+	rows := []rowBuilder{}
 	ps := p.layout.PixelSize()
 	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z() -
 		p.layout.border.X() - p.layout.border.Z()
-	for _, kid := range p.entity.Children {
+	maxSize := matrix.Vec2{}
+	for i := range p.entity.Children {
+		kid := p.entity.Children[i]
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
 		}
 		kui := FirstOnEntity(kid)
 		if kui == nil {
-			slog.Error("No UI component on entity")
+			slog.Error("child of ui is not a ui element")
 			continue
 		}
-		kLayout := kui.Layout()
-		switch kLayout.Positioning() {
+		kLayout := &kui.layout
+		switch kLayout.positioning {
 		case PositioningAbsolute:
-			if kLayout.Anchor().IsTop() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Top() +
+			if kLayout.screenAnchor.IsTop() {
+				kLayout.rowLayoutOffset.SetY(p.layout.innerOffset.Top() +
 					p.layout.padding.Top() + p.layout.border.Top())
-			} else if kLayout.Anchor().IsBottom() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Bottom() +
+			} else if kLayout.screenAnchor.IsBottom() {
+				kLayout.rowLayoutOffset.SetY(p.layout.innerOffset.Bottom() +
 					p.layout.padding.Bottom() + p.layout.border.Bottom())
 			}
-			if kLayout.Anchor().IsLeft() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Left() +
-					p.layout.padding.Left() + p.layout.border.Left())
-			} else if kLayout.Anchor().IsRight() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Right() +
-					p.layout.padding.Right() + p.layout.border.Right())
+			if kLayout.screenAnchor.IsLeft() {
+				kLayout.rowLayoutOffset.SetX(p.layout.innerOffset.Left() +
+					p.layout.padding.Left() + p.layout.border.Left() -
+					pd.scroll.X())
+			} else if kLayout.screenAnchor.IsRight() {
+				kLayout.rowLayoutOffset.SetX(p.layout.innerOffset.Right() +
+					p.layout.padding.Right() + p.layout.border.Right() -
+					pd.scroll.X())
 			}
+			kws := kid.Transform.WorldScale()
+			maxSize.SetX(max(maxSize.X(), kLayout.left+kLayout.offset.X()+kws.Width()))
+			maxSize.SetY(max(maxSize.Y(), kLayout.top+kLayout.offset.Y()+kws.Height()))
 		case PositioningRelative:
-			fallthrough
 		case PositioningStatic:
 			if len(rows) == 0 || !rows[len(rows)-1].addElement(areaWidth, kui) {
 				rows = append(rows, rowBuilder{})
 				rows[len(rows)-1].addElement(areaWidth, kui)
 			}
-		case PositioningFixed:
-		case PositioningSticky:
 		}
 	}
 	nextPos := offsetStart
-	nextPos[matrix.Vy] += p.layout.padding.Y() + p.layout.border.Y()
+	addY := p.layout.padding.Y() + p.layout.border.Y()
+	nextPos[matrix.Vy] += addY
+	maxSize[matrix.Vy] += addY
 	for i := range rows {
-		rows[i].setElements(p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
-		nextPos[matrix.Vy] += rows[i].Height()
+		rows[i].setElements(p.layout.padding.X()+p.layout.border.X(), nextPos.Y())
+		addY = rows[i].height + rows[i].maxMarginTop + rows[i].maxMarginBottom
+		nextPos[matrix.Vy] += addY
+		maxSize[matrix.Vy] += addY
 	}
+	bounds := matrix.NewVec2(maxSize.X(), maxSize.Y())
 	if p.FittingContent() {
-		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)
-		if p.fitContent == ContentFitWidth {
+		if pd.fitContent == ContentFitWidth {
 			p.layout.ScaleWidth(max(1, bounds.X()))
-		} else if p.fitContent == ContentFitHeight {
+		} else if pd.fitContent == ContentFitHeight {
 			p.layout.ScaleHeight(max(1, bounds.Y()))
-		} else if p.fitContent == ContentFitBoth {
+		} else if pd.fitContent == ContentFitBoth {
 			p.layout.Scale(max(1, bounds.X()), max(1, bounds.Y()))
 		}
 	}
-	length := nextPos.Subtract(offsetStart)
-	last := p.maxScroll
+	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
-	p.maxScroll = matrix.Vec2{
-		matrix.Max(0.0, length.X()-ws.X()),
-		matrix.Max(0.0, length.Y()-ws.Y())}
-	if !matrix.Vec2Approx(last, p.maxScroll) {
+	pd.maxScroll = matrix.NewVec2(
+		max(0, bounds.X()-ws.X()),
+		max(0, bounds.Y()-ws.Y()))
+	if !last.Roughly(pd.maxScroll) {
 		p.SetDirty(DirtyTypeGenerated)
 	}
-}
-
-func (p *Panel) render() {
-	p.uiBase.render()
-	p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
-	p.requestScrollX.requested = false
-	p.requestScrollY.requested = false
-}
-
-func (p *Panel) AddChild(target UI) {
-	target.Entity().SetParent(p.entity)
-	if p.group != nil {
-		target.SetGroup(p.group)
-	}
-	target.Layout().update()
-	p.SetDirty(DirtyTypeGenerated)
-}
-
-func (p *Panel) InsertChild(target UI, idx int) {
-	p.AddChild(target)
-	kidLen := len(p.entity.Children)
-	idx = max(idx, 0)
-	for i := idx; i < kidLen-1; i++ {
-		p.entity.Children[i], p.entity.Children[kidLen-1] = p.entity.Children[kidLen-1], p.entity.Children[i]
-	}
-}
-
-func (p *Panel) RemoveChild(target UI) {
-	target.Entity().SetParent(nil)
-	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-	target.Layout().update()
-	p.layout.update()
-	p.SetDirty(DirtyTypeGenerated)
-}
-
-func (p *Panel) Child(index int) UI {
-	return FirstOnEntity(p.entity.Children[index])
-}
-
-func (p *Panel) SetSpeed(speed float32) {
-	p.scrollSpeed = speed
-}
-
-func (p *Panel) recreateDrawing() {
-	p.shaderData.Destroy()
-	proxy := p.shaderData
-	proxy.CancelDestroy()
-	p.shaderData = proxy
-}
-
-func (p *Panel) removeDrawing() {
-	p.recreateDrawing()
-	p.drawing = rendering.Drawing{}
-}
-
-func (p *Panel) EnforceColor(color matrix.Color) {
-	p.enforcedColorStack = append(p.enforcedColorStack, p.shaderData.FgColor)
-	p.setColorInternal(color)
-}
-
-func (p *Panel) UnEnforceColor() {
-	if !p.HasEnforcedColor() {
-		return
-	}
-	last := len(p.enforcedColorStack) - 1
-	p.setColorInternal(p.enforcedColorStack[last])
-	p.enforcedColorStack = p.enforcedColorStack[:last]
-}
-
-func (p *Panel) SetColor(bgColor matrix.Color) {
-	if p.HasEnforcedColor() {
-		p.enforcedColorStack[0] = bgColor
-		return
-	}
-	p.setColorInternal(bgColor)
-}
-
-func (p *Panel) SetScrollX(value float32) {
-	p.requestScrollX.to = value
-	p.requestScrollX.requested = true
-	p.SetDirty(DirtyTypeLayout)
-}
-
-func (p *Panel) SetScrollY(value float32) {
-	p.requestScrollY.to = value
-	p.requestScrollY.requested = true
-	p.SetDirty(DirtyTypeLayout)
-}
-
-func (p *Panel) ResetScroll() {
-	p.scroll = matrix.Vec2Zero()
-}
-
-func (p *Panel) ensureBGExists(tex *rendering.Texture) {
-	if !p.drawing.IsValid() {
-		if tex == nil {
-			tex, _ = p.host.TextureCache().Texture(
-				assets.TextureSquare, rendering.TextureFilterLinear)
-		}
-		shader := p.host.ShaderCache().ShaderFromDefinition(
-			assets.ShaderDefinitionUI)
-		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
-		p.shaderData.BgColor = p.color
-		p.shaderData.FgColor = p.color
-		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
-		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
-			float32(tex.Width), float32(tex.Height)}
-		p.textureSize = tex.Size()
-		p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
-		p.drawing = rendering.Drawing{
-			Renderer:   p.host.Window.Renderer,
-			Shader:     shader,
-			Mesh:       rendering.NewMeshQuad(p.host.MeshCache()),
-			Textures:   []*rendering.Texture{tex},
-			ShaderData: &p.shaderData,
-			Transform:  &p.entity.Transform,
-			CanvasId:   "default",
-		}
-		p.host.Drawings.AddDrawing(&p.drawing)
-	} else if tex != nil {
-		p.SetBackground(tex)
-	}
-}
-
-func (p *Panel) Background() *rendering.Texture {
-	if p.drawing.IsValid() {
-		return p.drawing.Textures[0]
-	}
-	return nil
-}
-
-func (p *Panel) SetBackground(tex *rendering.Texture) {
-	if p.drawing.IsValid() {
-		p.recreateDrawing()
-		p.drawing.Textures[0] = tex
-		p.host.Drawings.AddDrawing(&p.drawing)
-	}
-}
-
-func (p *Panel) RemoveBackground() {
-	p.recreateDrawing()
-}
-
-func (p *Panel) IsScrolling() bool {
-	return p.isScrolling
-}
-
-func (p *Panel) Freeze() {
-	p.frozen = true
-}
-
-func (p *Panel) UnFreeze() {
-	p.frozen = false
-}
-
-func (p *Panel) IsFrozen() bool {
-	return p.frozen
-}
-
-func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
-	p.scrollDirection = direction
-	p.SetDirty(DirtyTypeLayout)
-	if p.scrollDirection == PanelScrollDirectionNone {
-		if p.scrollEvent != 0 {
-			p.RemoveEvent(EventTypeScroll, p.scrollEvent)
-			p.scrollEvent = 0
-		}
-	} else if p.scrollEvent == 0 {
-		p.scrollEvent = p.AddEvent(EventTypeScroll, p.onScroll)
-	}
-}
-
-func (p *Panel) ScrollDirection() PanelScrollDirection { return p.scrollDirection }
-func (p *Panel) BorderSize() matrix.Vec4               { return p.layout.Border() }
-func (p *Panel) BorderStyle() [4]BorderStyle           { return p.borderStyle }
-
-func (p *Panel) BorderColor() [4]matrix.Color {
-	return p.shaderData.BorderColor
-}
-
-func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
-	p.shaderData.BorderRadius = matrix.Vec4{
-		topLeft, topRight, bottomRight, bottomLeft}
-}
-
-func (p *Panel) SetBorderSize(left, top, right, bottom float32) {
-	p.layout.SetBorder(left, top, right, bottom)
-	// TODO:  If there isn't a border, it should be transparent when created
-	p.ensureBGExists(nil)
-	p.shaderData.BorderSize = p.layout.Border()
-}
-
-func (p *Panel) SetBorderStyle(left, top, right, bottom BorderStyle) {
-	p.borderStyle = [4]BorderStyle{left, top, right, bottom}
-}
-
-func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
-	p.shaderData.BorderColor = [4]matrix.Color{left, top, right, bottom}
-}
-
-func (p *Panel) SetUseBlending(useBlending bool) {
-	p.recreateDrawing()
-	p.drawing.UseBlending = useBlending
-	p.host.Drawings.AddDrawing(&p.drawing)
-}
-
-func (p *Panel) Overflow() Overflow { return p.overflow }
-
-func (p *Panel) SetOverflow(overflow Overflow) {
-	if p.overflow != overflow {
-		p.overflow = overflow
-		p.SetDirty(DirtyTypeLayout)
-	}
-}
-
-func (p *Panel) HasEnforcedColor() bool { return len(p.enforcedColorStack) > 0 }
-
-func (p *Panel) setColorInternal(bgColor matrix.Color) {
-	if p.shaderData.FgColor.Equals(bgColor) {
-		return
-	}
-	p.ensureBGExists(nil)
-	hasBlending := p.shaderData.FgColor.A() < 1.0
-	shouldBlend := bgColor.A() < 1.0
-	if hasBlending != shouldBlend {
-		p.recreateDrawing()
-		p.drawing.UseBlending = shouldBlend
-		p.host.Drawings.AddDrawing(&p.drawing)
-	}
-	p.shaderData.FgColor = bgColor
 }

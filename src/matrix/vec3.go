@@ -49,6 +49,9 @@ type Vec3 [3]Float
 func (v Vec3) X() Float                   { return v[Vx] }
 func (v Vec3) Y() Float                   { return v[Vy] }
 func (v Vec3) Z() Float                   { return v[Vz] }
+func (v Vec3) Width() Float               { return v[Vx] }
+func (v Vec3) Height() Float              { return v[Vy] }
+func (v Vec3) Depth() Float               { return v[Vz] }
 func (v *Vec3) PX() *Float                { return &v[Vx] }
 func (v *Vec3) PY() *Float                { return &v[Vy] }
 func (v *Vec3) PZ() *Float                { return &v[Vz] }

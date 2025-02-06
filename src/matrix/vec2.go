@@ -232,3 +232,8 @@ func Vec2Largest() Vec2 { return Vec2{FloatMax, FloatMax} }
 func (v Vec2) LargestAxis() Float {
 	return max(v[Vx], v[Vy])
 }
+
+func (v Vec2) Roughly(other Vec2) bool {
+	return ApproxTo(v[Vx], other[Vx], RealRoughly) &&
+		ApproxTo(v[Vy], other[Vy], RealRoughly)
+}
