@@ -170,6 +170,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 	input.entity.OnDeactivate.Add(input.deactivated)
 	input.entity.OnActivate.Add(input.activated)
+	input.hideCursor()
 	return input
 }
 

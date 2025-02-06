@@ -1,6 +1,7 @@
 .listEntry {
 	width: 100%;
 	height: 32px;
+	margin-bottom: 5px;
 }
 .entryLabel {
 	margin-left: 10px;

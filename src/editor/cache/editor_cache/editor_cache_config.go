@@ -45,4 +45,5 @@ const (
 	ContentWindow   = "content"
 	HierarchyWindow = "hierarchy"
 	KaijuGoCompiler = "goCompilerPath"
+	GridSnapping    = "gridSnapping"
 )

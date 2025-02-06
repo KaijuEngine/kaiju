@@ -39,6 +39,7 @@ package transform_tools
 
 import (
 	"kaiju/assets"
+	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
 	"kaiju/engine"
@@ -303,7 +304,10 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 
 func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 	// TODO:  Move this to configuration
-	const snapScale = 0.5
+	snapScale := float32(0.5)
+	if s, ok := editor_cache.EditorConfigValue(editor_cache.GridSnapping); ok {
+		snapScale = float32(s.(float64))
+	}
 	for i, e := range t.editor.Selection().Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
