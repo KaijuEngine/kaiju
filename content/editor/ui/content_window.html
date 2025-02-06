@@ -1,6 +1,6 @@
 {{define "folderTree"}}
 	{{range .}}
-		<div class="folderEntry" onclick="contentClick" data-path="{{.Path}}">
+		<div class="folderEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}">
 			{{range count .Depth}}
 				<span class="indent"></span>
 			{{end}}
