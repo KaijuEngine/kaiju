@@ -67,23 +67,23 @@ type Panel = UI
 
 // TODO:  On destroy call removeDrawings
 
-func (p *Panel) EnforcingColor() bool {
+func (p *Panel) PanelEnforcingColor() bool {
 	return len(p.PanelData().enforcedColorStack) > 0
 }
 
-func (p *Panel) ScrollX() float32        { return p.PanelData().scroll.X() }
-func (p *Panel) ScrollY() float32        { return -p.PanelData().scroll.Y() }
-func (p *Panel) EnableDragScroll()       { p.PanelData().allowDragScroll = true }
-func (p *Panel) DisableDragScroll()      { p.PanelData().allowDragScroll = false }
-func (p *Panel) DontFitContent()         { p.PanelData().fitContent = ContentFitNone }
-func (p *Panel) FittingContent() bool    { return p.PanelData().fitContent != ContentFitNone }
-func (p *Panel) SetSpeed(speed float32)  { p.PanelData().scrollSpeed = speed }
-func (p *Panel) ResetScroll()            { p.PanelData().scroll = matrix.Vec2Zero() }
-func (p *Panel) Freeze()                 { p.PanelData().frozen = true }
-func (p *Panel) Unfreeze()               { p.PanelData().frozen = false }
-func (p *Panel) BorderSize() matrix.Vec4 { return p.layout.border }
+func (p *Panel) PanelScrollX() float32        { return p.PanelData().scroll.X() }
+func (p *Panel) PanelScrollY() float32        { return -p.PanelData().scroll.Y() }
+func (p *Panel) PanelEnableDragScroll()       { p.PanelData().allowDragScroll = true }
+func (p *Panel) PanelDisableDragScroll()      { p.PanelData().allowDragScroll = false }
+func (p *Panel) PanelDontFitContent()         { p.PanelData().fitContent = ContentFitNone }
+func (p *Panel) PanelFittingContent() bool    { return p.PanelData().fitContent != ContentFitNone }
+func (p *Panel) PanelSetSpeed(speed float32)  { p.PanelData().scrollSpeed = speed }
+func (p *Panel) PanelResetScroll()            { p.PanelData().scroll = matrix.Vec2Zero() }
+func (p *Panel) PanelFreeze()                 { p.PanelData().frozen = true }
+func (p *Panel) PanelUnfreeze()               { p.PanelData().frozen = false }
+func (p *Panel) PanelBorderSize() matrix.Vec4 { return p.layout.border }
 
-func (p *Panel) DontFitContentWidth() {
+func (p *Panel) PanelDontFitContentWidth() {
 	switch p.PanelData().fitContent {
 	case ContentFitBoth:
 		p.PanelData().fitContent = ContentFitHeight
@@ -92,7 +92,7 @@ func (p *Panel) DontFitContentWidth() {
 	}
 }
 
-func (p *Panel) DontFitContentHeight() {
+func (p *Panel) PanelDontFitContentHeight() {
 	switch p.PanelData().fitContent {
 	case ContentFitBoth:
 		p.PanelData().fitContent = ContentFitWidth
@@ -101,7 +101,7 @@ func (p *Panel) DontFitContentHeight() {
 	}
 }
 
-func (p *Panel) FitContentWidth() {
+func (p *Panel) PanelFitContentWidth() {
 	switch p.PanelData().fitContent {
 	case ContentFitNone:
 		p.PanelData().fitContent = ContentFitWidth
@@ -115,7 +115,7 @@ func (p *Panel) FitContentWidth() {
 	}
 }
 
-func (p *Panel) FitContentHeight() {
+func (p *Panel) PanelFitContentHeight() {
 	switch p.PanelData().fitContent {
 	case ContentFitNone:
 		p.PanelData().fitContent = ContentFitHeight
@@ -129,7 +129,7 @@ func (p *Panel) FitContentHeight() {
 	}
 }
 
-func (p *Panel) FitContent() {
+func (p *Panel) PanelFitContent() {
 	p.PanelData().fitContent = ContentFitBoth
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
@@ -144,20 +144,20 @@ func (p *Panel) SetScrollX(value float32) {
 	p.SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetScrollY(value float32) {
+func (p *Panel) PanelSetScrollY(value float32) {
 	p.PanelData().requestScrollY.to = value
 	p.PanelData().requestScrollY.requested = true
 	p.SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetOverflow(overflow Overflow) {
+func (p *Panel) PanelSetOverflow(overflow Overflow) {
 	if p.PanelData().overflow != overflow {
 		p.PanelData().overflow = overflow
 		p.SetDirty(DirtyTypeLayout)
 	}
 }
 
-func (p *Panel) Background(drawing int) *rendering.Texture {
+func (p *Panel) PanelBackground(drawing int) *rendering.Texture {
 	if p.PanelData().drawings[drawing].IsValid() {
 		return p.PanelData().drawings[drawing].Textures[0]
 	}
@@ -226,7 +226,7 @@ func (p *Panel) ShaderData(drawing int) *ShaderData {
 	return p.PanelData().drawings[drawing].ShaderData.(*ShaderData)
 }
 
-func (p *Panel) onScroll() {
+func (p *Panel) panelOnScroll() {
 	pd := p.PanelData()
 	if pd.frozen {
 		return
@@ -263,7 +263,7 @@ func (p *Panel) onScroll() {
 	}
 }
 
-func (p *Panel) onDown() {
+func (p *Panel) panelOnDown() {
 	if len(p.man.host.Window.Touch.Pointers) != 1 {
 		return
 	}
@@ -283,7 +283,7 @@ func (p *Panel) onDown() {
 	}
 }
 
-func (p *Panel) onUI() {
+func (p *Panel) panelOnUI() {
 	p.PanelData().dragging = false
 }
 
@@ -314,7 +314,7 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 	}
 }
 
-func (p *Panel) postLayoutUpdate() {
+func (p *Panel) panelPostLayoutUpdate() {
 	if len(p.entity.Children) == 0 {
 		return
 	}
@@ -386,7 +386,7 @@ func (p *Panel) postLayoutUpdate() {
 		maxSize[matrix.Vy] += addY
 	}
 	bounds := matrix.NewVec2(maxSize.X(), maxSize.Y())
-	if p.FittingContent() {
+	if p.PanelFittingContent() {
 		p.boundsChildren(&bounds)
 		if pd.fitContent == ContentFitWidth {
 			p.layout.ScaleWidth(max(1, bounds.X()))
@@ -403,5 +403,209 @@ func (p *Panel) postLayoutUpdate() {
 		max(0, bounds.Y()-ws.Y()))
 	if !last.Roughly(pd.maxScroll) {
 		p.SetDirty(DirtyTypeGenerated)
+	}
+}
+
+func (p *Panel) panelRender() {
+	pd := p.PanelData()
+	for i := range pd.drawings {
+		pd.drawings[i].ShaderData.(*ShaderData).setSize2d(p,
+			float32(pd.drawings[i].Textures[0].Width),
+			float32(pd.drawings[i].Textures[0].Height))
+	}
+	pd.requestScrollX.requested = false
+	pd.requestScrollY.requested = false
+}
+
+func (p *Panel) ensureBgExists(tex *rendering.Texture) {
+	// TODO:  Make sure the texture is different than the current
+	pd := p.PanelData()
+	if len(pd.drawings) == 0 {
+		pd.drawings = make([]rendering.Drawing, 1)
+		if tex == nil {
+			tex, _ = p.man.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		}
+		pd.drawings[0].Textures = append(pd.drawings[0].Textures, tex)
+		p.recreateDrawings()
+		p.man.host.Drawings.AddDrawing(&pd.drawings[0])
+	} else if tex != nil {
+		p.PanelSetBackground(tex)
+	}
+}
+
+func (p *Panel) setColorInternal(bgColor matrix.Color) {
+	p.ensureBgExists(nil)
+	pd := p.PanelData()
+	pd.color = bgColor
+	for i := range pd.drawings {
+		sd := pd.drawings[i].ShaderData.(*ShaderData)
+		if sd.FgColor.Equals(bgColor) {
+			continue
+		}
+		hasBlending := sd.FgColor.A() < 1.0
+		shouldBlend := bgColor.A() < 1.0
+		if hasBlending != shouldBlend {
+			p.recreateDrawing(i)
+			// Recreate drawings destroys old shader data, so we need to re-get it
+			sd = pd.drawings[i].ShaderData.(*ShaderData)
+			pd.drawings[i].UseBlending = shouldBlend
+			p.man.host.Drawings.AddDrawing(&pd.drawings[i])
+		}
+		sd.FgColor = bgColor
+	}
+}
+
+func (p *Panel) PanelInit(construct ConstructPanel) {
+	pd := p.PanelData()
+	switch p.elmType {
+	case ElementTypeInput:
+		fallthrough
+	case ElementTypePanel:
+		fallthrough
+	case ElementTypeButton:
+		fallthrough
+	case ElementTypeSelect:
+		fallthrough
+	case ElementTypeSlider:
+		fallthrough
+	case ElementTypeCheckbox:
+		pd.shaderType = PanelShaderTypeNine
+	case ElementTypeSprite:
+		pd.shaderType = PanelShaderTypeImage
+	case ElementTypeLabel:
+		slog.Error("label should not be initialized as a panel")
+		return
+	}
+	if len(construct.shaderDefinition) > 0 {
+		p.overrideShaderDefinition = construct.shaderDefinition
+	}
+	pd.scrollSpeed = baseScrollSpeed
+	pd.scrollDirection = PanelScrollDirectionVertical
+	pd.color = matrix.NewColor(1, 1, 1, 1)
+	p.postLayoutUpdate = p.panelPostLayoutUpdate
+	p.entity.OnDestroy.Remove(p.destroyEvtId)
+	p.destroyEvtId = p.entity.OnDestroy.Add(p.removeDrawings)
+	p.entity.SetChildrenOrdered()
+	p.AddEvent(EventTypeRender, p.panelRender)
+	if construct.texture != nil {
+		p.ensureBgExists(construct.texture)
+	}
+	if p.elmType == ElementTypePanel {
+		p.AddEvent(EventTypeDown, p.panelOnDown)
+		p.AddEvent(EventTypeUp, p.panelOnUI)
+		pd.allowDragScroll = true
+	}
+}
+
+func (p *Panel) PanelAddChild(target *UI) {
+	target.entity.SetParent(&p.entity)
+	if p.group != nil {
+		target.group = p.group
+	}
+	target.layout.update()
+	p.SetDirty(DirtyTypeGenerated)
+}
+
+func (p *Panel) PanelRemoveChild(target *UI) {
+	target.entity.SetParent(nil)
+	target.SetScissor(matrix.NewVec4(-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax))
+	target.layout.update()
+	p.layout.update()
+	p.SetDirty(DirtyTypeGenerated)
+}
+
+func (p *Panel) PanelInsertChild(target *UI, index int) {
+	p.PanelAddChild(target)
+	kidLen := len(p.entity.Children)
+	idx := max(index, 0)
+	for i := idx; i < kidLen-1; i++ {
+		p.entity.Children[i], p.entity.Children[kidLen-1] =
+			p.entity.Children[kidLen-1], p.entity.Children[i]
+	}
+}
+
+func (p *Panel) PanelChild(index int) *UI {
+	return FirstOnEntity(p.entity.Children[index])
+}
+
+func (p *Panel) PanelSetScrollDirection(direction PanelScrollDirection) {
+	pd := p.PanelData()
+	pd.scrollDirection = direction
+	p.SetDirty(DirtyTypeLayout)
+	if pd.scrollDirection == PanelScrollDirectionNone {
+		if pd.scrollEvent != 0 {
+			p.RemoveEvent(EventTypeScroll, pd.scrollEvent)
+			pd.scrollEvent = 0
+		}
+	} else if pd.scrollEvent == 0 {
+		pd.scrollEvent = p.AddEvent(EventTypeScroll, p.panelOnScroll)
+	}
+}
+
+func (p *Panel) PanelEnforceColor(color matrix.Color) {
+	pd := p.PanelData()
+	pd.enforcedColorStack = append(pd.enforcedColorStack, pd.drawings[0].ShaderData.(*ShaderData).FgColor)
+	p.setColorInternal(color)
+}
+
+func (p *Panel) PanelUnenforceColor() {
+	if !p.PanelEnforcingColor() {
+		return
+	}
+	pd := p.PanelData()
+	last := len(pd.enforcedColorStack) - 1
+	p.setColorInternal(pd.enforcedColorStack[last])
+	pd.enforcedColorStack = pd.enforcedColorStack[:last]
+}
+
+func (p *Panel) PanelSetColor(bgColor matrix.Color) {
+	if p.PanelEnforcingColor() {
+		p.PanelData().enforcedColorStack[0] = bgColor
+		return
+	}
+	p.setColorInternal(bgColor)
+}
+
+func (p *Panel) PanelSetBackground(texture *rendering.Texture) {
+	pd := p.PanelData()
+	if pd.drawings[0].IsValid() {
+		if len(pd.drawings[0].Textures) > 0 && pd.drawings[0].Textures[0] == texture {
+			return
+		}
+		p.recreateDrawings()
+		pd.drawings[0].Textures[0] = texture
+		p.man.host.Drawings.AddDrawing(&pd.drawings[0])
+	} else {
+		p.ensureBgExists(texture)
+	}
+}
+
+func (p *Panel) PanelRemoveBackground() { p.removeDrawings() }
+
+func (p *Panel) PanelSetUseBlending(useBlending bool) {
+	p.recreateDrawings()
+	pd := p.PanelData()
+	for i := range pd.drawings {
+		pd.drawings[i].UseBlending = useBlending
+		p.man.host.Drawings.AddDrawing(&pd.drawings[i])
+	}
+}
+
+func (p *Panel) panelUpdate(deltaTime float64) {
+	p.update(deltaTime)
+	if !p.entity.IsActive() {
+		return
+	}
+	pd := p.PanelData()
+	if !pd.frozen {
+		if p.isDown && pd.dragging {
+			if pd.allowDragScroll {
+				p.panelOnScroll()
+			}
+		} else if pd.dragging {
+			pd.dragging = false
+		} else {
+			pd.isScrolling = false
+		}
 	}
 }
