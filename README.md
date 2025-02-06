@@ -10,3 +10,6 @@ For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3)
 
 ## Compiling the engine
 Please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) on how to get started and compile the engine
+
+## Editor Preview
+[monkey-around.webm](https://github.com/user-attachments/assets/fb4ff322-0c5b-49bb-afe8-b2659689618a)
