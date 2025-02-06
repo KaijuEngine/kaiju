@@ -58,6 +58,43 @@ type BVH struct {
 
 func NewBVH() *BVH { return &BVH{} }
 
+func (b *BVH) duplicateInternal() *BVH {
+	dupe := &BVH{}
+	*dupe = *b
+	return dupe
+}
+
+func (b *BVH) Duplicate() *BVH {
+	root := b
+	nodeMap := make(map[*BVH]*BVH)
+	stack := []*BVH{root}
+	for len(stack) > 0 {
+		node := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if _, exists := nodeMap[node]; !exists {
+			nodeMap[node] = node.duplicateInternal()
+		}
+		if node.Left != nil {
+			stack = append(stack, node.Left)
+		}
+		if node.Right != nil {
+			stack = append(stack, node.Right)
+		}
+	}
+	for node, newNode := range nodeMap {
+		if node.Left != nil {
+			newNode.Left = nodeMap[node.Left]
+		}
+		if node.Right != nil {
+			newNode.Right = nodeMap[node.Right]
+		}
+		if node.Parent != nil {
+			newNode.Parent = nodeMap[node.Parent]
+		}
+	}
+	return nodeMap[root]
+}
+
 func (b *BVH) Root() *BVH {
 	r := b
 	for r.Parent != nil {

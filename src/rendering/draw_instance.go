@@ -41,6 +41,7 @@ import (
 	"encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"reflect"
 	"unsafe"
 )
 
@@ -63,6 +64,16 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
+}
+
+func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
+	val := reflect.ValueOf(target)
+	if !val.IsValid() {
+		return nil
+	}
+	newVal := reflect.New(val.Elem().Type()).Elem()
+	newVal.Set(val.Elem())
+	return newVal.Addr().Interface().(DrawInstance)
 }
 
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)

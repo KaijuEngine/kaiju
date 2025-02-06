@@ -370,3 +370,33 @@ func (e *Entity) deactivateFromParent() {
 	e.Deactivate()
 	e.deactivatedFromParent = fromParent
 }
+
+func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity)) *Entity {
+	dupe := NewEntity()
+	if !sparse {
+		dupe.Children = make([]*Entity, len(e.Children))
+		for i := range e.Children {
+			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe)
+		}
+	}
+	dupe.Copy(e)
+	onDupe(e, dupe)
+	return dupe
+}
+
+func (e *Entity) Copy(other *Entity) {
+	e.SetName(other.Name())
+	e.Transform.Copy(other.Transform)
+}
+
+func (e *Entity) HasChildRecursive(child *Entity) bool {
+	for i := range e.Children {
+		if e.Children[i] == child {
+			return true
+		}
+		if e.Children[i].HasChildRecursive(child) {
+			return true
+		}
+	}
+	return false
+}
