@@ -38,8 +38,8 @@
 package memento
 
 type Memento interface {
-	Redo()
-	Undo()
-	Delete()
-	Exit()
+	Redo()   // Called to redo the action
+	Undo()   // Called to undo the action
+	Delete() // Called when the undo state is overridden by new undo data
+	Exit()   // Called when the undo state falls off the history list
 }
