@@ -22,7 +22,7 @@
 			<div class="fillBottomResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
 			<div class="fillBottomContent">
 				<div class="searchInput">
-					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
+					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" onkeyup="updateSearch" onsubmit="updateSearch" />
 				</div>
 				<div class="folderPanel">
 					<div id="folderListing" class="listing">

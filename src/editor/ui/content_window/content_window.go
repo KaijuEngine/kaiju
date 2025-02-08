@@ -104,6 +104,7 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Gr
 	s.funcMap["resizeStart"] = s.resizeStart
 	s.funcMap["resizeStop"] = s.resizeStop
 	s.funcMap["entryCtxMenu"] = s.entryCtxMenu
+	s.funcMap["updateSearch"] = s.updateSearch
 	editor.Host().OnClose.Add(func() {
 		if s.doc != nil {
 			s.doc.Destroy()
@@ -180,14 +181,6 @@ func (s *ContentWindow) openContent(elm *document.Element) {
 	}
 }
 
-func (s *ContentWindow) submit() {
-	s.Query = strings.ToLower(strings.TrimSpace(s.input.Text()))
-	if s.Query == "" {
-		s.path = contentPath
-	}
-	s.reloadUI()
-}
-
 func (s *ContentWindow) reloadUI() {
 	const html = "editor/ui/content_window.html"
 	folderPanelScroll := float32(0)
@@ -207,7 +200,6 @@ func (s *ContentWindow) reloadUI() {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
 	} else {
 		s.input = elm.UI.(*ui.Input)
-		s.input.AddEvent(ui.EventTypeSubmit, s.submit)
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)
@@ -336,6 +328,14 @@ func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 			}})
 	}
 	s.editor.ContextMenu().Show(ctx)
+}
+
+func (s *ContentWindow) updateSearch(elm *document.Element) {
+	s.Query = strings.ToLower(strings.TrimSpace(s.input.Text()))
+	if s.Query == "" {
+		s.path = contentPath
+	}
+	s.reloadUI()
 }
 
 func (s *ContentWindow) DragUpdate() {
