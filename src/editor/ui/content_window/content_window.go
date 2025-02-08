@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
+	"kaiju/editor/ui/context_menu"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -102,6 +103,7 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Gr
 	s.funcMap["resizeExit"] = s.resizeExit
 	s.funcMap["resizeStart"] = s.resizeStart
 	s.funcMap["resizeStop"] = s.resizeStop
+	s.funcMap["entryCtxMenu"] = s.entryCtxMenu
 	editor.Host().OnClose.Add(func() {
 		if s.doc != nil {
 			s.doc.Destroy()
@@ -318,6 +320,22 @@ func (s *ContentWindow) resizeStop(e *document.Element) {
 	w, _ := s.doc.GetElementById("window")
 	h := w.UIPanel.Layout().PixelSize().Height()
 	editor_cache.SetEditorConfigValue(sizeConfig, h)
+}
+
+func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
+	path := elm.Attribute("data-path")
+	ctx := []context_menu.ContextMenuEntry{
+		{Id: "open", Label: "Open", OnClick: func() {
+			s.openContent(elm)
+		}},
+	}
+	if strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
+		ctx = append(ctx, context_menu.ContextMenuEntry{
+			Id: "edit", Label: "Edit", OnClick: func() {
+				content_opener.EditTextFile(path)
+			}})
+	}
+	s.editor.ContextMenu().Show(ctx)
 }
 
 func (s *ContentWindow) DragUpdate() {
