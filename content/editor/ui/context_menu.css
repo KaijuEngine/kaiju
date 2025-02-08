@@ -1,7 +1,8 @@
 #contextMenu {
 	width: 150px;
-	background-color: #313232;
+	background-color: #1f1f1f;
 	border: 1px solid white;
+	padding: 5px;
 }
 .entry {
 	width: 148px;
