@@ -57,7 +57,7 @@ func (b *Button) Label() *Label {
 	var pui UI
 	for _, c := range b.entity.Children {
 		pui = FirstOnEntity(c)
-		_, ok := pui.(*Label)
+		ok := pui.(*UIBase).elmType == ElementTypeLabel
 		if pui != nil && ok {
 			break
 		} else {
@@ -67,12 +67,12 @@ func (b *Button) Label() *Label {
 	if pui == nil {
 		return b.createLabel()
 	} else {
-		return pui.(*Label)
+		return pui.(*UIBase).ToLabel()
 	}
 }
 
 func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
-	panel := NewPanel(host, texture, anchor)
+	panel := NewPanel(host, texture, anchor, ElementTypeButton)
 	btn := (*Button)(panel)
 	btn.setup(text)
 	btn.createLabel()
@@ -89,7 +89,7 @@ func (b *Button) createLabel() *Label {
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
-	(*Panel)(b).AddChild(lbl)
+	(*Panel)(b).AddChild(lbl.Base())
 	return lbl
 }
 
@@ -105,6 +105,7 @@ func (b *Button) setup(text string) {
 
 func (p *Panel) ConvertToButton() *Button {
 	btn := (*Button)(p)
+	btn.elmType = ElementTypeButton
 	btn.setup("")
 	return btn
 }

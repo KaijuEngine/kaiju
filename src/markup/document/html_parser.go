@@ -170,7 +170,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
-		appendElement(label, nil)
+		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
 		var panel *ui.Panel
 		if e.IsImage() {
@@ -183,7 +183,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
 			panel = (*ui.Panel)(img)
 		} else {
-			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft)
+			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		var uiElm ui.UI = panel.Base()
@@ -258,7 +258,7 @@ func (d *Document) tagElement(elm *Element, tag string) {
 
 func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
 	body := h.Body()
-	bodyPanel := ui.NewPanel(host, nil, ui.AnchorCenter)
+	bodyPanel := ui.NewPanel(host, nil, ui.AnchorCenter, ui.ElementTypePanel)
 	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
 		w, h := float32(host.Window.Width()), float32(host.Window.Height())
 		l.Scale(w, h)

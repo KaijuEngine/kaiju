@@ -66,8 +66,8 @@ func New(host *engine.Host, logWindow *log_window.LogWindow) *StatusBar {
 		}))
 	m, _ := s.doc.GetElementById("msg")
 	l, _ := s.doc.GetElementById("log")
-	s.msg = m.Children[0].UI.(*ui.Label)
-	s.log = l.Children[0].UI.(*ui.Label)
+	s.msg = m.Children[0].UI.(*ui.UIBase).ToLabel()
+	s.log = l.Children[0].UI.(*ui.UIBase).ToLabel()
 	host.LogStream.OnInfo.Add(func(msg string) {
 		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorWhite()) })
 	})
@@ -104,5 +104,5 @@ func (s *StatusBar) SetMessage(status string) {
 		}
 		status = "(" + strconv.Itoa(count) + ") " + status
 	}
-	s.log.Host().RunAfterFrames(1, func() { s.msg.SetText(status) })
+	s.log.Base().Host().RunAfterFrames(1, func() { s.msg.SetText(status) })
 }

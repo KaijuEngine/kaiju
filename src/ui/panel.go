@@ -125,7 +125,7 @@ func (p *Panel) Base() *UIBase    { return (*UIBase)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.(*panelData) }
 
-func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
+func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType) *Panel {
 	panel := &Panel{
 		elmData: &panelData{
 			scrollEvent:        0,
@@ -135,7 +135,7 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 			fitContent:         ContentFitBoth,
 			enforcedColorStack: make([]matrix.Color, 0),
 		},
-		elmType: ElementTypePanel,
+		elmType: elmType,
 	}
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
@@ -372,8 +372,8 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 			continue
 		}
 		var size matrix.Vec2
-		if lbl, ok := kui.(*Label); ok {
-			size = lbl.Measure()
+		if lbl, ok := kui.(*UIBase); ok && lbl.elmType == ElementTypeLabel {
+			size = lbl.ToLabel().Measure()
 			// Give a little margin for error on text
 			size[matrix.Vx] += 0.1
 		} else {

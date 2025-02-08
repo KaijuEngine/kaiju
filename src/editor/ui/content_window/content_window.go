@@ -148,12 +148,12 @@ func (s *ContentWindow) contentClick(elm *document.Element) {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
 		c := p.Base().Entity().Children
-		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.Label)
+		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.UIBase).ToLabel()
 		lbl.UnEnforceBGColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
 	c := elm.UI.Entity().Children
-	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.Label)
+	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.UIBase).ToLabel()
 	lbl.EnforceBGColor(matrix.ColorDarkBlue())
 	s.selected = elm.UIPanel
 }

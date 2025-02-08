@@ -50,7 +50,7 @@ import (
 func setChildTextColor(elm *document.Element, color matrix.Color) {
 	for _, c := range elm.Children {
 		if c.IsText() {
-			c.UI.(*ui.Label).SetColor(color)
+			c.UI.(*ui.UIBase).ToLabel().SetColor(color)
 		}
 		setChildTextColor(c, color)
 	}

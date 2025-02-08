@@ -89,8 +89,13 @@ type UI interface {
 type ElementType = uint8
 
 const (
-	ElementTypePanel = ElementType(iota)
-	ElementTypeLabel
+	ElementTypeLabel = ElementType(iota)
+	ElementTypePanel
+	ElementTypeButton
+	ElementTypeCheckbox
+	ElementTypeImage
+	ElementTypeInput
+	ElementTypeSlider
 )
 
 type UIBase struct {
@@ -277,9 +282,10 @@ func (ui *UIBase) setScissor(scissor matrix.Vec4) {
 	}
 	ui.shaderData.Scissor = scissor
 	me := FirstOnEntity(ui.entity)
-	if lbl, ok := me.(*Label); ok {
-		for i := range lbl.runeDrawings {
-			lbl.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
+	if lbl, ok := me.(*UIBase); ok && lbl.elmType == ElementTypeLabel {
+		ld := lbl.ToLabel().LabelData()
+		for i := range ld.runeDrawings {
+			ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
 		}
 	}
 }

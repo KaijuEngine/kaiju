@@ -94,6 +94,7 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 	ld.textures[texOnHover], _ = tc.Texture(
 		onHoverTexture, rendering.TextureFilterLinear)
 	cb := (*Checkbox)(p)
+	cb.elmType = ElementTypeCheckbox
 	p.Base().AddEvent(EventTypeEnter, cb.onHover)
 	p.Base().AddEvent(EventTypeExit, cb.onBlur)
 	p.Base().AddEvent(EventTypeDown, cb.onDown)

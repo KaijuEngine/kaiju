@@ -101,6 +101,7 @@ func (input *Input) SetNextFocusedInput(next *Input) {
 
 func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input := (*Input)(p)
+	input.elmType = ElementTypeInput
 	host := p.Base().host
 	data := &localInputData{}
 	p.PanelData().localData = data
@@ -110,10 +111,10 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 
 	// Label
 	data.label = NewLabel(host, "", AnchorLeft)
-	p.AddChild(data.label)
+	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
-	data.label.wordWrap = false
+	data.label.LabelData().wordWrap = false
 	data.label.layout.ClearFunctions()
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
@@ -125,10 +126,10 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 
 	// Placeholder
 	data.placeholder = NewLabel(host, placeholderText, AnchorLeft)
-	p.AddChild(data.placeholder)
+	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
-	data.placeholder.wordWrap = false
+	data.placeholder.LabelData().wordWrap = false
 	data.placeholder.layout.ClearFunctions()
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
@@ -139,7 +140,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the cursor
-	data.cursor = NewPanel(host, tex, AnchorTopLeft)
+	data.cursor = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
@@ -150,7 +151,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the highlight
-	data.highlight = NewPanel(host, tex, AnchorTopLeft)
+	data.highlight = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
@@ -241,24 +242,25 @@ func (input *Input) charX(index int) float32 {
 	data := input.Data()
 	left := horizontalPadding
 	strWidth := float32(0)
-	tmp := data.label.text[:index]
+	tmp := data.label.LabelData().text[:index]
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = (*UIBase)(input).host.FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
+		strWidth = (*UIBase)(input).host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
 }
 
 func (input *Input) setBgColors() {
 	data := input.Data()
-	if len(data.label.runeDrawings) > 0 {
-		sd := data.label.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
-		data.label.ColorRange(0, data.label.textLength,
-			data.label.fgColor, sd.FgColor)
+	ld := data.label.LabelData()
+	if len(ld.runeDrawings) > 0 {
+		sd := ld.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
+		data.label.ColorRange(0, ld.textLength,
+			ld.fgColor, sd.FgColor)
 		if data.selectStart != data.selectEnd {
 			data.label.ColorRange(data.selectStart, data.selectEnd,
-				data.label.fgColor, data.highlight.PanelData().color)
+				ld.fgColor, data.highlight.PanelData().color)
 		}
 	}
 }
@@ -310,6 +312,7 @@ func (input *Input) resetSelect() {
 
 func (input *Input) findNextBreak(start, dir int) int {
 	data := input.Data()
+	ld := data.label.LabelData()
 	// TODO:  This is a mess, simplify it
 	if start < 0 {
 		return 0
@@ -317,16 +320,16 @@ func (input *Input) findNextBreak(start, dir int) int {
 		return utf8.RuneCountInString(data.label.Text())
 	}
 	i := start
-	runes := []rune(data.label.text)
+	runes := []rune(ld.text)
 	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if dir > 0 && unicode.IsSpace(runes[i-1]) {
-		for i < data.label.textLength && unicode.IsSpace(runes[i]) {
+		for i < ld.textLength && unicode.IsSpace(runes[i]) {
 			i += dir
 		}
 	}
-	for i > 0 && i < data.label.textLength && !unicode.IsSpace(runes[i]) {
+	for i > 0 && i < ld.textLength && !unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if i < 0 {
@@ -378,8 +381,9 @@ func (input *Input) InsertText(text string) {
 	data := input.Data()
 	if len(text) > 0 {
 		input.deleteSelection()
-		lhs := data.label.text[:data.cursorOffset]
-		rhs := data.label.text[data.cursorOffset:]
+		ld := data.label.LabelData()
+		lhs := ld.text[:data.cursorOffset]
+		rhs := ld.text[data.cursorOffset:]
 		str := lhs + text + rhs
 		input.setText(str, false)
 		data.cursorOffset += utf8.RuneCountInString(text)
@@ -403,13 +407,14 @@ func (input *Input) pasteFromClipboard() {
 
 func (input *Input) SelectAll() {
 	data := input.Data()
-	data.label.Clean()
-	input.setSelect(0, utf8.RuneCountInString(data.label.text))
+	data.label.Base().Clean()
+	input.setSelect(0, utf8.RuneCountInString(data.label.LabelData().text))
 }
 
 func (input *Input) pointerPosWithin() int {
 	data := input.Data()
-	if len(data.label.text) == 0 {
+	ld := data.label.LabelData()
+	if len(ld.text) == 0 {
 		return 0
 	} else {
 		pos := (*UIBase)(input).cursorPos(&input.host.Window.Cursor)
@@ -418,7 +423,8 @@ func (input *Input) pointerPosWithin() int {
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return (*UIBase)(input).host.FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
+		return (*UIBase)(input).host.FontCache().PointOffsetWithin(
+			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
 	}
 }
 
@@ -522,7 +528,7 @@ func (input *Input) deactivated() {
 
 func (input *Input) activated() {
 	data := input.Data()
-	if len(data.label.text) == 0 {
+	if len(data.label.LabelData().text) == 0 {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -538,7 +544,7 @@ func (input *Input) focusNext() {
 }
 
 func (input *Input) Text() string {
-	return input.Data().label.text
+	return input.Data().label.LabelData().text
 }
 
 func (input *Input) SetText(text string) {
@@ -640,7 +646,8 @@ func (input *Input) SetFontSize(fontSize float32) {
 }
 
 func (input *Input) SetCursorOffset(offset int) {
-	offset = klib.Clamp(offset, 0, utf8.RuneCountInString(input.Data().label.text))
+	offset = klib.Clamp(offset, 0,
+		utf8.RuneCountInString(input.Data().label.LabelData().text))
 	input.moveCursor(offset)
 }
 
@@ -719,8 +726,9 @@ func (input *Input) deleteSelection() {
 	data := input.Data()
 	if data.selectStart != data.selectEnd {
 		sStart := data.selectStart
-		lhs := data.label.text[:data.selectStart]
-		rhs := data.label.text[data.selectEnd:]
+		ld := data.label.LabelData()
+		lhs := ld.text[:data.selectStart]
+		rhs := ld.text[data.selectEnd:]
 		str := lhs + rhs
 		input.moveCursor(sStart)
 		input.setText(str, false)
@@ -731,15 +739,16 @@ func (input *Input) deleteSelection() {
 
 func (input *Input) backspace(kb *hid.Keyboard) {
 	data := input.Data()
+	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection()
 	} else if kb.HasCtrl() {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection()
-	} else if len(data.label.text) > 0 && data.cursorOffset > 0 {
-		lhs := data.label.text[:data.cursorOffset-1]
-		rhs := data.label.text[data.cursorOffset:]
+	} else if len(ld.text) > 0 && data.cursorOffset > 0 {
+		lhs := ld.text[:data.cursorOffset-1]
+		rhs := ld.text[data.cursorOffset:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset - 1)
 		input.setText(str, false)
@@ -748,15 +757,16 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 
 func (input *Input) delete(kb *hid.Keyboard) {
 	data := input.Data()
+	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection()
 	} else if kb.HasCtrl() {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection()
-	} else if data.cursorOffset < data.label.textLength {
-		lhs := data.label.text[:data.cursorOffset]
-		rhs := data.label.text[data.cursorOffset+1:]
+	} else if data.cursorOffset < ld.textLength {
+		lhs := ld.text[:data.cursorOffset]
+		rhs := ld.text[data.cursorOffset+1:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset)
 		input.setText(str, false)

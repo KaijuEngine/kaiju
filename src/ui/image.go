@@ -56,7 +56,7 @@ func (s *Image) data() *imageData {
 }
 
 func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
-	panel := NewPanel(host, texture, anchor)
+	panel := NewPanel(host, texture, anchor, ElementTypeImage)
 	img := (*Image)(panel)
 	panel.PanelData().localData = &imageData{
 		flipBook: []*rendering.Texture{texture},

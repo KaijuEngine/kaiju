@@ -50,7 +50,7 @@ func childLabels(elm *document.Element) []*ui.Label {
 	labels := make([]*ui.Label, 0)
 	for _, c := range elm.Children {
 		if c.IsText() {
-			labels = append(labels, c.UI.(*ui.Label))
+			labels = append(labels, c.UI.(*ui.UIBase).ToLabel())
 		} else {
 			labels = append(labels, childLabels(c)...)
 		}
@@ -67,17 +67,20 @@ func (p TextAlign) Process(panel *ui.Panel, elm *document.Element, values []rule
 	switch values[0].Str {
 	case "left":
 		for _, l := range labels {
-			l.Layout().AnchorTo(l.Layout().Anchor().ConvertToLeft())
+			base := l.Base()
+			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToLeft())
 			l.SetJustify(rendering.FontJustifyLeft)
 		}
 	case "right":
 		for _, l := range labels {
-			l.Layout().AnchorTo(l.Layout().Anchor().ConvertToRight())
+			base := l.Base()
+			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToRight())
 			l.SetJustify(rendering.FontJustifyRight)
 		}
 	case "center":
 		for _, l := range labels {
-			l.Layout().AnchorTo(l.Layout().Anchor().ConvertToCenter())
+			base := l.Base()
+			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToCenter())
 			l.SetJustify(rendering.FontJustifyCenter)
 		}
 	case "justify":

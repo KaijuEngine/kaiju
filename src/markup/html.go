@@ -56,7 +56,7 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					height := l.PixelSize().Height()
 					if newParentWidth != parentWidth {
 						parentWidth = newParentWidth
-						lbl := l.Ui().(*ui.Label)
+						lbl := l.Ui().(*ui.UIBase).ToLabel()
 						textSize := host.FontCache().MeasureStringWithin(
 							lbl.FontFace(), e.Data(), lbl.FontSize(),
 							parentWidth, lbl.LineHeight())
@@ -65,9 +65,9 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					l.Scale(parentWidth, height)
 				}
 			}
-			label := e.UI.(*ui.Label)
-			updateSize(label.Layout())
-			label.Layout().AddFunction(updateSize)
+			label := e.UI.(*ui.UIBase).ToLabel()
+			updateSize(label.Base().Layout())
+			label.Base().Layout().AddFunction(updateSize)
 		}
 		height := e.UI.Layout().PixelSize().Y()
 		p := e.Parent

@@ -60,11 +60,12 @@ func (s *Slider) data() *localSliderData {
 
 func (p *Panel) ConvertToSlider() *Slider {
 	s := (*Slider)(p)
+	s.elmType = ElementTypeSlider
 	ld := &localSliderData{}
 	host := p.Base().host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	ld.bgPanel = NewPanel(host, tex, AnchorLeft)
+	ld.bgPanel = NewPanel(host, tex, AnchorLeft, ElementTypeSlider)
 	ld.bgPanel.layout.AddFunction(func(l *Layout) {
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		w, h := pLayout.ContentSize()
@@ -72,7 +73,7 @@ func (p *Panel) ConvertToSlider() *Slider {
 		l.Scale(w-10, h)
 	})
 	ld.bgPanel.SetColor(matrix.ColorBlack())
-	ld.fgPanel = NewPanel(host, tex, AnchorTopLeft)
+	ld.fgPanel = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
 	ld.fgPanel.layout.AddFunction(func(l *Layout) {

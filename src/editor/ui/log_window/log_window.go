@@ -220,11 +220,11 @@ func (l *LogWindow) deactivateGroups() {
 	wb, _ := l.doc.GetElementById("warningsBtn")
 	eb, _ := l.doc.GetElementById("errorsBtn")
 	sb, _ := l.doc.GetElementById("selectedBtn")
-	ab.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	ib.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	wb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	eb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	sb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	ab.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("normal")
+	ib.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("normal")
+	wb.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("normal")
+	eb.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("normal")
+	sb.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("normal")
 }
 
 func (l *LogWindow) showCurrent() {
@@ -248,7 +248,7 @@ func (l *LogWindow) showAll(*document.Element) {
 	e, _ := l.doc.GetElementById("all")
 	b, _ := l.doc.GetElementById("allBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showInfos(*document.Element) {
@@ -257,7 +257,7 @@ func (l *LogWindow) showInfos(*document.Element) {
 	e, _ := l.doc.GetElementById("info")
 	b, _ := l.doc.GetElementById("infoBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showWarns(*document.Element) {
@@ -266,7 +266,7 @@ func (l *LogWindow) showWarns(*document.Element) {
 	e, _ := l.doc.GetElementById("warn")
 	b, _ := l.doc.GetElementById("warningsBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showErrors(*document.Element) {
@@ -275,7 +275,7 @@ func (l *LogWindow) showErrors(*document.Element) {
 	e, _ := l.doc.GetElementById("error")
 	b, _ := l.doc.GetElementById("errorsBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showSelected(*document.Element) {
@@ -284,7 +284,7 @@ func (l *LogWindow) showSelected(*document.Element) {
 	e, _ := l.doc.GetElementById("selected")
 	b, _ := l.doc.GetElementById("selectedBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.(*ui.UIBase).ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) selectEntry(e *document.Element) {
@@ -304,7 +304,7 @@ func (l *LogWindow) selectEntry(e *document.Element) {
 			// The lists are printed in reverse order, so we invert the index
 			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
-			lbl := selectedElm.Children[0].UI.(*ui.Label)
+			lbl := selectedElm.Children[0].UI.(*ui.UIBase).ToLabel()
 			sb := strings.Builder{}
 			sb.WriteString(target[id].Time)
 			sb.WriteRune('\n')
