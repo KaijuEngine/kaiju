@@ -68,7 +68,7 @@ func (a *alertMsg) done(isOkay bool) {
 			a.inputBlock <- ""
 		} else {
 			input, _ := a.doc.GetElementById("str")
-			a.inputBlock <- input.UI.(*ui.Input).Text()
+			a.inputBlock <- input.UI.(*ui.UIBase).AsInput().Text()
 		}
 		close(a.inputBlock)
 	}

@@ -54,7 +54,7 @@ type colorRange struct {
 }
 
 type Label struct {
-	uiBase
+	UIBase
 	colorRanges       []colorRange
 	text              string
 	textLength        int
@@ -212,7 +212,7 @@ func (label *Label) renderText() {
 }
 
 func (label *Label) render() {
-	label.uiBase.render()
+	label.UIBase.render()
 	maxWidth := label.nonOverrideMaxWidth()
 	if label.lastRenderWidth != maxWidth {
 		label.lastRenderWidth = maxWidth
@@ -262,7 +262,7 @@ func (label *Label) SetText(text string) {
 }
 
 func (label *Label) setLabelScissors() {
-	s := label.uiBase.selfScissor()
+	s := label.UIBase.selfScissor()
 	if label.entity.Parent != nil {
 		p := FirstOnEntity(label.entity.Parent)
 		s = p.selfScissor()
@@ -461,13 +461,13 @@ func (label *Label) CalculateMaxWidth() float32 {
 	o := matrix.Vec4Zero()
 	for parent != nil {
 		p = FirstPanelOnEntity(parent)
-		o.AddAssign(p.Layout().Padding())
+		o.AddAssign(p.Base().layout.Padding())
 		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
 			break
 		}
 		parent = parent.Parent
 	}
-	if parent == nil || (p.Layout().Positioning() == PositioningAbsolute && p.FittingContent()) {
+	if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 		// TODO:  This will need to be bounded by left offset
 		maxWidth = matrix.Float(label.host.Window.Width())
 	} else {

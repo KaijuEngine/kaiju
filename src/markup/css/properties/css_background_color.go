@@ -64,10 +64,11 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 	var color matrix.Color
 	hex := values[0].Str
 	if hex == "inherit" {
-		panel.AddEvent(ui.EventTypeRender, func() {
-			if panel.Entity().Parent != nil {
-				p := ui.FirstPanelOnEntity(panel.Entity().Parent)
-				panel.SetColor(p.ShaderData().FgColor)
+		pBase := panel.Base()
+		pBase.AddEvent(ui.EventTypeRender, func() {
+			if pBase.Entity().Parent != nil {
+				p := ui.FirstPanelOnEntity(pBase.Entity().Parent)
+				panel.SetColor(p.Base().ShaderData().FgColor)
 			}
 		})
 		return nil

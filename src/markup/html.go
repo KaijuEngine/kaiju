@@ -73,8 +73,8 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 		p := e.Parent
 		for p != nil && p.UIPanel != nil {
 			pPanel := p.UIPanel
-			if pPanel.FittingContent() && pPanel.Layout().PixelSize().Y() < height {
-				pPanel.Layout().ScaleHeight(height)
+			if pPanel.FittingContent() && pPanel.Base().Layout().PixelSize().Y() < height {
+				pPanel.Base().Layout().ScaleHeight(height)
 			}
 			p = p.Parent
 		}

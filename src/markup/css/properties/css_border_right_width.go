@@ -50,7 +50,7 @@ func (p BorderRightWidth) Process(panel *ui.Panel, elm *document.Element, values
 	if len(values) != 1 {
 		return errors.New("BorderRightWidth requires exactly 1 value")
 	} else {
-		current := panel.Layout().Border()
+		current := panel.Base().Layout().Border()
 		size := borderSizeFromStr(values[0].Str, host.Window, current.Z())
 		panel.SetBorderSize(current.X(), current.Y(), size, current.W())
 		return nil

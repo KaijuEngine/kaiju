@@ -200,13 +200,13 @@ func (h *Hierarchy) Reload() {
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
 	} else {
-		h.input = elm.UI.(*ui.Input)
-		h.input.AddEvent(ui.EventTypeSubmit, h.submit)
+		h.input = elm.UI.(*ui.UIBase).AsInput()
+		h.input.Base().AddEvent(ui.EventTypeSubmit, h.submit)
 	}
 	h.doc.Clean()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := h.doc.GetElementById("window")
-		w.UIPanel.Layout().ScaleWidth(matrix.Float(s.(float64)))
+		w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
 	}
 	if !isActive {
 		h.doc.Deactivate()
@@ -335,7 +335,7 @@ func (h *Hierarchy) resizeStop(e *document.Element) {
 	}
 	h.host.Window.CursorStandard()
 	w, _ := h.doc.GetElementById("window")
-	s := w.UIPanel.Layout().PixelSize().Width()
+	s := w.UIPanel.Base().Layout().PixelSize().Width()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
@@ -356,6 +356,6 @@ func (h *Hierarchy) DragUpdate() {
 	x := h.host.Window.Mouse.Position().X()
 	w := h.host.Window.Width()
 	if int(x) < w-100 {
-		win.UIPanel.Layout().ScaleWidth(x)
+		win.UIPanel.Base().Layout().ScaleWidth(x)
 	}
 }

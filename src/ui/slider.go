@@ -51,14 +51,17 @@ type localSliderData struct {
 
 type Slider Panel
 
-func (cb *Slider) data() *localSliderData {
-	return (*Panel)(cb).PanelData().localData.(*localSliderData)
+func (u *UIBase) AsSlider() *Slider { return (*Slider)(u) }
+func (s *Slider) Base() *UIBase     { return (*UIBase)(s) }
+
+func (s *Slider) data() *localSliderData {
+	return (*Panel)(s).PanelData().localData.(*localSliderData)
 }
 
 func (p *Panel) ConvertToSlider() *Slider {
 	s := (*Slider)(p)
 	ld := &localSliderData{}
-	host := p.Host()
+	host := p.Base().host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = NewPanel(host, tex, AnchorLeft)
@@ -75,7 +78,7 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.layout.AddFunction(func(l *Layout) {
 		pp := FirstPanelOnEntity(l.Ui().Entity().Parent)
 		ps := (*Slider)(pp)
-		_, h := pp.Layout().ContentSize()
+		_, h := pp.Base().layout.ContentSize()
 		l.Scale(h/2, h)
 		ps.SetValue(ps.Value())
 	})
@@ -84,7 +87,7 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.entity.SetParent(p.entity)
 	pd := p.PanelData()
 	pd.localData = ld
-	p.AddEvent(EventTypeDown, s.onDown)
+	p.Base().AddEvent(EventTypeDown, s.onDown)
 	pd.innerUpdate = s.sliderUpdate
 	return s
 }
@@ -117,7 +120,7 @@ func (slider *Slider) SetValue(value float32) {
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
 	x := matrix.Clamp((w * ld.value), 0, w-ld.fgPanel.entity.Transform.WorldScale().X())
 	ld.fgPanel.layout.SetInnerOffsetLeft(x)
-	slider.changed()
+	(*UIBase)(slider).changed()
 }
 
 func (slider *Slider) SetFGColor(fgColor matrix.Color) {

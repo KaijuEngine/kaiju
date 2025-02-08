@@ -79,6 +79,9 @@ func NewButton(host *engine.Host, texture *rendering.Texture, text string, ancho
 	return btn
 }
 
+func (u *UIBase) AsButton() *Button { return (*Button)(u) }
+func (b *Button) Base() *UIBase     { return (*UIBase)(b) }
+
 func (b *Button) createLabel() *Label {
 	lbl := NewLabel(b.host, "", AnchorStretchCenter)
 	lbl.layout.SetStretch(0, 0, 0, 0)
@@ -108,7 +111,7 @@ func (p *Panel) ConvertToButton() *Button {
 
 func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
-	panel.AddEvent(EventTypeEnter, func() {
+	b.Base().AddEvent(EventTypeEnter, func() {
 		c := b.data().color
 		if panel.isDown {
 			c = c.ScaleWithoutAlpha(0.7)
@@ -118,13 +121,13 @@ func (b *Button) setupEvents() {
 		c.SetA(1)
 		b.setTempColor(c)
 	})
-	panel.AddEvent(EventTypeExit, func() {
+	b.Base().AddEvent(EventTypeExit, func() {
 		b.setTempColor(b.data().color)
 	})
-	panel.AddEvent(EventTypeDown, func() {
+	b.Base().AddEvent(EventTypeDown, func() {
 		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.7))
 	})
-	panel.AddEvent(EventTypeUp, func() {
+	b.Base().AddEvent(EventTypeUp, func() {
 		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.8))
 	})
 }

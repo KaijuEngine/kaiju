@@ -70,7 +70,7 @@ func (d *Element) EnforceColor(color matrix.Color) {
 
 func (d *Element) UnEnforceColor() {
 	d.UIPanel.UnEnforceColor()
-	color := d.UIPanel.ShaderData().FgColor
+	color := d.UIPanel.Base().ShaderData().FgColor
 	setChildTextBackgroundColor(d, color)
 }
 

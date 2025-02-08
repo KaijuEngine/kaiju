@@ -71,6 +71,9 @@ type localCheckboxData struct {
 
 type Checkbox Panel
 
+func (u *UIBase) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
+func (cb *Checkbox) Base() *UIBase      { return (*UIBase)(cb) }
+
 func (cb *Checkbox) data() *localCheckboxData {
 	return (*Panel)(cb).PanelData().localData.(*localCheckboxData)
 }
@@ -91,11 +94,11 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 	ld.textures[texOnHover], _ = tc.Texture(
 		onHoverTexture, rendering.TextureFilterLinear)
 	cb := (*Checkbox)(p)
-	p.AddEvent(EventTypeEnter, cb.onHover)
-	p.AddEvent(EventTypeExit, cb.onBlur)
-	p.AddEvent(EventTypeDown, cb.onDown)
-	p.AddEvent(EventTypeUp, cb.onUp)
-	p.AddEvent(EventTypeClick, cb.onClick)
+	p.Base().AddEvent(EventTypeEnter, cb.onHover)
+	p.Base().AddEvent(EventTypeExit, cb.onBlur)
+	p.Base().AddEvent(EventTypeDown, cb.onDown)
+	p.Base().AddEvent(EventTypeUp, cb.onUp)
+	p.Base().AddEvent(EventTypeClick, cb.onClick)
 	p.PanelData().localData = ld
 	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
 	p.ensureBGExists(ld.textures[texOffIdle])
@@ -180,7 +183,7 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 		}
 	}
 	(*Panel)(cb).SetBackground(target)
-	cb.requestEvent(EventTypeChange)
+	(*UIBase)(cb).requestEvent(EventTypeChange)
 }
 
 func (cb Checkbox) IsChecked() bool {

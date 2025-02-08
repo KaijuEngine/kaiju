@@ -134,10 +134,10 @@ func initialize(host *engine.Host) *Console {
 		host.Updater.RemoveUpdate(console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
-	input := inputElm.UI.(*ui.Input)
-	input.AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
+	input := inputElm.UI.(*ui.UIBase).AsInput()
+	input.Base().AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
 	console.input = input
-	input.Clean()
+	input.Base().Clean()
 	console.hide()
 	console.AddCommand("help", "Display list of commands and their descriptions", console.help)
 	console.AddCommand("clear", "Clears the console text", console.clear)

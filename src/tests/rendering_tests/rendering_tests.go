@@ -221,8 +221,8 @@ func testPanel(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft)
 	p.DontFitContent()
-	p.Layout().Scale(100, 100)
-	p.Layout().SetOffset(10, 10)
+	p.Base().Layout().Scale(100, 100)
+	p.Base().Layout().SetOffset(10, 10)
 }
 
 func testLabel(host *engine.Host) {
@@ -233,9 +233,9 @@ func testLabel(host *engine.Host) {
 func testButton(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	btn := ui.NewButton(host, tex, "Click me!", ui.AnchorCenter)
-	btn.Layout().Scale(100, 50)
+	btn.Base().Layout().Scale(100, 50)
 	clickCount := 0
-	btn.AddEvent(ui.EventTypeClick, func() {
+	btn.Base().AddEvent(ui.EventTypeClick, func() {
 		clickCount++
 		btn.Label().SetText(fmt.Sprintf("Clicked x%d!", clickCount))
 	})
@@ -277,8 +277,8 @@ func testLayoutSimple(host *engine.Host) {
 	}
 	for _, p := range panels {
 		p.DontFitContent()
-		p.Layout().Scale(100, 100)
-		p.Layout().SetOffset(10, 10)
+		p.Base().Layout().Scale(100, 100)
+		p.Base().Layout().SetOffset(10, 10)
 	}
 }
 
@@ -286,27 +286,27 @@ func testLayout(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
-	p1.Entity().SetName("p1")
+	p1.Base().Entity().SetName("p1")
 	//p1.Layout().Scale(300, 100)
 
 	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
-	p2.Entity().SetName("p2")
+	p2.Base().Entity().SetName("p2")
 	p2.SetColor(matrix.ColorBlue())
 	//p2.Layout().SetPadding(5, 5, 5, 5)
-	p2.Layout().SetMargin(5, 5, 5, 5)
+	p2.Base().Layout().SetMargin(5, 5, 5, 5)
 	//p2.DontFitContent()
 	//p2.Layout().Scale(64, 64)
 	//p2.Layout().SetOffset(10, 10)
 
 	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft)
-	p3.Entity().SetName("p3")
+	p3.Base().Entity().SetName("p3")
 	p3.SetColor(matrix.ColorRed())
-	p3.Layout().Scale(32, 32)
-	p3.Layout().SetOffset(10, 10)
+	p3.Base().Layout().Scale(32, 32)
+	p3.Base().Layout().SetOffset(10, 10)
 	//p3.Layout().SetMargin(5, 5, 0, 0)
 
-	p1.AddChild(p2)
-	p2.AddChild(p3)
+	p1.AddChild(p2.Base())
+	p2.AddChild(p3.Base())
 }
 
 func drawBasicMesh(host *engine.Host, res load_result.Result) {

@@ -103,7 +103,7 @@ func (f *entityDataField) ValueAsEntityName() string {
 	}
 	e, ok := f.host.FindEntity(dd.EntityId)
 	if !ok {
-		slog.Error("Entity not found", dd.EntityId)
+		slog.Error("Entity not found", "entity", dd.EntityId)
 		return ""
 	}
 	return e.Name()
@@ -203,7 +203,7 @@ func (d *Details) reload() {
 	go d.editor.ReloadEntityDataListing()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := d.doc.GetElementById("window")
-		w.UIPanel.Layout().ScaleWidth(matrix.Float(s.(float64)))
+		w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
 	}
 	if !isActive {
 		d.doc.Deactivate()
@@ -229,15 +229,15 @@ func (d *Details) changeData(elm *document.Element) {
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v.SetInt(toInt(elm.UI.(*ui.Input).Text()))
+		v.SetInt(toInt(elm.UI.(*ui.UIBase).AsInput().Text()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v.SetUint(toUint(elm.UI.(*ui.Input).Text()))
+		v.SetUint(toUint(elm.UI.(*ui.UIBase).AsInput().Text()))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(toFloat(elm.UI.(*ui.Input).Text()))
+		v.SetFloat(toFloat(elm.UI.(*ui.UIBase).AsInput().Text()))
 	case reflect.String:
 		v.SetString(inputString(elm))
 	case reflect.Bool:
-		v.SetBool(elm.UI.(*ui.Checkbox).IsChecked())
+		v.SetBool(elm.UI.(*ui.UIBase).AsCheckbox().IsChecked())
 	}
 }
 
@@ -441,7 +441,7 @@ func (d *Details) resizeStop(e *document.Element) {
 	}
 	d.editor.Host().Window.CursorStandard()
 	w, _ := d.doc.GetElementById("window")
-	s := w.UIPanel.Layout().PixelSize().Width()
+	s := w.UIPanel.Base().Layout().PixelSize().Width()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
@@ -450,6 +450,6 @@ func (d *Details) DragUpdate() {
 	w := d.editor.Host().Window.Width()
 	x := matrix.Float(w) - d.editor.Host().Window.Mouse.Position().X()
 	if int(x) < w-100 {
-		win.UIPanel.Layout().ScaleWidth(x)
+		win.UIPanel.Base().Layout().ScaleWidth(x)
 	}
 }

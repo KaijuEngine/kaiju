@@ -46,14 +46,14 @@ func (c *ContextMenu) reload() {
 	c.container.Host.DoneCreatingEditorEntities()
 	ww := float32(c.container.Host.Window.Width())
 	wh := float32(c.container.Host.Window.Height())
-	ps := m.UIPanel.Layout().PixelSize()
+	ps := m.UIPanel.Base().Layout().PixelSize()
 	if c.x+ps.Width() > ww {
 		c.x = ww - ps.Width()
 	}
 	if c.y+ps.Height() > wh {
 		c.y = wh - ps.Height()
 	}
-	m.UIPanel.Layout().SetOffset(c.x, c.y)
+	m.UIPanel.Base().Layout().SetOffset(c.x, c.y)
 }
 
 func (c *ContextMenu) Show(entries []ContextMenuEntry) {

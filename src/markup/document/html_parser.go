@@ -186,7 +186,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
-		var uiElm ui.UI = panel
+		var uiElm ui.UI = panel.Base()
 		if e.IsInput() {
 			inputType := e.Attribute("type")
 			switch inputType {
@@ -195,7 +195,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 				if e.Attribute("checked") != "" {
 					cb.SetChecked(true)
 				}
-				uiElm = cb
+				uiElm = cb.Base()
 			case "slider":
 				slider := panel.ConvertToSlider()
 				if a := e.Attribute("value"); a != "" {
@@ -203,11 +203,11 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 						slider.SetValue(float32(f))
 					}
 				}
-				uiElm = slider
+				uiElm = slider.Base()
 			case "text":
 				input := panel.ConvertToInput(e.Attribute("placeholder"))
 				input.SetText(e.Attribute("value"))
-				uiElm = input
+				uiElm = input.Base()
 				if d.firstInput == nil {
 					d.firstInput = input
 				}
@@ -259,13 +259,13 @@ func (d *Document) tagElement(elm *Element, tag string) {
 func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
 	body := h.Body()
 	bodyPanel := ui.NewPanel(host, nil, ui.AnchorCenter)
-	bodyPanel.Layout().AddFunction(func(l *ui.Layout) {
+	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
 		w, h := float32(host.Window.Width()), float32(host.Window.Height())
 		l.Scale(w, h)
 	})
 	bodyPanel.DontFitContent()
-	bodyPanel.Clean()
-	body.UI = bodyPanel
+	bodyPanel.Base().Clean()
+	body.UI = bodyPanel.Base()
 	body.UIPanel = bodyPanel
 	d.Elements = append(d.Elements, body)
 	d.tagElements["body"] = []*Element{body}
@@ -295,7 +295,7 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 	h := NewHTML(TransformHTML(htmlStr, withData))
 	body := parsed.setupBody(h, host)
 	bodyPanel := body.UIPanel
-	bodyPanel.Entity().SetName("body")
+	bodyPanel.Base().Entity().SetName("body")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
 		parsed.createUIElement(host, body.Children[i], bodyPanel)

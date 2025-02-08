@@ -118,32 +118,32 @@ type panelData struct {
 	allowDragScroll           bool
 }
 
-type Panel struct {
-	uiBase
-}
+type Panel UIBase
+
+func (u *UIBase) AsPanel() *Panel { return (*Panel)(u) }
+func (p *Panel) Base() *UIBase    { return (*UIBase)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.(*panelData) }
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
-		uiBase: uiBase{
-			elmData: &panelData{
-				scrollEvent:        0,
-				scrollSpeed:        20.0,
-				scrollDirection:    PanelScrollDirectionVertical,
-				color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
-				fitContent:         ContentFitBoth,
-				enforcedColorStack: make([]matrix.Color, 0),
-			},
-			elmType: ElementTypePanel,
+		elmData: &panelData{
+			scrollEvent:        0,
+			scrollSpeed:        20.0,
+			scrollDirection:    PanelScrollDirectionVertical,
+			color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
+			fitContent:         ContentFitBoth,
+			enforcedColorStack: make([]matrix.Color, 0),
 		},
+		elmType: ElementTypePanel,
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
 		ts = texture.Size()
 	}
+	base := panel.Base()
 	panel.updateId = host.Updater.AddUpdate(panel.update)
-	panel.init(host, ts, anchor, panel)
+	base.init(host, ts, anchor, base)
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)
@@ -151,8 +151,8 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	panel.entity.OnActivate.Add(func() {
 		panel.shaderData.Activate()
 		panel.updateId = host.Updater.AddUpdate(panel.update)
-		panel.SetDirty(DirtyTypeLayout)
-		panel.Clean()
+		base.SetDirty(DirtyTypeLayout)
+		base.Clean()
 	})
 	panel.entity.OnDeactivate.Add(func() {
 		panel.shaderData.Deactivate()
@@ -207,9 +207,9 @@ func (p *Panel) FitContentWidth() {
 		pd.fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
-		p.SetDirty(DirtyTypeLayout)
+		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
-		p.SetDirty(DirtyTypeGenerated)
+		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
 
@@ -222,18 +222,18 @@ func (p *Panel) FitContentHeight() {
 		pd.fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
-		p.SetDirty(DirtyTypeLayout)
+		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
-		p.SetDirty(DirtyTypeGenerated)
+		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
 
 func (p *Panel) FitContent() {
 	p.PanelData().fitContent = ContentFitBoth
 	if p.dirtyType == DirtyTypeNone {
-		p.SetDirty(DirtyTypeLayout)
+		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
-		p.SetDirty(DirtyTypeGenerated)
+		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
 
@@ -242,8 +242,9 @@ func (p *Panel) onScroll() {
 	mouse := &p.host.Window.Mouse
 	delta := mouse.Scroll()
 	scroll := pd.scroll
+	base := p.Base()
 	if !mouse.Scrolled() {
-		pos := p.cursorPos(&p.host.Window.Cursor)
+		pos := base.cursorPos(&p.host.Window.Cursor)
 		delta = pos.Subtract(p.downPos)
 		delta[matrix.Vy] *= -1.0
 	} else {
@@ -260,7 +261,7 @@ func (p *Panel) onScroll() {
 	}
 	if !matrix.Vec2Approx(scroll, pd.scroll) {
 		pd.scroll = scroll
-		p.SetDirty(DirtyTypeLayout)
+		base.SetDirty(DirtyTypeLayout)
 		pd.isScrolling = true
 	}
 }
@@ -271,7 +272,10 @@ func panelOnDown(ui UI) {
 	var panel *Panel
 	for !ok {
 		target = FirstOnEntity(target.Entity().Parent)
-		panel, ok = target.(*Panel)
+		var base *UIBase
+		if base, ok = target.(*UIBase); ok {
+			panel = (*Panel)(base)
+		}
 	}
 	pd := panel.PanelData()
 	pd.offset = pd.scroll
@@ -282,8 +286,9 @@ func panelOnDown(ui UI) {
 }
 
 func (p *Panel) update(deltaTime float64) {
-	p.uiBase.eventUpdates()
-	p.uiBase.Update(deltaTime)
+	base := p.Base()
+	base.eventUpdates()
+	base.Update(deltaTime)
 	pd := p.PanelData()
 	if !pd.frozen {
 		if p.isDown && pd.dragging {
@@ -371,7 +376,7 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 			size[matrix.Vx] += 0.1
 		} else {
 			size = kid.Transform.WorldScale().AsVec2()
-			kui.(*Panel).boundsChildren(bounds)
+			(kui.(*UIBase)).AsPanel().boundsChildren(bounds)
 		}
 		r := pos.X() + size.X()
 		b := pos.Y() + size.Y()
@@ -460,14 +465,14 @@ func (p *Panel) postLayoutUpdate() {
 		matrix.Max(0.0, length.X()-ws.X()),
 		matrix.Max(0.0, length.Y()-ws.Y())}
 	if !matrix.Vec2Approx(last, pd.maxScroll) {
-		p.SetDirty(DirtyTypeGenerated)
+		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
 
 func (p *Panel) render() {
 	pd := p.PanelData()
-	p.uiBase.render()
-	p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
+	p.Base().render()
+	p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 	pd.requestScrollX.requested = false
 	pd.requestScrollY.requested = false
 }
@@ -478,7 +483,7 @@ func (p *Panel) AddChild(target UI) {
 		target.SetGroup(p.group)
 	}
 	target.Layout().update()
-	p.SetDirty(DirtyTypeGenerated)
+	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (p *Panel) InsertChild(target UI, idx int) {
@@ -495,7 +500,7 @@ func (p *Panel) RemoveChild(target UI) {
 	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
 	target.Layout().update()
 	p.layout.update()
-	p.SetDirty(DirtyTypeGenerated)
+	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (p *Panel) Child(index int) UI {
@@ -546,14 +551,14 @@ func (p *Panel) SetScrollX(value float32) {
 	pd := p.PanelData()
 	pd.requestScrollX.to = value
 	pd.requestScrollX.requested = true
-	p.SetDirty(DirtyTypeLayout)
+	p.Base().SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) SetScrollY(value float32) {
 	pd := p.PanelData()
 	pd.requestScrollY.to = value
 	pd.requestScrollY.requested = true
-	p.SetDirty(DirtyTypeLayout)
+	p.Base().SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) ResetScroll() {
@@ -576,7 +581,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		p.textureSize = tex.Size()
-		p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
+		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		pd.drawing = rendering.Drawing{
 			Renderer:   p.host.Window.Renderer,
 			Shader:     shader,
@@ -632,14 +637,14 @@ func (p *Panel) IsFrozen() bool {
 func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	pd := p.PanelData()
 	pd.scrollDirection = direction
-	p.SetDirty(DirtyTypeLayout)
+	p.Base().SetDirty(DirtyTypeLayout)
 	if pd.scrollDirection == PanelScrollDirectionNone {
 		if pd.scrollEvent != 0 {
-			p.RemoveEvent(EventTypeScroll, pd.scrollEvent)
+			p.Base().RemoveEvent(EventTypeScroll, pd.scrollEvent)
 			pd.scrollEvent = 0
 		}
 	} else if pd.scrollEvent == 0 {
-		pd.scrollEvent = p.AddEvent(EventTypeScroll, p.onScroll)
+		pd.scrollEvent = p.Base().AddEvent(EventTypeScroll, p.onScroll)
 	}
 }
 
@@ -687,7 +692,7 @@ func (p *Panel) SetOverflow(overflow Overflow) {
 	pd := p.PanelData()
 	if pd.overflow != overflow {
 		pd.overflow = overflow
-		p.SetDirty(DirtyTypeLayout)
+		p.Base().SetDirty(DirtyTypeLayout)
 	}
 }
 

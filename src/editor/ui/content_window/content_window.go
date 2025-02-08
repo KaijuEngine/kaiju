@@ -147,7 +147,7 @@ func (s *ContentWindow) contentClick(elm *document.Element) {
 	for i := range elm.Parent.Children {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
-		c := p.Entity().Children
+		c := p.Base().Entity().Children
 		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.Label)
 		lbl.UnEnforceBGColor()
 	}
@@ -199,7 +199,7 @@ func (s *ContentWindow) reloadUI() {
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
 	} else {
-		s.input = elm.UI.(*ui.Input)
+		s.input = elm.UI.(*ui.UIBase).AsInput()
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)
@@ -209,7 +209,7 @@ func (s *ContentWindow) reloadUI() {
 	s.doc.Clean()
 	if h, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := s.doc.GetElementById("window")
-		w.UIPanel.Layout().ScaleHeight(matrix.Float(h.(float64)))
+		w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(h.(float64)))
 	}
 	if fp, ok := s.doc.GetElementById("folderListing"); ok {
 		fp.UIPanel.SetScrollY(folderPanelScroll)
@@ -310,7 +310,7 @@ func (s *ContentWindow) resizeStop(e *document.Element) {
 	}
 	s.editor.Host().Window.CursorStandard()
 	w, _ := s.doc.GetElementById("window")
-	h := w.UIPanel.Layout().PixelSize().Height()
+	h := w.UIPanel.Base().Layout().PixelSize().Height()
 	editor_cache.SetEditorConfigValue(sizeConfig, h)
 }
 
@@ -343,6 +343,6 @@ func (s *ContentWindow) DragUpdate() {
 	y := s.editor.Host().Window.Mouse.Position().Y() - 20
 	h := s.editor.Host().Window.Height()
 	if int(y) < h-100 {
-		w.UIPanel.Layout().ScaleHeight(y)
+		w.UIPanel.Base().Layout().ScaleHeight(y)
 	}
 }

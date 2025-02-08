@@ -57,7 +57,7 @@ func (p ZIndex) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 			z += p.UI.Layout().Z()
 			p = p.Parent
 		}
-		panel.Layout().SetZ(z)
+		panel.Base().Layout().SetZ(z)
 		return nil
 	}
 }

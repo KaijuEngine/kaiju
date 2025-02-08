@@ -88,6 +88,9 @@ type localInputData struct {
 
 type Input Panel
 
+func (u *UIBase) AsInput() *Input  { return (*Input)(u) }
+func (input *Input) Base() *UIBase { return (*UIBase)(input) }
+
 func (input *Input) Data() *localInputData {
 	return (*Panel)(input).PanelData().localData.(*localInputData)
 }
@@ -98,7 +101,7 @@ func (input *Input) SetNextFocusedInput(next *Input) {
 
 func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input := (*Input)(p)
-	host := p.Host()
+	host := p.Base().host
 	data := &localInputData{}
 	p.PanelData().localData = data
 	p.DontFitContent()
@@ -140,7 +143,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
-	p.AddChild(data.cursor)
+	p.AddChild((*UIBase)(data.cursor))
 	data.cursor.layout.AddFunction(func(l *Layout) {
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		l.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
@@ -152,15 +155,16 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
-	p.AddChild(data.highlight)
+	p.AddChild((*UIBase)(data.highlight))
 	data.highlight.entity.Deactivate()
 
-	input.AddEvent(EventTypeEnter, input.onEnter)
-	input.AddEvent(EventTypeExit, input.onExit)
-	input.AddEvent(EventTypeDown, input.onDown)
-	input.AddEvent(EventTypeClick, input.onClick)
-	input.AddEvent(EventTypeMiss, input.onMiss)
-	input.AddEvent(EventTypeRebuild, input.onRebuild)
+	base := (*UIBase)(input)
+	base.AddEvent(EventTypeEnter, input.onEnter)
+	base.AddEvent(EventTypeExit, input.onExit)
+	base.AddEvent(EventTypeDown, input.onDown)
+	base.AddEvent(EventTypeClick, input.onClick)
+	base.AddEvent(EventTypeMiss, input.onMiss)
+	base.AddEvent(EventTypeRebuild, input.onRebuild)
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
 	p.PanelData().innerUpdate = input.update
@@ -226,11 +230,11 @@ func (input *Input) moveCursor(newPos int) {
 }
 
 func (input *Input) submit() {
-	input.requestEvent(EventTypeSubmit)
+	(*UIBase)(input).requestEvent(EventTypeSubmit)
 }
 
 func (input *Input) change() {
-	input.requestEvent(EventTypeChange)
+	(*UIBase)(input).requestEvent(EventTypeChange)
 }
 
 func (input *Input) charX(index int) float32 {
@@ -241,7 +245,7 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = input.Host().FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
+		strWidth = (*UIBase)(input).host.FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
 	}
 	return left + strWidth
 }
@@ -295,7 +299,7 @@ func (input *Input) setText(text string, skipEvent bool) {
 	// TODO:  The global set text sets the cursor position after this call,
 	// something to consider with order of operations
 	if !skipEvent {
-		input.ExecuteEvent(EventTypeChange)
+		(*UIBase)(input).ExecuteEvent(EventTypeChange)
 	}
 	input.hideHighlight()
 }
@@ -408,13 +412,13 @@ func (input *Input) pointerPosWithin() int {
 	if len(data.label.text) == 0 {
 		return 0
 	} else {
-		pos := input.cursorPos(&input.host.Window.Cursor)
+		pos := (*UIBase)(input).cursorPos(&input.host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return input.Host().FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
+		return (*UIBase)(input).host.FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
 	}
 }
 
@@ -612,7 +616,7 @@ func (input *Input) Focus() {
 		input.resetSelect()
 		input.showCursor()
 		if input.group != nil {
-			input.group.setFocus(input)
+			input.group.setFocus((*UIBase)(input))
 		}
 	}
 }
@@ -622,7 +626,7 @@ func (input *Input) RemoveFocus() {
 		input.Data().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		input.Host().Window.CursorStandard()
+		(*UIBase)(input).host.Window.CursorStandard()
 		if input.group != nil {
 			input.group.setFocus(nil)
 		}
@@ -691,15 +695,16 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					})
 				}
 			}
-			input.requestEvent(EventTypeKeyDown)
+			(*UIBase)(input).requestEvent(EventTypeKeyDown)
 		} else if keyState == hid.KeyStateUp {
-			input.requestEvent(EventTypeKeyUp)
+			(*UIBase)(input).requestEvent(EventTypeKeyUp)
 		}
 	}
 }
 
 func labelFit(layout *Layout) {
-	input := FirstOnEntity(layout.ui.Entity()).(*Input)
+	base := FirstOnEntity(layout.ui.Entity()).(*UIBase)
+	input := (*Input)(base)
 	layout.SetOffset(horizontalPadding+input.Data().labelShift, 0)
 	ps := input.layout.PixelSize()
 	layout.ScaleWidth(ps.Width())

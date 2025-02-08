@@ -59,7 +59,7 @@ func FirstPanelOnEntity(entity *engine.Entity) *Panel {
 	if ui == nil {
 		return nil
 	}
-	return ui.(*Panel)
+	return (*Panel)(ui.(*UIBase))
 }
 
 func AllOnEntity(entity *engine.Entity) []UI {

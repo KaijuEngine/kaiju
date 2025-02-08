@@ -59,7 +59,7 @@ func (d *Details) elmToReflectedValue(elm *document.Element) (reflect.Value, boo
 	return data.entityData.(reflect.Value).Elem().Field(fieldIdx), true
 }
 
-func inputString(input *document.Element) string { return input.UI.(*ui.Input).Text() }
+func inputString(input *document.Element) string { return input.UI.(*ui.UIBase).AsInput().Text() }
 
 func toInt(str string) int64 {
 	if str == "" {

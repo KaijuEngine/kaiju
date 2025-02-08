@@ -355,9 +355,9 @@ func (l *LogWindow) reloadUI() {
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := l.doc.GetElementById("window")
 		if f32, ok := s.(float32); ok {
-			w.UIPanel.Layout().ScaleHeight(matrix.Float(f32))
+			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f32))
 		} else if f64, ok := s.(float64); ok {
-			w.UIPanel.Layout().ScaleHeight(matrix.Float(f64))
+			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f64))
 		}
 	}
 }
@@ -385,7 +385,7 @@ func (l *LogWindow) resizeStop(e *document.Element) {
 	}
 	l.host.Window.CursorStandard()
 	w, _ := l.doc.GetElementById("window")
-	s := w.UIPanel.Layout().PixelSize().Height()
+	s := w.UIPanel.Base().Layout().PixelSize().Height()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
@@ -394,6 +394,6 @@ func (l *LogWindow) DragUpdate() {
 	y := l.host.Window.Mouse.Position().Y() - 20
 	h := l.host.Window.Height()
 	if int(y) < h-100 {
-		w.UIPanel.Layout().ScaleHeight(y)
+		w.UIPanel.Base().Layout().ScaleHeight(y)
 	}
 }

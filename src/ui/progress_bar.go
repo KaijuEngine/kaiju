@@ -57,7 +57,7 @@ func (p *ProgressBar) data() *progressBarData {
 func NewProgressBar(host *engine.Host, fgTexture, bgTexture *rendering.Texture, anchor Anchor) *ProgressBar {
 	panel := NewPanel(host, bgTexture, anchor)
 	fgPanel := NewPanel(host, fgTexture, AnchorStretchCenter)
-	panel.AddChild(fgPanel)
+	panel.AddChild(fgPanel.Base())
 	panel.PanelData().localData = &progressBarData{fgPanel: fgPanel, value: 0.0}
 	return (*ProgressBar)(panel)
 }
