@@ -4,7 +4,17 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
 )
+
+func IsATextFile(file string) bool {
+	return strings.HasSuffix(file, ".html") ||
+		strings.HasSuffix(file, ".css") ||
+		strings.HasSuffix(file, ".ini") ||
+		strings.HasSuffix(file, ".json") ||
+		strings.HasSuffix(file, ".txt") ||
+		strings.HasSuffix(file, ".md")
+}
 
 func EditTextFile(file string) error {
 	var cmd *exec.Cmd

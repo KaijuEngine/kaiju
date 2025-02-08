@@ -329,7 +329,7 @@ func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 			s.openContent(elm)
 		}},
 	}
-	if strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
+	if content_opener.IsATextFile(path) {
 		ctx = append(ctx, context_menu.ContextMenuEntry{
 			Id: "edit", Label: "Edit", OnClick: func() {
 				content_opener.EditTextFile(path)
