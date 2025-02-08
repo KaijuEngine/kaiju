@@ -134,7 +134,7 @@ func initialize(host *engine.Host) *Console {
 		host.Updater.RemoveUpdate(console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
-	input := inputElm.UI.(*ui.UIBase).AsInput()
+	input := inputElm.UI.AsInput()
 	input.Base().AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
 	console.input = input
 	input.Base().Clean()
@@ -218,7 +218,7 @@ func (c *Console) clear(*engine.Host, string) string {
 
 func (c *Console) outputLabel() *ui.Label {
 	cc, _ := c.doc.GetElementById("consoleContent")
-	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).(*ui.UIBase).ToLabel()
+	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).ToLabel()
 }
 
 func (c *Console) submit(input *ui.Input) {

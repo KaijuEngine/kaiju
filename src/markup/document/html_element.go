@@ -46,7 +46,7 @@ import (
 )
 
 type Element struct {
-	UI       ui.UI
+	UI       *ui.UI
 	UIPanel  *ui.Panel
 	Parent   *Element
 	Children []*Element
@@ -56,7 +56,7 @@ type Element struct {
 
 func (d Element) InnerLabel() *ui.Label {
 	if len(d.Children) > 0 {
-		if lbl := d.Children[0].UI.(*ui.UIBase).ToLabel(); lbl != nil {
+		if lbl := d.Children[0].UI.ToLabel(); lbl != nil {
 			return lbl
 		}
 	}
@@ -77,7 +77,7 @@ func (d *Element) UnEnforceColor() {
 func setChildTextBackgroundColor(elm *Element, color matrix.Color) {
 	for _, c := range elm.Children {
 		if c.IsText() {
-			c.UI.(*ui.UIBase).ToLabel().SetBGColor(color)
+			c.UI.ToLabel().SetBGColor(color)
 		}
 		setChildTextBackgroundColor(c, color)
 	}

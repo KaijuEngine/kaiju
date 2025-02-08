@@ -229,15 +229,15 @@ func (d *Details) changeData(elm *document.Element) {
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v.SetInt(toInt(elm.UI.(*ui.UIBase).AsInput().Text()))
+		v.SetInt(toInt(elm.UI.AsInput().Text()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v.SetUint(toUint(elm.UI.(*ui.UIBase).AsInput().Text()))
+		v.SetUint(toUint(elm.UI.AsInput().Text()))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(toFloat(elm.UI.(*ui.UIBase).AsInput().Text()))
+		v.SetFloat(toFloat(elm.UI.AsInput().Text()))
 	case reflect.String:
 		v.SetString(inputString(elm))
 	case reflect.Bool:
-		v.SetBool(elm.UI.(*ui.UIBase).AsCheckbox().IsChecked())
+		v.SetBool(elm.UI.AsCheckbox().IsChecked())
 	}
 }
 

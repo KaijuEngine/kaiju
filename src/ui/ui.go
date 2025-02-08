@@ -64,28 +64,6 @@ const (
 	DirtyTypeParentScissor
 )
 
-type UI interface {
-	Entity() *engine.Entity
-	ExecuteEvent(evtType EventType) bool
-	AddEvent(evtType EventType, evt func()) events.Id
-	RemoveEvent(evtType EventType, evtId events.Id)
-	Event(evtType EventType) *events.Event
-	Update(deltaTime float64)
-	SetDirty(dirtyType DirtyType)
-	Layout() *Layout
-	ShaderData() *ShaderData
-	Clean()
-	SetGroup(group *Group)
-	Host() *engine.Host
-	GenerateScissor()
-	hasScissor() bool
-	selfScissor() matrix.Vec4
-	dirty() DirtyType
-	setScissor(scissor matrix.Vec4)
-	layoutChanged(dirtyType DirtyType)
-	cleanDirty()
-}
-
 type ElementType = uint8
 
 const (
@@ -98,7 +76,7 @@ const (
 	ElementTypeSlider
 )
 
-type UIBase struct {
+type UI struct {
 	host             *engine.Host
 	entity           *engine.Entity
 	elmData          any
@@ -123,9 +101,9 @@ type UIBase struct {
 	lastActive       bool
 }
 
-func (ui *UIBase) isActive() bool { return ui.updateId != 0 }
+func (ui *UI) isActive() bool { return ui.updateId != 0 }
 
-func (ui *UIBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
+func (ui *UI) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self *UI) {
 	ui.host = host
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
@@ -151,36 +129,36 @@ func (ui *UIBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor
 	})
 }
 
-func (ui *UIBase) Entity() *engine.Entity   { return ui.entity }
-func (ui *UIBase) Layout() *Layout          { return &ui.layout }
-func (ui *UIBase) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
-func (ui *UIBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
-func (ui *UIBase) Host() *engine.Host       { return ui.host }
-func (ui *UIBase) dirty() DirtyType         { return ui.dirtyType }
-func (ui *UIBase) ShaderData() *ShaderData  { return &ui.shaderData }
+func (ui *UI) Entity() *engine.Entity   { return ui.entity }
+func (ui *UI) Layout() *Layout          { return &ui.layout }
+func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
+func (ui *UI) Host() *engine.Host       { return ui.host }
+func (ui *UI) dirty() DirtyType         { return ui.dirtyType }
+func (ui *UI) ShaderData() *ShaderData  { return &ui.shaderData }
 
-func (ui *UIBase) SetGroup(group *Group) { ui.group = group }
+func (ui *UI) SetGroup(group *Group) { ui.group = group }
 
-func (ui *UIBase) ExecuteEvent(evtType EventType) bool {
+func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
 }
 
-func (ui *UIBase) AddEvent(evtType EventType, evt func()) events.Id {
+func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id {
 	return ui.events[evtType].Add(evt)
 }
 
-func (ui *UIBase) RemoveEvent(evtType EventType, evtId events.Id) {
+func (ui *UI) RemoveEvent(evtType EventType, evtId events.Id) {
 	ui.events[evtType].Remove(evtId)
 }
 
-func (ui *UIBase) Event(evtType EventType) *events.Event {
+func (ui *UI) Event(evtType EventType) *events.Event {
 	return &ui.events[evtType]
 }
 
-func (ui *UIBase) cleanDirty() { ui.dirtyType = DirtyTypeNone }
+func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
-func (ui *UIBase) SetDirty(dirtyType DirtyType) {
+func (ui *UI) SetDirty(dirtyType DirtyType) {
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
@@ -200,9 +178,9 @@ func (ui *UIBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *UIBase) rootUI() UI {
+func (ui *UI) rootUI() *UI {
 	root := ui.entity
-	var rootUI UI = FirstOnEntity(root)
+	var rootUI *UI = FirstOnEntity(root)
 	for root.Parent != nil {
 		if pui := FirstOnEntity(root.Parent); pui != nil {
 			root = root.Parent
@@ -214,9 +192,9 @@ func (ui *UIBase) rootUI() UI {
 	return rootUI
 }
 
-func (ui *UIBase) Clean() {
+func (ui *UI) Clean() {
 	root := ui.rootUI()
-	tree := []UI{root}
+	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
 	createTree = func(target *engine.Entity) {
 		for _, child := range target.Children {
@@ -234,17 +212,17 @@ func (ui *UIBase) Clean() {
 		for i := range tree {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
-			tree[i].(*UIBase).postLayoutUpdate()
+			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
-		tree[i].(*UIBase).render()
+		tree[i].render()
 	}
 }
 
-func (ui *UIBase) GenerateScissor() {
+func (ui *UI) GenerateScissor() {
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -270,7 +248,7 @@ func (ui *UIBase) GenerateScissor() {
 	ui.setScissor(bounds)
 }
 
-func (ui *UIBase) setScissor(scissor matrix.Vec4) {
+func (ui *UI) setScissor(scissor matrix.Vec4) {
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
@@ -282,15 +260,15 @@ func (ui *UIBase) setScissor(scissor matrix.Vec4) {
 	}
 	ui.shaderData.Scissor = scissor
 	me := FirstOnEntity(ui.entity)
-	if lbl, ok := me.(*UIBase); ok && lbl.elmType == ElementTypeLabel {
-		ld := lbl.ToLabel().LabelData()
+	if me.elmType == ElementTypeLabel {
+		ld := me.ToLabel().LabelData()
 		for i := range ld.runeDrawings {
 			ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
 		}
 	}
 }
 
-func (ui *UIBase) requestEvent(evtType EventType) {
+func (ui *UI) requestEvent(evtType EventType) {
 	if ui.group != nil {
 		ui.group.requestEvent(ui, evtType)
 	} else {
@@ -298,7 +276,7 @@ func (ui *UIBase) requestEvent(evtType EventType) {
 	}
 }
 
-func (ui *UIBase) eventUpdates() {
+func (ui *UI) eventUpdates() {
 	cursor := &ui.host.Window.Cursor
 	mouse := &ui.host.Window.Mouse
 	if cursor.Moved() {
@@ -375,21 +353,21 @@ func (ui *UIBase) eventUpdates() {
 	}
 }
 
-func (ui *UIBase) Update(deltaTime float64) {
+func (ui *UI) Update(deltaTime float64) {
 	if ui.dirtyType != DirtyTypeNone {
 		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
 
-func (ui *UIBase) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
+func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	pos := cursor.Position()
 	pos[matrix.Vx] -= matrix.Float(ui.host.Window.Width()) * 0.5
 	pos[matrix.Vy] -= matrix.Float(ui.host.Window.Height()) * 0.5
 	return pos
 }
 
-func (ui *UIBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
+func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	cp := ui.cursorPos(cursor)
 	contained := entity.Transform.ContainsPoint2D(cp)
 	if contained && ui.hasScissor() {
@@ -410,10 +388,10 @@ func (ui *UIBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	}
 }
 
-func (ui *UIBase) changed() {
+func (ui *UI) changed() {
 	ui.ExecuteEvent(EventTypeChange)
 }
 
-func (ui *UIBase) layoutChanged(dirtyType DirtyType) {
+func (ui *UI) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
 }

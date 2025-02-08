@@ -148,12 +148,12 @@ func (s *ContentWindow) contentClick(elm *document.Element) {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
 		c := p.Base().Entity().Children
-		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.UIBase).ToLabel()
+		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).ToLabel()
 		lbl.UnEnforceBGColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
 	c := elm.UI.Entity().Children
-	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).(*ui.UIBase).ToLabel()
+	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).ToLabel()
 	lbl.EnforceBGColor(matrix.ColorDarkBlue())
 	s.selected = elm.UIPanel
 }
@@ -199,7 +199,7 @@ func (s *ContentWindow) reloadUI() {
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
 	} else {
-		s.input = elm.UI.(*ui.UIBase).AsInput()
+		s.input = elm.UI.AsInput()
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)

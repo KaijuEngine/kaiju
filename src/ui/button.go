@@ -54,10 +54,10 @@ func (b *Button) data() *buttonData {
 }
 
 func (b *Button) Label() *Label {
-	var pui UI
+	var pui *UI
 	for _, c := range b.entity.Children {
 		pui = FirstOnEntity(c)
-		ok := pui.(*UIBase).elmType == ElementTypeLabel
+		ok := pui.elmType == ElementTypeLabel
 		if pui != nil && ok {
 			break
 		} else {
@@ -67,7 +67,7 @@ func (b *Button) Label() *Label {
 	if pui == nil {
 		return b.createLabel()
 	} else {
-		return pui.(*UIBase).ToLabel()
+		return pui.ToLabel()
 	}
 }
 
@@ -79,8 +79,8 @@ func NewButton(host *engine.Host, texture *rendering.Texture, text string, ancho
 	return btn
 }
 
-func (u *UIBase) AsButton() *Button { return (*Button)(u) }
-func (b *Button) Base() *UIBase     { return (*UIBase)(b) }
+func (u *UI) AsButton() *Button { return (*Button)(u) }
+func (b *Button) Base() *UI     { return (*UI)(b) }
 
 func (b *Button) createLabel() *Label {
 	lbl := NewLabel(b.host, "", AnchorStretchCenter)

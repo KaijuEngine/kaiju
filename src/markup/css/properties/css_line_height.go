@@ -48,7 +48,7 @@ import (
 
 func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host) {
 	if elm.IsText() {
-		lbl := elm.UI.(*ui.UIBase).ToLabel()
+		lbl := elm.UI.ToLabel()
 		size := helpers.NumFromLengthWithFont(size, host.Window,
 			host.FontCache().EMSize(lbl.FontFace()))
 		lbl.SetLineHeight(size)

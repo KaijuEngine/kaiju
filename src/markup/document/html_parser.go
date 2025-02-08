@@ -152,7 +152,7 @@ func TransformHTML(htmlStr string, withData any) string {
 }
 
 func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Panel) {
-	appendElement := func(uiElm ui.UI, panel *ui.Panel) *Element {
+	appendElement := func(uiElm *ui.UI, panel *ui.Panel) *Element {
 		e.UI = uiElm
 		e.UIPanel = panel
 		d.Elements = append(d.Elements, e)
@@ -186,7 +186,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
-		var uiElm ui.UI = panel.Base()
+		var uiElm *ui.UI = panel.Base()
 		if e.IsInput() {
 			inputType := e.Attribute("type")
 			switch inputType {

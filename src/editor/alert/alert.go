@@ -43,7 +43,6 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/ui"
 )
 
 type alertMsg struct {
@@ -68,7 +67,7 @@ func (a *alertMsg) done(isOkay bool) {
 			a.inputBlock <- ""
 		} else {
 			input, _ := a.doc.GetElementById("str")
-			a.inputBlock <- input.UI.(*ui.UIBase).AsInput().Text()
+			a.inputBlock <- input.UI.AsInput().Text()
 		}
 		close(a.inputBlock)
 	}

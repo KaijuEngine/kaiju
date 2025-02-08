@@ -47,7 +47,7 @@ import (
 
 func setChildrenFontWeight(elm *document.Element, weight string, host *engine.Host) {
 	if elm.IsText() {
-		lbl := elm.UI.(*ui.UIBase).ToLabel()
+		lbl := elm.UI.ToLabel()
 		lbl.SetFontWeight(weight)
 	} else {
 		for _, child := range elm.Children {

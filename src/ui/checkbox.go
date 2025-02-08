@@ -71,8 +71,8 @@ type localCheckboxData struct {
 
 type Checkbox Panel
 
-func (u *UIBase) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
-func (cb *Checkbox) Base() *UIBase      { return (*UIBase)(cb) }
+func (u *UI) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
+func (cb *Checkbox) Base() *UI      { return (*UI)(cb) }
 
 func (cb *Checkbox) data() *localCheckboxData {
 	return (*Panel)(cb).PanelData().localData.(*localCheckboxData)
@@ -184,7 +184,7 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 		}
 	}
 	(*Panel)(cb).SetBackground(target)
-	(*UIBase)(cb).requestEvent(EventTypeChange)
+	(*UI)(cb).requestEvent(EventTypeChange)
 }
 
 func (cb Checkbox) IsChecked() bool {

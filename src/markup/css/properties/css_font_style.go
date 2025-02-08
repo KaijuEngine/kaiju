@@ -47,7 +47,7 @@ import (
 
 func setChildrenFontStyle(elm *document.Element, style string, host *engine.Host) {
 	if elm.IsText() {
-		lbl := elm.UI.(*ui.UIBase).ToLabel()
+		lbl := elm.UI.ToLabel()
 		lbl.SetFontStyle(style)
 	} else {
 		for _, child := range elm.Children {

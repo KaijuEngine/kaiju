@@ -77,10 +77,10 @@ type LabelData struct {
 	renderRequired    bool
 }
 
-type Label UIBase
+type Label UI
 
-func (u *UIBase) ToLabel() *Label      { return (*Label)(u) }
-func (l *Label) Base() *UIBase         { return (*UIBase)(l) }
+func (u *UI) ToLabel() *Label          { return (*Label)(u) }
+func (l *Label) Base() *UI             { return (*UI)(l) }
 func (l *Label) LabelData() *LabelData { return l.elmData.(*LabelData) }
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {

@@ -118,10 +118,10 @@ type panelData struct {
 	allowDragScroll           bool
 }
 
-type Panel UIBase
+type Panel UI
 
-func (u *UIBase) AsPanel() *Panel { return (*Panel)(u) }
-func (p *Panel) Base() *UIBase    { return (*UIBase)(p) }
+func (u *UI) ToPanel() *Panel { return (*Panel)(u) }
+func (p *Panel) Base() *UI    { return (*UI)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.(*panelData) }
 
@@ -268,15 +268,14 @@ func (p *Panel) onScroll() {
 	}
 }
 
-func panelOnDown(ui UI) {
-	var target UI = ui
+func panelOnDown(ui *UI) {
+	var target *UI = ui
 	ok := false
 	var panel *Panel
 	for !ok {
 		target = FirstOnEntity(target.Entity().Parent)
-		var base *UIBase
-		if base, ok = target.(*UIBase); ok {
-			panel = (*Panel)(base)
+		if target.elmType == ElementTypePanel {
+			panel = target.ToPanel()
 		}
 	}
 	pd := panel.PanelData()
@@ -309,14 +308,14 @@ func (p *Panel) update(deltaTime float64) {
 }
 
 type rowBuilder struct {
-	elements        []UI
+	elements        []*UI
 	maxMarginTop    float32
 	maxMarginBottom float32
 	x               float32
 	height          float32
 }
 
-func (rb *rowBuilder) addElement(areaWidth float32, e UI) bool {
+func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	eSize := e.Layout().PixelSize()
 	w := eSize.Width()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
@@ -372,13 +371,13 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 			continue
 		}
 		var size matrix.Vec2
-		if lbl, ok := kui.(*UIBase); ok && lbl.elmType == ElementTypeLabel {
-			size = lbl.ToLabel().Measure()
+		if kui.elmType == ElementTypeLabel {
+			size = kui.ToLabel().Measure()
 			// Give a little margin for error on text
 			size[matrix.Vx] += 0.1
 		} else {
 			size = kid.Transform.WorldScale().AsVec2()
-			(kui.(*UIBase)).AsPanel().boundsChildren(bounds)
+			kui.ToPanel().boundsChildren(bounds)
 		}
 		r := pos.X() + size.X()
 		b := pos.Y() + size.Y()
@@ -480,7 +479,7 @@ func (p *Panel) panelRender() {
 	pd.requestScrollY.requested = false
 }
 
-func (p *Panel) AddChild(target UI) {
+func (p *Panel) AddChild(target *UI) {
 	target.Entity().SetParent(p.entity)
 	if p.group != nil {
 		target.SetGroup(p.group)
@@ -489,7 +488,7 @@ func (p *Panel) AddChild(target UI) {
 	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (p *Panel) InsertChild(target UI, idx int) {
+func (p *Panel) InsertChild(target *UI, idx int) {
 	p.AddChild(target)
 	kidLen := len(p.entity.Children)
 	idx = max(idx, 0)
@@ -498,7 +497,7 @@ func (p *Panel) InsertChild(target UI, idx int) {
 	}
 }
 
-func (p *Panel) RemoveChild(target UI) {
+func (p *Panel) RemoveChild(target *UI) {
 	target.Entity().SetParent(nil)
 	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
 	target.Layout().update()
@@ -506,7 +505,7 @@ func (p *Panel) RemoveChild(target UI) {
 	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (p *Panel) Child(index int) UI {
+func (p *Panel) Child(index int) *UI {
 	return FirstOnEntity(p.entity.Children[index])
 }
 

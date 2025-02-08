@@ -51,8 +51,8 @@ type localSliderData struct {
 
 type Slider Panel
 
-func (u *UIBase) AsSlider() *Slider { return (*Slider)(u) }
-func (s *Slider) Base() *UIBase     { return (*UIBase)(s) }
+func (u *UI) AsSlider() *Slider { return (*Slider)(u) }
+func (s *Slider) Base() *UI     { return (*UI)(s) }
 
 func (s *Slider) data() *localSliderData {
 	return (*Panel)(s).PanelData().localData.(*localSliderData)
@@ -121,7 +121,7 @@ func (slider *Slider) SetValue(value float32) {
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
 	x := matrix.Clamp((w * ld.value), 0, w-ld.fgPanel.entity.Transform.WorldScale().X())
 	ld.fgPanel.layout.SetInnerOffsetLeft(x)
-	(*UIBase)(slider).changed()
+	(*UI)(slider).changed()
 }
 
 func (slider *Slider) SetFGColor(fgColor matrix.Color) {

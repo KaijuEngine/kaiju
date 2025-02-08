@@ -44,7 +44,6 @@ import (
 	"kaiju/host_container"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/ui"
 	"strconv"
 	"strings"
 )
@@ -90,7 +89,7 @@ func (dp *DataPicker) pick(elm *document.Element) {
 
 func (dp *DataPicker) search(elm *document.Element) {
 	input, _ := dp.doc.GetElementById("search")
-	query := strings.ToLower(input.UI.(*ui.UIBase).AsInput().Text())
+	query := strings.ToLower(input.UI.AsInput().Text())
 	for i := range dp.doc.Elements {
 		name := dp.doc.Elements[i].Attribute("data-name")
 		if name != "" {

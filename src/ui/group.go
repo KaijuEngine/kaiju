@@ -45,13 +45,13 @@ import (
 )
 
 type groupRequest struct {
-	target    UI
+	target    *UI
 	eventType EventType
 }
 
 type Group struct {
 	requests    []groupRequest
-	focus       UI
+	focus       *UI
 	updateId    int
 	hadRequests bool
 }
@@ -65,7 +65,7 @@ func NewGroup() *Group {
 
 func (group *Group) HasRequests() bool { return group.hadRequests }
 
-func (group *Group) requestEvent(ui UI, eType EventType) {
+func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
 		slog.Error("Invalid UI event type")
 		return
@@ -77,7 +77,7 @@ func (group *Group) requestEvent(ui UI, eType EventType) {
 	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
-func (group *Group) setFocus(ui UI) {
+func (group *Group) setFocus(ui *UI) {
 	if group.focus != nil && group.focus != ui {
 		group.focus.ExecuteEvent(EventTypeMiss)
 	}

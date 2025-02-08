@@ -176,7 +176,7 @@ type Layout struct {
 	bottom           float32
 	z                float32
 	anchor           matrix.Vec2
-	ui               UI
+	ui               *UI
 	screenAnchor     Anchor
 	layoutFunction   func(layout *Layout)
 	anchorFunction   func(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4
@@ -206,7 +206,7 @@ func (l *Layout) PixelSize() matrix.Vec2 {
 	return l.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
-func (l *Layout) Ui() UI { return l.ui }
+func (l *Layout) Ui() *UI { return l.ui }
 
 func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return -w*0.5 + size.X()*0.5 + edges.Left()
@@ -371,7 +371,7 @@ func (l *Layout) bounds() matrix.Vec2 {
 	}
 }
 
-func (l *Layout) initialize(ui UI, anchor Anchor) {
+func (l *Layout) initialize(ui *UI, anchor Anchor) {
 	l.anchor = matrix.Vec2Zero()
 	l.ui = ui
 	l.AnchorTo(anchor)
