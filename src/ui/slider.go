@@ -52,7 +52,7 @@ type localSliderData struct {
 type Slider Panel
 
 func (cb *Slider) data() *localSliderData {
-	return cb.localData.(*localSliderData)
+	return (*Panel)(cb).PanelData().localData.(*localSliderData)
 }
 
 func (p *Panel) ConvertToSlider() *Slider {
@@ -82,9 +82,10 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.SetColor(matrix.ColorWhite())
 	ld.bgPanel.entity.SetParent(p.entity)
 	ld.fgPanel.entity.SetParent(p.entity)
-	p.localData = ld
+	pd := p.PanelData()
+	pd.localData = ld
 	p.AddEvent(EventTypeDown, s.onDown)
-	p.innerUpdate = s.sliderUpdate
+	pd.innerUpdate = s.sliderUpdate
 	return s
 }
 

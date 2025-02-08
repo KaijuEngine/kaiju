@@ -52,16 +52,16 @@ type imageData struct {
 }
 
 func (s *Image) data() *imageData {
-	return s.localData.(*imageData)
+	return (*Panel)(s).PanelData().localData.(*imageData)
 }
 
 func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
 	panel := NewPanel(host, texture, anchor)
 	img := (*Image)(panel)
-	img.localData = &imageData{
+	panel.PanelData().localData = &imageData{
 		flipBook: []*rendering.Texture{texture},
 	}
-	panel.innerUpdate = img.update
+	panel.PanelData().innerUpdate = img.update
 	return img
 }
 

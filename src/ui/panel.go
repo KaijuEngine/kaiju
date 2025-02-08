@@ -97,8 +97,7 @@ type requestScroll struct {
 	requested bool
 }
 
-type Panel struct {
-	uiBase
+type panelData struct {
 	scroll, offset, maxScroll matrix.Vec2
 	scrollSpeed               float32
 	scrollDirection           PanelScrollDirection
@@ -119,14 +118,25 @@ type Panel struct {
 	allowDragScroll           bool
 }
 
+type Panel struct {
+	uiBase
+}
+
+func (p *Panel) PanelData() *panelData { return p.elmData.(*panelData) }
+
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Panel {
 	panel := &Panel{
-		scrollEvent:        0,
-		scrollSpeed:        20.0,
-		scrollDirection:    PanelScrollDirectionVertical,
-		color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:         ContentFitBoth,
-		enforcedColorStack: make([]matrix.Color, 0),
+		uiBase: uiBase{
+			elmData: &panelData{
+				scrollEvent:        0,
+				scrollSpeed:        20.0,
+				scrollDirection:    PanelScrollDirectionVertical,
+				color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
+				fitContent:         ContentFitBoth,
+				enforcedColorStack: make([]matrix.Color, 0),
+			},
+			elmType: ElementTypePanel,
+		},
 	}
 	ts := matrix.Vec2Zero()
 	if texture != nil {
@@ -155,43 +165,46 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 	return panel
 }
 
-func (p *Panel) ScrollX() float32   { return p.scroll.X() }
-func (p *Panel) ScrollY() float32   { return -p.scroll.Y() }
-func (p *Panel) EnableDragScroll()  { p.allowDragScroll = true }
-func (p *Panel) DisableDragScroll() { p.allowDragScroll = false }
+func (p *Panel) ScrollX() float32   { return p.PanelData().scroll.X() }
+func (p *Panel) ScrollY() float32   { return -p.PanelData().scroll.Y() }
+func (p *Panel) EnableDragScroll()  { p.PanelData().allowDragScroll = true }
+func (p *Panel) DisableDragScroll() { p.PanelData().allowDragScroll = false }
 
 func (p *Panel) DontFitContentWidth() {
-	switch p.fitContent {
+	pd := p.PanelData()
+	switch pd.fitContent {
 	case ContentFitBoth:
-		p.fitContent = ContentFitHeight
+		pd.fitContent = ContentFitHeight
 	case ContentFitWidth:
-		p.fitContent = ContentFitNone
+		pd.fitContent = ContentFitNone
 	}
 }
 
 func (p *Panel) DontFitContentHeight() {
-	switch p.fitContent {
+	pd := p.PanelData()
+	switch pd.fitContent {
 	case ContentFitBoth:
-		p.fitContent = ContentFitWidth
+		pd.fitContent = ContentFitWidth
 	case ContentFitHeight:
-		p.fitContent = ContentFitNone
+		pd.fitContent = ContentFitNone
 	}
 }
 
 func (p *Panel) DontFitContent() {
-	p.fitContent = ContentFitNone
+	p.PanelData().fitContent = ContentFitNone
 }
 
 func (p *Panel) FittingContent() bool {
-	return p.fitContent != ContentFitNone
+	return p.PanelData().fitContent != ContentFitNone
 }
 
 func (p *Panel) FitContentWidth() {
-	switch p.fitContent {
+	pd := p.PanelData()
+	switch pd.fitContent {
 	case ContentFitNone:
-		p.fitContent = ContentFitWidth
+		pd.fitContent = ContentFitWidth
 	case ContentFitHeight:
-		p.fitContent = ContentFitBoth
+		pd.fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
@@ -201,11 +214,12 @@ func (p *Panel) FitContentWidth() {
 }
 
 func (p *Panel) FitContentHeight() {
-	switch p.fitContent {
+	pd := p.PanelData()
+	switch pd.fitContent {
 	case ContentFitNone:
-		p.fitContent = ContentFitHeight
+		pd.fitContent = ContentFitHeight
 	case ContentFitWidth:
-		p.fitContent = ContentFitBoth
+		pd.fitContent = ContentFitBoth
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
@@ -215,7 +229,7 @@ func (p *Panel) FitContentHeight() {
 }
 
 func (p *Panel) FitContent() {
-	p.fitContent = ContentFitBoth
+	p.PanelData().fitContent = ContentFitBoth
 	if p.dirtyType == DirtyTypeNone {
 		p.SetDirty(DirtyTypeLayout)
 	} else {
@@ -224,29 +238,30 @@ func (p *Panel) FitContent() {
 }
 
 func (p *Panel) onScroll() {
+	pd := p.PanelData()
 	mouse := &p.host.Window.Mouse
 	delta := mouse.Scroll()
-	scroll := p.scroll
+	scroll := pd.scroll
 	if !mouse.Scrolled() {
 		pos := p.cursorPos(&p.host.Window.Cursor)
 		delta = pos.Subtract(p.downPos)
 		delta[matrix.Vy] *= -1.0
 	} else {
-		p.offset = p.scroll
-		delta.ScaleAssign(p.scrollSpeed)
+		pd.offset = pd.scroll
+		delta.ScaleAssign(pd.scrollSpeed)
 	}
-	if (p.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
-		x := matrix.Clamp(delta.X()+p.offset.X(), 0.0, p.maxScroll.X())
+	if (pd.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
+		x := matrix.Clamp(delta.X()+pd.offset.X(), 0.0, pd.maxScroll.X())
 		scroll.SetX(x)
 	}
-	if (p.scrollDirection & PanelScrollDirectionVertical) != 0 {
-		y := matrix.Clamp(delta.Y()+p.offset.Y(), -p.maxScroll.Y(), 0)
+	if (pd.scrollDirection & PanelScrollDirectionVertical) != 0 {
+		y := matrix.Clamp(delta.Y()+pd.offset.Y(), -pd.maxScroll.Y(), 0)
 		scroll.SetY(y)
 	}
-	if !matrix.Vec2Approx(scroll, p.scroll) {
-		p.scroll = scroll
+	if !matrix.Vec2Approx(scroll, pd.scroll) {
+		pd.scroll = scroll
 		p.SetDirty(DirtyTypeLayout)
-		p.isScrolling = true
+		pd.isScrolling = true
 	}
 }
 
@@ -258,9 +273,10 @@ func panelOnDown(ui UI) {
 		target = FirstOnEntity(target.Entity().Parent)
 		panel, ok = target.(*Panel)
 	}
-	panel.offset = panel.scroll
-	panel.dragging = true
-	if !panel.allowDragScroll {
+	pd := panel.PanelData()
+	pd.offset = pd.scroll
+	pd.dragging = true
+	if !pd.allowDragScroll {
 		// TODO:  Change the mouse cursor to look like it's dragging something
 	}
 }
@@ -268,19 +284,20 @@ func panelOnDown(ui UI) {
 func (p *Panel) update(deltaTime float64) {
 	p.uiBase.eventUpdates()
 	p.uiBase.Update(deltaTime)
-	if !p.frozen {
-		if p.isDown && p.dragging {
-			if p.allowDragScroll {
+	pd := p.PanelData()
+	if !pd.frozen {
+		if p.isDown && pd.dragging {
+			if pd.allowDragScroll {
 				p.onScroll()
 			}
-		} else if p.dragging {
-			p.dragging = false
+		} else if pd.dragging {
+			pd.dragging = false
 		} else {
-			p.isScrolling = false
+			pd.isScrolling = false
 		}
 	}
-	if p.innerUpdate != nil {
-		p.innerUpdate(deltaTime)
+	if pd.innerUpdate != nil {
+		pd.innerUpdate(deltaTime)
 	}
 }
 
@@ -366,15 +383,16 @@ func (p *Panel) postLayoutUpdate() {
 	if len(p.entity.Children) == 0 {
 		return
 	}
-	if p.requestScrollX.requested {
-		x := matrix.Clamp(p.requestScrollX.to, 0.0, p.maxScroll.X())
-		p.scroll.SetX(x)
+	pd := p.PanelData()
+	if pd.requestScrollX.requested {
+		x := matrix.Clamp(pd.requestScrollX.to, 0.0, pd.maxScroll.X())
+		pd.scroll.SetX(x)
 	}
-	if p.requestScrollY.requested {
-		y := matrix.Clamp(-p.requestScrollY.to, -p.maxScroll.Y(), 0)
-		p.scroll.SetY(y)
+	if pd.requestScrollY.requested {
+		y := matrix.Clamp(-pd.requestScrollY.to, -pd.maxScroll.Y(), 0)
+		pd.scroll.SetY(y)
 	}
-	offsetStart := matrix.Vec2{-p.scroll.X(), p.scroll.Y()}
+	offsetStart := matrix.Vec2{-pd.scroll.X(), pd.scroll.Y()}
 	rows := make([]rowBuilder, 0)
 	ps := p.layout.PixelSize()
 	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z() -
@@ -426,31 +444,32 @@ func (p *Panel) postLayoutUpdate() {
 		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)
 		border := p.layout.border
-		if p.fitContent == ContentFitWidth {
+		if pd.fitContent == ContentFitWidth {
 			p.layout.ScaleWidth(max(1, bounds.X()+border.Left()+border.Right()))
-		} else if p.fitContent == ContentFitHeight {
+		} else if pd.fitContent == ContentFitHeight {
 			p.layout.ScaleHeight(max(1, bounds.Y()+border.Top()+border.Bottom()))
-		} else if p.fitContent == ContentFitBoth {
+		} else if pd.fitContent == ContentFitBoth {
 			p.layout.Scale(max(1, bounds.X()+border.Left()+border.Right()),
 				max(1, bounds.Y()+border.Top()+border.Bottom()))
 		}
 	}
 	length := nextPos.Subtract(offsetStart)
-	last := p.maxScroll
+	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
-	p.maxScroll = matrix.Vec2{
+	pd.maxScroll = matrix.Vec2{
 		matrix.Max(0.0, length.X()-ws.X()),
 		matrix.Max(0.0, length.Y()-ws.Y())}
-	if !matrix.Vec2Approx(last, p.maxScroll) {
+	if !matrix.Vec2Approx(last, pd.maxScroll) {
 		p.SetDirty(DirtyTypeGenerated)
 	}
 }
 
 func (p *Panel) render() {
+	pd := p.PanelData()
 	p.uiBase.render()
 	p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
-	p.requestScrollX.requested = false
-	p.requestScrollY.requested = false
+	pd.requestScrollX.requested = false
+	pd.requestScrollY.requested = false
 }
 
 func (p *Panel) AddChild(target UI) {
@@ -484,7 +503,7 @@ func (p *Panel) Child(index int) UI {
 }
 
 func (p *Panel) SetSpeed(speed float32) {
-	p.scrollSpeed = speed
+	p.PanelData().scrollSpeed = speed
 }
 
 func (p *Panel) recreateDrawing() {
@@ -496,11 +515,12 @@ func (p *Panel) recreateDrawing() {
 
 func (p *Panel) removeDrawing() {
 	p.recreateDrawing()
-	p.drawing = rendering.Drawing{}
+	p.PanelData().drawing = rendering.Drawing{}
 }
 
 func (p *Panel) EnforceColor(color matrix.Color) {
-	p.enforcedColorStack = append(p.enforcedColorStack, p.shaderData.FgColor)
+	pd := p.PanelData()
+	pd.enforcedColorStack = append(pd.enforcedColorStack, p.shaderData.FgColor)
 	p.setColorInternal(color)
 }
 
@@ -508,37 +528,41 @@ func (p *Panel) UnEnforceColor() {
 	if !p.HasEnforcedColor() {
 		return
 	}
-	last := len(p.enforcedColorStack) - 1
-	p.setColorInternal(p.enforcedColorStack[last])
-	p.enforcedColorStack = p.enforcedColorStack[:last]
+	pd := p.PanelData()
+	last := len(pd.enforcedColorStack) - 1
+	p.setColorInternal(pd.enforcedColorStack[last])
+	pd.enforcedColorStack = pd.enforcedColorStack[:last]
 }
 
 func (p *Panel) SetColor(bgColor matrix.Color) {
 	if p.HasEnforcedColor() {
-		p.enforcedColorStack[0] = bgColor
+		p.PanelData().enforcedColorStack[0] = bgColor
 		return
 	}
 	p.setColorInternal(bgColor)
 }
 
 func (p *Panel) SetScrollX(value float32) {
-	p.requestScrollX.to = value
-	p.requestScrollX.requested = true
+	pd := p.PanelData()
+	pd.requestScrollX.to = value
+	pd.requestScrollX.requested = true
 	p.SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) SetScrollY(value float32) {
-	p.requestScrollY.to = value
-	p.requestScrollY.requested = true
+	pd := p.PanelData()
+	pd.requestScrollY.to = value
+	pd.requestScrollY.requested = true
 	p.SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) ResetScroll() {
-	p.scroll = matrix.Vec2Zero()
+	p.PanelData().scroll = matrix.Vec2Zero()
 }
 
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
-	if !p.drawing.IsValid() {
+	pd := p.PanelData()
+	if !pd.drawing.IsValid() {
 		if tex == nil {
 			tex, _ = p.host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
@@ -546,14 +570,14 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		shader := p.host.ShaderCache().ShaderFromDefinition(
 			assets.ShaderDefinitionUI)
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
-		p.shaderData.BgColor = p.color
-		p.shaderData.FgColor = p.color
+		p.shaderData.BgColor = pd.color
+		p.shaderData.FgColor = pd.color
 		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		p.textureSize = tex.Size()
 		p.shaderData.setSize2d(p, p.textureSize.X(), p.textureSize.Y())
-		p.drawing = rendering.Drawing{
+		pd.drawing = rendering.Drawing{
 			Renderer:   p.host.Window.Renderer,
 			Shader:     shader,
 			Mesh:       rendering.NewMeshQuad(p.host.MeshCache()),
@@ -562,24 +586,26 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			Transform:  &p.entity.Transform,
 			CanvasId:   "default",
 		}
-		p.host.Drawings.AddDrawing(&p.drawing)
+		p.host.Drawings.AddDrawing(&pd.drawing)
 	} else if tex != nil {
 		p.SetBackground(tex)
 	}
 }
 
 func (p *Panel) Background() *rendering.Texture {
-	if p.drawing.IsValid() {
-		return p.drawing.Textures[0]
+	pd := p.PanelData()
+	if pd.drawing.IsValid() {
+		return pd.drawing.Textures[0]
 	}
 	return nil
 }
 
 func (p *Panel) SetBackground(tex *rendering.Texture) {
-	if p.drawing.IsValid() {
+	pd := p.PanelData()
+	if pd.drawing.IsValid() {
 		p.recreateDrawing()
-		p.drawing.Textures[0] = tex
-		p.host.Drawings.AddDrawing(&p.drawing)
+		pd.drawing.Textures[0] = tex
+		p.host.Drawings.AddDrawing(&pd.drawing)
 	}
 }
 
@@ -588,37 +614,41 @@ func (p *Panel) RemoveBackground() {
 }
 
 func (p *Panel) IsScrolling() bool {
-	return p.isScrolling
+	return p.PanelData().isScrolling
 }
 
 func (p *Panel) Freeze() {
-	p.frozen = true
+	p.PanelData().frozen = true
 }
 
 func (p *Panel) UnFreeze() {
-	p.frozen = false
+	p.PanelData().frozen = false
 }
 
 func (p *Panel) IsFrozen() bool {
-	return p.frozen
+	return p.PanelData().frozen
 }
 
 func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
-	p.scrollDirection = direction
+	pd := p.PanelData()
+	pd.scrollDirection = direction
 	p.SetDirty(DirtyTypeLayout)
-	if p.scrollDirection == PanelScrollDirectionNone {
-		if p.scrollEvent != 0 {
-			p.RemoveEvent(EventTypeScroll, p.scrollEvent)
-			p.scrollEvent = 0
+	if pd.scrollDirection == PanelScrollDirectionNone {
+		if pd.scrollEvent != 0 {
+			p.RemoveEvent(EventTypeScroll, pd.scrollEvent)
+			pd.scrollEvent = 0
 		}
-	} else if p.scrollEvent == 0 {
-		p.scrollEvent = p.AddEvent(EventTypeScroll, p.onScroll)
+	} else if pd.scrollEvent == 0 {
+		pd.scrollEvent = p.AddEvent(EventTypeScroll, p.onScroll)
 	}
 }
 
-func (p *Panel) ScrollDirection() PanelScrollDirection { return p.scrollDirection }
-func (p *Panel) BorderSize() matrix.Vec4               { return p.layout.Border() }
-func (p *Panel) BorderStyle() [4]BorderStyle           { return p.borderStyle }
+func (p *Panel) ScrollDirection() PanelScrollDirection {
+	return p.PanelData().scrollDirection
+}
+
+func (p *Panel) BorderSize() matrix.Vec4     { return p.layout.Border() }
+func (p *Panel) BorderStyle() [4]BorderStyle { return p.PanelData().borderStyle }
 
 func (p *Panel) BorderColor() [4]matrix.Color {
 	return p.shaderData.BorderColor
@@ -637,7 +667,7 @@ func (p *Panel) SetBorderSize(left, top, right, bottom float32) {
 }
 
 func (p *Panel) SetBorderStyle(left, top, right, bottom BorderStyle) {
-	p.borderStyle = [4]BorderStyle{left, top, right, bottom}
+	p.PanelData().borderStyle = [4]BorderStyle{left, top, right, bottom}
 }
 
 func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
@@ -646,20 +676,24 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 
 func (p *Panel) SetUseBlending(useBlending bool) {
 	p.recreateDrawing()
-	p.drawing.UseBlending = useBlending
-	p.host.Drawings.AddDrawing(&p.drawing)
+	pd := p.PanelData()
+	pd.drawing.UseBlending = useBlending
+	p.host.Drawings.AddDrawing(&pd.drawing)
 }
 
-func (p *Panel) Overflow() Overflow { return p.overflow }
+func (p *Panel) Overflow() Overflow { return p.PanelData().overflow }
 
 func (p *Panel) SetOverflow(overflow Overflow) {
-	if p.overflow != overflow {
-		p.overflow = overflow
+	pd := p.PanelData()
+	if pd.overflow != overflow {
+		pd.overflow = overflow
 		p.SetDirty(DirtyTypeLayout)
 	}
 }
 
-func (p *Panel) HasEnforcedColor() bool { return len(p.enforcedColorStack) > 0 }
+func (p *Panel) HasEnforcedColor() bool {
+	return len(p.PanelData().enforcedColorStack) > 0
+}
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	if p.shaderData.FgColor.Equals(bgColor) {
@@ -670,8 +704,9 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	shouldBlend := bgColor.A() < 1.0
 	if hasBlending != shouldBlend {
 		p.recreateDrawing()
-		p.drawing.UseBlending = shouldBlend
-		p.host.Drawings.AddDrawing(&p.drawing)
+		pd := p.PanelData()
+		pd.drawing.UseBlending = shouldBlend
+		p.host.Drawings.AddDrawing(&pd.drawing)
 	}
 	p.shaderData.FgColor = bgColor
 }

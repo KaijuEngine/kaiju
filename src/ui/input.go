@@ -89,7 +89,7 @@ type localInputData struct {
 type Input Panel
 
 func (input *Input) Data() *localInputData {
-	return input.localData.(*localInputData)
+	return (*Panel)(input).PanelData().localData.(*localInputData)
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
@@ -100,7 +100,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input := (*Input)(p)
 	host := p.Host()
 	data := &localInputData{}
-	input.localData = data
+	p.PanelData().localData = data
 	p.DontFitContent()
 
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
@@ -163,7 +163,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input.AddEvent(EventTypeRebuild, input.onRebuild)
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
-	input.innerUpdate = input.update
+	p.PanelData().innerUpdate = input.update
 	id := host.Window.Keyboard.AddKeyCallback(input.keyPressed)
 	input.entity.OnDestroy.Add(func() {
 		host.Window.Keyboard.RemoveKeyCallback(id)
@@ -254,7 +254,7 @@ func (input *Input) setBgColors() {
 			data.label.fgColor, sd.FgColor)
 		if data.selectStart != data.selectEnd {
 			data.label.ColorRange(data.selectStart, data.selectEnd,
-				data.label.fgColor, data.highlight.color)
+				data.label.fgColor, data.highlight.PanelData().color)
 		}
 	}
 }

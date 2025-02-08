@@ -88,9 +88,18 @@ type UI interface {
 	render()
 }
 
+type ElementType = uint8
+
+const (
+	ElementTypePanel = ElementType(iota)
+	ElementTypeLabel
+)
+
 type uiBase struct {
 	host         *engine.Host
 	entity       *engine.Entity
+	elmData      any
+	elmType      ElementType
 	events       [EventTypeEnd]events.Event
 	group        *Group
 	dragStartPos matrix.Vec3
@@ -241,7 +250,7 @@ func (ui *uiBase) GenerateScissor() {
 	}
 	if !ui.entity.IsRoot() {
 		p := FirstPanelOnEntity(ui.entity.Parent)
-		for p.overflow == OverflowVisible && !p.entity.IsRoot() {
+		for p.PanelData().overflow == OverflowVisible && !p.entity.IsRoot() {
 			p = FirstPanelOnEntity(p.entity.Parent)
 		}
 		//if !p.entity.IsRoot() {

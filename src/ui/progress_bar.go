@@ -51,14 +51,14 @@ type progressBarData struct {
 }
 
 func (p *ProgressBar) data() *progressBarData {
-	return p.localData.(*progressBarData)
+	return (*Panel)(p).PanelData().localData.(*progressBarData)
 }
 
 func NewProgressBar(host *engine.Host, fgTexture, bgTexture *rendering.Texture, anchor Anchor) *ProgressBar {
 	panel := NewPanel(host, bgTexture, anchor)
 	fgPanel := NewPanel(host, fgTexture, AnchorStretchCenter)
 	panel.AddChild(fgPanel)
-	panel.localData = &progressBarData{fgPanel: fgPanel, value: 0.0}
+	panel.PanelData().localData = &progressBarData{fgPanel: fgPanel, value: 0.0}
 	return (*ProgressBar)(panel)
 }
 

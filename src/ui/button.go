@@ -50,7 +50,7 @@ type buttonData struct {
 }
 
 func (b *Button) data() *buttonData {
-	return b.localData.(*buttonData)
+	return (*Panel)(b).PanelData().localData.(*buttonData)
 }
 
 func (b *Button) Label() *Label {
@@ -92,7 +92,7 @@ func (b *Button) createLabel() *Label {
 
 func (b *Button) setup(text string) {
 	p := (*Panel)(b)
-	p.localData = &buttonData{matrix.ColorWhite()}
+	p.PanelData().localData = &buttonData{matrix.ColorWhite()}
 	p.SetColor(matrix.ColorWhite())
 	btn := (*Button)(p)
 	btn.setupEvents()

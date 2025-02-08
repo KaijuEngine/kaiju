@@ -72,7 +72,7 @@ type localCheckboxData struct {
 type Checkbox Panel
 
 func (cb *Checkbox) data() *localCheckboxData {
-	return cb.localData.(*localCheckboxData)
+	return (*Panel)(cb).PanelData().localData.(*localCheckboxData)
 }
 
 func (p *Panel) ConvertToCheckbox() *Checkbox {
@@ -96,7 +96,7 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 	p.AddEvent(EventTypeDown, cb.onDown)
 	p.AddEvent(EventTypeUp, cb.onUp)
 	p.AddEvent(EventTypeClick, cb.onClick)
-	p.localData = ld
+	p.PanelData().localData = ld
 	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
 	p.ensureBGExists(ld.textures[texOffIdle])
 	return cb
