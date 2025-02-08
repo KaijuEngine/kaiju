@@ -84,8 +84,6 @@ type UI interface {
 	setScissor(scissor matrix.Vec4)
 	layoutChanged(dirtyType DirtyType)
 	cleanDirty()
-	postLayoutUpdate()
-	render()
 }
 
 type ElementType = uint8
@@ -96,36 +94,40 @@ const (
 )
 
 type UIBase struct {
-	host         *engine.Host
-	entity       *engine.Entity
-	elmData      any
-	elmType      ElementType
-	events       [EventTypeEnd]events.Event
-	group        *Group
-	dragStartPos matrix.Vec3
-	downPos      matrix.Vec2
-	layout       Layout
-	dirtyType    DirtyType
-	shaderData   ShaderData
-	textureSize  matrix.Vec2
-	lastClick    float64
-	updateId     int
-	hovering     bool
-	cantMiss     bool
-	isDown       bool
-	isRightDown  bool
-	drag         bool
-	lastActive   bool
+	host             *engine.Host
+	entity           *engine.Entity
+	elmData          any
+	events           [EventTypeEnd]events.Event
+	group            *Group
+	postLayoutUpdate func()
+	render           func()
+	layout           Layout
+	dragStartPos     matrix.Vec3
+	downPos          matrix.Vec2
+	elmType          ElementType
+	dirtyType        DirtyType
+	shaderData       ShaderData
+	textureSize      matrix.Vec2
+	lastClick        float64
+	updateId         int
+	hovering         bool
+	cantMiss         bool
+	isDown           bool
+	isRightDown      bool
+	drag             bool
+	lastActive       bool
 }
 
 func (ui *UIBase) isActive() bool { return ui.updateId != 0 }
 
-func (ui *UIBase) render() {
-	ui.events[EventTypeRender].Execute()
-}
-
 func (ui *UIBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
 	ui.host = host
+	if ui.postLayoutUpdate == nil {
+		ui.postLayoutUpdate = func() {}
+	}
+	if ui.render == nil {
+		ui.render = func() { ui.events[EventTypeRender].Execute() }
+	}
 	ui.entity = host.NewEntity()
 	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
@@ -151,7 +153,6 @@ func (ui *UIBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
 func (ui *UIBase) Host() *engine.Host       { return ui.host }
 func (ui *UIBase) dirty() DirtyType         { return ui.dirtyType }
 func (ui *UIBase) ShaderData() *ShaderData  { return &ui.shaderData }
-func (ui *UIBase) postLayoutUpdate()        {}
 
 func (ui *UIBase) SetGroup(group *Group) { ui.group = group }
 
@@ -228,13 +229,13 @@ func (ui *UIBase) Clean() {
 		for i := range tree {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
-			tree[i].postLayoutUpdate()
+			tree[i].(*UIBase).postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
-		tree[i].render()
+		tree[i].(*UIBase).render()
 	}
 }
 

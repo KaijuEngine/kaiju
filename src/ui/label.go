@@ -94,6 +94,8 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		renderRequired:  true,
 		lastRenderWidth: 0,
 	}
+	label.postLayoutUpdate = label.labelPostLayoutUpdate
+	label.render = label.labelRender
 	label.init(host, matrix.Vec2Zero(), anchor, label)
 	label.SetText(text)
 	label.SetDirty(DirtyTypeGenerated)
@@ -159,7 +161,7 @@ func (label *Label) clearDrawings() {
 	label.runeDrawings = label.runeDrawings[:0]
 }
 
-func (label *Label) postLayoutUpdate() {
+func (label *Label) labelPostLayoutUpdate() {
 	maxWidth := float32(999999.0)
 	if label.wordWrap {
 		maxWidth = label.layout.PixelSize().Width()
@@ -211,7 +213,7 @@ func (label *Label) renderText() {
 	}
 }
 
-func (label *Label) render() {
+func (label *Label) labelRender() {
 	label.UIBase.render()
 	maxWidth := label.nonOverrideMaxWidth()
 	if label.lastRenderWidth != maxWidth {

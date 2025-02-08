@@ -137,6 +137,8 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Pan
 		},
 		elmType: ElementTypePanel,
 	}
+	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
+	panel.render = panel.panelRender
 	ts := matrix.Vec2Zero()
 	if texture != nil {
 		ts = texture.Size()
@@ -384,7 +386,7 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 	}
 }
 
-func (p *Panel) postLayoutUpdate() {
+func (p *Panel) panelPostLayoutUpdate() {
 	if len(p.entity.Children) == 0 {
 		return
 	}
@@ -469,9 +471,10 @@ func (p *Panel) postLayoutUpdate() {
 	}
 }
 
-func (p *Panel) render() {
+func (p *Panel) panelRender() {
 	pd := p.PanelData()
-	p.Base().render()
+	//p.Base().render() ---v
+	p.events[EventTypeRender].Execute()
 	p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 	pd.requestScrollX.requested = false
 	pd.requestScrollY.requested = false
