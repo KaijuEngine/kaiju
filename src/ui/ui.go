@@ -421,7 +421,9 @@ func (ui *UI) anyChildDirty() bool {
 }
 
 func (ui *UI) updateFromManager(deltaTime float64) {
-	// TODO:  Don't update if entity is deactivated?
+	if !ui.isActive() {
+		return
+	}
 	switch ui.elmType {
 	case ElementTypeInput:
 		ui.ToInput().update(deltaTime)
