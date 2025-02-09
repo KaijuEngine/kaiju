@@ -52,6 +52,8 @@ type imageData struct {
 	paused                   bool
 }
 
+func (i *imageData) innerPanelData() *panelData { return &i.panelData }
+
 func (u *UI) ToImage() *Image { return (*Image)(u) }
 func (s *Image) Base() *UI    { return (*UI)(s) }
 

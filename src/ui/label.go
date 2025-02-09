@@ -53,7 +53,7 @@ type colorRange struct {
 	hue, bgHue matrix.Color
 }
 
-type LabelData struct {
+type labelData struct {
 	colorRanges       []colorRange
 	text              string
 	textLength        int
@@ -77,15 +77,17 @@ type LabelData struct {
 	renderRequired    bool
 }
 
+func (l *labelData) innerPanelData() *panelData { panic("label isn't a panel") }
+
 type Label UI
 
 func (u *UI) ToLabel() *Label          { return (*Label)(u) }
 func (l *Label) Base() *UI             { return (*UI)(l) }
-func (l *Label) LabelData() *LabelData { return l.elmData.(*LabelData) }
+func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 
 func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label := &Label{
-		elmData: &LabelData{
+		elmData: &labelData{
 			text:            text,
 			textLength:      utf8.RuneCountInString(text),
 			fgColor:         matrix.ColorWhite(),

@@ -50,6 +50,8 @@ type sliderData struct {
 	value   float32
 }
 
+func (s *sliderData) innerPanelData() *panelData { return &s.panelData }
+
 type Slider Panel
 
 func (u *UI) AsSlider() *Slider { return (*Slider)(u) }

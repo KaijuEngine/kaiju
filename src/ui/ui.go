@@ -76,10 +76,14 @@ const (
 	ElementTypeSlider
 )
 
+type UIElementData interface {
+	innerPanelData() *panelData
+}
+
 type UI struct {
 	host             *engine.Host
 	entity           *engine.Entity
-	elmData          any
+	elmData          UIElementData
 	events           [EventTypeEnd]events.Event
 	group            *Group
 	postLayoutUpdate func()

@@ -87,6 +87,8 @@ type inputData struct {
 	labelShift                        float32
 }
 
+func (i *inputData) innerPanelData() *panelData { return &i.panelData }
+
 type Input Panel
 
 func (u *UI) AsInput() *Input  { return (*Input)(u) }

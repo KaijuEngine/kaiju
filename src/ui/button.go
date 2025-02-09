@@ -50,6 +50,8 @@ type buttonData struct {
 	color matrix.Color
 }
 
+func (b *buttonData) innerPanelData() *panelData { return &b.panelData }
+
 func (b *Button) ButtonData() *buttonData {
 	return b.Base().elmData.(*buttonData)
 }

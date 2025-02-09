@@ -114,27 +114,14 @@ type panelData struct {
 	allowDragScroll           bool
 }
 
+func (p *panelData) innerPanelData() *panelData { return p }
+
 type Panel UI
 
 func (u *UI) ToPanel() *Panel { return (*Panel)(u) }
 func (p *Panel) Base() *UI    { return (*UI)(p) }
 
-func (p *Panel) PanelData() *panelData {
-	// TODO:  Simplify this probably through an interface or something
-	switch t := p.elmData.(type) {
-	case *buttonData:
-		return &t.panelData
-	case *checkboxData:
-		return &t.panelData
-	case *imageData:
-		return &t.panelData
-	case *inputData:
-		return &t.panelData
-	case *sliderData:
-		return &t.panelData
-	}
-	return p.elmData.(*panelData)
-}
+func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType) *Panel {
 	panel := &Panel{

@@ -70,6 +70,8 @@ type checkboxData struct {
 	isChecked bool
 }
 
+func (c *checkboxData) innerPanelData() *panelData { return &c.panelData }
+
 type Checkbox Panel
 
 func (u *UI) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
