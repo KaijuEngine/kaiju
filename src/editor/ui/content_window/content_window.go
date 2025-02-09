@@ -83,7 +83,6 @@ type ContentWindow struct {
 	funcMap  map[string]func(*document.Element)
 	opener   *content_opener.Opener
 	selected *ui.Panel
-	uiGroup  *ui.Group
 	uiMan    *ui.Manager
 }
 
@@ -193,7 +192,6 @@ func (s *ContentWindow) reloadUI() {
 	host := s.editor.Host()
 	host.CreatingEditorEntities()
 	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(s.uiMan, html, s, s.funcMap))
-	s.doc.SetGroup(s.uiGroup)
 	host.DoneCreatingEditorEntities()
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)

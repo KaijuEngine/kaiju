@@ -50,8 +50,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"golang.org/x/net/html"
 )
 
 type TemplateIndexedAny struct {
@@ -319,17 +317,6 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		}
 	}
 	return parsed
-}
-
-func (d *Document) SetGroup(group *ui.Group) {
-	for i := range d.Elements {
-		if d.Elements[i].node.Type == html.ElementNode {
-			data := d.Elements[i].Data()
-			if data != "body" && data != "tag" {
-				d.Elements[i].UI.SetGroup(group)
-			}
-		}
-	}
 }
 
 func (d *Document) Activate() {
