@@ -51,9 +51,46 @@ import (
 	"kaiju/ui"
 	"log/slog"
 	"reflect"
+	"strconv"
 )
 
 const sizeConfig = "detailsWindowSize"
+
+type transformInputField struct {
+	x *ui.Input
+	y *ui.Input
+	z *ui.Input
+}
+
+func (t *transformInputField) update(v matrix.Vec3) {
+	if t.x == nil || t.y == nil || t.z == nil {
+		return
+	}
+	if !t.x.IsFocused() {
+		x := matrix.Float(toFloat(t.x.Text()))
+		if x != v.X() {
+			t.x.SetText(strconv.FormatFloat(float64(v.X()), 'f', -1, 32))
+		}
+	}
+	if !t.y.IsFocused() {
+		y := matrix.Float(toFloat(t.y.Text()))
+		if y != v.Y() {
+			t.y.SetText(strconv.FormatFloat(float64(v.Y()), 'f', -1, 32))
+		}
+	}
+	if !t.z.IsFocused() {
+		z := matrix.Float(toFloat(t.z.Text()))
+		if z != v.Z() {
+			t.z.SetText(strconv.FormatFloat(float64(v.Z()), 'f', -1, 32))
+		}
+	}
+}
+
+func (t *transformInputField) setup(doc *document.Document, prefix string) {
+	t.x = transformInput(doc, prefix+"X")
+	t.y = transformInput(doc, prefix+"Y")
+	t.z = transformInput(doc, prefix+"Z")
+}
 
 type Details struct {
 	editor             interfaces.Editor
@@ -61,6 +98,10 @@ type Details struct {
 	selectChangeId     events.Id
 	uiMan              *ui.Manager
 	viewData           detailsData
+	position           transformInputField
+	rotation           transformInputField
+	scale              transformInputField
+	updateId           int
 	hierarchyReloading bool
 }
 
@@ -129,12 +170,14 @@ func New(editor interfaces.Editor, uiMan *ui.Manager) *Details {
 		uiMan:  uiMan,
 	}
 	d.editor.Host().OnClose.Add(func() {
+		d.editor.Host().Updater.RemoveUpdate(d.updateId)
 		if d.doc != nil {
 			d.doc.Destroy()
 		}
 	})
 	d.reload()
 	d.editor.Selection().Changed.Add(d.onSelectionChanged)
+	d.updateId = d.editor.Host().Updater.AddUpdate(d.update)
 	return d
 }
 
@@ -164,10 +207,14 @@ func (d *Details) Hide() {
 	}
 }
 
+func (d *Details) isActive() bool {
+	return d.doc.Elements[0].UI.Entity().IsActive()
+}
+
 func (d *Details) reload() {
 	isActive := false
 	if d.doc != nil {
-		isActive = d.doc.Elements[0].UI.Entity().IsActive()
+		isActive = d.isActive()
 		d.doc.Destroy()
 	}
 	host := d.editor.Host()
@@ -207,6 +254,16 @@ func (d *Details) reload() {
 	if !isActive {
 		d.doc.Deactivate()
 	}
+	d.position.setup(d.doc, "pos")
+	d.rotation.setup(d.doc, "rot")
+	d.scale.setup(d.doc, "scale")
+}
+
+func transformInput(doc *document.Document, key string) *ui.Input {
+	if i, ok := doc.GetElementById(key); ok {
+		return i.UI.ToInput()
+	}
+	return nil
 }
 
 func (d *Details) addData(*document.Element) {
@@ -451,4 +508,19 @@ func (d *Details) DragUpdate() {
 	if int(x) < w-100 {
 		win.UIPanel.Base().Layout().ScaleWidth(x)
 	}
+}
+
+func (d *Details) update(float64) {
+	if !d.isActive() {
+		return
+	}
+	selected := d.editor.Selection().Entities()
+	if len(selected) != 1 {
+		return
+	}
+	e := selected[0]
+	p, r, s := e.Transform.Position(), e.Transform.Rotation(), e.Transform.Scale()
+	d.position.update(p)
+	d.rotation.update(r)
+	d.scale.update(s)
 }

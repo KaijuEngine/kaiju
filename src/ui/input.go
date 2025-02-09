@@ -621,6 +621,10 @@ func (input *Input) SetSelectColor(newColor matrix.Color) {
 	data.highlight.SetColor(newColor)
 }
 
+func (input *Input) IsFocused() bool {
+	return input.InputData().isActive
+}
+
 func (input *Input) Focus() {
 	if !input.InputData().isActive {
 		input.InputData().isActive = true
