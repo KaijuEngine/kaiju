@@ -61,14 +61,17 @@ func (s *Slider) SliderData() *sliderData {
 	return s.elmData.(*sliderData)
 }
 
-func (p *Panel) ConvertToSlider() *Slider {
-	s := (*Slider)(p)
+func (s *Slider) Init(anchor Anchor) {
 	s.elmType = ElementTypeSlider
 	ld := &sliderData{}
-	host := p.Base().host
+	s.elmData = ld
+	p := s.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeSlider)
+	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	ld.bgPanel = NewPanel(host, tex, AnchorLeft, ElementTypeSlider, nil)
+	ld.bgPanel = s.man.Add().ToPanel()
+	ld.bgPanel.Init(tex, AnchorLeft, ElementTypePanel)
 	ld.bgPanel.layout.AddFunction(func(l *Layout) {
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		w, h := pLayout.ContentSize()
@@ -76,7 +79,8 @@ func (p *Panel) ConvertToSlider() *Slider {
 		l.Scale(w-10, h)
 	})
 	ld.bgPanel.SetColor(matrix.ColorBlack())
-	ld.fgPanel = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel, nil)
+	ld.fgPanel = s.man.Add().ToPanel()
+	ld.fgPanel.Init(tex, AnchorTopLeft, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
 	ld.fgPanel.layout.AddFunction(func(l *Layout) {
@@ -89,13 +93,7 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.SetColor(matrix.ColorWhite())
 	ld.bgPanel.entity.SetParent(&p.entity)
 	ld.fgPanel.entity.SetParent(&p.entity)
-	sd := &sliderData{
-		panelData: *p.PanelData(),
-	}
-	p.elmData = sd
 	p.Base().AddEvent(EventTypeDown, s.onDown)
-	sd.innerUpdate = s.sliderUpdate
-	return s
 }
 
 func (slider *Slider) sliderUpdate(deltaTime float64) {
@@ -108,7 +106,7 @@ func (slider Slider) Delta() float32 {
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X()
 	xPos -= w * 0.5
-	mp := slider.host.Window.Cursor.ScreenPosition()
+	mp := slider.man.Host.Window.Cursor.ScreenPosition()
 	return (mp.X() - xPos) / w
 }
 

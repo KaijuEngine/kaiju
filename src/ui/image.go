@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/rendering"
 )
 
@@ -61,15 +60,12 @@ func (s *Image) ImageData() *imageData {
 	return s.elmData.(*imageData)
 }
 
-func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
-	panel := NewPanel(host, texture, anchor, ElementTypeImage, nil)
-	img := (*Image)(panel)
-	img.elmData = &imageData{
-		panelData: *panel.PanelData(),
-		flipBook:  []*rendering.Texture{texture},
+func (s *Image) Init(texture *rendering.Texture, anchor Anchor) {
+	s.elmData = &imageData{
+		flipBook: []*rendering.Texture{texture},
 	}
-	panel.PanelData().innerUpdate = img.update
-	return img
+	p := s.Base().ToPanel()
+	p.Init(texture, anchor, ElementTypeImage)
 }
 
 func (img *Image) resetDelay() {
@@ -78,6 +74,7 @@ func (img *Image) resetDelay() {
 }
 
 func (img *Image) update(deltaTime float64) {
+	img.Base().ToPanel().update(deltaTime)
 	data := img.ImageData()
 	data.frameDelay -= float32(deltaTime)
 	if data.frameCount > 0 && data.frameDelay <= 0.0 {

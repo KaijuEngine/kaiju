@@ -50,10 +50,13 @@ const (
 	MouseButtonX1
 	MouseButtonX2
 	MouseButtonLast
-	MouseInvalid = -1
+)
+
+const (
 	MouseRelease = iota
 	MousePress
 	MouseRepeat
+	MouseInvalid            = -1
 	MouseButtonStateInvalid = -1
 )
 

@@ -131,11 +131,11 @@ func (p *ProjectWindow) load() {
 		p.doc.Destroy()
 	}
 	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("editor/ui/project_window.html"))
-	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
+	p.doc = markup.DocumentFromHTMLString(&p.uiMan, html, "", p.data,
 		map[string]func(*document.Element){
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
-		}, &p.uiMan)
+		})
 }
 
 func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
@@ -144,6 +144,7 @@ func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 		templatePath: templatePath,
 	}
 	p.container = host_container.New("Project Window", nil)
+	p.uiMan.Init(p.container.Host)
 	go p.container.Run(600, 400, cx-300, cy-200)
 	var err error
 	p.data.ProjectList, err = editor_cache.ListProjects()

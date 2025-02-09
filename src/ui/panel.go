@@ -39,7 +39,6 @@ package ui
 
 import (
 	"kaiju/assets"
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/events"
@@ -102,7 +101,6 @@ type panelData struct {
 	borderStyle               [4]BorderStyle
 	color                     matrix.Color
 	drawing                   rendering.Drawing
-	innerUpdate               func(deltaTime float64)
 	fitContent                ContentFit
 	requestScrollX            requestScroll
 	requestScrollY            requestScroll
@@ -123,22 +121,18 @@ func (p *Panel) Base() *UI    { return (*UI)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
-func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType, uiMan *Manager) *Panel {
-	panel := &Panel{}
-	panel.Init(host, texture, anchor, elmType, uiMan)
-	return panel
-}
-
-func (panel *Panel) Init(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType, uiMan *Manager) {
-	panel.man = uiMan
-	panel.elmData = &panelData{
-		scrollEvent:        0,
-		scrollSpeed:        20.0,
-		scrollDirection:    PanelScrollDirectionVertical,
-		color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
-		fitContent:         ContentFitBoth,
-		enforcedColorStack: make([]matrix.Color, 0),
+func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType ElementType) {
+	var pd *panelData
+	if panel.elmData == nil {
+		panel.elmData = &panelData{}
 	}
+	pd = panel.elmData.innerPanelData()
+	pd.scrollEvent = 0
+	pd.scrollSpeed = 20.0
+	pd.scrollDirection = PanelScrollDirectionVertical
+	pd.color = matrix.Color{1.0, 1.0, 1.0, 1.0}
+	pd.fitContent = ContentFitBoth
+	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.elmType = elmType
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
@@ -147,22 +141,18 @@ func (panel *Panel) Init(host *engine.Host, texture *rendering.Texture, anchor A
 		ts = texture.Size()
 	}
 	base := panel.Base()
-	panel.updateId = host.Updater.AddUpdate(panel.update)
-	base.init(host, ts, anchor, base)
+	base.init(ts, anchor, base)
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)
 	}
 	panel.entity.OnActivate.Add(func() {
 		panel.shaderData.Activate()
-		panel.updateId = host.Updater.AddUpdate(panel.update)
 		base.SetDirty(DirtyTypeLayout)
 		base.Clean()
 	})
 	panel.entity.OnDeactivate.Add(func() {
 		panel.shaderData.Deactivate()
-		host.Updater.RemoveUpdate(panel.updateId)
-		panel.updateId = 0
 	})
 	panel.entity.OnDestroy.Add(func() {
 		panel.shaderData.Destroy()
@@ -243,12 +233,12 @@ func (p *Panel) FitContent() {
 
 func (p *Panel) onScroll() {
 	pd := p.PanelData()
-	mouse := &p.host.Window.Mouse
+	mouse := &p.man.Host.Window.Mouse
 	delta := mouse.Scroll()
 	scroll := pd.scroll
 	base := p.Base()
 	if !mouse.Scrolled() {
-		pos := base.cursorPos(&p.host.Window.Cursor)
+		pos := base.cursorPos(&p.man.Host.Window.Cursor)
 		delta = pos.Subtract(p.downPos)
 		delta[matrix.Vy] *= -1.0
 	} else {
@@ -303,9 +293,6 @@ func (p *Panel) update(deltaTime float64) {
 		} else {
 			pd.isScrolling = false
 		}
-	}
-	if pd.innerUpdate != nil {
-		pd.innerUpdate(deltaTime)
 	}
 }
 
@@ -573,10 +560,10 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	pd := p.PanelData()
 	if !pd.drawing.IsValid() {
 		if tex == nil {
-			tex, _ = p.host.TextureCache().Texture(
+			tex, _ = p.man.Host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
 		}
-		shader := p.host.ShaderCache().ShaderFromDefinition(
+		shader := p.man.Host.ShaderCache().ShaderFromDefinition(
 			assets.ShaderDefinitionUI)
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
 		p.shaderData.BgColor = pd.color
@@ -587,15 +574,15 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.textureSize = tex.Size()
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		pd.drawing = rendering.Drawing{
-			Renderer:   p.host.Window.Renderer,
+			Renderer:   p.man.Host.Window.Renderer,
 			Shader:     shader,
-			Mesh:       rendering.NewMeshQuad(p.host.MeshCache()),
+			Mesh:       rendering.NewMeshQuad(p.man.Host.MeshCache()),
 			Textures:   []*rendering.Texture{tex},
 			ShaderData: &p.shaderData,
 			Transform:  &p.entity.Transform,
 			CanvasId:   "default",
 		}
-		p.host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(&pd.drawing)
 	} else if tex != nil {
 		p.SetBackground(tex)
 	}
@@ -614,7 +601,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
 		pd.drawing.Textures[0] = tex
-		p.host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(&pd.drawing)
 	}
 }
 
@@ -687,7 +674,7 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 	p.recreateDrawing()
 	pd := p.PanelData()
 	pd.drawing.UseBlending = useBlending
-	p.host.Drawings.AddDrawing(&pd.drawing)
+	p.man.Host.Drawings.AddDrawing(&pd.drawing)
 }
 
 func (p *Panel) Overflow() Overflow { return p.PanelData().overflow }
@@ -715,7 +702,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		p.recreateDrawing()
 		pd := p.PanelData()
 		pd.drawing.UseBlending = shouldBlend
-		p.host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(&pd.drawing)
 	}
 	p.shaderData.FgColor = bgColor
 }

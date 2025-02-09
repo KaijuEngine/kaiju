@@ -98,17 +98,17 @@ type LogWindow struct {
 	infoEvtId  logging.EventId
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
-	group      *ui.Group
+	uiMan      *ui.Manager
 	mutex      sync.Mutex
 }
 
-func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *LogWindow {
+func New(host *engine.Host, logStream *logging.LogStream, uiMan *ui.Manager) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
 		all:        make([]visibleMessage, 0),
 		logStream:  logStream,
 		host:       host,
-		group:      uiGroup,
+		uiMan:      uiMan,
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.add(msg, nil, "info")
@@ -335,7 +335,7 @@ func (l *LogWindow) reloadUI() {
 	l.host.CreatingEditorEntities()
 	l.lastReload = frame
 	l.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		l.host, html, l, map[string]func(*document.Element){
+		l.uiMan, html, l, map[string]func(*document.Element){
 			"clearAll":     l.clearAll,
 			"showAll":      l.showAll,
 			"showInfos":    l.showInfos,
@@ -347,8 +347,7 @@ func (l *LogWindow) reloadUI() {
 			"resizeExit":   l.resizeExit,
 			"resizeStart":  l.resizeStart,
 			"resizeStop":   l.resizeStop,
-		}, nil))
-	l.doc.SetGroup(l.group)
+		}))
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()

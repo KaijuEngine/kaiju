@@ -80,6 +80,7 @@ type Editor struct {
 	bvh            *collision.BVH
 	menu           *menu.Menu
 	statusBar      *status_bar.StatusBar
+	uiManager      ui.Manager
 	editorDir      string
 	project        string
 	history        memento.History
@@ -95,7 +96,6 @@ type Editor struct {
 	selection      selection.Selection
 	transformTool  transform_tools.TransformTool
 	windowListing  editor_window.Listing
-	uiGroup        *ui.Group
 	runningProject *exec.Cmd
 	entityData     []codegen.GeneratedType
 	// TODO:  Testing tools
@@ -141,11 +141,11 @@ func New() *Editor {
 	ed := &Editor{
 		assetImporters: asset_importer.NewImportRegistry(),
 		history:        memento.NewHistory(100),
-		uiGroup:        ui.NewGroup(),
 		bvh:            collision.NewBVH(),
 	}
 	setupEditorWindow(ed, logStream)
 	host := ed.container.Host
+	ed.uiManager.Init(host)
 	host.SetFrameRateLimit(60)
 	setupEditorCamera(ed)
 	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
@@ -219,7 +219,7 @@ func (e *Editor) Init() {
 }
 
 func (ed *Editor) update(delta float64) {
-	if ed.uiGroup.HasRequests() {
+	if ed.uiManager.Group.HasRequests() {
 		return
 	}
 	if ed.cam.Update(ed.Host(), delta) {

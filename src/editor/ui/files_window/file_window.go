@@ -55,6 +55,7 @@ type FileWindow struct {
 	doc        *document.Document
 	input      *ui.Input
 	listing    *ui.Panel
+	uiMan      *ui.Manager
 	container  *host_container.Container
 	Dir        []fs.DirEntry
 	Path       string
@@ -89,6 +90,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 		Extensions: make([]string, 0, len(extensions)),
 		Folders:    foldersOnly,
 		done:       make(chan string),
+		uiMan:      &ui.Manager{},
 	}
 	for _, ext := range extensions {
 		if ext != "" {
@@ -102,6 +104,7 @@ func create(title string, foldersOnly bool, extensions []string) chan string {
 	s.funcMap["selectEntry"] = s.selectEntry
 	s.funcMap["selectPath"] = s.selectPath
 	s.container = host_container.New(title, nil)
+	s.uiMan.Init(s.container.Host)
 	go s.container.Run(500, 600, -1, -1)
 	<-s.container.PrepLock
 	if here, err := os.Getwd(); err != nil {
@@ -164,8 +167,7 @@ func (s *FileWindow) reloadUI() {
 	}
 	s.list()
 	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("editor/ui/file_window.html"))
-	s.doc = markup.DocumentFromHTMLString(
-		s.container.Host, html, "", s, s.funcMap, nil)
+	s.doc = markup.DocumentFromHTMLString(s.uiMan, html, "", s, s.funcMap)
 	if elm, ok := s.doc.GetElementById("pathInput"); !ok {
 		slog.Error(`Failed to locate the "pathInput" for the file window`)
 		s.container.Host.Close()

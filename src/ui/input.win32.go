@@ -44,7 +44,7 @@ func (input *Input) internalCopyToClipboard() {
 	l := data.label
 	if data.selectEnd != data.selectStart {
 		str := l.LabelData().text[data.selectStart:data.selectEnd]
-		input.host.Window.CopyToClipboard(str)
+		input.Base().Host().Window.CopyToClipboard(str)
 	}
 }
 
@@ -54,6 +54,6 @@ func (input *Input) internalCutToClipboard() {
 }
 
 func (input *Input) internalPasteFromClipboard() {
-	text := input.host.Window.ClipboardContents()
+	text := input.man.Host.Window.ClipboardContents()
 	input.InsertText(text)
 }

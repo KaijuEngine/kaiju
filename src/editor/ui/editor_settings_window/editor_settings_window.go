@@ -5,10 +5,12 @@ import (
 	"kaiju/host_container"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/ui"
 	"strconv"
 )
 
 type EditorSettingsWindow struct {
+	uiMan          *ui.Manager
 	GoCompilerPath string
 	GridSnapping   float32
 }
@@ -27,10 +29,11 @@ func updateGridSnapping(elm *document.Element) {
 
 func New() {
 	const html = "editor/ui/editor_settings_window.html"
+	esw := &EditorSettingsWindow{}
 	container := host_container.New("Editor Settings Window", nil)
+	esw.uiMan.Init(container.Host)
 	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
-	esw := &EditorSettingsWindow{}
 	if v, ok := editor_cache.EditorConfigValue(editor_cache.KaijuGoCompiler); ok {
 		esw.GoCompilerPath = v.(string)
 	}
@@ -38,9 +41,9 @@ func New() {
 		esw.GridSnapping = float32(v.(float64))
 	}
 	container.RunFunction(func() {
-		markup.DocumentFromHTMLAsset(container.Host, html, esw, map[string]func(*document.Element){
+		markup.DocumentFromHTMLAsset(esw.uiMan, html, esw, map[string]func(*document.Element){
 			"updateCompilerPath": updateCompilerPath,
 			"updateGridSnapping": updateGridSnapping,
-		}, nil)
+		})
 	})
 }

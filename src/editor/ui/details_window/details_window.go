@@ -59,7 +59,7 @@ type Details struct {
 	editor             interfaces.Editor
 	doc                *document.Document
 	selectChangeId     events.Id
-	uiGroup            *ui.Group
+	uiMan              *ui.Manager
 	viewData           detailsData
 	hierarchyReloading bool
 }
@@ -123,10 +123,10 @@ func (f *entityDataField) IsEntityId() bool {
 	return f.Pkg == "kaiju/engine" && f.Type == "EntityId"
 }
 
-func New(editor interfaces.Editor, uiGroup *ui.Group) *Details {
+func New(editor interfaces.Editor, uiMan *ui.Manager) *Details {
 	d := &Details{
-		editor:  editor,
-		uiGroup: uiGroup,
+		editor: editor,
+		uiMan:  uiMan,
 	}
 	d.editor.Host().OnClose.Add(func() {
 		if d.doc != nil {
@@ -174,7 +174,7 @@ func (d *Details) reload() {
 	host.CreatingEditorEntities()
 	d.viewData.Data = d.pullEntityData()
 	d.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		host, "editor/ui/details_window.html", d.viewData,
+		d.uiMan, "editor/ui/details_window.html", d.viewData,
 		map[string]func(*document.Element){
 			"changeName":          d.changeName,
 			"changePosX":          d.changePosX,
@@ -196,8 +196,7 @@ func (d *Details) reload() {
 			"resizeExit":          d.resizeExit,
 			"resizeStart":         d.resizeStart,
 			"resizeStop":          d.resizeStop,
-		}, nil))
-	d.doc.SetGroup(d.uiGroup)
+		}))
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
 	go d.editor.ReloadEntityDataListing()
@@ -237,7 +236,7 @@ func (d *Details) changeData(elm *document.Element) {
 	case reflect.String:
 		v.SetString(inputString(elm))
 	case reflect.Bool:
-		v.SetBool(elm.UI.AsCheckbox().IsChecked())
+		v.SetBool(elm.UI.ToCheckbox().IsChecked())
 	}
 }
 

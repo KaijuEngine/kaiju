@@ -81,16 +81,17 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 	}
 }
 
-func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element), uiMan *ui.Manager) (*document.Document, error) {
-	m, err := host.AssetDatabase().ReadText(htmlPath)
+func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
+	m, err := uiMan.Host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromHTMLString(host, m, "", withData, funcMap, uiMan), nil
+	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap), nil
 }
 
-func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.Element), uiMan *ui.Manager) *document.Document {
-	doc := document.DocumentFromHTMLString(host, html, withData, funcMap, uiMan)
+func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document {
+	host := uiMan.Host
+	doc := document.DocumentFromHTMLString(uiMan, html, withData, funcMap)
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS)
 	s.Parse(cssStr)

@@ -84,17 +84,18 @@ type ContentWindow struct {
 	opener   *content_opener.Opener
 	selected *ui.Panel
 	uiGroup  *ui.Group
+	uiMan    *ui.Manager
 }
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 
-func New(opener *content_opener.Opener, editor interfaces.Editor, uiGroup *ui.Group) *ContentWindow {
+func New(opener *content_opener.Opener, editor interfaces.Editor, uiMan *ui.Manager) *ContentWindow {
 	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.Element)),
 		opener:  opener,
 		path:    contentPath,
 		editor:  editor,
-		uiGroup: uiGroup,
+		uiMan:   uiMan,
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
@@ -140,21 +141,19 @@ func (c *ContentWindow) Hide() {
 }
 
 func (s *ContentWindow) contentDblClick(elm *document.Element) {
-	s.openContent(elm)
+	// UI is now concurrent, so alterations like this should be done on the
+	// main thread for the host.
+	s.uiMan.Host.RunAfterFrames(0, func() {
+		s.openContent(elm)
+	})
 }
 
 func (s *ContentWindow) contentClick(elm *document.Element) {
 	for i := range elm.Parent.Children {
 		p := elm.Parent.Children[i].UIPanel
 		p.UnEnforceColor()
-		c := p.Base().Entity().Children
-		lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).ToLabel()
-		lbl.UnEnforceBGColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
-	c := elm.UI.Entity().Children
-	lbl := ui.FirstOnEntity(c[len(c)-1].Children[0]).ToLabel()
-	lbl.EnforceBGColor(matrix.ColorDarkBlue())
 	s.selected = elm.UIPanel
 }
 
@@ -193,7 +192,7 @@ func (s *ContentWindow) reloadUI() {
 	s.list()
 	host := s.editor.Host()
 	host.CreatingEditorEntities()
-	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, s, s.funcMap, nil))
+	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(s.uiMan, html, s, s.funcMap))
 	s.doc.SetGroup(s.uiGroup)
 	host.DoneCreatingEditorEntities()
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {

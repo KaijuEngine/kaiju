@@ -127,7 +127,8 @@ func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointe
 	return unsafe.Pointer(&t.jointTransforms)
 }
 
-func testDrawing(host *engine.Host) {
+func testDrawing(uiMan *ui.Manager) {
+	host := uiMan.Host
 	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
@@ -143,7 +144,8 @@ func testDrawing(host *engine.Host) {
 	})
 }
 
-func testTwoDrawings(host *engine.Host) {
+func testTwoDrawings(uiMan *ui.Manager) {
+	host := uiMan.Host
 	positions := []matrix.Vec3{
 		{-1, 0.0, 0.0},
 		{1, 0.0, 0.0},
@@ -174,7 +176,8 @@ func testTwoDrawings(host *engine.Host) {
 	}
 }
 
-func testFont(host *engine.Host) {
+func testFont(uiMan *ui.Manager) {
+	host := uiMan.Host
 	drawings := host.FontCache().RenderMeshes(host, "Hello, World!",
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
@@ -182,7 +185,8 @@ func testFont(host *engine.Host) {
 	host.Drawings.AddDrawings(drawings, host.Window.Renderer.DefaultCanvas())
 }
 
-func testOIT(host *engine.Host) {
+func testOIT(uiMan *ui.Manager) {
+	host := uiMan.Host
 	positions := []matrix.Vec3{
 		{-0.75, 0.0, -0.75},
 		{-0.5, 0.0, -0.5},
@@ -217,22 +221,27 @@ func testOIT(host *engine.Host) {
 	}
 }
 
-func testPanel(host *engine.Host) {
+func testPanel(uiMan *ui.Manager) {
+	host := uiMan.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel, nil)
+	p := uiMan.Add().ToPanel()
+	p.Init(tex, ui.AnchorBottomLeft, ui.ElementTypePanel)
 	p.DontFitContent()
 	p.Base().Layout().Scale(100, 100)
 	p.Base().Layout().SetOffset(10, 10)
 }
 
-func testLabel(host *engine.Host) {
-	l := ui.NewLabel(host, "Hello, World!", ui.AnchorBottomCenter, nil)
+func testLabel(uiMan *ui.Manager) {
+	l := uiMan.Add().ToLabel()
+	l.Init("Hello, World!", ui.AnchorBottomCenter)
 	l.Base().Layout().Scale(100, 50)
 }
 
-func testButton(host *engine.Host) {
+func testButton(uiMan *ui.Manager) {
+	host := uiMan.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	btn := ui.NewButton(host, tex, "Click me!", ui.AnchorCenter)
+	btn := uiMan.Add().ToButton()
+	btn.Init(tex, "Click me!", ui.AnchorCenter)
 	btn.Base().Layout().Scale(100, 50)
 	clickCount := 0
 	btn.Base().AddEvent(ui.EventTypeClick, func() {
@@ -241,7 +250,8 @@ func testButton(host *engine.Host) {
 	})
 }
 
-func testHTML(host *engine.Host) {
+func testHTML(uiMan *ui.Manager) {
+	host := uiMan.Host
 	events := map[string]func(*document.Element){
 		"playGame":     func(*document.Element) { slog.Info("Clicked playGame") },
 		"showSettings": func(*document.Element) { slog.Info("Clicked showSettings") },
@@ -249,31 +259,38 @@ func testHTML(host *engine.Host) {
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
-	markup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events, nil)
+	markup.DocumentFromHTMLString(uiMan, testHTML, testCSS, nil, events)
 }
 
-func testHTMLBinding(host *engine.Host) {
+func testHTMLBinding(uiMan *ui.Manager) {
+	host := uiMan.Host
 	demoData := struct {
 		EntityNames []string
 	}{
 		EntityNames: []string{"Entity 1", "\tEntity 2", "\t\tEntity 3"},
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
-	markup.DocumentFromHTMLString(host, testHTML, "", demoData, nil, nil)
+	markup.DocumentFromHTMLString(uiMan, testHTML, "", demoData, nil)
 }
 
-func testLayoutSimple(host *engine.Host) {
+func testLayoutSimple(uiMan *ui.Manager) {
+	host := uiMan.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	panels := []*ui.Panel{
-		ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorBottomCenter, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorBottomRight, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorLeft, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorRight, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorCenter, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorTopCenter, ui.ElementTypePanel, nil),
-		ui.NewPanel(host, tex, ui.AnchorTopRight, ui.ElementTypePanel, nil),
+	anchors := []ui.Anchor{
+		ui.AnchorBottomLeft,
+		ui.AnchorBottomCenter,
+		ui.AnchorBottomRight,
+		ui.AnchorLeft,
+		ui.AnchorRight,
+		ui.AnchorCenter,
+		ui.AnchorTopLeft,
+		ui.AnchorTopCenter,
+		ui.AnchorTopRight,
+	}
+	panels := make([]*ui.Panel, len(anchors))
+	for i := range anchors {
+		panels[i] = uiMan.Add().ToPanel()
+		panels[i].Init(tex, anchors[i], ui.ElementTypePanel)
 	}
 	for _, p := range panels {
 		p.DontFitContent()
@@ -282,14 +299,17 @@ func testLayoutSimple(host *engine.Host) {
 	}
 }
 
-func testLayout(host *engine.Host) {
+func testLayout(uiMan *ui.Manager) {
+	host := uiMan.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
-	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
+	p1 := uiMan.Add().ToPanel()
+	p1.Init(tex, ui.AnchorTopLeft, ui.ElementTypePanel)
 	p1.Base().Entity().SetName("p1")
 	//p1.Layout().Scale(300, 100)
 
-	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
+	p2 := uiMan.Add().ToPanel()
+	p2.Init(tex, ui.AnchorTopLeft, ui.ElementTypePanel)
 	p2.Base().Entity().SetName("p2")
 	p2.SetColor(matrix.ColorBlue())
 	//p2.Layout().SetPadding(5, 5, 5, 5)
@@ -298,7 +318,8 @@ func testLayout(host *engine.Host) {
 	//p2.Layout().Scale(64, 64)
 	//p2.Layout().SetOffset(10, 10)
 
-	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
+	p3 := uiMan.Add().ToPanel()
+	p3.Init(tex, ui.AnchorTopLeft, ui.ElementTypePanel)
 	p3.Base().Entity().SetName("p3")
 	p3.SetColor(matrix.ColorRed())
 	p3.Base().Layout().Scale(32, 32)
@@ -325,8 +346,9 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 	})
 }
 
-func testMonkeyOBJ(host *engine.Host) {
+func testMonkeyOBJ(uiMan *ui.Manager) {
 	const monkeyObj = "meshes/monkey.obj"
+	host := uiMan.Host
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
 	res := loaders.OBJ(monkeyData)
@@ -337,8 +359,9 @@ func testMonkeyOBJ(host *engine.Host) {
 	drawBasicMesh(host, res)
 }
 
-func testMonkeyGLTF(host *engine.Host) {
+func testMonkeyGLTF(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.gltf"
+	host := uiMan.Host
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
@@ -348,8 +371,9 @@ func testMonkeyGLTF(host *engine.Host) {
 	drawBasicMesh(host, res)
 }
 
-func testMonkeyGLB(host *engine.Host) {
+func testMonkeyGLB(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.glb"
+	host := uiMan.Host
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
@@ -359,8 +383,9 @@ func testMonkeyGLB(host *engine.Host) {
 	drawBasicMesh(host, res)
 }
 
-func testAnimationGLTF(host *engine.Host) {
+func testAnimationGLTF(uiMan *ui.Manager) {
 	const animationGLTF = "editor/meshes/fox/Fox.gltf"
+	host := uiMan.Host
 	host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
 	//const animationGLTF = "editor/meshes/cube_animation.gltf"
 	//const animationGLTF = "editor/meshes/cube_animation_slow.gltf"
@@ -451,7 +476,7 @@ func testAnimationGLTF(host *engine.Host) {
 
 func SetupConsole(host *engine.Host) {
 	console.For(host).AddCommand("render.test", "Open a rendering test given it's name", func(_ *engine.Host, t string) string {
-		var testFunc func(*engine.Host) = nil
+		var testFunc func(*ui.Manager) = nil
 		switch strings.ToLower(t) {
 		case "drawing":
 			testFunc = testDrawing
@@ -490,7 +515,9 @@ func SetupConsole(host *engine.Host) {
 				engine.DefaultWindowHeight, -1, -1)
 			<-c.PrepLock
 			c.Host.Camera.SetPosition(matrix.Vec3Backward().Scale(2))
-			testFunc(c.Host)
+			uiMan := &ui.Manager{}
+			uiMan.Init(c.Host)
+			testFunc(uiMan)
 		}
 		return "Running test"
 	})

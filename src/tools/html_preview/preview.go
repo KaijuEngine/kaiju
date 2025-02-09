@@ -47,6 +47,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/systems/console"
+	"kaiju/ui"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,6 +56,7 @@ import (
 
 type Preview struct {
 	doc         *document.Document
+	uiMan       *ui.Manager
 	html        string
 	styles      []string
 	bindingData any
@@ -91,8 +93,8 @@ func (p *Preview) pullStyles() {
 
 func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
-		if doc, err := markup.DocumentFromHTMLAsset(container.Host,
-			contentFile(p.html), p.bindingData, nil, nil); err == nil {
+		if doc, err := markup.DocumentFromHTMLAsset(p.uiMan,
+			contentFile(p.html), p.bindingData, nil); err == nil {
 			if p.doc != nil {
 				p.doc.Destroy()
 			}
@@ -142,7 +144,9 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 	preview := Preview{
 		html:        htmlFile,
 		bindingData: loadBindingData(htmlFile),
+		uiMan:       &ui.Manager{},
 	}
+	preview.uiMan.Init(previewContainer.Host)
 	preview.readHTML(previewContainer)
 	for !previewContainer.Host.Closing {
 		time.Sleep(time.Second * 1)

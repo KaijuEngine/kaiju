@@ -63,7 +63,7 @@ type Hierarchy struct {
 	doc                  *document.Document
 	input                *ui.Input
 	query                string
-	uiGroup              *ui.Group
+	uiMan                *ui.Manager
 }
 
 type entityEntry struct {
@@ -87,12 +87,12 @@ func (e entityEntry) Depth() int {
 }
 
 func New(host *engine.Host, selection *selection.Selection,
-	ctxMenuSet context_menu.ContextMenuSet, uiGroup *ui.Group) *Hierarchy {
+	ctxMenuSet context_menu.ContextMenuSet, uiMan *ui.Manager) *Hierarchy {
 	h := &Hierarchy{
 		host:       host,
 		selection:  selection,
 		ctxMenuSet: ctxMenuSet,
-		uiGroup:    uiGroup,
+		uiMan:      uiMan,
 	}
 	h.host.OnClose.Add(func() {
 		if h.doc != nil {
@@ -182,7 +182,7 @@ func (h *Hierarchy) Reload() {
 	host := h.host
 	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		host, "editor/ui/hierarchy_window.html", data,
+		h.uiMan, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.Element){
 			"selectedEntity": h.selectedEntity,
 			"dragStart":      h.dragStart,
@@ -194,8 +194,7 @@ func (h *Hierarchy) Reload() {
 			"resizeStart":    h.resizeStart,
 			"resizeStop":     h.resizeStop,
 			"entryCtxMenu":   h.entryCtxMenu,
-		}, nil))
-	h.doc.SetGroup(h.uiGroup)
+		}))
 	host.DoneCreatingEditorEntities()
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
@@ -257,7 +256,10 @@ func (h *Hierarchy) selectedEntity(elm *document.Element) {
 
 func (h *Hierarchy) drop(elm *document.Element) {
 	elm.UnEnforceColor()
-	from := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
+	from, ok := h.host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
+	if !ok {
+		return
+	}
 	if f, ok := h.host.FindEntity(from.EntityId); ok {
 		toId := elm.Attribute("id")
 		if toId != "" {

@@ -45,6 +45,7 @@ import (
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"math"
+	"runtime"
 	"unicode"
 	"unicode/utf8"
 )
@@ -102,20 +103,18 @@ func (input *Input) SetNextFocusedInput(next *Input) {
 	input.InputData().nextFocusInput = next
 }
 
-func (p *Panel) ConvertToInput(placeholderText string) *Input {
-	input := (*Input)(p)
-	input.elmType = ElementTypeInput
-	host := p.Base().host
-	data := &inputData{
-		panelData: *p.PanelData(),
-	}
+func (input *Input) Init(placeholderText string, anchor Anchor) {
+	data := &inputData{}
 	input.elmData = data
+	p := input.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeInput)
+	host := p.man.Host
 	p.DontFitContent()
-
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	// Label
-	data.label = NewLabel(host, "", AnchorLeft, nil)
+	data.label = input.man.Add().ToLabel()
+	data.label.Init("", AnchorLeft)
 	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -130,7 +129,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Placeholder
-	data.placeholder = NewLabel(host, placeholderText, AnchorLeft, nil)
+	data.placeholder = input.man.Add().ToLabel()
+	data.placeholder.Init(placeholderText, AnchorLeft)
 	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
@@ -145,7 +145,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the cursor
-	data.cursor = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel, nil)
+	data.cursor = input.man.Add().ToPanel()
+	data.cursor.Init(tex, AnchorTopLeft, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
@@ -156,7 +157,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the highlight
-	data.highlight = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel, nil)
+	data.highlight = input.man.Add().ToPanel()
+	data.highlight.Init(tex, AnchorTopLeft, ElementTypePanel)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
@@ -164,7 +166,8 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	p.AddChild((*UI)(data.highlight))
 	data.highlight.entity.Deactivate()
 
-	base := (*UI)(input)
+	base := input.Base()
+	runtime.Breakpoint()
 	base.AddEvent(EventTypeEnter, input.onEnter)
 	base.AddEvent(EventTypeExit, input.onExit)
 	base.AddEvent(EventTypeDown, input.onDown)
@@ -173,7 +176,6 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	base.AddEvent(EventTypeRebuild, input.onRebuild)
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
-	p.PanelData().innerUpdate = input.update
 	id := host.Window.Keyboard.AddKeyCallback(input.keyPressed)
 	input.entity.OnDestroy.Add(func() {
 		host.Window.Keyboard.RemoveKeyCallback(id)
@@ -181,7 +183,6 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	input.entity.OnDeactivate.Add(input.deactivated)
 	input.entity.OnActivate.Add(input.activated)
 	input.hideCursor()
-	return input
 }
 
 func (input *Input) showCursor() {
@@ -251,7 +252,7 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = (*UI)(input).host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
+		strWidth = input.man.Host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
 }
@@ -422,13 +423,13 @@ func (input *Input) pointerPosWithin() int {
 	if len(ld.text) == 0 {
 		return 0
 	} else {
-		pos := (*UI)(input).cursorPos(&input.host.Window.Cursor)
+		pos := (*UI)(input).cursorPos(&input.man.Host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return (*UI)(input).host.FontCache().PointOffsetWithin(
+		return input.man.Host.FontCache().PointOffsetWithin(
 			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
 	}
 }
@@ -504,11 +505,11 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	input.host.Window.CursorIbeam()
+	input.man.Host.Window.CursorIbeam()
 }
 
 func (input *Input) onExit() {
-	input.host.Window.CursorStandard()
+	input.man.Host.Window.CursorStandard()
 }
 
 func (input *Input) onDown() {
@@ -637,7 +638,7 @@ func (input *Input) RemoveFocus() {
 		input.InputData().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		(*UI)(input).host.Window.CursorStandard()
+		input.man.Host.Window.CursorStandard()
 		if input.group != nil {
 			input.group.setFocus(nil)
 		}
@@ -663,7 +664,7 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 				input.RemoveFocus()
 				return
 			}
-			kb := &input.host.Window.Keyboard
+			kb := &input.man.Host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
@@ -699,7 +700,7 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.submit()
 				case hid.KeyboardKeyTab:
 					// Delay a frame so we don't hit a loop of going to next
-					input.host.RunAfterFrames(1, func() {
+					input.man.Host.RunAfterFrames(1, func() {
 						next := input.InputData().nextFocusInput
 						if next != nil {
 							next.Focus()

@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"unicode/utf8"
@@ -85,13 +84,7 @@ func (u *UI) ToLabel() *Label          { return (*Label)(u) }
 func (l *Label) Base() *UI             { return (*UI)(l) }
 func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 
-func NewLabel(host *engine.Host, text string, anchor Anchor, uiMan *Manager) *Label {
-	label := &Label{}
-	label.Init(host, text, anchor, uiMan)
-	return label
-}
-
-func (label *Label) Init(host *engine.Host, text string, anchor Anchor, uiMan *Manager) {
+func (label *Label) Init(text string, anchor Anchor) {
 	label.elmData = &labelData{
 		text:            text,
 		textLength:      utf8.RuneCountInString(text),
@@ -110,20 +103,17 @@ func (label *Label) Init(host *engine.Host, text string, anchor Anchor, uiMan *M
 	label.elmType = ElementTypeLabel
 	label.postLayoutUpdate = label.labelPostLayoutUpdate
 	label.render = label.labelRender
-	label.Base().init(host, matrix.Vec2Zero(), anchor, label.Base())
+	label.Base().init(matrix.Vec2Zero(), anchor, label.Base())
 	label.SetText(text)
 	label.Base().SetDirty(DirtyTypeGenerated)
 	label.entity.OnActivate.Add(func() {
 		label.activateDrawings()
-		label.updateId = host.Updater.AddUpdate(label.Base().Update)
 		label.Base().SetDirty(DirtyTypeLayout)
 		label.LabelData().renderRequired = true
 		label.Base().Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
 		label.deactivateDrawings()
-		host.Updater.RemoveUpdate(label.updateId)
-		label.updateId = 0
 	})
 	label.entity.OnDestroy.Add(func() {
 		label.clearDrawings()
@@ -193,7 +183,7 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	ld := label.LabelData()
-	return label.host.FontCache().MeasureStringWithin(ld.fontFace,
+	return label.man.Host.FontCache().MeasureStringWithin(ld.fontFace,
 		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
 }
 
@@ -213,8 +203,8 @@ func (label *Label) renderText() {
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if ld.textLength > 0 {
-		ld.runeDrawings = label.host.FontCache().RenderMeshes(
-			label.host, ld.text, 0, 0, 0, ld.fontSize,
+		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
+			label.man.Host, ld.text, 0, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(), true,
 			false, ld.fontFace, ld.lineHeight)
@@ -227,8 +217,8 @@ func (label *Label) renderText() {
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
 		}
-		dc := label.host.Window.Renderer.DefaultCanvas()
-		label.host.Drawings.AddDrawings(ld.runeDrawings, dc)
+		dc := label.man.Host.Window.Renderer.DefaultCanvas()
+		label.man.Host.Drawings.AddDrawings(ld.runeDrawings, dc)
 	}
 }
 
@@ -396,7 +386,7 @@ func (label *Label) MaxWidth() float32 {
 
 func (label *Label) SetWidthAutoHeight(width float32) {
 	ld := label.LabelData()
-	textSize := label.Base().host.FontCache().MeasureStringWithin(
+	textSize := label.Base().man.Host.FontCache().MeasureStringWithin(
 		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
 	label.layout.Scale(width, textSize.Y())
 	label.Base().SetDirty(DirtyTypeResize)
@@ -507,7 +497,7 @@ func (label *Label) CalculateMaxWidth() float32 {
 	}
 	if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(label.host.Window.Width())
+		maxWidth = matrix.Float(label.man.Host.Window.Width())
 	} else {
 		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
 	}

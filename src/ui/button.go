@@ -38,17 +38,19 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
-
-type Button Panel
 
 type buttonData struct {
 	panelData
 	color matrix.Color
 }
+
+type Button Panel
+
+func (u *UI) ToButton() *Button { return (*Button)(u) }
+func (b *Button) Base() *UI     { return (*UI)(b) }
 
 func (b *buttonData) innerPanelData() *panelData { return &b.panelData }
 
@@ -67,53 +69,29 @@ func (b *Button) Label() *Label {
 			pui = nil
 		}
 	}
-	if pui == nil {
-		return b.createLabel()
-	} else {
-		return pui.ToLabel()
+	return pui.ToLabel()
+}
+
+func (b *Button) Init(texture *rendering.Texture, text string, anchor Anchor) {
+	p := b.Base().ToPanel()
+	b.elmData = &buttonData{
+		color: matrix.ColorWhite(),
 	}
-}
+	p.Init(texture, anchor, ElementTypeButton)
+	p.SetColor(matrix.ColorWhite())
+	b.setupEvents()
+	ps := p.layout.PixelSize()
+	p.layout.Scale(ps.Width(), ps.Height()+1)
 
-func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
-	panel := NewPanel(host, texture, anchor, ElementTypeButton, nil)
-	btn := (*Button)(panel)
-	btn.setup(text)
-	btn.createLabel()
-	return btn
-}
-
-func (u *UI) AsButton() *Button { return (*Button)(u) }
-func (b *Button) Base() *UI     { return (*UI)(b) }
-
-func (b *Button) createLabel() *Label {
-	lbl := NewLabel(b.host, "", AnchorStretchCenter, nil)
+	// Create the label for the button
+	lbl := b.man.Add().ToLabel()
+	lbl.Init("", AnchorStretchCenter)
 	lbl.layout.SetStretch(0, 0, 0, 0)
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
 	(*Panel)(b).AddChild(lbl.Base())
-	return lbl
-}
-
-func (b *Button) setup(text string) {
-	p := (*Panel)(b)
-	p.elmData = &buttonData{
-		panelData: *p.PanelData(),
-		color:     matrix.ColorWhite(),
-	}
-	p.SetColor(matrix.ColorWhite())
-	btn := (*Button)(p)
-	btn.setupEvents()
-	ps := p.layout.PixelSize()
-	p.layout.Scale(ps.Width(), ps.Height()+1)
-}
-
-func (p *Panel) ConvertToButton() *Button {
-	btn := (*Button)(p)
-	btn.elmType = ElementTypeButton
-	btn.setup("")
-	return btn
 }
 
 func (b *Button) setupEvents() {

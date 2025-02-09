@@ -74,18 +74,19 @@ func (c *checkboxData) innerPanelData() *panelData { return &c.panelData }
 
 type Checkbox Panel
 
-func (u *UI) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
+func (u *UI) ToCheckbox() *Checkbox { return (*Checkbox)(u) }
 func (cb *Checkbox) Base() *UI      { return (*UI)(cb) }
 
 func (cb *Checkbox) CheckboxData() *checkboxData {
 	return cb.Base().elmData.(*checkboxData)
 }
 
-func (p *Panel) ConvertToCheckbox() *Checkbox {
-	ld := &checkboxData{
-		panelData: *p.PanelData(),
-	}
-	tc := p.host.TextureCache()
+func (cb *Checkbox) Init(anchor Anchor) {
+	ld := &checkboxData{}
+	cb.elmData = ld
+	p := cb.Base().ToPanel()
+	p.Init(ld.textures[texOffIdle], anchor, ElementTypeCheckbox)
+	tc := p.man.Host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
 	ld.textures[texOffDown], _ = tc.Texture(
@@ -98,17 +99,12 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 		onDownTexture, rendering.TextureFilterLinear)
 	ld.textures[texOnHover], _ = tc.Texture(
 		onHoverTexture, rendering.TextureFilterLinear)
-	cb := (*Checkbox)(p)
-	cb.elmData = ld
-	cb.elmType = ElementTypeCheckbox
 	p.Base().AddEvent(EventTypeEnter, cb.onHover)
 	p.Base().AddEvent(EventTypeExit, cb.onBlur)
 	p.Base().AddEvent(EventTypeDown, cb.onDown)
 	p.Base().AddEvent(EventTypeUp, cb.onUp)
 	p.Base().AddEvent(EventTypeClick, cb.onClick)
 	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
-	p.ensureBGExists(ld.textures[texOffIdle])
-	return cb
 }
 
 func (cb *Checkbox) onHover() {

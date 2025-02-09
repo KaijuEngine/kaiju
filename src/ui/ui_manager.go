@@ -7,8 +7,8 @@ import (
 )
 
 type Manager struct {
-	host     *engine.Host
-	group    *Group
+	Host     *engine.Host
+	Group    *Group
 	pools    pooling.PoolGroup[UI]
 	updateId int
 }
@@ -46,18 +46,18 @@ func (man *Manager) update(deltaTime float64) {
 }
 
 func (man *Manager) Init(host *engine.Host) {
-	man.host = host
+	man.Host = host
 	man.updateId = host.UIUpdater.AddUpdate(man.update)
-	man.group = NewGroup()
-	man.group.Attach(host)
-	man.group.SetThreaded()
+	man.Group = NewGroup()
+	man.Group.Attach(host)
+	man.Group.SetThreaded()
 }
 
 func (man *Manager) Release() {
 	man.Clear()
-	man.host.UIUpdater.RemoveUpdate(man.updateId)
+	man.Host.UIUpdater.RemoveUpdate(man.updateId)
 	man.updateId = 0
-	man.group.Detach(man.host)
+	man.Group.Detach(man.Host)
 }
 
 func (man *Manager) Clear() {
@@ -71,7 +71,7 @@ func (man *Manager) Add() *UI {
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
-	ui.SetGroup(man.group)
+	ui.SetGroup(man.Group)
 	return ui
 }
 
@@ -81,5 +81,5 @@ func (man *Manager) Remove(ui *UI) {
 
 func (man *Manager) Reserve(additionalElements int) {
 	man.pools.Reserve(additionalElements)
-	man.host.ReserveEntities(additionalElements)
+	man.Host.ReserveEntities(additionalElements)
 }
