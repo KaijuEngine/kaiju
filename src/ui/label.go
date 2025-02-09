@@ -177,7 +177,7 @@ func (label *Label) labelPostLayoutUpdate() {
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
-	m := label.measure(label.MaxWidth())
+	m := label.measure(maxWidth)
 	label.layout.ScaleHeight(m.Y())
 }
 
