@@ -140,11 +140,7 @@ func (c *ContentWindow) Hide() {
 }
 
 func (s *ContentWindow) contentDblClick(elm *document.Element) {
-	// UI is now concurrent, so alterations like this should be done on the
-	// main thread for the host.
-	s.uiMan.Host.RunAfterFrames(0, func() {
-		s.openContent(elm)
-	})
+	s.openContent(elm)
 }
 
 func (s *ContentWindow) contentClick(elm *document.Element) {
