@@ -68,6 +68,7 @@ func (man *Manager) Clear() {
 
 func (man *Manager) Add() *UI {
 	ui, poolId, elmId := man.pools.Add()
+	*ui = UI{}
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
