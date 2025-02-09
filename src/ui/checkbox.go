@@ -63,7 +63,8 @@ const (
 	defaultCheckboxSize = 25
 )
 
-type localCheckboxData struct {
+type checkboxData struct {
+	panelData
 	label     *Label
 	textures  [6]*rendering.Texture
 	isChecked bool
@@ -74,12 +75,14 @@ type Checkbox Panel
 func (u *UI) AsCheckbox() *Checkbox { return (*Checkbox)(u) }
 func (cb *Checkbox) Base() *UI      { return (*UI)(cb) }
 
-func (cb *Checkbox) data() *localCheckboxData {
-	return (*Panel)(cb).PanelData().localData.(*localCheckboxData)
+func (cb *Checkbox) CheckboxData() *checkboxData {
+	return cb.Base().elmData.(*checkboxData)
 }
 
 func (p *Panel) ConvertToCheckbox() *Checkbox {
-	ld := &localCheckboxData{}
+	ld := &checkboxData{
+		panelData: *p.PanelData(),
+	}
 	tc := p.host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
@@ -94,13 +97,13 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 	ld.textures[texOnHover], _ = tc.Texture(
 		onHoverTexture, rendering.TextureFilterLinear)
 	cb := (*Checkbox)(p)
+	cb.elmData = ld
 	cb.elmType = ElementTypeCheckbox
 	p.Base().AddEvent(EventTypeEnter, cb.onHover)
 	p.Base().AddEvent(EventTypeExit, cb.onBlur)
 	p.Base().AddEvent(EventTypeDown, cb.onDown)
 	p.Base().AddEvent(EventTypeUp, cb.onUp)
 	p.Base().AddEvent(EventTypeClick, cb.onClick)
-	p.PanelData().localData = ld
 	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
 	p.ensureBGExists(ld.textures[texOffIdle])
 	return cb
@@ -108,7 +111,7 @@ func (p *Panel) ConvertToCheckbox() *Checkbox {
 
 func (cb *Checkbox) onHover() {
 	var target *rendering.Texture = nil
-	data := cb.data()
+	data := cb.CheckboxData()
 	if cb.isDown {
 		if data.isChecked {
 			target = data.textures[texOnDown]
@@ -126,7 +129,7 @@ func (cb *Checkbox) onHover() {
 }
 
 func (cb *Checkbox) onBlur() {
-	data := cb.data()
+	data := cb.CheckboxData()
 	var target *rendering.Texture = nil
 	if data.isChecked {
 		target = data.textures[texOnIdle]
@@ -137,7 +140,7 @@ func (cb *Checkbox) onBlur() {
 }
 
 func (cb *Checkbox) onDown() {
-	data := cb.data()
+	data := cb.CheckboxData()
 	var target *rendering.Texture = nil
 	if data.isChecked {
 		target = data.textures[texOnDown]
@@ -148,7 +151,7 @@ func (cb *Checkbox) onDown() {
 }
 
 func (cb *Checkbox) onUp() {
-	data := cb.data()
+	data := cb.CheckboxData()
 	var target *rendering.Texture = nil
 	if data.isChecked {
 		target = data.textures[texOnHover]
@@ -159,12 +162,12 @@ func (cb *Checkbox) onUp() {
 }
 
 func (cb *Checkbox) onClick() {
-	data := cb.data()
+	data := cb.CheckboxData()
 	cb.SetChecked(!data.isChecked)
 }
 
 func (cb *Checkbox) SetChecked(isChecked bool) {
-	data := cb.data()
+	data := cb.CheckboxData()
 	if data.isChecked == isChecked {
 		return
 	}
@@ -188,5 +191,5 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 }
 
 func (cb Checkbox) IsChecked() bool {
-	return cb.data().isChecked
+	return cb.CheckboxData().isChecked
 }

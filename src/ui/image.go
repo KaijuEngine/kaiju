@@ -45,33 +45,38 @@ import (
 type Image Panel
 
 type imageData struct {
+	panelData
 	flipBook                 []*rendering.Texture
 	frameDelay, fps          float32
 	frameCount, currentFrame int
 	paused                   bool
 }
 
-func (s *Image) data() *imageData {
-	return (*Panel)(s).PanelData().localData.(*imageData)
+func (u *UI) ToImage() *Image { return (*Image)(u) }
+func (s *Image) Base() *UI    { return (*UI)(s) }
+
+func (s *Image) ImageData() *imageData {
+	return s.elmData.(*imageData)
 }
 
 func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
 	panel := NewPanel(host, texture, anchor, ElementTypeImage)
 	img := (*Image)(panel)
-	panel.PanelData().localData = &imageData{
-		flipBook: []*rendering.Texture{texture},
+	img.elmData = &imageData{
+		panelData: *panel.PanelData(),
+		flipBook:  []*rendering.Texture{texture},
 	}
 	panel.PanelData().innerUpdate = img.update
 	return img
 }
 
 func (img *Image) resetDelay() {
-	data := img.data()
+	data := img.ImageData()
 	data.frameDelay = 1.0 / data.fps
 }
 
 func (img *Image) update(deltaTime float64) {
-	data := img.data()
+	data := img.ImageData()
 	data.frameDelay -= float32(deltaTime)
 	if data.frameCount > 0 && data.frameDelay <= 0.0 {
 		data.currentFrame++
@@ -91,7 +96,7 @@ func (img *Image) SetTexture(texture *rendering.Texture) {
 }
 
 func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture) {
-	data := img.data()
+	data := img.ImageData()
 	count := len(textures)
 	data.flipBook = make([]*rendering.Texture, 0, count)
 	for i := 0; i < count; i++ {
@@ -105,13 +110,13 @@ func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*ren
 }
 
 func (img *Image) SetFrameRate(framesPerSecond float32) {
-	img.data().fps = framesPerSecond
+	img.ImageData().fps = framesPerSecond
 }
 
 func (img *Image) PlayAnimation() {
-	img.data().paused = false
+	img.ImageData().paused = false
 }
 
 func (img *Image) StopAnimation() {
-	img.data().paused = true
+	img.ImageData().paused = true
 }

@@ -43,7 +43,8 @@ import (
 	"kaiju/rendering"
 )
 
-type localSliderData struct {
+type sliderData struct {
+	panelData
 	bgPanel *Panel
 	fgPanel *Panel
 	value   float32
@@ -54,14 +55,14 @@ type Slider Panel
 func (u *UI) AsSlider() *Slider { return (*Slider)(u) }
 func (s *Slider) Base() *UI     { return (*UI)(s) }
 
-func (s *Slider) data() *localSliderData {
-	return (*Panel)(s).PanelData().localData.(*localSliderData)
+func (s *Slider) SliderData() *sliderData {
+	return s.elmData.(*sliderData)
 }
 
 func (p *Panel) ConvertToSlider() *Slider {
 	s := (*Slider)(p)
 	s.elmType = ElementTypeSlider
-	ld := &localSliderData{}
+	ld := &sliderData{}
 	host := p.Base().host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
@@ -86,10 +87,12 @@ func (p *Panel) ConvertToSlider() *Slider {
 	ld.fgPanel.SetColor(matrix.ColorWhite())
 	ld.bgPanel.entity.SetParent(p.entity)
 	ld.fgPanel.entity.SetParent(p.entity)
-	pd := p.PanelData()
-	pd.localData = ld
+	sd := &sliderData{
+		panelData: *p.PanelData(),
+	}
+	p.elmData = sd
 	p.Base().AddEvent(EventTypeDown, s.onDown)
-	pd.innerUpdate = s.sliderUpdate
+	sd.innerUpdate = s.sliderUpdate
 	return s
 }
 
@@ -112,11 +115,11 @@ func (slider *Slider) onDown() {
 }
 
 func (slider Slider) Value() float32 {
-	return slider.data().value
+	return slider.SliderData().value
 }
 
 func (slider *Slider) SetValue(value float32) {
-	ld := slider.data()
+	ld := slider.SliderData()
 	ld.value = matrix.Clamp(value, 0, 1)
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
 	x := matrix.Clamp((w * ld.value), 0, w-ld.fgPanel.entity.Transform.WorldScale().X())
@@ -125,9 +128,9 @@ func (slider *Slider) SetValue(value float32) {
 }
 
 func (slider *Slider) SetFGColor(fgColor matrix.Color) {
-	slider.data().fgPanel.SetColor(fgColor)
+	slider.SliderData().fgPanel.SetColor(fgColor)
 }
 
 func (slider *Slider) SetBGColor(bgColor matrix.Color) {
-	slider.data().bgPanel.SetColor(bgColor)
+	slider.SliderData().bgPanel.SetColor(bgColor)
 }

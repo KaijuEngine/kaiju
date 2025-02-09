@@ -46,11 +46,12 @@ import (
 type Button Panel
 
 type buttonData struct {
+	panelData
 	color matrix.Color
 }
 
-func (b *Button) data() *buttonData {
-	return (*Panel)(b).PanelData().localData.(*buttonData)
+func (b *Button) ButtonData() *buttonData {
+	return b.Base().elmData.(*buttonData)
 }
 
 func (b *Button) Label() *Label {
@@ -95,7 +96,10 @@ func (b *Button) createLabel() *Label {
 
 func (b *Button) setup(text string) {
 	p := (*Panel)(b)
-	p.PanelData().localData = &buttonData{matrix.ColorWhite()}
+	p.elmData = &buttonData{
+		panelData: *p.PanelData(),
+		color:     matrix.ColorWhite(),
+	}
 	p.SetColor(matrix.ColorWhite())
 	btn := (*Button)(p)
 	btn.setupEvents()
@@ -113,7 +117,7 @@ func (p *Panel) ConvertToButton() *Button {
 func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
 	b.Base().AddEvent(EventTypeEnter, func() {
-		c := b.data().color
+		c := b.ButtonData().color
 		if panel.isDown {
 			c = c.ScaleWithoutAlpha(0.7)
 		} else {
@@ -123,20 +127,20 @@ func (b *Button) setupEvents() {
 		b.setTempColor(c)
 	})
 	b.Base().AddEvent(EventTypeExit, func() {
-		b.setTempColor(b.data().color)
+		b.setTempColor(b.ButtonData().color)
 	})
 	b.Base().AddEvent(EventTypeDown, func() {
-		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.7))
+		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.7))
 	})
 	b.Base().AddEvent(EventTypeUp, func() {
-		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.8))
+		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.8))
 	})
 }
 
 func (b *Button) SetColor(color matrix.Color) {
 	(*Panel)(b).SetColor(color)
 	b.Label().SetBGColor(color)
-	b.data().color = color
+	b.ButtonData().color = color
 }
 
 func (b *Button) setTempColor(color matrix.Color) {

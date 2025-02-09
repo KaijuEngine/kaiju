@@ -40,7 +40,7 @@
 package ui
 
 func (input *Input) internalCopyToClipboard() {
-	data := input.Data()
+	data := input.InputData()
 	l := data.label
 	if data.selectEnd != data.selectStart {
 		str := l.LabelData().text[data.selectStart:data.selectEnd]

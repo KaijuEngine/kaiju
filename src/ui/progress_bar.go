@@ -46,19 +46,27 @@ import (
 type ProgressBar Panel
 
 type progressBarData struct {
+	panelData
 	fgPanel *Panel
 	value   float32
 }
 
+func (u *UI) ToProgressBar() *ProgressBar { return (*ProgressBar)(u) }
+func (p *ProgressBar) Base() *UI          { return (*UI)(p) }
+
 func (p *ProgressBar) data() *progressBarData {
-	return (*Panel)(p).PanelData().localData.(*progressBarData)
+	return p.elmData.(*progressBarData)
 }
 
 func NewProgressBar(host *engine.Host, fgTexture, bgTexture *rendering.Texture, anchor Anchor) *ProgressBar {
 	panel := NewPanel(host, bgTexture, anchor, ElementTypePanel)
 	fgPanel := NewPanel(host, fgTexture, AnchorStretchCenter, ElementTypePanel)
 	panel.AddChild(fgPanel.Base())
-	panel.PanelData().localData = &progressBarData{fgPanel: fgPanel, value: 0.0}
+	panel.elmData = &progressBarData{
+		panelData: *panel.PanelData(),
+		fgPanel:   fgPanel,
+		value:     0,
+	}
 	return (*ProgressBar)(panel)
 }
 

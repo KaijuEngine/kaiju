@@ -89,9 +89,6 @@ type childScrollEvent struct {
 	scroll events.Id
 }
 
-type localData interface {
-}
-
 type requestScroll struct {
 	to        float32
 	requested bool
@@ -105,7 +102,6 @@ type panelData struct {
 	borderStyle               [4]BorderStyle
 	color                     matrix.Color
 	drawing                   rendering.Drawing
-	localData                 localData
 	innerUpdate               func(deltaTime float64)
 	fitContent                ContentFit
 	requestScrollX            requestScroll
@@ -123,7 +119,22 @@ type Panel UI
 func (u *UI) ToPanel() *Panel { return (*Panel)(u) }
 func (p *Panel) Base() *UI    { return (*UI)(p) }
 
-func (p *Panel) PanelData() *panelData { return p.elmData.(*panelData) }
+func (p *Panel) PanelData() *panelData {
+	// TODO:  Simplify this probably through an interface or something
+	switch t := p.elmData.(type) {
+	case *buttonData:
+		return &t.panelData
+	case *checkboxData:
+		return &t.panelData
+	case *imageData:
+		return &t.panelData
+	case *inputData:
+		return &t.panelData
+	case *sliderData:
+		return &t.panelData
+	}
+	return p.elmData.(*panelData)
+}
 
 func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType) *Panel {
 	panel := &Panel{
