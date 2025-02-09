@@ -262,26 +262,6 @@ func (e *Entity) FindByName(name string) *Entity {
 	return nil
 }
 
-// ScaleWithoutChildren will temporarily remove all children from the entity,
-// scale the entity, and then re-add the children. This is useful when you want
-// to scale an entity without scaling its children. When the children are
-// re-added, they keep the world transformations they had before being removed.
-func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
-	count := len(e.Children)
-	arr := make([]*Entity, count)
-	for i := count - 1; i >= 0; i-- {
-		c := e.Children[i]
-		c.SetParent(nil)
-		arr[i] = c
-	}
-	e.Children = e.Children[:0]
-	e.Transform.SetScale(scale)
-	for i := 0; i < count; i++ {
-		c := arr[i]
-		c.SetParent(e)
-	}
-}
-
 // TickCleanup will check if the entity is ready to be completely destroyed. If
 // the entity is ready to be destroyed, it will execute the #Entity.OnDestroy
 // event and return true. If the entity is not ready to be destroyed, it will

@@ -340,7 +340,7 @@ func layoutStretch(self *Layout) {
 	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), 1}
 	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / bounds.X()
 	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / bounds.Y()
-	self.ui.Entity().ScaleWithoutChildren(scale)
+	self.ui.Entity().Transform.ScaleWithoutChildren(scale)
 	pos := matrix.Vec3{
 		x + bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
 		y + bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
@@ -482,7 +482,7 @@ func (l *Layout) Scale(width, height float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
 }
@@ -497,7 +497,7 @@ func (l *Layout) ScaleWidth(width float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
@@ -516,7 +516,7 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
