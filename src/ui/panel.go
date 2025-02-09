@@ -470,9 +470,7 @@ func (p *Panel) panelRender() {
 
 func (p *Panel) AddChild(target *UI) {
 	target.Entity().SetParent(&p.entity)
-	if p.group != nil {
-		target.SetGroup(p.group)
-	}
+	// No need to set the group on the target as it's set by the UI Manager
 	target.Layout().update()
 	p.Base().SetDirty(DirtyTypeGenerated)
 }

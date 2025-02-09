@@ -71,7 +71,7 @@ func (man *Manager) Add() *UI {
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
-	ui.SetGroup(man.Group)
+	ui.group = man.Group
 	return ui
 }
 
