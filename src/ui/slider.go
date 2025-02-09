@@ -87,8 +87,8 @@ func (p *Panel) ConvertToSlider() *Slider {
 		ps.SetValue(ps.Value())
 	})
 	ld.fgPanel.SetColor(matrix.ColorWhite())
-	ld.bgPanel.entity.SetParent(p.entity)
-	ld.fgPanel.entity.SetParent(p.entity)
+	ld.bgPanel.entity.SetParent(&p.entity)
+	ld.fgPanel.entity.SetParent(&p.entity)
 	sd := &sliderData{
 		panelData: *p.PanelData(),
 	}

@@ -85,7 +85,7 @@ type UIElementData interface {
 type UI struct {
 	man              *Manager
 	host             *engine.Host
-	entity           *engine.Entity
+	entity           engine.Entity
 	elmData          UIElementData
 	events           [EventTypeEnd]events.Event
 	group            *Group
@@ -120,7 +120,8 @@ func (ui *UI) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, se
 	if ui.render == nil {
 		ui.render = func() { ui.events[EventTypeRender].Execute() }
 	}
-	ui.entity = host.NewEntity()
+	ui.entity.Init()
+	host.AddEntity(&ui.entity)
 	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, self)
@@ -138,7 +139,7 @@ func (ui *UI) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, se
 	})
 }
 
-func (ui *UI) Entity() *engine.Entity   { return ui.entity }
+func (ui *UI) Entity() *engine.Entity   { return &ui.entity }
 func (ui *UI) Layout() *Layout          { return &ui.layout }
 func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
 func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
@@ -188,7 +189,7 @@ func (ui *UI) SetDirty(dirtyType DirtyType) {
 }
 
 func (ui *UI) rootUI() *UI {
-	root := ui.entity
+	root := &ui.entity
 	var rootUI *UI = FirstOnEntity(root)
 	for root.Parent != nil {
 		if pui := FirstOnEntity(root.Parent); pui != nil {
@@ -268,7 +269,7 @@ func (ui *UI) setScissor(scissor matrix.Vec4) {
 		}
 	}
 	ui.shaderData.Scissor = scissor
-	me := FirstOnEntity(ui.entity)
+	me := FirstOnEntity(&ui.entity)
 	if me.elmType == ElementTypeLabel {
 		ld := me.ToLabel().LabelData()
 		for i := range ld.runeDrawings {
@@ -290,7 +291,7 @@ func (ui *UI) eventUpdates() {
 	mouse := &ui.host.Window.Mouse
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.isDown && !ui.drag {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
@@ -304,7 +305,7 @@ func (ui *UI) eventUpdates() {
 		}
 	}
 	if cursor.Pressed() {
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.hovering && !ui.isDown {
 			ui.isDown = true
 			ui.downPos = ui.cursorPos(cursor)
@@ -313,7 +314,7 @@ func (ui *UI) eventUpdates() {
 		}
 	}
 	if mouse.Pressed(hid.MouseButtonRight) {
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.hovering && !ui.isRightDown {
 			ui.isRightDown = true
 		}

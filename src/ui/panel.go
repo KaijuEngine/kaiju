@@ -478,7 +478,7 @@ func (p *Panel) panelRender() {
 }
 
 func (p *Panel) AddChild(target *UI) {
-	target.Entity().SetParent(p.entity)
+	target.Entity().SetParent(&p.entity)
 	if p.group != nil {
 		target.SetGroup(p.group)
 	}
