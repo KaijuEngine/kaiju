@@ -39,7 +39,6 @@ package status_bar
 
 import (
 	"kaiju/editor/ui/log_window"
-	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -52,22 +51,24 @@ import (
 )
 
 type StatusBar struct {
-	doc *document.Document
-	msg *ui.Label
-	log *ui.Label
+	doc   *document.Document
+	msg   *ui.Label
+	log   *ui.Label
+	uiMan *ui.Manager
 }
 
-func New(host *engine.Host, logWindow *log_window.LogWindow) *StatusBar {
+func New(uiMan *ui.Manager, logWindow *log_window.LogWindow) *StatusBar {
 	const html = "editor/ui/status.html"
 	s := &StatusBar{}
-	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, nil,
+	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(uiMan, html, nil,
 		map[string]func(*document.Element){
 			"openLogWindow": func(*document.Element) { logWindow.Show() },
 		}))
 	m, _ := s.doc.GetElementById("msg")
 	l, _ := s.doc.GetElementById("log")
-	s.msg = m.Children[0].UI.(*ui.Label)
-	s.log = l.Children[0].UI.(*ui.Label)
+	s.msg = m.Children[0].UI.ToLabel()
+	s.log = l.Children[0].UI.ToLabel()
+	host := uiMan.Host
 	host.LogStream.OnInfo.Add(func(msg string) {
 		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorWhite()) })
 	})
@@ -104,5 +105,5 @@ func (s *StatusBar) SetMessage(status string) {
 		}
 		status = "(" + strconv.Itoa(count) + ") " + status
 	}
-	s.log.Host().RunAfterFrames(1, func() { s.msg.SetText(status) })
+	s.log.Base().Host().RunAfterFrames(1, func() { s.msg.SetText(status) })
 }

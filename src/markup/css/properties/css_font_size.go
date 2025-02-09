@@ -48,7 +48,7 @@ import (
 
 func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) {
 	if elm.IsText() {
-		lbl := elm.UI.(*ui.Label)
+		lbl := elm.UI.ToLabel()
 		size := helpers.NumFromLengthWithFont(size, host.Window,
 			host.FontCache().EMSize(lbl.FontFace()))
 		lbl.SetFontSize(size)

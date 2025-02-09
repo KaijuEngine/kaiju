@@ -107,7 +107,7 @@ func (e *Entity) Deserialize(stream io.Reader, host *Host) error {
 	if drawings, err := setupDrawings(e, host, drawingDefs); err != nil {
 		return err
 	} else {
-		return e.EditorBindings.deserialize(e, dec, host, drawings)
+		return e.EditorBindings.deserialize(dec, drawings)
 	}
 }
 

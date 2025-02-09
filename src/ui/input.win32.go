@@ -40,11 +40,11 @@
 package ui
 
 func (input *Input) internalCopyToClipboard() {
-	data := input.Data()
+	data := input.InputData()
 	l := data.label
 	if data.selectEnd != data.selectStart {
-		str := l.text[data.selectStart:data.selectEnd]
-		input.host.Window.CopyToClipboard(str)
+		str := l.LabelData().text[data.selectStart:data.selectEnd]
+		input.Base().Host().Window.CopyToClipboard(str)
 	}
 }
 
@@ -54,6 +54,6 @@ func (input *Input) internalCutToClipboard() {
 }
 
 func (input *Input) internalPasteFromClipboard() {
-	text := input.host.Window.ClipboardContents()
+	text := input.man.Host.Window.ClipboardContents()
 	input.InsertText(text)
 }

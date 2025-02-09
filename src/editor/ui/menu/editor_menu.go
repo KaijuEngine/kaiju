@@ -66,6 +66,7 @@ type Menu struct {
 	contentOpener   *content_opener.Opener
 	editor          interfaces.Editor
 	uiGroup         *ui.Group
+	uiMan           *ui.Manager
 }
 
 func New(container *host_container.Container,
@@ -74,7 +75,7 @@ func New(container *host_container.Container,
 	hierarchyWindow *hierarchy.Hierarchy,
 	contentOpener *content_opener.Opener,
 	editor interfaces.Editor,
-	uiGroup *ui.Group) *Menu {
+	uiMan *ui.Manager) *Menu {
 
 	host := container.Host
 	html := klib.MustReturn(host.AssetDatabase().ReadText("editor/ui/menu.html"))
@@ -98,8 +99,7 @@ func New(container *host_container.Container,
 		"newEntity":           m.newEntity,
 		"showEditorSettings":  m.showEditorSettings,
 	}
-	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
-	m.doc.SetGroup(uiGroup)
+	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
 	for i := range allItems {
 		targetId := allItems[i].Attribute("data-target")

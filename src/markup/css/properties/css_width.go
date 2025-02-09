@@ -61,7 +61,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 	}
 	if err == nil {
 		if strings.HasSuffix(values[0].Str, "%") && elm.Parent != nil {
-			panel.Layout().AddFunction(func(l *ui.Layout) {
+			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 				if l.Ui().Entity().IsRoot() {
 					return
 				}
@@ -76,7 +76,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 			})
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {
-				panel.Layout().AddFunction(func(l *ui.Layout) {
+				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 					val := values[0]
 					val.Args = append(val.Args, "width")
 					res, _ := functions.Calc{}.Process(panel, elm, val)
@@ -85,7 +85,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 				})
 			}
 		} else {
-			panel.Layout().ScaleWidth(width)
+			panel.Base().Layout().ScaleWidth(width)
 		}
 		panel.DontFitContentWidth()
 	}

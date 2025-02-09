@@ -61,7 +61,7 @@ func (s ShaderData) Size() int {
 	return size
 }
 
-func (s *ShaderData) setSize2d(ui UI, texWidth, texHeight float32) {
+func (s *ShaderData) setSize2d(ui *UI, texWidth, texHeight float32) {
 	// TODO:  This is skipped for text
 	ws := ui.Entity().Transform.WorldScale()
 	s.Size2D[0] = ws.X()

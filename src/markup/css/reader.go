@@ -46,9 +46,9 @@ import (
 	"kaiju/ui"
 )
 
-type CSSMap map[ui.UI][]rules.Rule
+type CSSMap map[*ui.UI][]rules.Rule
 
-func (m CSSMap) add(elm ui.UI, rule []rules.Rule) {
+func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
 	if _, ok := m[elm]; !ok {
 		m[elm] = make([]rules.Rule, 0)
 	}
@@ -90,7 +90,7 @@ func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Ho
 	return problems
 }
 
-func applyMappings(doc *document.Document, cssMap map[ui.UI][]rules.Rule, host *engine.Host) {
+func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule, host *engine.Host) {
 	for i := range doc.Elements {
 		// TODO:  Make sure this is applying in order from parent to child
 		// Since this array is intrinsically ordered, it should be fine
@@ -172,7 +172,7 @@ func cleanMapDuplicates(cssMap CSSMap) {
 }
 
 func Apply(s rules.StyleSheet, doc *document.Document, host *engine.Host) {
-	cssMap := CSSMap(make(map[ui.UI][]rules.Rule))
+	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
 		for _, sel := range group.Selectors {
 			if len(sel.Parts) == 1 {

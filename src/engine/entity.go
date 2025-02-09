@@ -81,20 +81,23 @@ type Entity struct {
 
 // NewEntity creates a new #Entity struct and returns it
 func NewEntity() *Entity {
-	e := &Entity{
-		isActive:     true,
-		Children:     make([]*Entity, 0),
-		Transform:    matrix.NewTransform(),
-		matrix:       matrix.Mat4Identity(),
-		namedData:    make(map[string][]interface{}),
-		name:         "Entity",
-		OnDestroy:    events.New(),
-		OnActivate:   events.New(),
-		OnDeactivate: events.New(),
-		data:         make([]EntityData, 0),
-	}
-	e.EditorBindings.init()
+	e := &Entity{}
+	e.Init()
 	return e
+}
+
+func (e *Entity) Init() {
+	e.isActive = true
+	e.Children = make([]*Entity, 0)
+	e.Transform = matrix.NewTransform()
+	e.matrix = matrix.Mat4Identity()
+	e.namedData = make(map[string][]interface{})
+	e.name = "Entity"
+	e.OnDestroy = events.New()
+	e.OnActivate = events.New()
+	e.OnDeactivate = events.New()
+	e.data = make([]EntityData, 0)
+	e.EditorBindings.init()
 }
 
 // ID returns the unique identifier of the entity. The Id is only valid for
@@ -257,26 +260,6 @@ func (e *Entity) FindByName(name string) *Entity {
 		}
 	}
 	return nil
-}
-
-// ScaleWithoutChildren will temporarily remove all children from the entity,
-// scale the entity, and then re-add the children. This is useful when you want
-// to scale an entity without scaling its children. When the children are
-// re-added, they keep the world transformations they had before being removed.
-func (e *Entity) ScaleWithoutChildren(scale matrix.Vec3) {
-	count := len(e.Children)
-	arr := make([]*Entity, count)
-	for i := count - 1; i >= 0; i-- {
-		c := e.Children[i]
-		c.SetParent(nil)
-		arr[i] = c
-	}
-	e.Children = e.Children[:0]
-	e.Transform.SetScale(scale)
-	for i := 0; i < count; i++ {
-		c := arr[i]
-		c.SetParent(e)
-	}
 }
 
 // TickCleanup will check if the entity is ready to be completely destroyed. If

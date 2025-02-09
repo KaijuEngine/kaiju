@@ -43,7 +43,7 @@ const (
 	EntityDataName = "ui"
 )
 
-func FirstOnEntity(entity *engine.Entity) UI {
+func FirstOnEntity(entity *engine.Entity) *UI {
 	if entity == nil {
 		return nil
 	}
@@ -51,7 +51,7 @@ func FirstOnEntity(entity *engine.Entity) UI {
 	if len(found) == 0 {
 		return nil
 	}
-	return found[0].(UI)
+	return found[0].(*UI)
 }
 
 func FirstPanelOnEntity(entity *engine.Entity) *Panel {
@@ -59,17 +59,17 @@ func FirstPanelOnEntity(entity *engine.Entity) *Panel {
 	if ui == nil {
 		return nil
 	}
-	return ui.(*Panel)
+	return (*Panel)(ui)
 }
 
-func AllOnEntity(entity *engine.Entity) []UI {
+func AllOnEntity(entity *engine.Entity) []*UI {
 	found := entity.NamedData(EntityDataName)
 	if len(found) == 0 {
-		return []UI{}
+		return []*UI{}
 	}
-	res := make([]UI, len(found))
+	res := make([]*UI, len(found))
 	for i := range found {
-		res[i] = found[i].(UI)
+		res[i] = found[i].(*UI)
 	}
 	return res
 }

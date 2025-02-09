@@ -76,7 +76,7 @@ func (f Calc) Process(panel *ui.Panel, elm *document.Element, value rules.Proper
 		case "/":
 			entries[i].op = calcOpDiv
 		default:
-			v := helpers.NumFromLength(value.Args[i], panel.Host().Window)
+			v := helpers.NumFromLength(value.Args[i], panel.Base().Host().Window)
 			if strings.HasSuffix(value.Args[i], "%") {
 				if prop == "width" {
 					pl := elm.Parent.UI.Layout()

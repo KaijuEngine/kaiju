@@ -69,7 +69,8 @@ const (
 	cursorY           float32 = 2
 )
 
-type localInputData struct {
+type inputData struct {
+	panelData
 	label                             *Label
 	placeholder                       *Label
 	highlight                         *Panel
@@ -86,46 +87,53 @@ type localInputData struct {
 	labelShift                        float32
 }
 
+func (i *inputData) innerPanelData() *panelData { return &i.panelData }
+
 type Input Panel
 
-func (input *Input) Data() *localInputData {
-	return input.localData.(*localInputData)
+func (u *UI) ToInput() *Input  { return (*Input)(u) }
+func (input *Input) Base() *UI { return (*UI)(input) }
+
+func (input *Input) InputData() *inputData {
+	return input.elmData.(*inputData)
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
-	input.Data().nextFocusInput = next
+	input.InputData().nextFocusInput = next
 }
 
-func (p *Panel) ConvertToInput(placeholderText string) *Input {
-	input := (*Input)(p)
-	host := p.Host()
-	data := &localInputData{}
-	input.localData = data
+func (input *Input) Init(placeholderText string, anchor Anchor) {
+	data := &inputData{}
+	input.elmData = data
+	p := input.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeInput)
+	host := p.man.Host
 	p.DontFitContent()
-
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	// Label
-	data.label = NewLabel(host, "", AnchorLeft)
-	p.AddChild(data.label)
+	data.label = input.man.Add().ToLabel()
+	data.label.Init("", AnchorLeft)
+	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
-	data.label.wordWrap = false
+	data.label.LabelData().wordWrap = false
 	data.label.layout.ClearFunctions()
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.layout.AddFunction(func(l *Layout) {
-		l.SetOffset(horizontalPadding+input.Data().labelShift, 0)
+		l.SetOffset(horizontalPadding+input.InputData().labelShift, 0)
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		ps := pLayout.PixelSize()
 		l.ScaleWidth(ps.Width())
 	})
 
 	// Placeholder
-	data.placeholder = NewLabel(host, placeholderText, AnchorLeft)
-	p.AddChild(data.placeholder)
+	data.placeholder = input.man.Add().ToLabel()
+	data.placeholder.Init(placeholderText, AnchorLeft)
+	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
-	data.placeholder.wordWrap = false
+	data.placeholder.LabelData().wordWrap = false
 	data.placeholder.layout.ClearFunctions()
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.layout.AddFunction(func(l *Layout) {
@@ -136,46 +144,47 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the cursor
-	data.cursor = NewPanel(host, tex, AnchorTopLeft)
+	data.cursor = input.man.Add().ToPanel()
+	data.cursor.Init(tex, AnchorTopLeft, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
-	p.AddChild(data.cursor)
+	p.AddChild((*UI)(data.cursor))
 	data.cursor.layout.AddFunction(func(l *Layout) {
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		l.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
 	})
 
 	// Create the highlight
-	data.highlight = NewPanel(host, tex, AnchorTopLeft)
+	data.highlight = input.man.Add().ToPanel()
+	data.highlight.Init(tex, AnchorTopLeft, ElementTypePanel)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
-	p.AddChild(data.highlight)
+	p.AddChild((*UI)(data.highlight))
 	data.highlight.entity.Deactivate()
 
-	input.AddEvent(EventTypeEnter, input.onEnter)
-	input.AddEvent(EventTypeExit, input.onExit)
-	input.AddEvent(EventTypeDown, input.onDown)
-	input.AddEvent(EventTypeClick, input.onClick)
-	input.AddEvent(EventTypeMiss, input.onMiss)
-	input.AddEvent(EventTypeRebuild, input.onRebuild)
+	base := input.Base()
+	base.AddEvent(EventTypeEnter, input.onEnter)
+	base.AddEvent(EventTypeExit, input.onExit)
+	base.AddEvent(EventTypeDown, input.onDown)
+	base.AddEvent(EventTypeClick, input.onClick)
+	base.AddEvent(EventTypeMiss, input.onMiss)
+	base.AddEvent(EventTypeRebuild, input.onRebuild)
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
-	input.innerUpdate = input.update
 	id := host.Window.Keyboard.AddKeyCallback(input.keyPressed)
-	input.entity.OnDestroy.Add(func() {
+	base.AddEvent(EventTypeDestroy, func() {
 		host.Window.Keyboard.RemoveKeyCallback(id)
 	})
 	input.entity.OnDeactivate.Add(input.deactivated)
 	input.entity.OnActivate.Add(input.activated)
 	input.hideCursor()
-	return input
 }
 
 func (input *Input) showCursor() {
-	data := input.Data()
+	data := input.InputData()
 	if data.isActive && !data.cursor.entity.IsActive() {
 		data.cursor.entity.SetActive(true)
 	}
@@ -184,7 +193,7 @@ func (input *Input) showCursor() {
 }
 
 func (input *Input) hideCursor() {
-	data := input.Data()
+	data := input.InputData()
 	if data.cursor.entity.IsActive() {
 		data.cursor.entity.SetActive(false)
 	}
@@ -192,21 +201,21 @@ func (input *Input) hideCursor() {
 }
 
 func (input *Input) showHighlight() {
-	data := input.Data()
+	data := input.InputData()
 	if !data.highlight.entity.IsActive() {
 		data.highlight.entity.Activate()
 	}
 }
 
 func (input *Input) hideHighlight() {
-	data := input.Data()
+	data := input.InputData()
 	if data.highlight.entity.IsActive() {
 		data.highlight.entity.Deactivate()
 	}
 }
 
 func (input *Input) updatePlaceholderVisibility() {
-	data := input.Data()
+	data := input.InputData()
 	if !input.entity.IsActive() {
 		return
 	}
@@ -218,7 +227,7 @@ func (input *Input) updatePlaceholderVisibility() {
 }
 
 func (input *Input) moveCursor(newPos int) {
-	data := input.Data()
+	data := input.InputData()
 	data.cursorOffset = klib.Clamp(newPos, 0, utf8.RuneCountInString(data.label.Text()))
 	if data.isActive {
 		input.updateCursorPosition()
@@ -226,41 +235,42 @@ func (input *Input) moveCursor(newPos int) {
 }
 
 func (input *Input) submit() {
-	input.requestEvent(EventTypeSubmit)
+	(*UI)(input).requestEvent(EventTypeSubmit)
 }
 
 func (input *Input) change() {
-	input.requestEvent(EventTypeChange)
+	(*UI)(input).requestEvent(EventTypeChange)
 }
 
 func (input *Input) charX(index int) float32 {
-	data := input.Data()
+	data := input.InputData()
 	left := horizontalPadding
 	strWidth := float32(0)
-	tmp := data.label.text[:index]
+	tmp := data.label.LabelData().text[:index]
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = input.Host().FontCache().MeasureString(data.label.fontFace, tmp, data.label.fontSize)
+		strWidth = input.man.Host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
 }
 
 func (input *Input) setBgColors() {
-	data := input.Data()
-	if len(data.label.runeDrawings) > 0 {
-		sd := data.label.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
-		data.label.ColorRange(0, data.label.textLength,
-			data.label.fgColor, sd.FgColor)
+	data := input.InputData()
+	ld := data.label.LabelData()
+	if len(ld.runeDrawings) > 0 {
+		sd := ld.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
+		data.label.ColorRange(0, ld.textLength,
+			ld.fgColor, sd.FgColor)
 		if data.selectStart != data.selectEnd {
 			data.label.ColorRange(data.selectStart, data.selectEnd,
-				data.label.fgColor, data.highlight.color)
+				ld.fgColor, data.highlight.PanelData().color)
 		}
 	}
 }
 
 func (input *Input) setSelect(start, end int) {
-	data := input.Data()
+	data := input.InputData()
 	if end < start {
 		start, end = end, start
 	}
@@ -286,7 +296,7 @@ func (input *Input) setSelect(start, end int) {
 }
 
 func (input *Input) setText(text string, skipEvent bool) {
-	data := input.Data()
+	data := input.InputData()
 	data.label.SetText(text)
 	// Setting the select here fixes a delayed mem stomping bug with colors and text
 	data.selectStart = 0
@@ -295,7 +305,7 @@ func (input *Input) setText(text string, skipEvent bool) {
 	// TODO:  The global set text sets the cursor position after this call,
 	// something to consider with order of operations
 	if !skipEvent {
-		input.ExecuteEvent(EventTypeChange)
+		(*UI)(input).ExecuteEvent(EventTypeChange)
 	}
 	input.hideHighlight()
 }
@@ -305,7 +315,8 @@ func (input *Input) resetSelect() {
 }
 
 func (input *Input) findNextBreak(start, dir int) int {
-	data := input.Data()
+	data := input.InputData()
+	ld := data.label.LabelData()
 	// TODO:  This is a mess, simplify it
 	if start < 0 {
 		return 0
@@ -313,16 +324,16 @@ func (input *Input) findNextBreak(start, dir int) int {
 		return utf8.RuneCountInString(data.label.Text())
 	}
 	i := start
-	runes := []rune(data.label.text)
+	runes := []rune(ld.text)
 	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if dir > 0 && unicode.IsSpace(runes[i-1]) {
-		for i < data.label.textLength && unicode.IsSpace(runes[i]) {
+		for i < ld.textLength && unicode.IsSpace(runes[i]) {
 			i += dir
 		}
 	}
-	for i > 0 && i < data.label.textLength && !unicode.IsSpace(runes[i]) {
+	for i > 0 && i < ld.textLength && !unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if i < 0 {
@@ -334,7 +345,7 @@ func (input *Input) findNextBreak(start, dir int) int {
 }
 
 func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
-	data := input.Data()
+	data := input.InputData()
 	currentPos := data.cursorOffset
 	newPos := data.cursorOffset + dir
 	if kb.HasCtrl() {
@@ -364,18 +375,19 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 }
 
 func (input *Input) textRightOf(pos int, outLen *int) string {
-	l := input.Data().label
+	l := input.InputData().label
 	right := l.Text()[pos:]
 	*outLen = utf8.RuneCountInString(l.Text()) - pos
 	return right
 }
 
 func (input *Input) InsertText(text string) {
-	data := input.Data()
+	data := input.InputData()
 	if len(text) > 0 {
 		input.deleteSelection()
-		lhs := data.label.text[:data.cursorOffset]
-		rhs := data.label.text[data.cursorOffset:]
+		ld := data.label.LabelData()
+		lhs := ld.text[:data.cursorOffset]
+		rhs := ld.text[data.cursorOffset:]
 		str := lhs + text + rhs
 		input.setText(str, false)
 		data.cursorOffset += utf8.RuneCountInString(text)
@@ -398,23 +410,25 @@ func (input *Input) pasteFromClipboard() {
 }
 
 func (input *Input) SelectAll() {
-	data := input.Data()
-	data.label.Clean()
-	input.setSelect(0, utf8.RuneCountInString(data.label.text))
+	data := input.InputData()
+	data.label.Base().Clean()
+	input.setSelect(0, utf8.RuneCountInString(data.label.LabelData().text))
 }
 
 func (input *Input) pointerPosWithin() int {
-	data := input.Data()
-	if len(data.label.text) == 0 {
+	data := input.InputData()
+	ld := data.label.LabelData()
+	if len(ld.text) == 0 {
 		return 0
 	} else {
-		pos := input.cursorPos(&input.host.Window.Cursor)
+		pos := (*UI)(input).cursorPos(&input.man.Host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return input.Host().FontCache().PointOffsetWithin(data.label.fontFace, data.label.text, pos, data.label.fontSize, data.label.MaxWidth())
+		return input.man.Host.FontCache().PointOffsetWithin(
+			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
 	}
 }
 
@@ -431,7 +445,8 @@ func (input *Input) pointerPosWithin() int {
 //#endif
 
 func (input *Input) update(deltaTime float64) {
-	data := input.Data()
+	input.Base().ToPanel().update(deltaTime)
+	data := input.InputData()
 	if data.isActive {
 		if !input.entity.IsActive() {
 			data.isActive = false
@@ -466,7 +481,7 @@ func (input *Input) update(deltaTime float64) {
 }
 
 func (input *Input) updateCursorPosition() {
-	data := input.Data()
+	data := input.InputData()
 	x := input.charX(data.cursorOffset)
 	bounds := input.layout.PixelSize()
 	if x > bounds.X()-5 {
@@ -480,7 +495,7 @@ func (input *Input) updateCursorPosition() {
 }
 
 func (input *Input) onRebuild() {
-	data := input.Data()
+	data := input.InputData()
 	ws := input.entity.Transform.WorldScale()
 	data.cursor.layout.Scale(cursorWidth/ws.X(), 1.0-(verticalPadding/ws.Y()))
 	data.label.layout.SetStretch(horizontalPadding,
@@ -489,11 +504,11 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	input.host.Window.CursorIbeam()
+	input.man.Host.Window.CursorIbeam()
 }
 
 func (input *Input) onExit() {
-	input.host.Window.CursorStandard()
+	input.man.Host.Window.CursorStandard()
 }
 
 func (input *Input) onDown() {
@@ -517,8 +532,8 @@ func (input *Input) deactivated() {
 }
 
 func (input *Input) activated() {
-	data := input.Data()
-	if len(data.label.text) == 0 {
+	data := input.InputData()
+	if len(data.label.LabelData().text) == 0 {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -526,7 +541,7 @@ func (input *Input) activated() {
 }
 
 func (input *Input) focusNext() {
-	data := input.Data()
+	data := input.InputData()
 	if data.isActive && data.nextFocusInput != nil {
 		input.RemoveFocus()
 		data.nextFocusInput.Focus()
@@ -534,7 +549,7 @@ func (input *Input) focusNext() {
 }
 
 func (input *Input) Text() string {
-	return input.Data().label.text
+	return input.InputData().label.LabelData().text
 }
 
 func (input *Input) SetText(text string) {
@@ -554,39 +569,39 @@ func (input *Input) SetTextWithoutEvent(text string) {
 }
 
 func (input *Input) SetPlaceholder(text string) {
-	data := input.Data()
+	data := input.InputData()
 	data.placeholder.SetText(text)
 	input.updatePlaceholderVisibility()
 }
 
 func (input *Input) SetTitle(text string) {
-	input.Data().title = text
+	input.InputData().title = text
 }
 
 func (input *Input) SetDescription(text string) {
-	input.Data().description = text
+	input.InputData().description = text
 }
 
 func (input *Input) SetType(inputType InputType) {
-	input.Data().inputType = inputType
+	input.InputData().inputType = inputType
 }
 
 func (input *Input) SetFGColor(newColor matrix.Color) {
-	data := input.Data()
+	data := input.InputData()
 	data.label.SetColor(newColor)
 	data.placeholder.SetColor(matrix.Color{
 		newColor.R(), newColor.G(), newColor.B(), 1.0})
 }
 
 func (input *Input) SetTextColor(newColor matrix.Color) {
-	data := input.Data()
+	data := input.InputData()
 	data.label.SetColor(newColor)
 	data.placeholder.SetColor(matrix.Color{
 		newColor.R(), newColor.G(), newColor.B(), 0.5})
 }
 
 func (input *Input) SetBGColor(newColor matrix.Color) {
-	data := input.Data()
+	data := input.InputData()
 	(*Panel)(input).SetColor(newColor)
 	data.label.SetBGColor(newColor)
 	data.placeholder.SetBGColor(matrix.Color{
@@ -597,32 +612,32 @@ func (input *Input) SetBGColor(newColor matrix.Color) {
 }
 
 func (input *Input) SetCursorColor(newColor matrix.Color) {
-	data := input.Data()
+	data := input.InputData()
 	data.cursor.SetColor(newColor)
 }
 
 func (input *Input) SetSelectColor(newColor matrix.Color) {
-	data := input.Data()
+	data := input.InputData()
 	data.highlight.SetColor(newColor)
 }
 
 func (input *Input) Focus() {
-	if !input.Data().isActive {
-		input.Data().isActive = true
+	if !input.InputData().isActive {
+		input.InputData().isActive = true
 		input.resetSelect()
 		input.showCursor()
 		if input.group != nil {
-			input.group.setFocus(input)
+			input.group.setFocus((*UI)(input))
 		}
 	}
 }
 
 func (input *Input) RemoveFocus() {
-	if input.Data().isActive {
-		input.Data().isActive = false
+	if input.InputData().isActive {
+		input.InputData().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		input.Host().Window.CursorStandard()
+		input.man.Host.Window.CursorStandard()
 		if input.group != nil {
 			input.group.setFocus(nil)
 		}
@@ -630,24 +645,25 @@ func (input *Input) RemoveFocus() {
 }
 
 func (input *Input) SetFontSize(fontSize float32) {
-	data := input.Data()
+	data := input.InputData()
 	data.label.SetFontSize(fontSize)
 	data.placeholder.SetFontSize(fontSize)
 }
 
 func (input *Input) SetCursorOffset(offset int) {
-	offset = klib.Clamp(offset, 0, utf8.RuneCountInString(input.Data().label.text))
+	offset = klib.Clamp(offset, 0,
+		utf8.RuneCountInString(input.InputData().label.LabelData().text))
 	input.moveCursor(offset)
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
-	if input.entity.IsActive() && input.Data().isActive {
+	if input.entity.IsActive() && input.InputData().isActive {
 		if keyState == hid.KeyStateDown {
 			if keyId == hid.KeyboardKeyEscape {
 				input.RemoveFocus()
 				return
 			}
-			kb := &input.host.Window.Keyboard
+			kb := &input.man.Host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
@@ -683,24 +699,25 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.submit()
 				case hid.KeyboardKeyTab:
 					// Delay a frame so we don't hit a loop of going to next
-					input.host.RunAfterFrames(1, func() {
-						next := input.Data().nextFocusInput
+					input.man.Host.RunAfterFrames(1, func() {
+						next := input.InputData().nextFocusInput
 						if next != nil {
 							next.Focus()
 						}
 					})
 				}
 			}
-			input.requestEvent(EventTypeKeyDown)
+			(*UI)(input).requestEvent(EventTypeKeyDown)
 		} else if keyState == hid.KeyStateUp {
-			input.requestEvent(EventTypeKeyUp)
+			(*UI)(input).requestEvent(EventTypeKeyUp)
 		}
 	}
 }
 
 func labelFit(layout *Layout) {
-	input := FirstOnEntity(layout.ui.Entity()).(*Input)
-	layout.SetOffset(horizontalPadding+input.Data().labelShift, 0)
+	base := FirstOnEntity(layout.ui.Entity())
+	input := (*Input)(base)
+	layout.SetOffset(horizontalPadding+input.InputData().labelShift, 0)
 	ps := input.layout.PixelSize()
 	layout.ScaleWidth(ps.Width())
 }
@@ -711,11 +728,12 @@ func cursorFit(layout *Layout) {
 }
 
 func (input *Input) deleteSelection() {
-	data := input.Data()
+	data := input.InputData()
 	if data.selectStart != data.selectEnd {
 		sStart := data.selectStart
-		lhs := data.label.text[:data.selectStart]
-		rhs := data.label.text[data.selectEnd:]
+		ld := data.label.LabelData()
+		lhs := ld.text[:data.selectStart]
+		rhs := ld.text[data.selectEnd:]
 		str := lhs + rhs
 		input.moveCursor(sStart)
 		input.setText(str, false)
@@ -725,16 +743,17 @@ func (input *Input) deleteSelection() {
 }
 
 func (input *Input) backspace(kb *hid.Keyboard) {
-	data := input.Data()
+	data := input.InputData()
+	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection()
 	} else if kb.HasCtrl() {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection()
-	} else if len(data.label.text) > 0 && data.cursorOffset > 0 {
-		lhs := data.label.text[:data.cursorOffset-1]
-		rhs := data.label.text[data.cursorOffset:]
+	} else if len(ld.text) > 0 && data.cursorOffset > 0 {
+		lhs := ld.text[:data.cursorOffset-1]
+		rhs := ld.text[data.cursorOffset:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset - 1)
 		input.setText(str, false)
@@ -742,16 +761,17 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 }
 
 func (input *Input) delete(kb *hid.Keyboard) {
-	data := input.Data()
+	data := input.InputData()
+	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection()
 	} else if kb.HasCtrl() {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection()
-	} else if data.cursorOffset < data.label.textLength {
-		lhs := data.label.text[:data.cursorOffset]
-		rhs := data.label.text[data.cursorOffset+1:]
+	} else if data.cursorOffset < ld.textLength {
+		lhs := ld.text[:data.cursorOffset]
+		rhs := ld.text[data.cursorOffset+1:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset)
 		input.setText(str, false)

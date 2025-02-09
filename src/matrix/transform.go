@@ -321,3 +321,40 @@ func (t *Transform) LookAt(point Vec3) {
 	r := q.ToEuler()
 	t.SetWorldRotation(r)
 }
+
+// ScaleWithoutChildren will scale a transform without changing the world scale
+// of the children of this transform. That is to say, it will update all the
+// child transform scales to return to their original world scale after scaling
+// this transform.
+func (t *Transform) ScaleWithoutChildren(scale Vec3) {
+	count := len(t.children)
+	type tmp struct{ pos, rot, scale Vec3 }
+	arr := make([]tmp, count)
+	for i := range t.children {
+		arr[i].pos, arr[i].rot, arr[i].scale = t.children[i].WorldTransform()
+	}
+	t.SetScale(scale)
+	p, r, s := t.WorldTransform()
+	for i := range count {
+		arr[i].pos.SubtractAssign(p)
+		arr[i].rot.SubtractAssign(r)
+		if Abs(s[Vx]) <= FloatSmallestNonzero {
+			arr[i].scale[Vx] = 0
+		} else {
+			arr[i].scale[Vx] = arr[i].scale[Vx] / s[Vx]
+		}
+		if Abs(s[Vy]) <= FloatSmallestNonzero {
+			arr[i].scale[Vy] = 0
+		} else {
+			arr[i].scale[Vy] = arr[i].scale[Vy] / s[Vy]
+		}
+		if Abs(s[Vz]) <= FloatSmallestNonzero {
+			arr[i].scale[Vz] = 0
+		} else {
+			arr[i].scale[Vz] = arr[i].scale[Vz] / s[Vz]
+		}
+		t.children[i].SetPosition(arr[i].pos)
+		t.children[i].SetRotation(arr[i].rot)
+		t.children[i].SetScale(arr[i].scale)
+	}
+}

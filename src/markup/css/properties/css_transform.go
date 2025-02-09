@@ -50,24 +50,24 @@ import (
 
 func translateXYZ(str string, panel *ui.Panel, host *engine.Host, vc matrix.VectorComponent) {
 	if vc == matrix.Vz {
-		p := panel.Entity().Transform.Position()
+		p := panel.Base().Entity().Transform.Position()
 		p[vc] += helpers.NumFromLength(str, host.Window)
-		panel.Entity().Transform.SetPosition(p)
+		panel.Base().Entity().Transform.SetPosition(p)
 	} else {
-		offset := panel.Layout().InnerOffset()
+		offset := panel.Base().Layout().InnerOffset()
 		p := helpers.NumFromLength(str, host.Window)
 		if vc == matrix.Vy {
 			p *= -1.0
 		}
 		if strings.HasSuffix(str, "%") {
-			panel.Layout().AddFunction(func(l *ui.Layout) {
+			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 				localInnerOffset := l.LocalInnerOffset()
 				localInnerOffset[vc] = l.PixelSize()[vc] * p
 				l.SetLocalInnerOffset(localInnerOffset.X(), localInnerOffset.Y(), localInnerOffset.Z(), localInnerOffset.W())
 			})
 		} else {
 			offset[vc] += p
-			panel.Layout().SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
+			panel.Base().Layout().SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
 		}
 	}
 }

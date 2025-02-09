@@ -50,7 +50,7 @@ func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 	if len(values) == 0 {
 		return errors.New("no cursor value")
 	}
-	panel.AddEvent(ui.EventTypeEnter, func() {
+	panel.Base().AddEvent(ui.EventTypeEnter, func() {
 		switch values[0].Str {
 		case "text":
 			host.Window.CursorIbeam()
@@ -124,7 +124,7 @@ func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 			host.Window.CursorStandard()
 		}
 	})
-	panel.AddEvent(ui.EventTypeExit, func() {
+	panel.Base().AddEvent(ui.EventTypeExit, func() {
 		host.Window.CursorStandard()
 	})
 	return nil

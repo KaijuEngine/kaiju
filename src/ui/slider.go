@@ -43,25 +43,35 @@ import (
 	"kaiju/rendering"
 )
 
-type localSliderData struct {
+type sliderData struct {
+	panelData
 	bgPanel *Panel
 	fgPanel *Panel
 	value   float32
 }
 
+func (s *sliderData) innerPanelData() *panelData { return &s.panelData }
+
 type Slider Panel
 
-func (cb *Slider) data() *localSliderData {
-	return cb.localData.(*localSliderData)
+func (u *UI) ToSlider() *Slider { return (*Slider)(u) }
+func (s *Slider) Base() *UI     { return (*UI)(s) }
+
+func (s *Slider) SliderData() *sliderData {
+	return s.elmData.(*sliderData)
 }
 
-func (p *Panel) ConvertToSlider() *Slider {
-	s := (*Slider)(p)
-	ld := &localSliderData{}
-	host := p.Host()
+func (s *Slider) Init(anchor Anchor) {
+	s.elmType = ElementTypeSlider
+	ld := &sliderData{}
+	s.elmData = ld
+	p := s.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeSlider)
+	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	ld.bgPanel = NewPanel(host, tex, AnchorLeft)
+	ld.bgPanel = s.man.Add().ToPanel()
+	ld.bgPanel.Init(tex, AnchorLeft, ElementTypePanel)
 	ld.bgPanel.layout.AddFunction(func(l *Layout) {
 		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
 		w, h := pLayout.ContentSize()
@@ -69,26 +79,25 @@ func (p *Panel) ConvertToSlider() *Slider {
 		l.Scale(w-10, h)
 	})
 	ld.bgPanel.SetColor(matrix.ColorBlack())
-	ld.fgPanel = NewPanel(host, tex, AnchorTopLeft)
+	ld.fgPanel = s.man.Add().ToPanel()
+	ld.fgPanel.Init(tex, AnchorTopLeft, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
 	ld.fgPanel.layout.AddFunction(func(l *Layout) {
 		pp := FirstPanelOnEntity(l.Ui().Entity().Parent)
 		ps := (*Slider)(pp)
-		_, h := pp.Layout().ContentSize()
+		_, h := pp.Base().layout.ContentSize()
 		l.Scale(h/2, h)
 		ps.SetValue(ps.Value())
 	})
 	ld.fgPanel.SetColor(matrix.ColorWhite())
-	ld.bgPanel.entity.SetParent(p.entity)
-	ld.fgPanel.entity.SetParent(p.entity)
-	p.localData = ld
-	p.AddEvent(EventTypeDown, s.onDown)
-	p.innerUpdate = s.sliderUpdate
-	return s
+	ld.bgPanel.entity.SetParent(&p.entity)
+	ld.fgPanel.entity.SetParent(&p.entity)
+	p.Base().AddEvent(EventTypeDown, s.onDown)
 }
 
-func (slider *Slider) sliderUpdate(deltaTime float64) {
+func (slider *Slider) update(deltaTime float64) {
+	slider.Base().ToPanel().update(deltaTime)
 	if slider.drag {
 		slider.SetValue(slider.Delta())
 	}
@@ -98,7 +107,7 @@ func (slider Slider) Delta() float32 {
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X()
 	xPos -= w * 0.5
-	mp := slider.host.Window.Cursor.ScreenPosition()
+	mp := slider.man.Host.Window.Cursor.ScreenPosition()
 	return (mp.X() - xPos) / w
 }
 
@@ -107,22 +116,22 @@ func (slider *Slider) onDown() {
 }
 
 func (slider Slider) Value() float32 {
-	return slider.data().value
+	return slider.SliderData().value
 }
 
 func (slider *Slider) SetValue(value float32) {
-	ld := slider.data()
+	ld := slider.SliderData()
 	ld.value = matrix.Clamp(value, 0, 1)
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
 	x := matrix.Clamp((w * ld.value), 0, w-ld.fgPanel.entity.Transform.WorldScale().X())
 	ld.fgPanel.layout.SetInnerOffsetLeft(x)
-	slider.changed()
+	(*UI)(slider).changed()
 }
 
 func (slider *Slider) SetFGColor(fgColor matrix.Color) {
-	slider.data().fgPanel.SetColor(fgColor)
+	slider.SliderData().fgPanel.SetColor(fgColor)
 }
 
 func (slider *Slider) SetBGColor(bgColor matrix.Color) {
-	slider.data().bgPanel.SetColor(bgColor)
+	slider.SliderData().bgPanel.SetColor(bgColor)
 }

@@ -56,19 +56,19 @@ func (p OverflowX) Process(panel *ui.Panel, elm *document.Element, values []rule
 			fallthrough
 		case "hidden":
 			panel.SetOverflow(ui.OverflowHidden)
-			panel.GenerateScissor()
+			panel.Base().GenerateScissor()
 			panel.SetScrollDirection(panel.ScrollDirection() ^ ui.PanelScrollDirectionHorizontal)
 		case "auto":
 			fallthrough
 		case "scroll":
 			panel.SetOverflow(ui.OverflowScroll)
-			panel.GenerateScissor()
+			panel.Base().GenerateScissor()
 			panel.SetScrollDirection(panel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
 		case "inherit":
 			if elm.Parent != nil {
 				parentPanel := elm.Parent.UIPanel
 				panel.SetOverflow(parentPanel.Overflow())
-				panel.GenerateScissor()
+				panel.Base().GenerateScissor()
 				panel.SetScrollDirection(parentPanel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
 			}
 		case "initial":
