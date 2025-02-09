@@ -123,6 +123,7 @@ func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
 func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType ElementType) {
 	var pd *panelData
+	panel.elmType = elmType
 	if panel.elmData == nil {
 		panel.elmData = &panelData{}
 	}
@@ -133,7 +134,6 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	pd.color = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
-	panel.elmType = elmType
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
 	ts := matrix.Vec2Zero()
@@ -154,7 +154,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	panel.entity.OnDeactivate.Add(func() {
 		panel.shaderData.Deactivate()
 	})
-	panel.entity.OnDestroy.Add(func() {
+	panel.Base().AddEvent(EventTypeDestroy, func() {
 		panel.shaderData.Destroy()
 	})
 }

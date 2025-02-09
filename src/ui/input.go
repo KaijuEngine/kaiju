@@ -175,7 +175,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	input.SetFGColor(matrix.ColorBlack())
 	input.SetBGColor(matrix.ColorWhite())
 	id := host.Window.Keyboard.AddKeyCallback(input.keyPressed)
-	input.entity.OnDestroy.Add(func() {
+	base.AddEvent(EventTypeDestroy, func() {
 		host.Window.Keyboard.RemoveKeyCallback(id)
 	})
 	input.entity.OnDeactivate.Add(input.deactivated)

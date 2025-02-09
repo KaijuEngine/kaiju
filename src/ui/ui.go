@@ -130,6 +130,9 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor, self *UI) {
 	})
 	ui.entity.OnDestroy.Add(func() {
 		ui.man.Host.Window.OnResize.Remove(rzId)
+		ui.events[EventTypeDestroy].Execute()
+		ui.elmData = nil
+		ui.man.Remove(ui)
 	})
 }
 

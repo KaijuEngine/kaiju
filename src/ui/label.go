@@ -115,7 +115,7 @@ func (label *Label) Init(text string, anchor Anchor) {
 	label.entity.OnDeactivate.Add(func() {
 		label.deactivateDrawings()
 	})
-	label.entity.OnDestroy.Add(func() {
+	label.Base().AddEvent(EventTypeDestroy, func() {
 		label.clearDrawings()
 	})
 }
