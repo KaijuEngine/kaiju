@@ -134,7 +134,7 @@ func initialize(host *engine.Host) *Console {
 		host.Updater.RemoveUpdate(console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
-	input := inputElm.UI.AsInput()
+	input := inputElm.UI.ToInput()
 	input.Base().AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
 	console.input = input
 	input.Base().Clean()

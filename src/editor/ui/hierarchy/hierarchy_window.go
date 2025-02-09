@@ -200,7 +200,7 @@ func (h *Hierarchy) Reload() {
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
 	} else {
-		h.input = elm.UI.AsInput()
+		h.input = elm.UI.ToInput()
 		h.input.Base().AddEvent(ui.EventTypeSubmit, h.submit)
 	}
 	h.doc.Clean()

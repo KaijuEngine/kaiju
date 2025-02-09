@@ -91,7 +91,7 @@ func (i *inputData) innerPanelData() *panelData { return &i.panelData }
 
 type Input Panel
 
-func (u *UI) AsInput() *Input  { return (*Input)(u) }
+func (u *UI) ToInput() *Input  { return (*Input)(u) }
 func (input *Input) Base() *UI { return (*UI)(input) }
 
 func (input *Input) InputData() *inputData {

@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"log/slog"
 	"sort"
+	"sync"
 )
 
 type groupRequest struct {
@@ -53,7 +54,9 @@ type Group struct {
 	requests    []groupRequest
 	focus       *UI
 	updateId    int
+	lock        sync.Mutex
 	hadRequests bool
+	isThreaded  bool
 }
 
 func NewGroup() *Group {
@@ -70,10 +73,16 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 		slog.Error("Invalid UI event type")
 		return
 	}
+	if group.isThreaded {
+		group.lock.Lock()
+	}
 	group.requests = append(group.requests, groupRequest{
 		target:    ui,
 		eventType: eType,
 	})
+	if group.isThreaded {
+		group.lock.Unlock()
+	}
 	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
@@ -144,4 +153,10 @@ func (group *Group) lateUpdate() {
 		group.requests = group.requests[:0]
 	}
 	group.hadRequests = has
+}
+
+func (g *Group) SetThreaded() {
+	if !g.isThreaded {
+		g.isThreaded = true
+	}
 }

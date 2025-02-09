@@ -199,7 +199,7 @@ func (s *ContentWindow) reloadUI() {
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
 	} else {
-		s.input = elm.UI.AsInput()
+		s.input = elm.UI.ToInput()
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {
 		slog.Error(`Failed to locate the "listing" for the content window`)

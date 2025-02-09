@@ -54,7 +54,7 @@ func (s *sliderData) innerPanelData() *panelData { return &s.panelData }
 
 type Slider Panel
 
-func (u *UI) AsSlider() *Slider { return (*Slider)(u) }
+func (u *UI) ToSlider() *Slider { return (*Slider)(u) }
 func (s *Slider) Base() *UI     { return (*UI)(s) }
 
 func (s *Slider) SliderData() *sliderData {

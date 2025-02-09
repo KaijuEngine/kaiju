@@ -171,7 +171,7 @@ func (s *FileWindow) reloadUI() {
 		s.container.Host.Close()
 		return
 	} else {
-		s.input = elm.UI.AsInput()
+		s.input = elm.UI.ToInput()
 		s.input.Base().AddEvent(ui.EventTypeSubmit, s.submit)
 	}
 	if elm, ok := s.doc.GetElementById("listing"); !ok {

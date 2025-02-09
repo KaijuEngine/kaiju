@@ -89,7 +89,7 @@ func (dp *DataPicker) pick(elm *document.Element) {
 
 func (dp *DataPicker) search(elm *document.Element) {
 	input, _ := dp.doc.GetElementById("search")
-	query := strings.ToLower(input.UI.AsInput().Text())
+	query := strings.ToLower(input.UI.ToInput().Text())
 	for i := range dp.doc.Elements {
 		name := dp.doc.Elements[i].Attribute("data-name")
 		if name != "" {

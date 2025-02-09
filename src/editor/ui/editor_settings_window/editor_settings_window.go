@@ -14,12 +14,12 @@ type EditorSettingsWindow struct {
 }
 
 func updateCompilerPath(elm *document.Element) {
-	txt := elm.UI.AsInput().Text()
+	txt := elm.UI.ToInput().Text()
 	editor_cache.SetEditorConfigValue(editor_cache.KaijuGoCompiler, txt)
 }
 
 func updateGridSnapping(elm *document.Element) {
-	txt := elm.UI.AsInput().Text()
+	txt := elm.UI.ToInput().Text()
 	if snap, err := strconv.ParseFloat(txt, 32); err == nil {
 		editor_cache.SetEditorConfigValue(editor_cache.GridSnapping, snap)
 	}

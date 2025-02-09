@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/pooling"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/windowing"
@@ -73,6 +74,7 @@ const (
 	ElementTypeCheckbox
 	ElementTypeImage
 	ElementTypeInput
+	ElementTypeSelect
 	ElementTypeSlider
 )
 
@@ -81,6 +83,7 @@ type UIElementData interface {
 }
 
 type UI struct {
+	man              *Manager
 	host             *engine.Host
 	entity           *engine.Entity
 	elmData          UIElementData
@@ -97,6 +100,8 @@ type UI struct {
 	textureSize      matrix.Vec2
 	lastClick        float64
 	updateId         int
+	poolId           pooling.PoolGroupId
+	id               pooling.PoolIndex
 	hovering         bool
 	cantMiss         bool
 	isDown           bool
@@ -398,4 +403,45 @@ func (ui *UI) changed() {
 
 func (ui *UI) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
+}
+
+func (ui *UI) rootCleanIfNeeded() {
+	root := ui.rootUI()
+	if root.anyChildDirty() {
+		root.Clean()
+	}
+}
+
+func (ui *UI) anyChildDirty() bool {
+	if ui.dirtyType != DirtyTypeNone {
+		return true
+	}
+	for i := range ui.entity.Children {
+		cui := FirstOnEntity(ui.entity.Children[i])
+		if cui != nil && cui.anyChildDirty() {
+			return true
+		}
+	}
+	return false
+}
+
+func (ui *UI) updateFromManager(deltaTime float64) {
+	switch ui.elmType {
+	case ElementTypeInput:
+		ui.ToInput().update(deltaTime)
+	case ElementTypeLabel:
+		ui.Update(deltaTime)
+	case ElementTypePanel:
+		ui.ToPanel().update(deltaTime)
+	case ElementTypeButton:
+		ui.ToPanel().update(deltaTime)
+	case ElementTypeSelect:
+		ui.Update(deltaTime)
+	case ElementTypeSlider:
+		ui.ToSlider().sliderUpdate(deltaTime)
+	case ElementTypeImage:
+		ui.ToImage().update(deltaTime)
+	case ElementTypeCheckbox:
+		ui.ToPanel().update(deltaTime)
+	}
 }
