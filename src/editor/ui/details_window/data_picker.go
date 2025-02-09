@@ -70,7 +70,7 @@ func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int {
 			map[string]func(*document.Element){
 				"pick":   dp.pick,
 				"search": dp.search,
-			})
+			}, nil)
 	})
 	dp.container.Host.OnClose.Add(func() {
 		if !dp.picked {

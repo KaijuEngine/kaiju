@@ -46,6 +46,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/ui"
 	"os"
 	"slices"
 )
@@ -62,6 +63,7 @@ type ProjectWindow struct {
 	data         windowData
 	picked       bool
 	templatePath string
+	uiMan        ui.Manager
 }
 
 func (p *ProjectWindow) openProjectFolder(path string) {
@@ -133,7 +135,7 @@ func (p *ProjectWindow) load() {
 		map[string]func(*document.Element){
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
-		})
+		}, &p.uiMan)
 }
 
 func New(templatePath string, cx, cy int) (*ProjectWindow, error) {

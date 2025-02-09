@@ -75,7 +75,7 @@ func (b *Button) Label() *Label {
 }
 
 func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
-	panel := NewPanel(host, texture, anchor, ElementTypeButton)
+	panel := NewPanel(host, texture, anchor, ElementTypeButton, nil)
 	btn := (*Button)(panel)
 	btn.setup(text)
 	btn.createLabel()
@@ -86,7 +86,7 @@ func (u *UI) AsButton() *Button { return (*Button)(u) }
 func (b *Button) Base() *UI     { return (*UI)(b) }
 
 func (b *Button) createLabel() *Label {
-	lbl := NewLabel(b.host, "", AnchorStretchCenter)
+	lbl := NewLabel(b.host, "", AnchorStretchCenter, nil)
 	lbl.layout.SetStretch(0, 0, 0, 0)
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)

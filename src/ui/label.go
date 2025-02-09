@@ -85,25 +85,29 @@ func (u *UI) ToLabel() *Label          { return (*Label)(u) }
 func (l *Label) Base() *UI             { return (*UI)(l) }
 func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 
-func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
-	label := &Label{
-		elmData: &labelData{
-			text:            text,
-			textLength:      utf8.RuneCountInString(text),
-			fgColor:         matrix.ColorWhite(),
-			bgColor:         matrix.ColorBlack(),
-			fontSize:        LabelFontSize,
-			baseline:        rendering.FontBaselineTop,
-			justify:         rendering.FontJustifyLeft,
-			colorRanges:     make([]colorRange, 0),
-			runeDrawings:    make([]rendering.Drawing, 0),
-			fontFace:        rendering.FontRegular,
-			wordWrap:        true,
-			renderRequired:  true,
-			lastRenderWidth: 0,
-		},
-		elmType: ElementTypeLabel,
+func NewLabel(host *engine.Host, text string, anchor Anchor, uiMan *Manager) *Label {
+	label := &Label{}
+	label.Init(host, text, anchor, uiMan)
+	return label
+}
+
+func (label *Label) Init(host *engine.Host, text string, anchor Anchor, uiMan *Manager) {
+	label.elmData = &labelData{
+		text:            text,
+		textLength:      utf8.RuneCountInString(text),
+		fgColor:         matrix.ColorWhite(),
+		bgColor:         matrix.ColorBlack(),
+		fontSize:        LabelFontSize,
+		baseline:        rendering.FontBaselineTop,
+		justify:         rendering.FontJustifyLeft,
+		colorRanges:     make([]colorRange, 0),
+		runeDrawings:    make([]rendering.Drawing, 0),
+		fontFace:        rendering.FontRegular,
+		wordWrap:        true,
+		renderRequired:  true,
+		lastRenderWidth: 0,
 	}
+	label.elmType = ElementTypeLabel
 	label.postLayoutUpdate = label.labelPostLayoutUpdate
 	label.render = label.labelRender
 	label.Base().init(host, matrix.Vec2Zero(), anchor, label.Base())
@@ -124,7 +128,6 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 	label.entity.OnDestroy.Add(func() {
 		label.clearDrawings()
 	})
-	return label
 }
 
 func (label *Label) Show() {

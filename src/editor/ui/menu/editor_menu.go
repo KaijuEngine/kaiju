@@ -98,7 +98,7 @@ func New(container *host_container.Container,
 		"newEntity":           m.newEntity,
 		"showEditorSettings":  m.showEditorSettings,
 	}
-	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap)
+	m.doc = markup.DocumentFromHTMLString(host, html, "", nil, funcMap, nil)
 	m.doc.SetGroup(uiGroup)
 	allItems := m.doc.GetElementsByClass("menuItem")
 	for i := range allItems {

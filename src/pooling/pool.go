@@ -1,7 +1,7 @@
 package pooling
 
 const (
-	ElementsInPool = 0xFF
+	ElementsInPool = 256
 )
 
 type PoolIndex = uint8
@@ -15,8 +15,9 @@ type Pool[T any] struct {
 }
 
 func (p *Pool[T]) init() {
-	for i := range len(p.available) {
-		p.available[i] = PoolIndex(i)
+	for i, idx := ElementsInPool-1, 0; i >= 0; i-- {
+		p.available[idx] = PoolIndex(i)
+		idx++
 	}
 	p.availableLen = ElementsInPool
 }

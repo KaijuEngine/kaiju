@@ -115,7 +115,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	// Label
-	data.label = NewLabel(host, "", AnchorLeft)
+	data.label = NewLabel(host, "", AnchorLeft, nil)
 	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -130,7 +130,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Placeholder
-	data.placeholder = NewLabel(host, placeholderText, AnchorLeft)
+	data.placeholder = NewLabel(host, placeholderText, AnchorLeft, nil)
 	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
@@ -145,7 +145,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the cursor
-	data.cursor = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel)
+	data.cursor = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel, nil)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
@@ -156,7 +156,7 @@ func (p *Panel) ConvertToInput(placeholderText string) *Input {
 	})
 
 	// Create the highlight
-	data.highlight = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel)
+	data.highlight = NewPanel(host, tex, AnchorTopLeft, ElementTypePanel, nil)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)

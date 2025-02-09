@@ -41,6 +41,6 @@ func New() {
 		markup.DocumentFromHTMLAsset(container.Host, html, esw, map[string]func(*document.Element){
 			"updateCompilerPath": updateCompilerPath,
 			"updateGridSnapping": updateGridSnapping,
-		})
+		}, nil)
 	})
 }

@@ -194,7 +194,7 @@ func (h *Hierarchy) Reload() {
 			"resizeStart":    h.resizeStart,
 			"resizeStop":     h.resizeStop,
 			"entryCtxMenu":   h.entryCtxMenu,
-		}))
+		}, nil))
 	h.doc.SetGroup(h.uiGroup)
 	host.DoneCreatingEditorEntities()
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {

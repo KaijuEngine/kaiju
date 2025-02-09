@@ -123,18 +123,23 @@ func (p *Panel) Base() *UI    { return (*UI)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
-func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType) *Panel {
-	panel := &Panel{
-		elmData: &panelData{
-			scrollEvent:        0,
-			scrollSpeed:        20.0,
-			scrollDirection:    PanelScrollDirectionVertical,
-			color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
-			fitContent:         ContentFitBoth,
-			enforcedColorStack: make([]matrix.Color, 0),
-		},
-		elmType: elmType,
+func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType, uiMan *Manager) *Panel {
+	panel := &Panel{}
+	panel.Init(host, texture, anchor, elmType, uiMan)
+	return panel
+}
+
+func (panel *Panel) Init(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmType ElementType, uiMan *Manager) {
+	panel.man = uiMan
+	panel.elmData = &panelData{
+		scrollEvent:        0,
+		scrollSpeed:        20.0,
+		scrollDirection:    PanelScrollDirectionVertical,
+		color:              matrix.Color{1.0, 1.0, 1.0, 1.0},
+		fitContent:         ContentFitBoth,
+		enforcedColorStack: make([]matrix.Color, 0),
 	}
+	panel.elmType = elmType
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
 	ts := matrix.Vec2Zero()
@@ -162,7 +167,6 @@ func NewPanel(host *engine.Host, texture *rendering.Texture, anchor Anchor, elmT
 	panel.entity.OnDestroy.Add(func() {
 		panel.shaderData.Destroy()
 	})
-	return panel
 }
 
 func (p *Panel) ScrollX() float32   { return p.PanelData().scroll.X() }

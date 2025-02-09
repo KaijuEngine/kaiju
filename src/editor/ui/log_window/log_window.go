@@ -347,7 +347,7 @@ func (l *LogWindow) reloadUI() {
 			"resizeExit":   l.resizeExit,
 			"resizeStart":  l.resizeStart,
 			"resizeStop":   l.resizeStop,
-		}))
+		}, nil))
 	l.doc.SetGroup(l.group)
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()

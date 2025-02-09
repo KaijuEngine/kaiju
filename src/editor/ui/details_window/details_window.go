@@ -196,7 +196,7 @@ func (d *Details) reload() {
 			"resizeExit":          d.resizeExit,
 			"resizeStart":         d.resizeStart,
 			"resizeStop":          d.resizeStop,
-		}))
+		}, nil))
 	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()

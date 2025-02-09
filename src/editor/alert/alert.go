@@ -98,7 +98,7 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 			"editor/ui/alert_window.html", a, map[string]func(*document.Element){
 				"okClick":     func(*document.Element) { a.done(true) },
 				"cancelClick": func(*document.Element) { a.done(false) },
-			}))
+			}, nil))
 	})
 	return a
 }

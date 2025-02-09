@@ -193,7 +193,7 @@ func (s *ContentWindow) reloadUI() {
 	s.list()
 	host := s.editor.Host()
 	host.CreatingEditorEntities()
-	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, s, s.funcMap))
+	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, s, s.funcMap, nil))
 	s.doc.SetGroup(s.uiGroup)
 	host.DoneCreatingEditorEntities()
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {

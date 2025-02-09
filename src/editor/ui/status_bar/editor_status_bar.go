@@ -63,7 +63,7 @@ func New(host *engine.Host, logWindow *log_window.LogWindow) *StatusBar {
 	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(host, html, nil,
 		map[string]func(*document.Element){
 			"openLogWindow": func(*document.Element) { logWindow.Show() },
-		}))
+		}, nil))
 	m, _ := s.doc.GetElementById("msg")
 	l, _ := s.doc.GetElementById("log")
 	s.msg = m.Children[0].UI.ToLabel()

@@ -219,14 +219,14 @@ func testOIT(host *engine.Host) {
 
 func testPanel(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel)
+	p := ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel, nil)
 	p.DontFitContent()
 	p.Base().Layout().Scale(100, 100)
 	p.Base().Layout().SetOffset(10, 10)
 }
 
 func testLabel(host *engine.Host) {
-	l := ui.NewLabel(host, "Hello, World!", ui.AnchorBottomCenter)
+	l := ui.NewLabel(host, "Hello, World!", ui.AnchorBottomCenter, nil)
 	l.Base().Layout().Scale(100, 50)
 }
 
@@ -249,7 +249,7 @@ func testHTML(host *engine.Host) {
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
-	markup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events)
+	markup.DocumentFromHTMLString(host, testHTML, testCSS, nil, events, nil)
 }
 
 func testHTMLBinding(host *engine.Host) {
@@ -259,21 +259,21 @@ func testHTMLBinding(host *engine.Host) {
 		EntityNames: []string{"Entity 1", "\tEntity 2", "\t\tEntity 3"},
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
-	markup.DocumentFromHTMLString(host, testHTML, "", demoData, nil)
+	markup.DocumentFromHTMLString(host, testHTML, "", demoData, nil, nil)
 }
 
 func testLayoutSimple(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	panels := []*ui.Panel{
-		ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorBottomCenter, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorBottomRight, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorLeft, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorRight, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorCenter, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorTopCenter, ui.ElementTypePanel),
-		ui.NewPanel(host, tex, ui.AnchorTopRight, ui.ElementTypePanel),
+		ui.NewPanel(host, tex, ui.AnchorBottomLeft, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorBottomCenter, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorBottomRight, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorLeft, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorRight, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorCenter, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorTopCenter, ui.ElementTypePanel, nil),
+		ui.NewPanel(host, tex, ui.AnchorTopRight, ui.ElementTypePanel, nil),
 	}
 	for _, p := range panels {
 		p.DontFitContent()
@@ -285,11 +285,11 @@ func testLayoutSimple(host *engine.Host) {
 func testLayout(host *engine.Host) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
-	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel)
+	p1 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
 	p1.Base().Entity().SetName("p1")
 	//p1.Layout().Scale(300, 100)
 
-	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel)
+	p2 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
 	p2.Base().Entity().SetName("p2")
 	p2.SetColor(matrix.ColorBlue())
 	//p2.Layout().SetPadding(5, 5, 5, 5)
@@ -298,7 +298,7 @@ func testLayout(host *engine.Host) {
 	//p2.Layout().Scale(64, 64)
 	//p2.Layout().SetOffset(10, 10)
 
-	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel)
+	p3 := ui.NewPanel(host, tex, ui.AnchorTopLeft, ui.ElementTypePanel, nil)
 	p3.Base().Entity().SetName("p3")
 	p3.SetColor(matrix.ColorRed())
 	p3.Base().Layout().Scale(32, 32)

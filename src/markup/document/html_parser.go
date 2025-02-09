@@ -151,7 +151,7 @@ func TransformHTML(htmlStr string, withData any) string {
 	return htmlStr
 }
 
-func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Panel) {
+func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Panel, uiMan *ui.Manager) {
 	appendElement := func(uiElm *ui.UI, panel *ui.Panel) *Element {
 		e.UI = uiElm
 		e.UIPanel = panel
@@ -166,7 +166,13 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		txt = strings.ReplaceAll(txt, "\n", " ")
 		txt = strings.ReplaceAll(txt, "\t", " ")
 		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
-		label := ui.NewLabel(host, txt, anchor)
+		var label *ui.Label
+		if uiMan != nil {
+			label = uiMan.Add().ToLabel()
+			label.Init(host, txt, anchor, uiMan)
+		} else {
+			label = ui.NewLabel(host, txt, anchor, uiMan)
+		}
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
@@ -183,7 +189,12 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
 			panel = (*ui.Panel)(img)
 		} else {
-			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft, ui.ElementTypePanel)
+			if uiMan != nil {
+				panel = uiMan.Add().ToPanel()
+				panel.Init(host, nil, ui.AnchorTopLeft, ui.ElementTypePanel, uiMan)
+			} else {
+				panel = ui.NewPanel(host, nil, ui.AnchorTopLeft, ui.ElementTypePanel, uiMan)
+			}
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		var uiElm *ui.UI = panel.Base()
@@ -220,7 +231,7 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		}
 		entry := appendElement(uiElm, panel)
 		for i := range e.Children {
-			d.createUIElement(host, e.Children[i], panel)
+			d.createUIElement(host, e.Children[i], panel, uiMan)
 		}
 		id := e.Attribute("id")
 		group := e.Attribute("group")
@@ -256,9 +267,15 @@ func (d *Document) tagElement(elm *Element, tag string) {
 	}
 }
 
-func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
+func (d *Document) setupBody(h *Element, host *engine.Host, uiMan *ui.Manager) *Element {
 	body := h.Body()
-	bodyPanel := ui.NewPanel(host, nil, ui.AnchorCenter, ui.ElementTypePanel)
+	var bodyPanel *ui.Panel
+	if uiMan != nil {
+		bodyPanel = uiMan.Add().ToPanel()
+		bodyPanel.Init(host, nil, ui.AnchorCenter, ui.ElementTypePanel, uiMan)
+	} else {
+		bodyPanel = ui.NewPanel(host, nil, ui.AnchorCenter, ui.ElementTypePanel, uiMan)
+	}
 	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
 		w, h := float32(host.Window.Width()), float32(host.Window.Height())
 		l.Scale(w, h)
@@ -283,7 +300,7 @@ func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
 	return body
 }
 
-func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
+func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*Element), uiMan *ui.Manager) *Document {
 	parsed := &Document{
 		Elements:      make([]*Element, 0),
 		groups:        map[string][]*Element{},
@@ -293,12 +310,12 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 		HeadElements:  make([]*Element, 0),
 	}
 	h := NewHTML(TransformHTML(htmlStr, withData))
-	body := parsed.setupBody(h, host)
+	body := parsed.setupBody(h, host, uiMan)
 	bodyPanel := body.UIPanel
 	bodyPanel.Base().Entity().SetName("body")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
-		parsed.createUIElement(host, body.Children[i], bodyPanel)
+		parsed.createUIElement(host, body.Children[i], bodyPanel, uiMan)
 		if idx < len(parsed.Elements) {
 			parsed.TopElements = append(parsed.TopElements, parsed.Elements[idx])
 		}

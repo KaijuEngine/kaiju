@@ -92,7 +92,7 @@ func (p *Preview) pullStyles() {
 func (p *Preview) readHTML(container *host_container.Container) {
 	container.RunFunction(func() {
 		if doc, err := markup.DocumentFromHTMLAsset(container.Host,
-			contentFile(p.html), p.bindingData, nil); err == nil {
+			contentFile(p.html), p.bindingData, nil, nil); err == nil {
 			if p.doc != nil {
 				p.doc.Destroy()
 			}

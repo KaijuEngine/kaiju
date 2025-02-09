@@ -165,7 +165,7 @@ func (s *FileWindow) reloadUI() {
 	s.list()
 	html := klib.MustReturn(s.container.Host.AssetDatabase().ReadText("editor/ui/file_window.html"))
 	s.doc = markup.DocumentFromHTMLString(
-		s.container.Host, html, "", s, s.funcMap)
+		s.container.Host, html, "", s, s.funcMap, nil)
 	if elm, ok := s.doc.GetElementById("pathInput"); !ok {
 		slog.Error(`Failed to locate the "pathInput" for the file window`)
 		s.container.Host.Close()

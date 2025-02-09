@@ -40,7 +40,7 @@ func (c *ContextMenu) reload() {
 		"selectEntry": c.selectEntry,
 		"clickMiss":   c.clickMiss,
 	}
-	c.doc = markup.DocumentFromHTMLString(c.container.Host, html, "", c.entries, funcMap)
+	c.doc = markup.DocumentFromHTMLString(c.container.Host, html, "", c.entries, funcMap, nil)
 	c.doc.SetGroup(c.uiGroup)
 	m, _ := c.doc.GetElementById("contextMenu")
 	c.container.Host.DoneCreatingEditorEntities()

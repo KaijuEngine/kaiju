@@ -56,6 +56,6 @@ func New() {
 	container.RunFunction(func() {
 		markup.DocumentFromHTMLAsset(container.Host, html, nil, map[string]func(*document.Element){
 			"openContributions": openContributions,
-		})
+		}, nil)
 	})
 }

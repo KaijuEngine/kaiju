@@ -22,12 +22,14 @@ func (p *PoolGroup[T]) selectPool() (*Pool[T], PoolGroupId) {
 
 func (p *PoolGroup[T]) Clear() {
 	for i := range p.pools {
-		for j := range len(p.pools[i].available) {
-			p.pools[i].available[j] = PoolIndex(j)
+		for j, idx := ElementsInPool-1, 0; i >= 0; i-- {
+			p.pools[i].available[idx] = PoolIndex(j)
+			idx++
 		}
-		p.pools[i].availableLen = len(p.pools[i].available)
+		p.pools[i].availableLen = ElementsInPool
 		p.pools[i].takenLen = 0
 	}
+	// TODO:  Should the pools be cleared [:0] instead?
 }
 
 func (p *PoolGroup[T]) Add() (elm *T, poolId PoolGroupId, elmId PoolIndex) {

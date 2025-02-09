@@ -62,7 +62,7 @@ func (s *Image) ImageData() *imageData {
 }
 
 func NewImage(host *engine.Host, texture *rendering.Texture, anchor Anchor) *Image {
-	panel := NewPanel(host, texture, anchor, ElementTypeImage)
+	panel := NewPanel(host, texture, anchor, ElementTypeImage, nil)
 	img := (*Image)(panel)
 	img.elmData = &imageData{
 		panelData: *panel.PanelData(),
