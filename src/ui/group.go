@@ -97,13 +97,13 @@ func (group *Group) setFocus(ui *UI) {
 }
 
 func (group *Group) Attach(host *engine.Host) {
-	group.updateId = host.LateUpdater.AddUpdate(func(dt float64) {
+	group.updateId = host.UILateUpdater.AddUpdate(func(dt float64) {
 		group.lateUpdate()
 	})
 }
 
 func (group *Group) Detach(host *engine.Host) {
-	host.LateUpdater.RemoveUpdate(group.updateId)
+	host.UILateUpdater.RemoveUpdate(group.updateId)
 	group.updateId = -1
 }
 
