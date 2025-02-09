@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"unicode/utf8"
@@ -53,8 +52,7 @@ type colorRange struct {
 	hue, bgHue matrix.Color
 }
 
-type Label struct {
-	uiBase
+type labelData struct {
 	colorRanges       []colorRange
 	text              string
 	textLength        int
@@ -78,8 +76,16 @@ type Label struct {
 	renderRequired    bool
 }
 
-func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
-	label := &Label{
+func (l *labelData) innerPanelData() *panelData { panic("label isn't a panel") }
+
+type Label UI
+
+func (u *UI) ToLabel() *Label          { return (*Label)(u) }
+func (l *Label) Base() *UI             { return (*UI)(l) }
+func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
+
+func (label *Label) Init(text string, anchor Anchor) {
+	label.elmData = &labelData{
 		text:            text,
 		textLength:      utf8.RuneCountInString(text),
 		fgColor:         matrix.ColorWhite(),
@@ -94,25 +100,24 @@ func NewLabel(host *engine.Host, text string, anchor Anchor) *Label {
 		renderRequired:  true,
 		lastRenderWidth: 0,
 	}
-	label.init(host, matrix.Vec2Zero(), anchor, label)
+	label.elmType = ElementTypeLabel
+	label.postLayoutUpdate = label.labelPostLayoutUpdate
+	label.render = label.labelRender
+	label.Base().init(matrix.Vec2Zero(), anchor, label.Base())
 	label.SetText(text)
-	label.SetDirty(DirtyTypeGenerated)
+	label.Base().SetDirty(DirtyTypeGenerated)
 	label.entity.OnActivate.Add(func() {
 		label.activateDrawings()
-		label.updateId = host.Updater.AddUpdate(label.Update)
-		label.SetDirty(DirtyTypeLayout)
-		label.renderRequired = true
-		label.Clean()
+		label.Base().SetDirty(DirtyTypeLayout)
+		label.LabelData().renderRequired = true
+		label.Base().Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
 		label.deactivateDrawings()
-		host.Updater.RemoveUpdate(label.updateId)
-		label.updateId = 0
 	})
-	label.entity.OnDestroy.Add(func() {
+	label.Base().AddEvent(EventTypeDestroy, func() {
 		label.clearDrawings()
 	})
-	return label
 }
 
 func (label *Label) Show() {
@@ -130,56 +135,62 @@ func (label *Label) Hide() {
 }
 
 func (label *Label) activateDrawings() {
-	for i := range label.runeDrawings {
-		label.runeDrawings[i].ShaderData.Activate()
+	ld := label.LabelData()
+	for i := range ld.runeDrawings {
+		ld.runeDrawings[i].ShaderData.Activate()
 	}
 }
 
 func (label *Label) deactivateDrawings() {
-	for i := range label.runeDrawings {
-		label.runeDrawings[i].ShaderData.Deactivate()
+	ld := label.LabelData()
+	for i := range ld.runeDrawings {
+		ld.runeDrawings[i].ShaderData.Deactivate()
 	}
 }
 
-func (label *Label) FontFace() rendering.FontFace { return label.fontFace }
+func (label *Label) FontFace() rendering.FontFace { return label.LabelData().fontFace }
 
 func (label *Label) colorRange(section colorRange) {
-	end := len(label.runeShaderData)
+	ld := label.LabelData()
+	end := len(ld.runeShaderData)
 	for i := section.start; i < section.end && end > section.end; i++ {
-		label.runeShaderData[i].FgColor = section.hue
-		label.runeShaderData[i].BgColor = section.bgHue
+		ld.runeShaderData[i].FgColor = section.hue
+		ld.runeShaderData[i].BgColor = section.bgHue
 	}
 }
 
 func (label *Label) clearDrawings() {
-	for i := range label.runeShaderData {
-		label.runeShaderData[i].Destroy()
+	ld := label.LabelData()
+	for i := range ld.runeShaderData {
+		ld.runeShaderData[i].Destroy()
 	}
-	label.runeShaderData = label.runeShaderData[:0]
-	label.runeDrawings = label.runeDrawings[:0]
+	ld.runeShaderData = ld.runeShaderData[:0]
+	ld.runeDrawings = ld.runeDrawings[:0]
 }
 
-func (label *Label) postLayoutUpdate() {
+func (label *Label) labelPostLayoutUpdate() {
 	maxWidth := float32(999999.0)
-	if label.wordWrap {
+	if label.LabelData().wordWrap {
 		maxWidth = label.layout.PixelSize().Width()
 	}
 	label.updateHeight(maxWidth)
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
-	m := label.measure(label.MaxWidth())
+	m := label.measure(maxWidth)
 	label.layout.ScaleHeight(m.Y())
 }
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
-	return label.host.FontCache().MeasureStringWithin(label.fontFace,
-		label.text, label.fontSize, maxWidth, label.lineHeight)
+	ld := label.LabelData()
+	return label.man.Host.FontCache().MeasureStringWithin(ld.fontFace,
+		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
 }
 
 func (label *Label) renderText() {
 	maxWidth := float32(999999.0)
-	if label.wordWrap {
+	ld := label.LabelData()
+	if ld.wordWrap {
 		if label.entity.Parent != nil {
 			p := FirstOnEntity(label.entity.Parent)
 			o := p.Layout().Padding()
@@ -191,163 +202,174 @@ func (label *Label) renderText() {
 	label.updateHeight(maxWidth)
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
-	if label.textLength > 0 {
-		label.runeDrawings = label.host.FontCache().RenderMeshes(
-			label.host, label.text, 0.0, 0.0, 0.0, label.fontSize,
-			maxWidth, label.fgColor, label.bgColor, label.justify,
-			label.baseline, label.entity.Transform.WorldScale(), true,
-			false, label.fontFace, label.lineHeight)
-		for i := range label.runeDrawings {
-			label.runeDrawings[i].Transform = &label.entity.Transform
-			label.runeShaderData = append(label.runeShaderData,
-				label.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
-			label.runeDrawings[i].UseBlending = label.bgColor.A() < 1.0
+	if ld.textLength > 0 {
+		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
+			label.man.Host, ld.text, 0, 0, 0, ld.fontSize,
+			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
+			ld.baseline, label.entity.Transform.WorldScale(), true,
+			false, ld.fontFace, ld.lineHeight)
+		for i := range ld.runeDrawings {
+			ld.runeDrawings[i].Transform = &label.entity.Transform
+			ld.runeShaderData = append(ld.runeShaderData,
+				ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
+			ld.runeDrawings[i].UseBlending = ld.bgColor.A() < 1.0
 		}
-		for i := 0; i < len(label.colorRanges); i++ {
-			label.colorRange(label.colorRanges[i])
+		for i := 0; i < len(ld.colorRanges); i++ {
+			label.colorRange(ld.colorRanges[i])
 		}
-		dc := label.host.Window.Renderer.DefaultCanvas()
-		label.host.Drawings.AddDrawings(label.runeDrawings, dc)
+		dc := label.man.Host.Window.Renderer.DefaultCanvas()
+		label.man.Host.Drawings.AddDrawings(ld.runeDrawings, dc)
 	}
 }
 
-func (label *Label) render() {
-	label.uiBase.render()
+func (label *Label) labelRender() {
+	//label.Base().render() ---v
+	label.events[EventTypeRender].Execute()
 	maxWidth := label.nonOverrideMaxWidth()
-	if label.lastRenderWidth != maxWidth {
-		label.lastRenderWidth = maxWidth
-		label.renderRequired = true
+	ld := label.LabelData()
+	if ld.lastRenderWidth != maxWidth {
+		ld.lastRenderWidth = maxWidth
+		ld.renderRequired = true
 	}
-	if label.renderRequired {
+	if ld.renderRequired {
 		label.renderText()
 	}
 	label.setLabelScissors()
-	if !label.isActive() {
+	if !label.Base().isActive() {
 		label.deactivateDrawings()
 	}
 	label.updateColors()
-	label.renderRequired = false
+	ld.renderRequired = false
 }
 
 func (label *Label) updateColors() {
-	for i := range label.runeShaderData {
-		label.runeShaderData[i].FgColor = label.fgColor
-		label.runeShaderData[i].BgColor = label.bgColor
+	ld := label.LabelData()
+	for i := range ld.runeShaderData {
+		ld.runeShaderData[i].FgColor = ld.fgColor
+		ld.runeShaderData[i].BgColor = ld.bgColor
 	}
 }
 
-func (label *Label) FontSize() float32 { return label.fontSize }
+func (label *Label) FontSize() float32 { return label.LabelData().fontSize }
 
 func (label *Label) SetFontSize(size float32) {
-	label.fontSize = size
-	label.SetDirty(DirtyTypeGenerated)
+	label.LabelData().fontSize = size
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetLineHeight(height float32) {
-	label.lineHeight = height
-	label.SetDirty(DirtyTypeGenerated)
+	label.LabelData().lineHeight = height
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) LineHeight() float32 { return label.lineHeight }
+func (label *Label) LineHeight() float32 { return label.LabelData().lineHeight }
 
-func (label *Label) Text() string { return label.text }
+func (label *Label) Text() string { return label.LabelData().text }
 
 func (label *Label) SetText(text string) {
-	label.text = text
-	label.renderRequired = true
+	ld := label.LabelData()
+	ld.text = text
+	ld.renderRequired = true
 	// TODO:  Put a cap on the length of the string
-	label.textLength = utf8.RuneCountInString(label.text)
-	label.SetDirty(DirtyTypeGenerated)
-	label.colorRanges = label.colorRanges[:0]
+	ld.textLength = utf8.RuneCountInString(ld.text)
+	label.Base().SetDirty(DirtyTypeGenerated)
+	ld.colorRanges = ld.colorRanges[:0]
 }
 
 func (label *Label) setLabelScissors() {
-	s := label.uiBase.selfScissor()
+	s := label.Base().selfScissor()
 	if label.entity.Parent != nil {
 		p := FirstOnEntity(label.entity.Parent)
 		s = p.selfScissor()
 	}
-	for i := 0; i < len(label.runeDrawings); i++ {
-		label.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = s
+	ld := label.LabelData()
+	for i := 0; i < len(ld.runeDrawings); i++ {
+		ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = s
 	}
 }
 
 func (label *Label) SetColor(newColor matrix.Color) {
-	if label.isForcedFGColor || label.fgColor.Equals(newColor) {
+	ld := label.LabelData()
+	if ld.isForcedFGColor || ld.fgColor.Equals(newColor) {
 		return
 	}
-	for i := range label.colorRanges {
-		if label.colorRanges[i].hue.Equals(label.fgColor) {
-			label.colorRanges[i].hue = newColor
+	for i := range ld.colorRanges {
+		if ld.colorRanges[i].hue.Equals(ld.fgColor) {
+			ld.colorRanges[i].hue = newColor
 		}
 	}
-	label.fgColor = newColor
+	ld.fgColor = newColor
 	label.updateColors()
 }
 
 func (label *Label) EnforceFGColor(color matrix.Color) {
-	label.unEnforcedFGColor = label.fgColor
+	ld := label.LabelData()
+	ld.unEnforcedFGColor = ld.fgColor
 	label.SetColor(color)
-	label.isForcedFGColor = true
+	ld.isForcedFGColor = true
 }
 
 func (label *Label) UnEnforceFGColor() {
-	if !label.isForcedFGColor {
+	ld := label.LabelData()
+	if !ld.isForcedFGColor {
 		return
 	}
-	label.isForcedFGColor = false
-	label.SetColor(label.unEnforcedFGColor)
+	ld.isForcedFGColor = false
+	label.SetColor(ld.unEnforcedFGColor)
 }
 
 func (label *Label) EnforceBGColor(color matrix.Color) {
-	label.unEnforcedBGColor = label.bgColor
+	ld := label.LabelData()
+	ld.unEnforcedBGColor = ld.bgColor
 	label.SetBGColor(color)
-	label.isForcedBGColor = true
+	ld.isForcedBGColor = true
 }
 
 func (label *Label) UnEnforceBGColor() {
-	if !label.isForcedBGColor {
+	ld := label.LabelData()
+	if !ld.isForcedBGColor {
 		return
 	}
-	label.isForcedBGColor = false
-	label.SetBGColor(label.unEnforcedBGColor)
+	ld.isForcedBGColor = false
+	label.SetBGColor(ld.unEnforcedBGColor)
 }
 
 func (label *Label) SetBGColor(newColor matrix.Color) {
-	if label.isForcedBGColor || label.bgColor.Equals(newColor) {
+	ld := label.LabelData()
+	if ld.isForcedBGColor || ld.bgColor.Equals(newColor) {
 		return
 	}
-	for i := range label.colorRanges {
-		if label.colorRanges[i].bgHue.Equals(label.bgColor) {
-			label.colorRanges[i].bgHue = newColor
+	for i := range ld.colorRanges {
+		if ld.colorRanges[i].bgHue.Equals(ld.bgColor) {
+			ld.colorRanges[i].bgHue = newColor
 		}
 	}
-	label.bgColor = newColor
-	for i := range label.runeDrawings {
-		label.runeDrawings[i].UseBlending = newColor.A() < 1.0
+	ld.bgColor = newColor
+	for i := range ld.runeDrawings {
+		ld.runeDrawings[i].UseBlending = newColor.A() < 1.0
 	}
 	label.updateColors()
 }
 
 func (label *Label) SetJustify(justify rendering.FontJustify) {
-	label.justify = justify
-	label.SetDirty(DirtyTypeGenerated)
+	label.LabelData().justify = justify
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetBaseline(baseline rendering.FontBaseline) {
-	label.baseline = baseline
-	label.SetDirty(DirtyTypeGenerated)
+	label.LabelData().baseline = baseline
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetMaxWidth(maxWidth float32) {
-	label.overrideMaxWidth = maxWidth
+	label.LabelData().overrideMaxWidth = maxWidth
 }
 
 func (label *Label) nonOverrideMaxWidth() float32 {
 	if label.entity.IsRoot() {
 		// TODO:  Return a the window width?
 		return 100000.0
-	} else if label.wordWrap {
+	} else if label.LabelData().wordWrap {
 		return label.CalculateMaxWidth()
 	} else {
 		return label.entity.Transform.WorldScale().X()
@@ -355,7 +377,7 @@ func (label *Label) nonOverrideMaxWidth() float32 {
 }
 
 func (label *Label) MaxWidth() float32 {
-	mw := label.overrideMaxWidth
+	mw := label.LabelData().overrideMaxWidth
 	if mw <= 0 {
 		mw = label.nonOverrideMaxWidth()
 	}
@@ -363,18 +385,21 @@ func (label *Label) MaxWidth() float32 {
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {
-	textSize := label.Host().FontCache().MeasureStringWithin(label.fontFace, label.text, label.fontSize, width, label.lineHeight)
+	ld := label.LabelData()
+	textSize := label.Base().man.Host.FontCache().MeasureStringWithin(
+		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
 	label.layout.Scale(width, textSize.Y())
-	label.SetDirty(DirtyTypeResize)
+	label.Base().SetDirty(DirtyTypeResize)
 }
 
 func (label *Label) findColorRange(start, end int) *colorRange {
 	// TODO:  Remove/update overlapped ranges
+	ld := label.LabelData()
 	newRange := colorRange{
 		start: start,
 		end:   end,
-		hue:   label.fgColor,
-		bgHue: label.bgColor,
+		hue:   ld.fgColor,
+		bgHue: ld.bgColor,
 	}
 	//label.colorRanges = append(label.colorRanges, newRange)
 	//return &label.colorRanges[len(label.colorRanges)-1]
@@ -391,67 +416,70 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 
 func (label *Label) BoldRange(start, end int) {
 	cRange := label.findColorRange(start, end)
-	cRange.hue = label.fgColor
-	cRange.bgHue = label.bgColor
+	ld := label.LabelData()
+	cRange.hue = ld.fgColor
+	cRange.bgHue = ld.bgColor
 	label.colorRange(*cRange)
 	label.updateColors()
 }
 
 func (label *Label) SetWrap(wrapText bool) {
-	label.wordWrap = wrapText
-	label.SetDirty(DirtyTypeGenerated)
+	label.LabelData().wordWrap = wrapText
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontWeight(weight string) {
+	ld := label.LabelData()
 	switch weight {
 	case "normal":
-		if label.fontFace.IsItalic() {
-			label.fontFace = rendering.FontItalic
+		if ld.fontFace.IsItalic() {
+			ld.fontFace = rendering.FontItalic
 		} else {
-			label.fontFace = rendering.FontRegular
+			ld.fontFace = rendering.FontRegular
 		}
 	case "bold":
-		if label.fontFace.IsItalic() {
-			label.fontFace = rendering.FontBoldItalic
+		if ld.fontFace.IsItalic() {
+			ld.fontFace = rendering.FontBoldItalic
 		} else {
-			label.fontFace = rendering.FontBold
+			ld.fontFace = rendering.FontBold
 		}
 	case "bolder":
-		if label.fontFace.IsItalic() {
-			label.fontFace = rendering.FontExtraBoldItalic
+		if ld.fontFace.IsItalic() {
+			ld.fontFace = rendering.FontExtraBoldItalic
 		} else {
-			label.fontFace = rendering.FontExtraBold
+			ld.fontFace = rendering.FontExtraBold
 		}
 	case "lighter":
-		if label.fontFace.IsItalic() {
-			label.fontFace = rendering.FontLightItalic
+		if ld.fontFace.IsItalic() {
+			ld.fontFace = rendering.FontLightItalic
 		} else {
-			label.fontFace = rendering.FontLight
+			ld.fontFace = rendering.FontLight
 		}
 	}
-	label.SetDirty(DirtyTypeGenerated)
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontStyle(style string) {
+	ld := label.LabelData()
 	switch style {
 	case "normal":
-		if label.fontFace.IsExtraBold() {
-			label.fontFace = rendering.FontExtraBold
-		} else if label.fontFace.IsBold() {
-			label.fontFace = rendering.FontBold
+		if ld.fontFace.IsExtraBold() {
+			ld.fontFace = rendering.FontExtraBold
+		} else if ld.fontFace.IsBold() {
+			ld.fontFace = rendering.FontBold
 		} else {
-			label.fontFace = rendering.FontRegular
+			ld.fontFace = rendering.FontRegular
 		}
 	case "italic":
-		if label.fontFace.IsExtraBold() {
-			label.fontFace = rendering.FontExtraBoldItalic
-		} else if label.fontFace.IsBold() {
-			label.fontFace = rendering.FontBoldItalic
+		if ld.fontFace.IsExtraBold() {
+			ld.fontFace = rendering.FontExtraBoldItalic
+		} else if ld.fontFace.IsBold() {
+			ld.fontFace = rendering.FontBoldItalic
 		} else {
-			label.fontFace = rendering.FontItalic
+			ld.fontFace = rendering.FontItalic
 		}
 	}
-	label.SetDirty(DirtyTypeGenerated)
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) CalculateMaxWidth() float32 {
@@ -461,15 +489,15 @@ func (label *Label) CalculateMaxWidth() float32 {
 	o := matrix.Vec4Zero()
 	for parent != nil {
 		p = FirstPanelOnEntity(parent)
-		o.AddAssign(p.Layout().Padding())
+		o.AddAssign(p.Base().layout.Padding())
 		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
 			break
 		}
 		parent = parent.Parent
 	}
-	if parent == nil || (p.Layout().Positioning() == PositioningAbsolute && p.FittingContent()) {
+	if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(label.host.Window.Width())
+		maxWidth = matrix.Float(label.man.Host.Window.Width())
 	} else {
 		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
 	}

@@ -53,7 +53,7 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if len(values) != 1 {
 		return errors.New("left expects 1 value")
 	} else {
-		offset := panel.Layout().InnerOffset()
+		offset := panel.Base().Layout().InnerOffset()
 		s := values[0].Str
 		layout := elm.UI.Layout()
 		switch s {
@@ -68,7 +68,7 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
-				panel.Layout().AddFunction(func(l *ui.Layout) {
+				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 					if l.Ui().Entity().IsRoot() {
 						return
 					}

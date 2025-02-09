@@ -98,17 +98,17 @@ type LogWindow struct {
 	infoEvtId  logging.EventId
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
-	group      *ui.Group
+	uiMan      *ui.Manager
 	mutex      sync.Mutex
 }
 
-func New(host *engine.Host, logStream *logging.LogStream, uiGroup *ui.Group) *LogWindow {
+func New(host *engine.Host, logStream *logging.LogStream, uiMan *ui.Manager) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
 		all:        make([]visibleMessage, 0),
 		logStream:  logStream,
 		host:       host,
-		group:      uiGroup,
+		uiMan:      uiMan,
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.add(msg, nil, "info")
@@ -220,11 +220,11 @@ func (l *LogWindow) deactivateGroups() {
 	wb, _ := l.doc.GetElementById("warningsBtn")
 	eb, _ := l.doc.GetElementById("errorsBtn")
 	sb, _ := l.doc.GetElementById("selectedBtn")
-	ab.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	ib.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	wb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	eb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
-	sb.Children[0].UI.(*ui.Label).SetFontWeight("normal")
+	ab.Children[0].UI.ToLabel().SetFontWeight("normal")
+	ib.Children[0].UI.ToLabel().SetFontWeight("normal")
+	wb.Children[0].UI.ToLabel().SetFontWeight("normal")
+	eb.Children[0].UI.ToLabel().SetFontWeight("normal")
+	sb.Children[0].UI.ToLabel().SetFontWeight("normal")
 }
 
 func (l *LogWindow) showCurrent() {
@@ -248,7 +248,7 @@ func (l *LogWindow) showAll(*document.Element) {
 	e, _ := l.doc.GetElementById("all")
 	b, _ := l.doc.GetElementById("allBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showInfos(*document.Element) {
@@ -257,7 +257,7 @@ func (l *LogWindow) showInfos(*document.Element) {
 	e, _ := l.doc.GetElementById("info")
 	b, _ := l.doc.GetElementById("infoBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showWarns(*document.Element) {
@@ -266,7 +266,7 @@ func (l *LogWindow) showWarns(*document.Element) {
 	e, _ := l.doc.GetElementById("warn")
 	b, _ := l.doc.GetElementById("warningsBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showErrors(*document.Element) {
@@ -275,7 +275,7 @@ func (l *LogWindow) showErrors(*document.Element) {
 	e, _ := l.doc.GetElementById("error")
 	b, _ := l.doc.GetElementById("errorsBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) showSelected(*document.Element) {
@@ -284,7 +284,7 @@ func (l *LogWindow) showSelected(*document.Element) {
 	e, _ := l.doc.GetElementById("selected")
 	b, _ := l.doc.GetElementById("selectedBtn")
 	e.UI.Entity().Activate()
-	b.Children[0].UI.(*ui.Label).SetFontWeight("bolder")
+	b.Children[0].UI.ToLabel().SetFontWeight("bolder")
 }
 
 func (l *LogWindow) selectEntry(e *document.Element) {
@@ -304,7 +304,7 @@ func (l *LogWindow) selectEntry(e *document.Element) {
 			// The lists are printed in reverse order, so we invert the index
 			id = len(target) - id - 1
 			selectedElm, _ := l.doc.GetElementById("selected")
-			lbl := selectedElm.Children[0].UI.(*ui.Label)
+			lbl := selectedElm.Children[0].UI.ToLabel()
 			sb := strings.Builder{}
 			sb.WriteString(target[id].Time)
 			sb.WriteRune('\n')
@@ -335,7 +335,7 @@ func (l *LogWindow) reloadUI() {
 	l.host.CreatingEditorEntities()
 	l.lastReload = frame
 	l.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		l.host, html, l, map[string]func(*document.Element){
+		l.uiMan, html, l, map[string]func(*document.Element){
 			"clearAll":     l.clearAll,
 			"showAll":      l.showAll,
 			"showInfos":    l.showInfos,
@@ -348,16 +348,15 @@ func (l *LogWindow) reloadUI() {
 			"resizeStart":  l.resizeStart,
 			"resizeStop":   l.resizeStop,
 		}))
-	l.doc.SetGroup(l.group)
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := l.doc.GetElementById("window")
 		if f32, ok := s.(float32); ok {
-			w.UIPanel.Layout().ScaleHeight(matrix.Float(f32))
+			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f32))
 		} else if f64, ok := s.(float64); ok {
-			w.UIPanel.Layout().ScaleHeight(matrix.Float(f64))
+			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f64))
 		}
 	}
 }
@@ -385,7 +384,7 @@ func (l *LogWindow) resizeStop(e *document.Element) {
 	}
 	l.host.Window.CursorStandard()
 	w, _ := l.doc.GetElementById("window")
-	s := w.UIPanel.Layout().PixelSize().Height()
+	s := w.UIPanel.Base().Layout().PixelSize().Height()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
@@ -394,6 +393,6 @@ func (l *LogWindow) DragUpdate() {
 	y := l.host.Window.Mouse.Position().Y() - 20
 	h := l.host.Window.Height()
 	if int(y) < h-100 {
-		w.UIPanel.Layout().ScaleHeight(y)
+		w.UIPanel.Base().Layout().ScaleHeight(y)
 	}
 }

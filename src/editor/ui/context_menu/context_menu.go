@@ -11,7 +11,7 @@ import (
 type ContextMenu struct {
 	container *host_container.Container
 	doc       *document.Document
-	uiGroup   *ui.Group
+	uiMan     *ui.Manager
 	entries   []ContextMenuEntry
 	x         float32
 	y         float32
@@ -23,10 +23,10 @@ type ContextMenuEntry struct {
 	OnClick func()
 }
 
-func New(container *host_container.Container, uiGroup *ui.Group) *ContextMenu {
+func New(container *host_container.Container, uiMan *ui.Manager) *ContextMenu {
 	c := &ContextMenu{
 		container: container,
-		uiGroup:   uiGroup,
+		uiMan:     uiMan,
 		entries:   []ContextMenuEntry{},
 	}
 	return c
@@ -40,20 +40,19 @@ func (c *ContextMenu) reload() {
 		"selectEntry": c.selectEntry,
 		"clickMiss":   c.clickMiss,
 	}
-	c.doc = markup.DocumentFromHTMLString(c.container.Host, html, "", c.entries, funcMap)
-	c.doc.SetGroup(c.uiGroup)
+	c.doc = markup.DocumentFromHTMLString(c.uiMan, html, "", c.entries, funcMap)
 	m, _ := c.doc.GetElementById("contextMenu")
 	c.container.Host.DoneCreatingEditorEntities()
 	ww := float32(c.container.Host.Window.Width())
 	wh := float32(c.container.Host.Window.Height())
-	ps := m.UIPanel.Layout().PixelSize()
+	ps := m.UIPanel.Base().Layout().PixelSize()
 	if c.x+ps.Width() > ww {
 		c.x = ww - ps.Width()
 	}
 	if c.y+ps.Height() > wh {
 		c.y = wh - ps.Height()
 	}
-	m.UIPanel.Layout().SetOffset(c.x, c.y)
+	m.UIPanel.Base().Layout().SetOffset(c.x, c.y)
 }
 
 func (c *ContextMenu) Show(entries []ContextMenuEntry) {

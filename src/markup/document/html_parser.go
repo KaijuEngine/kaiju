@@ -50,8 +50,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"golang.org/x/net/html"
 )
 
 type TemplateIndexedAny struct {
@@ -151,8 +149,8 @@ func TransformHTML(htmlStr string, withData any) string {
 	return htmlStr
 }
 
-func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Panel) {
-	appendElement := func(uiElm ui.UI, panel *ui.Panel) *Element {
+func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Panel) {
+	appendElement := func(uiElm *ui.UI, panel *ui.Panel) *Element {
 		e.UI = uiElm
 		e.UIPanel = panel
 		d.Elements = append(d.Elements, e)
@@ -166,48 +164,46 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 		txt = strings.ReplaceAll(txt, "\n", " ")
 		txt = strings.ReplaceAll(txt, "\t", " ")
 		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
-		label := ui.NewLabel(host, txt, anchor)
+		var label *ui.Label
+		label = uiMan.Add().ToLabel()
+		label.Init(txt, anchor)
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
-		appendElement(label, nil)
+		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
-		var panel *ui.Panel
+		panel := uiMan.Add().ToPanel()
 		if e.IsImage() {
-			tex, err := host.TextureCache().Texture(
+			tex, err := uiMan.Host.TextureCache().Texture(
 				e.Attribute("src"), rendering.TextureFilterLinear)
 			if err != nil {
 				slog.Error(err.Error())
 				return
 			}
-			img := ui.NewImage(host, tex, ui.AnchorTopLeft)
+			img := panel.Base().ToImage()
+			img.Init(tex, ui.AnchorTopLeft)
 			panel = (*ui.Panel)(img)
-		} else {
-			panel = ui.NewPanel(host, nil, ui.AnchorTopLeft)
-			panel.SetOverflow(ui.OverflowVisible)
-		}
-		var uiElm ui.UI = panel
-		if e.IsInput() {
+		} else if e.IsInput() {
 			inputType := e.Attribute("type")
 			switch inputType {
 			case "checkbox":
-				cb := panel.ConvertToCheckbox()
+				cb := panel.Base().ToCheckbox()
+				cb.Init(ui.AnchorTopLeft)
 				if e.Attribute("checked") != "" {
 					cb.SetChecked(true)
 				}
-				uiElm = cb
 			case "slider":
-				slider := panel.ConvertToSlider()
+				slider := panel.Base().ToSlider()
+				slider.Init(ui.AnchorTopLeft)
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
 						slider.SetValue(float32(f))
 					}
 				}
-				uiElm = slider
 			case "text":
-				input := panel.ConvertToInput(e.Attribute("placeholder"))
+				input := panel.Base().ToInput()
+				input.Init(e.Attribute("placeholder"), ui.AnchorTopLeft)
 				input.SetText(e.Attribute("value"))
-				uiElm = input
 				if d.firstInput == nil {
 					d.firstInput = input
 				}
@@ -217,18 +213,22 @@ func (d *Document) createUIElement(host *engine.Host, e *Element, parent *ui.Pan
 				d.lastInput = input
 				input.SetNextFocusedInput(d.firstInput)
 			}
+			panel.SetOverflow(ui.OverflowVisible)
+		} else {
+			panel.Init(nil, ui.AnchorTopLeft, ui.ElementTypePanel)
+			panel.SetOverflow(ui.OverflowVisible)
 		}
-		entry := appendElement(uiElm, panel)
+		entry := appendElement(panel.Base(), panel)
 		for i := range e.Children {
-			d.createUIElement(host, e.Children[i], panel)
+			d.createUIElement(uiMan, e.Children[i], panel)
 		}
 		id := e.Attribute("id")
 		group := e.Attribute("group")
 		if len(id) > 0 {
 			d.ids[id] = entry
-			uiElm.Entity().SetName(id)
+			panel.Base().Entity().SetName(id)
 		} else {
-			uiElm.Entity().SetName(e.Attribute("name"))
+			panel.Base().Entity().SetName(e.Attribute("name"))
 		}
 		if len(group) > 0 {
 			d.groups[group] = append(d.groups[group], entry)
@@ -256,16 +256,19 @@ func (d *Document) tagElement(elm *Element, tag string) {
 	}
 }
 
-func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
+func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
+	host := uiMan.Host
 	body := h.Body()
-	bodyPanel := ui.NewPanel(host, nil, ui.AnchorCenter)
-	bodyPanel.Layout().AddFunction(func(l *ui.Layout) {
+	var bodyPanel *ui.Panel
+	bodyPanel = uiMan.Add().ToPanel()
+	bodyPanel.Init(nil, ui.AnchorCenter, ui.ElementTypePanel)
+	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
 		w, h := float32(host.Window.Width()), float32(host.Window.Height())
 		l.Scale(w, h)
 	})
 	bodyPanel.DontFitContent()
-	bodyPanel.Clean()
-	body.UI = bodyPanel
+	bodyPanel.Base().Clean()
+	body.UI = bodyPanel.Base()
 	body.UIPanel = bodyPanel
 	d.Elements = append(d.Elements, body)
 	d.tagElements["body"] = []*Element{body}
@@ -283,7 +286,7 @@ func (d *Document) setupBody(h *Element, host *engine.Host) *Element {
 	return body
 }
 
-func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
+func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
 	parsed := &Document{
 		Elements:      make([]*Element, 0),
 		groups:        map[string][]*Element{},
@@ -293,12 +296,12 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 		HeadElements:  make([]*Element, 0),
 	}
 	h := NewHTML(TransformHTML(htmlStr, withData))
-	body := parsed.setupBody(h, host)
+	body := parsed.setupBody(h, uiMan)
 	bodyPanel := body.UIPanel
-	bodyPanel.Entity().SetName("body")
+	bodyPanel.Base().Entity().SetName("body")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
-		parsed.createUIElement(host, body.Children[i], bodyPanel)
+		parsed.createUIElement(uiMan, body.Children[i], bodyPanel)
 		if idx < len(parsed.Elements) {
 			parsed.TopElements = append(parsed.TopElements, parsed.Elements[idx])
 		}
@@ -314,17 +317,6 @@ func DocumentFromHTMLString(host *engine.Host, htmlStr string, withData any, fun
 		}
 	}
 	return parsed
-}
-
-func (d *Document) SetGroup(group *ui.Group) {
-	for i := range d.Elements {
-		if d.Elements[i].node.Type == html.ElementNode {
-			data := d.Elements[i].Data()
-			if data != "body" && data != "tag" {
-				d.Elements[i].UI.SetGroup(group)
-			}
-		}
-	}
 }
 
 func (d *Document) Activate() {

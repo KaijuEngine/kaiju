@@ -42,6 +42,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/ui"
 )
 
 func openContributions(*document.Element) {
@@ -51,10 +52,12 @@ func openContributions(*document.Element) {
 func New() {
 	const html = "editor/ui/about_window.html"
 	container := host_container.New("About Window", nil)
+	uiMan := ui.Manager{}
+	uiMan.Init(container.Host)
 	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
 	container.RunFunction(func() {
-		markup.DocumentFromHTMLAsset(container.Host, html, nil, map[string]func(*document.Element){
+		markup.DocumentFromHTMLAsset(&uiMan, html, nil, map[string]func(*document.Element){
 			"openContributions": openContributions,
 		})
 	})

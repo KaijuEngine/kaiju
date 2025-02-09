@@ -59,7 +59,7 @@ type Details struct {
 	editor             interfaces.Editor
 	doc                *document.Document
 	selectChangeId     events.Id
-	uiGroup            *ui.Group
+	uiMan              *ui.Manager
 	viewData           detailsData
 	hierarchyReloading bool
 }
@@ -103,7 +103,7 @@ func (f *entityDataField) ValueAsEntityName() string {
 	}
 	e, ok := f.host.FindEntity(dd.EntityId)
 	if !ok {
-		slog.Error("Entity not found", dd.EntityId)
+		slog.Error("Entity not found", "entity", dd.EntityId)
 		return ""
 	}
 	return e.Name()
@@ -123,10 +123,10 @@ func (f *entityDataField) IsEntityId() bool {
 	return f.Pkg == "kaiju/engine" && f.Type == "EntityId"
 }
 
-func New(editor interfaces.Editor, uiGroup *ui.Group) *Details {
+func New(editor interfaces.Editor, uiMan *ui.Manager) *Details {
 	d := &Details{
-		editor:  editor,
-		uiGroup: uiGroup,
+		editor: editor,
+		uiMan:  uiMan,
 	}
 	d.editor.Host().OnClose.Add(func() {
 		if d.doc != nil {
@@ -174,7 +174,7 @@ func (d *Details) reload() {
 	host.CreatingEditorEntities()
 	d.viewData.Data = d.pullEntityData()
 	d.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
-		host, "editor/ui/details_window.html", d.viewData,
+		d.uiMan, "editor/ui/details_window.html", d.viewData,
 		map[string]func(*document.Element){
 			"changeName":          d.changeName,
 			"changePosX":          d.changePosX,
@@ -197,13 +197,12 @@ func (d *Details) reload() {
 			"resizeStart":         d.resizeStart,
 			"resizeStop":          d.resizeStop,
 		}))
-	d.doc.SetGroup(d.uiGroup)
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
 	go d.editor.ReloadEntityDataListing()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 		w, _ := d.doc.GetElementById("window")
-		w.UIPanel.Layout().ScaleWidth(matrix.Float(s.(float64)))
+		w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
 	}
 	if !isActive {
 		d.doc.Deactivate()
@@ -229,15 +228,15 @@ func (d *Details) changeData(elm *document.Element) {
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v.SetInt(toInt(elm.UI.(*ui.Input).Text()))
+		v.SetInt(toInt(elm.UI.ToInput().Text()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v.SetUint(toUint(elm.UI.(*ui.Input).Text()))
+		v.SetUint(toUint(elm.UI.ToInput().Text()))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(toFloat(elm.UI.(*ui.Input).Text()))
+		v.SetFloat(toFloat(elm.UI.ToInput().Text()))
 	case reflect.String:
 		v.SetString(inputString(elm))
 	case reflect.Bool:
-		v.SetBool(elm.UI.(*ui.Checkbox).IsChecked())
+		v.SetBool(elm.UI.ToCheckbox().IsChecked())
 	}
 }
 
@@ -441,7 +440,7 @@ func (d *Details) resizeStop(e *document.Element) {
 	}
 	d.editor.Host().Window.CursorStandard()
 	w, _ := d.doc.GetElementById("window")
-	s := w.UIPanel.Layout().PixelSize().Width()
+	s := w.UIPanel.Base().Layout().PixelSize().Width()
 	editor_cache.SetEditorConfigValue(sizeConfig, s)
 }
 
@@ -450,6 +449,6 @@ func (d *Details) DragUpdate() {
 	w := d.editor.Host().Window.Width()
 	x := matrix.Float(w) - d.editor.Host().Window.Mouse.Position().X()
 	if int(x) < w-100 {
-		win.UIPanel.Layout().ScaleWidth(x)
+		win.UIPanel.Base().Layout().ScaleWidth(x)
 	}
 }

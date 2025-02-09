@@ -53,6 +53,7 @@ type DataPicker struct {
 	editor    interfaces.Editor
 	container *host_container.Container
 	doc       *document.Document
+	uiMan     *ui.Manager
 	picked    bool
 	lock      chan int
 }
@@ -64,10 +65,11 @@ func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int {
 		lock:      make(chan int),
 	}
 	cx, cy := host.Window.Center()
+	dp.uiMan.Init(dp.container.Host)
 	go dp.container.Run(300, 600, cx-150, cy-300)
 	<-dp.container.PrepLock
 	dp.container.RunFunction(func() {
-		dp.doc, _ = markup.DocumentFromHTMLAsset(dp.container.Host, html, types,
+		dp.doc, _ = markup.DocumentFromHTMLAsset(dp.uiMan, html, types,
 			map[string]func(*document.Element){
 				"pick":   dp.pick,
 				"search": dp.search,
@@ -90,7 +92,7 @@ func (dp *DataPicker) pick(elm *document.Element) {
 
 func (dp *DataPicker) search(elm *document.Element) {
 	input, _ := dp.doc.GetElementById("search")
-	query := strings.ToLower(input.UI.(*ui.Input).Text())
+	query := strings.ToLower(input.UI.ToInput().Text())
 	for i := range dp.doc.Elements {
 		name := dp.doc.Elements[i].Attribute("data-name")
 		if name != "" {

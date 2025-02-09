@@ -50,9 +50,9 @@ func (p MarginRight) Process(panel *ui.Panel, elm *document.Element, values []ru
 	if len(values) != 1 {
 		return errors.New("MarginRight requires exactly 1 value")
 	} else {
-		current := panel.Layout().Margin()
+		current := panel.Base().Layout().Margin()
 		size := marginSizeFromStr(values[0].Str, host.Window)
-		panel.Layout().SetMargin(current.X(), current.Y(), size, current.W())
+		panel.Base().Layout().SetMargin(current.X(), current.Y(), size, current.W())
 		return nil
 	}
 }

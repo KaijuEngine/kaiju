@@ -99,6 +99,7 @@ type consoleCommand struct {
 type Console struct {
 	doc        *document.Document
 	host       *engine.Host
+	uiMan      ui.Manager
 	commands   map[string]consoleCommand
 	history    history
 	historyIdx int
@@ -126,18 +127,19 @@ func initialize(host *engine.Host) *Console {
 		history:  newHistory(),
 		data:     make(map[string]ConsoleData),
 	}
+	console.uiMan.Init(host)
 	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
-	console.doc = markup.DocumentFromHTMLString(host,
+	console.doc = markup.DocumentFromHTMLString(&console.uiMan,
 		string(consoleHTML), "", nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
 		host.Updater.RemoveUpdate(console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
-	input := inputElm.UI.(*ui.Input)
-	input.AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
+	input := inputElm.UI.ToInput()
+	input.Base().AddEvent(ui.EventTypeSubmit, func() { console.submit(input) })
 	console.input = input
-	input.Clean()
+	input.Base().Clean()
 	console.hide()
 	console.AddCommand("help", "Display list of commands and their descriptions", console.help)
 	console.AddCommand("clear", "Clears the console text", console.clear)
@@ -146,7 +148,6 @@ func initialize(host *engine.Host) *Console {
 
 func UnlinkHost(host *engine.Host) { delete(consoles, host) }
 
-func (c *Console) SetUIGroup(group *ui.Group)           { c.doc.SetGroup(group) }
 func (c *Console) Host() *engine.Host                   { return c.host }
 func (c *Console) SetData(key string, data ConsoleData) { c.data[key] = data }
 func (c *Console) HasData(key string) bool              { _, ok := c.data[key]; return ok }
@@ -218,7 +219,7 @@ func (c *Console) clear(*engine.Host, string) string {
 
 func (c *Console) outputLabel() *ui.Label {
 	cc, _ := c.doc.GetElementById("consoleContent")
-	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).(*ui.Label)
+	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).ToLabel()
 }
 
 func (c *Console) submit(input *ui.Input) {

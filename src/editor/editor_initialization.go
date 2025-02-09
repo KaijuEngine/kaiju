@@ -56,19 +56,16 @@ import (
 	"kaiju/matrix"
 	"kaiju/profiler"
 	"kaiju/rendering"
-	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
 	"kaiju/ui"
 )
 
-func addConsole(host *engine.Host, group *ui.Group) {
+func addConsole(host *engine.Host, uiMan *ui.Manager) {
 	html_preview.SetupConsole(host)
 	profiler.SetupConsole(host)
 	tests.SetupConsole(host)
-	console.For(host).SetUIGroup(group)
-	group.Attach(host)
 }
 
 func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
@@ -76,7 +73,7 @@ func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 	ed.container.Host.InitializeAudio()
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	ed.RunOnHost(func() { addConsole(ed.container.Host, ed.uiGroup) })
+	ed.RunOnHost(func() { addConsole(ed.container.Host, &ed.uiManager) })
 }
 
 func setupEditorCamera(ed *Editor) {
@@ -98,15 +95,15 @@ func waitForProjectSelectWindow(ed *Editor) (string, error) {
 
 func constructEditorUI(ed *Editor) {
 	ed.Host().CreatingEditorEntities()
-	ed.logWindow = log_window.New(ed.Host(), ed.Host().LogStream, ed.uiGroup)
-	ed.contentWindow = content_window.New(&ed.contentOpener, ed, ed.uiGroup)
-	ed.detailsWindow = details_window.New(ed, ed.uiGroup)
-	ed.contextMenu = context_menu.New(ed.container, ed.uiGroup)
+	ed.logWindow = log_window.New(ed.Host(), ed.Host().LogStream, &ed.uiManager)
+	ed.contentWindow = content_window.New(&ed.contentOpener, ed, &ed.uiManager)
+	ed.detailsWindow = details_window.New(ed, &ed.uiManager)
+	ed.contextMenu = context_menu.New(ed.container, &ed.uiManager)
 	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
-		hierarchyContextMenuActions(ed), ed.uiGroup)
+		hierarchyContextMenuActions(ed), &ed.uiManager)
 	ed.menu = menu.New(ed.container, ed.logWindow, ed.contentWindow,
-		ed.hierarchy, &ed.contentOpener, ed, ed.uiGroup)
-	ed.statusBar = status_bar.New(ed.Host(), ed.logWindow)
+		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
+	ed.statusBar = status_bar.New(&ed.uiManager, ed.logWindow)
 	setupViewportGrid(ed)
 	{
 		// TODO:  Testing tools

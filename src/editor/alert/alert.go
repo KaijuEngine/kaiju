@@ -68,7 +68,7 @@ func (a *alertMsg) done(isOkay bool) {
 			a.inputBlock <- ""
 		} else {
 			input, _ := a.doc.GetElementById("str")
-			a.inputBlock <- input.UI.(*ui.Input).Text()
+			a.inputBlock <- input.UI.ToInput().Text()
 		}
 		close(a.inputBlock)
 	}
@@ -86,6 +86,8 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 		Placeholder: placeholder,
 		StrValue:    value,
 	}
+	uiMan := &ui.Manager{}
+	uiMan.Init(container.Host)
 	if placeholder != "" {
 		a.inputBlock = make(chan string)
 	} else {
@@ -95,7 +97,7 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 	go container.Run(300, 200, x-150, y-100)
 	<-container.PrepLock
 	container.RunFunction(func() {
-		a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(container.Host,
+		a.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(uiMan,
 			"editor/ui/alert_window.html", a, map[string]func(*document.Element){
 				"okClick":     func(*document.Element) { a.done(true) },
 				"cancelClick": func(*document.Element) { a.done(false) },

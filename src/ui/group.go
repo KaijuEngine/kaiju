@@ -42,18 +42,21 @@ import (
 	"kaiju/engine"
 	"log/slog"
 	"sort"
+	"sync"
 )
 
 type groupRequest struct {
-	target    UI
+	target    *UI
 	eventType EventType
 }
 
 type Group struct {
 	requests    []groupRequest
-	focus       UI
+	focus       *UI
 	updateId    int
+	lock        sync.Mutex
 	hadRequests bool
+	isThreaded  bool
 }
 
 func NewGroup() *Group {
@@ -65,19 +68,25 @@ func NewGroup() *Group {
 
 func (group *Group) HasRequests() bool { return group.hadRequests }
 
-func (group *Group) requestEvent(ui UI, eType EventType) {
+func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
 		slog.Error("Invalid UI event type")
 		return
+	}
+	if group.isThreaded {
+		group.lock.Lock()
 	}
 	group.requests = append(group.requests, groupRequest{
 		target:    ui,
 		eventType: eType,
 	})
+	if group.isThreaded {
+		group.lock.Unlock()
+	}
 	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
-func (group *Group) setFocus(ui UI) {
+func (group *Group) setFocus(ui *UI) {
 	if group.focus != nil && group.focus != ui {
 		group.focus.ExecuteEvent(EventTypeMiss)
 	}
@@ -88,13 +97,13 @@ func (group *Group) setFocus(ui UI) {
 }
 
 func (group *Group) Attach(host *engine.Host) {
-	group.updateId = host.LateUpdater.AddUpdate(func(dt float64) {
+	group.updateId = host.UILateUpdater.AddUpdate(func(dt float64) {
 		group.lateUpdate()
 	})
 }
 
 func (group *Group) Detach(host *engine.Host) {
-	host.LateUpdater.RemoveUpdate(group.updateId)
+	host.UILateUpdater.RemoveUpdate(group.updateId)
 	group.updateId = -1
 }
 
@@ -144,4 +153,10 @@ func (group *Group) lateUpdate() {
 		group.requests = group.requests[:0]
 	}
 	group.hadRequests = has
+}
+
+func (g *Group) SetThreaded() {
+	if !g.isThreaded {
+		g.isThreaded = true
+	}
 }

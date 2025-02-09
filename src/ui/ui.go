@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/pooling"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/windowing"
@@ -64,108 +65,105 @@ const (
 	DirtyTypeParentScissor
 )
 
-type UI interface {
-	Entity() *engine.Entity
-	ExecuteEvent(evtType EventType) bool
-	AddEvent(evtType EventType, evt func()) events.Id
-	RemoveEvent(evtType EventType, evtId events.Id)
-	Event(evtType EventType) *events.Event
-	Update(deltaTime float64)
-	SetDirty(dirtyType DirtyType)
-	Layout() *Layout
-	ShaderData() *ShaderData
-	Clean()
-	SetGroup(group *Group)
-	Host() *engine.Host
-	GenerateScissor()
-	hasScissor() bool
-	selfScissor() matrix.Vec4
-	dirty() DirtyType
-	setScissor(scissor matrix.Vec4)
-	layoutChanged(dirtyType DirtyType)
-	cleanDirty()
-	postLayoutUpdate()
-	render()
+type ElementType = uint8
+
+const (
+	ElementTypeLabel = ElementType(iota)
+	ElementTypePanel
+	ElementTypeButton
+	ElementTypeCheckbox
+	ElementTypeImage
+	ElementTypeInput
+	ElementTypeProgressBar
+	ElementTypeSelect
+	ElementTypeSlider
+)
+
+type UIElementData interface {
+	innerPanelData() *panelData
 }
 
-type uiBase struct {
-	host         *engine.Host
-	entity       *engine.Entity
-	events       [EventTypeEnd]events.Event
-	group        *Group
-	dragStartPos matrix.Vec3
-	downPos      matrix.Vec2
-	layout       Layout
-	dirtyType    DirtyType
-	shaderData   ShaderData
-	textureSize  matrix.Vec2
-	lastClick    float64
-	updateId     int
-	hovering     bool
-	cantMiss     bool
-	isDown       bool
-	isRightDown  bool
-	drag         bool
-	lastActive   bool
+type UI struct {
+	man              *Manager
+	entity           engine.Entity
+	elmData          UIElementData
+	events           [EventTypeEnd]events.Event
+	group            *Group
+	postLayoutUpdate func()
+	render           func()
+	layout           Layout
+	dragStartPos     matrix.Vec3
+	downPos          matrix.Vec2
+	elmType          ElementType
+	dirtyType        DirtyType
+	shaderData       ShaderData
+	textureSize      matrix.Vec2
+	lastClick        float64
+	poolId           pooling.PoolGroupId
+	id               pooling.PoolIndex
+	hovering         bool
+	cantMiss         bool
+	isDown           bool
+	isRightDown      bool
+	drag             bool
+	lastActive       bool
 }
 
-func (ui *uiBase) isActive() bool { return ui.updateId != 0 }
+func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 
-func (ui *uiBase) render() {
-	ui.events[EventTypeRender].Execute()
-}
-
-func (ui *uiBase) init(host *engine.Host, textureSize matrix.Vec2, anchor Anchor, self UI) {
-	ui.host = host
-	ui.entity = host.NewEntity()
+func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor, self *UI) {
+	if ui.postLayoutUpdate == nil {
+		ui.postLayoutUpdate = func() {}
+	}
+	if ui.render == nil {
+		ui.render = func() { ui.events[EventTypeRender].Execute() }
+	}
+	ui.entity.Init()
+	ui.man.Host.AddEntity(&ui.entity)
 	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, self)
 	ui.textureSize = textureSize
 	ui.layout.initialize(self, anchor)
-	if ui.updateId == 0 {
-		ui.updateId = host.Updater.AddUpdate(ui.Update)
-	}
-	rzId := host.Window.OnResize.Add(func() {
+	rzId := ui.man.Host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
 	})
 	ui.entity.OnDestroy.Add(func() {
-		host.Updater.RemoveUpdate(ui.updateId)
-		host.Window.OnResize.Remove(rzId)
+		ui.man.Host.Window.OnResize.Remove(rzId)
+		ui.events[EventTypeDestroy].Execute()
+		ui.elmData = nil
+		ui.man.Remove(ui)
 	})
 }
 
-func (ui *uiBase) Entity() *engine.Entity   { return ui.entity }
-func (ui *uiBase) Layout() *Layout          { return &ui.layout }
-func (ui *uiBase) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
-func (ui *uiBase) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
-func (ui *uiBase) Host() *engine.Host       { return ui.host }
-func (ui *uiBase) dirty() DirtyType         { return ui.dirtyType }
-func (ui *uiBase) ShaderData() *ShaderData  { return &ui.shaderData }
-func (ui *uiBase) postLayoutUpdate()        {}
+func (ui *UI) Entity() *engine.Entity   { return &ui.entity }
+func (ui *UI) Layout() *Layout          { return &ui.layout }
+func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
+func (ui *UI) Host() *engine.Host       { return ui.man.Host }
+func (ui *UI) dirty() DirtyType         { return ui.dirtyType }
+func (ui *UI) ShaderData() *ShaderData  { return &ui.shaderData }
 
-func (ui *uiBase) SetGroup(group *Group) { ui.group = group }
-
-func (ui *uiBase) ExecuteEvent(evtType EventType) bool {
+func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
 }
 
-func (ui *uiBase) AddEvent(evtType EventType, evt func()) events.Id {
+func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id {
 	return ui.events[evtType].Add(evt)
 }
 
-func (ui *uiBase) RemoveEvent(evtType EventType, evtId events.Id) {
+func (ui *UI) RemoveEvent(evtType EventType, evtId events.Id) {
 	ui.events[evtType].Remove(evtId)
 }
 
-func (ui *uiBase) Event(evtType EventType) *events.Event {
+func (ui *UI) Event(evtType EventType) *events.Event {
 	return &ui.events[evtType]
 }
 
-func (ui *uiBase) cleanDirty() { ui.dirtyType = DirtyTypeNone }
+func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
-func (ui *uiBase) SetDirty(dirtyType DirtyType) {
+func (ui *UI) SetDirty(dirtyType DirtyType) {
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
@@ -185,9 +183,9 @@ func (ui *uiBase) SetDirty(dirtyType DirtyType) {
 	}
 }
 
-func (ui *uiBase) rootUI() UI {
-	root := ui.entity
-	var rootUI UI = FirstOnEntity(root)
+func (ui *UI) rootUI() *UI {
+	root := &ui.entity
+	var rootUI *UI = FirstOnEntity(root)
 	for root.Parent != nil {
 		if pui := FirstOnEntity(root.Parent); pui != nil {
 			root = root.Parent
@@ -199,9 +197,9 @@ func (ui *uiBase) rootUI() UI {
 	return rootUI
 }
 
-func (ui *uiBase) Clean() {
+func (ui *UI) Clean() {
 	root := ui.rootUI()
-	tree := []UI{root}
+	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
 	createTree = func(target *engine.Entity) {
 		for _, child := range target.Children {
@@ -229,7 +227,7 @@ func (ui *uiBase) Clean() {
 	}
 }
 
-func (ui *uiBase) GenerateScissor() {
+func (ui *UI) GenerateScissor() {
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -241,11 +239,11 @@ func (ui *uiBase) GenerateScissor() {
 	}
 	if !ui.entity.IsRoot() {
 		p := FirstPanelOnEntity(ui.entity.Parent)
-		for p.overflow == OverflowVisible && !p.entity.IsRoot() {
+		for p.PanelData().overflow == OverflowVisible && !p.entity.IsRoot() {
 			p = FirstPanelOnEntity(p.entity.Parent)
 		}
 		//if !p.entity.IsRoot() {
-		ps := p.selfScissor()
+		ps := p.Base().selfScissor()
 		bounds.SetX(max(bounds.X(), ps.X()))
 		bounds.SetY(max(bounds.Y(), ps.Y()))
 		bounds.SetZ(min(bounds.Z(), ps.Z()))
@@ -255,7 +253,7 @@ func (ui *uiBase) GenerateScissor() {
 	ui.setScissor(bounds)
 }
 
-func (ui *uiBase) setScissor(scissor matrix.Vec4) {
+func (ui *UI) setScissor(scissor matrix.Vec4) {
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
@@ -266,15 +264,16 @@ func (ui *uiBase) setScissor(scissor matrix.Vec4) {
 		}
 	}
 	ui.shaderData.Scissor = scissor
-	me := FirstOnEntity(ui.entity)
-	if lbl, ok := me.(*Label); ok {
-		for i := range lbl.runeDrawings {
-			lbl.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
+	me := FirstOnEntity(&ui.entity)
+	if me.elmType == ElementTypeLabel {
+		ld := me.ToLabel().LabelData()
+		for i := range ld.runeDrawings {
+			ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
 		}
 	}
 }
 
-func (ui *uiBase) requestEvent(evtType EventType) {
+func (ui *UI) requestEvent(evtType EventType) {
 	if ui.group != nil {
 		ui.group.requestEvent(ui, evtType)
 	} else {
@@ -282,16 +281,16 @@ func (ui *uiBase) requestEvent(evtType EventType) {
 	}
 }
 
-func (ui *uiBase) eventUpdates() {
-	cursor := &ui.host.Window.Cursor
-	mouse := &ui.host.Window.Mouse
+func (ui *UI) eventUpdates() {
+	cursor := &ui.man.Host.Window.Cursor
+	mouse := &ui.man.Host.Window.Mouse
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.isDown && !ui.drag {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
-			wmm, hmm, _ := ui.host.Window.SizeMM()
+			wmm, hmm, _ := ui.man.Host.Window.SizeMM()
 			threshold := max(windowing.DPI2PX(w, wmm, 1), windowing.DPI2PX(h, hmm, 1))
 			if ui.downPos.Distance(pos) > float32(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
@@ -301,7 +300,7 @@ func (ui *uiBase) eventUpdates() {
 		}
 	}
 	if cursor.Pressed() {
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.hovering && !ui.isDown {
 			ui.isDown = true
 			ui.downPos = ui.cursorPos(cursor)
@@ -310,7 +309,7 @@ func (ui *uiBase) eventUpdates() {
 		}
 	}
 	if mouse.Pressed(hid.MouseButtonRight) {
-		ui.containedCheck(cursor, ui.entity)
+		ui.containedCheck(cursor, &ui.entity)
 		if ui.hovering && !ui.isRightDown {
 			ui.isRightDown = true
 		}
@@ -333,7 +332,7 @@ func (ui *uiBase) eventUpdates() {
 				ui.drag = false
 				ui.requestEvent(EventTypeDragEnd)
 				if ui.hovering && !dragged {
-					rt := ui.host.Runtime()
+					rt := ui.man.Host.Runtime()
 					if rt-ui.lastClick < dblCLickTime && !ui.events[EventTypeDoubleClick].IsEmpty() {
 						ui.requestEvent(EventTypeDoubleClick)
 						ui.lastClick = 0
@@ -359,21 +358,21 @@ func (ui *uiBase) eventUpdates() {
 	}
 }
 
-func (ui *uiBase) Update(deltaTime float64) {
+func (ui *UI) Update(deltaTime float64) {
 	if ui.dirtyType != DirtyTypeNone {
 		ui.Clean()
 	}
 	ui.lastActive = ui.entity.IsActive()
 }
 
-func (ui *uiBase) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
+func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	pos := cursor.Position()
-	pos[matrix.Vx] -= matrix.Float(ui.host.Window.Width()) * 0.5
-	pos[matrix.Vy] -= matrix.Float(ui.host.Window.Height()) * 0.5
+	pos[matrix.Vx] -= matrix.Float(ui.man.Host.Window.Width()) * 0.5
+	pos[matrix.Vy] -= matrix.Float(ui.man.Host.Window.Height()) * 0.5
 	return pos
 }
 
-func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
+func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	cp := ui.cursorPos(cursor)
 	contained := entity.Transform.ContainsPoint2D(cp)
 	if contained && ui.hasScissor() {
@@ -394,10 +393,54 @@ func (ui *uiBase) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	}
 }
 
-func (ui *uiBase) changed() {
+func (ui *UI) changed() {
 	ui.ExecuteEvent(EventTypeChange)
 }
 
-func (ui *uiBase) layoutChanged(dirtyType DirtyType) {
+func (ui *UI) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
+}
+
+func (ui *UI) rootCleanIfNeeded() {
+	root := ui.rootUI()
+	if root.anyChildDirty() {
+		root.Clean()
+	}
+}
+
+func (ui *UI) anyChildDirty() bool {
+	if ui.dirtyType != DirtyTypeNone {
+		return true
+	}
+	for i := range ui.entity.Children {
+		cui := FirstOnEntity(ui.entity.Children[i])
+		if cui != nil && cui.anyChildDirty() {
+			return true
+		}
+	}
+	return false
+}
+
+func (ui *UI) updateFromManager(deltaTime float64) {
+	if !ui.isActive() {
+		return
+	}
+	switch ui.elmType {
+	case ElementTypeInput:
+		ui.ToInput().update(deltaTime)
+	case ElementTypeLabel:
+		ui.Update(deltaTime)
+	case ElementTypePanel:
+		ui.ToPanel().update(deltaTime)
+	case ElementTypeButton:
+		ui.ToPanel().update(deltaTime)
+	case ElementTypeSelect:
+		ui.Update(deltaTime)
+	case ElementTypeSlider:
+		ui.ToSlider().update(deltaTime)
+	case ElementTypeImage:
+		ui.ToImage().update(deltaTime)
+	case ElementTypeCheckbox:
+		ui.ToPanel().update(deltaTime)
+	}
 }

@@ -176,7 +176,7 @@ type Layout struct {
 	bottom           float32
 	z                float32
 	anchor           matrix.Vec2
-	ui               UI
+	ui               *UI
 	screenAnchor     Anchor
 	layoutFunction   func(layout *Layout)
 	anchorFunction   func(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4
@@ -206,7 +206,7 @@ func (l *Layout) PixelSize() matrix.Vec2 {
 	return l.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
-func (l *Layout) Ui() UI { return l.ui }
+func (l *Layout) Ui() *UI { return l.ui }
 
 func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
 	return -w*0.5 + size.X()*0.5 + edges.Left()
@@ -340,7 +340,7 @@ func layoutStretch(self *Layout) {
 	scale := matrix.Vec3{xSize * self.worldScalar.X(), ySize * self.worldScalar.Y(), 1}
 	scale[matrix.Vx] -= (self.inset.X() + self.inset.Z()) / bounds.X()
 	scale[matrix.Vy] -= (self.inset.Y() + self.inset.W()) / bounds.Y()
-	self.ui.Entity().ScaleWithoutChildren(scale)
+	self.ui.Entity().Transform.ScaleWithoutChildren(scale)
 	pos := matrix.Vec3{
 		x + bounds.X() + (self.inset.X()-self.inset.Z())*0.5,
 		y + bounds.Y() + (self.inset.W()-self.inset.Y())*0.5,
@@ -371,7 +371,7 @@ func (l *Layout) bounds() matrix.Vec2 {
 	}
 }
 
-func (l *Layout) initialize(ui UI, anchor Anchor) {
+func (l *Layout) initialize(ui *UI, anchor Anchor) {
 	l.anchor = matrix.Vec2Zero()
 	l.ui = ui
 	l.AnchorTo(anchor)
@@ -482,7 +482,7 @@ func (l *Layout) Scale(width, height float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
 }
@@ -497,7 +497,7 @@ func (l *Layout) ScaleWidth(width float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true
@@ -516,7 +516,7 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	if l.ui.Entity().Parent != nil {
 		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
 	}
-	l.ui.Entity().ScaleWithoutChildren(size)
+	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()
 	l.ui.layoutChanged(DirtyTypeResize)
 	return true

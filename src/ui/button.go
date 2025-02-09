@@ -38,78 +38,66 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
 
-type Button Panel
-
 type buttonData struct {
+	panelData
 	color matrix.Color
 }
 
-func (b *Button) data() *buttonData {
-	return b.localData.(*buttonData)
+type Button Panel
+
+func (u *UI) ToButton() *Button { return (*Button)(u) }
+func (b *Button) Base() *UI     { return (*UI)(b) }
+
+func (b *buttonData) innerPanelData() *panelData { return &b.panelData }
+
+func (b *Button) ButtonData() *buttonData {
+	return b.Base().elmData.(*buttonData)
 }
 
 func (b *Button) Label() *Label {
-	var pui UI
+	var pui *UI
 	for _, c := range b.entity.Children {
 		pui = FirstOnEntity(c)
-		_, ok := pui.(*Label)
+		ok := pui.elmType == ElementTypeLabel
 		if pui != nil && ok {
 			break
 		} else {
 			pui = nil
 		}
 	}
-	if pui == nil {
-		return b.createLabel()
-	} else {
-		return pui.(*Label)
+	return pui.ToLabel()
+}
+
+func (b *Button) Init(texture *rendering.Texture, text string, anchor Anchor) {
+	p := b.Base().ToPanel()
+	b.elmData = &buttonData{
+		color: matrix.ColorWhite(),
 	}
-}
+	p.Init(texture, anchor, ElementTypeButton)
+	p.SetColor(matrix.ColorWhite())
+	b.setupEvents()
+	ps := p.layout.PixelSize()
+	p.layout.Scale(ps.Width(), ps.Height()+1)
 
-func NewButton(host *engine.Host, texture *rendering.Texture, text string, anchor Anchor) *Button {
-	panel := NewPanel(host, texture, anchor)
-	btn := (*Button)(panel)
-	btn.setup(text)
-	btn.createLabel()
-	return btn
-}
-
-func (b *Button) createLabel() *Label {
-	lbl := NewLabel(b.host, "", AnchorStretchCenter)
+	// Create the label for the button
+	lbl := b.man.Add().ToLabel()
+	lbl.Init("", AnchorStretchCenter)
 	lbl.layout.SetStretch(0, 0, 0, 0)
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
-	(*Panel)(b).AddChild(lbl)
-	return lbl
-}
-
-func (b *Button) setup(text string) {
-	p := (*Panel)(b)
-	p.localData = &buttonData{matrix.ColorWhite()}
-	p.SetColor(matrix.ColorWhite())
-	btn := (*Button)(p)
-	btn.setupEvents()
-	ps := p.layout.PixelSize()
-	p.layout.Scale(ps.Width(), ps.Height()+1)
-}
-
-func (p *Panel) ConvertToButton() *Button {
-	btn := (*Button)(p)
-	btn.setup("")
-	return btn
+	(*Panel)(b).AddChild(lbl.Base())
 }
 
 func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
-	panel.AddEvent(EventTypeEnter, func() {
-		c := b.data().color
+	b.Base().AddEvent(EventTypeEnter, func() {
+		c := b.ButtonData().color
 		if panel.isDown {
 			c = c.ScaleWithoutAlpha(0.7)
 		} else {
@@ -118,21 +106,21 @@ func (b *Button) setupEvents() {
 		c.SetA(1)
 		b.setTempColor(c)
 	})
-	panel.AddEvent(EventTypeExit, func() {
-		b.setTempColor(b.data().color)
+	b.Base().AddEvent(EventTypeExit, func() {
+		b.setTempColor(b.ButtonData().color)
 	})
-	panel.AddEvent(EventTypeDown, func() {
-		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.7))
+	b.Base().AddEvent(EventTypeDown, func() {
+		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.7))
 	})
-	panel.AddEvent(EventTypeUp, func() {
-		b.setTempColor(b.data().color.ScaleWithoutAlpha(0.8))
+	b.Base().AddEvent(EventTypeUp, func() {
+		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.8))
 	})
 }
 
 func (b *Button) SetColor(color matrix.Color) {
 	(*Panel)(b).SetColor(color)
 	b.Label().SetBGColor(color)
-	b.data().color = color
+	b.ButtonData().color = color
 }
 
 func (b *Button) setTempColor(color matrix.Color) {

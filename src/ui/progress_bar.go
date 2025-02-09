@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
@@ -46,20 +45,30 @@ import (
 type ProgressBar Panel
 
 type progressBarData struct {
+	panelData
 	fgPanel *Panel
 	value   float32
 }
 
+func (u *UI) ToProgressBar() *ProgressBar { return (*ProgressBar)(u) }
+func (p *ProgressBar) Base() *UI          { return (*UI)(p) }
+
 func (p *ProgressBar) data() *progressBarData {
-	return p.localData.(*progressBarData)
+	return p.elmData.(*progressBarData)
 }
 
-func NewProgressBar(host *engine.Host, fgTexture, bgTexture *rendering.Texture, anchor Anchor) *ProgressBar {
-	panel := NewPanel(host, bgTexture, anchor)
-	fgPanel := NewPanel(host, fgTexture, AnchorStretchCenter)
-	panel.AddChild(fgPanel)
-	panel.localData = &progressBarData{fgPanel: fgPanel, value: 0.0}
-	return (*ProgressBar)(panel)
+func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture, anchor Anchor) {
+	pd := &progressBarData{
+		value: 0,
+	}
+	p.elmData = pd
+	p.Base().ToPanel().Init(nil, anchor, ElementTypeProgressBar)
+	panel := p.man.Add().ToPanel()
+	fgPanel := p.man.Add().ToPanel()
+	panel.Init(bgTexture, anchor, ElementTypePanel)
+	fgPanel.Init(fgTexture, AnchorStretchCenter, ElementTypePanel)
+	panel.AddChild(fgPanel.Base())
+	pd.fgPanel = fgPanel
 }
 
 func (b *ProgressBar) SetValue(value float32) {

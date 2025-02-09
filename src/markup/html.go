@@ -56,7 +56,7 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					height := l.PixelSize().Height()
 					if newParentWidth != parentWidth {
 						parentWidth = newParentWidth
-						lbl := l.Ui().(*ui.Label)
+						lbl := l.Ui().ToLabel()
 						textSize := host.FontCache().MeasureStringWithin(
 							lbl.FontFace(), e.Data(), lbl.FontSize(),
 							parentWidth, lbl.LineHeight())
@@ -65,32 +65,33 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 					l.Scale(parentWidth, height)
 				}
 			}
-			label := e.UI.(*ui.Label)
-			updateSize(label.Layout())
-			label.Layout().AddFunction(updateSize)
+			label := e.UI.ToLabel()
+			updateSize(label.Base().Layout())
+			label.Base().Layout().AddFunction(updateSize)
 		}
 		height := e.UI.Layout().PixelSize().Y()
 		p := e.Parent
 		for p != nil && p.UIPanel != nil {
 			pPanel := p.UIPanel
-			if pPanel.FittingContent() && pPanel.Layout().PixelSize().Y() < height {
-				pPanel.Layout().ScaleHeight(height)
+			if pPanel.FittingContent() && pPanel.Base().Layout().PixelSize().Y() < height {
+				pPanel.Base().Layout().ScaleHeight(height)
 			}
 			p = p.Parent
 		}
 	}
 }
 
-func DocumentFromHTMLAsset(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
-	m, err := host.AssetDatabase().ReadText(htmlPath)
+func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
+	m, err := uiMan.Host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromHTMLString(host, m, "", withData, funcMap), nil
+	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap), nil
 }
 
-func DocumentFromHTMLString(host *engine.Host, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document {
-	doc := document.DocumentFromHTMLString(host, html, withData, funcMap)
+func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document {
+	host := uiMan.Host
+	doc := document.DocumentFromHTMLString(uiMan, html, withData, funcMap)
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS)
 	s.Parse(cssStr)

@@ -46,6 +46,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/ui"
 	"os"
 	"slices"
 )
@@ -62,6 +63,7 @@ type ProjectWindow struct {
 	data         windowData
 	picked       bool
 	templatePath string
+	uiMan        ui.Manager
 }
 
 func (p *ProjectWindow) openProjectFolder(path string) {
@@ -129,7 +131,7 @@ func (p *ProjectWindow) load() {
 		p.doc.Destroy()
 	}
 	html := klib.MustReturn(p.container.Host.AssetDatabase().ReadText("editor/ui/project_window.html"))
-	p.doc = markup.DocumentFromHTMLString(p.container.Host, html, "", p.data,
+	p.doc = markup.DocumentFromHTMLString(&p.uiMan, html, "", p.data,
 		map[string]func(*document.Element){
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
@@ -142,6 +144,7 @@ func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 		templatePath: templatePath,
 	}
 	p.container = host_container.New("Project Window", nil)
+	p.uiMan.Init(p.container.Host)
 	go p.container.Run(600, 400, cx-300, cy-200)
 	var err error
 	p.data.ProjectList, err = editor_cache.ListProjects()

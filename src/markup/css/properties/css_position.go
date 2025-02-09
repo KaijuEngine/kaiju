@@ -53,20 +53,20 @@ func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules
 		var err error
 		switch values[0].Str {
 		case "static":
-			panel.Layout().SetPositioning(ui.PositioningStatic)
+			panel.Base().Layout().SetPositioning(ui.PositioningStatic)
 		case "absolute":
-			panel.Layout().SetPositioning(ui.PositioningAbsolute)
+			panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 		case "fixed":
-			panel.Layout().SetPositioning(ui.PositioningFixed)
+			panel.Base().Layout().SetPositioning(ui.PositioningFixed)
 		case "relative":
-			panel.Layout().SetPositioning(ui.PositioningRelative)
+			panel.Base().Layout().SetPositioning(ui.PositioningRelative)
 		case "sticky":
-			panel.Layout().SetPositioning(ui.PositioningSticky)
+			panel.Base().Layout().SetPositioning(ui.PositioningSticky)
 		case "initial":
-			panel.Layout().SetPositioning(ui.PositioningStatic)
+			panel.Base().Layout().SetPositioning(ui.PositioningStatic)
 		case "inherit":
 			if elm.Parent != nil {
-				panel.Layout().SetPositioning(elm.UI.Layout().Positioning())
+				panel.Base().Layout().SetPositioning(elm.UI.Layout().Positioning())
 			}
 		default:
 			err = errors.New("Position invalid position value")

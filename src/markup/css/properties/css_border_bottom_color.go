@@ -62,7 +62,7 @@ func (p BorderBottomColor) Process(panel *ui.Panel, elm *document.Element, value
 			return nil
 		} else if values[0].Str == "inherit" {
 			if elm.Parent != nil {
-				colors := elm.Parent.UI.(*ui.Panel).BorderColor()
+				colors := elm.Parent.UI.ToPanel().BorderColor()
 				panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
 			}
 			return nil
