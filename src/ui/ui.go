@@ -434,7 +434,7 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeSelect:
 		ui.Update(deltaTime)
 	case ElementTypeSlider:
-		ui.ToSlider().sliderUpdate(deltaTime)
+		ui.ToSlider().update(deltaTime)
 	case ElementTypeImage:
 		ui.ToImage().update(deltaTime)
 	case ElementTypeCheckbox:

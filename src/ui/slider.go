@@ -96,7 +96,8 @@ func (s *Slider) Init(anchor Anchor) {
 	p.Base().AddEvent(EventTypeDown, s.onDown)
 }
 
-func (slider *Slider) sliderUpdate(deltaTime float64) {
+func (slider *Slider) update(deltaTime float64) {
+	slider.Base().ToPanel().update(deltaTime)
 	if slider.drag {
 		slider.SetValue(slider.Delta())
 	}

@@ -45,7 +45,6 @@ import (
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"math"
-	"runtime"
 	"unicode"
 	"unicode/utf8"
 )
@@ -167,7 +166,6 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data.highlight.entity.Deactivate()
 
 	base := input.Base()
-	runtime.Breakpoint()
 	base.AddEvent(EventTypeEnter, input.onEnter)
 	base.AddEvent(EventTypeExit, input.onExit)
 	base.AddEvent(EventTypeDown, input.onDown)
@@ -447,6 +445,7 @@ func (input *Input) pointerPosWithin() int {
 //#endif
 
 func (input *Input) update(deltaTime float64) {
+	input.Base().ToPanel().update(deltaTime)
 	data := input.InputData()
 	if data.isActive {
 		if !input.entity.IsActive() {
