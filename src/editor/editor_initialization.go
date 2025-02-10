@@ -59,10 +59,9 @@ import (
 	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
-	"kaiju/ui"
 )
 
-func addConsole(host *engine.Host, uiMan *ui.Manager) {
+func addConsole(host *engine.Host) {
 	html_preview.SetupConsole(host)
 	profiler.SetupConsole(host)
 	tests.SetupConsole(host)
@@ -73,7 +72,7 @@ func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 	ed.container.Host.InitializeAudio()
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	ed.RunOnHost(func() { addConsole(ed.container.Host, &ed.uiManager) })
+	ed.RunOnHost(func() { addConsole(ed.container.Host) })
 }
 
 func setupEditorCamera(ed *Editor) {

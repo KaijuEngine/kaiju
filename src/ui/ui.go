@@ -111,20 +111,20 @@ type UI struct {
 
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 
-func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor, self *UI) {
+func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
 	}
 	if ui.render == nil {
 		ui.render = func() { ui.events[EventTypeRender].Execute() }
 	}
-	ui.entity.Init()
+	ui.entity.Init(ui.Host().WorkGroup())
 	ui.man.Host.AddEntity(&ui.entity)
 	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
-	ui.entity.AddNamedData(EntityDataName, self)
+	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
-	ui.layout.initialize(self, anchor)
+	ui.layout.initialize(ui, anchor)
 	rzId := ui.man.Host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
 	})

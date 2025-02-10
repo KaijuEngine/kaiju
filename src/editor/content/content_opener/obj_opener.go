@@ -141,7 +141,7 @@ func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity,
 
 func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
 	host := ed.Host()
-	e := engine.NewEntity()
+	e := engine.NewEntity(ed.Host().WorkGroup())
 	e.GenerateId()
 	host.AddEntity(e)
 	e.SetName(adi.MetaValue("name"))

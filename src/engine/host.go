@@ -41,6 +41,7 @@ import (
 	"kaiju/assets"
 	"kaiju/audio"
 	"kaiju/cameras"
+	"kaiju/concurrent"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -81,6 +82,7 @@ type Host struct {
 	frameRunner    []frameRun
 	Window         *windowing.Window
 	LogStream      *logging.LogStream
+	workGroup      concurrent.WorkGroup
 	Camera         cameras.Camera
 	UICamera       cameras.Camera
 	audio          audio.Audio
@@ -167,6 +169,9 @@ func (host *Host) InitializeAudio() error {
 		return nil
 	}
 }
+
+// WorkGroup returns the work group for this instance of host
+func (host *Host) WorkGroup() *concurrent.WorkGroup { return &host.workGroup }
 
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
@@ -278,7 +283,7 @@ func (host *Host) Entities() []*Entity { return host.entities }
 // entity to the standard entity pool. If the host is in the process of creating
 // editor entities, then the entity will be added to the editor entity pool.
 func (host *Host) NewEntity() *Entity {
-	entity := NewEntity()
+	entity := NewEntity(&host.workGroup)
 	host.AddEntity(entity)
 	return entity
 }
@@ -333,6 +338,7 @@ func (host *Host) Update(deltaTime float64) {
 // the start of the render. The frame is then readied, buffers swapped, and any
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
+	host.workGroup.Execute(matrix.TransformWorkGroup)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
@@ -344,10 +350,7 @@ func (host *Host) Render() {
 		}
 	}
 	host.Window.SwapBuffers()
-	// TODO:  Thread this or make the dirty on demand, and have a flag for the dirty frame
-	for _, e := range host.entities {
-		e.Transform.ResetDirty()
-	}
+	host.workGroup.Execute(matrix.TransformResetWorkGroup)
 	host.editorEntities.resetDirty()
 }
 

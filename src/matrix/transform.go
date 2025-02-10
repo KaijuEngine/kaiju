@@ -38,9 +38,15 @@
 package matrix
 
 import (
+	"kaiju/concurrent"
 	"kaiju/klib"
 	"math"
 	"slices"
+)
+
+const (
+	TransformWorkGroup      = "transform"
+	TransformResetWorkGroup = "transformReset"
 )
 
 type Transform struct {
@@ -48,6 +54,7 @@ type Transform struct {
 	worldMatrix               Mat4
 	parent                    *Transform
 	children                  []*Transform
+	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
 	isDirty                   bool
 	frameDirty                bool
@@ -56,7 +63,7 @@ type Transform struct {
 	Identifier                uint8 // Typically just used for bone index right now
 }
 
-func NewTransform() Transform {
+func NewTransform(workGroup *concurrent.WorkGroup) Transform {
 	return Transform{
 		localMatrix: Mat4Identity(),
 		worldMatrix: Mat4Identity(),
@@ -66,8 +73,11 @@ func NewTransform() Transform {
 		isDirty:     true,
 		frameDirty:  true,
 		children:    make([]*Transform, 0),
+		workGroup:   workGroup,
 	}
 }
+
+func (t *Transform) WorkGroup() *concurrent.WorkGroup { return t.workGroup }
 
 func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
 func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
@@ -131,6 +141,10 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
+	if !t.isDirty {
+		t.workGroup.Add(TransformWorkGroup, t.updateMatrices)
+		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+	}
 	t.isDirty = true
 	t.frameDirty = true
 	for _, child := range t.children {

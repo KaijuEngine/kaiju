@@ -103,7 +103,7 @@ func (label *Label) Init(text string, anchor Anchor) {
 	label.elmType = ElementTypeLabel
 	label.postLayoutUpdate = label.labelPostLayoutUpdate
 	label.render = label.labelRender
-	label.Base().init(matrix.Vec2Zero(), anchor, label.Base())
+	label.Base().init(matrix.Vec2Zero(), anchor)
 	label.SetText(text)
 	label.Base().SetDirty(DirtyTypeGenerated)
 	label.entity.OnActivate.Add(func() {

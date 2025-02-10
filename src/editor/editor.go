@@ -163,7 +163,7 @@ func (e *Editor) ReloadEntityDataListing() {
 }
 
 func (e *Editor) CreateEntity(name string) *engine.Entity {
-	entity := engine.NewEntity()
+	entity := engine.NewEntity(e.Host().WorkGroup())
 	entity.GenerateId()
 	entity.SetName(name)
 	e.Host().AddEntity(entity)

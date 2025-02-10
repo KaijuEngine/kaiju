@@ -38,6 +38,7 @@
 package engine
 
 import (
+	"kaiju/concurrent"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/systems/events"
@@ -80,16 +81,16 @@ type Entity struct {
 }
 
 // NewEntity creates a new #Entity struct and returns it
-func NewEntity() *Entity {
+func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 	e := &Entity{}
-	e.Init()
+	e.Init(workGroup)
 	return e
 }
 
-func (e *Entity) Init() {
+func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
-	e.Transform = matrix.NewTransform()
+	e.Transform = matrix.NewTransform(workGroup)
 	e.matrix = matrix.Mat4Identity()
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
@@ -355,7 +356,7 @@ func (e *Entity) deactivateFromParent() {
 }
 
 func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity)) *Entity {
-	dupe := NewEntity()
+	dupe := NewEntity(e.Transform.WorkGroup())
 	if !sparse {
 		dupe.Children = make([]*Entity, len(e.Children))
 		for i := range e.Children {

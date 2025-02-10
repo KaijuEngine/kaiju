@@ -141,7 +141,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 		ts = texture.Size()
 	}
 	base := panel.Base()
-	base.init(ts, anchor, base)
+	base.init(ts, anchor)
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)

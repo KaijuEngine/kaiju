@@ -87,7 +87,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
 func New(host *engine.Host, editor interfaces.Editor,
 	canvas string, history *memento.History) TransformTool {
 
-	wt := matrix.NewTransform()
+	wt := matrix.NewTransform(editor.Host().WorkGroup())
 	t := TransformTool{
 		editor:        editor,
 		wireTransform: &wt,

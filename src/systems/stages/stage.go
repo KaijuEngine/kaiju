@@ -61,7 +61,7 @@ func deserializeEntity(stream io.Reader, to *engine.Entity, host *engine.Host) e
 	childCount := int32(0)
 	klib.BinaryRead(stream, &childCount)
 	for i := int32(0); i < childCount && err == nil; i++ {
-		c := engine.NewEntity()
+		c := engine.NewEntity(host.WorkGroup())
 		c.SetParent(to)
 		err = deserializeEntity(stream, c, host)
 	}
@@ -78,7 +78,7 @@ func Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error {
 	klib.BinaryRead(stream, &eCount)
 	entities := make([]*engine.Entity, 0, eCount)
 	for i := int32(0); i < eCount && err == nil; i++ {
-		e := engine.NewEntity()
+		e := engine.NewEntity(host.WorkGroup())
 		err = deserializeEntity(stream, e, host)
 		entities = append(entities, e)
 	}
