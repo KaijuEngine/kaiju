@@ -171,8 +171,10 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 
 func (h *Hierarchy) Reload() {
 	isActive := false
+	focusInput := false
 	if h.doc != nil {
 		isActive = h.doc.Elements[0].UI.Entity().IsActive()
+		focusInput = h.input.IsFocused()
 		h.doc.Destroy()
 	}
 	data := hierarchyData{
@@ -194,13 +196,13 @@ func (h *Hierarchy) Reload() {
 			"resizeStart":    h.resizeStart,
 			"resizeStop":     h.resizeStop,
 			"entryCtxMenu":   h.entryCtxMenu,
+			"search":         h.submitSearch,
 		}))
 	host.DoneCreatingEditorEntities()
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
 	} else {
 		h.input = elm.UI.ToInput()
-		h.input.Base().AddEvent(ui.EventTypeSubmit, h.submit)
 	}
 	h.doc.Clean()
 	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
@@ -209,6 +211,8 @@ func (h *Hierarchy) Reload() {
 	}
 	if !isActive {
 		h.doc.Deactivate()
+	} else if focusInput {
+		h.input.Focus()
 	}
 }
 
@@ -351,6 +355,10 @@ func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
 		h.selection.Set(e)
 	}
 	h.ctxMenuSet.Show()
+}
+
+func (h *Hierarchy) submitSearch(*document.Element) {
+	h.submit()
 }
 
 func (h *Hierarchy) DragUpdate() {

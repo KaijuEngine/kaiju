@@ -8,7 +8,7 @@
 		<div id="window" class="fillLeft darkBG noClipY z1">
 			<div class="fillLeftRightContent" ondrop="drop">
 				<div class="searchInput">
-					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" />
+					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" onsubmit="search" onchange="search" />
 				</div>
 				<div id="list">
 					{{range .Entries}}
