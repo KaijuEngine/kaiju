@@ -91,7 +91,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	cc := r.ClearColor
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(r.opaquePass, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(r.opaquePass, vr.swapChainExtent, cmd1, opaqueClear[:])
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}
@@ -102,7 +102,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	var transparentClear [2]vk.ClearValue
 	transparentClear[0].SetColor([]float32{0.0, 0.0, 0.0, 0.0})
 	transparentClear[1].SetColor([]float32{1.0, 0.0, 0.0, 0.0})
-	beginRender(r.transparentPass, vr.swapChainExtent, cmd2, transparentClear)
+	beginRender(r.transparentPass, vr.swapChainExtent, cmd2, transparentClear[:])
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2,
 			drawings[i].shader.SubShader("transparent"),

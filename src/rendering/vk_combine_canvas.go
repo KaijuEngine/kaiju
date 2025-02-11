@@ -72,7 +72,7 @@ func (r *CombineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	cc := matrix.ColorDarkBG()
 	opaqueClear[0].SetColor(cc[:])
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
-	beginRender(oRenderPass, vr.swapChainExtent, cmd1, opaqueClear)
+	beginRender(oRenderPass, vr.swapChainExtent, cmd1, opaqueClear[:])
 	for i := range drawings {
 		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
 	}

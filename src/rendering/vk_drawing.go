@@ -135,7 +135,7 @@ func (vr *Vulkan) writeDrawingDescriptors(key *Shader, groups []DrawInstanceGrou
 }
 
 func beginRender(pass RenderPass, extent vk.Extent2D,
-	commandBuffer vk.CommandBuffer, clearColors [2]vk.ClearValue) {
+	commandBuffer vk.CommandBuffer, clearColors []vk.ClearValue) {
 
 	beginInfo := vk.CommandBufferBeginInfo{}
 	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
