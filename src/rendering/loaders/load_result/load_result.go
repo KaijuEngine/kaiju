@@ -38,8 +38,10 @@
 package load_result
 
 import (
+	"kaiju/collision"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"sync"
 )
 
 type AnimationPathType = int
@@ -132,4 +134,33 @@ func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 		rad = max(rad, pt.Length())
 	}
 	return rad
+}
+
+func (m *Mesh) GenerateBVH(t *matrix.Transform) *collision.BVH {
+	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
+	group := sync.WaitGroup{}
+	construct := func(from, to int) {
+		for i := from; i < to; i += 3 {
+			for i := 0; i < len(m.Indexes); i += 3 {
+				points := [3]matrix.Vec3{
+					m.Verts[m.Indexes[i]].Position,
+					m.Verts[m.Indexes[i+1]].Position,
+					m.Verts[m.Indexes[i+2]].Position,
+				}
+				tris[i/3] = collision.DetailedTriangleFromPoints(points)
+			}
+		}
+		group.Done()
+	}
+	group.Add(1)
+	if len(tris) > 100 {
+		group.Add(9)
+		for i := 0; i < 10; i++ {
+			go construct(i*len(tris)/10, (i+1)*len(tris)/10)
+		}
+	} else {
+		construct(0, len(tris))
+	}
+	group.Wait()
+	return collision.BVHBottomUp(tris, t)
 }

@@ -167,7 +167,7 @@ func (e *Editor) CreateEntity(name string) *engine.Entity {
 	entity.GenerateId()
 	entity.SetName(name)
 	e.Host().AddEntity(entity)
-	e.selection.Set(entity)
+	//e.selection.Set(entity)
 	e.hierarchy.Reload()
 	return entity
 }

@@ -38,6 +38,7 @@
 package menu
 
 import (
+	"kaiju/assets"
 	"kaiju/audio/audio_system"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
@@ -51,6 +52,9 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
+	"kaiju/rendering"
+	"kaiju/rendering/loaders"
 	"kaiju/systems/console"
 	"kaiju/ui"
 	"log/slog"
@@ -97,6 +101,7 @@ func New(container *host_container.Container,
 		"openContentWindow":   m.openContentWindow,
 		"openHierarchyWindow": m.openHierarchyWindow,
 		"newEntity":           m.newEntity,
+		"newCube":             m.newCube,
 		"showEditorSettings":  m.showEditorSettings,
 	}
 	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap)
@@ -182,6 +187,43 @@ func (m *Menu) openHierarchyWindow(*document.Element) {
 
 func (m *Menu) newEntity(*document.Element) {
 	m.editor.CreateEntity("Entity")
+}
+
+func (m *Menu) newCube(*document.Element) {
+	const cubeGLB = "editor/meshes/cube.glb"
+	host := m.container.Host
+	res, err := loaders.GLTF(cubeGLB, host.AssetDatabase(), host.WorkGroup())
+	if err != nil {
+		slog.Error("failed to load the cube mesh", "error", err.Error())
+		return
+	} else if !res.IsValid() || len(res.Meshes) != 1 {
+		slog.Error("cube mesh data corrupted")
+		return
+	}
+	resMesh := res.Meshes[0]
+	mesh := rendering.NewMesh(resMesh.MeshName, resMesh.Verts, resMesh.Indexes)
+	host.MeshCache().AddMesh(mesh)
+	e := m.editor.CreateEntity("Cube")
+	sd := rendering.ShaderDataBasic{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.ColorWhite(),
+	}
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	drawing := rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		Mesh:       mesh,
+		Textures:   []*rendering.Texture{tex},
+		ShaderData: &sd,
+		Transform:  &e.Transform,
+		CanvasId:   "default",
+	}
+	host.Drawings.AddDrawing(&drawing)
+	e.EditorBindings.AddDrawing(drawing)
+	bvh := resMesh.GenerateBVH(&e.Transform)
+	e.EditorBindings.Set("bvh", bvh)
+	m.editor.BVH().Insert(bvh)
+	e.OnDestroy.Add(func() { bvh.RemoveNode() })
 }
 
 func (m *Menu) showEditorSettings(*document.Element) {
