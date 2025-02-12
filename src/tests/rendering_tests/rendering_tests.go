@@ -87,17 +87,17 @@ func (t TestBasicSkinnedShaderData) Size() int {
 }
 
 func (t *TestBasicSkinnedShaderData) NamedDataInstanceSize(name string) int {
-	if name != "Skinning" {
+	if name != "SkinnedUBO" {
 		return 0
 	}
 	return int(unsafe.Sizeof(t.jointTransforms))
 }
 
 func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name string) bool {
-	if name != "Skinning" {
+	if name != "SkinnedUBO" {
 		return false
 	}
-	cap := capacity / rendering.MaxJoints
+	cap := capacity / rendering.MaxJoints / int(unsafe.Sizeof(matrix.Mat4{}))
 	if index > cap {
 		t.SkinIndex = int32(index % cap)
 		return false
@@ -121,7 +121,7 @@ func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name s
 }
 
 func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointer {
-	if name != "Skinning" {
+	if name != "SkinnedUBO" {
 		return nil
 	}
 	return unsafe.Pointer(&t.jointTransforms)

@@ -173,6 +173,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		d.Shader = outline
 		d.ShaderData = ds
 		d.UseBlending = false
+		d.Textures = []*rendering.Texture{}
 		s.host.Drawings.AddDrawing(&d)
 	}
 	s.host.RunAfterFrames(1, func() {

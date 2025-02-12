@@ -206,13 +206,17 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, shader *Shader) {
 	d.Instances = append(d.Instances, instance)
 	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
 	if shader.definition != nil {
-		for i := range shader.definition.Layouts {
-			if shader.definition.Layouts[i].Buffer != nil {
-				b := shader.definition.Layouts[i].Buffer
-				s := d.namedInstanceData[b.Name]
-				if len(s.bytes) < b.TotalByteCapacity() {
-					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(b.Name)+s.padding)...)
-					d.namedInstanceData[b.Name] = s
+		for i := range shader.definition.LayoutGroups {
+			g := &shader.definition.LayoutGroups[i]
+			for j := range g.Layouts {
+				if g.Layouts[j].IsBuffer() {
+					b := &g.Layouts[j]
+					n := b.FullName()
+					s := d.namedInstanceData[n]
+					if len(s.bytes) < b.Capacity() {
+						s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
+						d.namedInstanceData[n] = s
+					}
 				}
 			}
 		}

@@ -41,7 +41,7 @@ import "kaiju/matrix"
 
 const (
 	MaxJoints        = 50
-	MaxSkinInstances = 20
+	MaxSkinInstances = 50
 )
 
 type GlobalShaderData struct {

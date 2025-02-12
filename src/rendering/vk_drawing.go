@@ -419,23 +419,29 @@ func (vr *Vulkan) resizeUniformBuffer(shader *Shader, group *DrawInstanceGroup) 
 					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
 					&group.instanceBuffer.buffers[i], &group.instanceBuffer.memories[i])
 			}
+
 			if shader.definition != nil {
-				for i := range shader.definition.Layouts {
-					if shader.definition.Layouts[i].Buffer != nil {
-						b := shader.definition.Layouts[i].Buffer
-						buff := group.namedBuffers[b.Name]
-						count := min(currentCount, b.Capacity)
-						buff.size = vr.padUniformBufferSize(vk.DeviceSize(len(group.namedInstanceData[b.Name].bytes)))
-						buff.bindingId = shader.definition.Layouts[i].Binding
-						for j := 0; j < maxFramesInFlight; j++ {
-							vr.CreateBuffer(buff.size*vk.DeviceSize(count),
-								vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit|vk.BufferUsageUniformBufferBit),
-								vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
+				for i := range shader.definition.LayoutGroups {
+					g := &shader.definition.LayoutGroups[i]
+					for j := range g.Layouts {
+						if g.Layouts[j].IsBuffer() {
+							b := &g.Layouts[j]
+							n := b.FullName()
+							buff := group.namedBuffers[n]
+							count := min(currentCount, b.Capacity())
+							buff.size = vr.padUniformBufferSize(vk.DeviceSize(len(group.namedInstanceData[n].bytes)))
+							buff.bindingId = b.Binding
+							for j := 0; j < maxFramesInFlight; j++ {
+								vr.CreateBuffer(buff.size*vk.DeviceSize(count),
+									vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit|vk.BufferUsageUniformBufferBit),
+									vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
+							}
+							group.namedBuffers[n] = buff
 						}
-						group.namedBuffers[b.Name] = buff
 					}
 				}
 			}
+
 			group.AlterPadding(int(iSize))
 		}
 		group.InstanceDriverData.lastInstanceCount = currentCount
