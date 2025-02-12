@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Launching the editor
+title: Launching the editor | Kaiju Engine
 ---
 
 # Launching the editor

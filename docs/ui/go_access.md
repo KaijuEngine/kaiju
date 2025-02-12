@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Go Access
+title: Go Access | Kaiju Engine
 ---
 
 # Accessing the UI elements from Go

@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | UI HTML Attributes
+title: UI HTML Attributes | Kaiju Engine
 ---
 
 # UI HTML Attributes

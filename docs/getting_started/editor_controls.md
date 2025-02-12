@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Editor Controls
+title: Editor Controls | Kaiju Engine
 ---
 
 # Editor Controls

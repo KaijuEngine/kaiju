@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Prompt popups
+title: Prompt popups | Kaiju Engine
 ---
 
 # Prompt popups

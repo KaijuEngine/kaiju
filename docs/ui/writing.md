@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Writing UI (HTML/CSS)
+title: Writing UI (HTML/CSS) | Kaiju Engine
 ---
 
 # Writing UI (HTML/CSS)

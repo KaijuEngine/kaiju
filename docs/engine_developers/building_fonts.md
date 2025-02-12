@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Building new fonts
+title: Building new fonts | Kaiju Engine
 ---
 
 # Building new fonts

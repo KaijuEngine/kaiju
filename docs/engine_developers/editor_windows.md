@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Editor windows
+title: Editor windows | Kaiju Engine
 ---
 
 # Editor windows

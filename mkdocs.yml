@@ -18,6 +18,8 @@ nav:
     - Building new fonts: engine_developers/building_fonts.md
     - Editor windows: engine_developers/editor_windows.md
     - Prompt popups: engine_developers/prompt_popup.md
+  - Shaders:
+    - Shader definition: shaders/shader_definition.md
   - API: api/
 theme:
   name: 'material'

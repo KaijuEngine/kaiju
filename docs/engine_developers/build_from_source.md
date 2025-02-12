@@ -1,5 +1,5 @@
 ---
-title: Kaiju Engine | Build from source
+title: Build from source | Kaiju Engine
 ---
 
 # Build from source
