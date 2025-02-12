@@ -1,0 +1,35 @@
+package pooling // import "."
+
+
+CONSTANTS
+
+const (
+	ElementsInPool = 256
+)
+
+TYPES
+
+type Pool[T any] struct {
+	// Has unexported fields.
+}
+
+type PoolGroup[T any] struct {
+	// Has unexported fields.
+}
+
+func (p *PoolGroup[T]) Add() (elm *T, poolId PoolGroupId, elmId PoolIndex)
+
+func (p *PoolGroup[T]) Clear()
+
+func (p *PoolGroup[T]) Count() int
+
+func (p *PoolGroup[T]) Each(each func(elm *T))
+
+func (p *PoolGroup[T]) Remove(poolIndex PoolGroupId, elementId PoolIndex)
+
+func (p *PoolGroup[T]) Reserve(additionalElements int)
+
+type PoolGroupId = int
+
+type PoolIndex = uint8
+

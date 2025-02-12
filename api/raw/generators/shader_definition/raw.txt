@@ -1,0 +1,8 @@
+
+
+TYPES
+
+type ShaderSource struct {
+	// Has unexported fields.
+}
+

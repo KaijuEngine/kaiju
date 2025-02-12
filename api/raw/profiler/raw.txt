@@ -1,0 +1,8 @@
+package profiler // import "."
+
+
+FUNCTIONS
+
+func SetupConsole(host *engine.Host)
+func StartDefaultProfiler() error
+func StopDefaultProfiler()
