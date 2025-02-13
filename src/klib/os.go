@@ -37,7 +37,11 @@
 
 package klib
 
-import "runtime"
+import (
+	"io"
+	"os"
+	"runtime"
+)
 
 func ExeExtension() string {
 	if runtime.GOOS == "windows" {
@@ -48,4 +52,24 @@ func ExeExtension() string {
 
 func ToUnixPath(path string) string {
 	return ReplaceStringRecursive(path, "\\", "/")
+}
+
+func ReadRootFile(fs *os.Root, filePath string) ([]byte, error) {
+	if f, err := fs.OpenFile(filePath, os.O_RDONLY, os.ModePerm); err != nil {
+		return []byte{}, err
+	} else {
+		b, e := io.ReadAll(f)
+		f.Close()
+		return b, e
+	}
+}
+
+func WriteRootFile(fs *os.Root, filePath string, data []byte) error {
+	if f, err := fs.OpenFile(filePath, os.O_WRONLY, os.ModePerm); err != nil {
+		return err
+	} else {
+		_, err = f.Write(data)
+		f.Close()
+		return err
+	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"kaiju/klib"
 	"kaiju/klib/string_equations"
 	"kaiju/rendering"
 	"log"
@@ -151,7 +152,7 @@ func (s *ShaderSource) readLayouts() {
 	}
 }
 
-func readImports(inSrc, path string) string {
+func readImports(fs *os.Root, inSrc, path string) string {
 	src := strings.Builder{}
 	scan := bufio.NewScanner(strings.NewReader(inSrc))
 	re := regexp.MustCompile(`\s{0,}#include\s+\"([\w\.]+)\"`)
@@ -159,11 +160,11 @@ func readImports(inSrc, path string) string {
 		line := strings.TrimSpace(scan.Text())
 		match := re.FindStringSubmatch(line)
 		if len(match) == 2 && match[1] != "" {
-			importSrc, err := os.ReadFile(filepath.Join(path, match[1]))
+			importSrc, err := klib.ReadRootFile(fs, filepath.Join(path, match[1]))
 			if err != nil {
 				log.Fatalf("failed to load import file (%s): %s", match[1], err)
 			}
-			src.WriteString(readImports(string(importSrc), path))
+			src.WriteString(readImports(fs, string(importSrc), path))
 		} else {
 			src.WriteString(line + "\n")
 		}
@@ -171,24 +172,24 @@ func readImports(inSrc, path string) string {
 	return src.String()
 }
 
-func readShaderCode(file string) ShaderSource {
+func readShaderCode(fs *os.Root, file string) ShaderSource {
 	file = strings.Replace(strings.TrimSuffix(file, ".spv"), "/spv/", "/", 1)
 	source := ShaderSource{
 		file:    "content/" + file,
 		defines: make(map[string]any),
 	}
-	data, err := os.ReadFile(source.file)
+	data, err := klib.ReadRootFile(fs, source.file)
 	if err != nil {
 		log.Fatalf("failed to read the file: %s", err)
 	}
-	source.src = readImports(string(data), filepath.Dir(source.file))
+	source.src = readImports(fs, string(data), filepath.Dir(source.file))
 	source.readDefines()
 	source.readLayouts()
 	return source
 }
 
-func processFile(jsonFile string) {
-	d, err := os.ReadFile(jsonFile)
+func processFile(fs *os.Root, jsonFile string) {
+	d, err := klib.ReadRootFile(fs, jsonFile)
 	if err != nil {
 		log.Fatalf("failed to read the shader definition file: %s", err)
 	}
@@ -198,42 +199,42 @@ func processFile(jsonFile string) {
 	}
 	def.LayoutGroups = make([]rendering.ShaderLayoutGroup, 0)
 	if def.Vulkan.Vert != "" {
-		c := readShaderCode(def.Vulkan.Vert)
+		c := readShaderCode(fs, def.Vulkan.Vert)
 		def.LayoutGroups = append(def.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Vertex",
 			Layouts: c.layouts,
 		})
 	}
 	if def.Vulkan.Frag != "" {
-		c := readShaderCode(def.Vulkan.Frag)
+		c := readShaderCode(fs, def.Vulkan.Frag)
 		def.LayoutGroups = append(def.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Fragment",
 			Layouts: c.layouts,
 		})
 	}
 	if def.Vulkan.Geom != "" {
-		c := readShaderCode(def.Vulkan.Geom)
+		c := readShaderCode(fs, def.Vulkan.Geom)
 		def.LayoutGroups = append(def.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Geometry",
 			Layouts: c.layouts,
 		})
 	}
 	if def.Vulkan.Tesc != "" {
-		c := readShaderCode(def.Vulkan.Tesc)
+		c := readShaderCode(fs, def.Vulkan.Tesc)
 		def.LayoutGroups = append(def.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "TessellationControl",
 			Layouts: c.layouts,
 		})
 	}
 	if def.Vulkan.Tese != "" {
-		c := readShaderCode(def.Vulkan.Tese)
+		c := readShaderCode(fs, def.Vulkan.Tese)
 		def.LayoutGroups = append(def.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "TessellationEvaluation",
 			Layouts: c.layouts,
 		})
 	}
 	if out, err := json.Marshal(def); err == nil {
-		if err := os.WriteFile(jsonFile, out, os.ModePerm); err != nil {
+		if err := klib.WriteRootFile(fs, jsonFile, out); err != nil {
 			log.Fatalf("failed to write the shader definition file %s", jsonFile)
 		} else {
 			log.Printf("Updated shader description: %s", jsonFile)
@@ -245,7 +246,19 @@ func processFile(jsonFile string) {
 
 func main() {
 	const defFolder = "content/shaders/definitions"
-	entries, err := os.ReadDir(defFolder)
+	var fs *os.Root
+	if _, err := os.Stat(defFolder); err != nil {
+		if fs, err = os.OpenRoot("../"); err != nil {
+			log.Fatalf("failed to set the root folder (../): %s", err)
+		}
+	} else if fs, err = os.OpenRoot("."); err != nil {
+		log.Fatalf("failed to set the root folder (.): %s", err)
+	}
+	dir, err := fs.Open(defFolder)
+	if err != nil {
+		log.Fatalf("failed to open the directory for reading (%s/%s): %s", fs.Name(), defFolder, err)
+	}
+	entries, err := dir.ReadDir(-1)
 	if err != nil {
 		log.Fatalf("failed to read the shader definition folder %s", defFolder)
 	}
@@ -253,6 +266,6 @@ func main() {
 		if entries[i].IsDir() {
 			continue
 		}
-		processFile(filepath.Join(defFolder, entries[i].Name()))
+		processFile(fs, filepath.Join(defFolder, entries[i].Name()))
 	}
 }
