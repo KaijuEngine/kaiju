@@ -1,0 +1,32 @@
+package editor_config // import "."
+
+
+TYPES
+
+type AssetType = string
+
+const (
+	AssetTypeH     AssetType = "h"
+	AssetTypeC     AssetType = "c"
+	AssetTypeGo    AssetType = "go"
+	AssetTypeMap   AssetType = "map"
+	AssetTypeObj   AssetType = "obj"
+	AssetTypeImage AssetType = "image"
+	AssetTypeMesh  AssetType = "mesh"
+	AssetTypeStage AssetType = "stg"
+	AssetTypeHTML  AssetType = "html"
+)
+type FileExtension = string
+
+const (
+	FileExtensionH           FileExtension = ".h"
+	FileExtensionC           FileExtension = ".c"
+	FileExtensionGo          FileExtension = ".go"
+	FileExtensionMap         FileExtension = ".map"
+	FileExtensionObj         FileExtension = ".obj"
+	FileExtensionPng         FileExtension = ".png"
+	FileExtensionMesh        FileExtension = ".msh"
+	FileExtensionStage       FileExtension = ".stg"
+	FileExtensionHTML        FileExtension = ".html"
+	FileExtensionAssetDbInfo FileExtension = ".adi"
+)
