@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-go@v5.0.0
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges. Be sure to enclose this option in single quotation marks.
-          go-version: 1.22
+          go-version: 1.24
 
       - name: Build api docs
         working-directory: ./src
