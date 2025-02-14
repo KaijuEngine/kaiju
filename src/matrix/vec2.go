@@ -232,3 +232,13 @@ func Vec2Largest() Vec2 { return Vec2{FloatMax, FloatMax} }
 func (v Vec2) LargestAxis() Float {
 	return max(v[Vx], v[Vy])
 }
+
+func (v Vec2) LargestAxisDelta() Float {
+	lo := min(v[Vx], v[Vy])
+	hi := max(v[Vx], v[Vy])
+	if Abs(lo) > Abs(hi) {
+		return lo
+	} else {
+		return hi
+	}
+}

@@ -273,6 +273,16 @@ func (v Vec4) LargestAxis() Float {
 	return max(v[Vx], v[Vy], v[Vz], v[Vw])
 }
 
+func (v Vec4) LargestAxisDelta() Float {
+	lo := min(v[Vx], v[Vy], v[Vz], v[Vw])
+	hi := max(v[Vx], v[Vy], v[Vz], v[Vw])
+	if Abs(lo) > Abs(hi) {
+		return lo
+	} else {
+		return hi
+	}
+}
+
 func Vec4Area(xa, ya, xb, yb Float) Vec4 {
 	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
 }
