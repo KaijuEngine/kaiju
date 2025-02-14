@@ -144,6 +144,16 @@ func (t *TransformTool) Enable(state ToolState) {
 	t.state = state
 	t.firstHitUpdate = true
 	t.updateResets()
+	switch t.state {
+	case ToolStateNone:
+		t.editor.Host().Window.CursorStandard()
+	case ToolStateMove:
+		fallthrough
+	case ToolStateRotate:
+		fallthrough
+	case ToolStateScale:
+		t.editor.Host().Window.CursorSizeAll()
+	}
 }
 
 func (t *TransformTool) Disable() {
@@ -153,6 +163,7 @@ func (t *TransformTool) Disable() {
 	for i := range t.wires {
 		t.wires[i].ShaderData.Deactivate()
 	}
+	t.editor.Host().Window.CursorStandard()
 }
 
 func (t *TransformTool) resetChange() {
