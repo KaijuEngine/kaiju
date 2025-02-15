@@ -383,7 +383,8 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 					rot.SetZ(-delta.X())
 				}
 			case AxisStateNone:
-				// TODO:  Needs to work
+				// TODO:  This is wrong, so we'll need to fix...
+				rot = delta
 			}
 			r := t.unsnapped[i].Add(rot)
 			t.unsnapped[i] = r
