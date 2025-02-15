@@ -319,7 +319,9 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	case ToolStateRotate:
 		point = mousePosition.AsVec3()
 	case ToolStateScale:
-		// TODO:  This operates based on distance to object center
+		if hp, ok := host.Camera.ForwardPlaneHit(mousePosition, center); ok {
+			point = hp
+		}
 	}
 	if t.firstHitUpdate {
 		t.lastHit = point
@@ -385,7 +387,6 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 		} else if t.state == ToolStateScale {
 			// TODO:  Handle snapping
 			scale := matrix.Vec3Zero()
-			// TODO:  This should actually be distance from center of the target
 			target := delta.LargestAxisDelta()
 			switch t.axis {
 			case AxisStateX:
@@ -395,7 +396,7 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 			case AxisStateZ:
 				scale.SetZ(target)
 			case AxisStateNone:
-				// TODO:  Needs to lock to plane correctly
+				scale = matrix.NewVec3(target, target, target)
 			}
 			et.SetScale(et.Scale().Add(scale))
 		}

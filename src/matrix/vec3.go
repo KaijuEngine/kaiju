@@ -336,3 +336,7 @@ func (v Vec3) MultiplyMat3(rhs Mat3) Vec3 {
 func Vec3Inf(sign int) Vec3 {
 	return Vec3{Inf(sign), Inf(sign), Inf(sign)}
 }
+
+func (v Vec3) IsZero() bool {
+	return Vec3Approx(v, Vec3Zero())
+}
