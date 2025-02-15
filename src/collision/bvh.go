@@ -258,7 +258,9 @@ func (b *BVH) RemoveNode() {
 		if promote != nil {
 			*parent = *promote
 			parent.Parent = nil
-			parent.Left.Parent = parent
+			if parent.Left != nil {
+				parent.Left.Parent = parent
+			}
 			if parent.Right != nil {
 				parent.Right.Parent = parent
 			}
