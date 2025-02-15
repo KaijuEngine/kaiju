@@ -56,6 +56,7 @@ func (v *Vec2) SetX(x Float)      { v[Vx] = x }
 func (v *Vec2) SetY(y Float)      { v[Vy] = y }
 func (v *Vec2) SetWidth(x Float)  { v[Vx] = x }
 func (v *Vec2) SetHeight(y Float) { v[Vy] = y }
+func (v *Vec2) AsVec3() Vec3      { return NewVec3(v[Vx], v[Vy], 0) }
 func (v Vec2) XY() (Float, Float) { return v[Vx], v[Vy] }
 
 func (v Vec2) AsVec2i() Vec2i {
