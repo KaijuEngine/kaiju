@@ -74,7 +74,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()
-	if kb.HasAlt() {
+	if kb.HasAlt() || kb.KeyHeld(hid.KeyboardKeySpace) {
 		changed = true
 	}
 	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) {
