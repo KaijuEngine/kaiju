@@ -352,21 +352,13 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 	for i, e := range t.editor.Selection().Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
-			d := t.resets[i].Subtract(t.wireTransform.Position())
-			p := point.Add(d)
-			if snap {
-				switch t.axis {
-				case AxisStateX:
-					p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
-				case AxisStateY:
-					p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
-				case AxisStateZ:
-					p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
-				case AxisStateNone:
-					p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
-					p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
-					p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
-				}
+			p := t.unsnapped[i].Add(delta)
+			t.unsnapped[i] = p
+			// TODO:  Fix arbitrary movement snapping
+			if snap && t.axis != AxisStateNone {
+				p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+				p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+				p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
 			}
 			et.SetPosition(p)
 		} else if t.state == ToolStateRotate {
