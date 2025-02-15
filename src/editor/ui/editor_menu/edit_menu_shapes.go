@@ -11,7 +11,13 @@ import (
 )
 
 const (
-	cubeGLB = "editor/meshes/cube.glb"
+	cubeGLB       = "editor/meshes/cube.glb"
+	coneGLB       = "editor/meshes/cone.glb"
+	cylinderGLB   = "editor/meshes/cylinder.glb"
+	ico_sphereGLB = "editor/meshes/ico_sphere.glb"
+	planeGLB      = "editor/meshes/plane.glb"
+	sphereGLB     = "editor/meshes/sphere.glb"
+	torusGLB      = "editor/meshes/torus.glb"
 )
 
 func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
@@ -49,6 +55,30 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 	e.OnDestroy.Add(func() { bvh.RemoveNode() })
 }
 
+func (m *Menu) createCone() {
+	createShape("Cone", coneGLB, m.editor, m.container.Host)
+}
+
 func (m *Menu) createCube() {
 	createShape("Cube", cubeGLB, m.editor, m.container.Host)
+}
+
+func (m *Menu) createCylinder() {
+	createShape("Cylinder", cylinderGLB, m.editor, m.container.Host)
+}
+
+func (m *Menu) createIcoSphere() {
+	createShape("Ico Sphere", ico_sphereGLB, m.editor, m.container.Host)
+}
+
+func (m *Menu) createPlane() {
+	createShape("Plane", planeGLB, m.editor, m.container.Host)
+}
+
+func (m *Menu) createSphere() {
+	createShape("Sphere", sphereGLB, m.editor, m.container.Host)
+}
+
+func (m *Menu) createTorus() {
+	createShape("Torus", torusGLB, m.editor, m.container.Host)
 }

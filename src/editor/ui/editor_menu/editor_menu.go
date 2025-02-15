@@ -97,7 +97,13 @@ func New(container *host_container.Container,
 		"openContentWindow":   m.openContentWindow,
 		"openHierarchyWindow": m.openHierarchyWindow,
 		"newEntity":           m.newEntity,
+		"newCone":             m.newCone,
 		"newCube":             m.newCube,
+		"newCylinder":         m.newCylinder,
+		"newIcoSphere":        m.newIcoSphere,
+		"newPlane":            m.newPlane,
+		"newSphere":           m.newSphere,
+		"newTorus":            m.newTorus,
 		"showEditorSettings":  m.showEditorSettings,
 	}
 	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap)
@@ -185,9 +191,13 @@ func (m *Menu) newEntity(*document.Element) {
 	m.editor.CreateEntity("Entity")
 }
 
-func (m *Menu) newCube(*document.Element) {
-	m.createCube()
-}
+func (m *Menu) newCone(*document.Element)      { m.createCone() }
+func (m *Menu) newCube(*document.Element)      { m.createCube() }
+func (m *Menu) newCylinder(*document.Element)  { m.createCylinder() }
+func (m *Menu) newIcoSphere(*document.Element) { m.createIcoSphere() }
+func (m *Menu) newPlane(*document.Element)     { m.createPlane() }
+func (m *Menu) newSphere(*document.Element)    { m.createSphere() }
+func (m *Menu) newTorus(*document.Element)     { m.createTorus() }
 
 func (m *Menu) showEditorSettings(*document.Element) {
 	editor_settings_window.New()
