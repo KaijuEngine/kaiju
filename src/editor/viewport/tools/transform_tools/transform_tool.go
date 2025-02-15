@@ -59,6 +59,7 @@ type TransformTool struct {
 	wireTransform  *matrix.Transform
 	resets         []matrix.Vec3
 	history        *memento.History
+unsnapped      []matrix.Vec3
 	transformDirty int
 	firstHitUpdate bool
 }
@@ -182,15 +183,20 @@ func (t *TransformTool) resetChange() {
 }
 
 func (t *TransformTool) updateResets() {
+entities := t.editor.Selection().Entities()
 	t.resets = t.resets[:0]
-	for _, e := range t.editor.Selection().Entities() {
+t.unsnapped = t.unsnapped[:0]
+	t.resets = slices.Grow(t.resets, len(entities))
+	t.unsnapped = slices.Grow(t.unsnapped, len(entities))
+	for i := range entities {
 		if t.state == ToolStateMove {
-			t.resets = append(t.resets, e.Transform.Position())
+			t.resets = append(t.resets, entities[i].Transform.Position())
 		} else if t.state == ToolStateRotate {
-			t.resets = append(t.resets, e.Transform.Rotation())
+			t.resets = append(t.resets, entities[i].Transform.Rotation())
 		} else if t.state == ToolStateScale {
-			t.resets = append(t.resets, e.Transform.Scale())
+			t.resets = append(t.resets, entities[i].Transform.Scale())
 		}
+t.unsnapped = append(t.unsnapped, t.resets[i])
 	}
 }
 
@@ -385,8 +391,7 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 			}
 			et.SetRotation(et.Rotation().Add(rot))
 		} else if t.state == ToolStateScale {
-			// TODO:  Handle snapping
-			scale := matrix.Vec3Zero()
+						scale := matrix.Vec3Zero()
 			target := delta.LargestAxisDelta()
 			switch t.axis {
 			case AxisStateX:
@@ -398,7 +403,14 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 			case AxisStateNone:
 				scale = matrix.NewVec3(target, target, target)
 			}
-			et.SetScale(et.Scale().Add(scale))
+s := t.unsnapped[i].Add(scale)
+			t.unsnapped[i] = s
+			if snap {
+				s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+				s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+				s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+			}
+			et.SetScale(s)
 		}
 	}
 }
