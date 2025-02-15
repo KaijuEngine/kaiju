@@ -44,10 +44,10 @@ import (
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
+	"kaiju/editor/ui/editor_menu"
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
-	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/tools/transform_tools"
@@ -100,7 +100,7 @@ func constructEditorUI(ed *Editor) {
 	ed.contextMenu = context_menu.New(ed.container, &ed.uiManager)
 	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
 		hierarchyContextMenuActions(ed), &ed.uiManager)
-	ed.menu = menu.New(ed.container, ed.logWindow, ed.contentWindow,
+	ed.menu = editor_menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
 	ed.statusBar = status_bar.New(&ed.uiManager, ed.logWindow)
 	setupViewportGrid(ed)

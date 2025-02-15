@@ -51,10 +51,10 @@ import (
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
+	"kaiju/editor/ui/editor_menu"
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
-	"kaiju/editor/ui/menu"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
@@ -78,7 +78,7 @@ const (
 type Editor struct {
 	container      *host_container.Container
 	bvh            *collision.BVH
-	menu           *menu.Menu
+	menu           *editor_menu.Menu
 	statusBar      *status_bar.StatusBar
 	uiManager      ui.Manager
 	editorDir      string

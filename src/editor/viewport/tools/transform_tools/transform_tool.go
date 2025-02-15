@@ -335,12 +335,12 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	}
 	delta = point.Subtract(t.lastHit)
 	snap := host.Window.Keyboard.HasCtrl()
-	t.transform(delta, point, snap)
+	t.transform(delta, snap)
 	t.lastHit = point
 }
 
-func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
-	snapScale := float32(0.5)
+func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
+	snapScale := float32(1)
 	snapConfig := editor_cache.GridSnapping
 	if t.state == ToolStateRotate {
 		snapScale = 15
