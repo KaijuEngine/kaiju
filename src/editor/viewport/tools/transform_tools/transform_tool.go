@@ -39,6 +39,7 @@ package transform_tools
 
 import (
 	"kaiju/assets"
+	"kaiju/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
@@ -243,21 +244,18 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 	}
 }
 
-func (t *TransformTool) updateDrag(host *engine.Host) {
-	m := &host.Window.Mouse
-	center := t.editor.Selection().Center()
+func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) (hit matrix.Vec3) {
 	nml := matrix.Vec3Forward()
-	r := host.Camera.RayCast(m.Position())
 	var df, db, dl, dr, du, dd matrix.Float = -1.0, -1.0, -1.0, -1.0, -1.0, -1.0
-	if t.axis != AxisStateX {
+	if t.state != ToolStateMove || t.axis != AxisStateX {
 		dl = matrix.Vec3Dot(r.Origin, matrix.Vec3Left())
 		dr = matrix.Vec3Dot(r.Origin, matrix.Vec3Right())
 	}
-	if t.axis != AxisStateY {
+	if t.state != ToolStateMove || t.axis != AxisStateY {
 		du = matrix.Vec3Dot(r.Origin, matrix.Vec3Up())
 		dd = matrix.Vec3Dot(r.Origin, matrix.Vec3Down())
 	}
-	if t.axis != AxisStateZ {
+	if t.state != ToolStateMove || t.axis != AxisStateZ {
 		df = matrix.Vec3Dot(r.Origin, matrix.Vec3Forward())
 		db = matrix.Vec3Dot(r.Origin, matrix.Vec3Backward())
 	}
@@ -285,32 +283,52 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	if !ok {
 		return
 	}
-	point := hitPoint
-	scale := matrix.Vec3{0, 0, 0}
+	hit = hitPoint
 	if t.axis == AxisStateX {
-		scale.SetX(1)
-		point.SetY(center.Y())
-		point.SetZ(center.Z())
+		hit.SetY(center.Y())
+		hit.SetZ(center.Z())
 	} else if t.axis == AxisStateY {
-		scale.SetY(1)
-		point.SetX(center.X())
-		point.SetZ(center.Z())
+		hit.SetX(center.X())
+		hit.SetZ(center.Z())
 	} else if t.axis == AxisStateZ {
-		scale.SetZ(1)
-		point.SetX(center.X())
-		point.SetY(center.Y())
+		hit.SetX(center.X())
+		hit.SetY(center.Y())
+	}
+	return hit
+}
+
+func (t *TransformTool) updateDrag(host *engine.Host) {
+	m := &host.Window.Mouse
+	mousePosition := m.Position()
+	r := host.Camera.RayCast(mousePosition)
+	center := t.editor.Selection().Center()
+	delta := matrix.Vec3Zero()
+	point := matrix.Vec3Zero()
+	switch t.state {
+	case ToolStateMove:
+		if t.axis != AxisStateNone {
+			point = t.findPlaneHitPoint(r, center)
+		} else {
+			hp, ok := host.Camera.ForwardPlaneHit(mousePosition, center)
+			if ok {
+				point = hp
+			} else {
+				point = t.lastHit
+			}
+		}
+	case ToolStateRotate:
+		point = mousePosition.AsVec3()
+	case ToolStateScale:
+		// TODO:  This operates based on distance to object center
 	}
 	if t.firstHitUpdate {
-		t.lastHit = hitPoint
+		t.lastHit = point
 		t.firstHitUpdate = false
 	}
-	delta := hitPoint.Subtract(t.lastHit).Multiply(scale)
-	if t.state == ToolStateRotate {
-		delta = delta.Scale(20)
-	}
+	delta = point.Subtract(t.lastHit)
 	snap := host.Window.Keyboard.HasCtrl()
 	t.transform(delta, point, snap)
-	t.lastHit = hitPoint
+	t.lastHit = point
 }
 
 func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
@@ -339,9 +357,47 @@ func (t *TransformTool) transform(delta, point matrix.Vec3, snap bool) {
 			}
 			et.SetPosition(p)
 		} else if t.state == ToolStateRotate {
-			et.SetRotation(et.Rotation().Add(delta))
+			// TODO:  Handle snapping
+			rot := matrix.Vec3Zero()
+			switch t.axis {
+			case AxisStateX:
+				if t.editor.Host().Camera.Forward().X() >= 0 {
+					rot.SetX(delta.X())
+				} else {
+					rot.SetX(-delta.X())
+				}
+			case AxisStateY:
+				if t.editor.Host().Camera.Up().Y() >= 0 {
+					rot.SetY(delta.X())
+				} else {
+					rot.SetY(-delta.X())
+				}
+			case AxisStateZ:
+				if t.editor.Host().Camera.Forward().Z() >= 0 {
+					rot.SetZ(delta.X())
+				} else {
+					rot.SetZ(-delta.X())
+				}
+			case AxisStateNone:
+				// TODO:  Needs to work
+			}
+			et.SetRotation(et.Rotation().Add(rot))
 		} else if t.state == ToolStateScale {
-			et.SetScale(et.Scale().Add(delta))
+			// TODO:  Handle snapping
+			scale := matrix.Vec3Zero()
+			// TODO:  This should actually be distance from center of the target
+			target := delta.LargestAxisDelta()
+			switch t.axis {
+			case AxisStateX:
+				scale.SetX(target)
+			case AxisStateY:
+				scale.SetY(target)
+			case AxisStateZ:
+				scale.SetZ(target)
+			case AxisStateNone:
+				// TODO:  Needs to lock to plane correctly
+			}
+			et.SetScale(et.Scale().Add(scale))
 		}
 	}
 }
