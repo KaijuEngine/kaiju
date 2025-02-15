@@ -10,9 +10,10 @@ import (
 )
 
 type EditorSettingsWindow struct {
-	uiMan          *ui.Manager
-	GoCompilerPath string
-	GridSnapping   float32
+	uiMan            ui.Manager
+	GoCompilerPath   string
+	GridSnapping     float32
+	RotationSnapping float32
 }
 
 func updateCompilerPath(elm *document.Element) {
@@ -27,9 +28,19 @@ func updateGridSnapping(elm *document.Element) {
 	}
 }
 
+func updateRotationSnapping(elm *document.Element) {
+	txt := elm.UI.ToInput().Text()
+	if snap, err := strconv.ParseFloat(txt, 32); err == nil {
+		editor_cache.SetEditorConfigValue(editor_cache.RotationSnapping, snap)
+	}
+}
+
 func New() {
 	const html = "editor/ui/editor_settings_window.html"
-	esw := &EditorSettingsWindow{}
+	esw := &EditorSettingsWindow{
+		GridSnapping:     1,
+		RotationSnapping: 15,
+	}
 	container := host_container.New("Editor Settings Window", nil)
 	esw.uiMan.Init(container.Host)
 	go container.Run(500, 300, -1, -1)
@@ -40,10 +51,14 @@ func New() {
 	if v, ok := editor_cache.EditorConfigValue(editor_cache.GridSnapping); ok {
 		esw.GridSnapping = float32(v.(float64))
 	}
+	if v, ok := editor_cache.EditorConfigValue(editor_cache.RotationSnapping); ok {
+		esw.RotationSnapping = float32(v.(float64))
+	}
 	container.RunFunction(func() {
-		markup.DocumentFromHTMLAsset(esw.uiMan, html, esw, map[string]func(*document.Element){
-			"updateCompilerPath": updateCompilerPath,
-			"updateGridSnapping": updateGridSnapping,
+		markup.DocumentFromHTMLAsset(&esw.uiMan, html, esw, map[string]func(*document.Element){
+			"updateCompilerPath":     updateCompilerPath,
+			"updateGridSnapping":     updateGridSnapping,
+			"updateRotationSnapping": updateRotationSnapping,
 		})
 	})
 }

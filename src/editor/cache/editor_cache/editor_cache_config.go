@@ -38,12 +38,13 @@
 package editor_cache
 
 const (
-	CacheFolder     = "Kaiju"
-	configFile      = "editor.json"
-	MainWindow      = "main"
-	LogWindow       = "log"
-	ContentWindow   = "content"
-	HierarchyWindow = "hierarchy"
-	KaijuGoCompiler = "goCompilerPath"
-	GridSnapping    = "gridSnapping"
+	CacheFolder      = "Kaiju"
+	configFile       = "editor.json"
+	MainWindow       = "main"
+	LogWindow        = "log"
+	ContentWindow    = "content"
+	HierarchyWindow  = "hierarchy"
+	KaijuGoCompiler  = "goCompilerPath"
+	GridSnapping     = "gridSnapping"
+	RotationSnapping = "rotationSnapping"
 )
