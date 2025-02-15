@@ -278,7 +278,7 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 			//depth := targets[i].Target.Depth()
 			sd[i] = ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 			m := matrix.Mat4Identity()
-			m.Scale(matrix.Vec3{15, 15, 15})
+			m.Scale(matrix.Vec3{1, 1, 1})
 			sd[i].SetModel(m)
 			vr.combinedDrawings.AddDrawing(&Drawing{
 				Renderer:   vr,
