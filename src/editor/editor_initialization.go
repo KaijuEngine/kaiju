@@ -79,6 +79,8 @@ func setupEditorCamera(ed *Editor) {
 	tc := cameras.ToTurntable(ed.container.Host.Camera.(*cameras.StandardCamera))
 	ed.container.Host.Camera = tc
 	tc.SetYawPitchZoom(0, -25, 16)
+	tc.SetLookAt(matrix.Vec3Zero())
+	tc.SetZoom(15)
 }
 
 func waitForProjectSelectWindow(ed *Editor) (string, error) {
