@@ -1,0 +1,59 @@
+package assets // import "."
+
+
+CONSTANTS
+
+const (
+	ShaderDefinitionGrid         = "shaders/definitions/grid.json"
+	ShaderDefinitionBasic        = "shaders/definitions/basic.json"
+	ShaderDefinitionBasicSkinned = "shaders/definitions/basic_skinned.json"
+	ShaderDefinitionBasicColor   = "shaders/definitions/basic_color.json"
+	ShaderDefinitionText3D       = "shaders/definitions/text3d.json"
+	ShaderDefinitionText         = "shaders/definitions/text.json"
+	ShaderDefinitionCombine      = "shaders/definitions/combine.json"
+	ShaderDefinitionOITComposite = "shaders/definitions/oit_composite.json"
+	ShaderDefinitionUI           = "shaders/definitions/ui.json"
+	ShaderDefinitionSprite       = "shaders/definitions/sprite.json"
+	ShaderDefinitionOutline      = "shaders/definitions/outline.json"
+)
+    Shader definitions
+
+const (
+	ShaderTextVert         = "shaders/spv/text.vert.spv"
+	ShaderTextFrag         = "shaders/spv/text.frag.spv"
+	ShaderText3DVert       = "shaders/spv/text3d.vert.spv"
+	ShaderText3DFrag       = ShaderTextFrag
+	ShaderOitCompositeVert = "shaders/spv/oit_composite.vert.spv"
+	ShaderOitCompositeFrag = "shaders/spv/oit_composite.frag.spv"
+	ShaderHdrVert          = "shaders/spv/hdr.vert.spv"
+	ShaderHdrFrag          = "shaders/spv/hdr.frag.spv"
+	ShaderUIVert           = "shaders/spv/ui.vert.spv"
+	ShaderUIFrag           = "shaders/spv/ui.frag.spv"
+	ShadersUINineFrag      = "shaders/spv/ui_nine.frag.spv"
+)
+    Shaders
+
+const (
+	TextureSquare = "textures/square.png"
+)
+    Textures
+
+
+TYPES
+
+type Database struct {
+	EditorContext EditorContext
+}
+
+func NewDatabase() Database
+
+func (a *Database) Destroy()
+
+func (a *Database) Exists(key string) bool
+
+func (a *Database) Read(key string) ([]byte, error)
+
+func (a *Database) ReadText(key string) (string, error)
+
+type EditorContext struct{}
+

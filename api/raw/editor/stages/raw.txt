@@ -1,0 +1,26 @@
+package stages // import "."
+
+
+VARIABLES
+
+var (
+	ErrorSaveCancelled = errors.New("save was requested then cancelled")
+)
+
+TYPES
+
+type Manager struct {
+	// Has unexported fields.
+}
+
+func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
+	history *memento.History) Manager
+
+func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error
+
+func (m *Manager) New()
+
+func (m *Manager) Save(statusBar *status_bar.StatusBar) error
+
+func (m *Manager) StageName() string
+
