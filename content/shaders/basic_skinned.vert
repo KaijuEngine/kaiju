@@ -14,6 +14,8 @@ layout(location = LOCATION_START+1) in int skinIndex;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoords;
+layout(location = 2) out vec3 fragNormal;
+layout(location = 3) out vec3 fragLightDirection;
 
 void main() {
 	vec4 pos = vec4(Position, 1.0);
@@ -23,5 +25,8 @@ void main() {
 					+ JointWeights.w * jointTransforms[skinIndex][JointIds.w];
 	fragColor = Color * color;
 	fragTexCoords = UV0;
-	gl_Position = projection * view * model * skinMatrix * pos;
+	fragNormal = Normal;
+	vec4 wp = skinMatrix * pos;
+	fragLightDirection = normalize(cameraPosition - wp.xyz);
+	gl_Position = projection * view * model * wp;
 }
