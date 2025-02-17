@@ -45,6 +45,7 @@ import (
 func registerAssetImporters(ed *Editor) {
 	ed.assetImporters.Register(asset_importer.ObjImporter{})
 	ed.assetImporters.Register(asset_importer.GlbImporter{})
+	ed.assetImporters.Register(asset_importer.GltfImporter{})
 	ed.assetImporters.Register(asset_importer.PNGImporter{})
 	ed.assetImporters.Register(asset_importer.StageImporter{})
 	ed.assetImporters.Register(asset_importer.HTMLImporter{})
@@ -53,6 +54,7 @@ func registerAssetImporters(ed *Editor) {
 func registerContentOpeners(ed *Editor) {
 	ed.contentOpener.Register(content_opener.ObjOpener{})
 	ed.contentOpener.Register(content_opener.GlbOpener{})
+	ed.contentOpener.Register(content_opener.GltfOpener{})
 	ed.contentOpener.Register(content_opener.StageOpener{})
 	ed.contentOpener.Register(content_opener.HTMLOpener{})
 	ed.contentOpener.Register(content_opener.ImageOpener{})
