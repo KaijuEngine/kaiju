@@ -39,11 +39,17 @@
 
 package assets
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
 
 type EditorContext struct{}
 
 func (a *Database) toContentPath(key string) string {
 	const contentPath = "content"
+	if strings.HasPrefix(key, contentPath) {
+		return key
+	}
 	return filepath.Join(contentPath, key)
 }

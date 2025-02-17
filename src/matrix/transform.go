@@ -63,18 +63,29 @@ type Transform struct {
 	Identifier                uint8 // Typically just used for bone index right now
 }
 
+func (t *Transform) setup() {
+	t.localMatrix = Mat4Identity()
+	t.worldMatrix = Mat4Identity()
+	t.position = Vec3Zero()
+	t.rotation = Vec3Zero()
+	t.scale = Vec3One()
+	t.isDirty = true
+	t.frameDirty = true
+	t.children = make([]*Transform, 0)
+}
+
 func NewTransform(workGroup *concurrent.WorkGroup) Transform {
-	return Transform{
-		localMatrix: Mat4Identity(),
-		worldMatrix: Mat4Identity(),
-		position:    Vec3Zero(),
-		rotation:    Vec3Zero(),
-		scale:       Vec3One(),
-		isDirty:     true,
-		frameDirty:  true,
-		children:    make([]*Transform, 0),
-		workGroup:   workGroup,
+	t := Transform{
+		workGroup: workGroup,
 	}
+	t.setup()
+	return t
+}
+
+func NewRawTransform() Transform {
+	t := Transform{}
+	t.setup()
+	return t
 }
 
 func (t *Transform) WorkGroup() *concurrent.WorkGroup { return t.workGroup }
