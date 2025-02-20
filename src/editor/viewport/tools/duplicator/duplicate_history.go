@@ -46,16 +46,7 @@ func (h *duplicateHistory) Redo() {
 		h.doDuplication()
 	} else {
 		for _, e := range h.duplicates {
-			draws := e.EditorBindings.Drawings()
-			e.EditorBindings.IsDeleted = false
-			for _, d := range draws {
-				d.ShaderData.Activate()
-			}
-			e.Activate()
-			bvh := e.EditorBindings.Data("bvh")
-			if bvh != nil {
-				h.editor.BVH().Insert(bvh.(*collision.BVH))
-			}
+			e.EditorRestore(h.editor.BVH())
 		}
 	}
 	h.editor.Selection().UntrackedClear()
@@ -64,16 +55,7 @@ func (h *duplicateHistory) Redo() {
 
 func (h *duplicateHistory) Undo() {
 	for _, e := range h.duplicates {
-		draws := e.EditorBindings.Drawings()
-		e.EditorBindings.IsDeleted = true
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-		bvh := e.EditorBindings.Data("bvh")
-		if bvh != nil {
-			bvh.(*collision.BVH).RemoveNode()
-		}
+		e.EditorDelete()
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
 	h.editor.Hierarchy().Reload()

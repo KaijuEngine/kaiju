@@ -38,7 +38,6 @@
 package deleter
 
 import (
-	"kaiju/collision"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 )
@@ -50,16 +49,7 @@ type deleteHistory struct {
 
 func (h *deleteHistory) Redo() {
 	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		e.EditorBindings.IsDeleted = true
-		for _, d := range draws {
-			d.ShaderData.Deactivate()
-		}
-		e.Deactivate()
-		bvh := e.EditorBindings.Data("bvh")
-		if bvh != nil {
-			bvh.(*collision.BVH).RemoveNode()
-		}
+		e.EditorDelete()
 	}
 	h.editor.Selection().UntrackedClear()
 	h.editor.Hierarchy().Reload()
@@ -67,16 +57,7 @@ func (h *deleteHistory) Redo() {
 
 func (h *deleteHistory) Undo() {
 	for _, e := range h.entities {
-		draws := e.EditorBindings.Drawings()
-		e.EditorBindings.IsDeleted = false
-		for _, d := range draws {
-			d.ShaderData.Activate()
-		}
-		e.Activate()
-		bvh := e.EditorBindings.Data("bvh")
-		if bvh != nil {
-			h.editor.BVH().Insert(bvh.(*collision.BVH))
-		}
+		e.EditorRestore(h.editor.BVH())
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
 	h.editor.Hierarchy().Reload()
