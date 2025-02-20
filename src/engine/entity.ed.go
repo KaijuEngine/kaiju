@@ -187,7 +187,7 @@ func (e *Entity) EditorRestore(bvh *collision.BVH) {
 		e.Activate()
 	}
 	eBVH := e.EditorBindings.Data("bvh")
-	if bvh != nil {
+	if eBVH != nil {
 		bvh.Insert(eBVH.(*collision.BVH))
 	}
 }
