@@ -12,7 +12,7 @@ layout(location = 3) out vec3 fragLightDirection;
 void main() {
 	fragColor = Color * color;
 	fragTexCoords = UV0;
-	fragNormal = Normal;
+	fragNormal = mat3(model) * Normal;
 	vec4 wp = model * vec4(Position, 1.0);
 	fragLightDirection = normalize(cameraPosition - wp.xyz);
 	gl_Position = projection * view * wp;
