@@ -30,8 +30,11 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 		return
 	}
 	resMesh := res.Meshes[0]
-	mesh := rendering.NewMesh(resMesh.MeshName, resMesh.Verts, resMesh.Indexes)
-	host.MeshCache().AddMesh(mesh)
+	mesh, ok := host.MeshCache().FindMesh(resMesh.MeshName)
+	if !ok {
+		mesh = rendering.NewMesh(resMesh.MeshName, resMesh.Verts, resMesh.Indexes)
+		host.MeshCache().AddMesh(mesh)
+	}
 	e := ed.CreateEntity(name)
 	sd := rendering.ShaderDataBasic{
 		ShaderDataBase: rendering.NewShaderDataBase(),
