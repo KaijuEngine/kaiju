@@ -35,29 +35,33 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_opener
+package content_history
 
 import (
+	"kaiju/editor/interfaces"
 	"kaiju/engine"
 )
 
-type modelOpenHistory struct {
-	host   *engine.Host
-	entity *engine.Entity
+type ModelOpen struct {
+	Host   *engine.Host
+	Entity *engine.Entity
+	Editor interfaces.Editor
 }
 
-func (h *modelOpenHistory) Redo() {
-	h.entity.Activate()
-	h.host.AddEntity(h.entity)
+func (h *ModelOpen) Redo() {
+	e := h.Entity
+	e.EditorRestore(h.Editor.BVH())
+	h.Host.AddEntity(e)
 }
 
-func (h *modelOpenHistory) Undo() {
-	h.entity.Deactivate()
-	h.host.RemoveEntity(h.entity)
+func (h *ModelOpen) Undo() {
+	e := h.Entity
+	e.EditorDelete()
+	h.Host.RemoveEntity(e)
 }
 
-func (h *modelOpenHistory) Delete() {
-	h.entity.Destroy()
+func (h *ModelOpen) Delete() {
+	h.Entity.Destroy()
 }
 
-func (h *modelOpenHistory) Exit() {}
+func (h *ModelOpen) Exit() {}

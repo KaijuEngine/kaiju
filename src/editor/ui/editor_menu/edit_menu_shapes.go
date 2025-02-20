@@ -2,6 +2,7 @@ package editor_menu
 
 import (
 	"kaiju/assets"
+	"kaiju/editor/content/content_history"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 	"kaiju/matrix"
@@ -56,6 +57,11 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 	e.EditorBindings.Set("bvh", bvh)
 	ed.BVH().Insert(bvh)
 	e.OnDestroy.Add(func() { bvh.RemoveNode() })
+	ed.History().Add(&content_history.ModelOpen{
+		Host:   host,
+		Entity: e,
+		Editor: ed,
+	})
 }
 
 func (m *Menu) createCone() {

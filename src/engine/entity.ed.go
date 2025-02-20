@@ -41,6 +41,7 @@ package engine
 
 import (
 	"encoding/gob"
+	"kaiju/collision"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -54,8 +55,9 @@ const (
 )
 
 type entityEditorBindings struct {
-	data      map[string]any
-	IsDeleted bool
+	data              map[string]any
+	IsDeleted         bool
+	wasActiveOnDelete bool
 }
 
 func (e *entityEditorBindings) init() {
@@ -151,6 +153,44 @@ func (e *Entity) RemoveData(idx int) {
 //
 // `EDITOR ONLY`
 func (e *Entity) ListData() []EntityData { return e.data }
+
+// EditorDelete will "delete" the entity from the editor, but not from the
+// system as a whole. This is so that the entity can be restored in the editor
+// at a later time; typically for undo history purposes
+//
+// `EDITOR ONLY`
+func (e *Entity) EditorDelete() {
+	draws := e.EditorBindings.Drawings()
+	e.EditorBindings.IsDeleted = true
+	for _, d := range draws {
+		d.ShaderData.Deactivate()
+	}
+	e.EditorBindings.wasActiveOnDelete = e.isActive
+	e.Deactivate()
+	bvh := e.EditorBindings.Data("bvh")
+	if bvh != nil {
+		bvh.(*collision.BVH).RemoveNode()
+	}
+}
+
+// EditorRestore will restore the entity to the editor after being "deleted"
+// using the EditorDelete function
+//
+// `EDITOR ONLY`
+func (e *Entity) EditorRestore(bvh *collision.BVH) {
+	draws := e.EditorBindings.Drawings()
+	e.EditorBindings.IsDeleted = false
+	for _, d := range draws {
+		d.ShaderData.Activate()
+	}
+	if e.EditorBindings.wasActiveOnDelete {
+		e.Activate()
+	}
+	eBVH := e.EditorBindings.Data("bvh")
+	if bvh != nil {
+		bvh.Insert(eBVH.(*collision.BVH))
+	}
+}
 
 func (e *entityEditorBindings) serialize(enc *gob.Encoder) error {
 	cpyDrawings := e.Drawings()
