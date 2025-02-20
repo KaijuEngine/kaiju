@@ -273,6 +273,15 @@ func (q *Quaternion) Conjugate() {
 	q[Qz] = -q.Z()
 }
 
+func (q Quaternion) Multiply(rhs Quaternion) Quaternion {
+	return NewQuaternion(
+		q.W()*rhs.W()-q.X()*rhs.X()-q.Y()*rhs.Y()-q.Z()*rhs.Z(),
+		q.W()*rhs.X()+q.X()*rhs.W()+q.Y()*rhs.Z()-q.Z()*rhs.Y(),
+		q.W()*rhs.Y()-q.X()*rhs.Z()+q.Y()*rhs.W()+q.Z()*rhs.X(),
+		q.W()*rhs.Z()+q.X()*rhs.Y()-q.Y()*rhs.X()+q.Z()*rhs.W(),
+	)
+}
+
 func (q *Quaternion) MultiplyAssign(rhs Quaternion) {
 	q[Qw] = q.W()*rhs.W() - q.X()*rhs.X() - q.Y()*rhs.Y() - q.Z()*rhs.Z()
 	q[Qx] = q.W()*rhs.X() + q.X()*rhs.W() + q.Y()*rhs.Z() - q.Z()*rhs.Y()

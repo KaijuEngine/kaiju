@@ -339,6 +339,87 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	t.lastHit = point
 }
 
+func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	p := t.unsnapped[idx].Add(delta)
+	t.unsnapped[idx] = p
+	// TODO:  Fix arbitrary movement snapping
+	if snap && t.axis != AxisStateNone {
+		p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+		p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+		p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+	}
+	return p
+}
+
+func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	var axis matrix.Vec3
+	var angle float32
+	camera := t.editor.Host().Camera
+	forward := camera.Forward()
+	switch t.axis {
+	case AxisStateX:
+		axis = matrix.Vec3{1, 0, 0}
+		if forward.X() >= 0 {
+			angle = delta.X()
+		} else {
+			angle = -delta.X()
+		}
+	case AxisStateY:
+		axis = matrix.Vec3{0, 1, 0}
+		if camera.Up().Y() >= 0 {
+			angle = delta.X()
+		} else {
+			angle = -delta.X()
+		}
+	case AxisStateZ:
+		axis = matrix.Vec3{0, 0, 1}
+		if camera.Forward().Z() >= 0 {
+			angle = delta.X()
+		} else {
+			angle = -delta.X()
+		}
+	case AxisStateNone:
+		axis = forward
+		angle = delta.X()
+	}
+	angle = matrix.Deg2Rad(angle)
+	r := t.unsnapped[idx]
+	currentQuat := matrix.QuaternionFromEuler(r)
+	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
+	newQuat := currentQuat.Multiply(incrementalQuat)
+	newEuler := newQuat.ToEuler()
+	if snap {
+		newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
+		newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
+		newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
+	}
+	t.unsnapped[idx] = newEuler
+	return r
+}
+
+func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	scale := matrix.Vec3Zero()
+	target := delta.LargestAxisDelta()
+	switch t.axis {
+	case AxisStateX:
+		scale.SetX(target)
+	case AxisStateY:
+		scale.SetY(target)
+	case AxisStateZ:
+		scale.SetZ(target)
+	case AxisStateNone:
+		scale = matrix.NewVec3(target, target, target)
+	}
+	s := t.unsnapped[idx].Add(scale)
+	t.unsnapped[idx] = s
+	if snap {
+		s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+		s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+		s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+	}
+	return s
+}
+
 func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 	snapScale := float32(1)
 	snapConfig := editor_cache.GridSnapping
@@ -352,68 +433,13 @@ func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 	for i, e := range t.editor.Selection().Entities() {
 		et := &e.Transform
 		if t.state == ToolStateMove {
-			p := t.unsnapped[i].Add(delta)
-			t.unsnapped[i] = p
-			// TODO:  Fix arbitrary movement snapping
-			if snap && t.axis != AxisStateNone {
-				p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
-				p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
-				p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
-			}
+			p := t.translate(i, delta, snap, snapScale)
 			et.SetPosition(p)
 		} else if t.state == ToolStateRotate {
-			rot := matrix.Vec3Zero()
-			switch t.axis {
-			case AxisStateX:
-				if t.editor.Host().Camera.Forward().X() >= 0 {
-					rot.SetX(delta.X())
-				} else {
-					rot.SetX(-delta.X())
-				}
-			case AxisStateY:
-				if t.editor.Host().Camera.Up().Y() >= 0 {
-					rot.SetY(delta.X())
-				} else {
-					rot.SetY(-delta.X())
-				}
-			case AxisStateZ:
-				if t.editor.Host().Camera.Forward().Z() >= 0 {
-					rot.SetZ(delta.X())
-				} else {
-					rot.SetZ(-delta.X())
-				}
-			case AxisStateNone:
-				// TODO:  This is wrong, so we'll need to fix...
-				rot = delta
-			}
-			r := t.unsnapped[i].Add(rot)
-			t.unsnapped[i] = r
-			if snap {
-				r.SetX(matrix.Floor(r.X()/snapScale) * snapScale)
-				r.SetY(matrix.Floor(r.Y()/snapScale) * snapScale)
-				r.SetZ(matrix.Floor(r.Z()/snapScale) * snapScale)
-			}
+			r := t.rotate(i, delta, snap, snapScale)
 			et.SetRotation(r)
 		} else if t.state == ToolStateScale {
-			scale := matrix.Vec3Zero()
-			target := delta.LargestAxisDelta()
-			switch t.axis {
-			case AxisStateX:
-				scale.SetX(target)
-			case AxisStateY:
-				scale.SetY(target)
-			case AxisStateZ:
-				scale.SetZ(target)
-			case AxisStateNone:
-				scale = matrix.NewVec3(target, target, target)
-			}
-			s := t.unsnapped[i].Add(scale)
-			t.unsnapped[i] = s
-			if snap {
-				s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
-				s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
-				s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
-			}
+			s := t.scale(i, delta, snap, snapScale)
 			et.SetScale(s)
 		}
 	}
