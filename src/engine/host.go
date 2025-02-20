@@ -276,8 +276,16 @@ func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 }
 
 // Entities returns all the entities that are currently in the host. This will
-// return all entities in the standard entity pool only.
+// return all entities in the standard entity pool only. In the editor, this
+// will not return any entities that have been destroyed (and are pending
+// cleanup due to being in the undo history)
 func (host *Host) Entities() []*Entity { return host.selectAllValidEntities() }
+
+// Entities returns all the entities that are currently in the host. This will
+// return all entities in the standard entity pool only. In the editor, this
+// will also return any entities that have been destroyed (and are pending
+// cleanup due to being in the undo history)
+func (host *Host) EntitiesRaw() []*Entity { return host.entities }
 
 // NewEntity creates a new entity and adds it to the host. This will add the
 // entity to the standard entity pool. If the host is in the process of creating
