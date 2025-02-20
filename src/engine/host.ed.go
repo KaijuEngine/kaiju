@@ -105,3 +105,13 @@ func (host *Host) addEntities(entities ...*Entity) {
 		}
 	}
 }
+
+func (host *Host) selectAllValidEntities() []*Entity {
+	all := make([]*Entity, 0, len(host.entities))
+	for i := range host.entities {
+		if !host.entities[i].EditorBindings.IsDeleted {
+			all = append(all, host.entities[i])
+		}
+	}
+	return all
+}

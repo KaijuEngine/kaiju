@@ -66,3 +66,5 @@ func (host *Host) addEntities(entities ...*Entity) {
 		}
 	}
 }
+
+func (host *Host) selectAllValidEntities() []*Entity { return host.entities }
