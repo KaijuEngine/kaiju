@@ -1,0 +1,13 @@
+package concurrent // import "."
+
+
+TYPES
+
+type WorkGroup struct {
+	// Has unexported fields.
+}
+
+func (w *WorkGroup) Add(name string, work func())
+
+func (w *WorkGroup) Execute(name string)
+
