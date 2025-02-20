@@ -21,7 +21,7 @@ const (
 )
 
 func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
-	res, err := loaders.GLTF(glb, host.AssetDatabase(), host.WorkGroup())
+	res, err := loaders.GLTF(glb, host.AssetDatabase())
 	if err != nil {
 		slog.Error("failed to load the cube mesh", "error", err.Error())
 		return

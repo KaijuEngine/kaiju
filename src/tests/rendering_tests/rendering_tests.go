@@ -363,8 +363,7 @@ func testMonkeyGLTF(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.gltf"
 	host := uiMan.Host
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
-	res := klib.MustReturn(loaders.GLTF(monkeyGLTF,
-		host.AssetDatabase(), uiMan.Host.WorkGroup()))
+	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
 		return
@@ -376,8 +375,7 @@ func testMonkeyGLB(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.glb"
 	host := uiMan.Host
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
-	res := klib.MustReturn(loaders.GLTF(monkeyGLTF,
-		host.AssetDatabase(), uiMan.Host.WorkGroup()))
+	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
 		slog.Error("Expected 1 mesh")
 		return
@@ -393,8 +391,7 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 	//const animationGLTF = "editor/meshes/cube_animation_slow.gltf"
 	//const animationGLTF = "editor/meshes/cube_animation_slow_2.gltf"
 	//host.Camera.SetPositionAndLookAt(matrix.Vec3{0, 1.5, 5}, matrix.Vec3{0, 1.5, 0})
-	res := klib.MustReturn(loaders.GLTF(animationGLTF,
-		host.AssetDatabase(), uiMan.Host.WorkGroup()))
+	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
 	for i := range res.Textures {

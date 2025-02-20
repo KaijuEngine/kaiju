@@ -38,21 +38,17 @@
 package asset_importer
 
 import (
-	"errors"
-	"kaiju/assets"
 	"kaiju/assets/asset_info"
 	"kaiju/cache/project_cache"
 	"kaiju/editor/editor_config"
 	"kaiju/filesystem"
 	"kaiju/rendering/loaders"
 	"path/filepath"
-
-	"github.com/KaijuEngine/uuid"
 )
 
-type OBJImporter struct{}
+type ObjImporter struct{}
 
-func (m OBJImporter) Handles(path string) bool {
+func (m ObjImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionObj
 }
 
@@ -62,40 +58,18 @@ func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
 	adi.Metadata = make(map[string]string)
 }
 
-func (m OBJImporter) Import(path string) error {
+func (m ObjImporter) Import(path string) error {
 	adi, err := createADI(path, cleanupOBJ)
 	if err != nil {
 		return err
 	}
 	adi.Type = editor_config.AssetTypeObj
-	if err := importMeshToCache(&adi); err != nil {
-		return err
-	}
-	return asset_info.Write(adi)
-}
-
-func importMeshToCache(adi *asset_info.AssetDatabaseInfo) error {
 	src, err := filesystem.ReadTextFile(adi.Path)
 	if err != nil {
 		return err
 	}
-	res := loaders.OBJ(src)
-	if len(res.Meshes) == 0 {
-		return errors.New("no meshes found in OBJ file")
+	if err := importMeshToCache(&adi, loaders.OBJ(src)); err != nil {
+		return err
 	}
-	adi.Metadata["name"] = res.Meshes[0].Name
-	for _, o := range res.Meshes {
-		info := adi.SpawnChild(uuid.New().String())
-		info.Type = editor_config.AssetTypeMesh
-		info.ParentID = adi.ID
-		if err := project_cache.CacheMesh(info, o); err != nil {
-			return err
-		}
-		// TODO:  Write the correct material to the adi
-		info.Metadata["shader"] = assets.ShaderDefinitionBasic
-		info.Metadata["texture"] = assets.TextureSquare
-		info.Metadata["name"] = o.MeshName
-		adi.Children = append(adi.Children, info)
-	}
-	return nil
+	return asset_info.Write(adi)
 }
