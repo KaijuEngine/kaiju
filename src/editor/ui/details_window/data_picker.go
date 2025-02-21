@@ -53,7 +53,7 @@ type DataPicker struct {
 	editor    interfaces.Editor
 	container *host_container.Container
 	doc       *document.Document
-	uiMan     *ui.Manager
+	uiMan     ui.Manager
 	picked    bool
 	lock      chan int
 }
@@ -69,7 +69,7 @@ func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int {
 	go dp.container.Run(300, 600, cx-150, cy-300)
 	<-dp.container.PrepLock
 	dp.container.RunFunction(func() {
-		dp.doc, _ = markup.DocumentFromHTMLAsset(dp.uiMan, html, types,
+		dp.doc, _ = markup.DocumentFromHTMLAsset(&dp.uiMan, html, types,
 			map[string]func(*document.Element){
 				"pick":   dp.pick,
 				"search": dp.search,
