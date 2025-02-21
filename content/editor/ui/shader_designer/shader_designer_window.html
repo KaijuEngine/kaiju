@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_designer_window.css">
+	</head>
+	<body>
+		<div class="leftPanel darkBG noClipY">
+			<div class="inputItem">
+				<div class="inputLabel">Vert:</div>
+				<input id="vert" class="input" type="text" value="{{.Vert}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Frag:</div>
+				<input id="frag" class="input" type="text" value="{{.Frag}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Geom:</div>
+				<input id="geom" class="input" type="text" value="{{.Geom}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Tese:</div>
+				<input id="tese" class="input" type="text" value="{{.Tese}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Tesc:</div>
+				<input id="tesc" class="input" type="text" value="{{.Tesc}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Topology:</div>
+				<select id="topology" class="input" value="{{.Topology}}">
+					<option value="0">Points</option>
+					<option value="1">Lines</option>
+					<option value="2">Triangles</option>
+					<option value="3">Patches</option>
+				</select>
+			</div>
+		</div>
+	</body>
+</html>

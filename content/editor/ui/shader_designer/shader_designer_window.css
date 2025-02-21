@@ -1,0 +1,18 @@
+.leftPanel {
+	position: relative;
+	top: 0;
+	width: 50%;
+	height: 100%;
+}
+.inputItem {
+	width: 100%;
+	margin-top: 5px;
+}
+.inputLabel {
+	width: 30%;
+	height: 100%;
+}
+.input {
+	width: 69%;
+	height: 100%;
+}
