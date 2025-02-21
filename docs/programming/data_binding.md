@@ -35,3 +35,22 @@ Below are a list of POD types that you can use for your structures.
 | uint    | uint16  | uint32    | uint64     |
 | float32 | float64 | complex64 | complex128 |
 | bool    | string  | EntityId  | uintptr    |
+
+## Struct tag decorators and constraints
+Struct tags allow developers to tell the editor how to treat each field in the
+structure when the developer is interacting with it. They are defined using
+standard go structure tagging:
+
+```go
+type SomeEntityDataModule struct {
+	Speed     float32 `clamp:"3,1,30"`
+	MaxCount  int     `default:"15"`
+	MaxHeight float32 `default:"3.14"`
+	IsPrimary bool    `default:"false"`
+}
+```
+
+|   Key   |      Arguments       | Description |
+| ------- | -------------------- | ----------- |
+| clamp   | number,number,number | Clamps the value between 2 numbers: default, min, max |
+| default | any                  | Sets the default/starting value |
