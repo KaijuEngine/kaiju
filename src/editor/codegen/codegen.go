@@ -269,7 +269,7 @@ func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedTy
 	for _, f := range s.Spec.Fields.List {
 		tag := ""
 		if f.Tag != nil {
-			tag = f.Tag.Value
+			tag = strings.Trim(f.Tag.Value, "`")
 		}
 		ptrDepth := 0
 		typ, err := typeFromType(pkg, pkgPath, f.Type, genTypes, &ptrDepth)
