@@ -154,6 +154,8 @@ func (c *Console) HasData(key string) bool              { _, ok := c.data[key]; 
 func (c *Console) Data(key string) ConsoleData          { return c.data[key] }
 func (c *Console) DeleteData(key string)                { delete(c.data, key) }
 
+func (c *Console) HasUIRequests() bool { return c.uiMan.Group.HasRequests() }
+
 func (c *Console) toggle() {
 	if c.isActive {
 		c.hide()

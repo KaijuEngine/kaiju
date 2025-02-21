@@ -66,7 +66,9 @@ func NewGroup() *Group {
 	}
 }
 
-func (group *Group) HasRequests() bool { return group.hadRequests }
+func (group *Group) HasRequests() bool {
+	return group.hadRequests || group.focus != nil
+}
 
 func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {

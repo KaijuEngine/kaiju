@@ -62,6 +62,7 @@ import (
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/rendering"
+	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	"kaiju/ui"
 	"log/slog"
@@ -224,6 +225,9 @@ func (e *Editor) Init() {
 
 func (ed *Editor) update(delta float64) {
 	if ed.uiManager.Group.HasRequests() {
+		return
+	}
+	if console.For(ed.Host()).HasUIRequests() {
 		return
 	}
 	if ed.cam.Update(ed.Host(), delta) {
