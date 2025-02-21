@@ -38,13 +38,13 @@
 package engine
 
 import (
-	"encoding/gob"
 	"errors"
 	"io"
 	"kaiju/assets/asset_info"
 	"kaiju/cache/project_cache"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/runtime/encoding/gob"
 )
 
 func init() {

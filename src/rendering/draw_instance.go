@@ -38,9 +38,9 @@
 package rendering
 
 import (
-	"encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/runtime/encoding/gob"
 	"reflect"
 	"unsafe"
 )

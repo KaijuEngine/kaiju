@@ -40,8 +40,8 @@
 package engine
 
 import (
-	"encoding/gob"
 	"errors"
+	"kaiju/runtime/encoding/gob"
 	"path/filepath"
 	"reflect"
 	"runtime"

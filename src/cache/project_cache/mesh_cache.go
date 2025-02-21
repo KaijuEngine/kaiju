@@ -38,9 +38,9 @@
 package project_cache
 
 import (
-	"encoding/gob"
 	"kaiju/assets/asset_info"
 	"kaiju/rendering/loaders/load_result"
+	"kaiju/runtime/encoding/gob"
 	"os"
 	"path/filepath"
 )

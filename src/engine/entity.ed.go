@@ -40,9 +40,9 @@
 package engine
 
 import (
-	"encoding/gob"
 	"kaiju/collision"
 	"kaiju/rendering"
+	"kaiju/runtime/encoding/gob"
 	"log/slog"
 	"slices"
 
