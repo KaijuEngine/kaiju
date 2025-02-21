@@ -20,6 +20,10 @@ func tagDefault(f *entityDataField, value string) {
 }
 
 func tagClamp(f *entityDataField, value string) {
+	if !f.IsNumber() {
+		slog.Warn("cannot use the clamp tag on non-numeric field", "field", f.Name)
+		return
+	}
 	parts := strings.Split(value, ",")
 	if len(parts) == 2 {
 		parts = append([]string{"0"}, parts...)
@@ -41,6 +45,16 @@ func stringToValue(typeName, v string) any {
 	switch typeName {
 	case "string":
 		return v
+	case "bool":
+		switch strings.ToLower(v) {
+		case "false":
+			return false
+		case "true":
+			return true
+		default:
+			slog.Warn("unexpected tag string value for bool, expected 'true' or 'false'", "value", v)
+			return true
+		}
 	case "int":
 		return int(klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int(0))))))
 	case "int8":
