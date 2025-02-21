@@ -133,6 +133,7 @@ type entityDataField struct {
 	Name  string
 	Type  string
 	Pkg   string
+	Tag   *reflect.StructTag
 	Value any
 }
 
@@ -350,6 +351,7 @@ func (d *Details) pullEntityData() []entityDataEntry {
 					Name:  g.Fields[j].Name,
 					Type:  g.Fields[j].Type.Name(),
 					Pkg:   g.Fields[j].Type.PkgPath(),
+					Tag:   &g.Fields[j].Tag,
 					Value: data[i].entityData.(reflect.Value).Elem().Field(j).Interface(),
 				})
 			}
