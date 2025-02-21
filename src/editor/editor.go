@@ -159,7 +159,11 @@ func New() *Editor {
 }
 
 func (e *Editor) ReloadEntityDataListing() {
-	e.entityData, _ = codegen.Walk("src/source", "kaiju/source")
+	a, _ := codegen.Walk("src/source", "kaiju/source")
+	b, _ := codegen.Walk("src/engine/modules", "kaiju/engine/modules")
+	e.entityData = make([]codegen.GeneratedType, 0, len(a)+len(b))
+	e.entityData = append(e.entityData, a...)
+	e.entityData = append(e.entityData, b...)
 }
 
 func (e *Editor) CreateEntity(name string) *engine.Entity {
