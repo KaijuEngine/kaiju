@@ -9,6 +9,15 @@ Below are instructions on how to build the engine from source. Please take care 
 ## Prerequisites
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
 
+I have made modifications to the Go compiler to increase the performance of the engine, for this reason you'll need to build the engine with the Kaiju Engine Go compiler
+
+- Download the [Kaiju Engine Go compiler](https://github.com/KaijuEngine/go/tree/kaiju-go1.24) (release version 1.24)
+  - This should be placed along side the Kaiju Engine repository
+- Checkout kaiju-go1.24, run `git checkout kaiju-go1.24`, inside of the repository folder
+- Ensure you have the standard Go compiler installed (Go builds Go)
+- Run the `make` script file for your platform inside of the `src` directory
+  - This will build the Kaiju Engine Go compiler into the `bin` directory
+
 ## Windows Development
 - Download mingw into `C:/`
   - I use [x86_64-13.2.0-release-win32-seh-msvcrt-rt_v11-rev1.7z
@@ -25,6 +34,13 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 - Pull the repository
 - To build the exe, run `go run build/build.go`
   - Make sure to use the Kaiju Engine Go compiler
+
+## Debug in VSCode
+- Open the project in VSCode
+- Press Ctrl+Shift+P and type "Choose Go Environment"
+  - Select the Kaiju Engine Go compiler `bin` folder
+- Select one of the debug options
+- Press F5
 
 ## Building content
 The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
