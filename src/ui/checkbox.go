@@ -85,7 +85,6 @@ func (cb *Checkbox) Init(anchor Anchor) {
 	ld := &checkboxData{}
 	cb.elmData = ld
 	p := cb.Base().ToPanel()
-	p.Init(ld.textures[texOffIdle], anchor, ElementTypeCheckbox)
 	tc := p.man.Host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
@@ -99,6 +98,10 @@ func (cb *Checkbox) Init(anchor Anchor) {
 		onDownTexture, rendering.TextureFilterLinear)
 	ld.textures[texOnHover], _ = tc.Texture(
 		onHoverTexture, rendering.TextureFilterLinear)
+	for i := range ld.textures {
+		ld.textures[i].MipLevels = 1
+	}
+	p.Init(ld.textures[texOffIdle], anchor, ElementTypeCheckbox)
 	p.Base().AddEvent(EventTypeEnter, cb.onHover)
 	p.Base().AddEvent(EventTypeExit, cb.onBlur)
 	p.Base().AddEvent(EventTypeDown, cb.onDown)
