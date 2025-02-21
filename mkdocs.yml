@@ -8,6 +8,8 @@ nav:
   - Home: index.md
   - Getting started:
     - Launching the editor: getting_started/editor_launch.md
+  - Programming:
+    - Data Binding: programming/data_binding.md
   - UI:
     - Writing: ui/writing.md
     - Preview: ui/preview.md
