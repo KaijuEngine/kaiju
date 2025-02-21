@@ -133,8 +133,9 @@ type entityDataField struct {
 	Name  string
 	Type  string
 	Pkg   string
-	Tag   *reflect.StructTag
 	Value any
+	Min   any
+	Max   any
 }
 
 func (f *entityDataField) ValueAsEntityName() string {
@@ -345,15 +346,23 @@ func (d *Details) pullEntityData() []entityDataEntry {
 		g := data[i].gen
 		for j := range g.Fields {
 			if g.Fields[j].IsExported() {
-				data[i].Fields = append(data[i].Fields, entityDataField{
+				ef := entityDataField{
 					host:  d.editor.Host(),
 					Idx:   j,
 					Name:  g.Fields[j].Name,
 					Type:  g.Fields[j].Type.Name(),
 					Pkg:   g.Fields[j].Type.PkgPath(),
-					Tag:   &g.Fields[j].Tag,
 					Value: data[i].entityData.(reflect.Value).Elem().Field(j).Interface(),
-				})
+				}
+				if string(g.Fields[j].Tag) != "" {
+					for k, fn := range tagParsers {
+						if v, ok := g.Fields[j].Tag.Lookup(k); ok {
+							fn(&ef, v)
+							break
+						}
+					}
+				}
+				data[i].Fields = append(data[i].Fields, ef)
 			}
 		}
 	}
