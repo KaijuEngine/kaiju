@@ -75,6 +75,9 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 		slog.Error("Invalid UI event type")
 		return
 	}
+	if ui.events[eType].IsEmpty() {
+		return
+	}
 	if group.isThreaded {
 		group.lock.Lock()
 	}
@@ -121,7 +124,6 @@ func (group *Group) lateUpdate() {
 			return sortRequests(&group.requests[i], &group.requests[j])
 		})
 		available := bitmap.NewTrue(EventTypeEnd)
-		last := [EventTypeEnd]*engine.Entity{}
 		for i := 0; i < len(group.requests); i++ {
 			has = has || group.requests[i].eventType != EventTypeMiss
 			req := &group.requests[i]
@@ -135,15 +137,8 @@ func (group *Group) lateUpdate() {
 				case EventTypeClick, EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
 					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
 					EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
-					l := last[req.eventType]
-					e := req.target.Entity()
-					last[req.eventType] = e
-					if l != nil && l.Parent != e {
+					if req.target.ExecuteEvent(req.eventType) {
 						shouldContinue = false
-					} else {
-						if req.target.ExecuteEvent(req.eventType) {
-							shouldContinue = false
-						}
 					}
 				default:
 					slog.Error("Invalid UI event type")
