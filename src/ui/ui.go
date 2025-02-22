@@ -147,6 +147,7 @@ func (ui *UI) Host() *engine.Host              { return ui.man.Host }
 func (ui *UI) dirty() DirtyType                { return ui.dirtyType }
 func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
 func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
+func (ui *UI) Type() ElementType               { return ui.elmType }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()

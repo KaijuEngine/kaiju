@@ -1,14 +1,32 @@
 package shader_designer
 
 import (
+	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 const (
 	shaderPipeline = "editor/ui/shader_designer/shader_pipeline_window.html"
 )
+
+type ShaderPipelineColorBlendAttachments struct {
+	BlendEnable         bool
+	SrcColorBlendFactor string
+	DstColorBlendFactor string
+	ColorBlendOp        string
+	SrcAlphaBlendFactor string
+	DstAlphaBlendFactor string
+	AlphaBlendOp        string
+	ColorWriteMaskR     bool
+	ColorWriteMaskG     bool
+	ColorWriteMaskB     bool
+	ColorWriteMaskA     bool
+}
 
 type ShaderPipelineData struct {
 	Path                    string
@@ -29,6 +47,7 @@ type ShaderPipelineData struct {
 	MinSampleShading        float32
 	AlphaToCoverageEnable   bool
 	AlphaToOneEnable        bool
+	ColorBlendAttachments   []ShaderPipelineColorBlendAttachments
 	LogicOpEnable           bool
 	LogicOp                 string
 	BlendConstants0         float32
@@ -109,6 +128,17 @@ func setupShaderPipelineDefaults() ShaderPipelineData {
 	}
 }
 
+func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
+	win.pipeline = setupShaderPipelineDefaults()
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(man, shaderPipeline,
+		win.pipeline, map[string]func(*document.Element){
+			"showTooltip":  showPipelineTooltip,
+			"valueChanged": win.pipeline.valueChanged,
+			"pathChanged":  win.pipeline.pathChanged,
+		})
+	//win.pipelineDoc.Deactivate()
+}
+
 func showPipelineTooltip(e *document.Element) {
 	if len(e.Children) < 2 {
 		return
@@ -128,11 +158,36 @@ func showPipelineTooltip(e *document.Element) {
 	lbl.ToLabel().SetText(tip)
 }
 
-func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
-	win.pipeline = setupShaderPipelineDefaults()
-	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(man, shaderPipeline,
-		win.pipeline, map[string]func(*document.Element){
-			"showTooltip": showPipelineTooltip,
-		})
-	//win.pipelineDoc.Deactivate()
+func (p *ShaderPipelineData) pathChanged(e *document.Element) {
+	p.Path = e.UI.ToInput().Text()
+}
+
+func (p *ShaderPipelineData) valueChanged(e *document.Element) {
+	id := e.Attribute("id")
+	idx := -1
+	sep := strings.Index(id, "_")
+	if sep >= 0 {
+		id = id[:sep]
+		if i, err := strconv.Atoi(id[sep+1:]); err != nil {
+			idx = i
+		}
+	}
+	var v reflect.Value
+	if idx >= 0 {
+		v = reflect.ValueOf(p.ColorBlendAttachments[idx])
+	} else {
+		v = reflect.ValueOf(p)
+	}
+	field := v.Elem().FieldByName(id)
+	var val reflect.Value
+	switch e.UI.Type() {
+	case ui.ElementTypeInput:
+		res := klib.StringToTypeValue(field.Type().String(), e.UI.ToInput().Text())
+		val = reflect.ValueOf(res)
+	case ui.ElementTypeSelect:
+		val = reflect.ValueOf(e.UI.ToSelect().Value())
+	case ui.ElementTypeCheckbox:
+		val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
+	}
+	field.Set(val)
 }
