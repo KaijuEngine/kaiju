@@ -48,14 +48,15 @@ func (man *Manager) update(deltaTime float64) {
 	// Then we go through and update all the remaining UI elements
 	wg = sync.WaitGroup{}
 	limit = 100
-	for i := range children {
+	all := append(children, roots...)
+	for i := range all {
 		wg.Add(1)
 		go func() {
-			children[i].updateFromManager(deltaTime)
+			all[i].updateFromManager(deltaTime)
 			wg.Done()
 		}()
 		limit--
-		if limit == 0 && i < len(children)-1 {
+		if limit == 0 && i < len(all)-1 {
 			wg.Wait()
 			limit = 100
 		}

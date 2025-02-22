@@ -46,7 +46,7 @@ import (
 	"kaiju/editor/ui/editor_settings_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
-	"kaiju/editor/ui/shader_designer_window"
+	"kaiju/editor/ui/shader_designer"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -190,7 +190,7 @@ func (m *Menu) openHierarchyWindow(*document.Element) {
 }
 
 func (m *Menu) openShaderDesignerWindow(*document.Element) {
-	shader_designer_window.New()
+	shader_designer.New()
 }
 
 func (m *Menu) newEntity(*document.Element) {

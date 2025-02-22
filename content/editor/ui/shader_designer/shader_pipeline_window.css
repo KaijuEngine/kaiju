@@ -5,7 +5,8 @@
 }
 .bottomTooltip {
 	width: 100%;
-	height: calc(20% - 2px);
+	height: calc(20% - 11px);
+	margin-top: 10px;
 	overflow-y: scroll;
 }
 .inputItem {

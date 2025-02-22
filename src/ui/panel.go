@@ -99,7 +99,6 @@ type panelData struct {
 	scrollDirection           PanelScrollDirection
 	scrollEvent               events.Id
 	borderStyle               [4]BorderStyle
-	color                     matrix.Color
 	drawing                   rendering.Drawing
 	fitContent                ContentFit
 	requestScrollX            requestScroll
@@ -131,7 +130,6 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	pd.scrollEvent = 0
 	pd.scrollSpeed = 20.0
 	pd.scrollDirection = PanelScrollDirectionVertical
-	pd.color = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
@@ -142,6 +140,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	}
 	base := panel.Base()
 	base.init(ts, anchor)
+	panel.shaderData.FgColor = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)
@@ -576,8 +575,6 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		shader := p.man.Host.ShaderCache().ShaderFromDefinition(
 			assets.ShaderDefinitionUI)
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
-		p.shaderData.BgColor = pd.color
-		p.shaderData.FgColor = pd.color
 		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}

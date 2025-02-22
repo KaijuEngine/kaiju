@@ -264,7 +264,7 @@ func (input *Input) setBgColors() {
 			ld.fgColor, sd.FgColor)
 		if data.selectStart != data.selectEnd {
 			data.label.ColorRange(data.selectStart, data.selectEnd,
-				ld.fgColor, data.highlight.PanelData().color)
+				ld.fgColor, data.highlight.shaderData.FgColor)
 		}
 	}
 }

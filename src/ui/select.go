@@ -49,7 +49,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		lbl.SetBaseline(rendering.FontBaselineCenter)
 		lbl.SetFontSize(14)
 		lbl.SetColor(matrix.ColorBlack())
-		lbl.SetBGColor(p.PanelData().color)
+		lbl.SetBGColor(p.shaderData.FgColor)
 		p.AddChild(label)
 		data.label = lbl
 	}
@@ -64,7 +64,6 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		lp.layout.SetZ(s.layout.z + 10)
 		listPanel.layout.SetPositioning(PositioningAbsolute)
 		data.list = lp
-		listPanel.Hide()
 	}
 	{
 		// Up/down triangle
@@ -76,7 +75,6 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		img.Init(triTex, AnchorRight)
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
-		tri.layout.SetZ(30)
 		p.AddChild(tri)
 		img.layout.Scale(16, 16)
 		tri.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
@@ -90,6 +88,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	// TODO:  On list miss, close it, which means this local_select_click
 	// will probably need to skip on that miss?
 	s.Base().AddEvent(EventTypeClick, s.onClick)
+	s.collapse()
 }
 
 func (s *Select) AddOption(name string) {
@@ -111,10 +110,18 @@ func (s *Select) AddOption(name string) {
 	lbl.SetBaseline(rendering.FontBaselineCenter)
 	lbl.SetFontSize(14)
 	lbl.SetColor(matrix.ColorBlack())
-	lbl.SetBGColor(data.list.PanelData().color)
+	lbl.SetBGColor(data.list.shaderData.FgColor)
 	p.AddChild(label)
 	data.list.AddChild(panel)
 	panel.AddEvent(EventTypeClick, func() { s.optionClick(panel) })
+	panel.events[EventTypeEnter].Add(func() {
+		p.EnforceColor(matrix.ColorGray())
+		lbl.SetBGColor(p.shaderData.FgColor)
+	})
+	panel.events[EventTypeExit].Add(func() {
+		p.UnEnforceColor()
+		lbl.SetBGColor(p.shaderData.FgColor)
+	})
 }
 
 func (s *Select) PickOptionByLabel(label string) {
