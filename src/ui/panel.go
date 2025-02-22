@@ -513,7 +513,7 @@ func (p *Panel) SetSpeed(speed float32) {
 func (p *Panel) recreateDrawing() {
 	p.shaderData.Destroy()
 	proxy := p.shaderData
-	proxy.CancelDestroy()
+	proxy.Reconstruct()
 	p.shaderData = proxy
 }
 
