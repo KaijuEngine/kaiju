@@ -3,7 +3,7 @@ package pooling
 type PoolGroupId = int
 
 type PoolGroup[T any] struct {
-	pools []Pool[T]
+	pools []*Pool[T]
 }
 
 func (p *PoolGroup[T]) Count() int { return len(p.pools) }
@@ -11,13 +11,13 @@ func (p *PoolGroup[T]) Count() int { return len(p.pools) }
 func (p *PoolGroup[T]) selectPool() (*Pool[T], PoolGroupId) {
 	for i := range p.pools {
 		if p.pools[i].availableLen > 0 {
-			return &p.pools[i], i
+			return p.pools[i], i
 		}
 	}
-	p.pools = append(p.pools, Pool[T]{})
+	p.pools = append(p.pools, &Pool[T]{})
 	last := len(p.pools) - 1
 	p.pools[last].init()
-	return &p.pools[last], last
+	return p.pools[last], last
 }
 
 func (p *PoolGroup[T]) Clear() {
@@ -45,7 +45,7 @@ func (p *PoolGroup[T]) Remove(poolIndex PoolGroupId, elementId PoolIndex) {
 	if len(p.pools) <= poolIndex {
 		return
 	}
-	pool := &p.pools[poolIndex]
+	pool := p.pools[poolIndex]
 	for i := range pool.takenLen {
 		if pool.taken[i] == elementId {
 			// Swap this index with the last one
@@ -68,7 +68,7 @@ func (p *PoolGroup[T]) Reserve(additionalElements int) {
 	}
 	addPools := additionalElements / ElementsInPool
 	for range addPools {
-		p.pools = append(p.pools, Pool[T]{})
+		p.pools = append(p.pools, &Pool[T]{})
 		p.pools[len(p.pools)-1].init()
 	}
 }
