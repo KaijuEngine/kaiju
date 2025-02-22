@@ -45,6 +45,14 @@ import (
 	"sync"
 )
 
+type requestState = int
+
+const (
+	requestStateNone = requestState(iota)
+	requestStateStarted
+	requestStateProcessed
+)
+
 type groupRequest struct {
 	target    *UI
 	eventType EventType
@@ -55,7 +63,7 @@ type Group struct {
 	focus       *UI
 	updateId    int
 	lock        sync.Mutex
-	hadRequests bool
+	hadRequests requestState
 	isThreaded  bool
 }
 
@@ -67,13 +75,20 @@ func NewGroup() *Group {
 }
 
 func (group *Group) HasRequests() bool {
-	return group.hadRequests || group.focus != nil
+	return group.hadRequests != requestStateNone || group.focus != nil
 }
 
 func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if eType < EventTypeInvalid || eType >= EventTypeEnd {
 		slog.Error("Invalid UI event type")
 		return
+	}
+	if group.hadRequests != requestStateStarted {
+		if eType != EventTypeMiss {
+			group.lock.Lock()
+			group.hadRequests = requestStateStarted
+			group.lock.Unlock()
+		}
 	}
 	if ui.events[eType].IsEmpty() {
 		return
@@ -88,7 +103,6 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if group.isThreaded {
 		group.lock.Unlock()
 	}
-	group.hadRequests = group.hadRequests || eType != EventTypeMiss
 }
 
 func (group *Group) setFocus(ui *UI) {
@@ -118,14 +132,12 @@ func sortRequests(a *groupRequest, b *groupRequest) bool {
 }
 
 func (group *Group) lateUpdate() {
-	has := false
 	if len(group.requests) > 0 {
 		sort.Slice(group.requests, func(i, j int) bool {
 			return sortRequests(&group.requests[i], &group.requests[j])
 		})
 		available := bitmap.NewTrue(EventTypeEnd)
 		for i := 0; i < len(group.requests); i++ {
-			has = has || group.requests[i].eventType != EventTypeMiss
 			req := &group.requests[i]
 			if bitmap.Check(available, req.eventType) {
 				shouldContinue := true
@@ -149,7 +161,12 @@ func (group *Group) lateUpdate() {
 		}
 		group.requests = group.requests[:0]
 	}
-	group.hadRequests = has
+	switch group.hadRequests {
+	case requestStateStarted:
+		group.hadRequests = requestStateProcessed
+	case requestStateProcessed:
+		group.hadRequests = requestStateNone
+	}
 }
 
 func (g *Group) SetThreaded() {
