@@ -8,11 +8,12 @@ import (
 )
 
 type ShaderDesignerData struct {
-	Vert string
-	Frag string
-	Geom string
-	Tese string
-	Tesc string
+	Vert     string
+	Frag     string
+	Geom     string
+	Tese     string
+	Tesc     string
+	Topology string
 }
 
 func New() {
