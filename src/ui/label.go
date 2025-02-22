@@ -217,10 +217,11 @@ func (label *Label) renderText() {
 			ld.baseline, label.entity.Transform.WorldScale(), true,
 			false, ld.fontFace, ld.lineHeight)
 		for i := range ld.runeDrawings {
-			ld.runeDrawings[i].Transform = &label.entity.Transform
+			rd := &ld.runeDrawings[i]
+			rd.Transform = &label.entity.Transform
 			ld.runeShaderData = append(ld.runeShaderData,
-				ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
-			ld.runeDrawings[i].UseBlending = ld.bgColor.A() < 1.0
+				rd.ShaderData.(*rendering.TextShaderData))
+			rd.UseBlending = ld.bgColor.A() < 1.0
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])

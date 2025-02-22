@@ -21,27 +21,45 @@ type manUp struct {
 func (man *Manager) update(deltaTime float64) {
 	wg := sync.WaitGroup{}
 	// First we update all the root UI elements, this will stabilize the tree
+	roots := []*UI{}
+	children := []*UI{}
 	man.pools.Each(func(elm *UI) {
 		if (*elm).Entity().IsRoot() {
-			wg.Add(1)
-			go func() {
-				elm.rootCleanIfNeeded()
-				wg.Done()
-			}()
+			roots = append(roots, elm)
+		} else {
+			children = append(children, elm)
 		}
 	})
+
+	limit := 100
+	for i := range roots {
+		wg.Add(1)
+		go func() {
+			roots[i].cleanIfNeeded()
+			wg.Done()
+		}()
+		limit--
+		if limit == 0 && i < len(roots)-1 {
+			wg.Wait()
+			limit = 100
+		}
+	}
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
 	wg = sync.WaitGroup{}
-	man.pools.Each(func(elm *UI) {
-		if !(*elm).Entity().IsRoot() {
-			wg.Add(1)
-			go func() {
-				elm.updateFromManager(deltaTime)
-				wg.Done()
-			}()
+	limit = 100
+	for i := range children {
+		wg.Add(1)
+		go func() {
+			children[i].updateFromManager(deltaTime)
+			wg.Done()
+		}()
+		limit--
+		if limit == 0 && i < len(children)-1 {
+			wg.Wait()
+			limit = 100
 		}
-	})
+	}
 	wg.Wait()
 }
 

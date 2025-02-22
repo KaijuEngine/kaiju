@@ -225,7 +225,7 @@ func (ui *UI) Clean() {
 			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
-		maxIterations--
+		//maxIterations--
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
@@ -407,10 +407,9 @@ func (ui *UI) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
 }
 
-func (ui *UI) rootCleanIfNeeded() {
-	root := ui.rootUI()
-	if root.anyChildDirty() {
-		root.Clean()
+func (ui *UI) cleanIfNeeded() {
+	if ui.anyChildDirty() {
+		ui.Clean()
 	}
 }
 

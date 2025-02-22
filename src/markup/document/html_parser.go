@@ -227,12 +227,15 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			for i := range e.Children {
 				child := e.Children[i]
 				if child.IsSelectOption() {
+					childText := ""
 					if len(child.Children) > 0 {
-						sel.AddOption(child.Children[0].Data())
-					} else {
-						sel.AddOption("")
+						childText = child.Children[0].Data()
 					}
-					if child.Attribute("value") == selectStartValue {
+					sel.AddOption(childText)
+					val := child.Attribute("value")
+					if val == selectStartValue {
+						sel.PickOption(i)
+					} else if val == "" && childText == selectStartValue {
 						sel.PickOption(i)
 					}
 				}
