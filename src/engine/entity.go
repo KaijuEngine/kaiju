@@ -384,3 +384,12 @@ func (e *Entity) HasChildRecursive(child *Entity) bool {
 	}
 	return false
 }
+
+func (e *Entity) IndexOfChild(child *Entity) int {
+	for i := range e.Children {
+		if e.Children[i] == child {
+			return i
+		}
+	}
+	return -1
+}

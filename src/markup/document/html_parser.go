@@ -150,6 +150,9 @@ func TransformHTML(htmlStr string, withData any) string {
 }
 
 func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Panel) {
+	if e.IsSelectOption() {
+		return
+	}
 	appendElement := func(uiElm *ui.UI, panel *ui.Panel) *Element {
 		e.UI = uiElm
 		e.UIPanel = panel
@@ -214,6 +217,26 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				input.SetNextFocusedInput(d.firstInput)
 			}
 			panel.SetOverflow(ui.OverflowVisible)
+		} else if e.IsSelect() {
+			sel := panel.Base().ToSelect()
+			sel.Init("", []string{}, ui.AnchorTopLeft)
+			selectStartValue := ""
+			if a := e.Attribute("value"); a != "" {
+				selectStartValue = a
+			}
+			for i := range e.Children {
+				child := e.Children[i]
+				if child.IsSelectOption() {
+					if len(child.Children) > 0 {
+						sel.AddOption(child.Children[0].Data())
+					} else {
+						sel.AddOption("")
+					}
+					if child.Attribute("value") == selectStartValue {
+						sel.PickOption(i)
+					}
+				}
+			}
 		} else {
 			panel.Init(nil, ui.AnchorTopLeft, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
