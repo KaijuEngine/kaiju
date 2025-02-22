@@ -386,9 +386,10 @@ func (l *Layout) prepare() {
 
 func (l *Layout) bounds() matrix.Vec2 {
 	if l.ui.Entity().IsRoot() {
+		w := l.ui.Host().Window
 		return matrix.Vec2{
-			matrix.Float(l.ui.Host().Window.Width()),
-			matrix.Float(l.ui.Host().Window.Height()),
+			matrix.Float(w.Width()),
+			matrix.Float(w.Height()),
 		}
 	} else {
 		parent := l.ui.Entity().Parent

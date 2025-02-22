@@ -39,7 +39,8 @@ package assets
 
 // Textures
 const (
-	TextureSquare = "textures/square.png"
+	TextureSquare   = "textures/square.png"
+	TextureTriangle = "textures/triangle.png"
 )
 
 // Shader definitions

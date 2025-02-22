@@ -443,7 +443,7 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeButton:
 		ui.ToPanel().update(deltaTime)
 	case ElementTypeSelect:
-		ui.ToPanel().update(deltaTime)
+		ui.ToSelect().update(deltaTime)
 	case ElementTypeSlider:
 		ui.ToSlider().update(deltaTime)
 	case ElementTypeImage:

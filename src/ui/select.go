@@ -10,6 +10,7 @@ type selectData struct {
 	panelData
 	label    *Label
 	list     *Panel
+	triangle *UI
 	options  []string
 	selected int
 	isOpen   bool
@@ -64,6 +65,23 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		listPanel.layout.SetPositioning(PositioningAbsolute)
 		data.list = lp
 		listPanel.Hide()
+	}
+	{
+		// Up/down triangle
+		triTex, _ := s.man.Host.TextureCache().Texture(
+			assets.TextureTriangle, rendering.TextureFilterLinear)
+		triTex.MipLevels = 1
+		tri := s.man.Add()
+		img := tri.ToImage()
+		img.Init(triTex, AnchorRight)
+		tri.ToPanel().SetColor(matrix.ColorBlack())
+		tri.layout.SetPositioning(PositioningAbsolute)
+		tri.layout.SetZ(30)
+		p.AddChild(tri)
+		img.layout.Scale(16, 16)
+		tri.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
+		data.triangle = tri
+		//img.layout.SetOffset(5, 0)
 	}
 	data.options = make([]string, 0, len(options))
 	for i := range options {
@@ -156,25 +174,20 @@ func (s *Select) onClick() {
 func (s *Select) expand() {
 	data := s.SelectData()
 	selectSize := s.layout.PixelSize()
-	pos := s.entity.Transform.WorldPosition()
 	data.list.Base().Show()
 	height := selectSize.Y() * 5
-	y := pos.Y() - (height * 0.5) - (selectSize.Y() * 0.5)
-	// TODO:  If it's off the screen on the bottom, make it show up above select
 	layout := &data.list.layout
-	layout.SetOffset(pos.X(), y)
-	layout.SetZ(pos.Z() + s.layout.Z() + 1)
 	layout.Scale(selectSize.X(), height)
-	// TODO:  For some reason it's not cleaning on the first frame
-	s.man.Host.RunAfterFrames(1, func() {
-		data.list.Base().SetDirty(DirtyTypeResize)
-	})
+	pos := s.entity.Transform.WorldPosition()
+	layout.SetZ(pos.Z() + s.layout.Z() + 1)
+	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 0))
 	data.isOpen = true
 }
 
 func (s *Select) collapse() {
 	data := s.SelectData()
 	data.list.Base().Hide()
+	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
 	data.isOpen = false
 }
 
@@ -182,4 +195,19 @@ func (s *Select) optionClick(option *UI) {
 	data := s.SelectData()
 	idx := data.list.entity.IndexOfChild(&option.entity)
 	s.PickOption(idx)
+}
+
+func (s *Select) update(deltaTime float64) {
+	s.Base().ToPanel().update(deltaTime)
+	data := s.SelectData()
+	if data.isOpen {
+		layout := &data.list.layout
+		pos := s.entity.Transform.WorldPosition()
+		selectSize := s.layout.PixelSize()
+		height := layout.PixelSize().Y()
+		y := pos.Y() - (height * 0.5) - (selectSize.Y() * 0.5)
+		// TODO:  If it's off the screen on the bottom, make it show up above select
+		layout.SetOffset(pos.X(), y)
+		// TODO:  For some reason it's not cleaning on the first frame
+	}
 }
