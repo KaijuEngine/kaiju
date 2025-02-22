@@ -512,9 +512,11 @@ func (p *Panel) SetSpeed(speed float32) {
 
 func (p *Panel) recreateDrawing() {
 	p.shaderData.Destroy()
-	proxy := p.shaderData
-	proxy.Reconstruct()
-	p.shaderData = proxy
+	proxy := *p.shaderData
+	proxy.CancelDestroy()
+	p.shaderData = &ShaderData{}
+	*p.shaderData = proxy
+	p.PanelData().drawing.ShaderData = p.shaderData
 }
 
 func (p *Panel) removeDrawing() {
@@ -586,7 +588,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			Shader:     shader,
 			Mesh:       rendering.NewMeshQuad(p.man.Host.MeshCache()),
 			Textures:   []*rendering.Texture{tex},
-			ShaderData: &p.shaderData,
+			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
 			CanvasId:   "default",
 		}

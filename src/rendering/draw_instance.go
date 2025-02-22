@@ -79,7 +79,7 @@ func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {
-	destroyed   *bool
+	destroyed   bool
 	deactivated bool
 	_           [2]byte
 	transform   *matrix.Transform
@@ -97,9 +97,7 @@ func (t ShaderDataBasic) Size() int {
 }
 
 func NewShaderDataBase() ShaderDataBase {
-	sdb := ShaderDataBase{
-		destroyed: new(bool),
-	}
+	sdb := ShaderDataBase{}
 	sdb.Setup()
 	return sdb
 }
@@ -112,10 +110,9 @@ func (s *ShaderDataBase) Size() int {
 	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
 }
 
-func (s *ShaderDataBase) Destroy()           { *s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()     { *s.destroyed = false }
-func (s *ShaderDataBase) Reconstruct()       { s.destroyed = new(bool) }
-func (s *ShaderDataBase) IsDestroyed() bool  { return *s.destroyed }
+func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
 func (s *ShaderDataBase) Activate()          { s.deactivated = false }
 func (s *ShaderDataBase) Deactivate()        { s.deactivated = true }
 func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }

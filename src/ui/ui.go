@@ -96,7 +96,7 @@ type UI struct {
 	downPos          matrix.Vec2
 	elmType          ElementType
 	dirtyType        DirtyType
-	shaderData       ShaderData
+	shaderData       *ShaderData
 	textureSize      matrix.Vec2
 	lastClick        float64
 	poolId           pooling.PoolGroupId
@@ -121,7 +121,9 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	}
 	ui.entity.Init(ui.Host().WorkGroup())
 	ui.man.Host.AddEntity(&ui.entity)
-	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
+	ui.shaderData = &ShaderData{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+	}
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
@@ -143,7 +145,7 @@ func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -ma
 func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
 func (ui *UI) Host() *engine.Host       { return ui.man.Host }
 func (ui *UI) dirty() DirtyType         { return ui.dirtyType }
-func (ui *UI) ShaderData() *ShaderData  { return &ui.shaderData }
+func (ui *UI) ShaderData() *ShaderData  { return ui.shaderData }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
