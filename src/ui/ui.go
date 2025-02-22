@@ -139,13 +139,14 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	})
 }
 
-func (ui *UI) Entity() *engine.Entity   { return &ui.entity }
-func (ui *UI) Layout() *Layout          { return &ui.layout }
-func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
-func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
-func (ui *UI) Host() *engine.Host       { return ui.man.Host }
-func (ui *UI) dirty() DirtyType         { return ui.dirtyType }
-func (ui *UI) ShaderData() *ShaderData  { return ui.shaderData }
+func (ui *UI) Entity() *engine.Entity          { return &ui.entity }
+func (ui *UI) Layout() *Layout                 { return &ui.layout }
+func (ui *UI) hasScissor() bool                { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *UI) selfScissor() matrix.Vec4        { return ui.shaderData.Scissor }
+func (ui *UI) Host() *engine.Host              { return ui.man.Host }
+func (ui *UI) dirty() DirtyType                { return ui.dirtyType }
+func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
+func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()

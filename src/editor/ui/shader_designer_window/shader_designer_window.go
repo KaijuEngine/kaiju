@@ -8,11 +8,6 @@ import (
 )
 
 type ShaderDesignerData struct {
-	Vert                    string
-	Frag                    string
-	Geom                    string
-	Tese                    string
-	Tesc                    string
 	Topology                string
 	PrimitiveRestart        bool
 	DepthClampEnable        bool
@@ -70,7 +65,26 @@ func New() {
 	shaderData := ShaderDesignerData{}
 	container.RunFunction(func() {
 		markup.DocumentFromHTMLAsset(&uiMan, html, shaderData, map[string]func(*document.Element){
-			//"openContributions": openContributions,
+			"showTooltip": showTooltip,
 		})
 	})
+}
+
+func showTooltip(e *document.Element) {
+	if len(e.Children) < 2 {
+		return
+	}
+	tip, ok := tooltips[e.Children[1].Attribute("id")]
+	if !ok {
+		return
+	}
+	tipElm := e.Root().FindElementById("ToolTip")
+	if tipElm == nil || len(tipElm.Children) == 0 {
+		return
+	}
+	lbl := tipElm.Children[0].UI
+	if !lbl.IsType(ui.ElementTypeLabel) {
+		return
+	}
+	lbl.ToLabel().SetText(tip)
 }
