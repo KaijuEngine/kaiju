@@ -107,6 +107,7 @@ type UI struct {
 	isRightDown      bool
 	drag             bool
 	lastActive       bool
+	dontClean        bool
 }
 
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
@@ -198,6 +199,9 @@ func (ui *UI) rootUI() *UI {
 }
 
 func (ui *UI) Clean() {
+	if ui.dontClean {
+		return
+	}
 	root := ui.rootUI()
 	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
@@ -212,7 +216,8 @@ func (ui *UI) Clean() {
 	}
 	createTree(root.Entity())
 	stabilized := false
-	for !stabilized {
+	maxIterations := 100
+	for !stabilized && maxIterations > 0 {
 		stabilized = true
 		for i := range tree {
 			tree[i].cleanDirty()
@@ -220,6 +225,7 @@ func (ui *UI) Clean() {
 			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
+		maxIterations--
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
@@ -435,7 +441,7 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeButton:
 		ui.ToPanel().update(deltaTime)
 	case ElementTypeSelect:
-		ui.Update(deltaTime)
+		ui.ToPanel().update(deltaTime)
 	case ElementTypeSlider:
 		ui.ToSlider().update(deltaTime)
 	case ElementTypeImage:
@@ -443,4 +449,12 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeCheckbox:
 		ui.ToPanel().update(deltaTime)
 	}
+}
+
+func (ui *UI) Hide() {
+	ui.entity.Deactivate()
+}
+
+func (ui *UI) Show() {
+	ui.entity.Activate()
 }
