@@ -1,6 +1,6 @@
 package shader_designer_window
 
-var tooltips = map[string]string{
+var pipelineTooltips = map[string]string{
 	// vkPipelineInputAssemblyStateCreateInfo
 	"Topology":         "Specifies the primitive topology used for rendering, defining how vertices are assembled into primitives (e.g., points, lines, or triangles). Common options include VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST for rendering triangles or VK_PRIMITIVE_TOPOLOGY_LINE_LIST for lines. This determines the structure of the geometry processed by the pipeline.",
 	"PrimitiveRestart": "Enables or disables primitive restart, a feature that allows breaking a single primitive strip (e.g., triangle strip) into multiple segments. When enabled (set to VK_TRUE), a special index value (e.g., 0xFFFFFFFF for 32-bit indices) in the index buffer restarts the primitive. Useful for rendering complex shapes efficiently in a single draw call.",
@@ -62,11 +62,11 @@ var tooltips = map[string]string{
 }
 
 func init() {
-	tooltips["BackFailOp"] = tooltips["FrontFailOp"]
-	tooltips["BackPassOp"] = tooltips["FrontPassOp"]
-	tooltips["BackDepthFailOp"] = tooltips["FrontDepthFailOp"]
-	tooltips["BackCompareOp"] = tooltips["FrontCompareOp"]
-	tooltips["BackCompareMask"] = tooltips["FrontCompareMask"]
-	tooltips["BackWriteMask"] = tooltips["FrontWriteMask"]
-	tooltips["BackReference"] = tooltips["FrontReference"]
+	pipelineTooltips["BackFailOp"] = pipelineTooltips["FrontFailOp"]
+	pipelineTooltips["BackPassOp"] = pipelineTooltips["FrontPassOp"]
+	pipelineTooltips["BackDepthFailOp"] = pipelineTooltips["FrontDepthFailOp"]
+	pipelineTooltips["BackCompareOp"] = pipelineTooltips["FrontCompareOp"]
+	pipelineTooltips["BackCompareMask"] = pipelineTooltips["FrontCompareMask"]
+	pipelineTooltips["BackWriteMask"] = pipelineTooltips["FrontWriteMask"]
+	pipelineTooltips["BackReference"] = pipelineTooltips["FrontReference"]
 }

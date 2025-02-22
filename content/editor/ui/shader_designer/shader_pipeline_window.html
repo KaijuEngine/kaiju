@@ -2,11 +2,17 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
-		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_designer_window.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_pipeline_window.css">
 	</head>
 	<body>
 		<div class="fill darkBG noClipY">
 			<div class="topFields">
+				<h1>Shader Pipeline Editor</h1>
+				<div class="inputItem">
+					<div class="inputLabel">Path:</div>
+					<input id="Path" class="input" type="text" value="{{.Path}}" />
+				</div>
+
 				<!-- vkPipelineInputAssemblyStateCreateInfo -->
 				<h3>Pipeline InputAssembly State</h3>
 				<div class="inputItem" onmouseenter="showTooltip">

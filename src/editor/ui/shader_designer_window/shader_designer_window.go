@@ -1,13 +1,19 @@
 package shader_designer_window
 
 import (
+	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/ui"
 )
 
-type ShaderDesignerData struct {
+const (
+	shaderPipeline = "editor/ui/shader_designer/shader_pipeline_window.html"
+)
+
+type ShaderPipelineData struct {
+	Path                    string
 	Topology                string
 	PrimitiveRestart        bool
 	DepthClampEnable        bool
@@ -55,26 +61,34 @@ type ShaderDesignerData struct {
 	PatchControlPoints      string
 }
 
-func New() {
-	const html = "editor/ui/shader_designer/shader_designer_window.html"
-	container := host_container.New("Shader Designer", nil)
-	uiMan := ui.Manager{}
-	uiMan.Init(container.Host)
-	go container.Run(640, 480, -1, -1)
-	<-container.PrepLock
-	shaderData := ShaderDesignerData{}
-	container.RunFunction(func() {
-		markup.DocumentFromHTMLAsset(&uiMan, html, shaderData, map[string]func(*document.Element){
-			"showTooltip": showTooltip,
-		})
-	})
+type ShaderDesigner struct {
+	pipeline    ShaderPipelineData
+	pipelineDoc *document.Document
 }
 
-func showTooltip(e *document.Element) {
+func uiInit(host *engine.Host) {
+	uiMan := ui.Manager{}
+	uiMan.Init(host)
+	win := ShaderDesigner{}
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&uiMan, shaderPipeline,
+		win.pipeline, map[string]func(*document.Element){
+			"showTooltip": showPipelineTooltip,
+		})
+	//win.pipelineDoc.Deactivate()
+}
+
+func New() {
+	container := host_container.New("Shader Designer", nil)
+	go container.Run(640, 480, -1, -1)
+	<-container.PrepLock
+	container.RunFunction(func() { uiInit(container.Host) })
+}
+
+func showPipelineTooltip(e *document.Element) {
 	if len(e.Children) < 2 {
 		return
 	}
-	tip, ok := tooltips[e.Children[1].Attribute("id")]
+	tip, ok := pipelineTooltips[e.Children[1].Attribute("id")]
 	if !ok {
 		return
 	}
