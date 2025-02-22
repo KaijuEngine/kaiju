@@ -59,10 +59,6 @@ const (
 	texOnHover
 )
 
-const (
-	defaultCheckboxSize = 25
-)
-
 type checkboxData struct {
 	panelData
 	label     *Label
@@ -84,7 +80,8 @@ func (cb *Checkbox) CheckboxData() *checkboxData {
 func (cb *Checkbox) Init(anchor Anchor) {
 	ld := &checkboxData{}
 	cb.elmData = ld
-	p := cb.Base().ToPanel()
+	base := cb.Base()
+	p := base.ToPanel()
 	tc := p.man.Host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
@@ -102,12 +99,11 @@ func (cb *Checkbox) Init(anchor Anchor) {
 		ld.textures[i].MipLevels = 1
 	}
 	p.Init(ld.textures[texOffIdle], anchor, ElementTypeCheckbox)
-	p.Base().AddEvent(EventTypeEnter, cb.onHover)
-	p.Base().AddEvent(EventTypeExit, cb.onBlur)
-	p.Base().AddEvent(EventTypeDown, cb.onDown)
-	p.Base().AddEvent(EventTypeUp, cb.onUp)
-	p.Base().AddEvent(EventTypeClick, cb.onClick)
-	cb.layout.Scale(defaultCheckboxSize, defaultCheckboxSize)
+	base.AddEvent(EventTypeEnter, cb.onHover)
+	base.AddEvent(EventTypeExit, cb.onBlur)
+	base.AddEvent(EventTypeDown, cb.onDown)
+	base.AddEvent(EventTypeUp, cb.onUp)
+	base.AddEvent(EventTypeClick, cb.onClick)
 }
 
 func (cb *Checkbox) onHover() {
