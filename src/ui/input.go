@@ -106,10 +106,10 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data := &inputData{}
 	input.elmData = data
 	p := input.Base().ToPanel()
-	p.Init(nil, anchor, ElementTypeInput)
 	host := p.man.Host
-	p.DontFitContent()
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	p.Init(tex, anchor, ElementTypeInput)
+	p.DontFitContent()
 
 	// Label
 	data.label = input.man.Add().ToLabel()
