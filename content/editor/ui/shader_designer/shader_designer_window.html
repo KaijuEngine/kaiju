@@ -5,34 +5,439 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_designer_window.css">
 	</head>
 	<body>
-		<div class="leftPanel darkBG noClipY">
+		<div class="fill darkBG noClipY">
+			<h3>Shader Files:</h3>
 			<div class="inputItem">
 				<div class="inputLabel">Vert:</div>
-				<input id="vert" class="input" type="text" value="{{.Vert}}" />
+				<input id="Vert" class="input" type="text" value="{{.Vert}}" />
 			</div>
 			<div class="inputItem">
 				<div class="inputLabel">Frag:</div>
-				<input id="frag" class="input" type="text" value="{{.Frag}}" />
+				<input id="Frag" class="input" type="text" value="{{.Frag}}" />
 			</div>
 			<div class="inputItem">
 				<div class="inputLabel">Geom:</div>
-				<input id="geom" class="input" type="text" value="{{.Geom}}" />
+				<input id="Geom" class="input" type="text" value="{{.Geom}}" />
 			</div>
 			<div class="inputItem">
 				<div class="inputLabel">Tese:</div>
-				<input id="tese" class="input" type="text" value="{{.Tese}}" />
+				<input id="Tese" class="input" type="text" value="{{.Tese}}" />
 			</div>
 			<div class="inputItem">
 				<div class="inputLabel">Tesc:</div>
-				<input id="tesc" class="input" type="text" value="{{.Tesc}}" />
+				<input id="Tesc" class="input" type="text" value="{{.Tesc}}" />
 			</div>
+
+			<!-- vkPipelineInputAssemblyStateCreateInfo -->
+			<h3>Pipeline InputAssembly State</h3>
 			<div class="inputItem">
 				<div class="inputLabel">Topology:</div>
-				<select id="topology" class="input" value="{{.Topology}}">
+				<select id="Topology" class="input" value="{{.Topology}}">
 					<option value="Points">Points</option>
 					<option value="Lines">Lines</option>
 					<option value="Triangles">Triangles</option>
 					<option value="Patches">Patches</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Primitive Restart:</div>
+				<input id="PrimitiveRestart" class="inputCheck" type="checkbox" {{if .PrimitiveRestart}}checked="checked"{{end}} />
+			</div>
+
+			<!-- vkPipelineRasterizationStateCreateInfo -->
+			<h3>Pipeline Rasterization State</h3>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Clamp:</div>
+				<input id="DepthClampEnable" class="inputCheck" type="checkbox" {{if .DepthClampEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Rasterizer Discard:</div>
+				<input id="RasterizerDiscardEnable" class="inputCheck" type="checkbox" {{if .RasterizerDiscardEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Polygon Mode:</div>
+				<select id="PolygonMode" class="input" value="{{.PolygonMode}}">
+					<option value="Fill">Fill</option>
+					<option value="Line">Line</option>
+					<option value="Point">Point</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Cull Mode:</div>
+				<select id="CullMode" class="input" value="{{.CullMode}}">
+					<option value="Front">Front</option>
+					<option value="Back">Back</option>
+					<option value="None">None</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Front Face:</div>
+				<select id="FrontFace" class="input" value="{{.FrontFace}}">
+					<option value="CounterClockwise">CounterClockwise</option>
+					<option value="Clockwise">Clockwise</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Bias:</div>
+				<input id="DepthBiasEnable" class="inputCheck" type="checkbox" {{if .DepthBiasEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Bias Constant Factor:</div>
+				<input id="DepthBiasConstantFactor" class="input" type="text" value="{{.DepthBiasConstantFactor}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Bias Clamp:</div>
+				<input id="DepthBiasClamp" class="input" type="text" value="{{.DepthBiasClamp}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Bias Slope Factor:</div>
+				<input id="DepthBiasSlopeFactor" class="input" type="text" value="{{.DepthBiasSlopeFactor}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Line Width:</div>
+				<input id="LineWidth" class="input" type="text" value="{{.LineWidth}}" />
+			</div>
+
+			<!-- vkPipelineMultisampleStateCreateInfo -->
+			<h3>Pipeline Multisample State</h3>
+			<div class="inputItem">
+				<div class="inputLabel">Rasterization Samples:</div>
+				<select id="RasterizationSamples" class="input" value="{{.RasterizationSamples}}">
+					<option value="1Bit">1Bit</option>
+					<option value="2Bit">2Bit</option>
+					<option value="4Bit">4Bit</option>
+					<option value="8Bit">8Bit</option>
+					<option value="16Bit">16Bit</option>
+					<option value="32Bit">32Bit</option>
+					<option value="64Bit">64Bit</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Sample Shading:</div>
+				<input id="SampleShadingEnable" class="inputCheck" type="checkbox" {{if .SampleShadingEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Min Sample Shading:</div>
+				<input id="MinSampleShading" class="input" type="text" value="{{.MinSampleShading}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Alpha To Coverage:</div>
+				<input id="AlphaToCoverageEnable" class="inputCheck" type="checkbox" {{if .AlphaToCoverageEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Alpha To One:</div>
+				<input id="AlphaToOneEnable" class="inputCheck" type="checkbox" {{if .AlphaToOneEnable}}checked="checked"{{end}} />
+			</div>
+
+			<!-- vkPipelineColorBlendAttachmentState -->
+			<!-- TODO:  This needs to be an array
+			BlendEnable         Bool32
+			SrcColorBlendFactor BlendFactor
+			DstColorBlendFactor BlendFactor
+			ColorBlendOp        BlendOp
+			SrcAlphaBlendFactor BlendFactor
+			DstAlphaBlendFactor BlendFactor
+			AlphaBlendOp        BlendOp
+			ColorWriteMask      ColorComponentFlags
+
+			BlendFactor:
+			BlendFactorZero                  BlendFactor = iota
+			BlendFactorOne                   BlendFactor = 1
+			BlendFactorSrcColor              BlendFactor = 2
+			BlendFactorOneMinusSrcColor      BlendFactor = 3
+			BlendFactorDstColor              BlendFactor = 4
+			BlendFactorOneMinusDstColor      BlendFactor = 5
+			BlendFactorSrcAlpha              BlendFactor = 6
+			BlendFactorOneMinusSrcAlpha      BlendFactor = 7
+			BlendFactorDstAlpha              BlendFactor = 8
+			BlendFactorOneMinusDstAlpha      BlendFactor = 9
+			BlendFactorConstantColor         BlendFactor = 10
+			BlendFactorOneMinusConstantColor BlendFactor = 11
+			BlendFactorConstantAlpha         BlendFactor = 12
+			BlendFactorOneMinusConstantAlpha BlendFactor = 13
+			BlendFactorSrcAlphaSaturate      BlendFactor = 14
+			BlendFactorSrc1Color             BlendFactor = 15
+			BlendFactorOneMinusSrc1Color     BlendFactor = 16
+			BlendFactorSrc1Alpha             BlendFactor = 17
+			BlendFactorOneMinusSrc1Alpha     BlendFactor = 18
+
+			BlendOp:
+			BlendOpAdd              BlendOp = iota
+			BlendOpSubtract         BlendOp = 1
+			BlendOpReverseSubtract  BlendOp = 2
+			BlendOpMin              BlendOp = 3
+			BlendOpMax              BlendOp = 4
+			BlendOpZero             BlendOp = 1000148000
+			BlendOpSrc              BlendOp = 1000148001
+			BlendOpDst              BlendOp = 1000148002
+			BlendOpSrcOver          BlendOp = 1000148003
+			BlendOpDstOver          BlendOp = 1000148004
+			BlendOpSrcIn            BlendOp = 1000148005
+			BlendOpDstIn            BlendOp = 1000148006
+			BlendOpSrcOut           BlendOp = 1000148007
+			BlendOpDstOut           BlendOp = 1000148008
+			BlendOpSrcAtop          BlendOp = 1000148009
+			BlendOpDstAtop          BlendOp = 1000148010
+			BlendOpXor              BlendOp = 1000148011
+			BlendOpMultiply         BlendOp = 1000148012
+			BlendOpScreen           BlendOp = 1000148013
+			BlendOpOverlay          BlendOp = 1000148014
+			BlendOpDarken           BlendOp = 1000148015
+			BlendOpLighten          BlendOp = 1000148016
+			BlendOpColordodge       BlendOp = 1000148017
+			BlendOpColorburn        BlendOp = 1000148018
+			BlendOpHardlight        BlendOp = 1000148019
+			BlendOpSoftlight        BlendOp = 1000148020
+			BlendOpDifference       BlendOp = 1000148021
+			BlendOpExclusion        BlendOp = 1000148022
+			BlendOpInvert           BlendOp = 1000148023
+			BlendOpInvertRgb        BlendOp = 1000148024
+			BlendOpLineardodge      BlendOp = 1000148025
+			BlendOpLinearburn       BlendOp = 1000148026
+			BlendOpVividlight       BlendOp = 1000148027
+			BlendOpLinearlight      BlendOp = 1000148028
+			BlendOpPinlight         BlendOp = 1000148029
+			BlendOpHardmix          BlendOp = 1000148030
+			BlendOpHslHue           BlendOp = 1000148031
+			BlendOpHslSaturation    BlendOp = 1000148032
+			BlendOpHslColor         BlendOp = 1000148033
+			BlendOpHslLuminosity    BlendOp = 1000148034
+			BlendOpPlus             BlendOp = 1000148035
+			BlendOpPlusClamped      BlendOp = 1000148036
+			BlendOpPlusClampedAlpha BlendOp = 1000148037
+			BlendOpPlusDarker       BlendOp = 1000148038
+			BlendOpMinus            BlendOp = 1000148039
+			BlendOpMinusClamped     BlendOp = 1000148040
+			BlendOpContrast         BlendOp = 1000148041
+			BlendOpInvertOvg        BlendOp = 1000148042
+			BlendOpRed              BlendOp = 1000148043
+			BlendOpGreen            BlendOp = 1000148044
+			BlendOpBlue             BlendOp = 1000148045
+
+			ColorComponentFlags:
+			Four checkboxes (R, G, B, A) -->
+
+			<!-- vkPipelineColorBlendStateCreateInfo -->
+			<h3>Pipeline Color Blend State</h3>
+			<div class="inputItem">
+				<div class="inputLabel">Logic Op:</div>
+				<input id="LogicOpEnable" class="inputCheck" type="checkbox" {{if .LogicOpEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Logic Op:</div>
+				<select id="LogicOp" class="input" value="{{.LogicOp}}">
+					<option value="Clear">Clear</option>
+					<option value="And">And</option>
+					<option value="AndReverse">AndReverse</option>
+					<option value="Copy">Copy</option>
+					<option value="AndInverted">AndInverted</option>
+					<option value="NoOp">NoOp</option>
+					<option value="Xor">Xor</option>
+					<option value="Or">Or</option>
+					<option value="Nor">Nor</option>
+					<option value="Equivalent">Equivalent</option>
+					<option value="Invert">Invert</option>
+					<option value="OrReverse">OrReverse</option>
+					<option value="CopyInverted">CopyInverted</option>
+					<option value="OrInverted">OrInverted</option>
+					<option value="Nand">Nand</option>
+					<option value="Set">Set</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Blend Constants [4]:</div>
+				<input id="BlendConstants0" class="input" type="text" value="{{.BlendConstants0}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel"></div>
+				<input id="BlendConstants1" class="input" type="text" value="{{.BlendConstants1}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel"></div>
+				<input id="BlendConstants2" class="input" type="text" value="{{.BlendConstants2}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel"></div>
+				<input id="BlendConstants3" class="input" type="text" value="{{.BlendConstants3}}" />
+			</div>
+
+			<!-- vkPipelineDepthStencilStateCreateInfo -->
+			<div class="inputItem">
+				<div class="inputLabel">Depth Test:</div>
+				<input id="DepthTestEnable" class="inputCheck" type="checkbox" {{if .DepthTestEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Write:</div>
+				<input id="DepthWriteEnable" class="inputCheck" type="checkbox" {{if .DepthWriteEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Compare Op:</div>
+				<select id="DepthCompareOp" class="input" value="{{.DepthCompareOp}}">
+					<option value="Never">Never</option>
+					<option value="Less">Less</option>
+					<option value="Equal">Equal</option>
+					<option value="LessOrEqual">LessOrEqual</option>
+					<option value="Greater">Greater</option>
+					<option value="NotEqual">NotEqual</option>
+					<option value="GreaterOrEqual">GreaterOrEqual</option>
+					<option value="Always">Always</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Bounds Test:</div>
+				<input id="DepthBoundsTestEnable" class="inputCheck" type="checkbox" {{if .DepthBoundsTestEnable}}checked="checked"{{end}} />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Stencil Test:</div>
+				<input id="StencilTestEnable" class="inputCheck" type="checkbox" {{if .StencilTestEnable}}checked="checked"{{end}} />
+			</div>
+			<h4>Front</h4>
+			<div class="inputItem">
+				<div class="inputLabel">Fail Op:</div>
+				<select id="FrontFailOp" class="input" value="{{.FrontFailOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Pass Op:</div>
+				<select id="FrontPassOp" class="input" value="{{.FrontPassOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Fail Op:</div>
+				<select id="FrontDepthFailOp" class="input" value="{{.FrontDepthFailOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Compare Op:</div>
+				<select id="FrontCompareOp" class="input" value="{{.FrontCompareOp}}">
+					<option value="Never">Never</option>
+					<option value="Less">Less</option>
+					<option value="Equal">Equal</option>
+					<option value="LessOrEqual">LessOrEqual</option>
+					<option value="Greater">Greater</option>
+					<option value="NotEqual">NotEqual</option>
+					<option value="GreaterOrEqual">GreaterOrEqual</option>
+					<option value="Always">Always</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Compare Mask:</div>
+				<input id="FrontCompareMask" class="input" type="text" value="{{.FrontCompareMask}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Write Mask:</div>
+				<input id="FrontWriteMask" class="input" type="text" value="{{.FrontWriteMask}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Reference:</div>
+				<input id="FrontReference" class="input" type="text" value="{{.FrontReference}}" />
+			</div>
+			<h4>Back</h4>
+			<div class="inputItem">
+				<div class="inputLabel">Fail Op:</div>
+				<select id="BackFailOp" class="input" value="{{.BackFailOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Pass Op:</div>
+				<select id="BackPassOp" class="input" value="{{.BackPassOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Depth Fail Op:</div>
+				<select id="BackDepthFailOp" class="input" value="{{.BackDepthFailOp}}">
+					<option value="Keep">Keep</option>
+					<option value="Zero">Zero</option>
+					<option value="Replace">Replace</option>
+					<option value="IncrementAndClamp">IncrementAndClamp</option>
+					<option value="DecrementAndClamp">DecrementAndClamp</option>
+					<option value="Invert">Invert</option>
+					<option value="IncrementAndWrap">IncrementAndWrap</option>
+					<option value="DecrementAndWrap">DecrementAndWrap</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Compare Op:</div>
+				<select id="BackCompareOp" class="input" value="{{.BackCompareOp}}">
+					<option value="Never">Never</option>
+					<option value="Less">Less</option>
+					<option value="Equal">Equal</option>
+					<option value="LessOrEqual">LessOrEqual</option>
+					<option value="Greater">Greater</option>
+					<option value="NotEqual">NotEqual</option>
+					<option value="GreaterOrEqual">GreaterOrEqual</option>
+					<option value="Always">Always</option>
+				</select>
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Compare Mask:</div>
+				<input id="BackCompareMask" class="input" type="text" value="{{.BackCompareMask}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Write Mask:</div>
+				<input id="BackWriteMask" class="input" type="text" value="{{.BackWriteMask}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Reference:</div>
+				<input id="BackReference" class="input" type="text" value="{{.BackReference}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Min Depth Bounds:</div>
+				<input id="MinDepthBounds" class="input" type="text" value="{{.MinDepthBounds}}" />
+			</div>
+			<div class="inputItem">
+				<div class="inputLabel">Max Depth Bounds:</div>
+				<input id="MaxDepthBounds" class="input" type="text" value="{{.MaxDepthBounds}}" />
+			</div>
+
+			<!-- vkPipelineTessellationStateCreateInfo -->
+			<h3>Pipeline Tessellation State</h3>
+			<div class="inputItem">
+				<div class="inputLabel">Patch Control Points:</div>
+				<select id="PatchControlPoints" class="input" value="{{.PatchControlPoints}}">
+					<option value="Quads">Quads</option>
+					<option value="Triangles">Triangles</option>
+					<option value="Lines">Lines</option>
 				</select>
 			</div>
 		</div>
