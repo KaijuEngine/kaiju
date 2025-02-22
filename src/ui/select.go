@@ -57,6 +57,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		listPanel := s.man.Add()
 		lp := listPanel.ToPanel()
 		lp.Init(bg, AnchorCenter, ElementTypePanel)
+		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
 		lp.layout.SetZ(s.layout.z + 10)
