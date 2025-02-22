@@ -59,6 +59,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		lp.Init(bg, AnchorCenter, ElementTypePanel)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
+		lp.layout.SetZ(s.layout.z + 10)
 		listPanel.layout.SetPositioning(PositioningAbsolute)
 		data.list = lp
 		listPanel.Hide()
