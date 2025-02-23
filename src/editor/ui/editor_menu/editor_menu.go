@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/ui/editor_settings_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/log_window"
+	"kaiju/editor/ui/shader_designer"
 	"kaiju/engine"
 	"kaiju/host_container"
 	"kaiju/klib"
@@ -88,23 +89,24 @@ func New(container *host_container.Container,
 		editor:          editor,
 	}
 	funcMap := map[string]func(*document.Element){
-		"openLogWindow":       m.openLogWindow,
-		"openRepository":      openRepository,
-		"openAbout":           m.openAbout,
-		"newStage":            m.newStage,
-		"saveStage":           m.saveStage,
-		"openProject":         m.openProject,
-		"openContentWindow":   m.openContentWindow,
-		"openHierarchyWindow": m.openHierarchyWindow,
-		"newEntity":           m.newEntity,
-		"newCone":             m.newCone,
-		"newCube":             m.newCube,
-		"newCylinder":         m.newCylinder,
-		"newIcoSphere":        m.newIcoSphere,
-		"newPlane":            m.newPlane,
-		"newSphere":           m.newSphere,
-		"newTorus":            m.newTorus,
-		"showEditorSettings":  m.showEditorSettings,
+		"openLogWindow":            m.openLogWindow,
+		"openRepository":           openRepository,
+		"openAbout":                m.openAbout,
+		"newStage":                 m.newStage,
+		"saveStage":                m.saveStage,
+		"openProject":              m.openProject,
+		"openContentWindow":        m.openContentWindow,
+		"openHierarchyWindow":      m.openHierarchyWindow,
+		"openShaderDesignerWindow": m.openShaderDesignerWindow,
+		"newEntity":                m.newEntity,
+		"newCone":                  m.newCone,
+		"newCube":                  m.newCube,
+		"newCylinder":              m.newCylinder,
+		"newIcoSphere":             m.newIcoSphere,
+		"newPlane":                 m.newPlane,
+		"newSphere":                m.newSphere,
+		"newTorus":                 m.newTorus,
+		"showEditorSettings":       m.showEditorSettings,
 	}
 	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap)
 	allItems := m.doc.GetElementsByClass("menuItem")
@@ -185,6 +187,10 @@ func (m *Menu) openContentWindow(*document.Element) {
 
 func (m *Menu) openHierarchyWindow(*document.Element) {
 	m.hierarchyWindow.Show()
+}
+
+func (m *Menu) openShaderDesignerWindow(*document.Element) {
+	shader_designer.New()
 }
 
 func (m *Menu) newEntity(*document.Element) {

@@ -39,7 +39,6 @@ package matrix
 
 import (
 	"fmt"
-	"math"
 )
 
 const vec3StrFmt = "%f, %f, %f"
@@ -58,6 +57,9 @@ func (v *Vec3) SetZ(z Float)              { v[Vz] = z }
 func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vz]) }
 func (v Vec3) AsVec4() Vec4               { return Vec4{v[Vx], v[Vy], v[Vz], 1} }
 func (v Vec3) XYZ() (Float, Float, Float) { return v[Vx], v[Vy], v[Vz] }
+func (v Vec3) Width() Float               { return v[Vx] }
+func (v Vec3) Height() Float              { return v[Vy] }
+func (v Vec3) Depth() Float               { return v[Vz] }
 
 func (v Vec3) AsVec3i() Vec3i {
 	return Vec3i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz])}
@@ -191,9 +193,9 @@ func (v Vec3) Orthogonal() Vec3 {
 }
 
 func Vec3Approx(a, b Vec3) bool {
-	return Abs(a.X()-b.X()) < math.SmallestNonzeroFloat32 &&
-		Abs(a.Y()-b.Y()) < math.SmallestNonzeroFloat32 &&
-		Abs(a.Z()-b.Z()) < math.SmallestNonzeroFloat32
+	return Abs(a.X()-b.X()) < Tiny &&
+		Abs(a.Y()-b.Y()) < Tiny &&
+		Abs(a.Z()-b.Z()) < Tiny
 }
 
 func Vec3ApproxTo(a, b Vec3, delta Float) bool {

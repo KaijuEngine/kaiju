@@ -51,7 +51,7 @@ func openContributions(*document.Element) {
 
 func New() {
 	const html = "editor/ui/about_window.html"
-	container := host_container.New("About Window", nil)
+	container := host_container.New("About", nil)
 	uiMan := ui.Manager{}
 	uiMan.Init(container.Host)
 	go container.Run(500, 300, -1, -1)

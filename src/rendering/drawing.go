@@ -170,7 +170,9 @@ func (d *Drawings) AddDrawing(drawing *Drawing) {
 	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.backDraws = append(d.backDraws, *drawing)
+	copy := *drawing
+	copy.Textures = slices.Clone(drawing.Textures)
+	d.backDraws = append(d.backDraws, copy)
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {

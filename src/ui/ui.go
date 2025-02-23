@@ -96,7 +96,7 @@ type UI struct {
 	downPos          matrix.Vec2
 	elmType          ElementType
 	dirtyType        DirtyType
-	shaderData       ShaderData
+	shaderData       *ShaderData
 	textureSize      matrix.Vec2
 	lastClick        float64
 	poolId           pooling.PoolGroupId
@@ -107,6 +107,7 @@ type UI struct {
 	isRightDown      bool
 	drag             bool
 	lastActive       bool
+	dontClean        bool
 }
 
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
@@ -120,7 +121,9 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	}
 	ui.entity.Init(ui.Host().WorkGroup())
 	ui.man.Host.AddEntity(&ui.entity)
-	ui.shaderData.ShaderDataBase = rendering.NewShaderDataBase()
+	ui.shaderData = &ShaderData{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+	}
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
@@ -136,13 +139,15 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	})
 }
 
-func (ui *UI) Entity() *engine.Entity   { return &ui.entity }
-func (ui *UI) Layout() *Layout          { return &ui.layout }
-func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
-func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
-func (ui *UI) Host() *engine.Host       { return ui.man.Host }
-func (ui *UI) dirty() DirtyType         { return ui.dirtyType }
-func (ui *UI) ShaderData() *ShaderData  { return &ui.shaderData }
+func (ui *UI) Entity() *engine.Entity          { return &ui.entity }
+func (ui *UI) Layout() *Layout                 { return &ui.layout }
+func (ui *UI) hasScissor() bool                { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *UI) selfScissor() matrix.Vec4        { return ui.shaderData.Scissor }
+func (ui *UI) Host() *engine.Host              { return ui.man.Host }
+func (ui *UI) dirty() DirtyType                { return ui.dirtyType }
+func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
+func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
+func (ui *UI) Type() ElementType               { return ui.elmType }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
@@ -198,6 +203,9 @@ func (ui *UI) rootUI() *UI {
 }
 
 func (ui *UI) Clean() {
+	if ui.dontClean {
+		return
+	}
 	root := ui.rootUI()
 	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
@@ -212,7 +220,8 @@ func (ui *UI) Clean() {
 	}
 	createTree(root.Entity())
 	stabilized := false
-	for !stabilized {
+	maxIterations := 100
+	for !stabilized && maxIterations > 0 {
 		stabilized = true
 		for i := range tree {
 			tree[i].cleanDirty()
@@ -220,6 +229,7 @@ func (ui *UI) Clean() {
 			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
+		//maxIterations--
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
@@ -401,10 +411,9 @@ func (ui *UI) layoutChanged(dirtyType DirtyType) {
 	ui.SetDirty(dirtyType)
 }
 
-func (ui *UI) rootCleanIfNeeded() {
-	root := ui.rootUI()
-	if root.anyChildDirty() {
-		root.Clean()
+func (ui *UI) cleanIfNeeded() {
+	if ui.anyChildDirty() {
+		ui.Clean()
 	}
 }
 
@@ -435,7 +444,7 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeButton:
 		ui.ToPanel().update(deltaTime)
 	case ElementTypeSelect:
-		ui.Update(deltaTime)
+		ui.ToSelect().update(deltaTime)
 	case ElementTypeSlider:
 		ui.ToSlider().update(deltaTime)
 	case ElementTypeImage:
@@ -443,4 +452,12 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	case ElementTypeCheckbox:
 		ui.ToPanel().update(deltaTime)
 	}
+}
+
+func (ui *UI) Hide() {
+	ui.entity.Deactivate()
+}
+
+func (ui *UI) Show() {
+	ui.entity.Activate()
 }

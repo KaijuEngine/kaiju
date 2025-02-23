@@ -84,7 +84,7 @@ func setChildTextBackgroundColor(elm *Element, color matrix.Color) {
 }
 
 func (e *Element) IsText() bool {
-	return e.node.Type == html.TextNode
+	return e.node.Type == html.TextNode && (e.Parent == nil || e.Parent.node.Data != "option")
 }
 
 func (e *Element) IsButton() bool {
@@ -97,6 +97,14 @@ func (e *Element) IsInput() bool {
 
 func (e *Element) IsImage() bool {
 	return e.node.Data == "img"
+}
+
+func (e *Element) IsSelect() bool {
+	return e.node.Data == "select"
+}
+
+func (e *Element) IsSelectOption() bool {
+	return e.node.Data == "option"
 }
 
 func NewHTML(htmlStr string) *Element {

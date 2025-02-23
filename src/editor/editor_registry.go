@@ -49,6 +49,7 @@ func registerAssetImporters(ed *Editor) {
 	ed.assetImporters.Register(asset_importer.PNGImporter{})
 	ed.assetImporters.Register(asset_importer.StageImporter{})
 	ed.assetImporters.Register(asset_importer.HTMLImporter{})
+	ed.assetImporters.Register(asset_importer.ShaderPipelineImporter{})
 }
 
 func registerContentOpeners(ed *Editor) {
@@ -58,4 +59,5 @@ func registerContentOpeners(ed *Editor) {
 	ed.contentOpener.Register(content_opener.StageOpener{})
 	ed.contentOpener.Register(content_opener.HTMLOpener{})
 	ed.contentOpener.Register(content_opener.ImageOpener{})
+	ed.contentOpener.Register(content_opener.ShaderPipelineOpener{})
 }

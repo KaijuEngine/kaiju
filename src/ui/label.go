@@ -169,16 +169,25 @@ func (label *Label) clearDrawings() {
 }
 
 func (label *Label) labelPostLayoutUpdate() {
-	maxWidth := float32(999999.0)
-	if label.LabelData().wordWrap {
-		maxWidth = label.layout.PixelSize().Width()
+	maxWidth := label.MaxWidth()
+	l := label.LabelData()
+	if l.wordWrap {
+		if label.entity.Parent != nil {
+			p := FirstOnEntity(label.entity.Parent)
+			o := p.layout.padding
+			maxWidth = max(maxWidth, label.layout.PixelSize().Width()-o.X()-o.Z())
+		} else {
+			maxWidth = label.MaxWidth()
+		}
 	}
 	label.updateHeight(maxWidth)
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
-	m := label.measure(maxWidth)
-	label.layout.ScaleHeight(m.Y())
+	if label.layout.screenAnchor < AnchorStretchLeft {
+		m := label.measure(maxWidth)
+		label.layout.ScaleHeight(m.Y())
+	}
 }
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
@@ -188,7 +197,7 @@ func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 }
 
 func (label *Label) renderText() {
-	maxWidth := float32(999999.0)
+	maxWidth := label.MaxWidth()
 	ld := label.LabelData()
 	if ld.wordWrap {
 		if label.entity.Parent != nil {
@@ -199,7 +208,6 @@ func (label *Label) renderText() {
 			maxWidth = label.MaxWidth()
 		}
 	}
-	label.updateHeight(maxWidth)
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if ld.textLength > 0 {
@@ -209,10 +217,11 @@ func (label *Label) renderText() {
 			ld.baseline, label.entity.Transform.WorldScale(), true,
 			false, ld.fontFace, ld.lineHeight)
 		for i := range ld.runeDrawings {
-			ld.runeDrawings[i].Transform = &label.entity.Transform
+			rd := &ld.runeDrawings[i]
+			rd.Transform = &label.entity.Transform
 			ld.runeShaderData = append(ld.runeShaderData,
-				ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData))
-			ld.runeDrawings[i].UseBlending = ld.bgColor.A() < 1.0
+				rd.ShaderData.(*rendering.TextShaderData))
+			rd.UseBlending = ld.bgColor.A() < 1.0
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
@@ -227,9 +236,11 @@ func (label *Label) labelRender() {
 	label.events[EventTypeRender].Execute()
 	maxWidth := label.nonOverrideMaxWidth()
 	ld := label.LabelData()
-	if ld.lastRenderWidth != maxWidth {
+	if !matrix.Approx(ld.lastRenderWidth, maxWidth) {
 		ld.lastRenderWidth = maxWidth
-		ld.renderRequired = true
+		if ld.wordWrap {
+			ld.renderRequired = true
+		}
 	}
 	if ld.renderRequired {
 		label.renderText()

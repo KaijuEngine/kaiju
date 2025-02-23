@@ -40,7 +40,6 @@ package matrix
 import (
 	"kaiju/concurrent"
 	"kaiju/klib"
-	"math"
 	"slices"
 )
 
@@ -120,26 +119,27 @@ func (t *Transform) removeChild(child *Transform) {
 func (t *Transform) SetParent(parent *Transform) {
 	if t.parent == parent {
 		return
-	} else if t.parent != nil {
-		t.parent.removeChild(t)
 	}
 	pos, rot, scale := t.WorldTransform()
+	if t.parent != nil {
+		t.parent.removeChild(t)
+	}
 	t.parent = parent
 	if t.parent != nil {
 		p, r, s := t.parent.WorldTransform()
 		pos.SubtractAssign(p)
 		rot.SubtractAssign(r)
-		if Abs(s.X()) <= math.SmallestNonzeroFloat64 {
+		if Abs(s.X()) <= FloatSmallestNonzero {
 			scale.SetX(0)
 		} else {
 			scale.SetX(scale.X() / s.X())
 		}
-		if Abs(s.Y()) <= math.SmallestNonzeroFloat64 {
+		if Abs(s.Y()) <= FloatSmallestNonzero {
 			scale.SetY(0)
 		} else {
 			scale.SetY(scale.Y() / s.Y())
 		}
-		if Abs(s.Z()) <= math.SmallestNonzeroFloat64 {
+		if Abs(s.Z()) <= FloatSmallestNonzero {
 			scale.SetZ(0)
 		} else {
 			scale.SetZ(scale.Z() / s.Z())

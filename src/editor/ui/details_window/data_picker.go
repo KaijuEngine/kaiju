@@ -80,6 +80,7 @@ func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int {
 			dp.lock <- -1
 		}
 	})
+	dp.container.Host.Window.Focus()
 	return dp.lock
 }
 

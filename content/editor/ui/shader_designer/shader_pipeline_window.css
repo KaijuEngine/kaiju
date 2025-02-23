@@ -1,0 +1,41 @@
+.topFields {
+	width: 100%;
+	height: 80%;
+	overflow-y: scroll;
+}
+.bottomTooltip {
+	width: 100%;
+	height: calc(20% - 11px);
+	margin-top: 10px;
+	overflow-y: scroll;
+}
+.inputItem {
+	width: 100%;
+	height: 18px;
+	margin-top: 5px;
+}
+.inputButton {
+	height: 10px;
+	font-size: 10px;
+}
+.inputButtonWide {
+	width: 100%;
+	font-size: 16px;
+	margin-top: 10px;
+	font-weight: bold;
+}
+.inputLabel {
+	width: 30%;
+	height: 100%;
+}
+.input {
+	width: 69%;
+	height: 100%;
+}
+.inputCheck {
+	width: 20px;
+	height: 20px;
+}
+h3 {
+	margin-top: 15px;
+}

@@ -99,7 +99,6 @@ type panelData struct {
 	scrollDirection           PanelScrollDirection
 	scrollEvent               events.Id
 	borderStyle               [4]BorderStyle
-	color                     matrix.Color
 	drawing                   rendering.Drawing
 	fitContent                ContentFit
 	requestScrollX            requestScroll
@@ -131,7 +130,6 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	pd.scrollEvent = 0
 	pd.scrollSpeed = 20.0
 	pd.scrollDirection = PanelScrollDirectionVertical
-	pd.color = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
@@ -142,6 +140,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	}
 	base := panel.Base()
 	base.init(ts, anchor)
+	panel.shaderData.FgColor = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)
@@ -354,8 +353,11 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 
 func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 	for _, kid := range p.entity.Children {
-		pos := kid.Transform.Position()
 		kui := FirstOnEntity(kid)
+		if kui.layout.screenAnchor.IsStretch() {
+			continue
+		}
+		pos := kid.Transform.Position()
 		if kui.Layout().Positioning() == PositioningAbsolute {
 			continue
 		}
@@ -380,18 +382,21 @@ func (p *Panel) panelPostLayoutUpdate() {
 	}
 	pd := p.PanelData()
 	if pd.requestScrollX.requested {
-		x := matrix.Clamp(pd.requestScrollX.to, 0.0, pd.maxScroll.X())
+		x := matrix.Clamp(pd.requestScrollX.to, 0, pd.maxScroll.X())
 		pd.scroll.SetX(x)
+		pd.requestScrollX.requested = false
 	}
 	if pd.requestScrollY.requested {
 		y := matrix.Clamp(-pd.requestScrollY.to, -pd.maxScroll.Y(), 0)
 		pd.scroll.SetY(y)
+		pd.requestScrollY.requested = false
 	}
 	offsetStart := matrix.Vec2{-pd.scroll.X(), pd.scroll.Y()}
 	rows := make([]rowBuilder, 0)
 	ps := p.layout.PixelSize()
 	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z() -
 		p.layout.border.X() - p.layout.border.Z()
+	maxSize := matrix.Vec2{}
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -418,6 +423,9 @@ func (p *Panel) panelPostLayoutUpdate() {
 				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Right() +
 					p.layout.padding.Right() + p.layout.border.Right())
 			}
+			kws := kid.Transform.WorldScale()
+			maxSize[matrix.Vx] = max(maxSize.X(), kLayout.left+kLayout.offset.X()+kws.Width())
+			maxSize[matrix.Vy] = max(maxSize.Y(), kLayout.top+kLayout.offset.Y()+kws.Height())
 		case PositioningRelative:
 			fallthrough
 		case PositioningStatic:
@@ -430,13 +438,17 @@ func (p *Panel) panelPostLayoutUpdate() {
 		}
 	}
 	nextPos := offsetStart
-	nextPos[matrix.Vy] += p.layout.padding.Y() + p.layout.border.Y()
+	addY := p.layout.padding.Y() + p.layout.border.Y()
+	nextPos[matrix.Vy] += addY
+	maxSize[matrix.Vy] += addY
 	for i := range rows {
 		rows[i].setElements(p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
-		nextPos[matrix.Vy] += rows[i].Height()
+		addY = rows[i].height + rows[i].maxMarginTop + rows[i].maxMarginBottom
+		nextPos[matrix.Vy] += addY
+		maxSize[matrix.Vy] += addY
 	}
+	bounds := matrix.Vec2{maxSize.X(), maxSize.Y()}
 	if p.FittingContent() {
-		bounds := matrix.Vec2{0, nextPos[matrix.Vy]}
 		p.boundsChildren(&bounds)
 		border := p.layout.border
 		if pd.fitContent == ContentFitWidth {
@@ -448,13 +460,10 @@ func (p *Panel) panelPostLayoutUpdate() {
 				max(1, bounds.Y()+border.Top()+border.Bottom()))
 		}
 	}
-	length := nextPos.Subtract(offsetStart)
 	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
-	pd.maxScroll = matrix.Vec2{
-		matrix.Max(0.0, length.X()-ws.X()),
-		matrix.Max(0.0, length.Y()-ws.Y())}
-	if !matrix.Vec2Approx(last, pd.maxScroll) {
+	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, bounds.Y()-ws.Y()))
+	if !matrix.Vec2Roughly(last, pd.maxScroll) {
 		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
@@ -502,9 +511,11 @@ func (p *Panel) SetSpeed(speed float32) {
 
 func (p *Panel) recreateDrawing() {
 	p.shaderData.Destroy()
-	proxy := p.shaderData
+	proxy := *p.shaderData
 	proxy.CancelDestroy()
-	p.shaderData = proxy
+	p.shaderData = &ShaderData{}
+	*p.shaderData = proxy
+	p.PanelData().drawing.ShaderData = p.shaderData
 }
 
 func (p *Panel) removeDrawing() {
@@ -564,8 +575,6 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		shader := p.man.Host.ShaderCache().ShaderFromDefinition(
 			assets.ShaderDefinitionUI)
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
-		p.shaderData.BgColor = pd.color
-		p.shaderData.FgColor = pd.color
 		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
@@ -576,7 +585,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			Shader:     shader,
 			Mesh:       rendering.NewMeshQuad(p.man.Host.MeshCache()),
 			Textures:   []*rendering.Texture{tex},
-			ShaderData: &p.shaderData,
+			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
 			CanvasId:   "default",
 		}
