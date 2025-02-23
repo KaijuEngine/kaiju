@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	shaderPipeline = "editor/ui/shader_designer/shader_pipeline_window.html"
+	shaderPipelineHTML = "editor/ui/shader_designer/shader_pipeline_window.html"
 )
 
 func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
@@ -71,6 +71,54 @@ func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	}
 }
 
+type HTMLData struct {
+	rendering.ShaderPipelineData
+}
+
+func (h HTMLData) ListTopology() []string {
+	return klib.MapKeys(rendering.StringVkPrimitiveTopology)
+}
+
+func (h HTMLData) ListPolygonMode() []string {
+	return klib.MapKeys(rendering.StringVkPolygonMode)
+}
+
+func (h HTMLData) ListCullMode() []string {
+	return klib.MapKeys(rendering.StringVkCullModeFlagBits)
+}
+
+func (h HTMLData) ListFrontFace() []string {
+	return klib.MapKeys(rendering.StringVkFrontFace)
+}
+
+func (h HTMLData) ListSampleCount() []string {
+	return klib.MapKeys(rendering.StringVkSampleCountFlagBits)
+}
+
+func (h HTMLData) ListBlendFactor() []string {
+	return klib.MapKeys(rendering.StringVkBlendFactor)
+}
+
+func (h HTMLData) ListBlendOp() []string {
+	return klib.MapKeys(rendering.StringVkBlendOp)
+}
+
+func (h HTMLData) ListLogicOp() []string {
+	return klib.MapKeys(rendering.StringVkLogicOp)
+}
+
+func (h HTMLData) ListCompareOp() []string {
+	return klib.MapKeys(rendering.StringVkCompareOp)
+}
+
+func (h HTMLData) ListStencilOp() []string {
+	return klib.MapKeys(rendering.StringVkStencilOp)
+}
+
+func (h HTMLData) ListPatchControlPoints() []string {
+	return klib.MapKeys(rendering.StringVkPatchControlPoints)
+}
+
 func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
 	win.pipeline = setupShaderPipelineDefaults()
 	win.reloadPipelineDoc()
@@ -81,8 +129,9 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	if win.pipelineDoc != nil {
 		win.pipelineDoc.Destroy()
 	}
-	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipeline,
-		win.pipeline, map[string]func(*document.Element){
+	data := HTMLData{win.pipeline}
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
+		data, map[string]func(*document.Element){
 			"showTooltip":   showPipelineTooltip,
 			"valueChanged":  win.valueChanged,
 			"nameChanged":   win.nameChanged,
@@ -159,7 +208,7 @@ func (win *ShaderDesigner) valueChanged(e *document.Element) {
 	if idx >= 0 {
 		v = reflect.ValueOf(&win.pipeline.ColorBlendAttachments[idx])
 	} else {
-		v = reflect.ValueOf(win.pipeline)
+		v = reflect.ValueOf(&win.pipeline)
 	}
 	field := v.Elem().FieldByName(id)
 	var val reflect.Value

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_designer.css">
+	</head>
+	<body>
+		<div class="fill darkBG noClipY pad5">
+			<div class="topFields">
+				<h1>Render Pass Editor</h1>
+				<div class="inputItem">
+					<div class="inputLabel">Name:</div>
+					<input id="Name" class="input" type="text" value="{{.Name}}" onchange="nameChanged" />
+				</div>
+
+				<!-- vkAttachmentDescription -->
+				<h3>Attachment Descriptions</h3>
+				{{range $i, $a := .AttachmentDescriptions}}
+				{{end}}
+
+				<!-- vkSubpassDescription -->
+				<h3>Subpass Descriptions</h3>
+				{{range $i, $s := .SubpassDescriptions}}
+					<!-- vkAttachmentReference -->
+					{{range $j, $r := .AttachmentReferences}}
+					{{end}}
+				{{end}}
+
+				<!-- vkSubpassDependency -->
+				{{range $i, $a := .SubpassDependencies}}
+				
+				{{end}}
+			</div>
+			<div id="ToolTip" class="bottomTooltip">tooltip</div>
+		</div>
+	</body>
+</html>
