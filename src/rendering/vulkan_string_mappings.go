@@ -1,6 +1,9 @@
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"log/slog"
+)
 
 var (
 	StringVkFormat = map[string]vk.Format{
@@ -487,3 +490,99 @@ var (
 		"ViewLocalBit":   vk.DependencyViewLocalBit,
 	}
 )
+
+func boolToVkBool(val bool) vk.Bool32 {
+	if val {
+		return vk.True
+	} else {
+		return vk.False
+	}
+}
+
+func attachmentLoadOpToVK(val string) vk.AttachmentLoadOp {
+	if res, ok := StringVkAttachmentLoadOp[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert attachment load op string", "string", val)
+	return vk.AttachmentLoadOpClear
+}
+
+func attachmentStoreOpToVK(val string) vk.AttachmentStoreOp {
+	if res, ok := StringVkAttachmentStoreOp[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert attachment store op string", "string", val)
+	return vk.AttachmentStoreOpStore
+}
+
+func imageLayoutToVK(val string) vk.ImageLayout {
+	if res, ok := StringVkImageLayout[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert image layout string", "string", val)
+	return vk.ImageLayoutColorAttachmentOptimal
+}
+
+func pipelineStageFlagsToVK(val string) vk.PipelineStageFlags {
+	if res, ok := StringVkPipelineStageFlagBits[val]; ok {
+		return vk.PipelineStageFlags(res)
+	}
+	slog.Warn("failed to convert pipeline stage flag string", "string", val)
+	return vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
+}
+
+func accessFlagsToVK(val string) vk.AccessFlags {
+	if res, ok := StringVkAccessFlagBits[val]; ok {
+		return vk.AccessFlags(res)
+	}
+	slog.Warn("failed to convert access flag string", "string", val)
+	return vk.AccessFlags(0)
+}
+
+func sampleCountToVK(val string) vk.SampleCountFlagBits {
+	if res, ok := StringVkSampleCountFlagBits[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert sample count string", "string", val)
+	return vk.SampleCount1Bit
+}
+
+func formatToVK(val string) vk.Format {
+	if res, ok := StringVkFormat[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert format string", "string", val)
+	return vk.FormatR8g8b8a8Unorm
+}
+
+func compareOpToVK(val string) vk.CompareOp {
+	if res, ok := StringVkCompareOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkCompareOp", "value", val)
+	return vk.CompareOpLess
+}
+
+func stencilOpToVK(val string) vk.StencilOp {
+	if res, ok := StringVkStencilOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkStencilOpKeep", "value", val)
+	return vk.StencilOpKeep
+}
+
+func blendFactorToVK(val string) vk.BlendFactor {
+	if res, ok := StringVkBlendFactor[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendFactor", "value", val)
+	return vk.BlendFactorSrcAlpha
+}
+
+func blendOpToVK(val string) vk.BlendOp {
+	if res, ok := StringVkBlendOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendOp", "value", val)
+	return vk.BlendOpAdd
+}

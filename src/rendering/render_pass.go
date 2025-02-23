@@ -3,6 +3,7 @@ package rendering
 import (
 	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
+	"log/slog"
 )
 
 type RenderPassAttachmentDescription struct {
@@ -49,59 +50,35 @@ func (ad *RenderPassAttachmentDescription) ListFinalLayout() []string {
 }
 
 func (ad *RenderPassAttachmentDescription) FormatToVK() vk.Format {
-	if res, ok := StringVkFormat[ad.Format]; ok {
-		return res
-	}
-	return vk.FormatR8g8b8a8Unorm
+	return formatToVK(ad.Format)
 }
 
 func (ad *RenderPassAttachmentDescription) SamplesToVK() vk.SampleCountFlagBits {
-	if res, ok := StringVkSampleCountFlagBits[ad.Samples]; ok {
-		return res
-	}
-	return vk.SampleCount1Bit
+	return sampleCountToVK(ad.Samples)
 }
 
 func (ad *RenderPassAttachmentDescription) LoadOpToVK() vk.AttachmentLoadOp {
-	if res, ok := StringVkAttachmentLoadOp[ad.LoadOp]; ok {
-		return res
-	}
-	return vk.AttachmentLoadOpClear
+	return attachmentLoadOpToVK(ad.LoadOp)
 }
 
 func (ad *RenderPassAttachmentDescription) StoreOpToVK() vk.AttachmentStoreOp {
-	if res, ok := StringVkAttachmentStoreOp[ad.StoreOp]; ok {
-		return res
-	}
-	return vk.AttachmentStoreOpStore
+	return attachmentStoreOpToVK(ad.StoreOp)
 }
 
 func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() vk.AttachmentLoadOp {
-	if res, ok := StringVkAttachmentLoadOp[ad.StencilLoadOp]; ok {
-		return res
-	}
-	return vk.AttachmentLoadOpDontCare
+	return attachmentLoadOpToVK(ad.StencilLoadOp)
 }
 
 func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() vk.AttachmentStoreOp {
-	if res, ok := StringVkAttachmentStoreOp[ad.StencilStoreOp]; ok {
-		return res
-	}
-	return vk.AttachmentStoreOpDontCare
+	return attachmentStoreOpToVK(ad.StencilStoreOp)
 }
 
 func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() vk.ImageLayout {
-	if res, ok := StringVkImageLayout[ad.InitialLayout]; ok {
-		return res
-	}
-	return vk.ImageLayoutColorAttachmentOptimal
+	return imageLayoutToVK(ad.InitialLayout)
 }
 
 func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vk.ImageLayout {
-	if res, ok := StringVkImageLayout[ad.FinalLayout]; ok {
-		return res
-	}
-	return vk.ImageLayoutColorAttachmentOptimal
+	return imageLayoutToVK(ad.FinalLayout)
 }
 
 type RenderPassAttachmentReference struct {
@@ -114,10 +91,7 @@ func (ad *RenderPassAttachmentReference) ListLayout() []string {
 }
 
 func (ad *RenderPassAttachmentReference) FinalLayoutToVK() vk.ImageLayout {
-	if res, ok := StringVkImageLayout[ad.Layout]; ok {
-		return res
-	}
-	return vk.ImageLayoutColorAttachmentOptimal
+	return imageLayoutToVK(ad.Layout)
 }
 
 type RenderPassSubpassDescription struct {
@@ -130,10 +104,11 @@ func (ad *RenderPassSubpassDescription) ListPipelineBindPoint() []string {
 	return klib.MapKeys(StringVkPipelineBindPoint)
 }
 
-func (ad *RenderPassSubpassDescription) FinalLayoutToVK() vk.PipelineBindPoint {
+func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint {
 	if res, ok := StringVkPipelineBindPoint[ad.PipelineBindPoint]; ok {
 		return res
 	}
+	slog.Warn("failed to convert pipeline bind point string", "string", ad.PipelineBindPoint)
 	return vk.PipelineBindPointGraphics
 }
 
@@ -147,19 +122,11 @@ type RenderPassSubpassDependency struct {
 	DependencyFlags string
 }
 
-func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
+func (sd *RenderPassSubpassDependency) ListStageFlagBits() []string {
 	return klib.MapKeys(StringVkPipelineStageFlagBits)
 }
 
-func (sd *RenderPassSubpassDependency) ListDstStageMask() []string {
-	return klib.MapKeys(StringVkPipelineStageFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListSrcAccessMask() []string {
-	return klib.MapKeys(StringVkAccessFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListDstAccessMask() []string {
+func (sd *RenderPassSubpassDependency) ListAccessFlagBits() []string {
 	return klib.MapKeys(StringVkAccessFlagBits)
 }
 
@@ -168,38 +135,26 @@ func (sd *RenderPassSubpassDependency) ListDependencyFlags() []string {
 }
 
 func (sd *RenderPassSubpassDependency) SrcStageMaskToVK() vk.PipelineStageFlags {
-	if res, ok := StringVkPipelineStageFlagBits[sd.SrcStageMask]; ok {
-		return vk.PipelineStageFlags(res)
-	}
-	return vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
+	return pipelineStageFlagsToVK(sd.SrcStageMask)
 }
 
 func (sd *RenderPassSubpassDependency) DstStageMaskToVK() vk.PipelineStageFlags {
-	if res, ok := StringVkPipelineStageFlagBits[sd.DstStageMask]; ok {
-		return vk.PipelineStageFlags(res)
-	}
-	return vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
+	return pipelineStageFlagsToVK(sd.DstStageMask)
 }
 
 func (sd *RenderPassSubpassDependency) SrcAccessMaskToVK() vk.AccessFlags {
-	if res, ok := StringVkAccessFlagBits[sd.SrcAccessMask]; ok {
-		return vk.AccessFlags(res)
-	}
-	return vk.AccessFlags(0)
+	return accessFlagsToVK(sd.SrcAccessMask)
 }
 
 func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
-	if res, ok := StringVkAccessFlagBits[sd.DstAccessMask]; ok {
-		return vk.AccessFlags(res)
-	}
-	return vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
-
+	return accessFlagsToVK(sd.DstAccessMask)
 }
 
 func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags {
 	if res, ok := StringVkDependencyFlagBits[sd.DependencyFlags]; ok {
 		return vk.DependencyFlags(res)
 	}
+	slog.Warn("failed to convert dependency flag string", "string", sd.DependencyFlags)
 	return vk.DependencyFlags(0)
 }
 

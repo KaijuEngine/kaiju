@@ -248,11 +248,7 @@ func (s *ShaderPipelineData) FrontFaceToVK() vk.FrontFace {
 }
 
 func (s *ShaderPipelineData) RasterizationSamplesToVK() vk.SampleCountFlagBits {
-	if res, ok := StringVkSampleCountFlagBits[s.RasterizationSamples]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkRasterizationSamples", "value", s.RasterizationSamples)
-	return vk.SampleCount1Bit
+	return sampleCountToVK(s.RasterizationSamples)
 }
 
 func (s *ShaderPipelineData) LogicOpToVK() vk.LogicOp {
@@ -270,22 +266,6 @@ func (s *ShaderPipelineData) BlendConstants() [4]float32 {
 		s.BlendConstants2,
 		s.BlendConstants3,
 	}
-}
-
-func compareOpToVK(val string) vk.CompareOp {
-	if res, ok := StringVkCompareOp[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkCompareOp", "value", val)
-	return vk.CompareOpLess
-}
-
-func stencilOpToVK(val string) vk.StencilOp {
-	if res, ok := StringVkStencilOp[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkStencilOpKeep", "value", val)
-	return vk.StencilOpKeep
 }
 
 func (s *ShaderPipelineData) PatchControlPointsToVK() uint32 {
@@ -485,28 +465,4 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	shader.RenderId.graphicsPipeline = pipelines[0]
 	return success
-}
-
-func boolToVkBool(val bool) vk.Bool32 {
-	if val {
-		return vk.True
-	} else {
-		return vk.False
-	}
-}
-
-func blendFactorToVK(val string) vk.BlendFactor {
-	if res, ok := StringVkBlendFactor[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendFactor", "value", val)
-	return vk.BlendFactorSrcAlpha
-}
-
-func blendOpToVK(val string) vk.BlendOp {
-	if res, ok := StringVkBlendOp[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendOp", "value", val)
-	return vk.BlendOpAdd
 }
