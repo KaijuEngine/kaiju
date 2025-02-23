@@ -88,7 +88,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Rasterization Samples:</div>
 					<select id="RasterizationSamples" class="input" value="{{.RasterizationSamples}}" onchange="valueChanged">
-					{{range $_, $k := .ListSampleCount}}
+					{{range $_, $k := .ListRasterizationSamples}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -225,7 +225,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Compare Op:</div>
 					<select id="DepthCompareOp" class="input" value="{{.DepthCompareOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListCompareOp}}
+						{{range $_, $k := .ListDepthCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -242,7 +242,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Fail Op:</div>
 					<select id="FrontFailOp" class="input" value="{{.FrontFailOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListFrontFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -250,7 +250,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Pass Op:</div>
 					<select id="FrontPassOp" class="input" value="{{.FrontPassOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListFrontPassOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -258,7 +258,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Fail Op:</div>
 					<select id="FrontDepthFailOp" class="input" value="{{.FrontDepthFailOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListFrontDepthFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -266,7 +266,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Op:</div>
 					<select id="FrontCompareOp" class="input" value="{{.FrontCompareOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListFrontCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -287,7 +287,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Fail Op:</div>
 					<select id="BackFailOp" class="input" value="{{.BackFailOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListBackFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -295,7 +295,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Pass Op:</div>
 					<select id="BackPassOp" class="input" value="{{.BackPassOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListBackPassOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -303,7 +303,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Fail Op:</div>
 					<select id="BackDepthFailOp" class="input" value="{{.BackDepthFailOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListStencilOp}}
+						{{range $_, $k := .ListBackDepthFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>
@@ -311,7 +311,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Op:</div>
 					<select id="BackCompareOp" class="input" value="{{.BackCompareOp}}" onchange="valueChanged">
-						{{range $_, $k := .ListCompareOp}}
+						{{range $_, $k := .ListBackCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
 					</select>

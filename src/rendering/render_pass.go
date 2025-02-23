@@ -122,11 +122,19 @@ type RenderPassSubpassDependency struct {
 	DependencyFlags string
 }
 
-func (sd *RenderPassSubpassDependency) ListStageFlagBits() []string {
+func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
 	return klib.MapKeys(StringVkPipelineStageFlagBits)
 }
 
-func (sd *RenderPassSubpassDependency) ListAccessFlagBits() []string {
+func (sd *RenderPassSubpassDependency) ListDstStageMask() []string {
+	return klib.MapKeys(StringVkPipelineStageFlagBits)
+}
+
+func (sd *RenderPassSubpassDependency) ListSrcAccessMask() []string {
+	return klib.MapKeys(StringVkAccessFlagBits)
+}
+
+func (sd *RenderPassSubpassDependency) ListDstAccessMask() []string {
 	return klib.MapKeys(StringVkAccessFlagBits)
 }
 

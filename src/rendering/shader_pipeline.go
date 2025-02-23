@@ -139,7 +139,7 @@ func (s ShaderPipelineData) ListFrontFace() []string {
 	return klib.MapKeys(StringVkFrontFace)
 }
 
-func (s ShaderPipelineData) ListSampleCount() []string {
+func (s ShaderPipelineData) ListRasterizationSamples() []string {
 	return klib.MapKeys(StringVkSampleCountFlagBits)
 }
 
@@ -155,11 +155,39 @@ func (s ShaderPipelineData) ListLogicOp() []string {
 	return klib.MapKeys(StringVkLogicOp)
 }
 
-func (s ShaderPipelineData) ListCompareOp() []string {
+func (s ShaderPipelineData) ListDepthCompareOp() []string {
 	return klib.MapKeys(StringVkCompareOp)
 }
 
-func (s ShaderPipelineData) ListStencilOp() []string {
+func (s ShaderPipelineData) ListBackCompareOp() []string {
+	return klib.MapKeys(StringVkCompareOp)
+}
+
+func (s ShaderPipelineData) ListFrontFailOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListFrontPassOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListFrontDepthFailOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListFrontCompareOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListBackFailOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListBackPassOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListBackDepthFailOp() []string {
 	return klib.MapKeys(StringVkStencilOp)
 }
 
