@@ -16,19 +16,30 @@
 				<!-- vkAttachmentDescription -->
 				<h3>Attachment Descriptions</h3>
 				{{range $i, $a := .AttachmentDescriptions}}
+
 				{{end}}
 
 				<!-- vkSubpassDescription -->
 				<h3>Subpass Descriptions</h3>
 				{{range $i, $s := .SubpassDescriptions}}
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Pipeline Bind Point:</div>
+						<select id="PipelineBindPoint" class="input" value="{{.PipelineBindPoint}}" onchange="valueChanged">
+							{{range $_, $k := .ListPipelineBindPoint}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+
 					<!-- vkAttachmentReference -->
 					{{range $j, $r := .AttachmentReferences}}
+
 					{{end}}
 				{{end}}
 
 				<!-- vkSubpassDependency -->
 				{{range $i, $a := .SubpassDependencies}}
-				
+
 				{{end}}
 			</div>
 			<div id="ToolTip" class="bottomTooltip">tooltip</div>

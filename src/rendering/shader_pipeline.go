@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 )
@@ -17,6 +18,58 @@ type ShaderPipelineColorBlendAttachments struct {
 	ColorWriteMaskG     bool
 	ColorWriteMaskB     bool
 	ColorWriteMaskA     bool
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string {
+	return klib.MapKeys(StringVkBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstColorBlendFactor() []string {
+	return klib.MapKeys(StringVkBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListColorBlendOp() []string {
+	return klib.MapKeys(StringVkBlendOp)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcAlphaBlendFactor() []string {
+	return klib.MapKeys(StringVkBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstAlphaBlendFactor() []string {
+	return klib.MapKeys(StringVkBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string {
+	return klib.MapKeys(StringVkBlendOp)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) BlendEnableToVK() vk.Bool32 {
+	return boolToVkBool(a.BlendEnable)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) SrcColorBlendFactorToVK() vk.BlendFactor {
+	return blendFactorToVK(a.SrcColorBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) DstColorBlendFactorToVK() vk.BlendFactor {
+	return blendFactorToVK(a.DstColorBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ColorBlendOpToVK() vk.BlendOp {
+	return blendOpToVK(a.ColorBlendOp)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) SrcAlphaBlendFactorToVK() vk.BlendFactor {
+	return blendFactorToVK(a.SrcAlphaBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToVK() vk.BlendFactor {
+	return blendFactorToVK(a.DstAlphaBlendFactor)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToVK() vk.BlendOp {
+	return blendOpToVK(a.AlphaBlendOp)
 }
 
 type ShaderPipelineData struct {
@@ -70,28 +123,52 @@ type ShaderPipelineData struct {
 	SubpassCount            uint32
 }
 
-func boolToVkBool(val bool) vk.Bool32 {
-	if val {
-		return vk.True
-	} else {
-		return vk.False
-	}
+func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32 {
+	return boolToVkBool(s.PrimitiveRestart)
 }
 
-func blendFactorToVK(val string) vk.BlendFactor {
-	if res, ok := StringVkBlendFactor[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendFactor", "value", val)
-	return vk.BlendFactorSrcAlpha
+func (s *ShaderPipelineData) DepthClampEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.DepthClampEnable)
 }
 
-func blendOpToVK(val string) vk.BlendOp {
-	if res, ok := StringVkBlendOp[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendOp", "value", val)
-	return vk.BlendOpAdd
+func (s *ShaderPipelineData) RasterizerDiscardEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.RasterizerDiscardEnable)
+}
+
+func (s *ShaderPipelineData) DepthBiasEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.DepthBiasEnable)
+}
+
+func (s *ShaderPipelineData) SampleShadingEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.SampleShadingEnable)
+}
+
+func (s *ShaderPipelineData) AlphaToCoverageEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.AlphaToCoverageEnable)
+}
+
+func (s *ShaderPipelineData) AlphaToOneEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.AlphaToOneEnable)
+}
+
+func (s *ShaderPipelineData) LogicOpEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.LogicOpEnable)
+}
+
+func (s *ShaderPipelineData) DepthTestEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.DepthTestEnable)
+}
+
+func (s *ShaderPipelineData) DepthWriteEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.DepthWriteEnable)
+}
+
+func (s *ShaderPipelineData) DepthBoundsTestEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.DepthBoundsTestEnable)
+}
+
+func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32 {
+	return boolToVkBool(s.StencilTestEnable)
 }
 
 func (s *ShaderPipelineData) TopologyToVK() vk.PrimitiveTopology {
@@ -219,7 +296,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{
 		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
 		Topology:               s.TopologyToVK(),
-		PrimitiveRestartEnable: boolToVkBool(s.PrimitiveRestart),
+		PrimitiveRestartEnable: s.PrimitiveRestartToVK(),
 	}
 	viewport := vk.Viewport{
 		X:        0.0,
@@ -251,35 +328,35 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	rasterizer := vk.PipelineRasterizationStateCreateInfo{
 		SType:                   vk.StructureTypePipelineRasterizationStateCreateInfo,
-		DepthClampEnable:        boolToVkBool(s.DepthClampEnable),
-		RasterizerDiscardEnable: boolToVkBool(s.RasterizerDiscardEnable),
+		DepthClampEnable:        s.DepthClampEnableToVK(),
+		RasterizerDiscardEnable: s.RasterizerDiscardEnableToVK(),
 		PolygonMode:             s.PolygonModeToVK(),
 		LineWidth:               s.LineWidth,
 		CullMode:                vk.CullModeFlags(s.CullModeToVK()),
 		FrontFace:               s.FrontFaceToVK(),
-		DepthBiasEnable:         boolToVkBool(s.DepthBiasEnable),
+		DepthBiasEnable:         s.DepthBiasEnableToVK(),
 		DepthBiasConstantFactor: s.DepthBiasConstantFactor,
 		DepthBiasClamp:          s.DepthBiasClamp,
 		DepthBiasSlopeFactor:    s.DepthBiasSlopeFactor,
 	}
 	multisampling := vk.PipelineMultisampleStateCreateInfo{
 		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
-		SampleShadingEnable:   boolToVkBool(s.SampleShadingEnable),
+		SampleShadingEnable:   s.SampleShadingEnableToVK(),
 		RasterizationSamples:  s.RasterizationSamplesToVK(),
 		MinSampleShading:      s.MinSampleShading,
 		PSampleMask:           nil,
-		AlphaToCoverageEnable: boolToVkBool(s.AlphaToCoverageEnable),
-		AlphaToOneEnable:      boolToVkBool(s.AlphaToOneEnable),
+		AlphaToCoverageEnable: s.AlphaToCoverageEnableToVK(),
+		AlphaToOneEnable:      s.AlphaToOneEnableToVK(),
 	}
 	colorBlendAttachment := make([]vk.PipelineColorBlendAttachmentState, len(s.ColorBlendAttachments))
 	for i := range s.ColorBlendAttachments {
-		colorBlendAttachment[i].BlendEnable = boolToVkBool(s.ColorBlendAttachments[i].BlendEnable)
-		colorBlendAttachment[i].SrcColorBlendFactor = blendFactorToVK(s.ColorBlendAttachments[i].SrcColorBlendFactor)
-		colorBlendAttachment[i].DstColorBlendFactor = blendFactorToVK(s.ColorBlendAttachments[i].DstColorBlendFactor)
-		colorBlendAttachment[i].ColorBlendOp = blendOpToVK(s.ColorBlendAttachments[i].ColorBlendOp)
-		colorBlendAttachment[i].SrcAlphaBlendFactor = blendFactorToVK(s.ColorBlendAttachments[i].SrcAlphaBlendFactor)
-		colorBlendAttachment[i].DstAlphaBlendFactor = blendFactorToVK(s.ColorBlendAttachments[i].DstAlphaBlendFactor)
-		colorBlendAttachment[i].AlphaBlendOp = blendOpToVK(s.ColorBlendAttachments[i].AlphaBlendOp)
+		colorBlendAttachment[i].BlendEnable = s.ColorBlendAttachments[i].BlendEnableToVK()
+		colorBlendAttachment[i].SrcColorBlendFactor = s.ColorBlendAttachments[i].SrcColorBlendFactorToVK()
+		colorBlendAttachment[i].DstColorBlendFactor = s.ColorBlendAttachments[i].DstColorBlendFactorToVK()
+		colorBlendAttachment[i].ColorBlendOp = s.ColorBlendAttachments[i].ColorBlendOpToVK()
+		colorBlendAttachment[i].SrcAlphaBlendFactor = s.ColorBlendAttachments[i].SrcAlphaBlendFactorToVK()
+		colorBlendAttachment[i].DstAlphaBlendFactor = s.ColorBlendAttachments[i].DstAlphaBlendFactorToVK()
+		colorBlendAttachment[i].AlphaBlendOp = s.ColorBlendAttachments[i].AlphaBlendOpToVK()
 		var writeMask vk.ColorComponentFlagBits = 0
 		if s.ColorBlendAttachments[i].ColorWriteMaskR {
 			writeMask |= vk.ColorComponentRBit
@@ -298,7 +375,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	colorBlendAttachmentCount := len(colorBlendAttachment)
 	colorBlending := vk.PipelineColorBlendStateCreateInfo{
 		SType:           vk.StructureTypePipelineColorBlendStateCreateInfo,
-		LogicOpEnable:   boolToVkBool(s.LogicOpEnable),
+		LogicOpEnable:   s.LogicOpEnableToVK(),
 		LogicOp:         s.LogicOpToVK(),
 		AttachmentCount: uint32(colorBlendAttachmentCount),
 		PAttachments:    &colorBlendAttachment[0],
@@ -321,13 +398,13 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	shader.RenderId.pipelineLayout = pLayout
 	depthStencil := vk.PipelineDepthStencilStateCreateInfo{
 		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
-		DepthTestEnable:       boolToVkBool(s.DepthTestEnable),
+		DepthTestEnable:       s.DepthTestEnableToVK(),
 		DepthCompareOp:        compareOpToVK(s.DepthCompareOp),
-		DepthBoundsTestEnable: boolToVkBool(s.DepthBoundsTestEnable),
-		StencilTestEnable:     boolToVkBool(s.StencilTestEnable),
+		DepthBoundsTestEnable: s.DepthBoundsTestEnableToVK(),
+		StencilTestEnable:     s.StencilTestEnableToVK(),
 		MinDepthBounds:        s.MinDepthBounds,
 		MaxDepthBounds:        s.MaxDepthBounds,
-		DepthWriteEnable:      boolToVkBool(s.DepthWriteEnable),
+		DepthWriteEnable:      s.DepthWriteEnableToVK(),
 		Front:                 s.FrontStencilOpStateToVK(),
 		Back:                  s.BackStencilOpStateToVK(),
 	}
@@ -364,4 +441,28 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	shader.RenderId.graphicsPipeline = pipelines[0]
 	return success
+}
+
+func boolToVkBool(val bool) vk.Bool32 {
+	if val {
+		return vk.True
+	} else {
+		return vk.False
+	}
+}
+
+func blendFactorToVK(val string) vk.BlendFactor {
+	if res, ok := StringVkBlendFactor[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendFactor", "value", val)
+	return vk.BlendFactorSrcAlpha
+}
+
+func blendOpToVK(val string) vk.BlendOp {
+	if res, ok := StringVkBlendOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendOp", "value", val)
+	return vk.BlendOpAdd
 }

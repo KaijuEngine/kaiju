@@ -71,51 +71,51 @@ func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	}
 }
 
-type HTMLData struct {
+type ShaderPipelineHTMLData struct {
 	rendering.ShaderPipelineData
 }
 
-func (h HTMLData) ListTopology() []string {
+func (h ShaderPipelineHTMLData) ListTopology() []string {
 	return klib.MapKeys(rendering.StringVkPrimitiveTopology)
 }
 
-func (h HTMLData) ListPolygonMode() []string {
+func (h ShaderPipelineHTMLData) ListPolygonMode() []string {
 	return klib.MapKeys(rendering.StringVkPolygonMode)
 }
 
-func (h HTMLData) ListCullMode() []string {
+func (h ShaderPipelineHTMLData) ListCullMode() []string {
 	return klib.MapKeys(rendering.StringVkCullModeFlagBits)
 }
 
-func (h HTMLData) ListFrontFace() []string {
+func (h ShaderPipelineHTMLData) ListFrontFace() []string {
 	return klib.MapKeys(rendering.StringVkFrontFace)
 }
 
-func (h HTMLData) ListSampleCount() []string {
+func (h ShaderPipelineHTMLData) ListSampleCount() []string {
 	return klib.MapKeys(rendering.StringVkSampleCountFlagBits)
 }
 
-func (h HTMLData) ListBlendFactor() []string {
+func (h ShaderPipelineHTMLData) ListBlendFactor() []string {
 	return klib.MapKeys(rendering.StringVkBlendFactor)
 }
 
-func (h HTMLData) ListBlendOp() []string {
+func (h ShaderPipelineHTMLData) ListBlendOp() []string {
 	return klib.MapKeys(rendering.StringVkBlendOp)
 }
 
-func (h HTMLData) ListLogicOp() []string {
+func (h ShaderPipelineHTMLData) ListLogicOp() []string {
 	return klib.MapKeys(rendering.StringVkLogicOp)
 }
 
-func (h HTMLData) ListCompareOp() []string {
+func (h ShaderPipelineHTMLData) ListCompareOp() []string {
 	return klib.MapKeys(rendering.StringVkCompareOp)
 }
 
-func (h HTMLData) ListStencilOp() []string {
+func (h ShaderPipelineHTMLData) ListStencilOp() []string {
 	return klib.MapKeys(rendering.StringVkStencilOp)
 }
 
-func (h HTMLData) ListPatchControlPoints() []string {
+func (h ShaderPipelineHTMLData) ListPatchControlPoints() []string {
 	return klib.MapKeys(rendering.StringVkPatchControlPoints)
 }
 
@@ -129,14 +129,14 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	if win.pipelineDoc != nil {
 		win.pipelineDoc.Destroy()
 	}
-	data := HTMLData{win.pipeline}
+	data := ShaderPipelineHTMLData{win.pipeline}
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":   showPipelineTooltip,
-			"valueChanged":  win.valueChanged,
-			"nameChanged":   win.nameChanged,
-			"addAttachment": win.addAttachment,
-			"savePipeline":  win.savePipeline,
+			"valueChanged":  win.pipelineValueChanged,
+			"nameChanged":   win.pipelineNameChanged,
+			"addAttachment": win.pipelineAddAttachment,
+			"savePipeline":  win.pipelineSave,
 		})
 }
 
@@ -166,11 +166,11 @@ func showPipelineTooltip(e *document.Element) {
 	lbl.ToLabel().SetText(tip)
 }
 
-func (win *ShaderDesigner) nameChanged(e *document.Element) {
+func (win *ShaderDesigner) pipelineNameChanged(e *document.Element) {
 	win.pipeline.Name = e.UI.ToInput().Text()
 }
 
-func (win *ShaderDesigner) addAttachment(e *document.Element) {
+func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
 	win.pipeline.ColorBlendAttachments = append(
 		win.pipeline.ColorBlendAttachments, rendering.ShaderPipelineColorBlendAttachments{
 			BlendEnable:         true,
@@ -194,7 +194,7 @@ func (win *ShaderDesigner) addAttachment(e *document.Element) {
 	})
 }
 
-func (win *ShaderDesigner) valueChanged(e *document.Element) {
+func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
 	id := e.Attribute("id")
 	idx := -1
 	sep := strings.Index(id, "_")
@@ -239,7 +239,7 @@ func OpenPipeline(path string) {
 	})
 }
 
-func (win *ShaderDesigner) savePipeline(e *document.Element) {
+func (win *ShaderDesigner) pipelineSave(e *document.Element) {
 	const saveRoot = "content/shaders/pipelines"
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the shader pipeline folder",

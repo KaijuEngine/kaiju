@@ -378,6 +378,7 @@ func (r *OITCanvas) createTransparentPass(vr *Vulkan) bool {
 	subpassDependencies[0].DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
 	subpassDependencies[0].SrcAccessMask = 0
 	subpassDependencies[0].DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
+
 	//
 	subpassDependencies[1].SrcSubpass = 0
 	subpassDependencies[1].DstSubpass = 1

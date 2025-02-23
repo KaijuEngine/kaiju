@@ -389,4 +389,101 @@ var (
 		"Triangles": 3,
 		"Quads":     4,
 	}
+
+	StringVkAttachmentLoadOp = map[string]vk.AttachmentLoadOp{
+		"Load":     vk.AttachmentLoadOpLoad,
+		"Clear":    vk.AttachmentLoadOpClear,
+		"DontCare": vk.AttachmentLoadOpDontCare,
+	}
+
+	StringVkAttachmentStoreOp = map[string]vk.AttachmentStoreOp{
+		"Store":    vk.AttachmentStoreOpStore,
+		"DontCare": vk.AttachmentStoreOpDontCare,
+	}
+
+	StringVkImageLayout = map[string]vk.ImageLayout{
+		"Undefined":                             vk.ImageLayoutUndefined,
+		"General":                               vk.ImageLayoutGeneral,
+		"ColorAttachmentOptimal":                vk.ImageLayoutColorAttachmentOptimal,
+		"DepthStencilAttachmentOptimal":         vk.ImageLayoutDepthStencilAttachmentOptimal,
+		"DepthStencilReadOnlyOptimal":           vk.ImageLayoutDepthStencilReadOnlyOptimal,
+		"ShaderReadOnlyOptimal":                 vk.ImageLayoutShaderReadOnlyOptimal,
+		"TransferSrcOptimal":                    vk.ImageLayoutTransferSrcOptimal,
+		"TransferDstOptimal":                    vk.ImageLayoutTransferDstOptimal,
+		"Preinitialized":                        vk.ImageLayoutPreinitialized,
+		"DepthReadOnlyStencilAttachmentOptimal": vk.ImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		"DepthAttachmentStencilReadOnlyOptimal": vk.ImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		"PresentSrc":                            vk.ImageLayoutPresentSrc,
+		"SharedPresent":                         vk.ImageLayoutSharedPresent,
+		"ShadingRateOptimalNv":                  vk.ImageLayoutShadingRateOptimalNv,
+	}
+
+	StringVkPipelineStageFlagBits = map[string]vk.PipelineStageFlagBits{
+		"TopOfPipeBit":                    vk.PipelineStageTopOfPipeBit,
+		"DrawIndirectBit":                 vk.PipelineStageDrawIndirectBit,
+		"VertexInputBit":                  vk.PipelineStageVertexInputBit,
+		"VertexShaderBit":                 vk.PipelineStageVertexShaderBit,
+		"TessellationControlShaderBit":    vk.PipelineStageTessellationControlShaderBit,
+		"TessellationEvaluationShaderBit": vk.PipelineStageTessellationEvaluationShaderBit,
+		"GeometryShaderBit":               vk.PipelineStageGeometryShaderBit,
+		"FragmentShaderBit":               vk.PipelineStageFragmentShaderBit,
+		"EarlyFragmentTestsBit":           vk.PipelineStageEarlyFragmentTestsBit,
+		"LateFragmentTestsBit":            vk.PipelineStageLateFragmentTestsBit,
+		"ColorAttachmentOutputBit":        vk.PipelineStageColorAttachmentOutputBit,
+		"ComputeShaderBit":                vk.PipelineStageComputeShaderBit,
+		"TransferBit":                     vk.PipelineStageTransferBit,
+		"BottomOfPipeBit":                 vk.PipelineStageBottomOfPipeBit,
+		"HostBit":                         vk.PipelineStageHostBit,
+		"AllGraphicsBit":                  vk.PipelineStageAllGraphicsBit,
+		"AllCommandsBit":                  vk.PipelineStageAllCommandsBit,
+		"TransformFeedbackBit":            vk.PipelineStageTransformFeedbackBit,
+		"ConditionalRenderingBit":         vk.PipelineStageConditionalRenderingBit,
+		"CommandProcessBitNvx":            vk.PipelineStageCommandProcessBitNvx,
+		"ShadingRateImageBitNv":           vk.PipelineStageShadingRateImageBitNv,
+		"RaytracingBitNvx":                vk.PipelineStageRaytracingBitNvx,
+		"TaskShaderBitNv":                 vk.PipelineStageTaskShaderBitNv,
+		"MeshShaderBitNv":                 vk.PipelineStageMeshShaderBitNv,
+	}
+
+	StringVkAccessFlagBits = map[string]vk.AccessFlagBits{
+		"IndirectCommandReadBit":            vk.AccessIndirectCommandReadBit,
+		"IndexReadBit":                      vk.AccessIndexReadBit,
+		"VertexAttributeReadBit":            vk.AccessVertexAttributeReadBit,
+		"UniformReadBit":                    vk.AccessUniformReadBit,
+		"InputAttachmentReadBit":            vk.AccessInputAttachmentReadBit,
+		"ShaderReadBit":                     vk.AccessShaderReadBit,
+		"ShaderWriteBit":                    vk.AccessShaderWriteBit,
+		"ColorAttachmentReadBit":            vk.AccessColorAttachmentReadBit,
+		"ColorAttachmentWriteBit":           vk.AccessColorAttachmentWriteBit,
+		"DepthStencilAttachmentReadBit":     vk.AccessDepthStencilAttachmentReadBit,
+		"DepthStencilAttachmentWriteBit":    vk.AccessDepthStencilAttachmentWriteBit,
+		"TransferReadBit":                   vk.AccessTransferReadBit,
+		"TransferWriteBit":                  vk.AccessTransferWriteBit,
+		"HostReadBit":                       vk.AccessHostReadBit,
+		"HostWriteBit":                      vk.AccessHostWriteBit,
+		"MemoryReadBit":                     vk.AccessMemoryReadBit,
+		"MemoryWriteBit":                    vk.AccessMemoryWriteBit,
+		"TransformFeedbackWriteBit":         vk.AccessTransformFeedbackWriteBit,
+		"TransformFeedbackCounterReadBit":   vk.AccessTransformFeedbackCounterReadBit,
+		"TransformFeedbackCounterWriteBit":  vk.AccessTransformFeedbackCounterWriteBit,
+		"ConditionalRenderingReadBit":       vk.AccessConditionalRenderingReadBit,
+		"CommandProcessReadBitNvx":          vk.AccessCommandProcessReadBitNvx,
+		"CommandProcessWriteBitNvx":         vk.AccessCommandProcessWriteBitNvx,
+		"ColorAttachmentReadNoncoherentBit": vk.AccessColorAttachmentReadNoncoherentBit,
+		"ShadingRateImageReadBitNv":         vk.AccessShadingRateImageReadBitNv,
+		"AccelerationStructureReadBitNvx":   vk.AccessAccelerationStructureReadBitNvx,
+		"AccelerationStructureWriteBitNvx":  vk.AccessAccelerationStructureWriteBitNvx,
+	}
+
+	StringVkPipelineBindPoint = map[string]vk.PipelineBindPoint{
+		"Graphics":      vk.PipelineBindPointGraphics,
+		"Compute":       vk.PipelineBindPointCompute,
+		"RaytracingNvx": vk.PipelineBindPointRaytracingNvx,
+	}
+
+	StringVkDependencyFlagBits = map[string]vk.DependencyFlagBits{
+		"ByRegionBit":    vk.DependencyByRegionBit,
+		"DeviceGroupBit": vk.DependencyDeviceGroupBit,
+		"ViewLocalBit":   vk.DependencyViewLocalBit,
+	}
 )
