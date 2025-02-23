@@ -10,13 +10,13 @@ import (
 type ShaderDesigner struct {
 	pipeline    ShaderPipelineData
 	pipelineDoc *document.Document
+	man         ui.Manager
 }
 
 func uiInit(host *engine.Host) {
-	uiMan := ui.Manager{}
-	uiMan.Init(host)
 	win := ShaderDesigner{}
-	setupPipelineDoc(&win, &uiMan)
+	win.man.Init(host)
+	setupPipelineDoc(&win, &win.man)
 }
 
 func New() {

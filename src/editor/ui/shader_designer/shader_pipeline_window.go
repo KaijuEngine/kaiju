@@ -130,13 +130,21 @@ func setupShaderPipelineDefaults() ShaderPipelineData {
 
 func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
 	win.pipeline = setupShaderPipelineDefaults()
-	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(man, shaderPipeline,
-		win.pipeline, map[string]func(*document.Element){
-			"showTooltip":  showPipelineTooltip,
-			"valueChanged": win.pipeline.valueChanged,
-			"pathChanged":  win.pipeline.pathChanged,
-		})
+	win.reloadPipelineDoc()
 	//win.pipelineDoc.Deactivate()
+}
+
+func (win *ShaderDesigner) reloadPipelineDoc() {
+	if win.pipelineDoc != nil {
+		win.pipelineDoc.Destroy()
+	}
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipeline,
+		win.pipeline, map[string]func(*document.Element){
+			"showTooltip":   showPipelineTooltip,
+			"valueChanged":  win.pipeline.valueChanged,
+			"pathChanged":   win.pipeline.pathChanged,
+			"addAttachment": win.addAttachment,
+		})
 }
 
 func showPipelineTooltip(e *document.Element) {
@@ -160,6 +168,30 @@ func showPipelineTooltip(e *document.Element) {
 
 func (p *ShaderPipelineData) pathChanged(e *document.Element) {
 	p.Path = e.UI.ToInput().Text()
+}
+
+func (win *ShaderDesigner) addAttachment(e *document.Element) {
+	win.pipeline.ColorBlendAttachments = append(
+		win.pipeline.ColorBlendAttachments, ShaderPipelineColorBlendAttachments{
+			BlendEnable:         true,
+			SrcColorBlendFactor: "SrcAlpha",
+			DstColorBlendFactor: "OneMinusSrcAlpha",
+			ColorBlendOp:        "Add",
+			SrcAlphaBlendFactor: "One",
+			DstAlphaBlendFactor: "Zero",
+			AlphaBlendOp:        "Add",
+			ColorWriteMaskR:     true,
+			ColorWriteMaskG:     true,
+			ColorWriteMaskB:     true,
+			ColorWriteMaskA:     true,
+		})
+	content := win.pipelineDoc.GetElementsByClass("topFields")[0]
+	sy := content.UIPanel.ScrollY()
+	win.reloadPipelineDoc()
+	content = win.pipelineDoc.GetElementsByClass("topFields")[0]
+	win.man.Host.RunAfterFrames(2, func() {
+		content.UIPanel.SetScrollY(sy)
+	})
 }
 
 func (p *ShaderPipelineData) valueChanged(e *document.Element) {

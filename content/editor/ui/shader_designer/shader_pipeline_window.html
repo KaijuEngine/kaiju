@@ -116,7 +116,11 @@
 
 				<!-- vkPipelineColorBlendAttachmentState -->
 				<h3>Pipeline Color Blend Attachment</h3>
+				<div class="inputItem">
+					<button class="inputButton" onclick="addAttachment">Add attachment</button>
+				</div>
 				{{range $i, $a := .ColorBlendAttachments}}
+				<h4>Attachment[{{$i}}]</h4>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Blend:</div>
 					<input id="BlendEnable_{{$i}}" class="inputCheck" type="checkbox" {{if .BlendEnable}}checked="checked"{{end}} onchange="valueChanged" />
@@ -331,9 +335,13 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Color Write Mask:</div>
+					<span class="inputCheck">R:</span>
 					<input id="ColorWriteMaskR" class="inputCheck" type="checkbox" {{if .ColorWriteMaskR}}checked="checked"{{end}} onchange="valueChanged" />
+					<span class="inputCheck">G:</span>
 					<input id="ColorWriteMaskG" class="inputCheck" type="checkbox" {{if .ColorWriteMaskG}}checked="checked"{{end}} onchange="valueChanged" />
+					<span class="inputCheck">B:</span>
 					<input id="ColorWriteMaskB" class="inputCheck" type="checkbox" {{if .ColorWriteMaskB}}checked="checked"{{end}} onchange="valueChanged" />
+					<span class="inputCheck">A:</span>
 					<input id="ColorWriteMaskA" class="inputCheck" type="checkbox" {{if .ColorWriteMaskA}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				{{end}}
