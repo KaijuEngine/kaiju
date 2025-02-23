@@ -103,6 +103,7 @@ func create(title, description, placeholder, value, ok, cancel string, host *eng
 				"cancelClick": func(*document.Element) { a.done(false) },
 			}))
 	})
+	container.Host.Window.Focus()
 	return a
 }
 

@@ -1,10 +1,16 @@
 package shader_designer
 
 import (
+	"encoding/json"
+	"kaiju/editor/alert"
+	"kaiju/editor/editor_config"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -29,7 +35,7 @@ type ShaderPipelineColorBlendAttachments struct {
 }
 
 type ShaderPipelineData struct {
-	Path                    string
+	Name                    string
 	Topology                string
 	PrimitiveRestart        bool
 	DepthClampEnable        bool
@@ -142,7 +148,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		win.pipeline, map[string]func(*document.Element){
 			"showTooltip":   showPipelineTooltip,
 			"valueChanged":  win.pipeline.valueChanged,
-			"pathChanged":   win.pipeline.pathChanged,
+			"nameChanged":   win.pipeline.nameChanged,
 			"addAttachment": win.addAttachment,
 			"savePipeline":  win.savePipeline,
 		})
@@ -167,8 +173,8 @@ func showPipelineTooltip(e *document.Element) {
 	lbl.ToLabel().SetText(tip)
 }
 
-func (p *ShaderPipelineData) pathChanged(e *document.Element) {
-	p.Path = e.UI.ToInput().Text()
+func (p *ShaderPipelineData) nameChanged(e *document.Element) {
+	p.Name = e.UI.ToInput().Text()
 }
 
 func (win *ShaderDesigner) addAttachment(e *document.Element) {
@@ -225,7 +231,49 @@ func (p *ShaderPipelineData) valueChanged(e *document.Element) {
 	field.Set(val)
 }
 
-func (win *ShaderDesigner) savePipeline(*document.Element) {
-	// TODO:  Save the pipeline
-	panic("not yet implemented")
+func OpenPipeline(path string) {
+	setup(func(win *ShaderDesigner) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			slog.Error("failed to load the shader pipeline file", "file", path, "error", err)
+			return
+		}
+		if err := json.Unmarshal(data, &win.pipeline); err != nil {
+			slog.Error("failed to unmarshal the shader pipeline data", "error", err)
+			return
+		}
+		win.reloadPipelineDoc()
+	})
+}
+
+func (win *ShaderDesigner) savePipeline(e *document.Element) {
+	const saveRoot = "content/shaders/pipelines"
+	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
+		slog.Error("failed to create the shader pipeline folder",
+			"folder", saveRoot, "error", err)
+	}
+	path := filepath.Join(saveRoot, win.pipeline.Name+editor_config.FileExtensionShaderPipeline)
+	if _, err := os.Stat(path); err == nil {
+		ok := <-alert.New("Overwrite?", "You are about to overwrite a shader pipeline with the same name, would you like to continue?", "Yes", "No", win.man.Host)
+		if !ok {
+			return
+		}
+	}
+	res, err := json.Marshal(win.pipeline)
+	if err != nil {
+		slog.Error("failed to marshal the pipeline data", "error", err)
+		return
+	}
+	if err := os.WriteFile(path, res, os.ModePerm); err != nil {
+		slog.Error("failed to write the pipeline data to file", "error", err)
+		return
+	}
+	slog.Info("shader pipeline successfully saved", "file", path)
+	// TODO:  Show an in-window popup for prompting that things saved
+	if len(e.Children) > 0 {
+		u := e.Children[0].UI
+		if u.IsType(ui.ElementTypeLabel) {
+			u.ToLabel().SetText("File saved!")
+		}
+	}
 }
