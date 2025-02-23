@@ -71,54 +71,6 @@ func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	}
 }
 
-type ShaderPipelineHTMLData struct {
-	rendering.ShaderPipelineData
-}
-
-func (h ShaderPipelineHTMLData) ListTopology() []string {
-	return klib.MapKeys(rendering.StringVkPrimitiveTopology)
-}
-
-func (h ShaderPipelineHTMLData) ListPolygonMode() []string {
-	return klib.MapKeys(rendering.StringVkPolygonMode)
-}
-
-func (h ShaderPipelineHTMLData) ListCullMode() []string {
-	return klib.MapKeys(rendering.StringVkCullModeFlagBits)
-}
-
-func (h ShaderPipelineHTMLData) ListFrontFace() []string {
-	return klib.MapKeys(rendering.StringVkFrontFace)
-}
-
-func (h ShaderPipelineHTMLData) ListSampleCount() []string {
-	return klib.MapKeys(rendering.StringVkSampleCountFlagBits)
-}
-
-func (h ShaderPipelineHTMLData) ListBlendFactor() []string {
-	return klib.MapKeys(rendering.StringVkBlendFactor)
-}
-
-func (h ShaderPipelineHTMLData) ListBlendOp() []string {
-	return klib.MapKeys(rendering.StringVkBlendOp)
-}
-
-func (h ShaderPipelineHTMLData) ListLogicOp() []string {
-	return klib.MapKeys(rendering.StringVkLogicOp)
-}
-
-func (h ShaderPipelineHTMLData) ListCompareOp() []string {
-	return klib.MapKeys(rendering.StringVkCompareOp)
-}
-
-func (h ShaderPipelineHTMLData) ListStencilOp() []string {
-	return klib.MapKeys(rendering.StringVkStencilOp)
-}
-
-func (h ShaderPipelineHTMLData) ListPatchControlPoints() []string {
-	return klib.MapKeys(rendering.StringVkPatchControlPoints)
-}
-
 func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
 	win.pipeline = setupShaderPipelineDefaults()
 	win.reloadPipelineDoc()
@@ -129,9 +81,8 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	if win.pipelineDoc != nil {
 		win.pipelineDoc.Destroy()
 	}
-	data := ShaderPipelineHTMLData{win.pipeline}
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
-		data, map[string]func(*document.Element){
+		win.pipeline, map[string]func(*document.Element){
 			"showTooltip":   showPipelineTooltip,
 			"valueChanged":  win.pipelineValueChanged,
 			"nameChanged":   win.pipelineNameChanged,

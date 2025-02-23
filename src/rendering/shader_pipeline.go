@@ -123,6 +123,50 @@ type ShaderPipelineData struct {
 	SubpassCount            uint32
 }
 
+func (s ShaderPipelineData) ListTopology() []string {
+	return klib.MapKeys(StringVkPrimitiveTopology)
+}
+
+func (s ShaderPipelineData) ListPolygonMode() []string {
+	return klib.MapKeys(StringVkPolygonMode)
+}
+
+func (s ShaderPipelineData) ListCullMode() []string {
+	return klib.MapKeys(StringVkCullModeFlagBits)
+}
+
+func (s ShaderPipelineData) ListFrontFace() []string {
+	return klib.MapKeys(StringVkFrontFace)
+}
+
+func (s ShaderPipelineData) ListSampleCount() []string {
+	return klib.MapKeys(StringVkSampleCountFlagBits)
+}
+
+func (s ShaderPipelineData) ListBlendFactor() []string {
+	return klib.MapKeys(StringVkBlendFactor)
+}
+
+func (s ShaderPipelineData) ListBlendOp() []string {
+	return klib.MapKeys(StringVkBlendOp)
+}
+
+func (s ShaderPipelineData) ListLogicOp() []string {
+	return klib.MapKeys(StringVkLogicOp)
+}
+
+func (s ShaderPipelineData) ListCompareOp() []string {
+	return klib.MapKeys(StringVkCompareOp)
+}
+
+func (s ShaderPipelineData) ListStencilOp() []string {
+	return klib.MapKeys(StringVkStencilOp)
+}
+
+func (s ShaderPipelineData) ListPatchControlPoints() []string {
+	return klib.MapKeys(StringVkPatchControlPoints)
+}
+
 func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32 {
 	return boolToVkBool(s.PrimitiveRestart)
 }
