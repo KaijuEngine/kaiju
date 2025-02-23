@@ -18,6 +18,12 @@
 	height: 10px;
 	font-size: 10px;
 }
+.inputButtonWide {
+	width: 100%;
+	font-size: 16px;
+	margin-top: 10px;
+	font-weight: bold;
+}
 .inputLabel {
 	width: 30%;
 	height: 100%;

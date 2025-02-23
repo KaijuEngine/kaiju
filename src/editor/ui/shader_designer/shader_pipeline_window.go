@@ -144,6 +144,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 			"valueChanged":  win.pipeline.valueChanged,
 			"pathChanged":   win.pipeline.pathChanged,
 			"addAttachment": win.addAttachment,
+			"savePipeline":  win.savePipeline,
 		})
 }
 
@@ -222,4 +223,9 @@ func (p *ShaderPipelineData) valueChanged(e *document.Element) {
 		val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
 	}
 	field.Set(val)
+}
+
+func (win *ShaderDesigner) savePipeline(*document.Element) {
+	// TODO:  Save the pipeline
+	panic("not yet implemented")
 }
