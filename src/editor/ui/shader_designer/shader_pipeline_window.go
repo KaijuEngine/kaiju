@@ -7,6 +7,7 @@ import (
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -20,72 +21,8 @@ const (
 	shaderPipeline = "editor/ui/shader_designer/shader_pipeline_window.html"
 )
 
-type ShaderPipelineColorBlendAttachments struct {
-	BlendEnable         bool
-	SrcColorBlendFactor string
-	DstColorBlendFactor string
-	ColorBlendOp        string
-	SrcAlphaBlendFactor string
-	DstAlphaBlendFactor string
-	AlphaBlendOp        string
-	ColorWriteMaskR     bool
-	ColorWriteMaskG     bool
-	ColorWriteMaskB     bool
-	ColorWriteMaskA     bool
-}
-
-type ShaderPipelineData struct {
-	Name                    string
-	Topology                string
-	PrimitiveRestart        bool
-	DepthClampEnable        bool
-	RasterizerDiscardEnable bool
-	PolygonMode             string
-	CullMode                string
-	FrontFace               string
-	DepthBiasEnable         bool
-	DepthBiasConstantFactor float32
-	DepthBiasClamp          float32
-	DepthBiasSlopeFactor    float32
-	LineWidth               float32
-	RasterizationSamples    string
-	SampleShadingEnable     bool
-	MinSampleShading        float32
-	AlphaToCoverageEnable   bool
-	AlphaToOneEnable        bool
-	ColorBlendAttachments   []ShaderPipelineColorBlendAttachments
-	LogicOpEnable           bool
-	LogicOp                 string
-	BlendConstants0         float32
-	BlendConstants1         float32
-	BlendConstants2         float32
-	BlendConstants3         float32
-	DepthTestEnable         bool
-	DepthWriteEnable        bool
-	DepthCompareOp          string
-	DepthBoundsTestEnable   bool
-	StencilTestEnable       bool
-	FrontFailOp             string
-	FrontPassOp             string
-	FrontDepthFailOp        string
-	FrontCompareOp          string
-	FrontCompareMask        uint32
-	FrontWriteMask          uint32
-	FrontReference          uint32
-	BackFailOp              string
-	BackPassOp              string
-	BackDepthFailOp         string
-	BackCompareOp           string
-	BackCompareMask         uint32
-	BackWriteMask           uint32
-	BackReference           uint32
-	MinDepthBounds          float32
-	MaxDepthBounds          float32
-	PatchControlPoints      string
-}
-
-func setupShaderPipelineDefaults() ShaderPipelineData {
-	return ShaderPipelineData{
+func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
+	return rendering.ShaderPipelineData{
 		Topology:                "Triangles",
 		PrimitiveRestart:        false,
 		DepthClampEnable:        false,
@@ -147,8 +84,8 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipeline,
 		win.pipeline, map[string]func(*document.Element){
 			"showTooltip":   showPipelineTooltip,
-			"valueChanged":  win.pipeline.valueChanged,
-			"nameChanged":   win.pipeline.nameChanged,
+			"valueChanged":  win.valueChanged,
+			"nameChanged":   win.nameChanged,
 			"addAttachment": win.addAttachment,
 			"savePipeline":  win.savePipeline,
 		})
@@ -158,7 +95,14 @@ func showPipelineTooltip(e *document.Element) {
 	if len(e.Children) < 2 {
 		return
 	}
-	tip, ok := pipelineTooltips[e.Children[1].Attribute("id")]
+	id := e.Children[1].Attribute("id")
+	if id == "" {
+		id = e.Attribute("name")
+	}
+	if sep := strings.Index(id, "_"); sep >= 0 {
+		id = id[:sep]
+	}
+	tip, ok := pipelineTooltips[id]
 	if !ok {
 		return
 	}
@@ -173,13 +117,13 @@ func showPipelineTooltip(e *document.Element) {
 	lbl.ToLabel().SetText(tip)
 }
 
-func (p *ShaderPipelineData) nameChanged(e *document.Element) {
-	p.Name = e.UI.ToInput().Text()
+func (win *ShaderDesigner) nameChanged(e *document.Element) {
+	win.pipeline.Name = e.UI.ToInput().Text()
 }
 
 func (win *ShaderDesigner) addAttachment(e *document.Element) {
 	win.pipeline.ColorBlendAttachments = append(
-		win.pipeline.ColorBlendAttachments, ShaderPipelineColorBlendAttachments{
+		win.pipeline.ColorBlendAttachments, rendering.ShaderPipelineColorBlendAttachments{
 			BlendEnable:         true,
 			SrcColorBlendFactor: "SrcAlpha",
 			DstColorBlendFactor: "OneMinusSrcAlpha",
@@ -201,21 +145,21 @@ func (win *ShaderDesigner) addAttachment(e *document.Element) {
 	})
 }
 
-func (p *ShaderPipelineData) valueChanged(e *document.Element) {
+func (win *ShaderDesigner) valueChanged(e *document.Element) {
 	id := e.Attribute("id")
 	idx := -1
 	sep := strings.Index(id, "_")
 	if sep >= 0 {
-		id = id[:sep]
-		if i, err := strconv.Atoi(id[sep+1:]); err != nil {
+		if i, err := strconv.Atoi(id[sep+1:]); err == nil {
 			idx = i
 		}
+		id = id[:sep]
 	}
 	var v reflect.Value
 	if idx >= 0 {
-		v = reflect.ValueOf(p.ColorBlendAttachments[idx])
+		v = reflect.ValueOf(&win.pipeline.ColorBlendAttachments[idx])
 	} else {
-		v = reflect.ValueOf(p)
+		v = reflect.ValueOf(win.pipeline)
 	}
 	field := v.Elem().FieldByName(id)
 	var val reflect.Value

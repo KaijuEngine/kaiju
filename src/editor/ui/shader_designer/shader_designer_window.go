@@ -3,11 +3,12 @@ package shader_designer
 import (
 	"kaiju/host_container"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 )
 
 type ShaderDesigner struct {
-	pipeline    ShaderPipelineData
+	pipeline    rendering.ShaderPipelineData
 	pipelineDoc *document.Document
 	man         ui.Manager
 }
@@ -23,6 +24,7 @@ func setup(onOpen func(*ShaderDesigner)) {
 	container.RunFunction(func() {
 		win := ShaderDesigner{}
 		win.man.Init(container.Host)
+		win.uiInit()
 		if onOpen != nil {
 			onOpen(&win)
 		}

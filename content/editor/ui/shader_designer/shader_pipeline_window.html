@@ -333,7 +333,7 @@
 						<option value="Blue">Blue</option>
 					</select>
 				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
+				<div name="ColorWriteMask" class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Color Write Mask:</div>
 					<span class="inputCheck">R:</span>
 					<input id="ColorWriteMaskR" class="inputCheck" type="checkbox" {{if .ColorWriteMaskR}}checked="checked"{{end}} onchange="valueChanged" />
@@ -568,6 +568,13 @@
 						<option value="Triangles">Triangles</option>
 						<option value="Lines">Lines</option>
 					</select>
+				</div>
+
+				<!-- vkGraphicsPipelineCreateInfo -->
+				 <h3>Graphics Pipeline Create</h3>
+				<div class="inputItem" onmouseenter="showTooltip">
+					<div class="inputLabel">Subpass Count:</div>
+					<input id="SubpassCount" class="input" type="text" value="{{.SubpassCount}}" onchange="valueChanged" />
 				</div>
 				<button class="inputButtonWide" onclick="savePipeline">Save</button>
 			</div>
