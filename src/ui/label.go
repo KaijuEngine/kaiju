@@ -116,7 +116,9 @@ func (label *Label) Init(text string, anchor Anchor) {
 		label.deactivateDrawings()
 	})
 	label.Base().AddEvent(EventTypeDestroy, func() {
-		label.clearDrawings()
+		if label.elmData != nil {
+			label.clearDrawings()
+		}
 	})
 }
 

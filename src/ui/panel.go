@@ -153,9 +153,6 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	panel.entity.OnDeactivate.Add(func() {
 		panel.shaderData.Deactivate()
 	})
-	panel.Base().AddEvent(EventTypeDestroy, func() {
-		panel.shaderData.Destroy()
-	})
 }
 
 func (p *Panel) ScrollX() float32   { return p.PanelData().scroll.X() }
