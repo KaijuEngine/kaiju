@@ -100,7 +100,7 @@ type RenderPassSubpassDescription struct {
 	InputAttachmentReferences []RenderPassAttachmentReference
 	ResolveAttachments        []RenderPassAttachmentReference
 	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
-	PreserveAttachments       []uint32
+	PreserveAttachments       []uint32                        // TODO
 }
 
 func (ad *RenderPassSubpassDescription) ListPipelineBindPoint() []string {

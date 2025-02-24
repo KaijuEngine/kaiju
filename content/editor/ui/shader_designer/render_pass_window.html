@@ -17,7 +17,70 @@
 				<h3>Attachment Descriptions</h3>
 				{{range $i, $a := .AttachmentDescriptions}}
 					<h4>AttachmentDescription[{{$i}}]</h4>
-					
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Format:</div>
+						<select id="Format" class="input" value="{{.Format}}" onchange="valueChanged">
+							{{range $_, $k := .ListFormat}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Samples:</div>
+						<select id="Samples" class="input" value="{{.Samples}}" onchange="valueChanged">
+							{{range $_, $k := .ListSamples}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Load Op:</div>
+						<select id="LoadOp" class="input" value="{{.LoadOp}}" onchange="valueChanged">
+							{{range $_, $k := .ListLoadOp}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Store Op:</div>
+						<select id="StoreOp" class="input" value="{{.StoreOp}}" onchange="valueChanged">
+							{{range $_, $k := .ListStoreOp}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Stencil Load Op:</div>
+						<select id="StencilLoadOp" class="input" value="{{.StencilLoadOp}}" onchange="valueChanged">
+							{{range $_, $k := .ListStencilLoadOp}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Stencil Store Op:</div>
+						<select id="StencilStoreOp" class="input" value="{{.StencilStoreOp}}" onchange="valueChanged">
+							{{range $_, $k := .ListStencilStoreOp}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Initial Layout:</div>
+						<select id="InitialLayout" class="input" value="{{.InitialLayout}}" onchange="valueChanged">
+							{{range $_, $k := .ListInitialLayout}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Final Layout:</div>
+						<select id="FinalLayout" class="input" value="{{.FinalLayout}}" onchange="valueChanged">
+							{{range $_, $k := .ListFinalLayout}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
 				{{end}}
 
 				<!-- vkSubpassDescription -->
@@ -32,19 +95,117 @@
 							{{end}}
 						</select>
 					</div>
-
-					<!-- vkAttachmentReference -->
-					{{range $j, $r := .AttachmentReferences}}
-					<h4>AttachmentReference[{{$j}}]</h4>
-
+					{{range $j, $r := .ColorAttachmentReferences}}
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Attachment:</div>
+							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
+						</div>
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Layout:</div>
+							<select id="Layout" class="input" value="{{.Layout}}" onchange="valueChanged">
+								{{range $_, $k := .ListLayout}}
+									<option value="{{$k}}">{{$k}}</option>
+								{{end}}
+							</select>
+						</div>
+					{{end}}
+					{{range $j, $r := .InputAttachmentReferences}}
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Attachment:</div>
+							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
+						</div>
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Layout:</div>
+							<select id="Layout" class="input" value="{{.Layout}}" onchange="valueChanged">
+								{{range $_, $k := .ListLayout}}
+									<option value="{{$k}}">{{$k}}</option>
+								{{end}}
+							</select>
+						</div>
+					{{end}}
+					{{range $j, $r := .ResolveAttachments}}
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Attachment:</div>
+							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
+						</div>
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Layout:</div>
+							<select id="Layout" class="input" value="{{.Layout}}" onchange="valueChanged">
+								{{range $_, $k := .ListLayout}}
+									<option value="{{$k}}">{{$k}}</option>
+								{{end}}
+							</select>
+						</div>
+					{{end}}
+					{{range $j, $r := .DepthStencilAttachment}}
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Attachment:</div>
+							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
+						</div>
+						<div class="inputItem" onmouseenter="showTooltip">
+							<div class="inputLabel">Layout:</div>
+							<select id="Layout" class="input" value="{{.Layout}}" onchange="valueChanged">
+								{{range $_, $k := .ListLayout}}
+									<option value="{{$k}}">{{$k}}</option>
+								{{end}}
+							</select>
+						</div>
 					{{end}}
 				{{end}}
 
 				<!-- vkSubpassDependency -->
 				{{range $i, $a := .SubpassDependencies}}
-				<h4>SubpassDependenc[{{$i}}]</h4>
-
+					<h4>SubpassDependenc[{{$i}}]</h4>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Subpass:</div>
+						<input id="SrcSubpass" class="input" type="text" value="{{.SrcSubpass}}" onchange="valueChanged" />
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Subpass:</div>
+						<input id="DstSubpass" class="input" type="text" value="{{.DstSubpass}}" onchange="valueChanged" />
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Stage Mask:</div>
+						<select id="SrcStageMask" class="input" value="{{.SrcStageMask}}" onchange="valueChanged">
+							{{range $_, $k := .ListSrcStageMask}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Stage Mask:</div>
+						<select id="DstStageMask" class="input" value="{{.DstStageMask}}" onchange="valueChanged">
+							{{range $_, $k := .ListDstStageMask}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Access Mask:</div>
+						<select id="SrcAccessMask" class="input" value="{{.SrcAccessMask}}" onchange="valueChanged">
+							{{range $_, $k := .ListSrcAccessMask}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Access Mask:</div>
+						<select id="DstAccessMask" class="input" value="{{.DstAccessMask}}" onchange="valueChanged">
+							{{range $_, $k := .ListDstAccessMask}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dependency Flags:</div>
+						<select id="DependencyFlags" class="input" value="{{.DependencyFlags}}" onchange="valueChanged">
+							{{range $_, $k := .ListDependencyFlags}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
 				{{end}}
+				<button class="inputButtonWide" onclick="saveRenderPass">Save</button>
 			</div>
 			<div id="ToolTip" class="bottomTooltip">tooltip</div>
 		</div>
