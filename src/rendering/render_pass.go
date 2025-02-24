@@ -218,9 +218,7 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 			input[i][j].Attachment = n[j].Attachment
 			input[i][j].Layout = n[j].LayoutToVK()
 		}
-		for j := range p {
-			preserve[i][j] = p[j]
-		}
+		copy(p, preserve[i])
 		for j := range depthStencil {
 			depthStencil[i][j].Attachment = d[j].Attachment
 			depthStencil[i][j].Layout = d[j].LayoutToVK()
