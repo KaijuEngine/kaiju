@@ -1,3 +1,14 @@
+{{define "flags"}}
+	<div class="inputFlags">
+		{{range $_, $k := .List}}
+			<div class="checkboxListEntry">
+				<input name="{{$k}}" data-field="{{$.Field}}" data-array="{{$.Array}}" data-index="{{$.Index}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheck"> {{$k}}</span>
+			</div>
+		{{end}}
+	</div>
+{{end}}
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -17,7 +28,7 @@
 				<h3>Pipeline InputAssembly</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Topology:</div>
-					<select id="Topology" class="input" value="{{.Topology}}" onchange="valueChanged">
+					<select data-field="Topology" class="input" value="{{.Topology}}" onchange="valueChanged">
 					{{range $_, $k := .ListTopology}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
@@ -25,22 +36,22 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Primitive Restart:</div>
-					<input id="PrimitiveRestart" class="inputCheck" type="checkbox" {{if .PrimitiveRestart}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="PrimitiveRestart" class="inputCheck" type="checkbox" {{if .PrimitiveRestart}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 
 				<!-- vkPipelineRasterizationStateCreateInfo -->
 				<h3>Pipeline Rasterization</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Clamp:</div>
-					<input id="DepthClampEnable" class="inputCheck" type="checkbox" {{if .DepthClampEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="DepthClampEnable" class="inputCheck" type="checkbox" {{if .DepthClampEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Rasterizer Discard:</div>
-					<input id="RasterizerDiscardEnable" class="inputCheck" type="checkbox" {{if .RasterizerDiscardEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="RasterizerDiscardEnable" class="inputCheck" type="checkbox" {{if .RasterizerDiscardEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Polygon Mode:</div>
-					<select id="PolygonMode" class="input" value="{{.PolygonMode}}" onchange="valueChanged">
+					<select data-field="PolygonMode" class="input" value="{{.PolygonMode}}" onchange="valueChanged">
 					{{range $_, $k := .ListPolygonMode}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
@@ -48,7 +59,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Cull Mode:</div>
-					<select id="CullMode" class="input" value="{{.CullMode}}" onchange="valueChanged">
+					<select data-field="CullMode" class="input" value="{{.CullMode}}" onchange="valueChanged">
 					{{range $_, $k := .ListCullMode}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
@@ -56,7 +67,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Front Face:</div>
-					<select id="FrontFace" class="input" value="{{.FrontFace}}" onchange="valueChanged">
+					<select data-field="FrontFace" class="input" value="{{.FrontFace}}" onchange="valueChanged">
 					{{range $_, $k := .ListFrontFace}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
@@ -64,30 +75,30 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Bias:</div>
-					<input id="DepthBiasEnable" class="inputCheck" type="checkbox" {{if .DepthBiasEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="DepthBiasEnable" class="inputCheck" type="checkbox" {{if .DepthBiasEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Bias Constant Factor:</div>
-					<input id="DepthBiasConstantFactor" class="input" type="text" value="{{.DepthBiasConstantFactor}}" onchange="valueChanged" />
+					<input data-field="DepthBiasConstantFactor" class="input" type="text" value="{{.DepthBiasConstantFactor}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Bias Clamp:</div>
-					<input id="DepthBiasClamp" class="input" type="text" value="{{.DepthBiasClamp}}" onchange="valueChanged" />
+					<input data-field="DepthBiasClamp" class="input" type="text" value="{{.DepthBiasClamp}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Bias Slope Factor:</div>
-					<input id="DepthBiasSlopeFactor" class="input" type="text" value="{{.DepthBiasSlopeFactor}}" onchange="valueChanged" />
+					<input data-field="DepthBiasSlopeFactor" class="input" type="text" value="{{.DepthBiasSlopeFactor}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Line Width:</div>
-					<input id="LineWidth" class="input" type="text" value="{{.LineWidth}}" onchange="valueChanged" />
+					<input data-field="LineWidth" class="input" type="text" value="{{.LineWidth}}" onchange="valueChanged" />
 				</div>
 
 				<!-- vkPipelineMultisampleStateCreateInfo -->
 				<h3>Pipeline Multisample</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Rasterization Samples:</div>
-					<select id="RasterizationSamples" class="input" value="{{.RasterizationSamples}}" onchange="valueChanged">
+					<select data-field="RasterizationSamples" class="input" value="{{.RasterizationSamples}}" onchange="valueChanged">
 					{{range $_, $k := .ListRasterizationSamples}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
@@ -95,19 +106,19 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Sample Shading:</div>
-					<input id="SampleShadingEnable" class="inputCheck" type="checkbox" {{if .SampleShadingEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="SampleShadingEnable" class="inputCheck" type="checkbox" {{if .SampleShadingEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Min Sample Shading:</div>
-					<input id="MinSampleShading" class="input" type="text" value="{{.MinSampleShading}}" onchange="valueChanged" />
+					<input data-field="MinSampleShading" class="input" type="text" value="{{.MinSampleShading}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Alpha To Coverage:</div>
-					<input id="AlphaToCoverageEnable" class="inputCheck" type="checkbox" {{if .AlphaToCoverageEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="AlphaToCoverageEnable" class="inputCheck" type="checkbox" {{if .AlphaToCoverageEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Alpha To One:</div>
-					<input id="AlphaToOneEnable" class="inputCheck" type="checkbox" {{if .AlphaToOneEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="AlphaToOneEnable" class="inputCheck" type="checkbox" {{if .AlphaToOneEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 
 				<!-- vkPipelineColorBlendAttachmentState -->
@@ -116,84 +127,77 @@
 					<button class="inputButton" onclick="addAttachment">Add attachment</button>
 				</div>
 				{{range $i, $a := .ColorBlendAttachments}}
-				<h4>Attachment[{{$i}}]</h4>
-				<div class="inputItem">
-					<button id="deleteAttachment_{{$i}}" class="inputButton" onclick="deleteAttachment">Delete attachment</button>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Blend:</div>
-					<input id="BlendEnable_{{$i}}" class="inputCheck" type="checkbox" {{if .BlendEnable}}checked="checked"{{end}} onchange="valueChanged" />
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Src Color Blend Factor:</div>
-					<select id="SrcColorBlendFactor_{{$i}}" class="input" value="{{.SrcColorBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListSrcColorBlendFactor}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Dst Color Blend Factor:</div>
-					<select id="DstColorBlendFactor_{{$i}}" class="input" value="{{.DstColorBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListDstColorBlendFactor}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Color Blend Op:</div>
-					<select id="ColorBlendOp_{{$i}}" class="input" value="{{.ColorBlendOp}}" onchange="valueChanged">
-					{{range $_, $k := .ListColorBlendOp}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Src Alpha Blend Factor:</div>
-					<select id="SrcAlphaBlendFactor_{{$i}}" class="input" value="{{.SrcAlphaBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListSrcAlphaBlendFactor}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Dst Alpha Blend Factor:</div>
-					<select id="DstAlphaBlendFactor_{{$i}}" class="input" value="{{.DstAlphaBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListDstAlphaBlendFactor}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Alpha Blend Op:</div>
-					<select id="AlphaBlendOp_{{$i}}" class="input" value="{{.AlphaBlendOp}}" onchange="valueChanged">
-					{{range $_, $k := .ListAlphaBlendOp}}
-						<option value="{{$k}}">{{$k}}</option>
-					{{end}}
-					</select>
-				</div>
-				<div name="ColorWriteMask" class="inputItem" onmouseenter="showTooltip">
-					<div class="inputLabel">Color Write Mask:</div>
-					<span class="inputCheck">R:</span>
-					<input id="ColorWriteMaskR" class="inputCheck" type="checkbox" {{if .ColorWriteMaskR}}checked="checked"{{end}} onchange="valueChanged" />
-					<span class="inputCheck">G:</span>
-					<input id="ColorWriteMaskG" class="inputCheck" type="checkbox" {{if .ColorWriteMaskG}}checked="checked"{{end}} onchange="valueChanged" />
-					<span class="inputCheck">B:</span>
-					<input id="ColorWriteMaskB" class="inputCheck" type="checkbox" {{if .ColorWriteMaskB}}checked="checked"{{end}} onchange="valueChanged" />
-					<span class="inputCheck">A:</span>
-					<input id="ColorWriteMaskA" class="inputCheck" type="checkbox" {{if .ColorWriteMaskA}}checked="checked"{{end}} onchange="valueChanged" />
-				</div>
+					<h4>Attachment[{{$i}}]</h4>
+					<div class="inputItem">
+						<button data-index="{{$i}}" class="inputButton" onclick="deleteAttachment">Delete attachment</button>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Blend:</div>
+						<input data-array="ColorBlendAttachments" data-field="BlendEnable" data-index="{{$i}}" class="inputCheck" type="checkbox" {{if .BlendEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Color Blend Factor:</div>
+						<select data-array="ColorBlendAttachments" data-field="SrcColorBlendFactor" data-index="{{$i}}" class="input" value="{{.SrcColorBlendFactor}}" onchange="valueChanged">
+						{{range $_, $k := .ListSrcColorBlendFactor}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Color Blend Factor:</div>
+						<select data-array="ColorBlendAttachments" data-field="DstColorBlendFactor" data-index="{{$i}}" class="input" value="{{.DstColorBlendFactor}}" onchange="valueChanged">
+						{{range $_, $k := .ListDstColorBlendFactor}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Color Blend Op:</div>
+						<select data-array="ColorBlendAttachments" data-field="ColorBlendOp" data-index="{{$i}}" class="input" value="{{.ColorBlendOp}}" onchange="valueChanged">
+						{{range $_, $k := .ListColorBlendOp}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Alpha Blend Factor:</div>
+						<select data-array="ColorBlendAttachments" data-field="SrcAlphaBlendFactor" data-index="{{$i}}" class="input" value="{{.SrcAlphaBlendFactor}}" onchange="valueChanged">
+						{{range $_, $k := .ListSrcAlphaBlendFactor}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Alpha Blend Factor:</div>
+						<select data-array="ColorBlendAttachments" data-field="DstAlphaBlendFactor" data-index="{{$i}}" class="input" value="{{.DstAlphaBlendFactor}}" onchange="valueChanged">
+						{{range $_, $k := .ListDstAlphaBlendFactor}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div class="inputLabel">Alpha Blend Op:</div>
+						<select data-array="ColorBlendAttachments" data-field="AlphaBlendOp" data-index="{{$i}}" class="input" value="{{.AlphaBlendOp}}" onchange="valueChanged">
+						{{range $_, $k := .ListAlphaBlendOp}}
+							<option value="{{$k}}">{{$k}}</option>
+						{{end}}
+						</select>
+					</div>
+					<div name="ColorWriteMask" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Color Write Mask:</div>
+						{{template "flags" ($.ColorWriteMaskFlagState $i $a)}}
+					</div>
 				{{end}}
 
 				<!-- vkPipelineColorBlendStateCreateInfo -->
 				<h3>Pipeline Color Blend</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Logic Op:</div>
-					<input id="LogicOpEnable" class="inputCheck" type="checkbox" {{if .LogicOpEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="LogicOpEnable" class="inputCheck" type="checkbox" {{if .LogicOpEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Logic Op:</div>
-					<select id="LogicOp" class="input" value="{{.LogicOp}}" onchange="valueChanged">
+					<select data-field="LogicOp" class="input" value="{{.LogicOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListLogicOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -201,33 +205,33 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Blend Constants [4]:</div>
-					<input id="BlendConstants0" class="input" type="text" value="{{.BlendConstants0}}" onchange="valueChanged" />
+					<input data-field="BlendConstants0" class="input" type="text" value="{{.BlendConstants0}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel"></div>
-					<input id="BlendConstants1" class="input" type="text" value="{{.BlendConstants1}}" onchange="valueChanged" />
+					<input data-field="BlendConstants1" class="input" type="text" value="{{.BlendConstants1}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel"></div>
-					<input id="BlendConstants2" class="input" type="text" value="{{.BlendConstants2}}" onchange="valueChanged" />
+					<input data-field="BlendConstants2" class="input" type="text" value="{{.BlendConstants2}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel"></div>
-					<input id="BlendConstants3" class="input" type="text" value="{{.BlendConstants3}}" onchange="valueChanged" />
+					<input data-field="BlendConstants3" class="input" type="text" value="{{.BlendConstants3}}" onchange="valueChanged" />
 				</div>
 
 				<!-- vkPipelineDepthStencilStateCreateInfo -->
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Test:</div>
-					<input id="DepthTestEnable" class="inputCheck" type="checkbox" {{if .DepthTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="DepthTestEnable" class="inputCheck" type="checkbox" {{if .DepthTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Write:</div>
-					<input id="DepthWriteEnable" class="inputCheck" type="checkbox" {{if .DepthWriteEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="DepthWriteEnable" class="inputCheck" type="checkbox" {{if .DepthWriteEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Compare Op:</div>
-					<select id="DepthCompareOp" class="input" value="{{.DepthCompareOp}}" onchange="valueChanged">
+					<select data-field="DepthCompareOp" class="input" value="{{.DepthCompareOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListDepthCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -235,16 +239,16 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Bounds Test:</div>
-					<input id="DepthBoundsTestEnable" class="inputCheck" type="checkbox" {{if .DepthBoundsTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="DepthBoundsTestEnable" class="inputCheck" type="checkbox" {{if .DepthBoundsTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Stencil Test:</div>
-					<input id="StencilTestEnable" class="inputCheck" type="checkbox" {{if .StencilTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
+					<input data-field="StencilTestEnable" class="inputCheck" type="checkbox" {{if .StencilTestEnable}}checked="checked"{{end}} onchange="valueChanged" />
 				</div>
-				<h4 id="PipelineDepthStencilState::Front">Front</h4>
+				<h4 data-field="PipelineDepthStencilState::Front">Front</h4>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Fail Op:</div>
-					<select id="FrontFailOp" class="input" value="{{.FrontFailOp}}" onchange="valueChanged">
+					<select data-field="FrontFailOp" class="input" value="{{.FrontFailOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListFrontFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -252,7 +256,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Pass Op:</div>
-					<select id="FrontPassOp" class="input" value="{{.FrontPassOp}}" onchange="valueChanged">
+					<select data-field="FrontPassOp" class="input" value="{{.FrontPassOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListFrontPassOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -260,7 +264,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Fail Op:</div>
-					<select id="FrontDepthFailOp" class="input" value="{{.FrontDepthFailOp}}" onchange="valueChanged">
+					<select data-field="FrontDepthFailOp" class="input" value="{{.FrontDepthFailOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListFrontDepthFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -268,7 +272,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Op:</div>
-					<select id="FrontCompareOp" class="input" value="{{.FrontCompareOp}}" onchange="valueChanged">
+					<select data-field="FrontCompareOp" class="input" value="{{.FrontCompareOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListFrontCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -276,20 +280,20 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Mask:</div>
-					<input id="FrontCompareMask" class="input" type="text" value="{{.FrontCompareMask}}" onchange="valueChanged" />
+					<input data-field="FrontCompareMask" class="input" type="text" value="{{.FrontCompareMask}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Write Mask:</div>
-					<input id="FrontWriteMask" class="input" type="text" value="{{.FrontWriteMask}}" onchange="valueChanged" />
+					<input data-field="FrontWriteMask" class="input" type="text" value="{{.FrontWriteMask}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Reference:</div>
-					<input id="FrontReference" class="input" type="text" value="{{.FrontReference}}" onchange="valueChanged" />
+					<input data-field="FrontReference" class="input" type="text" value="{{.FrontReference}}" onchange="valueChanged" />
 				</div>
-				<h4 id="PipelineDepthStencilState::Back">Back</h4>
+				<h4 data-field="PipelineDepthStencilState::Back">Back</h4>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Fail Op:</div>
-					<select id="BackFailOp" class="input" value="{{.BackFailOp}}" onchange="valueChanged">
+					<select data-field="BackFailOp" class="input" value="{{.BackFailOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListBackFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -297,7 +301,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Pass Op:</div>
-					<select id="BackPassOp" class="input" value="{{.BackPassOp}}" onchange="valueChanged">
+					<select data-field="BackPassOp" class="input" value="{{.BackPassOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListBackPassOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -305,7 +309,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Depth Fail Op:</div>
-					<select id="BackDepthFailOp" class="input" value="{{.BackDepthFailOp}}" onchange="valueChanged">
+					<select data-field="BackDepthFailOp" class="input" value="{{.BackDepthFailOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListBackDepthFailOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -313,7 +317,7 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Op:</div>
-					<select id="BackCompareOp" class="input" value="{{.BackCompareOp}}" onchange="valueChanged">
+					<select data-field="BackCompareOp" class="input" value="{{.BackCompareOp}}" onchange="valueChanged">
 						{{range $_, $k := .ListBackCompareOp}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -321,30 +325,30 @@
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Compare Mask:</div>
-					<input id="BackCompareMask" class="input" type="text" value="{{.BackCompareMask}}" onchange="valueChanged" />
+					<input data-field="BackCompareMask" class="input" type="text" value="{{.BackCompareMask}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Write Mask:</div>
-					<input id="BackWriteMask" class="input" type="text" value="{{.BackWriteMask}}" onchange="valueChanged" />
+					<input data-field="BackWriteMask" class="input" type="text" value="{{.BackWriteMask}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Reference:</div>
-					<input id="BackReference" class="input" type="text" value="{{.BackReference}}" onchange="valueChanged" />
+					<input data-field="BackReference" class="input" type="text" value="{{.BackReference}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Min Depth Bounds:</div>
-					<input id="MinDepthBounds" class="input" type="text" value="{{.MinDepthBounds}}" onchange="valueChanged" />
+					<input data-field="MinDepthBounds" class="input" type="text" value="{{.MinDepthBounds}}" onchange="valueChanged" />
 				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Max Depth Bounds:</div>
-					<input id="MaxDepthBounds" class="input" type="text" value="{{.MaxDepthBounds}}" onchange="valueChanged" />
+					<input data-field="MaxDepthBounds" class="input" type="text" value="{{.MaxDepthBounds}}" onchange="valueChanged" />
 				</div>
 
 				<!-- vkPipelineTessellationStateCreateInfo -->
 				<h3>Pipeline Tessellation</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Patch Control Points:</div>
-					<select id="PatchControlPoints" class="input" value="{{.PatchControlPoints}}" onchange="valueChanged">
+					<select data-field="PatchControlPoints" class="input" value="{{.PatchControlPoints}}" onchange="valueChanged">
 						{{range $_, $k := .ListPatchControlPoints}}
 							<option value="{{$k}}">{{$k}}</option>
 						{{end}}
@@ -355,7 +359,7 @@
 				 <h3>Graphics Pipeline Create</h3>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Subpass Count:</div>
-					<input id="SubpassCount" class="input" type="text" value="{{.SubpassCount}}" onchange="valueChanged" />
+					<input data-field="SubpassCount" class="input" type="text" value="{{.SubpassCount}}" onchange="valueChanged" />
 				</div>
 				<button class="inputButtonWide" onclick="savePipeline">Save</button>
 			</div>

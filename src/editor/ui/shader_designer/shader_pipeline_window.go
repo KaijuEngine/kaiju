@@ -22,6 +22,32 @@ const (
 	shaderPipelineHTML = "editor/ui/shader_designer/shader_pipeline_window.html"
 )
 
+type shaderPipelineHTMLData struct {
+	rendering.ShaderPipelineData
+}
+
+type flagState struct {
+	List    []string
+	Current []string
+	Array   string
+	Field   string
+	Index   int
+}
+
+func (s flagState) Has(val string) bool {
+	return slices.Contains(s.Current, val)
+}
+
+func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.ShaderPipelineColorBlendAttachments) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.ColorWriteMask,
+		Array:   "ColorBlendAttachments",
+		Field:   "ColorWriteMask",
+		Index:   index,
+	}
+}
+
 func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	return rendering.ShaderPipelineData{
 		Topology:                "Triangles",
@@ -82,8 +108,9 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	if win.pipelineDoc != nil {
 		win.pipelineDoc.Destroy()
 	}
+	data := shaderPipelineHTMLData{win.pipeline}
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
-		win.pipeline, map[string]func(*document.Element){
+		data, map[string]func(*document.Element){
 			"showTooltip":      showPipelineTooltip,
 			"valueChanged":     win.pipelineValueChanged,
 			"nameChanged":      win.pipelineNameChanged,
@@ -97,7 +124,7 @@ func showPipelineTooltip(e *document.Element) {
 	if len(e.Children) < 2 {
 		return
 	}
-	id := e.Children[1].Attribute("id")
+	id := e.Children[1].Attribute("data-field")
 	if id == "" {
 		id = e.Attribute("name")
 	}
@@ -133,10 +160,7 @@ func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
 			SrcAlphaBlendFactor: "One",
 			DstAlphaBlendFactor: "Zero",
 			AlphaBlendOp:        "Add",
-			ColorWriteMaskR:     true,
-			ColorWriteMaskG:     true,
-			ColorWriteMaskB:     true,
-			ColorWriteMaskA:     true,
+			ColorWriteMask:      []string{"R", "G", "B", "A"},
 		})
 	content := win.pipelineDoc.GetElementsByClass("topFields")[0]
 	sy := content.UIPanel.ScrollY()
@@ -147,22 +171,11 @@ func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
 	})
 }
 
-func extractIndexFromId(id string) (string, int) {
-	idx := -1
-	sep := strings.Index(id, "_")
-	if sep >= 0 {
-		if i, err := strconv.Atoi(id[sep+1:]); err == nil {
-			idx = i
-		}
-		id = id[:sep]
-	}
-	return id, idx
-}
-
 func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
 	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this attachment entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
 	if ok {
-		_, idx := extractIndexFromId(e.Attribute("id"))
+		idxString := e.Attribute("data-index")
+		idx, _ := strconv.Atoi(idxString)
 		win.pipeline.ColorBlendAttachments = slices.Delete(
 			win.pipeline.ColorBlendAttachments, idx, idx+1)
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
@@ -175,25 +188,58 @@ func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
 }
 
 func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
-	id, idx := extractIndexFromId(e.Attribute("id"))
+	fieldName := e.Attribute("data-field")
+	arrayName := e.Attribute("data-array")
 	var v reflect.Value
-	if idx >= 0 {
-		v = reflect.ValueOf(&win.pipeline.ColorBlendAttachments[idx])
+	v = reflect.ValueOf(&win.pipeline).Elem()
+	if arrayName != "" {
+		// TODO:  Make this safer by checking bounds and index
+		idxString := e.Attribute("data-index")
+		idx, _ := strconv.Atoi(idxString)
+		v = v.FieldByName(arrayName)
+		v = v.Addr()
+		v = v.Elem().Index(idx)
+	}
+	field := v.FieldByName(fieldName)
+	if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.String {
+		// TODO:  Ensure switch e.UI.Type() == ui.ElementTypeCheckbox
+		add := e.UI.ToCheckbox().IsChecked()
+		str := e.Attribute("name")
+		var slice []string
+		if !field.IsNil() {
+			slice = field.Interface().([]string)
+		} else {
+			slice = []string{}
+		}
+		if add {
+			for _, s := range slice {
+				if s == str {
+					return // Already exists, no change
+				}
+			}
+			slice = append(slice, str)
+		} else {
+			for i, s := range slice {
+				if s == str {
+					slice = slices.Delete(slice, i, i+1)
+					break
+				}
+			}
+		}
+		field.Set(reflect.ValueOf(slice))
 	} else {
-		v = reflect.ValueOf(&win.pipeline)
+		var val reflect.Value
+		switch e.UI.Type() {
+		case ui.ElementTypeInput:
+			res := klib.StringToTypeValue(field.Type().String(), e.UI.ToInput().Text())
+			val = reflect.ValueOf(res)
+		case ui.ElementTypeSelect:
+			val = reflect.ValueOf(e.UI.ToSelect().Value())
+		case ui.ElementTypeCheckbox:
+			val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
+		}
+		field.Set(val)
 	}
-	field := v.Elem().FieldByName(id)
-	var val reflect.Value
-	switch e.UI.Type() {
-	case ui.ElementTypeInput:
-		res := klib.StringToTypeValue(field.Type().String(), e.UI.ToInput().Text())
-		val = reflect.ValueOf(res)
-	case ui.ElementTypeSelect:
-		val = reflect.ValueOf(e.UI.ToSelect().Value())
-	case ui.ElementTypeCheckbox:
-		val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
-	}
-	field.Set(val)
 }
 
 func OpenPipeline(path string) {

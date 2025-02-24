@@ -489,6 +489,13 @@ var (
 		"DeviceGroupBit": vk.DependencyDeviceGroupBit,
 		"ViewLocalBit":   vk.DependencyViewLocalBit,
 	}
+
+	StringVkColorComponentFlagBits = map[string]vk.ColorComponentFlagBits{
+		"R": vk.ColorComponentRBit,
+		"G": vk.ColorComponentGBit,
+		"B": vk.ColorComponentBBit,
+		"A": vk.ColorComponentABit,
+	}
 )
 
 func boolToVkBool(val bool) vk.Bool32 {

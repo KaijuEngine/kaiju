@@ -14,10 +14,7 @@ type ShaderPipelineColorBlendAttachments struct {
 	SrcAlphaBlendFactor string
 	DstAlphaBlendFactor string
 	AlphaBlendOp        string
-	ColorWriteMaskR     bool
-	ColorWriteMaskG     bool
-	ColorWriteMaskB     bool
-	ColorWriteMaskA     bool
+	ColorWriteMask      []string
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string {
@@ -70,6 +67,14 @@ func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToVK() vk.Blend
 
 func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToVK() vk.BlendOp {
 	return blendOpToVK(a.AlphaBlendOp)
+}
+
+func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToVK() vk.ColorComponentFlagBits {
+	mask := vk.ColorComponentFlagBits(0)
+	for i := range a.ColorWriteMask {
+		mask |= StringVkColorComponentFlagBits[a.ColorWriteMask[i]]
+	}
+	return mask
 }
 
 type ShaderPipelineData struct {
@@ -409,19 +414,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 		colorBlendAttachment[i].SrcAlphaBlendFactor = s.ColorBlendAttachments[i].SrcAlphaBlendFactorToVK()
 		colorBlendAttachment[i].DstAlphaBlendFactor = s.ColorBlendAttachments[i].DstAlphaBlendFactorToVK()
 		colorBlendAttachment[i].AlphaBlendOp = s.ColorBlendAttachments[i].AlphaBlendOpToVK()
-		var writeMask vk.ColorComponentFlagBits = 0
-		if s.ColorBlendAttachments[i].ColorWriteMaskR {
-			writeMask |= vk.ColorComponentRBit
-		}
-		if s.ColorBlendAttachments[i].ColorWriteMaskG {
-			writeMask |= vk.ColorComponentGBit
-		}
-		if s.ColorBlendAttachments[i].ColorWriteMaskB {
-			writeMask |= vk.ColorComponentBBit
-		}
-		if s.ColorBlendAttachments[i].ColorWriteMaskA {
-			writeMask |= vk.ColorComponentABit
-		}
+		writeMask := s.ColorBlendAttachments[i].ColorWriteMaskToVK()
 		colorBlendAttachment[i].ColorWriteMask = vk.ColorComponentFlags(writeMask)
 	}
 	colorBlendAttachmentCount := len(colorBlendAttachment)
