@@ -496,6 +496,15 @@ var (
 		"B": vk.ColorComponentBBit,
 		"A": vk.ColorComponentABit,
 	}
+
+	StringVkPipelineCreateFlagBits = map[string]vk.PipelineCreateFlagBits{
+		"DisableOptimizationBit":      vk.PipelineCreateDisableOptimizationBit,
+		"AllowDerivativesBit":         vk.PipelineCreateAllowDerivativesBit,
+		"DerivativeBit":               vk.PipelineCreateDerivativeBit,
+		"ViewIndexFromDeviceIndexBit": vk.PipelineCreateViewIndexFromDeviceIndexBit,
+		"DispatchBase":                vk.PipelineCreateDispatchBase,
+		"DeferCompileBitNvx":          vk.PipelineCreateDeferCompileBitNvx,
+	}
 )
 
 func boolToVkBool(val bool) vk.Bool32 {

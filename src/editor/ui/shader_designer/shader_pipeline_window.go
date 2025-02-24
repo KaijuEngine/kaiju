@@ -36,6 +36,16 @@ func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.S
 	}
 }
 
+func (d shaderPipelineHTMLData) PipelineCreateFlagsState() flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkPipelineCreateFlagBits),
+		Current: d.PipelineCreateFlags,
+		Array:   "",
+		Field:   "PipelineCreateFlags",
+		Index:   0,
+	}
+}
+
 func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	return rendering.ShaderPipelineData{
 		Topology:                "Triangles",

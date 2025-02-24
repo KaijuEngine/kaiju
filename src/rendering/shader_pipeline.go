@@ -126,6 +126,7 @@ type ShaderPipelineData struct {
 	MaxDepthBounds          float32
 	PatchControlPoints      string
 	SubpassCount            uint32
+	PipelineCreateFlags     []string
 }
 
 func (s ShaderPipelineData) ListTopology() []string {
@@ -335,6 +336,14 @@ func (s *ShaderPipelineData) BackStencilOpStateToVK() vk.StencilOpState {
 	}
 }
 
+func (s *ShaderPipelineData) PipelineCreateFlagsToVK() vk.PipelineCreateFlags {
+	mask := vk.PipelineCreateFlagBits(0)
+	for i := range s.PipelineCreateFlags {
+		mask |= StringVkPipelineCreateFlagBits[s.PipelineCreateFlags[i]]
+	}
+	return vk.PipelineCreateFlags(mask)
+}
+
 func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	bDesc := vertexGetBindingDescription(shader)
@@ -352,6 +361,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	inputAssembly := vk.PipelineInputAssemblyStateCreateInfo{
 		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
+		Flags:                  0, // PipelineInputAssemblyStateCreateFlags
 		Topology:               s.TopologyToVK(),
 		PrimitiveRestartEnable: s.PrimitiveRestartToVK(),
 	}
@@ -385,6 +395,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	rasterizer := vk.PipelineRasterizationStateCreateInfo{
 		SType:                   vk.StructureTypePipelineRasterizationStateCreateInfo,
+		Flags:                   0, // PipelineRasterizationStateCreateFlags
 		DepthClampEnable:        s.DepthClampEnableToVK(),
 		RasterizerDiscardEnable: s.RasterizerDiscardEnableToVK(),
 		PolygonMode:             s.PolygonModeToVK(),
@@ -398,6 +409,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	multisampling := vk.PipelineMultisampleStateCreateInfo{
 		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
+		Flags:                 0, // PipelineMultisampleStateCreateFlags
 		SampleShadingEnable:   s.SampleShadingEnableToVK(),
 		RasterizationSamples:  s.RasterizationSamplesToVK(),
 		MinSampleShading:      s.MinSampleShading,
@@ -420,6 +432,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	colorBlendAttachmentCount := len(colorBlendAttachment)
 	colorBlending := vk.PipelineColorBlendStateCreateInfo{
 		SType:           vk.StructureTypePipelineColorBlendStateCreateInfo,
+		Flags:           0, // PipelineColorBlendStateCreateFlags
 		LogicOpEnable:   s.LogicOpEnableToVK(),
 		LogicOp:         s.LogicOpToVK(),
 		AttachmentCount: uint32(colorBlendAttachmentCount),
@@ -428,6 +441,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
+		Flags:                  0, // PipelineLayoutCreateFlags
 		SetLayoutCount:         1,
 		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
 		PushConstantRangeCount: 0,
@@ -443,6 +457,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	shader.RenderId.pipelineLayout = pLayout
 	depthStencil := vk.PipelineDepthStencilStateCreateInfo{
 		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
+		Flags:                 0, // PipelineDepthStencilStateCreateFlags
 		DepthTestEnable:       s.DepthTestEnableToVK(),
 		DepthCompareOp:        compareOpToVK(s.DepthCompareOp),
 		DepthBoundsTestEnable: s.DepthBoundsTestEnableToVK(),
@@ -455,6 +470,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	}
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
 		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
+		Flags:               s.PipelineCreateFlagsToVK(),
 		StageCount:          uint32(len(shaderStages)),
 		PStages:             &shaderStages[0],
 		PVertexInputState:   &vertexInputInfo,
@@ -473,6 +489,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 	tess := vk.PipelineTessellationStateCreateInfo{}
 	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {
 		tess.SType = vk.StructureTypePipelineTessellationStateCreateInfo
+		tess.Flags = 0 // PipelineTessellationStateCreateFlags
 		tess.PatchControlPoints = s.PatchControlPointsToVK()
 		pipelineInfo.PTessellationState = &tess
 	}
