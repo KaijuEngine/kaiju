@@ -155,10 +155,11 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	})
 }
 
-func (p *Panel) ScrollX() float32   { return p.PanelData().scroll.X() }
-func (p *Panel) ScrollY() float32   { return -p.PanelData().scroll.Y() }
-func (p *Panel) EnableDragScroll()  { p.PanelData().allowDragScroll = true }
-func (p *Panel) DisableDragScroll() { p.PanelData().allowDragScroll = false }
+func (p *Panel) MaxScroll() matrix.Vec2 { return p.PanelData().maxScroll }
+func (p *Panel) ScrollX() float32       { return p.PanelData().scroll.X() }
+func (p *Panel) ScrollY() float32       { return -p.PanelData().scroll.Y() }
+func (p *Panel) EnableDragScroll()      { p.PanelData().allowDragScroll = true }
+func (p *Panel) DisableDragScroll()     { p.PanelData().allowDragScroll = false }
 
 func (p *Panel) DontFitContentWidth() {
 	pd := p.PanelData()

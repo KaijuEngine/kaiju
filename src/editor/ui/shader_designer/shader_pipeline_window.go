@@ -26,18 +26,6 @@ type shaderPipelineHTMLData struct {
 	rendering.ShaderPipelineData
 }
 
-type flagState struct {
-	List    []string
-	Current []string
-	Array   string
-	Field   string
-	Index   int
-}
-
-func (s flagState) Has(val string) bool {
-	return slices.Contains(s.Current, val)
-}
-
 func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.ShaderPipelineColorBlendAttachments) flagState {
 	return flagState{
 		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),

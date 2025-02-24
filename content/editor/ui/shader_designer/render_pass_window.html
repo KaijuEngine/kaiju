@@ -1,3 +1,14 @@
+{{define "flags"}}
+	<div class="inputFlags">
+		{{range $_, $k := .List}}
+			<div class="checkboxListEntry">
+				<input name="{{$k}}" data-field="{{$.Field}}" data-array="{{$.Array}}" data-index="{{$.Index}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheckLabel">{{$k}}</span>
+			</div>
+		{{end}}
+	</div>
+{{end}}
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -165,44 +176,33 @@
 						<input id="DstSubpass" class="input" type="text" value="{{.DstSubpass}}" onchange="valueChanged" />
 					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
-						<div class="inputLabel">Src Stage Mask:</div>
-						<select id="SrcStageMask" class="input" value="{{.SrcStageMask}}" onchange="valueChanged">
-							{{range $_, $k := .ListSrcStageMask}}
-								<option value="{{$k}}">{{$k}}</option>
-							{{end}}
-						</select>
+						<div name="SrcStageMask" class="inputItemFlags" onmouseenter="showTooltip">
+							<div class="inputLabel">Src Stage Mask:</div>
+							{{template "flags" ($.SrcStageMaskFlagState $i $a)}}
+						</div>
+					<div class="inputItem" onmouseenter="showTooltip">
+						<div name="DstStageMask" class="inputItemFlags" onmouseenter="showTooltip">
+							<div class="inputLabel">Dst Stage Mask:</div>
+							{{template "flags" ($.DstStageMaskFlagState $i $a)}}
+						</div>
 					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
-						<div class="inputLabel">Dst Stage Mask:</div>
-						<select id="DstStageMask" class="input" value="{{.DstStageMask}}" onchange="valueChanged">
-							{{range $_, $k := .ListDstStageMask}}
-								<option value="{{$k}}">{{$k}}</option>
-							{{end}}
-						</select>
+						<div name="SrcAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
+							<div class="inputLabel">Src Access Mask:</div>
+							{{template "flags" ($.SrcAccessMaskFlagState $i $a)}}
+						</div>
 					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
-						<div class="inputLabel">Src Access Mask:</div>
-						<select id="SrcAccessMask" class="input" value="{{.SrcAccessMask}}" onchange="valueChanged">
-							{{range $_, $k := .ListSrcAccessMask}}
-								<option value="{{$k}}">{{$k}}</option>
-							{{end}}
-						</select>
+						<div name="DstAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
+							<div class="inputLabel">Dst Access Mask:</div>
+							{{template "flags" ($.DstAccessMaskFlagState $i $a)}}
+						</div>
 					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
-						<div class="inputLabel">Dst Access Mask:</div>
-						<select id="DstAccessMask" class="input" value="{{.DstAccessMask}}" onchange="valueChanged">
-							{{range $_, $k := .ListDstAccessMask}}
-								<option value="{{$k}}">{{$k}}</option>
-							{{end}}
-						</select>
-					</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div class="inputLabel">Dependency Flags:</div>
-						<select id="DependencyFlags" class="input" value="{{.DependencyFlags}}" onchange="valueChanged">
-							{{range $_, $k := .ListDependencyFlags}}
-								<option value="{{$k}}">{{$k}}</option>
-							{{end}}
-						</select>
+						<div name="DependencyFlags" class="inputItemFlags" onmouseenter="showTooltip">
+							<div class="inputLabel">Dependency Flags:</div>
+							{{template "flags" ($.DependencyFlagsState $i $a)}}
+						</div>
 					</div>
 				{{end}}
 				<button class="inputButtonWide" onclick="saveRenderPass">Save</button>

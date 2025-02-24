@@ -5,12 +5,25 @@ import (
 	"kaiju/markup/document"
 	"kaiju/rendering"
 	"kaiju/ui"
+	"slices"
 )
 
 type ShaderDesigner struct {
 	pipeline    rendering.ShaderPipelineData
 	pipelineDoc *document.Document
 	man         ui.Manager
+}
+
+type flagState struct {
+	List    []string
+	Current []string
+	Array   string
+	Field   string
+	Index   int
+}
+
+func (s flagState) Has(val string) bool {
+	return slices.Contains(s.Current, val)
 }
 
 func (win *ShaderDesigner) uiInit() {

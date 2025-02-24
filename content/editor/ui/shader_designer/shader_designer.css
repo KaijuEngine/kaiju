@@ -16,7 +16,7 @@
 }
 .inputItemFlags {
 	width: 100%;
-	max-height: 100px;
+	max-height: 75px;
 	margin-top: 5px;
 }
 .inputButton {
@@ -45,6 +45,9 @@
 .inputCheck {
 	width: 20px;
 	height: 20px;
+}
+.inputCheckLabel {
+	margin-left: 5px;
 }
 h3 {
 	margin-top: 15px;

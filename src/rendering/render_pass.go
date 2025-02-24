@@ -118,11 +118,11 @@ func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindP
 type RenderPassSubpassDependency struct {
 	SrcSubpass      uint32
 	DstSubpass      uint32
-	SrcStageMask    string
-	DstStageMask    string
-	SrcAccessMask   string
-	DstAccessMask   string
-	DependencyFlags string
+	SrcStageMask    []string
+	DstStageMask    []string
+	SrcAccessMask   []string
+	DstAccessMask   []string
+	DependencyFlags []string
 }
 
 func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
@@ -162,11 +162,15 @@ func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
 }
 
 func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags {
-	if res, ok := StringVkDependencyFlagBits[sd.DependencyFlags]; ok {
-		return vk.DependencyFlags(res)
+	mask := vk.DependencyFlagBits(0)
+	for i := range sd.DependencyFlags {
+		if v, ok := StringVkDependencyFlagBits[sd.DependencyFlags[i]]; ok {
+			mask |= v
+		} else {
+			slog.Warn("failed to convert dependency flag string", "string", sd.DependencyFlags[i])
+		}
 	}
-	slog.Warn("failed to convert dependency flag string", "string", sd.DependencyFlags)
-	return vk.DependencyFlags(0)
+	return vk.DependencyFlags(mask)
 }
 
 type RenderPassData struct {

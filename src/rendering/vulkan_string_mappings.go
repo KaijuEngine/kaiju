@@ -530,20 +530,28 @@ func imageLayoutToVK(val string) vk.ImageLayout {
 	return vk.ImageLayoutColorAttachmentOptimal
 }
 
-func pipelineStageFlagsToVK(val string) vk.PipelineStageFlags {
-	if res, ok := StringVkPipelineStageFlagBits[val]; ok {
-		return vk.PipelineStageFlags(res)
+func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
+	mask := vk.PipelineStageFlagBits(0)
+	for i := range vals {
+		if v, ok := StringVkPipelineStageFlagBits[vals[i]]; ok {
+			mask |= v
+		} else {
+			slog.Warn("failed to convert pipeline stage flag string", "string", vals[i])
+		}
 	}
-	slog.Warn("failed to convert pipeline stage flag string", "string", val)
-	return vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
+	return vk.PipelineStageFlags(mask)
 }
 
-func accessFlagsToVK(val string) vk.AccessFlags {
-	if res, ok := StringVkAccessFlagBits[val]; ok {
-		return vk.AccessFlags(res)
+func accessFlagsToVK(vals []string) vk.AccessFlags {
+	mask := vk.AccessFlagBits(0)
+	for i := range vals {
+		if v, ok := StringVkAccessFlagBits[vals[i]]; ok {
+			mask |= v
+		} else {
+			slog.Warn("failed to convert access flag string", "string", vals[i])
+		}
 	}
-	slog.Warn("failed to convert access flag string", "string", val)
-	return vk.AccessFlags(0)
+	return vk.AccessFlags(mask)
 }
 
 func sampleCountToVK(val string) vk.SampleCountFlagBits {

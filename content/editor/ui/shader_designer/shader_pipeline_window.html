@@ -3,7 +3,7 @@
 		{{range $_, $k := .List}}
 			<div class="checkboxListEntry">
 				<input name="{{$k}}" data-field="{{$.Field}}" data-array="{{$.Array}}" data-index="{{$.Index}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
-				<span class="inputCheck"> {{$k}}</span>
+				<span class="inputCheckLabel">{{$k}}</span>
 			</div>
 		{{end}}
 	</div>
@@ -360,6 +360,10 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Subpass Count:</div>
 					<input data-field="SubpassCount" class="input" type="text" value="{{.SubpassCount}}" onchange="valueChanged" />
+				</div>
+				<div name="ColorWriteMask" class="inputItemFlags" onmouseenter="showTooltip">
+					<div class="inputLabel">Pipeline Create Flags:</div>
+					{{template "flags" ($.PipelineCreateFlagsState)}}
 				</div>
 				<button class="inputButtonWide" onclick="savePipeline">Save</button>
 			</div>

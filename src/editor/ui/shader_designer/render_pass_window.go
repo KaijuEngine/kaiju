@@ -3,11 +3,66 @@ package shader_designer
 import (
 	"kaiju/klib"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 	"reflect"
 	"strconv"
 	"strings"
 )
+
+type renderPassHTMLData struct {
+	rendering.RenderPassData
+}
+
+func (d renderPassHTMLData) SrcStageMaskFlagState(index int, a rendering.RenderPassSubpassDependency) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.SrcStageMask,
+		Array:   "SubpassDependencies",
+		Field:   "SrcStageMask",
+		Index:   index,
+	}
+}
+
+func (d renderPassHTMLData) DstStageMaskFlagState(index int, a rendering.RenderPassSubpassDependency) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.DstStageMask,
+		Array:   "SubpassDependencies",
+		Field:   "DstStageMask",
+		Index:   index,
+	}
+}
+
+func (d renderPassHTMLData) SrcAccessMaskFlagState(index int, a rendering.RenderPassSubpassDependency) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.SrcAccessMask,
+		Array:   "SubpassDependencies",
+		Field:   "SrcAccessMask",
+		Index:   index,
+	}
+}
+
+func (d renderPassHTMLData) DstAccessMaskFlagState(index int, a rendering.RenderPassSubpassDependency) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.DstAccessMask,
+		Array:   "SubpassDependencies",
+		Field:   "DstAccessMask",
+		Index:   index,
+	}
+}
+
+func (d renderPassHTMLData) DependencyFlagsState(index int, a rendering.RenderPassSubpassDependency) flagState {
+	return flagState{
+		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		Current: a.DependencyFlags,
+		Array:   "SubpassDependencies",
+		Field:   "DependencyFlags",
+		Index:   index,
+	}
+}
 
 func (win *ShaderDesigner) renderPassValueChanged(e *document.Element) {
 	id := e.Attribute("id")
