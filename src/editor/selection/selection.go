@@ -80,7 +80,6 @@ func New(host *engine.Host, history *memento.History) Selection {
 		host:        host,
 		box:         b,
 		entities:    make([]*engine.Entity, 0),
-		Changed:     events.New(),
 		shaderDatas: make(map[*engine.Entity][]*rendering.ShaderDataBasic),
 		history:     history,
 	}

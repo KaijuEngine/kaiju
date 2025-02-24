@@ -125,7 +125,6 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		LateUpdater:    NewUpdater(),
 		assetDatabase:  assets.NewDatabase(),
 		Drawings:       rendering.NewDrawings(),
-		OnClose:        events.New(),
 		CloseSignal:    make(chan struct{}, 1),
 		Camera:         cameras.NewStandardCamera(w, h, matrix.Vec3Backward()),
 		UICamera:       cameras.NewStandardCameraOrthographic(w, h, matrix.Vec3{0, 0, 250}),

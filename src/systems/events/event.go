@@ -49,18 +49,11 @@ type Event struct {
 	calls  []eventEntry
 }
 
-func New() Event {
-	return Event{
-		nextId: 1,
-		calls:  make([]eventEntry, 0),
-	}
-}
-
 func (e Event) IsEmpty() bool { return len(e.calls) == 0 }
 
 func (e *Event) Add(call func()) Id {
-	id := e.nextId
 	e.nextId++
+	id := e.nextId
 	e.calls = append(e.calls, eventEntry{id, call})
 	return id
 }

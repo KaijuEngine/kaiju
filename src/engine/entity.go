@@ -94,9 +94,6 @@ func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.matrix = matrix.Mat4Identity()
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
-	e.OnDestroy = events.New()
-	e.OnActivate = events.New()
-	e.OnDeactivate = events.New()
 	e.data = make([]EntityData, 0)
 	e.EditorBindings.init()
 }

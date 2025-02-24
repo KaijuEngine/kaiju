@@ -108,8 +108,6 @@ func New(windowName string, width, height, x, y int) (*Window, error) {
 		width:        width,
 		height:       height,
 		evtSharedMem: new(evtMem),
-		OnResize:     events.New(),
-		OnMove:       events.New(),
 		x:            x,
 		y:            y,
 	}
