@@ -1,5 +1,5 @@
 {{define "flags"}}
-	<div class="inputFlags">
+	<div class="inputFlags lightDarkBG">
 		{{range $_, $k := .List}}
 			<div class="checkboxListEntry">
 				<input name="{{$k}}" data-field="{{$.Field}}" data-array="{{$.Array}}" data-index="{{$.Index}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
@@ -26,8 +26,14 @@
 
 				<!-- vkAttachmentDescription -->
 				<h3>Attachment Descriptions</h3>
+				<div class="inputItem">
+					<button class="inputButton" onclick="addAttachmentDescription">Add attachment description</button>
+				</div>
 				{{range $i, $a := .AttachmentDescriptions}}
 					<h4>AttachmentDescription[{{$i}}]</h4>
+					<div class="inputItem">
+						<button data-index="{{$i}}" class="inputButton" onclick="deleteAttachmentDescription">Delete attachment description</button>
+					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
 						<div class="inputLabel">Format:</div>
 						<select id="Format" class="input" value="{{.Format}}" onchange="valueChanged">
@@ -96,8 +102,14 @@
 
 				<!-- vkSubpassDescription -->
 				<h3>Subpass Descriptions</h3>
+				<div class="inputItem">
+					<button class="inputButton" onclick="addSubpassDescription">Add attachment description</button>
+				</div>
 				{{range $i, $s := .SubpassDescriptions}}
 					<h4>SubpassDescription[{{$i}}]</h4>
+					<div class="inputItem">
+						<button data-index="{{$i}}" class="inputButton" onclick="deleteSubpassDescription">Delete subpass description</button>
+					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
 						<div class="inputLabel">Pipeline Bind Point:</div>
 						<select id="PipelineBindPoint" class="input" value="{{.PipelineBindPoint}}" onchange="valueChanged">
@@ -106,7 +118,15 @@
 							{{end}}
 						</select>
 					</div>
+					<h5>SubpassDescription[{{$i}}] Color References</h5>
+					<div class="inputItem">
+						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionColorRef">Add color reference</button>
+					</div>
 					{{range $j, $r := .ColorAttachmentReferences}}
+						<h6>Color Reference[{{$j}}]</h6>
+						<div class="inputItem">
+							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionColorRef">Delete color reference</button>
+						</div>
 						<div class="inputItem" onmouseenter="showTooltip">
 							<div class="inputLabel">Attachment:</div>
 							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
@@ -120,7 +140,15 @@
 							</select>
 						</div>
 					{{end}}
+					<h5>SubpassDescription[{{$i}}] Input References</h5>
+					<div class="inputItem">
+						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionInputRef">Add input reference</button>
+					</div>
 					{{range $j, $r := .InputAttachmentReferences}}
+						<h6>Input Reference[{{$j}}]</h6>
+						<div class="inputItem">
+							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionInputRef">Delete input reference</button>
+						</div>
 						<div class="inputItem" onmouseenter="showTooltip">
 							<div class="inputLabel">Attachment:</div>
 							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
@@ -134,7 +162,15 @@
 							</select>
 						</div>
 					{{end}}
+					<h5>SubpassDescription[{{$i}}] Resolve References</h5>
+					<div class="inputItem">
+						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionResolveRef">Add resolve reference</button>
+					</div>
 					{{range $j, $r := .ResolveAttachments}}
+						<h6>Resolve Reference[{{$j}}]</h6>
+						<div class="inputItem">
+							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionResolveRef">Delete resolve reference</button>
+						</div>
 						<div class="inputItem" onmouseenter="showTooltip">
 							<div class="inputLabel">Attachment:</div>
 							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
@@ -148,7 +184,15 @@
 							</select>
 						</div>
 					{{end}}
+					<h5>SubpassDescription[{{$i}}] Depth Stencil References</h5>
+					<div class="inputItem">
+						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionDepthStencilRefs">Add depth stencil reference</button>
+					</div>
 					{{range $j, $r := .DepthStencilAttachment}}
+						<h6>Depth Stencil Reference[{{$j}}]</h6>
+						<div class="inputItem">
+							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionDepthStencilRef">Delete depth stencil reference</button>
+						</div>
 						<div class="inputItem" onmouseenter="showTooltip">
 							<div class="inputLabel">Attachment:</div>
 							<input id="Attachment" class="input" type="text" value="{{.Attachment}}" onchange="valueChanged" />
@@ -165,8 +209,15 @@
 				{{end}}
 
 				<!-- vkSubpassDependency -->
+				<h3>Subpass Dependencies</h3>
+				<div class="inputItem">
+					<button class="inputButton" onclick="addSubpassDependency">Add supbass dependency</button>
+				</div>
 				{{range $i, $a := .SubpassDependencies}}
-					<h4>SubpassDependenc[{{$i}}]</h4>
+					<h4>SubpassDependency[{{$i}}]</h4>
+					<div class="inputItem">
+						<button data-array="SubpassDependencies" data-index="{{$i}}" class="inputButton" onclick="deleteSubpassDependency">Delete subpass dependency</button>
+					</div>
 					<div class="inputItem" onmouseenter="showTooltip">
 						<div class="inputLabel">Src Subpass:</div>
 						<input id="SrcSubpass" class="input" type="text" value="{{.SrcSubpass}}" onchange="valueChanged" />
@@ -175,34 +226,25 @@
 						<div class="inputLabel">Dst Subpass:</div>
 						<input id="DstSubpass" class="input" type="text" value="{{.DstSubpass}}" onchange="valueChanged" />
 					</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div name="SrcStageMask" class="inputItemFlags" onmouseenter="showTooltip">
-							<div class="inputLabel">Src Stage Mask:</div>
-							{{template "flags" ($.SrcStageMaskFlagState $i $a)}}
-						</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div name="DstStageMask" class="inputItemFlags" onmouseenter="showTooltip">
-							<div class="inputLabel">Dst Stage Mask:</div>
-							{{template "flags" ($.DstStageMaskFlagState $i $a)}}
-						</div>
+					<div name="SrcStageMask" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Stage Mask:</div>
+						{{template "flags" ($.SrcStageMaskFlagState $i $a)}}
 					</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div name="SrcAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
-							<div class="inputLabel">Src Access Mask:</div>
-							{{template "flags" ($.SrcAccessMaskFlagState $i $a)}}
-						</div>
+					<div name="DstStageMask" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Stage Mask:</div>
+						{{template "flags" ($.DstStageMaskFlagState $i $a)}}
 					</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div name="DstAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
-							<div class="inputLabel">Dst Access Mask:</div>
-							{{template "flags" ($.DstAccessMaskFlagState $i $a)}}
-						</div>
+					<div name="SrcAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Src Access Mask:</div>
+						{{template "flags" ($.SrcAccessMaskFlagState $i $a)}}
 					</div>
-					<div class="inputItem" onmouseenter="showTooltip">
-						<div name="DependencyFlags" class="inputItemFlags" onmouseenter="showTooltip">
-							<div class="inputLabel">Dependency Flags:</div>
-							{{template "flags" ($.DependencyFlagsState $i $a)}}
-						</div>
+					<div name="DstAccessMask" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Dst Access Mask:</div>
+						{{template "flags" ($.DstAccessMaskFlagState $i $a)}}
+					</div>
+					<div name="DependencyFlags" class="inputItemFlags" onmouseenter="showTooltip">
+						<div class="inputLabel">Dependency Flags:</div>
+						{{template "flags" ($.DependencyFlagsState $i $a)}}
 					</div>
 				{{end}}
 				<button class="inputButtonWide" onclick="saveRenderPass">Save</button>

@@ -18,35 +18,35 @@ type RenderPassAttachmentDescription struct {
 }
 
 func (ad *RenderPassAttachmentDescription) ListFormat() []string {
-	return klib.MapKeys(StringVkFormat)
+	return klib.MapKeysSorted(StringVkFormat)
 }
 
 func (ad *RenderPassAttachmentDescription) ListSamples() []string {
-	return klib.MapKeys(StringVkSampleCountFlagBits)
+	return klib.MapKeysSorted(StringVkSampleCountFlagBits)
 }
 
 func (ad *RenderPassAttachmentDescription) ListLoadOp() []string {
-	return klib.MapKeys(StringVkAttachmentLoadOp)
+	return klib.MapKeysSorted(StringVkAttachmentLoadOp)
 }
 
 func (ad *RenderPassAttachmentDescription) ListStoreOp() []string {
-	return klib.MapKeys(StringVkAttachmentStoreOp)
+	return klib.MapKeysSorted(StringVkAttachmentStoreOp)
 }
 
 func (ad *RenderPassAttachmentDescription) ListStencilLoadOp() []string {
-	return klib.MapKeys(StringVkAttachmentLoadOp)
+	return klib.MapKeysSorted(StringVkAttachmentLoadOp)
 }
 
 func (ad *RenderPassAttachmentDescription) ListStencilStoreOp() []string {
-	return klib.MapKeys(StringVkAttachmentStoreOp)
+	return klib.MapKeysSorted(StringVkAttachmentStoreOp)
 }
 
 func (ad *RenderPassAttachmentDescription) ListInitialLayout() []string {
-	return klib.MapKeys(StringVkImageLayout)
+	return klib.MapKeysSorted(StringVkImageLayout)
 }
 
 func (ad *RenderPassAttachmentDescription) ListFinalLayout() []string {
-	return klib.MapKeys(StringVkImageLayout)
+	return klib.MapKeysSorted(StringVkImageLayout)
 }
 
 func (ad *RenderPassAttachmentDescription) FormatToVK() vk.Format {
@@ -87,7 +87,7 @@ type RenderPassAttachmentReference struct {
 }
 
 func (ad *RenderPassAttachmentReference) ListLayout() []string {
-	return klib.MapKeys(StringVkImageLayout)
+	return klib.MapKeysSorted(StringVkImageLayout)
 }
 
 func (ad *RenderPassAttachmentReference) LayoutToVK() vk.ImageLayout {
@@ -104,7 +104,7 @@ type RenderPassSubpassDescription struct {
 }
 
 func (ad *RenderPassSubpassDescription) ListPipelineBindPoint() []string {
-	return klib.MapKeys(StringVkPipelineBindPoint)
+	return klib.MapKeysSorted(StringVkPipelineBindPoint)
 }
 
 func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint {
@@ -126,23 +126,23 @@ type RenderPassSubpassDependency struct {
 }
 
 func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
-	return klib.MapKeys(StringVkPipelineStageFlagBits)
+	return klib.MapKeysSorted(StringVkPipelineStageFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) ListDstStageMask() []string {
-	return klib.MapKeys(StringVkPipelineStageFlagBits)
+	return klib.MapKeysSorted(StringVkPipelineStageFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) ListSrcAccessMask() []string {
-	return klib.MapKeys(StringVkAccessFlagBits)
+	return klib.MapKeysSorted(StringVkAccessFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) ListDstAccessMask() []string {
-	return klib.MapKeys(StringVkAccessFlagBits)
+	return klib.MapKeysSorted(StringVkAccessFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) ListDependencyFlags() []string {
-	return klib.MapKeys(StringVkDependencyFlagBits)
+	return klib.MapKeysSorted(StringVkDependencyFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) SrcStageMaskToVK() vk.PipelineStageFlags {
@@ -174,6 +174,7 @@ func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags 
 }
 
 type RenderPassData struct {
+	Name                   string
 	AttachmentDescriptions []RenderPassAttachmentDescription
 	SubpassDescriptions    []RenderPassSubpassDescription
 	SubpassDependencies    []RenderPassSubpassDependency

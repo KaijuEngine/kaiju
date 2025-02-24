@@ -37,11 +37,25 @@
 
 package klib
 
+import (
+	"cmp"
+	"slices"
+)
+
 func MapKeys[T comparable, U any](m map[T]U) []T {
 	keys := make([]T, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}
+	return keys
+}
+
+func MapKeysSorted[T cmp.Ordered, U any](m map[T]U) []T {
+	keys := make([]T, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
 	return keys
 }
 

@@ -53,6 +53,7 @@ const (
 	FileExtensionStage          FileExtension = ".stg"
 	FileExtensionHTML           FileExtension = ".html"
 	FileExtensionShaderPipeline FileExtension = ".shaderpipeline"
+	FileExtensionRenderPass     FileExtension = ".renderpass"
 	FileExtensionAssetDbInfo    FileExtension = ".adi"
 )
 

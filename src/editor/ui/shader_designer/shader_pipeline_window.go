@@ -28,7 +28,7 @@ type shaderPipelineHTMLData struct {
 
 func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.ShaderPipelineColorBlendAttachments) flagState {
 	return flagState{
-		List:    klib.MapKeys(rendering.StringVkColorComponentFlagBits),
+		List:    klib.MapKeysSorted(rendering.StringVkColorComponentFlagBits),
 		Current: a.ColorWriteMask,
 		Array:   "ColorBlendAttachments",
 		Field:   "ColorWriteMask",
@@ -38,7 +38,7 @@ func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.S
 
 func (d shaderPipelineHTMLData) PipelineCreateFlagsState() flagState {
 	return flagState{
-		List:    klib.MapKeys(rendering.StringVkPipelineCreateFlagBits),
+		List:    klib.MapKeysSorted(rendering.StringVkPipelineCreateFlagBits),
 		Current: d.PipelineCreateFlags,
 		Array:   "",
 		Field:   "PipelineCreateFlags",
@@ -96,14 +96,17 @@ func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
 	}
 }
 
-func setupPipelineDoc(win *ShaderDesigner, man *ui.Manager) {
+func setupPipelineDoc(win *ShaderDesigner) {
 	win.pipeline = setupShaderPipelineDefaults()
 	win.reloadPipelineDoc()
-	//win.pipelineDoc.Deactivate()
+	win.pipelineDoc.Deactivate()
 }
 
 func (win *ShaderDesigner) reloadPipelineDoc() {
+	sy := float32(0)
 	if win.pipelineDoc != nil {
+		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
+		sy = content.UIPanel.ScrollY()
 		win.pipelineDoc.Destroy()
 	}
 	data := shaderPipelineHTMLData{win.pipeline}
@@ -116,6 +119,12 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 			"deleteAttachment": win.pipelineDeleteAttachment,
 			"savePipeline":     win.pipelineSave,
 		})
+	if sy != 0 {
+		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
+		win.man.Host.RunAfterFrames(2, func() {
+			content.UIPanel.SetScrollY(sy)
+		})
+	}
 }
 
 func showPipelineTooltip(e *document.Element) {
@@ -160,29 +169,19 @@ func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
 			AlphaBlendOp:        "Add",
 			ColorWriteMask:      []string{"R", "G", "B", "A"},
 		})
-	content := win.pipelineDoc.GetElementsByClass("topFields")[0]
-	sy := content.UIPanel.ScrollY()
 	win.reloadPipelineDoc()
-	content = win.pipelineDoc.GetElementsByClass("topFields")[0]
-	win.man.Host.RunAfterFrames(2, func() {
-		content.UIPanel.SetScrollY(sy)
-	})
 }
 
 func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
 	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this attachment entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
-	if ok {
-		idxString := e.Attribute("data-index")
-		idx, _ := strconv.Atoi(idxString)
-		win.pipeline.ColorBlendAttachments = slices.Delete(
-			win.pipeline.ColorBlendAttachments, idx, idx+1)
-		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
-		sy := content.UIPanel.ScrollY()
-		win.reloadPipelineDoc()
-		win.man.Host.RunAfterFrames(2, func() {
-			content.UIPanel.SetScrollY(sy)
-		})
+	if !ok {
+		return
 	}
+	idxString := e.Attribute("data-index")
+	idx, _ := strconv.Atoi(idxString)
+	win.pipeline.ColorBlendAttachments = slices.Delete(
+		win.pipeline.ColorBlendAttachments, idx, idx+1)
+	win.reloadPipelineDoc()
 }
 
 func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {

@@ -9,9 +9,11 @@ import (
 )
 
 type ShaderDesigner struct {
-	pipeline    rendering.ShaderPipelineData
-	pipelineDoc *document.Document
-	man         ui.Manager
+	pipeline      rendering.ShaderPipelineData
+	renderPass    rendering.RenderPassData
+	pipelineDoc   *document.Document
+	renderPassDoc *document.Document
+	man           ui.Manager
 }
 
 type flagState struct {
@@ -27,7 +29,8 @@ func (s flagState) Has(val string) bool {
 }
 
 func (win *ShaderDesigner) uiInit() {
-	setupPipelineDoc(win, &win.man)
+	setupPipelineDoc(win)
+	setupRenderPassDoc(win)
 }
 
 func setup(onOpen func(*ShaderDesigner)) {

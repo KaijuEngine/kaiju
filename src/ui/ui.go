@@ -113,6 +113,9 @@ type UI struct {
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 
 func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
+	for i := range ui.events {
+		ui.events[i] = events.New()
+	}
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
 	}

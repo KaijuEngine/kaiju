@@ -18,27 +18,27 @@ type ShaderPipelineColorBlendAttachments struct {
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string {
-	return klib.MapKeys(StringVkBlendFactor)
+	return klib.MapKeysSorted(StringVkBlendFactor)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListDstColorBlendFactor() []string {
-	return klib.MapKeys(StringVkBlendFactor)
+	return klib.MapKeysSorted(StringVkBlendFactor)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListColorBlendOp() []string {
-	return klib.MapKeys(StringVkBlendOp)
+	return klib.MapKeysSorted(StringVkBlendOp)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcAlphaBlendFactor() []string {
-	return klib.MapKeys(StringVkBlendFactor)
+	return klib.MapKeysSorted(StringVkBlendFactor)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListDstAlphaBlendFactor() []string {
-	return klib.MapKeys(StringVkBlendFactor)
+	return klib.MapKeysSorted(StringVkBlendFactor)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string {
-	return klib.MapKeys(StringVkBlendOp)
+	return klib.MapKeysSorted(StringVkBlendOp)
 }
 
 func (a *ShaderPipelineColorBlendAttachments) BlendEnableToVK() vk.Bool32 {
@@ -130,75 +130,75 @@ type ShaderPipelineData struct {
 }
 
 func (s ShaderPipelineData) ListTopology() []string {
-	return klib.MapKeys(StringVkPrimitiveTopology)
+	return klib.MapKeysSorted(StringVkPrimitiveTopology)
 }
 
 func (s ShaderPipelineData) ListPolygonMode() []string {
-	return klib.MapKeys(StringVkPolygonMode)
+	return klib.MapKeysSorted(StringVkPolygonMode)
 }
 
 func (s ShaderPipelineData) ListCullMode() []string {
-	return klib.MapKeys(StringVkCullModeFlagBits)
+	return klib.MapKeysSorted(StringVkCullModeFlagBits)
 }
 
 func (s ShaderPipelineData) ListFrontFace() []string {
-	return klib.MapKeys(StringVkFrontFace)
+	return klib.MapKeysSorted(StringVkFrontFace)
 }
 
 func (s ShaderPipelineData) ListRasterizationSamples() []string {
-	return klib.MapKeys(StringVkSampleCountFlagBits)
+	return klib.MapKeysSorted(StringVkSampleCountFlagBits)
 }
 
 func (s ShaderPipelineData) ListBlendFactor() []string {
-	return klib.MapKeys(StringVkBlendFactor)
+	return klib.MapKeysSorted(StringVkBlendFactor)
 }
 
 func (s ShaderPipelineData) ListBlendOp() []string {
-	return klib.MapKeys(StringVkBlendOp)
+	return klib.MapKeysSorted(StringVkBlendOp)
 }
 
 func (s ShaderPipelineData) ListLogicOp() []string {
-	return klib.MapKeys(StringVkLogicOp)
+	return klib.MapKeysSorted(StringVkLogicOp)
 }
 
 func (s ShaderPipelineData) ListDepthCompareOp() []string {
-	return klib.MapKeys(StringVkCompareOp)
+	return klib.MapKeysSorted(StringVkCompareOp)
 }
 
 func (s ShaderPipelineData) ListBackCompareOp() []string {
-	return klib.MapKeys(StringVkCompareOp)
+	return klib.MapKeysSorted(StringVkCompareOp)
 }
 
 func (s ShaderPipelineData) ListFrontFailOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListFrontPassOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListFrontDepthFailOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListFrontCompareOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListBackFailOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListBackPassOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListBackDepthFailOp() []string {
-	return klib.MapKeys(StringVkStencilOp)
+	return klib.MapKeysSorted(StringVkStencilOp)
 }
 
 func (s ShaderPipelineData) ListPatchControlPoints() []string {
-	return klib.MapKeys(StringVkPatchControlPoints)
+	return klib.MapKeysSorted(StringVkPatchControlPoints)
 }
 
 func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32 {
