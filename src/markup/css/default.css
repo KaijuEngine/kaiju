@@ -392,6 +392,7 @@ button {
 	font-size: 16px;
 	text-align: center;
 	background-color: #CCC;
+	overflow: hidden;
 }
 button:hover {
 	background-color: #AAA;

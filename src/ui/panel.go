@@ -189,6 +189,14 @@ func (p *Panel) FittingContent() bool {
 	return p.PanelData().fitContent != ContentFitNone
 }
 
+func (p *Panel) FittingContentWidth() bool {
+	return (p.PanelData().fitContent & ContentFitWidth) != 0
+}
+
+func (p *Panel) FittingContentHeight() bool {
+	return (p.PanelData().fitContent & ContentFitHeight) != 0
+}
+
 func (p *Panel) FitContentWidth() {
 	pd := p.PanelData()
 	switch pd.fitContent {
