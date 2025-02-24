@@ -88,6 +88,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	// TODO:  On list miss, close it, which means this local_select_click
 	// will probably need to skip on that miss?
 	s.Base().AddEvent(EventTypeClick, s.onClick)
+	s.Base().AddEvent(EventTypeMiss, s.onMiss)
 	s.collapse()
 }
 
@@ -175,6 +176,13 @@ func (s *Select) onClick() {
 		s.collapse()
 	} else {
 		s.expand()
+	}
+}
+
+func (s *Select) onMiss() {
+	data := s.SelectData()
+	if data.isOpen {
+		s.collapse()
 	}
 }
 
