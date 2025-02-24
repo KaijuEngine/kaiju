@@ -117,6 +117,9 @@
 				</div>
 				{{range $i, $a := .ColorBlendAttachments}}
 				<h4>Attachment[{{$i}}]</h4>
+				<div class="inputItem">
+					<button id="deleteAttachment_{{$i}}" class="inputButton" onclick="deleteAttachment">Delete attachment</button>
+				</div>
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Blend:</div>
 					<input id="BlendEnable_{{$i}}" class="inputCheck" type="checkbox" {{if .BlendEnable}}checked="checked"{{end}} onchange="valueChanged" />
@@ -124,7 +127,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Src Color Blend Factor:</div>
 					<select id="SrcColorBlendFactor_{{$i}}" class="input" value="{{.SrcColorBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendFactor}}
+					{{range $_, $k := .ListSrcColorBlendFactor}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -132,7 +135,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Dst Color Blend Factor:</div>
 					<select id="DstColorBlendFactor_{{$i}}" class="input" value="{{.DstColorBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendFactor}}
+					{{range $_, $k := .ListDstColorBlendFactor}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -140,7 +143,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Color Blend Op:</div>
 					<select id="ColorBlendOp_{{$i}}" class="input" value="{{.ColorBlendOp}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendOp}}
+					{{range $_, $k := .ListColorBlendOp}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -148,7 +151,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Src Alpha Blend Factor:</div>
 					<select id="SrcAlphaBlendFactor_{{$i}}" class="input" value="{{.SrcAlphaBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendFactor}}
+					{{range $_, $k := .ListSrcAlphaBlendFactor}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -156,7 +159,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Dst Alpha Blend Factor:</div>
 					<select id="DstAlphaBlendFactor_{{$i}}" class="input" value="{{.DstAlphaBlendFactor}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendFactor}}
+					{{range $_, $k := .ListDstAlphaBlendFactor}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>
@@ -164,7 +167,7 @@
 				<div class="inputItem" onmouseenter="showTooltip">
 					<div class="inputLabel">Alpha Blend Op:</div>
 					<select id="AlphaBlendOp_{{$i}}" class="input" value="{{.AlphaBlendOp}}" onchange="valueChanged">
-					{{range $_, $k := .ListBlendOp}}
+					{{range $_, $k := .ListAlphaBlendOp}}
 						<option value="{{$k}}">{{$k}}</option>
 					{{end}}
 					</select>

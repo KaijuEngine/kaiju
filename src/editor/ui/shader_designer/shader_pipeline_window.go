@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -83,11 +84,12 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	}
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
 		win.pipeline, map[string]func(*document.Element){
-			"showTooltip":   showPipelineTooltip,
-			"valueChanged":  win.pipelineValueChanged,
-			"nameChanged":   win.pipelineNameChanged,
-			"addAttachment": win.pipelineAddAttachment,
-			"savePipeline":  win.pipelineSave,
+			"showTooltip":      showPipelineTooltip,
+			"valueChanged":     win.pipelineValueChanged,
+			"nameChanged":      win.pipelineNameChanged,
+			"addAttachment":    win.pipelineAddAttachment,
+			"deleteAttachment": win.pipelineDeleteAttachment,
+			"savePipeline":     win.pipelineSave,
 		})
 }
 
@@ -145,8 +147,7 @@ func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
 	})
 }
 
-func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
-	id := e.Attribute("id")
+func extractIndexFromId(id string) (string, int) {
 	idx := -1
 	sep := strings.Index(id, "_")
 	if sep >= 0 {
@@ -155,6 +156,26 @@ func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
 		}
 		id = id[:sep]
 	}
+	return id, idx
+}
+
+func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
+	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this attachment entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
+	if ok {
+		_, idx := extractIndexFromId(e.Attribute("id"))
+		win.pipeline.ColorBlendAttachments = slices.Delete(
+			win.pipeline.ColorBlendAttachments, idx, idx+1)
+		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
+		sy := content.UIPanel.ScrollY()
+		win.reloadPipelineDoc()
+		win.man.Host.RunAfterFrames(2, func() {
+			content.UIPanel.SetScrollY(sy)
+		})
+	}
+}
+
+func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
+	id, idx := extractIndexFromId(e.Attribute("id"))
 	var v reflect.Value
 	if idx >= 0 {
 		v = reflect.ValueOf(&win.pipeline.ColorBlendAttachments[idx])

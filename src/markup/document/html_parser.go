@@ -143,7 +143,7 @@ func TransformHTML(htmlStr string, withData any) string {
 	tpl := template.Must(template.New("html").Funcs(funcMap).Parse(htmlStr))
 	sb := strings.Builder{}
 	if err := tpl.ExecuteTemplate(&sb, "html", withData); err != nil {
-		slog.Error(err.Error())
+		slog.Error("there was an error in the html template", "error", err)
 	}
 	htmlStr = sb.String()
 	return htmlStr
