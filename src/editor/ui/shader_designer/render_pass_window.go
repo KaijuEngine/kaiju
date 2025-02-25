@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -143,26 +144,23 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 }
 
 func (win *ShaderDesigner) renderPassValueChanged(e *document.Element) {
-	fieldName := e.Attribute("data-field")
-	arrayName := e.Attribute("data-array")
-	var v reflect.Value
-	v = reflect.ValueOf(&win.renderPass).Elem()
-	if arrayName != "" {
-		// TODO:  Make this safer by checking bounds and index
-		idxString := e.Attribute("data-index")
-		idx, _ := strconv.Atoi(idxString)
-		v = v.FieldByName(arrayName)
-		v = v.Addr()
-		v = v.Elem().Index(idx)
+	path := e.Attribute("data-path")
+	parts := strings.Split(path, ".")
+	v := reflect.ValueOf(&win.renderPass).Elem()
+	for i := range parts {
+		if idx, err := strconv.Atoi(parts[i]); err == nil {
+			v = v.Index(idx)
+		} else {
+			v = v.FieldByName(parts[i])
+		}
 	}
-	field := v.FieldByName(fieldName)
-	if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.String {
+	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.String {
 		// TODO:  Ensure switch e.UI.Type() == ui.ElementTypeCheckbox
 		add := e.UI.ToCheckbox().IsChecked()
 		str := e.Attribute("name")
 		var slice []string
-		if !field.IsNil() {
-			slice = field.Interface().([]string)
+		if !v.IsNil() {
+			slice = v.Interface().([]string)
 		} else {
 			slice = []string{}
 		}
@@ -181,19 +179,19 @@ func (win *ShaderDesigner) renderPassValueChanged(e *document.Element) {
 				}
 			}
 		}
-		field.Set(reflect.ValueOf(slice))
+		v.Set(reflect.ValueOf(slice))
 	} else {
 		var val reflect.Value
 		switch e.UI.Type() {
 		case ui.ElementTypeInput:
-			res := klib.StringToTypeValue(field.Type().String(), e.UI.ToInput().Text())
+			res := klib.StringToTypeValue(v.Type().String(), e.UI.ToInput().Text())
 			val = reflect.ValueOf(res)
 		case ui.ElementTypeSelect:
 			val = reflect.ValueOf(e.UI.ToSelect().Value())
 		case ui.ElementTypeCheckbox:
 			val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
 		}
-		field.Set(val)
+		v.Set(val)
 	}
 }
 
