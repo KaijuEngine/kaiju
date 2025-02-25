@@ -1,0 +1,21 @@
+package shader_designer // import "."
+
+
+FUNCTIONS
+
+func New()
+func OpenPipeline(path string)
+func OpenRenderPass(path string)
+
+TYPES
+
+type ShaderDesigner struct {
+	// Has unexported fields.
+}
+
+func (win *ShaderDesigner) ShowDesignerWindow()
+
+func (win *ShaderDesigner) ShowPipelineWindow()
+
+func (win *ShaderDesigner) ShowRenderPassWindow()
+
