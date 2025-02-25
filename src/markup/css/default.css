@@ -148,6 +148,7 @@ h2 {
 	margin-left: 0;
 	margin-right: 0;
 	font-weight: bold;
+	width: 100%;
 }
 h3 {
 	display: block;
@@ -157,6 +158,7 @@ h3 {
 	margin-left: 0;
 	margin-right: 0;
 	font-weight: bold;
+	width: 100%;
 }
 h4 {
 	display: block;
@@ -165,6 +167,7 @@ h4 {
 	margin-left: 0;
 	margin-right: 0;
 	font-weight: bold;
+	width: 100%;
 }
 h5 {
 	display: block;
@@ -174,6 +177,7 @@ h5 {
 	margin-left: 0;
 	margin-right: 0;
 	font-weight: bold;
+	width: 100%;
 }
 h6 {
 	display: block;
@@ -183,6 +187,7 @@ h6 {
 	margin-left: 0;
 	margin-right: 0;
 	font-weight: bold;
+	width: 100%;
 }
 head {
 	display: none;
@@ -191,13 +196,12 @@ header {
 	display: block;
 }
 hr {
+	width: 100%;
+	height: 1px;
 	display: block;
 	margin-top: 0.5em;
 	margin-bottom: 0.5em;
-	margin-left: auto;
-	margin-right: auto;
-	border-style: inset;
-	border-width: 1px;
+	background-color: black;
 }
 html {
 	display: block;

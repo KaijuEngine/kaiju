@@ -28,14 +28,12 @@
 				</div>
 
 				<!-- vkAttachmentDescription -->
-				<h3>Attachment Descriptions</h3>
-				<div class="inputItem">
-					<button class="inputButton" onclick="addAttachmentDescription">Add attachment description</button>
-				</div>
+				<hr/>
+				<h2>Attachment Descriptions</h2>
 				{{range $i, $a := .AttachmentDescriptions}}
-					<h4>AttachmentDescription[{{$i}}]</h4>
+					<h3>AttachmentDescription[{{$i}}]</h3>
 					<div class="inputItem">
-						<button data-index="{{$i}}" class="inputButton" onclick="deleteAttachmentDescription">Delete attachment description</button>
+						<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" onclick="deleteAttachmentDescription" />
 					</div>
 					<div class="inputItem">
 						<div class="inputLabel" data-tooltip="Format" onmouseenter="showTooltip">Format:</div>
@@ -144,16 +142,17 @@
 						</select>
 					</div>
 				{{end}}
+				<div class="inputItem">
+					<img class="addButton" src="textures/plus.png"  onclick="addAttachmentDescription" />
+				</div>
 
 				<!-- vkSubpassDescription -->
-				<h3>Subpass Descriptions</h3>
-				<div class="inputItem">
-					<button class="inputButton" onclick="addSubpassDescription">Add attachment description</button>
-				</div>
+				<hr/>
+				<h2>Subpass Descriptions</h2>
 				{{range $i, $s := .SubpassDescriptions}}
-					<h4>SubpassDescription[{{$i}}]</h4>
+					<h3>SubpassDescription[{{$i}}]</h3>
 					<div class="inputItem">
-						<button data-index="{{$i}}" class="inputButton" onclick="deleteSubpassDescription">Delete subpass description</button>
+						<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" onclick="deleteSubpassDescription" />
 					</div>
 					<div class="inputItem">
 						<div class="inputLabel" data-tooltip="PipelineBindPoint" onmouseenter="showTooltip">Pipeline Bind Point:</div>
@@ -163,14 +162,11 @@
 							{{end}}
 						</select>
 					</div>
-					<h5>SubpassDescription[{{$i}}] Color References</h5>
-					<div class="inputItem">
-						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionColorRef">Add color reference</button>
-					</div>
+					<h3>Color References</h3>
 					{{range $j, $r := .ColorAttachmentReferences}}
-						<h5 data-tooltip="ColorAttachments" onmouseenter="showTooltip">Color Reference[{{$j}}]</h5>
+						<h3 data-tooltip="ColorAttachments" onmouseenter="showTooltip">Color Reference[{{$j}}]</h3>
 						<div class="inputItem">
-							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionColorRef">Delete color reference</button>
+							<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" data-subindex="{{$j}}" onclick="deleteSubpassDescriptionColorRef" />
 						</div>
 						<div class="inputItem">
 							<div class="inputLabel" data-tooltip="Attachment" onmouseenter="showTooltip">Attachment:</div>
@@ -185,14 +181,14 @@
 							</select>
 						</div>
 					{{end}}
-					<h5 data-tooltip="InputAttachments" onmouseenter="showTooltip">SubpassDescription[{{$i}}] Input References</h5>
 					<div class="inputItem">
-						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionInputRef">Add input reference</button>
+						<img class="addButton" src="textures/plus.png" data-index="{{$i}}" onclick="addSubpassDescriptionColorRef" />
 					</div>
+					<h3 data-tooltip="InputAttachments" onmouseenter="showTooltip">Input References</h3>
 					{{range $j, $r := .InputAttachmentReferences}}
-						<h5>Input Reference[{{$j}}]</h5>
+						<h3>Input Reference[{{$j}}]</h3>
 						<div class="inputItem">
-							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionInputRef">Delete input reference</button>
+							<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" data-subindex="{{$j}}" onclick="deleteSubpassDescriptionInputRef" />
 						</div>
 						<div class="inputItem">
 							<div class="inputLabel" data-tooltip="Attachment" onmouseenter="showTooltip">Attachment:</div>
@@ -207,14 +203,14 @@
 							</select>
 						</div>
 					{{end}}
-					<h5 data-tooltip="ResolveAttachments" onmouseenter="showTooltip">SubpassDescription[{{$i}}] Resolve References</h5>
 					<div class="inputItem">
-						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionResolveRef">Add resolve reference</button>
+						<img class="addButton" src="textures/plus.png" data-index="{{$i}}" onclick="addSubpassDescriptionInputRef" />
 					</div>
+					<h3 data-tooltip="ResolveAttachments" onmouseenter="showTooltip">Resolve References</h3>
 					{{range $j, $r := .ResolveAttachments}}
-						<h5>Resolve Reference[{{$j}}]</h5>
+						<h3>Resolve Reference[{{$j}}]</h3>
 						<div class="inputItem">
-							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionResolveRef">Delete resolve reference</button>
+							<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" data-subindex="{{$j}}" onclick="deleteSubpassDescriptionResolveRef" />
 						</div>
 						<div class="inputItem">
 							<div class="inputLabel" data-tooltip="Attachment" onmouseenter="showTooltip">Attachment:</div>
@@ -229,14 +225,14 @@
 							</select>
 						</div>
 					{{end}}
-					<h5 data-tooltip="DepthStencilAttachment" onmouseenter="showTooltip">SubpassDescription[{{$i}}] Depth Stencil References</h5>
 					<div class="inputItem">
-						<button class="inputButton" data-index="{{$i}}" onclick="addSubpassDescriptionDepthStencilRefs">Add depth stencil reference</button>
+						<img class="addButton" src="textures/plus.png" data-index="{{$i}}" onclick="addSubpassDescriptionResolveRef" />
 					</div>
+					<h3 data-tooltip="DepthStencilAttachment" onmouseenter="showTooltip">Depth Stencil References</h3>
 					{{range $j, $r := .DepthStencilAttachment}}
-						<h5>Depth Stencil Reference[{{$j}}]</h5>
+						<h3>Depth Stencil Reference[{{$j}}]</h3>
 						<div class="inputItem">
-							<button data-index="{{$i}}" data-subindex="{{$j}}" class="inputButton" onclick="deleteSubpassDescriptionDepthStencilRef">Delete depth stencil reference</button>
+							<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" data-subindex="{{$j}}" onclick="deleteSubpassDescriptionDepthStencilRef" />
 						</div>
 						<div class="inputItem">
 							<div class="inputLabel" data-tooltip="Attachment" onmouseenter="showTooltip">Attachment:</div>
@@ -251,17 +247,21 @@
 							</select>
 						</div>
 					{{end}}
+					<div class="inputItem">
+						<img class="addButton" src="textures/plus.png" data-index="{{$i}}" onclick="addSubpassDescriptionDepthStencilRefs" />
+					</div>
 				{{end}}
+				<div class="inputItem">
+					<img class="addButton" src="textures/plus.png" onclick="addSubpassDescription" />
+				</div>
 
 				<!-- vkSubpassDependency -->
-				<h3>Subpass Dependencies</h3>
-				<div class="inputItem">
-					<button class="inputButton" onclick="addSubpassDependency">Add supbass dependency</button>
-				</div>
+				<hr/>
+				<h2>Subpass Dependencies</h2>
 				{{range $i, $a := .SubpassDependencies}}
-					<h4>SubpassDependency[{{$i}}]</h4>
+					<h3>SubpassDependency[{{$i}}]</h3>
 					<div class="inputItem">
-						<button data-index="{{$i}}" class="inputButton" onclick="deleteSubpassDependency">Delete subpass dependency</button>
+						<img class="deleteButton" src="textures/minus.png" data-index="{{$i}}" onclick="deleteSubpassDependency" />
 					</div>
 					<div class="inputItem">
 						<div class="inputLabel" data-tooltip="SrcSubpass" onmouseenter="showTooltip">Src Subpass:</div>
@@ -292,6 +292,10 @@
 						{{template "flags" ($.DependencyFlagsState $i $a)}}
 					</div>
 				{{end}}
+				<div class="inputItem">
+					<img class="addButton" src="textures/plus.png" onclick="addSubpassDependency" />
+				</div>
+				<hr/>
 				<button class="inputButtonWide" onclick="saveRenderPass">Save</button>
 			</div>
 			<div id="ToolTip" class="bottomTooltip">tooltip</div>

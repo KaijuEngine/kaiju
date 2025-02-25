@@ -551,6 +551,7 @@ func (p *Panel) SetColor(bgColor matrix.Color) {
 		return
 	}
 	p.setColorInternal(bgColor)
+	p.ensureBGExists(nil)
 }
 
 func (p *Panel) SetScrollX(value float32) {

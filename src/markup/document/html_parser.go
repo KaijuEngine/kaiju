@@ -167,8 +167,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		txt = strings.ReplaceAll(txt, "\n", " ")
 		txt = strings.ReplaceAll(txt, "\t", " ")
 		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
-		var label *ui.Label
-		label = uiMan.Add().ToLabel()
+		label := uiMan.Add().ToLabel()
 		label.Init(txt, anchor)
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
