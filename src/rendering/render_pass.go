@@ -6,6 +6,17 @@ import (
 	"log/slog"
 )
 
+type RenderPassAttachmentImage struct {
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         string   // vk.ImageTiling
+	Filter         string   // vk.Filter
+	Usage          []string // vk.ImageUsageFlagBits
+	MemoryProperty []string // vk.MemoryPropertyFlagBits
+	Aspect         []string // vk.ImageAspectFlagBits
+	Access         []string // vk.AccessFlagBits
+}
+
 type RenderPassAttachmentDescription struct {
 	Format         string
 	Samples        string
@@ -15,6 +26,79 @@ type RenderPassAttachmentDescription struct {
 	StencilStoreOp string
 	InitialLayout  string
 	FinalLayout    string
+	Image          RenderPassAttachmentImage
+}
+
+type RenderPassSubpassDescription struct {
+	PipelineBindPoint         string
+	ColorAttachmentReferences []RenderPassAttachmentReference
+	InputAttachmentReferences []RenderPassAttachmentReference
+	ResolveAttachments        []RenderPassAttachmentReference
+	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
+	PreserveAttachments       []uint32                        // TODO
+}
+
+type RenderPassSubpassDependency struct {
+	SrcSubpass      uint32
+	DstSubpass      uint32
+	SrcStageMask    []string
+	DstStageMask    []string
+	SrcAccessMask   []string
+	DstAccessMask   []string
+	DependencyFlags []string
+}
+
+type RenderPassAttachmentReference struct {
+	Attachment uint32
+	Layout     string
+}
+
+func (ai *RenderPassAttachmentImage) ListTiling() []string {
+	return klib.MapKeysSorted(StringVkImageTiling)
+}
+
+func (ai *RenderPassAttachmentImage) ListFilter() []string {
+	return klib.MapKeysSorted(StringVkFilter)
+}
+
+func (ai *RenderPassAttachmentImage) ListUsage() []string {
+	return klib.MapKeysSorted(StringVkImageUsageFlagBits)
+}
+
+func (ai *RenderPassAttachmentImage) ListMemoryProperty() []string {
+	return klib.MapKeysSorted(StringVkMemoryPropertyFlagBits)
+}
+
+func (ai *RenderPassAttachmentImage) ListAspect() []string {
+	return klib.MapKeysSorted(StringVkImageAspectFlagBits)
+}
+
+func (ai *RenderPassAttachmentImage) ListAccess() []string {
+	return klib.MapKeysSorted(StringVkAccessFlagBits)
+}
+
+func (ai *RenderPassAttachmentImage) TilingToVK() vk.ImageTiling {
+	return imageTilingToVK(ai.Tiling)
+}
+
+func (ai *RenderPassAttachmentImage) FilterToVK() vk.Filter {
+	return filterToVK(ai.Filter)
+}
+
+func (ai *RenderPassAttachmentImage) UsageToVK() vk.ImageUsageFlags {
+	return imageUsageFlagsToVK(ai.Usage)
+}
+
+func (ai *RenderPassAttachmentImage) MemoryPropertyToVK() vk.MemoryPropertyFlags {
+	return memoryPropertyFlagsToVK(ai.MemoryProperty)
+}
+
+func (ai *RenderPassAttachmentImage) AspectToVK() vk.ImageAspectFlags {
+	return imageAspectFlagsToVK(ai.Aspect)
+}
+
+func (ai *RenderPassAttachmentImage) AccessToVK() vk.AccessFlags {
+	return accessFlagsToVK(ai.Access)
 }
 
 func (ad *RenderPassAttachmentDescription) ListFormat() []string {
@@ -49,8 +133,8 @@ func (ad *RenderPassAttachmentDescription) ListFinalLayout() []string {
 	return klib.MapKeysSorted(StringVkImageLayout)
 }
 
-func (ad *RenderPassAttachmentDescription) FormatToVK() vk.Format {
-	return formatToVK(ad.Format)
+func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format {
+	return formatToVK(ad.Format, vr)
 }
 
 func (ad *RenderPassAttachmentDescription) SamplesToVK() vk.SampleCountFlagBits {
@@ -81,11 +165,6 @@ func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vk.ImageLayout {
 	return imageLayoutToVK(ad.FinalLayout)
 }
 
-type RenderPassAttachmentReference struct {
-	Attachment uint32
-	Layout     string
-}
-
 func (ad *RenderPassAttachmentReference) ListLayout() []string {
 	return klib.MapKeysSorted(StringVkImageLayout)
 }
@@ -94,35 +173,12 @@ func (ad *RenderPassAttachmentReference) LayoutToVK() vk.ImageLayout {
 	return imageLayoutToVK(ad.Layout)
 }
 
-type RenderPassSubpassDescription struct {
-	PipelineBindPoint         string
-	ColorAttachmentReferences []RenderPassAttachmentReference
-	InputAttachmentReferences []RenderPassAttachmentReference
-	ResolveAttachments        []RenderPassAttachmentReference
-	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
-	PreserveAttachments       []uint32                        // TODO
-}
-
 func (ad *RenderPassSubpassDescription) ListPipelineBindPoint() []string {
 	return klib.MapKeysSorted(StringVkPipelineBindPoint)
 }
 
 func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint {
-	if res, ok := StringVkPipelineBindPoint[ad.PipelineBindPoint]; ok {
-		return res
-	}
-	slog.Warn("failed to convert pipeline bind point string", "string", ad.PipelineBindPoint)
-	return vk.PipelineBindPointGraphics
-}
-
-type RenderPassSubpassDependency struct {
-	SrcSubpass      uint32
-	DstSubpass      uint32
-	SrcStageMask    []string
-	DstStageMask    []string
-	SrcAccessMask   []string
-	DstAccessMask   []string
-	DependencyFlags []string
+	return pipelineBindPointToVK(ad.PipelineBindPoint)
 }
 
 func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
@@ -162,15 +218,7 @@ func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
 }
 
 func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags {
-	mask := vk.DependencyFlagBits(0)
-	for i := range sd.DependencyFlags {
-		if v, ok := StringVkDependencyFlagBits[sd.DependencyFlags[i]]; ok {
-			mask |= v
-		} else {
-			slog.Warn("failed to convert dependency flag string", "string", sd.DependencyFlags[i])
-		}
-	}
-	return vk.DependencyFlags(mask)
+	return dependencyFlagsToVK(sd.DependencyFlags)
 }
 
 type RenderPassData struct {
@@ -182,16 +230,54 @@ type RenderPassData struct {
 
 func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, bool) {
 	vr := renderer.(*Vulkan)
-
-	// TODO:  Construct these?
 	textures := make([]TextureId, len(r.AttachmentDescriptions))
-
+	{
+		w := uint32(vr.swapChainExtent.Width)
+		h := uint32(vr.swapChainExtent.Height)
+		for i := range len(r.AttachmentDescriptions) {
+			a := &r.AttachmentDescriptions[i]
+			img := &a.Image
+			success := vr.CreateImage(w, h, img.MipLevels, a.SamplesToVK(),
+				a.FormatToVK(vr), img.TilingToVK(), img.UsageToVK(),
+				img.MemoryPropertyToVK(), &textures[i], int(img.LayerCount))
+			if !success {
+				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
+				return RenderPass{}, false
+			}
+			success = vr.createImageView(&textures[i], img.AspectToVK())
+			if !success {
+				for j := range i + 1 {
+					vr.textureIdFree(&textures[j])
+				}
+				slog.Error("failed to create image view for render pass attachment", "attachmentIndex", i)
+				return RenderPass{}, false
+			}
+			success = vr.createTextureSampler(&textures[i].Sampler,
+				img.MipLevels, img.FilterToVK())
+			if !success {
+				for j := range i + 1 {
+					vr.textureIdFree(&textures[j])
+				}
+				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
+				return RenderPass{}, false
+			}
+			success = vr.transitionImageLayout(&textures[i], a.InitialLayoutToVK(),
+				img.AspectToVK(), img.AccessToVK(), vk.NullCommandBuffer)
+			if !success {
+				for j := range i + 1 {
+					vr.textureIdFree(&textures[j])
+				}
+				slog.Error("failed to transition image layout for render pass attachment", "attachmentIndex", i)
+				return RenderPass{}, false
+			}
+		}
+	}
 	attachments := make([]vk.AttachmentDescription, len(r.AttachmentDescriptions))
 	for i := range r.AttachmentDescriptions {
 		// TODO:  Flags
 		attachments[i].Flags = 0
-		attachments[i].Format = textures[i].Format
-		attachments[i].Samples = textures[i].Samples
+		attachments[i].Format = r.AttachmentDescriptions[i].FormatToVK(vr)
+		attachments[i].Samples = r.AttachmentDescriptions[i].SamplesToVK()
 		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOpToVK()
 		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOpToVK()
 		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOpToVK()

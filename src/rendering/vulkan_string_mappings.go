@@ -1,13 +1,17 @@
 package rendering
 
 import (
+	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 )
 
+const detectDepthFormatKey = "DetectDepthFormat"
+
 var (
 	StringVkFormat = map[string]vk.Format{
 		"Undefined":                            vk.FormatUndefined,
+		detectDepthFormatKey:                   vk.FormatUndefined,
 		"R4g4UnormPack8":                       vk.FormatR4g4UnormPack8,
 		"R4g4b4a4UnormPack16":                  vk.FormatR4g4b4a4UnormPack16,
 		"B4g4r4a4UnormPack16":                  vk.FormatB4g4r4a4UnormPack16,
@@ -505,6 +509,53 @@ var (
 		"DispatchBase":                vk.PipelineCreateDispatchBase,
 		"DeferCompileBitNvx":          vk.PipelineCreateDeferCompileBitNvx,
 	}
+
+	StringVkImageTiling = map[string]vk.ImageTiling{
+		"Optimal":           vk.ImageTilingOptimal,
+		"Linear":            vk.ImageTilingLinear,
+		"DrmFormatModifier": vk.ImageTilingDrmFormatModifier,
+	}
+
+	StringVkFilter = map[string]vk.Filter{
+		"Nearest":  vk.FilterNearest,
+		"Linear":   vk.FilterLinear,
+		"CubicImg": vk.FilterCubicImg,
+	}
+
+	StringVkImageUsageFlagBits = map[string]vk.ImageUsageFlagBits{
+		"TransferSrcBit":            vk.ImageUsageTransferSrcBit,
+		"TransferDstBit":            vk.ImageUsageTransferDstBit,
+		"SampledBit":                vk.ImageUsageSampledBit,
+		"StorageBit":                vk.ImageUsageStorageBit,
+		"ColorAttachmentBit":        vk.ImageUsageColorAttachmentBit,
+		"DepthStencilAttachmentBit": vk.ImageUsageDepthStencilAttachmentBit,
+		"TransientAttachmentBit":    vk.ImageUsageTransientAttachmentBit,
+		"InputAttachmentBit":        vk.ImageUsageInputAttachmentBit,
+		"ShadingRateImageBitNv":     vk.ImageUsageShadingRateImageBitNv,
+	}
+
+	StringVkMemoryPropertyFlagBits = map[string]vk.MemoryPropertyFlagBits{
+		"DeviceLocalBit":     vk.MemoryPropertyDeviceLocalBit,
+		"HostVisibleBit":     vk.MemoryPropertyHostVisibleBit,
+		"HostCoherentBit":    vk.MemoryPropertyHostCoherentBit,
+		"HostCachedBit":      vk.MemoryPropertyHostCachedBit,
+		"LazilyAllocatedBit": vk.MemoryPropertyLazilyAllocatedBit,
+		"ProtectedBit":       vk.MemoryPropertyProtectedBit,
+	}
+
+	StringVkImageAspectFlagBits = map[string]vk.ImageAspectFlagBits{
+		"ColorBit":        vk.ImageAspectColorBit,
+		"DepthBit":        vk.ImageAspectDepthBit,
+		"StencilBit":      vk.ImageAspectStencilBit,
+		"MetadataBit":     vk.ImageAspectMetadataBit,
+		"Plane0Bit":       vk.ImageAspectPlane0Bit,
+		"Plane1Bit":       vk.ImageAspectPlane1Bit,
+		"Plane2Bit":       vk.ImageAspectPlane2Bit,
+		"MemoryPlane0Bit": vk.ImageAspectMemoryPlane0Bit,
+		"MemoryPlane1Bit": vk.ImageAspectMemoryPlane1Bit,
+		"MemoryPlane2Bit": vk.ImageAspectMemoryPlane2Bit,
+		"MemoryPlane3Bit": vk.ImageAspectMemoryPlane3Bit,
+	}
 )
 
 func boolToVkBool(val bool) vk.Bool32 {
@@ -539,30 +590,6 @@ func imageLayoutToVK(val string) vk.ImageLayout {
 	return vk.ImageLayoutColorAttachmentOptimal
 }
 
-func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
-	mask := vk.PipelineStageFlagBits(0)
-	for i := range vals {
-		if v, ok := StringVkPipelineStageFlagBits[vals[i]]; ok {
-			mask |= v
-		} else {
-			slog.Warn("failed to convert pipeline stage flag string", "string", vals[i])
-		}
-	}
-	return vk.PipelineStageFlags(mask)
-}
-
-func accessFlagsToVK(vals []string) vk.AccessFlags {
-	mask := vk.AccessFlagBits(0)
-	for i := range vals {
-		if v, ok := StringVkAccessFlagBits[vals[i]]; ok {
-			mask |= v
-		} else {
-			slog.Warn("failed to convert access flag string", "string", vals[i])
-		}
-	}
-	return vk.AccessFlags(mask)
-}
-
 func sampleCountToVK(val string) vk.SampleCountFlagBits {
 	if res, ok := StringVkSampleCountFlagBits[val]; ok {
 		return res
@@ -571,8 +598,10 @@ func sampleCountToVK(val string) vk.SampleCountFlagBits {
 	return vk.SampleCount1Bit
 }
 
-func formatToVK(val string) vk.Format {
-	if res, ok := StringVkFormat[val]; ok {
+func formatToVK(val string, vr *Vulkan) vk.Format {
+	if val == detectDepthFormatKey {
+		return vr.findDepthFormat()
+	} else if res, ok := StringVkFormat[val]; ok {
 		return res
 	}
 	slog.Warn("failed to convert format string", "string", val)
@@ -609,4 +638,70 @@ func blendOpToVK(val string) vk.BlendOp {
 	}
 	slog.Warn("invalid string for vkBlendOp", "value", val)
 	return vk.BlendOpAdd
+}
+
+func imageTilingToVK(val string) vk.ImageTiling {
+	if res, ok := StringVkImageTiling[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for image tiling", "value", val)
+	return vk.ImageTilingOptimal
+}
+
+func filterToVK(val string) vk.Filter {
+	if res, ok := StringVkFilter[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for filter", "value", val)
+	return vk.FilterLinear
+}
+
+func pipelineBindPointToVK(val string) vk.PipelineBindPoint {
+	if res, ok := StringVkPipelineBindPoint[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert pipeline bind point string", "string", val)
+	return vk.PipelineBindPointGraphics
+}
+
+func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []string) F {
+	mask := B(0)
+	for i := range vals {
+		if v, ok := mapping[vals[i]]; ok {
+			mask |= v
+		} else {
+			slog.Warn("failed to convert image aspect flag string", "string", vals[i])
+		}
+	}
+	return F(mask)
+}
+
+func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
+	return flagsToVK[vk.PipelineStageFlagBits, vk.PipelineStageFlags](
+		StringVkPipelineStageFlagBits, vals)
+}
+
+func accessFlagsToVK(vals []string) vk.AccessFlags {
+	return flagsToVK[vk.AccessFlagBits, vk.AccessFlags](
+		StringVkAccessFlagBits, vals)
+}
+
+func imageUsageFlagsToVK(vals []string) vk.ImageUsageFlags {
+	return flagsToVK[vk.ImageUsageFlagBits, vk.ImageUsageFlags](
+		StringVkImageUsageFlagBits, vals)
+}
+
+func memoryPropertyFlagsToVK(vals []string) vk.MemoryPropertyFlags {
+	return flagsToVK[vk.MemoryPropertyFlagBits, vk.MemoryPropertyFlags](
+		StringVkMemoryPropertyFlagBits, vals)
+}
+
+func imageAspectFlagsToVK(vals []string) vk.ImageAspectFlags {
+	return flagsToVK[vk.ImageAspectFlagBits, vk.ImageAspectFlags](
+		StringVkImageAspectFlagBits, vals)
+}
+
+func dependencyFlagsToVK(vals []string) vk.DependencyFlags {
+	return flagsToVK[vk.DependencyFlagBits, vk.DependencyFlags](
+		StringVkDependencyFlagBits, vals)
 }
