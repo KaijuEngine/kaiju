@@ -116,7 +116,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 	data := renderPassHTMLData{win.renderPass}
 	win.renderPassDoc, _ = markup.DocumentFromHTMLAsset(&win.man, renderPassHTML,
 		data, map[string]func(*document.Element){
-			"showTooltip":                             showPipelineTooltip,
+			"showTooltip":                             showRenderPassTooltip,
 			"valueChanged":                            win.renderPassValueChanged,
 			"nameChanged":                             win.renderPassNameChanged,
 			"addAttachmentDescription":                win.renderPassAddAttachmentDescription,
@@ -385,4 +385,21 @@ func (win *ShaderDesigner) renderPassSaveRenderPass(e *document.Element) {
 			u.ToLabel().SetText("File saved!")
 		}
 	}
+}
+
+func showRenderPassTooltip(e *document.Element) {
+	id := e.Attribute("data-tooltip")
+	tip, ok := renderPassTooltips[id]
+	if !ok {
+		return
+	}
+	tipElm := e.Root().FindElementById("ToolTip")
+	if tipElm == nil || len(tipElm.Children) == 0 {
+		return
+	}
+	lbl := tipElm.Children[0].UI
+	if !lbl.IsType(ui.ElementTypeLabel) {
+		return
+	}
+	lbl.ToLabel().SetText(tip)
 }
