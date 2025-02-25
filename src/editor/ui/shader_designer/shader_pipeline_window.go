@@ -118,6 +118,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 			"addAttachment":    win.pipelineAddAttachment,
 			"deleteAttachment": win.pipelineDeleteAttachment,
 			"savePipeline":     win.pipelineSave,
+			"returnHome":       win.returnHome,
 		})
 	if sy != 0 {
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
@@ -250,7 +251,7 @@ func OpenPipeline(path string) {
 			slog.Error("failed to unmarshal the shader pipeline data", "error", err)
 			return
 		}
-		win.reloadPipelineDoc()
+		win.ShowPipelineWindow()
 	})
 }
 

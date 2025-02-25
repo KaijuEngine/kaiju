@@ -1,11 +1,22 @@
+.menuBar {
+	width: 100%;
+	height: 20px;
+}
+.menuBarItem {
+	height: 100%;
+}
+.menuBarItem:hover {
+	background-color: #313232;
+	color: #CCC;
+}
 .topFields {
 	width: 100%;
-	height: 80%;
+	height: calc(80% - 20px);
 	overflow-y: scroll;
 }
 .bottomTooltip {
 	width: 100%;
-	height: calc(20% - 11px);
+	height: calc(20% - 31px);
 	margin-top: 10px;
 	overflow-y: scroll;
 }
@@ -58,4 +69,18 @@ h3 {
 }
 .checkboxListEntry {
 	width: 100%;
+}
+.mainMenu {
+	position: absolute;
+	width: 50%;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	padding: 10px;
+}
+.menuBtn {
+	width: 100%;
+	height: 50px;
+	margin-bottom: 10px;
+	font-size: 1.5em;
 }

@@ -103,7 +103,7 @@ func setupRenderPassDefaults() rendering.RenderPassData {
 func setupRenderPassDoc(win *ShaderDesigner) {
 	win.renderPass = setupRenderPassDefaults()
 	win.reloadRenderPassDoc()
-	//win.renderPassDoc.Deactivate()
+	win.renderPassDoc.Deactivate()
 }
 
 func (win *ShaderDesigner) reloadRenderPassDoc() {
@@ -134,6 +134,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 			"addSubpassDependency":                    win.renderPassAddSubpassDependency,
 			"deleteSubpassDependency":                 win.renderPassDeleteSubpassDependency,
 			"saveRenderPass":                          win.renderPassSaveRenderPass,
+			"returnHome":                              win.returnHome,
 		})
 	if sy != 0 {
 		content := win.renderPassDoc.GetElementsByClass("topFields")[0]
