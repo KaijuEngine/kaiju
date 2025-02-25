@@ -87,7 +87,7 @@ func OpenRenderPass(path string) {
 			slog.Error("failed to unmarshal the render pass data", "error", err)
 			return
 		}
-		win.reloadRenderPassDoc()
+		win.ShowRenderPassWindow()
 	})
 }
 

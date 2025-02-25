@@ -63,22 +63,23 @@ func (win *ShaderDesigner) ShowDesignerWindow() {
 	win.renderPassDoc.Deactivate()
 	win.shaderDesignerDoc.Activate()
 	win.reloadShaderDesigner()
+	win.man.Host.Window.Focus()
 }
 
 func (win *ShaderDesigner) ShowPipelineWindow() {
-	win.pipeline = rendering.ShaderPipelineData{}
 	win.pipelineDoc.Activate()
 	win.renderPassDoc.Deactivate()
 	win.shaderDesignerDoc.Deactivate()
 	win.reloadPipelineDoc()
+	win.man.Host.Window.Focus()
 }
 
 func (win *ShaderDesigner) ShowRenderPassWindow() {
-	win.renderPass = rendering.RenderPassData{}
 	win.pipelineDoc.Deactivate()
 	win.renderPassDoc.Activate()
 	win.shaderDesignerDoc.Deactivate()
 	win.reloadRenderPassDoc()
+	win.man.Host.Window.Focus()
 }
 
 func (win *ShaderDesigner) returnHome(*document.Element) {
@@ -91,7 +92,13 @@ func (win *ShaderDesigner) reloadShaderDesigner() {
 	}
 	win.shaderDesignerDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderDesignerHTML,
 		nil, map[string]func(*document.Element){
-			"newRenderPass":     func(*document.Element) { win.ShowRenderPassWindow() },
-			"newShaderPipeline": func(*document.Element) { win.ShowPipelineWindow() },
+			"newRenderPass": func(*document.Element) {
+				win.renderPass = rendering.RenderPassData{}
+				win.ShowRenderPassWindow()
+			},
+			"newShaderPipeline": func(*document.Element) {
+				win.pipeline = rendering.ShaderPipelineData{}
+				win.ShowPipelineWindow()
+			},
 		})
 }

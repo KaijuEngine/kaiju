@@ -70,4 +70,5 @@ const (
 	AssetTypeStage          AssetType = "stg"
 	AssetTypeHTML           AssetType = "html"
 	AssetTypeShaderPipeline AssetType = "shaderpipeline"
+	AssetTypeRenderPass     AssetType = "renderpass"
 )
