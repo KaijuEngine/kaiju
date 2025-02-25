@@ -6,15 +6,11 @@ import (
 	"log/slog"
 )
 
-type RenderPassAttachmentImage struct {
-	MipLevels      uint32
-	LayerCount     uint32
-	Tiling         string   // vk.ImageTiling
-	Filter         string   // vk.Filter
-	Usage          []string // vk.ImageUsageFlagBits
-	MemoryProperty []string // vk.MemoryPropertyFlagBits
-	Aspect         []string // vk.ImageAspectFlagBits
-	Access         []string // vk.AccessFlagBits
+type RenderPassData struct {
+	Name                   string
+	AttachmentDescriptions []RenderPassAttachmentDescription
+	SubpassDescriptions    []RenderPassSubpassDescription
+	SubpassDependencies    []RenderPassSubpassDependency
 }
 
 type RenderPassAttachmentDescription struct {
@@ -29,6 +25,17 @@ type RenderPassAttachmentDescription struct {
 	Image          RenderPassAttachmentImage
 }
 
+type RenderPassAttachmentImage struct {
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         string   // vk.ImageTiling
+	Filter         string   // vk.Filter
+	Usage          []string // vk.ImageUsageFlagBits
+	MemoryProperty []string // vk.MemoryPropertyFlagBits
+	Aspect         []string // vk.ImageAspectFlagBits
+	Access         []string // vk.AccessFlagBits
+}
+
 type RenderPassSubpassDescription struct {
 	PipelineBindPoint         string
 	ColorAttachmentReferences []RenderPassAttachmentReference
@@ -36,6 +43,11 @@ type RenderPassSubpassDescription struct {
 	ResolveAttachments        []RenderPassAttachmentReference
 	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
 	PreserveAttachments       []uint32                        // TODO
+}
+
+type RenderPassAttachmentReference struct {
+	Attachment uint32
+	Layout     string
 }
 
 type RenderPassSubpassDependency struct {
@@ -46,11 +58,6 @@ type RenderPassSubpassDependency struct {
 	SrcAccessMask   []string
 	DstAccessMask   []string
 	DependencyFlags []string
-}
-
-type RenderPassAttachmentReference struct {
-	Attachment uint32
-	Layout     string
 }
 
 func (ai *RenderPassAttachmentImage) ListTiling() []string {
@@ -219,13 +226,6 @@ func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
 
 func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags {
 	return dependencyFlagsToVK(sd.DependencyFlags)
-}
-
-type RenderPassData struct {
-	Name                   string
-	AttachmentDescriptions []RenderPassAttachmentDescription
-	SubpassDescriptions    []RenderPassSubpassDescription
-	SubpassDependencies    []RenderPassSubpassDependency
 }
 
 func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, bool) {

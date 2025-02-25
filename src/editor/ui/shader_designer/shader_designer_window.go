@@ -25,6 +25,7 @@ type ShaderDesigner struct {
 type flagState struct {
 	List    []string
 	Current []string
+	Path    string
 	Array   string
 	Field   string
 	Index   int

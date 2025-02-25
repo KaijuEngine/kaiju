@@ -2,7 +2,7 @@
 	<div class="inputFlags lightDarkBG">
 		{{range $_, $k := .List}}
 			<div class="checkboxListEntry">
-				<input name="{{$k}}" data-path="{{$.Array}}.{{$.Index}}.{{$.Field}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<input name="{{$k}}" data-path="{{$.Path}}" class="inputCheck" type="checkbox" {{if ($.Has $k)}}checked="checked"{{end}} onchange="valueChanged" />
 				<span class="inputCheckLabel">{{$k}}</span>
 			</div>
 		{{end}}
@@ -53,6 +53,48 @@
 							{{end}}
 						</select>
 					</div>
+					<!-- IMAGE BEGIN -->
+					<div class="inputItem">
+						<div class="inputLabel" data-tooltip="MipLevels" onmouseenter="showTooltip">Mip Levels:</div>
+						<input data-path="AttachmentDescriptions.{{$i}}.Image.MipLevels" class="input" type="text" value="{{.Image.MipLevels}}" onchange="valueChanged" />
+					</div>
+					<div class="inputItem">
+						<div class="inputLabel" data-tooltip="LayerCount" onmouseenter="showTooltip">Layer Count:</div>
+						<input data-path="AttachmentDescriptions.{{$i}}.Image.LayerCount" class="input" type="text" value="{{.Image.LayerCount}}" onchange="valueChanged" />
+					</div>
+					<div class="inputItem">
+						<div class="inputLabel" data-tooltip="Tiling" onmouseenter="showTooltip">Tiling:</div>
+						<select data-path="AttachmentDescriptions.{{$i}}.Image.Tiling" class="input" value="{{.Image.Tiling}}" onchange="valueChanged">
+							{{range $_, $k := .Image.ListTiling}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItem">
+						<div class="inputLabel" data-tooltip="Filter" onmouseenter="showTooltip">Filter:</div>
+						<select data-path="AttachmentDescriptions.{{$i}}.Image.Filter" class="input" value="{{.Image.Filter}}" onchange="valueChanged">
+							{{range $_, $k := .Image.ListFilter}}
+								<option value="{{$k}}">{{$k}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="inputItemFlags">
+						<div class="inputLabel" data-tooltip="Usage" onmouseenter="showTooltip">Usage:</div>
+						{{template "flags" ($.UsageFlagState $i $a)}}
+					</div>
+					<div class="inputItemFlags">
+						<div class="inputLabel" data-tooltip="MemoryProperty" onmouseenter="showTooltip">Memory Property:</div>
+						{{template "flags" ($.MemoryPropertyFlagState $i $a)}}
+					</div>
+					<div class="inputItemFlags">
+						<div class="inputLabel" data-tooltip="Aspect" onmouseenter="showTooltip">Aspect:</div>
+						{{template "flags" ($.AspectFlagState $i $a)}}
+					</div>
+					<div class="inputItemFlags">
+						<div class="inputLabel" data-tooltip="Access" onmouseenter="showTooltip">Access:</div>
+						{{template "flags" ($.AccessFlagState $i $a)}}
+					</div>
+					<!-- IMAGE END -->
 					<div class="inputItem">
 						<div class="inputLabel" data-tooltip="LoadOp" onmouseenter="showTooltip">Load Op:</div>
 						<select data-path="AttachmentDescriptions.{{$i}}.LoadOp" class="input" value="{{.LoadOp}}" onchange="valueChanged">

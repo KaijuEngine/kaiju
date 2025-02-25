@@ -2,6 +2,7 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"fmt"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
 	"kaiju/klib"
@@ -30,9 +31,7 @@ func (d renderPassHTMLData) SrcStageMaskFlagState(index int, a rendering.RenderP
 	return flagState{
 		List:    klib.MapKeysSorted(rendering.StringVkPipelineStageFlagBits),
 		Current: a.SrcStageMask,
-		Array:   "SubpassDependencies",
-		Field:   "SrcStageMask",
-		Index:   index,
+		Path:    fmt.Sprintf("SubpassDependencies.%d.SrcStageMask", index),
 	}
 }
 
@@ -40,9 +39,7 @@ func (d renderPassHTMLData) DstStageMaskFlagState(index int, a rendering.RenderP
 	return flagState{
 		List:    klib.MapKeysSorted(rendering.StringVkPipelineStageFlagBits),
 		Current: a.DstStageMask,
-		Array:   "SubpassDependencies",
-		Field:   "DstStageMask",
-		Index:   index,
+		Path:    fmt.Sprintf("SubpassDependencies.%d.DstStageMask", index),
 	}
 }
 
@@ -50,9 +47,7 @@ func (d renderPassHTMLData) SrcAccessMaskFlagState(index int, a rendering.Render
 	return flagState{
 		List:    klib.MapKeysSorted(rendering.StringVkAccessFlagBits),
 		Current: a.SrcAccessMask,
-		Array:   "SubpassDependencies",
-		Field:   "SrcAccessMask",
-		Index:   index,
+		Path:    fmt.Sprintf("SubpassDependencies.%d.SrcAccessMask", index),
 	}
 }
 
@@ -60,9 +55,7 @@ func (d renderPassHTMLData) DstAccessMaskFlagState(index int, a rendering.Render
 	return flagState{
 		List:    klib.MapKeysSorted(rendering.StringVkAccessFlagBits),
 		Current: a.DstAccessMask,
-		Array:   "SubpassDependencies",
-		Field:   "DstAccessMask",
-		Index:   index,
+		Path:    fmt.Sprintf("SubpassDependencies.%d.DstAccessMask", index),
 	}
 }
 
@@ -70,9 +63,39 @@ func (d renderPassHTMLData) DependencyFlagsState(index int, a rendering.RenderPa
 	return flagState{
 		List:    klib.MapKeysSorted(rendering.StringVkDependencyFlagBits),
 		Current: a.DependencyFlags,
-		Array:   "SubpassDependencies",
-		Field:   "DependencyFlags",
-		Index:   index,
+		Path:    fmt.Sprintf("SubpassDependencies.%d.DependencyFlags", index),
+	}
+}
+
+func (d renderPassHTMLData) UsageFlagState(index int, a rendering.RenderPassAttachmentDescription) flagState {
+	return flagState{
+		List:    klib.MapKeysSorted(rendering.StringVkImageUsageFlagBits),
+		Current: a.Image.Usage,
+		Path:    fmt.Sprintf("AttachmentDescriptions.%d.Image.Usage", index),
+	}
+}
+
+func (d renderPassHTMLData) MemoryPropertyFlagState(index int, a rendering.RenderPassAttachmentDescription) flagState {
+	return flagState{
+		List:    klib.MapKeysSorted(rendering.StringVkMemoryPropertyFlagBits),
+		Current: a.Image.MemoryProperty,
+		Path:    fmt.Sprintf("AttachmentDescriptions.%d.Image.MemoryProperty", index),
+	}
+}
+
+func (d renderPassHTMLData) AspectFlagState(index int, a rendering.RenderPassAttachmentDescription) flagState {
+	return flagState{
+		List:    klib.MapKeysSorted(rendering.StringVkImageAspectFlagBits),
+		Current: a.Image.Aspect,
+		Path:    fmt.Sprintf("AttachmentDescriptions.%d.Image.Aspect", index),
+	}
+}
+
+func (d renderPassHTMLData) AccessFlagState(index int, a rendering.RenderPassAttachmentDescription) flagState {
+	return flagState{
+		List:    klib.MapKeysSorted(rendering.StringVkAccessFlagBits),
+		Current: a.Image.Access,
+		Path:    fmt.Sprintf("AttachmentDescriptions.%d.Image.Access", index),
 	}
 }
 
