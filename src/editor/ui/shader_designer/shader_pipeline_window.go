@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strconv"
 )
@@ -176,58 +175,7 @@ func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
 }
 
 func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
-	fieldName := e.Attribute("data-field")
-	arrayName := e.Attribute("data-array")
-	var v reflect.Value
-	v = reflect.ValueOf(&win.pipeline).Elem()
-	if arrayName != "" {
-		// TODO:  Make this safer by checking bounds and index
-		idxString := e.Attribute("data-index")
-		idx, _ := strconv.Atoi(idxString)
-		v = v.FieldByName(arrayName)
-		v = v.Addr()
-		v = v.Elem().Index(idx)
-	}
-	field := v.FieldByName(fieldName)
-	if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.String {
-		// TODO:  Ensure switch e.UI.Type() == ui.ElementTypeCheckbox
-		add := e.UI.ToCheckbox().IsChecked()
-		str := e.Attribute("name")
-		var slice []string
-		if !field.IsNil() {
-			slice = field.Interface().([]string)
-		} else {
-			slice = []string{}
-		}
-		if add {
-			for _, s := range slice {
-				if s == str {
-					return // Already exists, no change
-				}
-			}
-			slice = append(slice, str)
-		} else {
-			for i, s := range slice {
-				if s == str {
-					slice = slices.Delete(slice, i, i+1)
-					break
-				}
-			}
-		}
-		field.Set(reflect.ValueOf(slice))
-	} else {
-		var val reflect.Value
-		switch e.UI.Type() {
-		case ui.ElementTypeInput:
-			res := klib.StringToTypeValue(field.Type().String(), e.UI.ToInput().Text())
-			val = reflect.ValueOf(res)
-		case ui.ElementTypeSelect:
-			val = reflect.ValueOf(e.UI.ToSelect().Value())
-		case ui.ElementTypeCheckbox:
-			val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
-		}
-		field.Set(val)
-	}
+	setObjectValueFromUI(&win.pipeline, e)
 }
 
 func OpenPipeline(path string) {
