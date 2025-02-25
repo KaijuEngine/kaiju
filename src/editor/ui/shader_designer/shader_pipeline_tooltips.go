@@ -49,24 +49,14 @@ var pipelineTooltips = map[string]string{
 	"PipelineDepthStencilState::Back":  "Defines stencil test and operation settings for back-facing polygons. Similar to Front, specifying reference value, comparison, and operations to manage stencil buffer updates for back faces.",
 	"MinDepthBounds":                   "Sets the minimum depth value for the depth bounds test (range 0.0 to 1.0). Fragments with depth values less than this are discarded if DepthBoundsTestEnable is TRUE.",
 	"MaxDepthBounds":                   "Sets the maximum depth value for the depth bounds test (range 0.0 to 1.0). Fragments with depth values greater than this are discarded if DepthBoundsTestEnable is TRUE.",
-	"FrontFailOp":                      "Specifies the operation applied to the stencil buffer when the stencil test fails for front-facing polygons (e.g., KEEP, INCREMENT). Defines how the stencil value changes if the comparison doesn't pass.",
-	"FrontPassOp":                      "Sets the operation applied to the stencil buffer when both the stencil and depth tests pass for front-facing polygons (e.g., REPLACE, ZERO). Controls the stencil update on successful rendering.",
-	"FrontDepthFailOp":                 "Defines the operation applied to the stencil buffer when the stencil test passes but the depth test fails for front-facing polygons (e.g., KEEP, DECREMENT). Handles cases where depth prevents rendering.",
-	"FrontCompareOp":                   "Specifies the comparison operation for the stencil test (e.g., LESS, EQUAL). Compares the Reference value (masked by CompareMask) against the stencil buffer value (masked similarly) to determine test outcome.",
-	"FrontCompareMask":                 "A bitmask that selects which bits of the stencil buffer value and Reference are used in the stencil comparison. Bits set to 1 are compared; bits set to 0 are ignored, allowing selective stencil testing.",
-	"FrontWriteMask":                   "A bitmask that determines which bits of the stencil buffer are updated by stencil operations (e.g., FailOp, PassOp). Bits set to 1 allow writes; bits set to 0 preserve existing values, enabling partial updates.",
-	"FrontReference":                   "The reference value used in the stencil test comparison for front-facing polygons. Compared against the stencil buffer value (after applying CompareMask) using the CompareOp to decide if the test passes.",
+	"FailOp":                           "Specifies the operation applied to the stencil buffer when the stencil test fails for front-facing polygons (e.g., KEEP, INCREMENT). Defines how the stencil value changes if the comparison doesn't pass.",
+	"PassOp":                           "Sets the operation applied to the stencil buffer when both the stencil and depth tests pass for front-facing polygons (e.g., REPLACE, ZERO). Controls the stencil update on successful rendering.",
+	"DepthFailOp":                      "Defines the operation applied to the stencil buffer when the stencil test passes but the depth test fails for front-facing polygons (e.g., KEEP, DECREMENT). Handles cases where depth prevents rendering.",
+	"CompareOp":                        "Specifies the comparison operation for the stencil test (e.g., LESS, EQUAL). Compares the Reference value (masked by CompareMask) against the stencil buffer value (masked similarly) to determine test outcome.",
+	"CompareMask":                      "A bitmask that selects which bits of the stencil buffer value and Reference are used in the stencil comparison. Bits set to 1 are compared; bits set to 0 are ignored, allowing selective stencil testing.",
+	"WriteMask":                        "A bitmask that determines which bits of the stencil buffer are updated by stencil operations (e.g., FailOp, PassOp). Bits set to 1 allow writes; bits set to 0 preserve existing values, enabling partial updates.",
+	"Reference":                        "The reference value used in the stencil test comparison for front-facing polygons. Compared against the stencil buffer value (after applying CompareMask) using the CompareOp to decide if the test passes.",
 
 	// vkPipelineTessellationStateCreateInfo
 	"PatchControlPoints": "Specifies the number of control points per patch in tessellation. Defines how many vertices form each patch (e.g., 3 for a triangle, 4 for a quad), which the tessellation shader processes to generate additional geometry. Must match the shader's expectation.",
-}
-
-func init() {
-	pipelineTooltips["BackFailOp"] = pipelineTooltips["FrontFailOp"]
-	pipelineTooltips["BackPassOp"] = pipelineTooltips["FrontPassOp"]
-	pipelineTooltips["BackDepthFailOp"] = pipelineTooltips["FrontDepthFailOp"]
-	pipelineTooltips["BackCompareOp"] = pipelineTooltips["FrontCompareOp"]
-	pipelineTooltips["BackCompareMask"] = pipelineTooltips["FrontCompareMask"]
-	pipelineTooltips["BackWriteMask"] = pipelineTooltips["FrontWriteMask"]
-	pipelineTooltips["BackReference"] = pipelineTooltips["FrontReference"]
 }

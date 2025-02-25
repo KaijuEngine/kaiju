@@ -15,7 +15,6 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -129,16 +128,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 }
 
 func showPipelineTooltip(e *document.Element) {
-	if len(e.Children) < 2 {
-		return
-	}
-	id := e.Children[1].Attribute("data-field")
-	if id == "" {
-		id = e.Attribute("name")
-	}
-	if sep := strings.Index(id, "_"); sep >= 0 {
-		id = id[:sep]
-	}
+	id := e.Attribute("data-tooltip")
 	tip, ok := pipelineTooltips[id]
 	if !ok {
 		return
