@@ -1,0 +1,84 @@
+{{define "bitmask"}}
+<div class="inputItemFlags">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputFlags lightDarkBG">
+		{{range $_, $k := .List}}
+			<div class="checkboxListEntry">
+				<input data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheckLabel">{{$k}}</span>
+			</div>
+		{{end}}
+	</div>
+</div>
+{{end}}
+
+{{define "bool"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="inputCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "enum"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
+	{{range $_, $k := .List}}
+		<option value="{{$k}}">{{$k}}</option>
+	{{end}}
+	</select>
+</div>
+{{end}}
+
+{{define "any"}}
+<div class="inputItem">
+	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "section"}}
+	{{range $_, $f := .Fields}}
+		{{if eq $f.Type "slice"}}
+			<h2>{{.Name}}</h2>
+			{{range $_, $s := $f.Sections}}
+				<div class="inputItem">
+					<img data-path="{{$f.FullPath}}" class="deleteButton" src="textures/minus.png"  onclick="removeFromSlice" />
+				</div>
+				{{template "section" $s}}
+			{{end}}
+			<div class="inputItem">
+				<img data-path="{{$f.FullPath}}" class="addButton" src="textures/plus.png"  onclick="addToSlice" />
+			</div>
+		{{else if eq $f.Type "bool"}}
+			{{template "bool" $f}}
+		{{else if eq $f.Type "enum"}}
+			{{template "enum" $f}}
+		{{else if eq $f.Type "bitmask"}}
+			{{template "bitmask" $f}}
+		{{else}}
+			{{template "any" $f}}
+		{{end}}
+	{{end}}
+{{end}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/shader_designer/shader_designer.css">
+	</head>
+	<body>
+		<div class="fill darkBG noClipY pad5">
+			<div class="menuBar">
+				<span onclick="returnHome">Home</span>
+			</div>
+			<div class="topFields">
+				<h1>Shader Pipeline Editor</h1>
+				{{template "section" .}}
+				<button class="inputButtonWide" onclick="savePipeline">Save</button>
+			</div>
+			<div id="ToolTip" class="bottomTooltip">tooltip</div>
+		</div>
+	</body>
+</html>

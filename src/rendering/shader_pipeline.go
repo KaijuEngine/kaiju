@@ -6,15 +6,67 @@ import (
 	"log/slog"
 )
 
+type ShaderPipelineData struct {
+	Name                    string
+	Topology                string `options:"StringVkPrimitiveTopology"`
+	PrimitiveRestart        bool
+	DepthClampEnable        bool
+	RasterizerDiscardEnable bool
+	PolygonMode             string `options:"StringVkPolygonMode"`
+	CullMode                string `options:"StringVkCullModeFlagBits"`
+	FrontFace               string `options:"StringVkFrontFace"`
+	DepthBiasEnable         bool
+	DepthBiasConstantFactor float32
+	DepthBiasClamp          float32
+	DepthBiasSlopeFactor    float32
+	LineWidth               float32
+	RasterizationSamples    string `options:"StringVkSampleCountFlagBits"`
+	SampleShadingEnable     bool
+	MinSampleShading        float32
+	AlphaToCoverageEnable   bool
+	AlphaToOneEnable        bool
+	ColorBlendAttachments   []ShaderPipelineColorBlendAttachments
+	LogicOpEnable           bool
+	LogicOp                 string  `options:"StringVkLogicOp"`
+	BlendConstants0         float32 `tip:"BlendConstants"`
+	BlendConstants1         float32 `tip:"BlendConstants"`
+	BlendConstants2         float32 `tip:"BlendConstants"`
+	BlendConstants3         float32 `tip:"BlendConstants"`
+	DepthTestEnable         bool
+	DepthWriteEnable        bool
+	DepthCompareOp          string `options:"StringVkCompareOp"`
+	DepthBoundsTestEnable   bool
+	StencilTestEnable       bool
+	FrontFailOp             string `options:"StringVkStencilOp" tip:"FailOp"`
+	FrontPassOp             string `options:"StringVkStencilOp" tip:"PassOp"`
+	FrontDepthFailOp        string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	FrontCompareOp          string `options:"StringVkCompareOp" tip:"CompareOp"`
+	FrontCompareMask        uint32 `tip:"CompareMask"`
+	FrontWriteMask          uint32 `tip:"WriteMask"`
+	FrontReference          uint32 `tip:"Reference"`
+	BackFailOp              string `options:"StringVkStencilOp" tip:"FailOp"`
+	BackPassOp              string `options:"StringVkStencilOp" tip:"PassOp"`
+	BackDepthFailOp         string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	BackCompareOp           string `options:"StringVkCompareOp" tip:"CompareOp"`
+	BackCompareMask         uint32 `tip:"CompareMask"`
+	BackWriteMask           uint32 `tip:"WriteMask"`
+	BackReference           uint32 `tip:"Reference"`
+	MinDepthBounds          float32
+	MaxDepthBounds          float32
+	PatchControlPoints      string `options:"StringVkPatchControlPoints"`
+	SubpassCount            uint32
+	PipelineCreateFlags     []string `options:"StringVkPipelineCreateFlagBits"`
+}
+
 type ShaderPipelineColorBlendAttachments struct {
 	BlendEnable         bool
-	SrcColorBlendFactor string
-	DstColorBlendFactor string
-	ColorBlendOp        string
-	SrcAlphaBlendFactor string
-	DstAlphaBlendFactor string
-	AlphaBlendOp        string
-	ColorWriteMask      []string
+	SrcColorBlendFactor string   `options:"StringVkBlendFactor"`
+	DstColorBlendFactor string   `options:"StringVkBlendFactor"`
+	ColorBlendOp        string   `options:"StringVkBlendOp"`
+	SrcAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	DstAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	AlphaBlendOp        string   `options:"StringVkBlendOp"`
+	ColorWriteMask      []string `options:"StringVkColorComponentFlagBits"`
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string {
@@ -75,58 +127,6 @@ func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToVK() vk.ColorCompo
 		mask |= StringVkColorComponentFlagBits[a.ColorWriteMask[i]]
 	}
 	return mask
-}
-
-type ShaderPipelineData struct {
-	Name                    string
-	Topology                string
-	PrimitiveRestart        bool
-	DepthClampEnable        bool
-	RasterizerDiscardEnable bool
-	PolygonMode             string
-	CullMode                string
-	FrontFace               string
-	DepthBiasEnable         bool
-	DepthBiasConstantFactor float32
-	DepthBiasClamp          float32
-	DepthBiasSlopeFactor    float32
-	LineWidth               float32
-	RasterizationSamples    string
-	SampleShadingEnable     bool
-	MinSampleShading        float32
-	AlphaToCoverageEnable   bool
-	AlphaToOneEnable        bool
-	ColorBlendAttachments   []ShaderPipelineColorBlendAttachments
-	LogicOpEnable           bool
-	LogicOp                 string
-	BlendConstants0         float32
-	BlendConstants1         float32
-	BlendConstants2         float32
-	BlendConstants3         float32
-	DepthTestEnable         bool
-	DepthWriteEnable        bool
-	DepthCompareOp          string
-	DepthBoundsTestEnable   bool
-	StencilTestEnable       bool
-	FrontFailOp             string
-	FrontPassOp             string
-	FrontDepthFailOp        string
-	FrontCompareOp          string
-	FrontCompareMask        uint32
-	FrontWriteMask          uint32
-	FrontReference          uint32
-	BackFailOp              string
-	BackPassOp              string
-	BackDepthFailOp         string
-	BackCompareOp           string
-	BackCompareMask         uint32
-	BackWriteMask           uint32
-	BackReference           uint32
-	MinDepthBounds          float32
-	MaxDepthBounds          float32
-	PatchControlPoints      string
-	SubpassCount            uint32
-	PipelineCreateFlags     []string
 }
 
 func (s ShaderPipelineData) ListTopology() []string {

@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 )
@@ -108,6 +109,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		win.pipelineDoc.Destroy()
 	}
 	data := shaderPipelineHTMLData{win.pipeline}
+	//data := reflectUIStructure(&win.pipeline, "")
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":      showPipelineTooltip,
@@ -117,6 +119,8 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 			"deleteAttachment": win.pipelineDeleteAttachment,
 			"savePipeline":     win.pipelineSave,
 			"returnHome":       win.returnHome,
+			"addToSlice":       win.pipelineAddToSlice,
+			"removeFromSlice":  win.pipelineRemoveFromSlice,
 		})
 	if sy != 0 {
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
@@ -145,6 +149,18 @@ func showPipelineTooltip(e *document.Element) {
 
 func (win *ShaderDesigner) pipelineNameChanged(e *document.Element) {
 	win.pipeline.Name = e.UI.ToInput().Text()
+}
+
+func (win *ShaderDesigner) pipelineAddToSlice(e *document.Element) {
+	v := reflectObjectValueFromUI(&win.pipeline, e)
+	reflect.Append(v, reflect.New(v.Elem().Type()))
+	win.reloadPipelineDoc()
+}
+
+func (win *ShaderDesigner) pipelineRemoveFromSlice(e *document.Element) {
+	v := reflectObjectValueFromUI(&win.pipeline, e)
+	index := 0 //???
+	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
 }
 
 func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {

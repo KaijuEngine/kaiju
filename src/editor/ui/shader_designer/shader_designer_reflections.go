@@ -1,16 +1,34 @@
 package shader_designer
 
 import (
+	"fmt"
 	"kaiju/klib"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 	"reflect"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func setObjectValueFromUI(obj any, e *document.Element) {
+type DataUISection struct {
+	Name   string
+	Fields []DataUISectionField
+}
+
+type DataUISectionField struct {
+	Name     string
+	Type     string
+	List     []string
+	Value    any
+	Sections []DataUISection
+	RootPath string
+	TipKey   string
+}
+
+func reflectObjectValueFromUI(obj any, e *document.Element) reflect.Value {
 	path := e.Attribute("data-path")
 	parts := strings.Split(path, ".")
 	v := reflect.ValueOf(obj).Elem()
@@ -21,6 +39,11 @@ func setObjectValueFromUI(obj any, e *document.Element) {
 			v = v.FieldByName(parts[i])
 		}
 	}
+	return v
+}
+
+func setObjectValueFromUI(obj any, e *document.Element) {
+	v := reflectObjectValueFromUI(obj, e)
 	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.String {
 		// TODO:  Ensure switch e.UI.Type() == ui.ElementTypeCheckbox
 		add := e.UI.ToCheckbox().IsChecked()
@@ -60,4 +83,67 @@ func setObjectValueFromUI(obj any, e *document.Element) {
 		}
 		v.Set(val)
 	}
+}
+
+func (f DataUISectionField) DisplayName() string {
+	re := regexp.MustCompile("([A-Z])")
+	result := re.ReplaceAllString(f.Name, " $1")
+	return strings.TrimSpace(result)
+}
+
+func (f DataUISectionField) FullPath() string {
+	if f.RootPath != "" {
+		return f.RootPath + "." + f.Name
+	}
+	return f.Name
+}
+
+func (f DataUISectionField) ValueListHas(val string) bool {
+	return slices.Contains(f.Value.([]string), val)
+}
+
+func reflectUIStructure(obj any, path string) DataUISection {
+	section := DataUISection{}
+	v := reflect.ValueOf(obj).Elem()
+	vt := v.Type()
+	section.Name = vt.Name()
+	for i := range v.NumField() {
+		f := v.Field(i)
+		kind := f.Kind()
+		tag := v.Type().Field(i).Tag
+		field := DataUISectionField{
+			Name:     vt.Field(i).Name,
+			Type:     f.Type().Name(),
+			Value:    f.Interface(),
+			RootPath: path,
+			TipKey:   tag.Get("tip"),
+		}
+		if field.TipKey == "" {
+			field.TipKey = field.Name
+		}
+		if (kind == reflect.String) ||
+			(kind == reflect.Slice && f.Type().Elem().Kind() == reflect.String) {
+			if op, ok := tag.Lookup("options"); ok {
+				keys := reflect.ValueOf(rendering.StringVkMap[op]).MapKeys()
+				field.List = make([]string, len(keys))
+				for i := range keys {
+					field.List[i] = keys[i].String()
+				}
+				if kind == reflect.String {
+					field.Type = "enum"
+				} else {
+					field.Type = "bitmask"
+				}
+			}
+		} else if kind == reflect.Slice {
+			field.Type = "slice" //"[]" + f.Type().Elem().Name()
+			childCount := f.Len()
+			for j := range childCount {
+				s := reflectUIStructure(f.Index(j).Interface(), fmt.Sprintf("%s.%d", path, j))
+				field.Sections = append(field.Sections, s)
+			}
+		}
+		section.Fields = append(section.Fields, field)
+	}
+	return section
 }
