@@ -4,99 +4,17 @@ import (
 	"encoding/json"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
-	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/rendering"
 	"kaiju/ui"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"strconv"
 )
 
-const (
-	shaderPipelineHTML = "editor/ui/shader_designer/shader_pipeline_window.html"
-)
-
-type shaderPipelineHTMLData struct {
-	rendering.ShaderPipelineData
-}
-
-func (d shaderPipelineHTMLData) ColorWriteMaskFlagState(index int, a rendering.ShaderPipelineColorBlendAttachments) flagState {
-	return flagState{
-		List:    klib.MapKeysSorted(rendering.StringVkColorComponentFlagBits),
-		Current: a.ColorWriteMask,
-		Array:   "ColorBlendAttachments",
-		Field:   "ColorWriteMask",
-		Index:   index,
-	}
-}
-
-func (d shaderPipelineHTMLData) PipelineCreateFlagsState() flagState {
-	return flagState{
-		List:    klib.MapKeysSorted(rendering.StringVkPipelineCreateFlagBits),
-		Current: d.PipelineCreateFlags,
-		Array:   "",
-		Field:   "PipelineCreateFlags",
-		Index:   0,
-	}
-}
-
-func setupShaderPipelineDefaults() rendering.ShaderPipelineData {
-	return rendering.ShaderPipelineData{
-		Topology:                "Triangles",
-		PrimitiveRestart:        false,
-		DepthClampEnable:        false,
-		RasterizerDiscardEnable: false,
-		PolygonMode:             "Fill",
-		CullMode:                "Back",
-		FrontFace:               "Clockwise",
-		DepthBiasEnable:         false,
-		DepthBiasConstantFactor: 0,
-		DepthBiasClamp:          0,
-		DepthBiasSlopeFactor:    0,
-		LineWidth:               1,
-		RasterizationSamples:    "1Bit",
-		SampleShadingEnable:     true,
-		MinSampleShading:        0.2,
-		AlphaToCoverageEnable:   false,
-		AlphaToOneEnable:        false,
-		LogicOpEnable:           false,
-		LogicOp:                 "Copy",
-		BlendConstants0:         0,
-		BlendConstants1:         0,
-		BlendConstants2:         0,
-		BlendConstants3:         0,
-		DepthTestEnable:         true,
-		DepthWriteEnable:        false,
-		DepthCompareOp:          "Less",
-		DepthBoundsTestEnable:   false,
-		StencilTestEnable:       false,
-		FrontFailOp:             "Keep",
-		FrontPassOp:             "Keep",
-		FrontDepthFailOp:        "Keep",
-		FrontCompareOp:          "Never",
-		FrontCompareMask:        0,
-		FrontWriteMask:          0,
-		FrontReference:          0,
-		BackFailOp:              "Keep",
-		BackPassOp:              "Keep",
-		BackDepthFailOp:         "Keep",
-		BackCompareOp:           "Never",
-		BackCompareMask:         0,
-		BackWriteMask:           0,
-		BackReference:           0,
-		MinDepthBounds:          0,
-		MaxDepthBounds:          0,
-		PatchControlPoints:      "Triangles",
-	}
-}
-
 func setupPipelineDoc(win *ShaderDesigner) {
-	win.pipeline = setupShaderPipelineDefaults()
 	win.reloadPipelineDoc()
 	win.pipelineDoc.Deactivate()
 }
@@ -108,19 +26,16 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.pipelineDoc.Destroy()
 	}
-	data := shaderPipelineHTMLData{win.pipeline}
-	//data := reflectUIStructure(&win.pipeline, "")
-	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderPipelineHTML,
+	data := reflectUIStructure(&win.pipeline, "")
+	data.Name = "Shader Pipeline Editor"
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
-			"showTooltip":      showPipelineTooltip,
-			"valueChanged":     win.pipelineValueChanged,
-			"nameChanged":      win.pipelineNameChanged,
-			"addAttachment":    win.pipelineAddAttachment,
-			"deleteAttachment": win.pipelineDeleteAttachment,
-			"savePipeline":     win.pipelineSave,
-			"returnHome":       win.returnHome,
-			"addToSlice":       win.pipelineAddToSlice,
-			"removeFromSlice":  win.pipelineRemoveFromSlice,
+			"showTooltip":     showPipelineTooltip,
+			"valueChanged":    win.pipelineValueChanged,
+			"savePipeline":    win.pipelineSave,
+			"returnHome":      win.returnHome,
+			"addToSlice":      win.pipelineAddToSlice,
+			"removeFromSlice": win.pipelineRemoveFromSlice,
 		})
 	if sy != 0 {
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
@@ -147,46 +62,20 @@ func showPipelineTooltip(e *document.Element) {
 	lbl.ToLabel().SetText(tip)
 }
 
-func (win *ShaderDesigner) pipelineNameChanged(e *document.Element) {
-	win.pipeline.Name = e.UI.ToInput().Text()
-}
-
 func (win *ShaderDesigner) pipelineAddToSlice(e *document.Element) {
 	v := reflectObjectValueFromUI(&win.pipeline, e)
-	reflect.Append(v, reflect.New(v.Elem().Type()))
+	v.Set(reflect.Append(v, reflect.Zero(v.Type().Elem())))
 	win.reloadPipelineDoc()
 }
 
 func (win *ShaderDesigner) pipelineRemoveFromSlice(e *document.Element) {
-	v := reflectObjectValueFromUI(&win.pipeline, e)
-	index := 0 //???
-	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
-}
-
-func (win *ShaderDesigner) pipelineAddAttachment(e *document.Element) {
-	win.pipeline.ColorBlendAttachments = append(
-		win.pipeline.ColorBlendAttachments, rendering.ShaderPipelineColorBlendAttachments{
-			BlendEnable:         true,
-			SrcColorBlendFactor: "SrcAlpha",
-			DstColorBlendFactor: "OneMinusSrcAlpha",
-			ColorBlendOp:        "Add",
-			SrcAlphaBlendFactor: "One",
-			DstAlphaBlendFactor: "Zero",
-			AlphaBlendOp:        "Add",
-			ColorWriteMask:      []string{"R", "G", "B", "A"},
-		})
-	win.reloadPipelineDoc()
-}
-
-func (win *ShaderDesigner) pipelineDeleteAttachment(e *document.Element) {
-	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this attachment entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
+	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
 	if !ok {
 		return
 	}
-	idxString := e.Attribute("data-index")
-	idx, _ := strconv.Atoi(idxString)
-	win.pipeline.ColorBlendAttachments = slices.Delete(
-		win.pipeline.ColorBlendAttachments, idx, idx+1)
+	v := reflectObjectValueFromUI(&win.pipeline, e)
+	index, _ := strconv.Atoi(e.Attribute("data-index"))
+	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
 	win.reloadPipelineDoc()
 }
 

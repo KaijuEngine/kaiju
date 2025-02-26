@@ -1,7 +1,6 @@
 package shader_designer
 
 import (
-	"fmt"
 	"kaiju/klib"
 	"kaiju/markup/document"
 	"kaiju/rendering"
@@ -11,6 +10,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+)
+
+const (
+	dataInputHTML = "editor/ui/shader_designer/data_input_window.html"
 )
 
 type DataUISection struct {
@@ -26,6 +29,23 @@ type DataUISectionField struct {
 	Sections []DataUISection
 	RootPath string
 	TipKey   string
+}
+
+func (f DataUISectionField) DisplayName() string {
+	re := regexp.MustCompile("([A-Z])")
+	result := re.ReplaceAllString(f.Name, " $1")
+	return strings.TrimSpace(result)
+}
+
+func (f DataUISectionField) FullPath() string {
+	if f.RootPath != "" {
+		return f.RootPath + "." + f.Name
+	}
+	return f.Name
+}
+
+func (f DataUISectionField) ValueListHas(val string) bool {
+	return slices.Contains(f.Value.([]string), val)
 }
 
 func reflectObjectValueFromUI(obj any, e *document.Element) reflect.Value {
@@ -85,23 +105,6 @@ func setObjectValueFromUI(obj any, e *document.Element) {
 	}
 }
 
-func (f DataUISectionField) DisplayName() string {
-	re := regexp.MustCompile("([A-Z])")
-	result := re.ReplaceAllString(f.Name, " $1")
-	return strings.TrimSpace(result)
-}
-
-func (f DataUISectionField) FullPath() string {
-	if f.RootPath != "" {
-		return f.RootPath + "." + f.Name
-	}
-	return f.Name
-}
-
-func (f DataUISectionField) ValueListHas(val string) bool {
-	return slices.Contains(f.Value.([]string), val)
-}
-
 func reflectUIStructure(obj any, path string) DataUISection {
 	section := DataUISection{}
 	v := reflect.ValueOf(obj).Elem()
@@ -135,11 +138,18 @@ func reflectUIStructure(obj any, path string) DataUISection {
 					field.Type = "bitmask"
 				}
 			}
-		} else if kind == reflect.Slice {
-			field.Type = "slice" //"[]" + f.Type().Elem().Name()
-			childCount := f.Len()
-			for j := range childCount {
-				s := reflectUIStructure(f.Index(j).Interface(), fmt.Sprintf("%s.%d", path, j))
+		} else if kind == reflect.Slice || kind == reflect.Struct {
+			p := field.FullPath()
+			if kind == reflect.Slice {
+				field.Type = "slice"
+				childCount := f.Len()
+				for j := range childCount {
+					s := reflectUIStructure(f.Index(j).Addr().Interface(), p)
+					field.Sections = append(field.Sections, s)
+				}
+			} else {
+				field.Type = "struct"
+				s := reflectUIStructure(f.Addr().Interface(), p)
 				field.Sections = append(field.Sections, s)
 			}
 		}

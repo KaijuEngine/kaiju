@@ -6,10 +6,12 @@ import (
 	"log/slog"
 )
 
-type ShaderPipelineData struct {
-	Name                    string
-	Topology                string `options:"StringVkPrimitiveTopology"`
-	PrimitiveRestart        bool
+type ShaderPipelineInputAssembly struct {
+	Topology         string `options:"StringVkPrimitiveTopology"`
+	PrimitiveRestart bool
+}
+
+type ShaderPipelinePipelineRasterization struct {
 	DepthClampEnable        bool
 	RasterizerDiscardEnable bool
 	PolygonMode             string `options:"StringVkPolygonMode"`
@@ -20,42 +22,68 @@ type ShaderPipelineData struct {
 	DepthBiasClamp          float32
 	DepthBiasSlopeFactor    float32
 	LineWidth               float32
-	RasterizationSamples    string `options:"StringVkSampleCountFlagBits"`
-	SampleShadingEnable     bool
-	MinSampleShading        float32
-	AlphaToCoverageEnable   bool
-	AlphaToOneEnable        bool
-	ColorBlendAttachments   []ShaderPipelineColorBlendAttachments
-	LogicOpEnable           bool
-	LogicOp                 string  `options:"StringVkLogicOp"`
-	BlendConstants0         float32 `tip:"BlendConstants"`
-	BlendConstants1         float32 `tip:"BlendConstants"`
-	BlendConstants2         float32 `tip:"BlendConstants"`
-	BlendConstants3         float32 `tip:"BlendConstants"`
-	DepthTestEnable         bool
-	DepthWriteEnable        bool
-	DepthCompareOp          string `options:"StringVkCompareOp"`
-	DepthBoundsTestEnable   bool
-	StencilTestEnable       bool
-	FrontFailOp             string `options:"StringVkStencilOp" tip:"FailOp"`
-	FrontPassOp             string `options:"StringVkStencilOp" tip:"PassOp"`
-	FrontDepthFailOp        string `options:"StringVkStencilOp" tip:"DepthFailOp"`
-	FrontCompareOp          string `options:"StringVkCompareOp" tip:"CompareOp"`
-	FrontCompareMask        uint32 `tip:"CompareMask"`
-	FrontWriteMask          uint32 `tip:"WriteMask"`
-	FrontReference          uint32 `tip:"Reference"`
-	BackFailOp              string `options:"StringVkStencilOp" tip:"FailOp"`
-	BackPassOp              string `options:"StringVkStencilOp" tip:"PassOp"`
-	BackDepthFailOp         string `options:"StringVkStencilOp" tip:"DepthFailOp"`
-	BackCompareOp           string `options:"StringVkCompareOp" tip:"CompareOp"`
-	BackCompareMask         uint32 `tip:"CompareMask"`
-	BackWriteMask           uint32 `tip:"WriteMask"`
-	BackReference           uint32 `tip:"Reference"`
-	MinDepthBounds          float32
-	MaxDepthBounds          float32
-	PatchControlPoints      string `options:"StringVkPatchControlPoints"`
-	SubpassCount            uint32
-	PipelineCreateFlags     []string `options:"StringVkPipelineCreateFlagBits"`
+}
+
+type ShaderPipelinePipelineMultisample struct {
+	RasterizationSamples  string `options:"StringVkSampleCountFlagBits"`
+	SampleShadingEnable   bool
+	MinSampleShading      float32
+	AlphaToCoverageEnable bool
+	AlphaToOneEnable      bool
+}
+
+type ShaderPipelineColorBlend struct {
+	LogicOpEnable   bool
+	LogicOp         string  `options:"StringVkLogicOp"`
+	BlendConstants0 float32 `tip:"BlendConstants"`
+	BlendConstants1 float32 `tip:"BlendConstants"`
+	BlendConstants2 float32 `tip:"BlendConstants"`
+	BlendConstants3 float32 `tip:"BlendConstants"`
+}
+
+type ShaderPipelineDepthStencil struct {
+	DepthTestEnable       bool
+	DepthWriteEnable      bool
+	DepthCompareOp        string `options:"StringVkCompareOp"`
+	DepthBoundsTestEnable bool
+	StencilTestEnable     bool
+	FrontFailOp           string `options:"StringVkStencilOp" tip:"FailOp"`
+	FrontPassOp           string `options:"StringVkStencilOp" tip:"PassOp"`
+	FrontDepthFailOp      string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	FrontCompareOp        string `options:"StringVkCompareOp" tip:"CompareOp"`
+	FrontCompareMask      uint32 `tip:"CompareMask"`
+	FrontWriteMask        uint32 `tip:"WriteMask"`
+	FrontReference        uint32 `tip:"Reference"`
+	BackFailOp            string `options:"StringVkStencilOp" tip:"FailOp"`
+	BackPassOp            string `options:"StringVkStencilOp" tip:"PassOp"`
+	BackDepthFailOp       string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	BackCompareOp         string `options:"StringVkCompareOp" tip:"CompareOp"`
+	BackCompareMask       uint32 `tip:"CompareMask"`
+	BackWriteMask         uint32 `tip:"WriteMask"`
+	BackReference         uint32 `tip:"Reference"`
+	MinDepthBounds        float32
+	MaxDepthBounds        float32
+}
+
+type ShaderPipelineTessellation struct {
+	PatchControlPoints string `options:"StringVkPatchControlPoints"`
+}
+
+type ShaderPipelineGraphicsPipeline struct {
+	SubpassCount        uint32
+	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
+}
+
+type ShaderPipelineData struct {
+	Name                  string
+	InputAssembly         ShaderPipelineInputAssembly
+	Rasterization         ShaderPipelinePipelineRasterization
+	Multisample           ShaderPipelinePipelineMultisample
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachments
+	ColorBlend            ShaderPipelineColorBlend
+	DepthStencil          ShaderPipelineDepthStencil
+	Tessellation          ShaderPipelineTessellation
+	GraphicsPipeline      ShaderPipelineGraphicsPipeline
 }
 
 type ShaderPipelineColorBlendAttachments struct {
@@ -202,111 +230,111 @@ func (s ShaderPipelineData) ListPatchControlPoints() []string {
 }
 
 func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32 {
-	return boolToVkBool(s.PrimitiveRestart)
+	return boolToVkBool(s.InputAssembly.PrimitiveRestart)
 }
 
 func (s *ShaderPipelineData) DepthClampEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.DepthClampEnable)
+	return boolToVkBool(s.Rasterization.DepthClampEnable)
 }
 
 func (s *ShaderPipelineData) RasterizerDiscardEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.RasterizerDiscardEnable)
+	return boolToVkBool(s.Rasterization.RasterizerDiscardEnable)
 }
 
 func (s *ShaderPipelineData) DepthBiasEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.DepthBiasEnable)
+	return boolToVkBool(s.Rasterization.DepthBiasEnable)
 }
 
 func (s *ShaderPipelineData) SampleShadingEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.SampleShadingEnable)
+	return boolToVkBool(s.Multisample.SampleShadingEnable)
 }
 
 func (s *ShaderPipelineData) AlphaToCoverageEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.AlphaToCoverageEnable)
+	return boolToVkBool(s.Multisample.AlphaToCoverageEnable)
 }
 
 func (s *ShaderPipelineData) AlphaToOneEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.AlphaToOneEnable)
+	return boolToVkBool(s.Multisample.AlphaToOneEnable)
 }
 
 func (s *ShaderPipelineData) LogicOpEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.LogicOpEnable)
+	return boolToVkBool(s.ColorBlend.LogicOpEnable)
 }
 
 func (s *ShaderPipelineData) DepthTestEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.DepthTestEnable)
+	return boolToVkBool(s.DepthStencil.DepthTestEnable)
 }
 
 func (s *ShaderPipelineData) DepthWriteEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.DepthWriteEnable)
+	return boolToVkBool(s.DepthStencil.DepthWriteEnable)
 }
 
 func (s *ShaderPipelineData) DepthBoundsTestEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.DepthBoundsTestEnable)
+	return boolToVkBool(s.DepthStencil.DepthBoundsTestEnable)
 }
 
 func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32 {
-	return boolToVkBool(s.StencilTestEnable)
+	return boolToVkBool(s.DepthStencil.StencilTestEnable)
 }
 
 func (s *ShaderPipelineData) TopologyToVK() vk.PrimitiveTopology {
-	if res, ok := StringVkPrimitiveTopology[s.Topology]; ok {
+	if res, ok := StringVkPrimitiveTopology[s.InputAssembly.Topology]; ok {
 		return res
 	}
-	slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
+	slog.Warn("invalid string for vkPrimitiveTopology", "value", s.InputAssembly.Topology)
 	return vk.PrimitiveTopologyTriangleList
 }
 
 func (s *ShaderPipelineData) PolygonModeToVK() vk.PolygonMode {
-	if res, ok := StringVkPolygonMode[s.PolygonMode]; ok {
+	if res, ok := StringVkPolygonMode[s.Rasterization.PolygonMode]; ok {
 		return res
 	}
-	slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
+	slog.Warn("invalid string for vkPolygonMode", "value", s.Rasterization.PolygonMode)
 	return vk.PolygonModeFill
 }
 
 func (s *ShaderPipelineData) CullModeToVK() vk.CullModeFlagBits {
-	if res, ok := StringVkCullModeFlagBits[s.CullMode]; ok {
+	if res, ok := StringVkCullModeFlagBits[s.Rasterization.CullMode]; ok {
 		return res
 	}
-	slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
+	slog.Warn("invalid string for vkCullModeFlagBits", "value", s.Rasterization.CullMode)
 	return vk.CullModeFrontBit
 }
 
 func (s *ShaderPipelineData) FrontFaceToVK() vk.FrontFace {
-	if res, ok := StringVkFrontFace[s.FrontFace]; ok {
+	if res, ok := StringVkFrontFace[s.Rasterization.FrontFace]; ok {
 		return res
 	}
-	slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
+	slog.Warn("invalid string for vkFrontFace", "value", s.Rasterization.FrontFace)
 	return vk.FrontFaceClockwise
 }
 
 func (s *ShaderPipelineData) RasterizationSamplesToVK() vk.SampleCountFlagBits {
-	return sampleCountToVK(s.RasterizationSamples)
+	return sampleCountToVK(s.Multisample.RasterizationSamples)
 }
 
 func (s *ShaderPipelineData) LogicOpToVK() vk.LogicOp {
-	if res, ok := StringVkLogicOp[s.LogicOp]; ok {
+	if res, ok := StringVkLogicOp[s.ColorBlend.LogicOp]; ok {
 		return res
 	}
-	slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
+	slog.Warn("invalid string for vkLogicOp", "value", s.ColorBlend.LogicOp)
 	return vk.LogicOpCopy
 }
 
 func (s *ShaderPipelineData) BlendConstants() [4]float32 {
 	return [4]float32{
-		s.BlendConstants0,
-		s.BlendConstants1,
-		s.BlendConstants2,
-		s.BlendConstants3,
+		s.ColorBlend.BlendConstants0,
+		s.ColorBlend.BlendConstants1,
+		s.ColorBlend.BlendConstants2,
+		s.ColorBlend.BlendConstants3,
 	}
 }
 
 func (s *ShaderPipelineData) PatchControlPointsToVK() uint32 {
-	if res, ok := StringVkPatchControlPoints[s.PatchControlPoints]; ok {
+	if res, ok := StringVkPatchControlPoints[s.Tessellation.PatchControlPoints]; ok {
 		return res
 	}
-	slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
+	slog.Warn("invalid string for PatchControlPoints", "value", s.Tessellation.PatchControlPoints)
 	return 3
 }
 
@@ -314,32 +342,32 @@ func (s *ShaderPipelineData) PatchControlPointsToVK() uint32 {
 // structure setup, please fix later
 func (s *ShaderPipelineData) FrontStencilOpStateToVK() vk.StencilOpState {
 	return vk.StencilOpState{
-		FailOp:      stencilOpToVK(s.FrontFailOp),
-		PassOp:      stencilOpToVK(s.FrontPassOp),
-		DepthFailOp: stencilOpToVK(s.FrontDepthFailOp),
-		CompareOp:   compareOpToVK(s.FrontCompareOp),
-		CompareMask: s.FrontCompareMask,
-		WriteMask:   s.FrontWriteMask,
-		Reference:   s.FrontReference,
+		FailOp:      stencilOpToVK(s.DepthStencil.FrontFailOp),
+		PassOp:      stencilOpToVK(s.DepthStencil.FrontPassOp),
+		DepthFailOp: stencilOpToVK(s.DepthStencil.FrontDepthFailOp),
+		CompareOp:   compareOpToVK(s.DepthStencil.FrontCompareOp),
+		CompareMask: s.DepthStencil.FrontCompareMask,
+		WriteMask:   s.DepthStencil.FrontWriteMask,
+		Reference:   s.DepthStencil.FrontReference,
 	}
 }
 
 func (s *ShaderPipelineData) BackStencilOpStateToVK() vk.StencilOpState {
 	return vk.StencilOpState{
-		FailOp:      stencilOpToVK(s.BackFailOp),
-		PassOp:      stencilOpToVK(s.BackPassOp),
-		DepthFailOp: stencilOpToVK(s.BackDepthFailOp),
-		CompareOp:   compareOpToVK(s.BackCompareOp),
-		CompareMask: s.BackCompareMask,
-		WriteMask:   s.BackWriteMask,
-		Reference:   s.BackReference,
+		FailOp:      stencilOpToVK(s.DepthStencil.BackFailOp),
+		PassOp:      stencilOpToVK(s.DepthStencil.BackPassOp),
+		DepthFailOp: stencilOpToVK(s.DepthStencil.BackDepthFailOp),
+		CompareOp:   compareOpToVK(s.DepthStencil.BackCompareOp),
+		CompareMask: s.DepthStencil.BackCompareMask,
+		WriteMask:   s.DepthStencil.BackWriteMask,
+		Reference:   s.DepthStencil.BackReference,
 	}
 }
 
 func (s *ShaderPipelineData) PipelineCreateFlagsToVK() vk.PipelineCreateFlags {
 	mask := vk.PipelineCreateFlagBits(0)
-	for i := range s.PipelineCreateFlags {
-		mask |= StringVkPipelineCreateFlagBits[s.PipelineCreateFlags[i]]
+	for i := range s.GraphicsPipeline.PipelineCreateFlags {
+		mask |= StringVkPipelineCreateFlagBits[s.GraphicsPipeline.PipelineCreateFlags[i]]
 	}
 	return vk.PipelineCreateFlags(mask)
 }
@@ -399,20 +427,20 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 		DepthClampEnable:        s.DepthClampEnableToVK(),
 		RasterizerDiscardEnable: s.RasterizerDiscardEnableToVK(),
 		PolygonMode:             s.PolygonModeToVK(),
-		LineWidth:               s.LineWidth,
+		LineWidth:               s.Rasterization.LineWidth,
 		CullMode:                vk.CullModeFlags(s.CullModeToVK()),
 		FrontFace:               s.FrontFaceToVK(),
 		DepthBiasEnable:         s.DepthBiasEnableToVK(),
-		DepthBiasConstantFactor: s.DepthBiasConstantFactor,
-		DepthBiasClamp:          s.DepthBiasClamp,
-		DepthBiasSlopeFactor:    s.DepthBiasSlopeFactor,
+		DepthBiasConstantFactor: s.Rasterization.DepthBiasConstantFactor,
+		DepthBiasClamp:          s.Rasterization.DepthBiasClamp,
+		DepthBiasSlopeFactor:    s.Rasterization.DepthBiasSlopeFactor,
 	}
 	multisampling := vk.PipelineMultisampleStateCreateInfo{
 		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
 		Flags:                 0, // PipelineMultisampleStateCreateFlags
 		SampleShadingEnable:   s.SampleShadingEnableToVK(),
 		RasterizationSamples:  s.RasterizationSamplesToVK(),
-		MinSampleShading:      s.MinSampleShading,
+		MinSampleShading:      s.Multisample.MinSampleShading,
 		PSampleMask:           nil,
 		AlphaToCoverageEnable: s.AlphaToCoverageEnableToVK(),
 		AlphaToOneEnable:      s.AlphaToOneEnableToVK(),
@@ -459,11 +487,11 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
 		Flags:                 0, // PipelineDepthStencilStateCreateFlags
 		DepthTestEnable:       s.DepthTestEnableToVK(),
-		DepthCompareOp:        compareOpToVK(s.DepthCompareOp),
+		DepthCompareOp:        compareOpToVK(s.DepthStencil.DepthCompareOp),
 		DepthBoundsTestEnable: s.DepthBoundsTestEnableToVK(),
 		StencilTestEnable:     s.StencilTestEnableToVK(),
-		MinDepthBounds:        s.MinDepthBounds,
-		MaxDepthBounds:        s.MaxDepthBounds,
+		MinDepthBounds:        s.DepthStencil.MinDepthBounds,
+		MaxDepthBounds:        s.DepthStencil.MaxDepthBounds,
 		DepthWriteEnable:      s.DepthWriteEnableToVK(),
 		Front:                 s.FrontStencilOpStateToVK(),
 		Back:                  s.BackStencilOpStateToVK(),
@@ -484,7 +512,7 @@ func (s *ShaderPipelineData) ConstructPipeline(renderer Renderer, shader *Shader
 		RenderPass:          shader.RenderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
 		PDepthStencilState:  &depthStencil,
-		Subpass:             s.SubpassCount,
+		Subpass:             s.GraphicsPipeline.SubpassCount,
 	}
 	tess := vk.PipelineTessellationStateCreateInfo{}
 	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {

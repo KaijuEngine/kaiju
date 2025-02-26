@@ -4,7 +4,7 @@
 	<div class="inputFlags lightDarkBG">
 		{{range $_, $k := .List}}
 			<div class="checkboxListEntry">
-				<input data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<input name="{{$k}}"  data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas $k)}}checked="checked"{{end}} onchange="valueChanged" />
 				<span class="inputCheckLabel">{{$k}}</span>
 			</div>
 		{{end}}
@@ -39,11 +39,16 @@
 
 {{define "section"}}
 	{{range $_, $f := .Fields}}
-		{{if eq $f.Type "slice"}}
+		{{if eq $f.Type "struct"}}
 			<h2>{{.Name}}</h2>
-			{{range $_, $s := $f.Sections}}
+			{{range $i, $s := $f.Sections}}
+				{{template "section" $s}}
+			{{end}}
+		{{else if eq $f.Type "slice"}}
+			<h2>{{.Name}}</h2>
+			{{range $i, $s := $f.Sections}}
 				<div class="inputItem">
-					<img data-path="{{$f.FullPath}}" class="deleteButton" src="textures/minus.png"  onclick="removeFromSlice" />
+					<img data-path="{{$f.FullPath}}" data-index="{{$i}}" class="deleteButton" src="textures/minus.png"  onclick="removeFromSlice" />
 				</div>
 				{{template "section" $s}}
 			{{end}}
@@ -74,7 +79,7 @@
 				<span onclick="returnHome">Home</span>
 			</div>
 			<div class="topFields">
-				<h1>Shader Pipeline Editor</h1>
+				<h1>{{.Name}}</h1>
 				{{template "section" .}}
 				<button class="inputButtonWide" onclick="savePipeline">Save</button>
 			</div>
