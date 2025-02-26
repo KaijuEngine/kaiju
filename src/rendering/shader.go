@@ -62,6 +62,7 @@ type ShaderData struct {
 	Geometry               string `options:""` // Blank options uses fallback
 	TessellationControl    string `options:""` // Blank options uses fallback
 	TessellationEvaluation string `options:""` // Blank options uses fallback
+	CompileFlags           string
 }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {
