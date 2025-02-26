@@ -52,8 +52,9 @@ const (
 	FileExtensionMesh           FileExtension = ".msh"
 	FileExtensionStage          FileExtension = ".stg"
 	FileExtensionHTML           FileExtension = ".html"
-	FileExtensionShaderPipeline FileExtension = ".shaderpipeline"
+	FileExtensionShader         FileExtension = ".shader"
 	FileExtensionRenderPass     FileExtension = ".renderpass"
+	FileExtensionShaderPipeline FileExtension = ".shaderpipeline"
 	FileExtensionAssetDbInfo    FileExtension = ".adi"
 )
 
@@ -69,6 +70,7 @@ const (
 	AssetTypeMesh           AssetType = "mesh"
 	AssetTypeStage          AssetType = "stg"
 	AssetTypeHTML           AssetType = "html"
-	AssetTypeShaderPipeline AssetType = "shaderpipeline"
+	AssetTypeShader         AssetType = "shader"
 	AssetTypeRenderPass     AssetType = "renderpass"
+	AssetTypeShaderPipeline AssetType = "shaderpipeline"
 )

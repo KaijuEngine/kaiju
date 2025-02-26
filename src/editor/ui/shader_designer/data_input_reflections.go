@@ -106,7 +106,7 @@ func setObjectValueFromUI(obj any, e *document.Element) {
 	}
 }
 
-func reflectUIStructure(obj any, path string) DataUISection {
+func reflectUIStructure(obj any, path string, fallbackOptions map[string][]string) DataUISection {
 	section := DataUISection{}
 	v := reflect.ValueOf(obj).Elem()
 	vt := v.Type()
@@ -127,12 +127,18 @@ func reflectUIStructure(obj any, path string) DataUISection {
 		}
 		if (kind == reflect.String) ||
 			(kind == reflect.Slice && f.Type().Elem().Kind() == reflect.String) {
-			if op, ok := tag.Lookup("options"); ok {
+			isList := false
+			if op, ok := tag.Lookup("options"); ok && op != "" {
 				keys := reflect.ValueOf(rendering.StringVkMap[op]).MapKeys()
 				field.List = make([]string, len(keys))
 				for i := range keys {
 					field.List[i] = keys[i].String()
 				}
+				isList = true
+			} else {
+				field.List, isList = fallbackOptions[field.Name]
+			}
+			if isList {
 				if kind == reflect.String {
 					field.Type = "enum"
 				} else {
@@ -145,12 +151,12 @@ func reflectUIStructure(obj any, path string) DataUISection {
 				field.Type = "slice"
 				childCount := f.Len()
 				for j := range childCount {
-					s := reflectUIStructure(f.Index(j).Addr().Interface(), p)
+					s := reflectUIStructure(f.Index(j).Addr().Interface(), p, fallbackOptions)
 					field.Sections = append(field.Sections, s)
 				}
 			} else {
 				field.Type = "struct"
-				s := reflectUIStructure(f.Addr().Interface(), p)
+				s := reflectUIStructure(f.Addr().Interface(), p, fallbackOptions)
 				field.Sections = append(field.Sections, s)
 			}
 		}

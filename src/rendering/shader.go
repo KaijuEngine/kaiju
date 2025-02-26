@@ -55,6 +55,15 @@ type Shader struct {
 	definition *ShaderDef
 }
 
+type ShaderData struct {
+	Name                   string
+	Vertex                 string `options:""` // Blank options uses fallback
+	Fragment               string `options:""` // Blank options uses fallback
+	Geometry               string `options:""` // Blank options uses fallback
+	TessellationControl    string `options:""` // Blank options uses fallback
+	TessellationEvaluation string `options:""` // Blank options uses fallback
+}
+
 func (s *Shader) AddSubShader(key string, shader *Shader) {
 	s.subShaders[key] = shader
 }

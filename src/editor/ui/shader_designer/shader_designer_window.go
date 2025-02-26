@@ -13,13 +13,25 @@ const (
 	shaderDesignerHTML = "editor/ui/shader_designer/shader_designer_window.html"
 )
 
+type ShaderDesignerState = int
+
+const (
+	shaderDesignerStateHome = ShaderDesignerState(iota)
+	shaderDesignerStateShader
+	shaderDesignerStateRenderPass
+	shaderDesignerStatePipeline
+)
+
 type ShaderDesigner struct {
+	shader            rendering.ShaderData
 	pipeline          rendering.ShaderPipelineData
 	renderPass        rendering.RenderPassData
+	shaderDoc         *document.Document
 	shaderDesignerDoc *document.Document
 	pipelineDoc       *document.Document
 	renderPassDoc     *document.Document
 	man               ui.Manager
+	state             ShaderDesignerState
 }
 
 type flagState struct {
@@ -36,6 +48,7 @@ func (s flagState) Has(val string) bool {
 }
 
 func (win *ShaderDesigner) uiInit() {
+	setupShaderDoc(win)
 	setupPipelineDoc(win)
 	setupRenderPassDoc(win)
 	win.reloadShaderDesigner()
@@ -59,28 +72,46 @@ func New() {
 	setup(nil)
 }
 
-func (win *ShaderDesigner) ShowDesignerWindow() {
+func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
+	if win.state == state {
+		return
+	}
+	win.state = state
+	win.shaderDoc.Deactivate()
 	win.pipelineDoc.Deactivate()
 	win.renderPassDoc.Deactivate()
-	win.shaderDesignerDoc.Activate()
-	win.reloadShaderDesigner()
+	win.shaderDesignerDoc.Deactivate()
+	switch state {
+	case shaderDesignerStateHome:
+		win.shaderDesignerDoc.Activate()
+		win.reloadShaderDesigner()
+	case shaderDesignerStateShader:
+		win.shaderDoc.Activate()
+		win.reloadShaderDoc()
+	case shaderDesignerStateRenderPass:
+		win.renderPassDoc.Activate()
+		win.reloadRenderPassDoc()
+	case shaderDesignerStatePipeline:
+		win.pipelineDoc.Activate()
+		win.reloadPipelineDoc()
+	}
 	win.man.Host.Window.Focus()
+}
+
+func (win *ShaderDesigner) ShowDesignerWindow() {
+	win.ChangeWindowState(shaderDesignerStateHome)
+}
+
+func (win *ShaderDesigner) ShowShaderWindow() {
+	win.ChangeWindowState(shaderDesignerStateShader)
 }
 
 func (win *ShaderDesigner) ShowPipelineWindow() {
-	win.pipelineDoc.Activate()
-	win.renderPassDoc.Deactivate()
-	win.shaderDesignerDoc.Deactivate()
-	win.reloadPipelineDoc()
-	win.man.Host.Window.Focus()
+	win.ChangeWindowState(shaderDesignerStatePipeline)
 }
 
 func (win *ShaderDesigner) ShowRenderPassWindow() {
-	win.pipelineDoc.Deactivate()
-	win.renderPassDoc.Activate()
-	win.shaderDesignerDoc.Deactivate()
-	win.reloadRenderPassDoc()
-	win.man.Host.Window.Focus()
+	win.ChangeWindowState(shaderDesignerStateRenderPass)
 }
 
 func (win *ShaderDesigner) returnHome(*document.Element) {
@@ -93,6 +124,10 @@ func (win *ShaderDesigner) reloadShaderDesigner() {
 	}
 	win.shaderDesignerDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderDesignerHTML,
 		nil, map[string]func(*document.Element){
+			"newShader": func(*document.Element) {
+				win.shader = rendering.ShaderData{}
+				win.ShowShaderWindow()
+			},
 			"newRenderPass": func(*document.Element) {
 				win.renderPass = rendering.RenderPassData{}
 				win.ShowRenderPassWindow()

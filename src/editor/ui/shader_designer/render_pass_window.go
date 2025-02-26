@@ -39,7 +39,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.renderPassDoc.Destroy()
 	}
-	data := reflectUIStructure(&win.renderPass, "")
+	data := reflectUIStructure(&win.renderPass, "", map[string][]string{})
 	data.Name = "Render Pass Editor"
 	win.renderPassDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
