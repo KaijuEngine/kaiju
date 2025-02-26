@@ -10,8 +10,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"reflect"
-	"strconv"
 )
 
 func setupPipelineDoc(win *ShaderDesigner) {
@@ -63,19 +61,12 @@ func showPipelineTooltip(e *document.Element) {
 }
 
 func (win *ShaderDesigner) pipelineAddToSlice(e *document.Element) {
-	v := reflectObjectValueFromUI(&win.pipeline, e)
-	v.Set(reflect.Append(v, reflect.Zero(v.Type().Elem())))
+	reflectAddToSlice(&win.pipeline, e)
 	win.reloadPipelineDoc()
 }
 
 func (win *ShaderDesigner) pipelineRemoveFromSlice(e *document.Element) {
-	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this entry? The action currently can't be undone.", "Yes", "No", win.man.Host)
-	if !ok {
-		return
-	}
-	v := reflectObjectValueFromUI(&win.pipeline, e)
-	index, _ := strconv.Atoi(e.Attribute("data-index"))
-	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
+	reflectRemoveFromSlice(&win.pipeline, e)
 	win.reloadPipelineDoc()
 }
 

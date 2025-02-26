@@ -1,6 +1,7 @@
 package shader_designer
 
 import (
+	"kaiju/editor/alert"
 	"kaiju/klib"
 	"kaiju/markup/document"
 	"kaiju/rendering"
@@ -156,4 +157,19 @@ func reflectUIStructure(obj any, path string) DataUISection {
 		section.Fields = append(section.Fields, field)
 	}
 	return section
+}
+
+func reflectAddToSlice(obj any, e *document.Element) {
+	v := reflectObjectValueFromUI(obj, e)
+	v.Set(reflect.Append(v, reflect.Zero(v.Type().Elem())))
+}
+
+func reflectRemoveFromSlice(obj any, e *document.Element) {
+	ok := <-alert.New("Delete entry?", "Are you sure you want to delete this entry? The action currently can't be undone.", "Yes", "No", e.UI.Host())
+	if !ok {
+		return
+	}
+	v := reflectObjectValueFromUI(obj, e)
+	index, _ := strconv.Atoi(e.Attribute("data-index"))
+	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
 }

@@ -45,10 +45,11 @@
 				{{template "section" $s}}
 			{{end}}
 		{{else if eq $f.Type "slice"}}
-			<h2>{{.Name}}</h2>
+			<h3>{{.Name}}</h3>
 			{{range $i, $s := $f.Sections}}
 				<div class="inputItem">
-					<img data-path="{{$f.FullPath}}" data-index="{{$i}}" class="deleteButton" src="textures/minus.png"  onclick="removeFromSlice" />
+					<span class="inputLabel">Array Index: [{{$i}}]</span>
+					<div class="input"><img data-path="{{$f.FullPath}}" data-index="{{$i}}" class="deleteButton" src="textures/minus.png"  onclick="removeFromSlice" /></div>
 				</div>
 				{{template "section" $s}}
 			{{end}}

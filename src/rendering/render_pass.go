@@ -28,12 +28,12 @@ type RenderPassAttachmentDescription struct {
 type RenderPassAttachmentImage struct {
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         string   // vk.ImageTiling
-	Filter         string   // vk.Filter
-	Usage          []string // vk.ImageUsageFlagBits
-	MemoryProperty []string // vk.MemoryPropertyFlagBits
-	Aspect         []string // vk.ImageAspectFlagBits
-	Access         []string // vk.AccessFlagBits
+	Tiling         string   `options:"StringVkImageTiling"`
+	Filter         string   `options:"StringVkFilter`
+	Usage          []string `options:"StringVkImageUsageFlagBits"`
+	MemoryProperty []string `options:"StringVkMemoryPropertyFlagBits"`
+	Aspect         []string `options:"StringVkImageAspectFlagBits"`
+	Access         []string `options:"StringVkAccessFlagBits"`
 }
 
 type RenderPassSubpassDescription struct {
@@ -53,11 +53,11 @@ type RenderPassAttachmentReference struct {
 type RenderPassSubpassDependency struct {
 	SrcSubpass      uint32
 	DstSubpass      uint32
-	SrcStageMask    []string
-	DstStageMask    []string
-	SrcAccessMask   []string
-	DstAccessMask   []string
-	DependencyFlags []string
+	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	SrcAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DstAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
 }
 
 func (ai *RenderPassAttachmentImage) ListTiling() []string {
