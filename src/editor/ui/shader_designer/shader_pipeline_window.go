@@ -30,10 +30,10 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		data, map[string]func(*document.Element){
 			"showTooltip":     showPipelineTooltip,
 			"valueChanged":    win.pipelineValueChanged,
-			"savePipeline":    win.pipelineSave,
 			"returnHome":      win.returnHome,
 			"addToSlice":      win.pipelineAddToSlice,
 			"removeFromSlice": win.pipelineRemoveFromSlice,
+			"saveData":        win.pipelineSave,
 		})
 	if sy != 0 {
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]

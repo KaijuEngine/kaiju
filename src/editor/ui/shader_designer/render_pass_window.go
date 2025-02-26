@@ -48,7 +48,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 			"nameChanged":     win.renderPassNameChanged,
 			"addToSlice":      win.renderPassAddToSlice,
 			"removeFromSlice": win.renderPassRemoveFromSlice,
-			"saveRenderPass":  win.renderPassSaveRenderPass,
+			"saveData":        win.renderPassSaveRenderPass,
 			"returnHome":      win.returnHome,
 		})
 	if sy != 0 {
