@@ -1,3 +1,5 @@
+//go:build !shipping
+
 /******************************************************************************/
 /* pprof.go                                                                   */
 /******************************************************************************/
@@ -38,9 +40,18 @@
 package profiler
 
 import (
+	"kaiju/contexts"
 	"os"
+	"os/exec"
+	"runtime"
 	"runtime/pprof"
 )
+
+const (
+	pprofProcName = "pprof"
+)
+
+var runningPprof *exec.Cmd = nil
 
 func StartDefaultProfiler() error {
 	pprofFile, err := os.Create(pprofCPUFile)
@@ -53,4 +64,34 @@ func StartDefaultProfiler() error {
 
 func StopDefaultProfiler() {
 	pprof.StopCPUProfile()
+}
+
+func ShowDefaultProfilerInWeb() error {
+	if err := CleanupProfiler(); err != nil {
+		return err
+	}
+	ctx := contexts.NewCancellable()
+	runningPprof = exec.CommandContext(ctx, "go", []string{"tool", pprofProcName, "-http=:" + pprofWebPort, pprofCPUFile}...)
+	return runningPprof.Start()
+}
+
+func ProfileCallWithDefaultProfiler(call func()) error {
+	if err := StartDefaultProfiler(); err != nil {
+		return err
+	}
+	call()
+	StopDefaultProfiler()
+	return ShowDefaultProfilerInWeb()
+}
+
+func CleanupProfiler() error {
+	if runningPprof != nil {
+		runningPprof.Process.Kill()
+		if runtime.GOOS == "windows" {
+			return exec.Command("taskkill", "/F", "/IM", pprofProcName+".exe").Run()
+		} else {
+			return exec.Command("pkill", pprofProcName).Run()
+		}
+	}
+	return nil
 }

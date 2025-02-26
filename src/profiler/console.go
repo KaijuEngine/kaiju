@@ -89,16 +89,16 @@ func launchWeb(c *console.Console, webType, ctxKey string) (*contexts.Cancellabl
 	args := []string{"tool"}
 	var procName, startMsg string
 	if webType == "trace" {
-		args = append(args, "trace", traceFile)
-		startMsg = "Starting server on localhost"
 		procName = "trace"
+		args = append(args, procName, traceFile)
+		startMsg = "Starting server on localhost"
 	} else {
 		if webType == "mem" {
 			targetFile = pprofHeapFile
 		}
-		args = append(args, "pprof", "-http=:"+pprofWebPort, targetFile)
-		startMsg = "Starting server on localhost:" + pprofWebPort
 		procName = "pprof"
+		args = append(args, procName, "-http=:"+pprofWebPort, targetFile)
+		startMsg = "Starting server on localhost:" + pprofWebPort
 	}
 	cmd := exec.CommandContext(ctx, "go", args...)
 	err := cmd.Start()
