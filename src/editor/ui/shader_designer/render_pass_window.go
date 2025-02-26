@@ -40,6 +40,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 		win.renderPassDoc.Destroy()
 	}
 	data := reflectUIStructure(&win.renderPass, "")
+	data.Name = "Render Pass Editor"
 	win.renderPassDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showRenderPassTooltip,
