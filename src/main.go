@@ -41,8 +41,10 @@ package main
 
 import (
 	"kaiju/bootstrap"
+	"kaiju/profiler"
 )
 
 func main() {
 	bootstrap.Main()
+	profiler.CleanupProfiler()
 }
