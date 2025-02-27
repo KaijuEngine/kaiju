@@ -55,7 +55,7 @@ func (a *Database) toContentPath(key string) string {
 	if a.EditorContext.EditorPath == "" {
 		a.EditorContext.EditorPath = filepath.Clean(filepath.Dir(klib.MustReturn(os.Executable())) + "/..")
 	}
-	key = strings.ReplaceAll(key, "\\", "/")
+	key = filepath.ToSlash(key)
 	var edKey string
 	if strings.HasPrefix(key, contentPath) {
 		edKey = filepath.Join(a.EditorContext.EditorPath, key)
