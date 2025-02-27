@@ -3,11 +3,16 @@
 package plugins
 
 import (
+	"io"
 	"kaiju/editor/interfaces"
 	"kaiju/matrix"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/dop251/goja"
 )
@@ -21,9 +26,7 @@ const (
 )
 
 type jsvm struct {
-	runtime      *goja.Runtime
-	instanceMap  map[int64]any
-	nextInstance int64
+	runtime *goja.Runtime
 }
 
 func (vm *jsvm) throwError(message string) goja.Value {
@@ -72,21 +75,23 @@ func reflectStructToJS[T any](vm *jsvm) {
 	name := t.Name()
 	proto := vm.runtime.NewObject()
 	constructorFunc := vm.runtime.ToValue(func(call goja.ConstructorCall) *goja.Object {
-		instance := reflect.New(t).Interface()
-		id := vm.nextInstance
-		vm.nextInstance++
-		vm.instanceMap[id] = instance
-		call.This.Set("_id", id)
+		to := reflect.New(t)
+		if len(call.Arguments) > 0 {
+			from := reflect.ValueOf(call.Arguments[0].Export())
+			if to.Kind() == from.Kind() {
+				to.Elem().Set(from)
+			} else if from.Kind() != reflect.Pointer {
+				to.Elem().Set(from)
+			}
+		}
+		call.This.Set("_goPtr", to.Interface())
 		return call.This
 	})
 	constructorObj := constructorFunc.ToObject(vm.runtime)
 	constructorObj.Set("prototype", proto)
 	vm.runtime.Set(name, constructorFunc)
 	pt := reflect.PointerTo(t)
-	methods := make([]reflect.Method, 0, t.NumMethod()+pt.NumMethod())
-	for i := range t.NumMethod() {
-		methods = append(methods, t.Method(i))
-	}
+	methods := make([]reflect.Method, 0, pt.NumMethod())
 	for i := range pt.NumMethod() {
 		methods = append(methods, pt.Method(i))
 	}
@@ -97,8 +102,21 @@ func reflectStructToJS[T any](vm *jsvm) {
 		for j := range mt.NumIn() - 1 {
 			argTypes[j] = mt.In(j + 1)
 		}
-		var dynFields func(r reflect.Value) goja.Value
-		dynFields = func(r reflect.Value) goja.Value {
+		proto.Set(methodName, func(call goja.FunctionCall) goja.Value {
+			obj := call.This.ToObject(vm.runtime).Get("_goPtr").Export()
+			v := reflect.ValueOf(obj)
+			args := make([]reflect.Value, len(call.Arguments))
+			for j := range call.Arguments {
+				args[j] = reflect.ValueOf(call.Arguments[j].Export())
+				args[j] = args[j].Convert(argTypes[j])
+			}
+			res := v.MethodByName(methodName).Call(args)
+			if len(res) > 1 {
+				slog.Error("reflected go method to JS contains too many returns", "count", len(res), "method", methodName)
+			} else if len(res) == 0 {
+				return nil
+			}
+			r := res[0]
 			rt := r.Type()
 			mCount := rt.NumMethod()
 			kind := rt.Kind()
@@ -111,63 +129,64 @@ func reflectStructToJS[T any](vm *jsvm) {
 			}
 			if mCount > 0 {
 				s := vm.runtime.Get(rt.Name())
-				v, _ := vm.runtime.New(s)
-				goV := vm.instanceMap[v.Get("_id").ToInteger()]
-				goR := reflect.ValueOf(goV).Elem()
-				switch kind {
-				case reflect.Array:
-					for i := range r.Len() {
-						goR.Index(i).Set(r.Index(i))
-					}
-				default:
-					for j := range rt.NumField() {
-						// TODO:  Handle if this is a pointer
-						f := r.Field(j)
-						goR.Field(j).Set(r.Field(j))
-						v.Set(f.Type().Name(), dynFields(f).Export())
-					}
-				}
-				return v
+				out, _ := vm.runtime.New(s, vm.runtime.ToValue(r.Interface()))
+				return out
 			} else {
 				return vm.runtime.ToValue(r.Interface())
 			}
-		}
-		proto.Set(methodName, func(call goja.FunctionCall) goja.Value {
-			obj := call.This.ToObject(vm.runtime)
-			idVal := obj.Get("_id")
-			id := idVal.ToInteger()
-			if instance, ok := vm.instanceMap[id]; ok {
-				v := reflect.ValueOf(instance)
-				args := make([]reflect.Value, len(call.Arguments))
-				for j := range call.Arguments {
-					args[j] = reflect.ValueOf(call.Arguments[j].Export())
-					args[j] = args[j].Convert(argTypes[j])
-				}
-				res := v.MethodByName(methodName).Call(args)
-				if len(res) > 1 {
-					slog.Error("reflected go method to JS contains too many returns", "count", len(res), "method", methodName)
-				} else if len(res) == 0 {
-					return nil
-				}
-				return dynFields(res[0])
-			}
-			return nil
 		})
 	}
 }
 
-func LaunchPlugins(ed interfaces.Editor) error {
-	const plugins = "editor/plugins"
-	js, err := ed.Host().AssetDatabase().ReadText(filepath.Join(plugins, "test.js"))
-	if err != nil {
-		return err
+func removeImportAPI(js string) string {
+	re := regexp.MustCompile(`import\s{0,}["'][\.\/]+api(\.js){0,}["']`)
+	return re.ReplaceAllString(js, "")
+}
+
+func rollup(sandbox *os.Root, js, jsPath string, imported *[]string) (string, error) {
+	// TODO:  Prevent importing already imported files
+	re := regexp.MustCompile(`import\s{0,}["'](.*?)(\.js){0,}["']`)
+	matches := re.FindAllStringSubmatch(js, -1)
+	imports := make([]string, 0, len(matches))
+	for i := range matches {
+		path := strings.TrimSpace(matches[i][1])
+		if !strings.HasSuffix(path, ".js") {
+			path = path + ".js"
+		}
+		imports = append(imports, path)
 	}
+	for i := range imports {
+		fullPath := filepath.Join(jsPath, imports[i])
+		if slices.Contains(*imported, fullPath) {
+			continue
+		}
+		*imported = append(*imported, fullPath)
+		path := strings.TrimPrefix(filepath.ToSlash(
+			strings.TrimPrefix(fullPath, sandbox.Name())), "/")
+		importFile, err := sandbox.OpenFile(path, os.O_RDONLY, os.ModePerm)
+		if err != nil {
+			slog.Error("failed to import file", "file", jsPath, "import", imports[i])
+			continue
+		}
+		defer importFile.Close()
+		inner, err := io.ReadAll(importFile)
+		if err != nil {
+			slog.Error("failed to read import file", "file", jsPath, "import", imports[i])
+			continue
+		}
+		innerJS := removeImportAPI(string(inner))
+		innerJS, _ = rollup(sandbox, innerJS, filepath.Dir(fullPath), imported)
+		js = strings.ReplaceAll(js, matches[i][0], innerJS)
+	}
+	return re.ReplaceAllString(js, ""), nil
+}
+
+func launchPlugin(ed interfaces.Editor, entry string) error {
 	vm := &jsvm{
-		runtime:      goja.New(),
-		instanceMap:  make(map[int64]any),
-		nextInstance: 1,
+		runtime: goja.New(),
 	}
 	reflectStructToJS[matrix.Vec2](vm)
+	reflectStructToJS[matrix.Vec2i](vm)
 	reflectStructToJS[matrix.Vec3](vm)
 	reflectStructToJS[matrix.Vec3i](vm)
 	reflectStructToJS[matrix.Vec4](vm)
@@ -178,8 +197,40 @@ func LaunchPlugins(ed interfaces.Editor) error {
 	vm.runtime.Set("debug", vm.jsDebug)
 	vm.runtime.Set("warn", vm.jsWarn)
 	vm.runtime.Set("error", vm.jsError)
-	if _, err := vm.runtime.RunString(js); err != nil {
+	if js, err := os.ReadFile(entry); err == nil {
+		root := filepath.Dir(entry)
+		sandbox, err := os.OpenRoot(root)
+		if err != nil {
+			return err
+		}
+		final, err := rollup(sandbox, removeImportAPI(string(js)), root, &[]string{})
+		if err != nil {
+			return err
+		}
+		if _, err := vm.runtime.RunString(final); err != nil {
+			return err
+		}
+	} else {
 		return err
+	}
+	return nil
+}
+
+func LaunchPlugins(ed interfaces.Editor) error {
+	const plugins = "editor/plugins"
+	pluginsPath := ed.Host().AssetDatabase().ToRawPath(plugins)
+	dirs, err := os.ReadDir(pluginsPath)
+	if err != nil {
+		return err
+	}
+	for i := range dirs {
+		if !dirs[i].IsDir() {
+			continue
+		}
+		err := launchPlugin(ed, filepath.Join(pluginsPath, dirs[i].Name(), "main.js"))
+		if err != nil {
+			slog.Error("plugin failed to load", "plugin", dirs[i].Name(), "error", err)
+		}
 	}
 	return nil
 }

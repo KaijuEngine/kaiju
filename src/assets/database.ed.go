@@ -50,6 +50,8 @@ type EditorContext struct {
 	EditorPath string
 }
 
+func (a *Database) ToRawPath(key string) string { return a.toContentPath(key) }
+
 func (a *Database) toContentPath(key string) string {
 	const contentPath = "content"
 	if a.EditorContext.EditorPath == "" {
