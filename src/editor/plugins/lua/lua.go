@@ -249,7 +249,9 @@ func (l *State) PushString(value string) {
 
 func (l *State) PushUserData(value reflect.Value) {
 	p := unsafe.Pointer(value.Pointer())
-	l.pinned[p] = pinPointer(value.Interface())
+	if _, ok := l.pinned[p]; !ok {
+		l.pinned[p] = pinPointer(value.Interface())
+	}
 	C.lua_pushlightuserdata(l.state, p)
 }
 
