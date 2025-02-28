@@ -5,10 +5,15 @@ package plugins
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 )
+
+var pkgSources = map[string][]string{}
 
 const prefefinedAPIDocs = `---@Shape Pointer
 --- Start an interactive debugger in the console window
@@ -67,8 +72,107 @@ func reflectCommentDocTypeHint(t reflect.Type) string {
 	return tName
 }
 
+func pullSourceForType(t reflect.Type) ([]string, error) {
+	pkg := t.PkgPath()
+	if sources, ok := pkgSources[pkg]; ok {
+		return sources, nil
+	}
+	srcPath := strings.Replace(pkg, "kaiju/", "src/", 1)
+	files, err := os.ReadDir(srcPath)
+	if err != nil {
+		return []string{}, err
+	}
+	sources := make([]string, 0, len(files))
+	for i := range files {
+		if files[i].IsDir() {
+			continue
+		}
+		if filepath.Ext(files[i].Name()) != ".go" {
+			continue
+		}
+		p := filepath.Join(srcPath, files[i].Name())
+		src, err := os.ReadFile(p)
+		if err != nil {
+			return []string{}, err
+		}
+		sources = append(sources, string(src))
+	}
+	pkgSources[pkg] = sources
+	return sources, nil
+}
+
+func readMethodDoc(methodName string, t reflect.Type, m reflect.Type, sources []string) (comment string, args []string) {
+	src := ""
+	search := regexp.MustCompile(fmt.Sprintf(`func \(\w+\s+\*{0,}%s\) %s\(`, t.Name(), methodName))
+	for i := range sources {
+		if search.MatchString(sources[i]) {
+			src = sources[i]
+			break
+		}
+	}
+	args = make([]string, m.NumIn()-1)
+	failExit := func() (string, []string) {
+		for i := range len(args) {
+			args[i] = fmt.Sprintf("arg%d", i)
+		}
+		return comment, args
+	}
+	if src == "" {
+		return failExit()
+	}
+	lines := strings.Split(src, "\n")
+	idx := -1
+	for i := range lines {
+		if search.MatchString(lines[i]) {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return failExit()
+	}
+	sb := strings.Builder{}
+	commentStart := idx
+	for i := idx - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" {
+			if !strings.HasPrefix(line, "//") {
+				break
+			}
+			commentStart--
+		}
+	}
+	for i := commentStart; i < idx; i++ {
+		sb.WriteString(strings.TrimSpace(strings.TrimLeft(lines[i], "/")))
+		sb.WriteRune('\n')
+	}
+	comment = strings.TrimSpace(sb.String())
+	argSearch := regexp.MustCompile(fmt.Sprintf(`(?s)%s\((.*?)\)`, methodName))
+	funcLineEnd := idx
+	for i := idx; i < len(lines); i++ {
+		if strings.Contains(lines[i], "{") {
+			break
+		}
+		funcLineEnd++
+	}
+	signature := strings.Join(lines[idx:funcLineEnd+1], " ")
+	found := argSearch.FindAllStringSubmatch(signature, -1)
+	if len(found) < 1 || len(found[0]) < 2 || found[0][1] == "" {
+		return failExit()
+	}
+	parts := strings.Split(found[0][1], ",")
+	for i := range min(len(args), len(parts)) {
+		args[i] = strings.Split(parts[i], " ")[0]
+	}
+	return comment, args
+}
+
 func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	pt := reflect.PointerTo(t)
+	sources, err := pullSourceForType(t)
+	if err != nil {
+		slog.Error("failed to pull the sources for package, api will be missing function comments and argument names", "package", t.PkgPath(), "error", err)
+	}
 	methods := make([]reflect.Method, 0, pt.NumMethod())
 	for i := range pt.NumMethod() {
 		methods = append(methods, pt.Method(i))
@@ -76,8 +180,12 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	for _, m := range methods {
 		mt := m.Type
 		ins := make([]string, mt.NumIn()-1)
+		comment, args := readMethodDoc(m.Name, t, mt, sources)
+		if comment != "" {
+			apiOut.WriteString(fmt.Sprintf("--- %s\n", comment))
+		}
 		for i := range mt.NumIn() - 1 {
-			ins[i] = fmt.Sprintf("arg%d", i)
+			ins[i] = args[i]
 			tName := reflectCommentDocTypeHint(mt.In(i + 1))
 			apiOut.WriteString(fmt.Sprintf("---@param %s %s\n", ins[i], tName))
 		}
@@ -122,6 +230,7 @@ func RegenerateAPI() error {
 		return err
 	}
 	defer f.Close()
+	clear(pkgSources)
 	f.WriteString(prefefinedAPIDocs)
 	for _, t := range reflectedTypes() {
 		reflectStructAPI(t, f)
