@@ -15,7 +15,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/KaijuEngine/go-lua"
+	"kaiju/editor/plugins/lua"
 )
 
 type jsLogType = int
@@ -30,80 +30,33 @@ const (
 	plugins = "editor/plugins"
 )
 
-type luavm struct {
-	runtime *lua.State
-}
+var (
+	apiReg     = regexp.MustCompile(`require\s{0,}\({0,1}\s{0,}["'][\.\/]+api(\.lua){0,}["']\s{0,}\){0,1}`)
+	requireReg = regexp.MustCompile(`require\s{0,}\({0,1}\s{0,}["'](.*?)(\.lau){0,}["']\s{0,}\){0,1}`)
+)
 
-//func (vm *jsvm) throwError(message string) goja.Value {
-//	if errorConstructor, ok := goja.AssertFunction(vm.runtime.Get("Error")); ok {
-//		if res, err := errorConstructor(goja.Null(), vm.runtime.ToValue(message)); err == nil {
-//			return res
-//		}
-//	}
-//	return nil
-//}
-//
-//func (vm *jsvm) logging(call goja.FunctionCall, logType jsLogType) goja.Value {
-//	if len(call.Arguments) < 1 {
-//		return vm.throwError("Missing arguments")
-//	}
-//	msg := call.Arguments[0].String()
-//	prints := make([]any, len(call.Arguments[1:]))
-//	for i, a := range call.Arguments[1:] {
-//		prints[i] = a.Export()
-//	}
-//	switch logType {
-//	case jsLogTypeDebug:
-//		slog.Debug(msg, prints...)
-//	case jsLogTypeWarn:
-//		slog.Warn(msg, prints...)
-//	case jsLogTypeError:
-//		slog.Error(msg, prints...)
-//	}
-//	return nil
-//}
-//
-//func (vm *jsvm) jsDebug(call goja.FunctionCall) goja.Value {
-//	return vm.logging(call, jsLogTypeDebug)
-//}
-//
-//func (vm *jsvm) jsWarn(call goja.FunctionCall) goja.Value {
-//	return vm.logging(call, jsLogTypeWarn)
-//}
-//
-//func (vm *jsvm) jsError(call goja.FunctionCall) goja.Value {
-//	return vm.logging(call, jsLogTypeError)
-//}
+type luavm struct {
+	runtime lua.State
+	sandbox *os.Root
+}
 
 func reflectStructToLua[T any](vm *luavm) {
 	t := reflect.TypeFor[T]()
 	name := t.Name()
 	vm.runtime.NewTable()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
-		to := reflect.New(t)
-		if state.IsTable(-1) {
-			state.Field(-1, "_goPtr")
-			if !state.IsUserData(1) {
-				state.Pop(1)
-			}
-		} else if state.IsUserData(-1) {
-			state.PushValue(-1)
-		}
-		if state.IsUserData(1) {
-			ud := reflect.ValueOf(state.ToUserData(1))
-			if ud.Kind() == reflect.Pointer {
-				to.Elem().Set(ud.Elem())
-			} else {
-				to.Elem().Set(ud)
-			}
-			state.Pop(1)
+		var to reflect.Value
+		if state.IsUserData(-1) {
+			to = reflect.ValueOf(state.ToUserData(-1))
+		} else {
+			to = reflect.New(t)
 		}
 		state.Global("create_obj")
 		state.Global(name)
 		state.PushBoolean(false)
 		state.Call(2, 1)
 		if state.IsTable(-1) {
-			state.PushUserData(to.Interface())
+			state.PushUserData(to)
 			state.SetField(-2, "_goPtr")
 		}
 		return 1
@@ -133,7 +86,7 @@ func reflectStructToLua[T any](vm *luavm) {
 				if state.IsBoolean(idx) {
 					args[i] = reflect.ValueOf(state.ToBoolean(idx))
 				} else if state.IsNumber(idx) {
-					n, _ := state.ToNumber(idx)
+					n := state.ToNumber(idx)
 					args[i] = reflect.ValueOf(n)
 					args[i] = args[i].Convert(argTypes[i])
 				} else if state.IsTable(idx) {
@@ -142,7 +95,7 @@ func reflectStructToLua[T any](vm *luavm) {
 				} else if state.IsUserData(idx) {
 					args[i] = reflect.ValueOf(state.ToUserData(idx))
 				} else if state.IsString(idx) {
-					str, _ := state.ToString(idx)
+					str := state.ToString(idx)
 					args[i] = reflect.ValueOf(str)
 				} else {
 					// TODO:  ERROR
@@ -162,9 +115,11 @@ func reflectStructToLua[T any](vm *luavm) {
 					mCount += reflect.PointerTo(rt).NumMethod()
 				}
 				if mCount > 0 {
+					rp := reflect.New(r.Type())
+					rp.Elem().Set(r)
 					state.Global(rt.Name())
 					state.Field(-1, "New")
-					state.PushUserData(r.Interface())
+					state.PushUserData(rp)
 					state.Call(1, 1)
 				} else {
 					switch kind {
@@ -186,15 +141,13 @@ func reflectStructToLua[T any](vm *luavm) {
 	vm.runtime.SetGlobal(name)
 }
 
-func removeImportAPI(js string) string {
-	re := regexp.MustCompile(`require\s{0,}["'][\.\/]+api(\.lua){0,}["']`)
-	return re.ReplaceAllString(js, "")
+func removeImportAPI(lua string) string {
+	return apiReg.ReplaceAllString(lua, "")
 }
 
-func rollup(sandbox *os.Root, js, jsPath string, imported *[]string) (string, error) {
-	// TODO:  Prevent importing already imported files
-	re := regexp.MustCompile(`require\s{0,}["'](.*?)(\.lau){0,}["']`)
-	matches := re.FindAllStringSubmatch(js, -1)
+func (vm *luavm) rollup(lua, luaPath string, imported *[]string) error {
+	lua = removeImportAPI(lua)
+	matches := requireReg.FindAllStringSubmatch(lua, -1)
 	imports := make([]string, 0, len(matches))
 	for i := range matches {
 		path := strings.TrimSpace(matches[i][1])
@@ -204,102 +157,36 @@ func rollup(sandbox *os.Root, js, jsPath string, imported *[]string) (string, er
 		imports = append(imports, path)
 	}
 	for i := range imports {
-		fullPath := filepath.Join(jsPath, imports[i])
+		fullPath := filepath.Join(luaPath, imports[i])
 		if slices.Contains(*imported, fullPath) {
 			continue
 		}
-		*imported = append(*imported, fullPath)
 		path := strings.TrimPrefix(filepath.ToSlash(
-			strings.TrimPrefix(fullPath, sandbox.Name())), "/")
-		importFile, err := sandbox.OpenFile(path, os.O_RDONLY, os.ModePerm)
+			strings.TrimPrefix(fullPath, vm.sandbox.Name())), "/")
+		importFile, err := vm.sandbox.OpenFile(path, os.O_RDONLY, os.ModePerm)
 		if err != nil {
-			slog.Error("failed to import file", "file", jsPath, "import", imports[i])
-			continue
+			return fmt.Errorf("failed to import (%s) on file (%s)", imports[i], luaPath)
 		}
 		defer importFile.Close()
 		inner, err := io.ReadAll(importFile)
 		if err != nil {
-			slog.Error("failed to read import file", "file", jsPath, "import", imports[i])
+			return fmt.Errorf("failed to read import (%s) for file (%s)", imports[i], luaPath)
+		}
+		innerLua := string(inner)
+		if err := vm.rollup(innerLua, filepath.Dir(fullPath), imported); err != nil {
+			slog.Error("error importing", "error", err)
 			continue
 		}
-		innerJS := removeImportAPI(string(inner))
-		innerJS, _ = rollup(sandbox, innerJS, filepath.Dir(fullPath), imported)
-		js = strings.ReplaceAll(js, matches[i][0], innerJS)
+		*imported = append(*imported, fullPath)
 	}
-	return re.ReplaceAllString(js, ""), nil
-}
-
-func debugValueToString(state *lua.State) string {
-	if state.IsNil(1) {
-		return "nil"
-	} else if state.IsBoolean(1) {
-		return fmt.Sprintf("%t", state.ToBoolean(1))
-	} else if state.IsNumber(1) {
-		n, _ := state.ToNumber(1)
-		return fmt.Sprintf("%g", n)
-	} else if state.IsTable(1) {
-		return "[table]" // Simplified; could expand to print table contents
-	} else if state.IsFunction(1) {
-		return "[function]"
-	} else {
-		s, _ := state.ToString(1)
-		return s
-	}
-}
-
-func (vm *luavm) debugHookCallback(state *lua.State, ar lua.Debug) {
-	where, ok := lua.Stack(state, 0)
-	if !ok {
-		return
-	}
-	d, ok := lua.Info(state, "nSltuf", where)
-	if !ok || d.CurrentLine < 0 {
-		return
-	}
-
-	s := strings.Split(d.Source, "\n")
-	s[d.CurrentLine] = "=> " + s[d.CurrentLine]
-	fmt.Println(strings.Join(s, "\n"))
-	fmt.Println("")
-	lua.DoString(state, "(function() return test end)()")
-	debugValueToString(state)
-	var input, last string
-	for {
-		fmt.Print("Debug> ")
-		fmt.Scanln(&input)
-		if strings.TrimSpace(input) == "" {
-			input = last
-		}
-		last = input
-		switch input {
-		case "p":
-			state.Field(state.Top(), "v")
-			debugValueToString(state)
-		case "n":
-			return
-		case "c":
-			lua.SetDebugHook(state, nil, 0, 0)
-			return
-		default:
-			fmt.Println("Unknown command")
-		}
-	}
-}
-
-func setupDebugEnvironment(vm *luavm) {
-	vm.runtime.PushGoFunction(func(state *lua.State) int {
-		lua.SetDebugHook(state, vm.debugHookCallback,
-			lua.HookCall|lua.HookLine|lua.HookReturn|lua.HookTailCall, 0)
-		return 0
-	})
-	vm.runtime.SetGlobal("breakpoint")
+	return nil
 }
 
 func launchPlugin(ed interfaces.Editor, entry string) error {
 	vm := &luavm{
-		runtime: lua.NewState(),
+		runtime: lua.New(),
 	}
-	lua.OpenLibraries(vm.runtime)
+	vm.runtime.OpenLibraries()
 	reflectStructToLua[matrix.Vec2](vm)
 	reflectStructToLua[matrix.Vec2i](vm)
 	reflectStructToLua[matrix.Vec3](vm)
@@ -309,28 +196,38 @@ func launchPlugin(ed interfaces.Editor, entry string) error {
 	reflectStructToLua[matrix.Quaternion](vm)
 	reflectStructToLua[matrix.Mat3](vm)
 	reflectStructToLua[matrix.Mat4](vm)
-	setupDebugEnvironment(vm)
-	prereq := []string{"globals.lua"}
+	prereq := []string{"globals.lua", "debugger.lua"}
 	for i := range prereq {
-		err := lua.DoFile(vm.runtime, ed.Host().AssetDatabase().ToRawPath(
+		err := vm.runtime.DoFile(ed.Host().AssetDatabase().ToRawPath(
 			filepath.Join(plugins, prereq[i])))
 		if err != nil {
 			return err
 		}
 	}
-	if js, err := os.ReadFile(entry); err == nil {
+	if lua, err := os.ReadFile(entry); err == nil {
 		root := filepath.Dir(entry)
 		sandbox, err := os.OpenRoot(root)
 		if err != nil {
 			return err
 		}
-		final, err := rollup(sandbox, removeImportAPI(string(js)), root, &[]string{})
-		if err != nil {
+		vm.sandbox = sandbox
+		mainLua := string(lua)
+		imports := []string{}
+		if err := vm.rollup(mainLua, root, &imports); err != nil {
 			return err
 		}
-		if err := lua.DoString(vm.runtime, final); err != nil {
-			return err
+		imports = append(imports, entry)
+		// TODO:  Don't ignore this error
+		wd, _ := os.Getwd()
+		os.Chdir(vm.sandbox.Name())
+		for i := range imports {
+			refined := strings.TrimPrefix(filepath.ToSlash(
+				strings.TrimPrefix(imports[i], vm.sandbox.Name())), "/")
+			// TODO:  Can we just load up the file and not do it yet?
+			vm.runtime.DoFile(filepath.ToSlash(refined))
 		}
+		// TODO:  Don't ignore this error
+		os.Chdir(wd)
 	} else {
 		return err
 	}
