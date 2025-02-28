@@ -229,17 +229,40 @@ func rollup(sandbox *os.Root, js, jsPath string, imported *[]string) (string, er
 	return re.ReplaceAllString(js, ""), nil
 }
 
+func debugValueToString(state *lua.State) string {
+	if state.IsNil(1) {
+		return "nil"
+	} else if state.IsBoolean(1) {
+		return fmt.Sprintf("%t", state.ToBoolean(1))
+	} else if state.IsNumber(1) {
+		n, _ := state.ToNumber(1)
+		return fmt.Sprintf("%g", n)
+	} else if state.IsTable(1) {
+		return "[table]" // Simplified; could expand to print table contents
+	} else if state.IsFunction(1) {
+		return "[function]"
+	} else {
+		s, _ := state.ToString(1)
+		return s
+	}
+}
+
 func (vm *luavm) debugHookCallback(state *lua.State, ar lua.Debug) {
 	where, ok := lua.Stack(state, 0)
 	if !ok {
 		return
 	}
-	d, ok := lua.Info(state, "S", where)
-	if !ok {
+	d, ok := lua.Info(state, "nSltuf", where)
+	if !ok || d.CurrentLine < 0 {
 		return
 	}
-	fmt.Printf("Line %d: ", d.CurrentLine)
-	fmt.Println(d.Source)
+
+	s := strings.Split(d.Source, "\n")
+	s[d.CurrentLine] = "=> " + s[d.CurrentLine]
+	fmt.Println(strings.Join(s, "\n"))
+	fmt.Println("")
+	lua.DoString(state, "(function() return test end)()")
+	debugValueToString(state)
 	var input, last string
 	for {
 		fmt.Print("Debug> ")
@@ -249,9 +272,12 @@ func (vm *luavm) debugHookCallback(state *lua.State, ar lua.Debug) {
 		}
 		last = input
 		switch input {
+		case "p":
+			state.Field(state.Top(), "v")
+			debugValueToString(state)
 		case "n":
 			return
-		case "c": // Continue execution
+		case "c":
 			lua.SetDebugHook(state, nil, 0, 0)
 			return
 		default:
@@ -262,7 +288,8 @@ func (vm *luavm) debugHookCallback(state *lua.State, ar lua.Debug) {
 
 func setupDebugEnvironment(vm *luavm) {
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
-		lua.SetDebugHook(vm.runtime, vm.debugHookCallback, lua.HookTailCall, 0)
+		lua.SetDebugHook(state, vm.debugHookCallback,
+			lua.HookCall|lua.HookLine|lua.HookReturn|lua.HookTailCall, 0)
 		return 0
 	})
 	vm.runtime.SetGlobal("breakpoint")
