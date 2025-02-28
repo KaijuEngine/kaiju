@@ -4,6 +4,9 @@ package plugins
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"log/slog"
 	"os"
@@ -103,66 +106,59 @@ func pullSourceForType(t reflect.Type) ([]string, error) {
 
 func readMethodDoc(methodName string, t reflect.Type, m reflect.Type, sources []string) (comment string, args []string) {
 	src := ""
-	search := regexp.MustCompile(fmt.Sprintf(`func \(\w+\s+\*{0,}%s\) %s\(`, t.Name(), methodName))
+	tName := t.Name()
+	search := regexp.MustCompile(fmt.Sprintf(`func \(\w+\s+\*{0,}%s\) %s\(`, tName, methodName))
 	for i := range sources {
 		if search.MatchString(sources[i]) {
 			src = sources[i]
 			break
 		}
 	}
-	args = make([]string, m.NumIn()-1)
+	argLen := m.NumIn() - 1
+	args = make([]string, 0, argLen)
 	failExit := func() (string, []string) {
-		for i := range len(args) {
-			args[i] = fmt.Sprintf("arg%d", i)
+		for i := range argLen - len(args) {
+			args = append(args, fmt.Sprintf("arg%d", i))
 		}
 		return comment, args
 	}
 	if src == "" {
 		return failExit()
 	}
-	lines := strings.Split(src, "\n")
-	idx := -1
-	for i := range lines {
-		if search.MatchString(lines[i]) {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, "", src, 0)
+	if err != nil {
 		return failExit()
 	}
-	sb := strings.Builder{}
-	commentStart := idx
-	for i := idx - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
-		if line != "" {
-			if !strings.HasPrefix(line, "//") {
+	found := false
+	for _, decl := range node.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok {
+			if fn.Recv == nil || fn.Recv.List == nil || len(fn.Recv.List) == 0 {
+				continue
+			}
+			var ident *ast.Ident
+			if ptr, ok := fn.Recv.List[0].Type.(*ast.StarExpr); ok {
+				ident = ptr.X.(*ast.Ident)
+			} else if ident, ok = fn.Recv.List[0].Type.(*ast.Ident); !ok {
+				continue
+			}
+			if ident.Name != tName {
+				continue
+			}
+			if fn.Name.Name == methodName {
+				comment = fn.Doc.Text()
+				for _, param := range fn.Type.Params.List {
+					for _, name := range param.Names {
+						args = append(args, name.Name)
+					}
+				}
+				found = true
 				break
 			}
-			commentStart--
 		}
 	}
-	for i := commentStart; i < idx; i++ {
-		sb.WriteString(strings.TrimSpace(strings.TrimLeft(lines[i], "/")))
-		sb.WriteRune('\n')
-	}
-	comment = strings.TrimSpace(sb.String())
-	argSearch := regexp.MustCompile(fmt.Sprintf(`(?s)%s\((.*?)\)`, methodName))
-	funcLineEnd := idx
-	for i := idx; i < len(lines); i++ {
-		if strings.Contains(lines[i], "{") {
-			break
-		}
-		funcLineEnd++
-	}
-	signature := strings.Join(lines[idx:funcLineEnd+1], " ")
-	found := argSearch.FindAllStringSubmatch(signature, -1)
-	if len(found) < 1 || len(found[0]) < 2 || found[0][1] == "" {
+	if !found {
 		return failExit()
-	}
-	parts := strings.Split(found[0][1], ",")
-	for i := range min(len(args), len(parts)) {
-		args[i] = strings.Split(parts[i], " ")[0]
 	}
 	return comment, args
 }
@@ -179,15 +175,13 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	}
 	for _, m := range methods {
 		mt := m.Type
-		ins := make([]string, mt.NumIn()-1)
 		comment, args := readMethodDoc(m.Name, t, mt, sources)
 		if comment != "" {
 			apiOut.WriteString(fmt.Sprintf("--- %s\n", comment))
 		}
 		for i := range mt.NumIn() - 1 {
-			ins[i] = args[i]
 			tName := reflectCommentDocTypeHint(mt.In(i + 1))
-			apiOut.WriteString(fmt.Sprintf("---@param %s %s\n", ins[i], tName))
+			apiOut.WriteString(fmt.Sprintf("---@param %s %s\n", args[i], tName))
 		}
 		outs := make([]string, mt.NumOut())
 		for i := range mt.NumOut() {
@@ -217,8 +211,8 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 			}
 		}
 		out := "return " + strings.Join(outs, ", ")
-		apiOut.WriteString(fmt.Sprintf("function %s.%s(%s) %s end\n",
-			t.Name(), m.Name, strings.Join(ins, ", "), out))
+		apiOut.WriteString(fmt.Sprintf("function %s:%s(%s) %s end\n",
+			t.Name(), m.Name, strings.Join(args, ", "), out))
 	}
 	apiOut.WriteString("\n")
 }
