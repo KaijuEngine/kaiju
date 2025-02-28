@@ -107,6 +107,7 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -119,18 +120,34 @@ var (
 	vms = map[*C.lua_State]*State{}
 )
 
+type pinnedPointer struct {
+	pinner  *runtime.Pinner
+	pointer any
+}
+
 type State struct {
 	state      *C.lua_State
-	pinned     map[unsafe.Pointer]any
+	pinned     map[unsafe.Pointer]pinnedPointer
 	funcs      map[int]func(state *State) int
 	nextFuncId int
+}
+
+func pinPointer(ptr any) pinnedPointer {
+	pp := pinnedPointer{
+		pinner:  new(runtime.Pinner),
+		pointer: ptr,
+	}
+	pp.pinner.Pin(ptr)
+	// I don't believe I need to pin any innter-pointers as only the top
+	// level pointer is accessed when coming into Go from lua
+	return pp
 }
 
 func New() State {
 	return State{
 		state:      C.luaL_newstate(),
 		nextFuncId: 1,
-		pinned:     make(map[unsafe.Pointer]any),
+		pinned:     make(map[unsafe.Pointer]pinnedPointer),
 		funcs:      make(map[int]func(state *State) int),
 	}
 }
@@ -232,17 +249,21 @@ func (l *State) PushString(value string) {
 
 func (l *State) PushUserData(value reflect.Value) {
 	p := unsafe.Pointer(value.Pointer())
-	l.pinned[p] = value.Interface()
-	C.lua_pushlightuserdata(l.state, unsafe.Pointer(p))
+	l.pinned[p] = pinPointer(value.Interface())
+	C.lua_pushlightuserdata(l.state, p)
 }
 
 func (l *State) ToUserData(idx int) any {
 	ptr := unsafe.Pointer(C.lua_touserdata(l.state, C.int(idx)))
-	return l.pinned[ptr]
+	pp := l.pinned[ptr]
+	return pp.pointer
 }
 
-func (l *State) RemovePinnedPointer(value reflect.Value) {
-	delete(l.pinned, unsafe.Pointer((value.Pointer())))
+func (l *State) RemovePinnedPointer(idx int) {
+	ptr := unsafe.Pointer(C.lua_touserdata(l.state, C.int(idx)))
+	pp := l.pinned[ptr]
+	pp.pinner.Unpin()
+	delete(l.pinned, ptr)
 }
 
 func (l *State) PushGoFunction(fn func(state *State) int) {

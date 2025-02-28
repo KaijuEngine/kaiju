@@ -27,7 +27,9 @@ const (
 )
 
 const (
-	plugins = "editor/plugins"
+	plugins            = "editor/plugins"
+	globalCleanupPtrFn = "__kaiju_engine_cleanup_go_ptr__"
+	goPtrField         = "_goPtr"
 )
 
 var (
@@ -57,7 +59,7 @@ func reflectStructToLua[T any](vm *luavm) {
 		state.Call(2, 1)
 		if state.IsTable(-1) {
 			state.PushUserData(to)
-			state.SetField(-2, "_goPtr")
+			state.SetField(-2, goPtrField)
 		}
 		return 1
 	})
@@ -77,7 +79,7 @@ func reflectStructToLua[T any](vm *luavm) {
 		vm.runtime.PushGoFunction(func(state *lua.State) int {
 			argCount := state.Top()
 			// TODO:  Validate the inputs
-			state.Field(1, "_goPtr")
+			state.Field(1, goPtrField)
 			obj := state.ToUserData(-1)
 			v := reflect.ValueOf(obj)
 			args := make([]reflect.Value, argCount-1)
@@ -90,7 +92,7 @@ func reflectStructToLua[T any](vm *luavm) {
 					args[i] = reflect.ValueOf(n)
 					args[i] = args[i].Convert(argTypes[i])
 				} else if state.IsTable(idx) {
-					state.Field(idx, "_goPtr")
+					state.Field(idx, goPtrField)
 					args[i] = reflect.ValueOf(state.ToUserData(1))
 				} else if state.IsUserData(idx) {
 					args[i] = reflect.ValueOf(state.ToUserData(idx))
@@ -138,6 +140,8 @@ func reflectStructToLua[T any](vm *luavm) {
 		})
 		vm.runtime.SetField(-2, methodName)
 	}
+	vm.runtime.Global(globalCleanupPtrFn)
+	vm.runtime.SetField(-2, "__gc")
 	vm.runtime.SetGlobal(name)
 }
 
@@ -182,11 +186,36 @@ func (vm *luavm) rollup(lua, luaPath string, imported *[]string) error {
 	return nil
 }
 
+func (vm *luavm) setupPrerequisites(ed interfaces.Editor) error {
+	vm.runtime.PushGoFunction(func(state *lua.State) int {
+		if state.IsTable(-1) {
+			state.Field(-1, goPtrField)
+			if state.IsUserData(-1) {
+				vm.runtime.RemovePinnedPointer(-1)
+			}
+		}
+		return 0
+	})
+	vm.runtime.SetGlobal(globalCleanupPtrFn)
+	prereq := []string{"debugger.lua", "globals.lua"}
+	for i := range prereq {
+		err := vm.runtime.DoFile(ed.Host().AssetDatabase().ToRawPath(
+			filepath.Join(plugins, prereq[i])))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func launchPlugin(ed interfaces.Editor, entry string) error {
 	vm := &luavm{
 		runtime: lua.New(),
 	}
 	vm.runtime.OpenLibraries()
+	if err := vm.setupPrerequisites(ed); err != nil {
+		return err
+	}
 	reflectStructToLua[matrix.Vec2](vm)
 	reflectStructToLua[matrix.Vec2i](vm)
 	reflectStructToLua[matrix.Vec3](vm)
@@ -196,14 +225,6 @@ func launchPlugin(ed interfaces.Editor, entry string) error {
 	reflectStructToLua[matrix.Quaternion](vm)
 	reflectStructToLua[matrix.Mat3](vm)
 	reflectStructToLua[matrix.Mat4](vm)
-	prereq := []string{"globals.lua", "debugger.lua"}
-	for i := range prereq {
-		err := vm.runtime.DoFile(ed.Host().AssetDatabase().ToRawPath(
-			filepath.Join(plugins, prereq[i])))
-		if err != nil {
-			return err
-		}
-	}
 	if lua, err := os.ReadFile(entry); err == nil {
 		root := filepath.Dir(entry)
 		sandbox, err := os.OpenRoot(root)
