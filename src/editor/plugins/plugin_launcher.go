@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"kaiju/editor/interfaces"
-	"kaiju/matrix"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -42,8 +41,7 @@ type luavm struct {
 	sandbox *os.Root
 }
 
-func reflectStructToLua[T any](vm *luavm) {
-	t := reflect.TypeFor[T]()
+func reflectStructToLua(t reflect.Type, vm *luavm) {
 	name := t.Name()
 	vm.runtime.NewTable()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
@@ -216,15 +214,9 @@ func launchPlugin(ed interfaces.Editor, entry string) error {
 	if err := vm.setupPrerequisites(ed); err != nil {
 		return err
 	}
-	reflectStructToLua[matrix.Vec2](vm)
-	reflectStructToLua[matrix.Vec2i](vm)
-	reflectStructToLua[matrix.Vec3](vm)
-	reflectStructToLua[matrix.Vec3i](vm)
-	reflectStructToLua[matrix.Vec4](vm)
-	reflectStructToLua[matrix.Vec4i](vm)
-	reflectStructToLua[matrix.Quaternion](vm)
-	reflectStructToLua[matrix.Mat3](vm)
-	reflectStructToLua[matrix.Mat4](vm)
+	for _, t := range reflectedTypes() {
+		reflectStructToLua(t, vm)
+	}
 	if lua, err := os.ReadFile(entry); err == nil {
 		root := filepath.Dir(entry)
 		sandbox, err := os.OpenRoot(root)
