@@ -2,6 +2,7 @@ package editor_settings_window
 
 import (
 	"kaiju/editor/cache/editor_cache"
+	"kaiju/editor/plugins"
 	"kaiju/host_container"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -59,6 +60,7 @@ func New() {
 			"updateCompilerPath":     updateCompilerPath,
 			"updateGridSnapping":     updateGridSnapping,
 			"updateRotationSnapping": updateRotationSnapping,
+			"regeneratePluginAPI":    func(*document.Element) { plugins.RegenerateAPI() },
 		})
 	})
 }
