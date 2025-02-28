@@ -61,10 +61,12 @@ import (
 	"kaiju/tools/html_preview"
 )
 
-func addConsole(host *engine.Host) {
+func addConsole(ed *Editor) {
+	host := ed.container.Host
 	html_preview.SetupConsole(host)
 	profiler.SetupConsole(host)
 	tests.SetupConsole(host)
+	setupConsole(ed)
 }
 
 func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
@@ -72,7 +74,7 @@ func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 	ed.container.Host.InitializeAudio()
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	ed.RunOnHost(func() { addConsole(ed.container.Host) })
+	ed.RunOnHost(func() { addConsole(ed) })
 }
 
 func setupEditorCamera(ed *Editor) {

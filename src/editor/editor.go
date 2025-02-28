@@ -102,6 +102,7 @@ type Editor struct {
 	entityData     []codegen.GeneratedType
 	// TODO:  Testing tools
 	overlayCanvas rendering.Canvas
+	luaVMs        []*plugins.LuaVM
 }
 
 func (e *Editor) Closed()                                {}
@@ -211,7 +212,7 @@ func (e *Editor) pickProject(projectPath string) {
 		return
 	}
 	project.ScanContent(&e.assetImporters)
-	plugins.LaunchPlugins(e)
+	e.luaVMs, _ = plugins.LaunchPlugins(e)
 }
 
 func (e *Editor) Init() {

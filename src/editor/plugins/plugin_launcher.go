@@ -36,12 +36,13 @@ var (
 	requireReg = regexp.MustCompile(`require\s{0,}\({0,1}\s{0,}["'](.*?)(\.lau){0,}["']\s{0,}\){0,1}`)
 )
 
-type luavm struct {
-	runtime lua.State
-	sandbox *os.Root
+type LuaVM struct {
+	PluginPath string
+	runtime    lua.State
+	sandbox    *os.Root
 }
 
-func reflectStructToLua(t reflect.Type, vm *luavm) {
+func reflectStructToLua(t reflect.Type, vm *LuaVM) {
 	name := t.Name()
 	vm.runtime.NewTable()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
@@ -147,7 +148,7 @@ func removeImportAPI(lua string) string {
 	return apiReg.ReplaceAllString(lua, "")
 }
 
-func (vm *luavm) rollup(lua, luaPath string, imported *[]string) error {
+func (vm *LuaVM) rollup(lua, luaPath string, imported *[]string) error {
 	lua = removeImportAPI(lua)
 	matches := requireReg.FindAllStringSubmatch(lua, -1)
 	imports := make([]string, 0, len(matches))
@@ -184,7 +185,7 @@ func (vm *luavm) rollup(lua, luaPath string, imported *[]string) error {
 	return nil
 }
 
-func (vm *luavm) setupPrerequisites(ed interfaces.Editor) error {
+func (vm *LuaVM) setupPrerequisites(ed interfaces.Editor) error {
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
 		if state.IsTable(-1) {
 			state.Field(-1, goPtrField)
@@ -206,13 +207,14 @@ func (vm *luavm) setupPrerequisites(ed interfaces.Editor) error {
 	return nil
 }
 
-func launchPlugin(ed interfaces.Editor, entry string) error {
-	vm := &luavm{
-		runtime: lua.New(),
+func launchPlugin(ed interfaces.Editor, entry string) (*LuaVM, error) {
+	vm := &LuaVM{
+		PluginPath: entry,
+		runtime:    lua.New(),
 	}
 	vm.runtime.OpenLibraries()
 	if err := vm.setupPrerequisites(ed); err != nil {
-		return err
+		return vm, err
 	}
 	for _, t := range reflectedTypes() {
 		reflectStructToLua(t, vm)
@@ -221,13 +223,13 @@ func launchPlugin(ed interfaces.Editor, entry string) error {
 		root := filepath.Dir(entry)
 		sandbox, err := os.OpenRoot(root)
 		if err != nil {
-			return err
+			return vm, err
 		}
 		vm.sandbox = sandbox
 		mainLua := string(lua)
 		imports := []string{}
 		if err := vm.rollup(mainLua, root, &imports); err != nil {
-			return err
+			return vm, err
 		}
 		imports = append(imports, entry)
 		// TODO:  Don't ignore this error
@@ -242,25 +244,27 @@ func launchPlugin(ed interfaces.Editor, entry string) error {
 		// TODO:  Don't ignore this error
 		os.Chdir(wd)
 	} else {
-		return err
+		return vm, err
 	}
-	return nil
+	return vm, nil
 }
 
-func LaunchPlugins(ed interfaces.Editor) error {
+func LaunchPlugins(ed interfaces.Editor) ([]*LuaVM, error) {
 	pluginsPath := ed.Host().AssetDatabase().ToRawPath(plugins)
 	dirs, err := os.ReadDir(pluginsPath)
+	vms := make([]*LuaVM, 0)
 	if err != nil {
-		return err
+		return vms, err
 	}
 	for i := range dirs {
 		if !dirs[i].IsDir() {
 			continue
 		}
-		err := launchPlugin(ed, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
+		vm, err := launchPlugin(ed, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
+		vms = append(vms, vm)
 		if err != nil {
 			slog.Error("plugin failed to load", "plugin", dirs[i].Name(), "error", err)
 		}
 	}
-	return nil
+	return vms, nil
 }
