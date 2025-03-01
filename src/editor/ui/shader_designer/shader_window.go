@@ -9,6 +9,7 @@ import (
 	"kaiju/ui"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 )
@@ -19,13 +20,12 @@ func setupShaderDoc(win *ShaderDesigner) {
 }
 
 func collectFileOptions() map[string][]string {
-	const shaderFolder = "content/renderer/src"
 	vert := []string{}
 	frag := []string{}
 	geom := []string{}
 	tesc := []string{}
 	tese := []string{}
-	if dir, err := os.ReadDir(shaderFolder); err == nil {
+	if dir, err := os.ReadDir(shaderSrcFolder); err == nil {
 		for i := range dir {
 			f := dir[i]
 			if f.IsDir() {
@@ -33,15 +33,15 @@ func collectFileOptions() map[string][]string {
 			}
 			switch filepath.Ext(f.Name()) {
 			case ".vert":
-				vert = append(vert, filepath.Join(shaderFolder, f.Name()))
+				vert = append(vert, filepath.Join(shaderSrcFolder, f.Name()))
 			case ".frag":
-				frag = append(frag, filepath.Join(shaderFolder, f.Name()))
+				frag = append(frag, filepath.Join(shaderSrcFolder, f.Name()))
 			case ".geom":
-				geom = append(geom, filepath.Join(shaderFolder, f.Name()))
+				geom = append(geom, filepath.Join(shaderSrcFolder, f.Name()))
 			case ".tesc":
-				tesc = append(tesc, filepath.Join(shaderFolder, f.Name()))
+				tesc = append(tesc, filepath.Join(shaderSrcFolder, f.Name()))
 			case ".tese":
-				tese = append(tese, filepath.Join(shaderFolder, f.Name()))
+				tese = append(tese, filepath.Join(shaderSrcFolder, f.Name()))
 			}
 		}
 	}
@@ -61,7 +61,6 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.shaderDoc.Destroy()
 	}
-
 	data := reflectUIStructure(&win.shader, "", collectFileOptions())
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
@@ -115,11 +114,45 @@ func OpenShader(path string) {
 	})
 }
 
+func compileShaderFile(src, flags string) error {
+	if src == "" {
+		return nil
+	}
+	out := filepath.Join(shaderSpvFolder, filepath.Base(src)) + ".spv"
+	compileCmd := exec.Command("glslc", src, "-o", out, flags)
+	return compileCmd.Run()
+}
+
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	const saveRoot = shaderFolder
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the shader folder",
 			"folder", saveRoot, "error", err)
+	}
+	if err := compileShaderFile(win.shader.Vertex, win.shader.VertexFlags); err != nil {
+		slog.Error("failed to compile the vertex shader", "error", err)
+		return
+	}
+	if err := compileShaderFile(win.shader.Fragment, win.shader.FragmentFlags); err != nil {
+		slog.Error("failed to compile the fragment shader", "error", err)
+		return
+	}
+	if err := compileShaderFile(win.shader.Geometry, win.shader.GeometryFlags); err != nil {
+		slog.Error("failed to compile the geometry shader", "error", err)
+		return
+	}
+	if err := compileShaderFile(win.shader.TessellationControl, win.shader.TessellationControlFlags); err != nil {
+		slog.Error("failed to compile the tessellation control shader", "error", err)
+		return
+	}
+	if err := compileShaderFile(win.shader.TessellationEvaluation, win.shader.TessellationEvaluationFlags); err != nil {
+		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
+		return
+	}
+	var err error
+	if win.shader, err = importShaderLayout(win.shader); err != nil {
+		slog.Error("failed to read the shader layout", "error", err)
+		return
 	}
 	path := filepath.Join(saveRoot, win.shader.Name+editor_config.FileExtensionShader)
 	if _, err := os.Stat(path); err == nil {

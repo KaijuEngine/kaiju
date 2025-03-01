@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	shaderSrcFolder  = "content/renderer/src"
+	shaderSpvFolder  = "content/renderer/spv"
 	shaderFolder     = "content/renderer/shaders"
 	renderPassFolder = "content/renderer/passes"
 	pipelineFolder   = "content/renderer/pipelines"

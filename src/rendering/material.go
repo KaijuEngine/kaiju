@@ -5,6 +5,15 @@ import (
 	"kaiju/assets"
 )
 
+type Material struct {
+	Key            string
+	Shader         *Shader
+	ShaderInfo     ShaderDataCompiled
+	RenderPassInfo RenderPassDataCompiled
+	PipelineInfo   ShaderPipelineDataCompiled
+	Textures       []*Texture
+}
+
 type MaterialTextureData struct {
 	Texture string
 	Filter  string `options:"StringVkFilter"`
@@ -16,14 +25,6 @@ type MaterialData struct {
 	RenderPass     string `options:""` // Blank options uses fallback
 	ShaderPipeline string `options:""` // Blank options uses fallback
 	Textures       []MaterialTextureData
-}
-
-type Material struct {
-	Key            string
-	ShaderInfo     ShaderDataCompiled
-	RenderPassInfo RenderPassDataCompiled
-	PipelineInfo   ShaderPipelineDataCompiled
-	Textures       []*Texture
 }
 
 func (d *MaterialTextureData) FilterToVK() TextureFilter {

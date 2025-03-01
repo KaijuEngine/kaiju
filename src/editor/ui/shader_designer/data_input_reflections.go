@@ -117,6 +117,9 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 		f := v.Field(i)
 		kind := f.Kind()
 		tag := v.Type().Field(i).Tag
+		if tag.Get("ignore") == "true" {
+			continue
+		}
 		field := DataUISectionField{
 			Name:     vt.Field(i).Name,
 			Type:     f.Type().Name(),

@@ -58,13 +58,18 @@ type Shader struct {
 }
 
 type ShaderData struct {
-	Name                   string
-	Vertex                 string `options:""` // Blank options uses fallback
-	Fragment               string `options:""` // Blank options uses fallback
-	Geometry               string `options:""` // Blank options uses fallback
-	TessellationControl    string `options:""` // Blank options uses fallback
-	TessellationEvaluation string `options:""` // Blank options uses fallback
-	CompileFlags           string
+	Name                        string
+	Vertex                      string              `options:""`
+	VertexFlags                 string              `tip:"CompileFlags"`
+	Fragment                    string              `options:""`
+	FragmentFlags               string              `tip:"CompileFlags"`
+	Geometry                    string              `options:""`
+	GeometryFlags               string              `tip:"CompileFlags"`
+	TessellationControl         string              `options:""`
+	TessellationControlFlags    string              `tip:"CompileFlags"`
+	TessellationEvaluation      string              `options:""`
+	TessellationEvaluationFlags string              `tip:"CompileFlags"`
+	LayoutGroups                []ShaderLayoutGroup `ignore:"true"`
 }
 
 type ShaderDataCompiled struct {
