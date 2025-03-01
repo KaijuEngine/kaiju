@@ -6,6 +6,7 @@ import (
 	"kaiju/klib/string_equations"
 	"kaiju/rendering"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -35,11 +36,11 @@ func (s *shaderSource) defineAsString(name string) string {
 	return name
 }
 
-func (s *shaderSource) processArrayField(value string) string {
+func (s *shaderSource) processArrayField(value string) (string, error) {
 	re := regexp.MustCompile(`\[([[\w\d\s\+\-\*\/]+)\]`)
 	start := strings.Index(value, "[")
 	if start < 0 {
-		return value
+		return value, nil
 	}
 	matches := re.FindAllStringSubmatch(value, -1)
 	sb := strings.Builder{}
@@ -47,13 +48,14 @@ func (s *shaderSource) processArrayField(value string) string {
 	for i := range matches {
 		v, err := s.processDefineEquation(matches[i][1])
 		if err != nil {
-			log.Fatalf("failed to process the equation for the array size (%s): %s", matches[i][0], err)
+			slog.Error("failed to process the equation for the array size", "size", matches[i][0], "error", err)
+			return "", err
 		}
 		sb.WriteRune('[')
 		sb.WriteString(strconv.FormatFloat(v, 'G', 10, 64))
 		sb.WriteRune(']')
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
 func (s *shaderSource) processDefineEquation(value string) (float64, error) {
@@ -99,7 +101,7 @@ func (s *shaderSource) readDefines() {
 	}
 }
 
-func (s *shaderSource) readLayouts() {
+func (s *shaderSource) readLayouts() error {
 	matches := layoutReg.FindAllStringSubmatch(s.src, -1)
 	s.layouts = make([]rendering.ShaderLayout, len(matches))
 	for i := range matches {
@@ -142,13 +144,18 @@ func (s *shaderSource) readLayouts() {
 			s.layouts[i].Fields = make([]rendering.ShaderLayoutStructField, len(fields))
 			for j := range fields {
 				parts := strings.Fields(fields[j])
+				name, err := s.processArrayField(parts[1])
+				if err != nil {
+					return err
+				}
 				s.layouts[i].Fields[j] = rendering.ShaderLayoutStructField{
 					Type: parts[0],
-					Name: s.processArrayField(parts[1]),
+					Name: name,
 				}
 			}
 		}
 	}
+	return nil
 }
 
 func readShaderImports(fs *os.Root, inSrc, path string) string {
@@ -171,20 +178,22 @@ func readShaderImports(fs *os.Root, inSrc, path string) string {
 	return src.String()
 }
 
-func readShaderCode(fs *os.Root, file string) shaderSource {
-	file = strings.Replace(strings.TrimSuffix(file, ".spv"), "/spv/", "/", 1)
+func readShaderCode(fs *os.Root, file string) (shaderSource, error) {
 	source := shaderSource{
-		file:    "content/" + file,
+		file:    file,
 		defines: make(map[string]any),
 	}
 	data, err := klib.ReadRootFile(fs, source.file)
 	if err != nil {
-		log.Fatalf("failed to read the file: %s", err)
+		slog.Error("failed to read the file", "file", file, "error", err)
+		return source, err
 	}
 	source.src = readShaderImports(fs, string(data), filepath.Dir(source.file))
 	source.readDefines()
-	source.readLayouts()
-	return source
+	if err := source.readLayouts(); err != nil {
+		return source, err
+	}
+	return source, nil
 }
 
 func importShaderLayout(shader rendering.ShaderData) (rendering.ShaderData, error) {
@@ -194,35 +203,55 @@ func importShaderLayout(shader rendering.ShaderData) (rendering.ShaderData, erro
 		return shader, err
 	}
 	if shader.Vertex != "" {
-		c := readShaderCode(fs, shader.Vertex)
+		s := filepath.ToSlash(shader.Vertex)
+		c, err := readShaderCode(fs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		if err != nil {
+			return shader, err
+		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Vertex",
 			Layouts: c.layouts,
 		})
 	}
 	if shader.Fragment != "" {
-		c := readShaderCode(fs, shader.Fragment)
+		s := filepath.ToSlash(shader.Fragment)
+		c, err := readShaderCode(fs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		if err != nil {
+			return shader, err
+		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Fragment",
 			Layouts: c.layouts,
 		})
 	}
 	if shader.Geometry != "" {
-		c := readShaderCode(fs, shader.Geometry)
+		s := filepath.ToSlash(shader.Geometry)
+		c, err := readShaderCode(fs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		if err != nil {
+			return shader, err
+		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "Geometry",
 			Layouts: c.layouts,
 		})
 	}
 	if shader.TessellationControl != "" {
-		c := readShaderCode(fs, shader.TessellationControl)
+		s := filepath.ToSlash(shader.TessellationControl)
+		c, err := readShaderCode(fs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		if err != nil {
+			return shader, err
+		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "TessellationControl",
 			Layouts: c.layouts,
 		})
 	}
 	if shader.TessellationEvaluation != "" {
-		c := readShaderCode(fs, shader.TessellationEvaluation)
+		s := filepath.ToSlash(shader.TessellationEvaluation)
+		c, err := readShaderCode(fs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		if err != nil {
+			return shader, err
+		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "TessellationEvaluation",
 			Layouts: c.layouts,
