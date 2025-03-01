@@ -52,6 +52,7 @@ func registerAssetImporters(ed *Editor) {
 	ed.assetImporters.Register(asset_importer.ShaderImporter{})
 	ed.assetImporters.Register(asset_importer.RenderPassImporter{})
 	ed.assetImporters.Register(asset_importer.ShaderPipelineImporter{})
+	ed.assetImporters.Register(asset_importer.MaterialImporter{})
 }
 
 func registerContentOpeners(ed *Editor) {
@@ -64,4 +65,5 @@ func registerContentOpeners(ed *Editor) {
 	ed.contentOpener.Register(content_opener.ShaderOpener{})
 	ed.contentOpener.Register(content_opener.RenderPassOpener{})
 	ed.contentOpener.Register(content_opener.ShaderPipelineOpener{})
+	ed.contentOpener.Register(content_opener.MaterialOpener{})
 }

@@ -90,7 +90,7 @@ func OpenPipeline(path string) {
 }
 
 func (win *ShaderDesigner) pipelineSave(e *document.Element) {
-	const saveRoot = "content/shaders/pipelines"
+	const saveRoot = pipelineFolder
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the shader pipeline folder",
 			"folder", saveRoot, "error", err)

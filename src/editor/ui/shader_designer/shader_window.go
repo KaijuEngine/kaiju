@@ -116,7 +116,7 @@ func OpenShader(path string) {
 }
 
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
-	const saveRoot = "content/shaders/definitions"
+	const saveRoot = shaderFolder
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the shader folder",
 			"folder", saveRoot, "error", err)

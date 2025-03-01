@@ -55,6 +55,7 @@ const (
 	FileExtensionShader         FileExtension = ".shader"
 	FileExtensionRenderPass     FileExtension = ".renderpass"
 	FileExtensionShaderPipeline FileExtension = ".shaderpipeline"
+	FileExtensionMaterial       FileExtension = ".material"
 	FileExtensionAssetDbInfo    FileExtension = ".adi"
 )
 
@@ -73,4 +74,5 @@ const (
 	AssetTypeShader         AssetType = "shader"
 	AssetTypeRenderPass     AssetType = "renderpass"
 	AssetTypeShaderPipeline AssetType = "shaderpipeline"
+	AssetTypeMaterial       AssetType = "material"
 )

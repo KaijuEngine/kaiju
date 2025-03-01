@@ -78,7 +78,7 @@ func (win *ShaderDesigner) renderPassRemoveFromSlice(e *document.Element) {
 }
 
 func (win *ShaderDesigner) renderPassSaveRenderPass(e *document.Element) {
-	const saveRoot = "content/shaders/passes"
+	const saveRoot = renderPassFolder
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the render pass folder",
 			"folder", saveRoot, "error", err)

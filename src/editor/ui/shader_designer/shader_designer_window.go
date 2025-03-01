@@ -20,16 +20,19 @@ const (
 	shaderDesignerStateShader
 	shaderDesignerStateRenderPass
 	shaderDesignerStatePipeline
+	shaderDesignerStateMaterial
 )
 
 type ShaderDesigner struct {
 	shader            rendering.ShaderData
-	pipeline          rendering.ShaderPipelineData
 	renderPass        rendering.RenderPassData
+	pipeline          rendering.ShaderPipelineData
+	material          rendering.MaterialData
 	shaderDoc         *document.Document
 	shaderDesignerDoc *document.Document
 	pipelineDoc       *document.Document
 	renderPassDoc     *document.Document
+	materialDoc       *document.Document
 	man               ui.Manager
 	state             ShaderDesignerState
 }
@@ -51,6 +54,7 @@ func (win *ShaderDesigner) uiInit() {
 	setupShaderDoc(win)
 	setupPipelineDoc(win)
 	setupRenderPassDoc(win)
+	setupMaterialDoc(win)
 	win.reloadShaderDesigner()
 }
 
@@ -80,6 +84,7 @@ func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
 	win.shaderDoc.Deactivate()
 	win.pipelineDoc.Deactivate()
 	win.renderPassDoc.Deactivate()
+	win.materialDoc.Deactivate()
 	win.shaderDesignerDoc.Deactivate()
 	switch state {
 	case shaderDesignerStateHome:
@@ -94,6 +99,9 @@ func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
 	case shaderDesignerStatePipeline:
 		win.pipelineDoc.Activate()
 		win.reloadPipelineDoc()
+	case shaderDesignerStateMaterial:
+		win.materialDoc.Activate()
+		win.reloadMaterialDoc()
 	}
 	win.man.Host.Window.Focus()
 }
@@ -106,12 +114,16 @@ func (win *ShaderDesigner) ShowShaderWindow() {
 	win.ChangeWindowState(shaderDesignerStateShader)
 }
 
+func (win *ShaderDesigner) ShowRenderPassWindow() {
+	win.ChangeWindowState(shaderDesignerStateRenderPass)
+}
+
 func (win *ShaderDesigner) ShowPipelineWindow() {
 	win.ChangeWindowState(shaderDesignerStatePipeline)
 }
 
-func (win *ShaderDesigner) ShowRenderPassWindow() {
-	win.ChangeWindowState(shaderDesignerStateRenderPass)
+func (win *ShaderDesigner) ShowMaterialWindow() {
+	win.ChangeWindowState(shaderDesignerStateMaterial)
 }
 
 func (win *ShaderDesigner) returnHome(*document.Element) {
@@ -135,6 +147,10 @@ func (win *ShaderDesigner) reloadShaderDesigner() {
 			"newShaderPipeline": func(*document.Element) {
 				win.pipeline = rendering.ShaderPipelineData{}
 				win.ShowPipelineWindow()
+			},
+			"newMaterial": func(*document.Element) {
+				win.material = rendering.MaterialData{}
+				win.ShowMaterialWindow()
 			},
 		})
 }
