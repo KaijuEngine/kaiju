@@ -202,6 +202,8 @@ func (s *ContentWindow) duplicateContent(elm *document.Element) {
 	}
 	if err := filesystem.CopyFile(path, newPath); err != nil {
 		slog.Error("failed to duplicate the file", "error", err)
+	} else {
+		s.reloadUI()
 	}
 }
 
