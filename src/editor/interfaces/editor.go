@@ -38,6 +38,7 @@
 package interfaces
 
 import (
+	"kaiju/assets/asset_importer"
 	"kaiju/collision"
 	"kaiju/editor/codegen"
 	"kaiju/editor/memento"
@@ -61,6 +62,7 @@ type Editor interface {
 	StatusBar() *status_bar.StatusBar
 	Hierarchy() *hierarchy.Hierarchy
 	ContextMenu() *context_menu.ContextMenu
+	ImportRegistry() *asset_importer.ImportRegistry
 	OpenProject()
 	AvailableDataBindings() []codegen.GeneratedType
 	ReloadEntityDataListing()
