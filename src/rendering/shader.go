@@ -79,6 +79,7 @@ type ShaderDataCompiled struct {
 	Geometry               string
 	TessellationControl    string
 	TessellationEvaluation string
+	LayoutGroups           []ShaderLayoutGroup
 }
 
 func (d *ShaderData) Compile() ShaderDataCompiled {
@@ -89,6 +90,7 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 		Geometry:               strings.Replace(d.Geometry, "/src/", "/spv/", 1) + ".spv",
 		TessellationControl:    strings.Replace(d.TessellationControl, "/src/", "/spv/", 1) + ".spv",
 		TessellationEvaluation: strings.Replace(d.TessellationEvaluation, "/src/", "/spv/", 1) + ".spv",
+		LayoutGroups:           d.LayoutGroups,
 	}
 }
 
