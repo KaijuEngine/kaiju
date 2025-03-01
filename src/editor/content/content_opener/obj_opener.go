@@ -61,7 +61,7 @@ func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 	bvh := collision.NewBVH()
 	bvh.Transform = &e.Transform
 	for i := range adi.Children {
-		if err := load(host, adi.Children[i], e, bvh); err != nil {
+		if err := loadMesh(host, adi.Children[i], e, bvh); err != nil {
 			return err
 		}
 	}

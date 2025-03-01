@@ -10,7 +10,7 @@ import (
 	"kaiju/rendering"
 )
 
-func load(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity, bvh *collision.BVH) error {
+func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity, bvh *collision.BVH) error {
 	texId := assets.TextureSquare
 	if t, ok := adi.Metadata["texture"]; ok {
 		texId = t
