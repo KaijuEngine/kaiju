@@ -107,12 +107,11 @@ func OpenMaterial(path string) {
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {
-	const saveRoot = "content/shaders/materials"
-	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
+	if err := os.MkdirAll(materialFolder, os.ModePerm); err != nil {
 		slog.Error("failed to create the materials folder",
-			"folder", saveRoot, "error", err)
+			"folder", materialFolder, "error", err)
 	}
-	path := filepath.Join(saveRoot, win.material.Name+editor_config.FileExtensionMaterial)
+	path := filepath.Join(materialFolder, win.material.Name+editor_config.FileExtensionMaterial)
 	if _, err := os.Stat(path); err == nil {
 		ok := <-alert.New("Overwrite?", "You are about to overwrite a material with the same name, would you like to continue?", "Yes", "No", win.man.Host)
 		if !ok {

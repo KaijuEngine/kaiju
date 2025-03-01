@@ -105,19 +105,21 @@ type Editor struct {
 	luaVMs        []*plugins.LuaVM
 }
 
-func (e *Editor) Closed()                                {}
-func (e *Editor) Tag() string                            { return editor_cache.MainWindow }
-func (e *Editor) Container() *host_container.Container   { return e.container }
-func (e *Editor) Host() *engine.Host                     { return e.container.Host }
-func (e *Editor) StageManager() *stages.Manager          { return &e.stageManager }
-func (e *Editor) ContentOpener() *content_opener.Opener  { return &e.contentOpener }
-func (e *Editor) Selection() *selection.Selection        { return &e.selection }
-func (e *Editor) History() *memento.History              { return &e.history }
-func (e *Editor) WindowListing() *editor_window.Listing  { return &e.windowListing }
-func (e *Editor) StatusBar() *status_bar.StatusBar       { return e.statusBar }
-func (e *Editor) Hierarchy() *hierarchy.Hierarchy        { return e.hierarchy }
-func (e *Editor) ContextMenu() *context_menu.ContextMenu { return e.contextMenu }
-func (e *Editor) BVH() *collision.BVH                    { return e.bvh }
+func (e *Editor) Closed()                                        {}
+func (e *Editor) Tag() string                                    { return editor_cache.MainWindow }
+func (e *Editor) Container() *host_container.Container           { return e.container }
+func (e *Editor) Host() *engine.Host                             { return e.container.Host }
+func (e *Editor) StageManager() *stages.Manager                  { return &e.stageManager }
+func (e *Editor) ContentOpener() *content_opener.Opener          { return &e.contentOpener }
+func (e *Editor) Selection() *selection.Selection                { return &e.selection }
+func (e *Editor) History() *memento.History                      { return &e.history }
+func (e *Editor) WindowListing() *editor_window.Listing          { return &e.windowListing }
+func (e *Editor) StatusBar() *status_bar.StatusBar               { return e.statusBar }
+func (e *Editor) Hierarchy() *hierarchy.Hierarchy                { return e.hierarchy }
+func (e *Editor) ContextMenu() *context_menu.ContextMenu         { return e.contextMenu }
+func (e *Editor) ImportRegistry() *asset_importer.ImportRegistry { return &e.assetImporters }
+
+func (e *Editor) BVH() *collision.BVH { return e.bvh }
 
 func (e *Editor) RunOnHost(fn func()) { e.container.RunFunction(fn) }
 

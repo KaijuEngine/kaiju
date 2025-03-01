@@ -45,15 +45,15 @@ const (
 
 // Shader definitions
 const (
-	ShaderDefinitionGrid         = "shaders/definitions/grid.json"
-	ShaderDefinitionBasic        = "shaders/definitions/basic.json"
-	ShaderDefinitionBasicSkinned = "shaders/definitions/basic_skinned.json"
-	ShaderDefinitionBasicColor   = "shaders/definitions/basic_color.json"
-	ShaderDefinitionText3D       = "shaders/definitions/text3d.json"
-	ShaderDefinitionText         = "shaders/definitions/text.json"
-	ShaderDefinitionCombine      = "shaders/definitions/combine.json"
-	ShaderDefinitionOITComposite = "shaders/definitions/oit_composite.json"
-	ShaderDefinitionUI           = "shaders/definitions/ui.json"
-	ShaderDefinitionSprite       = "shaders/definitions/sprite.json"
-	ShaderDefinitionOutline      = "shaders/definitions/outline.json"
+	ShaderDefinitionGrid         = "renderer/definitions/grid.json"
+	ShaderDefinitionBasic        = "renderer/definitions/basic.json"
+	ShaderDefinitionBasicSkinned = "renderer/definitions/basic_skinned.json"
+	ShaderDefinitionBasicColor   = "renderer/definitions/basic_color.json"
+	ShaderDefinitionText3D       = "renderer/definitions/text3d.json"
+	ShaderDefinitionText         = "renderer/definitions/text.json"
+	ShaderDefinitionCombine      = "renderer/definitions/combine.json"
+	ShaderDefinitionOITComposite = "renderer/definitions/oit_composite.json"
+	ShaderDefinitionUI           = "renderer/definitions/ui.json"
+	ShaderDefinitionSprite       = "renderer/definitions/sprite.json"
+	ShaderDefinitionOutline      = "renderer/definitions/outline.json"
 )

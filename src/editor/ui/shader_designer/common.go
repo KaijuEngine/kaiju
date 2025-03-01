@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	shaderFolder     = "content/shaders/definitions"
-	renderPassFolder = "content/shaders/passes"
-	pipelineFolder   = "content/shaders/pipelines"
+	shaderFolder     = "content/renderer/shaders"
+	renderPassFolder = "content/renderer/passes"
+	pipelineFolder   = "content/renderer/pipelines"
+	materialFolder   = "content/renderer/materials"
 )
 
 func showTooltip(options map[string]string, e *document.Element) {

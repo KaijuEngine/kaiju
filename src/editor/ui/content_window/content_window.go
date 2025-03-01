@@ -40,10 +40,12 @@ package content_window
 import (
 	"io/fs"
 	"kaiju/assets/asset_info"
+	"kaiju/editor/alert"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/context_menu"
+	"kaiju/filesystem"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -172,6 +174,37 @@ func (s *ContentWindow) openContent(elm *document.Element) {
 		if err := s.opener.OpenPath(s.path, s.editor); err != nil {
 			slog.Error(err.Error())
 		}
+	}
+}
+
+func (s *ContentWindow) duplicateContent(elm *document.Element) {
+	path := elm.Attribute("data-path")
+	// TODO:  Shouldn't even show the option on this entry
+	if path == "../" {
+		return
+	}
+	if s, err := os.Stat(path); err == nil && s.IsDir() {
+		slog.Error("currently, you can't duplicate a directory", "from", path)
+		return
+	}
+	name := <-alert.NewInput("Duplicate name", "New name...", "", "Duplicate", "Cancel", s.editor.Host())
+	if name == "" {
+		return
+	}
+	ext := filepath.Ext(path)
+	newPath := filepath.Join(filepath.Dir(path), name)
+	if filepath.Ext(newPath) != ext {
+		newPath += ext
+	}
+	if _, err := os.Stat(newPath); err == nil {
+		slog.Error("failed to duplicate file, a file with that name already exists", "from", path, "to", newPath)
+		return
+	}
+	if err := filesystem.CopyFile(path, newPath); err != nil {
+		slog.Error("failed to duplicate the file", "error", err)
+	} else {
+		s.editor.ImportRegistry().Import(path)
+		s.reloadUI()
 	}
 }
 
@@ -312,6 +345,9 @@ func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 	ctx := []context_menu.ContextMenuEntry{
 		{Id: "open", Label: "Open", OnClick: func() {
 			s.openContent(elm)
+		}},
+		{Id: "duplicate", Label: "Duplicate", OnClick: func() {
+			s.duplicateContent(elm)
 		}},
 	}
 	if content_opener.IsATextFile(path) {

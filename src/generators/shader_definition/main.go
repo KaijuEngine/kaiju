@@ -245,7 +245,7 @@ func processFile(fs *os.Root, jsonFile string) {
 }
 
 func main() {
-	const defFolder = "content/shaders/definitions"
+	const defFolder = "content/renderer/definitions"
 	var fs *os.Root
 	if _, err := os.Stat(defFolder); err != nil {
 		if fs, err = os.OpenRoot("../"); err != nil {

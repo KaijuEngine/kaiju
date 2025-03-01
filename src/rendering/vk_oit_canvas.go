@@ -188,7 +188,7 @@ func (r *OITCanvas) createSolidImages(vr *Vulkan) bool {
 	//VkSampleCountFlagBits samples = vr.msaaSamples;
 	// Create the solid color image
 	imagesCreated := vr.CreateImage(w, h, 1, samples,
-		vk.FormatB8g8r8a8Unorm, vk.ImageTilingOptimal,
+		vk.FormatR8g8b8a8Unorm, vk.ImageTilingOptimal,
 		vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit|vk.ImageUsageTransferSrcBit|vk.ImageUsageSampledBit),
 		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &r.color, 1)
 	imagesCreated = imagesCreated && vr.createImageView(&r.color,

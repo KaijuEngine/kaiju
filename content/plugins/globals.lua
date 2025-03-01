@@ -758,23 +758,6 @@ function color_whitesmoke() return color(0.961, 0.961, 0.961, 1) end
 ---@return InlineColor
 function color_yellowgreen() return color(0.604, 0.804, 0.196, 1) end
 
----tag_factory_shader
----@param gameHost GameHost
----@param entity Entity
----@param args string
-function tag_factory_shader(gameHost, entity, args)
-	---@type string[]
-	local parts = {}
-	for token in string.gmatch(args, "[^,]+") do
-		parts[#parts+1] = --[[---@type string]] token
-	end
-	local vert = parts[1] and "shaders/"..parts[1]..".vert" or SHADER_VERT_BASIC
-	local frag = parts[2] and "shaders/"..parts[2]..".frag" or SHADER_FRAG_BASIC
-	local geom = parts[3] and "shaders/"..parts[3]..".geom" or nil
-	local shader = host_shader(gameHost.host, vert, frag, geom)
-	entity:set_visual_shader(gameHost, shader)
-end
-
 ---@shape Globals
 ---@field public host Host
 ---@field tags table

@@ -19,8 +19,8 @@ So for example, the basic shader definition would be created as:
 ```json
 {
 	"Vulkan": {
-		"Vert": "shaders/spv/basic.vert.spv",
-		"Frag": "shaders/spv/basic.frag.spv",
+		"Vert": "renderer/spv/basic.vert.spv",
+		"Frag": "renderer/spv/basic.frag.spv",
 		"Geom": "",
 		"Tesc": "",
 		"Tese": "",
@@ -40,7 +40,7 @@ src/generators/shader_definition/main.go
 
 If you are in visual studio, you can run this by selecting the "Shader
 Definition Generator" launch setting and running it. This will go through all
-of the definition files within `content/shaders/definitions` and update the
+of the definition files within `content/renderer/definitions` and update the
 `.json` files to contain all the information needed about the shader. With this,
 the engine will know how to load up your shader and setup the pipeline layout
 for your shader. It will also setup any named buffer objects so that you can
