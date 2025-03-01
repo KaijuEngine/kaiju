@@ -32,6 +32,14 @@ func New(container *host_container.Container, uiMan *ui.Manager) *ContextMenu {
 	return c
 }
 
+func NewEntry(id, label string, onClick func()) ContextMenuEntry {
+	return ContextMenuEntry{
+		Id:      id,
+		Label:   label,
+		OnClick: onClick,
+	}
+}
+
 func (c *ContextMenu) reload() {
 	c.Hide()
 	c.container.Host.CreatingEditorEntities()

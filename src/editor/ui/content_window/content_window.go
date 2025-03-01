@@ -43,8 +43,10 @@ import (
 	"kaiju/editor/alert"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/context_menu"
+	"kaiju/editor/ui/shader_designer"
 	"kaiju/filesystem"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -343,18 +345,24 @@ func (s *ContentWindow) resizeStop(e *document.Element) {
 func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 	path := elm.Attribute("data-path")
 	ctx := []context_menu.ContextMenuEntry{
-		{Id: "open", Label: "Open", OnClick: func() {
-			s.openContent(elm)
-		}},
-		{Id: "duplicate", Label: "Duplicate", OnClick: func() {
-			s.duplicateContent(elm)
-		}},
+		{Id: "open", Label: "Open", OnClick: func() { s.openContent(elm) }},
+	}
+	if f, err := os.Stat(path); err != nil {
+		if !f.IsDir() {
+			ctx = append(ctx, context_menu.NewEntry("duplicate", "Duplicate", func() {
+				s.duplicateContent(elm)
+			}))
+		}
 	}
 	if content_opener.IsATextFile(path) {
-		ctx = append(ctx, context_menu.ContextMenuEntry{
-			Id: "edit", Label: "Edit", OnClick: func() {
-				content_opener.EditTextFile(path)
-			}})
+		ctx = append(ctx, context_menu.NewEntry("edit", "Edit", func() {
+			content_opener.EditTextFile(path)
+		}))
+	}
+	if filepath.Ext(path) == editor_config.FileExtensionMaterial {
+		ctx = append(ctx, context_menu.NewEntry("preview", "Preview", func() {
+			shader_designer.PreviewMaterial(path)
+		}))
 	}
 	s.editor.ContextMenu().Show(ctx)
 }

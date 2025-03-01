@@ -6,6 +6,7 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -91,18 +92,26 @@ func (win *ShaderDesigner) materialValueChanged(e *document.Element) {
 	setObjectValueFromUI(&win.material, e)
 }
 
+func loadMaterialData(path string) (rendering.MaterialData, bool) {
+	m := rendering.MaterialData{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to load the material file", "file", path, "error", err)
+		return m, false
+	}
+	if err := json.Unmarshal(data, &m); err != nil {
+		slog.Error("failed to unmarshal the material data", "error", err)
+		return m, false
+	}
+	return m, true
+}
+
 func OpenMaterial(path string) {
 	setup(func(win *ShaderDesigner) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			slog.Error("failed to load the material file", "file", path, "error", err)
-			return
+		if m, ok := loadMaterialData(path); ok {
+			win.material = m
+			win.ShowMaterialWindow()
 		}
-		if err := json.Unmarshal(data, &win.material); err != nil {
-			slog.Error("failed to unmarshal the material data", "error", err)
-			return
-		}
-		win.ShowMaterialWindow()
 	})
 }
 
