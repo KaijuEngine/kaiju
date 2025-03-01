@@ -1,7 +1,9 @@
 package rendering
 
 import (
+	"encoding/json"
 	"kaiju/assets"
+	"path/filepath"
 	"sync"
 )
 
@@ -41,12 +43,21 @@ func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
 	}
 }
 
-func (m *MaterialCache) Material(materialData MaterialData) (*Material, error) {
+func (m *MaterialCache) Material(key string) (*Material, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if material, ok := m.materials[materialData.Name]; ok {
+	if material, ok := m.materials[key]; ok {
 		return material, nil
 	} else {
+		matStr, err := m.assetDatabase.ReadText(
+			filepath.Join("renderer/materials/", key+".material"))
+		if err != nil {
+			return nil, err
+		}
+		var materialData MaterialData
+		if err := json.Unmarshal([]byte(matStr), &materialData); err != nil {
+			return nil, err
+		}
 		material, err := materialData.Compile(m.assetDatabase, m.renderer)
 		if err != nil {
 			return nil, nil

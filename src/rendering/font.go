@@ -152,19 +152,20 @@ type cachedLetterMesh struct {
 	mesh           *Mesh
 	pxRange        matrix.Vec2
 	uvs            matrix.Vec4
-	shader         *Shader
+	material       *Material
 	texture        *Texture
 	transformation matrix.Mat4
 }
 
 type FontCache struct {
-	textShader, textOrthoShader *Shader
-	renderer                    Renderer
-	renderCaches                RenderCaches
-	assetDb                     *assets.Database
-	fontFaces                   map[string]fontBin
-	instanceKey                 int64
-	FaceMutex                   sync.RWMutex
+	textMaterial      *Material
+	textOrthoMaterial *Material
+	renderer          Renderer
+	renderCaches      RenderCaches
+	assetDb           *assets.Database
+	fontFaces         map[string]fontBin
+	instanceKey       int64
+	FaceMutex         sync.RWMutex
 }
 
 type TextShaderData struct {
@@ -283,8 +284,8 @@ func (cache FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool)
 }
 
 func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, renderer Renderer, meshCache *MeshCache) {
-	shader := cache.textShader
-	oShader := cache.textOrthoShader
+	mat := cache.textMaterial
+	oMat := cache.textOrthoMaterial
 
 	w := c.Width()
 	h := -c.Height()
@@ -295,7 +296,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 
 	var clm cachedLetterMesh
 	clm.mesh = mesh
-	clm.shader = shader
+	clm.material = mat
 	clm.texture = font.texture
 	clm.transformation = transformation
 	uvx := c.atlasBounds[0]
@@ -315,7 +316,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	font.cachedLetters[key] = &clm
 
 	clmCpy := clm
-	clmCpy.shader = oShader
+	clmCpy.material = oMat
 	clmCpy.texture = font.texture
 	// TODO:  [PORT] Do we need to clone the mesh anymore?
 	//clmCpy.mesh = mesh.Clone()
@@ -385,12 +386,16 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 	return true
 }
 
-func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) {
-	cache.textShader = caches.ShaderCache().ShaderFromDefinition(
-		assets.ShaderDefinitionText3D)
-	cache.textOrthoShader = caches.ShaderCache().ShaderFromDefinition(
-		assets.ShaderDefinitionText)
+func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
+	var err error
+	if cache.textMaterial, err = caches.MaterialCache().Material("text3d"); err != nil {
+		return err
+	}
+	if cache.textOrthoMaterial, err = caches.MaterialCache().Material("text"); err != nil {
+		return err
+	}
 	cache.renderCaches = caches
+	return nil
 }
 
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
@@ -411,11 +416,11 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	inverseHeight := 1.0 / es.Y()
 
 	fontFace := cache.fontFaces[face.string()]
-	var shader *Shader
+	var material *Material
 	if is3D {
-		shader = cache.textShader
+		material = cache.textMaterial
 	} else {
-		shader = cache.textOrthoShader
+		material = cache.textOrthoMaterial
 	}
 
 	// Iterate through all characters
@@ -547,9 +552,8 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,
-					Shader:     shader,
+					Material:   material,
 					Mesh:       m,
-					Textures:   []*Texture{fontFace.texture},
 					ShaderData: shaderData,
 					Transform:  nil,
 				})

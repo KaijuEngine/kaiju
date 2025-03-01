@@ -46,9 +46,8 @@ import (
 
 type Drawing struct {
 	Renderer     Renderer
-	Shader       *Shader
+	Material     *Material
 	Mesh         *Mesh
-	Textures     []*Texture
 	ShaderData   DrawInstance
 	Transform    *matrix.Transform
 	CanvasId     string
@@ -57,7 +56,7 @@ type Drawing struct {
 }
 
 func (d *Drawing) IsValid() bool {
-	return d.Shader != nil && d.renderTarget != nil
+	return d.Material != nil && d.renderTarget != nil
 }
 
 type RenderTargetDraw struct {
@@ -115,7 +114,7 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	idx := -1
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
-		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Textures) && dg.UseBlending == g.useBlending {
+		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Material.Textures) && dg.UseBlending == g.useBlending {
 			idx = i
 		}
 	}
@@ -136,20 +135,20 @@ func (d *Drawings) PreparePending() {
 			d.draws = append(d.draws, newDraw)
 			rtDraw = &d.draws[len(d.draws)-1]
 		}
-		draw, ok := rtDraw.findShaderDraw(drawing.Shader)
+		draw, ok := rtDraw.findShaderDraw(drawing.Material.Shader)
 		if !ok {
-			newDraw := NewShaderDraw(drawing.Shader)
+			newDraw := NewShaderDraw(drawing.Material.Shader)
 			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
 			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
 		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Shader)
+			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Material)
 		} else {
 			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.AddInstance(drawing.ShaderData, drawing.Shader)
-			group.Textures = drawing.Textures
+			group.AddInstance(drawing.ShaderData, drawing.Material)
+			group.Textures = drawing.Material.Textures
 			group.useBlending = drawing.UseBlending
 			if idx >= 0 {
 				draw.instanceGroups[idx] = group
@@ -170,9 +169,7 @@ func (d *Drawings) AddDrawing(drawing *Drawing) {
 	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	copy := *drawing
-	copy.Textures = slices.Clone(drawing.Textures)
-	d.backDraws = append(d.backDraws, copy)
+	d.backDraws = append(d.backDraws, *drawing)
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
