@@ -119,7 +119,11 @@ func compileShaderFile(src, flags string) error {
 		return nil
 	}
 	out := filepath.Join(shaderSpvFolder, filepath.Base(src)) + ".spv"
-	compileCmd := exec.Command("glslc", src, "-o", out, flags)
+	args := []string{src, "-o", out}
+	if flags != "" {
+		args = append(args, flags)
+	}
+	compileCmd := exec.Command("glslc", args...)
 	return compileCmd.Run()
 }
 
