@@ -6,11 +6,11 @@ import (
 )
 
 type Material struct {
-	Key            string
+	key            string
+	shaderInfo     ShaderDataCompiled
+	renderPassInfo RenderPassDataCompiled
+	pipelineInfo   ShaderPipelineDataCompiled
 	Shader         *Shader
-	ShaderInfo     ShaderDataCompiled
-	RenderPassInfo RenderPassDataCompiled
-	PipelineInfo   ShaderPipelineDataCompiled
 	Textures       []*Texture
 }
 
@@ -55,24 +55,33 @@ func materialUnmarshallData(assets *assets.Database, file string, to any) error 
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		Key:      d.Name,
+		key:      d.Name,
 		Textures: make([]*Texture, len(d.Textures)),
 	}
 	sd := ShaderData{}
 	if err := materialUnmarshallData(assets, d.Shader, &sd); err != nil {
 		return c, err
 	}
-	c.ShaderInfo = sd.Compile()
+	c.shaderInfo = sd.Compile()
 	rp := RenderPassData{}
 	if err := materialUnmarshallData(assets, d.Shader, &rp); err != nil {
 		return c, err
 	}
-	c.RenderPassInfo = rp.Compile(vr)
+	c.renderPassInfo = rp.Compile(vr)
 	sp := ShaderPipelineData{}
 	if err := materialUnmarshallData(assets, d.Shader, &sp); err != nil {
 		return c, err
 	}
-	c.PipelineInfo = sp.Compile()
+	shaderConfig, err := assets.ReadText(d.Shader)
+	if err != nil {
+		return c, err
+	}
+	var rawSD ShaderData
+	if err := json.Unmarshal([]byte(shaderConfig), &rawSD); err != nil {
+		return c, err
+	}
+	c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
+	c.pipelineInfo = sp.Compile()
 	for i := range d.Textures {
 		tex, err := vr.caches.TextureCache().Texture(
 			d.Textures[i].Texture, d.Textures[i].FilterToVK())

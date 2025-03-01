@@ -202,21 +202,19 @@ func (d *DrawInstanceGroup) TotalSize() int {
 	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, shader *Shader) {
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, material *Material) {
 	d.Instances = append(d.Instances, instance)
 	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
-	if shader.definition != nil {
-		for i := range shader.definition.LayoutGroups {
-			g := &shader.definition.LayoutGroups[i]
-			for j := range g.Layouts {
-				if g.Layouts[j].IsBuffer() {
-					b := &g.Layouts[j]
-					n := b.FullName()
-					s := d.namedInstanceData[n]
-					if len(s.bytes) < b.Capacity() {
-						s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
-						d.namedInstanceData[n] = s
-					}
+	for i := range material.shaderInfo.LayoutGroups {
+		g := &material.shaderInfo.LayoutGroups[i]
+		for j := range g.Layouts {
+			if g.Layouts[j].IsBuffer() {
+				b := &g.Layouts[j]
+				n := b.FullName()
+				s := d.namedInstanceData[n]
+				if len(s.bytes) < b.Capacity() {
+					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
+					d.namedInstanceData[n] = s
 				}
 			}
 		}

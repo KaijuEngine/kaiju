@@ -42,4 +42,5 @@ type RenderCaches interface {
 	TextureCache() *TextureCache
 	MeshCache() *MeshCache
 	FontCache() *FontCache
+	MaterialCache() *MaterialCache
 }

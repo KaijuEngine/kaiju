@@ -61,25 +61,23 @@ type InstanceDriverData struct {
 	generatedSets     bool
 }
 
-func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, shader *Shader) {
+func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, material *Material) {
 	if !d.generatedSets {
 		vr := renderer.(*Vulkan)
 		d.descriptorSets, d.descriptorPool, _ = vr.createDescriptorSet(
-			shader.RenderId.descriptorSetLayout, 0)
+			material.Shader.RenderId.descriptorSetLayout, 0)
 		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.Textures))
 		d.generatedSets = true
 		d.instanceBuffer.bindingId = 1
 		d.namedBuffers = make(map[string]ShaderBuffer)
-		if shader.definition != nil {
-			for i := range shader.definition.LayoutGroups {
-				g := &shader.definition.LayoutGroups[i]
-				for j := range g.Layouts {
-					if g.Layouts[j].IsBuffer() {
-						d.namedBuffers[g.Layouts[j].FullName()] = ShaderBuffer{
-							bindingId: g.Layouts[j].Binding,
-							stride:    g.Layouts[j].Stride(),
-							capacity:  g.Layouts[j].Capacity(),
-						}
+		for i := range material.shaderInfo.LayoutGroups {
+			g := &material.shaderInfo.LayoutGroups[i]
+			for j := range g.Layouts {
+				if g.Layouts[j].IsBuffer() {
+					d.namedBuffers[g.Layouts[j].FullName()] = ShaderBuffer{
+						bindingId: g.Layouts[j].Binding,
+						stride:    g.Layouts[j].Stride(),
+						capacity:  g.Layouts[j].Capacity(),
 					}
 				}
 			}

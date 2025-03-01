@@ -43,18 +43,11 @@ import (
 )
 
 type Shader struct {
-	Key        string
 	RenderId   ShaderId
-	VertPath   string
-	FragPath   string
-	GeomPath   string
-	CtrlPath   string
-	EvalPath   string
+	data       ShaderDataCompiled
 	Material   MaterialData
-	RenderPass *RenderPass
 	DriverData ShaderDriverData
 	subShaders map[string]*Shader
-	definition *ShaderDef
 }
 
 type ShaderData struct {
@@ -106,17 +99,10 @@ func (s *Shader) SubShader(key string) *Shader {
 	return s.subShaders[key]
 }
 
-func NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath,
-	key string, renderPass *RenderPass) *Shader {
+func NewShader(shaderData ShaderDataCompiled) *Shader {
 	s := &Shader{
-		Key:        key,
+		data:       shaderData,
 		subShaders: make(map[string]*Shader),
-		VertPath:   vertPath,
-		FragPath:   fragPath,
-		GeomPath:   geomPath,
-		CtrlPath:   ctrlPath,
-		EvalPath:   evalPath,
-		RenderPass: renderPass,
 		DriverData: NewShaderDriverData(),
 	}
 	return s
@@ -130,7 +116,7 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 }
 
 func (s *Shader) IsComposite() bool {
-	return s.VertPath == assets.ShaderOitCompositeVert
+	return s.data.Vertex == assets.ShaderOitCompositeVert
 }
 
 func (s *Shader) Destroy(renderer Renderer) {
