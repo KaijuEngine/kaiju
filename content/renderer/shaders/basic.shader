@@ -1,0 +1,1 @@
+{"Name":"basic","Vertex":"content\\shaders\\basic.vert","Fragment":"content\\shaders\\basic.frag","Geometry":"","TessellationControl":"","TessellationEvaluation":"","CompileFlags":""}

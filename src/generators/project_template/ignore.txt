@@ -1,6 +1,7 @@
 editor
-interpreter
+plugins
 source
 go.mod
 go.sum
+__debug
 default.pgo

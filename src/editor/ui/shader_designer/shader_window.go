@@ -19,7 +19,7 @@ func setupShaderDoc(win *ShaderDesigner) {
 }
 
 func collectFileOptions() map[string][]string {
-	const shaderFolder = "content/shaders"
+	const shaderFolder = "content/renderer/src"
 	vert := []string{}
 	frag := []string{}
 	geom := []string{}

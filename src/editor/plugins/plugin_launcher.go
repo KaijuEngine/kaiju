@@ -26,7 +26,7 @@ const (
 )
 
 const (
-	plugins            = "editor/plugins"
+	plugins            = "plugins"
 	globalCleanupPtrFn = "__kaiju_engine_cleanup_go_ptr__"
 	goPtrField         = "_goPtr"
 )
@@ -250,7 +250,7 @@ func launchPlugin(ed interfaces.Editor, entry string) (*LuaVM, error) {
 }
 
 func LaunchPlugins(ed interfaces.Editor) ([]*LuaVM, error) {
-	pluginsPath := ed.Host().AssetDatabase().ToRawPath(plugins)
+	pluginsPath := filepath.Join("content", plugins)
 	dirs, err := os.ReadDir(pluginsPath)
 	vms := make([]*LuaVM, 0)
 	if err != nil {
