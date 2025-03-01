@@ -79,8 +79,8 @@ type ShaderPipelineData struct {
 	InputAssembly         ShaderPipelineInputAssembly
 	Rasterization         ShaderPipelinePipelineRasterization
 	Multisample           ShaderPipelinePipelineMultisample
-	ColorBlendAttachments []ShaderPipelineColorBlendAttachments
 	ColorBlend            ShaderPipelineColorBlend
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachments
 	DepthStencil          ShaderPipelineDepthStencil
 	Tessellation          ShaderPipelineTessellation
 	GraphicsPipeline      ShaderPipelineGraphicsPipeline

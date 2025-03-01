@@ -1,6 +1,7 @@
 package shader_designer
 
 import (
+	"fmt"
 	"kaiju/editor/alert"
 	"kaiju/klib"
 	"kaiju/markup/document"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -138,6 +140,7 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 			} else {
 				field.List, isList = fallbackOptions[field.Name]
 			}
+			sort.Strings(field.List)
 			if isList {
 				if kind == reflect.String {
 					field.Type = "enum"
@@ -151,7 +154,8 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 				field.Type = "slice"
 				childCount := f.Len()
 				for j := range childCount {
-					s := reflectUIStructure(f.Index(j).Addr().Interface(), p, fallbackOptions)
+					myPath := fmt.Sprintf("%s.%d", p, j)
+					s := reflectUIStructure(f.Index(j).Addr().Interface(), myPath, fallbackOptions)
 					field.Sections = append(field.Sections, s)
 				}
 			} else {

@@ -14,14 +14,14 @@ type RenderPassData struct {
 }
 
 type RenderPassAttachmentDescription struct {
-	Format         string
-	Samples        string
-	LoadOp         string
-	StoreOp        string
-	StencilLoadOp  string
-	StencilStoreOp string
-	InitialLayout  string
-	FinalLayout    string
+	Format         string `options:"StringVkFormat"`
+	Samples        string `options:"StringVkSampleCountFlagBits"`
+	LoadOp         string `options:"StringVkAttachmentLoadOp"`
+	StoreOp        string `options:"StringVkAttachmentStoreOp"`
+	StencilLoadOp  string `options:"StringVkAttachmentLoadOp"`
+	StencilStoreOp string `options:"StringVkAttachmentStoreOp"`
+	InitialLayout  string `options:"StringVkImageLayout"`
+	FinalLayout    string `options:"StringVkImageLayout"`
 	Image          RenderPassAttachmentImage
 }
 
@@ -29,7 +29,7 @@ type RenderPassAttachmentImage struct {
 	MipLevels      uint32
 	LayerCount     uint32
 	Tiling         string   `options:"StringVkImageTiling"`
-	Filter         string   `options:"StringVkFilter`
+	Filter         string   `options:"StringVkFilter"`
 	Usage          []string `options:"StringVkImageUsageFlagBits"`
 	MemoryProperty []string `options:"StringVkMemoryPropertyFlagBits"`
 	Aspect         []string `options:"StringVkImageAspectFlagBits"`
@@ -37,7 +37,7 @@ type RenderPassAttachmentImage struct {
 }
 
 type RenderPassSubpassDescription struct {
-	PipelineBindPoint         string
+	PipelineBindPoint         string `options:"StringVkPipelineBindPoint"`
 	ColorAttachmentReferences []RenderPassAttachmentReference
 	InputAttachmentReferences []RenderPassAttachmentReference
 	ResolveAttachments        []RenderPassAttachmentReference
@@ -47,7 +47,7 @@ type RenderPassSubpassDescription struct {
 
 type RenderPassAttachmentReference struct {
 	Attachment uint32
-	Layout     string
+	Layout     string `options:"StringVkImageLayout"`
 }
 
 type RenderPassSubpassDependency struct {
