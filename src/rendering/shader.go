@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"strings"
 )
 
 type Shader struct {
@@ -49,6 +50,7 @@ type Shader struct {
 	GeomPath   string
 	CtrlPath   string
 	EvalPath   string
+	Material   MaterialData
 	RenderPass *RenderPass
 	DriverData ShaderDriverData
 	subShaders map[string]*Shader
@@ -63,6 +65,26 @@ type ShaderData struct {
 	TessellationControl    string `options:""` // Blank options uses fallback
 	TessellationEvaluation string `options:""` // Blank options uses fallback
 	CompileFlags           string
+}
+
+type ShaderDataCompiled struct {
+	Name                   string
+	Vertex                 string
+	Fragment               string
+	Geometry               string
+	TessellationControl    string
+	TessellationEvaluation string
+}
+
+func (d *ShaderData) Compile() ShaderDataCompiled {
+	return ShaderDataCompiled{
+		Name:                   d.Name,
+		Vertex:                 strings.Replace(d.Vertex, "/src/", "/spv/", 1) + ".spv",
+		Fragment:               strings.Replace(d.Fragment, "/src/", "/spv/", 1) + ".spv",
+		Geometry:               strings.Replace(d.Geometry, "/src/", "/spv/", 1) + ".spv",
+		TessellationControl:    strings.Replace(d.TessellationControl, "/src/", "/spv/", 1) + ".spv",
+		TessellationEvaluation: strings.Replace(d.TessellationEvaluation, "/src/", "/spv/", 1) + ".spv",
+	}
 }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {

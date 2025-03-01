@@ -60,6 +60,130 @@ type RenderPassSubpassDependency struct {
 	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
 }
 
+type RenderPassDataCompiled struct {
+	Name                   string
+	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
+	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
+	SubpassDependencies    []RenderPassSubpassDependencyCompiled
+}
+
+type RenderPassAttachmentDescriptionCompiled struct {
+	Format         vk.Format
+	Samples        vk.SampleCountFlagBits
+	LoadOp         vk.AttachmentLoadOp
+	StoreOp        vk.AttachmentStoreOp
+	StencilLoadOp  vk.AttachmentLoadOp
+	StencilStoreOp vk.AttachmentStoreOp
+	InitialLayout  vk.ImageLayout
+	FinalLayout    vk.ImageLayout
+	Image          RenderPassAttachmentImageCompiled
+}
+
+type RenderPassAttachmentImageCompiled struct {
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         vk.ImageTiling
+	Filter         vk.Filter
+	Usage          vk.ImageUsageFlags
+	MemoryProperty vk.MemoryPropertyFlags
+	Aspect         vk.ImageAspectFlags
+	Access         vk.AccessFlags
+}
+
+type RenderPassSubpassDescriptionCompiled struct {
+	PipelineBindPoint         vk.PipelineBindPoint
+	ColorAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	InputAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	ResolveAttachments        []RenderPassAttachmentReferenceCompiled
+	DepthStencilAttachment    []RenderPassAttachmentReferenceCompiled // 1 max
+	PreserveAttachments       []uint32                                // TODO
+}
+
+type RenderPassAttachmentReferenceCompiled struct {
+	Attachment uint32
+	Layout     vk.ImageLayout
+}
+
+type RenderPassSubpassDependencyCompiled struct {
+	SrcSubpass      uint32
+	DstSubpass      uint32
+	SrcStageMask    vk.PipelineStageFlags
+	DstStageMask    vk.PipelineStageFlags
+	SrcAccessMask   vk.AccessFlags
+	DstAccessMask   vk.AccessFlags
+	DependencyFlags vk.DependencyFlags
+}
+
+func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
+	c := RenderPassDataCompiled{
+		Name:                   d.Name,
+		AttachmentDescriptions: make([]RenderPassAttachmentDescriptionCompiled, len(d.AttachmentDescriptions)),
+		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
+		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
+	}
+	for i := range d.AttachmentDescriptions {
+		a := &c.AttachmentDescriptions[i]
+		b := &d.AttachmentDescriptions[i]
+		a.Format = b.FormatToVK(vr)
+		a.Samples = b.SamplesToVK()
+		a.LoadOp = b.LoadOpToVK()
+		a.StoreOp = b.StoreOpToVK()
+		a.StencilLoadOp = b.StencilLoadOpToVK()
+		a.StencilStoreOp = b.StencilStoreOpToVK()
+		a.InitialLayout = b.InitialLayoutToVK()
+		a.FinalLayout = b.FinalLayoutToVK()
+		a.Image.MipLevels = b.Image.MipLevels
+		a.Image.LayerCount = b.Image.LayerCount
+		a.Image.Tiling = b.Image.TilingToVK()
+		a.Image.Filter = b.Image.FilterToVK()
+		a.Image.Usage = b.Image.UsageToVK()
+		a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
+		a.Image.Aspect = b.Image.AspectToVK()
+		a.Image.Access = b.Image.AccessToVK()
+	}
+	for i := range d.SubpassDescriptions {
+		a := &c.SubpassDescriptions[i]
+		b := &d.SubpassDescriptions[i]
+		a.PipelineBindPoint = b.PipelineBindPointToVK()
+		a.ColorAttachmentReferences = make([]RenderPassAttachmentReferenceCompiled, len(b.ColorAttachmentReferences))
+		for j := range b.ColorAttachmentReferences {
+			a.ColorAttachmentReferences[j].Attachment = b.ColorAttachmentReferences[j].Attachment
+			a.ColorAttachmentReferences[j].Layout = b.ColorAttachmentReferences[j].LayoutToVK()
+		}
+		a.InputAttachmentReferences = make([]RenderPassAttachmentReferenceCompiled, len(b.InputAttachmentReferences))
+		for j := range b.InputAttachmentReferences {
+			a.InputAttachmentReferences[j].Attachment = b.InputAttachmentReferences[j].Attachment
+			a.InputAttachmentReferences[j].Layout = b.InputAttachmentReferences[j].LayoutToVK()
+		}
+		a.ResolveAttachments = make([]RenderPassAttachmentReferenceCompiled, len(b.ResolveAttachments))
+		for j := range b.ResolveAttachments {
+			a.ResolveAttachments[j].Attachment = b.ResolveAttachments[j].Attachment
+			a.ResolveAttachments[j].Layout = b.ResolveAttachments[j].LayoutToVK()
+		}
+		a.DepthStencilAttachment = make([]RenderPassAttachmentReferenceCompiled, len(b.DepthStencilAttachment))
+		for j := range b.DepthStencilAttachment {
+			a.DepthStencilAttachment[j].Attachment = b.DepthStencilAttachment[j].Attachment
+			a.DepthStencilAttachment[j].Layout = b.DepthStencilAttachment[j].LayoutToVK()
+		}
+		a.PreserveAttachments = make([]uint32, len(b.PreserveAttachments))
+		for j := range b.PreserveAttachments {
+			a.PreserveAttachments[j] = b.PreserveAttachments[j]
+		}
+	}
+	for i := range d.SubpassDependencies {
+		a := &c.SubpassDependencies[i]
+		b := &d.SubpassDependencies[i]
+		a.SrcSubpass = b.SrcSubpass
+		a.DstSubpass = b.DstSubpass
+		a.SrcStageMask = b.SrcStageMaskToVK()
+		a.DstStageMask = b.DstStageMaskToVK()
+		a.SrcAccessMask = b.SrcAccessMaskToVK()
+		a.DstAccessMask = b.DstAccessMaskToVK()
+		a.DependencyFlags = b.DependencyFlagsToVK()
+	}
+	return c
+}
+
 func (ai *RenderPassAttachmentImage) ListTiling() []string {
 	return klib.MapKeysSorted(StringVkImageTiling)
 }
