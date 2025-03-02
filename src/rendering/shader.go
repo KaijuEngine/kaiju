@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,6 +53,7 @@ type Shader struct {
 
 type ShaderData struct {
 	Name                        string
+	EnableDebug                 bool
 	Vertex                      string              `options:""`
 	VertexFlags                 string              `tip:"CompileFlags"`
 	Fragment                    string              `options:""`
@@ -62,7 +64,7 @@ type ShaderData struct {
 	TessellationControlFlags    string              `tip:"CompileFlags"`
 	TessellationEvaluation      string              `options:""`
 	TessellationEvaluationFlags string              `tip:"CompileFlags"`
-	LayoutGroups                []ShaderLayoutGroup `ignore:"true"`
+	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
 }
 
 type ShaderDataCompiled struct {
@@ -75,14 +77,23 @@ type ShaderDataCompiled struct {
 	LayoutGroups           []ShaderLayoutGroup
 }
 
+func (d *ShaderData) CompileVariantName(path, flags string) string {
+	name := filepath.Base(path)
+	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1) + ".spv")
+	if flags != "" {
+		return filepath.Join(dir, d.Name+name)
+	}
+	return filepath.Join(dir, name)
+}
+
 func (d *ShaderData) Compile() ShaderDataCompiled {
 	return ShaderDataCompiled{
 		Name:                   d.Name,
-		Vertex:                 strings.Replace(d.Vertex, "/src/", "/spv/", 1) + ".spv",
-		Fragment:               strings.Replace(d.Fragment, "/src/", "/spv/", 1) + ".spv",
-		Geometry:               strings.Replace(d.Geometry, "/src/", "/spv/", 1) + ".spv",
-		TessellationControl:    strings.Replace(d.TessellationControl, "/src/", "/spv/", 1) + ".spv",
-		TessellationEvaluation: strings.Replace(d.TessellationEvaluation, "/src/", "/spv/", 1) + ".spv",
+		Vertex:                 d.CompileVariantName(d.Vertex, d.VertexFlags),
+		Fragment:               d.CompileVariantName(d.Fragment, d.FragmentFlags),
+		Geometry:               d.CompileVariantName(d.Geometry, d.GeometryFlags),
+		TessellationControl:    d.CompileVariantName(d.TessellationControl, d.TessellationControlFlags),
+		TessellationEvaluation: d.CompileVariantName(d.TessellationEvaluation, d.TessellationEvaluationFlags),
 		LayoutGroups:           d.LayoutGroups,
 	}
 }
