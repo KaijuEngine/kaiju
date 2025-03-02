@@ -26,9 +26,9 @@ func NewMaterialCache(renderer Renderer, assetDatabase *assets.Database) Materia
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
-	if found, ok := m.materials[material.key]; !ok {
+	if found, ok := m.materials[material.Name]; !ok {
 		m.pendingMaterials = append(m.pendingMaterials, material)
-		m.materials[material.key] = material
+		m.materials[material.Name] = material
 		return material
 	} else {
 		return found

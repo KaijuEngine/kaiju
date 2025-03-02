@@ -45,6 +45,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/runtime/encoding/gob"
+	"log/slog"
 )
 
 func init() {
@@ -65,12 +66,11 @@ type entityStorage struct {
 }
 
 type drawingDef struct {
-	CanvasId         string
-	ShaderDefinition string
-	MeshKey          string
-	Textures         []string
-	UseBlending      bool
-	ShaderData       rendering.DrawInstance
+	CanvasId    string
+	Material    string
+	MeshKey     string
+	UseBlending bool
+	ShaderData  rendering.DrawInstance
 }
 
 // Serialize will write the entity to the given stream and is reversed using
@@ -114,7 +114,11 @@ func (e *Entity) Deserialize(stream io.Reader, host *Host) error {
 func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawing, error) {
 	drawings := []rendering.Drawing{}
 	for _, d := range defs {
-		s := host.shaderCache.ShaderFromDefinition(d.ShaderDefinition)
+		mat, err := host.materialCache.Material(d.Material)
+		if err != nil {
+			slog.Error("failed to load drawing material", "entity", e.name, "material", d.Material)
+			continue
+		}
 		m, ok := host.MeshCache().FindMesh(d.MeshKey)
 		if !ok {
 			adi, err := asset_info.Lookup(d.MeshKey)
@@ -127,20 +131,10 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 			}
 			m = host.MeshCache().Mesh(adi.ID, md.Verts, md.Indexes)
 		}
-		textures := make([]*rendering.Texture, len(d.Textures))
-		for i, t := range d.Textures {
-			tex, err := host.TextureCache().Texture(
-				t, rendering.TextureFilterLinear)
-			if err != nil {
-				return drawings, err
-			}
-			textures[i] = tex
-		}
 		drawing := rendering.Drawing{
 			Renderer:    host.Window.Renderer,
-			Shader:      s,
+			Material:    mat,
 			Mesh:        m,
-			Textures:    textures,
 			ShaderData:  d.ShaderData,
 			Transform:   &e.Transform,
 			CanvasId:    d.CanvasId,

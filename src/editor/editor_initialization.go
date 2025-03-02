@@ -59,6 +59,7 @@ import (
 	"kaiju/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
+	"log/slog"
 )
 
 func addConsole(ed *Editor) {
@@ -130,6 +131,12 @@ func constructEditorUI(ed *Editor) {
 func setupViewportGrid(ed *Editor) {
 	const gridCount = 20
 	const halfGridCount = gridCount / 2
+	host := ed.Host()
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
+	if err != nil {
+		slog.Error("failed to load the grid material", "error", err)
+		return
+	}
 	points := make([]matrix.Vec3, 0, gridCount*4)
 	for i := -halfGridCount; i <= halfGridCount; i++ {
 		fi := float32(i)
@@ -138,13 +145,11 @@ func setupViewportGrid(ed *Editor) {
 		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
 		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
 	}
-	host := ed.Host()
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer: host.Window.Renderer,
-		Shader:   shader,
+		Material: material,
 		Mesh:     grid,
 		CanvasId: "default",
 		ShaderData: &rendering.ShaderDataBasic{

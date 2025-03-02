@@ -43,17 +43,17 @@ const (
 	TextureTriangle = "textures/triangle.png"
 )
 
-// Shader definitions
+// Material definitions
 const (
-	ShaderDefinitionGrid         = "renderer/definitions/grid.json"
-	ShaderDefinitionBasic        = "renderer/definitions/basic.json"
-	ShaderDefinitionBasicSkinned = "renderer/definitions/basic_skinned.json"
-	ShaderDefinitionBasicColor   = "renderer/definitions/basic_color.json"
-	ShaderDefinitionText3D       = "renderer/definitions/text3d.json"
-	ShaderDefinitionText         = "renderer/definitions/text.json"
-	ShaderDefinitionCombine      = "renderer/definitions/combine.json"
-	ShaderDefinitionOITComposite = "renderer/definitions/oit_composite.json"
-	ShaderDefinitionUI           = "renderer/definitions/ui.json"
-	ShaderDefinitionSprite       = "renderer/definitions/sprite.json"
-	ShaderDefinitionOutline      = "renderer/definitions/outline.json"
+	MaterialDefinitionGrid         = "grid.material"
+	MaterialDefinitionBasic        = "basic.material"
+	MaterialDefinitionBasicSkinned = "basic_skinned.material"
+	MaterialDefinitionBasicColor   = "basic_color.material"
+	MaterialDefinitionText3D       = "text3d.material"
+	MaterialDefinitionText         = "text.material"
+	MaterialDefinitionCombine      = "combine.material"
+	MaterialDefinitionOITComposite = "oit_composite.material"
+	MaterialDefinitionUI           = "ui.material"
+	MaterialDefinitionSprite       = "sprite.material"
+	MaterialDefinitionOutline      = "outline.material"
 )

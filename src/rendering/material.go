@@ -6,7 +6,7 @@ import (
 )
 
 type Material struct {
-	key            string
+	Name           string
 	shaderInfo     ShaderDataCompiled
 	renderPassInfo RenderPassDataCompiled
 	pipelineInfo   ShaderPipelineDataCompiled
@@ -55,7 +55,7 @@ func materialUnmarshallData(assets *assets.Database, file string, to any) error 
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		key:      d.Name,
+		Name:     d.Name,
 		Textures: make([]*Texture, len(d.Textures)),
 	}
 	sd := ShaderData{}

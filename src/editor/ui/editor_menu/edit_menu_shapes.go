@@ -30,6 +30,11 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 		slog.Error("cube mesh data corrupted")
 		return
 	}
+	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	if err != nil {
+		slog.Error("failed to load the basic material for shape", "error", err)
+		return
+	}
 	resMesh := res.Meshes[0]
 	mesh, ok := host.MeshCache().FindMesh(resMesh.MeshName)
 	if !ok {
@@ -41,12 +46,10 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}
-	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		Material:   mat,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
 		Transform:  &e.Transform,
 		CanvasId:   "default",

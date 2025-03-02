@@ -523,7 +523,7 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 	return vk.PipelineCreateFlags(mask)
 }
 
-func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
@@ -660,13 +660,14 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		PColorBlendState:    &colorBlending,
 		PDynamicState:       &dynamicState,
 		Layout:              shader.RenderId.pipelineLayout,
-		RenderPass:          shader.RenderPass.Handle,
+		RenderPass:          renderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
 		PDepthStencilState:  &depthStencil,
 		Subpass:             s.GraphicsPipeline.SubpassCount,
 	}
 	tess := vk.PipelineTessellationStateCreateInfo{}
-	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {
+	if len(shader.data.TessellationControl) > 0 ||
+		len(shader.data.TessellationEvaluation) > 0 {
 		tess.SType = vk.StructureTypePipelineTessellationStateCreateInfo
 		tess.Flags = 0 // PipelineTessellationStateCreateFlags
 		tess.PatchControlPoints = s.Tessellation.PatchControlPoints

@@ -52,7 +52,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
 	vertStage := vk.PipelineShaderStageCreateInfo{}
-	vMem, err := assetDB.Read(shader.VertPath)
+	vMem, err := assetDB.Read(shader.data.Vertex)
 	if err != nil {
 		panic("Failed to load vertex shader")
 	}
@@ -67,7 +67,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	shader.RenderId.vertModule = vert
 
 	fragStage := vk.PipelineShaderStageCreateInfo{}
-	fMem, err = assetDB.Read(shader.FragPath)
+	fMem, err = assetDB.Read(shader.data.Fragment)
 	if err != nil {
 		panic("Failed to load fragment shader")
 	}
@@ -82,8 +82,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	shader.RenderId.fragModule = frag
 
 	geomStage := vk.PipelineShaderStageCreateInfo{}
-	if len(shader.GeomPath) > 0 {
-		gMem, err = assetDB.Read(shader.GeomPath)
+	if len(shader.data.Geometry) > 0 {
+		gMem, err = assetDB.Read(shader.data.Geometry)
 		if err != nil {
 			panic("Failed to load geometry shader")
 		}
@@ -98,8 +98,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	}
 
 	tescStage := vk.PipelineShaderStageCreateInfo{}
-	if len(shader.CtrlPath) > 0 {
-		cMem, err = assetDB.Read(shader.CtrlPath)
+	if len(shader.data.TessellationControl) > 0 {
+		cMem, err = assetDB.Read(shader.data.TessellationControl)
 		if err != nil {
 			panic("Failed to load tessellation control shader")
 		}
@@ -115,8 +115,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	}
 
 	teseStage := vk.PipelineShaderStageCreateInfo{}
-	if len(shader.EvalPath) > 0 {
-		eMem, err = assetDB.Read(shader.EvalPath)
+	if len(shader.data.TessellationEvaluation) > 0 {
+		eMem, err = assetDB.Read(shader.data.TessellationEvaluation)
 		if err != nil {
 			panic("Failed to load tessellation evaluation shader")
 		}
@@ -159,11 +159,11 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 
 	shader.DriverData.pipelineConstructor(vr, shader, stages)
 	// TODO:  Setup subshader in the shader definition?
-	subShaderCheck := strings.TrimSuffix(shader.FragPath, ".spv") + oitSuffix
+	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
-		subShader := NewShader(shader.VertPath, subShaderCheck,
-			shader.GeomPath, shader.CtrlPath, shader.EvalPath,
-			shader.Key+oitSuffix, &vr.defaultCanvas.transparentPass)
+		subShader := NewShader(shader.data.Vertex, subShaderCheck,
+			shader.data.Geometry, shader.data.TessellationControl,
+			shader.data.TessellationEvaluation, shader.data.Name+oitSuffix, &vr.defaultCanvas.transparentPass)
 		subShader.DriverData = shader.DriverData
 		shader.AddSubShader("transparent", subShader)
 	}

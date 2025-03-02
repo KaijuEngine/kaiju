@@ -30,8 +30,7 @@ func importMeshToCache(adi *asset_info.AssetDatabaseInfo, mesh load_result.Resul
 			return err
 		}
 		// TODO:  Write the correct material to the adi
-		info.Metadata["shader"] = assets.ShaderDefinitionBasic
-		info.Metadata["texture"] = assets.TextureSquare
+		info.Metadata["material"] = assets.MaterialDefinitionBasic
 		info.Metadata["name"] = o.MeshName
 		adi.Children = append(adi.Children, info)
 	}
