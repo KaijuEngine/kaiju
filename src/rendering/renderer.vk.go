@@ -105,6 +105,7 @@ type Vulkan struct {
 	preRuns                    []func()
 	canvases                   map[string]Canvas
 	dbg                        debugVulkan
+	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 }
 

@@ -50,8 +50,8 @@ type RenderPass struct {
 	dbg    *debugVulkan
 }
 
-func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency) (RenderPass, error) {
-	p := RenderPass{
+func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency) (*RenderPass, error) {
+	p := &RenderPass{
 		device: device,
 		dbg:    dbg,
 	}

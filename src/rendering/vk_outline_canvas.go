@@ -62,7 +62,7 @@ func (r *OutlineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	for i := range drawings {
-		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+		vr.writeDrawingDescriptors(drawings[i].material, drawings[i].instanceGroups)
 	}
 	oRenderPass := r.outlinePass
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
@@ -73,7 +73,7 @@ func (r *OutlineCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(oRenderPass, vr.swapChainExtent, cmd1, opaqueClear[:])
 	for i := range drawings {
-		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
+		vr.renderEach(cmd1, drawings[i].material, drawings[i].instanceGroups)
 	}
 	endRender(cmd1)
 }

@@ -98,10 +98,10 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			namedInfos[k] = bufferInfo(group.namedBuffers[k].buffers[vr.currentFrame],
 				group.namedBuffers[k].size)
 		}
-		texCount := len(group.Textures)
+		texCount := len(group.MaterialInstance.Textures)
 		if texCount > 0 {
 			for j := 0; j < texCount; j++ {
-				t := group.Textures[j]
+				t := group.MaterialInstance.Textures[j]
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
 			const maxDescriptorWrites = 4
@@ -134,7 +134,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 	}
 }
 
-func beginRender(pass RenderPass, extent vk.Extent2D,
+func beginRender(pass *RenderPass, extent vk.Extent2D,
 	commandBuffer vk.CommandBuffer, clearColors []vk.ClearValue) {
 
 	beginInfo := vk.CommandBufferBeginInfo{}
@@ -174,7 +174,7 @@ func endRender(commandBuffer vk.CommandBuffer) {
 }
 
 func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, material *Material, groups []DrawInstanceGroup) {
-	if material == nil || material.IsComposite() {
+	if material == nil || material.Shader.IsComposite() {
 		return
 	}
 	vk.CmdBindPipeline(commandBuffer, vk.PipelineBindPointGraphics,
@@ -254,12 +254,34 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 	}
 }
 
+func (vr *Vulkan) materialDraw(drawings []ShaderDraw) {
+	if len(drawings) == 0 {
+		return
+	}
+	material := drawings[0].material
+	if material.Root.Value() != nil {
+		material = material.Root.Value()
+	}
+	frame := vr.currentFrame
+	cmdBuffIdx := frame * MaxCommandBuffers
+	for i := range drawings {
+		vr.writeDrawingDescriptors(drawings[i].material, drawings[i].instanceGroups)
+	}
+	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
+	vr.commandBuffersCount++
+	beginRender(material.renderPass, vr.swapChainExtent, cmd, material.Clears)
+	for i := range drawings {
+		vr.renderEach(cmd, drawings[i].material, drawings[i].instanceGroups)
+	}
+	endRender(cmd)
+}
+
 func (vr *Vulkan) Draw(drawings []RenderTargetDraw) {
 	if !vr.hasSwapChain {
 		return
 	}
 	for i := range drawings {
-		drawings[i].Target.Draw(vr, drawings[i].innerDraws)
+		vr.materialDraw(drawings[i].innerDraws)
 	}
 }
 
@@ -311,7 +333,7 @@ func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) Canvas {
 		return targets[0].Target.(*OITCanvas)
 	}
 	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
-		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
+		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
@@ -335,7 +357,7 @@ func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
 		return
 	}
 	for i := range vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups {
-		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].Textures[0].RenderId
+		color := &vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)

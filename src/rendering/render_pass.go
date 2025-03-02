@@ -352,7 +352,7 @@ func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags 
 	return dependencyFlagsToVK(sd.DependencyFlags)
 }
 
-func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, bool) {
+func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
 	textures := make([]TextureId, len(r.AttachmentDescriptions))
 	{
@@ -361,38 +361,38 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
 			img := &a.Image
-			success := vr.CreateImage(w, h, img.MipLevels, a.SamplesToVK(),
-				a.FormatToVK(vr), img.TilingToVK(), img.UsageToVK(),
-				img.MemoryPropertyToVK(), &textures[i], int(img.LayerCount))
+			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
+				a.Format, img.Tiling, img.Usage,
+				img.MemoryProperty, &textures[i], int(img.LayerCount))
 			if !success {
 				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
+				return nil, false
 			}
-			success = vr.createImageView(&textures[i], img.AspectToVK())
+			success = vr.createImageView(&textures[i], img.Aspect)
 			if !success {
 				for j := range i + 1 {
 					vr.textureIdFree(&textures[j])
 				}
 				slog.Error("failed to create image view for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
+				return nil, false
 			}
 			success = vr.createTextureSampler(&textures[i].Sampler,
-				img.MipLevels, img.FilterToVK())
+				img.MipLevels, img.Filter)
 			if !success {
 				for j := range i + 1 {
 					vr.textureIdFree(&textures[j])
 				}
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
+				return nil, false
 			}
-			success = vr.transitionImageLayout(&textures[i], a.InitialLayoutToVK(),
-				img.AspectToVK(), img.AccessToVK(), vk.NullCommandBuffer)
+			success = vr.transitionImageLayout(&textures[i], a.InitialLayout,
+				img.Aspect, img.Access, vk.NullCommandBuffer)
 			if !success {
 				for j := range i + 1 {
 					vr.textureIdFree(&textures[j])
 				}
 				slog.Error("failed to transition image layout for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
+				return nil, false
 			}
 		}
 	}
@@ -400,14 +400,14 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 	for i := range r.AttachmentDescriptions {
 		// TODO:  Flags
 		attachments[i].Flags = 0
-		attachments[i].Format = r.AttachmentDescriptions[i].FormatToVK(vr)
-		attachments[i].Samples = r.AttachmentDescriptions[i].SamplesToVK()
-		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOpToVK()
-		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOpToVK()
-		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOpToVK()
-		attachments[i].StencilStoreOp = r.AttachmentDescriptions[i].StencilStoreOpToVK()
-		attachments[i].InitialLayout = r.AttachmentDescriptions[i].InitialLayoutToVK()
-		attachments[i].FinalLayout = r.AttachmentDescriptions[i].FinalLayoutToVK()
+		attachments[i].Format = r.AttachmentDescriptions[i].Format
+		attachments[i].Samples = r.AttachmentDescriptions[i].Samples
+		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOp
+		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOp
+		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOp
+		attachments[i].StencilStoreOp = r.AttachmentDescriptions[i].StencilStoreOp
+		attachments[i].InitialLayout = r.AttachmentDescriptions[i].InitialLayout
+		attachments[i].FinalLayout = r.AttachmentDescriptions[i].FinalLayout
 	}
 	color := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	input := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
@@ -427,27 +427,27 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 		resolve[i] = make([]vk.AttachmentReference, len(r))
 		for j := range c {
 			color[i][j].Attachment = c[j].Attachment
-			color[i][j].Layout = c[j].LayoutToVK()
+			color[i][j].Layout = c[j].Layout
 		}
 		for j := range n {
 			input[i][j].Attachment = n[j].Attachment
-			input[i][j].Layout = n[j].LayoutToVK()
+			input[i][j].Layout = n[j].Layout
 		}
 		copy(p, preserve[i])
 		for j := range depthStencil {
 			depthStencil[i][j].Attachment = d[j].Attachment
-			depthStencil[i][j].Layout = d[j].LayoutToVK()
+			depthStencil[i][j].Layout = d[j].Layout
 		}
 		for j := range resolve {
 			resolve[i][j].Attachment = r[j].Attachment
-			resolve[i][j].Layout = r[j].LayoutToVK()
+			resolve[i][j].Layout = r[j].Layout
 		}
 	}
 	subpasses := make([]vk.SubpassDescription, len(r.SubpassDescriptions))
 	for i := range r.SubpassDescriptions {
 		// TODO:  Fill in the flags
 		subpasses[i].Flags = 0
-		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPointToVK()
+		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPoint
 		subpasses[i].ColorAttachmentCount = uint32(len(color))
 		subpasses[i].InputAttachmentCount = uint32(len(input))
 		subpasses[i].PreserveAttachmentCount = uint32(len(preserve))
@@ -471,17 +471,17 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 	for i := range r.SubpassDependencies {
 		selfDependencies[i].SrcSubpass = r.SubpassDependencies[i].SrcSubpass
 		selfDependencies[i].DstSubpass = r.SubpassDependencies[i].DstSubpass
-		selfDependencies[i].SrcStageMask = r.SubpassDependencies[i].SrcStageMaskToVK()
-		selfDependencies[i].DstStageMask = r.SubpassDependencies[i].DstStageMaskToVK()
-		selfDependencies[i].SrcAccessMask = r.SubpassDependencies[i].SrcAccessMaskToVK()
-		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMaskToVK()
-		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlagsToVK()
+		selfDependencies[i].SrcStageMask = r.SubpassDependencies[i].SrcStageMask
+		selfDependencies[i].DstStageMask = r.SubpassDependencies[i].DstStageMask
+		selfDependencies[i].SrcAccessMask = r.SubpassDependencies[i].SrcAccessMask
+		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMask
+		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlags
 	}
 	pass, err := NewRenderPass(vr.device, &vr.dbg,
 		attachments, subpasses, selfDependencies)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
-		return RenderPass{}, false
+		return nil, false
 	}
 	imageViews := make([]vk.ImageView, len(textures))
 	for i := range textures {
@@ -491,7 +491,7 @@ func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, boo
 		textures[0].Width, textures[0].Height)
 	if err != nil {
 		slog.Error("failed to create the frame buffer for the render pass", "error", err)
-		return RenderPass{}, false
+		return nil, false
 	}
 	return pass, true
 }

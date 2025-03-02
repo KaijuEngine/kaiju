@@ -237,7 +237,7 @@ func findBinChar(font fontBin, letter rune) fontBinChar {
 	return cached
 }
 
-func (cache FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
+func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
 	wrap := false
 	spaceIndex := 0
 	wx := float32(0.0)
@@ -265,7 +265,7 @@ func (cache FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, sc
 	}
 }
 
-func (cache FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool) *cachedLetterMesh {
+func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool) *cachedLetterMesh {
 	var outLetter *cachedLetterMesh
 	var ok bool
 	if isOrtho {
@@ -642,7 +642,7 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 	return max(1, lines)
 }
 
-func (cache FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
+func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
 	ch := findBinChar(cache.fontFaces[face], r)
 	return matrix.Vec2{ch.Width() * pixelSize,
 		ch.Height() * pixelSize}

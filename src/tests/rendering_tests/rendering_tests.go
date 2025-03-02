@@ -209,7 +209,12 @@ func testOIT(uiMan *ui.Manager) {
 		{0.0, 1.0, 0.0, 0.5},
 		{0.0, 0.0, 1.0, 0.5},
 	}
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+	matKey := assets.MaterialDefinitionBasic
+	material, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/square.png", rendering.TextureFilterNearest)
 	for i := 0; i < len(positions); i++ {
@@ -217,11 +222,11 @@ func testOIT(uiMan *ui.Manager) {
 		m := matrix.Mat4Identity()
 		m.Translate(positions[i])
 		tsd.SetModel(m)
+		material = material.CreateInstance([]*rendering.Texture{droidTex})
 		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:    host.Window.Renderer,
-			Shader:      shader,
+			Material:    material,
 			Mesh:        mesh,
-			Textures:    []*rendering.Texture{droidTex},
 			ShaderData:  &tsd,
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
@@ -346,11 +351,17 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
+	matKey := assets.MaterialDefinitionBasic
+	mat, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
+	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		Material:   mat,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
 		CanvasId:   "default",
 	})
@@ -439,11 +450,17 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 		SkinIndex: 0,
 	}
 	sd.Setup()
+	matKey := assets.MaterialDefinitionBasicSkinned
+	mat, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
+	mat = mat.CreateInstance(textures)
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasicSkinned),
+		Material:   mat,
 		Mesh:       mesh,
-		Textures:   textures,
 		ShaderData: &sd,
 		CanvasId:   "default",
 	})

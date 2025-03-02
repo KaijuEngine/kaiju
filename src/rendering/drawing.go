@@ -114,7 +114,9 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	idx := -1
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
-		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Material.Textures) && dg.UseBlending == g.useBlending {
+		if g.Mesh == dg.Mesh &&
+			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) &&
+			dg.UseBlending == g.useBlending {
 			idx = i
 		}
 	}
@@ -144,11 +146,12 @@ func (d *Drawings) PreparePending() {
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
 		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Material)
+			draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
 		} else {
 			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.AddInstance(drawing.ShaderData, drawing.Material)
-			group.Textures = drawing.Material.Textures
+			group.MaterialInstance = drawing.Material
+			group.AddInstance(drawing.ShaderData)
+			group.MaterialInstance.Textures = drawing.Material.Textures
 			group.useBlending = drawing.UseBlending
 			if idx >= 0 {
 				draw.instanceGroups[idx] = group

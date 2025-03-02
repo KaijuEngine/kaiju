@@ -639,7 +639,7 @@ func defaultOITPipeline(renderer Renderer, shader *Shader, shaderStages []vk.Pip
 	}
 
 	tess := vk.PipelineTessellationStateCreateInfo{}
-	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {
+	if len(shader.data.TessellationControl) > 0 || len(shader.data.TessellationEvaluation) > 0 {
 		tess.SType = vk.StructureTypePipelineTessellationStateCreateInfo
 		// Quad patches = 4
 		// Triangle patches = 3

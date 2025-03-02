@@ -160,7 +160,7 @@ func InstanceCopyDataNew(padding int) InstanceCopyData {
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
-	Textures          []*Texture
+	MaterialInstance  *Material
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
 	namedInstanceData map[string]InstanceCopyData
@@ -202,11 +202,11 @@ func (d *DrawInstanceGroup) TotalSize() int {
 	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, material *Material) {
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
 	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
-	for i := range material.shaderInfo.LayoutGroups {
-		g := &material.shaderInfo.LayoutGroups[i]
+	for i := range d.MaterialInstance.shaderInfo.LayoutGroups {
+		g := &d.MaterialInstance.shaderInfo.LayoutGroups[i]
 		for j := range g.Layouts {
 			if g.Layouts[j].IsBuffer() {
 				b := &g.Layouts[j]

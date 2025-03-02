@@ -66,7 +66,7 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, materi
 		vr := renderer.(*Vulkan)
 		d.descriptorSets, d.descriptorPool, _ = vr.createDescriptorSet(
 			material.Shader.RenderId.descriptorSetLayout, 0)
-		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.Textures))
+		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.MaterialInstance.Textures))
 		d.generatedSets = true
 		d.instanceBuffer.bindingId = 1
 		d.namedBuffers = make(map[string]ShaderBuffer)
