@@ -160,8 +160,13 @@ func testTwoDrawings(uiMan *ui.Manager) {
 		{0.0, 1.0, 0.0, 1.0},
 	}
 	rots := []matrix.Float{45, -45}
+	matKey := assets.MaterialDefinitionBasic
 	for i := 0; i < 2; i++ {
-		shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+		material, err := host.MaterialCache().Material(matKey)
+		if err != nil {
+			slog.Error("failed to load the material", "material", matKey, "error", err)
+			return
+		}
 		mesh := rendering.NewMeshQuad(host.MeshCache())
 		droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 		tsd := TestBasicShaderData{Color: colors[i]}
@@ -169,11 +174,11 @@ func testTwoDrawings(uiMan *ui.Manager) {
 		m.Rotate(matrix.Vec3{0.0, rots[i], 0.0})
 		m.Translate(positions[i])
 		tsd.SetModel(m)
+		material = material.CreateInstance([]*rendering.Texture{droidTex})
 		host.Drawings.AddDrawing(&rendering.Drawing{
 			Renderer:   host.Window.Renderer,
-			Shader:     shader,
+			Material:   material,
 			Mesh:       mesh,
-			Textures:   []*rendering.Texture{droidTex},
 			ShaderData: &tsd,
 			Transform:  nil,
 			CanvasId:   "default",
