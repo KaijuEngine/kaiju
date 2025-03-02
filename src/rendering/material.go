@@ -3,6 +3,8 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/assets"
+	"slices"
+	"strings"
 )
 
 type Material struct {
@@ -12,6 +14,24 @@ type Material struct {
 	pipelineInfo   ShaderPipelineDataCompiled
 	Shader         *Shader
 	Textures       []*Texture
+	Instances      map[string]*Material
+}
+
+func (m *Material) CreateInstance(textures []*Texture) *Material {
+	instanceKey := strings.Builder{}
+	for i := range textures {
+		instanceKey.WriteString(textures[i].Key)
+		instanceKey.WriteRune(';')
+	}
+	key := instanceKey.String()
+	if found, ok := m.Instances[key]; ok {
+		return found
+	}
+	copy := &Material{}
+	*copy = *m
+	copy.Textures = slices.Clone(textures)
+	m.Instances[key] = copy
+	return copy
 }
 
 type MaterialTextureData struct {

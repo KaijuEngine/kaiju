@@ -64,9 +64,9 @@ type RenderTargetDraw struct {
 	Target     Canvas
 }
 
-func (t *RenderTargetDraw) findShaderDraw(shader *Shader) (*ShaderDraw, bool) {
+func (t *RenderTargetDraw) findShaderDraw(material *Material) (*ShaderDraw, bool) {
 	for i := range t.innerDraws {
-		if t.innerDraws[i].shader == shader {
+		if t.innerDraws[i].material == material {
 			return &t.innerDraws[i], true
 		}
 	}
@@ -135,9 +135,9 @@ func (d *Drawings) PreparePending() {
 			d.draws = append(d.draws, newDraw)
 			rtDraw = &d.draws[len(d.draws)-1]
 		}
-		draw, ok := rtDraw.findShaderDraw(drawing.Material.Shader)
+		draw, ok := rtDraw.findShaderDraw(drawing.Material)
 		if !ok {
-			newDraw := NewShaderDraw(drawing.Material.Shader)
+			newDraw := NewShaderDraw(drawing.Material)
 			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
 			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
 		}

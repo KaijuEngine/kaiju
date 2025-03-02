@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
 )
 
 var ZAxisScaleFactor = float32(16.0)
@@ -126,7 +127,7 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	s.texture = texture
 	if s.drawing.IsValid() {
 		s.recreateDrawing()
-		s.drawing.Textures[0] = texture
+		s.drawing.Material.Textures[0] = texture
 		s.host.Drawings.AddDrawing(&s.drawing)
 	}
 }
@@ -226,7 +227,11 @@ func NewSprite(x, y, width, height matrix.Float,
 		flipBook: []*rendering.Texture{},
 	}
 	sprite.baseScale = matrix.Vec3{width, height, 1.0}
-	sh := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionSprite)
+	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionSprite)
+	if err != nil {
+		slog.Error("failed to load the sprite material", "error", err)
+		return nil
+	}
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	sprite.Entity.Transform.SetPosition(matrix.Vec3{x, y, 0})
 	sprite.Entity.Transform.SetScale(matrix.Vec3{width, height, 1})
@@ -236,11 +241,11 @@ func NewSprite(x, y, width, height matrix.Float,
 		FgColor:        color,
 		UVs:            matrix.Vec4{0.0, 0.0, 1.0, 1.0},
 	}
+	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:    host.Window.Renderer,
-		Shader:      sh,
+		Material:    mat,
 		Mesh:        mesh,
-		Textures:    []*rendering.Texture{texture},
 		ShaderData:  &sprite.shaderData,
 		Transform:   &sprite.Entity.Transform,
 		UseBlending: color.A() < 1,

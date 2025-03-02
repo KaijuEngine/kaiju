@@ -173,12 +173,12 @@ func endRender(commandBuffer vk.CommandBuffer) {
 	vk.EndCommandBuffer(commandBuffer)
 }
 
-func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, groups []DrawInstanceGroup) {
-	if shader == nil || shader.IsComposite() {
+func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, material *Material, groups []DrawInstanceGroup) {
+	if material == nil || material.IsComposite() {
 		return
 	}
 	vk.CmdBindPipeline(commandBuffer, vk.PipelineBindPointGraphics,
-		shader.RenderId.graphicsPipeline)
+		material.Shader.RenderId.graphicsPipeline)
 	for i := range groups {
 		group := &groups[i]
 		if !group.IsReady() || group.VisibleCount() == 0 {
@@ -190,7 +190,7 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, shader *Shader, gro
 		dynOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(commandBuffer,
 			vk.PipelineBindPointGraphics,
-			shader.RenderId.pipelineLayout, 0, 1,
+			material.Shader.RenderId.pipelineLayout, 0, 1,
 			&descriptorSets[0], 0, &dynOffsets[0])
 		meshId := group.Mesh.MeshId
 		vbOffsets := [...]vk.DeviceSize{0}
@@ -270,7 +270,10 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 	if len(vr.combinedDrawings.draws) != 1 ||
 		len(vr.combinedDrawings.draws[0].innerDraws) != 1 ||
 		len(vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups) != len(targets) {
-		combineShader := vr.caches.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionCombine)
+		combineMaterial, err := vr.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
+		if err != nil {
+			slog.Error("failed to load the combine material", "error", err)
+		}
 		vr.caches.ShaderCache().CreatePending()
 		mesh := NewMeshQuad(vr.caches.MeshCache())
 		sd := make([]ShaderDataBasic, len(targets))
@@ -280,11 +283,12 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 			m := matrix.Mat4Identity()
 			m.Scale(matrix.Vec3{1, 1, 1})
 			sd[i].SetModel(m)
+			// TODO:  Is this assignment correct?
+			combineMaterial.Textures = []*Texture{targets[i].Target.Color()}
 			vr.combinedDrawings.AddDrawing(&Drawing{
 				Renderer:   vr,
-				Shader:     combineShader,
+				Material:   combineMaterial,
 				Mesh:       mesh,
-				Textures:   []*Texture{targets[i].Target.Color()},
 				ShaderData: &sd[i],
 				CanvasId:   "combine",
 			})

@@ -579,19 +579,22 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			tex, _ = p.man.Host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
 		}
-		shader := p.man.Host.ShaderCache().ShaderFromDefinition(
-			assets.ShaderDefinitionUI)
+		material, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUI)
+		if err != nil {
+			slog.Error("failed to load the ui material for panel", "error", err)
+			return
+		}
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
 		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		p.textureSize = tex.Size()
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+		material = material.CreateInstance([]*rendering.Texture{tex})
 		pd.drawing = rendering.Drawing{
 			Renderer:   p.man.Host.Window.Renderer,
-			Shader:     shader,
+			Material:   material,
 			Mesh:       rendering.NewMeshQuad(p.man.Host.MeshCache()),
-			Textures:   []*rendering.Texture{tex},
 			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
 			CanvasId:   "default",
@@ -605,7 +608,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 func (p *Panel) Background() *rendering.Texture {
 	pd := p.PanelData()
 	if pd.drawing.IsValid() {
-		return pd.drawing.Textures[0]
+		return pd.drawing.Material.Textures[0]
 	}
 	return nil
 }
@@ -614,7 +617,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	pd := p.PanelData()
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
-		pd.drawing.Textures[0] = tex
+		pd.drawing.Material.Textures[0] = tex
 		p.man.Host.Drawings.AddDrawing(&pd.drawing)
 	}
 }

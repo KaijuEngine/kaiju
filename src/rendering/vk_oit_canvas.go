@@ -82,7 +82,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	for i := range drawings {
-		vr.writeDrawingDescriptors(drawings[i].shader, drawings[i].instanceGroups)
+		vr.writeDrawingDescriptors(drawings[i].material, drawings[i].instanceGroups)
 	}
 
 	cmd1 := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
@@ -93,7 +93,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	opaqueClear[1].SetDepthStencil(1.0, 0.0)
 	beginRender(r.opaquePass, vr.swapChainExtent, cmd1, opaqueClear[:])
 	for i := range drawings {
-		vr.renderEach(cmd1, drawings[i].shader, drawings[i].instanceGroups)
+		vr.renderEach(cmd1, drawings[i].material, drawings[i].instanceGroups)
 	}
 	endRender(cmd1)
 
@@ -105,7 +105,7 @@ func (r *OITCanvas) Draw(renderer Renderer, drawings []ShaderDraw) {
 	beginRender(r.transparentPass, vr.swapChainExtent, cmd2, transparentClear[:])
 	for i := range drawings {
 		vr.renderEachAlpha(cmd2,
-			drawings[i].shader.SubShader("transparent"),
+			drawings[i].material.Shader.SubShader("transparent"),
 			drawings[i].TransparentGroups())
 	}
 	offsets := vk.DeviceSize(0)

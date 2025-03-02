@@ -161,9 +161,9 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	// TODO:  Setup subshader in the shader definition?
 	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
-		subShader := NewShader(shader.data.Vertex, subShaderCheck,
-			shader.data.Geometry, shader.data.TessellationControl,
-			shader.data.TessellationEvaluation, shader.data.Name+oitSuffix, &vr.defaultCanvas.transparentPass)
+		cpy := shader.data
+		cpy.Fragment = subShaderCheck
+		subShader := NewShader(cpy)
 		subShader.DriverData = shader.DriverData
 		shader.AddSubShader("transparent", subShader)
 	}

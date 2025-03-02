@@ -129,15 +129,20 @@ func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointe
 
 func testDrawing(uiMan *ui.Manager) {
 	host := uiMan.Host
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+	matKey := assets.MaterialDefinitionBasic
+	material, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
+	material = material.CreateInstance([]*rendering.Texture{droidTex})
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     shader,
+		Material:   material,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{droidTex},
 		ShaderData: &tsd,
 		Transform:  nil,
 		CanvasId:   "default",
