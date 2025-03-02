@@ -24,7 +24,7 @@
 	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
 	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
 	{{range $_, $k := .List}}
-		<option value="{{$k}}">{{$k}}</option>
+		<option value="{{$k}}">{{$.PascalToTitle $k}}</option>
 	{{end}}
 	</select>
 </div>
