@@ -354,12 +354,16 @@ func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags 
 
 func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
-	textures := make([]TextureId, len(r.AttachmentDescriptions))
+	textures := make([]TextureId, 0, len(r.AttachmentDescriptions))
 	{
 		w := uint32(vr.swapChainExtent.Width)
 		h := uint32(vr.swapChainExtent.Height)
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
+			if a.LoadOpToVK() == vk.AttachmentLoadOpLoad {
+				continue
+			}
+			textures = append(textures, TextureId{})
 			img := &a.Image
 			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
 				a.Format, img.Tiling, img.Usage,
