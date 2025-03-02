@@ -39,64 +39,38 @@ package rendering
 
 import (
 	"kaiju/matrix"
-	"log/slog"
 	"slices"
 	"sync"
 )
 
 type Drawing struct {
-	Renderer     Renderer
-	Material     *Material
-	Mesh         *Mesh
-	ShaderData   DrawInstance
-	Transform    *matrix.Transform
-	CanvasId     string
-	UseBlending  bool
-	renderTarget Canvas
+	Renderer    Renderer
+	Material    *Material
+	Mesh        *Mesh
+	ShaderData  DrawInstance
+	Transform   *matrix.Transform
+	UseBlending bool
 }
 
 func (d *Drawing) IsValid() bool {
-	return d.Material != nil && d.renderTarget != nil
-}
-
-type RenderTargetDraw struct {
-	innerDraws []ShaderDraw
-	Target     Canvas
-}
-
-func (t *RenderTargetDraw) findShaderDraw(material *Material) (*ShaderDraw, bool) {
-	for i := range t.innerDraws {
-		if t.innerDraws[i].material == material {
-			return &t.innerDraws[i], true
-		}
-	}
-	return nil, false
+	return d.Material != nil
 }
 
 type Drawings struct {
-	draws     []RenderTargetDraw
+	draws     []ShaderDraw
 	backDraws []Drawing
 	mutex     sync.RWMutex
 }
 
 func NewDrawings() Drawings {
 	return Drawings{
-		draws:     make([]RenderTargetDraw, 0),
+		draws:     make([]ShaderDraw, 0),
 		backDraws: make([]Drawing, 0),
 		mutex:     sync.RWMutex{},
 	}
 }
 
 func (d *Drawings) HasDrawings() bool { return len(d.draws) > 0 }
-
-func (d *Drawings) findRenderTargetDraw(target Canvas) (*RenderTargetDraw, bool) {
-	for i := range d.draws {
-		if d.draws[i].Target == target {
-			return &d.draws[i], true
-		}
-	}
-	return nil, false
-}
 
 func texturesMatch(a []*Texture, b []*Texture) bool {
 	if len(a) != len(b) {
@@ -123,25 +97,25 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	return idx
 }
 
+func (d *Drawings) findShaderDraw(material *Material) (*ShaderDraw, bool) {
+	for i := range d.draws {
+		if d.draws[i].material == material {
+			return &d.draws[i], true
+		}
+	}
+	return nil, false
+}
+
 func (d *Drawings) PreparePending() {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
 		drawing := &d.backDraws[i]
-		rtDraw, ok := d.findRenderTargetDraw(drawing.renderTarget)
-		if !ok {
-			newDraw := RenderTargetDraw{
-				innerDraws: make([]ShaderDraw, 0),
-				Target:     drawing.renderTarget,
-			}
-			d.draws = append(d.draws, newDraw)
-			rtDraw = &d.draws[len(d.draws)-1]
-		}
-		draw, ok := rtDraw.findShaderDraw(drawing.Material)
+		draw, ok := d.findShaderDraw(drawing.Material)
 		if !ok {
 			newDraw := NewShaderDraw(drawing.Material)
-			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
-			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
+			d.draws = append(d.draws, newDraw)
+			draw = &d.draws[len(d.draws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
@@ -164,21 +138,12 @@ func (d *Drawings) PreparePending() {
 }
 
 func (d *Drawings) AddDrawing(drawing *Drawing) {
-	if t, ok := drawing.Renderer.Canvas(drawing.CanvasId); ok {
-		drawing.renderTarget = t
-	} else {
-		slog.Error("Could not find render target, using default",
-			slog.String("id", drawing.CanvasId))
-	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, *drawing)
 }
 
-func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
-	for i := range drawings {
-		drawings[i].renderTarget = target
-	}
+func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawings...)
@@ -188,15 +153,12 @@ func (d *Drawings) Render(renderer Renderer) {
 	if len(d.draws) == 0 {
 		return
 	}
-	renderer.Draw(d.draws)
-	renderer.BlitTargets(d.draws...)
+	renderer.BlitTargets(renderer.Draw(d.draws))
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {
 	for i := range d.draws {
-		for j := range d.draws[i].innerDraws {
-			d.draws[i].innerDraws[j].Destroy(renderer)
-		}
+		d.draws[i].Destroy(renderer)
 	}
 	d.draws = d.draws[:0]
 }

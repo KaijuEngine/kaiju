@@ -51,8 +51,8 @@ type Renderer interface {
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
-	Draw(drawings []RenderTargetDraw)
-	BlitTargets(targets ...RenderTargetDraw)
+	Draw(drawings []ShaderDraw) []*RenderPass
+	BlitTargets(passes []*RenderPass)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
@@ -61,8 +61,5 @@ type Renderer interface {
 	DestroyShader(shader *Shader)
 	DestroyMesh(mesh *Mesh)
 	Destroy()
-	RegisterCanvas(name string, canvas Canvas)
-	Canvas(name string) (Canvas, bool)
-	DefaultCanvas() Canvas
 	WaitForRender()
 }

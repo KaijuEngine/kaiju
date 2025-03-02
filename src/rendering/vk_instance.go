@@ -54,7 +54,7 @@ func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 			vr.depth.View,
 			vr.swapImages[i].View,
 		}
-		vr.swapChainFrameBuffers[i], success = vr.CreateFrameBuffer(&vr.swapChainRenderPass, attachments,
+		vr.swapChainFrameBuffers[i], success = vr.CreateFrameBuffer(vr.swapChainRenderPass, attachments,
 			vr.swapChainExtent.Width, vr.swapChainExtent.Height)
 	}
 	return success

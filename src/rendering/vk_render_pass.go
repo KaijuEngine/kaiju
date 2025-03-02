@@ -44,16 +44,20 @@ import (
 )
 
 type RenderPass struct {
-	Handle vk.RenderPass
-	Buffer vk.Framebuffer
-	device vk.Device
-	dbg    *debugVulkan
+	Handle       vk.RenderPass
+	Buffer       vk.Framebuffer
+	device       vk.Device
+	dbg          *debugVulkan
+	textures     []Texture
+	construction RenderPassDataCompiled
 }
 
-func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency) (*RenderPass, error) {
+func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency, textures []Texture, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
-		device: device,
-		dbg:    dbg,
+		device:       device,
+		dbg:          dbg,
+		textures:     textures,
+		construction: *setup,
 	}
 	info := vk.RenderPassCreateInfo{}
 	info.SType = vk.StructureTypeRenderPassCreateInfo

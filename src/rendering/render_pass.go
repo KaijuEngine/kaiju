@@ -354,46 +354,46 @@ func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags 
 
 func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
-	textures := make([]TextureId, 0, len(r.AttachmentDescriptions))
+	textures := make([]Texture, 0, len(r.AttachmentDescriptions))
 	{
 		w := uint32(vr.swapChainExtent.Width)
 		h := uint32(vr.swapChainExtent.Height)
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
-			if a.LoadOpToVK() == vk.AttachmentLoadOpLoad {
+			if a.LoadOp == vk.AttachmentLoadOpLoad {
 				continue
 			}
-			textures = append(textures, TextureId{})
+			textures = append(textures, Texture{})
 			img := &a.Image
 			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
 				a.Format, img.Tiling, img.Usage,
-				img.MemoryProperty, &textures[i], int(img.LayerCount))
+				img.MemoryProperty, &textures[i].RenderId, int(img.LayerCount))
 			if !success {
 				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
 				return nil, false
 			}
-			success = vr.createImageView(&textures[i], img.Aspect)
+			success = vr.createImageView(&textures[i].RenderId, img.Aspect)
 			if !success {
 				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
+					vr.textureIdFree(&textures[j].RenderId)
 				}
 				slog.Error("failed to create image view for render pass attachment", "attachmentIndex", i)
 				return nil, false
 			}
-			success = vr.createTextureSampler(&textures[i].Sampler,
+			success = vr.createTextureSampler(&textures[i].RenderId.Sampler,
 				img.MipLevels, img.Filter)
 			if !success {
 				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
+					vr.textureIdFree(&textures[j].RenderId)
 				}
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
 				return nil, false
 			}
-			success = vr.transitionImageLayout(&textures[i], a.InitialLayout,
+			success = vr.transitionImageLayout(&textures[i].RenderId, a.InitialLayout,
 				img.Aspect, img.Access, vk.NullCommandBuffer)
 			if !success {
 				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
+					vr.textureIdFree(&textures[j].RenderId)
 				}
 				slog.Error("failed to transition image layout for render pass attachment", "attachmentIndex", i)
 				return nil, false
@@ -481,18 +481,20 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMask
 		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlags
 	}
+	// Textures are handed off to the render pass, don't continue to use them
+	// after this point
 	pass, err := NewRenderPass(vr.device, &vr.dbg,
-		attachments, subpasses, selfDependencies)
+		attachments, subpasses, selfDependencies, textures, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
 		return nil, false
 	}
-	imageViews := make([]vk.ImageView, len(textures))
-	for i := range textures {
-		imageViews[i] = textures[i].View
+	imageViews := make([]vk.ImageView, len(pass.textures))
+	for i := range pass.textures {
+		imageViews[i] = pass.textures[i].RenderId.View
 	}
 	err = pass.CreateFrameBuffer(vr, imageViews,
-		textures[0].Width, textures[0].Height)
+		pass.textures[0].Width, pass.textures[0].Height)
 	if err != nil {
 		slog.Error("failed to create the frame buffer for the render pass", "error", err)
 		return nil, false

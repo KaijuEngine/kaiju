@@ -254,10 +254,11 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 	}
 }
 
-func (vr *Vulkan) materialDraw(drawings []ShaderDraw) {
-	if len(drawings) == 0 {
-		return
+func (vr *Vulkan) Draw(drawings []ShaderDraw) []*RenderPass {
+	if !vr.hasSwapChain || len(drawings) == 0 {
+		return []*RenderPass{}
 	}
+	passes := []*RenderPass{}
 	material := drawings[0].material
 	if material.Root.Value() != nil {
 		material = material.Root.Value()
@@ -271,27 +272,27 @@ func (vr *Vulkan) materialDraw(drawings []ShaderDraw) {
 	vr.commandBuffersCount++
 	beginRender(material.renderPass, vr.swapChainExtent, cmd, material.Clears)
 	for i := range drawings {
-		vr.renderEach(cmd, drawings[i].material, drawings[i].instanceGroups)
+		mat := drawings[i].material
+		vr.renderEach(cmd, mat, drawings[i].instanceGroups)
+		foundPass := false
+		for j := 0; j < len(passes) && !foundPass; j++ {
+			foundPass = passes[j] == mat.renderPass
+		}
+		if !foundPass {
+			passes = append(passes, mat.renderPass)
+		}
 	}
 	endRender(cmd)
+	return passes
 }
 
-func (vr *Vulkan) Draw(drawings []RenderTargetDraw) {
-	if !vr.hasSwapChain {
-		return
-	}
-	for i := range drawings {
-		vr.materialDraw(drawings[i].innerDraws)
-	}
-}
-
-func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
-	if len(targets) == 1 {
+func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
+	if len(passes) == 1 {
 		return
 	}
 	if len(vr.combinedDrawings.draws) != 1 ||
-		len(vr.combinedDrawings.draws[0].innerDraws) != 1 ||
-		len(vr.combinedDrawings.draws[0].innerDraws[0].instanceGroups) != len(targets) {
+		len(vr.combinedDrawings.draws) != 1 ||
+		len(vr.combinedDrawings.draws[0].instanceGroups) != len(targets) {
 		combineMaterial, err := vr.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
 		if err != nil {
 			slog.Error("failed to load the combine material", "error", err)
@@ -306,22 +307,29 @@ func (vr *Vulkan) prepCombinedTargets(targets ...RenderTargetDraw) {
 			m.Scale(matrix.Vec3{1, 1, 1})
 			sd[i].SetModel(m)
 			// TODO:  Is this assignment correct?
-			combineMaterial.Textures = []*Texture{targets[i].Target.Color()}
+			combineMaterial.Textures = []*Texture{&targets[i].material.renderPass.textures[0]}
 			vr.combinedDrawings.AddDrawing(&Drawing{
 				Renderer:   vr,
 				Material:   combineMaterial,
 				Mesh:       mesh,
 				ShaderData: &sd[i],
-				CanvasId:   "combine",
 			})
 		}
 		vr.combinedDrawings.PreparePending()
 	}
 }
 
-func (vr *Vulkan) combineTargets(targets ...RenderTargetDraw) Canvas {
-	if len(targets) == 1 {
-		return targets[0].Target.(*OITCanvas)
+func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
+	if len(passes) == 1 {
+		// TODO:  This needs to find the correct texture in the pass
+		for i := range passes[0].construction.AttachmentDescriptions {
+			a := &passes[0].construction.AttachmentDescriptions[i]
+			if (a.Image.Usage & vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit)) != 0 {
+				return &passes[0].textures[i].RenderId
+			}
+		}
+		slog.Error("failed to find a color attachment for the only render pass", "renderPass", passes[0].construction.Name)
+		return &passes[0].textures[0].RenderId
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -365,12 +373,12 @@ func (vr *Vulkan) cleanupCombined(targets ...RenderTargetDraw) {
 	vk.EndCommandBuffer(cmd)
 }
 
-func (vr *Vulkan) BlitTargets(targets ...RenderTargetDraw) {
+func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	if !vr.hasSwapChain {
 		return
 	}
-	vr.prepCombinedTargets(targets...)
-	combined := vr.combineTargets(targets...)
+	vr.prepCombinedTargets(passes)
+	combined := vr.combineTargets(passes)
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	idxSF := vr.imageIndex[frame]
