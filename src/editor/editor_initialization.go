@@ -111,19 +111,8 @@ func constructEditorUI(ed *Editor) {
 	setupViewportGrid(ed)
 	{
 		// TODO:  Testing tools
-		win := ed.Host().Window
-		ot := &rendering.OITCanvas{}
-		ot.Initialize(win.Renderer, float32(win.Width()), float32(win.Height()))
-		ot.Create(win.Renderer)
-		win.Renderer.RegisterCanvas("editor_overlay", ot)
-		dc := ed.Host().Window.Renderer.DefaultCanvas()
-		dc.(*rendering.OITCanvas).ClearColor = matrix.ColorTransparent()
-		ot.ClearColor = matrix.ColorTransparent()
-		ed.overlayCanvas = ot
 		ed.transformTool = transform_tools.New(ed.Host(), ed, "editor_overlay", &ed.history)
-		ed.selection.Changed.Add(func() {
-			ed.transformTool.Disable()
-		})
+		ed.selection.Changed.Add(func() { ed.transformTool.Disable() })
 	}
 	ed.Host().DoneCreatingEditorEntities()
 }

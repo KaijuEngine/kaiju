@@ -47,7 +47,6 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 		Mesh:       mesh,
 		ShaderData: data,
 		Transform:  &e.Transform,
-		CanvasId:   "default",
 	}
 	host.Drawings.AddDrawing(&drawing)
 	e.EditorBindings.AddDrawing(drawing)

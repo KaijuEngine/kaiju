@@ -441,7 +441,8 @@ func (vr *Vulkan) createSwapChainRenderPass() bool {
 	attachments := []vk.AttachmentDescription{colorAttachment, depthAttachment, colorAttachmentResolve}
 
 	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments,
-		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{dependency})
+		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{dependency},
+		[]Texture{{RenderId: vr.swapImages[0]}})
 	if err != nil {
 		slog.Error("Failed to create render pass")
 		return false
