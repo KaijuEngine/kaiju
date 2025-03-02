@@ -35,9 +35,7 @@ type DataUISectionField struct {
 }
 
 func (f DataUISectionField) DisplayName() string {
-	re := regexp.MustCompile("([A-Z])")
-	result := re.ReplaceAllString(f.Name, " $1")
-	return strings.TrimSpace(result)
+	return f.PascalToTitle(f.Name)
 }
 
 func (f DataUISectionField) FullPath() string {
@@ -45,6 +43,12 @@ func (f DataUISectionField) FullPath() string {
 		return f.RootPath + "." + f.Name
 	}
 	return f.Name
+}
+
+func (f DataUISectionField) PascalToTitle(str string) string {
+	re := regexp.MustCompile("([A-Z])")
+	result := re.ReplaceAllString(str, " $1")
+	return strings.TrimSpace(result)
 }
 
 func (f DataUISectionField) ValueListHas(val string) bool {

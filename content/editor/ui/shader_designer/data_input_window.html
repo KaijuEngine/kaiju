@@ -4,8 +4,8 @@
 	<div class="inputFlags lightDarkBG">
 		{{range $_, $k := .List}}
 			<div class="checkboxListEntry">
-				<input name="{{$k}}"  data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas $k)}}checked="checked"{{end}} onchange="valueChanged" />
-				<span class="inputCheckLabel">{{$k}}</span>
+				<input name="{{$k}}" data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas $k)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheckLabel">{{$.PascalToTitle $k}}</span>
 			</div>
 		{{end}}
 	</div>
