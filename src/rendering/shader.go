@@ -78,6 +78,10 @@ type ShaderDataCompiled struct {
 }
 
 func (d *ShaderData) CompileVariantName(path, flags string) string {
+	// It is possible to have 2 shaders which have modules in common but other
+	// modules are different. When compiling using flags, the output file name
+	// will have the shader name prefixed to it as it's a variant. This will
+	// make it so that we don't have 2 copies of the same module.
 	name := filepath.Base(path)
 	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1) + ".spv")
 	if flags != "" {
