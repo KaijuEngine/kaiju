@@ -176,9 +176,9 @@ func (d *Drawings) Render(renderer Renderer) {
 	}
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	for i := range d.renderPassGroups {
-		if len(d.renderPassGroups[i].draws) > 0 {
-			renderer.Draw(d.renderPassGroups[i].renderPass, d.renderPassGroups[i].draws)
-			passes = append(passes, d.renderPassGroups[i].renderPass)
+		rp := d.renderPassGroups[i].renderPass
+		if renderer.Draw(rp, d.renderPassGroups[i].draws) {
+			passes = append(passes, rp)
 		}
 	}
 	if len(passes) > 0 {

@@ -59,21 +59,29 @@ func (vr *Vulkan) findSupportedFormat(candidates []vk.Format, tiling vk.ImageTil
 	return candidates[0]
 }
 
-func (vr *Vulkan) findDepthFormat() vk.Format {
-	// TODO:  Pass in vk.ImageTiling
-	candidates := []vk.Format{vk.FormatX8D24UnormPack32,
+func depthFormatCandidates() []vk.Format {
+	return []vk.Format{vk.FormatX8D24UnormPack32,
 		vk.FormatD24UnormS8Uint, vk.FormatD32Sfloat,
 		vk.FormatD32SfloatS8Uint, vk.FormatD16Unorm,
 		vk.FormatD16UnormS8Uint,
 	}
+}
+
+func depthStencilFormatCandidates() []vk.Format {
+	return []vk.Format{vk.FormatD24UnormS8Uint,
+		vk.FormatD32SfloatS8Uint, vk.FormatD16UnormS8Uint,
+	}
+}
+
+func (vr *Vulkan) findDepthFormat() vk.Format {
+	// TODO:  Pass in vk.ImageTiling
+	candidates := depthFormatCandidates()
 	return vr.findSupportedFormat(candidates, vk.ImageTilingOptimal, vk.FormatFeatureFlags(vk.FormatFeatureDepthStencilAttachmentBit))
 }
 
 func (vr *Vulkan) findDepthStencilFormat() vk.Format {
 	// TODO:  Pass in vk.ImageTiling
-	candidates := []vk.Format{vk.FormatD24UnormS8Uint,
-		vk.FormatD32SfloatS8Uint, vk.FormatD16UnormS8Uint,
-	}
+	candidates := depthStencilFormatCandidates()
 	return vr.findSupportedFormat(candidates, vk.ImageTilingOptimal, vk.FormatFeatureFlags(vk.FormatFeatureDepthStencilAttachmentBit))
 }
 

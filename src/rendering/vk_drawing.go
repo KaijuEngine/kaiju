@@ -261,9 +261,9 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	if !vr.hasSwapChain || len(drawings) == 0 {
-		return
+		return false
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -272,18 +272,14 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) {
 	}
 	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
-	// TODO:  Different materials...
-	material := drawings[0].material
-	if material.Root.Value() != nil {
-		material = material.Root.Value()
-	}
-	// TODO:  Move clears from materials to render pass
-	beginRender(renderPass, vr.swapChainExtent, cmd, material.Clears)
+	beginRender(renderPass, vr.swapChainExtent,
+		cmd, renderPass.construction.ImageClears)
 	for i := range drawings {
 		mat := drawings[i].material
 		vr.renderEach(cmd, mat, drawings[i].instanceGroups)
 	}
 	endRender(cmd)
+	return true
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {

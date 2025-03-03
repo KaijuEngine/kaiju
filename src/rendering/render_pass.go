@@ -29,12 +29,22 @@ type RenderPassAttachmentDescription struct {
 type RenderPassAttachmentImage struct {
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         string   `options:"StringVkImageTiling"`
-	Filter         string   `options:"StringVkFilter"`
-	Usage          []string `options:"StringVkImageUsageFlagBits"`
-	MemoryProperty []string `options:"StringVkMemoryPropertyFlagBits"`
-	Aspect         []string `options:"StringVkImageAspectFlagBits"`
-	Access         []string `options:"StringVkAccessFlagBits"`
+	Tiling         string                         `options:"StringVkImageTiling"`
+	Filter         string                         `options:"StringVkFilter"`
+	Usage          []string                       `options:"StringVkImageUsageFlagBits"`
+	MemoryProperty []string                       `options:"StringVkMemoryPropertyFlagBits"`
+	Aspect         []string                       `options:"StringVkImageAspectFlagBits"`
+	Access         []string                       `options:"StringVkAccessFlagBits"`
+	Clear          RenderPassAttachmentImageClear `tip:"AttachmentImageClear"`
+}
+
+type RenderPassAttachmentImageClear struct {
+	R       float32
+	G       float32
+	B       float32
+	A       float32
+	Depth   float32
+	Stencil uint32
 }
 
 type RenderPassSubpassDescription struct {
@@ -66,6 +76,7 @@ type RenderPassDataCompiled struct {
 	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
 	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
+	ImageClears            []vk.ClearValue
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
@@ -128,6 +139,7 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
 		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
 	}
+	c.ImageClears = make([]vk.ClearValue, 0, len(d.AttachmentDescriptions))
 	for i := range d.AttachmentDescriptions {
 		a := &c.AttachmentDescriptions[i]
 		b := &d.AttachmentDescriptions[i]
@@ -148,6 +160,15 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 			a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
 			a.Image.Aspect = b.Image.AspectToVK()
 			a.Image.Access = b.Image.AccessToVK()
+			clear := vk.ClearValue{}
+			isDepth := a.IsDepthFormat()
+			bClear := b.Image.Clear
+			if isDepth {
+				clear.SetDepthStencil(bClear.Depth, bClear.Stencil)
+			} else {
+				clear.SetColor([]float32{bClear.R, bClear.G, bClear.B, bClear.A})
+			}
+			c.ImageClears = append(c.ImageClears, clear)
 		}
 	}
 	for i := range d.SubpassDescriptions {
@@ -277,6 +298,15 @@ func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
 
 func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags {
 	return dependencyFlagsToVK(sd.DependencyFlags)
+}
+
+func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
+	isDepth := false
+	depthCandidates := depthFormatCandidates()
+	for i := 0; i < len(depthCandidates) && !isDepth; i++ {
+		isDepth = p.Format == depthCandidates[i]
+	}
+	return isDepth
 }
 
 func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {

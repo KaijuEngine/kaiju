@@ -3,7 +3,6 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/assets"
-	vk "kaiju/rendering/vulkan"
 	"log/slog"
 	"slices"
 	"strings"
@@ -20,7 +19,6 @@ type Material struct {
 	Textures     []*Texture
 	Instances    map[string]*Material
 	Root         weak.Pointer[Material]
-	Clears       []vk.ClearValue
 	mutex        sync.Mutex
 }
 
@@ -29,24 +27,12 @@ type MaterialTextureData struct {
 	Filter  string `options:"StringVkFilter"`
 }
 
-type MaterialClearColorData struct {
-	IsColor        bool
-	R              float32
-	G              float32
-	B              float32
-	A              float32
-	IsDepthStencil bool
-	Depth          float32
-	Stencil        uint32
-}
-
 type MaterialData struct {
 	Name           string
 	Shader         string `options:""` // Blank options uses fallback
 	RenderPass     string `options:""` // Blank options uses fallback
 	ShaderPipeline string `options:""` // Blank options uses fallback
 	Textures       []MaterialTextureData
-	Clears         []MaterialClearColorData
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -145,18 +131,6 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 			return c, err
 		}
 		c.Textures[i] = tex
-	}
-	c.Clears = make([]vk.ClearValue, len(d.Clears))
-	for i := range d.Clears {
-		dc := &d.Clears[i]
-		if dc.IsColor == dc.IsDepthStencil {
-			slog.Error("clears for material can't be both color and depth stencil", "index", i, "material", d.Name)
-		}
-		if dc.IsDepthStencil {
-			c.Clears[i].SetDepthStencil(dc.Depth, dc.Stencil)
-		} else {
-			c.Clears[i].SetColor([]float32{dc.R, dc.G, dc.B, dc.A})
-		}
 	}
 	return c, nil
 }
