@@ -56,21 +56,26 @@ func (d *Drawing) IsValid() bool {
 	return d.Material != nil
 }
 
+type RenderPassGroup struct {
+	renderPass *RenderPass
+	draws      []ShaderDraw
+}
+
 type Drawings struct {
-	draws     []ShaderDraw
-	backDraws []Drawing
-	mutex     sync.RWMutex
+	renderPassGroups []RenderPassGroup
+	backDraws        []Drawing
+	mutex            sync.RWMutex
 }
 
 func NewDrawings() Drawings {
 	return Drawings{
-		draws:     make([]ShaderDraw, 0),
-		backDraws: make([]Drawing, 0),
-		mutex:     sync.RWMutex{},
+		renderPassGroups: make([]RenderPassGroup, 0),
+		backDraws:        make([]Drawing, 0),
+		mutex:            sync.RWMutex{},
 	}
 }
 
-func (d *Drawings) HasDrawings() bool { return len(d.draws) > 0 }
+func (d *Drawings) HasDrawings() bool { return len(d.renderPassGroups) > 0 }
 
 func texturesMatch(a []*Texture, b []*Texture) bool {
 	if len(a) != len(b) {
@@ -97,10 +102,19 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	return idx
 }
 
-func (d *Drawings) findShaderDraw(material *Material) (*ShaderDraw, bool) {
+func (d *RenderPassGroup) findShaderDraw(material *Material) (*ShaderDraw, bool) {
 	for i := range d.draws {
 		if d.draws[i].material == material {
 			return &d.draws[i], true
+		}
+	}
+	return nil, false
+}
+
+func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup, bool) {
+	for i := range d.renderPassGroups {
+		if d.renderPassGroups[i].renderPass == renderPass {
+			return &d.renderPassGroups[i], true
 		}
 	}
 	return nil, false
@@ -111,11 +125,18 @@ func (d *Drawings) PreparePending() {
 	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
 		drawing := &d.backDraws[i]
-		draw, ok := d.findShaderDraw(drawing.Material)
+		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
+		if !ok {
+			d.renderPassGroups = append(d.renderPassGroups, RenderPassGroup{
+				renderPass: drawing.Material.renderPass,
+			})
+			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
+		}
+		draw, ok := rpGroup.findShaderDraw(drawing.Material)
 		if !ok {
 			newDraw := NewShaderDraw(drawing.Material)
-			d.draws = append(d.draws, newDraw)
-			draw = &d.draws[len(d.draws)-1]
+			rpGroup.draws = append(rpGroup.draws, newDraw)
+			draw = &rpGroup.draws[len(rpGroup.draws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
@@ -150,15 +171,26 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
-	if len(d.draws) == 0 {
+	if len(d.renderPassGroups) == 0 {
 		return
 	}
-	renderer.BlitTargets(renderer.Draw(d.draws))
+	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
+	for i := range d.renderPassGroups {
+		if len(d.renderPassGroups[i].draws) > 0 {
+			renderer.Draw(d.renderPassGroups[i].renderPass, d.renderPassGroups[i].draws)
+			passes = append(passes, d.renderPassGroups[i].renderPass)
+		}
+	}
+	if len(passes) > 0 {
+		renderer.BlitTargets(passes)
+	}
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {
-	for i := range d.draws {
-		d.draws[i].Destroy(renderer)
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			d.renderPassGroups[i].draws[j].Destroy(renderer)
+		}
 	}
-	d.draws = d.draws[:0]
+	d.renderPassGroups = d.renderPassGroups[:0]
 }

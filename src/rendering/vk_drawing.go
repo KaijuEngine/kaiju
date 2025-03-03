@@ -261,14 +261,9 @@ func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader
 	}
 }
 
-func (vr *Vulkan) Draw(drawings []ShaderDraw) []*RenderPass {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) {
 	if !vr.hasSwapChain || len(drawings) == 0 {
-		return []*RenderPass{}
-	}
-	passes := []*RenderPass{}
-	material := drawings[0].material
-	if material.Root.Value() != nil {
-		material = material.Root.Value()
+		return
 	}
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
@@ -277,29 +272,28 @@ func (vr *Vulkan) Draw(drawings []ShaderDraw) []*RenderPass {
 	}
 	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
 	vr.commandBuffersCount++
-	beginRender(material.renderPass, vr.swapChainExtent, cmd, material.Clears)
+	// TODO:  Different materials...
+	material := drawings[0].material
+	if material.Root.Value() != nil {
+		material = material.Root.Value()
+	}
+	// TODO:  Move clears from materials to render pass
+	beginRender(renderPass, vr.swapChainExtent, cmd, material.Clears)
 	for i := range drawings {
 		mat := drawings[i].material
 		vr.renderEach(cmd, mat, drawings[i].instanceGroups)
-		foundPass := false
-		for j := 0; j < len(passes) && !foundPass; j++ {
-			foundPass = passes[j] == mat.renderPass
-		}
-		if !foundPass {
-			passes = append(passes, mat.renderPass)
-		}
 	}
 	endRender(cmd)
-	return passes
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	if len(passes) == 1 {
 		return
 	}
-	if len(vr.combinedDrawings.draws) != 1 ||
-		len(vr.combinedDrawings.draws) != 1 ||
-		len(vr.combinedDrawings.draws[0].instanceGroups) != len(passes) {
+	if len(vr.combinedDrawings.renderPassGroups) != 1 ||
+		len(vr.combinedDrawings.renderPassGroups) != 1 ||
+		// TODO:  WTF is this if statement...
+		len(vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups) != len(passes) {
 		combineMaterial, err := vr.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
 		if err != nil {
 			slog.Error("failed to load the combine material", "error", err)
@@ -347,15 +341,17 @@ func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
 		slog.Error("Failed to begin recording command buffer")
 		return &passes[0].textures[0].RenderId
 	}
-	for i := range vr.combinedDrawings.draws[0].instanceGroups {
-		color := &vr.combinedDrawings.draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
+	// TODO:  I don't know what on God's green earth is going on here, needs review
+	for i := range vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups {
+		color := &vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
 	vk.EndCommandBuffer(cmd)
 	vr.combinedDrawings.PreparePending()
-	combinePass := vr.Draw(vr.combinedDrawings.draws)
-	return &combinePass[0].textures[0].RenderId
+	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
+	vr.Draw(combinePass, vr.combinedDrawings.renderPassGroups[0].draws)
+	return &combinePass.textures[0].RenderId
 }
 
 func (vr *Vulkan) cleanupCombined() {
@@ -368,8 +364,9 @@ func (vr *Vulkan) cleanupCombined() {
 		slog.Error("Failed to begin recording command buffer")
 		return
 	}
-	for i := range vr.combinedDrawings.draws[0].instanceGroups {
-		color := &vr.combinedDrawings.draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
+	// TODO:  I don't know what on God's green earth is going on here, needs review
+	for i := range vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups {
+		color := &vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
 			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
