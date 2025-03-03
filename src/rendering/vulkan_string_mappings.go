@@ -660,8 +660,9 @@ func imageTilingToVK(val string) vk.ImageTiling {
 func filterToVK(val string) vk.Filter {
 	if res, ok := StringVkFilter[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for filter", "value", val)
 	}
-	slog.Warn("invalid string for filter", "value", val)
 	return vk.FilterLinear
 }
 

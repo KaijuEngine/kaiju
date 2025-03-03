@@ -230,8 +230,12 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					if len(child.Children) > 0 {
 						childText = child.Children[0].Data()
 					}
-					sel.AddOption(childText)
 					val := child.Attribute("value")
+					if val != "" {
+						sel.AddOption(val)
+					} else {
+						sel.AddOption(childText)
+					}
 					if val == selectStartValue {
 						sel.PickOption(i)
 					} else if val == "" && childText == selectStartValue {
