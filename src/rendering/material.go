@@ -99,14 +99,18 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 		Instances: make(map[string]*Material),
 	}
 	sd := ShaderData{}
+	rp := RenderPassData{}
+	sp := ShaderPipelineData{}
 	if err := materialUnmarshallData(assets, d.Shader, &sd); err != nil {
 		return c, err
 	}
-	c.shaderInfo = sd.Compile()
-	rp := RenderPassData{}
 	if err := materialUnmarshallData(assets, d.RenderPass, &rp); err != nil {
 		return c, err
 	}
+	if err := materialUnmarshallData(assets, d.ShaderPipeline, &sp); err != nil {
+		return c, err
+	}
+	c.shaderInfo = sd.Compile()
 	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(vr)
 		if p, ok := rpc.ConstructRenderPass(vr); ok {
@@ -118,10 +122,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	} else {
 		c.renderPass = pass
 	}
-	sp := ShaderPipelineData{}
-	if err := materialUnmarshallData(assets, d.Shader, &sp); err != nil {
-		return c, err
-	}
+	c.pipelineInfo = sp.Compile()
 	shaderConfig, err := assets.ReadText(d.Shader)
 	if err != nil {
 		return c, err
@@ -131,7 +132,6 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 		return c, err
 	}
 	c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
-	c.pipelineInfo = sp.Compile()
 	c.Shader.pipelineInfo = &c.pipelineInfo
 	c.Shader.renderPass = c.renderPass
 	for i := range d.Textures {

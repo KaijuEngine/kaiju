@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	vk "kaiju/rendering/vulkan"
 	"path/filepath"
 	"strings"
 )
@@ -77,6 +78,67 @@ type ShaderDataCompiled struct {
 	TessellationControl    string
 	TessellationEvaluation string
 	LayoutGroups           []ShaderLayoutGroup
+}
+
+func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup {
+	for i := range s.LayoutGroups {
+		if s.LayoutGroups[i].Type == stage {
+			return &s.LayoutGroups[i]
+		}
+	}
+	return nil
+}
+
+func (sd *ShaderDataCompiled) Stride() uint32 {
+	stride := uint32(0)
+	g := sd.SelectLayout("Vertex")
+	for i := range g.Layouts {
+		l := &g.Layouts[i]
+		if l.Source == "in" && l.Location >= 8 {
+			stride += uint32(fieldSize(l.Type, l.FullName()))
+		}
+	}
+	return stride
+}
+
+func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription {
+	attrs := make([]vk.VertexInputAttributeDescription, 0)
+	offset := uint32(0)
+	g := sd.SelectLayout("Vertex")
+	for i := range g.Layouts {
+		l := &g.Layouts[i]
+		if l.Source == "in" && uint32(l.Location) >= locationStart {
+			dt := defTypes[l.Type]
+			for r := range dt.repeat {
+				attrs = append(attrs, vk.VertexInputAttributeDescription{
+					Location: uint32(l.Location + r),
+					Binding:  1,
+					Format:   dt.format,
+					Offset:   offset,
+				})
+				offset += dt.size
+			}
+		}
+	}
+	return attrs
+}
+
+func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure {
+	structure := DescriptorSetLayoutStructure{}
+	for _, g := range sd.LayoutGroups {
+		for _, layout := range g.Layouts {
+			if layout.Binding < 0 {
+				continue
+			}
+			structure.Types = append(structure.Types, DescriptorSetLayoutStructureType{
+				Type:    layout.DescriptorType(),
+				Flags:   g.DescriptorFlag(),
+				Count:   1, // TODO:  Pull this
+				Binding: uint32(layout.Binding),
+			})
+		}
+	}
+	return structure
 }
 
 func (d *ShaderData) CompileVariantName(path, flags string) string {

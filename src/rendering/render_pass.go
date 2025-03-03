@@ -319,9 +319,10 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
 				return nil, false
 			}
-			// TODO:  Is this required?
-			//success = vr.transitionImageLayout(&textures[i].RenderId, a.InitialLayout,
-			//	img.Aspect, img.Access, vk.NullCommandBuffer)
+			if vr.commandPool != vk.NullCommandPool {
+				success = vr.transitionImageLayout(&textures[i].RenderId, a.InitialLayout,
+					img.Aspect, img.Access, vk.NullCommandBuffer)
+			}
 			if !success {
 				for j := range i + 1 {
 					vr.textureIdFree(&textures[j].RenderId)

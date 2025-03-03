@@ -143,6 +143,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 
 	id := &shader.RenderId
 
+	shader.DriverData.setup(&shader.data)
 	id.descriptorSetLayout, err = vr.createDescriptorSetLayout(vr.device,
 		shader.DriverData.DescriptorSetLayoutStructure)
 	if err != nil {

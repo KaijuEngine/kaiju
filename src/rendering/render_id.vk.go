@@ -53,16 +53,12 @@ type DescriptorSetLayoutStructure struct {
 
 type ShaderDriverData struct {
 	DescriptorSetLayoutStructure
-	CullMode              vk.CullModeFlagBits
-	DrawMode              MeshDrawMode
 	Stride                uint32
 	AttributeDescriptions []vk.VertexInputAttributeDescription
 }
 
 func NewShaderDriverData() ShaderDriverData {
-	return ShaderDriverData{
-		CullMode: vk.CullModeFrontBit,
-	}
+	return ShaderDriverData{}
 }
 
 type ShaderId struct {
@@ -113,4 +109,10 @@ type MeshId struct {
 func (m MeshId) IsValid() bool {
 	return m.vertexBuffer != vk.Buffer(vk.NullHandle) &&
 		m.indexBuffer != vk.Buffer(vk.NullHandle)
+}
+
+func (d *ShaderDriverData) setup(sd *ShaderDataCompiled) {
+	d.Stride = sd.Stride()
+	d.AttributeDescriptions = sd.ToAttributeDescription(baseVertexAttributeCount)
+	d.DescriptorSetLayoutStructure = sd.ToDescriptorSetLayoutStructure()
 }

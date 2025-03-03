@@ -1,1 +1,1 @@
-{"Name":"outline","Shader":"content\\renderer\\shaders\\outline.shader","RenderPass":"content\\renderer\\passes\\outline.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\outline.shaderpipeline","Textures":[]}
+{"Name":"outline","Shader":"content\\renderer\\shaders\\outline.shader","RenderPass":"content\\renderer\\passes\\outline.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\outline.shaderpipeline","Textures":[],"Clears":[{"IsColor":true,"R":0.175,"G":0.175,"B":0.175,"A":1},{"IsDepthStencil":true,"Depth":1,"Stencil":0}]}

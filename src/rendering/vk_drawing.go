@@ -145,26 +145,33 @@ func beginRender(pass *RenderPass, extent vk.Extent2D,
 		slog.Error("Failed to begin recording command buffer")
 		return
 	}
-	renderPassInfo := vk.RenderPassBeginInfo{}
-	renderPassInfo.SType = vk.StructureTypeRenderPassBeginInfo
-	renderPassInfo.RenderPass = pass.Handle
-	renderPassInfo.Framebuffer = pass.Buffer
-	renderPassInfo.RenderArea.Offset = vk.Offset2D{X: 0, Y: 0}
-	renderPassInfo.RenderArea.Extent = extent
-	renderPassInfo.ClearValueCount = uint32(len(clearColors))
-	renderPassInfo.PClearValues = &clearColors[0]
+	renderPassInfo := vk.RenderPassBeginInfo{
+		SType:       vk.StructureTypeRenderPassBeginInfo,
+		RenderPass:  pass.Handle,
+		Framebuffer: pass.Buffer,
+		RenderArea: vk.Rect2D{
+			Offset: vk.Offset2D{X: 0, Y: 0},
+			Extent: extent,
+		},
+		ClearValueCount: uint32(len(clearColors)),
+	}
+	if len(clearColors) > 0 {
+		renderPassInfo.PClearValues = &clearColors[0]
+	}
 	vk.CmdBeginRenderPass(commandBuffer, &renderPassInfo, vk.SubpassContentsInline)
-	viewport := vk.Viewport{}
-	viewport.X = 0.0
-	viewport.Y = 0.0
-	viewport.Width = float32(extent.Width)
-	viewport.Height = float32(extent.Height)
-	viewport.MinDepth = 0.0
-	viewport.MaxDepth = 1.0
+	viewport := vk.Viewport{
+		X:        0,
+		Y:        0,
+		Width:    float32(extent.Width),
+		Height:   float32(extent.Height),
+		MinDepth: 0,
+		MaxDepth: 1,
+	}
 	vk.CmdSetViewport(commandBuffer, 0, 1, &viewport)
-	scissor := vk.Rect2D{}
-	scissor.Offset = vk.Offset2D{X: 0, Y: 0}
-	scissor.Extent = extent
+	scissor := vk.Rect2D{
+		Offset: vk.Offset2D{X: 0, Y: 0},
+		Extent: extent,
+	}
 	vk.CmdSetScissor(commandBuffer, 0, 1, &scissor)
 }
 

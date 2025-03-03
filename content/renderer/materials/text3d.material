@@ -1,1 +1,1 @@
-{"Name":"text3d","Shader":"content\\renderer\\shaders\\text3d.shader","RenderPass":"content\\renderer\\passes\\opaque.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\basic.shaderpipeline","Textures":[]}
+{"Name":"text3d","Shader":"content\\renderer\\shaders\\text3d.shader","RenderPass":"content\\renderer\\passes\\opaque.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\basic.shaderpipeline","Textures":[],"Clears":[{"IsColor":true,"R":0.175,"G":0.175,"B":0.175,"A":1},{"IsDepthStencil":true,"Depth":1,"Stencil":0}]}
