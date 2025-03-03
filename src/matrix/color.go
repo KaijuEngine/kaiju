@@ -320,3 +320,7 @@ func (c *Color) MultiplyAssign(other Color) {
 	c[B] *= other[B]
 	c[A] *= other[A]
 }
+
+func (c *Color) Inverted() Color {
+	return NewColor(1-c.R(), 1-c.G(), 1-c.B(), c.A())
+}
