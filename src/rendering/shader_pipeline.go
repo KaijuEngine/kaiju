@@ -245,6 +245,19 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 			PipelineCreateFlags: d.GraphicsPipeline.PipelineCreateFlagsToVK(),
 		},
 	}
+	for i := range d.ColorBlendAttachments {
+		from := &d.ColorBlendAttachments[i]
+		c.ColorBlendAttachments[i] = ShaderPipelineColorBlendAttachmentsCompiled{
+			BlendEnable:         from.BlendEnableToVK(),
+			SrcColorBlendFactor: from.SrcColorBlendFactorToVK(),
+			DstColorBlendFactor: from.DstColorBlendFactorToVK(),
+			ColorBlendOp:        from.ColorBlendOpToVK(),
+			SrcAlphaBlendFactor: from.SrcAlphaBlendFactorToVK(),
+			DstAlphaBlendFactor: from.DstAlphaBlendFactorToVK(),
+			AlphaBlendOp:        from.AlphaBlendOpToVK(),
+			ColorWriteMask:      vk.ColorComponentFlags(from.ColorWriteMaskToVK()),
+		}
+	}
 	return c
 }
 
