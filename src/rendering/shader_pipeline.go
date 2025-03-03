@@ -249,27 +249,27 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string {
-	return klib.MapKeysSorted(StringVkBlendFactor)
+	return klib.MapKeysSorted(mapStringVkBlendFactor())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListDstColorBlendFactor() []string {
-	return klib.MapKeysSorted(StringVkBlendFactor)
+	return klib.MapKeysSorted(mapStringVkBlendFactor())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListColorBlendOp() []string {
-	return klib.MapKeysSorted(StringVkBlendOp)
+	return klib.MapKeysSorted(mapStringVkBlendOp())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListSrcAlphaBlendFactor() []string {
-	return klib.MapKeysSorted(StringVkBlendFactor)
+	return klib.MapKeysSorted(mapStringVkBlendFactor())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListDstAlphaBlendFactor() []string {
-	return klib.MapKeysSorted(StringVkBlendFactor)
+	return klib.MapKeysSorted(mapStringVkBlendFactor())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string {
-	return klib.MapKeysSorted(StringVkBlendOp)
+	return klib.MapKeysSorted(mapStringVkBlendOp())
 }
 
 func (a *ShaderPipelineColorBlendAttachments) BlendEnableToVK() vk.Bool32 {
@@ -303,81 +303,81 @@ func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToVK() vk.BlendOp {
 func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToVK() vk.ColorComponentFlagBits {
 	mask := vk.ColorComponentFlagBits(0)
 	for i := range a.ColorWriteMask {
-		mask |= StringVkColorComponentFlagBits[a.ColorWriteMask[i]]
+		mask |= mapStringVkColorComponentFlagBits()[a.ColorWriteMask[i]]
 	}
 	return mask
 }
 
 func (s ShaderPipelineData) ListTopology() []string {
-	return klib.MapKeysSorted(StringVkPrimitiveTopology)
+	return klib.MapKeysSorted(mapStringVkPrimitiveTopology())
 }
 
 func (s ShaderPipelineData) ListPolygonMode() []string {
-	return klib.MapKeysSorted(StringVkPolygonMode)
+	return klib.MapKeysSorted(mapStringVkPolygonMode())
 }
 
 func (s ShaderPipelineData) ListCullMode() []string {
-	return klib.MapKeysSorted(StringVkCullModeFlagBits)
+	return klib.MapKeysSorted(mapStringVkCullModeFlagBits())
 }
 
 func (s ShaderPipelineData) ListFrontFace() []string {
-	return klib.MapKeysSorted(StringVkFrontFace)
+	return klib.MapKeysSorted(mapStringVkFrontFace())
 }
 
 func (s ShaderPipelineData) ListRasterizationSamples() []string {
-	return klib.MapKeysSorted(StringVkSampleCountFlagBits)
+	return klib.MapKeysSorted(mapStringVkSampleCountFlagBits())
 }
 
 func (s ShaderPipelineData) ListBlendFactor() []string {
-	return klib.MapKeysSorted(StringVkBlendFactor)
+	return klib.MapKeysSorted(mapStringVkBlendFactor())
 }
 
 func (s ShaderPipelineData) ListBlendOp() []string {
-	return klib.MapKeysSorted(StringVkBlendOp)
+	return klib.MapKeysSorted(mapStringVkBlendOp())
 }
 
 func (s ShaderPipelineData) ListLogicOp() []string {
-	return klib.MapKeysSorted(StringVkLogicOp)
+	return klib.MapKeysSorted(mapStringVkLogicOp())
 }
 
 func (s ShaderPipelineData) ListDepthCompareOp() []string {
-	return klib.MapKeysSorted(StringVkCompareOp)
+	return klib.MapKeysSorted(mapStringVkCompareOp())
 }
 
 func (s ShaderPipelineData) ListBackCompareOp() []string {
-	return klib.MapKeysSorted(StringVkCompareOp)
+	return klib.MapKeysSorted(mapStringVkCompareOp())
 }
 
 func (s ShaderPipelineData) ListFrontFailOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListFrontPassOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListFrontDepthFailOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListFrontCompareOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListBackFailOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListBackPassOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListBackDepthFailOp() []string {
-	return klib.MapKeysSorted(StringVkStencilOp)
+	return klib.MapKeysSorted(mapStringVkStencilOp())
 }
 
 func (s ShaderPipelineData) ListPatchControlPoints() []string {
-	return klib.MapKeysSorted(StringVkPatchControlPoints)
+	return klib.MapKeysSorted(mapStringVkPatchControlPoints())
 }
 
 func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32 {
@@ -429,7 +429,7 @@ func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32 {
 }
 
 func (s *ShaderPipelineInputAssembly) TopologyToVK() vk.PrimitiveTopology {
-	if res, ok := StringVkPrimitiveTopology[s.Topology]; ok {
+	if res, ok := mapStringVkPrimitiveTopology()[s.Topology]; ok {
 		return res
 	}
 	slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
@@ -437,7 +437,7 @@ func (s *ShaderPipelineInputAssembly) TopologyToVK() vk.PrimitiveTopology {
 }
 
 func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vk.PolygonMode {
-	if res, ok := StringVkPolygonMode[s.PolygonMode]; ok {
+	if res, ok := mapStringVkPolygonMode()[s.PolygonMode]; ok {
 		return res
 	}
 	slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
@@ -445,7 +445,7 @@ func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vk.PolygonMode {
 }
 
 func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vk.CullModeFlagBits {
-	if res, ok := StringVkCullModeFlagBits[s.CullMode]; ok {
+	if res, ok := mapStringVkCullModeFlagBits()[s.CullMode]; ok {
 		return res
 	}
 	slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
@@ -453,7 +453,7 @@ func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vk.CullModeFlagBits
 }
 
 func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vk.FrontFace {
-	if res, ok := StringVkFrontFace[s.FrontFace]; ok {
+	if res, ok := mapStringVkFrontFace()[s.FrontFace]; ok {
 		return res
 	}
 	slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
@@ -465,7 +465,7 @@ func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK() vk.Sample
 }
 
 func (s *ShaderPipelineColorBlend) LogicOpToVK() vk.LogicOp {
-	if res, ok := StringVkLogicOp[s.LogicOp]; ok {
+	if res, ok := mapStringVkLogicOp()[s.LogicOp]; ok {
 		return res
 	}
 	slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
@@ -482,7 +482,7 @@ func (s *ShaderPipelineData) BlendConstants() [4]float32 {
 }
 
 func (s *ShaderPipelineTessellation) PatchControlPointsToVK() uint32 {
-	if res, ok := StringVkPatchControlPoints[s.PatchControlPoints]; ok {
+	if res, ok := mapStringVkPatchControlPoints()[s.PatchControlPoints]; ok {
 		return res
 	}
 	slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
@@ -518,7 +518,7 @@ func (s *ShaderPipelineData) BackStencilOpStateToVK() vk.StencilOpState {
 func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCreateFlags {
 	mask := vk.PipelineCreateFlagBits(0)
 	for i := range s.PipelineCreateFlags {
-		mask |= StringVkPipelineCreateFlagBits[s.PipelineCreateFlags[i]]
+		mask |= mapStringVkPipelineCreateFlagBits()[s.PipelineCreateFlags[i]]
 	}
 	return vk.PipelineCreateFlags(mask)
 }

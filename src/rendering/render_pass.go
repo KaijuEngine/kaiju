@@ -1,7 +1,6 @@
 package rendering
 
 import (
-	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 )
@@ -184,30 +183,6 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	return c
 }
 
-func (ai *RenderPassAttachmentImage) ListTiling() []string {
-	return klib.MapKeysSorted(StringVkImageTiling)
-}
-
-func (ai *RenderPassAttachmentImage) ListFilter() []string {
-	return klib.MapKeysSorted(StringVkFilter)
-}
-
-func (ai *RenderPassAttachmentImage) ListUsage() []string {
-	return klib.MapKeysSorted(StringVkImageUsageFlagBits)
-}
-
-func (ai *RenderPassAttachmentImage) ListMemoryProperty() []string {
-	return klib.MapKeysSorted(StringVkMemoryPropertyFlagBits)
-}
-
-func (ai *RenderPassAttachmentImage) ListAspect() []string {
-	return klib.MapKeysSorted(StringVkImageAspectFlagBits)
-}
-
-func (ai *RenderPassAttachmentImage) ListAccess() []string {
-	return klib.MapKeysSorted(StringVkAccessFlagBits)
-}
-
 func (ai *RenderPassAttachmentImage) TilingToVK() vk.ImageTiling {
 	return imageTilingToVK(ai.Tiling)
 }
@@ -230,38 +205,6 @@ func (ai *RenderPassAttachmentImage) AspectToVK() vk.ImageAspectFlags {
 
 func (ai *RenderPassAttachmentImage) AccessToVK() vk.AccessFlags {
 	return accessFlagsToVK(ai.Access)
-}
-
-func (ad *RenderPassAttachmentDescription) ListFormat() []string {
-	return klib.MapKeysSorted(StringVkFormat)
-}
-
-func (ad *RenderPassAttachmentDescription) ListSamples() []string {
-	return klib.MapKeysSorted(StringVkSampleCountFlagBits)
-}
-
-func (ad *RenderPassAttachmentDescription) ListLoadOp() []string {
-	return klib.MapKeysSorted(StringVkAttachmentLoadOp)
-}
-
-func (ad *RenderPassAttachmentDescription) ListStoreOp() []string {
-	return klib.MapKeysSorted(StringVkAttachmentStoreOp)
-}
-
-func (ad *RenderPassAttachmentDescription) ListStencilLoadOp() []string {
-	return klib.MapKeysSorted(StringVkAttachmentLoadOp)
-}
-
-func (ad *RenderPassAttachmentDescription) ListStencilStoreOp() []string {
-	return klib.MapKeysSorted(StringVkAttachmentStoreOp)
-}
-
-func (ad *RenderPassAttachmentDescription) ListInitialLayout() []string {
-	return klib.MapKeysSorted(StringVkImageLayout)
-}
-
-func (ad *RenderPassAttachmentDescription) ListFinalLayout() []string {
-	return klib.MapKeysSorted(StringVkImageLayout)
 }
 
 func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format {
@@ -296,40 +239,12 @@ func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vk.ImageLayout {
 	return imageLayoutToVK(ad.FinalLayout)
 }
 
-func (ad *RenderPassAttachmentReference) ListLayout() []string {
-	return klib.MapKeysSorted(StringVkImageLayout)
-}
-
 func (ad *RenderPassAttachmentReference) LayoutToVK() vk.ImageLayout {
 	return imageLayoutToVK(ad.Layout)
 }
 
-func (ad *RenderPassSubpassDescription) ListPipelineBindPoint() []string {
-	return klib.MapKeysSorted(StringVkPipelineBindPoint)
-}
-
 func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint {
 	return pipelineBindPointToVK(ad.PipelineBindPoint)
-}
-
-func (sd *RenderPassSubpassDependency) ListSrcStageMask() []string {
-	return klib.MapKeysSorted(StringVkPipelineStageFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListDstStageMask() []string {
-	return klib.MapKeysSorted(StringVkPipelineStageFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListSrcAccessMask() []string {
-	return klib.MapKeysSorted(StringVkAccessFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListDstAccessMask() []string {
-	return klib.MapKeysSorted(StringVkAccessFlagBits)
-}
-
-func (sd *RenderPassSubpassDependency) ListDependencyFlags() []string {
-	return klib.MapKeysSorted(StringVkDependencyFlagBits)
 }
 
 func (sd *RenderPassSubpassDependency) SrcStageMaskToVK() vk.PipelineStageFlags {
