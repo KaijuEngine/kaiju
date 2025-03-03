@@ -76,18 +76,19 @@ func (c contentEntry) Depth() int {
 }
 
 type ContentWindow struct {
-	doc      *document.Document
-	input    *ui.Input
-	listing  *ui.Panel
-	editor   interfaces.Editor
-	DirTree  []contentEntry
-	Dir      []contentEntry
-	path     string
-	Query    string
-	funcMap  map[string]func(*document.Element)
-	opener   *content_opener.Opener
-	selected *ui.Panel
-	uiMan    *ui.Manager
+	doc        *document.Document
+	input      *ui.Input
+	listing    *ui.Panel
+	editor     interfaces.Editor
+	DirTree    []contentEntry
+	Dir        []contentEntry
+	path       string
+	SearchText string
+	Query      string
+	funcMap    map[string]func(*document.Element)
+	opener     *content_opener.Opener
+	selected   *ui.Panel
+	uiMan      *ui.Manager
 }
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
@@ -368,7 +369,8 @@ func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 }
 
 func (s *ContentWindow) updateSearch(elm *document.Element) {
-	s.Query = strings.ToLower(strings.TrimSpace(s.input.Text()))
+	s.SearchText = s.input.Text()
+	s.Query = strings.ToLower(strings.TrimSpace(s.SearchText))
 	if s.Query == "" {
 		s.path = contentPath
 	}
