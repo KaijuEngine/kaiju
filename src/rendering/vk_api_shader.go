@@ -48,17 +48,19 @@ import (
 
 type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
 
-func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
+func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
 	vertStage := vk.PipelineShaderStageCreateInfo{}
 	vMem, err := assetDB.Read(shader.data.Vertex)
 	if err != nil {
-		panic("Failed to load vertex shader")
+		slog.Error("Failed to load vertex shader", "module", shader.data.Vertex, "error", err)
+		return err
 	}
 	vert, ok := vr.createSpvModule(vMem)
 	if !ok {
-		panic("Failed to create vertex shader module")
+		slog.Error("Failed to load vertex module", "module", shader.data.Vertex)
+		return err
 	}
 	vertStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	vertStage.Stage = vk.ShaderStageVertexBit
@@ -69,11 +71,13 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	fragStage := vk.PipelineShaderStageCreateInfo{}
 	fMem, err = assetDB.Read(shader.data.Fragment)
 	if err != nil {
-		panic("Failed to load fragment shader")
+		slog.Error("Failed to load fragment shader", "module", shader.data.Fragment, "error", err)
+		return err
 	}
 	frag, ok = vr.createSpvModule(fMem)
 	if !ok {
-		panic("Failed to create fragment shader module")
+		slog.Error("Failed to load fragment module", "module", shader.data.Fragment)
+		return err
 	}
 	fragStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 	fragStage.Stage = vk.ShaderStageFragmentBit
@@ -85,11 +89,13 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	if len(shader.data.Geometry) > 0 {
 		gMem, err = assetDB.Read(shader.data.Geometry)
 		if err != nil {
-			panic("Failed to load geometry shader")
+			slog.Error("Failed to load geometry shader", "module", shader.data.Geometry, "error", err)
+			return err
 		}
 		geom, ok = vr.createSpvModule(gMem)
 		if !ok {
-			panic("Failed to create geometry shader module")
+			slog.Error("Failed to load geometry module", "module", shader.data.Geometry)
+			return err
 		}
 		geomStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		geomStage.Stage = vk.ShaderStageGeometryBit
@@ -101,11 +107,13 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	if len(shader.data.TessellationControl) > 0 {
 		cMem, err = assetDB.Read(shader.data.TessellationControl)
 		if err != nil {
-			panic("Failed to load tessellation control shader")
+			slog.Error("Failed to load tessellation control shader", "module", shader.data.TessellationControl, "error", err)
+			return err
 		}
 		tesc, ok = vr.createSpvModule(cMem)
 		if !ok {
-			panic("Failed to create tessellation control shader module")
+			slog.Error("Failed to load tessellation control module", "module", shader.data.TessellationControl)
+			return err
 		}
 		tescStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		tescStage.Stage = vk.ShaderStageTessellationControlBit
@@ -118,11 +126,13 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	if len(shader.data.TessellationEvaluation) > 0 {
 		eMem, err = assetDB.Read(shader.data.TessellationEvaluation)
 		if err != nil {
-			panic("Failed to load tessellation evaluation shader")
+			slog.Error("Failed to load tessellation evaluation shader", "module", shader.data.TessellationEvaluation, "error", err)
+			return err
 		}
 		tese, ok = vr.createSpvModule(eMem)
 		if !ok {
-			panic("Failed to create tessellation evaluation shader module")
+			slog.Error("Failed to load tessellation evaluation module", "module", shader.data.TessellationEvaluation)
+			return err
 		}
 		teseStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
 		teseStage.Stage = vk.ShaderStageTessellationEvaluationBit
@@ -156,8 +166,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 	if teseStage.SType != 0 {
 		stages = append(stages, teseStage)
 	}
+	shader.pipelineInfo.ConstructPipeline(vr, shader, shader.renderPass, stages)
 
-	shader.DriverData.pipelineConstructor(vr, shader, stages)
 	// TODO:  Setup subshader in the shader definition?
 	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
@@ -167,6 +177,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) {
 		subShader.DriverData = shader.DriverData
 		shader.AddSubShader("transparent", subShader)
 	}
+	return nil
 }
 
 func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {

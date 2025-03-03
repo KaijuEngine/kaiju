@@ -529,7 +529,7 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 	return vk.PipelineCreateFlags(mask)
 }
 
-func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
@@ -621,8 +621,10 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		LogicOpEnable:   s.ColorBlend.LogicOpEnable,
 		LogicOp:         s.ColorBlend.LogicOp,
 		AttachmentCount: uint32(colorBlendAttachmentCount),
-		PAttachments:    &colorBlendAttachment[0],
 		BlendConstants:  s.ColorBlend.BlendConstants,
+	}
+	if colorBlendAttachmentCount > 0 {
+		colorBlending.PAttachments = &colorBlendAttachment[0]
 	}
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
@@ -656,8 +658,8 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
 		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
 		Flags:               s.GraphicsPipeline.PipelineCreateFlags,
-		StageCount:          uint32(len(shaderStages)),
-		PStages:             &shaderStages[0],
+		StageCount:          uint32(len(stages)),
+		PStages:             &stages[0],
 		PVertexInputState:   &vertexInputInfo,
 		PInputAssemblyState: &inputAssembly,
 		PViewportState:      &viewportState,

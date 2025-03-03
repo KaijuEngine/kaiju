@@ -44,6 +44,7 @@ import (
 	"kaiju/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"log/slog"
 	"strings"
 	"sync"
 	"unicode"
@@ -389,9 +390,11 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
 	var err error
 	if cache.textMaterial, err = caches.MaterialCache().Material("text3d"); err != nil {
+		slog.Error("failed to load the text3d material", "error", err)
 		return err
 	}
 	if cache.textOrthoMaterial, err = caches.MaterialCache().Material("text"); err != nil {
+		slog.Error("failed to load the text material", "error", err)
 		return err
 	}
 	cache.renderCaches = caches

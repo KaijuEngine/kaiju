@@ -44,11 +44,13 @@ import (
 )
 
 type Shader struct {
-	RenderId   ShaderId
-	data       ShaderDataCompiled
-	Material   MaterialData
-	DriverData ShaderDriverData
-	subShaders map[string]*Shader
+	RenderId     ShaderId
+	data         ShaderDataCompiled
+	Material     MaterialData
+	DriverData   ShaderDriverData
+	subShaders   map[string]*Shader
+	pipelineInfo *ShaderPipelineDataCompiled
+	renderPass   *RenderPass
 }
 
 type ShaderData struct {
@@ -82,8 +84,12 @@ func (d *ShaderData) CompileVariantName(path, flags string) string {
 	// modules are different. When compiling using flags, the output file name
 	// will have the shader name prefixed to it as it's a variant. This will
 	// make it so that we don't have 2 copies of the same module.
-	name := filepath.Base(path)
-	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1) + ".spv")
+	if path == "" {
+		return ""
+	}
+	path = filepath.ToSlash(path)
+	name := filepath.Base(path) + ".spv"
+	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1))
 	if flags != "" {
 		return filepath.Join(dir, d.Name+name)
 	}
@@ -103,6 +109,8 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {
+	shader.pipelineInfo = s.pipelineInfo
+	shader.renderPass = s.renderPass
 	s.subShaders[key] = shader
 }
 

@@ -38,8 +38,6 @@
 package rendering
 
 import (
-	"strings"
-
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -59,32 +57,6 @@ type ShaderDriverData struct {
 	DrawMode              MeshDrawMode
 	Stride                uint32
 	AttributeDescriptions []vk.VertexInputAttributeDescription
-	pipelineConstructor   FuncPipeline
-}
-
-func (d *ShaderDriverData) setup(def ShaderDef, locationStart uint32, pipeFunc FuncPipeline) {
-	d.pipelineConstructor = pipeFunc
-	d.Stride = def.Stride()
-	d.AttributeDescriptions = def.ToAttributeDescription(locationStart)
-	d.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()
-	switch strings.ToLower(def.CullMode) {
-	case "none":
-		d.CullMode = vk.CullModeNone
-	case "back":
-		d.CullMode = vk.CullModeBackBit
-		fallthrough
-	case "front":
-	default:
-		d.CullMode = vk.CullModeFrontBit
-	}
-	switch strings.ToLower(def.DrawMode) {
-	case "lines":
-		d.DrawMode = MeshDrawModeLines
-	case "points":
-		d.DrawMode = MeshDrawModePoints
-	default:
-		d.DrawMode = MeshDrawModeTriangles
-	}
 }
 
 func NewShaderDriverData() ShaderDriverData {

@@ -45,15 +45,15 @@ const (
 
 // Material definitions
 const (
-	MaterialDefinitionGrid         = "grid.material"
-	MaterialDefinitionBasic        = "basic.material"
-	MaterialDefinitionBasicSkinned = "basic_skinned.material"
-	MaterialDefinitionBasicColor   = "basic_color.material"
-	MaterialDefinitionText3D       = "text3d.material"
-	MaterialDefinitionText         = "text.material"
-	MaterialDefinitionCombine      = "combine.material"
-	MaterialDefinitionOITComposite = "oit_composite.material"
-	MaterialDefinitionUI           = "ui.material"
-	MaterialDefinitionSprite       = "sprite.material"
-	MaterialDefinitionOutline      = "outline.material"
+	MaterialDefinitionGrid         = "grid"
+	MaterialDefinitionBasic        = "basic"
+	MaterialDefinitionBasicSkinned = "basic_skinned"
+	MaterialDefinitionBasicColor   = "basic_color"
+	MaterialDefinitionText3D       = "text3d"
+	MaterialDefinitionText         = "text"
+	MaterialDefinitionCombine      = "combine"
+	MaterialDefinitionOITComposite = "oit_composite"
+	MaterialDefinitionUI           = "ui"
+	MaterialDefinitionSprite       = "sprite"
+	MaterialDefinitionOutline      = "outline"
 )

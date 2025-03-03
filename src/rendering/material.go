@@ -132,6 +132,8 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	}
 	c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
 	c.pipelineInfo = sp.Compile()
+	c.Shader.pipelineInfo = &c.pipelineInfo
+	c.Shader.renderPass = c.renderPass
 	for i := range d.Textures {
 		tex, err := vr.caches.TextureCache().Texture(
 			d.Textures[i].Texture, d.Textures[i].FilterToVK())

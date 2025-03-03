@@ -46,7 +46,7 @@ import (
 type Renderer interface {
 	Initialize(caches RenderCaches, width, height int32) error
 	ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool
-	CreateShader(shader *Shader, assetDatabase *assets.Database)
+	CreateShader(shader *Shader, assetDatabase *assets.Database) error
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color

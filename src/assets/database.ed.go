@@ -59,14 +59,17 @@ func (a *Database) toContentPath(key string) string {
 	}
 	key = filepath.ToSlash(key)
 	var edKey string
+	var projKey string
 	if strings.HasPrefix(key, contentPath) {
 		edKey = filepath.Join(a.EditorContext.EditorPath, key)
+		projKey = key
 	} else {
 		edKey = filepath.Join(a.EditorContext.EditorPath, contentPath, key)
+		projKey = filepath.Join(contentPath, key)
 	}
 	if _, err := os.Stat(edKey); err == nil {
 		return edKey
 	} else {
-		return filepath.Join(contentPath, key)
+		return projKey
 	}
 }
