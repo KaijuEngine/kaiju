@@ -165,9 +165,7 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 			a.DepthStencilAttachment[j].Layout = b.DepthStencilAttachment[j].LayoutToVK()
 		}
 		a.PreserveAttachments = make([]uint32, len(b.PreserveAttachments))
-		for j := range b.PreserveAttachments {
-			a.PreserveAttachments[j] = b.PreserveAttachments[j]
-		}
+		copy(a.PreserveAttachments, b.PreserveAttachments)
 	}
 	for i := range d.SubpassDependencies {
 		a := &c.SubpassDependencies[i]

@@ -6,163 +6,16 @@ import (
 	"log/slog"
 )
 
-const detectDepthFormatKey = "<DetectDepthFormat>"
-const swapChainFormatKey = "<SwapChainFormat>"
+const (
+	detectDepthFormatKey = "<DetectDepthFormat>"
+	swapChainFormatKey   = "<SwapChainFormat>"
+)
 
-func boolToVkBool(val bool) vk.Bool32 {
-	if val {
-		return vk.True
-	} else {
-		return vk.False
-	}
-}
-
-func attachmentLoadOpToVK(val string) vk.AttachmentLoadOp {
-	if res, ok := mapStringVkAttachmentLoadOp()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert attachment load op string", "string", val)
-	return vk.AttachmentLoadOpClear
-}
-
-func attachmentStoreOpToVK(val string) vk.AttachmentStoreOp {
-	if res, ok := mapStringVkAttachmentStoreOp()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert attachment store op string", "string", val)
-	return vk.AttachmentStoreOpStore
-}
-
-func imageLayoutToVK(val string) vk.ImageLayout {
-	if res, ok := mapStringVkImageLayout()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert image layout string", "string", val)
-	return vk.ImageLayoutColorAttachmentOptimal
-}
-
-func sampleCountToVK(val string) vk.SampleCountFlagBits {
-	if res, ok := mapStringVkSampleCountFlagBits()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert sample count string", "string", val)
-	return vk.SampleCount1Bit
-}
-
-func formatToVK(val string, vr *Vulkan) vk.Format {
-	if val == detectDepthFormatKey {
-		return vr.findDepthFormat()
-	} else if val == swapChainFormatKey {
-		return vr.swapImages[0].Format
-	} else if res, ok := mapStringVkFormat()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert format string", "string", val)
-	return vk.FormatR8g8b8a8Unorm
-}
-
-func compareOpToVK(val string) vk.CompareOp {
-	if res, ok := mapStringVkCompareOp()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkCompareOp", "value", val)
-	return vk.CompareOpLess
-}
-
-func stencilOpToVK(val string) vk.StencilOp {
-	if res, ok := mapStringVkStencilOp()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkStencilOpKeep", "value", val)
-	return vk.StencilOpKeep
-}
-
-func blendFactorToVK(val string) vk.BlendFactor {
-	if res, ok := mapStringVkBlendFactor()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendFactor", "value", val)
-	return vk.BlendFactorSrcAlpha
-}
-
-func blendOpToVK(val string) vk.BlendOp {
-	if res, ok := mapStringVkBlendOp()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for vkBlendOp", "value", val)
-	return vk.BlendOpAdd
-}
-
-func imageTilingToVK(val string) vk.ImageTiling {
-	if res, ok := mapStringVkImageTiling()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for image tiling", "value", val)
-	return vk.ImageTilingOptimal
-}
-
-func filterToVK(val string) vk.Filter {
-	if res, ok := mapStringVkFilter()[val]; ok {
-		return res
-	}
-	slog.Warn("invalid string for filter", "value", val)
-	return vk.FilterLinear
-}
-
-func pipelineBindPointToVK(val string) vk.PipelineBindPoint {
-	if res, ok := mapStringVkPipelineBindPoint()[val]; ok {
-		return res
-	}
-	slog.Warn("failed to convert pipeline bind point string", "string", val)
-	return vk.PipelineBindPointGraphics
-}
-
-func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []string) F {
-	mask := B(0)
-	for i := range vals {
-		if v, ok := mapping[vals[i]]; ok {
-			mask |= v
-		} else {
-			slog.Warn("failed to convert image aspect flag string", "string", vals[i])
-		}
-	}
-	return F(mask)
-}
-
-func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
-	return flagsToVK[vk.PipelineStageFlagBits, vk.PipelineStageFlags](
-		mapStringVkPipelineStageFlagBits(), vals)
-}
-
-func accessFlagsToVK(vals []string) vk.AccessFlags {
-	return flagsToVK[vk.AccessFlagBits, vk.AccessFlags](
-		mapStringVkAccessFlagBits(), vals)
-}
-
-func imageUsageFlagsToVK(vals []string) vk.ImageUsageFlags {
-	return flagsToVK[vk.ImageUsageFlagBits, vk.ImageUsageFlags](
-		mapStringVkImageUsageFlagBits(), vals)
-}
-
-func memoryPropertyFlagsToVK(vals []string) vk.MemoryPropertyFlags {
-	return flagsToVK[vk.MemoryPropertyFlagBits, vk.MemoryPropertyFlags](
-		mapStringVkMemoryPropertyFlagBits(), vals)
-}
-
-func imageAspectFlagsToVK(vals []string) vk.ImageAspectFlags {
-	return flagsToVK[vk.ImageAspectFlagBits, vk.ImageAspectFlags](
-		mapStringVkImageAspectFlagBits(), vals)
-}
-
-func dependencyFlagsToVK(vals []string) vk.DependencyFlags {
-	return flagsToVK[vk.DependencyFlagBits, vk.DependencyFlags](
-		mapStringVkDependencyFlagBits(), vals)
-}
-
-func mapStringVkFormat() map[string]vk.Format {
-	return map[string]vk.Format{
+var (
+	StringVkFormat = map[string]vk.Format{
 		"Undefined":                            vk.FormatUndefined,
 		detectDepthFormatKey:                   vk.FormatUndefined,
+		swapChainFormatKey:                     vk.FormatUndefined,
 		"R4g4UnormPack8":                       vk.FormatR4g4UnormPack8,
 		"R4g4b4a4UnormPack16":                  vk.FormatR4g4b4a4UnormPack16,
 		"B4g4r4a4UnormPack16":                  vk.FormatB4g4r4a4UnormPack16,
@@ -390,10 +243,7 @@ func mapStringVkFormat() map[string]vk.Format {
 		"Pvrtc22bppSrgbBlockImg":               vk.FormatPvrtc22bppSrgbBlockImg,
 		"Pvrtc24bppSrgbBlockImg":               vk.FormatPvrtc24bppSrgbBlockImg,
 	}
-}
-
-func mapStringVkBlendFactor() map[string]vk.BlendFactor {
-	return map[string]vk.BlendFactor{
+	StringVkBlendFactor = map[string]vk.BlendFactor{
 		"Zero":                  vk.BlendFactorZero,
 		"One":                   vk.BlendFactorOne,
 		"SrcColor":              vk.BlendFactorSrcColor,
@@ -414,10 +264,7 @@ func mapStringVkBlendFactor() map[string]vk.BlendFactor {
 		"Src1Alpha":             vk.BlendFactorSrc1Alpha,
 		"OneMinusSrc1Alpha":     vk.BlendFactorOneMinusSrc1Alpha,
 	}
-}
-
-func mapStringVkBlendOp() map[string]vk.BlendOp {
-	return map[string]vk.BlendOp{
+	StringVkBlendOp = map[string]vk.BlendOp{
 		"Add":              vk.BlendOpAdd,
 		"Subtract":         vk.BlendOpSubtract,
 		"ReverseSubtract":  vk.BlendOpReverseSubtract,
@@ -470,10 +317,7 @@ func mapStringVkBlendOp() map[string]vk.BlendOp {
 		"Green":            vk.BlendOpBlue,
 		"Blue":             vk.BlendOpBlue,
 	}
-}
-
-func mapStringVkLogicOp() map[string]vk.LogicOp {
-	return map[string]vk.LogicOp{
+	StringVkLogicOp = map[string]vk.LogicOp{
 		"Clear":        vk.LogicOpClear,
 		"And":          vk.LogicOpAnd,
 		"AndReverse":   vk.LogicOpAndReverse,
@@ -491,10 +335,7 @@ func mapStringVkLogicOp() map[string]vk.LogicOp {
 		"Nand":         vk.LogicOpNand,
 		"Set":          vk.LogicOpSet,
 	}
-}
-
-func mapStringVkCompareOp() map[string]vk.CompareOp {
-	return map[string]vk.CompareOp{
+	StringVkCompareOp = map[string]vk.CompareOp{
 		"Never":          vk.CompareOpNever,
 		"Equal":          vk.CompareOpEqual,
 		"LessOrEqual":    vk.CompareOpLessOrEqual,
@@ -504,10 +345,7 @@ func mapStringVkCompareOp() map[string]vk.CompareOp {
 		"Always":         vk.CompareOpAlways,
 		"Less":           vk.CompareOpLess,
 	}
-}
-
-func mapStringVkStencilOp() map[string]vk.StencilOp {
-	return map[string]vk.StencilOp{
+	StringVkStencilOp = map[string]vk.StencilOp{
 		"Zero":              vk.StencilOpZero,
 		"Replace":           vk.StencilOpReplace,
 		"IncrementAndClamp": vk.StencilOpIncrementAndClamp,
@@ -517,42 +355,27 @@ func mapStringVkStencilOp() map[string]vk.StencilOp {
 		"DecrementAndWrap":  vk.StencilOpDecrementAndWrap,
 		"Keep":              vk.StencilOpKeep,
 	}
-}
-
-func mapStringVkPrimitiveTopology() map[string]vk.PrimitiveTopology {
-	return map[string]vk.PrimitiveTopology{
+	StringVkPrimitiveTopology = map[string]vk.PrimitiveTopology{
 		"Points":    vk.PrimitiveTopologyPointList,
 		"Lines":     vk.PrimitiveTopologyLineList,
 		"Triangles": vk.PrimitiveTopologyTriangleList,
 		"Patches":   vk.PrimitiveTopologyPatchList,
 	}
-}
-
-func mapStringVkPolygonMode() map[string]vk.PolygonMode {
-	return map[string]vk.PolygonMode{
+	StringVkPolygonMode = map[string]vk.PolygonMode{
 		"Point": vk.PolygonModePoint,
 		"Line":  vk.PolygonModeLine,
 		"Fill":  vk.PolygonModeFill,
 	}
-}
-
-func mapStringVkCullModeFlagBits() map[string]vk.CullModeFlagBits {
-	return map[string]vk.CullModeFlagBits{
+	StringVkCullModeFlagBits = map[string]vk.CullModeFlagBits{
 		"None":  vk.CullModeNone,
 		"Front": vk.CullModeBackBit,
 		"Back":  vk.CullModeFrontBit,
 	}
-}
-
-func mapStringVkFrontFace() map[string]vk.FrontFace {
-	return map[string]vk.FrontFace{
+	StringVkFrontFace = map[string]vk.FrontFace{
 		"Clockwise":        vk.FrontFaceClockwise,
 		"CounterClockwise": vk.FrontFaceCounterClockwise,
 	}
-}
-
-func mapStringVkSampleCountFlagBits() map[string]vk.SampleCountFlagBits {
-	return map[string]vk.SampleCountFlagBits{
+	StringVkSampleCountFlagBits = map[string]vk.SampleCountFlagBits{
 		"1Bit":  vk.SampleCount1Bit,
 		"2Bit":  vk.SampleCount2Bit,
 		"4Bit":  vk.SampleCount4Bit,
@@ -561,33 +384,21 @@ func mapStringVkSampleCountFlagBits() map[string]vk.SampleCountFlagBits {
 		"32Bit": vk.SampleCount32Bit,
 		"64Bit": vk.SampleCount64Bit,
 	}
-}
-
-func mapStringVkPatchControlPoints() map[string]uint32 {
-	return map[string]uint32{
+	StringVkPatchControlPoints = map[string]uint32{
 		"Lines":     2,
 		"Triangles": 3,
 		"Quads":     4,
 	}
-}
-
-func mapStringVkAttachmentLoadOp() map[string]vk.AttachmentLoadOp {
-	return map[string]vk.AttachmentLoadOp{
+	StringVkAttachmentLoadOp = map[string]vk.AttachmentLoadOp{
 		"Load":     vk.AttachmentLoadOpLoad,
 		"Clear":    vk.AttachmentLoadOpClear,
 		"DontCare": vk.AttachmentLoadOpDontCare,
 	}
-}
-
-func mapStringVkAttachmentStoreOp() map[string]vk.AttachmentStoreOp {
-	return map[string]vk.AttachmentStoreOp{
+	StringVkAttachmentStoreOp = map[string]vk.AttachmentStoreOp{
 		"Store":    vk.AttachmentStoreOpStore,
 		"DontCare": vk.AttachmentStoreOpDontCare,
 	}
-}
-
-func mapStringVkImageLayout() map[string]vk.ImageLayout {
-	return map[string]vk.ImageLayout{
+	StringVkImageLayout = map[string]vk.ImageLayout{
 		"Undefined":                             vk.ImageLayoutUndefined,
 		"General":                               vk.ImageLayoutGeneral,
 		"ColorAttachmentOptimal":                vk.ImageLayoutColorAttachmentOptimal,
@@ -603,10 +414,7 @@ func mapStringVkImageLayout() map[string]vk.ImageLayout {
 		"SharedPresent":                         vk.ImageLayoutSharedPresent,
 		"ShadingRateOptimalNv":                  vk.ImageLayoutShadingRateOptimalNv,
 	}
-}
-
-func mapStringVkPipelineStageFlagBits() map[string]vk.PipelineStageFlagBits {
-	return map[string]vk.PipelineStageFlagBits{
+	StringVkPipelineStageFlagBits = map[string]vk.PipelineStageFlagBits{
 		"TopOfPipeBit":                    vk.PipelineStageTopOfPipeBit,
 		"DrawIndirectBit":                 vk.PipelineStageDrawIndirectBit,
 		"VertexInputBit":                  vk.PipelineStageVertexInputBit,
@@ -632,10 +440,7 @@ func mapStringVkPipelineStageFlagBits() map[string]vk.PipelineStageFlagBits {
 		"TaskShaderBitNv":                 vk.PipelineStageTaskShaderBitNv,
 		"MeshShaderBitNv":                 vk.PipelineStageMeshShaderBitNv,
 	}
-}
-
-func mapStringVkAccessFlagBits() map[string]vk.AccessFlagBits {
-	return map[string]vk.AccessFlagBits{
+	StringVkAccessFlagBits = map[string]vk.AccessFlagBits{
 		"IndirectCommandReadBit":            vk.AccessIndirectCommandReadBit,
 		"IndexReadBit":                      vk.AccessIndexReadBit,
 		"VertexAttributeReadBit":            vk.AccessVertexAttributeReadBit,
@@ -664,35 +469,23 @@ func mapStringVkAccessFlagBits() map[string]vk.AccessFlagBits {
 		"AccelerationStructureReadBitNvx":   vk.AccessAccelerationStructureReadBitNvx,
 		"AccelerationStructureWriteBitNvx":  vk.AccessAccelerationStructureWriteBitNvx,
 	}
-}
-
-func mapStringVkPipelineBindPoint() map[string]vk.PipelineBindPoint {
-	return map[string]vk.PipelineBindPoint{
+	StringVkPipelineBindPoint = map[string]vk.PipelineBindPoint{
 		"Graphics":      vk.PipelineBindPointGraphics,
 		"Compute":       vk.PipelineBindPointCompute,
 		"RaytracingNvx": vk.PipelineBindPointRaytracingNvx,
 	}
-}
-
-func mapStringVkDependencyFlagBits() map[string]vk.DependencyFlagBits {
-	return map[string]vk.DependencyFlagBits{
+	StringVkDependencyFlagBits = map[string]vk.DependencyFlagBits{
 		"ByRegionBit":    vk.DependencyByRegionBit,
 		"DeviceGroupBit": vk.DependencyDeviceGroupBit,
 		"ViewLocalBit":   vk.DependencyViewLocalBit,
 	}
-}
-
-func mapStringVkColorComponentFlagBits() map[string]vk.ColorComponentFlagBits {
-	return map[string]vk.ColorComponentFlagBits{
+	StringVkColorComponentFlagBits = map[string]vk.ColorComponentFlagBits{
 		"R": vk.ColorComponentRBit,
 		"G": vk.ColorComponentGBit,
 		"B": vk.ColorComponentBBit,
 		"A": vk.ColorComponentABit,
 	}
-}
-
-func mapStringVkPipelineCreateFlagBits() map[string]vk.PipelineCreateFlagBits {
-	return map[string]vk.PipelineCreateFlagBits{
+	StringVkPipelineCreateFlagBits = map[string]vk.PipelineCreateFlagBits{
 		"DisableOptimizationBit":      vk.PipelineCreateDisableOptimizationBit,
 		"AllowDerivativesBit":         vk.PipelineCreateAllowDerivativesBit,
 		"DerivativeBit":               vk.PipelineCreateDerivativeBit,
@@ -700,26 +493,17 @@ func mapStringVkPipelineCreateFlagBits() map[string]vk.PipelineCreateFlagBits {
 		"DispatchBase":                vk.PipelineCreateDispatchBase,
 		"DeferCompileBitNvx":          vk.PipelineCreateDeferCompileBitNvx,
 	}
-}
-
-func mapStringVkImageTiling() map[string]vk.ImageTiling {
-	return map[string]vk.ImageTiling{
+	StringVkImageTiling = map[string]vk.ImageTiling{
 		"Optimal":           vk.ImageTilingOptimal,
 		"Linear":            vk.ImageTilingLinear,
 		"DrmFormatModifier": vk.ImageTilingDrmFormatModifier,
 	}
-}
-
-func mapStringVkFilter() map[string]vk.Filter {
-	return map[string]vk.Filter{
+	StringVkFilter = map[string]vk.Filter{
 		"Nearest":  vk.FilterNearest,
 		"Linear":   vk.FilterLinear,
 		"CubicImg": vk.FilterCubicImg,
 	}
-}
-
-func mapStringVkImageUsageFlagBits() map[string]vk.ImageUsageFlagBits {
-	return map[string]vk.ImageUsageFlagBits{
+	StringVkImageUsageFlagBits = map[string]vk.ImageUsageFlagBits{
 		"TransferSrcBit":            vk.ImageUsageTransferSrcBit,
 		"TransferDstBit":            vk.ImageUsageTransferDstBit,
 		"SampledBit":                vk.ImageUsageSampledBit,
@@ -730,10 +514,7 @@ func mapStringVkImageUsageFlagBits() map[string]vk.ImageUsageFlagBits {
 		"InputAttachmentBit":        vk.ImageUsageInputAttachmentBit,
 		"ShadingRateImageBitNv":     vk.ImageUsageShadingRateImageBitNv,
 	}
-}
-
-func mapStringVkMemoryPropertyFlagBits() map[string]vk.MemoryPropertyFlagBits {
-	return map[string]vk.MemoryPropertyFlagBits{
+	StringVkMemoryPropertyFlagBits = map[string]vk.MemoryPropertyFlagBits{
 		"DeviceLocalBit":     vk.MemoryPropertyDeviceLocalBit,
 		"HostVisibleBit":     vk.MemoryPropertyHostVisibleBit,
 		"HostCoherentBit":    vk.MemoryPropertyHostCoherentBit,
@@ -741,10 +522,7 @@ func mapStringVkMemoryPropertyFlagBits() map[string]vk.MemoryPropertyFlagBits {
 		"LazilyAllocatedBit": vk.MemoryPropertyLazilyAllocatedBit,
 		"ProtectedBit":       vk.MemoryPropertyProtectedBit,
 	}
-}
-
-func mapStringVkImageAspectFlagBits() map[string]vk.ImageAspectFlagBits {
-	return map[string]vk.ImageAspectFlagBits{
+	StringVkImageAspectFlagBits = map[string]vk.ImageAspectFlagBits{
 		"ColorBit":        vk.ImageAspectColorBit,
 		"DepthBit":        vk.ImageAspectDepthBit,
 		"StencilBit":      vk.ImageAspectStencilBit,
@@ -757,35 +535,182 @@ func mapStringVkImageAspectFlagBits() map[string]vk.ImageAspectFlagBits {
 		"MemoryPlane2Bit": vk.ImageAspectMemoryPlane2Bit,
 		"MemoryPlane3Bit": vk.ImageAspectMemoryPlane3Bit,
 	}
-}
-
-var (
 	StringVkMap = map[string]any{
-		"StringVkFormat":                 mapStringVkFormat(),
-		"StringVkBlendFactor":            mapStringVkBlendFactor(),
-		"StringVkBlendOp":                mapStringVkBlendOp(),
-		"StringVkLogicOp":                mapStringVkLogicOp(),
-		"StringVkCompareOp":              mapStringVkCompareOp(),
-		"StringVkStencilOp":              mapStringVkStencilOp(),
-		"StringVkPrimitiveTopology":      mapStringVkPrimitiveTopology(),
-		"StringVkPolygonMode":            mapStringVkPolygonMode(),
-		"StringVkCullModeFlagBits":       mapStringVkCullModeFlagBits(),
-		"StringVkFrontFace":              mapStringVkFrontFace(),
-		"StringVkSampleCountFlagBits":    mapStringVkSampleCountFlagBits(),
-		"StringVkPatchControlPoints":     mapStringVkPatchControlPoints(),
-		"StringVkAttachmentLoadOp":       mapStringVkAttachmentLoadOp(),
-		"StringVkAttachmentStoreOp":      mapStringVkAttachmentStoreOp(),
-		"StringVkImageLayout":            mapStringVkImageLayout(),
-		"StringVkPipelineStageFlagBits":  mapStringVkPipelineStageFlagBits(),
-		"StringVkAccessFlagBits":         mapStringVkAccessFlagBits(),
-		"StringVkPipelineBindPoint":      mapStringVkPipelineBindPoint(),
-		"StringVkDependencyFlagBits":     mapStringVkDependencyFlagBits(),
-		"StringVkColorComponentFlagBits": mapStringVkColorComponentFlagBits(),
-		"StringVkPipelineCreateFlagBits": mapStringVkPipelineCreateFlagBits(),
-		"StringVkImageTiling":            mapStringVkImageTiling(),
-		"StringVkFilter":                 mapStringVkFilter(),
-		"StringVkImageUsageFlagBits":     mapStringVkImageUsageFlagBits(),
-		"StringVkMemoryPropertyFlagBits": mapStringVkMemoryPropertyFlagBits(),
-		"StringVkImageAspectFlagBits":    mapStringVkImageAspectFlagBits(),
+		"StringVkFormat":                 StringVkFormat,
+		"StringVkBlendFactor":            StringVkBlendFactor,
+		"StringVkBlendOp":                StringVkBlendOp,
+		"StringVkLogicOp":                StringVkLogicOp,
+		"StringVkCompareOp":              StringVkCompareOp,
+		"StringVkStencilOp":              StringVkStencilOp,
+		"StringVkPrimitiveTopology":      StringVkPrimitiveTopology,
+		"StringVkPolygonMode":            StringVkPolygonMode,
+		"StringVkCullModeFlagBits":       StringVkCullModeFlagBits,
+		"StringVkFrontFace":              StringVkFrontFace,
+		"StringVkSampleCountFlagBits":    StringVkSampleCountFlagBits,
+		"StringVkPatchControlPoints":     StringVkPatchControlPoints,
+		"StringVkAttachmentLoadOp":       StringVkAttachmentLoadOp,
+		"StringVkAttachmentStoreOp":      StringVkAttachmentStoreOp,
+		"StringVkImageLayout":            StringVkImageLayout,
+		"StringVkPipelineStageFlagBits":  StringVkPipelineStageFlagBits,
+		"StringVkAccessFlagBits":         StringVkAccessFlagBits,
+		"StringVkPipelineBindPoint":      StringVkPipelineBindPoint,
+		"StringVkDependencyFlagBits":     StringVkDependencyFlagBits,
+		"StringVkColorComponentFlagBits": StringVkColorComponentFlagBits,
+		"StringVkPipelineCreateFlagBits": StringVkPipelineCreateFlagBits,
+		"StringVkImageTiling":            StringVkImageTiling,
+		"StringVkFilter":                 StringVkFilter,
+		"StringVkImageUsageFlagBits":     StringVkImageUsageFlagBits,
+		"StringVkMemoryPropertyFlagBits": StringVkMemoryPropertyFlagBits,
+		"StringVkImageAspectFlagBits":    StringVkImageAspectFlagBits,
 	}
 )
+
+func boolToVkBool(val bool) vk.Bool32 {
+	if val {
+		return vk.True
+	} else {
+		return vk.False
+	}
+}
+
+func attachmentLoadOpToVK(val string) vk.AttachmentLoadOp {
+	if res, ok := StringVkAttachmentLoadOp[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert attachment load op string", "string", val)
+	return vk.AttachmentLoadOpClear
+}
+
+func attachmentStoreOpToVK(val string) vk.AttachmentStoreOp {
+	if res, ok := StringVkAttachmentStoreOp[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert attachment store op string", "string", val)
+	return vk.AttachmentStoreOpStore
+}
+
+func imageLayoutToVK(val string) vk.ImageLayout {
+	if res, ok := StringVkImageLayout[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert image layout string", "string", val)
+	return vk.ImageLayoutColorAttachmentOptimal
+}
+
+func sampleCountToVK(val string) vk.SampleCountFlagBits {
+	if res, ok := StringVkSampleCountFlagBits[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert sample count string", "string", val)
+	return vk.SampleCount1Bit
+}
+
+func formatToVK(val string, vr *Vulkan) vk.Format {
+	if val == detectDepthFormatKey {
+		return vr.findDepthFormat()
+	} else if val == swapChainFormatKey {
+		return vr.swapImages[0].Format
+	} else if res, ok := StringVkFormat[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert format string", "string", val)
+	return vk.FormatR8g8b8a8Unorm
+}
+
+func compareOpToVK(val string) vk.CompareOp {
+	if res, ok := StringVkCompareOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkCompareOp", "value", val)
+	return vk.CompareOpLess
+}
+
+func stencilOpToVK(val string) vk.StencilOp {
+	if res, ok := StringVkStencilOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkStencilOpKeep", "value", val)
+	return vk.StencilOpKeep
+}
+
+func blendFactorToVK(val string) vk.BlendFactor {
+	if res, ok := StringVkBlendFactor[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendFactor", "value", val)
+	return vk.BlendFactorSrcAlpha
+}
+
+func blendOpToVK(val string) vk.BlendOp {
+	if res, ok := StringVkBlendOp[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for vkBlendOp", "value", val)
+	return vk.BlendOpAdd
+}
+
+func imageTilingToVK(val string) vk.ImageTiling {
+	if res, ok := StringVkImageTiling[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for image tiling", "value", val)
+	return vk.ImageTilingOptimal
+}
+
+func filterToVK(val string) vk.Filter {
+	if res, ok := StringVkFilter[val]; ok {
+		return res
+	}
+	slog.Warn("invalid string for filter", "value", val)
+	return vk.FilterLinear
+}
+
+func pipelineBindPointToVK(val string) vk.PipelineBindPoint {
+	if res, ok := StringVkPipelineBindPoint[val]; ok {
+		return res
+	}
+	slog.Warn("failed to convert pipeline bind point string", "string", val)
+	return vk.PipelineBindPointGraphics
+}
+
+func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []string) F {
+	mask := B(0)
+	for i := range vals {
+		if v, ok := mapping[vals[i]]; ok {
+			mask |= v
+		} else {
+			slog.Warn("failed to convert image aspect flag string", "string", vals[i])
+		}
+	}
+	return F(mask)
+}
+
+func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
+	return flagsToVK[vk.PipelineStageFlagBits, vk.PipelineStageFlags](
+		StringVkPipelineStageFlagBits, vals)
+}
+
+func accessFlagsToVK(vals []string) vk.AccessFlags {
+	return flagsToVK[vk.AccessFlagBits, vk.AccessFlags](
+		StringVkAccessFlagBits, vals)
+}
+
+func imageUsageFlagsToVK(vals []string) vk.ImageUsageFlags {
+	return flagsToVK[vk.ImageUsageFlagBits, vk.ImageUsageFlags](
+		StringVkImageUsageFlagBits, vals)
+}
+
+func memoryPropertyFlagsToVK(vals []string) vk.MemoryPropertyFlags {
+	return flagsToVK[vk.MemoryPropertyFlagBits, vk.MemoryPropertyFlags](
+		StringVkMemoryPropertyFlagBits, vals)
+}
+
+func imageAspectFlagsToVK(vals []string) vk.ImageAspectFlags {
+	return flagsToVK[vk.ImageAspectFlagBits, vk.ImageAspectFlags](
+		StringVkImageAspectFlagBits, vals)
+}
+
+func dependencyFlagsToVK(vals []string) vk.DependencyFlags {
+	return flagsToVK[vk.DependencyFlagBits, vk.DependencyFlags](
+		StringVkDependencyFlagBits, vals)
+}
