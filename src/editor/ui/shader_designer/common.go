@@ -12,6 +12,7 @@ const (
 	renderPassFolder = "content/renderer/passes"
 	pipelineFolder   = "content/renderer/pipelines"
 	materialFolder   = "content/renderer/materials"
+	texturesFolder   = "content/textures"
 )
 
 func showTooltip(options map[string]string, e *document.Element) {

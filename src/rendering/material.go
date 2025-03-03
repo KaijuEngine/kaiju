@@ -23,15 +23,15 @@ type Material struct {
 }
 
 type MaterialTextureData struct {
-	Texture string
+	Texture string `options:""` // Blank = fallback
 	Filter  string `options:"StringVkFilter"`
 }
 
 type MaterialData struct {
 	Name           string
-	Shader         string `options:""` // Blank options uses fallback
-	RenderPass     string `options:""` // Blank options uses fallback
-	ShaderPipeline string `options:""` // Blank options uses fallback
+	Shader         string `options:""` // Blank = fallback
+	RenderPass     string `options:""` // Blank = fallback
+	ShaderPipeline string `options:""` // Blank = fallback
 	Textures       []MaterialTextureData
 }
 

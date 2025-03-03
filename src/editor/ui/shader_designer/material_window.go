@@ -46,6 +46,10 @@ func collectShaderPipelinesOptions() []string {
 	return collectSpecificFileOptions(pipelineFolder, editor_config.FileExtensionShaderPipeline)
 }
 
+func collectTextureOptions() []string {
+	return collectSpecificFileOptions(texturesFolder, editor_config.FileExtensionPng)
+}
+
 func (win *ShaderDesigner) reloadMaterialDoc() {
 	sy := float32(0)
 	if win.materialDoc != nil {
@@ -57,6 +61,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["Shader"] = collectShaderOptions()
 	listings["RenderPass"] = collectRenderPassOptions()
 	listings["ShaderPipeline"] = collectShaderPipelinesOptions()
+	listings["Texture"] = collectTextureOptions()
 	data := reflectUIStructure(&win.material, "", listings)
 	data.Name = "Material Editor"
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
