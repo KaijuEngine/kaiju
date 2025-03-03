@@ -107,7 +107,7 @@ func New(host *engine.Host, editor interfaces.Editor, canvas string, history *me
 	t.wires[2], _ = t.createWire("z", host, back, front, matrix.ColorBlue(), canvas)
 	for i := range t.wires {
 		if t.wires[i].IsValid() {
-			host.Drawings.AddDrawing(&t.wires[i])
+			host.Drawings.AddDrawing(t.wires[i])
 		}
 	}
 	return t

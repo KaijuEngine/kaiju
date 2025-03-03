@@ -53,7 +53,7 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 		ShaderData: &sd,
 		Transform:  &e.Transform,
 	}
-	host.Drawings.AddDrawing(&drawing)
+	host.Drawings.AddDrawing(drawing)
 	e.EditorBindings.AddDrawing(drawing)
 	bvh := resMesh.GenerateBVH(&e.Transform)
 	e.EditorBindings.Set("bvh", bvh)

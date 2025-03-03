@@ -153,7 +153,7 @@ func (d *ShaderData) CompileVariantName(path, flags string) string {
 	name := filepath.Base(path) + ".spv"
 	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1))
 	if flags != "" {
-		return filepath.Join(dir, d.Name+name)
+		return filepath.Join(dir, d.Name+"_"+name)
 	}
 	return filepath.Join(dir, name)
 }

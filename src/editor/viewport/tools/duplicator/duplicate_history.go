@@ -25,7 +25,7 @@ func (h *duplicateHistory) doDuplication() {
 				copy := draws[i]
 				copy.Transform = &to.Transform
 				copy.ShaderData = rendering.ReflectDuplicateDrawInstance(draws[i].ShaderData)
-				host.Drawings.AddDrawing(&copy)
+				host.Drawings.AddDrawing(copy)
 				to.EditorBindings.AddDrawing(copy)
 			}
 			// Duplicate the BVH

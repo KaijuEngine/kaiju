@@ -598,7 +598,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
 		}
-		p.man.Host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(pd.drawing)
 	} else if tex != nil {
 		p.SetBackground(tex)
 	}
@@ -617,7 +617,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
 		pd.drawing.Material.Textures[0] = tex
-		p.man.Host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(pd.drawing)
 	}
 }
 
@@ -689,8 +689,18 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 func (p *Panel) SetUseBlending(useBlending bool) {
 	p.recreateDrawing()
 	pd := p.PanelData()
-	pd.drawing.UseBlending = useBlending
-	p.man.Host.Drawings.AddDrawing(&pd.drawing)
+	p.man.Host.Drawings.AddDrawing(pd.drawing)
+	if useBlending {
+		transparent := pd.drawing
+		m, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
+		if err != nil {
+			slog.Error("failed to load the material",
+				"material", assets.MaterialDefinitionUITransparent, "error", err)
+			return
+		}
+		transparent.Material = m
+		p.man.Host.Drawings.AddDrawing(transparent)
+	}
 }
 
 func (p *Panel) Overflow() Overflow { return p.PanelData().overflow }
@@ -717,8 +727,18 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	if hasBlending != shouldBlend {
 		p.recreateDrawing()
 		pd := p.PanelData()
-		pd.drawing.UseBlending = shouldBlend
-		p.man.Host.Drawings.AddDrawing(&pd.drawing)
+		p.man.Host.Drawings.AddDrawing(pd.drawing)
+		if shouldBlend {
+			transparent := pd.drawing
+			m, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
+			if err != nil {
+				slog.Error("failed to load the material",
+					"material", assets.MaterialDefinitionUITransparent, "error", err)
+			} else {
+				transparent.Material = m
+				p.man.Host.Drawings.AddDrawing(transparent)
+			}
+		}
 	}
 	p.shaderData.FgColor = bgColor
 }

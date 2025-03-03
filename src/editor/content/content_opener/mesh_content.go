@@ -48,7 +48,7 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 		ShaderData: data,
 		Transform:  &e.Transform,
 	}
-	host.Drawings.AddDrawing(&drawing)
+	host.Drawings.AddDrawing(drawing)
 	e.EditorBindings.AddDrawing(drawing)
 	e.OnActivate.Add(func() { data.Activate() })
 	e.OnDeactivate.Add(func() { data.Deactivate() })

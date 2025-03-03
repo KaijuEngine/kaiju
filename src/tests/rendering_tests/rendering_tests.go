@@ -139,7 +139,7 @@ func testDrawing(uiMan *ui.Manager) {
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
 	material = material.CreateInstance([]*rendering.Texture{droidTex})
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       mesh,
@@ -174,7 +174,7 @@ func testTwoDrawings(uiMan *ui.Manager) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		material = material.CreateInstance([]*rendering.Texture{droidTex})
-		host.Drawings.AddDrawing(&rendering.Drawing{
+		host.Drawings.AddDrawing(rendering.Drawing{
 			Renderer:   host.Window.Renderer,
 			Material:   material,
 			Mesh:       mesh,
@@ -221,14 +221,25 @@ func testOIT(uiMan *ui.Manager) {
 		m.Translate(positions[i])
 		tsd.SetModel(m)
 		material = material.CreateInstance([]*rendering.Texture{droidTex})
-		host.Drawings.AddDrawing(&rendering.Drawing{
-			Renderer:    host.Window.Renderer,
-			Material:    material,
-			Mesh:        mesh,
-			ShaderData:  &tsd,
-			Transform:   nil,
-			UseBlending: colors[i].A() < 1.0,
-		})
+		drawing := rendering.Drawing{
+			Renderer:   host.Window.Renderer,
+			Material:   material,
+			Mesh:       mesh,
+			ShaderData: &tsd,
+			Transform:  nil,
+		}
+		host.Drawings.AddDrawing(drawing)
+		if colors[i].A() < 1.0 {
+			transparent := drawing
+			m, err := host.MaterialCache().Material(assets.MaterialDefinitionBasicTransparent)
+			if err != nil {
+				slog.Error("failed to load the material",
+					"material", assets.MaterialDefinitionBasicTransparent, "error", err)
+			} else {
+				transparent.Material = m
+				host.Drawings.AddDrawing(transparent)
+			}
+		}
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
@@ -355,7 +366,7 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 		return
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
@@ -453,7 +464,7 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 		return
 	}
 	mat = mat.CreateInstance(textures)
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,

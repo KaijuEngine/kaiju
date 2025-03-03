@@ -132,14 +132,13 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 			m = host.MeshCache().Mesh(adi.ID, md.Verts, md.Indexes)
 		}
 		drawing := rendering.Drawing{
-			Renderer:    host.Window.Renderer,
-			Material:    mat,
-			Mesh:        m,
-			ShaderData:  d.ShaderData,
-			Transform:   &e.Transform,
-			UseBlending: d.UseBlending,
+			Renderer:   host.Window.Renderer,
+			Material:   mat,
+			Mesh:       m,
+			ShaderData: d.ShaderData,
+			Transform:  &e.Transform,
 		}
-		host.Drawings.AddDrawing(&drawing)
+		host.Drawings.AddDrawing(drawing)
 		drawings = append(drawings, drawing)
 	}
 	return drawings, nil

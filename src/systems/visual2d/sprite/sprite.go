@@ -128,7 +128,7 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	if s.drawing.IsValid() {
 		s.recreateDrawing()
 		s.drawing.Material.Textures[0] = texture
-		s.host.Drawings.AddDrawing(&s.drawing)
+		s.host.Drawings.AddDrawing(s.drawing)
 	}
 }
 
@@ -151,8 +151,7 @@ func (s *Sprite) SetColor(color matrix.Color) {
 	s.shaderData.FgColor = color
 	if color.A() < 1 {
 		s.recreateDrawing()
-		s.drawing.UseBlending = true
-		s.host.Drawings.AddDrawing(&s.drawing)
+		s.host.Drawings.AddDrawing(s.drawing)
 	}
 }
 
@@ -241,14 +240,25 @@ func NewSprite(x, y, width, height matrix.Float,
 		FgColor:        color,
 		UVs:            matrix.Vec4{0.0, 0.0, 1.0, 1.0},
 	}
-	host.Drawings.AddDrawing(&rendering.Drawing{
-		Renderer:    host.Window.Renderer,
-		Material:    mat.CreateInstance([]*rendering.Texture{texture}),
-		Mesh:        mesh,
-		ShaderData:  &sprite.shaderData,
-		Transform:   &sprite.Entity.Transform,
-		UseBlending: color.A() < 1,
-	})
+	drawing := rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Material:   mat.CreateInstance([]*rendering.Texture{texture}),
+		Mesh:       mesh,
+		ShaderData: &sprite.shaderData,
+		Transform:  &sprite.Entity.Transform,
+	}
+	host.Drawings.AddDrawing(drawing)
+	if color.A() < 1 {
+		transparent := drawing
+		m, err := host.MaterialCache().Material(assets.MaterialDefinitionSpriteTransparent)
+		if err != nil {
+			slog.Error("failed to load the material",
+				"material", assets.MaterialDefinitionSpriteTransparent, "error", err)
+		} else {
+			transparent.Material = m.CreateInstance([]*rendering.Texture{texture})
+			host.Drawings.AddDrawing(transparent)
+		}
+	}
 	return sprite
 }
 

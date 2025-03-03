@@ -22,6 +22,13 @@ type Material struct {
 	mutex        sync.Mutex
 }
 
+func (m *Material) SelectRoot() *Material {
+	if m.Root.Value() != nil {
+		return m.Root.Value()
+	}
+	return m
+}
+
 type MaterialTextureData struct {
 	Texture string `options:""` // Blank = fallback
 	Filter  string `options:"StringVkFilter"`
@@ -42,15 +49,17 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 		instanceKey.WriteRune(';')
 	}
 	key := instanceKey.String()
+	// TODO:  Use a read lock?
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if found, ok := m.Instances[key]; ok {
 		return found
 	}
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
-	m.mutex.Lock()
+	// TODO:  If using a read lock, then make sure to write lock the following line
 	m.Instances[key] = copy
-	m.mutex.Unlock()
 	copy.Root = weak.Make(m)
 	copy.Instances = nil
 	return copy

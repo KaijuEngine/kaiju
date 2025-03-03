@@ -1,0 +1,1 @@
+{"Name":"text3d_transparent","Shader":"content\\renderer\\shaders\\text3d_transparent.shader","RenderPass":"content\\renderer\\passes\\opaque.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\basic.shaderpipeline","Textures":[]}

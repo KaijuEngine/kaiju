@@ -159,14 +159,16 @@ type cachedLetterMesh struct {
 }
 
 type FontCache struct {
-	textMaterial      *Material
-	textOrthoMaterial *Material
-	renderer          Renderer
-	renderCaches      RenderCaches
-	assetDb           *assets.Database
-	fontFaces         map[string]fontBin
-	instanceKey       int64
-	FaceMutex         sync.RWMutex
+	textMaterial                 *Material
+	textOrthoMaterial            *Material
+	textMaterialTransparent      *Material
+	textOrthoMaterialTransparent *Material
+	renderer                     Renderer
+	renderCaches                 RenderCaches
+	assetDb                      *assets.Database
+	fontFaces                    map[string]fontBin
+	instanceKey                  int64
+	FaceMutex                    sync.RWMutex
 }
 
 type TextShaderData struct {
@@ -181,6 +183,19 @@ type TextShaderData struct {
 func (s TextShaderData) Size() int {
 	const size = int(unsafe.Sizeof(TextShaderData{}) - ShaderBaseDataStart)
 	return size
+}
+
+func (cache *FontCache) TransparentMaterial(target *Material) *Material {
+	if target == cache.textMaterial.SelectRoot() {
+		return cache.textMaterialTransparent
+	} else if target == cache.textOrthoMaterial.SelectRoot() {
+		return cache.textOrthoMaterialTransparent
+	} else if target == cache.textMaterialTransparent.SelectRoot() ||
+		target == cache.textOrthoMaterialTransparent.SelectRoot() {
+		return target
+	}
+	slog.Error("invalid material used for getting transparent text material", "material", target.Name)
+	return nil
 }
 
 func (cache *FontCache) nextInstanceKey(key rune) string {
@@ -395,6 +410,14 @@ func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches
 	}
 	if cache.textOrthoMaterial, err = caches.MaterialCache().Material("text"); err != nil {
 		slog.Error("failed to load the text material", "error", err)
+		return err
+	}
+	if cache.textMaterialTransparent, err = caches.MaterialCache().Material("text3d_transparent"); err != nil {
+		slog.Error("failed to load the transparent text3d material", "error", err)
+		return err
+	}
+	if cache.textOrthoMaterialTransparent, err = caches.MaterialCache().Material("text_transparent"); err != nil {
+		slog.Error("failed to load the transparent text material", "error", err)
 		return err
 	}
 	cache.renderCaches = caches

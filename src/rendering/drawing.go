@@ -44,12 +44,11 @@ import (
 )
 
 type Drawing struct {
-	Renderer    Renderer
-	Material    *Material
-	Mesh        *Mesh
-	ShaderData  DrawInstance
-	Transform   *matrix.Transform
-	UseBlending bool
+	Renderer   Renderer
+	Material   *Material
+	Mesh       *Mesh
+	ShaderData DrawInstance
+	Transform  *matrix.Transform
 }
 
 func (d *Drawing) IsValid() bool {
@@ -82,8 +81,7 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
 		if g.Mesh == dg.Mesh &&
-			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) &&
-			dg.UseBlending == g.useBlending {
+			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) {
 			idx = i
 		}
 	}
@@ -143,7 +141,6 @@ func (d *Drawings) PreparePending() {
 			group.MaterialInstance = drawing.Material
 			group.AddInstance(drawing.ShaderData)
 			group.MaterialInstance.Textures = drawing.Material.Textures
-			group.useBlending = drawing.UseBlending
 			if idx >= 0 {
 				draw.instanceGroups[idx] = group
 			} else {
@@ -154,10 +151,10 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing *Drawing) {
+func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.backDraws = append(d.backDraws, *drawing)
+	d.backDraws = append(d.backDraws, drawing)
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing) {

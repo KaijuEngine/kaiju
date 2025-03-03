@@ -307,7 +307,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 		m := matrix.Mat4Identity()
 		m.Scale(matrix.Vec3{1, 1, 1})
 		sd[i].SetModel(m)
-		vr.combinedDrawings.AddDrawing(&Drawing{
+		vr.combinedDrawings.AddDrawing(Drawing{
 			Renderer:   vr,
 			Material:   combineMat.CreateInstance([]*Texture{passes[i].SelectOutputAttachment()}),
 			Mesh:       mesh,

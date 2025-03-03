@@ -136,7 +136,7 @@ func setupViewportGrid(ed *Editor) {
 	}
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer: host.Window.Renderer,
 		Material: material,
 		Mesh:     grid,

@@ -175,8 +175,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
 		d.Material = outline
 		d.ShaderData = ds
-		d.UseBlending = false
-		s.host.Drawings.AddDrawing(&d)
+		s.host.Drawings.AddDrawing(d)
 	}
 	s.host.RunAfterFrames(1, func() {
 		// Make drawings snap to transform
