@@ -555,7 +555,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,
-					Material:   material,
+					Material:   material.CreateInstance([]*Texture{fontFace.texture}),
 					Mesh:       m,
 					ShaderData: shaderData,
 					Transform:  nil,
