@@ -69,9 +69,11 @@ func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.Attachme
 	if len(dependencies) > 0 {
 		info.PDependencies = &dependencies[0]
 	}
-	if vk.CreateRenderPass(device, &info, nil, &p.Handle) != vk.Success {
+	var handle vk.RenderPass
+	if vk.CreateRenderPass(device, &info, nil, &handle) != vk.Success {
 		return p, errors.New("failed to create the render pass")
 	}
+	p.Handle = handle
 	dbg.add(vk.TypeToUintPtr(p.Handle))
 	return p, nil
 }
