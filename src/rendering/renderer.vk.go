@@ -220,6 +220,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:              debugVulkanNew(),
 		combinedDrawings: NewDrawings(),
+		renderPassCache:  make(map[string]*RenderPass),
 	}
 
 	appInfo := vk.ApplicationInfo{}

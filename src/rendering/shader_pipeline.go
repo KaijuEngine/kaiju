@@ -431,32 +431,36 @@ func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32 {
 func (s *ShaderPipelineInputAssembly) TopologyToVK() vk.PrimitiveTopology {
 	if res, ok := StringVkPrimitiveTopology[s.Topology]; ok {
 		return res
+	} else if s.Topology != "" {
+		slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
 	}
-	slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
 	return vk.PrimitiveTopologyTriangleList
 }
 
 func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vk.PolygonMode {
 	if res, ok := StringVkPolygonMode[s.PolygonMode]; ok {
 		return res
+	} else if s.PolygonMode != "" {
+		slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
 	}
-	slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
 	return vk.PolygonModeFill
 }
 
 func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vk.CullModeFlagBits {
 	if res, ok := StringVkCullModeFlagBits[s.CullMode]; ok {
 		return res
+	} else if s.CullMode != "" {
+		slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
 	}
-	slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
 	return vk.CullModeFrontBit
 }
 
 func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vk.FrontFace {
 	if res, ok := StringVkFrontFace[s.FrontFace]; ok {
 		return res
+	} else if s.FrontFace != "" {
+		slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
 	}
-	slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
 	return vk.FrontFaceClockwise
 }
 
@@ -467,8 +471,9 @@ func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK() vk.Sample
 func (s *ShaderPipelineColorBlend) LogicOpToVK() vk.LogicOp {
 	if res, ok := StringVkLogicOp[s.LogicOp]; ok {
 		return res
+	} else if s.LogicOp != "" {
+		slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
 	}
-	slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
 	return vk.LogicOpCopy
 }
 
@@ -484,8 +489,9 @@ func (s *ShaderPipelineData) BlendConstants() [4]float32 {
 func (s *ShaderPipelineTessellation) PatchControlPointsToVK() uint32 {
 	if res, ok := StringVkPatchControlPoints[s.PatchControlPoints]; ok {
 		return res
+	} else if s.PatchControlPoints != "" {
+		slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
 	}
-	slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
 	return 3
 }
 

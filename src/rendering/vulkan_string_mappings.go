@@ -576,33 +576,37 @@ func boolToVkBool(val bool) vk.Bool32 {
 func attachmentLoadOpToVK(val string) vk.AttachmentLoadOp {
 	if res, ok := StringVkAttachmentLoadOp[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert attachment load op string", "string", val)
 	}
-	slog.Warn("failed to convert attachment load op string", "string", val)
-	return vk.AttachmentLoadOpClear
+	return 0
 }
 
 func attachmentStoreOpToVK(val string) vk.AttachmentStoreOp {
 	if res, ok := StringVkAttachmentStoreOp[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert attachment store op string", "string", val)
 	}
-	slog.Warn("failed to convert attachment store op string", "string", val)
-	return vk.AttachmentStoreOpStore
+	return 0
 }
 
 func imageLayoutToVK(val string) vk.ImageLayout {
 	if res, ok := StringVkImageLayout[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert image layout string", "string", val)
 	}
-	slog.Warn("failed to convert image layout string", "string", val)
-	return vk.ImageLayoutColorAttachmentOptimal
+	return 0
 }
 
 func sampleCountToVK(val string) vk.SampleCountFlagBits {
 	if res, ok := StringVkSampleCountFlagBits[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert sample count string", "string", val)
 	}
-	slog.Warn("failed to convert sample count string", "string", val)
-	return vk.SampleCount1Bit
+	return 0
 }
 
 func formatToVK(val string, vr *Vulkan) vk.Format {
@@ -612,49 +616,55 @@ func formatToVK(val string, vr *Vulkan) vk.Format {
 		return vr.swapImages[0].Format
 	} else if res, ok := StringVkFormat[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert format string", "string", val)
 	}
-	slog.Warn("failed to convert format string", "string", val)
-	return vk.FormatR8g8b8a8Unorm
+	return 0
 }
 
 func compareOpToVK(val string) vk.CompareOp {
 	if res, ok := StringVkCompareOp[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for vkCompareOp", "value", val)
 	}
-	slog.Warn("invalid string for vkCompareOp", "value", val)
-	return vk.CompareOpLess
+	return 0
 }
 
 func stencilOpToVK(val string) vk.StencilOp {
 	if res, ok := StringVkStencilOp[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for vkStencilOpKeep", "value", val)
 	}
-	slog.Warn("invalid string for vkStencilOpKeep", "value", val)
-	return vk.StencilOpKeep
+	return 0
 }
 
 func blendFactorToVK(val string) vk.BlendFactor {
 	if res, ok := StringVkBlendFactor[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for vkBlendFactor", "value", val)
 	}
-	slog.Warn("invalid string for vkBlendFactor", "value", val)
-	return vk.BlendFactorSrcAlpha
+	return 0
 }
 
 func blendOpToVK(val string) vk.BlendOp {
 	if res, ok := StringVkBlendOp[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for vkBlendOp", "value", val)
 	}
-	slog.Warn("invalid string for vkBlendOp", "value", val)
-	return vk.BlendOpAdd
+	return 0
 }
 
 func imageTilingToVK(val string) vk.ImageTiling {
 	if res, ok := StringVkImageTiling[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("invalid string for image tiling", "value", val)
 	}
-	slog.Warn("invalid string for image tiling", "value", val)
-	return vk.ImageTilingOptimal
+	return 0
 }
 
 func filterToVK(val string) vk.Filter {
@@ -663,15 +673,16 @@ func filterToVK(val string) vk.Filter {
 	} else if val != "" {
 		slog.Warn("invalid string for filter", "value", val)
 	}
-	return vk.FilterLinear
+	return 0
 }
 
 func pipelineBindPointToVK(val string) vk.PipelineBindPoint {
 	if res, ok := StringVkPipelineBindPoint[val]; ok {
 		return res
+	} else if val != "" {
+		slog.Warn("failed to convert pipeline bind point string", "string", val)
 	}
-	slog.Warn("failed to convert pipeline bind point string", "string", val)
-	return vk.PipelineBindPointGraphics
+	return 0
 }
 
 func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []string) F {

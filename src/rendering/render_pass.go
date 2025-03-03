@@ -290,7 +290,10 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 			if a.LoadOp == vk.AttachmentLoadOpLoad || a.Image.MipLevels == 0 || a.Image.LayerCount == 0 {
 				continue
 			}
-			textures = append(textures, Texture{})
+			textures = append(textures, Texture{
+				Width:  int(w),
+				Height: int(h),
+			})
 			img := &a.Image
 			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
 				a.Format, img.Tiling, img.Usage,
@@ -347,32 +350,32 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 	depthStencil := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	resolve := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	for i := range r.SubpassDescriptions {
-		c := r.SubpassDescriptions[i].ColorAttachmentReferences
-		n := r.SubpassDescriptions[i].InputAttachmentReferences
-		p := r.SubpassDescriptions[i].PreserveAttachments
-		d := r.SubpassDescriptions[i].DepthStencilAttachment
-		r := r.SubpassDescriptions[i].ResolveAttachments
-		color[i] = make([]vk.AttachmentReference, len(c))
-		input[i] = make([]vk.AttachmentReference, len(n))
-		preserve[i] = make([]uint32, len(p))
-		depthStencil[i] = make([]vk.AttachmentReference, len(d))
-		resolve[i] = make([]vk.AttachmentReference, len(r))
-		for j := range c {
-			color[i][j].Attachment = c[j].Attachment
-			color[i][j].Layout = c[j].Layout
+		car := r.SubpassDescriptions[i].ColorAttachmentReferences
+		iar := r.SubpassDescriptions[i].InputAttachmentReferences
+		pa := r.SubpassDescriptions[i].PreserveAttachments
+		dsa := r.SubpassDescriptions[i].DepthStencilAttachment
+		ra := r.SubpassDescriptions[i].ResolveAttachments
+		color[i] = make([]vk.AttachmentReference, len(car))
+		input[i] = make([]vk.AttachmentReference, len(iar))
+		preserve[i] = make([]uint32, len(pa))
+		depthStencil[i] = make([]vk.AttachmentReference, len(dsa))
+		resolve[i] = make([]vk.AttachmentReference, len(ra))
+		for j := range car {
+			color[i][j].Attachment = car[j].Attachment
+			color[i][j].Layout = car[j].Layout
 		}
-		for j := range n {
-			input[i][j].Attachment = n[j].Attachment
-			input[i][j].Layout = n[j].Layout
+		for j := range iar {
+			input[i][j].Attachment = iar[j].Attachment
+			input[i][j].Layout = iar[j].Layout
 		}
-		copy(p, preserve[i])
-		for j := range depthStencil {
-			depthStencil[i][j].Attachment = d[j].Attachment
-			depthStencil[i][j].Layout = d[j].Layout
+		copy(preserve[i], pa)
+		for j := range dsa {
+			depthStencil[i][j].Attachment = dsa[j].Attachment
+			depthStencil[i][j].Layout = dsa[j].Layout
 		}
-		for j := range resolve {
-			resolve[i][j].Attachment = r[j].Attachment
-			resolve[i][j].Layout = r[j].Layout
+		for j := range ra {
+			resolve[i][j].Attachment = ra[j].Attachment
+			resolve[i][j].Layout = ra[j].Layout
 		}
 	}
 	subpasses := make([]vk.SubpassDescription, len(r.SubpassDescriptions))

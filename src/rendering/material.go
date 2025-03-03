@@ -94,8 +94,9 @@ func materialUnmarshallData(assets *assets.Database, file string, to any) error 
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		Name:     d.Name,
-		Textures: make([]*Texture, len(d.Textures)),
+		Name:      d.Name,
+		Textures:  make([]*Texture, len(d.Textures)),
+		Instances: make(map[string]*Material),
 	}
 	sd := ShaderData{}
 	if err := materialUnmarshallData(assets, d.Shader, &sd); err != nil {
@@ -103,7 +104,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	}
 	c.shaderInfo = sd.Compile()
 	rp := RenderPassData{}
-	if err := materialUnmarshallData(assets, d.Shader, &rp); err != nil {
+	if err := materialUnmarshallData(assets, d.RenderPass, &rp); err != nil {
 		return c, err
 	}
 	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
