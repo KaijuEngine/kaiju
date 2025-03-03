@@ -9,6 +9,7 @@ import (
 
 type RenderPassData struct {
 	Name                   string
+	Sort                   int
 	AttachmentDescriptions []RenderPassAttachmentDescription
 	SubpassDescriptions    []RenderPassSubpassDescription
 	SubpassDependencies    []RenderPassSubpassDependency
@@ -73,6 +74,7 @@ type RenderPassSubpassDependency struct {
 
 type RenderPassDataCompiled struct {
 	Name                   string
+	Sort                   int
 	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
 	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
@@ -135,6 +137,7 @@ func NewRenderPassData(src string) (RenderPassData, error) {
 func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
+		Sort:                   d.Sort,
 		AttachmentDescriptions: make([]RenderPassAttachmentDescriptionCompiled, len(d.AttachmentDescriptions)),
 		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
 		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
