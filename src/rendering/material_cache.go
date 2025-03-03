@@ -50,7 +50,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		return material, nil
 	} else {
 		matStr, err := m.assetDatabase.ReadText(
-			filepath.Join("renderer/materials/", key+".material"))
+			filepath.Join("renderer/materials/", key))
 		if err != nil {
 			return nil, err
 		}
