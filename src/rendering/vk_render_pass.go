@@ -39,6 +39,8 @@ package rendering
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 
 	vk "kaiju/rendering/vulkan"
 )
@@ -52,12 +54,29 @@ type RenderPass struct {
 	construction RenderPassDataCompiled
 }
 
+func (r *RenderPass) SelectOutputAttachment() *Texture {
+	for i := range r.construction.AttachmentDescriptions {
+		a := &r.construction.AttachmentDescriptions[i]
+		if (a.Image.Usage & vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit)) != 0 {
+			return &r.textures[i]
+		}
+	}
+	slog.Error("failed to find an output color attachment for the render pass", "renderPass", r.construction.Name)
+	if len(r.textures) > 0 {
+		return &r.textures[0]
+	}
+	return nil
+}
+
 func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency, textures []Texture, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
 		device:       device,
 		dbg:          dbg,
 		textures:     textures,
 		construction: *setup,
+	}
+	for i := range textures {
+		p.textures[i].Key = fmt.Sprintf("renderPass-%s-%d", setup.Name, i)
 	}
 	info := vk.RenderPassCreateInfo{}
 	info.SType = vk.StructureTypeRenderPassCreateInfo

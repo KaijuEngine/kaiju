@@ -185,7 +185,9 @@ func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
 	newPadding := blockSize - d.instanceSize%blockSize
 	if d.rawData.padding != newPadding {
 		d.rawData.padding = newPadding
+		old := d.rawData.bytes
 		d.rawData.bytes = make([]byte, d.TotalSize())
+		copy(d.rawData.bytes, old)
 	}
 }
 
@@ -294,7 +296,7 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 	}
 }
 
-func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+func (d *DrawInstanceGroup) Clear(renderer Renderer) {
 	if d.destroyed {
 		return
 	}
@@ -302,5 +304,11 @@ func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 		d.Instances[i].Destroy()
 	}
 	d.Instances = d.Instances[:0]
+}
+func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+	if d.destroyed {
+		return
+	}
+	d.Clear(renderer)
 	renderer.DestroyGroup(d)
 }

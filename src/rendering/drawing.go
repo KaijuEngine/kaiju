@@ -39,7 +39,7 @@ package rendering
 
 import (
 	"kaiju/matrix"
-	"slices"
+	"sort"
 	"sync"
 )
 
@@ -77,18 +77,6 @@ func NewDrawings() Drawings {
 
 func (d *Drawings) HasDrawings() bool { return len(d.renderPassGroups) > 0 }
 
-func texturesMatch(a []*Texture, b []*Texture) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for _, ta := range a {
-		if !slices.Contains(b, ta) {
-			return false
-		}
-	}
-	return true
-}
-
 func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	idx := -1
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
@@ -103,8 +91,16 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 }
 
 func (d *RenderPassGroup) findShaderDraw(material *Material) (*ShaderDraw, bool) {
+	rootMat := material
+	if rootMat.Root.Value() != nil {
+		rootMat = rootMat.Root.Value()
+	}
 	for i := range d.draws {
-		if d.draws[i].material == material {
+		mat := d.draws[i].material
+		if mat.Root.Value() != nil {
+			mat = mat.Root.Value()
+		}
+		if mat == rootMat {
 			return &d.draws[i], true
 		}
 	}
@@ -182,6 +178,9 @@ func (d *Drawings) Render(renderer Renderer) {
 		}
 	}
 	if len(passes) > 0 {
+		sort.Slice(passes, func(i, j int) bool {
+			return passes[i].construction.Sort < passes[j].construction.Sort
+		})
 		renderer.BlitTargets(passes)
 	}
 }
