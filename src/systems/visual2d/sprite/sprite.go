@@ -241,10 +241,9 @@ func NewSprite(x, y, width, height matrix.Float,
 		FgColor:        color,
 		UVs:            matrix.Vec4{0.0, 0.0, 1.0, 1.0},
 	}
-	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	host.Drawings.AddDrawing(&rendering.Drawing{
 		Renderer:    host.Window.Renderer,
-		Material:    mat,
+		Material:    mat.CreateInstance([]*rendering.Texture{texture}),
 		Mesh:        mesh,
 		ShaderData:  &sprite.shaderData,
 		Transform:   &sprite.Entity.Transform,
