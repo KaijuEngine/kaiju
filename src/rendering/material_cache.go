@@ -67,3 +67,14 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		return material, nil
 	}
 }
+
+func (m *MaterialCache) Destroy() {
+	for _, mat := range m.pendingMaterials {
+		mat.Destroy(m.renderer)
+	}
+	m.pendingMaterials = m.pendingMaterials[:0]
+	for _, mat := range m.materials {
+		mat.Destroy(m.renderer)
+	}
+	m.materials = make(map[string]*Material)
+}

@@ -397,6 +397,7 @@ func (host *Host) Teardown() {
 	host.meshCache.Destroy()
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
+	host.materialCache.Destroy()
 	host.assetDatabase.Destroy()
 	host.Window.Destroy()
 	host.CloseSignal <- struct{}{}

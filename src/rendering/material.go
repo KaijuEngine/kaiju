@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync"
 	"weak"
 )
 
@@ -20,6 +21,7 @@ type Material struct {
 	Instances    map[string]*Material
 	Root         weak.Pointer[Material]
 	Clears       []vk.ClearValue
+	mutex        sync.Mutex
 }
 
 type MaterialTextureData struct {
@@ -60,7 +62,9 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
+	m.mutex.Lock()
 	m.Instances[key] = copy
+	m.mutex.Unlock()
 	copy.Root = weak.Make(m)
 	copy.Instances = nil
 	return copy
@@ -155,4 +159,9 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 		}
 	}
 	return c, nil
+}
+
+func (m *Material) Destroy(renderer Renderer) {
+	vr := renderer.(*Vulkan)
+	m.renderPass.Destroy(vr)
 }

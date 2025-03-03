@@ -89,9 +89,16 @@ func (p *RenderPass) CreateFrameBuffer(vr *Vulkan,
 	return nil
 }
 
-func (p *RenderPass) Destroy() {
+func (p *RenderPass) Destroy(vr *Vulkan) {
+	if p.Handle == vk.NullRenderPass {
+		return
+	}
 	vk.DestroyRenderPass(p.device, p.Handle, nil)
 	p.dbg.remove(vk.TypeToUintPtr(p.Handle))
 	vk.DestroyFramebuffer(p.device, p.Buffer, nil)
 	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
+	for i := range p.textures {
+		vr.textureIdFree(&p.textures[i].RenderId)
+	}
+	p.Handle = vk.NullRenderPass
 }

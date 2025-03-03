@@ -513,7 +513,7 @@ func (vr *Vulkan) Destroy() {
 			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.descriptorPools[i]))
 		}
-		vr.swapChainRenderPass.Destroy()
+		vr.swapChainRenderPass.Destroy(vr)
 		vr.swapChainCleanup()
 		vk.DestroyDevice(vr.device, nil)
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))
