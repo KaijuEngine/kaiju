@@ -285,6 +285,9 @@ func (ui *UI) setScissor(scissor matrix.Vec4) {
 }
 
 func (ui *UI) requestEvent(evtType EventType) {
+	if ui.events[evtType].IsEmpty() {
+		return
+	}
 	if ui.group != nil {
 		ui.group.requestEvent(ui, evtType)
 	} else {
