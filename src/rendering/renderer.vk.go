@@ -211,7 +211,7 @@ func (vr *Vulkan) createColorResources() bool {
 	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vk.ImageAspectColorBit))
 }
 
-func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, error) {
+func NewVKRenderer(window RenderingContainer, applicationName string, assets *assets.Database) (*Vulkan, error) {
 	vr := &Vulkan{
 		window:           window,
 		instance:         vk.NullInstance,
@@ -249,7 +249,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createImageViews() {
 		return nil, errors.New("failed to create image views")
 	}
-	if !vr.createSwapChainRenderPass() {
+	if !vr.createSwapChainRenderPass(assets) {
 		return nil, errors.New("failed to create render pass")
 	}
 	if !vr.createCmdPool() {
@@ -380,74 +380,21 @@ func (vr *Vulkan) createCmdBuffer() bool {
 	}
 }
 
-func (vr *Vulkan) createSwapChainRenderPass() bool {
-	colorAttachment := vk.AttachmentDescription{}
-	colorAttachment.Format = vr.swapImages[0].Format
-	colorAttachment.Samples = vr.msaaSamples
-	colorAttachment.LoadOp = vk.AttachmentLoadOpClear
-	colorAttachment.StoreOp = vk.AttachmentStoreOpStore
-	colorAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachment.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	colorAttachment.InitialLayout = vk.ImageLayoutUndefined
-	colorAttachment.FinalLayout = vk.ImageLayoutColorAttachmentOptimal
-
-	depthAttachment := vk.AttachmentDescription{}
-	depthAttachment.Format = vr.findDepthFormat()
-	depthAttachment.Samples = vr.msaaSamples
-	depthAttachment.LoadOp = vk.AttachmentLoadOpClear
-	depthAttachment.StoreOp = vk.AttachmentStoreOpDontCare
-	depthAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	depthAttachment.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	depthAttachment.InitialLayout = vk.ImageLayoutUndefined
-	depthAttachment.FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	colorAttachmentResolve := vk.AttachmentDescription{}
-	colorAttachmentResolve.Format = vr.swapImages[0].Format
-	colorAttachmentResolve.Samples = vk.SampleCount1Bit
-	colorAttachmentResolve.LoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachmentResolve.StoreOp = vk.AttachmentStoreOpStore
-	colorAttachmentResolve.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachmentResolve.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	colorAttachmentResolve.InitialLayout = vk.ImageLayoutUndefined
-	colorAttachmentResolve.FinalLayout = vk.ImageLayoutPresentSrc
-
-	colorAttachmentRef := vk.AttachmentReference{}
-	colorAttachmentRef.Attachment = 0
-	colorAttachmentRef.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	colorAttachmentResolveRef := vk.AttachmentReference{}
-	colorAttachmentResolveRef.Attachment = 2
-	colorAttachmentResolveRef.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	depthAttachmentRef := vk.AttachmentReference{}
-	depthAttachmentRef.Attachment = 1
-	depthAttachmentRef.Layout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	subpass := vk.SubpassDescription{}
-	subpass.PipelineBindPoint = vk.PipelineBindPointGraphics
-	subpass.ColorAttachmentCount = 1
-	subpass.PColorAttachments = &colorAttachmentRef
-	subpass.PResolveAttachments = &colorAttachmentResolveRef
-	subpass.PDepthStencilAttachment = &depthAttachmentRef
-
-	dependency := vk.SubpassDependency{}
-	dependency.SrcSubpass = vk.SubpassExternal
-	dependency.DstSubpass = 0
-	dependency.SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit | vk.PipelineStageEarlyFragmentTestsBit)
-	dependency.SrcAccessMask = 0
-	dependency.DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit | vk.PipelineStageEarlyFragmentTestsBit)
-	dependency.DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit | vk.AccessDepthStencilAttachmentWriteBit)
-
-	attachments := []vk.AttachmentDescription{colorAttachment, depthAttachment, colorAttachmentResolve}
-
-	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments,
-		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{dependency},
-		[]Texture{{RenderId: vr.swapImages[0]}})
+func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
+	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
 	if err != nil {
-		slog.Error("Failed to create render pass")
 		return false
 	}
-	vr.swapChainRenderPass = pass
+	rp, err := NewRenderPassData(rpSpec)
+	if err != nil {
+		return false
+	}
+	compiled := rp.Compile(vr)
+	p, ok := compiled.ConstructRenderPass(vr)
+	if !ok {
+		return false
+	}
+	vr.swapChainRenderPass = p
 	return true
 }
 

@@ -146,7 +146,7 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	if height <= 0 {
 		height = DefaultWindowHeight
 	}
-	win, err := windowing.New(host.name, width, height, x, y)
+	win, err := windowing.New(host.name, width, height, x, y, &host.assetDatabase)
 	if err != nil {
 		return err
 	}

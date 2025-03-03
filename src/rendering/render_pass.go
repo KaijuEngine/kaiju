@@ -1,8 +1,10 @@
 package rendering
 
 import (
+	"encoding/json"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
+	"math"
 )
 
 type RenderPassData struct {
@@ -50,7 +52,7 @@ type RenderPassAttachmentReference struct {
 }
 
 type RenderPassSubpassDependency struct {
-	SrcSubpass      uint32
+	SrcSubpass      int64
 	DstSubpass      uint32
 	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
 	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
@@ -113,6 +115,12 @@ type RenderPassSubpassDependencyCompiled struct {
 	DependencyFlags vk.DependencyFlags
 }
 
+func NewRenderPassData(src string) (RenderPassData, error) {
+	var rp RenderPassData
+	err := json.Unmarshal([]byte(src), &rp)
+	return rp, err
+}
+
 func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
@@ -133,12 +141,14 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a.FinalLayout = b.FinalLayoutToVK()
 		a.Image.MipLevels = b.Image.MipLevels
 		a.Image.LayerCount = b.Image.LayerCount
-		a.Image.Tiling = b.Image.TilingToVK()
-		a.Image.Filter = b.Image.FilterToVK()
-		a.Image.Usage = b.Image.UsageToVK()
-		a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
-		a.Image.Aspect = b.Image.AspectToVK()
-		a.Image.Access = b.Image.AccessToVK()
+		if b.Image.MipLevels != 0 && b.Image.LayerCount != 0 {
+			a.Image.Tiling = b.Image.TilingToVK()
+			a.Image.Filter = b.Image.FilterToVK()
+			a.Image.Usage = b.Image.UsageToVK()
+			a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
+			a.Image.Aspect = b.Image.AspectToVK()
+			a.Image.Access = b.Image.AccessToVK()
+		}
 	}
 	for i := range d.SubpassDescriptions {
 		a := &c.SubpassDescriptions[i]
@@ -170,7 +180,11 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	for i := range d.SubpassDependencies {
 		a := &c.SubpassDependencies[i]
 		b := &d.SubpassDependencies[i]
-		a.SrcSubpass = b.SrcSubpass
+		if b.SrcSubpass < 0 {
+			a.SrcSubpass = math.MaxUint32
+		} else {
+			a.SrcSubpass = uint32(b.SrcSubpass)
+		}
 		a.DstSubpass = b.DstSubpass
 		a.SrcStageMask = b.SrcStageMaskToVK()
 		a.DstStageMask = b.DstStageMaskToVK()
@@ -273,7 +287,7 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 		h := uint32(vr.swapChainExtent.Height)
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
-			if a.LoadOp == vk.AttachmentLoadOpLoad {
+			if a.LoadOp == vk.AttachmentLoadOpLoad || a.Image.MipLevels == 0 || a.Image.LayerCount == 0 {
 				continue
 			}
 			textures = append(textures, Texture{})
@@ -302,8 +316,9 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
 				return nil, false
 			}
-			success = vr.transitionImageLayout(&textures[i].RenderId, a.InitialLayout,
-				img.Aspect, img.Access, vk.NullCommandBuffer)
+			// TODO:  Is this required?
+			//success = vr.transitionImageLayout(&textures[i].RenderId, a.InitialLayout,
+			//	img.Aspect, img.Access, vk.NullCommandBuffer)
 			if !success {
 				for j := range i + 1 {
 					vr.textureIdFree(&textures[j].RenderId)
@@ -365,22 +380,22 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 		// TODO:  Fill in the flags
 		subpasses[i].Flags = 0
 		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPoint
-		subpasses[i].ColorAttachmentCount = uint32(len(color))
-		subpasses[i].InputAttachmentCount = uint32(len(input))
-		subpasses[i].PreserveAttachmentCount = uint32(len(preserve))
-		if len(color) > 0 {
+		subpasses[i].ColorAttachmentCount = uint32(len(color[i]))
+		subpasses[i].InputAttachmentCount = uint32(len(input[i]))
+		subpasses[i].PreserveAttachmentCount = uint32(len(preserve[i]))
+		if len(color[i]) > 0 {
 			subpasses[i].PColorAttachments = &color[i][0]
 		}
-		if len(input) > 0 {
+		if len(input[i]) > 0 {
 			subpasses[i].PInputAttachments = &input[i][0]
 		}
-		if len(preserve) > 0 {
+		if len(preserve[i]) > 0 {
 			subpasses[i].PPreserveAttachments = &preserve[i][0]
 		}
-		if len(depthStencil) > 0 {
+		if len(depthStencil[i]) > 0 {
 			subpasses[i].PDepthStencilAttachment = &depthStencil[i][0]
 		}
-		if len(resolve) > 0 {
+		if len(resolve[i]) > 0 {
 			subpasses[i].PResolveAttachments = &resolve[i][0]
 		}
 	}
@@ -406,11 +421,13 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 	for i := range pass.textures {
 		imageViews[i] = pass.textures[i].RenderId.View
 	}
-	err = pass.CreateFrameBuffer(vr, imageViews,
-		pass.textures[0].Width, pass.textures[0].Height)
-	if err != nil {
-		slog.Error("failed to create the frame buffer for the render pass", "error", err)
-		return nil, false
+	if len(imageViews) == len(attachments) {
+		err = pass.CreateFrameBuffer(vr, imageViews,
+			textures[0].Width, textures[0].Height)
+		if err != nil {
+			slog.Error("failed to create the frame buffer for the render pass", "error", err)
+			return nil, false
+		}
 	}
 	return pass, true
 }
