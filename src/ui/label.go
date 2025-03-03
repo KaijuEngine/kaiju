@@ -228,8 +228,7 @@ func (label *Label) renderText() {
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
 		}
-		dc := label.man.Host.Window.Renderer.DefaultCanvas()
-		label.man.Host.Drawings.AddDrawings(ld.runeDrawings, dc)
+		label.man.Host.Drawings.AddDrawings(ld.runeDrawings)
 	}
 }
 

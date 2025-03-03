@@ -597,7 +597,6 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			Mesh:       rendering.NewMeshQuad(p.man.Host.MeshCache()),
 			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
-			CanvasId:   "default",
 		}
 		p.man.Host.Drawings.AddDrawing(&pd.drawing)
 	} else if tex != nil {

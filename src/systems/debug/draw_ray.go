@@ -67,7 +67,6 @@ func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
-		CanvasId:   "default",
 	})
 	func() {
 		time.Sleep(duration)

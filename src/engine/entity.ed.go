@@ -81,7 +81,6 @@ func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 		MeshKey:     drawing.Mesh.Key(),
 		UseBlending: drawing.UseBlending,
 		ShaderData:  drawing.ShaderData,
-		CanvasId:    drawing.CanvasId,
 	})
 	e.Set(editorDrawingBinding, drawings)
 	e.Set(editorDrawingDefinition, defs)

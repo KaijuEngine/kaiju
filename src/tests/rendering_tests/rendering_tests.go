@@ -145,7 +145,6 @@ func testDrawing(uiMan *ui.Manager) {
 		Mesh:       mesh,
 		ShaderData: &tsd,
 		Transform:  nil,
-		CanvasId:   "default",
 	})
 }
 
@@ -181,7 +180,6 @@ func testTwoDrawings(uiMan *ui.Manager) {
 			Mesh:       mesh,
 			ShaderData: &tsd,
 			Transform:  nil,
-			CanvasId:   "default",
 		})
 	}
 }
@@ -192,7 +190,7 @@ func testFont(uiMan *ui.Manager) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, rendering.FontRegular, 0)
-	host.Drawings.AddDrawings(drawings, host.Window.Renderer.DefaultCanvas())
+	host.Drawings.AddDrawings(drawings)
 }
 
 func testOIT(uiMan *ui.Manager) {
@@ -230,7 +228,6 @@ func testOIT(uiMan *ui.Manager) {
 			ShaderData:  &tsd,
 			Transform:   nil,
 			UseBlending: colors[i].A() < 1.0,
-			CanvasId:    "default",
 		})
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
@@ -363,7 +360,6 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 		Material:   mat,
 		Mesh:       mesh,
 		ShaderData: &sd,
-		CanvasId:   "default",
 	})
 }
 
@@ -462,7 +458,6 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 		Material:   mat,
 		Mesh:       mesh,
 		ShaderData: &sd,
-		CanvasId:   "default",
 	})
 	{
 		frame := 0

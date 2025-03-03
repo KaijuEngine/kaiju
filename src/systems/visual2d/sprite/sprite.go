@@ -249,7 +249,6 @@ func NewSprite(x, y, width, height matrix.Float,
 		ShaderData:  &sprite.shaderData,
 		Transform:   &sprite.Entity.Transform,
 		UseBlending: color.A() < 1,
-		CanvasId:    "default",
 	})
 	return sprite
 }

@@ -85,7 +85,6 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
-		CanvasId:   canvas,
 	}, nil
 }
 

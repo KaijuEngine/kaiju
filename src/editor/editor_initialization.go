@@ -140,7 +140,6 @@ func setupViewportGrid(ed *Editor) {
 		Renderer: host.Window.Renderer,
 		Material: material,
 		Mesh:     grid,
-		CanvasId: "default",
 		ShaderData: &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.Color{0.5, 0.5, 0.5, 1},

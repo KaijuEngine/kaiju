@@ -137,7 +137,6 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 			Mesh:        m,
 			ShaderData:  d.ShaderData,
 			Transform:   &e.Transform,
-			CanvasId:    d.CanvasId,
 			UseBlending: d.UseBlending,
 		}
 		host.Drawings.AddDrawing(&drawing)

@@ -52,7 +52,6 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 		Mesh:       mesh,
 		ShaderData: &sd,
 		Transform:  &e.Transform,
-		CanvasId:   "default",
 	}
 	host.Drawings.AddDrawing(&drawing)
 	e.EditorBindings.AddDrawing(drawing)
