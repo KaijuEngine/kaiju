@@ -655,19 +655,6 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		vr.dbg.add(vk.TypeToUintPtr(pLayout))
 	}
 	shader.RenderId.pipelineLayout = pLayout
-	depthStencil := vk.PipelineDepthStencilStateCreateInfo{
-		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
-		Flags:                 0, // PipelineDepthStencilStateCreateFlags
-		DepthTestEnable:       s.DepthStencil.DepthTestEnable,
-		DepthCompareOp:        s.DepthStencil.DepthCompareOp,
-		DepthBoundsTestEnable: s.DepthStencil.DepthBoundsTestEnable,
-		StencilTestEnable:     s.DepthStencil.StencilTestEnable,
-		MinDepthBounds:        s.DepthStencil.MinDepthBounds,
-		MaxDepthBounds:        s.DepthStencil.MaxDepthBounds,
-		DepthWriteEnable:      s.DepthStencil.DepthWriteEnable,
-		Front:                 s.DepthStencil.Front,
-		Back:                  s.DepthStencil.Back,
-	}
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
 		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
 		Flags:               s.GraphicsPipeline.PipelineCreateFlags,
@@ -683,8 +670,28 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		Layout:              shader.RenderId.pipelineLayout,
 		RenderPass:          renderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
-		PDepthStencilState:  &depthStencil,
 		Subpass:             s.GraphicsPipeline.SubpassCount,
+	}
+	hasDepth := false
+	for i := 0; i < len(renderPass.construction.SubpassDescriptions) && !hasDepth; i++ {
+		hasDepth = len(renderPass.construction.SubpassDescriptions[i].DepthStencilAttachment) > 0
+	}
+	var depthStencil vk.PipelineDepthStencilStateCreateInfo
+	if hasDepth {
+		depthStencil = vk.PipelineDepthStencilStateCreateInfo{
+			SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
+			Flags:                 0, // PipelineDepthStencilStateCreateFlags
+			DepthTestEnable:       s.DepthStencil.DepthTestEnable,
+			DepthCompareOp:        s.DepthStencil.DepthCompareOp,
+			DepthBoundsTestEnable: s.DepthStencil.DepthBoundsTestEnable,
+			StencilTestEnable:     s.DepthStencil.StencilTestEnable,
+			MinDepthBounds:        s.DepthStencil.MinDepthBounds,
+			MaxDepthBounds:        s.DepthStencil.MaxDepthBounds,
+			DepthWriteEnable:      s.DepthStencil.DepthWriteEnable,
+			Front:                 s.DepthStencil.Front,
+			Back:                  s.DepthStencil.Back,
+		}
+		pipelineInfo.PDepthStencilState = &depthStencil
 	}
 	tess := vk.PipelineTessellationStateCreateInfo{}
 	if len(shader.data.TessellationControl) > 0 ||
