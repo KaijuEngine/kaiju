@@ -21,7 +21,7 @@ nav:
     - Editor windows: engine_developers/editor_windows.md
     - Prompt popups: engine_developers/prompt_popup.md
   - Shaders:
-    - Shader definition: shaders/shader_definition.md
+    - Shader definition: shaders/shader_designer.md
   - API: api/
 theme:
   name: 'material'
