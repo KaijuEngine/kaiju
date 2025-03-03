@@ -8,9 +8,9 @@
 			"args": [
 				"-C",
 				"${workspaceFolder}/src",
-				"main.go",
-				"-o",
-				"kaiju.exe"
+				"-tags=editor",
+				"-o=../kaiju.exe",
+				"main.go"
 			],
 			"problemMatcher": [
 				"$go"
