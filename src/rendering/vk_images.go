@@ -58,9 +58,6 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		slog.Error("Texture image format does not support linear blitting")
 		return false
 	}
-	if image == vk.NullImage {
-		return false
-	}
 	commandBuffer := vr.beginSingleTimeCommands()
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
@@ -276,9 +273,6 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	commandBuffer := cmd
 	if cmd == vk.NullCommandBuffer {
 		commandBuffer = vr.beginSingleTimeCommands()
-	}
-	if vt.Image == vk.NullImage {
-		return false
 	}
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier

@@ -244,7 +244,6 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	}
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
-		offsets := vk.DeviceSize(0)
 		vk.CmdNextSubpass(cmd, vk.SubpassContentsInline)
 		vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
@@ -267,7 +266,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 			s.shader.RenderId.pipelineLayout, 0, 1, &ds[0], 0, &dsOffsets[0])
 		mid := &s.renderQuad.MeshId
 		vb := [...]vk.Buffer{mid.vertexBuffer}
-		vbOffsets := [...]vk.DeviceSize{offsets}
+		vbOffsets := [...]vk.DeviceSize{0}
 		vk.CmdBindVertexBuffers(cmd, 0, 1, &vb[0], &vbOffsets[0])
 		vk.CmdBindIndexBuffer(cmd, mid.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd, mid.indexCount, 1, 0, 0, 0)

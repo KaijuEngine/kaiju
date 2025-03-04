@@ -110,13 +110,9 @@ func vertexGetAttributeDescription(shader *Shader) []vk.VertexInputAttributeDesc
 	desc[7].Location = 7
 	desc[7].Format = vk.FormatR32g32b32Sfloat
 	desc[7].Offset = uint32(unsafe.Offsetof((*Vertex)(nil).MorphTarget))
-	if shader.IsComposite() {
-		return desc[:]
-	} else {
-		uniformDescriptions := shader.DriverData.AttributeDescriptions
-		descriptions := make([]vk.VertexInputAttributeDescription, 0, len(uniformDescriptions)+len(desc))
-		descriptions = append(descriptions, desc[:]...)
-		descriptions = append(descriptions, uniformDescriptions...)
-		return descriptions
-	}
+	uniformDescriptions := shader.DriverData.AttributeDescriptions
+	descriptions := make([]vk.VertexInputAttributeDescription, 0, len(uniformDescriptions)+len(desc))
+	descriptions = append(descriptions, desc[:]...)
+	descriptions = append(descriptions, uniformDescriptions...)
+	return descriptions
 }
