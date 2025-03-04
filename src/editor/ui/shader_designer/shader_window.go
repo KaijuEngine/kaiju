@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 func setupShaderDoc(win *ShaderDesigner) {
@@ -122,7 +123,7 @@ func compileShaderFile(s *rendering.ShaderData, src, flags string) error {
 	out := s.CompileVariantName(src, flags)
 	args := []string{src, "-o", out}
 	if flags != "" {
-		args = append(args, flags)
+		args = append(args, strings.TrimSpace(flags))
 	}
 	compileCmd := exec.Command("glslc", args...)
 	return compileCmd.Run()
@@ -133,6 +134,18 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	if err := os.MkdirAll(saveRoot, os.ModePerm); err != nil {
 		slog.Error("failed to create the shader folder",
 			"folder", saveRoot, "error", err)
+	}
+	var err error
+	if win.shader, err = importShaderLayout(win.shader); err != nil {
+		slog.Error("failed to read the shader layout", "error", err)
+		return
+	}
+	path := filepath.Join(saveRoot, win.shader.Name+editor_config.FileExtensionShader)
+	if _, err := os.Stat(path); err == nil {
+		ok := <-alert.New("Overwrite?", "You are about to overwrite a shader with the same name, would you like to continue?", "Yes", "No", win.man.Host)
+		if !ok {
+			return
+		}
 	}
 	s := &win.shader
 	addFlags := ""
@@ -158,18 +171,6 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	if err := compileShaderFile(s, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
 		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
 		return
-	}
-	var err error
-	if win.shader, err = importShaderLayout(win.shader); err != nil {
-		slog.Error("failed to read the shader layout", "error", err)
-		return
-	}
-	path := filepath.Join(saveRoot, win.shader.Name+editor_config.FileExtensionShader)
-	if _, err := os.Stat(path); err == nil {
-		ok := <-alert.New("Overwrite?", "You are about to overwrite a shader with the same name, would you like to continue?", "Yes", "No", win.man.Host)
-		if !ok {
-			return
-		}
 	}
 	res, err := json.Marshal(win.shader)
 	if err != nil {

@@ -40,10 +40,10 @@
 			"StoreOp": "Store"
 		},
 		{
-			"Name": "transparent.reveal",
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R16Sfloat",
 			"Image": {
+				"Name": "transparent.reveal",
 				"Access": [
 					"ColorAttachmentWriteBit"
 				],
@@ -79,10 +79,10 @@
 			"StoreOp": "Store"
 		},
 		{
-			"Name": "",
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R8g8b8a8Unorm",
 			"Image": {
+				"Name": "",
 				"Access": [],
 				"Aspect": [],
 				"Clear": {
@@ -109,10 +109,10 @@
 			"StoreOp": "Store"
 		},
 		{
-			"Name": "",
 			"FinalLayout": "DepthStencilAttachmentOptimal",
 			"Format": "<DetectDepthFormat>",
 			"Image": {
+				"Name": "",
 				"Access": [],
 				"Aspect": [],
 				"Clear": {

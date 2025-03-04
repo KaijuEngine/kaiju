@@ -287,16 +287,19 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		vk.CmdNextSubpass(cmd, vk.SubpassContentsInline)
 		vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
+		descriptorWrites := [10]vk.WriteDescriptorSet{}
+		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
+		set := s.descriptorSets[vr.currentFrame]
 		for i := range s.sampledImages {
+			if i >= len(descriptorWrites) {
+				slog.Error("not enough descriptor writes for this action")
+				break
+			}
 			t := &renderPass.textures[s.sampledImages[i]].RenderId
 			imageInfos[i] = imageInfo(t.View, t.Sampler)
+			descriptorWrites[i] = prepareSetWriteImage(set, imageInfos[i:i+1], uint32(i), true)
 		}
-		set := s.descriptorSets[vr.currentFrame]
-		descriptorWrites := []vk.WriteDescriptorSet{
-			prepareSetWriteImage(set, imageInfos[0:1], 0, true),
-			prepareSetWriteImage(set, imageInfos[1:2], 1, true),
-		}
-		vk.UpdateDescriptorSets(vr.device, uint32(len(descriptorWrites)), &descriptorWrites[0], 0, nil)
+		vk.UpdateDescriptorSets(vr.device, uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
 		ds := [...]vk.DescriptorSet{s.descriptorSets[vr.currentFrame]}
 		dsOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(cmd, vk.PipelineBindPointGraphics,

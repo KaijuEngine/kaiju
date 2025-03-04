@@ -53,7 +53,7 @@ const (
 	MaterialDefinitionText3D            = "text3d"
 	MaterialDefinitionText              = "text"
 	MaterialDefinitionCombine           = "combine"
-	MaterialDefinitionOITComposite      = "oit_composite"
+	MaterialDefinitionComposite         = "composite"
 	MaterialDefinitionUI                = "ui"
 	MaterialDefinitionUITransparent     = "ui_transparent"
 	MaterialDefinitionSprite            = "sprite"

@@ -201,7 +201,7 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 }
 
 func (s *Shader) IsComposite() bool {
-	return s.data.Vertex == assets.ShaderOitCompositeVert
+	return s.data.Vertex == assets.ShaderCompositeVert
 }
 
 func (s *Shader) Destroy(renderer Renderer) {
