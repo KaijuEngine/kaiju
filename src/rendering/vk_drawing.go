@@ -74,7 +74,6 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 		if !group.AnyVisible() {
 			continue
 		}
-		updatedAnything = true
 		vr.resizeUniformBuffer(material, group)
 		instanceLen := instanceSize * vk.DeviceSize(len(group.Instances))
 		mapLen := instanceLen
@@ -133,6 +132,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			count := uint32(len(descriptorWrites))
 			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
 		}
+		updatedAnything = true
 	}
 	return updatedAnything
 }
@@ -209,49 +209,6 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, pipeline vk.Pipelin
 			vk.CmdBindVertexBuffers(commandBuffer, uint32(group.namedBuffers[k].bindingId),
 				1, &namedBuffers[0], &ibOffsets[0])
 		}
-		//shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
-		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
-		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
-			uint32(group.VisibleCount()), 0, 0, 0)
-	}
-}
-
-func (vr *Vulkan) renderEachAlpha(commandBuffer vk.CommandBuffer, shader *Shader, groups []*DrawInstanceGroup) {
-	if shader == nil {
-		return
-	}
-	lastShader := (*Shader)(nil)
-	currentShader := (*Shader)(nil)
-	for i := range groups {
-		group := groups[i]
-		if !group.IsReady() || group.VisibleCount() == 0 {
-			continue
-		}
-		if lastShader != shader {
-			vk.CmdBindPipeline(commandBuffer,
-				vk.PipelineBindPointGraphics, shader.RenderId.graphicsPipeline)
-			lastShader = shader
-			currentShader = shader
-		}
-		descriptorSets := [...]vk.DescriptorSet{group.descriptorSets[vr.currentFrame]}
-		dynOffsets := [...]uint32{0}
-		vk.CmdBindDescriptorSets(commandBuffer, vk.PipelineBindPointGraphics,
-			currentShader.RenderId.pipelineLayout, 0, 1, &descriptorSets[0], 0, &dynOffsets[0])
-		meshId := &group.Mesh.MeshId
-		offsets := vk.DeviceSize(0)
-		vb := [...]vk.Buffer{meshId.vertexBuffer}
-		vbOffsets := [...]vk.DeviceSize{offsets}
-		vk.CmdBindVertexBuffers(commandBuffer, 0, 1, &vb[0], &vbOffsets[0])
-		instanceBuffers := [...]vk.Buffer{group.instanceBuffer.buffers[vr.currentFrame]}
-		ibOffsets := [...]vk.DeviceSize{0}
-		vk.CmdBindVertexBuffers(commandBuffer, uint32(group.instanceBuffer.bindingId),
-			1, &instanceBuffers[0], &ibOffsets[0])
-		for k := range group.namedBuffers {
-			namedBuffers := [...]vk.Buffer{group.namedBuffers[k].buffers[vr.currentFrame]}
-			vk.CmdBindVertexBuffers(commandBuffer, uint32(group.namedBuffers[k].bindingId),
-				1, &namedBuffers[0], &ibOffsets[0])
-		}
-		//draw.shader.RendererId.instanceBuffers[vr.currentFrame] = instanceBuffers[0]
 		vk.CmdBindIndexBuffer(commandBuffer, meshId.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(commandBuffer, meshId.indexCount,
 			uint32(group.VisibleCount()), 0, 0, 0)
@@ -263,9 +220,11 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		return false
 	}
 	drawingAnything := false
+	doDrawings := make([]bool, len(drawings))
 	for i := range drawings {
-		drawingAnything = vr.writeDrawingDescriptors(drawings[i].material,
-			drawings[i].instanceGroups) || drawingAnything
+		d := &drawings[i]
+		doDrawings[i] = vr.writeDrawingDescriptors(d.material, d.instanceGroups)
+		drawingAnything = drawingAnything || doDrawings[i]
 	}
 	if !drawingAnything {
 		return false
@@ -277,9 +236,11 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	beginRender(renderPass, vr.swapChainExtent,
 		cmd, renderPass.construction.ImageClears)
 	for i := range drawings {
-		mat := drawings[i].material
-		s := &mat.Shader.RenderId
-		vr.renderEach(cmd, s.graphicsPipeline, s.pipelineLayout, drawings[i].instanceGroups)
+		d := &drawings[i]
+		if doDrawings[i] {
+			s := &d.material.Shader.RenderId
+			vr.renderEach(cmd, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+		}
 	}
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
