@@ -16,9 +16,6 @@
 			"generate": true,
 			"gc_details": true,
 			"test": true
-		},
-		"ui.diagnostic.annotations": {
-			"escape": true
 		}
 	},
 	"go.testEnvVars": {
