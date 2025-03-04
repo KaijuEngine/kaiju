@@ -391,7 +391,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 		return false
 	}
 	compiled := rp.Compile(vr)
-	p, ok := compiled.ConstructRenderPass(vr)
+	p, ok := compiled.ConstructRenderPass(vr, assets)
 	if !ok {
 		return false
 	}

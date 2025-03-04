@@ -82,7 +82,7 @@ type ShaderPipelineTessellation struct {
 }
 
 type ShaderPipelineGraphicsPipeline struct {
-	SubpassCount        uint32
+	Subpass             uint32
 	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
 }
 
@@ -242,7 +242,7 @@ func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompil
 			PatchControlPoints: d.Tessellation.PatchControlPointsToVK(),
 		},
 		GraphicsPipeline: ShaderPipelineGraphicsPipelineCompiled{
-			Subpass:             d.GraphicsPipeline.SubpassCount,
+			Subpass:             d.GraphicsPipeline.Subpass,
 			PipelineCreateFlags: d.GraphicsPipeline.PipelineCreateFlagsToVK(),
 		},
 	}

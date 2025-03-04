@@ -80,8 +80,12 @@
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R8g8b8a8Unorm",
 			"Image": {
-				"Access": null,
-				"Aspect": null,
+				"Access": [
+					"ColorAttachmentWriteBit"
+				],
+				"Aspect": [
+					"ColorBit"
+				],
 				"Clear": {
 					"A": 0,
 					"B": 0,
@@ -90,12 +94,18 @@
 					"R": 0,
 					"Stencil": 0
 				},
-				"Filter": "",
-				"LayerCount": 0,
-				"MemoryProperty": null,
-				"MipLevels": 0,
-				"Tiling": "",
-				"Usage": null
+				"Filter": "Linear",
+				"LayerCount": 1,
+				"MemoryProperty": [
+					"DeviceLocalBit"
+				],
+				"MipLevels": 1,
+				"Tiling": "Optimal",
+				"Usage": [
+					"ColorAttachmentBit",
+					"TransferSrcBit",
+					"SampledBit"
+				]
 			},
 			"InitialLayout": "ColorAttachmentOptimal",
 			"LoadOp": "Load",
@@ -108,22 +118,30 @@
 			"FinalLayout": "DepthStencilAttachmentOptimal",
 			"Format": "<DetectDepthFormat>",
 			"Image": {
-				"Access": null,
-				"Aspect": null,
+				"Access": [
+					"DepthStencilAttachmentWriteBit"
+				],
+				"Aspect": [
+					"DepthBit"
+				],
 				"Clear": {
 					"A": 0,
 					"B": 0,
-					"Depth": 0,
+					"Depth": 1,
 					"G": 0,
 					"R": 0,
 					"Stencil": 0
 				},
-				"Filter": "",
-				"LayerCount": 0,
-				"MemoryProperty": null,
-				"MipLevels": 0,
-				"Tiling": "",
-				"Usage": null
+				"Filter": "Linear",
+				"LayerCount": 1,
+				"MemoryProperty": [
+					"DeviceLocalBit"
+				],
+				"MipLevels": 1,
+				"Tiling": "Optimal",
+				"Usage": [
+					"DepthStencilAttachmentBit"
+				]
 			},
 			"InitialLayout": "DepthStencilAttachmentOptimal",
 			"LoadOp": "Load",
@@ -229,7 +247,19 @@
 			],
 			"PipelineBindPoint": "Graphics",
 			"PreserveAttachments": null,
-			"ResolveAttachments": null
+			"ResolveAttachments": null,
+			"Subpass": {
+				"SampledImages": [
+					{
+						"SampledImage": "0"
+					},
+					{
+						"SampledImage": "1"
+					}
+				],
+				"Shader": "content\\renderer\\shaders\\composite.shader",
+				"ShaderPipeline":"content\\renderer\\pipelines\\composite.shaderpipeline"
+			}
 		}
 	]
 }

@@ -38,10 +38,13 @@
 package rendering
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 
+	"kaiju/assets"
+	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -52,6 +55,58 @@ type RenderPass struct {
 	dbg          *debugVulkan
 	textures     []Texture
 	construction RenderPassDataCompiled
+	subpasses    []RenderPassSubpass
+}
+
+type RenderPassSubpass struct {
+	shader         *Shader
+	shaderPipeline ShaderPipelineDataCompiled
+	descriptorSets [maxFramesInFlight]vk.DescriptorSet
+	descriptorPool vk.DescriptorPool
+	sampledImages  []int
+	renderQuad     *Mesh
+}
+
+func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, assets *assets.Database) error {
+	sp := RenderPassSubpass{}
+	// TODO:  This is copied from Material::Compile
+	{
+		shaderConfig, err := assets.ReadText(c.Shader)
+		if err != nil {
+			return err
+		}
+		pipeConfig, err := assets.ReadText(c.ShaderPipeline)
+		if err != nil {
+			return err
+		}
+		var pipe ShaderPipelineData
+		var rawSD ShaderData
+		if err := json.Unmarshal([]byte(pipeConfig), &pipe); err != nil {
+			return err
+		}
+		if err := json.Unmarshal([]byte(shaderConfig), &rawSD); err != nil {
+			return err
+		}
+		sp.shaderPipeline = pipe.Compile(vr)
+		shaderCache := vr.caches.ShaderCache()
+		sp.shader, _ = shaderCache.Shader(rawSD.Compile())
+		sp.shader.pipelineInfo = &sp.shaderPipeline
+		sp.shader.renderPass = r
+		shaderCache.CreatePending()
+	}
+	sp.descriptorSets, sp.descriptorPool = klib.MustReturn2(
+		vr.createDescriptorSet(sp.shader.RenderId.descriptorSetLayout, 0))
+	for i := range c.SampledImages {
+		t := &r.textures[c.SampledImages[i]].RenderId
+		if t.Sampler == vk.NullSampler {
+			vr.createTextureSampler(&t.Sampler, t.MipLevels, vk.FilterLinear)
+		}
+	}
+	sp.sampledImages = append(sp.sampledImages, c.SampledImages...)
+	sp.renderQuad = NewMeshUnitQuad(vr.caches.MeshCache())
+	vr.caches.MeshCache().CreatePending()
+	r.subpasses = append(r.subpasses, sp)
+	return nil
 }
 
 func (r *RenderPass) SelectOutputAttachment() *Texture {
@@ -68,10 +123,10 @@ func (r *RenderPass) SelectOutputAttachment() *Texture {
 	return nil
 }
 
-func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency, textures []Texture, setup *RenderPassDataCompiled) (*RenderPass, error) {
+func NewRenderPass(vr *Vulkan, assets *assets.Database, attachments []vk.AttachmentDescription, subPasses []vk.SubpassDescription, dependencies []vk.SubpassDependency, textures []Texture, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
-		device:       device,
-		dbg:          dbg,
+		device:       vr.device,
+		dbg:          &vr.dbg,
 		textures:     textures,
 		construction: *setup,
 	}
@@ -89,11 +144,14 @@ func NewRenderPass(device vk.Device, dbg *debugVulkan, attachments []vk.Attachme
 		info.PDependencies = &dependencies[0]
 	}
 	var handle vk.RenderPass
-	if vk.CreateRenderPass(device, &info, nil, &handle) != vk.Success {
+	if vk.CreateRenderPass(vr.device, &info, nil, &handle) != vk.Success {
 		return p, errors.New("failed to create the render pass")
 	}
 	p.Handle = handle
-	dbg.add(vk.TypeToUintPtr(p.Handle))
+	vr.dbg.add(vk.TypeToUintPtr(p.Handle))
+	for i := range setup.Subpass {
+		p.setupSubpass(&setup.Subpass[i], vr, assets)
+	}
 	return p, nil
 }
 
@@ -118,6 +176,9 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
 	for i := range p.textures {
 		vr.textureIdFree(&p.textures[i].RenderId)
+	}
+	for i := range p.textures {
+		vr.DestroyTexture(&p.textures[i])
 	}
 	p.Handle = vk.NullRenderPass
 }

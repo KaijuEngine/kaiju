@@ -2,9 +2,11 @@ package rendering
 
 import (
 	"encoding/json"
+	"kaiju/assets"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 	"math"
+	"strconv"
 )
 
 type RenderPassData struct {
@@ -55,6 +57,7 @@ type RenderPassSubpassDescription struct {
 	ResolveAttachments        []RenderPassAttachmentReference
 	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
 	PreserveAttachments       []uint32                        // TODO
+	Subpass                   RenderPassSubpassData
 }
 
 type RenderPassAttachmentReference struct {
@@ -72,6 +75,16 @@ type RenderPassSubpassDependency struct {
 	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
 }
 
+type RenderPassSubpassData struct {
+	Shader         string `options:""`
+	ShaderPipeline string `options:""`
+	SampledImages  []RenderPassSubpassImageData
+}
+
+type RenderPassSubpassImageData struct {
+	SampledImage string
+}
+
 type RenderPassDataCompiled struct {
 	Name                   string
 	Sort                   int
@@ -79,6 +92,13 @@ type RenderPassDataCompiled struct {
 	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
 	ImageClears            []vk.ClearValue
+	Subpass                []RenderPassSubpassDataCompiled
+}
+
+type RenderPassSubpassDataCompiled struct {
+	Shader         string
+	ShaderPipeline string
+	SampledImages  []int
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
@@ -174,6 +194,7 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 			c.ImageClears = append(c.ImageClears, clear)
 		}
 	}
+	c.Subpass = make([]RenderPassSubpassDataCompiled, 0, max(len(d.SubpassDependencies)-1, 0))
 	for i := range d.SubpassDescriptions {
 		a := &c.SubpassDescriptions[i]
 		b := &d.SubpassDescriptions[i]
@@ -200,6 +221,22 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		}
 		a.PreserveAttachments = make([]uint32, len(b.PreserveAttachments))
 		copy(a.PreserveAttachments, b.PreserveAttachments)
+		if i > 0 {
+			s := RenderPassSubpassDataCompiled{
+				Shader:         b.Subpass.Shader,
+				ShaderPipeline: b.Subpass.ShaderPipeline,
+			}
+			s.SampledImages = make([]int, len(b.Subpass.SampledImages))
+			for j := range b.Subpass.SampledImages {
+				si := b.Subpass.SampledImages[j].SampledImage
+				id, err := strconv.Atoi(si)
+				if err != nil {
+					slog.Error("failed to parse the subpass sampled image index", "index", si)
+				}
+				s.SampledImages[j] = id
+			}
+			c.Subpass = append(c.Subpass, s)
+		}
 	}
 	for i := range d.SubpassDependencies {
 		a := &c.SubpassDependencies[i]
@@ -219,6 +256,9 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a.SrcAccessMask = b.SrcAccessMaskToVK()
 		a.DstAccessMask = b.DstAccessMaskToVK()
 		a.DependencyFlags = b.DependencyFlagsToVK()
+	}
+	if len(c.Subpass) != len(d.SubpassDescriptions)-1 {
+		slog.Error("one or more of your d.SubpassDescriptions[1:] haven't been setup")
 	}
 	return c
 }
@@ -316,7 +356,7 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 	return isDepth
 }
 
-func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
+func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer, assets *assets.Database) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
 	textures := make([]Texture, 0, len(r.AttachmentDescriptions))
 	{
@@ -324,14 +364,14 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 		h := uint32(vr.swapChainExtent.Height)
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
-			if a.LoadOp == vk.AttachmentLoadOpLoad || a.Image.MipLevels == 0 || a.Image.LayerCount == 0 {
+			img := &a.Image
+			if img.Usage == 0 || a.Image.MipLevels == 0 || a.Image.LayerCount == 0 {
 				continue
 			}
 			textures = append(textures, Texture{
 				Width:  int(w),
 				Height: int(h),
 			})
-			img := &a.Image
 			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
 				a.Format, img.Tiling, img.Usage,
 				img.MemoryProperty, &textures[i].RenderId, int(img.LayerCount))
@@ -453,7 +493,7 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 	}
 	// Textures are handed off to the render pass, don't continue to use them
 	// after this point
-	pass, err := NewRenderPass(vr.device, &vr.dbg,
+	pass, err := NewRenderPass(vr, assets,
 		attachments, subpasses, selfDependencies, textures, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)

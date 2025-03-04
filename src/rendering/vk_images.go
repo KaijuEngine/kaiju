@@ -344,12 +344,24 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 }
 
 func (vr *Vulkan) textureIdFree(id *TextureId) {
-	vk.DestroyImageView(vr.device, id.View, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.View))
-	vk.DestroyImage(vr.device, id.Image, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.Image))
-	vk.FreeMemory(vr.device, id.Memory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.Memory))
-	vk.DestroySampler(vr.device, id.Sampler, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.Sampler))
+	if id.View != vk.NullImageView {
+		vk.DestroyImageView(vr.device, id.View, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.View))
+		id.View = vk.NullImageView
+	}
+	if id.Image != vk.NullImage {
+		vk.DestroyImage(vr.device, id.Image, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.Image))
+		id.Image = vk.NullImage
+	}
+	if id.Memory != vk.NullDeviceMemory {
+		vk.FreeMemory(vr.device, id.Memory, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.Memory))
+		id.Memory = vk.NullDeviceMemory
+	}
+	if id.Sampler != vk.NullSampler {
+		vk.DestroySampler(vr.device, id.Sampler, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.Sampler))
+		id.Sampler = vk.NullSampler
+	}
 }
