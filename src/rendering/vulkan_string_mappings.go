@@ -369,8 +369,8 @@ var (
 	}
 	StringVkCullModeFlagBits = map[string]vk.CullModeFlagBits{
 		"None":  vk.CullModeNone,
-		"Front": vk.CullModeBackBit,
-		"Back":  vk.CullModeFrontBit,
+		"Front": vk.CullModeFrontBit,
+		"Back":  vk.CullModeBackBit,
 	}
 	StringVkFrontFace = map[string]vk.FrontFace{
 		"Clockwise":        vk.FrontFaceClockwise,
