@@ -698,7 +698,7 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 				"material", assets.MaterialDefinitionUITransparent, "error", err)
 			return
 		}
-		transparent.Material = m
+		transparent.Material = m.CreateInstance(pd.drawing.Material.Textures)
 		p.man.Host.Drawings.AddDrawing(transparent)
 	}
 }
@@ -735,7 +735,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 				slog.Error("failed to load the material",
 					"material", assets.MaterialDefinitionUITransparent, "error", err)
 			} else {
-				transparent.Material = m
+				transparent.Material = m.CreateInstance(pd.drawing.Material.Textures)
 				p.man.Host.Drawings.AddDrawing(transparent)
 			}
 		}
