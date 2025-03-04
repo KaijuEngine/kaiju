@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	detectDepthFormatKey = "<DetectDepthFormat>"
-	swapChainFormatKey   = "<SwapChainFormat>"
+	detectDepthFormatKey    = "<DetectDepthFormat>"
+	swapChainFormatKey      = "<SwapChainFormat>"
+	swapChainSampleCountKey = "<SwapChainSamples>"
 )
 
 var (
@@ -376,13 +377,14 @@ var (
 		"CounterClockwise": vk.FrontFaceCounterClockwise,
 	}
 	StringVkSampleCountFlagBits = map[string]vk.SampleCountFlagBits{
-		"1Bit":  vk.SampleCount1Bit,
-		"2Bit":  vk.SampleCount2Bit,
-		"4Bit":  vk.SampleCount4Bit,
-		"8Bit":  vk.SampleCount8Bit,
-		"16Bit": vk.SampleCount16Bit,
-		"32Bit": vk.SampleCount32Bit,
-		"64Bit": vk.SampleCount64Bit,
+		swapChainSampleCountKey: vk.SampleCountFlagBitsMaxEnum,
+		"1Bit":                  vk.SampleCount1Bit,
+		"2Bit":                  vk.SampleCount2Bit,
+		"4Bit":                  vk.SampleCount4Bit,
+		"8Bit":                  vk.SampleCount8Bit,
+		"16Bit":                 vk.SampleCount16Bit,
+		"32Bit":                 vk.SampleCount32Bit,
+		"64Bit":                 vk.SampleCount64Bit,
 	}
 	StringVkPatchControlPoints = map[string]uint32{
 		"Lines":     2,
@@ -600,8 +602,10 @@ func imageLayoutToVK(val string) vk.ImageLayout {
 	return 0
 }
 
-func sampleCountToVK(val string) vk.SampleCountFlagBits {
-	if res, ok := StringVkSampleCountFlagBits[val]; ok {
+func sampleCountToVK(val string, vr *Vulkan) vk.SampleCountFlagBits {
+	if val == swapChainSampleCountKey {
+		return vr.msaaSamples
+	} else if res, ok := StringVkSampleCountFlagBits[val]; ok {
 		return res
 	} else if val != "" {
 		slog.Warn("failed to convert sample count string", "string", val)

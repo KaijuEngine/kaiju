@@ -155,12 +155,20 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawing)
+	if drawing.Material == nil {
+		panic("no")
+	}
 }
 
 func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawings...)
+	for i := range drawings {
+		if drawings[i].Material == nil {
+			panic("no")
+		}
+	}
 }
 
 func (d *Drawings) Render(renderer Renderer) {

@@ -1,1 +1,1 @@
-{"Name":"textv","Shader":"content\\renderer\\shaders\\text_transparent.shader","RenderPass":"content\\renderer\\passes\\opaque.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\basic.shaderpipeline","Textures":[]}
+{"Name":"text_transparent","Shader":"content\\renderer\\shaders\\text_transparent.shader","RenderPass":"content\\renderer\\passes\\transparent.renderpass","ShaderPipeline":"content\\renderer\\pipelines\\basic_transparent.shaderpipeline","Textures":[]}

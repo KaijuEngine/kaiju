@@ -60,7 +60,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		}
 		material, err := materialData.Compile(m.assetDatabase, m.renderer)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		m.pendingMaterials = append(m.pendingMaterials, material)
 		m.materials[materialData.Name] = material

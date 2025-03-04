@@ -50,9 +50,9 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	var fallbackFormat *vk.SurfaceFormat = nil
 	for i := uint32(0); i < formatCount; i++ {
 		surfFormat := &formats[i]
-		if surfFormat.Format == vk.FormatB8g8r8a8Srgb {
+		if surfFormat.Format == vk.FormatR8g8b8a8Srgb {
 			fallbackFormat = surfFormat
-		} else if surfFormat.Format == vk.FormatB8g8r8a8Unorm {
+		} else if surfFormat.Format == vk.FormatR8g8b8a8Unorm {
 			targetFormat = surfFormat
 		}
 	}

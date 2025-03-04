@@ -121,7 +121,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	} else {
 		c.renderPass = pass
 	}
-	c.pipelineInfo = sp.Compile()
+	c.pipelineInfo = sp.Compile(vr)
 	shaderConfig, err := assets.ReadText(d.Shader)
 	if err != nil {
 		return c, err

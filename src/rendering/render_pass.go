@@ -64,7 +64,7 @@ type RenderPassAttachmentReference struct {
 
 type RenderPassSubpassDependency struct {
 	SrcSubpass      int64
-	DstSubpass      uint32
+	DstSubpass      int64
 	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
 	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
 	SrcAccessMask   []string `options:"StringVkAccessFlagBits"`
@@ -147,7 +147,7 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a := &c.AttachmentDescriptions[i]
 		b := &d.AttachmentDescriptions[i]
 		a.Format = b.FormatToVK(vr)
-		a.Samples = b.SamplesToVK()
+		a.Samples = b.SamplesToVK(vr)
 		a.LoadOp = b.LoadOpToVK()
 		a.StoreOp = b.StoreOpToVK()
 		a.StencilLoadOp = b.StencilLoadOpToVK()
@@ -209,7 +209,11 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		} else {
 			a.SrcSubpass = uint32(b.SrcSubpass)
 		}
-		a.DstSubpass = b.DstSubpass
+		if b.DstSubpass < 0 {
+			a.DstSubpass = math.MaxUint32
+		} else {
+			a.DstSubpass = uint32(b.DstSubpass)
+		}
 		a.SrcStageMask = b.SrcStageMaskToVK()
 		a.DstStageMask = b.DstStageMaskToVK()
 		a.SrcAccessMask = b.SrcAccessMaskToVK()
@@ -247,8 +251,8 @@ func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format {
 	return formatToVK(ad.Format, vr)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToVK() vk.SampleCountFlagBits {
-	return sampleCountToVK(ad.Samples)
+func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vk.SampleCountFlagBits {
+	return sampleCountToVK(ad.Samples, vr)
 }
 
 func (ad *RenderPassAttachmentDescription) LoadOpToVK() vk.AttachmentLoadOp {
@@ -384,11 +388,12 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*Render
 	depthStencil := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	resolve := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	for i := range r.SubpassDescriptions {
-		car := r.SubpassDescriptions[i].ColorAttachmentReferences
-		iar := r.SubpassDescriptions[i].InputAttachmentReferences
-		pa := r.SubpassDescriptions[i].PreserveAttachments
-		dsa := r.SubpassDescriptions[i].DepthStencilAttachment
-		ra := r.SubpassDescriptions[i].ResolveAttachments
+		sd := &r.SubpassDescriptions[i]
+		car := sd.ColorAttachmentReferences
+		iar := sd.InputAttachmentReferences
+		pa := sd.PreserveAttachments
+		dsa := sd.DepthStencilAttachment
+		ra := sd.ResolveAttachments
 		color[i] = make([]vk.AttachmentReference, len(car))
 		input[i] = make([]vk.AttachmentReference, len(iar))
 		preserve[i] = make([]uint32, len(pa))

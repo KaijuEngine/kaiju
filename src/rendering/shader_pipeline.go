@@ -158,7 +158,7 @@ type ShaderPipelineTessellationCompiled struct {
 }
 
 type ShaderPipelineGraphicsPipelineCompiled struct {
-	SubpassCount        uint32
+	Subpass             uint32
 	PipelineCreateFlags vk.PipelineCreateFlags
 }
 
@@ -173,7 +173,8 @@ type ShaderPipelineColorBlendAttachmentsCompiled struct {
 	ColorWriteMask      vk.ColorComponentFlags
 }
 
-func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
+func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompiled {
+	vr := renderer.(*Vulkan)
 	c := ShaderPipelineDataCompiled{
 		Name: d.Name,
 		InputAssembly: ShaderPipelineInputAssemblyCompiled{
@@ -193,7 +194,7 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 			LineWidth:               d.Rasterization.LineWidth,
 		},
 		Multisample: ShaderPipelinePipelineMultisampleCompiled{
-			RasterizationSamples:  d.Multisample.RasterizationSamplesToVK(),
+			RasterizationSamples:  d.Multisample.RasterizationSamplesToVK(vr),
 			SampleShadingEnable:   boolToVkBool(d.Multisample.SampleShadingEnable),
 			MinSampleShading:      d.Multisample.MinSampleShading,
 			AlphaToCoverageEnable: boolToVkBool(d.Multisample.AlphaToCoverageEnable),
@@ -241,7 +242,7 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 			PatchControlPoints: d.Tessellation.PatchControlPointsToVK(),
 		},
 		GraphicsPipeline: ShaderPipelineGraphicsPipelineCompiled{
-			SubpassCount:        d.GraphicsPipeline.SubpassCount,
+			Subpass:             d.GraphicsPipeline.SubpassCount,
 			PipelineCreateFlags: d.GraphicsPipeline.PipelineCreateFlagsToVK(),
 		},
 	}
@@ -477,8 +478,8 @@ func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vk.FrontFace {
 	return vk.FrontFaceClockwise
 }
 
-func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK() vk.SampleCountFlagBits {
-	return sampleCountToVK(s.RasterizationSamples)
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(vr *Vulkan) vk.SampleCountFlagBits {
+	return sampleCountToVK(s.RasterizationSamples, vr)
 }
 
 func (s *ShaderPipelineColorBlend) LogicOpToVK() vk.LogicOp {
@@ -670,7 +671,7 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		Layout:              shader.RenderId.pipelineLayout,
 		RenderPass:          renderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
-		Subpass:             s.GraphicsPipeline.SubpassCount,
+		Subpass:             s.GraphicsPipeline.Subpass,
 	}
 	hasDepth := false
 	for i := 0; i < len(renderPass.construction.SubpassDescriptions) && !hasDepth; i++ {
