@@ -294,7 +294,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 		sd[i].SetModel(m)
 		vr.combinedDrawings.AddDrawing(Drawing{
 			Renderer:   vr,
-			Material:   combineMat.CreateInstance([]*Texture{passes[i].SelectOutputAttachment()}),
+			Material:   combineMat.CreateInstance([]*Texture{passes[i].SelectOutputAttachment(vr)}),
 			Mesh:       mesh,
 			ShaderData: &sd[i],
 		})
@@ -313,7 +313,7 @@ func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
 	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
 	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
 		slog.Error("Failed to begin recording command buffer")
-		return &passes[0].SelectOutputAttachment().RenderId
+		return &passes[0].SelectOutputAttachment(vr).RenderId
 	}
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws

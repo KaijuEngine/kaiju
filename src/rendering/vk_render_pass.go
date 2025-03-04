@@ -119,12 +119,36 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 	return nil
 }
 
-func (r *RenderPass) SelectOutputAttachment() *Texture {
+func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
+	targetFormat := vr.swapImages[0].Format
+	var fallback *Texture
 	for i := range r.construction.AttachmentDescriptions {
 		a := &r.construction.AttachmentDescriptions[i]
 		if (a.Image.Usage & vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit)) != 0 {
-			return &r.textures[i]
+			if fallback == nil {
+				// First image is likely the better image to fall back to
+				fallback = &r.textures[i]
+			}
+			if a.Format == targetFormat {
+				return &r.textures[i]
+			}
 		}
+	}
+	// Matching image not found, search in remote connected passes
+	for i := range r.construction.AttachmentDescriptions {
+		a := &r.construction.AttachmentDescriptions[i]
+		if a.Format == targetFormat {
+			if a.Image.ExistingImage != "" {
+				for _, p := range vr.renderPassCache {
+					if t, ok := p.findTextureByName(a.Image.ExistingImage); ok {
+						return t
+					}
+				}
+			}
+		}
+	}
+	if fallback != nil {
+		return fallback
 	}
 	slog.Error("failed to find an output color attachment for the render pass", "renderPass", r.construction.Name)
 	if len(r.textures) > 0 {
