@@ -100,6 +100,7 @@ type panelData struct {
 	scrollEvent               events.Id
 	borderStyle               [4]BorderStyle
 	drawing                   rendering.Drawing
+	transparentDrawing        rendering.Drawing
 	fitContent                ContentFit
 	requestScrollX            requestScroll
 	requestScrollY            requestScroll
@@ -522,6 +523,7 @@ func (p *Panel) recreateDrawing() {
 	p.shaderData = &ShaderData{}
 	*p.shaderData = proxy
 	p.PanelData().drawing.ShaderData = p.shaderData
+	p.PanelData().transparentDrawing.ShaderData = p.shaderData
 }
 
 func (p *Panel) removeDrawing() {
@@ -616,7 +618,11 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	pd := p.PanelData()
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
-		pd.drawing.Material.Textures[0] = tex
+		t := []*rendering.Texture{tex}
+		pd.drawing.Material = pd.drawing.Material.SelectRoot().CreateInstance(t)
+		if pd.transparentDrawing.Material != nil {
+			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)
+		}
 		p.man.Host.Drawings.AddDrawing(pd.drawing)
 	}
 }
@@ -691,15 +697,15 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 	pd := p.PanelData()
 	p.man.Host.Drawings.AddDrawing(pd.drawing)
 	if useBlending {
-		transparent := pd.drawing
+		pd.transparentDrawing = pd.drawing
 		m, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
 		if err != nil {
 			slog.Error("failed to load the material",
 				"material", assets.MaterialDefinitionUITransparent, "error", err)
 			return
 		}
-		transparent.Material = m.CreateInstance(pd.drawing.Material.Textures)
-		p.man.Host.Drawings.AddDrawing(transparent)
+		pd.transparentDrawing.Material = m.CreateInstance(pd.drawing.Material.Textures)
+		p.man.Host.Drawings.AddDrawing(pd.transparentDrawing)
 	}
 }
 
@@ -729,14 +735,14 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		pd := p.PanelData()
 		p.man.Host.Drawings.AddDrawing(pd.drawing)
 		if shouldBlend {
-			transparent := pd.drawing
+			pd.transparentDrawing = pd.drawing
 			m, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
 			if err != nil {
 				slog.Error("failed to load the material",
 					"material", assets.MaterialDefinitionUITransparent, "error", err)
 			} else {
-				transparent.Material = m.CreateInstance(pd.drawing.Material.Textures)
-				p.man.Host.Drawings.AddDrawing(transparent)
+				pd.transparentDrawing.Material = m.CreateInstance(pd.drawing.Material.Textures)
+				p.man.Host.Drawings.AddDrawing(pd.transparentDrawing)
 			}
 		}
 	}

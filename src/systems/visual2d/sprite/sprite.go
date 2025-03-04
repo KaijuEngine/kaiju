@@ -255,7 +255,7 @@ func NewSprite(x, y, width, height matrix.Float,
 			slog.Error("failed to load the material",
 				"material", assets.MaterialDefinitionSpriteTransparent, "error", err)
 		} else {
-			transparent.Material = m.CreateInstance([]*rendering.Texture{texture})
+			transparent.Material = m.CreateInstance(drawing.Material.Textures)
 			host.Drawings.AddDrawing(transparent)
 		}
 	}

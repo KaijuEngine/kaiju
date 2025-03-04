@@ -112,7 +112,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	c.shaderInfo = sd.Compile()
 	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr, assets); ok {
+		if p, ok := rpc.ConstructRenderPass(vr); ok {
 			vr.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {

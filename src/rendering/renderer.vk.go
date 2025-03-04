@@ -306,6 +306,9 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	for _, v := range vr.renderPassCache {
+		v.Recontstruct(vr)
+	}
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -391,7 +394,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 		return false
 	}
 	compiled := rp.Compile(vr)
-	p, ok := compiled.ConstructRenderPass(vr, assets)
+	p, ok := compiled.ConstructRenderPass(vr)
 	if !ok {
 		return false
 	}
