@@ -131,6 +131,9 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 			RootPath: path,
 			TipKey:   tag.Get("tip"),
 		}
+		if d := tag.Get("default"); d != "" {
+			field.Value = d
+		}
 		if field.TipKey == "" {
 			field.TipKey = field.Name
 		}

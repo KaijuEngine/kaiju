@@ -4,6 +4,7 @@
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R16g16b16a16Sfloat",
 			"Image": {
+				"Name": "transparent.color",
 				"Access": [
 					"ColorAttachmentWriteBit"
 				],
@@ -39,6 +40,7 @@
 			"StoreOp": "Store"
 		},
 		{
+			"Name": "transparent.reveal",
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R16Sfloat",
 			"Image": {
@@ -77,15 +79,12 @@
 			"StoreOp": "Store"
 		},
 		{
+			"Name": "",
 			"FinalLayout": "ColorAttachmentOptimal",
 			"Format": "R8g8b8a8Unorm",
 			"Image": {
-				"Access": [
-					"ColorAttachmentWriteBit"
-				],
-				"Aspect": [
-					"ColorBit"
-				],
+				"Access": [],
+				"Aspect": [],
 				"Clear": {
 					"A": 0,
 					"B": 0,
@@ -94,18 +93,13 @@
 					"R": 0,
 					"Stencil": 0
 				},
-				"Filter": "Linear",
+				"Filter": "",
 				"LayerCount": 1,
-				"MemoryProperty": [
-					"DeviceLocalBit"
-				],
-				"MipLevels": 1,
-				"Tiling": "Optimal",
-				"Usage": [
-					"ColorAttachmentBit",
-					"TransferSrcBit",
-					"SampledBit"
-				]
+				"MemoryProperty": [],
+				"MipLevels": 0,
+				"Tiling": "",
+				"Usage": [],
+				"ExistingImage": "opaque.color"
 			},
 			"InitialLayout": "ColorAttachmentOptimal",
 			"LoadOp": "Load",
@@ -115,33 +109,27 @@
 			"StoreOp": "Store"
 		},
 		{
+			"Name": "",
 			"FinalLayout": "DepthStencilAttachmentOptimal",
 			"Format": "<DetectDepthFormat>",
 			"Image": {
-				"Access": [
-					"DepthStencilAttachmentWriteBit"
-				],
-				"Aspect": [
-					"DepthBit"
-				],
+				"Access": [],
+				"Aspect": [],
 				"Clear": {
 					"A": 0,
 					"B": 0,
-					"Depth": 1,
+					"Depth": 0,
 					"G": 0,
 					"R": 0,
 					"Stencil": 0
 				},
-				"Filter": "Linear",
+				"Filter": "",
 				"LayerCount": 1,
-				"MemoryProperty": [
-					"DeviceLocalBit"
-				],
-				"MipLevels": 1,
-				"Tiling": "Optimal",
-				"Usage": [
-					"DepthStencilAttachmentBit"
-				]
+				"MemoryProperty": [],
+				"MipLevels": 0,
+				"Tiling": "",
+				"Usage": [],
+				"ExistingImage": "opaque.depth"
 			},
 			"InitialLayout": "DepthStencilAttachmentOptimal",
 			"LoadOp": "Load",

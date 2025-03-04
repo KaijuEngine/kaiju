@@ -30,6 +30,8 @@ type RenderPassAttachmentDescription struct {
 }
 
 type RenderPassAttachmentImage struct {
+	Name           string
+	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
 	Tiling         string                         `options:"StringVkImageTiling"`
@@ -113,7 +115,17 @@ type RenderPassAttachmentDescriptionCompiled struct {
 	Image          RenderPassAttachmentImageCompiled
 }
 
+func (img *RenderPassAttachmentImage) IsInvalid() bool {
+	return len(img.Usage) == 0 || img.MipLevels == 0 || img.LayerCount == 0
+}
+
+func (img *RenderPassAttachmentImageCompiled) IsInvalid() bool {
+	return img.Usage == 0 || img.MipLevels == 0 || img.LayerCount == 0
+}
+
 type RenderPassAttachmentImageCompiled struct {
+	Name           string
+	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
 	Tiling         vk.ImageTiling
@@ -176,7 +188,9 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a.FinalLayout = b.FinalLayoutToVK()
 		a.Image.MipLevels = b.Image.MipLevels
 		a.Image.LayerCount = b.Image.LayerCount
-		if b.Image.MipLevels != 0 && b.Image.LayerCount != 0 {
+		a.Image.Name = b.Image.Name
+		a.Image.ExistingImage = b.Image.ExistingImage
+		if !b.Image.IsInvalid() {
 			a.Image.Tiling = b.Image.TilingToVK()
 			a.Image.Filter = b.Image.FilterToVK()
 			a.Image.Usage = b.Image.UsageToVK()
@@ -358,6 +372,9 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 
 func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer, assets *assets.Database) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
+	if pass, ok := vr.renderPassCache[r.Name]; ok {
+		return pass, true
+	}
 	textures := make([]Texture, 0, len(r.AttachmentDescriptions))
 	{
 		w := uint32(vr.swapChainExtent.Width)
@@ -365,10 +382,11 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer, assets *
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
 			img := &a.Image
-			if img.Usage == 0 || a.Image.MipLevels == 0 || a.Image.LayerCount == 0 {
+			if a.Image.IsInvalid() {
 				continue
 			}
 			textures = append(textures, Texture{
+				Key:    img.Name,
 				Width:  int(w),
 				Height: int(h),
 			})
@@ -499,9 +517,21 @@ func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer, assets *
 		slog.Error("failed to create the render pass", "error", err)
 		return nil, false
 	}
-	imageViews := make([]vk.ImageView, len(pass.textures))
-	for i := range pass.textures {
-		imageViews[i] = pass.textures[i].RenderId.View
+	imageViews := make([]vk.ImageView, 0, len(pass.textures))
+	for i := range len(r.AttachmentDescriptions) {
+		a := &r.AttachmentDescriptions[i]
+		if a.Image.IsInvalid() {
+			if a.Image.ExistingImage != "" {
+				for _, v := range vr.renderPassCache {
+					if t, ok := v.findTextureByName(a.Image.ExistingImage); ok {
+						imageViews = append(imageViews, t.RenderId.View)
+						break
+					}
+				}
+			}
+		} else {
+			imageViews = append(imageViews, pass.textures[i].RenderId.View)
+		}
 	}
 	if len(imageViews) == len(attachments) {
 		err = pass.CreateFrameBuffer(vr, imageViews,

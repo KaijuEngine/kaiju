@@ -44,4 +44,5 @@ var renderPassTooltips = map[string]string{
 	"Access":               "The Access field, using vk.AccessFlags, describes how the image's memory is accessed during rendering. It's like listing what you're doing with a notebook: VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT means writing colors, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT means reading depth/stencil data. This ties into subpass dependencies, ensuring one step (like writing) finishes before another (like reading) starts. For an attachment, it reflects how the render pass interacts with the image, helping Vulkan avoid data mix-ups.",
 	"AttachmentImageClear": "Controls how the image should be cleared at the beginning of the render pass",
 	"Sort":                 "The sort for this render pass compared to other render passes. A lower number sort will cause the render pass to run before a higher number sort. This number can be negative, but should be for rare cases as negative numbers are used for sorting visuals in the editor.",
+	"ExistingImage":        "Rather than creating a new image attachment for this render pass, you can input the name of an image for another render pass to be used as an input",
 }

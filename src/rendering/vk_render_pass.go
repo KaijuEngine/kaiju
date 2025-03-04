@@ -58,6 +58,15 @@ type RenderPass struct {
 	subpasses    []RenderPassSubpass
 }
 
+func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
+	for i := range r.textures {
+		if r.textures[i].Key == name {
+			return &r.textures[i], true
+		}
+	}
+	return nil, false
+}
+
 type RenderPassSubpass struct {
 	shader         *Shader
 	shaderPipeline ShaderPipelineDataCompiled
@@ -131,7 +140,9 @@ func NewRenderPass(vr *Vulkan, assets *assets.Database, attachments []vk.Attachm
 		construction: *setup,
 	}
 	for i := range textures {
-		p.textures[i].Key = fmt.Sprintf("renderPass-%s-%d", setup.Name, i)
+		if textures[i].Key == "" {
+			p.textures[i].Key = fmt.Sprintf("renderPass-%s-%d", setup.Name, i)
+		}
 	}
 	info := vk.RenderPassCreateInfo{}
 	info.SType = vk.StructureTypeRenderPassCreateInfo
