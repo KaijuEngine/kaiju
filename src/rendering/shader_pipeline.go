@@ -82,7 +82,7 @@ type ShaderPipelineTessellation struct {
 }
 
 type ShaderPipelineGraphicsPipeline struct {
-	SubpassCount        uint32
+	Subpass             uint32
 	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
 }
 
@@ -158,7 +158,7 @@ type ShaderPipelineTessellationCompiled struct {
 }
 
 type ShaderPipelineGraphicsPipelineCompiled struct {
-	SubpassCount        uint32
+	Subpass             uint32
 	PipelineCreateFlags vk.PipelineCreateFlags
 }
 
@@ -173,7 +173,8 @@ type ShaderPipelineColorBlendAttachmentsCompiled struct {
 	ColorWriteMask      vk.ColorComponentFlags
 }
 
-func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
+func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompiled {
+	vr := renderer.(*Vulkan)
 	c := ShaderPipelineDataCompiled{
 		Name: d.Name,
 		InputAssembly: ShaderPipelineInputAssemblyCompiled{
@@ -193,7 +194,7 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 			LineWidth:               d.Rasterization.LineWidth,
 		},
 		Multisample: ShaderPipelinePipelineMultisampleCompiled{
-			RasterizationSamples:  d.Multisample.RasterizationSamplesToVK(),
+			RasterizationSamples:  d.Multisample.RasterizationSamplesToVK(vr),
 			SampleShadingEnable:   boolToVkBool(d.Multisample.SampleShadingEnable),
 			MinSampleShading:      d.Multisample.MinSampleShading,
 			AlphaToCoverageEnable: boolToVkBool(d.Multisample.AlphaToCoverageEnable),
@@ -241,9 +242,22 @@ func (d *ShaderPipelineData) Compile() ShaderPipelineDataCompiled {
 			PatchControlPoints: d.Tessellation.PatchControlPointsToVK(),
 		},
 		GraphicsPipeline: ShaderPipelineGraphicsPipelineCompiled{
-			SubpassCount:        d.GraphicsPipeline.SubpassCount,
+			Subpass:             d.GraphicsPipeline.Subpass,
 			PipelineCreateFlags: d.GraphicsPipeline.PipelineCreateFlagsToVK(),
 		},
+	}
+	for i := range d.ColorBlendAttachments {
+		from := &d.ColorBlendAttachments[i]
+		c.ColorBlendAttachments[i] = ShaderPipelineColorBlendAttachmentsCompiled{
+			BlendEnable:         from.BlendEnableToVK(),
+			SrcColorBlendFactor: from.SrcColorBlendFactorToVK(),
+			DstColorBlendFactor: from.DstColorBlendFactorToVK(),
+			ColorBlendOp:        from.ColorBlendOpToVK(),
+			SrcAlphaBlendFactor: from.SrcAlphaBlendFactorToVK(),
+			DstAlphaBlendFactor: from.DstAlphaBlendFactorToVK(),
+			AlphaBlendOp:        from.AlphaBlendOpToVK(),
+			ColorWriteMask:      vk.ColorComponentFlags(from.ColorWriteMaskToVK()),
+		}
 	}
 	return c
 }
@@ -431,44 +445,49 @@ func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32 {
 func (s *ShaderPipelineInputAssembly) TopologyToVK() vk.PrimitiveTopology {
 	if res, ok := StringVkPrimitiveTopology[s.Topology]; ok {
 		return res
+	} else if s.Topology != "" {
+		slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
 	}
-	slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
 	return vk.PrimitiveTopologyTriangleList
 }
 
 func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vk.PolygonMode {
 	if res, ok := StringVkPolygonMode[s.PolygonMode]; ok {
 		return res
+	} else if s.PolygonMode != "" {
+		slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
 	}
-	slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
 	return vk.PolygonModeFill
 }
 
 func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vk.CullModeFlagBits {
 	if res, ok := StringVkCullModeFlagBits[s.CullMode]; ok {
 		return res
+	} else if s.CullMode != "" {
+		slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
 	}
-	slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
 	return vk.CullModeFrontBit
 }
 
 func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vk.FrontFace {
 	if res, ok := StringVkFrontFace[s.FrontFace]; ok {
 		return res
+	} else if s.FrontFace != "" {
+		slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
 	}
-	slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
 	return vk.FrontFaceClockwise
 }
 
-func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK() vk.SampleCountFlagBits {
-	return sampleCountToVK(s.RasterizationSamples)
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(vr *Vulkan) vk.SampleCountFlagBits {
+	return sampleCountToVK(s.RasterizationSamples, vr)
 }
 
 func (s *ShaderPipelineColorBlend) LogicOpToVK() vk.LogicOp {
 	if res, ok := StringVkLogicOp[s.LogicOp]; ok {
 		return res
+	} else if s.LogicOp != "" {
+		slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
 	}
-	slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
 	return vk.LogicOpCopy
 }
 
@@ -484,8 +503,9 @@ func (s *ShaderPipelineData) BlendConstants() [4]float32 {
 func (s *ShaderPipelineTessellation) PatchControlPointsToVK() uint32 {
 	if res, ok := StringVkPatchControlPoints[s.PatchControlPoints]; ok {
 		return res
+	} else if s.PatchControlPoints != "" {
+		slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
 	}
-	slog.Warn("invalid string for PatchControlPoints", "value", s.PatchControlPoints)
 	return 3
 }
 
@@ -523,7 +543,7 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 	return vk.PipelineCreateFlags(mask)
 }
 
-func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool {
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
 	vr := renderer.(*Vulkan)
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
@@ -615,8 +635,10 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		LogicOpEnable:   s.ColorBlend.LogicOpEnable,
 		LogicOp:         s.ColorBlend.LogicOp,
 		AttachmentCount: uint32(colorBlendAttachmentCount),
-		PAttachments:    &colorBlendAttachment[0],
 		BlendConstants:  s.ColorBlend.BlendConstants,
+	}
+	if colorBlendAttachmentCount > 0 {
+		colorBlending.PAttachments = &colorBlendAttachment[0]
 	}
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
@@ -634,24 +656,11 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		vr.dbg.add(vk.TypeToUintPtr(pLayout))
 	}
 	shader.RenderId.pipelineLayout = pLayout
-	depthStencil := vk.PipelineDepthStencilStateCreateInfo{
-		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
-		Flags:                 0, // PipelineDepthStencilStateCreateFlags
-		DepthTestEnable:       s.DepthStencil.DepthTestEnable,
-		DepthCompareOp:        s.DepthStencil.DepthCompareOp,
-		DepthBoundsTestEnable: s.DepthStencil.DepthBoundsTestEnable,
-		StencilTestEnable:     s.DepthStencil.StencilTestEnable,
-		MinDepthBounds:        s.DepthStencil.MinDepthBounds,
-		MaxDepthBounds:        s.DepthStencil.MaxDepthBounds,
-		DepthWriteEnable:      s.DepthStencil.DepthWriteEnable,
-		Front:                 s.DepthStencil.Front,
-		Back:                  s.DepthStencil.Back,
-	}
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
 		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
 		Flags:               s.GraphicsPipeline.PipelineCreateFlags,
-		StageCount:          uint32(len(shaderStages)),
-		PStages:             &shaderStages[0],
+		StageCount:          uint32(len(stages)),
+		PStages:             &stages[0],
 		PVertexInputState:   &vertexInputInfo,
 		PInputAssemblyState: &inputAssembly,
 		PViewportState:      &viewportState,
@@ -660,13 +669,34 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		PColorBlendState:    &colorBlending,
 		PDynamicState:       &dynamicState,
 		Layout:              shader.RenderId.pipelineLayout,
-		RenderPass:          shader.RenderPass.Handle,
+		RenderPass:          renderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
-		PDepthStencilState:  &depthStencil,
-		Subpass:             s.GraphicsPipeline.SubpassCount,
+		Subpass:             s.GraphicsPipeline.Subpass,
+	}
+	hasDepth := false
+	for i := 0; i < len(renderPass.construction.SubpassDescriptions) && !hasDepth; i++ {
+		hasDepth = len(renderPass.construction.SubpassDescriptions[i].DepthStencilAttachment) > 0
+	}
+	var depthStencil vk.PipelineDepthStencilStateCreateInfo
+	if hasDepth {
+		depthStencil = vk.PipelineDepthStencilStateCreateInfo{
+			SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
+			Flags:                 0, // PipelineDepthStencilStateCreateFlags
+			DepthTestEnable:       s.DepthStencil.DepthTestEnable,
+			DepthCompareOp:        s.DepthStencil.DepthCompareOp,
+			DepthBoundsTestEnable: s.DepthStencil.DepthBoundsTestEnable,
+			StencilTestEnable:     s.DepthStencil.StencilTestEnable,
+			MinDepthBounds:        s.DepthStencil.MinDepthBounds,
+			MaxDepthBounds:        s.DepthStencil.MaxDepthBounds,
+			DepthWriteEnable:      s.DepthStencil.DepthWriteEnable,
+			Front:                 s.DepthStencil.Front,
+			Back:                  s.DepthStencil.Back,
+		}
+		pipelineInfo.PDepthStencilState = &depthStencil
 	}
 	tess := vk.PipelineTessellationStateCreateInfo{}
-	if len(shader.CtrlPath) > 0 || len(shader.EvalPath) > 0 {
+	if len(shader.data.TessellationControl) > 0 ||
+		len(shader.data.TessellationEvaluation) > 0 {
 		tess.SType = vk.StructureTypePipelineTessellationStateCreateInfo
 		tess.Flags = 0 // PipelineTessellationStateCreateFlags
 		tess.PatchControlPoints = s.Tessellation.PatchControlPoints

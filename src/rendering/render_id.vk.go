@@ -38,8 +38,6 @@
 package rendering
 
 import (
-	"strings"
-
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -55,42 +53,12 @@ type DescriptorSetLayoutStructure struct {
 
 type ShaderDriverData struct {
 	DescriptorSetLayoutStructure
-	CullMode              vk.CullModeFlagBits
-	DrawMode              MeshDrawMode
 	Stride                uint32
 	AttributeDescriptions []vk.VertexInputAttributeDescription
-	pipelineConstructor   FuncPipeline
-}
-
-func (d *ShaderDriverData) setup(def ShaderDef, locationStart uint32, pipeFunc FuncPipeline) {
-	d.pipelineConstructor = pipeFunc
-	d.Stride = def.Stride()
-	d.AttributeDescriptions = def.ToAttributeDescription(locationStart)
-	d.DescriptorSetLayoutStructure = def.ToDescriptorSetLayoutStructure()
-	switch strings.ToLower(def.CullMode) {
-	case "none":
-		d.CullMode = vk.CullModeNone
-	case "back":
-		d.CullMode = vk.CullModeBackBit
-		fallthrough
-	case "front":
-	default:
-		d.CullMode = vk.CullModeFrontBit
-	}
-	switch strings.ToLower(def.DrawMode) {
-	case "lines":
-		d.DrawMode = MeshDrawModeLines
-	case "points":
-		d.DrawMode = MeshDrawModePoints
-	default:
-		d.DrawMode = MeshDrawModeTriangles
-	}
 }
 
 func NewShaderDriverData() ShaderDriverData {
-	return ShaderDriverData{
-		CullMode: vk.CullModeFrontBit,
-	}
+	return ShaderDriverData{}
 }
 
 type ShaderId struct {
@@ -141,4 +109,10 @@ type MeshId struct {
 func (m MeshId) IsValid() bool {
 	return m.vertexBuffer != vk.Buffer(vk.NullHandle) &&
 		m.indexBuffer != vk.Buffer(vk.NullHandle)
+}
+
+func (d *ShaderDriverData) setup(sd *ShaderDataCompiled) {
+	d.Stride = sd.Stride()
+	d.AttributeDescriptions = sd.ToAttributeDescription(baseVertexAttributeCount)
+	d.DescriptorSetLayoutStructure = sd.ToDescriptorSetLayoutStructure()
 }

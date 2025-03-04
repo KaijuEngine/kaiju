@@ -129,18 +129,22 @@ func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointe
 
 func testDrawing(uiMan *ui.Manager) {
 	host := uiMan.Host
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+	matKey := assets.MaterialDefinitionBasic
+	material, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 	tsd := TestBasicShaderData{rendering.NewShaderDataBase(), matrix.ColorWhite()}
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	material = material.CreateInstance([]*rendering.Texture{droidTex})
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     shader,
+		Material:   material,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{droidTex},
 		ShaderData: &tsd,
 		Transform:  nil,
-		CanvasId:   "default",
 	})
 }
 
@@ -155,8 +159,13 @@ func testTwoDrawings(uiMan *ui.Manager) {
 		{0.0, 1.0, 0.0, 1.0},
 	}
 	rots := []matrix.Float{45, -45}
+	matKey := assets.MaterialDefinitionBasic
 	for i := 0; i < 2; i++ {
-		shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+		material, err := host.MaterialCache().Material(matKey)
+		if err != nil {
+			slog.Error("failed to load the material", "material", matKey, "error", err)
+			return
+		}
 		mesh := rendering.NewMeshQuad(host.MeshCache())
 		droidTex, _ := host.TextureCache().Texture("textures/android.png", rendering.TextureFilterNearest)
 		tsd := TestBasicShaderData{Color: colors[i]}
@@ -164,14 +173,13 @@ func testTwoDrawings(uiMan *ui.Manager) {
 		m.Rotate(matrix.Vec3{0.0, rots[i], 0.0})
 		m.Translate(positions[i])
 		tsd.SetModel(m)
-		host.Drawings.AddDrawing(&rendering.Drawing{
+		material = material.CreateInstance([]*rendering.Texture{droidTex})
+		host.Drawings.AddDrawing(rendering.Drawing{
 			Renderer:   host.Window.Renderer,
-			Shader:     shader,
+			Material:   material,
 			Mesh:       mesh,
-			Textures:   []*rendering.Texture{droidTex},
 			ShaderData: &tsd,
 			Transform:  nil,
-			CanvasId:   "default",
 		})
 	}
 }
@@ -182,7 +190,7 @@ func testFont(uiMan *ui.Manager) {
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
 		matrix.Vec3One(), true, false, rendering.FontRegular, 0)
-	host.Drawings.AddDrawings(drawings, host.Window.Renderer.DefaultCanvas())
+	host.Drawings.AddDrawings(drawings)
 }
 
 func testOIT(uiMan *ui.Manager) {
@@ -199,7 +207,12 @@ func testOIT(uiMan *ui.Manager) {
 		{0.0, 1.0, 0.0, 0.5},
 		{0.0, 0.0, 1.0, 0.5},
 	}
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic)
+	matKey := assets.MaterialDefinitionBasic
+	material, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	droidTex, _ := host.TextureCache().Texture("textures/square.png", rendering.TextureFilterNearest)
 	for i := 0; i < len(positions); i++ {
@@ -207,16 +220,26 @@ func testOIT(uiMan *ui.Manager) {
 		m := matrix.Mat4Identity()
 		m.Translate(positions[i])
 		tsd.SetModel(m)
-		host.Drawings.AddDrawing(&rendering.Drawing{
-			Renderer:    host.Window.Renderer,
-			Shader:      shader,
-			Mesh:        mesh,
-			Textures:    []*rendering.Texture{droidTex},
-			ShaderData:  &tsd,
-			Transform:   nil,
-			UseBlending: colors[i].A() < 1.0,
-			CanvasId:    "default",
-		})
+		material = material.CreateInstance([]*rendering.Texture{droidTex})
+		drawing := rendering.Drawing{
+			Renderer:   host.Window.Renderer,
+			Material:   material,
+			Mesh:       mesh,
+			ShaderData: &tsd,
+			Transform:  nil,
+		}
+		host.Drawings.AddDrawing(drawing)
+		if colors[i].A() < 1.0 {
+			transparent := drawing
+			m, err := host.MaterialCache().Material(assets.MaterialDefinitionBasicTransparent)
+			if err != nil {
+				slog.Error("failed to load the material",
+					"material", assets.MaterialDefinitionBasicTransparent, "error", err)
+			} else {
+				transparent.Material = m
+				host.Drawings.AddDrawing(transparent)
+			}
+		}
 		host.NewEntity().SetName(fmt.Sprintf("OIT %d", i))
 	}
 }
@@ -336,13 +359,18 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 	host.MeshCache().AddMesh(mesh)
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	matKey := assets.MaterialDefinitionBasic
+	mat, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
+	mat = mat.CreateInstance([]*rendering.Texture{tex})
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasic),
+		Material:   mat,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
 		ShaderData: &sd,
-		CanvasId:   "default",
 	})
 }
 
@@ -429,13 +457,18 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 		SkinIndex: 0,
 	}
 	sd.Setup()
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	matKey := assets.MaterialDefinitionBasicSkinned
+	mat, err := host.MaterialCache().Material(matKey)
+	if err != nil {
+		slog.Error("failed to load the material", "material", matKey, "error", err)
+		return
+	}
+	mat = mat.CreateInstance(textures)
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionBasicSkinned),
+		Material:   mat,
 		Mesh:       mesh,
-		Textures:   textures,
 		ShaderData: &sd,
-		CanvasId:   "default",
 	})
 	{
 		frame := 0

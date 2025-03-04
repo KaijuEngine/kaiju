@@ -44,6 +44,7 @@ import (
 	"kaiju/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"log/slog"
 	"strings"
 	"sync"
 	"unicode"
@@ -152,19 +153,22 @@ type cachedLetterMesh struct {
 	mesh           *Mesh
 	pxRange        matrix.Vec2
 	uvs            matrix.Vec4
-	shader         *Shader
+	material       *Material
 	texture        *Texture
 	transformation matrix.Mat4
 }
 
 type FontCache struct {
-	textShader, textOrthoShader *Shader
-	renderer                    Renderer
-	renderCaches                RenderCaches
-	assetDb                     *assets.Database
-	fontFaces                   map[string]fontBin
-	instanceKey                 int64
-	FaceMutex                   sync.RWMutex
+	textMaterial                 *Material
+	textOrthoMaterial            *Material
+	textMaterialTransparent      *Material
+	textOrthoMaterialTransparent *Material
+	renderer                     Renderer
+	renderCaches                 RenderCaches
+	assetDb                      *assets.Database
+	fontFaces                    map[string]fontBin
+	instanceKey                  int64
+	FaceMutex                    sync.RWMutex
 }
 
 type TextShaderData struct {
@@ -179,6 +183,19 @@ type TextShaderData struct {
 func (s TextShaderData) Size() int {
 	const size = int(unsafe.Sizeof(TextShaderData{}) - ShaderBaseDataStart)
 	return size
+}
+
+func (cache *FontCache) TransparentMaterial(target *Material) *Material {
+	if target == cache.textMaterial.SelectRoot() {
+		return cache.textMaterialTransparent
+	} else if target == cache.textOrthoMaterial.SelectRoot() {
+		return cache.textOrthoMaterialTransparent
+	} else if target == cache.textMaterialTransparent.SelectRoot() ||
+		target == cache.textOrthoMaterialTransparent.SelectRoot() {
+		return target
+	}
+	slog.Error("invalid material used for getting transparent text material", "material", target.Name)
+	return nil
 }
 
 func (cache *FontCache) nextInstanceKey(key rune) string {
@@ -236,7 +253,7 @@ func findBinChar(font fontBin, letter rune) fontBinChar {
 	return cached
 }
 
-func (cache FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
+func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
 	wrap := false
 	spaceIndex := 0
 	wx := float32(0.0)
@@ -264,7 +281,7 @@ func (cache FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, sc
 	}
 }
 
-func (cache FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool) *cachedLetterMesh {
+func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool) *cachedLetterMesh {
 	var outLetter *cachedLetterMesh
 	var ok bool
 	if isOrtho {
@@ -283,8 +300,8 @@ func (cache FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool)
 }
 
 func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, renderer Renderer, meshCache *MeshCache) {
-	shader := cache.textShader
-	oShader := cache.textOrthoShader
+	mat := cache.textMaterial
+	oMat := cache.textOrthoMaterial
 
 	w := c.Width()
 	h := -c.Height()
@@ -295,7 +312,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 
 	var clm cachedLetterMesh
 	clm.mesh = mesh
-	clm.shader = shader
+	clm.material = mat
 	clm.texture = font.texture
 	clm.transformation = transformation
 	uvx := c.atlasBounds[0]
@@ -315,7 +332,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	font.cachedLetters[key] = &clm
 
 	clmCpy := clm
-	clmCpy.shader = oShader
+	clmCpy.material = oMat
 	clmCpy.texture = font.texture
 	// TODO:  [PORT] Do we need to clone the mesh anymore?
 	//clmCpy.mesh = mesh.Clone()
@@ -385,12 +402,26 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 	return true
 }
 
-func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) {
-	cache.textShader = caches.ShaderCache().ShaderFromDefinition(
-		assets.ShaderDefinitionText3D)
-	cache.textOrthoShader = caches.ShaderCache().ShaderFromDefinition(
-		assets.ShaderDefinitionText)
+func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
+	var err error
+	if cache.textMaterial, err = caches.MaterialCache().Material("text3d"); err != nil {
+		slog.Error("failed to load the text3d material", "error", err)
+		return err
+	}
+	if cache.textOrthoMaterial, err = caches.MaterialCache().Material("text"); err != nil {
+		slog.Error("failed to load the text material", "error", err)
+		return err
+	}
+	if cache.textMaterialTransparent, err = caches.MaterialCache().Material("text3d_transparent"); err != nil {
+		slog.Error("failed to load the transparent text3d material", "error", err)
+		return err
+	}
+	if cache.textOrthoMaterialTransparent, err = caches.MaterialCache().Material("text_transparent"); err != nil {
+		slog.Error("failed to load the transparent text material", "error", err)
+		return err
+	}
 	cache.renderCaches = caches
+	return nil
 }
 
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
@@ -411,11 +442,11 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	inverseHeight := 1.0 / es.Y()
 
 	fontFace := cache.fontFaces[face.string()]
-	var shader *Shader
+	var material *Material
 	if is3D {
-		shader = cache.textShader
+		material = cache.textMaterial
 	} else {
-		shader = cache.textOrthoShader
+		material = cache.textOrthoMaterial
 	}
 
 	// Iterate through all characters
@@ -547,9 +578,8 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				shaderData.SetModel(model)
 				fontMeshes = append(fontMeshes, Drawing{
 					Renderer:   cache.renderer,
-					Shader:     shader,
+					Material:   material.CreateInstance([]*Texture{fontFace.texture}),
 					Mesh:       m,
-					Textures:   []*Texture{fontFace.texture},
 					ShaderData: shaderData,
 					Transform:  nil,
 				})
@@ -638,7 +668,7 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 	return max(1, lines)
 }
 
-func (cache FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
+func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
 	ch := findBinChar(cache.fontFaces[face], r)
 	return matrix.Vec2{ch.Width() * pixelSize,
 		ch.Height() * pixelSize}

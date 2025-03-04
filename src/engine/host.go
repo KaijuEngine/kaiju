@@ -90,6 +90,7 @@ type Host struct {
 	textureCache   rendering.TextureCache
 	meshCache      rendering.MeshCache
 	fontCache      rendering.FontCache
+	materialCache  rendering.MaterialCache
 	Drawings       rendering.Drawings
 	frame          FrameId
 	frameTime      float64
@@ -145,7 +146,7 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	if height <= 0 {
 		height = DefaultWindowHeight
 	}
-	win, err := windowing.New(host.name, width, height, x, y)
+	win, err := windowing.New(host.name, width, height, x, y, &host.assetDatabase)
 	if err != nil {
 		return err
 	}
@@ -156,6 +157,7 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
+	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, &host.assetDatabase)
 	host.Window.OnResize.Add(host.resized)
 	return nil
 }
@@ -211,6 +213,11 @@ func (host *Host) MeshCache() *rendering.MeshCache {
 // FontCache returns the font cache for the host
 func (host *Host) FontCache() *rendering.FontCache {
 	return &host.fontCache
+}
+
+// MaterialCache returns the font cache for the host
+func (host *Host) MaterialCache() *rendering.MaterialCache {
+	return &host.materialCache
 }
 
 // AssetDatabase returns the asset database for the host
@@ -390,6 +397,7 @@ func (host *Host) Teardown() {
 	host.meshCache.Destroy()
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
+	host.materialCache.Destroy()
 	host.assetDatabase.Destroy()
 	host.Window.Destroy()
 	host.CloseSignal <- struct{}{}

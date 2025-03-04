@@ -38,13 +38,13 @@
 package rendering
 
 type ShaderDraw struct {
-	shader         *Shader
+	material       *Material
 	instanceGroups []DrawInstanceGroup
 }
 
-func NewShaderDraw(shader *Shader) ShaderDraw {
+func NewShaderDraw(material *Material) ShaderDraw {
 	return ShaderDraw{
-		shader:         shader,
+		material:       material,
 		instanceGroups: make([]DrawInstanceGroup, 0),
 	}
 }

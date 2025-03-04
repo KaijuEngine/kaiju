@@ -46,13 +46,13 @@ import (
 type Renderer interface {
 	Initialize(caches RenderCaches, width, height int32) error
 	ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool
-	CreateShader(shader *Shader, assetDatabase *assets.Database)
+	CreateShader(shader *Shader, assetDatabase *assets.Database) error
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
-	Draw(drawings []RenderTargetDraw)
-	BlitTargets(targets ...RenderTargetDraw)
+	Draw(renderPass *RenderPass, drawings []ShaderDraw) bool
+	BlitTargets(passes []*RenderPass)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
@@ -61,8 +61,5 @@ type Renderer interface {
 	DestroyShader(shader *Shader)
 	DestroyMesh(mesh *Mesh)
 	Destroy()
-	RegisterCanvas(name string, canvas Canvas)
-	Canvas(name string) (Canvas, bool)
-	DefaultCanvas() Canvas
 	WaitForRender()
 }

@@ -62,7 +62,6 @@ import (
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/host_container"
-	"kaiju/rendering"
 	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	"kaiju/ui"
@@ -100,9 +99,7 @@ type Editor struct {
 	windowListing  editor_window.Listing
 	runningProject *exec.Cmd
 	entityData     []codegen.GeneratedType
-	// TODO:  Testing tools
-	overlayCanvas rendering.Canvas
-	luaVMs        []*plugins.LuaVM
+	luaVMs         []*plugins.LuaVM
 }
 
 func (e *Editor) Closed()                                        {}

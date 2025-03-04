@@ -49,6 +49,7 @@ import (
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/systems/visual2d/sprite"
+	"log/slog"
 	"slices"
 )
 
@@ -157,8 +158,11 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		return
 	}
 	s.entities = append(s.entities, e)
-	outline := s.host.ShaderCache().
-		ShaderFromDefinition(assets.ShaderDefinitionOutline)
+	outline, err := s.host.MaterialCache().Material(assets.MaterialDefinitionOutline)
+	if err != nil {
+		slog.Error("failed to load the outline material", "error", err)
+		return
+	}
 	draws := e.EditorBindings.Drawings()
 	s.shaderDatas[e] = []*rendering.ShaderDataBasic{}
 	for _, d := range draws {
@@ -169,11 +173,9 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		ds.Color.SetA(3.0) // Line width
 		d.Transform.SetDirty()
 		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
-		d.Shader = outline
+		d.Material = outline
 		d.ShaderData = ds
-		d.UseBlending = false
-		d.Textures = []*rendering.Texture{}
-		s.host.Drawings.AddDrawing(&d)
+		s.host.Drawings.AddDrawing(d)
 	}
 	s.host.RunAfterFrames(1, func() {
 		// Make drawings snap to transform

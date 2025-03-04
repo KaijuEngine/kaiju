@@ -218,18 +218,23 @@ func (label *Label) renderText() {
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(), true,
 			false, ld.fontFace, ld.lineHeight)
+		transparentDrawings := make([]rendering.Drawing, 0, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
 			ld.runeShaderData = append(ld.runeShaderData,
 				rd.ShaderData.(*rendering.TextShaderData))
-			rd.UseBlending = ld.bgColor.A() < 1.0
+			if ld.bgColor.A() < 1.0 {
+				transparent := ld.runeDrawings[i]
+				transparent.Material = label.man.Host.FontCache().TransparentMaterial(
+					ld.runeDrawings[i].Material)
+				transparentDrawings = append(transparentDrawings, transparent)
+			}
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
 		}
-		dc := label.man.Host.Window.Renderer.DefaultCanvas()
-		label.man.Host.Drawings.AddDrawings(ld.runeDrawings, dc)
+		label.man.Host.Drawings.AddDrawings(ld.runeDrawings)
 	}
 }
 
@@ -358,10 +363,8 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 		}
 	}
 	ld.bgColor = newColor
-	for i := range ld.runeDrawings {
-		ld.runeDrawings[i].UseBlending = newColor.A() < 1.0
-	}
 	label.updateColors()
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetJustify(justify rendering.FontJustify) {

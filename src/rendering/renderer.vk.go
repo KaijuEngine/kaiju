@@ -77,7 +77,7 @@ type Vulkan struct {
 	surface                    vk.Surface
 	swapChain                  vk.Swapchain
 	swapChainExtent            vk.Extent2D
-	swapChainRenderPass        RenderPass
+	swapChainRenderPass        *RenderPass
 	imageIndex                 [maxFramesInFlight]uint32
 	descriptorPools            []vk.DescriptorPool
 	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
@@ -98,37 +98,16 @@ type Vulkan struct {
 	currentFrame               int
 	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
-	defaultCanvas              OITCanvas
-	outlineCanvas              OutlineCanvas
-	combineCanvas              CombineCanvas
 	combinedDrawings           Drawings
 	preRuns                    []func()
-	canvases                   map[string]Canvas
 	dbg                        debugVulkan
+	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 }
 
 func init() {
 	klib.Must(vk.SetDefaultGetInstanceProcAddr())
 	klib.Must(vk.Init())
-}
-
-func (vr *Vulkan) DefaultCanvas() Canvas { return &vr.defaultCanvas }
-
-func (vr *Vulkan) Canvas(name string) (Canvas, bool) {
-	c, ok := vr.canvases[name]
-	if !ok {
-		return &vr.defaultCanvas, ok
-	}
-	return c, ok
-}
-
-func (vr *Vulkan) RegisterCanvas(name string, canvas Canvas) {
-	if _, ok := vr.canvases[name]; ok {
-		slog.Error("The supplied render target name is already registered", slog.String("name", name))
-		return
-	}
-	vr.canvases[name] = canvas
 }
 
 func (vr *Vulkan) WaitForRender() {
@@ -232,7 +211,7 @@ func (vr *Vulkan) createColorResources() bool {
 	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vk.ImageAspectColorBit))
 }
 
-func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, error) {
+func NewVKRenderer(window RenderingContainer, applicationName string, assets *assets.Database) (*Vulkan, error) {
 	vr := &Vulkan{
 		window:           window,
 		instance:         vk.NullInstance,
@@ -241,7 +220,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
 		dbg:              debugVulkanNew(),
 		combinedDrawings: NewDrawings(),
-		canvases:         make(map[string]Canvas),
+		renderPassCache:  make(map[string]*RenderPass),
 	}
 
 	appInfo := vk.ApplicationInfo{}
@@ -271,7 +250,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createImageViews() {
 		return nil, errors.New("failed to create image views")
 	}
-	if !vr.createSwapChainRenderPass() {
+	if !vr.createSwapChainRenderPass(assets) {
 		return nil, errors.New("failed to create render pass")
 	}
 	if !vr.createCmdPool() {
@@ -296,15 +275,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string) (*Vulkan, 
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
 	}
-	if err := vr.defaultCanvas.Create(vr); err != nil {
-		return nil, err
-	}
-	if err := vr.outlineCanvas.Create(vr); err != nil {
-		return nil, err
-	}
-	if err := vr.combineCanvas.Create(vr); err != nil {
-		return nil, err
-	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
 	return vr, nil
 }
@@ -319,10 +289,6 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	}
 	vr.caches = caches
 	caches.TextureCache().CreatePending()
-	vr.defaultCanvas.Initialize(vr, float32(width), float32(height))
-	vr.RegisterCanvas("default", &vr.defaultCanvas)
-	vr.RegisterCanvas("outline", &vr.outlineCanvas)
-	vr.RegisterCanvas("combine", &vr.combineCanvas)
 	return nil
 }
 
@@ -340,9 +306,8 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	for _, c := range vr.canvases {
-		c.Destroy(vr)
-		c.Create(vr)
+	for _, v := range vr.renderPassCache {
+		v.Recontstruct(vr)
 	}
 }
 
@@ -419,73 +384,21 @@ func (vr *Vulkan) createCmdBuffer() bool {
 	}
 }
 
-func (vr *Vulkan) createSwapChainRenderPass() bool {
-	colorAttachment := vk.AttachmentDescription{}
-	colorAttachment.Format = vr.swapImages[0].Format
-	colorAttachment.Samples = vr.msaaSamples
-	colorAttachment.LoadOp = vk.AttachmentLoadOpClear
-	colorAttachment.StoreOp = vk.AttachmentStoreOpStore
-	colorAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachment.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	colorAttachment.InitialLayout = vk.ImageLayoutUndefined
-	colorAttachment.FinalLayout = vk.ImageLayoutColorAttachmentOptimal
-
-	depthAttachment := vk.AttachmentDescription{}
-	depthAttachment.Format = vr.findDepthFormat()
-	depthAttachment.Samples = vr.msaaSamples
-	depthAttachment.LoadOp = vk.AttachmentLoadOpClear
-	depthAttachment.StoreOp = vk.AttachmentStoreOpDontCare
-	depthAttachment.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	depthAttachment.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	depthAttachment.InitialLayout = vk.ImageLayoutUndefined
-	depthAttachment.FinalLayout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	colorAttachmentResolve := vk.AttachmentDescription{}
-	colorAttachmentResolve.Format = vr.swapImages[0].Format
-	colorAttachmentResolve.Samples = vk.SampleCount1Bit
-	colorAttachmentResolve.LoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachmentResolve.StoreOp = vk.AttachmentStoreOpStore
-	colorAttachmentResolve.StencilLoadOp = vk.AttachmentLoadOpDontCare
-	colorAttachmentResolve.StencilStoreOp = vk.AttachmentStoreOpDontCare
-	colorAttachmentResolve.InitialLayout = vk.ImageLayoutUndefined
-	colorAttachmentResolve.FinalLayout = vk.ImageLayoutPresentSrc
-
-	colorAttachmentRef := vk.AttachmentReference{}
-	colorAttachmentRef.Attachment = 0
-	colorAttachmentRef.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	colorAttachmentResolveRef := vk.AttachmentReference{}
-	colorAttachmentResolveRef.Attachment = 2
-	colorAttachmentResolveRef.Layout = vk.ImageLayoutColorAttachmentOptimal
-
-	depthAttachmentRef := vk.AttachmentReference{}
-	depthAttachmentRef.Attachment = 1
-	depthAttachmentRef.Layout = vk.ImageLayoutDepthStencilAttachmentOptimal
-
-	subpass := vk.SubpassDescription{}
-	subpass.PipelineBindPoint = vk.PipelineBindPointGraphics
-	subpass.ColorAttachmentCount = 1
-	subpass.PColorAttachments = &colorAttachmentRef
-	subpass.PResolveAttachments = &colorAttachmentResolveRef
-	subpass.PDepthStencilAttachment = &depthAttachmentRef
-
-	dependency := vk.SubpassDependency{}
-	dependency.SrcSubpass = vk.SubpassExternal
-	dependency.DstSubpass = 0
-	dependency.SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit | vk.PipelineStageEarlyFragmentTestsBit)
-	dependency.SrcAccessMask = 0
-	dependency.DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit | vk.PipelineStageEarlyFragmentTestsBit)
-	dependency.DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit | vk.AccessDepthStencilAttachmentWriteBit)
-
-	attachments := []vk.AttachmentDescription{colorAttachment, depthAttachment, colorAttachmentResolve}
-
-	pass, err := NewRenderPass(vr.device, &vr.dbg, attachments,
-		[]vk.SubpassDescription{subpass}, []vk.SubpassDependency{dependency})
+func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
+	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
 	if err != nil {
-		slog.Error("Failed to create render pass")
 		return false
 	}
-	vr.swapChainRenderPass = pass
+	rp, err := NewRenderPassData(rpSpec)
+	if err != nil {
+		return false
+	}
+	compiled := rp.Compile(vr)
+	p, ok := compiled.ConstructRenderPass(vr)
+	if !ok {
+		return false
+	}
+	vr.swapChainRenderPass = p
 	return true
 }
 
@@ -582,9 +495,6 @@ func (vr *Vulkan) Destroy() {
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.NullDevice {
-		for _, c := range vr.canvases {
-			c.Destroy(vr)
-		}
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
@@ -606,7 +516,7 @@ func (vr *Vulkan) Destroy() {
 			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.descriptorPools[i]))
 		}
-		vr.swapChainRenderPass.Destroy()
+		vr.swapChainRenderPass.Destroy(vr)
 		vr.swapChainCleanup()
 		vk.DestroyDevice(vr.device, nil)
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))

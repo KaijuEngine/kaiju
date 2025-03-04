@@ -41,6 +41,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"kaiju/assets"
 	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
@@ -98,7 +99,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int) (*Window, error) {
+func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
 	w := &Window{
 		Keyboard:     hid.NewKeyboard(),
 		Mouse:        hid.NewMouse(),
@@ -132,7 +133,7 @@ func New(windowName string, width, height, x, y int) (*Window, error) {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
 	}
 	var err error
-	w.Renderer, err = selectRenderer(w, windowName)
+	w.Renderer, err = selectRenderer(w, windowName, assets)
 	return w, err
 }
 

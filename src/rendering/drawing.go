@@ -39,87 +39,79 @@ package rendering
 
 import (
 	"kaiju/matrix"
-	"log/slog"
-	"slices"
+	"sort"
 	"sync"
 )
 
 type Drawing struct {
-	Renderer     Renderer
-	Shader       *Shader
-	Mesh         *Mesh
-	Textures     []*Texture
-	ShaderData   DrawInstance
-	Transform    *matrix.Transform
-	CanvasId     string
-	UseBlending  bool
-	renderTarget Canvas
+	Renderer   Renderer
+	Material   *Material
+	Mesh       *Mesh
+	ShaderData DrawInstance
+	Transform  *matrix.Transform
 }
 
 func (d *Drawing) IsValid() bool {
-	return d.Shader != nil && d.renderTarget != nil
+	return d.Material != nil
 }
 
-type RenderTargetDraw struct {
-	innerDraws []ShaderDraw
-	Target     Canvas
-}
-
-func (t *RenderTargetDraw) findShaderDraw(shader *Shader) (*ShaderDraw, bool) {
-	for i := range t.innerDraws {
-		if t.innerDraws[i].shader == shader {
-			return &t.innerDraws[i], true
-		}
-	}
-	return nil, false
+type RenderPassGroup struct {
+	renderPass *RenderPass
+	draws      []ShaderDraw
 }
 
 type Drawings struct {
-	draws     []RenderTargetDraw
-	backDraws []Drawing
-	mutex     sync.RWMutex
+	renderPassGroups []RenderPassGroup
+	backDraws        []Drawing
+	mutex            sync.RWMutex
 }
 
 func NewDrawings() Drawings {
 	return Drawings{
-		draws:     make([]RenderTargetDraw, 0),
-		backDraws: make([]Drawing, 0),
-		mutex:     sync.RWMutex{},
+		renderPassGroups: make([]RenderPassGroup, 0),
+		backDraws:        make([]Drawing, 0),
+		mutex:            sync.RWMutex{},
 	}
 }
 
-func (d *Drawings) HasDrawings() bool { return len(d.draws) > 0 }
+func (d *Drawings) HasDrawings() bool { return len(d.renderPassGroups) > 0 }
 
-func (d *Drawings) findRenderTargetDraw(target Canvas) (*RenderTargetDraw, bool) {
+func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
+	idx := -1
+	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
+		g := &sd.instanceGroups[i]
+		if g.Mesh == dg.Mesh &&
+			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) {
+			idx = i
+		}
+	}
+	return idx
+}
+
+func (d *RenderPassGroup) findShaderDraw(material *Material) (*ShaderDraw, bool) {
+	rootMat := material
+	if rootMat.Root.Value() != nil {
+		rootMat = rootMat.Root.Value()
+	}
 	for i := range d.draws {
-		if d.draws[i].Target == target {
+		mat := d.draws[i].material
+		if mat.Root.Value() != nil {
+			mat = mat.Root.Value()
+		}
+		if mat == rootMat {
 			return &d.draws[i], true
 		}
 	}
 	return nil, false
 }
 
-func texturesMatch(a []*Texture, b []*Texture) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for _, ta := range a {
-		if !slices.Contains(b, ta) {
-			return false
+func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup, bool) {
+	for i := range d.renderPassGroups {
+		if d.renderPassGroups[i].renderPass == renderPass {
+			return &d.renderPassGroups[i], true
 		}
 	}
-	return true
-}
-
-func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
-	idx := -1
-	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
-		g := &sd.instanceGroups[i]
-		if g.Mesh == dg.Mesh && texturesMatch(g.Textures, dg.Textures) && dg.UseBlending == g.useBlending {
-			idx = i
-		}
-	}
-	return idx
+	return nil, false
 }
 
 func (d *Drawings) PreparePending() {
@@ -127,30 +119,28 @@ func (d *Drawings) PreparePending() {
 	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
 		drawing := &d.backDraws[i]
-		rtDraw, ok := d.findRenderTargetDraw(drawing.renderTarget)
+		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
 		if !ok {
-			newDraw := RenderTargetDraw{
-				innerDraws: make([]ShaderDraw, 0),
-				Target:     drawing.renderTarget,
-			}
-			d.draws = append(d.draws, newDraw)
-			rtDraw = &d.draws[len(d.draws)-1]
+			d.renderPassGroups = append(d.renderPassGroups, RenderPassGroup{
+				renderPass: drawing.Material.renderPass,
+			})
+			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
 		}
-		draw, ok := rtDraw.findShaderDraw(drawing.Shader)
+		draw, ok := rpGroup.findShaderDraw(drawing.Material)
 		if !ok {
-			newDraw := NewShaderDraw(drawing.Shader)
-			rtDraw.innerDraws = append(rtDraw.innerDraws, newDraw)
-			draw = &rtDraw.innerDraws[len(rtDraw.innerDraws)-1]
+			newDraw := NewShaderDraw(drawing.Material)
+			rpGroup.draws = append(rpGroup.draws, newDraw)
+			draw = &rpGroup.draws[len(rpGroup.draws)-1]
 		}
 		drawing.ShaderData.setTransform(drawing.Transform)
 		idx := d.matchGroup(draw, drawing)
 		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData, drawing.Shader)
+			draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
 		} else {
 			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.AddInstance(drawing.ShaderData, drawing.Shader)
-			group.Textures = drawing.Textures
-			group.useBlending = drawing.UseBlending
+			group.MaterialInstance = drawing.Material
+			group.AddInstance(drawing.ShaderData)
+			group.MaterialInstance.Textures = drawing.Material.Textures
 			if idx >= 0 {
 				draw.instanceGroups[idx] = group
 			} else {
@@ -161,42 +151,50 @@ func (d *Drawings) PreparePending() {
 	d.backDraws = d.backDraws[:0]
 }
 
-func (d *Drawings) AddDrawing(drawing *Drawing) {
-	if t, ok := drawing.Renderer.Canvas(drawing.CanvasId); ok {
-		drawing.renderTarget = t
-	} else {
-		slog.Error("Could not find render target, using default",
-			slog.String("id", drawing.CanvasId))
-	}
+func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	copy := *drawing
-	copy.Textures = slices.Clone(drawing.Textures)
-	d.backDraws = append(d.backDraws, copy)
+	d.backDraws = append(d.backDraws, drawing)
+	if drawing.Material == nil {
+		panic("no")
+	}
 }
 
-func (d *Drawings) AddDrawings(drawings []Drawing, target Canvas) {
-	for i := range drawings {
-		drawings[i].renderTarget = target
-	}
+func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.backDraws = append(d.backDraws, drawings...)
+	for i := range drawings {
+		if drawings[i].Material == nil {
+			panic("no")
+		}
+	}
 }
 
 func (d *Drawings) Render(renderer Renderer) {
-	if len(d.draws) == 0 {
+	if len(d.renderPassGroups) == 0 {
 		return
 	}
-	renderer.Draw(d.draws)
-	renderer.BlitTargets(d.draws...)
+	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
+	for i := range d.renderPassGroups {
+		rp := d.renderPassGroups[i].renderPass
+		if renderer.Draw(rp, d.renderPassGroups[i].draws) {
+			passes = append(passes, rp)
+		}
+	}
+	if len(passes) > 0 {
+		sort.Slice(passes, func(i, j int) bool {
+			return passes[i].construction.Sort < passes[j].construction.Sort
+		})
+		renderer.BlitTargets(passes)
+	}
 }
 
 func (d *Drawings) Destroy(renderer Renderer) {
-	for i := range d.draws {
-		for j := range d.draws[i].innerDraws {
-			d.draws[i].innerDraws[j].Destroy(renderer)
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			d.renderPassGroups[i].draws[j].Destroy(renderer)
 		}
 	}
-	d.draws = d.draws[:0]
+	d.renderPassGroups = d.renderPassGroups[:0]
 }

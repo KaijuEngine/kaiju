@@ -160,7 +160,7 @@ func InstanceCopyDataNew(padding int) InstanceCopyData {
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
-	Textures          []*Texture
+	MaterialInstance  *Material
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
 	namedInstanceData map[string]InstanceCopyData
@@ -185,7 +185,9 @@ func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
 	newPadding := blockSize - d.instanceSize%blockSize
 	if d.rawData.padding != newPadding {
 		d.rawData.padding = newPadding
+		old := d.rawData.bytes
 		d.rawData.bytes = make([]byte, d.TotalSize())
+		copy(d.rawData.bytes, old)
 	}
 }
 
@@ -202,21 +204,19 @@ func (d *DrawInstanceGroup) TotalSize() int {
 	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) AddInstance(instance DrawInstance, shader *Shader) {
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
 	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
-	if shader.definition != nil {
-		for i := range shader.definition.LayoutGroups {
-			g := &shader.definition.LayoutGroups[i]
-			for j := range g.Layouts {
-				if g.Layouts[j].IsBuffer() {
-					b := &g.Layouts[j]
-					n := b.FullName()
-					s := d.namedInstanceData[n]
-					if len(s.bytes) < b.Capacity() {
-						s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
-						d.namedInstanceData[n] = s
-					}
+	for i := range d.MaterialInstance.shaderInfo.LayoutGroups {
+		g := &d.MaterialInstance.shaderInfo.LayoutGroups[i]
+		for j := range g.Layouts {
+			if g.Layouts[j].IsBuffer() {
+				b := &g.Layouts[j]
+				n := b.FullName()
+				s := d.namedInstanceData[n]
+				if len(s.bytes) < b.Capacity() {
+					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
+					d.namedInstanceData[n] = s
 				}
 			}
 		}
@@ -296,7 +296,7 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 	}
 }
 
-func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+func (d *DrawInstanceGroup) Clear(renderer Renderer) {
 	if d.destroyed {
 		return
 	}
@@ -304,5 +304,11 @@ func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 		d.Instances[i].Destroy()
 	}
 	d.Instances = d.Instances[:0]
+}
+func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+	if d.destroyed {
+		return
+	}
+	d.Clear(renderer)
 	renderer.DestroyGroup(d)
 }

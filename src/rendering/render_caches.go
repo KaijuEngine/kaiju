@@ -37,9 +37,13 @@
 
 package rendering
 
+import "kaiju/assets"
+
 type RenderCaches interface {
 	ShaderCache() *ShaderCache
 	TextureCache() *TextureCache
 	MeshCache() *MeshCache
 	FontCache() *FontCache
+	MaterialCache() *MaterialCache
+	AssetDatabase() *assets.Database
 }

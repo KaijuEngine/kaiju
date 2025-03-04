@@ -47,6 +47,7 @@ import (
 	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
 	"slices"
 )
 
@@ -64,13 +65,15 @@ type TransformTool struct {
 	firstHitUpdate bool
 }
 
-func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
-	from, to matrix.Vec3, color matrix.Color, canvas string) rendering.Drawing {
-
+func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, to matrix.Vec3, color matrix.Color, canvas string) (rendering.Drawing, error) {
 	grid := rendering.NewMeshGrid(host.MeshCache(),
 		"_editor_wire_"+nameSuffix,
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
+	if err != nil {
+		slog.Error("failed to load transform wire material", "error", err)
+		return rendering.Drawing{}, err
+	}
 	sd := &rendering.ShaderDataBasic{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          color,
@@ -78,17 +81,14 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host,
 	sd.Deactivate()
 	return rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     shader,
+		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
-		CanvasId:   canvas,
-	}
+	}, nil
 }
 
-func New(host *engine.Host, editor interfaces.Editor,
-	canvas string, history *memento.History) TransformTool {
-
+func New(host *engine.Host, editor interfaces.Editor, canvas string, history *memento.History) TransformTool {
 	wt := matrix.NewTransform(editor.Host().WorkGroup())
 	t := TransformTool{
 		editor:        editor,
@@ -102,11 +102,13 @@ func New(host *engine.Host, editor interfaces.Editor,
 	down := matrix.Vec3{0, -10000, 0}
 	front := matrix.Vec3{0, 0, -10000}
 	back := matrix.Vec3{0, 0, 10000}
-	t.wires[0] = t.createWire("x", host, left, right, matrix.ColorRed(), canvas)
-	t.wires[1] = t.createWire("y", host, down, up, matrix.ColorGreen(), canvas)
-	t.wires[2] = t.createWire("z", host, back, front, matrix.ColorBlue(), canvas)
+	t.wires[0], _ = t.createWire("x", host, left, right, matrix.ColorRed(), canvas)
+	t.wires[1], _ = t.createWire("y", host, down, up, matrix.ColorGreen(), canvas)
+	t.wires[2], _ = t.createWire("z", host, back, front, matrix.ColorBlue(), canvas)
 	for i := range t.wires {
-		host.Drawings.AddDrawing(&t.wires[i])
+		if t.wires[i].IsValid() {
+			host.Drawings.AddDrawing(t.wires[i])
+		}
 	}
 	return t
 }

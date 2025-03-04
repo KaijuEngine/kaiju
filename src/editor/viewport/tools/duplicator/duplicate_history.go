@@ -5,7 +5,6 @@ import (
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 	"kaiju/rendering"
-	"slices"
 )
 
 type duplicateHistory struct {
@@ -25,9 +24,8 @@ func (h *duplicateHistory) doDuplication() {
 			for i := range draws {
 				copy := draws[i]
 				copy.Transform = &to.Transform
-				copy.Textures = slices.Clone(draws[i].Textures)
 				copy.ShaderData = rendering.ReflectDuplicateDrawInstance(draws[i].ShaderData)
-				host.Drawings.AddDrawing(&copy)
+				host.Drawings.AddDrawing(copy)
 				to.EditorBindings.AddDrawing(copy)
 			}
 			// Duplicate the BVH

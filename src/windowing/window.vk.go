@@ -38,12 +38,13 @@
 package windowing
 
 import (
+	"kaiju/assets"
 	"kaiju/rendering"
 	"unsafe"
 )
 
-func selectRenderer(w *Window, name string) (rendering.Renderer, error) {
-	return rendering.NewVKRenderer(w, name)
+func selectRenderer(w *Window, name string, assets *assets.Database) (rendering.Renderer, error) {
+	return rendering.NewVKRenderer(w, name, assets)
 }
 
 func (w *Window) GetDrawableSize() (int32, int32) {

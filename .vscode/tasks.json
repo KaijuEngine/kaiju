@@ -1,0 +1,22 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "go",
+			"label": "go: build workspace",
+			"command": "build",
+			"args": [
+				"-C",
+				"${workspaceFolder}/src",
+				"-tags=editor",
+				"-o=../kaiju.exe",
+				"main.go"
+			],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": "build",
+			"detail": "go build ${workspaceFolder}/src",
+		}
+	]
+}

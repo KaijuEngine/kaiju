@@ -77,12 +77,9 @@ func (e *entityEditorBindings) AddDrawing(drawing rendering.Drawing) {
 	}
 	drawings = append(drawings, drawing)
 	defs = append(defs.([]drawingDef), drawingDef{
-		ShaderDefinition: drawing.Shader.Key,
-		Textures:         rendering.TextureKeys(drawing.Textures),
-		MeshKey:          drawing.Mesh.Key(),
-		UseBlending:      drawing.UseBlending,
-		ShaderData:       drawing.ShaderData,
-		CanvasId:         drawing.CanvasId,
+		Material:   drawing.Material.Name,
+		MeshKey:    drawing.Mesh.Key(),
+		ShaderData: drawing.ShaderData,
 	})
 	e.Set(editorDrawingBinding, drawings)
 	e.Set(editorDrawingDefinition, defs)

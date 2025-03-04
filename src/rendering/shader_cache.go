@@ -39,76 +39,40 @@ package rendering
 
 import (
 	"kaiju/assets"
-	"log/slog"
 	"sync"
 )
 
 type ShaderCache struct {
-	renderer          Renderer
-	assetDatabase     *assets.Database
-	shaders           map[string]*Shader
-	pendingShaders    []*Shader
-	shaderDefinitions map[string]ShaderDef
-	mutex             sync.Mutex
+	renderer       Renderer
+	assetDatabase  *assets.Database
+	shaders        map[string]*Shader
+	pendingShaders []*Shader
+	mutex          sync.Mutex
 }
 
 func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCache {
 	return ShaderCache{
-		renderer:          renderer,
-		assetDatabase:     assetDatabase,
-		shaders:           make(map[string]*Shader),
-		pendingShaders:    make([]*Shader, 0),
-		shaderDefinitions: make(map[string]ShaderDef),
-		mutex:             sync.Mutex{},
+		renderer:       renderer,
+		assetDatabase:  assetDatabase,
+		shaders:        make(map[string]*Shader),
+		pendingShaders: make([]*Shader, 0),
+		mutex:          sync.Mutex{},
 	}
 }
 
-func (s *ShaderCache) Shader(vertPath, fragPath, geomPath, ctrlPath,
-	evalPath, key string, renderPass *RenderPass) (shader *Shader, isNew bool) {
+func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isNew bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if shader, ok := s.shaders[key]; ok {
+	if shader, ok := s.shaders[shaderData.Name]; ok {
 		return shader, false
 	} else {
-		shader := NewShader(vertPath, fragPath,
-			geomPath, ctrlPath, evalPath, key, renderPass)
+		shader := NewShader(shaderData)
 		if shader != nil {
 			s.pendingShaders = append(s.pendingShaders, shader)
 		}
-		s.shaders[shader.Key] = shader
+		s.shaders[shader.data.Name] = shader
 		return shader, true
 	}
-}
-
-func (s *ShaderCache) ShaderFromDefinition(definitionKey string) *Shader {
-	def, ok := s.shaderDefinitions[definitionKey]
-	if !ok {
-		if str, err := s.assetDatabase.ReadText(definitionKey); err != nil {
-			// TODO:  Return error and fallback shader
-			panic(err)
-		} else {
-			if def, err = ShaderDefFromJson(str); err != nil {
-				// TODO:  Return error and fallback shader
-				panic(err)
-			} else {
-				s.shaderDefinitions[definitionKey] = def
-			}
-		}
-	}
-	var c Canvas
-	if c, ok = s.renderer.Canvas(def.Canvas); !ok {
-		if def.Canvas != "" {
-			slog.Error("A render target was requested that does not exist in the render target cache.",
-				slog.String("renderTarget", def.Canvas))
-		}
-	}
-	shader, isNew := s.Shader(def.Vulkan.Vert, def.Vulkan.Frag, def.Vulkan.Geom,
-		def.Vulkan.Tesc, def.Vulkan.Tese, definitionKey, c.Pass(def.RenderPass))
-	if isNew {
-		shader.definition = &def
-		shader.DriverData.setup(def, baseVertexAttributeCount, c.ShaderPipeline(def.Pipeline))
-	}
-	return shader
 }
 
 func (s *ShaderCache) CreatePending() {

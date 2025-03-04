@@ -1,7 +1,6 @@
 package content_opener
 
 import (
-	"kaiju/assets"
 	"kaiju/assets/asset_info"
 	"kaiju/cache/project_cache"
 	"kaiju/collision"
@@ -11,26 +10,22 @@ import (
 )
 
 func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Entity, bvh *collision.BVH) error {
-	texId := assets.TextureSquare
-	if t, ok := adi.Metadata["texture"]; ok {
-		texId = t
-	}
-	tex, err := host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
-	if err != nil {
-		return err
-	}
+	var err error
 	var data rendering.DrawInstance
-	var shader *rendering.Shader
-	if s, ok := adi.Metadata["shader"]; ok {
-		shader = host.ShaderCache().ShaderFromDefinition(s)
+	var material *rendering.Material
+	if s, ok := adi.Metadata["material"]; ok {
+		if material, err = host.MaterialCache().Material(s); err != nil {
+			return err
+		}
 		// TODO:  We need to create or generate shader data given the definition
 		data = &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
 	} else {
-		shader = host.ShaderCache().ShaderFromDefinition(
-			assets.ShaderDefinitionBasic)
+		if material, err = host.MaterialCache().Material("basic"); err != nil {
+			return err
+		}
 		data = &rendering.ShaderDataBasic{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -48,14 +43,12 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 	host.MeshCache().AddMesh(mesh)
 	drawing := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     shader,
+		Material:   material,
 		Mesh:       mesh,
-		Textures:   []*rendering.Texture{tex},
 		ShaderData: data,
 		Transform:  &e.Transform,
-		CanvasId:   "default",
 	}
-	host.Drawings.AddDrawing(&drawing)
+	host.Drawings.AddDrawing(drawing)
 	e.EditorBindings.AddDrawing(drawing)
 	e.OnActivate.Add(func() { data.Activate() })
 	e.OnDeactivate.Add(func() { data.Deactivate() })

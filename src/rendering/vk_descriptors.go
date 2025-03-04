@@ -54,10 +54,13 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 		bindings[i].StageFlags = vk.ShaderStageFlags(structure.Types[i].Flags)
 	}
 
-	info := vk.DescriptorSetLayoutCreateInfo{}
-	info.SType = vk.StructureTypeDescriptorSetLayoutCreateInfo
-	info.BindingCount = uint32(structureCount)
-	info.PBindings = &bindings[0]
+	info := vk.DescriptorSetLayoutCreateInfo{
+		SType:        vk.StructureTypeDescriptorSetLayoutCreateInfo,
+		BindingCount: uint32(structureCount),
+	}
+	if structureCount > 0 {
+		info.PBindings = &bindings[0]
+	}
 	var layout vk.DescriptorSetLayout
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vk.Success {
 		return layout, errors.New("failed to create descriptor set layout")

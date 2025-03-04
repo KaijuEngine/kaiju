@@ -39,26 +39,24 @@ package rendering
 
 import (
 	"kaiju/assets"
+	vk "kaiju/rendering/vulkan"
+	"path/filepath"
 	"strings"
 )
 
 type Shader struct {
-	Key        string
-	RenderId   ShaderId
-	VertPath   string
-	FragPath   string
-	GeomPath   string
-	CtrlPath   string
-	EvalPath   string
-	Material   MaterialData
-	RenderPass *RenderPass
-	DriverData ShaderDriverData
-	subShaders map[string]*Shader
-	definition *ShaderDef
+	RenderId     ShaderId
+	data         ShaderDataCompiled
+	Material     MaterialData
+	DriverData   ShaderDriverData
+	subShaders   map[string]*Shader
+	pipelineInfo *ShaderPipelineDataCompiled
+	renderPass   *RenderPass
 }
 
 type ShaderData struct {
 	Name                        string
+	EnableDebug                 bool
 	Vertex                      string              `options:""`
 	VertexFlags                 string              `tip:"CompileFlags"`
 	Fragment                    string              `options:""`
@@ -69,7 +67,7 @@ type ShaderData struct {
 	TessellationControlFlags    string              `tip:"CompileFlags"`
 	TessellationEvaluation      string              `options:""`
 	TessellationEvaluationFlags string              `tip:"CompileFlags"`
-	LayoutGroups                []ShaderLayoutGroup `ignore:"true"`
+	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
 }
 
 type ShaderDataCompiled struct {
@@ -82,19 +80,100 @@ type ShaderDataCompiled struct {
 	LayoutGroups           []ShaderLayoutGroup
 }
 
+func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup {
+	for i := range s.LayoutGroups {
+		if s.LayoutGroups[i].Type == stage {
+			return &s.LayoutGroups[i]
+		}
+	}
+	return nil
+}
+
+func (sd *ShaderDataCompiled) Stride() uint32 {
+	stride := uint32(0)
+	g := sd.SelectLayout("Vertex")
+	for i := range g.Layouts {
+		l := &g.Layouts[i]
+		if l.Source == "in" && l.Location >= 8 {
+			stride += uint32(fieldSize(l.Type, l.FullName()))
+		}
+	}
+	return stride
+}
+
+func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription {
+	attrs := make([]vk.VertexInputAttributeDescription, 0)
+	offset := uint32(0)
+	g := sd.SelectLayout("Vertex")
+	for i := range g.Layouts {
+		l := &g.Layouts[i]
+		if l.Source == "in" && uint32(l.Location) >= locationStart {
+			dt := defTypes[l.Type]
+			for r := range dt.repeat {
+				attrs = append(attrs, vk.VertexInputAttributeDescription{
+					Location: uint32(l.Location + r),
+					Binding:  1,
+					Format:   dt.format,
+					Offset:   offset,
+				})
+				offset += dt.size
+			}
+		}
+	}
+	return attrs
+}
+
+func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure {
+	structure := DescriptorSetLayoutStructure{}
+	for _, g := range sd.LayoutGroups {
+		for _, layout := range g.Layouts {
+			if layout.Binding < 0 {
+				continue
+			}
+			structure.Types = append(structure.Types, DescriptorSetLayoutStructureType{
+				Type:    layout.DescriptorType(),
+				Flags:   g.DescriptorFlag(),
+				Count:   1, // TODO:  Pull this
+				Binding: uint32(layout.Binding),
+			})
+		}
+	}
+	return structure
+}
+
+func (d *ShaderData) CompileVariantName(path, flags string) string {
+	// It is possible to have 2 shaders which have modules in common but other
+	// modules are different. When compiling using flags, the output file name
+	// will have the shader name prefixed to it as it's a variant. This will
+	// make it so that we don't have 2 copies of the same module.
+	if path == "" {
+		return ""
+	}
+	path = filepath.ToSlash(path)
+	name := filepath.Base(path) + ".spv"
+	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1))
+	// Just having a debug symbols flag doesn't create a variant
+	if flags != "" && flags != "-g" {
+		return filepath.Join(dir, d.Name+"_"+name)
+	}
+	return filepath.Join(dir, name)
+}
+
 func (d *ShaderData) Compile() ShaderDataCompiled {
 	return ShaderDataCompiled{
 		Name:                   d.Name,
-		Vertex:                 strings.Replace(d.Vertex, "/src/", "/spv/", 1) + ".spv",
-		Fragment:               strings.Replace(d.Fragment, "/src/", "/spv/", 1) + ".spv",
-		Geometry:               strings.Replace(d.Geometry, "/src/", "/spv/", 1) + ".spv",
-		TessellationControl:    strings.Replace(d.TessellationControl, "/src/", "/spv/", 1) + ".spv",
-		TessellationEvaluation: strings.Replace(d.TessellationEvaluation, "/src/", "/spv/", 1) + ".spv",
+		Vertex:                 d.CompileVariantName(d.Vertex, d.VertexFlags),
+		Fragment:               d.CompileVariantName(d.Fragment, d.FragmentFlags),
+		Geometry:               d.CompileVariantName(d.Geometry, d.GeometryFlags),
+		TessellationControl:    d.CompileVariantName(d.TessellationControl, d.TessellationControlFlags),
+		TessellationEvaluation: d.CompileVariantName(d.TessellationEvaluation, d.TessellationEvaluationFlags),
 		LayoutGroups:           d.LayoutGroups,
 	}
 }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {
+	shader.pipelineInfo = s.pipelineInfo
+	shader.renderPass = s.renderPass
 	s.subShaders[key] = shader
 }
 
@@ -106,17 +185,10 @@ func (s *Shader) SubShader(key string) *Shader {
 	return s.subShaders[key]
 }
 
-func NewShader(vertPath, fragPath, geomPath, ctrlPath, evalPath,
-	key string, renderPass *RenderPass) *Shader {
+func NewShader(shaderData ShaderDataCompiled) *Shader {
 	s := &Shader{
-		Key:        key,
+		data:       shaderData,
 		subShaders: make(map[string]*Shader),
-		VertPath:   vertPath,
-		FragPath:   fragPath,
-		GeomPath:   geomPath,
-		CtrlPath:   ctrlPath,
-		EvalPath:   evalPath,
-		RenderPass: renderPass,
 		DriverData: NewShaderDriverData(),
 	}
 	return s
@@ -127,10 +199,6 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 	for _, ss := range s.subShaders {
 		renderer.CreateShader(ss, assetDatabase)
 	}
-}
-
-func (s *Shader) IsComposite() bool {
-	return s.VertPath == assets.ShaderOitCompositeVert
 }
 
 func (s *Shader) Destroy(renderer Renderer) {

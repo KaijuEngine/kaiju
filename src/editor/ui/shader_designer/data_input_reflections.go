@@ -121,7 +121,7 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 		f := v.Field(i)
 		kind := f.Kind()
 		tag := v.Type().Field(i).Tag
-		if tag.Get("ignore") == "true" {
+		if tag.Get("visible") == "false" {
 			continue
 		}
 		field := DataUISectionField{
@@ -130,6 +130,9 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]strin
 			Value:    f.Interface(),
 			RootPath: path,
 			TipKey:   tag.Get("tip"),
+		}
+		if d := tag.Get("default"); d != "" {
+			field.Value = d
 		}
 		if field.TipKey == "" {
 			field.TipKey = field.Name

@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
 	"time"
 
 	"github.com/KaijuEngine/uuid"
@@ -52,17 +53,20 @@ func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 	grid := rendering.NewMeshGrid(host.MeshCache(),
 		"raycast_"+uuid.New().String(),
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
-	shader := host.ShaderCache().ShaderFromDefinition(assets.ShaderDefinitionGrid)
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
+	if err != nil {
+		slog.Error("failed to load the grid material for drawing raycast", "error", err)
+		return
+	}
 	sd := &rendering.ShaderDataBasic{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 	}
-	host.Drawings.AddDrawing(&rendering.Drawing{
+	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
-		Shader:     shader,
+		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
-		CanvasId:   "default",
 	})
 	func() {
 		time.Sleep(duration)

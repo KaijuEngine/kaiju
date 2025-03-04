@@ -589,23 +589,15 @@ func (input *Input) SetType(inputType InputType) {
 func (input *Input) SetFGColor(newColor matrix.Color) {
 	data := input.InputData()
 	data.label.SetColor(newColor)
-	data.placeholder.SetColor(matrix.Color{
-		newColor.R(), newColor.G(), newColor.B(), 1.0})
-}
-
-func (input *Input) SetTextColor(newColor matrix.Color) {
-	data := input.InputData()
-	data.label.SetColor(newColor)
-	data.placeholder.SetColor(matrix.Color{
-		newColor.R(), newColor.G(), newColor.B(), 0.5})
+	phColor := matrix.ColorMix(newColor, newColor.Inverted(), 0.5)
+	data.placeholder.SetColor(phColor)
 }
 
 func (input *Input) SetBGColor(newColor matrix.Color) {
 	data := input.InputData()
 	(*Panel)(input).SetColor(newColor)
 	data.label.SetBGColor(newColor)
-	data.placeholder.SetBGColor(matrix.Color{
-		newColor.R(), newColor.G(), newColor.B(), 0.5})
+	data.placeholder.SetBGColor(newColor)
 	input.setBgColors()
 	useBlending := newColor.A() <= (1.0 - math.SmallestNonzeroFloat32)
 	(*Panel)(input).SetUseBlending(useBlending)

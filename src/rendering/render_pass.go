@@ -1,12 +1,16 @@
 package rendering
 
 import (
+	"encoding/json"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
+	"math"
+	"strconv"
 )
 
 type RenderPassData struct {
 	Name                   string
+	Sort                   int
 	AttachmentDescriptions []RenderPassAttachmentDescription
 	SubpassDescriptions    []RenderPassSubpassDescription
 	SubpassDependencies    []RenderPassSubpassDependency
@@ -25,14 +29,26 @@ type RenderPassAttachmentDescription struct {
 }
 
 type RenderPassAttachmentImage struct {
+	Name           string
+	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         string   `options:"StringVkImageTiling"`
-	Filter         string   `options:"StringVkFilter"`
-	Usage          []string `options:"StringVkImageUsageFlagBits"`
-	MemoryProperty []string `options:"StringVkMemoryPropertyFlagBits"`
-	Aspect         []string `options:"StringVkImageAspectFlagBits"`
-	Access         []string `options:"StringVkAccessFlagBits"`
+	Tiling         string                         `options:"StringVkImageTiling"`
+	Filter         string                         `options:"StringVkFilter"`
+	Usage          []string                       `options:"StringVkImageUsageFlagBits"`
+	MemoryProperty []string                       `options:"StringVkMemoryPropertyFlagBits"`
+	Aspect         []string                       `options:"StringVkImageAspectFlagBits"`
+	Access         []string                       `options:"StringVkAccessFlagBits"`
+	Clear          RenderPassAttachmentImageClear `tip:"AttachmentImageClear"`
+}
+
+type RenderPassAttachmentImageClear struct {
+	R       float32
+	G       float32
+	B       float32
+	A       float32
+	Depth   float32
+	Stencil uint32
 }
 
 type RenderPassSubpassDescription struct {
@@ -42,6 +58,7 @@ type RenderPassSubpassDescription struct {
 	ResolveAttachments        []RenderPassAttachmentReference
 	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
 	PreserveAttachments       []uint32                        // TODO
+	Subpass                   RenderPassSubpassData
 }
 
 type RenderPassAttachmentReference struct {
@@ -50,8 +67,8 @@ type RenderPassAttachmentReference struct {
 }
 
 type RenderPassSubpassDependency struct {
-	SrcSubpass      uint32
-	DstSubpass      uint32
+	SrcSubpass      int64
+	DstSubpass      int64
 	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
 	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
 	SrcAccessMask   []string `options:"StringVkAccessFlagBits"`
@@ -59,11 +76,30 @@ type RenderPassSubpassDependency struct {
 	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
 }
 
+type RenderPassSubpassData struct {
+	Shader         string `options:""`
+	ShaderPipeline string `options:""`
+	SampledImages  []RenderPassSubpassImageData
+}
+
+type RenderPassSubpassImageData struct {
+	SampledImage string
+}
+
 type RenderPassDataCompiled struct {
 	Name                   string
+	Sort                   int
 	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
 	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
+	ImageClears            []vk.ClearValue
+	Subpass                []RenderPassSubpassDataCompiled
+}
+
+type RenderPassSubpassDataCompiled struct {
+	Shader         string
+	ShaderPipeline string
+	SampledImages  []int
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
@@ -78,7 +114,17 @@ type RenderPassAttachmentDescriptionCompiled struct {
 	Image          RenderPassAttachmentImageCompiled
 }
 
+func (img *RenderPassAttachmentImage) IsInvalid() bool {
+	return len(img.Usage) == 0 || img.MipLevels == 0 || img.LayerCount == 0
+}
+
+func (img *RenderPassAttachmentImageCompiled) IsInvalid() bool {
+	return img.Usage == 0 || img.MipLevels == 0 || img.LayerCount == 0
+}
+
 type RenderPassAttachmentImageCompiled struct {
+	Name           string
+	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
 	Tiling         vk.ImageTiling
@@ -113,18 +159,26 @@ type RenderPassSubpassDependencyCompiled struct {
 	DependencyFlags vk.DependencyFlags
 }
 
+func NewRenderPassData(src string) (RenderPassData, error) {
+	var rp RenderPassData
+	err := json.Unmarshal([]byte(src), &rp)
+	return rp, err
+}
+
 func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
+		Sort:                   d.Sort,
 		AttachmentDescriptions: make([]RenderPassAttachmentDescriptionCompiled, len(d.AttachmentDescriptions)),
 		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
 		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
 	}
+	c.ImageClears = make([]vk.ClearValue, 0, len(d.AttachmentDescriptions))
 	for i := range d.AttachmentDescriptions {
 		a := &c.AttachmentDescriptions[i]
 		b := &d.AttachmentDescriptions[i]
 		a.Format = b.FormatToVK(vr)
-		a.Samples = b.SamplesToVK()
+		a.Samples = b.SamplesToVK(vr)
 		a.LoadOp = b.LoadOpToVK()
 		a.StoreOp = b.StoreOpToVK()
 		a.StencilLoadOp = b.StencilLoadOpToVK()
@@ -133,13 +187,27 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a.FinalLayout = b.FinalLayoutToVK()
 		a.Image.MipLevels = b.Image.MipLevels
 		a.Image.LayerCount = b.Image.LayerCount
-		a.Image.Tiling = b.Image.TilingToVK()
-		a.Image.Filter = b.Image.FilterToVK()
-		a.Image.Usage = b.Image.UsageToVK()
-		a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
-		a.Image.Aspect = b.Image.AspectToVK()
-		a.Image.Access = b.Image.AccessToVK()
+		a.Image.Name = b.Image.Name
+		a.Image.ExistingImage = b.Image.ExistingImage
+		if !b.Image.IsInvalid() {
+			a.Image.Tiling = b.Image.TilingToVK()
+			a.Image.Filter = b.Image.FilterToVK()
+			a.Image.Usage = b.Image.UsageToVK()
+			a.Image.MemoryProperty = b.Image.MemoryPropertyToVK()
+			a.Image.Aspect = b.Image.AspectToVK()
+			a.Image.Access = b.Image.AccessToVK()
+			clear := vk.ClearValue{}
+			isDepth := a.IsDepthFormat()
+			bClear := b.Image.Clear
+			if isDepth {
+				clear.SetDepthStencil(bClear.Depth, bClear.Stencil)
+			} else {
+				clear.SetColor([]float32{bClear.R, bClear.G, bClear.B, bClear.A})
+			}
+			c.ImageClears = append(c.ImageClears, clear)
+		}
 	}
+	c.Subpass = make([]RenderPassSubpassDataCompiled, 0, max(len(d.SubpassDependencies)-1, 0))
 	for i := range d.SubpassDescriptions {
 		a := &c.SubpassDescriptions[i]
 		b := &d.SubpassDescriptions[i]
@@ -166,17 +234,44 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		}
 		a.PreserveAttachments = make([]uint32, len(b.PreserveAttachments))
 		copy(a.PreserveAttachments, b.PreserveAttachments)
+		if i > 0 {
+			s := RenderPassSubpassDataCompiled{
+				Shader:         b.Subpass.Shader,
+				ShaderPipeline: b.Subpass.ShaderPipeline,
+			}
+			s.SampledImages = make([]int, len(b.Subpass.SampledImages))
+			for j := range b.Subpass.SampledImages {
+				si := b.Subpass.SampledImages[j].SampledImage
+				id, err := strconv.Atoi(si)
+				if err != nil {
+					slog.Error("failed to parse the subpass sampled image index", "index", si)
+				}
+				s.SampledImages[j] = id
+			}
+			c.Subpass = append(c.Subpass, s)
+		}
 	}
 	for i := range d.SubpassDependencies {
 		a := &c.SubpassDependencies[i]
 		b := &d.SubpassDependencies[i]
-		a.SrcSubpass = b.SrcSubpass
-		a.DstSubpass = b.DstSubpass
+		if b.SrcSubpass < 0 {
+			a.SrcSubpass = math.MaxUint32
+		} else {
+			a.SrcSubpass = uint32(b.SrcSubpass)
+		}
+		if b.DstSubpass < 0 {
+			a.DstSubpass = math.MaxUint32
+		} else {
+			a.DstSubpass = uint32(b.DstSubpass)
+		}
 		a.SrcStageMask = b.SrcStageMaskToVK()
 		a.DstStageMask = b.DstStageMaskToVK()
 		a.SrcAccessMask = b.SrcAccessMaskToVK()
 		a.DstAccessMask = b.DstAccessMaskToVK()
 		a.DependencyFlags = b.DependencyFlagsToVK()
+	}
+	if len(c.Subpass) != len(d.SubpassDescriptions)-1 {
+		slog.Error("one or more of your d.SubpassDescriptions[1:] haven't been setup")
 	}
 	return c
 }
@@ -209,8 +304,8 @@ func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format {
 	return formatToVK(ad.Format, vr)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToVK() vk.SampleCountFlagBits {
-	return sampleCountToVK(ad.Samples)
+func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vk.SampleCountFlagBits {
+	return sampleCountToVK(ad.Samples, vr)
 }
 
 func (ad *RenderPassAttachmentDescription) LoadOpToVK() vk.AttachmentLoadOp {
@@ -265,150 +360,24 @@ func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags 
 	return dependencyFlagsToVK(sd.DependencyFlags)
 }
 
-func (r *RenderPassData) ConstructRenderPass(renderer Renderer) (RenderPass, bool) {
+func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
+	isDepth := false
+	depthCandidates := depthFormatCandidates()
+	for i := 0; i < len(depthCandidates) && !isDepth; i++ {
+		isDepth = p.Format == depthCandidates[i]
+	}
+	return isDepth
+}
+
+func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
 	vr := renderer.(*Vulkan)
-	textures := make([]TextureId, 0, len(r.AttachmentDescriptions))
-	{
-		w := uint32(vr.swapChainExtent.Width)
-		h := uint32(vr.swapChainExtent.Height)
-		for i := range len(r.AttachmentDescriptions) {
-			a := &r.AttachmentDescriptions[i]
-			if a.LoadOpToVK() == vk.AttachmentLoadOpLoad {
-				continue
-			}
-			textures = append(textures, TextureId{})
-			img := &a.Image
-			success := vr.CreateImage(w, h, img.MipLevels, a.SamplesToVK(),
-				a.FormatToVK(vr), img.TilingToVK(), img.UsageToVK(),
-				img.MemoryPropertyToVK(), &textures[i], int(img.LayerCount))
-			if !success {
-				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
-			}
-			success = vr.createImageView(&textures[i], img.AspectToVK())
-			if !success {
-				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
-				}
-				slog.Error("failed to create image view for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
-			}
-			success = vr.createTextureSampler(&textures[i].Sampler,
-				img.MipLevels, img.FilterToVK())
-			if !success {
-				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
-				}
-				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
-			}
-			success = vr.transitionImageLayout(&textures[i], a.InitialLayoutToVK(),
-				img.AspectToVK(), img.AccessToVK(), vk.NullCommandBuffer)
-			if !success {
-				for j := range i + 1 {
-					vr.textureIdFree(&textures[j])
-				}
-				slog.Error("failed to transition image layout for render pass attachment", "attachmentIndex", i)
-				return RenderPass{}, false
-			}
-		}
+	if pass, ok := vr.renderPassCache[r.Name]; ok {
+		return pass, true
 	}
-	attachments := make([]vk.AttachmentDescription, len(r.AttachmentDescriptions))
-	for i := range r.AttachmentDescriptions {
-		// TODO:  Flags
-		attachments[i].Flags = 0
-		attachments[i].Format = r.AttachmentDescriptions[i].FormatToVK(vr)
-		attachments[i].Samples = r.AttachmentDescriptions[i].SamplesToVK()
-		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOpToVK()
-		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOpToVK()
-		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOpToVK()
-		attachments[i].StencilStoreOp = r.AttachmentDescriptions[i].StencilStoreOpToVK()
-		attachments[i].InitialLayout = r.AttachmentDescriptions[i].InitialLayoutToVK()
-		attachments[i].FinalLayout = r.AttachmentDescriptions[i].FinalLayoutToVK()
-	}
-	color := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
-	input := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
-	preserve := make([][]uint32, len(r.SubpassDescriptions))
-	depthStencil := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
-	resolve := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
-	for i := range r.SubpassDescriptions {
-		c := r.SubpassDescriptions[i].ColorAttachmentReferences
-		n := r.SubpassDescriptions[i].InputAttachmentReferences
-		p := r.SubpassDescriptions[i].PreserveAttachments
-		d := r.SubpassDescriptions[i].DepthStencilAttachment
-		r := r.SubpassDescriptions[i].ResolveAttachments
-		color[i] = make([]vk.AttachmentReference, len(c))
-		input[i] = make([]vk.AttachmentReference, len(n))
-		preserve[i] = make([]uint32, len(p))
-		depthStencil[i] = make([]vk.AttachmentReference, len(d))
-		resolve[i] = make([]vk.AttachmentReference, len(r))
-		for j := range c {
-			color[i][j].Attachment = c[j].Attachment
-			color[i][j].Layout = c[j].LayoutToVK()
-		}
-		for j := range n {
-			input[i][j].Attachment = n[j].Attachment
-			input[i][j].Layout = n[j].LayoutToVK()
-		}
-		copy(p, preserve[i])
-		for j := range depthStencil {
-			depthStencil[i][j].Attachment = d[j].Attachment
-			depthStencil[i][j].Layout = d[j].LayoutToVK()
-		}
-		for j := range resolve {
-			resolve[i][j].Attachment = r[j].Attachment
-			resolve[i][j].Layout = r[j].LayoutToVK()
-		}
-	}
-	subpasses := make([]vk.SubpassDescription, len(r.SubpassDescriptions))
-	for i := range r.SubpassDescriptions {
-		// TODO:  Fill in the flags
-		subpasses[i].Flags = 0
-		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPointToVK()
-		subpasses[i].ColorAttachmentCount = uint32(len(color))
-		subpasses[i].InputAttachmentCount = uint32(len(input))
-		subpasses[i].PreserveAttachmentCount = uint32(len(preserve))
-		if len(color) > 0 {
-			subpasses[i].PColorAttachments = &color[i][0]
-		}
-		if len(input) > 0 {
-			subpasses[i].PInputAttachments = &input[i][0]
-		}
-		if len(preserve) > 0 {
-			subpasses[i].PPreserveAttachments = &preserve[i][0]
-		}
-		if len(depthStencil) > 0 {
-			subpasses[i].PDepthStencilAttachment = &depthStencil[i][0]
-		}
-		if len(resolve) > 0 {
-			subpasses[i].PResolveAttachments = &resolve[i][0]
-		}
-	}
-	selfDependencies := make([]vk.SubpassDependency, len(r.SubpassDependencies))
-	for i := range r.SubpassDependencies {
-		selfDependencies[i].SrcSubpass = r.SubpassDependencies[i].SrcSubpass
-		selfDependencies[i].DstSubpass = r.SubpassDependencies[i].DstSubpass
-		selfDependencies[i].SrcStageMask = r.SubpassDependencies[i].SrcStageMaskToVK()
-		selfDependencies[i].DstStageMask = r.SubpassDependencies[i].DstStageMaskToVK()
-		selfDependencies[i].SrcAccessMask = r.SubpassDependencies[i].SrcAccessMaskToVK()
-		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMaskToVK()
-		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlagsToVK()
-	}
-	pass, err := NewRenderPass(vr.device, &vr.dbg,
-		attachments, subpasses, selfDependencies)
+	pass, err := NewRenderPass(vr, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
-		return RenderPass{}, false
-	}
-	imageViews := make([]vk.ImageView, len(textures))
-	for i := range textures {
-		imageViews[i] = textures[i].View
-	}
-	err = pass.CreateFrameBuffer(vr, imageViews,
-		textures[0].Width, textures[0].Height)
-	if err != nil {
-		slog.Error("failed to create the frame buffer for the render pass", "error", err)
-		return RenderPass{}, false
+		return nil, false
 	}
 	return pass, true
 }

@@ -39,15 +39,15 @@ package assets
 
 // Shaders
 const (
-	ShaderTextVert         = "renderer/spv/text.vert.spv"
-	ShaderTextFrag         = "renderer/spv/text.frag.spv"
-	ShaderText3DVert       = "renderer/spv/text3d.vert.spv"
-	ShaderText3DFrag       = ShaderTextFrag
-	ShaderOitCompositeVert = "renderer/spv/oit_composite.vert.spv"
-	ShaderOitCompositeFrag = "renderer/spv/oit_composite.frag.spv"
-	ShaderHdrVert          = "renderer/spv/hdr.vert.spv"
-	ShaderHdrFrag          = "renderer/spv/hdr.frag.spv"
-	ShaderUIVert           = "renderer/spv/ui.vert.spv"
-	ShaderUIFrag           = "renderer/spv/ui.frag.spv"
-	ShadersUINineFrag      = "renderer/spv/ui_nine.frag.spv"
+	ShaderTextVert      = "renderer/spv/text.vert.spv"
+	ShaderTextFrag      = "renderer/spv/text.frag.spv"
+	ShaderText3DVert    = "renderer/spv/text3d.vert.spv"
+	ShaderText3DFrag    = ShaderTextFrag
+	ShaderCompositeVert = "renderer/spv/composite.vert.spv"
+	ShaderCompositeFrag = "renderer/spv/composite.frag.spv"
+	ShaderHdrVert       = "renderer/spv/hdr.vert.spv"
+	ShaderHdrFrag       = "renderer/spv/hdr.frag.spv"
+	ShaderUIVert        = "renderer/spv/ui.vert.spv"
+	ShaderUIFrag        = "renderer/spv/ui.frag.spv"
+	ShadersUINineFrag   = "renderer/spv/ui_nine.frag.spv"
 )
