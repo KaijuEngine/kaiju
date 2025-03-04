@@ -152,7 +152,8 @@ func (d *ShaderData) CompileVariantName(path, flags string) string {
 	path = filepath.ToSlash(path)
 	name := filepath.Base(path) + ".spv"
 	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1))
-	if flags != "" {
+	// Just having a debug symbols flag doesn't create a variant
+	if flags != "" && flags != "-g" {
 		return filepath.Join(dir, d.Name+"_"+name)
 	}
 	return filepath.Join(dir, name)
@@ -198,10 +199,6 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 	for _, ss := range s.subShaders {
 		renderer.CreateShader(ss, assetDatabase)
 	}
-}
-
-func (s *Shader) IsComposite() bool {
-	return s.data.Vertex == assets.ShaderCompositeVert
 }
 
 func (s *Shader) Destroy(renderer Renderer) {

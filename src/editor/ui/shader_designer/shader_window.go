@@ -120,10 +120,11 @@ func compileShaderFile(s *rendering.ShaderData, src, flags string) error {
 	if src == "" {
 		return nil
 	}
+	flags = strings.TrimSpace(flags)
 	out := s.CompileVariantName(src, flags)
 	args := []string{src, "-o", out}
 	if flags != "" {
-		args = append(args, strings.TrimSpace(flags))
+		args = append(args, flags)
 	}
 	compileCmd := exec.Command("glslc", args...)
 	return compileCmd.Run()
