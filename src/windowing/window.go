@@ -44,6 +44,7 @@ import (
 	"kaiju/assets"
 	"kaiju/hid"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"unsafe"
@@ -279,6 +280,7 @@ func (w *Window) Poll() {
 }
 
 func (w *Window) EndUpdate() {
+	defer tracing.NewRegion("Window::EndUpdate").End()
 	w.Keyboard.EndUpdate()
 	w.Mouse.EndUpdate()
 	w.Touch.EndUpdate()
@@ -287,6 +289,7 @@ func (w *Window) EndUpdate() {
 }
 
 func (w *Window) SwapBuffers() {
+	defer tracing.NewRegion("Window::SwapBuffers").End()
 	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}

@@ -1,6 +1,9 @@
 package concurrent
 
-import "sync"
+import (
+	"kaiju/profiler/tracing"
+	"sync"
+)
 
 type WorkGroup struct {
 	work sync.Map
@@ -15,6 +18,7 @@ func (w *WorkGroup) Add(name string, work func()) {
 }
 
 func (w *WorkGroup) Execute(name string) {
+	defer tracing.NewRegion("WorkGroup: " + name).End()
 	if target, ok := w.work.Load(name); ok {
 		list := target.([]func())
 		wg := sync.WaitGroup{}

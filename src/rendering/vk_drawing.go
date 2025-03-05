@@ -40,6 +40,7 @@ package rendering
 import (
 	"kaiju/assets"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"log/slog"
 	"unsafe"
 
@@ -216,6 +217,7 @@ func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, pipeline vk.Pipelin
 }
 
 func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
+	defer tracing.NewRegion("Vulkan::Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return false
 	}
@@ -363,6 +365,7 @@ func (vr *Vulkan) cleanupCombined() {
 }
 
 func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
+	defer tracing.NewRegion("Vulkan::BlitTargets").End()
 	if !vr.hasSwapChain {
 		return
 	}

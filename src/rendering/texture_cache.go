@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"kaiju/profiler/tracing"
 	"sync"
 )
 
@@ -80,6 +81,7 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 }
 
 func (t *TextureCache) CreatePending() {
+	defer tracing.NewRegion("TextureCache::CreatePending").End()
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	for _, texture := range t.pendingTextures {

@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"kaiju/profiler/tracing"
 	"sync"
 )
 
@@ -94,6 +95,7 @@ func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 }
 
 func (m *MeshCache) CreatePending() {
+	defer tracing.NewRegion("MeshCache::CreatePending").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for _, mesh := range m.pendingMeshes {

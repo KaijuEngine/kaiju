@@ -39,9 +39,12 @@ package host_container
 
 import (
 	"kaiju/engine"
+	"kaiju/profiler/tracing"
 	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -67,7 +70,12 @@ func (c *Container) Run(width, height, x, y int) error {
 	c.Host.Update(0)
 	c.Host.Render()
 	c.PrepLock <- struct{}{}
+	traceRegionName := strings.Builder{}
 	for !c.Host.Closing {
+		traceRegionName.Reset()
+		traceRegionName.WriteString("Frame: ")
+		traceRegionName.WriteString(strconv.FormatUint(c.Host.Frame(), 10))
+		r := tracing.NewRegion(traceRegionName.String())
 		c.Host.WaitForFrameRate()
 		since := time.Since(lastTime)
 		deltaTime := since.Seconds()
@@ -76,6 +84,7 @@ func (c *Container) Run(width, height, x, y int) error {
 		if !c.Host.Closing {
 			c.Host.Render()
 		}
+		r.End()
 	}
 	console.UnlinkHost(c.Host)
 	c.Host.Teardown()

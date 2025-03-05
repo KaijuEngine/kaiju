@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"kaiju/profiler/tracing"
 	"log/slog"
 	"strings"
 	"unsafe"
@@ -49,6 +50,7 @@ import (
 type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
 
 func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
+	defer tracing.NewRegion("Vulkan::CreateShader").End()
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
 	vertStage := vk.PipelineShaderStageCreateInfo{}
@@ -197,6 +199,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 }
 
 func (vr *Vulkan) DestroyShader(shader *Shader) {
+	defer tracing.NewRegion("Vulkan::DestroyShader").End()
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyPipeline(vr.device, shader.RenderId.graphicsPipeline, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.graphicsPipeline))

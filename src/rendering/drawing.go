@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"sort"
 	"sync"
 )
@@ -115,6 +116,7 @@ func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup
 }
 
 func (d *Drawings) PreparePending() {
+	defer tracing.NewRegion("Drawings::PreparePending").End()
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 	for i := range d.backDraws {
@@ -172,6 +174,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
+	defer tracing.NewRegion("Drawings::Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}

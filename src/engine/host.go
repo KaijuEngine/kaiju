@@ -44,6 +44,7 @@ import (
 	"kaiju/concurrent"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/systems/logging"
@@ -318,6 +319,7 @@ func (host *Host) NewEntity() *Entity {
 // Any destroyed entities will also be ticked for their cleanup. This will also
 // tick the editor entities for cleanup.
 func (host *Host) Update(deltaTime float64) {
+	defer tracing.NewRegion("Host::Update").End()
 	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
@@ -352,6 +354,7 @@ func (host *Host) Update(deltaTime float64) {
 // the start of the render. The frame is then readied, buffers swapped, and any
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
+	defer tracing.NewRegion("Host::Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
@@ -405,6 +408,7 @@ func (host *Host) Teardown() {
 
 // WaitForFrameRate will block until the desired frame rate limit is reached
 func (h *Host) WaitForFrameRate() {
+	defer tracing.NewRegion("Host::WaitForFrameRate").End()
 	if h.frameRateLimit != nil {
 		<-h.frameRateLimit.C
 	}

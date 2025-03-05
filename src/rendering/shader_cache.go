@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/assets"
+	"kaiju/profiler/tracing"
 	"sync"
 )
 
@@ -76,6 +77,7 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 }
 
 func (s *ShaderCache) CreatePending() {
+	defer tracing.NewRegion("ShaderCache::CreatePending").End()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, shader := range s.pendingShaders {

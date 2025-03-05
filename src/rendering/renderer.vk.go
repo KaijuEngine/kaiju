@@ -43,6 +43,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"log/slog"
 	"math"
 	"unsafe"
@@ -111,6 +112,7 @@ func init() {
 }
 
 func (vr *Vulkan) WaitForRender() {
+	defer tracing.NewRegion("Vulkan::WaitForRender").End()
 	vk.DeviceWaitIdle(vr.device)
 	fences := [2]vk.Fence{}
 	for i := range fences {
@@ -280,6 +282,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 }
 
 func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
+	defer tracing.NewRegion("Vulkan::Initialize").End()
 	var err error
 	vr.defaultTexture, err = caches.TextureCache().Texture(
 		assets.TextureSquare, TextureFilterLinear)
@@ -403,6 +406,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 }
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
+	defer tracing.NewRegion("Vulkan::ReadyFrame").End()
 	if !vr.hasSwapChain {
 		vr.remakeSwapChain()
 		if !vr.hasSwapChain {
@@ -435,6 +439,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
+	defer tracing.NewRegion("Vulkan::SwapFrame").End()
 	if !vr.hasSwapChain || vr.commandBuffersCount == 0 {
 		return false
 	}
@@ -492,6 +497,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 }
 
 func (vr *Vulkan) Destroy() {
+	defer tracing.NewRegion("Vulkan::Destroy").End()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.NullDevice {
@@ -531,6 +537,7 @@ func (vr *Vulkan) Destroy() {
 }
 
 func (vr *Vulkan) Resize(width, height int) {
+	defer tracing.NewRegion("Vulkan::Resize").End()
 	vr.remakeSwapChain()
 }
 
@@ -539,6 +546,7 @@ func (vr *Vulkan) AddPreRun(preRun func()) {
 }
 
 func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan::DestroyGroup").End()
 	vk.DeviceWaitIdle(vr.device)
 	pd := bufferTrash{delay: maxFramesInFlight}
 	pd.pool = group.descriptorPool
