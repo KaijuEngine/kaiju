@@ -43,10 +43,15 @@ import (
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"log/slog"
 )
 
 func (p Display) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("Display not implemented")}
-
-	return problems[0]
+	if len(values) == 1 && values[0].Str == "none" {
+		panel.Base().Hide()
+		return nil
+	} else {
+		slog.Warn("the css 'display' is not fully implemented, only 'none' is")
+		return errors.New("Display not implemented")
+	}
 }

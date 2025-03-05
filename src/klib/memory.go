@@ -76,8 +76,8 @@ func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V) {
 	}
 }
 
-func BinaryRead(r io.Reader, data any) {
-	binary.Read(r, binary.LittleEndian, data)
+func BinaryRead(r io.Reader, data any) error {
+	return binary.Read(r, binary.LittleEndian, data)
 }
 
 func BinaryReadLen(r io.Reader) (int32, error) {

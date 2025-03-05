@@ -43,10 +43,19 @@ import (
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"log/slog"
 )
 
 func (p WordWrap) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("WordWrap not implemented")}
-
-	return problems[0]
+	if len(values) == 1 && values[0].Str == "none" {
+		for i := range elm.Children {
+			if elm.Children[i].IsText() {
+				elm.Children[i].UI.ToLabel().SetWrap(false)
+			}
+		}
+		return nil
+	} else {
+		slog.Warn("the css 'word-wrap' is not fully implemented, only 'none' is")
+		return errors.New("WordWrap not implemented")
+	}
 }

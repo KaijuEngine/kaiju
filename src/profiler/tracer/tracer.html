@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			#info {
+				position: absolute;
+				right: 0;
+				width: 250px;
+				height: 100%;
+				z-index: 10;
+				padding: 5px;
+				background-color: rgba(25.5, 25.5, 25.5, 1);
+			}
+			#infoSearch {
+				width: 100%;
+				height: 30px;
+			}
+			#infoList {
+				width: 100%;
+				height: calc(100% - 40px);
+				overflow-y: auto;
+			}
+			#hoverInfo {
+				display: none;
+				position: absolute;
+				width: 250px;
+				height: 24px;
+				z-index: 15;
+				background-color: black;
+				text-align: center;
+				background-color: black;
+				color: white;
+			}
+			#frameBoxes {
+				position: absolute;
+				width: calc(100% - 250px);
+				height: 80px;
+				background-color: rgba(25.5, 25.5, 25.5, 1);
+				overflow-x: auto;
+				z-index: 10;
+			}
+			#areaSelect {
+				position: absolute;
+				display: none;
+				top: 80px;
+				width: 1px;
+				height: calc(100% - 80px);
+				background-color: rgba(0, 255, 0, 0.25);
+				z-index: 5;
+			}
+			#areaSelectLabelBox {
+				width: 100%;
+				height: 20px;
+				background-color: black;
+				text-align: center;
+				font-size: 12px;
+				color: white;
+			}
+			#templateThreadName {
+				display: none;
+				position: absolute;
+				width: 115px;
+				height: 20px;
+				color: black;
+				z-index: -1;
+				color: white;
+				font-size: 12px;
+			}
+			#templateListEntry {
+				width: 100%;
+				height: 20px;
+			}
+			#templateListEntryLabelBox {
+				width: calc(100% - 55px);
+				height: 100%;
+				background-color: rgba(25.5, 25.5, 25.5, 1);
+				color: white;
+			}
+			#templateListEntryTime {
+				width: 55px;
+				background-color: rgba(25.5, 25.5, 25.5, 1);
+				color: white;
+			}
+			#templateFrameBox {
+				width: 10px;
+				height: 80px;
+				position: absolute;
+				background-color: rgba(38.25, 38.25, 38.25, 1)
+			}
+			#templateFrameBoxInner {
+				width: 100%;
+				height: 80px;
+				background-color: rgba(102, 102, 204, 1)				
+			}
+			#templateBox {
+				position: absolute;
+				width: 100px;
+				height: 30px;
+				top: 100px;
+				background-color: black;
+			}
+			#templateBoxInner {
+				margin: 1px;
+				width: 98px;
+				height: 28px;
+				background-color: red;
+				color: white;
+				word-wrap: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<input id="infoSearch" placeholder="Search..." type="text" value="" />
+			<div id="infoList"></div>
+		</div>
+		<div id="hoverInfo"></div>
+		<div id="frameBoxes"></div>
+		<div id="areaSelect">
+			<div id="areaSelectLabelBox"></div>
+		</div>
+		<div id="templateThreadName" group="templates"></div>
+		<div id="templateListEntry" group="templates">
+			<div id="templateListEntryLabelBox"></div>
+			<div id="templateListEntryTime"></div>
+		</div>
+		<div id="templateFrameBox" group="templates">
+			<div id="templateFrameBoxInner"></div>
+		</div>
+		<div id="templateBox">
+			<div id="templateBoxInner"></div>
+		</div>
+	</body>
+</html>

@@ -45,6 +45,7 @@ import (
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/ui"
+	"strings"
 )
 
 func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
@@ -76,14 +77,20 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		if newHex, ok := helpers.ColorMap[hex]; ok {
 			hex = newHex
 		}
-		if color, err = matrix.ColorFromHexString(hex); err == nil {
-			panel.SetColor(color)
-			if !panel.HasEnforcedColor() {
-				setChildTextBackgroundColor(elm, color)
-			}
-			return nil
+		if strings.HasPrefix(hex, "rgb") {
+			color, err = matrix.ColorFromRGBString(hex)
+		} else if strings.HasPrefix(hex, "rgba") {
+			color, err = matrix.ColorFromRGBAString(hex)
 		} else {
+			color, err = matrix.ColorFromHexString(hex)
+		}
+		if err != nil {
 			return err
 		}
+		panel.SetColor(color)
+		if !panel.HasEnforcedColor() {
+			setChildTextBackgroundColor(elm, color)
+		}
+		return nil
 	}
 }

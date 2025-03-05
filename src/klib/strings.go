@@ -37,11 +37,20 @@
 
 package klib
 
-import "strings"
+import (
+	"hash/fnv"
+	"strings"
+)
 
 func ReplaceStringRecursive(s string, old string, new string) string {
 	for strings.Contains(s, old) {
 		s = strings.Replace(s, old, new, -1)
 	}
 	return s
+}
+
+func HashString(str string) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(str))
+	return h.Sum64()
 }

@@ -39,7 +39,14 @@ package matrix
 
 import (
 	"fmt"
+	"log/slog"
+	"regexp"
 	"strings"
+)
+
+var (
+	reColorRGB  = regexp.MustCompile(`rgb\s{0,}\((.*?)\)`)
+	reColorRGBA = regexp.MustCompile(`rgba\s{0,}\((.*?)\)`)
 )
 
 type Color Vec4
@@ -120,6 +127,37 @@ func ColorMix(lhs, rhs Color, amount Float) Color {
 		lhs.B() + (rhs.B()-lhs.B())*amount,
 		lhs.A() + (rhs.A()-lhs.A())*amount,
 	}
+}
+
+func commonColorFromRGBAString(str string) (Color, error) {
+	var r, g, b, a float32
+	n, err := fmt.Sscanf(str, "%f, %f, %f, %f", &r, &g, &b, &a)
+	if err != nil {
+		return ColorMagenta(), err
+	}
+	if n != 4 {
+		slog.Warn("could not parse all numbers in input string", "string", str)
+	}
+	r = 255 / r
+	g = 255 / g
+	b = 255 / b
+	return NewColor(r, g, b, a), nil
+}
+
+func ColorFromRGBString(str string) (Color, error) {
+	matches := reColorRGB.FindAllStringSubmatch(str, -1)
+	if len(matches) == 0 || len(matches[0]) < 1 || matches[0][1] == "" {
+		return ColorMagenta(), fmt.Errorf("failed to parse color rgb value from string (%s), should be in the format: rgb(0-255, 0-255, 0-255)", str)
+	}
+	return commonColorFromRGBAString(matches[0][1] + ", 1")
+}
+
+func ColorFromRGBAString(str string) (Color, error) {
+	matches := reColorRGBA.FindAllStringSubmatch(str, -1)
+	if len(matches) == 0 || len(matches[0]) < 1 || matches[0][1] == "" {
+		return ColorMagenta(), fmt.Errorf("failed to parse color rgb value from string (%s), should be in the format: rgba(0-255, 0-255, 0-255, 0-1)", str)
+	}
+	return commonColorFromRGBAString(matches[0][1])
 }
 
 func ColorFromHexString(str string) (Color, error) {
