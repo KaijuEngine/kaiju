@@ -150,6 +150,8 @@ func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
 func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
 
+func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
+
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
@@ -464,4 +466,12 @@ func (ui *UI) Hide() {
 
 func (ui *UI) Show() {
 	ui.entity.Activate()
+}
+
+func (ui *UI) FindByName(name string) *UI {
+	e := ui.entity.FindByName(name)
+	if e != nil {
+		return FirstOnEntity(e)
+	}
+	return nil
 }
