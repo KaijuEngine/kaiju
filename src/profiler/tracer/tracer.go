@@ -4,22 +4,20 @@ import (
 	_ "embed"
 	"fmt"
 	"kaiju/engine"
-	"kaiju/klib"
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/ui"
 	"math"
-	"os"
-	"strings"
-	"unsafe"
-	"weak"
 )
 
 const (
-	maxStackDepth = 16
-	infoPanelId   = "info"
-	templateBoxId = "templateBox"
-	areaSelectId  = "areaSelect"
+	maxStackDepth        = 16
+	infoPanelId          = "info"
+	areaSelectId         = "areaSelect"
+	templateBoxId        = "templateBox"
+	templateThreadNameId = "templateThreadName"
+	templateBoxInnerId   = "templateBoxInner"
+	hoverInfoId          = "hoverInfo"
 )
 
 var (
@@ -40,43 +38,6 @@ var (
 //go:embed tracer.html
 var tracerHTML string
 
-type EntryKey struct {
-	file        string
-	funcName    string
-	infoSpec    *document.Element
-	funcHash    uint64
-	averageTime float64
-	tempTime    float64
-	line        int32
-	isStart     bool
-	outOfRange  bool
-}
-
-type EntryValue struct {
-	key          uint16
-	other        weak.Pointer[EntryValue]
-	timelineSpec *document.Element
-	otherIdx     int
-	time         float64
-	y            float32
-	isStart      bool
-	rendered     bool
-	veryTiny     bool
-}
-
-type TraceFile struct {
-	keys         map[uint16]EntryKey
-	values       []EntryValue
-	frames       []int
-	maxTime      float64
-	maxFrameTime float64
-}
-
-type traceFileRead struct {
-	time float64
-	key  uint16
-}
-
 type TracerSelectRange struct {
 	from float64
 	to   float64
@@ -84,12 +45,12 @@ type TracerSelectRange struct {
 
 type Tracer struct {
 	host           *engine.Host
+	doc            *document.Document
+	tracksDoc      *document.Document
 	showingInfo    *ui.UI
 	uiManTimeline  ui.Manager
 	uiMan          ui.Manager
 	file           TraceFile
-	trackSpecs     []*document.Element
-	specs          []*document.Element
 	threadLabels   []*document.Element
 	selectRange    TracerSelectRange
 	dragStart      matrix.Vec2
@@ -101,16 +62,14 @@ type Tracer struct {
 	selectingRange bool
 }
 
-func findSpec(specs []*document.Element, target string) *document.Element {
-	for i := range specs {
-		if specs[i].Attribute("id") == target {
-			return specs[i]
-		}
-		if child := findSpec(specs[i].Children, target); child != nil {
-			return child
-		}
-	}
-	return nil
+func (t *Tracer) findSpec(target string) *document.Element {
+	s, _ := t.doc.GetElementById(target)
+	return s
+}
+
+func (t *Tracer) findTrackSpec(target string) *document.Element {
+	s, _ := t.tracksDoc.GetElementById(target)
+	return s
 }
 
 func toDisplayTime(time float64, out *int) string {
@@ -139,116 +98,13 @@ func (t *Tracer) zoomScale() float32 {
 
 func (t *Tracer) timelineViewWidth() float32 {
 	viewWidth := float32(t.host.Window.Width())
-	info := findSpec(t.specs, infoPanelId)
+	info := t.findSpec(infoPanelId)
 	viewWidth -= info.UI.Layout().Stretch().Left()
 	return viewWidth
 }
 
-func (f *TraceFile) selectChildCalls(from int) []int {
-	children := make([]int, 0)
-	to := f.values[from].otherIdx
-	for i := from + 1; i < to; i++ {
-		children = append(children, i)
-		i = f.values[i].otherIdx
-	}
-	return children
-}
-
-func (f *TraceFile) findEndValue(start int) {
-	depth := 0
-	from := &f.values[start]
-	from.isStart = true
-	for i := start + 1; i < len(f.values); i++ {
-		to := &f.values[i]
-		if to.key == from.key {
-			depth++
-		} else if f.keys[from.key].funcName == f.keys[to.key].funcName {
-			depth--
-			if depth < 0 {
-				from.other = weak.Make(to)
-				from.otherIdx = i
-				to.other = weak.Make(from)
-				to.otherIdx = start
-				to.rendered = true
-				from.veryTiny = (to.time - from.time) < 1.0/1000.0/100.0
-				break
-			}
-		}
-	}
-}
-
-func (f *TraceFile) loadFile(file string) error {
-	fp, err := os.Open(file)
-	if err != nil {
-		return err
-	}
-	defer fp.Close()
-	stringBlock, _ := klib.BinaryReadString(fp)
-	str := stringBlock
-	id := 1
-	for i := range len(str) {
-		k := EntryKey{}
-		offset := strings.Index(str, ":")
-		k.file = str[0:offset]
-		offset++
-		fmt.Sscanf(str[offset:], "%d", &k.line)
-		offset += strings.Index(str[offset:], ":") + 1
-		k.funcName = str[offset:]
-		k.funcHash = klib.HashString(k.funcName)
-		k.isStart = true
-		// TODO:  This is a bit slow :X
-		for _, val := range f.keys {
-			if val.funcHash == k.funcHash {
-				k.isStart = k.isStart && k.line < val.line
-				if k.isStart {
-					val.isStart = false
-				}
-			}
-		}
-		f.keys[uint16(id)] = k
-		strLen := len(str) + 1
-		str = str[strLen:]
-		i += strLen
-		id++
-	}
-	var valsLen uint64
-	klib.BinaryRead(fp, &valsLen)
-	r := traceFileRead{}
-	f.values = make([]EntryValue,
-		(valsLen / uint64(unsafe.Sizeof(r.time)+unsafe.Sizeof(r.key))))
-	startTime := 0.0
-	frameKeyHash := klib.HashString("main_frame")
-	{
-		// Read the first frame so we don't need if check every iteration
-		klib.BinaryRead(fp, &r.time)
-		klib.BinaryRead(fp, &r.key)
-		f.values[0].key = r.key
-		f.values[0].otherIdx = -1
-		startTime = r.time
-	}
-	for i := 1; i < len(f.values); i++ {
-		klib.BinaryRead(fp, &r.time)
-		klib.BinaryRead(fp, &r.key)
-		f.values[i].key = r.key
-		f.values[i].otherIdx = -1
-		f.values[i].time = r.time - startTime
-	}
-	for i := range uint32(len(f.values)) {
-		if f.values[i].other.Value() == nil {
-			v := &f.values[i]
-			f.findEndValue(int(i))
-			o := v.other.Value()
-			f.maxTime = max(f.maxTime, o.time-v.time)
-			if v.isStart && f.keys[v.key].funcHash == frameKeyHash {
-				f.maxFrameTime = max(f.maxFrameTime, o.time-v.time)
-			}
-		}
-	}
-	return nil
-}
-
 func (t *Tracer) updateSelectRangeText() {
-	tpl := findSpec(t.trackSpecs, templateBoxId)
+	tpl := t.findTrackSpec(templateBoxId)
 	r := math.Abs(t.selectRange.from-t.selectRange.to) /
 		float64(tpl.UI.Layout().PixelSize().Width())
 	aCounter := 0
@@ -263,6 +119,150 @@ func (t *Tracer) updateSelectRangeText() {
 		bSize = toDisplayTime(((r*1000000.0)-float64(aCounter))/1000000.0, &bCounter)
 	}
 	time := fmt.Sprintf("%d%s %d%s", aCounter, aSize, bCounter, bSize)
-	areaSelect := findSpec(t.specs, areaSelectId).Children[0].UI.ToLabel()
+	areaSelect := t.findSpec(areaSelectId).Children[0].UI.ToLabel()
 	areaSelect.SetText(time)
+}
+
+func (t *Tracer) updateSelectRange() {
+	from := t.selectRange.from
+	to := t.selectRange.to
+	if to < from {
+		to, from = from, to
+	}
+	areaSelect := t.findSpec(areaSelectId)
+	if math.Abs(from-to) <= math.SmallestNonzeroFloat64 {
+		areaSelect.UI.Hide()
+		return
+	}
+	scale := t.zoomScale()
+	scaleX := float32(to-from) * scale
+	xOffset := t.offset.X() + float32(from*float64(scale))
+	l := areaSelect.UI.Layout()
+	l.SetOffset(xOffset, l.Offset().Y())
+	l.Scale(scaleX, l.PixelSize().Height())
+	areaSelect.UI.Show()
+}
+
+func (t *Tracer) updateChanges() {
+	tpl := t.findTrackSpec(templateBoxId)
+	width := tpl.UI.Layout().PixelSize().Width()
+	height := tpl.UI.Layout().PixelSize().Height()
+	scale := t.zoomScale()
+	widthScale := width * scale
+	viewHeight := float32(t.host.Window.Height())
+	viewWidth := t.timelineViewWidth()
+	t.updateSelectRange()
+	for i := range t.file.values {
+		v := &t.file.values[i]
+		if !v.isStart || v.veryTiny || !v.rendered || v.timelineSpec == nil {
+			continue
+		}
+		ui := v.timelineSpec.UI
+		if !ui.Entity().IsRoot() {
+			continue
+		}
+		scaleX := widthScale * float32(t.file.values[v.other].time-v.time)
+		l := ui.Layout()
+		xOffset := float32(v.time*float64(widthScale)) + t.offset.X()
+		l.SetOffset(xOffset, v.y-t.offset.Y())
+		l.Scale(scaleX, height)
+		xOutOfBounds := (scaleX < 1) || (xOffset+scaleX < 0) || (xOffset > viewWidth)
+		yOutOfBounds := ((l.Offset().Y() + height) < 0) || l.Offset().Y() > viewHeight
+		if xOutOfBounds || yOutOfBounds {
+			ui.Hide()
+			ui.SetDontClean(true)
+		} else {
+			ui.Show()
+			ui.SetDontClean(false)
+		}
+		xOffset += scaleX
+		ui.Clean()
+	}
+}
+
+func (t *Tracer) averageForFunc(key uint16) float64 {
+	count := 0
+	time := 0.0
+	for i := range len(t.file.values) {
+		e := &t.file.values[i]
+		if e.isStart && e.key == key {
+			time += (t.file.values[e.other].time - e.time)
+			count++
+		}
+	}
+	if count == 0 {
+		return 0
+	}
+	return time / float64(count)
+}
+
+func (t *Tracer) onEntryEnter(e *document.Element) {
+	label := t.findSpec(templateBoxInnerId).Children[0].UI.ToLabel()
+	info := t.findSpec(hoverInfoId)
+	infoLabel := t.findSpec("info").Children[0].UI.ToLabel()
+	info.UI.Show()
+	t.showingInfo = e.UI
+	infoLabel.SetText(label.Text())
+	info.UI.Layout().ScaleWidth(t.host.FontCache().MeasureString(
+		label.FontFace(), label.Text(), label.FontSize()) + 10)
+}
+
+func (t *Tracer) onEntryExit(e *document.Element) {
+	if e.UI == t.showingInfo {
+		info := t.findSpec(hoverInfoId)
+		info.UI.Hide()
+		t.showingInfo = nil
+	}
+}
+
+func (t *Tracer) renderTrace(v *EntryValue, idx int, tpl *document.Element,
+	zoomScale, viewWidth, y, yMax float32) bool {
+	if v.rendered {
+		return false
+	}
+	v.rendered = true
+	if !v.isStart || v.veryTiny {
+		return false
+	}
+	if y < yMax {
+		var copy *document.Element
+		ui_spec_clone(tpl, t.host, &copy)
+		c := boxColors[t.file.keys[v.key].funcHash%uint64(len(boxColors))]
+		spec_as_panel(copy.kids.data[0]).color = c
+		spec_as_label(copy.kids.data[0].kids.data[0]).bgColor = c
+		xOffset := float32(v.time*tpl.width) + t.offset.x
+		copy.x = xOffset
+		copy.y = copy.y + (y * copy.height)
+		v.y = copy.y
+		entryTime := v.other.time - v.time
+		copy.width *= zoomScale * (float)(entryTime)
+		copy.events[UI_EVENT_TYPE_ENTER] = EventEntry{
+			senderCall: local_entry_enter,
+			state:      t,
+		}
+		copy.events[UI_EVENT_TYPE_EXIT] = EventEntry{
+			senderCall: local_entry_exit,
+			state:      t,
+		}
+		// Disable anything too small to render
+		copy.isDisabled = (copy.width < 1) ||
+			(copy.x+copy.width < 0) || (copy.x > viewWidth)
+		l := spec_as_label(copy.kids.data[0].kids.data[0])
+		var buff string
+		count := 0
+		size := local_to_display_time(entryTime, &count)
+		snprintf(buff, sizeof(buff), "%s (%d %s)", v.key.funcName, count, size)
+		strclone(buff, &l.text)
+		t.trackSpecs.add(copy)
+		v.timelineSpec = copy
+	}
+	if t.uiManTimeline.pools.lastPoolId == t.uiManTimeline.pools.pools.len {
+		t.uiManTimeline.reserve(0xFF * 100)
+	}
+	children := t.file.selectChildCalls(idx)
+	for i := range len(children) {
+		id := children.data[i]
+		t.renderTrace(&t.file.values[id], id, tpl, zoomScale, viewWidth, y+1, yMax)
+	}
+	return true
 }
