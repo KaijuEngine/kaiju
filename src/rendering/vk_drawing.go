@@ -138,17 +138,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 	return updatedAnything
 }
 
-func beginRender(pass *RenderPass, extent vk.Extent2D,
-	commandBuffer vk.CommandBuffer, clearColors []vk.ClearValue) {
-
-	beginInfo := vk.CommandBufferBeginInfo{}
-	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
-	beginInfo.Flags = 0              // Optional
-	beginInfo.PInheritanceInfo = nil // Optional
-	if vk.BeginCommandBuffer(commandBuffer, &beginInfo) != vk.Success {
-		slog.Error("Failed to begin recording command buffer")
-		return
-	}
+func beginRender(pass *RenderPass, extent vk.Extent2D, cmd *CommandRecorder, clearColors []vk.ClearValue) {
 	renderPassInfo := vk.RenderPassBeginInfo{
 		SType:       vk.StructureTypeRenderPassBeginInfo,
 		RenderPass:  pass.Handle,
@@ -162,7 +152,7 @@ func beginRender(pass *RenderPass, extent vk.Extent2D,
 	if len(clearColors) > 0 {
 		renderPassInfo.PClearValues = &clearColors[0]
 	}
-	vk.CmdBeginRenderPass(commandBuffer, &renderPassInfo, vk.SubpassContentsInline)
+	vk.CmdBeginRenderPass(cmd.buffer, &renderPassInfo, vk.SubpassContentsInline)
 	viewport := vk.Viewport{
 		X:        0,
 		Y:        0,
@@ -171,17 +161,16 @@ func beginRender(pass *RenderPass, extent vk.Extent2D,
 		MinDepth: 0,
 		MaxDepth: 1,
 	}
-	vk.CmdSetViewport(commandBuffer, 0, 1, &viewport)
+	vk.CmdSetViewport(cmd.buffer, 0, 1, &viewport)
 	scissor := vk.Rect2D{
 		Offset: vk.Offset2D{X: 0, Y: 0},
 		Extent: extent,
 	}
-	vk.CmdSetScissor(commandBuffer, 0, 1, &scissor)
+	vk.CmdSetScissor(cmd.buffer, 0, 1, &scissor)
 }
 
-func endRender(commandBuffer vk.CommandBuffer) {
-	vk.CmdEndRenderPass(commandBuffer)
-	vk.EndCommandBuffer(commandBuffer)
+func endRender(cmd *CommandRecorder, vr *Vulkan) {
+	vk.CmdEndRenderPass(cmd.buffer)
 }
 
 func (vr *Vulkan) renderEach(commandBuffer vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
@@ -231,23 +220,20 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	if !drawingAnything {
 		return false
 	}
-	frame := vr.currentFrame
-	cmdBuffIdx := frame * MaxCommandBuffers
-	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
+	cmd := vr.CurrentFrameCommand()
 	beginRender(renderPass, vr.swapChainExtent,
 		cmd, renderPass.construction.ImageClears)
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
 			s := &d.material.Shader.RenderId
-			vr.renderEach(cmd, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+			vr.renderEach(cmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
 		}
 	}
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
-		vk.CmdNextSubpass(cmd, vk.SubpassContentsInline)
-		vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
+		vk.CmdNextSubpass(cmd.buffer, vk.SubpassContentsInline)
+		vk.CmdBindPipeline(cmd.buffer, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
 		descriptorWrites := [10]vk.WriteDescriptorSet{}
 		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
@@ -264,16 +250,16 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		vk.UpdateDescriptorSets(vr.device, uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
 		ds := [...]vk.DescriptorSet{s.descriptorSets[vr.currentFrame]}
 		dsOffsets := [...]uint32{0}
-		vk.CmdBindDescriptorSets(cmd, vk.PipelineBindPointGraphics,
+		vk.CmdBindDescriptorSets(cmd.buffer, vk.PipelineBindPointGraphics,
 			s.shader.RenderId.pipelineLayout, 0, 1, &ds[0], 0, &dsOffsets[0])
 		mid := &s.renderQuad.MeshId
 		vb := [...]vk.Buffer{mid.vertexBuffer}
 		vbOffsets := [...]vk.DeviceSize{0}
-		vk.CmdBindVertexBuffers(cmd, 0, 1, &vb[0], &vbOffsets[0])
-		vk.CmdBindIndexBuffer(cmd, mid.indexBuffer, 0, vk.IndexTypeUint32)
-		vk.CmdDrawIndexed(cmd, mid.indexCount, 1, 0, 0, 0)
+		vk.CmdBindVertexBuffers(cmd.buffer, 0, 1, &vb[0], &vbOffsets[0])
+		vk.CmdBindIndexBuffer(cmd.buffer, mid.indexBuffer, 0, vk.IndexTypeUint32)
+		vk.CmdDrawIndexed(cmd.buffer, mid.indexCount, 1, 0, 0, 0)
 	}
-	endRender(cmd)
+	endRender(cmd, vr)
 	return true
 }
 
@@ -305,45 +291,27 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	vr.combinedDrawings.PreparePending()
 }
 
-func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
+func (vr *Vulkan) combineTargets(passes []*RenderPass, cmd *CommandRecorder) *TextureId {
 	defer tracing.NewRegion("Vulkan::combineTargets").End()
 	//if len(passes) == 1 {
 	//	return &passes[0].SelectOutputAttachment().RenderId
 	//}
-	frame := vr.currentFrame
-	cmdBuffIdx := frame * MaxCommandBuffers
-	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
-	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
-	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
-		slog.Error("Failed to begin recording command buffer")
-		return &passes[0].SelectOutputAttachment(vr).RenderId
-	}
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
 		// Each material has a single texture for the image to add to the combined final image
 		color := &draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit),
+			cmd.buffer)
 	}
-	vk.EndCommandBuffer(cmd)
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
 	vr.Draw(combinePass, draws)
 	return &combinePass.textures[0].RenderId
 }
 
-func (vr *Vulkan) cleanupCombined() {
+func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
 	defer tracing.NewRegion("Vulkan::cleanupCombined").End()
-	frame := vr.currentFrame
-	cmdBuffIdx := frame * MaxCommandBuffers
-	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
-	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
-	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
-		slog.Error("Failed to begin recording command buffer")
-		return
-	}
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {
@@ -351,9 +319,9 @@ func (vr *Vulkan) cleanupCombined() {
 		color := &groups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
 			vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
+			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit),
+			cmd.buffer)
 	}
-	vk.EndCommandBuffer(cmd)
 	for i := range vr.combinedDrawings.renderPassGroups {
 		rpg := &vr.combinedDrawings.renderPassGroups[i]
 		for j := range rpg.draws {
@@ -372,21 +340,14 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	if !vr.hasSwapChain {
 		return
 	}
+	cmd := vr.CurrentFrameCommand()
 	vr.prepCombinedTargets(passes)
-	img := vr.combineTargets(passes)
+	img := vr.combineTargets(passes, cmd)
 	frame := vr.currentFrame
-	cmdBuffIdx := frame * MaxCommandBuffers
 	idxSF := vr.imageIndex[frame]
-	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]
-	vr.commandBuffersCount++
-	beginInfo := vk.CommandBufferBeginInfo{SType: vk.StructureTypeCommandBufferBeginInfo}
-	if vk.BeginCommandBuffer(cmd, &beginInfo) != vk.Success {
-		slog.Error("Failed to begin recording command buffer")
-		return
-	}
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
+		vk.AccessFlags(vk.AccessTransferWriteBit), cmd.buffer)
 	area := matrix.Vec4{0, 0, 1, 1}
 	region := vk.ImageBlit{}
 	region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
@@ -402,18 +363,17 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
 	vr.transitionImageLayout(img, vk.ImageLayoutTransferSrcOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
-	vk.CmdBlitImage(cmd, img.Image, img.Layout,
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd.buffer)
+	vk.CmdBlitImage(cmd.buffer, img.Image, img.Layout,
 		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
 		1, &region, vk.FilterNearest)
 	vr.transitionImageLayout(img, vk.ImageLayoutColorAttachmentOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
+		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd.buffer)
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
-	vk.EndCommandBuffer(cmd)
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd.buffer)
 	//if len(passes) > 1 {
-	vr.cleanupCombined()
+	vr.cleanupCombined(cmd)
 	//}
 }
 

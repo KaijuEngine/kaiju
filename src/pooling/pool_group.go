@@ -1,9 +1,12 @@
 package pooling
 
+import "sync"
+
 type PoolGroupId = int
 
 type PoolGroup[T any] struct {
 	pools []*Pool[T]
+	lock  sync.RWMutex
 }
 
 func (p *PoolGroup[T]) Count() int { return len(p.pools) }

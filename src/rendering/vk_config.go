@@ -46,7 +46,7 @@ import (
 const (
 	useValidationLayers = vkUseValidationLayers
 	BytesInPixel        = 4
-	MaxCommandBuffers   = 15
+	MaxCommandPools     = 25
 	maxFramesInFlight   = 2
 	oitSuffix           = ".oit.spv"
 )

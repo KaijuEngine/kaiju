@@ -87,8 +87,7 @@ type Vulkan struct {
 	depth                      TextureId
 	color                      TextureId
 	swapChainFrameBuffers      []vk.Framebuffer
-	commandPool                vk.CommandPool
-	commandBuffers             [maxFramesInFlight * MaxCommandBuffers]vk.CommandBuffer
+	commandPool                CommandPooling
 	imageSemaphores            [maxFramesInFlight]vk.Semaphore
 	renderSemaphores           [maxFramesInFlight]vk.Semaphore
 	renderFences               [maxFramesInFlight]vk.Fence
@@ -97,7 +96,6 @@ type Vulkan struct {
 	swapChainFrameBufferCount  uint32
 	acquireImageResult         vk.Result
 	currentFrame               int
-	commandBuffersCount        int
 	msaaSamples                vk.SampleCountFlagBits
 	combinedDrawings           Drawings
 	preRuns                    []func()
@@ -119,6 +117,13 @@ func (vr *Vulkan) WaitForRender() {
 		fences[i] = vr.renderFences[i]
 	}
 	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vk.True, math.MaxUint64)
+}
+
+// This will return the first found command to render to. This function should
+// only be called on the main thread while no other threads are running Vulkan
+// command pool commands
+func (vr *Vulkan) CurrentFrameCommand() *CommandRecorder {
+	return vr.commandPool.SingleTimeCommand(vr.currentFrame)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
@@ -296,6 +301,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 }
 
 func (vr *Vulkan) remakeSwapChain() {
+	defer tracing.NewRegion("Vulkan::remakeSwapChain").End()
 	vr.WaitForRender()
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
@@ -353,38 +359,44 @@ func (vr *Vulkan) createSyncObjects() bool {
 }
 
 func (vr *Vulkan) createCmdPool() bool {
-	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
-	info := vk.CommandPoolCreateInfo{}
-	info.SType = vk.StructureTypeCommandPoolCreateInfo
-	info.Flags = vk.CommandPoolCreateFlags(vk.CommandPoolCreateResetCommandBufferBit)
-	info.QueueFamilyIndex = uint32(indices.graphicsFamily)
-	var commandPool vk.CommandPool
-	if vk.CreateCommandPool(vr.device, &info, nil, &commandPool) != vk.Success {
-		slog.Error("Failed to create command pool")
-		return false
-	} else {
-		vr.dbg.add(vk.TypeToUintPtr(commandPool))
-		vr.commandPool = commandPool
-		return true
+	success := true
+	for i := 0; i < len(vr.commandPool) && success; i++ {
+		indices := findQueueFamilies(vr.physicalDevice, vr.surface)
+		info := vk.CommandPoolCreateInfo{
+			SType:            vk.StructureTypeCommandPoolCreateInfo,
+			Flags:            vk.CommandPoolCreateFlags(vk.CommandPoolCreateResetCommandBufferBit),
+			QueueFamilyIndex: uint32(indices.graphicsFamily),
+		}
+		var commandPool vk.CommandPool
+		if vk.CreateCommandPool(vr.device, &info, nil, &commandPool) != vk.Success {
+			slog.Error("Failed to create command pool")
+			success = false
+		} else {
+			vr.dbg.add(vk.TypeToUintPtr(commandPool))
+			vr.commandPool[i].pool = commandPool
+		}
 	}
+	return success
 }
 
 func (vr *Vulkan) createCmdBuffer() bool {
-	info := vk.CommandBufferAllocateInfo{}
-	info.SType = vk.StructureTypeCommandBufferAllocateInfo
-	info.CommandPool = vr.commandPool
-	info.Level = vk.CommandBufferLevelPrimary
-	info.CommandBufferCount = maxFramesInFlight * MaxCommandBuffers
-	var commandBuffers [maxFramesInFlight * MaxCommandBuffers]vk.CommandBuffer
-	if vk.AllocateCommandBuffers(vr.device, &info, &commandBuffers[0]) != vk.Success {
-		slog.Error("Failed to allocate command buffers")
-		return false
-	} else {
-		for i := 0; i < maxFramesInFlight*MaxCommandBuffers; i++ {
-			vr.commandBuffers[i] = commandBuffers[i]
+	success := true
+	for i := 0; i < len(vr.commandPool) && success; i++ {
+		info := vk.CommandBufferAllocateInfo{
+			SType:              vk.StructureTypeCommandBufferAllocateInfo,
+			CommandPool:        vr.commandPool[i].pool,
+			Level:              vk.CommandBufferLevelPrimary,
+			CommandBufferCount: 1,
 		}
-		return true
+		commandBuffers := [1]vk.CommandBuffer{vk.NullCommandBuffer}
+		if vk.AllocateCommandBuffers(vr.device, &info, &commandBuffers[0]) != vk.Success {
+			slog.Error("Failed to allocate command buffers")
+			success = false
+		} else {
+			vr.commandPool[i].buffer = commandBuffers[0]
+		}
 	}
+	return success
 }
 
 func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
@@ -427,36 +439,40 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		return false
 	}
 	vk.ResetFences(vr.device, 1, &fences[0])
-	vk.ResetCommandBuffer(vr.commandBuffers[vr.currentFrame*MaxCommandBuffers], 0)
+	vr.commandPool.Reset(vr.currentFrame)
 	vr.bufferTrash.Cycle()
 	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
 	for _, r := range vr.preRuns {
 		r()
 	}
 	vr.preRuns = vr.preRuns[:0]
-	vr.commandBuffersCount = 0
 	return true
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	defer tracing.NewRegion("Vulkan::SwapFrame").End()
-	if !vr.hasSwapChain || vr.commandBuffersCount == 0 {
+	all := make([]vk.CommandBuffer, 0, maxCommandPoolsInFlight)
+	for i := range vr.commandPool {
+		if vr.commandPool[i].End(vr) {
+			all = append(all, vr.commandPool[i].buffer)
+		}
+	}
+	if !vr.hasSwapChain || len(all) == 0 {
 		return false
 	}
-	submitInfo := vk.SubmitInfo{}
-	submitInfo.SType = vk.StructureTypeSubmitInfo
+	submitInfo := vk.SubmitInfo{
+		SType:                vk.StructureTypeSubmitInfo,
+		WaitSemaphoreCount:   1,
+		CommandBufferCount:   uint32(len(all)),
+		PCommandBuffers:      &all[0],
+		SignalSemaphoreCount: 1,
+	}
 
 	waitSemaphores := []vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
 	waitStages := []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
-	submitInfo.WaitSemaphoreCount = 1
+	signalSemaphores := []vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
 	submitInfo.PWaitSemaphores = &waitSemaphores[0]
 	submitInfo.PWaitDstStageMask = &waitStages[0]
-	submitInfo.CommandBufferCount = uint32(vr.commandBuffersCount)
-	startIdx := vr.currentFrame * MaxCommandBuffers
-	submitInfo.PCommandBuffers = &vr.commandBuffers[startIdx : startIdx+vr.commandBuffersCount][0]
-
-	signalSemaphores := []vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
-	submitInfo.SignalSemaphoreCount = 1
 	submitInfo.PSignalSemaphores = &signalSemaphores[0]
 
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
@@ -510,8 +526,10 @@ func (vr *Vulkan) Destroy() {
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
-		vk.DestroyCommandPool(vr.device, vr.commandPool, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.commandPool))
+		for i := range vr.commandPool {
+			vk.DestroyCommandPool(vr.device, vr.commandPool[i].pool, nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.commandPool[i].pool))
+		}
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))

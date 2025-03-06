@@ -37,13 +37,65 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"log/slog"
+)
+
+const (
+	maxCommandPoolsInFlight = maxFramesInFlight * MaxCommandPools
+)
+
+type CommandRecorder struct {
+	buffer vk.CommandBuffer
+	pool   vk.CommandPool
+	began  bool
+}
+
+type CommandPooling [maxCommandPoolsInFlight]CommandRecorder
+
+func (c *CommandRecorder) Begin() bool {
+	if c.pool == vk.NullCommandPool || c.buffer == vk.NullCommandBuffer {
+		return false
+	}
+	beginInfo := vk.CommandBufferBeginInfo{
+		SType:            vk.StructureTypeCommandBufferBeginInfo,
+		Flags:            0,
+		PInheritanceInfo: nil,
+	}
+	if vk.BeginCommandBuffer(c.buffer, &beginInfo) != vk.Success {
+		slog.Error("Failed to begin recording command buffer")
+		return false
+	}
+	c.began = true
+	return true
+}
+
+func (c *CommandRecorder) End(vr *Vulkan) bool {
+	if !c.began {
+		return false
+	}
+	vk.EndCommandBuffer(c.buffer)
+	c.began = false
+	return true
+}
+
+func (c *CommandPooling) Reset(frame int) {
+	for i := range MaxCommandPools {
+		vk.ResetCommandBuffer(c[frame*MaxCommandPools+i].buffer, 0)
+		c[frame*MaxCommandPools+i].Begin()
+	}
+}
+
+func (c *CommandPooling) SingleTimeCommand(frame int) *CommandRecorder {
+	return &c[frame*MaxCommandPools]
+}
 
 func (vr *Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
 	aInfo := vk.CommandBufferAllocateInfo{}
 	aInfo.SType = vk.StructureTypeCommandBufferAllocateInfo
 	aInfo.Level = vk.CommandBufferLevelPrimary
-	aInfo.CommandPool = vr.commandPool
+	aInfo.CommandPool = vr.commandPool[0].pool
 	aInfo.CommandBufferCount = 1
 	commandBuffer := [1]vk.CommandBuffer{}
 	vk.AllocateCommandBuffers(vr.device, &aInfo, &commandBuffer[0])
@@ -63,5 +115,5 @@ func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
 	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
 	vk.QueueWaitIdle(vr.graphicsQueue)
 	cb := [...]vk.CommandBuffer{commandBuffer}
-	vk.FreeCommandBuffers(vr.device, vr.commandPool, 1, &cb[0])
+	vk.FreeCommandBuffers(vr.device, vr.commandPool[0].pool, 1, &cb[0])
 }
