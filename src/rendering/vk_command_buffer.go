@@ -150,7 +150,7 @@ func (c *CommandRecording) Begin() bool {
 
 func (c *CommandRecording) BeginRenderPass(pass *RenderPass, extent vk.Extent2D, clearColors []vk.ClearValue, subpassIndex uint32) bool {
 	if subpassIndex > 0 {
-		c.ExecuteSecondaryCommands()
+		//c.ExecuteSecondaryCommands()
 		vk.CmdNextSubpass(c.buffer, vk.SubpassContentsSecondaryCommandBuffers)
 	} else {
 		renderPassInfo := vk.RenderPassBeginInfo{
@@ -207,8 +207,6 @@ func (c *CommandRecording) ExecuteSecondaryCommands() {
 	buffs := [MaxSecondaryCommands]vk.CommandBuffer{}
 	for i := range len(c.secondary) {
 		buffs[i] = c.secondary[i].buffer
-	}
-	for i := range c.secondary {
 		if c.secondary[i].began {
 			vk.EndCommandBuffer(c.secondary[i].buffer)
 			c.secondary[i].began = false
