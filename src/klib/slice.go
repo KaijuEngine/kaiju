@@ -85,3 +85,13 @@ func ByteSliceToUInt16Slice(data []byte) []uint16 {
 	u := *(*[]uint16)(unsafe.Pointer(&data))
 	return u[:ui16Len:ui16Len]
 }
+
+func RemoveNils[S any](slice []*S) []*S {
+	result := make([]*S, 0, len(slice))
+	for i := range slice {
+		if slice[i] != nil {
+			result = append(result, slice[i])
+		}
+	}
+	return result
+}
