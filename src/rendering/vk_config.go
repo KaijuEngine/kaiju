@@ -44,11 +44,12 @@ import (
 )
 
 const (
-	useValidationLayers = vkUseValidationLayers
-	BytesInPixel        = 4
-	MaxCommandPools     = 25
-	maxFramesInFlight   = 2
-	oitSuffix           = ".oit.spv"
+	useValidationLayers  = vkUseValidationLayers
+	BytesInPixel         = 4
+	MaxCommandPools      = 5
+	MaxSecondaryCommands = 25
+	maxFramesInFlight    = 2
+	oitSuffix            = ".oit.spv"
 )
 
 func validationLayers() []string {

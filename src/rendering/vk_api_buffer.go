@@ -84,9 +84,9 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 }
 
 func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize) {
-	commandBuffer := vr.beginSingleTimeCommands()
+	cmd := vr.beginSingleTimeCommands()
 	copyRegion := vk.BufferCopy{}
 	copyRegion.Size = size
-	vk.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion)
-	vr.endSingleTimeCommands(commandBuffer)
+	vk.CmdCopyBuffer(cmd.buffer, srcBuffer, dstBuffer, 1, &copyRegion)
+	vr.endSingleTimeCommands(&cmd)
 }

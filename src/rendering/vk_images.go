@@ -58,7 +58,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		slog.Error("Texture image format does not support linear blitting")
 		return false
 	}
-	commandBuffer := vr.beginSingleTimeCommands()
+	cmd := vr.beginSingleTimeCommands()
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
 	barrier.Image = image
@@ -76,7 +76,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		barrier.NewLayout = vk.ImageLayoutTransferSrcOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferWriteBit)
 		barrier.DstAccessMask = vk.AccessFlags(vk.AccessTransferReadBit)
-		vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
+		vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
 			vk.PipelineStageFlags(vk.PipelineStageTransferBit), 0, 0, nil, 0, nil, 1, &barrier)
 		blit := vk.ImageBlit{}
 		blit.SrcOffsets[0] = vk.Offset3D{X: 0, Y: 0, Z: 0}
@@ -97,13 +97,13 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		blit.DstSubresource.MipLevel = i
 		blit.DstSubresource.BaseArrayLayer = 0
 		blit.DstSubresource.LayerCount = 1
-		vk.CmdBlitImage(commandBuffer, image, vk.ImageLayoutTransferSrcOptimal,
+		vk.CmdBlitImage(cmd.buffer, image, vk.ImageLayoutTransferSrcOptimal,
 			image, vk.ImageLayoutTransferDstOptimal, 1, &blit, filter)
 		barrier.OldLayout = vk.ImageLayoutTransferSrcOptimal
 		barrier.NewLayout = vk.ImageLayoutShaderReadOnlyOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferReadBit)
 		barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
-		vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
+		vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
 			vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
 		if mipWidth > 1 {
 			mipWidth /= 2
@@ -117,9 +117,9 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	barrier.NewLayout = vk.ImageLayoutShaderReadOnlyOptimal
 	barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferWriteBit)
 	barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
-	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
+	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
 		vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-	vr.endSingleTimeCommands(commandBuffer)
+	vr.endSingleTimeCommands(&cmd)
 	return true
 }
 
@@ -257,7 +257,7 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFla
 	return vk.PipelineStageFlagBits(pipes)
 }
 
-func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd vk.CommandBuffer) bool {
+func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd *CommandRecording) bool {
 	// Note that in larger applications, we could batch together pipeline
 	// barriers for better performance!
 	if aspectMask == 0 {
@@ -271,8 +271,10 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 		}
 	}
 	commandBuffer := cmd
-	if cmd == vk.NullCommandBuffer {
-		commandBuffer = vr.beginSingleTimeCommands()
+	var tmp CommandRecording
+	if cmd == nil {
+		tmp = vr.beginSingleTimeCommands()
+		commandBuffer = &tmp
 	}
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
@@ -290,8 +292,8 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	barrier.DstAccessMask = newAccess
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
-	vk.CmdPipelineBarrier(commandBuffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
-	if cmd == vk.NullCommandBuffer {
+	vk.CmdPipelineBarrier(commandBuffer.buffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
+	if cmd == nil {
 		vr.endSingleTimeCommands(commandBuffer)
 	}
 	vt.Layout = newLayout
@@ -300,7 +302,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 }
 
 func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, height uint32) {
-	commandBuffer := vr.beginSingleTimeCommands()
+	cmd := vr.beginSingleTimeCommands()
 	region := vk.BufferImageCopy{}
 	region.BufferOffset = 0
 	region.BufferRowLength = 0
@@ -311,8 +313,8 @@ func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, hei
 	region.ImageSubresource.LayerCount = 1
 	region.ImageOffset = vk.Offset3D{X: 0, Y: 0, Z: 0}
 	region.ImageExtent = vk.Extent3D{Width: width, Height: height, Depth: 1}
-	vk.CmdCopyBufferToImage(commandBuffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, &region)
-	vr.endSingleTimeCommands(commandBuffer)
+	vk.CmdCopyBufferToImage(cmd.buffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, &region)
+	vr.endSingleTimeCommands(&cmd)
 }
 
 func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, width, height int) {
@@ -324,7 +326,7 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	vk.Memcopy(stageData, buffer)
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 
-	commandBuffer := vr.beginSingleTimeCommands()
+	cmd := vr.beginSingleTimeCommands()
 	region := vk.BufferImageCopy{}
 	region.BufferOffset = 0
 	region.BufferRowLength = 0
@@ -335,9 +337,9 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	region.ImageSubresource.LayerCount = 1
 	region.ImageOffset = vk.Offset3D{X: int32(x), Y: int32(y), Z: 0}
 	region.ImageExtent = vk.Extent3D{Width: uint32(width), Height: uint32(height), Depth: 1}
-	vk.CmdCopyBufferToImage(commandBuffer, stagingBuffer, image,
+	vk.CmdCopyBufferToImage(cmd.buffer, stagingBuffer, image,
 		vk.ImageLayoutTransferDstOptimal, 1, &region)
-	vr.endSingleTimeCommands(commandBuffer)
+	vr.endSingleTimeCommands(&cmd)
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 	// TODO:  Generate mips?

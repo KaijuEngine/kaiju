@@ -233,7 +233,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	texture.RenderId.LayerCount = layerCount
 	vr.transitionImageLayout(&texture.RenderId,
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		texture.RenderId.Access, vk.NullCommandBuffer)
+		texture.RenderId.Access, nil)
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
 		uint32(data.Width), uint32(data.Height))
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
@@ -256,10 +256,10 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, 
 	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	id := &texture.RenderId
 	vr.transitionImageLayout(id, vk.ImageLayoutTransferDstOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.NullCommandBuffer)
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
 	vr.writeBufferToImageRegion(id.Image, pixels, x, y, width, height)
 	vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, vk.NullCommandBuffer)
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
 }
 
 func (vr *Vulkan) DestroyTexture(texture *Texture) {

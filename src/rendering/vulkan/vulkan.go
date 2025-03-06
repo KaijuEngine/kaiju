@@ -124,6 +124,7 @@ package vulkan
 #cgo noescape callVkGetRenderAreaGranularity
 #cgo noescape callVkCreateCommandPool
 #cgo noescape callVkDestroyCommandPool
+#cgo noescape callVkDestroyCommandPools
 #cgo noescape callVkResetCommandPool
 #cgo noescape callVkAllocateCommandBuffers
 #cgo noescape callVkFreeCommandBuffers
@@ -283,6 +284,7 @@ package vulkan
 #cgo nocallback callVkGetRenderAreaGranularity
 #cgo nocallback callVkCreateCommandPool
 #cgo nocallback callVkDestroyCommandPool
+#cgo nocallback callVkDestroyCommandPools
 #cgo nocallback callVkResetCommandPool
 #cgo nocallback callVkAllocateCommandBuffers
 #cgo nocallback callVkFreeCommandBuffers
@@ -1138,6 +1140,14 @@ func DestroyCommandPool(device Device, commandPool CommandPool, pAllocator *Allo
 	C.callVkDestroyCommandPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkCommandPool)(unsafe.Pointer(&commandPool)),
+		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)))
+}
+
+func DestroyCommandPools(device Device, commandPool *CommandPool, count int, pAllocator *AllocationCallbacks) {
+	C.callVkDestroyCommandPools(
+		*(*C.VkDevice)(unsafe.Pointer(&device)),
+		(*C.VkCommandPool)(unsafe.Pointer(commandPool)),
+		(C.uint32_t)(count),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)))
 }
 

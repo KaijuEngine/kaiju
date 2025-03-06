@@ -182,7 +182,11 @@ func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, erro
 func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 	p.Destroy(vr)
 	r := &p.construction
-	cmd := vr.CurrentFrameCommand()
+	var cmd CommandRecording
+	if vr.commandPool[0].pool != vk.NullCommandPool {
+		cmd = vr.beginSingleTimeCommands()
+		defer vr.endSingleTimeCommands(&cmd)
+	}
 	{
 		w := uint32(vr.swapChainExtent.Width)
 		h := uint32(vr.swapChainExtent.Height)
@@ -222,8 +226,8 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 				return errors.New(e)
 			}
 			if cmd.pool != vk.NullCommandPool {
-				success = vr.transitionImageLayout(&p.textures[i].RenderId, a.InitialLayout,
-					img.Aspect, img.Access, vk.NullCommandBuffer)
+				success = vr.transitionImageLayout(&p.textures[i].RenderId,
+					a.InitialLayout, img.Aspect, img.Access, nil)
 			}
 			if !success {
 				const e = "failed to transition image layout for render pass attachment"

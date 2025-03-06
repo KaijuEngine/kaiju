@@ -479,6 +479,12 @@ void callVkDestroyCommandPool(
     VkCommandPool                               commandPool,
     const VkAllocationCallbacks*                pAllocator);
 
+void callVkDestroyCommandPools(
+    VkDevice                                    device,
+    VkCommandPool*                              commandPools,
+    uint32_t                                    count,
+    const VkAllocationCallbacks*                pAllocator);
+
 VkResult callVkResetCommandPool(
     VkDevice                                    device,
     VkCommandPool                               commandPool,
