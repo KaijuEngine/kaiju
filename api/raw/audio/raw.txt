@@ -1,0 +1,13 @@
+package audio // import "."
+
+
+TYPES
+
+type Audio struct {
+	// Has unexported fields.
+}
+
+func NewAudio() (Audio, error)
+
+func (a *Audio) Play(wav *audio_system.Wav)
+
