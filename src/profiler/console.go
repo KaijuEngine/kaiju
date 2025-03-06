@@ -239,6 +239,14 @@ func traceStop() string {
 	return "Trace stopped"
 }
 
+func traceReview() string {
+	cmd := exec.Command("gotraceui", traceFile)
+	if err := cmd.Start(); err != nil {
+		return fmt.Sprintf("Failed to start gotraceui: %v", err)
+	}
+	return "Started gotraceui for the trace"
+}
+
 func traceWeb(c *console.Console, args []string) string {
 	if len(args) < 1 {
 		return `Expected "start" or "stop"`
@@ -273,6 +281,8 @@ func traceCommands(host *engine.Host, arg string) string {
 		return traceStart()
 	case "stop":
 		return traceStop()
+	case "review":
+		return traceReview()
 	case "web":
 		return traceWeb(c, args[1:])
 	default:
