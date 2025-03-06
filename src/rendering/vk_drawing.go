@@ -278,6 +278,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
+	defer tracing.NewRegion("Vulkan::prepCombinedTargets").End()
 	//if len(passes) == 1 {
 	//	return
 	//}
@@ -305,6 +306,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 }
 
 func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
+	defer tracing.NewRegion("Vulkan::combineTargets").End()
 	//if len(passes) == 1 {
 	//	return &passes[0].SelectOutputAttachment().RenderId
 	//}
@@ -332,6 +334,7 @@ func (vr *Vulkan) combineTargets(passes []*RenderPass) *TextureId {
 }
 
 func (vr *Vulkan) cleanupCombined() {
+	defer tracing.NewRegion("Vulkan::cleanupCombined").End()
 	frame := vr.currentFrame
 	cmdBuffIdx := frame * MaxCommandBuffers
 	cmd := vr.commandBuffers[cmdBuffIdx+vr.commandBuffersCount]

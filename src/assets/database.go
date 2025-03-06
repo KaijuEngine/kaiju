@@ -39,6 +39,7 @@ package assets
 
 import (
 	"kaiju/filesystem"
+	"kaiju/profiler/tracing"
 )
 
 type Database struct {
@@ -50,10 +51,12 @@ func NewDatabase() Database {
 }
 
 func (a *Database) ReadText(key string) (string, error) {
+	defer tracing.NewRegion("AssetDatabase::ReadText").End()
 	return filesystem.ReadTextFile(a.toContentPath(key))
 }
 
 func (a *Database) Read(key string) ([]byte, error) {
+	defer tracing.NewRegion("AssetDatabase::Read").End()
 	return filesystem.ReadFile(a.toContentPath(key))
 }
 

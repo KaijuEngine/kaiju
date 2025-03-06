@@ -144,7 +144,6 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 	}
 
 	id := &shader.RenderId
-
 	shader.DriverData.setup(&shader.data)
 	id.descriptorSetLayout, err = vr.createDescriptorSetLayout(vr.device,
 		shader.DriverData.DescriptorSetLayoutStructure)
@@ -152,7 +151,6 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 		// TODO:  Handle this error properly
 		slog.Error(err.Error())
 	}
-
 	stages := make([]vk.PipelineShaderStageCreateInfo, 0)
 	if vertStage.SType != 0 {
 		stages = append(stages, vertStage)
@@ -170,7 +168,6 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 		stages = append(stages, teseStage)
 	}
 	shader.pipelineInfo.ConstructPipeline(vr, shader, shader.renderPass, stages)
-
 	// TODO:  Setup subshader in the shader definition?
 	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {
@@ -184,6 +181,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 }
 
 func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
+	defer tracing.NewRegion("Vulkan::createSpvModule").End()
 	info := vk.ShaderModuleCreateInfo{}
 	info.SType = vk.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))

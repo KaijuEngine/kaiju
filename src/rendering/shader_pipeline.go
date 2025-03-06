@@ -2,6 +2,7 @@ package rendering
 
 import (
 	"kaiju/klib"
+	"kaiju/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 )
@@ -544,7 +545,24 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 }
 
 func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
+	defer tracing.NewRegion("ShaderPipelineDataCompiled::ConstructPipeline").End()
 	vr := renderer.(*Vulkan)
+	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
+		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
+		Flags:                  0, // PipelineLayoutCreateFlags
+		SetLayoutCount:         1,
+		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
+		PushConstantRangeCount: 0,
+		PPushConstantRanges:    nil,
+	}
+	var pLayout vk.PipelineLayout
+	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
+		slog.Error("Failed to create pipeline layout")
+		return false
+	} else {
+		vr.dbg.add(vk.TypeToUintPtr(pLayout))
+	}
+	shader.RenderId.pipelineLayout = pLayout
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
 	for i := uint32(1); i < bDescCount; i++ {
@@ -640,22 +658,6 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 	if colorBlendAttachmentCount > 0 {
 		colorBlending.PAttachments = &colorBlendAttachment[0]
 	}
-	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
-		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
-		Flags:                  0, // PipelineLayoutCreateFlags
-		SetLayoutCount:         1,
-		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
-		PushConstantRangeCount: 0,
-		PPushConstantRanges:    nil,
-	}
-	var pLayout vk.PipelineLayout
-	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vk.Success {
-		slog.Error("Failed to create pipeline layout")
-		return false
-	} else {
-		vr.dbg.add(vk.TypeToUintPtr(pLayout))
-	}
-	shader.RenderId.pipelineLayout = pLayout
 	pipelineInfo := vk.GraphicsPipelineCreateInfo{
 		SType:               vk.StructureTypeGraphicsPipelineCreateInfo,
 		Flags:               s.GraphicsPipeline.PipelineCreateFlags,

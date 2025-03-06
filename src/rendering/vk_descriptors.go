@@ -40,10 +40,12 @@ package rendering
 import (
 	"errors"
 
+	"kaiju/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 )
 
 func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure DescriptorSetLayoutStructure) (vk.DescriptorSetLayout, error) {
+	defer tracing.NewRegion("Vulkan::createDescriptorSetLayout").End()
 	structureCount := len(structure.Types)
 	bindings := make([]vk.DescriptorSetLayoutBinding, structureCount)
 	for i := 0; i < structureCount; i++ {

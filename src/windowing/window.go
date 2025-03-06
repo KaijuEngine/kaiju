@@ -273,6 +273,7 @@ func (w *Window) processControllerEvent(evtType eventType) {
 }
 
 func (w *Window) Poll() {
+	defer tracing.NewRegion("Window::Poll").End()
 	w.poll()
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
