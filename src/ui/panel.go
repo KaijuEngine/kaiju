@@ -151,9 +151,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 		base.SetDirty(DirtyTypeLayout)
 		base.Clean()
 	})
-	panel.entity.OnDeactivate.Add(func() {
-		panel.shaderData.Deactivate()
-	})
+	panel.entity.OnDeactivate.Add(func() { panel.shaderData.Deactivate() })
 }
 
 func (p *Panel) MaxScroll() matrix.Vec2 { return p.PanelData().maxScroll }
@@ -603,6 +601,11 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.man.Host.Drawings.AddDrawing(pd.drawing)
 	} else if tex != nil {
 		p.SetBackground(tex)
+	}
+	// TODO:  Allow this to be overridable for transparent overlays?
+	// Panels that have a background shouldn't be click-through-able (probably)
+	if p.events[EventTypeDown].IsEmpty() {
+		p.Base().AddEvent(EventTypeDown, func() { /* Do nothing, but block things */ })
 	}
 }
 
