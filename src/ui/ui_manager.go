@@ -6,6 +6,10 @@ import (
 	"sync"
 )
 
+const (
+	concurrentUpdateLimit = 100
+)
+
 type Manager struct {
 	Host     *engine.Host
 	Group    *Group
@@ -20,7 +24,6 @@ type manUp struct {
 
 func (man *Manager) update(deltaTime float64) {
 	wg := sync.WaitGroup{}
-	// First we update all the root UI elements, this will stabilize the tree
 	roots := []*UI{}
 	children := []*UI{}
 	man.pools.Each(func(elm *UI) {
@@ -30,36 +33,31 @@ func (man *Manager) update(deltaTime float64) {
 			children = append(children, elm)
 		}
 	})
-
-	limit := 100
+	// First we update all the root UI elements, this will stabilize the tree
+	waitForLimit := make(chan struct{}, concurrentUpdateLimit)
+	for range concurrentUpdateLimit {
+		waitForLimit <- struct{}{}
+	}
+	wg.Add(len(roots))
 	for i := range roots {
-		wg.Add(1)
 		go func() {
 			roots[i].cleanIfNeeded()
+			waitForLimit <- struct{}{}
 			wg.Done()
 		}()
-		limit--
-		if limit == 0 && i < len(roots)-1 {
-			wg.Wait()
-			limit = 100
-		}
+		<-waitForLimit
 	}
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
-	wg = sync.WaitGroup{}
-	limit = 100
 	all := append(children, roots...)
+	wg.Add(len(all))
 	for i := range all {
-		wg.Add(1)
 		go func() {
 			all[i].updateFromManager(deltaTime)
+			waitForLimit <- struct{}{}
 			wg.Done()
 		}()
-		limit--
-		if limit == 0 && i < len(all)-1 {
-			wg.Wait()
-			limit = 100
-		}
+		<-waitForLimit
 	}
 	wg.Wait()
 }
