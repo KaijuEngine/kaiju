@@ -38,8 +38,11 @@
 package rendering
 
 import (
+	"errors"
+	"kaiju/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
+	"weak"
 )
 
 const (
@@ -47,17 +50,69 @@ const (
 )
 
 type CommandRecorder struct {
-	buffer vk.CommandBuffer
-	pool   vk.CommandPool
-	began  bool
+	buffer       vk.CommandBuffer
+	pool         vk.CommandPool
+	destroyOnEnd bool
 }
 
-type CommandPooling [maxCommandPoolsInFlight]CommandRecorder
+type CommandRecorderSecondary struct {
+	CommandRecorder
+	renderPass weak.Pointer[RenderPass]
+	subpassIdx uint32
+}
 
-func (c *CommandRecorder) Begin() bool {
-	if c.pool == vk.NullCommandPool || c.buffer == vk.NullCommandBuffer {
-		return false
+func NewCommandRecorder(vr *Vulkan) (CommandRecorder, error) {
+	return createCommandPoolBufferPair(vr, vk.CommandBufferLevelPrimary)
+}
+
+func NewCommandRecorderSecondary(vr *Vulkan, rp *RenderPass, subpassIdx int) (CommandRecorderSecondary, error) {
+	c, err := createCommandPoolBufferPair(vr, vk.CommandBufferLevelSecondary)
+	if err != nil {
+		return CommandRecorderSecondary{}, err
 	}
+	return CommandRecorderSecondary{
+		CommandRecorder: c,
+		renderPass:      weak.Make(rp),
+		subpassIdx:      uint32(subpassIdx),
+	}, err
+}
+
+func createCommandPoolBufferPair(vr *Vulkan, level vk.CommandBufferLevel) (CommandRecorder, error) {
+	defer tracing.NewRegion("rendering.createCommandPoolBufferPair").End()
+	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
+	poolInfo := vk.CommandPoolCreateInfo{
+		SType:            vk.StructureTypeCommandPoolCreateInfo,
+		Flags:            vk.CommandPoolCreateFlags(vk.CommandPoolCreateResetCommandBufferBit),
+		QueueFamilyIndex: uint32(indices.graphicsFamily),
+	}
+	var pool vk.CommandPool
+	if vk.CreateCommandPool(vr.device, &poolInfo, nil, &pool) != vk.Success {
+		const e = "Failed to create command pool"
+		slog.Error(e)
+		return CommandRecorder{}, errors.New(e)
+	}
+	vr.dbg.add(vk.TypeToUintPtr(pool))
+	buffInfo := vk.CommandBufferAllocateInfo{
+		SType:              vk.StructureTypeCommandBufferAllocateInfo,
+		Level:              level,
+		CommandBufferCount: 1,
+		CommandPool:        pool,
+	}
+	var buffer vk.CommandBuffer
+	if vk.AllocateCommandBuffers(vr.device, &buffInfo, &buffer) != vk.Success {
+		const e = "Failed to allocate command buffers"
+		slog.Error(e)
+		return CommandRecorder{}, errors.New(e)
+	}
+	return CommandRecorder{pool: pool, buffer: buffer}, nil
+}
+
+func (c *CommandRecorder) Reset() { vk.ResetCommandBuffer(c.buffer, 0) }
+func (c *CommandRecorder) End()   { vk.EndCommandBuffer(c.buffer) }
+
+func (c *CommandRecorder) Begin() {
+	defer tracing.NewRegion("CommandRecorder::Begin").End()
+	c.Reset()
 	beginInfo := vk.CommandBufferBeginInfo{
 		SType:            vk.StructureTypeCommandBufferBeginInfo,
 		Flags:            0,
@@ -65,55 +120,63 @@ func (c *CommandRecorder) Begin() bool {
 	}
 	if vk.BeginCommandBuffer(c.buffer, &beginInfo) != vk.Success {
 		slog.Error("Failed to begin recording command buffer")
-		return false
-	}
-	c.began = true
-	return true
-}
-
-func (c *CommandRecorder) End(vr *Vulkan) bool {
-	if !c.began {
-		return false
-	}
-	vk.EndCommandBuffer(c.buffer)
-	c.began = false
-	return true
-}
-
-func (c *CommandPooling) Reset(frame int) {
-	for i := range MaxCommandPools {
-		vk.ResetCommandBuffer(c[frame*MaxCommandPools+i].buffer, 0)
-		c[frame*MaxCommandPools+i].Begin()
 	}
 }
 
-func (c *CommandPooling) SingleTimeCommand(frame int) *CommandRecorder {
-	return &c[frame*MaxCommandPools]
+func (c *CommandRecorder) Destroy(vr *Vulkan) {
+	buff := c.buffer
+	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
+	vk.DestroyCommandPool(vr.device, c.pool, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(c.pool))
 }
 
-func (vr *Vulkan) beginSingleTimeCommands() vk.CommandBuffer {
-	aInfo := vk.CommandBufferAllocateInfo{}
-	aInfo.SType = vk.StructureTypeCommandBufferAllocateInfo
-	aInfo.Level = vk.CommandBufferLevelPrimary
-	aInfo.CommandPool = vr.commandPool[0].pool
-	aInfo.CommandBufferCount = 1
-	commandBuffer := [1]vk.CommandBuffer{}
-	vk.AllocateCommandBuffers(vr.device, &aInfo, &commandBuffer[0])
-	beginInfo := vk.CommandBufferBeginInfo{}
-	beginInfo.SType = vk.StructureTypeCommandBufferBeginInfo
-	beginInfo.Flags = vk.CommandBufferUsageFlags(vk.CommandBufferUsageOneTimeSubmitBit)
-	vk.BeginCommandBuffer(commandBuffer[0], &beginInfo)
-	return commandBuffer[0]
+func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {
+	defer tracing.NewRegion("CommandRecorderSecondary::Begin").End()
+	c.Reset()
+	inherit := vk.CommandBufferInheritanceInfo{
+		SType:      vk.StructureTypeCommandBufferInheritanceInfo,
+		RenderPass: c.renderPass.Value().Handle,
+		Subpass:    c.subpassIdx,
+	}
+	secondaryInfo := vk.CommandBufferBeginInfo{
+		SType:            vk.StructureTypeCommandBufferBeginInfo,
+		Flags:            vk.CommandBufferUsageFlags(vk.CommandBufferUsageRenderPassContinueBit),
+		PInheritanceInfo: &inherit,
+	}
+	if vk.BeginCommandBuffer(c.buffer, &secondaryInfo) != vk.Success {
+		slog.Error("Failed to begin recording command buffer")
+	}
+	vk.CmdSetViewport(c.buffer, 0, 1, &viewport)
+	vk.CmdSetScissor(c.buffer, 0, 1, &scissor)
 }
 
-func (vr *Vulkan) endSingleTimeCommands(commandBuffer vk.CommandBuffer) {
-	vk.EndCommandBuffer(commandBuffer)
-	submitInfo := vk.SubmitInfo{}
-	submitInfo.SType = vk.StructureTypeSubmitInfo
-	submitInfo.CommandBufferCount = 1
-	submitInfo.PCommandBuffers = &commandBuffer
-	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
-	vk.QueueWaitIdle(vr.graphicsQueue)
-	cb := [...]vk.CommandBuffer{commandBuffer}
-	vk.FreeCommandBuffers(vr.device, vr.commandPool[0].pool, 1, &cb[0])
+func (vr *Vulkan) beginSingleTimeCommands() CommandRecorder {
+	defer tracing.NewRegion("Vulkan::beginSingleTimeCommands").End()
+	cmd, _ := createCommandPoolBufferPair(vr, vk.CommandBufferLevelPrimary)
+	cmd.Begin()
+	if !vr.tryQueueCommand(commandWrite{cmd.pool, cmd.buffer, true}) {
+		cmd.destroyOnEnd = true
+	} else {
+		// Removing now to prevent concurrent write complaints
+		vr.dbg.remove(vk.TypeToUintPtr(cmd.pool))
+	}
+	return cmd
+}
+
+func (vr *Vulkan) endSingleTimeCommands(cmd *CommandRecorder) {
+	defer tracing.NewRegion("Vulkan::endSingleTimeCommands").End()
+	cmd.End()
+	if cmd.destroyOnEnd {
+		buff := cmd.buffer
+		submitInfo := vk.SubmitInfo{
+			SType:              vk.StructureTypeSubmitInfo,
+			CommandBufferCount: 1,
+			PCommandBuffers:    &buff,
+		}
+		vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
+		vk.QueueWaitIdle(vr.graphicsQueue)
+		vk.FreeCommandBuffers(vr.device, cmd.pool, 1, &buff)
+		vk.DestroyCommandPool(vr.device, cmd.pool, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(cmd.pool))
+	}
 }

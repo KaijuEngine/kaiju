@@ -178,6 +178,13 @@ func (v *Vec4) Inverse() {
 	v[Vw] = -v[Vw]
 }
 
+func Vec4Roughly(a, b Vec4) bool {
+	return Abs(a.X()-b.X()) < Roughly &&
+		Abs(a.Y()-b.Y()) < Roughly &&
+		Abs(a.Z()-b.Z()) < Roughly &&
+		Abs(a.W()-b.W()) < Roughly
+}
+
 func Vec4Approx(a, b Vec4) bool {
 	return Abs(a.X()-b.X()) < math.SmallestNonzeroFloat32 &&
 		Abs(a.Y()-b.Y()) < math.SmallestNonzeroFloat32 &&

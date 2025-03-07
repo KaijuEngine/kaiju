@@ -44,11 +44,12 @@ import (
 )
 
 const (
-	useValidationLayers = vkUseValidationLayers
-	BytesInPixel        = 4
-	MaxCommandPools     = 25
-	maxFramesInFlight   = 2
-	oitSuffix           = ".oit.spv"
+	useValidationLayers  = vkUseValidationLayers
+	BytesInPixel         = 4
+	MaxCommandPools      = 5
+	MaxSecondaryCommands = 25
+	maxFramesInFlight    = 2
+	oitSuffix            = ".oit.spv"
 )
 
 func validationLayers() []string {
@@ -65,14 +66,21 @@ func requiredDeviceExtensions() []string {
 	return append([]string{vk.KhrSwapchainExtensionName + "\x00"}, vkDeviceExtensions()...)
 }
 
-func vertexGetBindingDescription(shader *Shader) [2]vk.VertexInputBindingDescription {
-	var desc [2]vk.VertexInputBindingDescription
-	desc[0].Binding = 0
-	desc[0].Stride = uint32(unsafe.Sizeof(*(*Vertex)(nil)))
-	desc[0].InputRate = vk.VertexInputRateVertex
-	desc[1].Binding = 1
-	desc[1].Stride = shader.DriverData.Stride
-	desc[1].InputRate = vk.VertexInputRateInstance
+func vertexGetBindingDescription(shader *Shader) []vk.VertexInputBindingDescription {
+	desc := []vk.VertexInputBindingDescription{
+		{
+			Binding:   0,
+			Stride:    uint32(unsafe.Sizeof(*(*Vertex)(nil))),
+			InputRate: vk.VertexInputRateVertex,
+		},
+	}
+	if shader.DriverData.Stride > 0 {
+		desc = append(desc, vk.VertexInputBindingDescription{
+			Binding:   1,
+			Stride:    shader.DriverData.Stride,
+			InputRate: vk.VertexInputRateInstance,
+		})
+	}
 	return desc
 }
 

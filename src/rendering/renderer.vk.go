@@ -64,6 +64,12 @@ type vkSwapChainSupportDetails struct {
 	presentModeCount uint32
 }
 
+type commandWrite struct {
+	pool    vk.CommandPool
+	buffer  vk.CommandBuffer
+	destroy bool
+}
+
 type Vulkan struct {
 	defaultTexture             *Texture
 	swapImages                 []TextureId
@@ -87,7 +93,6 @@ type Vulkan struct {
 	depth                      TextureId
 	color                      TextureId
 	swapChainFrameBuffers      []vk.Framebuffer
-	commandPool                CommandPooling
 	imageSemaphores            [maxFramesInFlight]vk.Semaphore
 	renderSemaphores           [maxFramesInFlight]vk.Semaphore
 	renderFences               [maxFramesInFlight]vk.Fence
@@ -102,6 +107,8 @@ type Vulkan struct {
 	dbg                        debugVulkan
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
+	writtenCommands            []commandWrite
+	delayWrittenCommands       bool
 }
 
 func init() {
@@ -117,13 +124,6 @@ func (vr *Vulkan) WaitForRender() {
 		fences[i] = vr.renderFences[i]
 	}
 	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vk.True, math.MaxUint64)
-}
-
-// This will return the first found command to render to. This function should
-// only be called on the main thread while no other threads are running Vulkan
-// command pool commands
-func (vr *Vulkan) CurrentFrameCommand() *CommandRecorder {
-	return vr.commandPool.SingleTimeCommand(vr.currentFrame)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
@@ -185,6 +185,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 }
 
 func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) {
+	defer tracing.NewRegion("Vulkan::updateGlobalUniformBuffer").End()
 	ubo := GlobalShaderData{
 		View:             camera.View(),
 		UIView:           uiCamera.View(),
@@ -260,9 +261,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 	if !vr.createSwapChainRenderPass(assets) {
 		return nil, errors.New("failed to create render pass")
 	}
-	if !vr.createCmdPool() {
-		return nil, errors.New("failed to create command pool")
-	}
 	if !vr.createColorResources() {
 		return nil, errors.New("failed to create color resources")
 	}
@@ -275,9 +273,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 	vr.createGlobalUniformBuffers()
 	if !vr.createDescriptorPool(1000) {
 		return nil, errors.New("failed to create descriptor pool")
-	}
-	if !vr.createCmdBuffer() {
-		return nil, errors.New("failed to create command buffer")
 	}
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
@@ -358,47 +353,6 @@ func (vr *Vulkan) createSyncObjects() bool {
 	return success
 }
 
-func (vr *Vulkan) createCmdPool() bool {
-	success := true
-	for i := 0; i < len(vr.commandPool) && success; i++ {
-		indices := findQueueFamilies(vr.physicalDevice, vr.surface)
-		info := vk.CommandPoolCreateInfo{
-			SType:            vk.StructureTypeCommandPoolCreateInfo,
-			Flags:            vk.CommandPoolCreateFlags(vk.CommandPoolCreateResetCommandBufferBit),
-			QueueFamilyIndex: uint32(indices.graphicsFamily),
-		}
-		var commandPool vk.CommandPool
-		if vk.CreateCommandPool(vr.device, &info, nil, &commandPool) != vk.Success {
-			slog.Error("Failed to create command pool")
-			success = false
-		} else {
-			vr.dbg.add(vk.TypeToUintPtr(commandPool))
-			vr.commandPool[i].pool = commandPool
-		}
-	}
-	return success
-}
-
-func (vr *Vulkan) createCmdBuffer() bool {
-	success := true
-	for i := 0; i < len(vr.commandPool) && success; i++ {
-		info := vk.CommandBufferAllocateInfo{
-			SType:              vk.StructureTypeCommandBufferAllocateInfo,
-			CommandPool:        vr.commandPool[i].pool,
-			Level:              vk.CommandBufferLevelPrimary,
-			CommandBufferCount: 1,
-		}
-		commandBuffers := [1]vk.CommandBuffer{vk.NullCommandBuffer}
-		if vk.AllocateCommandBuffers(vr.device, &info, &commandBuffers[0]) != vk.Success {
-			slog.Error("Failed to allocate command buffers")
-			success = false
-		} else {
-			vr.commandPool[i].buffer = commandBuffers[0]
-		}
-	}
-	return success
-}
-
 func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
 	if err != nil {
@@ -426,7 +380,10 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		}
 	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
+	inlTrace := tracing.NewRegion("Vulkan::ReadyFrame(WaitForFences)")
 	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
+	inlTrace.End()
+	inlTrace = tracing.NewRegion("Vulkan::ReadyFrame(AcquireNextImage)")
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain,
 		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
 		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
@@ -438,8 +395,8 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		vr.hasSwapChain = false
 		return false
 	}
+	inlTrace.End()
 	vk.ResetFences(vr.device, 1, &fences[0])
-	vr.commandPool.Reset(vr.currentFrame)
 	vr.bufferTrash.Cycle()
 	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
 	for _, r := range vr.preRuns {
@@ -449,17 +406,45 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 	return true
 }
 
-func (vr *Vulkan) SwapFrame(width, height int32) bool {
-	defer tracing.NewRegion("Vulkan::SwapFrame").End()
-	all := make([]vk.CommandBuffer, 0, maxCommandPoolsInFlight)
-	for i := range vr.commandPool {
-		if vr.commandPool[i].End(vr) {
-			all = append(all, vr.commandPool[i].buffer)
-		}
-	}
-	if !vr.hasSwapChain || len(all) == 0 {
+func (vr *Vulkan) forceQueueCommand(cmd commandWrite) {
+	vr.writtenCommands = append(vr.writtenCommands, cmd)
+}
+
+func (vr *Vulkan) tryQueueCommand(cmd commandWrite) bool {
+	if vr.delayWrittenCommands {
+		vr.forceQueueCommand(cmd)
+		return true
+	} else {
 		return false
 	}
+}
+
+func (vr *Vulkan) SwapFrame(width, height int32) bool {
+	defer tracing.NewRegion("Vulkan::SwapFrame").End()
+	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
+		return false
+	}
+	all := make([]vk.CommandBuffer, len(vr.writtenCommands))
+	for i := range vr.writtenCommands {
+		all[i] = vr.writtenCommands[i].buffer
+	}
+	defer func() {
+		cpy := make([]commandWrite, len(vr.writtenCommands))
+		copy(cpy, vr.writtenCommands)
+		vr.writtenCommands = vr.writtenCommands[:0]
+		go func() {
+			vk.QueueWaitIdle(vr.graphicsQueue)
+			for i := range cpy {
+				c := &cpy[i]
+				if cpy[i].destroy {
+					buff := c.buffer
+					vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
+					vk.DestroyCommandPool(vr.device, c.pool, nil)
+					//vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+				}
+			}
+		}()
+	}()
 	submitInfo := vk.SubmitInfo{
 		SType:                vk.StructureTypeSubmitInfo,
 		WaitSemaphoreCount:   1,
@@ -514,6 +499,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 
 func (vr *Vulkan) Destroy() {
 	defer tracing.NewRegion("Vulkan::Destroy").End()
+	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
 	if vr.device != vk.NullDevice {
@@ -525,10 +511,6 @@ func (vr *Vulkan) Destroy() {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
-		}
-		for i := range vr.commandPool {
-			vk.DestroyCommandPool(vr.device, vr.commandPool[i].pool, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(vr.commandPool[i].pool))
 		}
 		for i := 0; i < maxFramesInFlight; i++ {
 			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
