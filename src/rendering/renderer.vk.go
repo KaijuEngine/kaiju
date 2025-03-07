@@ -108,6 +108,7 @@ type Vulkan struct {
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 	writtenCommands            []commandWrite
+	transientCommands          []commandWrite
 	delayWrittenCommands       bool
 }
 
@@ -419,6 +420,19 @@ func (vr *Vulkan) tryQueueCommand(cmd commandWrite) bool {
 	}
 }
 
+func (vr *Vulkan) destroyTransientCommands() {
+	for i := range vr.transientCommands {
+		c := &vr.transientCommands[i]
+		if vr.transientCommands[i].destroy {
+			buff := c.buffer
+			vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
+			vk.DestroyCommandPool(vr.device, c.pool, nil)
+			vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+		}
+	}
+	vr.transientCommands = vr.transientCommands[:0]
+}
+
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	defer tracing.NewRegion("Vulkan::SwapFrame").End()
 	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
@@ -429,21 +443,10 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 		all[i] = vr.writtenCommands[i].buffer
 	}
 	defer func() {
-		cpy := make([]commandWrite, len(vr.writtenCommands))
-		copy(cpy, vr.writtenCommands)
+		vr.destroyTransientCommands()
+		vr.transientCommands = make([]commandWrite, len(vr.writtenCommands))
+		copy(vr.transientCommands, vr.writtenCommands)
 		vr.writtenCommands = vr.writtenCommands[:0]
-		go func() {
-			vk.QueueWaitIdle(vr.graphicsQueue)
-			for i := range cpy {
-				c := &cpy[i]
-				if cpy[i].destroy {
-					buff := c.buffer
-					vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
-					vk.DestroyCommandPool(vr.device, c.pool, nil)
-					//vr.dbg.remove(vk.TypeToUintPtr(c.pool))
-				}
-			}
-		}()
 	}()
 	submitInfo := vk.SubmitInfo{
 		SType:                vk.StructureTypeSubmitInfo,
@@ -502,6 +505,7 @@ func (vr *Vulkan) Destroy() {
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
+	vr.destroyTransientCommands()
 	if vr.device != vk.NullDevice {
 		vr.defaultTexture = nil
 		for i := 0; i < maxFramesInFlight; i++ {

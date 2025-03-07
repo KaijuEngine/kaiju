@@ -156,9 +156,6 @@ func (vr *Vulkan) beginSingleTimeCommands() CommandRecorder {
 	cmd.Begin()
 	if !vr.tryQueueCommand(commandWrite{cmd.pool, cmd.buffer, true}) {
 		cmd.destroyOnEnd = true
-	} else {
-		// Removing now to prevent concurrent write complaints
-		vr.dbg.remove(vk.TypeToUintPtr(cmd.pool))
 	}
 	return cmd
 }
