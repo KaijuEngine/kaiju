@@ -407,7 +407,7 @@ func (l *Layout) initialize(ui *UI, anchor Anchor) {
 }
 
 func (l *Layout) SetOffset(x, y float32) {
-	if matrix.Vec2Approx(l.offset, matrix.Vec2{x, y}) {
+	if matrix.Vec2ApproxTo(l.offset, matrix.Vec2{x, y}, fractionOfPixel) {
 		return
 	}
 	l.offset.SetX(x)
@@ -416,7 +416,7 @@ func (l *Layout) SetOffset(x, y float32) {
 }
 
 func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
-	if matrix.Vec4Approx(l.innerOffset, matrix.Vec4{left, top, right, bottom}) {
+	if matrix.Vec4ApproxTo(l.innerOffset, matrix.Vec4{left, top, right, bottom}, fractionOfPixel) {
 		return
 	}
 	l.innerOffset = matrix.Vec4{left, top, right, bottom}
@@ -460,7 +460,7 @@ func (l *Layout) LocalInnerOffset() matrix.Vec4 {
 }
 
 func (l *Layout) SetLocalInnerOffset(left, top, right, bottom float32) {
-	if matrix.Vec4Approx(l.localInnerOffset, matrix.Vec4{left, top, right, bottom}) {
+	if matrix.Vec4ApproxTo(l.localInnerOffset, matrix.Vec4{left, top, right, bottom}, fractionOfPixel) {
 		return
 	}
 	l.localInnerOffset = matrix.Vec4{left, top, right, bottom}
@@ -524,7 +524,7 @@ func (l *Layout) Scale(width, height float32) bool {
 func (l *Layout) ScaleWidth(width float32) bool {
 	width += l.padding.X() + l.padding.Z()
 	ps := l.PixelSize()
-	if matrix.ApproxTo(ps[matrix.Vx], width, 0.001) {
+	if matrix.ApproxTo(ps[matrix.Vx], width, fractionOfPixel) {
 		return false
 	}
 	size := matrix.Vec3{width, ps.Height(), 1.0}
@@ -682,7 +682,7 @@ func (l *Layout) ContentSize() (float32, float32) {
 }
 
 func (l *Layout) SetRowLayoutOffset(offset matrix.Vec2) {
-	if matrix.Vec2Approx(l.rowLayoutOffset, offset) {
+	if matrix.Vec2ApproxTo(l.rowLayoutOffset, offset, fractionOfPixel) {
 		return
 	}
 	l.rowLayoutOffset = offset

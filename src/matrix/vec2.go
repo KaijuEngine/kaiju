@@ -155,6 +155,11 @@ func Vec2Roughly(a, b Vec2) bool {
 		Abs(a.Y()-b.Y()) < Roughly
 }
 
+func Vec2Nearly(a, b Vec2) bool {
+	return Abs(a.X()-b.X()) < Tiny &&
+		Abs(a.Y()-b.Y()) < Tiny
+}
+
 func Vec2Approx(a, b Vec2) bool {
 	return Abs(a.X()-b.X()) < math.SmallestNonzeroFloat32 &&
 		Abs(a.Y()-b.Y()) < math.SmallestNonzeroFloat32

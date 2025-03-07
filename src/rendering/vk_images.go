@@ -257,7 +257,7 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFla
 	return vk.PipelineStageFlagBits(pipes)
 }
 
-func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd *CommandRecording) bool {
+func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd *CommandRecorder) bool {
 	// Note that in larger applications, we could batch together pipeline
 	// barriers for better performance!
 	if aspectMask == 0 {
@@ -271,7 +271,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 		}
 	}
 	commandBuffer := cmd
-	var tmp CommandRecording
+	var tmp CommandRecorder
 	if cmd == nil {
 		tmp = vr.beginSingleTimeCommands()
 		commandBuffer = &tmp

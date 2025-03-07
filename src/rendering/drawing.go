@@ -178,12 +178,10 @@ func (d *Drawings) Render(renderer Renderer) {
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
-	vr := renderer.(*Vulkan)
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		cmd := &vr.commandPool[vr.currentFrame*MaxCommandPools+i]
-		if renderer.Draw(rp, d.renderPassGroups[i].draws, cmd) {
+		if renderer.Draw(rp, d.renderPassGroups[i].draws) {
 			passes = append(passes, rp)
 		}
 	}
