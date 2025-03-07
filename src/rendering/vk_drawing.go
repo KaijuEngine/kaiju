@@ -42,7 +42,6 @@ import (
 	"kaiju/matrix"
 	"kaiju/profiler/tracing"
 	"log/slog"
-	"sync"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -189,25 +188,36 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 	cmd.BeginRenderPass(vr, renderPass, vr.swapChainExtent,
 		renderPass.construction.ImageClears, 0)
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(drawings))
-	available := make(chan int, MaxSecondaryCommands)
-	for i := range MaxSecondaryCommands {
-		available <- i
-	}
+	// This is way too slow, needs revision
+	//wg := sync.WaitGroup{}
+	//wg.Add(len(drawings))
+	//available := make(chan int, MaxSecondaryCommands)
+	//for i := range MaxSecondaryCommands {
+	//	available <- i
+	//}
+	//for i := range drawings {
+	//	go func(idx int) {
+	//		d := &drawings[i]
+	//		if doDrawings[i] {
+	//			s := &d.material.Shader.RenderId
+	//			sCmd := &cmd.secondary[0][idx]
+	//			vr.renderEach(sCmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+	//		}
+	//		available <- idx
+	//		wg.Done()
+	//	}(<-available)
+	//}
+	//wg.Wait()
+
 	for i := range drawings {
-		go func(idx int) {
-			d := &drawings[i]
-			if doDrawings[i] {
-				s := &d.material.Shader.RenderId
-				sCmd := &cmd.secondary[0][idx]
-				vr.renderEach(sCmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
-			}
-			available <- idx
-			wg.Done()
-		}(<-available)
+		d := &drawings[i]
+		if doDrawings[i] {
+			s := &d.material.Shader.RenderId
+			sCmd := &cmd.secondary[0][i]
+			vr.renderEach(sCmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+		}
 	}
-	wg.Wait()
+
 	cmd.ExecuteSecondary(0)
 
 	for i := range renderPass.subpasses {
