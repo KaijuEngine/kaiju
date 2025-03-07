@@ -186,7 +186,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 	if !drawingAnything {
 		return false
 	}
-	cmd.BeginRenderPass(renderPass, vr.swapChainExtent,
+	cmd.BeginRenderPass(vr, renderPass, vr.swapChainExtent,
 		renderPass.construction.ImageClears, 0)
 
 	wg := sync.WaitGroup{}
@@ -200,7 +200,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 			d := &drawings[i]
 			if doDrawings[i] {
 				s := &d.material.Shader.RenderId
-				sCmd := &cmd.secondary[idx]
+				sCmd := &cmd.secondary[0][idx]
 				vr.renderEach(sCmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
 			}
 			available <- idx
@@ -210,10 +210,12 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 	wg.Wait()
 
 	for i := range renderPass.subpasses {
+		subpassIndex := uint32(i) + 1
 		s := &renderPass.subpasses[i]
-		cmd.BeginRenderPass(renderPass, vr.swapChainExtent,
-			renderPass.construction.ImageClears, uint32(i)+1)
-		vk.CmdBindPipeline(cmd.secondary[0].buffer, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
+		cmd.BeginRenderPass(vr, renderPass, vr.swapChainExtent,
+			renderPass.construction.ImageClears, subpassIndex)
+		secondary := &cmd.secondary[subpassIndex]
+		vk.CmdBindPipeline(secondary[0].buffer, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
 		descriptorWrites := [10]vk.WriteDescriptorSet{}
 		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
@@ -230,16 +232,16 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 		vk.UpdateDescriptorSets(vr.device, uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
 		ds := [...]vk.DescriptorSet{s.descriptorSets[vr.currentFrame]}
 		dsOffsets := [...]uint32{0}
-		vk.CmdBindDescriptorSets(cmd.secondary[0].buffer, vk.PipelineBindPointGraphics,
+		vk.CmdBindDescriptorSets(secondary[0].buffer, vk.PipelineBindPointGraphics,
 			s.shader.RenderId.pipelineLayout, 0, uint32(len(ds)), &ds[0], 0, &dsOffsets[0])
 		mid := &s.renderQuad.MeshId
 		vb := [...]vk.Buffer{mid.vertexBuffer}
 		vbOffsets := [...]vk.DeviceSize{0}
-		vk.CmdBindVertexBuffers(cmd.secondary[0].buffer, 0, 1, &vb[0], &vbOffsets[0])
-		vk.CmdBindIndexBuffer(cmd.secondary[0].buffer, mid.indexBuffer, 0, vk.IndexTypeUint32)
-		vk.CmdDrawIndexed(cmd.secondary[0].buffer, mid.indexCount, 1, 0, 0, 0)
+		vk.CmdBindVertexBuffers(secondary[0].buffer, 0, 1, &vb[0], &vbOffsets[0])
+		vk.CmdBindIndexBuffer(secondary[0].buffer, mid.indexBuffer, 0, vk.IndexTypeUint32)
+		vk.CmdDrawIndexed(secondary[0].buffer, mid.indexCount, 1, 0, 0, 0)
 	}
-	cmd.EndRenderPass()
+	cmd.EndRenderPass(vr)
 	return true
 }
 

@@ -54,7 +54,28 @@ type CommandRecorder struct {
 
 type CommandRecording struct {
 	CommandRecorder
-	secondary [MaxSecondaryCommands]CommandRecorder
+	secondary [][MaxSecondaryCommands]CommandRecorder
+}
+
+func (c *CommandRecording) AddSecondary(vr *Vulkan) *[MaxSecondaryCommands]CommandRecorder {
+	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
+	poolInfo := vk.CommandPoolCreateInfo{
+		SType:            vk.StructureTypeCommandPoolCreateInfo,
+		Flags:            vk.CommandPoolCreateFlags(vk.CommandPoolCreateResetCommandBufferBit),
+		QueueFamilyIndex: uint32(indices.graphicsFamily),
+	}
+	buffInfo := vk.CommandBufferAllocateInfo{
+		SType:              vk.StructureTypeCommandBufferAllocateInfo,
+		Level:              vk.CommandBufferLevelSecondary,
+		CommandBufferCount: 1,
+		//CommandPool: nil, // Set in Construct call below
+	}
+	s := [MaxSecondaryCommands]CommandRecorder{}
+	for i := range s {
+		s[i].Construct(vr, poolInfo, buffInfo)
+	}
+	c.secondary = append(c.secondary, s)
+	return &c.secondary[len(c.secondary)-1]
 }
 
 type CommandPooling [maxCommandPoolsInFlight]CommandRecording
@@ -80,16 +101,7 @@ func (c *CommandRecording) Construct(vr *Vulkan, poolInfo vk.CommandPoolCreateIn
 		CommandBufferCount: 1,
 		//CommandPool: nil, // Set in Construct call below
 	}
-	secondaryInfo := vk.CommandBufferAllocateInfo{
-		SType:              vk.StructureTypeCommandBufferAllocateInfo,
-		Level:              vk.CommandBufferLevelSecondary,
-		CommandBufferCount: 1,
-		//CommandPool: nil, // Set in Construct call below
-	}
 	success := c.CommandRecorder.Construct(vr, poolInfo, buffInfo)
-	for i := range c.secondary {
-		success = success && c.secondary[i].Construct(vr, poolInfo, secondaryInfo)
-	}
 	return success
 }
 
@@ -100,11 +112,30 @@ func (c *CommandRecording) Destroy(vr *Vulkan) {
 	buff := c.buffer
 	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
 	for i := range c.secondary {
-		s := &c.secondary[i]
-		buff = s.buffer
-		pools = append(pools, s.pool)
-		vr.dbg.remove(vk.TypeToUintPtr(s.pool))
-		vk.FreeCommandBuffers(vr.device, s.pool, 1, &buff)
+		for j := range c.secondary[i] {
+			s := &c.secondary[i][j]
+			buff = s.buffer
+			pools = append(pools, s.pool)
+			vr.dbg.remove(vk.TypeToUintPtr(s.pool))
+			vk.FreeCommandBuffers(vr.device, s.pool, 1, &buff)
+		}
+	}
+	vk.DestroyCommandPools(vr.device, &pools[0], len(pools), nil)
+}
+
+func (c *CommandRecording) DestroySecondary(vr *Vulkan) {
+	if len(c.secondary) == 0 {
+		return
+	}
+	pools := make([]vk.CommandPool, 0, len(c.secondary))
+	for i := range c.secondary {
+		for j := range c.secondary[i] {
+			s := &c.secondary[i][j]
+			buff := s.buffer
+			pools = append(pools, s.pool)
+			vr.dbg.remove(vk.TypeToUintPtr(s.pool))
+			vk.FreeCommandBuffers(vr.device, s.pool, 1, &buff)
+		}
 	}
 	vk.DestroyCommandPools(vr.device, &pools[0], len(pools), nil)
 }
@@ -148,7 +179,11 @@ func (c *CommandRecording) Begin() bool {
 	return true
 }
 
-func (c *CommandRecording) BeginRenderPass(pass *RenderPass, extent vk.Extent2D, clearColors []vk.ClearValue, subpassIndex uint32) bool {
+func (c *CommandRecording) BeginRenderPass(vr *Vulkan, pass *RenderPass, extent vk.Extent2D, clearColors []vk.ClearValue, subpassIndex uint32) bool {
+	// TODO:  Should cache these
+	c.DestroySecondary(vr)
+	c.secondary = c.secondary[:0]
+
 	if subpassIndex > 0 {
 		//c.ExecuteSecondaryCommands()
 		vk.CmdNextSubpass(c.buffer, vk.SubpassContentsSecondaryCommandBuffers)
@@ -185,38 +220,42 @@ func (c *CommandRecording) BeginRenderPass(pass *RenderPass, extent vk.Extent2D,
 		RenderPass: pass.Handle,
 		Subpass:    subpassIndex,
 	}
-	for i := range len(c.secondary) {
-		vk.ResetCommandBuffer(c.secondary[i].buffer, 0)
-		secondaryInfo := vk.CommandBufferBeginInfo{
-			SType:            vk.StructureTypeCommandBufferBeginInfo,
-			Flags:            vk.CommandBufferUsageFlags(vk.CommandBufferUsageRenderPassContinueBit),
-			PInheritanceInfo: &inherit,
+	secondaryInfo := vk.CommandBufferBeginInfo{
+		SType:            vk.StructureTypeCommandBufferBeginInfo,
+		Flags:            vk.CommandBufferUsageFlags(vk.CommandBufferUsageRenderPassContinueBit),
+		PInheritanceInfo: &inherit,
+	}
+	for range len(pass.subpasses) + 1 {
+		c.AddSecondary(vr)
+	}
+	for i := range c.secondary {
+		s := &c.secondary[i]
+		for j := range c.secondary[i] {
+			if vk.BeginCommandBuffer(s[j].buffer, &secondaryInfo) != vk.Success {
+				slog.Error("Failed to begin recording command buffer")
+				return false
+			}
+			s[j].began = true
+			vk.CmdSetViewport(s[j].buffer, 0, 1, &viewport)
+			vk.CmdSetScissor(s[j].buffer, 0, 1, &scissor)
 		}
-		if vk.BeginCommandBuffer(c.secondary[i].buffer, &secondaryInfo) != vk.Success {
-			slog.Error("Failed to begin recording command buffer")
-			return false
-		}
-		c.secondary[i].began = true
-		vk.CmdSetViewport(c.secondary[i].buffer, 0, 1, &viewport)
-		vk.CmdSetScissor(c.secondary[i].buffer, 0, 1, &scissor)
 	}
 	return true
 }
 
-func (c *CommandRecording) ExecuteSecondaryCommands() {
+func (c *CommandRecording) EndRenderPass(vr *Vulkan) {
 	buffs := [MaxSecondaryCommands]vk.CommandBuffer{}
-	for i := range len(c.secondary) {
-		buffs[i] = c.secondary[i].buffer
-		if c.secondary[i].began {
-			vk.EndCommandBuffer(c.secondary[i].buffer)
-			c.secondary[i].began = false
+	for i := range c.secondary {
+		s := &c.secondary[i]
+		for j := range s {
+			buffs[j] = s[j].buffer
+			if s[j].began {
+				vk.EndCommandBuffer(s[j].buffer)
+				s[j].began = false
+			}
 		}
+		vk.CmdExecuteCommands(c.buffer, uint32(len(buffs)), &buffs[0])
 	}
-	vk.CmdExecuteCommands(c.buffer, uint32(len(buffs)), &buffs[0])
-}
-
-func (c *CommandRecording) EndRenderPass() {
-	c.ExecuteSecondaryCommands()
 	vk.CmdEndRenderPass(c.buffer)
 }
 
