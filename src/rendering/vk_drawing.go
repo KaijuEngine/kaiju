@@ -208,6 +208,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 		}(<-available)
 	}
 	wg.Wait()
+	cmd.ExecuteSecondary(0)
 
 	for i := range renderPass.subpasses {
 		subpassIndex := uint32(i) + 1
@@ -240,8 +241,9 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, cmd *Comma
 		vk.CmdBindVertexBuffers(secondary[0].buffer, 0, 1, &vb[0], &vbOffsets[0])
 		vk.CmdBindIndexBuffer(secondary[0].buffer, mid.indexBuffer, 0, vk.IndexTypeUint32)
 		vk.CmdDrawIndexed(secondary[0].buffer, mid.indexCount, 1, 0, 0, 0)
+		cmd.ExecuteSecondary(int(subpassIndex))
 	}
-	cmd.EndRenderPass(vr)
+	cmd.EndRenderPass()
 	return true
 }
 
