@@ -416,7 +416,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 	p.Handle = handle
 	vr.dbg.add(vk.TypeToUintPtr(p.Handle))
 	for i := range r.Subpass {
-		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i)
+		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i+1)
 	}
 	imageViews := make([]vk.ImageView, 0, len(p.textures))
 	for i := range len(r.AttachmentDescriptions) {

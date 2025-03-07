@@ -186,29 +186,6 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	if !drawingAnything {
 		return false
 	}
-	//cmd.BeginRenderPass(vr, renderPass, vr.swapChainExtent,
-	//	renderPass.construction.ImageClears, 0)
-	// This is way too slow, needs revision
-	//wg := sync.WaitGroup{}
-	//wg.Add(len(drawings))
-	//available := make(chan int, MaxSecondaryCommands)
-	//for i := range MaxSecondaryCommands {
-	//	available <- i
-	//}
-	//for i := range drawings {
-	//	go func(idx int) {
-	//		d := &drawings[i]
-	//		if doDrawings[i] {
-	//			s := &d.material.Shader.RenderId
-	//			sCmd := &cmd.secondary[0][idx]
-	//			vr.renderEach(sCmd.buffer, s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
-	//		}
-	//		available <- idx
-	//		wg.Done()
-	//	}(<-available)
-	//}
-	//wg.Wait()
-
 	renderPass.beginNextSubpass(vr.currentFrame, vr.swapChainExtent, renderPass.construction.ImageClears)
 	for i := range drawings {
 		d := &drawings[i]
@@ -219,7 +196,6 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		}
 	}
 	renderPass.ExecuteSecondaryCommands()
-
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
 		renderPass.beginNextSubpass(vr.currentFrame, vr.swapChainExtent, renderPass.construction.ImageClears)
