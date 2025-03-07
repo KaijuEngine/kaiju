@@ -42,6 +42,7 @@ import (
 	"kaiju/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"math"
@@ -445,6 +446,7 @@ func (input *Input) pointerPosWithin() int {
 //#endif
 
 func (input *Input) update(deltaTime float64) {
+	defer tracing.NewRegion("Input::update").End()
 	input.Base().ToPanel().update(deltaTime)
 	data := input.InputData()
 	if data.isActive {

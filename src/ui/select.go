@@ -3,6 +3,7 @@ package ui
 import (
 	"kaiju/assets"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 )
 
@@ -213,6 +214,7 @@ func (s *Select) optionClick(option *UI) {
 }
 
 func (s *Select) update(deltaTime float64) {
+	defer tracing.NewRegion("Select::update").End()
 	s.Base().ToPanel().update(deltaTime)
 	data := s.SelectData()
 	if data.isOpen {

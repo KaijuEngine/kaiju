@@ -40,6 +40,7 @@ package ui
 import (
 	"kaiju/assets"
 	"kaiju/matrix"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"log/slog"
@@ -283,6 +284,7 @@ func panelOnDown(ui *UI) {
 }
 
 func (p *Panel) update(deltaTime float64) {
+	defer tracing.NewRegion("Panel::update").End()
 	base := p.Base()
 	base.eventUpdates()
 	base.Update(deltaTime)

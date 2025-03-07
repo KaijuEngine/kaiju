@@ -42,6 +42,7 @@ import (
 	"kaiju/hid"
 	"kaiju/matrix"
 	"kaiju/pooling"
+	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
 	"kaiju/windowing"
@@ -113,6 +114,7 @@ type UI struct {
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 
 func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
+	defer tracing.NewRegion("UI::init").End()
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
 	}
@@ -171,7 +173,7 @@ func (ui *UI) Event(evtType EventType) *events.Event {
 
 func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
-func (ui *UI) SetDirty(dirtyType DirtyType) {
+func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
@@ -181,14 +183,19 @@ func (ui *UI) SetDirty(dirtyType DirtyType) {
 				if cui.dirty() == DirtyTypeNone || cui.dirty() > DirtyTypeParent {
 					// TODO:  Let it know it was from the parent and what type
 					if ui.dirtyType < DirtyTypeParent {
-						cui.SetDirty(DirtyTypeParent + ui.dirtyType)
+						cui.setDirtyInternal(DirtyTypeParent + ui.dirtyType)
 					} else {
-						cui.SetDirty(ui.dirtyType)
+						cui.setDirtyInternal(ui.dirtyType)
 					}
 				}
 			}
 		}
 	}
+}
+
+func (ui *UI) SetDirty(dirtyType DirtyType) {
+	defer tracing.NewRegion("UI::SetDirty").End()
+	ui.setDirtyInternal(dirtyType)
 }
 
 func (ui *UI) rootUI() *UI {
@@ -206,6 +213,7 @@ func (ui *UI) rootUI() *UI {
 }
 
 func (ui *UI) Clean() {
+	defer tracing.NewRegion("UI::Clean").End()
 	if ui.dontClean {
 		return
 	}
@@ -241,6 +249,7 @@ func (ui *UI) Clean() {
 }
 
 func (ui *UI) GenerateScissor() {
+	defer tracing.NewRegion("UI::GenerateScissor").End()
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -267,13 +276,18 @@ func (ui *UI) GenerateScissor() {
 }
 
 func (ui *UI) setScissor(scissor matrix.Vec4) {
+	defer tracing.NewRegion("UI::setScissor").End()
+	ui.setScissorInternal(scissor)
+}
+
+func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
 	for i := 0; i < len(ui.entity.Children); i++ {
 		cUI := FirstOnEntity(ui.entity.Children[i])
 		if cUI != nil {
-			cUI.setScissor(scissor)
+			cUI.setScissorInternal(scissor)
 		}
 	}
 	ui.shaderData.Scissor = scissor
@@ -298,6 +312,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 }
 
 func (ui *UI) eventUpdates() {
+	defer tracing.NewRegion("UI::eventUpdates").End()
 	cursor := &ui.man.Host.Window.Cursor
 	mouse := &ui.man.Host.Window.Mouse
 	if cursor.Moved() {
@@ -375,6 +390,7 @@ func (ui *UI) eventUpdates() {
 }
 
 func (ui *UI) Update(deltaTime float64) {
+	defer tracing.NewRegion("UI::Update").End()
 	if ui.dirtyType != DirtyTypeNone {
 		ui.Clean()
 	}
@@ -389,6 +405,7 @@ func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 }
 
 func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
+	defer tracing.NewRegion("UI::containedCheck").End()
 	cp := ui.cursorPos(cursor)
 	contained := entity.Transform.ContainsPoint2D(cp)
 	if contained && ui.hasScissor() {
@@ -424,6 +441,7 @@ func (ui *UI) cleanIfNeeded() {
 }
 
 func (ui *UI) anyChildDirty() bool {
+	defer tracing.NewRegion("UI::anyChildDirty").End()
 	if ui.dirtyType != DirtyTypeNone {
 		return true
 	}
@@ -437,6 +455,7 @@ func (ui *UI) anyChildDirty() bool {
 }
 
 func (ui *UI) updateFromManager(deltaTime float64) {
+	defer tracing.NewRegion("UI::updateFromManager").End()
 	if !ui.isActive() {
 		return
 	}
@@ -469,6 +488,7 @@ func (ui *UI) Show() {
 }
 
 func (ui *UI) FindByName(name string) *UI {
+	defer tracing.NewRegion("UI::FindByName").End()
 	e := ui.entity.FindByName(name)
 	if e != nil {
 		return FirstOnEntity(e)
