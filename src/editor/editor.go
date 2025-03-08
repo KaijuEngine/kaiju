@@ -85,7 +85,7 @@ type Editor struct {
 	editorDir      string
 	project        string
 	history        memento.History
-	cam            controls.EditorCamera
+	camera         controls.EditorCamera
 	assetImporters asset_importer.ImportRegistry
 	stageManager   stages.Manager
 	contentOpener  content_opener.Opener
@@ -115,6 +115,7 @@ func (e *Editor) StatusBar() *status_bar.StatusBar               { return e.stat
 func (e *Editor) Hierarchy() *hierarchy.Hierarchy                { return e.hierarchy }
 func (e *Editor) ContextMenu() *context_menu.ContextMenu         { return e.contextMenu }
 func (e *Editor) ImportRegistry() *asset_importer.ImportRegistry { return &e.assetImporters }
+func (e *Editor) Camera() *controls.EditorCamera                 { return &e.camera }
 
 func (e *Editor) BVH() *collision.BVH { return e.bvh }
 
@@ -149,7 +150,7 @@ func New() *Editor {
 	host := ed.container.Host
 	ed.uiManager.Init(host)
 	host.SetFrameRateLimit(60)
-	setupEditorCamera(ed)
+	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
 	ed.selection = selection.New(host, &ed.history)
 	registerAssetImporters(ed)
@@ -232,7 +233,7 @@ func (ed *Editor) update(delta float64) {
 	if console.For(ed.Host()).HasUIRequests() {
 		return
 	}
-	if ed.cam.Update(ed.Host(), delta) {
+	if ed.camera.Update(ed.Host(), delta) {
 		return
 	}
 	if ed.transformTool.Update(ed.Host()) {

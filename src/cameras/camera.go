@@ -68,4 +68,5 @@ type Camera interface {
 	LookAt() matrix.Vec3
 	NearPlane() float32
 	FarPlane() float32
+	IsOrthographic() bool
 }

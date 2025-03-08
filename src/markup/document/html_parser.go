@@ -327,7 +327,7 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 	h := NewHTML(TransformHTML(htmlStr, withData))
 	body := parsed.setupBody(h, uiMan)
 	bodyPanel := body.UIPanel
-	bodyPanel.Base().Entity().SetName("body")
+	bodyPanel.Base().Entity().SetName("htmlBody")
 	for i := range body.Children {
 		idx := len(parsed.Elements)
 		parsed.createUIElement(uiMan, body.Children[i], bodyPanel)

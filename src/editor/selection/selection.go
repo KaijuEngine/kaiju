@@ -170,7 +170,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorCrimson(),
 		}
-		ds.Color.SetA(3.0) // Line width
+		ds.Color.SetA(0.01) // Line width
 		d.Transform.SetDirty()
 		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
 		d.Material = outline
@@ -404,13 +404,27 @@ func (s *Selection) Parent(history *memento.History) {
 
 func (s *Selection) Focus(camera cameras.Camera) {
 	b := s.Bounds()
-	c := camera.(*cameras.TurntableCamera)
-	c.SetLookAt(b.Center.Negative())
 	z := b.Extent.Length()
 	if z <= 0.01 {
 		z = 5
 	} else {
 		z *= 2
 	}
-	c.SetZoom(z)
+	if camera.IsOrthographic() {
+		c := camera.(*cameras.StandardCamera)
+		p := c.Position()
+		p.SetX(b.Center.X())
+		p.SetY(b.Center.Y())
+		c.SetPositionAndLookAt(p, b.Center.Negative())
+		r := c.Width() / c.Height()
+		if c.Width() > c.Height() {
+			c.Resize(z*r, z)
+		} else {
+			c.Resize(z, z*r)
+		}
+	} else {
+		c := camera.(*cameras.TurntableCamera)
+		c.SetLookAt(b.Center.Negative())
+		c.SetZoom(z)
+	}
 }

@@ -56,6 +56,7 @@ func (v *Vec3) SetY(y Float)              { v[Vy] = y }
 func (v *Vec3) SetZ(z Float)              { v[Vz] = z }
 func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vz]) }
 func (v Vec3) AsVec4() Vec4               { return Vec4{v[Vx], v[Vy], v[Vz], 1} }
+func (v Vec3) AsVec4WithW(w Float) Vec4   { return Vec4{v[Vx], v[Vy], v[Vz], w} }
 func (v Vec3) XYZ() (Float, Float, Float) { return v[Vx], v[Vy], v[Vz] }
 func (v Vec3) Width() Float               { return v[Vx] }
 func (v Vec3) Height() Float              { return v[Vy] }

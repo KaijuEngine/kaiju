@@ -39,10 +39,12 @@ package transform_tools
 
 import (
 	"kaiju/assets"
+	"kaiju/cameras"
 	"kaiju/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
+	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
 	"kaiju/hid"
 	"kaiju/matrix"
@@ -307,37 +309,76 @@ func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) (
 
 func (t *TransformTool) updateDrag(host *engine.Host) {
 	m := &host.Window.Mouse
-	mousePosition := m.Position()
-	r := host.Camera.RayCast(mousePosition)
-	center := t.editor.Selection().Center()
-	delta := matrix.Vec3Zero()
-	point := matrix.Vec3Zero()
-	switch t.state {
-	case ToolStateMove:
-		if t.axis != AxisStateNone {
-			point = t.findPlaneHitPoint(r, center)
-		} else {
-			hp, ok := host.Camera.ForwardPlaneHit(mousePosition, center)
-			if ok {
-				point = hp
+	mp := m.Position()
+	var delta, point matrix.Vec3
+	switch t.editor.Camera().Mode() {
+	case controls.EditorCameraMode3d:
+		r := host.Camera.RayCast(mp)
+		center := t.editor.Selection().Center()
+		delta = matrix.Vec3Zero()
+		point = matrix.Vec3Zero()
+		switch t.state {
+		case ToolStateMove:
+			if t.axis != AxisStateNone {
+				point = t.findPlaneHitPoint(r, center)
 			} else {
-				point = t.lastHit
+				hp, ok := host.Camera.ForwardPlaneHit(mp, center)
+				if ok {
+					point = hp
+				} else {
+					point = t.lastHit
+				}
+			}
+		case ToolStateRotate:
+			point = mp.AsVec3()
+		case ToolStateScale:
+			if hp, ok := host.Camera.ForwardPlaneHit(mp, center); ok {
+				point = hp
 			}
 		}
-	case ToolStateRotate:
-		point = mousePosition.AsVec3()
-	case ToolStateScale:
-		if hp, ok := host.Camera.ForwardPlaneHit(mousePosition, center); ok {
-			point = hp
+		if t.firstHitUpdate {
+			t.lastHit = point
+			t.firstHitUpdate = false
 		}
+		delta = point.Subtract(t.lastHit)
+	case controls.EditorCameraMode2d:
+		point = matrix.NewVec3(mp.X(), mp.Y(), 0)
+		if t.firstHitUpdate {
+			t.lastHit = point
+			t.firstHitUpdate = false
+		}
+		oc := host.Camera.(*cameras.StandardCamera)
+		cw := oc.Width() / float32(host.Window.Width())
+		ch := oc.Height() / float32(host.Window.Height())
+		delta = t.lastHit.Subtract(point).Multiply(matrix.NewVec3(-cw, -ch, 0))
+		switch t.state {
+		case ToolStateMove:
+			switch t.axis {
+			case AxisStateX:
+				delta.SetY(0)
+			case AxisStateY:
+				delta.SetX(0)
+			case AxisStateZ:
+				delta.SetX(0)
+				delta.SetY(0)
+			}
+		case ToolStateRotate:
+			switch t.axis {
+			case AxisStateX:
+				delta.SetY(0)
+			case AxisStateY:
+				delta.SetX(0)
+			case AxisStateZ, AxisStateNone:
+				delta.SetY(0)
+				delta.ScaleAssign(25)
+			}
+		case ToolStateScale:
+			delta.SetY(0)
+		}
+		delta.SetZ(0)
+		t.lastHit = point.Add(delta)
 	}
-	if t.firstHitUpdate {
-		t.lastHit = point
-		t.firstHitUpdate = false
-	}
-	delta = point.Subtract(t.lastHit)
-	snap := host.Window.Keyboard.HasCtrl()
-	t.transform(delta, snap)
+	t.transform(delta, host.Window.Keyboard.HasCtrl())
 	t.lastHit = point
 }
 
@@ -390,13 +431,13 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
 	newQuat := currentQuat.Multiply(incrementalQuat)
 	newEuler := newQuat.ToEuler()
+	t.unsnapped[idx] = newEuler
 	if snap {
 		newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
 		newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
 		newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
 	}
-	t.unsnapped[idx] = newEuler
-	return r
+	return newEuler
 }
 
 func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {

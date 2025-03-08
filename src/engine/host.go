@@ -368,7 +368,7 @@ func (host *Host) Render() {
 	}
 	host.Window.SwapBuffers()
 	host.workGroup.Execute(matrix.TransformResetWorkGroup)
-	host.editorEntities.resetDirty()
+	//host.editorEntities.resetDirty()
 }
 
 // Frame will return the current frame id

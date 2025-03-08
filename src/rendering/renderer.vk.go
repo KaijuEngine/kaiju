@@ -187,12 +187,16 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 
 func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) {
 	defer tracing.NewRegion("Vulkan::updateGlobalUniformBuffer").End()
+	camOrtho := matrix.Float(0)
+	if camera.IsOrthographic() {
+		camOrtho = 1
+	}
 	ubo := GlobalShaderData{
 		View:             camera.View(),
 		UIView:           uiCamera.View(),
 		Projection:       camera.Projection(),
 		UIProjection:     uiCamera.Projection(),
-		CameraPosition:   camera.Position(),
+		CameraPosition:   camera.Position().AsVec4WithW(camOrtho),
 		UICameraPosition: uiCamera.Position(),
 		Time:             runtime,
 		ScreenSize: matrix.Vec2{
