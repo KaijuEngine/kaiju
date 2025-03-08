@@ -155,6 +155,7 @@ func (ui *UI) Type() ElementType               { return ui.elmType }
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
+	defer tracing.NewRegion("UI::ExecuteEvent").End()
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
 }

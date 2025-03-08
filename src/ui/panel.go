@@ -123,6 +123,7 @@ func (p *Panel) Base() *UI    { return (*UI)(p) }
 func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
 func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType ElementType) {
+	defer tracing.NewRegion("Panel::Init").End()
 	var pd *panelData
 	panel.elmType = elmType
 	if panel.elmData == nil {
@@ -237,6 +238,7 @@ func (p *Panel) FitContent() {
 }
 
 func (p *Panel) onScroll() {
+	defer tracing.NewRegion("Panel::onScroll").End()
 	pd := p.PanelData()
 	mouse := &p.man.Host.Window.Mouse
 	delta := mouse.Scroll()
@@ -262,24 +264,6 @@ func (p *Panel) onScroll() {
 		pd.scroll = scroll
 		base.SetDirty(DirtyTypeLayout)
 		pd.isScrolling = true
-	}
-}
-
-func panelOnDown(ui *UI) {
-	var target *UI = ui
-	ok := false
-	var panel *Panel
-	for !ok {
-		target = FirstOnEntity(target.Entity().Parent)
-		if target.elmType == ElementTypePanel {
-			panel = target.ToPanel()
-		}
-	}
-	pd := panel.PanelData()
-	pd.offset = pd.scroll
-	pd.dragging = true
-	if !pd.allowDragScroll {
-		// TODO:  Change the mouse cursor to look like it's dragging something
 	}
 }
 
@@ -333,6 +317,7 @@ func (rb rowBuilder) Height() float32 {
 }
 
 func (rb rowBuilder) setElements(offsetX, offsetY float32) {
+	defer tracing.NewRegion("Panel::Init").End()
 	for _, e := range rb.elements {
 		layout := e.Layout()
 		x, y := offsetX, offsetY
@@ -359,6 +344,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 }
 
 func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
+	defer tracing.NewRegion("Panel::boundsChildren").End()
 	for _, kid := range p.entity.Children {
 		kui := FirstOnEntity(kid)
 		if kui.layout.screenAnchor.IsStretch() {
@@ -384,6 +370,7 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 }
 
 func (p *Panel) panelPostLayoutUpdate() {
+	defer tracing.NewRegion("Panel::panelPostLayoutUpdate").End()
 	if len(p.entity.Children) == 0 {
 		return
 	}
@@ -526,11 +513,6 @@ func (p *Panel) recreateDrawing() {
 	p.PanelData().transparentDrawing.ShaderData = p.shaderData
 }
 
-func (p *Panel) removeDrawing() {
-	p.recreateDrawing()
-	p.PanelData().drawing = rendering.Drawing{}
-}
-
 func (p *Panel) EnforceColor(color matrix.Color) {
 	pd := p.PanelData()
 	pd.enforcedColorStack = append(pd.enforcedColorStack, p.shaderData.FgColor)
@@ -575,6 +557,7 @@ func (p *Panel) ResetScroll() {
 }
 
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
+	defer tracing.NewRegion("Panel::ensureBGExists").End()
 	pd := p.PanelData()
 	if !pd.drawing.IsValid() {
 		if tex == nil {
@@ -620,6 +603,7 @@ func (p *Panel) Background() *rendering.Texture {
 }
 
 func (p *Panel) SetBackground(tex *rendering.Texture) {
+	defer tracing.NewRegion("Panel::SetBackground").End()
 	pd := p.PanelData()
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
@@ -698,6 +682,7 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 }
 
 func (p *Panel) SetUseBlending(useBlending bool) {
+	defer tracing.NewRegion("Panel::SetUseBlending").End()
 	p.recreateDrawing()
 	pd := p.PanelData()
 	p.man.Host.Drawings.AddDrawing(pd.drawing)
@@ -729,6 +714,7 @@ func (p *Panel) HasEnforcedColor() bool {
 }
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
+	defer tracing.NewRegion("Panel::setColorInternal").End()
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return
 	}
