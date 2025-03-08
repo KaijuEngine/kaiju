@@ -41,7 +41,9 @@ import (
 	"kaiju/cameras"
 	"kaiju/engine"
 	"kaiju/hid"
+	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/systems/events"
 	"math"
 )
 
@@ -66,6 +68,7 @@ type EditorCamera struct {
 	yawScale     matrix.Float
 	dragging     bool
 	mode         EditorCameraMode
+	resizeId     events.Id
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
@@ -92,6 +95,8 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		h := (ch / cw) * ratio * 10
 		oc := cameras.NewStandardCameraOrthographic(w, h, matrix.NewVec3(0, 0, 100))
 		host.Camera = oc
+		host.Window.OnResize.Remove(e.resizeId)
+		e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
 	}
 }
 
@@ -116,6 +121,10 @@ func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *e
 	delta := e.lastHit.Subtract(hitPoint).Multiply(matrix.NewVec3(cw, ch, 0))
 	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
 	e.lastHit = hitPoint.Add(delta)
+}
+
+func (e *EditorCamera) OnWindowResize() {
+	klib.NotYetImplemented(309)
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
