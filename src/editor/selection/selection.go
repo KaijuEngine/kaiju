@@ -404,13 +404,19 @@ func (s *Selection) Parent(history *memento.History) {
 
 func (s *Selection) Focus(camera cameras.Camera) {
 	b := s.Bounds()
-	c := camera.(*cameras.TurntableCamera)
-	c.SetLookAt(b.Center.Negative())
-	z := b.Extent.Length()
-	if z <= 0.01 {
-		z = 5
+	if camera.IsOrthographic() {
+		//c := camera.(*cameras.StandardCamera)
+		// TODO:  Fix zooming for orthographic
+
 	} else {
-		z *= 2
+		c := camera.(*cameras.TurntableCamera)
+		c.SetLookAt(b.Center.Negative())
+		z := b.Extent.Length()
+		if z <= 0.01 {
+			z = 5
+		} else {
+			z *= 2
+		}
+		c.SetZoom(z)
 	}
-	c.SetZoom(z)
 }
