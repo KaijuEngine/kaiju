@@ -254,6 +254,9 @@ func (c *StandardCamera) NearPlane() float32 { return c.nearPlane }
 // FarPlane will return the far plane of the camera.
 func (c *StandardCamera) FarPlane() float32 { return c.farPlane }
 
+// IsOrthographic will return if this camera is set to be an orthographic camera
+func (c *StandardCamera) IsOrthographic() bool { return c.isOrthographic }
+
 func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.fieldOfView = 60.0
 	c.nearPlane = 0.01

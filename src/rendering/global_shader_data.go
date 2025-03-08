@@ -49,8 +49,7 @@ type GlobalShaderData struct {
 	Projection       matrix.Mat4
 	UIView           matrix.Mat4
 	UIProjection     matrix.Mat4
-	CameraPosition   matrix.Vec3
-	_                matrix.Float
+	CameraPosition   matrix.Vec4
 	UICameraPosition matrix.Vec3
 	_                matrix.Float
 	ScreenSize       matrix.Vec2

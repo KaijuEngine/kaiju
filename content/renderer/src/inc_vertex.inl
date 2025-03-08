@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	mat4 projection;
 	mat4 uiView;
 	mat4 uiProjection;
-	vec3 cameraPosition;
+	vec4 cameraPosition;	// w = [0=perspective, 1=orthographic]
 	vec3 uiCameraPosition;
 	vec2 screenSize;
 	float time;
