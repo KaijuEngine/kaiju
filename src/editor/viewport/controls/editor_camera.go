@@ -50,12 +50,42 @@ const (
 	ZOOM_SCALE = float32(0.05)
 )
 
+type EditorCameraMode = int
+
+const (
+	EditorCameraModeNone = EditorCameraMode(iota)
+	EditorCameraMode3d
+	EditorCameraMode2d
+)
+
 type EditorCamera struct {
 	lastMousePos matrix.Vec2
 	mouseDown    matrix.Vec2
 	lastHit      matrix.Vec3
 	yawScale     matrix.Float
 	dragging     bool
+	mode         EditorCameraMode
+}
+
+func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
+	if e.mode == mode {
+		return
+	}
+	e.mode = mode
+	switch e.mode {
+	case EditorCameraMode3d:
+		cam := cameras.NewStandardCamera(host.Camera.Width(),
+			host.Camera.Height(), matrix.Vec3Backward())
+		tc := cameras.ToTurntable(cam)
+		host.Camera = tc
+		tc.SetYawPitchZoom(0, -25, 16)
+		tc.SetLookAt(matrix.Vec3Zero())
+		tc.SetZoom(15)
+	case EditorCameraMode2d:
+		oc := cameras.NewStandardCameraOrthographic(host.Camera.Width(),
+			host.Camera.Height(), matrix.NewVec3(0, 0, -100))
+		host.Camera = oc
+	}
 }
 
 func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
@@ -70,6 +100,19 @@ func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
+	switch e.mode {
+	case EditorCameraMode3d:
+		return e.update3d(host, delta)
+	case EditorCameraMode2d:
+		return e.update2d(host, delta)
+	case EditorCameraModeNone:
+		fallthrough
+	default:
+		return false
+	}
+}
+
+func (e EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) {
 	tc := host.Camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
@@ -120,4 +163,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	}
 	e.lastMousePos = mp
 	return changed
+}
+
+func (e EditorCamera) update2d(host *engine.Host, delta float64) (changed bool) {
+	return false
 }

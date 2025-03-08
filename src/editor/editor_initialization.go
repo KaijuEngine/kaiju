@@ -40,7 +40,6 @@ package editor
 import (
 	"errors"
 	"kaiju/assets"
-	"kaiju/cameras"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
@@ -76,14 +75,6 @@ func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 	editor_window.OpenWindow(ed,
 		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	ed.RunOnHost(func() { addConsole(ed) })
-}
-
-func setupEditorCamera(ed *Editor) {
-	tc := cameras.ToTurntable(ed.container.Host.Camera.(*cameras.StandardCamera))
-	ed.container.Host.Camera = tc
-	tc.SetYawPitchZoom(0, -25, 16)
-	tc.SetLookAt(matrix.Vec3Zero())
-	tc.SetZoom(15)
 }
 
 func waitForProjectSelectWindow(ed *Editor) (string, error) {
