@@ -431,13 +431,13 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
 	newQuat := currentQuat.Multiply(incrementalQuat)
 	newEuler := newQuat.ToEuler()
+	t.unsnapped[idx] = newEuler
 	if snap {
 		newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
 		newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
 		newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
 	}
-	t.unsnapped[idx] = newEuler
-	return r
+	return newEuler
 }
 
 func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
