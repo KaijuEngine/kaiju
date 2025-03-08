@@ -117,6 +117,13 @@ func (c *StandardCamera) SetHeight(height float32) {
 	c.updateProjection()
 }
 
+// Resize sets the width and height of the camera viewport.
+func (c *StandardCamera) Resize(width, height float32) {
+	c.width = width
+	c.height = height
+	c.updateProjection()
+}
+
 // ViewportChanged will update the camera's projection matrix and should only
 // be used when there is a change in the viewport. This is typically done
 // internally in the system and should not be called by the end-developer.

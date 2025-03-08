@@ -90,8 +90,8 @@ func checkHotkeys(ed *Editor) {
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(ed)
 	} else if kb.KeyDown(hid.KeyboardKey2) {
-		ed.cam.SetMode(controls.EditorCameraMode2d, ed.Host())
+		ed.camera.SetMode(controls.EditorCameraMode2d, ed.Host())
 	} else if kb.KeyDown(hid.KeyboardKey3) {
-		ed.cam.SetMode(controls.EditorCameraMode3d, ed.Host())
+		ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 	}
 }

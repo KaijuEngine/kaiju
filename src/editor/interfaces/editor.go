@@ -48,6 +48,7 @@ import (
 	"kaiju/editor/ui/editor_window"
 	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/status_bar"
+	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
 	"kaiju/host_container"
 )
@@ -55,6 +56,7 @@ import (
 type Editor interface {
 	Container() *host_container.Container
 	Host() *engine.Host
+	Camera() *controls.EditorCamera
 	StageManager() *stages.Manager
 	Selection() *selection.Selection
 	History() *memento.History

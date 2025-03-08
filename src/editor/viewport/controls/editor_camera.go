@@ -46,8 +46,9 @@ import (
 )
 
 const (
-	ROT_SCALE  = 0.01
-	ZOOM_SCALE = float32(0.05)
+	ROT_SCALE     = 0.01
+	ZOOM_SCALE_3D = float32(0.05)
+	ZOOM_SCALE_2D = float32(0.25)
 )
 
 type EditorCameraMode = int
@@ -67,6 +68,8 @@ type EditorCamera struct {
 	mode         EditorCameraMode
 }
 
+func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
+
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	if e.mode == mode {
 		return
@@ -74,21 +77,25 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	e.mode = mode
 	switch e.mode {
 	case EditorCameraMode3d:
-		cam := cameras.NewStandardCamera(host.Camera.Width(),
-			host.Camera.Height(), matrix.Vec3Backward())
+		cam := cameras.NewStandardCamera(float32(host.Window.Width()),
+			float32(host.Window.Height()), matrix.Vec3Backward())
 		tc := cameras.ToTurntable(cam)
 		host.Camera = tc
 		tc.SetYawPitchZoom(0, -25, 16)
 		tc.SetLookAt(matrix.Vec3Zero())
 		tc.SetZoom(15)
 	case EditorCameraMode2d:
-		oc := cameras.NewStandardCameraOrthographic(host.Camera.Width(),
-			host.Camera.Height(), matrix.NewVec3(0, 0, -100))
+		cw := host.Camera.Width()
+		ch := host.Camera.Height()
+		ratio := cw / ch
+		w := (cw / cw) * ratio * 10
+		h := (ch / cw) * ratio * 10
+		oc := cameras.NewStandardCameraOrthographic(w, h, matrix.NewVec3(0, 0, 100))
 		host.Camera = oc
 	}
 }
 
-func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
+func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.LookAt()); ok {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 			e.lastHit = hitPoint
@@ -97,6 +104,18 @@ func (e *EditorCamera) pan(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 		tc.SetLookAt(tc.LookAt().Add(delta))
 		e.lastHit, _ = tc.ForwardPlaneHit(mp, tc.LookAt())
 	}
+}
+
+func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *engine.Host) {
+	hitPoint := matrix.NewVec3(mp.X(), mp.Y(), 0)
+	if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
+		e.lastHit = hitPoint
+	}
+	cw := oc.Width() / float32(host.Window.Width())
+	ch := oc.Height() / float32(host.Window.Height())
+	delta := e.lastHit.Subtract(hitPoint).Multiply(matrix.NewVec3(cw, ch, 0))
+	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
+	e.lastHit = hitPoint.Add(delta)
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
@@ -112,7 +131,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	}
 }
 
-func (e EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) {
+func (e *EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) {
 	tc := host.Camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
@@ -139,11 +158,11 @@ func (e EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) 
 			tc.Orbit(matrix.Vec3{x, y, 0.0})
 			changed = true
 		} else if kb.KeyHeld(hid.KeyboardKeySpace) {
-			e.pan(tc, mp)
+			e.pan3d(tc, mp)
 			changed = true
 		}
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
-		e.pan(tc, mp)
+		e.pan3d(tc, mp)
 		changed = true
 	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) {
 		e.lastHit = matrix.Vec3Zero()
@@ -154,7 +173,7 @@ func (e EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) 
 	}
 	if mouse.Scrolled() {
 		zoom := tc.Zoom()
-		scale := -ZOOM_SCALE
+		scale := -ZOOM_SCALE_3D
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
@@ -165,6 +184,43 @@ func (e EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) 
 	return changed
 }
 
-func (e EditorCamera) update2d(host *engine.Host, delta float64) (changed bool) {
-	return false
+func (e *EditorCamera) update2d(host *engine.Host, delta float64) (changed bool) {
+	oc := host.Camera.(*cameras.StandardCamera)
+	mouse := &host.Window.Mouse
+	kb := &host.Window.Keyboard
+	mp := mouse.Position()
+	if mouse.Pressed(hid.MouseButtonMiddle) {
+		e.dragging = true
+		e.mouseDown = mp
+		if mouse.Pressed(hid.MouseButtonMiddle) {
+			changed = true
+		}
+	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
+		e.pan2d(oc, mp, host)
+		changed = true
+	} else if mouse.Released(hid.MouseButtonMiddle) {
+		e.lastHit = matrix.Vec3Zero()
+		if mouse.Released(hid.MouseButtonMiddle) {
+			changed = true
+		}
+		e.dragging = false
+	} else if kb.KeyHeld(hid.KeyboardKeySpace) {
+		e.pan2d(oc, mp, host)
+		changed = true
+	}
+	if mouse.Scrolled() {
+		cw := host.Camera.Width()
+		ch := host.Camera.Height()
+		w := oc.Width()
+		h := oc.Height()
+		r := cw / ch
+		w += (cw / cw) * r * -ZOOM_SCALE_2D * mouse.Scroll().Y()
+		h += (ch / cw) * r * -ZOOM_SCALE_2D * mouse.Scroll().Y()
+		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
+			oc.Resize(w, h)
+			changed = true
+		}
+	}
+	e.lastMousePos = mp
+	return changed
 }
