@@ -170,7 +170,7 @@ func (s *Selection) addInternal(e *engine.Entity) {
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorCrimson(),
 		}
-		ds.Color.SetA(3.0) // Line width
+		ds.Color.SetA(0.01) // Line width
 		d.Transform.SetDirty()
 		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
 		d.Material = outline
