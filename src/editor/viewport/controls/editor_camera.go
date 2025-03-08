@@ -62,6 +62,7 @@ const (
 )
 
 type EditorCamera struct {
+	camera       cameras.Camera
 	lastMousePos matrix.Vec2
 	mouseDown    matrix.Vec2
 	lastHit      matrix.Vec3
@@ -73,6 +74,16 @@ type EditorCamera struct {
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
 
+func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
+	switch e.mode {
+	case EditorCameraMode3d:
+		// Something is backwards about the lookat for the turntable camera...
+		return e.camera.LookAt().Negative()
+	default:
+		return e.camera.LookAt()
+	}
+}
+
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	if e.mode == mode {
 		return
@@ -83,10 +94,11 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		cam := cameras.NewStandardCamera(float32(host.Window.Width()),
 			float32(host.Window.Height()), matrix.Vec3Backward())
 		tc := cameras.ToTurntable(cam)
-		host.Camera = tc
 		tc.SetYawPitchZoom(0, -25, 16)
 		tc.SetLookAt(matrix.Vec3Zero())
 		tc.SetZoom(15)
+		e.camera = tc
+		host.Camera = e.camera
 	case EditorCameraMode2d:
 		cw := host.Camera.Width()
 		ch := host.Camera.Height()
@@ -94,7 +106,8 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		w := (cw / cw) * ratio * 10
 		h := (ch / cw) * ratio * 10
 		oc := cameras.NewStandardCameraOrthographic(w, h, matrix.NewVec3(0, 0, 100))
-		host.Camera = oc
+		e.camera = oc
+		host.Camera = e.camera
 		host.Window.OnResize.Remove(e.resizeId)
 		e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
 	}
@@ -141,7 +154,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, delta float64) (changed bool) {
-	tc := host.Camera.(*cameras.TurntableCamera)
+	tc := e.camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()
@@ -194,7 +207,7 @@ func (e *EditorCamera) update3d(host *engine.Host, delta float64) (changed bool)
 }
 
 func (e *EditorCamera) update2d(host *engine.Host, delta float64) (changed bool) {
-	oc := host.Camera.(*cameras.StandardCamera)
+	oc := e.camera.(*cameras.StandardCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()

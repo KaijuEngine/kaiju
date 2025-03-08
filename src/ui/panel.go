@@ -592,6 +592,9 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	if p.events[EventTypeDown].IsEmpty() {
 		p.Base().AddEvent(EventTypeDown, func() { /* Do nothing, but block things */ })
 	}
+	if p.events[EventTypeUp].IsEmpty() {
+		p.Base().AddEvent(EventTypeUp, func() { /* Do nothing, but block things */ })
+	}
 }
 
 func (p *Panel) Background() *rendering.Texture {

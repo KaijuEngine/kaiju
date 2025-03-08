@@ -38,7 +38,7 @@
 						</div>
 						{{end}}
 						{{range .Dir}}
-						<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" {{if not .IsDir}}onrightclick="entryCtxMenu"{{end}}>
+						<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" {{if not .IsDir}}onrightclick="entryCtxMenu" ondragstart="entryDragStart"{{end}}>
 							{{if .IsDir}}
 								<img class="listImg" src="editor/textures/icons/folder.png" />
 							{{else}}

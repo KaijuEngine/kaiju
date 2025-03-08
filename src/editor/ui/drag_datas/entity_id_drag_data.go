@@ -43,5 +43,9 @@ type EntityIdDragData struct {
 	EntityId engine.EntityId
 }
 
-func (e *EntityIdDragData) DragUpdate() {
+type FileIdDragData struct {
+	FilePath string
 }
+
+func (e *EntityIdDragData) DragUpdate() {}
+func (e *FileIdDragData) DragUpdate()   {}

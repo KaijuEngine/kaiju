@@ -139,14 +139,16 @@ func (h *Document) GetElementsByTagName(tag string) []*Element {
 	}
 }
 
-func TransformHTML(htmlStr string, withData any) string {
-	tpl := template.Must(template.New("html").Funcs(funcMap).Parse(htmlStr))
+func TransformHTML(htmlStr string, withData any) (string, error) {
+	tpl, err := template.New("html").Funcs(funcMap).Parse(htmlStr)
+	if err != nil {
+		return "", err
+	}
 	sb := strings.Builder{}
 	if err := tpl.ExecuteTemplate(&sb, "html", withData); err != nil {
 		slog.Error("there was an error in the html template", "error", err)
 	}
-	htmlStr = sb.String()
-	return htmlStr
+	return sb.String(), nil
 }
 
 func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Panel) {
@@ -324,7 +326,13 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		tagElements:   map[string][]*Element{},
 		HeadElements:  make([]*Element, 0),
 	}
-	h := NewHTML(TransformHTML(htmlStr, withData))
+	transformed, err := TransformHTML(htmlStr, withData)
+	if err != nil {
+		slog.Error("failed to parse the html file", "error", err)
+		return parsed
+	}
+	h := NewHTML(transformed)
+
 	body := parsed.setupBody(h, uiMan)
 	bodyPanel := body.UIPanel
 	bodyPanel.Base().Entity().SetName("htmlBody")

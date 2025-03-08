@@ -46,12 +46,14 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/context_menu"
+	"kaiju/editor/ui/drag_datas"
 	"kaiju/editor/ui/shader_designer"
 	"kaiju/filesystem"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
+	"kaiju/systems/events"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -110,6 +112,7 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiMan *ui.Mana
 	s.funcMap["resizeStop"] = s.resizeStop
 	s.funcMap["entryCtxMenu"] = s.entryCtxMenu
 	s.funcMap["updateSearch"] = s.updateSearch
+	s.funcMap["entryDragStart"] = s.entryDragStart
 	editor.Host().OnClose.Add(func() {
 		if s.doc != nil {
 			s.doc.Destroy()
@@ -375,6 +378,23 @@ func (s *ContentWindow) updateSearch(elm *document.Element) {
 		s.path = contentPath
 	}
 	s.reloadUI()
+}
+
+func (s *ContentWindow) entryDragStart(elm *document.Element) {
+	path := elm.Attribute("data-path")
+	host := s.editor.Host()
+	host.Window.CursorSizeAll()
+	host.Window.Mouse.SetDragData(&drag_datas.FileIdDragData{path})
+	elm.EnforceColor(matrix.ColorPurple())
+	var eid events.Id
+	eid = host.Window.Mouse.OnDragStop.Add(func() {
+		if s.editor.IsMouseOverViewport() {
+			s.openContent(elm)
+		}
+		host.Window.CursorStandard()
+		host.Window.Mouse.OnDragStop.Remove(eid)
+		elm.UnEnforceColor()
+	})
 }
 
 func (s *ContentWindow) DragUpdate() {

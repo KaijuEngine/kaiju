@@ -62,6 +62,7 @@ import (
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/host_container"
+	"kaiju/matrix"
 	"kaiju/systems/console"
 	"kaiju/systems/logging"
 	"kaiju/ui"
@@ -107,6 +108,7 @@ func (e *Editor) Tag() string                                    { return editor
 func (e *Editor) Container() *host_container.Container           { return e.container }
 func (e *Editor) Host() *engine.Host                             { return e.container.Host }
 func (e *Editor) StageManager() *stages.Manager                  { return &e.stageManager }
+func (e *Editor) UIManager() *ui.Manager                         { return &e.uiManager }
 func (e *Editor) ContentOpener() *content_opener.Opener          { return &e.contentOpener }
 func (e *Editor) Selection() *selection.Selection                { return &e.selection }
 func (e *Editor) History() *memento.History                      { return &e.history }
@@ -226,11 +228,22 @@ func (e *Editor) Init() {
 	e.pickProject(projectPath)
 }
 
-func (ed *Editor) update(delta float64) {
+func (ed *Editor) IsMouseOverViewport() bool {
 	if ed.uiManager.Group.HasRequests() {
-		return
+		return false
 	}
 	if console.For(ed.Host()).HasUIRequests() {
+		return false
+	}
+	win := ed.Host().Window
+	mp := win.Mouse.ScreenPosition()
+	return mp.X() >= 0 && mp.Y() >= 0 &&
+		mp.X() <= matrix.Float(win.Width()) &&
+		mp.Y() <= matrix.Float(win.Height())
+}
+
+func (ed *Editor) update(delta float64) {
+	if !ed.IsMouseOverViewport() {
 		return
 	}
 	if ed.camera.Update(ed.Host(), delta) {
