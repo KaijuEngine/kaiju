@@ -1,0 +1,15 @@
+#cameraMode {
+	position: absolute;
+	top: 25px;
+	right: 10px;
+	width: 40px;
+	padding: 2px;
+	font-size: 10px;
+	color: white;
+	background-color: black;
+}
+.camMode {
+	background-color: black;
+	text-align: center;
+	width: 50%;
+}

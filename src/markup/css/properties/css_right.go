@@ -66,7 +66,7 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 				offset.SetRight(elm.Parent.UI.Layout().Offset().X())
 			}
 		default:
-			val := helpers.NumFromLength(values[0].Str, host.Window)
+			val := -helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
 				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 					if l.Ui().Entity().IsRoot() {

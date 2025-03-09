@@ -49,6 +49,8 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
+	"kaiju/editor/ui/viewport_overlay"
+	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/host_container"
@@ -99,6 +101,8 @@ func constructEditorUI(ed *Editor) {
 	ed.menu = editor_menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
 	ed.statusBar = status_bar.New(&ed.uiManager, ed.logWindow)
+	viewport_overlay.New(ed, &ed.uiManager)
+	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 	setupViewportGrid(ed)
 	{
 		// TODO:  Testing tools

@@ -62,6 +62,7 @@ const (
 )
 
 type EditorCamera struct {
+	OnModeChange events.Event
 	camera       cameras.Camera
 	lastMousePos matrix.Vec2
 	mouseDown    matrix.Vec2
@@ -111,6 +112,7 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		host.Window.OnResize.Remove(e.resizeId)
 		e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
 	}
+	e.OnModeChange.Execute()
 }
 
 func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
