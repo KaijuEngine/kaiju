@@ -228,11 +228,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		renderPass.ExecuteSecondaryCommands()
 	}
 	renderPass.endSubpasses()
-	vr.forceQueueCommand(commandWrite{
-		renderPass.cmd[vr.currentFrame].pool,
-		renderPass.cmd[vr.currentFrame].buffer,
-		false,
-	})
+	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame])
 	return true
 }
 
@@ -298,9 +294,9 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		// Each material has a single texture for the image to add to the combined final image
 		color := &draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), &cmd)
+			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
-	vr.endSingleTimeCommands(&cmd)
+	vr.endSingleTimeCommands(cmd)
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
 	vr.Draw(combinePass, draws)
 	return &combinePass.textures[0].RenderId
@@ -329,12 +325,12 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	defer func() { vr.delayWrittenCommands = false }()
 	img := vr.combineTargets()
 	cmd := vr.beginSingleTimeCommands()
-	defer vr.endSingleTimeCommands(&cmd)
+	defer vr.endSingleTimeCommands(cmd)
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessTransferWriteBit), &cmd)
+		vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
 	area := matrix.Vec4{0, 0, 1, 1}
 	region := vk.ImageBlit{}
 	region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
@@ -350,16 +346,16 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
 	vr.transitionImageLayout(img, vk.ImageLayoutTransferSrcOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), &cmd)
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	vk.CmdBlitImage(cmd.buffer, img.Image, img.Layout,
 		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
 		1, &region, vk.FilterNearest)
 	vr.transitionImageLayout(img, vk.ImageLayoutColorAttachmentOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), &cmd)
+		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
 	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), &cmd)
-	vr.cleanupCombined(&cmd)
+		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
+	vr.cleanupCombined(cmd)
 }
 
 func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGroup) {

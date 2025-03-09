@@ -88,5 +88,5 @@ func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.D
 	copyRegion := vk.BufferCopy{}
 	copyRegion.Size = size
 	vk.CmdCopyBuffer(cmd.buffer, srcBuffer, dstBuffer, 1, &copyRegion)
-	vr.endSingleTimeCommands(&cmd)
+	vr.endSingleTimeCommands(cmd)
 }

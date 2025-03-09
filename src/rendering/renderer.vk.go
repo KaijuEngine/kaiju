@@ -43,6 +43,7 @@ import (
 	"kaiju/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/pooling"
 	"kaiju/profiler/tracing"
 	"log/slog"
 	"math"
@@ -62,12 +63,6 @@ type vkSwapChainSupportDetails struct {
 	presentModes     []vk.PresentMode
 	formatCount      uint32
 	presentModeCount uint32
-}
-
-type commandWrite struct {
-	pool    vk.CommandPool
-	buffer  vk.CommandBuffer
-	destroy bool
 }
 
 type Vulkan struct {
@@ -107,9 +102,10 @@ type Vulkan struct {
 	dbg                        debugVulkan
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
-	writtenCommands            []commandWrite
-	transientCommands          []commandWrite
+	writtenCommands            []CommandRecorder
+	transientCommands          []CommandRecorder
 	delayWrittenCommands       bool
+	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 }
 
 func init() {
@@ -411,11 +407,11 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 	return true
 }
 
-func (vr *Vulkan) forceQueueCommand(cmd commandWrite) {
+func (vr *Vulkan) forceQueueCommand(cmd CommandRecorder) {
 	vr.writtenCommands = append(vr.writtenCommands, cmd)
 }
 
-func (vr *Vulkan) tryQueueCommand(cmd commandWrite) bool {
+func (vr *Vulkan) tryQueueCommand(cmd CommandRecorder) bool {
 	if vr.delayWrittenCommands {
 		vr.forceQueueCommand(cmd)
 		return true
@@ -427,11 +423,8 @@ func (vr *Vulkan) tryQueueCommand(cmd commandWrite) bool {
 func (vr *Vulkan) destroyTransientCommands() {
 	for i := range vr.transientCommands {
 		c := &vr.transientCommands[i]
-		if vr.transientCommands[i].destroy {
-			buff := c.buffer
-			vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
-			vk.DestroyCommandPool(vr.device, c.pool, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+		if c.pooled {
+			vr.singleTimeCommandPool.Remove(c.poolingId, c.elmId)
 		}
 	}
 	vr.transientCommands = vr.transientCommands[:0]
@@ -448,7 +441,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	}
 	defer func() {
 		vr.destroyTransientCommands()
-		vr.transientCommands = make([]commandWrite, len(vr.writtenCommands))
+		vr.transientCommands = make([]CommandRecorder, len(vr.writtenCommands))
 		copy(vr.transientCommands, vr.writtenCommands)
 		vr.writtenCommands = vr.writtenCommands[:0]
 	}()
@@ -511,8 +504,16 @@ func (vr *Vulkan) Destroy() {
 	vr.bufferTrash.Purge()
 	vr.destroyTransientCommands()
 	if vr.device != vk.NullDevice {
+		vr.singleTimeCommandPool.All(func(elm *CommandRecorder) {
+			if elm.buffer != vk.NullCommandBuffer {
+				buff := elm.buffer
+				vk.FreeCommandBuffers(vr.device, elm.pool, 1, &buff)
+				vk.DestroyCommandPool(vr.device, elm.pool, nil)
+				vr.dbg.remove(vk.TypeToUintPtr(elm.pool))
+			}
+		})
 		vr.defaultTexture = nil
-		for i := 0; i < maxFramesInFlight; i++ {
+		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
 			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)

@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"errors"
+	"kaiju/pooling"
 	"kaiju/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
@@ -52,7 +53,10 @@ const (
 type CommandRecorder struct {
 	buffer       vk.CommandBuffer
 	pool         vk.CommandPool
+	poolingId    pooling.PoolGroupId
+	elmId        pooling.PoolIndex
 	destroyOnEnd bool
+	pooled       bool
 }
 
 type CommandRecorderSecondary struct {
@@ -150,13 +154,19 @@ func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D
 	vk.CmdSetScissor(c.buffer, 0, 1, &scissor)
 }
 
-func (vr *Vulkan) beginSingleTimeCommands() CommandRecorder {
+func (vr *Vulkan) beginSingleTimeCommands() *CommandRecorder {
 	defer tracing.NewRegion("Vulkan::beginSingleTimeCommands").End()
-	cmd, _ := createCommandPoolBufferPair(vr, vk.CommandBufferLevelPrimary)
-	cmd.Begin()
-	if !vr.tryQueueCommand(commandWrite{cmd.pool, cmd.buffer, true}) {
-		cmd.destroyOnEnd = true
+	cmd, pool, elm := vr.singleTimeCommandPool.Add()
+	if cmd.buffer == vk.NullCommandBuffer {
+		*cmd, _ = createCommandPoolBufferPair(vr, vk.CommandBufferLevelPrimary)
+		cmd.poolingId = pool
+		cmd.elmId = elm
+		cmd.pooled = true
+	} else {
+		cmd.Reset()
 	}
+	cmd.Begin()
+	cmd.destroyOnEnd = !vr.tryQueueCommand(*cmd)
 	return cmd
 }
 
@@ -172,8 +182,6 @@ func (vr *Vulkan) endSingleTimeCommands(cmd *CommandRecorder) {
 		}
 		vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vk.Fence(vk.NullHandle))
 		vk.QueueWaitIdle(vr.graphicsQueue)
-		vk.FreeCommandBuffers(vr.device, cmd.pool, 1, &buff)
-		vk.DestroyCommandPool(vr.device, cmd.pool, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(cmd.pool))
+		vr.singleTimeCommandPool.Remove(cmd.poolingId, cmd.elmId)
 	}
 }

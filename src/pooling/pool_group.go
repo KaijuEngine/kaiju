@@ -76,6 +76,18 @@ func (p *PoolGroup[T]) Reserve(additionalElements int) {
 	}
 }
 
+// Each will iterate through every element, both active and inactive element in
+// the pool and supply it to the expression that was supplied to this function call
+func (p *PoolGroup[T]) All(each func(elm *T)) {
+	for i := range p.pools {
+		for j := range p.pools[i].elements {
+			each(&p.pools[i].elements[j])
+		}
+	}
+}
+
+// Each will iterate through each active element in the pool and supply it to
+// the expression that was supplied to this function call
 func (p *PoolGroup[T]) Each(each func(elm *T)) {
 	for i := range p.pools {
 		for j := range p.pools[i].takenLen {
