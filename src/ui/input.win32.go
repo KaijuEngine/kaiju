@@ -50,7 +50,7 @@ func (input *Input) internalCopyToClipboard() {
 
 func (input *Input) internalCutToClipboard() {
 	input.internalCopyToClipboard()
-	input.deleteSelection()
+	input.deleteSelection(false)
 }
 
 func (input *Input) internalPasteFromClipboard() {

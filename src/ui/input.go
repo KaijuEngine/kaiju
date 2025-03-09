@@ -385,7 +385,7 @@ func (input *Input) textRightOf(pos int, outLen *int) string {
 func (input *Input) InsertText(text string) {
 	data := input.InputData()
 	if len(text) > 0 {
-		input.deleteSelection()
+		input.deleteSelection(true)
 		ld := data.label.LabelData()
 		lhs := ld.text[:data.cursorOffset]
 		rhs := ld.text[data.cursorOffset:]
@@ -725,7 +725,7 @@ func cursorFit(layout *Layout) {
 	layout.Scale(cursorWidth, inputUI.Layout().PixelSize().Height()-5)
 }
 
-func (input *Input) deleteSelection() {
+func (input *Input) deleteSelection(skipEvent bool) {
 	data := input.InputData()
 	if data.selectStart != data.selectEnd {
 		sStart := data.selectStart
@@ -734,7 +734,7 @@ func (input *Input) deleteSelection() {
 		rhs := ld.text[data.selectEnd:]
 		str := lhs + rhs
 		input.moveCursor(sStart)
-		input.setText(str, false)
+		input.setText(str, skipEvent)
 		input.resetSelect()
 		input.hideHighlight()
 	}
@@ -744,11 +744,11 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 	data := input.InputData()
 	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
-		input.deleteSelection()
+		input.deleteSelection(false)
 	} else if kb.HasCtrl() {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
-		input.deleteSelection()
+		input.deleteSelection(false)
 	} else if len(ld.text) > 0 && data.cursorOffset > 0 {
 		lhs := ld.text[:data.cursorOffset-1]
 		rhs := ld.text[data.cursorOffset:]
@@ -762,11 +762,11 @@ func (input *Input) delete(kb *hid.Keyboard) {
 	data := input.InputData()
 	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
-		input.deleteSelection()
+		input.deleteSelection(false)
 	} else if kb.HasCtrl() {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
-		input.deleteSelection()
+		input.deleteSelection(false)
 	} else if data.cursorOffset < ld.textLength {
 		lhs := ld.text[:data.cursorOffset]
 		rhs := ld.text[data.cursorOffset+1:]
