@@ -102,7 +102,6 @@ func constructEditorUI(ed *Editor) {
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
 	ed.statusBar = status_bar.New(&ed.uiManager, ed.logWindow)
 	viewport_overlay.New(ed, &ed.uiManager)
-	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 	setupViewportGrid(ed)
 	{
 		// TODO:  Testing tools
@@ -110,6 +109,7 @@ func constructEditorUI(ed *Editor) {
 		ed.selection.Changed.Add(func() { ed.transformTool.Disable() })
 	}
 	ed.Host().DoneCreatingEditorEntities()
+	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 }
 
 func setupViewportGrid(ed *Editor) {
@@ -131,13 +131,24 @@ func setupViewportGrid(ed *Editor) {
 	}
 	grid := rendering.NewMeshGrid(host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
+	sd := &rendering.ShaderDataBasic{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
+	}
 	host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer: host.Window.Renderer,
-		Material: material,
-		Mesh:     grid,
-		ShaderData: &rendering.ShaderDataBasic{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.Color{0.5, 0.5, 0.5, 1},
-		},
+		Renderer:   host.Window.Renderer,
+		Material:   material,
+		Mesh:       grid,
+		ShaderData: sd,
+	})
+	ed.camera.OnModeChange.Add(func() {
+		m := matrix.Mat4Identity()
+		switch ed.camera.Mode() {
+		case controls.EditorCameraMode3d:
+			// Identity matrix is fine
+		case controls.EditorCameraMode2d:
+			m.RotateX(90)
+		}
+		sd.SetModel(m)
 	})
 }

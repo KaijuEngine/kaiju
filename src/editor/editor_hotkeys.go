@@ -38,7 +38,6 @@
 package editor
 
 import (
-	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/hid"
@@ -89,9 +88,5 @@ func checkHotkeys(ed *Editor) {
 		ed.transformTool.Enable(transform_tools.ToolStateScale)
 	} else if kb.KeyDown(hid.KeyboardKeyDelete) {
 		deleter.DeleteSelected(ed)
-	} else if kb.KeyDown(hid.KeyboardKey2) {
-		ed.camera.SetMode(controls.EditorCameraMode2d, ed.Host())
-	} else if kb.KeyDown(hid.KeyboardKey3) {
-		ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 	}
 }
