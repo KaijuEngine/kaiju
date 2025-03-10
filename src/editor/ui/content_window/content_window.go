@@ -48,7 +48,6 @@ import (
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/editor/ui/shader_designer"
-	"kaiju/engine/globals"
 	"kaiju/filesystem"
 	"kaiju/klib"
 	"kaiju/markup"
@@ -56,6 +55,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
+	"kaiju/windowing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -325,7 +325,7 @@ func (s *ContentWindow) resizeHover(e *document.Element) {
 }
 
 func (s *ContentWindow) resizeExit(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != s {
 		s.editor.Host().Window.CursorStandard()
 	}
@@ -333,11 +333,11 @@ func (s *ContentWindow) resizeExit(e *document.Element) {
 
 func (l *ContentWindow) resizeStart(e *document.Element) {
 	l.editor.Host().Window.CursorSizeNS()
-	globals.SetDragData(l)
+	windowing.SetDragData(l)
 }
 
 func (s *ContentWindow) resizeStop(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != s {
 		return
 	}
@@ -385,15 +385,15 @@ func (s *ContentWindow) entryDragStart(elm *document.Element) {
 	path := elm.Attribute("data-path")
 	host := s.editor.Host()
 	host.Window.CursorSizeAll()
-	globals.SetDragData(&drag_datas.FileIdDragData{path})
+	windowing.SetDragData(&drag_datas.FileIdDragData{path})
 	elm.EnforceColor(matrix.ColorPurple())
 	var eid events.Id
-	eid = globals.OnDragStop.Add(func() {
+	eid = windowing.OnDragStop.Add(func() {
 		if s.editor.IsMouseOverViewport() {
 			s.openContent(elm)
 		}
 		host.Window.CursorStandard()
-		globals.OnDragStop.Remove(eid)
+		windowing.OnDragStop.Remove(eid)
 		elm.UnEnforceColor()
 	})
 }

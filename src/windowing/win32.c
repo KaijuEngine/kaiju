@@ -57,6 +57,8 @@
 #include <windows.h>
 #include <windowsx.h>
 
+extern void goRaiseWindowEvent(void* hwnd, uint32_t msg);
+
 /*
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
@@ -120,6 +122,8 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_DESTROY:
 			if (sm != NULL) {
 				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+				goRaiseWindowEvent(hwnd, uMsg);
+				shared_memory_set_write_state(sm, SHARED_MEM_NONE);
 			}
 			PostQuitMessage(0);
 			return 0;
@@ -134,11 +138,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					break;
 			}
 			shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_ACTIVITY);
+			goRaiseWindowEvent(hwnd, uMsg);
+			shared_memory_set_write_state(sm, SHARED_MEM_NONE);
 			break;
 		case WM_MOVE:
-			sm->evt->move.x = (int)(short)LOWORD(lParam);
-			sm->evt->move.y = (int)(short)HIWORD(lParam);
-			shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_MOVE);
+			// TODO:  Should handle this better, but move is called on focus too
+			if (sm->evt->writeState != SHARED_MEM_WINDOW_ACTIVITY) {
+				sm->evt->move.x = (int)(short)LOWORD(lParam);
+				sm->evt->move.y = (int)(short)HIWORD(lParam);
+				shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_MOVE);
+				goRaiseWindowEvent(hwnd, uMsg);
+				shared_memory_set_write_state(sm, SHARED_MEM_NONE);
+			}
 			break;
 		case WM_SIZE:
 			if (sm != NULL) {
@@ -151,7 +162,16 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					sm->windowHeight = height;
 					sm->evt->resize.width = width;
 					sm->evt->resize.height = height;
+					RECT windowRect;
+					if (GetWindowRect(hwnd, &windowRect)) {
+						sm->evt->resize.left = windowRect.left;
+						sm->evt->resize.top = windowRect.top;
+						sm->evt->resize.right = windowRect.right;
+						sm->evt->resize.bottom = windowRect.bottom;
+					}
 					shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_RESIZE);
+					goRaiseWindowEvent(hwnd, uMsg);
+					shared_memory_set_write_state(sm, SHARED_MEM_NONE);
 				}
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);

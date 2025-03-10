@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define SHARED_MEM_NONE				0x00
 #define SHARED_MEM_WINDOW_ACTIVITY	0xF9
 #define SHARED_MEM_WINDOW_MOVE		0xFA
 #define SHARED_MEM_WINDOW_RESIZE	0xFB
@@ -86,6 +87,10 @@ typedef struct {
 typedef struct {
 	int32_t width;
 	int32_t height;
+	int32_t left;
+	int32_t top;
+	int32_t right;
+	int32_t bottom;
 } ResizeEvent;
 
 typedef struct {
@@ -132,6 +137,10 @@ typedef struct {
 	int size;
 	int windowWidth;
 	int windowHeight;
+	int windowLeft;
+	int windowTop;
+	int windowRight;
+	int windowBottom;
 } SharedMem;
 
 static inline void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {

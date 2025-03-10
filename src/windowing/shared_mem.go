@@ -87,6 +87,10 @@ type windowResizeEvent struct {
 	baseEvent
 	width  int32
 	height int32
+	left   int32
+	top    int32
+	right  int32
+	bottom int32
 }
 
 type windowMoveEvent struct {

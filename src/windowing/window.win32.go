@@ -63,21 +63,6 @@ import (
 #cgo noescape window_poll_controller
 #cgo noescape window_poll
 
-#cgo nocallback window_main
-#cgo nocallback window_show
-#cgo nocallback window_destroy
-#cgo nocallback window_cursor_standard
-#cgo nocallback window_cursor_ibeam
-#cgo nocallback window_dpi
-#cgo nocallback window_focus
-#cgo nocallback window_position
-#cgo nocallback window_set_position
-#cgo nocallback window_set_size
-#cgo nocallback window_remove_border
-#cgo nocallback window_add_border
-#cgo nocallback window_poll_controller
-#cgo nocallback window_poll
-
 #include "windowing.h"
 */
 import "C"
@@ -148,6 +133,21 @@ func (w *Window) showWindow(evtSharedMem *evtMem) {
 
 func (w *Window) destroy() {
 	C.window_destroy(w.handle)
+}
+
+//export goRaiseWindowEvent
+func goRaiseWindowEvent(hwnd unsafe.Pointer, msg uint32) {
+	var w *Window
+	for i := range activeWindows {
+		if activeWindows[i].handle == hwnd {
+			w = activeWindows[i]
+			break
+		}
+	}
+	if w == nil {
+		return
+	}
+	w.processEvent(asEventType(msg))
 }
 
 func (w *Window) poll() {

@@ -43,13 +43,13 @@ import (
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
-	"kaiju/engine/globals"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
+	"kaiju/windowing"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -496,7 +496,7 @@ func (d *Details) resizeHover(e *document.Element) {
 }
 
 func (d *Details) resizeExit(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != d {
 		d.editor.Host().Window.CursorStandard()
 	}
@@ -504,11 +504,11 @@ func (d *Details) resizeExit(e *document.Element) {
 
 func (d *Details) resizeStart(e *document.Element) {
 	d.editor.Host().Window.CursorSizeWE()
-	globals.SetDragData(d)
+	windowing.SetDragData(d)
 }
 
 func (d *Details) resizeStop(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != d {
 		return
 	}

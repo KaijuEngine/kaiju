@@ -2,13 +2,14 @@ package tab_container
 
 import (
 	"kaiju/engine"
-	"kaiju/engine/globals"
 	"kaiju/host_container"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/ui"
+	"kaiju/windowing"
 	"slices"
 	"weak"
 )
@@ -16,6 +17,7 @@ import (
 type TabContainerTab struct {
 	Label  string
 	parent weak.Pointer[TabContainer]
+	Doc    *document.Document
 }
 
 type TabContainer struct {
@@ -45,11 +47,13 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 }
 
 func (t *TabContainer) tabDragStart(e *document.Element) {
-	win := t.host.Window
-	globals.SetDragData(t.findTab(e.Attribute("id")))
-	win.CursorSizeAll()
+	windowing.SetDragData(t.findTab(e.Attribute("id")))
+	t.host.Window.CursorSizeAll()
 }
 
+func (t *TabContainer) tabDragEnd(e *document.Element) {
+	t.host.Window.CursorStandard()
+}
 func (t *TabContainer) tabDragEnter(e *document.Element) {
 	tex, err := t.host.TextureCache().Texture("textures/window_tab_drag_enter.png",
 		rendering.TextureFilterNearest)
@@ -67,7 +71,7 @@ func (t *TabContainer) tabDragLeave(e *document.Element) {
 }
 
 func (t *TabContainer) tabDrop(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	tab, ok := dd.(*TabContainerTab)
 	if !ok {
 		return
@@ -86,6 +90,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 		}
 		tab.parent = weak.Make(t)
 		lastParent.removeTab(tab)
+		lastParent.reload()
 	} else {
 		from := 0
 		to := 0
@@ -97,13 +102,35 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 			}
 		}
 		klib.SliceMove(t.Tabs, from, to)
-		t.reload()
+	}
+	t.reload()
+}
+
+func (t *TabContainer) tabDragEnterRoot(e *document.Element) {
+	p := e.UI.ToPanel()
+	if !p.HasEnforcedColor() { // Some weird bug stacking the colors?
+		e.UI.ToPanel().EnforceColor(matrix.ColorDarkGreen())
 	}
 }
 
-func (t *TabContainer) tabDragEnterRoot(*document.Element) {}
-func (t *TabContainer) tabDragLeaveRoot(*document.Element) {}
-func (t *TabContainer) tabDropRoot(*document.Element)      {}
+func (t *TabContainer) tabDragLeaveRoot(e *document.Element) {
+	e.UI.ToPanel().UnEnforceColor()
+}
+
+func (t *TabContainer) tabDropRoot(e *document.Element) {
+	e.UI.ToPanel().UnEnforceColor()
+	dd := windowing.DragData()
+	tab, ok := dd.(*TabContainerTab)
+	if !ok {
+		return
+	}
+	lastParent := tab.parent.Value()
+	tab.parent = weak.Make(t)
+	t.Tabs = append(t.Tabs, *tab)
+	t.reload()
+	lastParent.removeTab(tab)
+	lastParent.reload()
+}
 
 func (t *TabContainer) tabClick(*document.Element) {}
 
@@ -115,17 +142,18 @@ func (t *TabContainer) reload() {
 	t.doc, _ = markup.DocumentFromHTMLAsset(&t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
 		"tabDragStart":     t.tabDragStart,
-		"tabDragEnterRoot": t.tabDragEnterRoot,
-		"tabDragLeaveRoot": t.tabDragLeaveRoot,
+		"tabDragEnd":       t.tabDragEnd,
 		"tabDragEnter":     t.tabDragEnter,
 		"tabDragLeave":     t.tabDragLeave,
 		"tabDrop":          t.tabDrop,
+		"tabDragEnterRoot": t.tabDragEnterRoot,
+		"tabDragLeaveRoot": t.tabDragLeaveRoot,
 		"tabDropRoot":      t.tabDropRoot,
 	})
 }
 
 func New(tests []string) {
-	container := host_container.New("Tab Container", nil)
+	container := host_container.New("Tab Container "+tests[0], nil)
 	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
 	t := &TabContainer{
@@ -133,7 +161,7 @@ func New(tests []string) {
 	}
 	t.uiMan.Init(container.Host)
 	for i := range tests {
-		t.Tabs = append(t.Tabs, TabContainerTab{tests[i], weak.Make(t)})
+		t.Tabs = append(t.Tabs, TabContainerTab{tests[i], weak.Make(t), nil})
 	}
 	container.RunFunction(func() { t.reload() })
 }

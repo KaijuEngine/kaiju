@@ -40,13 +40,13 @@ package log_window
 import (
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/engine"
-	"kaiju/engine/globals"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/systems/logging"
 	"kaiju/ui"
+	"kaiju/windowing"
 	"slices"
 	"strconv"
 	"strings"
@@ -367,7 +367,7 @@ func (l *LogWindow) resizeHover(e *document.Element) {
 }
 
 func (l *LogWindow) resizeExit(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != l {
 		l.host.Window.CursorStandard()
 	}
@@ -375,11 +375,11 @@ func (l *LogWindow) resizeExit(e *document.Element) {
 
 func (l *LogWindow) resizeStart(e *document.Element) {
 	l.host.Window.CursorSizeNS()
-	globals.SetDragData(l)
+	windowing.SetDragData(l)
 }
 
 func (l *LogWindow) resizeStop(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != l {
 		return
 	}

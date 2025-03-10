@@ -10,10 +10,10 @@
 	</head>
 	<body>
 		<div class="fill darkBG clip">
-			<div id="tmp1" class="tabs" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
-				<div id="tmp2" class="tabsInner">
+			<div class="tabs">
+				<div class="tabsInner" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
 				{{range .Tabs}}
-					<div id="{{.Label}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop">{{.Label}}</div>
+					<div id="{{.Label}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
 				{{end}}
 				</div>
 			</div>

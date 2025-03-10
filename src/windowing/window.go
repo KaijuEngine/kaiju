@@ -48,6 +48,7 @@ import (
 	"kaiju/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/systems/events"
+	"slices"
 	"unsafe"
 )
 
@@ -80,22 +81,26 @@ const (
 var activeWindows []*Window
 
 type Window struct {
-	handle        unsafe.Pointer
-	instance      unsafe.Pointer
-	Mouse         hid.Mouse
-	Keyboard      hid.Keyboard
-	Touch         hid.Touch
-	Stylus        hid.Stylus
-	Controller    hid.Controller
-	Cursor        hid.Cursor
-	Renderer      rendering.Renderer
-	evtSharedMem  *evtMem
-	x, y          int
-	width, height int
-	isClosed      bool
-	isCrashed     bool
-	OnResize      events.Event
-	OnMove        events.Event
+	handle                   unsafe.Pointer
+	instance                 unsafe.Pointer
+	Mouse                    hid.Mouse
+	Keyboard                 hid.Keyboard
+	Touch                    hid.Touch
+	Stylus                   hid.Stylus
+	Controller               hid.Controller
+	Cursor                   hid.Cursor
+	Renderer                 rendering.Renderer
+	evtSharedMem             *evtMem
+	OnResize                 events.Event
+	OnMove                   events.Event
+	title                    string
+	x, y                     int
+	width, height            int
+	left, top, right, bottom int // Full window including title and borders
+	resetDragDataInFrames    int
+	isClosed                 bool
+	isCrashed                bool
+	dragDropForceMouseUp     bool
 }
 
 type FileSearch struct {
@@ -115,9 +120,10 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 		evtSharedMem: new(evtMem),
 		x:            x,
 		y:            y,
+		title:        windowName,
 	}
+	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	// TODO:  Pass in width and height
 	createWindow(windowName+"\x00\x00", w.width, w.height, x, y, w.evtSharedMem)
 	if w.evtSharedMem.IsFatal() {
 		return nil, errors.New(w.evtSharedMem.FatalMessage())
@@ -138,22 +144,31 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	}
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName, assets)
-	activeWindows = append(activeWindows, w)
+	w.x, w.y = w.position()
 	return w, err
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
 	for i := range activeWindows {
 		w := activeWindows[i]
-		if x >= w.x && x <= w.x+w.width && y >= w.y && y <= w.y+w.height {
-			// TODO:  Take into consideration the window Z order
+		if x >= w.left && x <= w.right && y >= w.top && y <= w.bottom {
 			return w, true
 		}
 	}
 	return nil, false
 }
 
-func (w *Window) ToScreenPosition(x, y int) (int, int) { return x + w.x, y + w.y }
+func (w *Window) ToScreenPosition(x, y int) (int, int) {
+	leftBorder := (w.right - w.left - w.width) / 2
+	topBorder := (w.bottom - w.top - w.height) - leftBorder // Borders are same?
+	return x + (w.x + leftBorder), y + (w.y + topBorder)
+}
+
+func (w *Window) ToLocalPosition(x, y int) (int, int) {
+	leftBorder := (w.right - w.left - w.width) / 2
+	topBorder := (w.bottom - w.top - w.height) - leftBorder // Borders are same?
+	return x - (w.x + leftBorder), y - (w.y + topBorder)
+}
 
 func (w *Window) PlatformWindow() unsafe.Pointer   { return w.cHandle() }
 func (w *Window) PlatformInstance() unsafe.Pointer { return w.cInstance() }
@@ -183,15 +198,27 @@ func (w *Window) processWindowEvent(evtType eventType) {
 		we := w.evtSharedMem.toWindowResizeEvent()
 		w.width = int(we.width)
 		w.height = int(we.height)
-		w.Renderer.Resize(w.width, w.height)
+		w.left = int(we.left)
+		w.top = int(we.top)
+		w.right = int(we.right)
+		w.bottom = int(we.bottom)
+		if w.Renderer != nil {
+			w.Renderer.Resize(w.width, w.height)
+		}
 		w.OnResize.Execute()
 	case evtMove:
 		we := w.evtSharedMem.toWindowMoveEvent()
 		// When a window is created at a specific position, windows will
 		// sometimes report a move to position of 0,0 for some reason.
 		if we.x != 0 || we.y != 0 {
+			ww := w.right - w.left
+			wh := w.bottom - w.top
 			w.x = int(we.x)
 			w.y = int(we.y)
+			w.left = w.x
+			w.top = w.y
+			w.right = w.x + ww
+			w.bottom = w.y + wh
 		}
 		w.OnMove.Execute()
 	case evtActivity:
@@ -210,10 +237,13 @@ func (w *Window) processMouseEvent(evtType eventType) {
 	case evtMouseMove:
 		me := w.evtSharedMem.toMouseEvent()
 		w.Mouse.SetPosition(float32(me.x), float32(me.y), float32(w.width), float32(w.height))
+		UpdateDragData(w, int(me.x), int(me.y))
 	case evtLeftMouseDown:
 		w.Mouse.SetDown(hid.MouseButtonLeft)
 	case evtLeftMouseUp:
 		w.Mouse.SetUp(hid.MouseButtonLeft)
+		w.resetDragDataInFrames = 2
+		UpdateDragDrop(w, int(w.Mouse.SX), int(w.Mouse.SY))
 	case evtMiddleMouseDown:
 		w.Mouse.SetDown(hid.MouseButtonMiddle)
 	case evtMiddleMouseUp:
@@ -295,6 +325,10 @@ func (w *Window) Poll() {
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
 	w.Cursor.Poll()
+	if w.dragDropForceMouseUp {
+		w.Mouse.SetUp(hid.MouseButtonLeft)
+		w.dragDropForceMouseUp = false
+	}
 }
 
 func (w *Window) EndUpdate() {
@@ -304,6 +338,13 @@ func (w *Window) EndUpdate() {
 	w.Touch.EndUpdate()
 	w.Stylus.EndUpdate()
 	w.Controller.EndUpdate()
+	if w.resetDragDataInFrames > 0 {
+		// We wait a number of frames to allow for cross-window communication
+		w.resetDragDataInFrames--
+		if w.resetDragDataInFrames == 0 {
+			SetDragData(nil)
+		}
+	}
 }
 
 func (w *Window) SwapBuffers() {
@@ -344,15 +385,20 @@ func (w *Window) CursorSizeWE()   { w.cursorSizeWE() }
 func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
+func (w *Window) removeFromActiveWindows() {
+	for i := range activeWindows {
+		if activeWindows[i] == w {
+			activeWindows = slices.Delete(activeWindows, i, i+1)
+			break
+		}
+	}
+}
+
 func (w *Window) Destroy() {
 	w.isClosed = true
 	w.Renderer.Destroy()
 	w.destroy()
-	for i := range activeWindows {
-		if activeWindows[i] == w {
-			activeWindows = klib.RemoveUnordered(activeWindows, i)
-		}
-	}
+	w.removeFromActiveWindows()
 }
 
 func (w *Window) Focus() {
@@ -397,4 +443,12 @@ func (w *Window) becameInactive() {
 
 func (w *Window) becameActive() {
 	w.cursorStandard()
+	idx := -1
+	for i := range activeWindows {
+		if activeWindows[i] == w {
+			idx = i
+			break
+		}
+	}
+	klib.SliceMove(activeWindows, idx, 0)
 }

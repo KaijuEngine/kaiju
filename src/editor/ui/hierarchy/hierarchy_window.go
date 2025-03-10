@@ -43,13 +43,13 @@ import (
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
-	"kaiju/engine/globals"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
+	"kaiju/windowing"
 	"log/slog"
 	"strings"
 )
@@ -261,7 +261,7 @@ func (h *Hierarchy) selectedEntity(elm *document.Element) {
 
 func (h *Hierarchy) drop(elm *document.Element) {
 	elm.UnEnforceColor()
-	from, ok := globals.DragData().(*drag_datas.EntityIdDragData)
+	from, ok := windowing.DragData().(*drag_datas.EntityIdDragData)
 	if !ok {
 		return
 	}
@@ -287,19 +287,19 @@ func (h *Hierarchy) drop(elm *document.Element) {
 func (h *Hierarchy) dragStart(elm *document.Element) {
 	id := engine.EntityId(elm.Attribute("id"))
 	h.host.Window.CursorSizeAll()
-	globals.SetDragData(&drag_datas.EntityIdDragData{id})
+	windowing.SetDragData(&drag_datas.EntityIdDragData{id})
 	elm.EnforceColor(matrix.ColorPurple())
 	var eid events.Id
-	eid = globals.OnDragStop.Add(func() {
+	eid = windowing.OnDragStop.Add(func() {
 		h.host.Window.CursorStandard()
-		globals.OnDragStop.Remove(eid)
+		windowing.OnDragStop.Remove(eid)
 		elm.UnEnforceColor()
 	})
 }
 
 func (h *Hierarchy) dragEnter(elm *document.Element) {
 	myId := engine.EntityId(elm.Attribute("id"))
-	if dd, ok := globals.DragData().(*drag_datas.EntityIdDragData); !ok {
+	if dd, ok := windowing.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
 		if myId != dd.EntityId {
@@ -310,7 +310,7 @@ func (h *Hierarchy) dragEnter(elm *document.Element) {
 
 func (h *Hierarchy) dragExit(elm *document.Element) {
 	myId := engine.EntityId(elm.Attribute("id"))
-	if dd, ok := globals.DragData().(*drag_datas.EntityIdDragData); !ok {
+	if dd, ok := windowing.DragData().(*drag_datas.EntityIdDragData); !ok {
 		return
 	} else {
 		if myId != dd.EntityId {
@@ -324,7 +324,7 @@ func (h *Hierarchy) resizeHover(e *document.Element) {
 }
 
 func (h *Hierarchy) resizeExit(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != h {
 		h.host.Window.CursorStandard()
 	}
@@ -332,11 +332,11 @@ func (h *Hierarchy) resizeExit(e *document.Element) {
 
 func (h *Hierarchy) resizeStart(e *document.Element) {
 	h.host.Window.CursorSizeWE()
-	globals.SetDragData(h)
+	windowing.SetDragData(h)
 }
 
 func (h *Hierarchy) resizeStop(e *document.Element) {
-	dd := globals.DragData()
+	dd := windowing.DragData()
 	if dd != h {
 		return
 	}

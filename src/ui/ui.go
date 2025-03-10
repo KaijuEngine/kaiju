@@ -349,7 +349,7 @@ func (ui *UI) eventUpdates() {
 	if cursor.Released() {
 		if ui.hovering {
 			ui.requestEvent(EventTypeUp)
-			if cursor.HasDragData() {
+			if windowing.HasDragData() {
 				ui.requestEvent(EventTypeDrop)
 			}
 		}
@@ -415,13 +415,13 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	if !ui.hovering && contained {
 		ui.hovering = true
 		ui.requestEvent(EventTypeEnter)
-		if cursor.HasDragData() {
+		if windowing.HasDragData() {
 			ui.requestEvent(EventTypeDropEnter)
 		}
 	} else if ui.hovering && !contained {
 		ui.hovering = false
 		ui.requestEvent(EventTypeExit)
-		if cursor.HasDragData() {
+		if windowing.HasDragData() {
 			ui.requestEvent(EventTypeDropExit)
 		}
 	}

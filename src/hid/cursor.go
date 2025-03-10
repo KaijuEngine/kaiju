@@ -38,7 +38,6 @@
 package hid
 
 import (
-	"kaiju/engine/globals"
 	"kaiju/matrix"
 )
 
@@ -122,16 +121,4 @@ func (c *Cursor) Position() matrix.Vec2 {
 	} else {
 		return c.mouse.Position()
 	}
-}
-
-func (c *Cursor) HasDragData() bool {
-	return globals.HasDragData()
-}
-
-func (c *Cursor) DragData() (any, bool) {
-	dd := globals.DragData()
-	if dd != nil {
-		return dd, true
-	}
-	return nil, false
 }

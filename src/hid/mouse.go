@@ -38,7 +38,6 @@
 package hid
 
 import (
-	"kaiju/engine/globals"
 	"kaiju/matrix"
 	"math"
 )
@@ -91,7 +90,6 @@ func (m *Mouse) EndUpdate() {
 	for i := 0; i < MouseButtonLast; i++ {
 		if m.buttonStates[i] == MouseRelease {
 			m.buttonStates[i] = MouseButtonStateInvalid
-			globals.SetDragData(nil)
 		} else if m.buttonStates[i] == MousePress {
 			m.buttonStates[i] = MouseRepeat
 			m.buttonChanged = true
@@ -111,10 +109,6 @@ func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32) {
 		m.CX = x - windowWidth/2.0
 		m.CY = windowHeight/2.0 - y
 		m.moved = true
-		dd := globals.DragData()
-		if dd != nil {
-			dd.DragUpdate()
-		}
 	}
 }
 
@@ -130,6 +124,10 @@ func (m *Mouse) SetUp(index int) {
 		m.buttonStates[index] = MouseRelease
 		m.buttonChanged = true
 	}
+}
+
+func (m *Mouse) ForceHeld(index int) {
+	m.buttonStates[index] = MouseRepeat
 }
 
 func (m Mouse) Pressed(index int) bool {
