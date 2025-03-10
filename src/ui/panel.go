@@ -252,6 +252,12 @@ func (p *Panel) onScroll() {
 		pd.offset = pd.scroll
 		delta.ScaleAssign(pd.scrollSpeed)
 	}
+	// If the panel can only scroll horizontally, use the Y scroll if there is no X
+	if pd.scrollDirection == PanelScrollDirectionHorizontal {
+		if matrix.ApproxTo(delta.X(), 0, matrix.Tiny) {
+			delta.SetX(-delta.Y())
+		}
+	}
 	if (pd.scrollDirection & PanelScrollDirectionHorizontal) != 0 {
 		x := matrix.Clamp(delta.X()+pd.offset.X(), 0.0, pd.maxScroll.X())
 		scroll.SetX(x)
@@ -435,9 +441,11 @@ func (p *Panel) panelPostLayoutUpdate() {
 	addY := p.layout.padding.Y() + p.layout.border.Y()
 	nextPos[matrix.Vy] += addY
 	maxSize[matrix.Vy] += addY
+	maxRowsX := matrix.Float(0)
 	for i := range rows {
-		rows[i].setElements(p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
+		rows[i].setElements(nextPos[matrix.Vx]+p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
 		addY = rows[i].height + rows[i].maxMarginTop + rows[i].maxMarginBottom
+		maxRowsX = max(maxRowsX, rows[i].x)
 		nextPos[matrix.Vy] += addY
 		maxSize[matrix.Vy] += addY
 	}
@@ -453,6 +461,8 @@ func (p *Panel) panelPostLayoutUpdate() {
 			p.layout.Scale(max(1, bounds.X()+border.Left()+border.Right()),
 				max(1, bounds.Y()+border.Top()+border.Bottom()))
 		}
+	} else {
+		bounds.SetX(maxRowsX)
 	}
 	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
@@ -616,6 +626,8 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)
 		}
 		p.man.Host.Drawings.AddDrawing(pd.drawing)
+	} else {
+		p.ensureBGExists(tex)
 	}
 }
 

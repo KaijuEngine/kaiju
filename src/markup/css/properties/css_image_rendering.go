@@ -54,6 +54,9 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 	switch values[0].Str {
 	case "crisp-edges":
 		tex := panel.Background()
+		if tex == nil {
+			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
+		}
 		if tex.Filter != rendering.TextureFilterLinear {
 			tex, err = host.TextureCache().Texture(tex.Key, rendering.TextureFilterLinear)
 			if err == nil {
@@ -62,6 +65,9 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 		}
 	case "pixelated":
 		tex := panel.Background()
+		if tex == nil {
+			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
+		}
 		if tex.Filter != rendering.TextureFilterNearest {
 			tex, err = host.TextureCache().Texture(tex.Key, rendering.TextureFilterNearest)
 			if err == nil {

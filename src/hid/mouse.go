@@ -38,8 +38,8 @@
 package hid
 
 import (
+	"kaiju/engine/globals"
 	"kaiju/matrix"
-	"kaiju/systems/events"
 	"math"
 )
 
@@ -60,18 +60,12 @@ const (
 	MouseButtonStateInvalid = -1
 )
 
-type DragData interface {
-	DragUpdate()
-}
-
 type Mouse struct {
 	X, Y             float32
 	SX, SY           float32
 	CX, CY           float32
 	ScrollX, ScrollY float32
 	buttonStates     [MouseButtonLast]int
-	OnDragStop       events.Event
-	dragData         DragData
 	moved            bool
 	buttonChanged    bool
 	scrollPending    bool
@@ -97,7 +91,7 @@ func (m *Mouse) EndUpdate() {
 	for i := 0; i < MouseButtonLast; i++ {
 		if m.buttonStates[i] == MouseRelease {
 			m.buttonStates[i] = MouseButtonStateInvalid
-			m.SetDragData(nil)
+			globals.SetDragData(nil)
 		} else if m.buttonStates[i] == MousePress {
 			m.buttonStates[i] = MouseRepeat
 			m.buttonChanged = true
@@ -117,8 +111,9 @@ func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32) {
 		m.CX = x - windowWidth/2.0
 		m.CY = windowHeight/2.0 - y
 		m.moved = true
-		if m.dragData != nil {
-			m.dragData.DragUpdate()
+		dd := globals.DragData()
+		if dd != nil {
+			dd.DragUpdate()
 		}
 	}
 }
@@ -198,15 +193,4 @@ func (m *Mouse) Reset() {
 			m.buttonStates[i] = MouseRelease
 		}
 	}
-}
-
-func (m Mouse) DragData() any {
-	return m.dragData
-}
-
-func (m *Mouse) SetDragData(data DragData) {
-	if m.dragData != nil {
-		m.OnDragStop.Execute()
-	}
-	m.dragData = data
 }

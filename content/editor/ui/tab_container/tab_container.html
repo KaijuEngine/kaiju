@@ -1,3 +1,7 @@
+{{define "tab"}}
+
+{{end}}
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -6,11 +10,20 @@
 	</head>
 	<body>
 		<div class="fill darkBG clip">
-			<div id="tcLeft">Snap left</div>
-			<div id="tcTop">Snap top</div>
-			<div id="tcRight">Snap right</div>
-			<div id="tcBottom">Snap bottom</div>
-			<div id="tcCenter">Add to this group</div>
+			<div id="tmp1" class="tabs" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
+				<div id="tmp2" class="tabsInner">
+				{{range .Tabs}}
+					<div id="{{.Label}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop">{{.Label}}</div>
+				{{end}}
+				</div>
+			</div>
+			<div class="snapAreas">
+				<div id="tcLeft" class="snapArea" group="snapArea"><div class="snapLabel">Snap left</div></div>
+				<div id="tcTop" class="snapArea" group="snapArea"><div class="snapLabel">Snap top</div></div>
+				<div id="tcRight" class="snapArea" group="snapArea"><div class="snapLabel">Snap right</div></div>
+				<div id="tcBottom" class="snapArea" group="snapArea"><div class="snapLabel">Snap bottom</div></div>
+				<div id="tcCenter" class="snapArea" group="snapArea"><div class="snapLabel">Add to this group</div></div>
+			</div>
 		</div>
 	</body>
 </html>

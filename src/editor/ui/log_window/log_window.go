@@ -40,6 +40,7 @@ package log_window
 import (
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/engine"
+	"kaiju/engine/globals"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -366,7 +367,7 @@ func (l *LogWindow) resizeHover(e *document.Element) {
 }
 
 func (l *LogWindow) resizeExit(e *document.Element) {
-	dd := l.host.Window.Mouse.DragData()
+	dd := globals.DragData()
 	if dd != l {
 		l.host.Window.CursorStandard()
 	}
@@ -374,11 +375,11 @@ func (l *LogWindow) resizeExit(e *document.Element) {
 
 func (l *LogWindow) resizeStart(e *document.Element) {
 	l.host.Window.CursorSizeNS()
-	l.host.Window.Mouse.SetDragData(l)
+	globals.SetDragData(l)
 }
 
 func (l *LogWindow) resizeStop(e *document.Element) {
-	dd := l.host.Window.Mouse.DragData()
+	dd := globals.DragData()
 	if dd != l {
 		return
 	}

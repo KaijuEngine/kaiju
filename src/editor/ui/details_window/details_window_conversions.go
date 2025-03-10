@@ -40,6 +40,7 @@ package details_window
 import (
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
+	"kaiju/engine/globals"
 	"kaiju/markup/document"
 	"reflect"
 	"strconv"
@@ -91,6 +92,6 @@ func toFloat(str string) float64 {
 }
 
 func entityDragData(host *engine.Host) (engine.EntityId, bool) {
-	dd, ok := host.Window.Mouse.DragData().(*drag_datas.EntityIdDragData)
+	dd, ok := globals.DragData().(*drag_datas.EntityIdDragData)
 	return dd.EntityId, ok
 }

@@ -56,6 +56,9 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 	}
 	if len(values) != 1 {
 		err = fmt.Errorf("Expected exactly 1 value but got %d", len(values))
+	} else if values[0].Str == "fit-content" {
+		panel.FitContentWidth()
+		return nil
 	} else {
 		width = helpers.NumFromLength(values[0].Str, host.Window)
 	}

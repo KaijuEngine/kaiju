@@ -95,3 +95,21 @@ func RemoveNils[S any](slice []*S) []*S {
 	}
 	return result
 }
+
+func SliceMove[S any](s []S, from, to int) {
+	if from == to {
+		return
+	} else if to == from-1 || to == from+1 {
+		s[to], s[from] = s[from], s[to]
+	} else if to < from {
+		a, b := to, from+1
+		temp := s[b-1]
+		copy(s[a+1:b], s[a:b-1])
+		s[a] = temp
+	} else if to > from {
+		a, b := from, to+1
+		temp := s[a]
+		copy(s[a:b-1], s[a+1:b])
+		s[b-1] = temp
+	}
+}

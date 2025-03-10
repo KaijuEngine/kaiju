@@ -1,11 +1,3 @@
-#tcLeft, #tcTop, #tcRight, #tcBottom, #tcCenter {
-	position: absolute;
-	border: 1px solid blue;
-	text-align: center;
-	color: white;
-	background-color: #003;
-	vertical-align: middle;
-}
 #tcLeft {
 	left: 0;
 	width: 20%;
@@ -33,4 +25,41 @@
 	top: 20%;
 	height: 60%;
 	width: 60%
+}
+.snapArea {
+	position: absolute;
+	border: 1px solid blue;
+	text-align: center;
+	color: white;
+	background-color: #003;
+	vertical-align: middle;
+	visibility: hidden;
+}
+.snapArea:hover {
+	background-color: #004;
+}
+.snapLabel {
+	width: 100%;
+	top: 50%;
+	transform: translateY(-50%);
+}
+.tabs {
+	width: 100%;
+	height: 20px;
+	overflow-x: scroll;
+	overflow-y: hidden;
+}
+.tab {
+	width: 66px;
+	height: 20px;
+	padding-left: 2px;
+	background-image: url("content/textures/window_tab.png");
+	image-rendering: pixelated;
+}
+.tabsInner {
+	width: 1000%;
+	height: 20px;
+}
+.tab:hover {
+	background-image: url("content/textures/window_tab_hover.png");
 }

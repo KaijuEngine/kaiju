@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
+	"kaiju/engine/globals"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -495,7 +496,7 @@ func (d *Details) resizeHover(e *document.Element) {
 }
 
 func (d *Details) resizeExit(e *document.Element) {
-	dd := d.editor.Host().Window.Mouse.DragData()
+	dd := globals.DragData()
 	if dd != d {
 		d.editor.Host().Window.CursorStandard()
 	}
@@ -503,11 +504,11 @@ func (d *Details) resizeExit(e *document.Element) {
 
 func (d *Details) resizeStart(e *document.Element) {
 	d.editor.Host().Window.CursorSizeWE()
-	d.editor.Host().Window.Mouse.SetDragData(d)
+	globals.SetDragData(d)
 }
 
 func (d *Details) resizeStop(e *document.Element) {
-	dd := d.editor.Host().Window.Mouse.DragData()
+	dd := globals.DragData()
 	if dd != d {
 		return
 	}

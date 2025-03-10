@@ -37,7 +37,10 @@
 
 package hid
 
-import "kaiju/matrix"
+import (
+	"kaiju/engine/globals"
+	"kaiju/matrix"
+)
 
 type Cursor struct {
 	mouse    *Mouse
@@ -122,12 +125,13 @@ func (c *Cursor) Position() matrix.Vec2 {
 }
 
 func (c *Cursor) HasDragData() bool {
-	return c.mouse.dragData != nil
+	return globals.HasDragData()
 }
 
 func (c *Cursor) DragData() (any, bool) {
-	if c.mouse.dragData != nil {
-		return c.mouse.dragData, true
+	dd := globals.DragData()
+	if dd != nil {
+		return dd, true
 	}
 	return nil, false
 }
