@@ -1,0 +1,55 @@
+package shader_designer // import "."
+
+
+FUNCTIONS
+
+func New()
+func OpenMaterial(path string)
+func OpenPipeline(path string)
+func OpenRenderPass(path string)
+func OpenShader(path string)
+func PreviewMaterial(path string)
+
+TYPES
+
+type DataUISection struct {
+	Name   string
+	Fields []DataUISectionField
+}
+
+type DataUISectionField struct {
+	Name     string
+	Type     string
+	List     []string
+	Value    any
+	Sections []DataUISection
+	RootPath string
+	TipKey   string
+}
+
+func (f DataUISectionField) DisplayName() string
+
+func (f DataUISectionField) FullPath() string
+
+func (f DataUISectionField) PascalToTitle(str string) string
+
+func (f DataUISectionField) ValueListHas(val string) bool
+
+type ShaderDesigner struct {
+	// Has unexported fields.
+}
+
+func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState)
+
+func (win *ShaderDesigner) ShowDesignerWindow()
+
+func (win *ShaderDesigner) ShowMaterialWindow()
+
+func (win *ShaderDesigner) ShowPipelineWindow()
+
+func (win *ShaderDesigner) ShowRenderPassWindow()
+
+func (win *ShaderDesigner) ShowShaderWindow()
+
+type ShaderDesignerState = int
+

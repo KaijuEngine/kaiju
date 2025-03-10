@@ -1,0 +1,13 @@
+package viewport_overlay // import "."
+
+
+FUNCTIONS
+
+func New(ed interfaces.Editor, uiMan *ui.Manager)
+
+TYPES
+
+type ViewportOverlay struct {
+	// Has unexported fields.
+}
+

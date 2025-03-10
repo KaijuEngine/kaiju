@@ -1,0 +1,32 @@
+package audio_system // import "."
+
+
+FUNCTIONS
+
+func Init() error
+func Pcm2Float(wav *Wav) []byte
+func PlayWav(wav *Wav)
+func Quit()
+func Rechannel(w *Wav, channels int16) []byte
+func Resample(w *Wav, sampleRate int32) []byte
+
+TYPES
+
+type Wav struct {
+	WavData []byte // Data at top because we need to align on 64-bit
+
+	FormatType WavFormat
+	Channels   int16
+	SampleRate int32
+
+	// Has unexported fields.
+}
+
+func LoadWav(assetDatabase *assets.Database, wavFile string) (*Wav, error)
+
+type WavFormat = int16
+
+const (
+	WavFormatPcm   WavFormat = 1
+	WavFormatFloat WavFormat = 3
+)

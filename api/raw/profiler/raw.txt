@@ -1,0 +1,11 @@
+package profiler // import "."
+
+
+FUNCTIONS
+
+func CleanupProfiler() error
+func ProfileCallWithDefaultProfiler(call func()) error
+func SetupConsole(host *engine.Host)
+func ShowDefaultProfilerInWeb() error
+func StartDefaultProfiler() error
+func StopDefaultProfiler()
