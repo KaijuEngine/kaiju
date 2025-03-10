@@ -44,6 +44,7 @@ import (
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"slices"
 )
 
 type CSSMap map[*ui.UI][]rules.Rule
@@ -87,6 +88,12 @@ func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Ho
 			proc(rules.RuleInvokeImmediate)
 		})
 	}
+	//if len(problems) > 0 {
+	//	slog.Error("There were errors during processing the document", "count", len(problems))
+	//	for i := range problems {
+	//		slog.Error(problems[i].Error())
+	//	}
+	//}
 	return problems
 }
 
@@ -158,10 +165,10 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 
 func cleanMapDuplicates(cssMap CSSMap) {
 	for k, v := range cssMap {
-		for i := range v {
+		for i := 0; i < len(v); i++ {
 			for j := i + 1; j < len(v); j++ {
 				if v[i].Property == v[j].Property && v[i].Invocation == v[j].Invocation {
-					v = append(v[:i], v[i+1:]...)
+					v = slices.Delete(v, i, i+1)
 					i--
 					break
 				}
