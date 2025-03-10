@@ -1,0 +1,19 @@
+package content_history // import "."
+
+
+TYPES
+
+type ModelOpen struct {
+	Host   *engine.Host
+	Entity *engine.Entity
+	Editor interfaces.Editor
+}
+
+func (h *ModelOpen) Delete()
+
+func (h *ModelOpen) Exit()
+
+func (h *ModelOpen) Redo()
+
+func (h *ModelOpen) Undo()
+

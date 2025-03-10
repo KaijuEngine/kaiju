@@ -1,0 +1,13 @@
+package project_window // import "."
+
+
+TYPES
+
+type ProjectWindow struct {
+	Selected chan string
+
+	// Has unexported fields.
+}
+
+func New(templatePath string, cx, cy int) (*ProjectWindow, error)
+

@@ -1,0 +1,21 @@
+package tab_container // import "."
+
+
+FUNCTIONS
+
+func New(tests []string)
+
+TYPES
+
+type TabContainer struct {
+	Tabs []TabContainerTab
+	// Has unexported fields.
+}
+
+type TabContainerTab struct {
+	Label string
+	// Has unexported fields.
+}
+
+func (t *TabContainerTab) DragUpdate()
+

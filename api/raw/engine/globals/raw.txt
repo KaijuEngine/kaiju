@@ -1,0 +1,19 @@
+package globals // import "."
+
+
+FUNCTIONS
+
+func HasDragData() bool
+func SetDragData(data DragDataTarget)
+
+TYPES
+
+type DragDataTarget interface {
+	DragUpdate()
+}
+
+var (
+	OnDragStop events.Event
+)
+func DragData() DragDataTarget
+

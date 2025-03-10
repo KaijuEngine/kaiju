@@ -1,0 +1,13 @@
+package tracing // import "."
+
+
+TYPES
+
+type TraceRegion struct {
+	// Has unexported fields.
+}
+
+func NewRegion(name string) TraceRegion
+
+func (t TraceRegion) End()
+

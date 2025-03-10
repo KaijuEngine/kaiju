@@ -1,0 +1,7 @@
+package stages // import "."
+
+
+FUNCTIONS
+
+func Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) error
+func SerializeEntity(stream io.Writer, entity *engine.Entity) error
