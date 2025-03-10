@@ -43,6 +43,7 @@ import (
 	"errors"
 	"kaiju/assets"
 	"kaiju/hid"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/profiler/tracing"
 	"kaiju/rendering"
@@ -75,6 +76,8 @@ const (
 	evtActivity
 	evtControllerStates
 )
+
+var activeWindows []*Window
 
 type Window struct {
 	handle        unsafe.Pointer
@@ -135,8 +138,22 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	}
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName, assets)
+	activeWindows = append(activeWindows, w)
 	return w, err
 }
+
+func FindWindowAtPoint(x, y int) (*Window, bool) {
+	for i := range activeWindows {
+		w := activeWindows[i]
+		if x >= w.x && x <= w.x+w.width && y >= w.y && y <= w.y+w.height {
+			// TODO:  Take into consideration the window Z order
+			return w, true
+		}
+	}
+	return nil, false
+}
+
+func (w *Window) ToScreenPosition(x, y int) (int, int) { return x + w.x, y + w.y }
 
 func (w *Window) PlatformWindow() unsafe.Pointer   { return w.cHandle() }
 func (w *Window) PlatformInstance() unsafe.Pointer { return w.cInstance() }
@@ -331,6 +348,11 @@ func (w *Window) Destroy() {
 	w.isClosed = true
 	w.Renderer.Destroy()
 	w.destroy()
+	for i := range activeWindows {
+		if activeWindows[i] == w {
+			activeWindows = klib.RemoveUnordered(activeWindows, i)
+		}
+	}
 }
 
 func (w *Window) Focus() {
