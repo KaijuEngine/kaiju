@@ -1,0 +1,36 @@
+#tcLeft, #tcTop, #tcRight, #tcBottom, #tcCenter {
+	position: absolute;
+	border: 1px solid blue;
+	text-align: center;
+	color: white;
+	background-color: #003;
+	vertical-align: middle;
+}
+#tcLeft {
+	left: 0;
+	width: 20%;
+	height: 100%;
+}
+#tcTop {
+	left: 20%;
+	top: 0;
+	height: 20%;
+	width: 60%
+}
+#tcRight {
+	right: 0;
+	width: 20%;
+	height: 100%;
+}
+#tcBottom {
+	left: 20%;
+	bottom: 0;
+	height: 20%;
+	width: 60%
+}
+#tcCenter {
+	left: 20%;
+	top: 20%;
+	height: 60%;
+	width: 60%
+}
