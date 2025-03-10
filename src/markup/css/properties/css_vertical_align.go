@@ -39,14 +39,30 @@ package properties
 
 import (
 	"errors"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
+	"kaiju/rendering"
 	"kaiju/ui"
 )
 
+// auto|baseline|bottom|middle|sub|super|text-bottom|text-top|top|initial|inherit
 func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("VerticalAlign not implemented")}
-
-	return problems[0]
+	if len(values) != 1 {
+		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
+	}
+	labels := childLabels(elm)
+	switch values[0].Str {
+	case "middle":
+		for _, l := range labels {
+			base := l.Base()
+			layout := base.Layout()
+			layout.AnchorTo(layout.Anchor().ConvertToLeft())
+			l.SetBaseline(rendering.FontBaselineCenter)
+		}
+		return nil
+	default:
+		return errors.New("VerticalAlign not implemented")
+	}
 }

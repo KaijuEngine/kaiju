@@ -46,18 +46,6 @@ import (
 	"kaiju/ui"
 )
 
-func childLabels(elm *document.Element) []*ui.Label {
-	labels := make([]*ui.Label, 0)
-	for _, c := range elm.Children {
-		if c.IsText() {
-			labels = append(labels, c.UI.ToLabel())
-		} else {
-			labels = append(labels, childLabels(c)...)
-		}
-	}
-	return labels
-}
-
 // left|right|center|justify|initial|inherit
 func (p TextAlign) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
