@@ -43,6 +43,7 @@ import (
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
 	"kaiju/ui"
+	"weak"
 )
 
 func sizeTexts(doc *document.Document, host *engine.Host) {
@@ -70,13 +71,13 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 			label.Base().Layout().AddFunction(updateSize)
 		}
 		height := e.UI.Layout().PixelSize().Y()
-		p := e.Parent
+		p := e.Parent.Value()
 		for p != nil && p.UIPanel != nil {
 			pPanel := p.UIPanel
 			if pPanel.FittingContentHeight() && pPanel.Base().Layout().PixelSize().Y() < height {
 				pPanel.Base().Layout().ScaleHeight(height)
 			}
-			p = p.Parent
+			p = p.Parent.Value()
 		}
 	}
 }
@@ -86,12 +87,27 @@ func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, fun
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap), nil
+	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil), nil
 }
 
-func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element)) *document.Document {
+func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error) {
+	m, err := uiMan.Host.AssetDatabase().ReadText(htmlPath)
+	if err != nil {
+		return nil, err
+	}
+	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root), nil
+}
+
+func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) *document.Document {
 	host := uiMan.Host
 	doc := document.DocumentFromHTMLString(uiMan, html, withData, funcMap)
+	if root != nil {
+		for i := range doc.TopElements {
+			root.UIPanel.AddChild(doc.TopElements[i].UI)
+			root.Children = append(root.Children, doc.TopElements[i])
+			doc.TopElements[i].Parent = weak.Make(root)
+		}
+	}
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS)
 	s.Parse(cssStr)

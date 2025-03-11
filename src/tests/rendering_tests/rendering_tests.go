@@ -282,7 +282,7 @@ func testHTML(uiMan *ui.Manager) {
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/test.html")
 	testCSS, _ := host.AssetDatabase().ReadText("ui/tests/test.css")
-	markup.DocumentFromHTMLString(uiMan, testHTML, testCSS, nil, events)
+	markup.DocumentFromHTMLString(uiMan, testHTML, testCSS, nil, events, nil)
 }
 
 func testHTMLBinding(uiMan *ui.Manager) {
@@ -293,7 +293,7 @@ func testHTMLBinding(uiMan *ui.Manager) {
 		EntityNames: []string{"Entity 1", "\tEntity 2", "\t\tEntity 3"},
 	}
 	testHTML, _ := host.AssetDatabase().ReadText("ui/tests/binding.html")
-	markup.DocumentFromHTMLString(uiMan, testHTML, "", demoData, nil)
+	markup.DocumentFromHTMLString(uiMan, testHTML, "", demoData, nil, nil)
 }
 
 func testLayoutSimple(uiMan *ui.Manager) {

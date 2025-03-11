@@ -153,8 +153,8 @@ func (s *ContentWindow) contentDblClick(elm *document.Element) {
 }
 
 func (s *ContentWindow) contentClick(elm *document.Element) {
-	for i := range elm.Parent.Children {
-		p := elm.Parent.Children[i].UIPanel
+	for i := range elm.Parent.Value().Children {
+		p := elm.Parent.Value().Children[i].UIPanel
 		p.UnEnforceColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())

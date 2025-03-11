@@ -14,13 +14,24 @@ import (
 	"weak"
 )
 
+type Snap = string
+
+const (
+	SnapCenter = Snap("center")
+	SnapLeft   = Snap("left")
+	SnapTop    = Snap("top")
+	SnapRight  = Snap("right")
+	SnapBottom = Snap("bottom")
+)
+
 type TabContainer struct {
 	host      *engine.Host
 	doc       *document.Document
-	Tabs      []TabContainerTab
 	activeTab int
-	uiMan     ui.Manager
+	uiMan     *ui.Manager
 	nextTabId int
+	Tabs      []TabContainerTab
+	Snap      string
 }
 
 func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
@@ -144,7 +155,7 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 	e.UI.ToPanel().UnEnforceColor()
 	dd := windowing.DragData()
 	tab, ok := dd.(*TabContainerTab)
-	if !ok {
+	if tab == nil || !ok {
 		return
 	}
 	lastParent := tab.parent.Value()
@@ -179,7 +190,8 @@ func (t *TabContainer) reload() {
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
-	t.doc, _ = markup.DocumentFromHTMLAsset(&t.uiMan, html, t, map[string]func(*document.Element){
+	t.host.CreatingEditorEntities()
+	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
 		"tabDragStart":     t.tabDragStart,
 		"tabDragEnd":       t.tabDragEnd,
@@ -189,24 +201,101 @@ func (t *TabContainer) reload() {
 		"tabDragEnterRoot": t.tabDragEnterRoot,
 		"tabDragLeaveRoot": t.tabDragLeaveRoot,
 		"tabDropRoot":      t.tabDropRoot,
+		"resizeHover":      t.resizeHover,
+		"resizeExit":       t.resizeExit,
+		"resizeStart":      t.resizeStart,
+		"resizeStop":       t.resizeStop,
 	})
 	root, _ := t.doc.GetElementById("tabContent")
-	t.Tabs[t.activeTab].loadDocument(root)
+	t.Tabs[t.activeTab].Reload(root)
+	t.host.DoneCreatingEditorEntities()
 }
 
-func New(name string, tabs []TabContainerTab) {
-	container := host_container.New(name, nil) // TODO:  Set the log stream
-	go container.Run(500, 300, -1, -1)
-	<-container.PrepLock
+func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *TabContainer {
 	t := &TabContainer{
-		host: container.Host,
+		host:  host,
+		uiMan: uiMan,
 	}
-	t.uiMan.Init(container.Host)
+	if t.uiMan == nil {
+		t.uiMan = &ui.Manager{}
+		t.uiMan.Init(host)
+	}
 	for i := range tabs {
 		tabs[i].parent = weak.Make(t)
 		t.nextTabId++
 		tabs[i].Id = t.nextTabId
 		t.Tabs = append(t.Tabs, tabs[i])
 	}
+	host.OnClose.Add(func() {
+		for i := range t.Tabs {
+			t.Tabs[i].Destroy()
+		}
+		t.doc.Destroy()
+	})
+	return t
+}
+
+func NewWindow(x, y int, tabs []TabContainerTab) *TabContainer {
+	container := host_container.New("Kaiju Engine Tools", nil) // TODO:  Set the log stream
+	go container.Run(500, 300, x, y)
+	<-container.PrepLock
+	t := newInternal(container.Host, nil, tabs)
 	container.RunFunction(func() { t.reload() })
+	return t
+}
+
+func New(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab, snap string) *TabContainer {
+	t := newInternal(host, uiMan, tabs)
+	t.Snap = snap
+	t.reload()
+	return t
+}
+
+func (t *TabContainer) ReloadTabs(name string) {
+	root, _ := t.doc.GetElementById("tabContent")
+	for i := range t.Tabs {
+		if t.Tabs[i].Label == name {
+			t.Tabs[i].Reload(root)
+		}
+	}
+}
+
+func (t *TabContainer) resizeHover(e *document.Element) {
+	t.host.Window.CursorSizeWE()
+}
+
+func (t *TabContainer) resizeExit(e *document.Element) {
+	dd := windowing.DragData()
+	if dd != t {
+		t.host.Window.CursorStandard()
+	}
+}
+
+func (t *TabContainer) resizeStart(e *document.Element) {
+	t.host.Window.CursorSizeWE()
+	windowing.SetDragData(t)
+}
+
+func (t *TabContainer) resizeStop(e *document.Element) {
+	dd := windowing.DragData()
+	if dd != t {
+		return
+	}
+	t.host.Window.CursorStandard()
+	//w, _ := h.doc.GetElementById("window")
+	//s := w.UIPanel.Base().Layout().PixelSize().Width()
+	//editor_cache.SetEditorConfigValue(sizeConfig, s)
+}
+
+func (t *TabContainer) DragUpdate() {
+	win, _ := t.doc.GetElementById("window")
+	x := max(50, t.host.Window.Mouse.Position().X())
+	w := t.host.Window.Width()
+	if int(x) < w-100 {
+		win.UIPanel.Base().Layout().ScaleWidth(x)
+	}
+	if t.activeTab >= 0 {
+		root, _ := t.doc.GetElementById("tabContent")
+		t.Tabs[t.activeTab].Reload(root)
+	}
 }

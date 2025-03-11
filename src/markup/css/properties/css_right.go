@@ -62,8 +62,8 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		case "initial":
 			return errors.New("right Not implemented [initial]")
 		case "inherit":
-			if elm.Parent != nil {
-				offset.SetRight(elm.Parent.UI.Layout().Offset().X())
+			if elm.Parent.Value() != nil {
+				offset.SetRight(elm.Parent.Value().UI.Layout().Offset().X())
 			}
 		default:
 			val := -helpers.NumFromLength(values[0].Str, host.Window)

@@ -65,7 +65,7 @@ func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules
 		case "initial":
 			panel.Base().Layout().SetPositioning(ui.PositioningStatic)
 		case "inherit":
-			if elm.Parent != nil {
+			if elm.Parent.Value() != nil {
 				panel.Base().Layout().SetPositioning(elm.UI.Layout().Positioning())
 			}
 		default:

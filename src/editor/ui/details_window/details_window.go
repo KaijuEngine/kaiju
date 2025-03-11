@@ -382,7 +382,7 @@ func (d *Details) changeName(input *document.Element) {
 	}
 	d.hierarchyReloading = true
 	d.editor.Host().RunAfterFrames(60, func() {
-		d.editor.Hierarchy().Reload()
+		d.editor.ReloadTabs("Hierarchy")
 		d.hierarchyReloading = false
 	})
 }

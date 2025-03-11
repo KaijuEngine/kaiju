@@ -48,7 +48,7 @@ func (h *duplicateHistory) Redo() {
 		}
 	}
 	h.editor.Selection().UntrackedClear()
-	h.editor.Hierarchy().Reload()
+	h.editor.ReloadTabs("Hierarchy")
 }
 
 func (h *duplicateHistory) Undo() {
@@ -56,7 +56,7 @@ func (h *duplicateHistory) Undo() {
 		e.EditorDelete()
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
-	h.editor.Hierarchy().Reload()
+	h.editor.ReloadTabs("Hierarchy")
 }
 
 func (h *duplicateHistory) Delete() {

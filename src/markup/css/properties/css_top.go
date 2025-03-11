@@ -60,8 +60,8 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 		case "auto":
 		case "initial":
 		case "inherit":
-			if elm.Parent != nil {
-				offset.SetTop(elm.Parent.UI.Layout().Offset().Y())
+			if elm.Parent.Value() != nil {
+				offset.SetTop(elm.Parent.Value().UI.Layout().Offset().Y())
 			}
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)

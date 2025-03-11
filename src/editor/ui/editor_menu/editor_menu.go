@@ -108,7 +108,7 @@ func New(container *host_container.Container,
 		"newTorus":                 m.newTorus,
 		"showEditorSettings":       m.showEditorSettings,
 	}
-	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap)
+	m.doc = markup.DocumentFromHTMLString(uiMan, html, "", nil, funcMap, nil)
 	allItems := m.doc.GetElementsByClass("menuItem")
 	for i := range allItems {
 		targetId := allItems[i].Attribute("data-target")

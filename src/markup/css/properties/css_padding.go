@@ -54,10 +54,10 @@ func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorC
 	if str == "initial" {
 		size = 0
 	} else if str == "inherit" {
-		if elm.Parent == nil {
+		if elm.Parent.Value() == nil {
 			size = 0
 		} else {
-			size = elm.Parent.UI.Layout().Padding()[idx]
+			size = elm.Parent.Value().UI.Layout().Padding()[idx]
 		}
 	} else {
 		size = helpers.NumFromLength(str, window)

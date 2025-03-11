@@ -151,7 +151,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			} else {
 				tagged := doc.GetElementsByTagName(part.Name)
 				for _, t := range tagged {
-					if t.Parent == elm {
+					if t.Parent.Value() == elm {
 						targets = append(targets, t)
 					}
 				}

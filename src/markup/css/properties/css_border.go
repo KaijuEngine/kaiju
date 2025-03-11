@@ -83,8 +83,8 @@ func borderStyleFromStr(str string, lrtb int, elm *document.Element) (ui.BorderS
 	} else if str == "initial" {
 		// TODO:  Based on tag
 		return ui.BorderStyleNone, true
-	} else if str == "inherit" && elm.Parent != nil {
-		return elm.Parent.UI.ToPanel().BorderStyle()[lrtb], true
+	} else if str == "inherit" && elm.Parent.Value() != nil {
+		return elm.Parent.Value().UI.ToPanel().BorderStyle()[lrtb], true
 	} else {
 		return ui.BorderStyleNone, false
 	}

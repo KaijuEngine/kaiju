@@ -126,7 +126,7 @@ func initialize(host *engine.Host) *Console {
 	console.uiMan.Init(host)
 	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
 	console.doc = markup.DocumentFromHTMLString(&console.uiMan,
-		string(consoleHTML), "", nil, nil)
+		string(consoleHTML), "", nil, nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
 		host.Updater.RemoveUpdate(console.updateId)

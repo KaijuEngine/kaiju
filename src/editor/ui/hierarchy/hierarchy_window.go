@@ -38,7 +38,6 @@
 package hierarchy
 
 import (
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/selection"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
@@ -66,6 +65,10 @@ type Hierarchy struct {
 	query                string
 	uiMan                *ui.Manager
 }
+
+func (h *Hierarchy) Document() *document.Document { return h.doc }
+func (h *Hierarchy) Destroy()                     { h.doc.Destroy() }
+func (h *Hierarchy) TabTitle() string             { return "Hierarchy" }
 
 type entityEntry struct {
 	Entity          *engine.Entity
@@ -95,12 +98,6 @@ func New(host *engine.Host, selection *selection.Selection,
 		ctxMenuSet: ctxMenuSet,
 		uiMan:      uiMan,
 	}
-	h.host.OnClose.Add(func() {
-		if h.doc != nil {
-			h.doc.Destroy()
-		}
-	})
-	h.Reload()
 	h.selection.Changed.Add(h.onSelectionChanged)
 	return h
 }
@@ -118,17 +115,11 @@ func (h *Hierarchy) Toggle() {
 }
 
 func (h *Hierarchy) Show() {
-	if h.doc == nil {
-		h.Reload()
-	} else {
-		h.doc.Activate()
-	}
+	h.doc.Activate()
 }
 
 func (h *Hierarchy) Hide() {
-	if h.doc != nil {
-		h.doc.Deactivate()
-	}
+	h.doc.Deactivate()
 }
 
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
@@ -170,11 +161,11 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 	return filtered
 }
 
-func (h *Hierarchy) Reload() {
-	isActive := false
+func (h *Hierarchy) Reload(root *document.Element) {
+	//isActive := false
 	focusInput := false
 	if h.doc != nil {
-		isActive = h.doc.Elements[0].UI.Entity().IsActive()
+		//isActive = h.doc.Elements[0].UI.Entity().IsActive()
 		focusInput = h.input.IsFocused()
 		h.doc.Destroy()
 	}
@@ -184,7 +175,7 @@ func (h *Hierarchy) Reload() {
 	}
 	host := h.host
 	host.CreatingEditorEntities()
-	h.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
+	h.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
 		h.uiMan, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.Element){
 			"selectedEntity": h.selectedEntity,
@@ -192,13 +183,9 @@ func (h *Hierarchy) Reload() {
 			"drop":           h.drop,
 			"dragEnter":      h.dragEnter,
 			"dragExit":       h.dragExit,
-			"resizeHover":    h.resizeHover,
-			"resizeExit":     h.resizeExit,
-			"resizeStart":    h.resizeStart,
-			"resizeStop":     h.resizeStop,
 			"entryCtxMenu":   h.entryCtxMenu,
 			"search":         h.submitSearch,
-		}))
+		}, root))
 	host.DoneCreatingEditorEntities()
 	if elm, ok := h.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the hierarchy`)
@@ -206,20 +193,23 @@ func (h *Hierarchy) Reload() {
 		h.input = elm.UI.ToInput()
 	}
 	h.doc.Clean()
-	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
-		w, _ := h.doc.GetElementById("window")
-		w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
-	}
-	if !isActive {
-		h.doc.Deactivate()
-	} else if focusInput {
+	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+	//	w, _ := h.doc.GetElementById("window")
+	//	w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
+	//}
+	//if !isActive {
+	//	h.doc.Deactivate()
+	//} else if focusInput {
+	//	h.input.Focus()
+	//}
+	if focusInput {
 		h.input.Focus()
 	}
 }
 
 func (h *Hierarchy) submit() {
 	h.query = strings.ToLower(strings.TrimSpace(h.input.Text()))
-	h.Reload()
+	h.Reload(h.doc.TopElements[0].Parent.Value())
 }
 
 func (h *Hierarchy) onSelectionChanged() {
@@ -271,13 +261,13 @@ func (h *Hierarchy) drop(elm *document.Element) {
 			to := engine.EntityId(toId)
 			if t, ok := h.host.FindEntity(to); ok {
 				f.SetParent(t)
-				h.Reload()
+				h.Reload(h.doc.TopElements[0].Parent.Value())
 			} else {
 				slog.Error("Could not find drop target entity", slog.String("id", string(to)))
 			}
 		} else {
 			f.SetParent(nil)
-			h.Reload()
+			h.Reload(h.doc.TopElements[0].Parent.Value())
 		}
 	} else {
 		slog.Error("Could not find drag entity", slog.String("id", string(from.EntityId)))
@@ -319,33 +309,6 @@ func (h *Hierarchy) dragExit(elm *document.Element) {
 	}
 }
 
-func (h *Hierarchy) resizeHover(e *document.Element) {
-	h.host.Window.CursorSizeWE()
-}
-
-func (h *Hierarchy) resizeExit(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != h {
-		h.host.Window.CursorStandard()
-	}
-}
-
-func (h *Hierarchy) resizeStart(e *document.Element) {
-	h.host.Window.CursorSizeWE()
-	windowing.SetDragData(h)
-}
-
-func (h *Hierarchy) resizeStop(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != h {
-		return
-	}
-	h.host.Window.CursorStandard()
-	w, _ := h.doc.GetElementById("window")
-	s := w.UIPanel.Base().Layout().PixelSize().Width()
-	editor_cache.SetEditorConfigValue(sizeConfig, s)
-}
-
 func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
 	eid := engine.EntityId(elm.Attribute("id"))
 	e, ok := h.host.FindEntity(eid)
@@ -360,13 +323,4 @@ func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
 
 func (h *Hierarchy) submitSearch(*document.Element) {
 	h.submit()
-}
-
-func (h *Hierarchy) DragUpdate() {
-	win, _ := h.doc.GetElementById("window")
-	x := h.host.Window.Mouse.Position().X()
-	w := h.host.Window.Width()
-	if int(x) < w-100 {
-		win.UIPanel.Base().Layout().ScaleWidth(x)
-	}
 }

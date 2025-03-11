@@ -56,7 +56,7 @@ func checkHotkeys(ed *Editor) {
 		} else if kb.KeyUp(hid.KeyboardKeyP) {
 			ed.selection.Parent(&ed.history)
 			ed.statusBar.SetMessage("Parented entities")
-			ed.hierarchy.Reload()
+			ed.ReloadTabs("Hierarchy")
 		} else if kb.KeyUp(hid.KeyboardKeyF5) {
 			ed.runProject(false)
 		}

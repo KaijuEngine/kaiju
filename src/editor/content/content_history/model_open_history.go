@@ -52,14 +52,14 @@ func (h *ModelOpen) Redo() {
 	e := h.Entity
 	e.EditorRestore(h.Editor.BVH())
 	h.Host.AddEntity(e)
-	h.Editor.Hierarchy().Reload()
+	h.Editor.ReloadTabs("Hierarchy")
 }
 
 func (h *ModelOpen) Undo() {
 	e := h.Entity
 	e.EditorDelete()
 	h.Host.RemoveEntity(e)
-	h.Editor.Hierarchy().Reload()
+	h.Editor.ReloadTabs("Hierarchy")
 }
 
 func (h *ModelOpen) Delete() {

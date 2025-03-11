@@ -454,10 +454,10 @@ func (d *Document) AddChildElement(parent *Element, elm *Element) {
 }
 
 func (d *Document) RemoveElement(elm *Element) {
-	if elm.Parent != nil {
-		for i, c := range elm.Parent.Children {
+	if elm.Parent.Value() != nil {
+		for i, c := range elm.Parent.Value().Children {
 			if c == elm {
-				elm.Parent.Children = slices.Delete(elm.Parent.Children, i, i+1)
+				elm.Parent.Value().Children = slices.Delete(elm.Parent.Value().Children, i, i+1)
 				break
 			}
 		}

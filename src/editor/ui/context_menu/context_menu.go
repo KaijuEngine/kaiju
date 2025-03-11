@@ -48,7 +48,7 @@ func (c *ContextMenu) reload() {
 		"selectEntry": c.selectEntry,
 		"clickMiss":   c.clickMiss,
 	}
-	c.doc = markup.DocumentFromHTMLString(c.uiMan, html, "", c.entries, funcMap)
+	c.doc = markup.DocumentFromHTMLString(c.uiMan, html, "", c.entries, funcMap, nil)
 	m, _ := c.doc.GetElementById("contextMenu")
 	c.container.Host.DoneCreatingEditorEntities()
 	ww := float32(c.container.Host.Window.Width())

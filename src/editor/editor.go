@@ -58,6 +58,7 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
+	"kaiju/editor/ui/tab_container"
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
@@ -101,6 +102,7 @@ type Editor struct {
 	runningProject *exec.Cmd
 	entityData     []codegen.GeneratedType
 	luaVMs         []*plugins.LuaVM
+	tabContainers  []*tab_container.TabContainer
 }
 
 func (e *Editor) Closed()                                        {}
@@ -122,6 +124,12 @@ func (e *Editor) Camera() *controls.EditorCamera                 { return &e.cam
 func (e *Editor) BVH() *collision.BVH { return e.bvh }
 
 func (e *Editor) RunOnHost(fn func()) { e.container.RunFunction(fn) }
+
+func (e *Editor) ReloadTabs(name string) {
+	for i := range e.tabContainers {
+		e.tabContainers[i].ReloadTabs(name)
+	}
+}
 
 func (e *Editor) BVHEntityUpdates(entities ...*engine.Entity) {
 	root := e.bvh
@@ -176,7 +184,7 @@ func (e *Editor) CreateEntity(name string) *engine.Entity {
 	entity.SetName(name)
 	e.Host().AddEntity(entity)
 	//e.selection.Set(entity)
-	e.hierarchy.Reload()
+	e.ReloadTabs("Hierarchy")
 	return entity
 }
 

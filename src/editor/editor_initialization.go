@@ -49,6 +49,7 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/project_window"
 	"kaiju/editor/ui/status_bar"
+	"kaiju/editor/ui/tab_container"
 	"kaiju/editor/ui/viewport_overlay"
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
@@ -81,8 +82,6 @@ func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 
 func waitForProjectSelectWindow(ed *Editor) (string, error) {
 	cx, cy := ed.Host().Window.Center()
-	//tab_container.New([]string{"Test 1", "Test 2", "Test 3"})
-	//tab_container.New([]string{"Test A", "Test B", "Test C"})
 	projectWindow, _ := project_window.New(projectTemplate, cx, cy)
 	projectPath := <-projectWindow.Selected
 	if projectPath == "" {
@@ -112,6 +111,12 @@ func constructEditorUI(ed *Editor) {
 	}
 	ed.Host().DoneCreatingEditorEntities()
 	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
+
+	hierarchyContainer := tab_container.New(ed.container.Host, &ed.uiManager,
+		[]tab_container.TabContainerTab{
+			tab_container.NewTab(ed.hierarchy),
+		}, tab_container.SnapLeft)
+	ed.tabContainers = append(ed.tabContainers, hierarchyContainer)
 }
 
 func setupViewportGrid(ed *Editor) {

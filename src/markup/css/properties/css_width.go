@@ -63,7 +63,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		width = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
-		if strings.HasSuffix(values[0].Str, "%") && elm.Parent != nil {
+		if strings.HasSuffix(values[0].Str, "%") && elm.Parent.Value() != nil {
 			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
 				if l.Ui().Entity().IsRoot() {
 					return

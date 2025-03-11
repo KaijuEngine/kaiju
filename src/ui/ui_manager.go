@@ -40,8 +40,9 @@ func (man *Manager) update(deltaTime float64) {
 	}
 	wg.Add(len(roots))
 	for i := range roots {
+		idx := i
 		go func() {
-			roots[i].cleanIfNeeded()
+			roots[idx].cleanIfNeeded()
 			waitForLimit <- struct{}{}
 			wg.Done()
 		}()
@@ -52,8 +53,9 @@ func (man *Manager) update(deltaTime float64) {
 	all := append(children, roots...)
 	wg.Add(len(all))
 	for i := range all {
+		idx := i
 		go func() {
-			all[i].updateFromManager(deltaTime)
+			all[idx].updateFromManager(deltaTime)
 			waitForLimit <- struct{}{}
 			wg.Done()
 		}()

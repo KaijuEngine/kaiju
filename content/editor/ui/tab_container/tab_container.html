@@ -1,5 +1,24 @@
-{{define "tab"}}
+{{define "tabs"}}
+<div class="tabs">
+	<div class="tabsInner" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
+	{{range .Tabs}}
+		<div id="{{.Id}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
+	{{end}}
+	</div>
+</div>
+<div id="tabContent"></div>
+{{end}}
 
+{{define "snapAreas"}}
+<!--
+<div class="snapAreas">
+	<div id="tcLeft" class="snapArea" group="snapArea"><div class="snapLabel">Snap left</div></div>
+	<div id="tcTop" class="snapArea" group="snapArea"><div class="snapLabel">Snap top</div></div>
+	<div id="tcRight" class="snapArea" group="snapArea"><div class="snapLabel">Snap right</div></div>
+	<div id="tcBottom" class="snapArea" group="snapArea"><div class="snapLabel">Snap bottom</div></div>
+	<div id="tcCenter" class="snapArea" group="snapArea"><div class="snapLabel">Add to this group</div></div>
+</div>
+-->
 {{end}}
 
 <!DOCTYPE html>
@@ -9,22 +28,19 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/tab_container/tab_container.css">
 	</head>
 	<body>
-		<div class="fill darkBG clip">
-			<div class="tabs">
-				<div class="tabsInner" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
-				{{range .Tabs}}
-					<div id="{{.Id}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
-				{{end}}
-				</div>
+		{{if eq .Snap "left"}}
+		<div id="window" class="fillLeft darkBG clip z1">
+			<div class="fillLeftRightContent">
+				{{template "tabs" .}}
+				{{template "snapAreas" .}}
 			</div>
-			<div id="tabContent"></div>
-			<div class="snapAreas">
-				<div id="tcLeft" class="snapArea" group="snapArea"><div class="snapLabel">Snap left</div></div>
-				<div id="tcTop" class="snapArea" group="snapArea"><div class="snapLabel">Snap top</div></div>
-				<div id="tcRight" class="snapArea" group="snapArea"><div class="snapLabel">Snap right</div></div>
-				<div id="tcBottom" class="snapArea" group="snapArea"><div class="snapLabel">Snap bottom</div></div>
-				<div id="tcCenter" class="snapArea" group="snapArea"><div class="snapLabel">Add to this group</div></div>
-			</div>
+			<div class="fillLeftRightResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
 		</div>
+		{{else}}
+		<div id="window" class="fill darkBG clip">
+			{{template "tabs" .}}
+			{{template "snapAreas" .}}
+		</div>
+		{{end}}
 	</body>
 </html>

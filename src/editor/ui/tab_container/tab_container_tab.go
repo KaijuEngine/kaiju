@@ -12,22 +12,19 @@ type TabContainerTab struct {
 	content TabContent
 }
 
-func NewTab(label string, content TabContent) TabContainerTab {
+func NewTab(content TabContent) TabContainerTab {
 	return TabContainerTab{
-		Label:   label,
+		Label:   content.TabTitle(),
 		content: content,
 	}
 }
 
 func (t *TabContainerTab) DragUpdate() {}
 
-func (t *TabContainerTab) loadDocument(root *document.Element) {
-	t.content.Reload()
-	doc := t.content.Document()
-	bodyPanel := root.UI.ToPanel()
-	for i := range doc.TopElements {
-		bodyPanel.AddChild(doc.TopElements[i].UI)
-	}
+func (t *TabContainerTab) Reload(root *document.Element) {
+	t.parent.Value().host.CreatingEditorEntities()
+	t.content.Reload(root)
+	t.parent.Value().host.DoneCreatingEditorEntities()
 }
 
 func (t *TabContainerTab) Destroy() { t.content.Destroy() }

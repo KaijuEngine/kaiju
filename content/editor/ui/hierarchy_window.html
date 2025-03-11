@@ -5,34 +5,31 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/hierarchy_window.css">
 	</head>
 	<body>
-		<div id="window" class="fillLeft darkBG noClipY z1">
-			<div class="fillLeftRightContent" ondrop="drop">
-				<div class="searchInput">
-					<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" onsubmit="search" onchange="search" />
-				</div>
-				<div id="list">
-					{{range .Entries}}
-						<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity" ondragstart="dragStart" ondrop="drop" ondragenter="dragEnter" ondragleave="dragExit" onrightclick="entryCtxMenu">
-							{{range count .Depth}}
-								<span class="indent"></span>
-							{{end}}
-							<!--{{if .Entity.HasChildren}}
-								{{if .ShowingChildren}}
-									<span class="arrow">V</span>
-								{{else}}
-									<span class="arrow">&gt;</span>
-								{{end}}
-							{{end}}-->
-							{{if .Entity.Name}}
-								<span>{{.Entity.Name}}</span>
-							{{else}}
-								<span>&lt;Unnamed&gt;</span>
-							{{end}}
-						</div>
-					{{end}}
-				</div>
+		<div class="fill darkBG noClipY" ondrop="drop">
+			<div class="searchInput">
+				<input id="searchInput" type="text" placeholder="Search..." value="{{.Query}}" onsubmit="search" onchange="search" />
 			</div>
-			<div class="fillLeftRightResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
+			<div id="list">
+				{{range .Entries}}
+					<div id="{{.Entity.Id}}" class="entry" onclick="selectedEntity" ondragstart="dragStart" ondrop="drop" ondragenter="dragEnter" ondragleave="dragExit" onrightclick="entryCtxMenu">
+						{{range count .Depth}}
+							<span class="indent"></span>
+						{{end}}
+						<!--{{if .Entity.HasChildren}}
+							{{if .ShowingChildren}}
+								<span class="arrow">V</span>
+							{{else}}
+								<span class="arrow">&gt;</span>
+							{{end}}
+						{{end}}-->
+						{{if .Entity.Name}}
+							<span>{{.Entity.Name}}</span>
+						{{else}}
+							<span>&lt;Unnamed&gt;</span>
+						{{end}}
+					</div>
+				{{end}}
+			</div>
 		</div>
 	</body>
 </html>

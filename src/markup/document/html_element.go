@@ -41,6 +41,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/ui"
 	"strings"
+	"weak"
 
 	"golang.org/x/net/html"
 )
@@ -48,7 +49,7 @@ import (
 type Element struct {
 	UI       *ui.UI
 	UIPanel  *ui.Panel
-	Parent   *Element
+	Parent   weak.Pointer[Element]
 	Children []*Element
 	node     *html.Node
 	attr     map[string]*html.Attribute
@@ -84,7 +85,7 @@ func setChildTextBackgroundColor(elm *Element, color matrix.Color) {
 }
 
 func (e *Element) IsText() bool {
-	return e.node.Type == html.TextNode && (e.Parent == nil || e.Parent.node.Data != "option")
+	return e.node.Type == html.TextNode && (e.Parent.Value() == nil || e.Parent.Value().node.Data != "option")
 }
 
 func (e *Element) IsButton() bool {
@@ -119,7 +120,7 @@ func createElement(node *html.Node) *Element {
 }
 
 func (e *Element) setParents(parent *Element) {
-	e.Parent = parent
+	e.Parent = weak.Make(parent)
 	for i := range e.Children {
 		e.Children[i].setParents(e)
 	}
@@ -143,17 +144,17 @@ func toElement(node *html.Node) *Element {
 }
 
 func (e *Element) Root() *Element {
-	if e.Parent == nil {
+	if e.Parent.Value() == nil {
 		return e
 	}
-	return e.Parent.Root()
+	return e.Parent.Value().Root()
 }
 
 func (e *Element) Html() *Element {
-	if e.Parent == nil {
+	if e.Parent.Value() == nil {
 		return e.Children[len(e.Children)-1]
 	}
-	return e.Parent.Html()
+	return e.Parent.Value().Html()
 }
 
 func (e *Element) Head() *Element {

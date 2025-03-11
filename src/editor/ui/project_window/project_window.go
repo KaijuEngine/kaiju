@@ -135,7 +135,7 @@ func (p *ProjectWindow) load() {
 		map[string]func(*document.Element){
 			"newProject":    p.newProject,
 			"selectProject": p.selectProject,
-		})
+		}, nil)
 }
 
 func New(templatePath string, cx, cy int) (*ProjectWindow, error) {

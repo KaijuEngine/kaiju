@@ -66,8 +66,8 @@ func (p Overflow) Process(panel *ui.Panel, elm *document.Element, values []rules
 			panel.Base().GenerateScissor()
 			panel.SetScrollDirection(ui.PanelScrollDirectionBoth)
 		case "inherit":
-			if elm.Parent != nil {
-				parentPanel := elm.Parent.UIPanel
+			if elm.Parent.Value() != nil {
+				parentPanel := elm.Parent.Value().UIPanel
 				panel.SetOverflow(parentPanel.Overflow())
 				panel.Base().GenerateScissor()
 				panel.SetScrollDirection(parentPanel.ScrollDirection())

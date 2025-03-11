@@ -52,7 +52,7 @@ func (h *deleteHistory) Redo() {
 		e.EditorDelete()
 	}
 	h.editor.Selection().UntrackedClear()
-	h.editor.Hierarchy().Reload()
+	h.editor.ReloadTabs("Hierarchy")
 }
 
 func (h *deleteHistory) Undo() {
@@ -60,7 +60,7 @@ func (h *deleteHistory) Undo() {
 		e.EditorRestore(h.editor.BVH())
 	}
 	h.editor.Selection().UntrackedAdd(h.entities...)
-	h.editor.Hierarchy().Reload()
+	h.editor.ReloadTabs("Hierarchy")
 }
 
 func (h *deleteHistory) Delete() {}

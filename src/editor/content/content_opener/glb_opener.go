@@ -39,7 +39,7 @@ func (o GlbOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 		Entity: e,
 		Editor: ed,
 	})
-	ed.Hierarchy().Reload()
+	ed.ReloadTabs("Hierarchy")
 	host.Window.Focus()
 	return nil
 }

@@ -62,8 +62,8 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		case "initial":
 			return errors.New("Left Not implemented [initial]")
 		case "inherit":
-			if elm.Parent != nil {
-				offset[matrix.Vx] += elm.Parent.UI.Layout().Offset().X()
+			if elm.Parent.Value() != nil {
+				offset[matrix.Vx] += elm.Parent.Value().UI.Layout().Offset().X()
 			}
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)

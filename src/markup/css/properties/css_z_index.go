@@ -52,10 +52,10 @@ func (p ZIndex) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 	} else {
 		val, _ := strconv.ParseFloat(values[0].Str, 64)
 		z := float32(val)
-		p := elm.Parent
+		p := elm.Parent.Value()
 		for p != nil && p.UI != nil {
 			z += p.UI.Layout().Z()
-			p = p.Parent
+			p = p.Parent.Value()
 		}
 		panel.Base().Layout().SetZ(z)
 		return nil
