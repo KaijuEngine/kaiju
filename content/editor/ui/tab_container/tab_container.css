@@ -55,6 +55,7 @@
 	padding-left: 2px;
 	background-image: url("content/textures/window_tab.png");
 	image-rendering: pixelated;
+	background-color: #1f1f1f;
 }
 .tabsInner {
 	width: 1000%;

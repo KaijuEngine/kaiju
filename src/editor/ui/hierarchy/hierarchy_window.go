@@ -67,8 +67,14 @@ type Hierarchy struct {
 }
 
 func (h *Hierarchy) Document() *document.Document { return h.doc }
-func (h *Hierarchy) Destroy()                     { h.doc.Destroy() }
 func (h *Hierarchy) TabTitle() string             { return "Hierarchy" }
+
+func (h *Hierarchy) Destroy() {
+	if h.doc != nil {
+		h.doc.Destroy()
+		h.doc = nil
+	}
+}
 
 type entityEntry struct {
 	Entity          *engine.Entity

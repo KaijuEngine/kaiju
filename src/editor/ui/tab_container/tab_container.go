@@ -10,9 +10,11 @@ import (
 	"kaiju/rendering"
 	"kaiju/ui"
 	"kaiju/windowing"
+	"log/slog"
 	"slices"
-	"strconv"
 	"weak"
+
+	"github.com/KaijuEngine/uuid"
 )
 
 type Snap = string
@@ -26,13 +28,14 @@ const (
 )
 
 type TabContainer struct {
-	host      *engine.Host
-	doc       *document.Document
-	activeTab int
-	uiMan     *ui.Manager
-	nextTabId int
-	Tabs      []TabContainerTab
-	Snap      string
+	host           *engine.Host
+	doc            *document.Document
+	activeTab      int
+	uiMan          *ui.Manager
+	Tabs           []TabContainerTab
+	Snap           string
+	closing        bool
+	usingOwnWindow bool
 }
 
 func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
@@ -46,7 +49,7 @@ func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
 
 func (t *TabContainer) tabIndex(id string) int {
 	for i := range t.Tabs {
-		if strconv.Itoa(t.Tabs[i].Id) == id {
+		if t.Tabs[i].Id == id {
 			return i
 		}
 	}
@@ -64,14 +67,19 @@ func (t *TabContainer) findTab(id string) *TabContainerTab {
 func (t *TabContainer) removeTab(tab *TabContainerTab) {
 	for i := range t.Tabs {
 		if &t.Tabs[i] == tab {
-			t.Tabs = slices.Delete(t.Tabs, i, i+1)
 			tab.Destroy()
+			t.Tabs = slices.Delete(t.Tabs, i, i+1)
 			if len(t.Tabs) == 0 {
 				t.doc.Destroy()
-				t.host.Close()
+				t.doc = nil
+				t.activeTab = -1
+				if t.usingOwnWindow {
+					t.host.Close()
+				}
+				t.closing = true
 			} else if i == t.activeTab {
 				if i == len(t.Tabs) {
-					i--
+					t.activeTab--
 				}
 			}
 			break
@@ -101,6 +109,18 @@ func (t *TabContainer) tabDragLeave(e *document.Element) {
 	if err == nil {
 		e.UI.ToPanel().SetBackground(tex)
 	}
+}
+
+func (t *TabContainer) resetTabTextures() {
+	// Fixes drop bug running to fast and swapping the texture to drag hover
+	t.host.RunAfterFrames(2, func() {
+		tabElms := t.doc.GetElementsByGroup("tabGroup")
+		for i := range tabElms {
+			t.tabDragLeave(tabElms[i])
+		}
+		inner, _ := t.doc.GetElementById("tabsInner")
+		inner.UI.ToPanel().UnEnforceColor()
+	})
 }
 
 func (t *TabContainer) tabDrop(e *document.Element) {
@@ -139,6 +159,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 		t.selectTab(to)
 	}
 	t.reload()
+	t.resetTabTextures()
 }
 
 func (t *TabContainer) tabDragEnterRoot(e *document.Element) {
@@ -167,9 +188,13 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 		lastParent.removeTab(tab)
 		lastParent.reload()
 	} else {
-		from := t.tabPtrIndex(tab)
-		klib.SliceMove(t.Tabs, from, len(t.Tabs)-1)
+		if from := t.tabPtrIndex(tab); from >= 0 {
+			klib.SliceMove(t.Tabs, from, len(t.Tabs)-1)
+		} else {
+			slog.Error("there was an issue with tab repartinging, now recovering...")
+		}
 	}
+	t.resetTabTextures()
 }
 
 func (t *TabContainer) selectTab(index int) {
@@ -194,6 +219,9 @@ func (t *TabContainer) tabClick(e *document.Element) {
 
 func (t *TabContainer) reload() {
 	const html = "editor/ui/tab_container/tab_container.html"
+	if t.closing {
+		return
+	}
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
@@ -229,15 +257,16 @@ func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *
 	}
 	for i := range tabs {
 		tabs[i].parent = weak.Make(t)
-		t.nextTabId++
-		tabs[i].Id = t.nextTabId
+		tabs[i].Id = uuid.New().String()
 		t.Tabs = append(t.Tabs, tabs[i])
 	}
 	host.OnClose.Add(func() {
 		for i := range t.Tabs {
 			t.Tabs[i].Destroy()
 		}
-		t.doc.Destroy()
+		if t.doc != nil {
+			t.doc.Destroy()
+		}
 	})
 	return t
 }
@@ -247,6 +276,7 @@ func NewWindow(x, y int, tabs []TabContainerTab) *TabContainer {
 	go container.Run(500, 300, x, y)
 	<-container.PrepLock
 	t := newInternal(container.Host, nil, tabs)
+	t.usingOwnWindow = true
 	container.RunFunction(func() { t.reload() })
 	return t
 }

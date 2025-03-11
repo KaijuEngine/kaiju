@@ -139,7 +139,13 @@ type entityDataField struct {
 
 func (d *Details) TabTitle() string             { return "Details" }
 func (d *Details) Document() *document.Document { return d.doc }
-func (d *Details) Destroy()                     { d.doc.Destroy() }
+
+func (d *Details) Destroy() {
+	if d.doc != nil {
+		d.doc.Destroy()
+		d.doc = nil
+	}
+}
 
 func (f *entityDataField) ValueAsEntityName() string {
 	dd, ok := f.Value.(*drag_datas.EntityIdDragData)

@@ -102,7 +102,13 @@ type LogWindow struct {
 
 func (l *LogWindow) TabTitle() string             { return "Log" }
 func (l *LogWindow) Document() *document.Document { return l.doc }
-func (l *LogWindow) Destroy()                     { l.doc.Destroy() }
+
+func (l *LogWindow) Destroy() {
+	if l.doc != nil {
+		l.doc.Destroy()
+		l.doc = nil
+	}
+}
 
 func New(host *engine.Host, logStream *logging.LogStream, uiMan *ui.Manager) *LogWindow {
 	l := &LogWindow{
@@ -171,18 +177,6 @@ func (l *LogWindow) Errors() []visibleMessage {
 
 func (l *LogWindow) isVisible() bool {
 	return l.doc != nil && l.doc.Elements[0].UI.Entity().IsActive()
-}
-
-func (l *LogWindow) Toggle() {
-	if l.doc == nil {
-		l.Show()
-	} else {
-		if l.doc.Elements[0].UI.Entity().IsActive() {
-			l.Hide()
-		} else {
-			l.Show()
-		}
-	}
 }
 
 func (l *LogWindow) Show() {

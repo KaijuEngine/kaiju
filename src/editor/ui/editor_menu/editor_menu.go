@@ -178,7 +178,7 @@ func openRepository(*document.Element) {
 }
 
 func (m *Menu) openLogWindow(*document.Element) {
-	m.logWindow.Show()
+	m.editor.ReloadOrOpenTab("Log")
 }
 
 func (m *Menu) openContentWindow(*document.Element) {

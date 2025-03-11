@@ -39,6 +39,7 @@ package properties
 
 import (
 	"fmt"
+	"kaiju/assets"
 	"kaiju/engine"
 	"kaiju/markup/css/helpers"
 	"kaiju/markup/css/rules"
@@ -59,6 +60,11 @@ func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
 func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Expected exactly 1 value but got %d", len(values))
+	}
+	// Images used for background are not colored
+	bg := elm.UI.ToPanel().Background()
+	if bg != nil && bg.Key != assets.TextureSquare {
+		return nil
 	}
 	var err error
 	var color matrix.Color

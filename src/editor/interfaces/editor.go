@@ -72,4 +72,5 @@ type Editor interface {
 	BVHEntityUpdates(entities ...*engine.Entity)
 	IsMouseOverViewport() bool
 	ReloadTabs(name string)
+	ReloadOrOpenTab(name string)
 }

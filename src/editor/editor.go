@@ -130,6 +130,12 @@ func (e *Editor) ReloadTabs(name string) {
 	}
 }
 
+func (e *Editor) ReloadOrOpenTab(name string) {
+	for i := range e.tabContainers {
+		e.tabContainers[i].ReloadTabs(name)
+	}
+}
+
 func (e *Editor) BVHEntityUpdates(entities ...*engine.Entity) {
 	root := e.bvh
 	for _, e := range entities {

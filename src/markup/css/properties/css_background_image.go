@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/markup/css/rules"
 	"kaiju/markup/document"
+	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/ui"
 	"regexp"
@@ -61,6 +62,7 @@ func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values 
 			return err
 		} else {
 			panel.SetBackground(tex)
+			panel.SetColor(matrix.ColorWhite())
 			return nil
 		}
 	}

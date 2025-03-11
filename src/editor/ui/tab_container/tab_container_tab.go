@@ -6,7 +6,7 @@ import (
 )
 
 type TabContainerTab struct {
-	Id      int
+	Id      string
 	Label   string
 	parent  weak.Pointer[TabContainer]
 	content TabContent

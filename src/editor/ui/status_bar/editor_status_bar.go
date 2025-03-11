@@ -38,7 +38,6 @@
 package status_bar
 
 import (
-	"kaiju/editor/ui/log_window"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
@@ -57,12 +56,12 @@ type StatusBar struct {
 	uiMan *ui.Manager
 }
 
-func New(uiMan *ui.Manager, logWindow *log_window.LogWindow) *StatusBar {
+func New(uiMan *ui.Manager, openLogWindow func()) *StatusBar {
 	const html = "editor/ui/status.html"
 	s := &StatusBar{}
 	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(uiMan, html, nil,
 		map[string]func(*document.Element){
-			"openLogWindow": func(*document.Element) { logWindow.Show() },
+			"openLogWindow": func(*document.Element) { openLogWindow() },
 		}))
 	m, _ := s.doc.GetElementById("msg")
 	l, _ := s.doc.GetElementById("log")

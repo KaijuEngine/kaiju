@@ -101,7 +101,9 @@ func constructEditorUI(ed *Editor) {
 		hierarchyContextMenuActions(ed), &ed.uiManager)
 	ed.menu = editor_menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
-	ed.statusBar = status_bar.New(&ed.uiManager, ed.logWindow)
+	ed.statusBar = status_bar.New(&ed.uiManager, func() {
+		ed.ReloadOrOpenTab("Log")
+	})
 	viewport_overlay.New(ed, &ed.uiManager)
 	setupViewportGrid(ed)
 	{
