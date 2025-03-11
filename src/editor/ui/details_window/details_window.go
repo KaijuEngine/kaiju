@@ -96,6 +96,7 @@ type Details struct {
 	doc                *document.Document
 	selectChangeId     events.Id
 	uiMan              *ui.Manager
+	root               *document.Element
 	viewData           detailsData
 	position           transformInputField
 	rotation           transformInputField
@@ -180,10 +181,9 @@ func (f *entityDataField) IsEntityId() bool {
 	return f.Pkg == "kaiju/engine" && f.Type == "EntityId"
 }
 
-func New(editor interfaces.Editor, uiMan *ui.Manager) *Details {
+func New(editor interfaces.Editor) *Details {
 	d := &Details{
 		editor: editor,
-		uiMan:  uiMan,
 	}
 	d.editor.Host().OnClose.Add(func() {
 		d.editor.Host().Updater.RemoveUpdate(d.updateId)
@@ -210,7 +210,7 @@ func (d *Details) Toggle() {
 
 func (d *Details) Show() {
 	if d.doc == nil {
-		d.Reload(d.doc.TopElements[0].Parent.Value())
+		d.Reload(d.uiMan, d.root)
 	} else {
 		d.doc.Activate()
 	}
@@ -226,7 +226,9 @@ func (d *Details) isActive() bool {
 	return d.doc.Elements[0].UI.Entity().IsActive()
 }
 
-func (d *Details) Reload(root *document.Element) {
+func (d *Details) Reload(uiMan *ui.Manager, root *document.Element) {
+	d.uiMan = uiMan
+	d.root = root
 	if d.doc != nil {
 		d.doc.Destroy()
 	}
@@ -281,7 +283,7 @@ func (d *Details) addData(*document.Element) {
 	e := d.editor.Selection().Entities()[0]
 	test := types[idx].New().Value
 	e.AddData(test)
-	d.Reload(d.doc.TopElements[0].Parent.Value())
+	d.Reload(d.uiMan, d.root)
 }
 
 func (d *Details) changeData(elm *document.Element) {
@@ -323,7 +325,7 @@ func (d *Details) onSelectionChanged() {
 		}
 	}
 	d.viewData.Count = count
-	d.Reload(d.doc.TopElements[0].Parent.Value())
+	d.Reload(d.uiMan, d.root)
 }
 
 func (d *Details) pullEntityData() []entityDataEntry {
@@ -458,7 +460,7 @@ func (d *Details) entityIdDrop(input *document.Element) {
 		return
 	}
 	v.Set(reflect.ValueOf(id))
-	d.Reload(d.doc.TopElements[0].Parent.Value())
+	d.Reload(d.uiMan, d.root)
 }
 
 func (d *Details) entityIdDragEnter(input *document.Element) {

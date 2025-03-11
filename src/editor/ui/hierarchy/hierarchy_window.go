@@ -64,6 +64,7 @@ type Hierarchy struct {
 	input                *ui.Input
 	query                string
 	uiMan                *ui.Manager
+	root                 *document.Element
 }
 
 func (h *Hierarchy) Document() *document.Document { return h.doc }
@@ -97,12 +98,11 @@ func (e entityEntry) Depth() int {
 }
 
 func New(host *engine.Host, selection *selection.Selection,
-	ctxMenuSet context_menu.ContextMenuSet, uiMan *ui.Manager) *Hierarchy {
+	ctxMenuSet context_menu.ContextMenuSet) *Hierarchy {
 	h := &Hierarchy{
 		host:       host,
 		selection:  selection,
 		ctxMenuSet: ctxMenuSet,
-		uiMan:      uiMan,
 	}
 	h.selection.Changed.Add(h.onSelectionChanged)
 	return h
@@ -155,11 +155,11 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 	return filtered
 }
 
-func (h *Hierarchy) Reload(root *document.Element) {
-	//isActive := false
+func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
+	h.uiMan = uiMan
+	h.root = root
 	focusInput := false
 	if h.doc != nil {
-		//isActive = h.doc.Elements[0].UI.Entity().IsActive()
 		focusInput = h.input.IsFocused()
 		h.doc.Destroy()
 	}
@@ -191,11 +191,6 @@ func (h *Hierarchy) Reload(root *document.Element) {
 	//	w, _ := h.doc.GetElementById("window")
 	//	w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
 	//}
-	//if !isActive {
-	//	h.doc.Deactivate()
-	//} else if focusInput {
-	//	h.input.Focus()
-	//}
 	if focusInput {
 		h.input.Focus()
 	}
@@ -203,7 +198,7 @@ func (h *Hierarchy) Reload(root *document.Element) {
 
 func (h *Hierarchy) submit() {
 	h.query = strings.ToLower(strings.TrimSpace(h.input.Text()))
-	h.Reload(h.doc.TopElements[0].Parent.Value())
+	h.Reload(h.uiMan, h.root)
 }
 
 func (h *Hierarchy) onSelectionChanged() {
@@ -249,19 +244,20 @@ func (h *Hierarchy) drop(elm *document.Element) {
 	if !ok {
 		return
 	}
+	windowing.UseDragData()
 	if f, ok := h.host.FindEntity(from.EntityId); ok {
 		toId := elm.Attribute("id")
 		if toId != "" {
 			to := engine.EntityId(toId)
 			if t, ok := h.host.FindEntity(to); ok {
 				f.SetParent(t)
-				h.Reload(h.doc.TopElements[0].Parent.Value())
+				h.Reload(h.uiMan, h.root)
 			} else {
 				slog.Error("Could not find drop target entity", slog.String("id", string(to)))
 			}
 		} else {
 			f.SetParent(nil)
-			h.Reload(h.doc.TopElements[0].Parent.Value())
+			h.Reload(h.uiMan, h.root)
 		}
 	} else {
 		slog.Error("Could not find drag entity", slog.String("id", string(from.EntityId)))

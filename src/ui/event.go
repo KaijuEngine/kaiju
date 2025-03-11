@@ -50,10 +50,10 @@ const (
 	EventTypeUp
 	EventTypeMiss
 	EventTypeDragStart
-	EventTypeDragEnd
 	EventTypeDrop
 	EventTypeDropEnter
 	EventTypeDropExit
+	EventTypeDragEnd
 	EventTypeScroll
 	EventTypeRebuild
 	EventTypeDestroy

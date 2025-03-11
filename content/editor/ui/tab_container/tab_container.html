@@ -2,7 +2,7 @@
 <div class="tabs">
 	<div id="tabsInner" class="tabsInner" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
 	{{range .Tabs}}
-		<div id="{{.Id}}" group="tabGroup" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
+		<div id="{{.Id}}" group="tabGroup" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop">{{.Label}}</div>
 	{{end}}
 	</div>
 </div>

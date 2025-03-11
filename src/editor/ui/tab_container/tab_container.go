@@ -8,9 +8,11 @@ import (
 	"kaiju/markup/document"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"kaiju/windowing"
 	"log/slog"
+	"math"
 	"slices"
 	"weak"
 
@@ -90,11 +92,29 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 func (t *TabContainer) tabDragStart(e *document.Element) {
 	windowing.SetDragData(t.findTab(e.Attribute("id")))
 	t.host.Window.CursorSizeAll()
+	// We don't need to remove this because the event clears after removal
+	windowing.OnDragStop.Add(func() { t.tabDragEnd(e) })
 }
 
 func (t *TabContainer) tabDragEnd(e *document.Element) {
+	if !windowing.IsDragDataUsed() {
+		dd := windowing.UseDragData()
+		tab, ok := dd.(*TabContainerTab)
+		if !ok {
+			return
+		}
+		sp := t.host.Window.Mouse.ScreenPosition()
+		tab.Destroy()
+		copy := *tab
+		copy.parent = weak.Pointer[TabContainer]{}
+		t.removeTab(tab)
+		t.reload()
+		x, y := t.host.Window.ToScreenPosition(int(sp.X()), int(sp.Y()))
+		NewWindow(x, y, []TabContainerTab{copy}, t.host.LogStream)
+	}
 	t.host.Window.CursorStandard()
 }
+
 func (t *TabContainer) tabDragEnter(e *document.Element) {
 	tex, err := t.host.TextureCache().Texture("textures/window_tab_drag_enter.png",
 		rendering.TextureFilterNearest)
@@ -124,7 +144,7 @@ func (t *TabContainer) resetTabTextures() {
 }
 
 func (t *TabContainer) tabDrop(e *document.Element) {
-	dd := windowing.DragData()
+	dd := windowing.UseDragData()
 	tab, ok := dd.(*TabContainerTab)
 	if !ok {
 		return
@@ -175,7 +195,7 @@ func (t *TabContainer) tabDragLeaveRoot(e *document.Element) {
 
 func (t *TabContainer) tabDropRoot(e *document.Element) {
 	e.UI.ToPanel().UnEnforceColor()
-	dd := windowing.DragData()
+	dd := windowing.UseDragData()
 	tab, ok := dd.(*TabContainerTab)
 	if tab == nil || !ok {
 		return
@@ -185,8 +205,10 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 	if lastParent != t {
 		t.Tabs = append(t.Tabs, *tab)
 		t.reload()
-		lastParent.removeTab(tab)
-		lastParent.reload()
+		if lastParent != nil {
+			lastParent.removeTab(tab)
+			lastParent.reload()
+		}
 	} else {
 		if from := t.tabPtrIndex(tab); from >= 0 {
 			klib.SliceMove(t.Tabs, from, len(t.Tabs)-1)
@@ -194,6 +216,7 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 			slog.Error("there was an issue with tab repartinging, now recovering...")
 		}
 	}
+	t.selectTab(len(t.Tabs) - 1)
 	t.resetTabTextures()
 }
 
@@ -208,7 +231,7 @@ func (t *TabContainer) selectTab(index int) {
 	a := &t.Tabs[t.activeTab]
 	if a.content.Document() == nil {
 		root, _ := t.doc.GetElementById("tabContent")
-		a.Reload(root)
+		a.Reload(t.uiMan, root)
 	}
 	t.Tabs[t.activeTab].Show()
 }
@@ -229,7 +252,6 @@ func (t *TabContainer) reload() {
 	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
 		"tabDragStart":     t.tabDragStart,
-		"tabDragEnd":       t.tabDragEnd,
 		"tabDragEnter":     t.tabDragEnter,
 		"tabDragLeave":     t.tabDragLeave,
 		"tabDrop":          t.tabDrop,
@@ -242,7 +264,7 @@ func (t *TabContainer) reload() {
 		"resizeStop":       t.resizeStop,
 	})
 	root, _ := t.doc.GetElementById("tabContent")
-	t.Tabs[t.activeTab].Reload(root)
+	t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	t.host.DoneCreatingEditorEntities()
 }
 
@@ -257,7 +279,9 @@ func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *
 	}
 	for i := range tabs {
 		tabs[i].parent = weak.Make(t)
-		tabs[i].Id = uuid.New().String()
+		if tabs[i].Id == "" {
+			tabs[i].Id = uuid.New().String()
+		}
 		t.Tabs = append(t.Tabs, tabs[i])
 	}
 	host.OnClose.Add(func() {
@@ -271,13 +295,19 @@ func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *
 	return t
 }
 
-func NewWindow(x, y int, tabs []TabContainerTab) *TabContainer {
-	container := host_container.New("Kaiju Engine Tools", nil) // TODO:  Set the log stream
-	go container.Run(500, 300, x, y)
+func NewWindow(x, y int, tabs []TabContainerTab, logStream *logging.LogStream) *TabContainer {
+	const w = 500
+	const h = 300
+	container := host_container.New("Kaiju Engine Tools", logStream)
+	x = klib.Clamp(x-w/2, 0, math.MaxInt32)
+	y = klib.Clamp(y-h/2, 0, math.MaxInt32)
+	go container.Run(w, h, x, y)
 	<-container.PrepLock
 	t := newInternal(container.Host, nil, tabs)
 	t.usingOwnWindow = true
 	container.RunFunction(func() { t.reload() })
+	container.Host.Window.Focus()
+	t.selectTab(0)
 	return t
 }
 
@@ -292,7 +322,7 @@ func (t *TabContainer) ReloadTabs(name string) {
 	root, _ := t.doc.GetElementById("tabContent")
 	for i := range t.Tabs {
 		if t.Tabs[i].Label == name {
-			t.Tabs[i].Reload(root)
+			t.Tabs[i].Reload(t.uiMan, root)
 		}
 	}
 }
@@ -374,6 +404,6 @@ func (t *TabContainer) DragUpdate() {
 	}
 	if t.activeTab >= 0 {
 		root, _ := t.doc.GetElementById("tabContent")
-		t.Tabs[t.activeTab].Reload(root)
+		t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	}
 }

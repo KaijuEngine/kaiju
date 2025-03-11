@@ -93,12 +93,12 @@ func waitForProjectSelectWindow(ed *Editor) (string, error) {
 
 func constructEditorUI(ed *Editor) {
 	ed.Host().CreatingEditorEntities()
-	ed.logWindow = log_window.New(ed.Host(), ed.Host().LogStream, &ed.uiManager)
+	ed.logWindow = log_window.New(ed.Host(), ed.Host().LogStream)
 	ed.contentWindow = content_window.New(&ed.contentOpener, ed, &ed.uiManager)
-	ed.detailsWindow = details_window.New(ed, &ed.uiManager)
+	ed.detailsWindow = details_window.New(ed)
 	ed.contextMenu = context_menu.New(ed.container, &ed.uiManager)
 	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
-		hierarchyContextMenuActions(ed), &ed.uiManager)
+		hierarchyContextMenuActions(ed))
 	ed.menu = editor_menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
 	ed.statusBar = status_bar.New(&ed.uiManager, func() {

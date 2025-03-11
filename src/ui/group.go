@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/bitmap"
 	"kaiju/engine"
 	"log/slog"
 	"sort"
@@ -136,27 +135,33 @@ func (group *Group) lateUpdate() {
 		sort.Slice(group.requests, func(i, j int) bool {
 			return sortRequests(&group.requests[i], &group.requests[j])
 		})
-		available := bitmap.NewTrue(EventTypeEnd)
-		for i := 0; i < len(group.requests); i++ {
-			req := &group.requests[i]
-			if bitmap.Check(available, req.eventType) {
-				shouldContinue := true
-				switch req.eventType {
-				case EventTypeEnter, EventTypeExit, EventTypeMiss,
-					EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
-					EventTypeSubmit:
-					req.target.ExecuteEvent(req.eventType)
-				case EventTypeClick, EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
-					EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
-					EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
-					if req.target.ExecuteEvent(req.eventType) {
-						shouldContinue = false
+		requestSets := [EventTypeEnd][]groupRequest{}
+		for i := range group.requests {
+			r := &group.requests[i]
+			requestSets[r.eventType] = append(requestSets[r.eventType], *r)
+		}
+		for i := range requestSets {
+			g := requestSets[i]
+			shouldContinue := true
+			for j := range g {
+				req := &g[j]
+				if shouldContinue {
+					switch req.eventType {
+					case EventTypeEnter, EventTypeExit, EventTypeMiss,
+						EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
+						EventTypeSubmit:
+						req.target.ExecuteEvent(req.eventType)
+					case EventTypeClick, EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
+						EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
+						EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
+						if req.target.ExecuteEvent(req.eventType) {
+							shouldContinue = false
+						}
+					default:
+						slog.Error("Invalid UI event type")
+						return
 					}
-				default:
-					slog.Error("Invalid UI event type")
-					return
 				}
-				available.Assign(req.eventType, shouldContinue)
 			}
 		}
 		group.requests = group.requests[:0]

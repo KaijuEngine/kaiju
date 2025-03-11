@@ -101,7 +101,8 @@ type Window struct {
 	isClosed                 bool
 	isCrashed                bool
 	cursorChangeCount        int
-	dragDropForceMouseUp     bool
+	windowSync               chan struct{}
+	syncRequest              bool
 }
 
 type FileSearch struct {
@@ -122,6 +123,7 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 		x:            x,
 		y:            y,
 		title:        windowName,
+		windowSync:   make(chan struct{}),
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
@@ -147,6 +149,10 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	w.Renderer, err = selectRenderer(w, windowName, assets)
 	w.x, w.y = w.position()
 	return w, err
+}
+
+func (w *Window) requestSync() {
+	w.syncRequest = true
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -324,14 +330,15 @@ func (w *Window) processControllerEvent(evtType eventType) {
 
 func (w *Window) Poll() {
 	defer tracing.NewRegion("Window::Poll").End()
+	if w.syncRequest {
+		w.windowSync <- struct{}{}
+		<-w.windowSync
+		w.syncRequest = false
+	}
 	w.poll()
 	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
 	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
 	w.Cursor.Poll()
-	if w.dragDropForceMouseUp {
-		w.Mouse.SetUp(hid.MouseButtonLeft)
-		w.dragDropForceMouseUp = false
-	}
 }
 
 func (w *Window) EndUpdate() {

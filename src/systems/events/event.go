@@ -58,6 +58,11 @@ func (e *Event) Add(call func()) Id {
 	return id
 }
 
+func (e *Event) Clear() {
+	e.calls = e.calls[:0]
+	e.nextId = 0
+}
+
 func (e *Event) Remove(id Id) {
 	for i := range e.calls {
 		if e.calls[i].id == id {

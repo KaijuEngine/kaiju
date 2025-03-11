@@ -88,7 +88,6 @@ func newVisibleMessage(msg string, trace []string, cat string) visibleMessage {
 
 type LogWindow struct {
 	doc        *document.Document
-	host       *engine.Host
 	Group      viewGroup
 	all        []visibleMessage
 	lastReload engine.FrameId
@@ -96,6 +95,7 @@ type LogWindow struct {
 	infoEvtId  logging.EventId
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
+	root       *document.Element
 	uiMan      *ui.Manager
 	mutex      sync.Mutex
 }
@@ -110,13 +110,11 @@ func (l *LogWindow) Destroy() {
 	}
 }
 
-func New(host *engine.Host, logStream *logging.LogStream, uiMan *ui.Manager) *LogWindow {
+func New(host *engine.Host, logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
 		all:        make([]visibleMessage, 0),
 		logStream:  logStream,
-		host:       host,
-		uiMan:      uiMan,
 	}
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.add(msg, nil, "info")
@@ -140,7 +138,7 @@ func (l *LogWindow) add(msg string, trace []string, cat string) {
 	defer l.mutex.Unlock()
 	l.all = append(l.all, newVisibleMessage(msg, trace, cat))
 	if l.isVisible() {
-		l.Reload(l.doc.TopElements[0].Parent.Value())
+		l.Reload(l.uiMan, l.root)
 	}
 }
 
@@ -192,7 +190,7 @@ func (l *LogWindow) Hide() {
 
 func (l *LogWindow) clearAll(e *document.Element) {
 	l.all = l.all[:0]
-	l.Reload(l.doc.TopElements[0].Parent.Value())
+	l.Reload(l.uiMan, l.root)
 }
 
 func (l *LogWindow) deactivateGroups() {
@@ -314,16 +312,17 @@ func (l *LogWindow) selectEntry(e *document.Element) {
 	}
 }
 
-func (l *LogWindow) Reload(root *document.Element) {
+func (l *LogWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	const html = "editor/ui/log_window.html"
+	l.uiMan = uiMan
+	l.root = root
 	if l.doc != nil {
 		l.doc.Destroy()
 	}
-	frame := l.host.Frame()
+	frame := l.uiMan.Host.Frame()
 	if l.lastReload == frame {
 		return
 	}
-	l.host.CreatingEditorEntities()
 	l.lastReload = frame
 	l.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
 		l.uiMan, html, l, map[string]func(*document.Element){
@@ -335,7 +334,6 @@ func (l *LogWindow) Reload(root *document.Element) {
 			"showSelected": l.showSelected,
 			"selectEntry":  l.selectEntry,
 		}, root))
-	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()
 	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {

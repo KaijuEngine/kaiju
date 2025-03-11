@@ -2,6 +2,7 @@ package tab_container
 
 import (
 	"kaiju/markup/document"
+	"kaiju/ui"
 	"weak"
 )
 
@@ -21,9 +22,9 @@ func NewTab(content TabContent) TabContainerTab {
 
 func (t *TabContainerTab) DragUpdate() {}
 
-func (t *TabContainerTab) Reload(root *document.Element) {
+func (t *TabContainerTab) Reload(uiMan *ui.Manager, root *document.Element) {
 	t.parent.Value().host.CreatingEditorEntities()
-	t.content.Reload(root)
+	t.content.Reload(uiMan, root)
 	t.parent.Value().host.DoneCreatingEditorEntities()
 }
 
