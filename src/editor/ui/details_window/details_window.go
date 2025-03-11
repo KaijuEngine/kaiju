@@ -185,27 +185,14 @@ func New(editor interfaces.Editor) *Details {
 	d := &Details{
 		editor: editor,
 	}
+	d.editor.Selection().Changed.Add(d.onSelectionChanged)
+	d.updateId = d.editor.Host().Updater.AddUpdate(d.update)
 	d.editor.Host().OnClose.Add(func() {
-		d.editor.Host().Updater.RemoveUpdate(d.updateId)
 		if d.doc != nil {
 			d.doc.Destroy()
 		}
 	})
-	d.editor.Selection().Changed.Add(d.onSelectionChanged)
-	d.updateId = d.editor.Host().Updater.AddUpdate(d.update)
 	return d
-}
-
-func (d *Details) Toggle() {
-	if d.doc == nil {
-		d.Show()
-	} else {
-		if d.doc.Elements[0].UI.Entity().IsActive() {
-			d.Hide()
-		} else {
-			d.Show()
-		}
-	}
 }
 
 func (d *Details) Show() {

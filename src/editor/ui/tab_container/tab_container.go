@@ -79,10 +79,8 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 					t.host.Close()
 				}
 				t.closing = true
-			} else if i == t.activeTab {
-				if i == len(t.Tabs) {
-					t.activeTab--
-				}
+			} else if t.activeTab >= len(t.Tabs) {
+				t.activeTab = len(t.Tabs) - 1
 			}
 			break
 		}
@@ -176,7 +174,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 			}
 		}
 		klib.SliceMove(t.Tabs, from, to)
-		t.selectTab(to)
+		t.selectTab(from)
 	}
 	t.reload()
 	t.resetTabTextures()
@@ -221,7 +219,7 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 }
 
 func (t *TabContainer) selectTab(index int) {
-	if index < 0 || index >= len(t.Tabs) {
+	if index < 0 || index >= len(t.Tabs) || index == t.activeTab {
 		return
 	}
 	if t.activeTab >= 0 {
@@ -233,7 +231,7 @@ func (t *TabContainer) selectTab(index int) {
 		root, _ := t.doc.GetElementById("tabContent")
 		a.Reload(t.uiMan, root)
 	}
-	t.Tabs[t.activeTab].Show()
+	a.Show()
 }
 
 func (t *TabContainer) tabClick(e *document.Element) {

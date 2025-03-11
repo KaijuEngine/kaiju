@@ -110,7 +110,7 @@ func (l *LogWindow) Destroy() {
 	}
 }
 
-func New(host *engine.Host, logStream *logging.LogStream) *LogWindow {
+func New(logStream *logging.LogStream) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
 		all:        make([]visibleMessage, 0),
@@ -124,11 +124,6 @@ func New(host *engine.Host, logStream *logging.LogStream) *LogWindow {
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.add(msg, trace, "error")
-	})
-	host.OnClose.Add(func() {
-		if l.doc != nil {
-			l.doc.Destroy()
-		}
 	})
 	return l
 }
@@ -335,7 +330,7 @@ func (l *LogWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 			"selectEntry":  l.selectEntry,
 		}, root))
 	l.showCurrent()
-	l.doc.Clean()
+	//l.doc.Clean()
 	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
 	//	w, _ := l.doc.GetElementById("window")
 	//	if f32, ok := s.(float32); ok {
