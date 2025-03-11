@@ -14,34 +14,55 @@ import (
 	"weak"
 )
 
-type TabContainerTab struct {
-	Label  string
-	parent weak.Pointer[TabContainer]
-	Doc    *document.Document
-}
-
 type TabContainer struct {
-	host  *engine.Host
-	doc   *document.Document
-	Tabs  []TabContainerTab
-	uiMan ui.Manager
+	host      *engine.Host
+	doc       *document.Document
+	Tabs      []TabContainerTab
+	activeTab int
+	uiMan     ui.Manager
+	nextTabId int
 }
 
-func (t *TabContainerTab) DragUpdate() {}
-
-func (t *TabContainer) findTab(label string) *TabContainerTab {
+func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
 	for i := range t.Tabs {
-		if t.Tabs[i].Label == label {
-			return &t.Tabs[i]
+		if &t.Tabs[i] == tab {
+			return i
 		}
 	}
-	return nil
+	return -1
+}
+
+func (t *TabContainer) tabIndex(label string) int {
+	for i := range t.Tabs {
+		if t.Tabs[i].Label == label {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t *TabContainer) findTab(label string) *TabContainerTab {
+	i := t.tabIndex(label)
+	if i < 0 {
+		return nil
+	}
+	return &t.Tabs[i]
 }
 
 func (t *TabContainer) removeTab(tab *TabContainerTab) {
 	for i := range t.Tabs {
 		if &t.Tabs[i] == tab {
 			t.Tabs = slices.Delete(t.Tabs, i, i+1)
+			tab.Destroy()
+			if len(t.Tabs) == 0 {
+				t.doc.Destroy()
+				t.host.Close()
+			} else if i == t.activeTab {
+				if i == len(t.Tabs) {
+					i--
+				}
+			}
+			break
 		}
 	}
 }
@@ -85,6 +106,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 		for i := range t.Tabs {
 			if &t.Tabs[i] == onTab {
 				t.Tabs = slices.Insert(t.Tabs, i, *tab)
+				t.selectTab(i)
 				break
 			}
 		}
@@ -102,6 +124,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 			}
 		}
 		klib.SliceMove(t.Tabs, from, to)
+		t.selectTab(to)
 	}
 	t.reload()
 }
@@ -126,13 +149,30 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 	}
 	lastParent := tab.parent.Value()
 	tab.parent = weak.Make(t)
-	t.Tabs = append(t.Tabs, *tab)
-	t.reload()
-	lastParent.removeTab(tab)
-	lastParent.reload()
+	if lastParent != t {
+		t.Tabs = append(t.Tabs, *tab)
+		t.reload()
+		lastParent.removeTab(tab)
+		lastParent.reload()
+	} else {
+		from := t.tabPtrIndex(tab)
+		klib.SliceMove(t.Tabs, from, len(t.Tabs)-1)
+	}
 }
 
-func (t *TabContainer) tabClick(*document.Element) {}
+func (t *TabContainer) selectTab(index int) {
+	if index < 0 || index >= len(t.Tabs) {
+		return
+	}
+	if t.activeTab >= 0 {
+		t.Tabs[t.activeTab].Hide()
+	}
+	t.Tabs[t.activeTab].Show()
+}
+
+func (t *TabContainer) tabClick(e *document.Element) {
+	t.selectTab(t.tabIndex(e.Attribute("id")))
+}
 
 func (t *TabContainer) reload() {
 	const html = "editor/ui/tab_container/tab_container.html"
@@ -150,18 +190,23 @@ func (t *TabContainer) reload() {
 		"tabDragLeaveRoot": t.tabDragLeaveRoot,
 		"tabDropRoot":      t.tabDropRoot,
 	})
+	root, _ := t.doc.GetElementById("tabContent")
+	t.Tabs[t.activeTab].loadDocument(root)
 }
 
-func New(tests []string) {
-	container := host_container.New("Tab Container "+tests[0], nil)
+func New(name string, tabs []TabContainerTab) {
+	container := host_container.New(name, nil) // TODO:  Set the log stream
 	go container.Run(500, 300, -1, -1)
 	<-container.PrepLock
 	t := &TabContainer{
 		host: container.Host,
 	}
 	t.uiMan.Init(container.Host)
-	for i := range tests {
-		t.Tabs = append(t.Tabs, TabContainerTab{tests[i], weak.Make(t), nil})
+	for i := range tabs {
+		tabs[i].parent = weak.Make(t)
+		t.nextTabId++
+		tabs[i].Id = t.nextTabId
+		t.Tabs = append(t.Tabs, tabs[i])
 	}
 	container.RunFunction(func() { t.reload() })
 }

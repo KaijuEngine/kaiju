@@ -13,10 +13,11 @@
 			<div class="tabs">
 				<div class="tabsInner" ondragenter="tabDragEnterRoot" ondragleave="tabDragLeaveRoot" ondrop="tabDropRoot">
 				{{range .Tabs}}
-					<div id="{{.Label}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
+					<div id="{{.Id}}" class="tab" onclick="tabClick" ondragstart="tabDragStart" ondragenter="tabDragEnter" ondragleave="tabDragLeave" ondrop="tabDrop" ondragend="tabDragEnd">{{.Label}}</div>
 				{{end}}
 				</div>
 			</div>
+			<div id="tabContent"></div>
 			<div class="snapAreas">
 				<div id="tcLeft" class="snapArea" group="snapArea"><div class="snapLabel">Snap left</div></div>
 				<div id="tcTop" class="snapArea" group="snapArea"><div class="snapLabel">Snap top</div></div>
