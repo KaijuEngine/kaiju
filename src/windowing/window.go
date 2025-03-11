@@ -100,6 +100,7 @@ type Window struct {
 	resetDragDataInFrames    int
 	isClosed                 bool
 	isCrashed                bool
+	cursorChangeCount        int
 	dragDropForceMouseUp     bool
 }
 
@@ -157,6 +158,8 @@ func FindWindowAtPoint(x, y int) (*Window, bool) {
 	}
 	return nil, false
 }
+
+func (w *Window) canChangeCursor() bool { return w.cursorChangeCount == 0 }
 
 func (w *Window) ToScreenPosition(x, y int) (int, int) {
 	leftBorder := (w.right - w.left - w.width) / 2
@@ -376,11 +379,40 @@ func DPI2PX(pixels, mm, targetMM int) int {
 	return targetMM * (pixels / mm)
 }
 
-func (w *Window) CursorStandard() { w.cursorStandard() }
-func (w *Window) CursorIbeam()    { w.cursorIbeam() }
-func (w *Window) CursorSizeAll()  { w.cursorSizeAll() }
-func (w *Window) CursorSizeNS()   { w.cursorSizeNS() }
-func (w *Window) CursorSizeWE()   { w.cursorSizeWE() }
+func (w *Window) CursorStandard() {
+	w.cursorChangeCount--
+	if w.cursorChangeCount == 0 {
+		w.cursorStandard()
+	}
+}
+
+func (w *Window) CursorIbeam() {
+	if w.canChangeCursor() {
+		w.cursorIbeam()
+	}
+	w.cursorChangeCount++
+}
+
+func (w *Window) CursorSizeAll() {
+	if w.canChangeCursor() {
+		w.cursorSizeAll()
+	}
+	w.cursorChangeCount++
+}
+
+func (w *Window) CursorSizeNS() {
+	if w.canChangeCursor() {
+		w.cursorSizeNS()
+	}
+	w.cursorChangeCount++
+}
+
+func (w *Window) CursorSizeWE() {
+	if w.canChangeCursor() {
+		w.cursorSizeWE()
+	}
+	w.cursorChangeCount++
+}
 
 func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
