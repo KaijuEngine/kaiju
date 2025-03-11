@@ -11,6 +11,7 @@ import (
 	"kaiju/ui"
 	"kaiju/windowing"
 	"slices"
+	"strconv"
 	"weak"
 )
 
@@ -43,17 +44,17 @@ func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
 	return -1
 }
 
-func (t *TabContainer) tabIndex(label string) int {
+func (t *TabContainer) tabIndex(id string) int {
 	for i := range t.Tabs {
-		if t.Tabs[i].Label == label {
+		if strconv.Itoa(t.Tabs[i].Id) == id {
 			return i
 		}
 	}
 	return -1
 }
 
-func (t *TabContainer) findTab(label string) *TabContainerTab {
-	i := t.tabIndex(label)
+func (t *TabContainer) findTab(id string) *TabContainerTab {
+	i := t.tabIndex(id)
 	if i < 0 {
 		return nil
 	}
@@ -178,6 +179,12 @@ func (t *TabContainer) selectTab(index int) {
 	if t.activeTab >= 0 {
 		t.Tabs[t.activeTab].Hide()
 	}
+	t.activeTab = index
+	a := &t.Tabs[t.activeTab]
+	if a.content.Document() == nil {
+		root, _ := t.doc.GetElementById("tabContent")
+		a.Reload(root)
+	}
 	t.Tabs[t.activeTab].Show()
 }
 
@@ -261,7 +268,16 @@ func (t *TabContainer) ReloadTabs(name string) {
 }
 
 func (t *TabContainer) resizeHover(e *document.Element) {
-	t.host.Window.CursorSizeWE()
+	switch t.Snap {
+	case "left":
+		fallthrough
+	case "right":
+		t.host.Window.CursorSizeWE()
+	case "top":
+		fallthrough
+	case "bottom":
+		t.host.Window.CursorSizeNS()
+	}
 }
 
 func (t *TabContainer) resizeExit(e *document.Element) {
@@ -272,7 +288,16 @@ func (t *TabContainer) resizeExit(e *document.Element) {
 }
 
 func (t *TabContainer) resizeStart(e *document.Element) {
-	t.host.Window.CursorSizeWE()
+	switch t.Snap {
+	case "left":
+		fallthrough
+	case "right":
+		t.host.Window.CursorSizeWE()
+	case "top":
+		fallthrough
+	case "bottom":
+		t.host.Window.CursorSizeNS()
+	}
 	windowing.SetDragData(t)
 }
 
@@ -289,10 +314,33 @@ func (t *TabContainer) resizeStop(e *document.Element) {
 
 func (t *TabContainer) DragUpdate() {
 	win, _ := t.doc.GetElementById("window")
-	x := max(50, t.host.Window.Mouse.Position().X())
-	w := t.host.Window.Width()
-	if int(x) < w-100 {
-		win.UIPanel.Base().Layout().ScaleWidth(x)
+	switch t.Snap {
+	case "left":
+		w := t.host.Window.Width()
+		x := max(50, t.host.Window.Mouse.Position().X())
+		if int(x) < w-100 {
+			win.UIPanel.Base().Layout().ScaleWidth(x)
+		}
+	case "top":
+		h := t.host.Window.Height()
+		y := max(50, matrix.Float(h)-t.host.Window.Mouse.Position().Y())
+		if int(y) < h-100 {
+			win.UIPanel.Base().Layout().ScaleHeight(y)
+		}
+	case "bottom":
+		h := t.host.Window.Height()
+		y := max(50, t.host.Window.Mouse.Position().Y()-20)
+		if int(y) < h-100 {
+			win.UIPanel.Base().Layout().ScaleHeight(y)
+		}
+	case "right":
+		w := t.host.Window.Width()
+		x := max(50, matrix.Float(w)-t.host.Window.Mouse.Position().X())
+		if int(x) < w-100 {
+			win.UIPanel.Base().Layout().ScaleWidth(x)
+		}
+	case "center":
+		// This shouldn't be something that happens...
 	}
 	if t.activeTab >= 0 {
 		root, _ := t.doc.GetElementById("tabContent")

@@ -36,6 +36,16 @@
 			</div>
 			<div class="fillLeftRightResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
 		</div>
+		{{else if eq .Snap "right"}}
+		
+		{{else if eq .Snap "bottom"}}
+		<div id="window" class="fillBottom darkBG clip z4">
+			<div class="fillBottomResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
+			<div class="fillBottomContent">
+				{{template "tabs" .}}
+				{{template "snapAreas" .}}
+			</div>
+		</div>
 		{{else}}
 		<div id="window" class="fill darkBG clip">
 			{{template "tabs" .}}

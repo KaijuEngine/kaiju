@@ -186,11 +186,11 @@ func (s TextShaderData) Size() int {
 }
 
 func (cache *FontCache) TransparentMaterial(target *Material) *Material {
-	if target == cache.textMaterial.SelectRoot() {
+	if target.SelectRoot() == cache.textMaterial.SelectRoot() {
 		return cache.textMaterialTransparent
-	} else if target == cache.textOrthoMaterial.SelectRoot() {
+	} else if target.SelectRoot() == cache.textOrthoMaterial.SelectRoot() {
 		return cache.textOrthoMaterialTransparent
-	} else if target == cache.textMaterialTransparent.SelectRoot() ||
+	} else if target.SelectRoot() == cache.textMaterialTransparent.SelectRoot() ||
 		target == cache.textOrthoMaterialTransparent.SelectRoot() {
 		return target
 	}

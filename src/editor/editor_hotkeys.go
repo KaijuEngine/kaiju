@@ -73,8 +73,6 @@ func checkHotkeys(ed *Editor) {
 		ed.contentWindow.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyD) {
 		ed.detailsWindow.Toggle()
-	} else if kb.KeyUp(hid.KeyboardKeyH) {
-		ed.hierarchy.Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyL) {
 		ed.contentWindow.Hide()
 		ed.logWindow.Toggle()

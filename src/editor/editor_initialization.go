@@ -112,11 +112,16 @@ func constructEditorUI(ed *Editor) {
 	ed.Host().DoneCreatingEditorEntities()
 	ed.camera.SetMode(controls.EditorCameraMode3d, ed.Host())
 
-	hierarchyContainer := tab_container.New(ed.container.Host, &ed.uiManager,
+	leftContainer := tab_container.New(ed.container.Host, &ed.uiManager,
 		[]tab_container.TabContainerTab{
 			tab_container.NewTab(ed.hierarchy),
 		}, tab_container.SnapLeft)
-	ed.tabContainers = append(ed.tabContainers, hierarchyContainer)
+	bottomContainer := tab_container.New(ed.container.Host, &ed.uiManager,
+		[]tab_container.TabContainerTab{
+			tab_container.NewTab(ed.logWindow),
+		}, tab_container.SnapBottom)
+	ed.tabContainers = append(ed.tabContainers, leftContainer)
+	ed.tabContainers = append(ed.tabContainers, bottomContainer)
 }
 
 func setupViewportGrid(ed *Editor) {

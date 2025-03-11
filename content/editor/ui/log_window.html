@@ -5,53 +5,48 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/log_window.css">
 	</head>
 	<body>
-		<div id="window" class="fillBottom darkBG clip z4">
-			<div class="fillBottomResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
-			<div class="fillBottomContent">
-				<div>
-					<button class="topBtn" onclick="clearAll">Clear</button>
-					<button id="allBtn" class="topBtn" onclick="showAll">All</button>
-					<button id="infoBtn" class="topBtn" onclick="showInfos">Info</button>
-					<button id="warningsBtn" class="topBtn" onclick="showWarns">Warning</button>
-					<button id="errorsBtn" class="topBtn" onclick="showErrors">Error</button>
-					<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
-				</div>
-				<div id="all" class="logGroup logView">
-					{{range $i, $v := .All}}
-					<div class="logEntry {{.Category}}" data-entry="{{$i}}" onclick="selectEntry">
-						<div class="logTime">{{$v.Time}}</div>
-						<div class="logMessage">{{$v.Message}}</div>
-					</div>
-					{{end}}
-				</div>
-				<div id="info" class="logGroup logView">
-					{{range $i, $v := .Infos}}
-					<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
-						<div class="logTime">{{$v.Time}}</div>
-						<div class="logMessage">{{$v.Message}}</div>
-					</div>
-					{{end}}
-				</div>
-				<div id="warn" class="logGroup logView">
-					{{range $i, $v := .Warnings}}
-					<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
-						<div class="logTime">{{$v.Time}}</div>
-						<div class="logMessage">{{$v.Message}}</div>
-					</div>
-					{{end}}
-				</div>
-				<div id="error" class="logGroup logView">
-					{{range $i, $v := .Errors}}
-					<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
-						<div class="logTime">{{$v.Time}}</div>
-						<div class="logMessage">{{$v.Message}}</div>
-					</div>
-					{{end}}
-				</div>
-				<div id="selected" class="logView">
-					Nothing selected, select a log from "All", "Info", "Warning", or "Error"
-				</div>
+		<div>
+			<button class="topBtn" onclick="clearAll">Clear</button>
+			<button id="allBtn" class="topBtn" onclick="showAll">All</button>
+			<button id="infoBtn" class="topBtn" onclick="showInfos">Info</button>
+			<button id="warningsBtn" class="topBtn" onclick="showWarns">Warning</button>
+			<button id="errorsBtn" class="topBtn" onclick="showErrors">Error</button>
+			<button id="selectedBtn" class="topBtn" onclick="showSelected">Selected</button>
+		</div>
+		<div id="all" class="logGroup logView">
+			{{range $i, $v := .All}}
+			<div class="logEntry {{.Category}}" data-entry="{{$i}}" onclick="selectEntry">
+				<div class="logTime">{{$v.Time}}</div>
+				<div class="logMessage">{{$v.Message}}</div>
 			</div>
+			{{end}}
+		</div>
+		<div id="info" class="logGroup logView">
+			{{range $i, $v := .Infos}}
+			<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+				<div class="logTime">{{$v.Time}}</div>
+				<div class="logMessage">{{$v.Message}}</div>
+			</div>
+			{{end}}
+		</div>
+		<div id="warn" class="logGroup logView">
+			{{range $i, $v := .Warnings}}
+			<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+				<div class="logTime">{{$v.Time}}</div>
+				<div class="logMessage">{{$v.Message}}</div>
+			</div>
+			{{end}}
+		</div>
+		<div id="error" class="logGroup logView">
+			{{range $i, $v := .Errors}}
+			<div class="logEntry" data-entry="{{$i}}" onclick="selectEntry">
+				<div class="logTime">{{$v.Time}}</div>
+				<div class="logMessage">{{$v.Message}}</div>
+			</div>
+			{{end}}
+		</div>
+		<div id="selected" class="logView">
+			Nothing selected, select a log from "All", "Info", "Warning", or "Error"
 		</div>
 	</body>
 </html>

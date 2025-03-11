@@ -102,18 +102,6 @@ func New(host *engine.Host, selection *selection.Selection,
 	return h
 }
 
-func (h *Hierarchy) Toggle() {
-	if h.doc == nil {
-		h.Show()
-	} else {
-		if h.doc.Elements[0].UI.Entity().IsActive() {
-			h.Hide()
-		} else {
-			h.Show()
-		}
-	}
-}
-
 func (h *Hierarchy) Show() {
 	h.doc.Activate()
 }

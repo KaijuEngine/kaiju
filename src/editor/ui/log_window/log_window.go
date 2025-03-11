@@ -38,15 +38,12 @@
 package log_window
 
 import (
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/markup"
 	"kaiju/markup/document"
-	"kaiju/matrix"
 	"kaiju/systems/logging"
 	"kaiju/ui"
-	"kaiju/windowing"
 	"slices"
 	"strconv"
 	"strings"
@@ -103,6 +100,10 @@ type LogWindow struct {
 	mutex      sync.Mutex
 }
 
+func (l *LogWindow) TabTitle() string             { return "Log" }
+func (l *LogWindow) Document() *document.Document { return l.doc }
+func (l *LogWindow) Destroy()                     { l.doc.Destroy() }
+
 func New(host *engine.Host, logStream *logging.LogStream, uiMan *ui.Manager) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
@@ -133,9 +134,8 @@ func (l *LogWindow) add(msg string, trace []string, cat string) {
 	defer l.mutex.Unlock()
 	l.all = append(l.all, newVisibleMessage(msg, trace, cat))
 	if l.isVisible() {
-		l.reloadUI()
+		l.Reload(l.doc.TopElements[0].Parent.Value())
 	}
-
 }
 
 func (l *LogWindow) All() []visibleMessage {
@@ -186,12 +186,8 @@ func (l *LogWindow) Toggle() {
 }
 
 func (l *LogWindow) Show() {
-	if l.doc == nil {
-		l.reloadUI()
-	} else {
-		l.doc.Activate()
-		l.showCurrent()
-	}
+	l.doc.Activate()
+	l.showCurrent()
 }
 
 func (l *LogWindow) Hide() {
@@ -202,7 +198,7 @@ func (l *LogWindow) Hide() {
 
 func (l *LogWindow) clearAll(e *document.Element) {
 	l.all = l.all[:0]
-	l.reloadUI()
+	l.Reload(l.doc.TopElements[0].Parent.Value())
 }
 
 func (l *LogWindow) deactivateGroups() {
@@ -324,7 +320,7 @@ func (l *LogWindow) selectEntry(e *document.Element) {
 	}
 }
 
-func (l *LogWindow) reloadUI() {
+func (l *LogWindow) Reload(root *document.Element) {
 	const html = "editor/ui/log_window.html"
 	if l.doc != nil {
 		l.doc.Destroy()
@@ -335,7 +331,7 @@ func (l *LogWindow) reloadUI() {
 	}
 	l.host.CreatingEditorEntities()
 	l.lastReload = frame
-	l.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
+	l.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
 		l.uiMan, html, l, map[string]func(*document.Element){
 			"clearAll":     l.clearAll,
 			"showAll":      l.showAll,
@@ -344,56 +340,16 @@ func (l *LogWindow) reloadUI() {
 			"showErrors":   l.showErrors,
 			"showSelected": l.showSelected,
 			"selectEntry":  l.selectEntry,
-			"resizeHover":  l.resizeHover,
-			"resizeExit":   l.resizeExit,
-			"resizeStart":  l.resizeStart,
-			"resizeStop":   l.resizeStop,
-		}))
+		}, root))
 	l.host.DoneCreatingEditorEntities()
 	l.showCurrent()
 	l.doc.Clean()
-	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
-		w, _ := l.doc.GetElementById("window")
-		if f32, ok := s.(float32); ok {
-			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f32))
-		} else if f64, ok := s.(float64); ok {
-			w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f64))
-		}
-	}
-}
-
-func (l *LogWindow) resizeHover(e *document.Element) {
-	l.host.Window.CursorSizeNS()
-}
-
-func (l *LogWindow) resizeExit(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != l {
-		l.host.Window.CursorStandard()
-	}
-}
-
-func (l *LogWindow) resizeStart(e *document.Element) {
-	l.host.Window.CursorSizeNS()
-	windowing.SetDragData(l)
-}
-
-func (l *LogWindow) resizeStop(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != l {
-		return
-	}
-	l.host.Window.CursorStandard()
-	w, _ := l.doc.GetElementById("window")
-	s := w.UIPanel.Base().Layout().PixelSize().Height()
-	editor_cache.SetEditorConfigValue(sizeConfig, s)
-}
-
-func (l *LogWindow) DragUpdate() {
-	w, _ := l.doc.GetElementById("window")
-	y := l.host.Window.Mouse.Position().Y() - 20
-	h := l.host.Window.Height()
-	if int(y) < h-100 {
-		w.UIPanel.Base().Layout().ScaleHeight(y)
-	}
+	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+	//	w, _ := l.doc.GetElementById("window")
+	//	if f32, ok := s.(float32); ok {
+	//		w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f32))
+	//	} else if f64, ok := s.(float64); ok {
+	//		w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(f64))
+	//	}
+	//}
 }
