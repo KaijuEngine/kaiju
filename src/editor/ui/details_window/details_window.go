@@ -38,7 +38,6 @@
 package details_window
 
 import (
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/codegen"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/drag_datas"
@@ -49,7 +48,6 @@ import (
 	"kaiju/matrix"
 	"kaiju/systems/events"
 	"kaiju/ui"
-	"kaiju/windowing"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -139,6 +137,10 @@ type entityDataField struct {
 	Max   any
 }
 
+func (d *Details) TabTitle() string             { return "Details" }
+func (d *Details) Document() *document.Document { return d.doc }
+func (d *Details) Destroy()                     { d.doc.Destroy() }
+
 func (f *entityDataField) ValueAsEntityName() string {
 	dd, ok := f.Value.(*drag_datas.EntityIdDragData)
 	if !ok {
@@ -183,7 +185,6 @@ func New(editor interfaces.Editor, uiMan *ui.Manager) *Details {
 			d.doc.Destroy()
 		}
 	})
-	d.reload()
 	d.editor.Selection().Changed.Add(d.onSelectionChanged)
 	d.updateId = d.editor.Host().Updater.AddUpdate(d.update)
 	return d
@@ -203,7 +204,7 @@ func (d *Details) Toggle() {
 
 func (d *Details) Show() {
 	if d.doc == nil {
-		d.reload()
+		d.Reload(d.doc.TopElements[0].Parent.Value())
 	} else {
 		d.doc.Activate()
 	}
@@ -219,16 +220,14 @@ func (d *Details) isActive() bool {
 	return d.doc.Elements[0].UI.Entity().IsActive()
 }
 
-func (d *Details) reload() {
-	isActive := false
+func (d *Details) Reload(root *document.Element) {
 	if d.doc != nil {
-		isActive = d.isActive()
 		d.doc.Destroy()
 	}
 	host := d.editor.Host()
 	host.CreatingEditorEntities()
 	d.viewData.Data = d.pullEntityData()
-	d.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(
+	d.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
 		d.uiMan, "editor/ui/details_window.html", d.viewData,
 		map[string]func(*document.Element){
 			"changeName":          d.changeName,
@@ -247,21 +246,14 @@ func (d *Details) reload() {
 			"entityIdDragEnter":   d.entityIdDragEnter,
 			"entityIdDragExit":    d.entityIdDragExit,
 			"selectDroppedEntity": d.selectDroppedEntity,
-			"resizeHover":         d.resizeHover,
-			"resizeExit":          d.resizeExit,
-			"resizeStart":         d.resizeStart,
-			"resizeStop":          d.resizeStop,
-		}))
+		}, root))
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
 	go d.editor.ReloadEntityDataListing()
-	if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
-		w, _ := d.doc.GetElementById("window")
-		w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
-	}
-	if !isActive {
-		d.doc.Deactivate()
-	}
+	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
+	//	w, _ := d.doc.GetElementById("window")
+	//	w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
+	//}
 	d.position.setup(d.doc, "pos")
 	d.rotation.setup(d.doc, "rot")
 	d.scale.setup(d.doc, "scale")
@@ -283,7 +275,7 @@ func (d *Details) addData(*document.Element) {
 	e := d.editor.Selection().Entities()[0]
 	test := types[idx].New().Value
 	e.AddData(test)
-	d.reload()
+	d.Reload(d.doc.TopElements[0].Parent.Value())
 }
 
 func (d *Details) changeData(elm *document.Element) {
@@ -325,7 +317,7 @@ func (d *Details) onSelectionChanged() {
 		}
 	}
 	d.viewData.Count = count
-	d.reload()
+	d.Reload(d.doc.TopElements[0].Parent.Value())
 }
 
 func (d *Details) pullEntityData() []entityDataEntry {
@@ -460,7 +452,7 @@ func (d *Details) entityIdDrop(input *document.Element) {
 		return
 	}
 	v.Set(reflect.ValueOf(id))
-	d.reload()
+	d.Reload(d.doc.TopElements[0].Parent.Value())
 }
 
 func (d *Details) entityIdDragEnter(input *document.Element) {
@@ -489,42 +481,6 @@ func (d *Details) selectDroppedEntity(input *document.Element) {
 	}
 	d.editor.Selection().Set(e)
 	d.editor.Selection().Focus(d.editor.Host().Camera)
-}
-
-func (d *Details) resizeHover(e *document.Element) {
-	d.editor.Host().Window.CursorSizeWE()
-}
-
-func (d *Details) resizeExit(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != d {
-		d.editor.Host().Window.CursorStandard()
-	}
-}
-
-func (d *Details) resizeStart(e *document.Element) {
-	d.editor.Host().Window.CursorSizeWE()
-	windowing.SetDragData(d)
-}
-
-func (d *Details) resizeStop(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != d {
-		return
-	}
-	d.editor.Host().Window.CursorStandard()
-	w, _ := d.doc.GetElementById("window")
-	s := w.UIPanel.Base().Layout().PixelSize().Width()
-	editor_cache.SetEditorConfigValue(sizeConfig, s)
-}
-
-func (d *Details) DragUpdate() {
-	win, _ := d.doc.GetElementById("window")
-	w := d.editor.Host().Window.Width()
-	x := matrix.Float(w) - d.editor.Host().Window.Mouse.Position().X()
-	if int(x) < w-100 {
-		win.UIPanel.Base().Layout().ScaleWidth(x)
-	}
 }
 
 func (d *Details) update(float64) {

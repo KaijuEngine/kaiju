@@ -120,8 +120,13 @@ func constructEditorUI(ed *Editor) {
 		[]tab_container.TabContainerTab{
 			tab_container.NewTab(ed.logWindow),
 		}, tab_container.SnapBottom)
+	rightContainer := tab_container.New(ed.container.Host, &ed.uiManager,
+		[]tab_container.TabContainerTab{
+			tab_container.NewTab(ed.detailsWindow),
+		}, tab_container.SnapRight)
 	ed.tabContainers = append(ed.tabContainers, leftContainer)
 	ed.tabContainers = append(ed.tabContainers, bottomContainer)
+	ed.tabContainers = append(ed.tabContainers, rightContainer)
 }
 
 func setupViewportGrid(ed *Editor) {

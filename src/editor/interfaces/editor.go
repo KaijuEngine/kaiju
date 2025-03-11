@@ -46,7 +46,6 @@ import (
 	"kaiju/editor/stages"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/editor_window"
-	"kaiju/editor/ui/hierarchy"
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
@@ -62,7 +61,6 @@ type Editor interface {
 	History() *memento.History
 	WindowListing() *editor_window.Listing
 	StatusBar() *status_bar.StatusBar
-	Hierarchy() *hierarchy.Hierarchy
 	ContextMenu() *context_menu.ContextMenu
 	ImportRegistry() *asset_importer.ImportRegistry
 	OpenProject()

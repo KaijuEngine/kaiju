@@ -116,7 +116,6 @@ func (e *Editor) Selection() *selection.Selection                { return &e.sel
 func (e *Editor) History() *memento.History                      { return &e.history }
 func (e *Editor) WindowListing() *editor_window.Listing          { return &e.windowListing }
 func (e *Editor) StatusBar() *status_bar.StatusBar               { return e.statusBar }
-func (e *Editor) Hierarchy() *hierarchy.Hierarchy                { return e.hierarchy }
 func (e *Editor) ContextMenu() *context_menu.ContextMenu         { return e.contextMenu }
 func (e *Editor) ImportRegistry() *asset_importer.ImportRegistry { return &e.assetImporters }
 func (e *Editor) Camera() *controls.EditorCamera                 { return &e.camera }
