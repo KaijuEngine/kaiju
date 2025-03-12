@@ -64,6 +64,12 @@ func checkHotkeys(ed *Editor) {
 		if kb.KeyUp(hid.KeyboardKeyF5) {
 			ed.killDebug()
 		}
+	} else if kb.KeyUp(hid.KeyboardKey1) {
+		ed.tabContainers[0].Toggle()
+	} else if kb.KeyUp(hid.KeyboardKey2) {
+		ed.tabContainers[1].Toggle()
+	} else if kb.KeyUp(hid.KeyboardKey3) {
+		ed.tabContainers[2].Toggle()
 	} else if kb.KeyUp(hid.KeyboardKeyF1) {
 		klib.OpenWebsite("https://kaijuengine.org/")
 	} else if kb.KeyUp(hid.KeyboardKeyF5) {

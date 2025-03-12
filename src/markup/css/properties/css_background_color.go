@@ -52,8 +52,9 @@ func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
 	for _, c := range elm.Children {
 		if c.IsText() {
 			c.UI.ToLabel().SetBGColor(color)
+		} else if c.UI.ToPanel().Background() == nil { // Only continue if transparent
+			setChildTextBackgroundColor(c, color)
 		}
-		setChildTextBackgroundColor(c, color)
 	}
 }
 
@@ -63,27 +64,29 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 	}
 	// Images used for background are not colored
 	bg := elm.UI.ToPanel().Background()
-	if bg != nil && bg.Key != assets.TextureSquare {
-		return nil
-	}
+	applyPanelColor := bg == nil || bg.Key == assets.TextureSquare
 	var err error
 	var color matrix.Color
 	hex := values[0].Str
 	if hex == "inherit" {
-		pBase := panel.Base()
-		pBase.AddEvent(ui.EventTypeRender, func() {
-			if pBase.Entity().Parent != nil {
-				p := ui.FirstPanelOnEntity(pBase.Entity().Parent)
-				panel.SetColor(p.Base().ShaderData().FgColor)
-			}
-		})
+		if applyPanelColor {
+			pBase := panel.Base()
+			pBase.AddEvent(ui.EventTypeRender, func() {
+				if pBase.Entity().Parent != nil {
+					p := ui.FirstPanelOnEntity(pBase.Entity().Parent)
+					panel.SetColor(p.Base().ShaderData().FgColor)
+				}
+			})
+		}
 		return nil
 	} else {
 		if newHex, ok := helpers.ColorMap[hex]; ok {
 			hex = newHex
 		}
 		if color, err = matrix.ColorFromHexString(hex); err == nil {
-			panel.SetColor(color)
+			if applyPanelColor {
+				panel.SetColor(color)
+			}
 			if !panel.HasEnforcedColor() {
 				setChildTextBackgroundColor(elm, color)
 			}

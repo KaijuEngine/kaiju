@@ -60,7 +60,7 @@
 .tabsInner {
 	width: 1000%;
 	height: 20px;
-	background-color: #1f1f1f;
+	background-color: black;
 }
 .tab:hover {
 	background-image: url("content/textures/window_tab_hover.png");

@@ -36,7 +36,6 @@ type TabContainer struct {
 	uiMan          *ui.Manager
 	Tabs           []TabContainerTab
 	Snap           string
-	closing        bool
 	usingOwnWindow bool
 }
 
@@ -78,7 +77,6 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 				if t.usingOwnWindow {
 					t.host.Close()
 				}
-				t.closing = true
 			} else if t.activeTab >= len(t.Tabs) {
 				t.activeTab = len(t.Tabs) - 1
 			}
@@ -204,7 +202,9 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 		t.Tabs = append(t.Tabs, *tab)
 		if lastParent != nil {
 			lastParent.removeTab(tab)
-			lastParent.reload()
+			if len(lastParent.Tabs) > 0 {
+				lastParent.reload()
+			}
 		}
 	} else {
 		if from := t.tabPtrIndex(tab); from >= 0 {
@@ -231,9 +231,6 @@ func (t *TabContainer) tabClick(e *document.Element) {
 
 func (t *TabContainer) reload() {
 	const html = "editor/ui/tab_container/tab_container.html"
-	if t.closing {
-		return
-	}
 	for i := range t.Tabs {
 		t.Tabs[i].Destroy()
 	}
@@ -256,7 +253,12 @@ func (t *TabContainer) reload() {
 		"resizeStop":       t.resizeStop,
 	})
 	root, _ := t.doc.GetElementById("tabContent")
-	t.Tabs[t.activeTab].Reload(t.uiMan, root)
+	if len(t.Tabs) > 0 {
+		if t.activeTab == 0 {
+			t.activeTab = 0
+		}
+		t.Tabs[t.activeTab].Reload(t.uiMan, root)
+	}
 	t.host.DoneCreatingEditorEntities()
 }
 
@@ -365,6 +367,26 @@ func (t *TabContainer) resizeStop(e *document.Element) {
 	//w, _ := h.doc.GetElementById("window")
 	//s := w.UIPanel.Base().Layout().PixelSize().Width()
 	//editor_cache.SetEditorConfigValue(sizeConfig, s)
+}
+
+func (t *TabContainer) Hide() {
+	for i := range t.Tabs {
+		t.Tabs[i].Destroy()
+	}
+	t.doc.Destroy()
+	t.doc = nil
+}
+
+func (t *TabContainer) Show() {
+	t.reload()
+}
+
+func (t *TabContainer) Toggle() {
+	if t.doc == nil {
+		t.Show()
+	} else {
+		t.Hide()
+	}
 }
 
 func (t *TabContainer) DragUpdate() {
