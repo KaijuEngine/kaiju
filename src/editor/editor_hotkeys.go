@@ -69,7 +69,6 @@ func checkHotkeys(ed *Editor) {
 	} else if kb.KeyUp(hid.KeyboardKeyF5) {
 		ed.runProject(true)
 	} else if kb.KeyUp(hid.KeyboardKeyC) {
-		ed.logWindow.Hide()
 		ed.contentWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		ed.selection.Focus(ed.Host().Camera)

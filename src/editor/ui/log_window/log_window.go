@@ -172,17 +172,6 @@ func (l *LogWindow) isVisible() bool {
 	return l.doc != nil && l.doc.Elements[0].UI.Entity().IsActive()
 }
 
-func (l *LogWindow) Show() {
-	l.doc.Activate()
-	l.showCurrent()
-}
-
-func (l *LogWindow) Hide() {
-	if l.doc != nil {
-		l.doc.Deactivate()
-	}
-}
-
 func (l *LogWindow) clearAll(e *document.Element) {
 	l.all = l.all[:0]
 	l.Reload(l.uiMan, l.root)

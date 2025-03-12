@@ -195,22 +195,8 @@ func New(editor interfaces.Editor) *Details {
 	return d
 }
 
-func (d *Details) Show() {
-	if d.doc == nil {
-		d.Reload(d.uiMan, d.root)
-	} else {
-		d.doc.Activate()
-	}
-}
-
-func (d *Details) Hide() {
-	if d.doc != nil {
-		d.doc.Deactivate()
-	}
-}
-
 func (d *Details) isActive() bool {
-	return d.doc.Elements[0].UI.Entity().IsActive()
+	return d.doc != nil && d.doc.Elements[0].UI.Entity().IsActive()
 }
 
 func (d *Details) Reload(uiMan *ui.Manager, root *document.Element) {

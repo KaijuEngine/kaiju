@@ -186,7 +186,7 @@ func (m *Menu) openContentWindow(*document.Element) {
 }
 
 func (m *Menu) openHierarchyWindow(*document.Element) {
-	m.hierarchyWindow.Show()
+	m.editor.ReloadOrOpenTab("Hierarchy")
 }
 
 func (m *Menu) openShaderDesignerWindow(*document.Element) {

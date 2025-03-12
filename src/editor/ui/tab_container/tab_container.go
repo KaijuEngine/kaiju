@@ -163,6 +163,7 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 		tab.parent = weak.Make(t)
 		lastParent.removeTab(tab)
 		lastParent.reload()
+		t.reload()
 	} else {
 		from := 0
 		to := 0
@@ -174,9 +175,8 @@ func (t *TabContainer) tabDrop(e *document.Element) {
 			}
 		}
 		klib.SliceMove(t.Tabs, from, to)
-		t.selectTab(from)
+		t.selectTab(to)
 	}
-	t.reload()
 	t.resetTabTextures()
 }
 
@@ -202,7 +202,6 @@ func (t *TabContainer) tabDropRoot(e *document.Element) {
 	tab.parent = weak.Make(t)
 	if lastParent != t {
 		t.Tabs = append(t.Tabs, *tab)
-		t.reload()
 		if lastParent != nil {
 			lastParent.removeTab(tab)
 			lastParent.reload()
@@ -222,16 +221,8 @@ func (t *TabContainer) selectTab(index int) {
 	if index < 0 || index >= len(t.Tabs) || index == t.activeTab {
 		return
 	}
-	if t.activeTab >= 0 {
-		t.Tabs[t.activeTab].Hide()
-	}
 	t.activeTab = index
-	a := &t.Tabs[t.activeTab]
-	if a.content.Document() == nil {
-		root, _ := t.doc.GetElementById("tabContent")
-		a.Reload(t.uiMan, root)
-	}
-	a.Show()
+	t.reload()
 }
 
 func (t *TabContainer) tabClick(e *document.Element) {
@@ -242,6 +233,9 @@ func (t *TabContainer) reload() {
 	const html = "editor/ui/tab_container/tab_container.html"
 	if t.closing {
 		return
+	}
+	for i := range t.Tabs {
+		t.Tabs[i].Destroy()
 	}
 	if t.doc != nil {
 		t.doc.Destroy()
@@ -316,13 +310,16 @@ func New(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab, snap stri
 	return t
 }
 
-func (t *TabContainer) ReloadTabs(name string) {
+func (t *TabContainer) ReloadTabs(name string) bool {
+	found := false
 	root, _ := t.doc.GetElementById("tabContent")
 	for i := range t.Tabs {
 		if t.Tabs[i].Label == name {
 			t.Tabs[i].Reload(t.uiMan, root)
+			found = true
 		}
 	}
+	return found
 }
 
 func (t *TabContainer) resizeHover(e *document.Element) {

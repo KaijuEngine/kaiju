@@ -108,14 +108,6 @@ func New(host *engine.Host, selection *selection.Selection,
 	return h
 }
 
-func (h *Hierarchy) Show() {
-	h.doc.Activate()
-}
-
-func (h *Hierarchy) Hide() {
-	h.doc.Deactivate()
-}
-
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
 	allEntities := h.host.Entities()
 	entries := make([]entityEntry, 0, len(allEntities))

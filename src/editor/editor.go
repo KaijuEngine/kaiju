@@ -63,6 +63,7 @@ import (
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
 	"kaiju/host_container"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/systems/console"
 	"kaiju/systems/logging"
@@ -131,8 +132,12 @@ func (e *Editor) ReloadTabs(name string) {
 }
 
 func (e *Editor) ReloadOrOpenTab(name string) {
+	found := false
 	for i := range e.tabContainers {
-		e.tabContainers[i].ReloadTabs(name)
+		found = e.tabContainers[i].ReloadTabs(name) || found
+	}
+	if !found {
+		klib.NotYetImplemented(314)
 	}
 }
 

@@ -15,7 +15,7 @@ func hierarchyContextMenuActions(ed *Editor) context_menu.ContextMenuSet {
 			duplicator.DeleteSelected(ed)
 		}},
 		{Id: "details", Label: "Details", OnClick: func() {
-			ed.detailsWindow.Show()
+			ed.ReloadOrOpenTab("Details")
 		}},
 		{Id: "focus", Label: "Focus", OnClick: func() {
 			ed.selection.Focus(ed.Host().Camera)

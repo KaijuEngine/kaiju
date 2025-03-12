@@ -29,5 +29,3 @@ func (t *TabContainerTab) Reload(uiMan *ui.Manager, root *document.Element) {
 }
 
 func (t *TabContainerTab) Destroy() { t.content.Destroy() }
-func (t *TabContainerTab) Show()    { t.content.Show() }
-func (t *TabContainerTab) Hide()    { t.content.Hide() }

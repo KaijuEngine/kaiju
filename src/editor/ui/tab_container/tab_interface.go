@@ -10,6 +10,4 @@ type TabContent interface {
 	Document() *document.Document
 	Reload(uiMan *ui.Manager, root *document.Element)
 	Destroy()
-	Show()
-	Hide()
 }
