@@ -108,7 +108,7 @@ func (t *TabContainer) tabDragEnd(e *document.Element) {
 		t.removeTab(tab)
 		t.reload()
 		x, y := t.host.Window.ToScreenPosition(int(sp.X()), int(sp.Y()))
-		NewWindow(x, y, []TabContainerTab{copy}, t.host.LogStream)
+		NewWindow(copy.Label, x, y, []TabContainerTab{copy}, t.host.LogStream)
 	}
 	t.host.Window.CursorStandard()
 }
@@ -287,10 +287,10 @@ func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *
 	return t
 }
 
-func NewWindow(x, y int, tabs []TabContainerTab, logStream *logging.LogStream) *TabContainer {
+func NewWindow(title string, x, y int, tabs []TabContainerTab, logStream *logging.LogStream) *TabContainer {
 	const w = 500
 	const h = 300
-	container := host_container.New("Kaiju Engine Tools", logStream)
+	container := host_container.New(title, logStream)
 	x = klib.Clamp(x-w/2, 0, math.MaxInt32)
 	y = klib.Clamp(y-h/2, 0, math.MaxInt32)
 	go container.Run(w, h, x, y)
