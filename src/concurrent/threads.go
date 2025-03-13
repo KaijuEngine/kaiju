@@ -19,7 +19,7 @@ func NewThreads() Threads {
 func (t *Threads) Start() {
 	t.exitSig = make([]chan struct{}, runtime.NumCPU())
 	for i := range len(t.exitSig) {
-		t.exitSig[i] = make(chan struct{}, 1)
+		t.exitSig[i] = make(chan struct{}, 0)
 		go t.work(i)
 	}
 }
