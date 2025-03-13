@@ -332,7 +332,6 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		return parsed
 	}
 	h := NewHTML(transformed)
-
 	body := parsed.setupBody(h, uiMan)
 	bodyPanel := body.UIPanel
 	bodyPanel.Base().Entity().SetName("htmlBody")

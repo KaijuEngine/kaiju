@@ -239,9 +239,6 @@ func (t *TabContainer) reload() {
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
-	if t.lastReload == t.host.Runtime() {
-		panic("double reload")
-	}
 	t.lastReload = t.host.Runtime()
 	t.host.CreatingEditorEntities()
 	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
