@@ -1,5 +1,7 @@
+//go:build (windows || (linux && !android)) && vulkanValidation
+
 /******************************************************************************/
-/* renderer.dbg.vk.go                                                        */
+/* vulkan.winux.go                                                           */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,28 +39,20 @@
 
 package rendering
 
-import (
-	"fmt"
-	"kaiju/klib"
-	"log/slog"
-)
+import vk "kaiju/rendering/vulkan"
 
-type debugVulkan map[uintptr]string
+const vkGeometryShaderValid = vk.True
+const vkUseValidationLayers = true
+const vkInstanceFlags = 0
 
-func debugVulkanNew() debugVulkan {
-	return make(debugVulkan)
+func vkColorSpace(sf vk.SurfaceFormat) vk.ColorSpace {
+	return sf.ColorSpace
 }
 
-func (d debugVulkan) add(handle uintptr) {
-	d[handle] = klib.TraceString(fmt.Sprintf("VK Resource %x leak", handle))
+func vkInstanceExtensions() []string {
+	return []string{}
 }
 
-func (d debugVulkan) remove(handle uintptr) {
-	delete(d, handle)
-}
-
-func (d debugVulkan) print() {
-	for _, trace := range d {
-		slog.Info(trace)
-	}
+func vkDeviceExtensions() []string {
+	return []string{}
 }
