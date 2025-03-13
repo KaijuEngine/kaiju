@@ -367,7 +367,7 @@ func (host *Host) Update(deltaTime float64) {
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
 	defer tracing.NewRegion("Host::Render").End()
-	host.workGroup.Execute(matrix.TransformWorkGroup)
+	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
@@ -379,7 +379,7 @@ func (host *Host) Render() {
 		}
 	}
 	host.Window.SwapBuffers()
-	host.workGroup.Execute(matrix.TransformResetWorkGroup)
+	host.workGroup.Execute(matrix.TransformResetWorkGroup, &host.threads)
 	//host.editorEntities.resetDirty()
 }
 

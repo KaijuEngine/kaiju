@@ -17,17 +17,17 @@ func (w *WorkGroup) Add(name string, work func()) {
 	}
 }
 
-func (w *WorkGroup) Execute(name string) {
+func (w *WorkGroup) Execute(name string, threads *Threads) {
 	defer tracing.NewRegion("WorkGroup: " + name).End()
 	if target, ok := w.work.Load(name); ok {
 		list := target.([]func())
 		wg := sync.WaitGroup{}
 		wg.Add(len(list))
 		for i := range list {
-			go func() {
+			threads.AddWork(func() {
 				list[i]()
 				wg.Done()
-			}()
+			})
 		}
 		wg.Wait()
 		list = list[:0]
