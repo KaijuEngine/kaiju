@@ -36,9 +36,8 @@ type TabContainer struct {
 	uiMan          *ui.Manager
 	Tabs           []TabContainerTab
 	Snap           string
+	dragScale      float32
 	usingOwnWindow bool
-
-	lastReload float64
 }
 
 func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
@@ -239,7 +238,6 @@ func (t *TabContainer) reload() {
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
-	t.lastReload = t.host.Runtime()
 	t.host.CreatingEditorEntities()
 	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
@@ -261,6 +259,19 @@ func (t *TabContainer) reload() {
 		t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	}
 	t.host.DoneCreatingEditorEntities()
+	if t.dragScale > 0 {
+		win, _ := t.doc.GetElementById("window")
+		switch t.Snap {
+		case "left":
+			fallthrough
+		case "right":
+			win.UIPanel.Base().Layout().ScaleWidth(t.dragScale)
+		case "top":
+			fallthrough
+		case "bottom":
+			win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
+		}
+	}
 	t.doc.Clean()
 }
 
@@ -377,19 +388,19 @@ func (t *TabContainer) resizeStop(e *document.Element) {
 }
 
 func (t *TabContainer) Hide() {
-	for i := range t.Tabs {
-		t.Tabs[i].Destroy()
-	}
-	t.doc.Destroy()
-	t.doc = nil
+	t.doc.Deactivate()
 }
 
 func (t *TabContainer) Show() {
-	t.reload()
+	if t.doc == nil {
+		t.reload()
+	} else {
+		t.doc.Activate()
+	}
 }
 
 func (t *TabContainer) Toggle() {
-	if t.doc == nil {
+	if t.doc == nil || !t.doc.Elements[0].UI.Entity().IsActive() {
 		t.Show()
 	} else {
 		t.Hide()
@@ -400,33 +411,26 @@ func (t *TabContainer) DragUpdate() {
 	win, _ := t.doc.GetElementById("window")
 	switch t.Snap {
 	case "left":
-		w := t.host.Window.Width()
-		x := max(50, t.host.Window.Mouse.Position().X())
-		if int(x) < w-100 {
-			win.UIPanel.Base().Layout().ScaleWidth(x)
-		}
+		w := float32(t.host.Window.Width())
+		t.dragScale = klib.Clamp(t.host.Window.Mouse.Position().X(), 50, w-100)
+		win.UIPanel.Base().Layout().ScaleWidth(t.dragScale)
 	case "top":
-		h := t.host.Window.Height()
-		y := max(50, matrix.Float(h)-t.host.Window.Mouse.Position().Y())
-		if int(y) < h-100 {
-			win.UIPanel.Base().Layout().ScaleHeight(y)
-		}
+		h := float32(t.host.Window.Height())
+		t.dragScale = klib.Clamp(matrix.Float(h)-t.host.Window.Mouse.Position().Y(), 50, h-100)
+		win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
 	case "bottom":
-		h := t.host.Window.Height()
-		y := max(50, t.host.Window.Mouse.Position().Y()-20)
-		if int(y) < h-100 {
-			win.UIPanel.Base().Layout().ScaleHeight(y)
-		}
+		h := float32(t.host.Window.Height())
+		t.dragScale = klib.Clamp(t.host.Window.Mouse.Position().Y()-20, 50, h-100)
+		win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
 	case "right":
-		w := t.host.Window.Width()
-		x := max(50, matrix.Float(w)-t.host.Window.Mouse.Position().X())
-		if int(x) < w-100 {
-			win.UIPanel.Base().Layout().ScaleWidth(x)
-		}
+		w := float32(t.host.Window.Width())
+		t.dragScale = klib.Clamp(matrix.Float(w)-t.host.Window.Mouse.Position().X(), 50, w-100)
+		win.UIPanel.Base().Layout().ScaleWidth(t.dragScale)
 	case "center":
 		// This shouldn't be something that happens...
 	}
 	if t.activeTab >= 0 {
-		t.reload()
+		root, _ := t.doc.GetElementById("tabContent")
+		t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	}
 }
