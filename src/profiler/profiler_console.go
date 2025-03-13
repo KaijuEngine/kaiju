@@ -128,29 +128,21 @@ func launchWeb(c *console.Console, webType, ctxKey string) (*contexts.Cancellabl
 	return ctx, err
 }
 
-func pprofStart(c *console.Console, args []string) string {
-	if args[0] == "cpu" {
-		pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
-		pprof.StartCPUProfile(pprofFile)
-		c.SetData(pprofFileKey, pprofFile)
-		return "CPU profile started"
-	} else if args[0] == "mem" || args[0] == "heap" {
-		return pprofHeap()
-	}
-	return ""
+func pprofStart(c *console.Console) string {
+	pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
+	pprof.StartCPUProfile(pprofFile)
+	c.SetData(pprofFileKey, pprofFile)
+	return "CPU profile started"
 }
 
-func pprofStop(c *console.Console, args []string) string {
-	if args[0] == "cpu" {
-		pprofFile, ok := c.Data(pprofFileKey).(*os.File)
-		if !ok || pprofFile == nil {
-			return "CPU profile not yet started"
-		}
-		pprof.StopCPUProfile()
-		pprofFile.Close()
-		return "CPU profile written to " + pprofCPUFile
+func pprofStop(c *console.Console) string {
+	pprofFile, ok := c.Data(pprofFileKey).(*os.File)
+	if !ok || pprofFile == nil {
+		return "CPU profile not yet started"
 	}
-	return ""
+	pprof.StopCPUProfile()
+	pprofFile.Close()
+	return "CPU profile written to " + pprofCPUFile
 }
 
 func pprofHeap() string {
@@ -207,11 +199,14 @@ func pprofCommands(host *engine.Host, arg string) string {
 	c := console.For(host)
 	arg = klib.ReplaceStringRecursive(arg, "  ", " ")
 	args := strings.Split(arg, " ")
+	if args[0] == "mem" {
+		return pprofHeap()
+	}
 	if len(args) > 1 {
 		if args[0] == "start" {
-			return pprofStart(c, args[1:])
+			return pprofStart(c)
 		} else if args[0] == "stop" {
-			return pprofStop(c, args[1:])
+			return pprofStop(c)
 		} else if args[0] == "web" {
 			return pprofWeb(c, args[1:])
 		}
@@ -307,8 +302,8 @@ func memStats(host *engine.Host, arg string) string {
 
 func SetupConsole(host *engine.Host) {
 	c := console.For(host)
-	c.AddCommand("pprof", "Run profiler commands like 'start cpu', 'start mem', 'stop cpu', 'web cpu', 'web mem', and 'web stop'", pprofCommands)
-	c.AddCommand("trace", "Run trace commands like 'start', 'stop', 'web start', and 'web stop'", traceCommands)
+	c.AddCommand("pprof", "Run profiler commands: 'mem' for heap, 'start/stop' for performance capture. View with 'web cpu', 'web mem', and end with 'web stop'", pprofCommands)
+	c.AddCommand("trace", "Run trace commands like 'start', 'stop'. After stopping gotraceui will automatically show", traceCommands)
 	c.Host().OnClose.Add(func() {
 		if c.HasData(pprofCtxDataKey) {
 			c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
