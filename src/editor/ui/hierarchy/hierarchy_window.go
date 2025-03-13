@@ -63,8 +63,7 @@ type Hierarchy struct {
 	doc                  *document.Document
 	input                *ui.Input
 	query                string
-	uiMan                *ui.Manager
-	root                 *document.Element
+	reloadTab            func(name string)
 }
 
 func (h *Hierarchy) Document() *document.Document { return h.doc }
@@ -98,11 +97,12 @@ func (e entityEntry) Depth() int {
 }
 
 func New(host *engine.Host, selection *selection.Selection,
-	ctxMenuSet context_menu.ContextMenuSet) *Hierarchy {
+	ctxMenuSet context_menu.ContextMenuSet, reloadTabFunc func(name string)) *Hierarchy {
 	h := &Hierarchy{
 		host:       host,
 		selection:  selection,
 		ctxMenuSet: ctxMenuSet,
+		reloadTab:  reloadTabFunc,
 	}
 	h.selection.Changed.Add(h.onSelectionChanged)
 	return h
@@ -148,8 +148,6 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 }
 
 func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
-	h.uiMan = uiMan
-	h.root = root
 	focusInput := false
 	if h.doc != nil {
 		focusInput = h.input.IsFocused()
@@ -162,7 +160,7 @@ func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
 	host := h.host
 	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
-		h.uiMan, "editor/ui/hierarchy_window.html", data,
+		uiMan, "editor/ui/hierarchy_window.html", data,
 		map[string]func(*document.Element){
 			"selectedEntity": h.selectedEntity,
 			"dragStart":      h.dragStart,
@@ -190,10 +188,13 @@ func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
 
 func (h *Hierarchy) submit() {
 	h.query = strings.ToLower(strings.TrimSpace(h.input.Text()))
-	h.Reload(h.uiMan, h.root)
+	h.reloadTab(h.TabTitle())
 }
 
 func (h *Hierarchy) onSelectionChanged() {
+	if h.doc == nil {
+		return
+	}
 	elm, ok := h.doc.GetElementById("list")
 	if !ok {
 		slog.Error("Could not find hierarchy list, reopen the hierarchy window")
@@ -243,13 +244,13 @@ func (h *Hierarchy) drop(elm *document.Element) {
 			to := engine.EntityId(toId)
 			if t, ok := h.host.FindEntity(to); ok {
 				f.SetParent(t)
-				h.Reload(h.uiMan, h.root)
+				h.reloadTab(h.TabTitle())
 			} else {
 				slog.Error("Could not find drop target entity", slog.String("id", string(to)))
 			}
 		} else {
 			f.SetParent(nil)
-			h.Reload(h.uiMan, h.root)
+			h.reloadTab(h.TabTitle())
 		}
 	} else {
 		slog.Error("Could not find drag entity", slog.String("id", string(from.EntityId)))

@@ -41,7 +41,6 @@ import (
 	"io/fs"
 	"kaiju/assets/asset_info"
 	"kaiju/editor/alert"
-	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
@@ -91,26 +90,30 @@ type ContentWindow struct {
 	funcMap    map[string]func(*document.Element)
 	opener     *content_opener.Opener
 	selected   *ui.Panel
-	uiMan      *ui.Manager
+}
+
+func (s *ContentWindow) TabTitle() string             { return "Content" }
+func (s *ContentWindow) Document() *document.Document { return s.doc }
+
+func (s *ContentWindow) Destroy() {
+	if s.doc != nil {
+		s.doc.Destroy()
+		s.doc = nil
+	}
 }
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 
-func New(opener *content_opener.Opener, editor interfaces.Editor, uiMan *ui.Manager) *ContentWindow {
+func New(opener *content_opener.Opener, editor interfaces.Editor) *ContentWindow {
 	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.Element)),
 		opener:  opener,
 		path:    contentPath,
 		editor:  editor,
-		uiMan:   uiMan,
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
 	s.funcMap["contentDblClick"] = s.contentDblClick
-	s.funcMap["resizeHover"] = s.resizeHover
-	s.funcMap["resizeExit"] = s.resizeExit
-	s.funcMap["resizeStart"] = s.resizeStart
-	s.funcMap["resizeStop"] = s.resizeStop
 	s.funcMap["entryCtxMenu"] = s.entryCtxMenu
 	s.funcMap["updateSearch"] = s.updateSearch
 	s.funcMap["entryDragStart"] = s.entryDragStart
@@ -120,32 +123,6 @@ func New(opener *content_opener.Opener, editor interfaces.Editor, uiMan *ui.Mana
 		}
 	})
 	return s
-}
-
-func (c *ContentWindow) Toggle() {
-	if c.doc == nil {
-		c.Show()
-	} else {
-		if c.doc.Elements[0].UI.Entity().IsActive() {
-			c.Hide()
-		} else {
-			c.Show()
-		}
-	}
-}
-
-func (c *ContentWindow) Show() {
-	if c.doc == nil {
-		c.reloadUI()
-	} else {
-		c.doc.Activate()
-	}
-}
-
-func (c *ContentWindow) Hide() {
-	if c.doc != nil {
-		c.doc.Deactivate()
-	}
 }
 
 func (s *ContentWindow) contentDblClick(elm *document.Element) {
@@ -176,7 +153,7 @@ func (s *ContentWindow) openContent(elm *document.Element) {
 		slog.Error(err.Error())
 		return
 	} else if info.IsDir() {
-		s.reloadUI()
+		s.editor.ReloadTabs(s.TabTitle())
 	} else {
 		if err := s.opener.OpenPath(s.path, s.editor); err != nil {
 			slog.Error(err.Error())
@@ -211,14 +188,16 @@ func (s *ContentWindow) duplicateContent(elm *document.Element) {
 		slog.Error("failed to duplicate the file", "error", err)
 	} else {
 		s.editor.ImportRegistry().Import(path)
-		s.reloadUI()
+		s.editor.ReloadTabs(s.TabTitle())
 	}
 }
 
-func (s *ContentWindow) reloadUI() {
+func (s *ContentWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	const html = "editor/ui/content_window.html"
 	folderPanelScroll := float32(0)
+	shouldFocus := false
 	if s.doc != nil {
+		shouldFocus = s.input.IsFocused()
 		if fp, ok := s.doc.GetElementById("folderListing"); ok {
 			folderPanelScroll = fp.UIPanel.ScrollY()
 		}
@@ -227,7 +206,7 @@ func (s *ContentWindow) reloadUI() {
 	s.list()
 	host := s.editor.Host()
 	host.CreatingEditorEntities()
-	s.doc = klib.MustReturn(markup.DocumentFromHTMLAsset(s.uiMan, html, s, s.funcMap))
+	s.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(uiMan, html, s, s.funcMap, root))
 	host.DoneCreatingEditorEntities()
 	if elm, ok := s.doc.GetElementById("searchInput"); !ok {
 		slog.Error(`Failed to locate the "searchInput" for the content window`)
@@ -240,14 +219,12 @@ func (s *ContentWindow) reloadUI() {
 		s.listing = elm.UIPanel
 	}
 	s.doc.Clean()
-	if h, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
-		w, _ := s.doc.GetElementById("window")
-		w.UIPanel.Base().Layout().ScaleHeight(matrix.Float(h.(float64)))
-	}
 	if fp, ok := s.doc.GetElementById("folderListing"); ok {
 		fp.UIPanel.SetScrollY(folderPanelScroll)
 	}
-	s.input.Focus()
+	if shouldFocus {
+		s.input.Focus()
+	}
 }
 
 func (s *ContentWindow) listSearch() {
@@ -320,33 +297,6 @@ func (s *ContentWindow) list() {
 	})
 }
 
-func (s *ContentWindow) resizeHover(e *document.Element) {
-	s.editor.Host().Window.CursorSizeNS()
-}
-
-func (s *ContentWindow) resizeExit(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != s {
-		s.editor.Host().Window.CursorStandard()
-	}
-}
-
-func (l *ContentWindow) resizeStart(e *document.Element) {
-	l.editor.Host().Window.CursorSizeNS()
-	windowing.SetDragData(l)
-}
-
-func (s *ContentWindow) resizeStop(e *document.Element) {
-	dd := windowing.DragData()
-	if dd != s {
-		return
-	}
-	s.editor.Host().Window.CursorStandard()
-	w, _ := s.doc.GetElementById("window")
-	h := w.UIPanel.Base().Layout().PixelSize().Height()
-	editor_cache.SetEditorConfigValue(sizeConfig, h)
-}
-
 func (s *ContentWindow) entryCtxMenu(elm *document.Element) {
 	path := elm.Attribute("data-path")
 	ctx := []context_menu.ContextMenuEntry{
@@ -378,7 +328,7 @@ func (s *ContentWindow) updateSearch(elm *document.Element) {
 	if s.Query == "" {
 		s.path = contentPath
 	}
-	s.reloadUI()
+	s.editor.ReloadTabs(s.TabTitle())
 }
 
 func (s *ContentWindow) entryDragStart(elm *document.Element) {
@@ -396,13 +346,4 @@ func (s *ContentWindow) entryDragStart(elm *document.Element) {
 		windowing.OnDragStop.Remove(eid)
 		elm.UnEnforceColor()
 	})
-}
-
-func (s *ContentWindow) DragUpdate() {
-	w, _ := s.doc.GetElementById("window")
-	y := s.editor.Host().Window.Mouse.Position().Y() - 20
-	h := s.editor.Host().Window.Height()
-	if int(y) < h-100 {
-		w.UIPanel.Base().Layout().ScaleHeight(y)
-	}
 }

@@ -95,9 +95,8 @@ type LogWindow struct {
 	infoEvtId  logging.EventId
 	warnEvtId  logging.EventId
 	errEvtId   logging.EventId
-	root       *document.Element
-	uiMan      *ui.Manager
 	mutex      sync.Mutex
+	reloadTab  func(name string)
 }
 
 func (l *LogWindow) TabTitle() string             { return "Log" }
@@ -110,7 +109,7 @@ func (l *LogWindow) Destroy() {
 	}
 }
 
-func New(logStream *logging.LogStream) *LogWindow {
+func New(logStream *logging.LogStream, reloadTabFunc func(name string)) *LogWindow {
 	l := &LogWindow{
 		lastReload: engine.InvalidFrameId,
 		all:        make([]visibleMessage, 0),
@@ -125,6 +124,7 @@ func New(logStream *logging.LogStream) *LogWindow {
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.add(msg, trace, "error")
 	})
+	l.reloadTab = reloadTabFunc
 	return l
 }
 
@@ -133,7 +133,7 @@ func (l *LogWindow) add(msg string, trace []string, cat string) {
 	defer l.mutex.Unlock()
 	l.all = append(l.all, newVisibleMessage(msg, trace, cat))
 	if l.isVisible() {
-		l.Reload(l.uiMan, l.root)
+		l.reloadTab(l.TabTitle())
 	}
 }
 
@@ -174,7 +174,7 @@ func (l *LogWindow) isVisible() bool {
 
 func (l *LogWindow) clearAll(e *document.Element) {
 	l.all = l.all[:0]
-	l.Reload(l.uiMan, l.root)
+	l.reloadTab(l.TabTitle())
 }
 
 func (l *LogWindow) deactivateGroups() {
@@ -298,18 +298,16 @@ func (l *LogWindow) selectEntry(e *document.Element) {
 
 func (l *LogWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	const html = "editor/ui/log_window.html"
-	l.uiMan = uiMan
-	l.root = root
 	if l.doc != nil {
 		l.doc.Destroy()
 	}
-	frame := l.uiMan.Host.Frame()
+	frame := uiMan.Host.Frame()
 	if l.lastReload == frame {
 		return
 	}
 	l.lastReload = frame
 	l.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
-		l.uiMan, html, l, map[string]func(*document.Element){
+		uiMan, html, l, map[string]func(*document.Element){
 			"clearAll":     l.clearAll,
 			"showAll":      l.showAll,
 			"showInfos":    l.showInfos,

@@ -74,8 +74,6 @@ func checkHotkeys(ed *Editor) {
 		klib.OpenWebsite("https://kaijuengine.org/")
 	} else if kb.KeyUp(hid.KeyboardKeyF5) {
 		ed.runProject(true)
-	} else if kb.KeyUp(hid.KeyboardKeyC) {
-		ed.contentWindow.Toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyF) && ed.selection.HasSelection() {
 		ed.selection.Focus(ed.Host().Camera)
 	} else if kb.KeyDown(hid.KeyboardKeyG) {

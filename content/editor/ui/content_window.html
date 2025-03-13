@@ -18,37 +18,32 @@
 		<link rel="stylesheet" type="text/css" href="editor/ui/content_window.css">
 	</head>
 	<body>
-		<div id="window" class="fillBottom darkBG clip z3">
-			<div class="fillBottomResizeHandle" onmouseenter="resizeHover" onmouseleave="resizeExit" ondragstart="resizeStart" ondragend="resizeStop"></div>
-			<div class="fillBottomContent">
-				<div class="searchInput">
-					<input id="searchInput" type="text" placeholder="Search..." value="{{.SearchText}}" onchange="updateSearch" onsubmit="updateSearch" />
+		<div class="searchInput">
+			<input id="searchInput" type="text" placeholder="Search..." value="{{.SearchText}}" onchange="updateSearch" onsubmit="updateSearch" />
+		</div>
+		<div class="folderPanel">
+			<div id="folderListing" class="listing">
+				{{template "folderTree" .DirTree}}
+			</div>
+		</div>
+		<div class="entriesPanel">
+			<div id="listing" class="listing">
+				{{if not .IsRoot}}
+				<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="../">
+					<img class="listImg" src="editor/textures/icons/folder.png" />
+					<span>..</span>
 				</div>
-				<div class="folderPanel">
-					<div id="folderListing" class="listing">
-						{{template "folderTree" .DirTree}}
-					</div>
+				{{end}}
+				{{range .Dir}}
+				<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" {{if not .IsDir}}onrightclick="entryCtxMenu" ondragstart="entryDragStart"{{end}}>
+					{{if .IsDir}}
+						<img class="listImg" src="editor/textures/icons/folder.png" />
+					{{else}}
+						<img class="listImg" src="editor/textures/icons/file.png" />
+					{{end}}
+					<span>{{.Name}}</span>
 				</div>
-				<div class="entriesPanel">
-					<div id="listing" class="listing">
-						{{if not .IsRoot}}
-						<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="../">
-							<img class="listImg" src="editor/textures/icons/folder.png" />
-							<span>..</span>
-						</div>
-						{{end}}
-						{{range .Dir}}
-						<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" {{if not .IsDir}}onrightclick="entryCtxMenu" ondragstart="entryDragStart"{{end}}>
-							{{if .IsDir}}
-								<img class="listImg" src="editor/textures/icons/folder.png" />
-							{{else}}
-								<img class="listImg" src="editor/textures/icons/file.png" />
-							{{end}}
-							<span>{{.Name}}</span>
-						</div>
-						{{end}}
-					</div>
-				</div>
+				{{end}}
 			</div>
 		</div>
 	</body>

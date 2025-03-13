@@ -127,14 +127,14 @@ func (e *Editor) RunOnHost(fn func()) { e.container.RunFunction(fn) }
 
 func (e *Editor) ReloadTabs(name string) {
 	for i := range e.tabContainers {
-		e.tabContainers[i].ReloadTabs(name)
+		e.tabContainers[i].ReloadTabs(name, false)
 	}
 }
 
 func (e *Editor) ReloadOrOpenTab(name string) {
 	found := false
 	for i := range e.tabContainers {
-		found = e.tabContainers[i].ReloadTabs(name) || found
+		found = e.tabContainers[i].ReloadTabs(name, true) || found
 	}
 	if !found {
 		klib.NotYetImplemented(314)

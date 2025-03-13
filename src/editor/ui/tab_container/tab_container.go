@@ -37,6 +37,8 @@ type TabContainer struct {
 	Tabs           []TabContainerTab
 	Snap           string
 	usingOwnWindow bool
+
+	lastReload float64
 }
 
 func (t *TabContainer) tabPtrIndex(tab *TabContainerTab) int {
@@ -237,6 +239,10 @@ func (t *TabContainer) reload() {
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
+	if t.lastReload == t.host.Runtime() {
+		panic("double reload")
+	}
+	t.lastReload = t.host.Runtime()
 	t.host.CreatingEditorEntities()
 	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
@@ -252,14 +258,13 @@ func (t *TabContainer) reload() {
 		"resizeStart":      t.resizeStart,
 		"resizeStop":       t.resizeStop,
 	})
-	root, _ := t.doc.GetElementById("tabContent")
 	if len(t.Tabs) > 0 {
-		if t.activeTab == 0 {
-			t.activeTab = 0
-		}
+		klib.Clamp(t.activeTab, 0, len(t.Tabs)-1)
+		root, _ := t.doc.GetElementById("tabContent")
 		t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	}
 	t.host.DoneCreatingEditorEntities()
+	t.doc.Clean()
 }
 
 func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *TabContainer {
@@ -312,13 +317,18 @@ func New(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab, snap stri
 	return t
 }
 
-func (t *TabContainer) ReloadTabs(name string) bool {
+func (t *TabContainer) ReloadTabs(name string, forceOpen bool) bool {
 	found := false
-	root, _ := t.doc.GetElementById("tabContent")
 	for i := range t.Tabs {
 		if t.Tabs[i].Label == name {
-			t.Tabs[i].Reload(t.uiMan, root)
-			found = true
+			if t.doc != nil || forceOpen {
+				if t.activeTab == i {
+					t.reload()
+				} else {
+					t.selectTab(i)
+				}
+				found = true
+			}
 		}
 	}
 	return found
@@ -420,7 +430,6 @@ func (t *TabContainer) DragUpdate() {
 		// This shouldn't be something that happens...
 	}
 	if t.activeTab >= 0 {
-		root, _ := t.doc.GetElementById("tabContent")
-		t.Tabs[t.activeTab].Reload(t.uiMan, root)
+		t.reload()
 	}
 }

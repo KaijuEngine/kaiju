@@ -93,12 +93,12 @@ func waitForProjectSelectWindow(ed *Editor) (string, error) {
 
 func constructEditorUI(ed *Editor) {
 	ed.Host().CreatingEditorEntities()
-	ed.logWindow = log_window.New(ed.Host().LogStream)
-	ed.contentWindow = content_window.New(&ed.contentOpener, ed, &ed.uiManager)
+	ed.logWindow = log_window.New(ed.Host().LogStream, ed.ReloadTabs)
+	ed.contentWindow = content_window.New(&ed.contentOpener, ed)
 	ed.detailsWindow = details_window.New(ed)
 	ed.contextMenu = context_menu.New(ed.container, &ed.uiManager)
 	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
-		hierarchyContextMenuActions(ed))
+		hierarchyContextMenuActions(ed), ed.ReloadTabs)
 	ed.menu = editor_menu.New(ed.container, ed.logWindow, ed.contentWindow,
 		ed.hierarchy, &ed.contentOpener, ed, &ed.uiManager)
 	ed.statusBar = status_bar.New(&ed.uiManager, func() {
@@ -120,6 +120,7 @@ func constructEditorUI(ed *Editor) {
 		}, tab_container.SnapLeft)
 	bottomContainer := tab_container.New(ed.container.Host, &ed.uiManager,
 		[]tab_container.TabContainerTab{
+			tab_container.NewTab(ed.contentWindow),
 			tab_container.NewTab(ed.logWindow),
 		}, tab_container.SnapBottom)
 	rightContainer := tab_container.New(ed.container.Host, &ed.uiManager,

@@ -182,7 +182,7 @@ func (m *Menu) openLogWindow(*document.Element) {
 }
 
 func (m *Menu) openContentWindow(*document.Element) {
-	m.contentWindow.Show()
+	m.editor.ReloadOrOpenTab("Content")
 }
 
 func (m *Menu) openHierarchyWindow(*document.Element) {
