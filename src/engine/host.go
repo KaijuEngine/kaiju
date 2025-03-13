@@ -343,12 +343,18 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	back := len(host.entities)
+	end := len(host.entities)
+	back := end
 	for i, e := range host.entities {
 		if e.TickCleanup() {
 			host.entities[i] = host.entities[back-1]
 			back--
 		}
+	}
+	if len(host.entities) > end {
+		host.entities = append(host.entities[:end-back], host.entities[end:]...)
+	} else {
+		host.entities = host.entities[:back]
 	}
 	host.entities = host.entities[:back]
 	host.editorEntities.tickCleanup()

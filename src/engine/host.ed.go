@@ -66,14 +66,19 @@ func (e editorEntities) contains(entity *Entity) bool {
 }
 
 func (e *editorEntities) tickCleanup() {
-	back := len(*e)
+	end := len(*e)
+	back := end
 	for i, t := range *e {
 		if t.TickCleanup() {
 			(*e)[i] = (*e)[back-1]
 			back--
 		}
 	}
-	*e = (*e)[:back]
+	if len(*e) > end {
+		*e = append((*e)[:end-back], (*e)[end:]...)
+	} else {
+		*e = (*e)[:back]
+	}
 }
 
 func (e editorEntities) resetDirty() {
