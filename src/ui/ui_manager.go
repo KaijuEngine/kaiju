@@ -27,19 +27,16 @@ func (man *Manager) update(deltaTime float64) {
 	roots := []*UI{}
 	children := []*UI{}
 	man.pools.Each(func(elm *UI) {
-		if (*elm).Entity().IsRoot() {
+		if elm.entity.IsDestroyed() {
+			return
+		}
+		if elm.entity.IsRoot() {
 			roots = append(roots, elm)
 		} else {
 			children = append(children, elm)
 		}
 	})
 	// First we update all the root UI elements, this will stabilize the tree
-
-	waitForLimit := make(chan struct{}, concurrentUpdateLimit)
-	for range concurrentUpdateLimit {
-		waitForLimit <- struct{}{}
-	}
-
 	wg.Add(len(roots))
 	threads := man.Host.Threads()
 	for i := range roots {
