@@ -345,16 +345,13 @@ func (host *Host) Update(deltaTime float64) {
 	}
 	end := len(host.entities)
 	back := end
-	for i, e := range host.entities {
+	for i := 0; i < back; i++ {
+		e := host.entities[i]
 		if e.TickCleanup() {
 			host.entities[i] = host.entities[back-1]
 			back--
+			i--
 		}
-	}
-	if len(host.entities) > end {
-		host.entities = append(host.entities[:end-back], host.entities[end:]...)
-	} else {
-		host.entities = host.entities[:back]
 	}
 	host.entities = host.entities[:back]
 	host.editorEntities.tickCleanup()
