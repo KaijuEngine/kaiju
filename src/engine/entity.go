@@ -193,13 +193,19 @@ func (e *Entity) SetActive(isActive bool) {
 // Destroying a parent will also destroy all children of the entity.
 func (e *Entity) Destroy() {
 	if !e.isDestroyed {
-		e.isDestroyed = true
-		e.destroyedFrames = 1
-		for i := len(e.Children) - 1; i >= 0; i-- {
-			e.Children[i].Destroy()
-		}
+		e.innerDestroy()
 		e.removeFromParent()
 		e.Transform.SetParent(nil)
+	}
+}
+
+func (e *Entity) innerDestroy() {
+	if !e.isDestroyed {
+		e.isDestroyed = true
+		e.destroyedFrames = 1
+		for i := range e.Children {
+			e.Children[i].innerDestroy()
+		}
 	}
 }
 
