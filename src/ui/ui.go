@@ -121,8 +121,6 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	if ui.render == nil {
 		ui.render = func() { ui.events[EventTypeRender].Execute() }
 	}
-	ui.entity.Init(ui.Host().WorkGroup())
-	ui.man.Host.AddEntity(&ui.entity)
 	ui.shaderData = &ShaderData{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 	}

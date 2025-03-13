@@ -86,6 +86,8 @@ func (man *Manager) Add() *UI {
 	ui.id = elmId
 	ui.man = man
 	ui.group = man.Group
+	ui.entity.Init(man.Host.WorkGroup())
+	man.Host.AddEntity(&ui.entity)
 	return ui
 }
 
