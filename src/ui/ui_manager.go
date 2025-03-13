@@ -34,32 +34,29 @@ func (man *Manager) update(deltaTime float64) {
 		}
 	})
 	// First we update all the root UI elements, this will stabilize the tree
+
 	waitForLimit := make(chan struct{}, concurrentUpdateLimit)
 	for range concurrentUpdateLimit {
 		waitForLimit <- struct{}{}
 	}
+
 	wg.Add(len(roots))
+	threads := man.Host.Threads()
 	for i := range roots {
-		idx := i
-		go func() {
-			roots[idx].cleanIfNeeded()
-			waitForLimit <- struct{}{}
+		threads.AddWork(func() {
+			roots[i].cleanIfNeeded()
 			wg.Done()
-		}()
-		<-waitForLimit
+		})
 	}
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
 	all := append(children, roots...)
 	wg.Add(len(all))
 	for i := range all {
-		idx := i
-		go func() {
-			all[idx].updateFromManager(deltaTime)
-			waitForLimit <- struct{}{}
+		threads.AddWork(func() {
+			all[i].updateFromManager(deltaTime)
 			wg.Done()
-		}()
-		<-waitForLimit
+		})
 	}
 	wg.Wait()
 }

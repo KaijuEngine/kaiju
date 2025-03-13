@@ -84,6 +84,7 @@ type Host struct {
 	Window         *windowing.Window
 	LogStream      *logging.LogStream
 	workGroup      concurrent.WorkGroup
+	threads        concurrent.Threads
 	Camera         cameras.Camera
 	UICamera       cameras.Camera
 	audio          audio.Audio
@@ -133,6 +134,7 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		LogStream:      logStream,
 		frameRunner:    make([]frameRun, 0),
 		entityLookup:   make(map[EntityId]*Entity),
+		threads:        concurrent.NewThreads(),
 	}
 	return host
 }
@@ -152,6 +154,7 @@ func (host *Host) Initialize(width, height, x, y int) error {
 		return err
 	}
 	host.Window = win
+	host.threads.Start()
 	host.Camera.ViewportChanged(float32(width), float32(height))
 	host.UICamera.ViewportChanged(float32(width), float32(height))
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
@@ -174,6 +177,9 @@ func (host *Host) InitializeAudio() error {
 
 // WorkGroup returns the work group for this instance of host
 func (host *Host) WorkGroup() *concurrent.WorkGroup { return &host.workGroup }
+
+// Threads returns the long-running threads for this instance of host
+func (host *Host) Threads() *concurrent.Threads { return &host.threads }
 
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
@@ -403,6 +409,7 @@ func (host *Host) Teardown() {
 	host.materialCache.Destroy()
 	host.assetDatabase.Destroy()
 	host.Window.Destroy()
+	host.threads.Stop()
 	host.CloseSignal <- struct{}{}
 }
 
