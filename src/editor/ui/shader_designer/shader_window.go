@@ -7,6 +7,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -65,13 +66,13 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 	}
 	data := reflectUIStructure(&win.shader, "", collectFileOptions())
 	data.Name = "Shader Editor"
-	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
+	win.shaderDoc, _ = markup.DocumentFromHTMLAssetRooted(win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":  showShaderTooltip,
 			"valueChanged": win.shaderValueChanged,
 			"returnHome":   win.returnHome,
 			"saveData":     win.shaderSave,
-		})
+		}, win.root)
 	if sy != 0 {
 		content := win.shaderDoc.GetElementsByClass("topFields")[0]
 		win.man.Host.RunAfterFrames(2, func() {
@@ -101,19 +102,20 @@ func (win *ShaderDesigner) shaderValueChanged(e *document.Element) {
 	setObjectValueFromUI(&win.shader, e)
 }
 
-func OpenShader(path string) {
-	setup(func(win *ShaderDesigner) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			slog.Error("failed to load the shader file", "file", path, "error", err)
-			return
-		}
-		if err := json.Unmarshal(data, &win.shader); err != nil {
-			slog.Error("failed to unmarshal the shader data", "error", err)
-			return
-		}
-		win.ShowShaderWindow()
-	})
+func OpenShader(path string, logStream *logging.LogStream) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to load the shader file", "file", path, "error", err)
+		return
+	}
+	var sh rendering.ShaderData
+	if err := json.Unmarshal(data, &sh); err != nil {
+		slog.Error("failed to unmarshal the shader data", "error", err)
+		return
+	}
+	s := New(StateRenderPass, logStream)
+	s.shader = sh
+	s.ShowShaderWindow()
 }
 
 func compileShaderFile(s *rendering.ShaderData, src, flags string) error {

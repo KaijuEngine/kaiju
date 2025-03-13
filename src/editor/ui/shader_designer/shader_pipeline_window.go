@@ -6,6 +6,8 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -26,7 +28,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 	}
 	data := reflectUIStructure(&win.pipeline, "", map[string][]string{})
 	data.Name = "Shader Pipeline Editor"
-	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
+	win.pipelineDoc, _ = markup.DocumentFromHTMLAssetRooted(win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showPipelineTooltip,
 			"valueChanged":    win.pipelineValueChanged,
@@ -34,7 +36,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 			"addToSlice":      win.pipelineAddToSlice,
 			"removeFromSlice": win.pipelineRemoveFromSlice,
 			"saveData":        win.pipelineSave,
-		})
+		}, win.root)
 	if sy != 0 {
 		content := win.pipelineDoc.GetElementsByClass("topFields")[0]
 		win.man.Host.RunAfterFrames(2, func() {
@@ -74,19 +76,20 @@ func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
 	setObjectValueFromUI(&win.pipeline, e)
 }
 
-func OpenPipeline(path string) {
-	setup(func(win *ShaderDesigner) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			slog.Error("failed to load the shader pipeline file", "file", path, "error", err)
-			return
-		}
-		if err := json.Unmarshal(data, &win.pipeline); err != nil {
-			slog.Error("failed to unmarshal the shader pipeline data", "error", err)
-			return
-		}
-		win.ShowPipelineWindow()
-	})
+func OpenPipeline(path string, logStream *logging.LogStream) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to load the shader pipeline file", "file", path, "error", err)
+		return
+	}
+	var p rendering.ShaderPipelineData
+	if err := json.Unmarshal(data, &p); err != nil {
+		slog.Error("failed to unmarshal the shader pipeline data", "error", err)
+		return
+	}
+	s := New(StateRenderPass, logStream)
+	s.pipeline = p
+	s.ShowPipelineWindow()
 }
 
 func (win *ShaderDesigner) pipelineSave(e *document.Element) {

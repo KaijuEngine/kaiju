@@ -190,7 +190,7 @@ func (m *Menu) openHierarchyWindow(*document.Element) {
 }
 
 func (m *Menu) openShaderDesignerWindow(*document.Element) {
-	shader_designer.New()
+	shader_designer.New(shader_designer.StateHome, m.container.Host.LogStream)
 }
 
 func (m *Menu) newEntity(*document.Element) {

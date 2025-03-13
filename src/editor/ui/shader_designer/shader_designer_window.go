@@ -1,10 +1,11 @@
 package shader_designer
 
 import (
-	"kaiju/host_container"
+	"kaiju/editor/ui/tab_container"
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"slices"
 )
@@ -16,11 +17,11 @@ const (
 type ShaderDesignerState = int
 
 const (
-	shaderDesignerStateHome = ShaderDesignerState(iota)
-	shaderDesignerStateShader
-	shaderDesignerStateRenderPass
-	shaderDesignerStatePipeline
-	shaderDesignerStateMaterial
+	StateHome = ShaderDesignerState(iota)
+	StateShader
+	StateRenderPass
+	StatePipeline
+	StateMaterial
 )
 
 type ShaderDesigner struct {
@@ -28,12 +29,13 @@ type ShaderDesigner struct {
 	renderPass        rendering.RenderPassData
 	pipeline          rendering.ShaderPipelineData
 	material          rendering.MaterialData
-	shaderDoc         *document.Document
 	shaderDesignerDoc *document.Document
+	shaderDoc         *document.Document
 	pipelineDoc       *document.Document
 	renderPassDoc     *document.Document
 	materialDoc       *document.Document
-	man               ui.Manager
+	man               *ui.Manager
+	root              *document.Element
 	state             ShaderDesignerState
 }
 
@@ -46,34 +48,82 @@ type flagState struct {
 	Index   int
 }
 
+func (s *ShaderDesigner) TabTitle() string { return "Shader Designer" }
+
+func (s *ShaderDesigner) Document() *document.Document {
+	switch s.state {
+	case StateShader:
+		return s.shaderDoc
+	case StateRenderPass:
+		return s.renderPassDoc
+	case StatePipeline:
+		return s.pipelineDoc
+	case StateMaterial:
+		return s.materialDoc
+	case StateHome:
+		fallthrough
+	default:
+		return s.shaderDesignerDoc
+	}
+}
+
+func (s *ShaderDesigner) Destroy() {
+	if s.shaderDesignerDoc != nil {
+		s.shaderDesignerDoc.Destroy()
+		s.shaderDesignerDoc = nil
+	}
+	if s.shaderDoc != nil {
+		s.shaderDoc.Destroy()
+		s.shaderDoc = nil
+	}
+	if s.renderPassDoc != nil {
+		s.renderPassDoc.Destroy()
+		s.renderPassDoc = nil
+	}
+	if s.pipelineDoc != nil {
+		s.pipelineDoc.Destroy()
+		s.pipelineDoc = nil
+	}
+	if s.materialDoc != nil {
+		s.materialDoc.Destroy()
+		s.materialDoc = nil
+	}
+}
+
+func (s *ShaderDesigner) Reload(uiMan *ui.Manager, root *document.Element) {
+	s.man = uiMan
+	s.root = root
+	switch s.state {
+	case StateHome:
+		s.reloadShaderDesigner()
+		s.shaderDesignerDoc.Activate()
+	case StateShader:
+		s.reloadShaderDoc()
+		s.shaderDoc.Activate()
+	case StateRenderPass:
+		s.reloadRenderPassDoc()
+		s.renderPassDoc.Activate()
+	case StatePipeline:
+		s.reloadPipelineDoc()
+		s.pipelineDoc.Activate()
+	case StateMaterial:
+		s.reloadMaterialDoc()
+		s.materialDoc.Activate()
+	}
+}
+
 func (s flagState) Has(val string) bool {
 	return slices.Contains(s.Current, val)
 }
 
-func (win *ShaderDesigner) uiInit() {
-	setupShaderDoc(win)
-	setupPipelineDoc(win)
-	setupRenderPassDoc(win)
-	setupMaterialDoc(win)
-	win.reloadShaderDesigner()
-}
-
-func setup(onOpen func(*ShaderDesigner)) {
-	container := host_container.New("Shader Designer", nil)
-	go container.Run(640, 480, -1, -1)
-	<-container.PrepLock
-	container.RunFunction(func() {
-		win := &ShaderDesigner{}
-		win.man.Init(container.Host)
-		win.uiInit()
-		if onOpen != nil {
-			onOpen(win)
-		}
-	})
-}
-
-func New() {
-	setup(nil)
+func New(state ShaderDesignerState, logStream *logging.LogStream) *ShaderDesigner {
+	s := &ShaderDesigner{
+		state: state,
+	}
+	tab_container.NewWindow(s.TabTitle(), -1, -1, []tab_container.TabContainerTab{
+		tab_container.NewTab(s),
+	}, logStream)
+	return s
 }
 
 func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
@@ -81,49 +131,59 @@ func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
 		return
 	}
 	win.state = state
-	win.shaderDoc.Deactivate()
-	win.pipelineDoc.Deactivate()
-	win.renderPassDoc.Deactivate()
-	win.materialDoc.Deactivate()
-	win.shaderDesignerDoc.Deactivate()
+	if win.shaderDoc != nil {
+		win.shaderDoc.Deactivate()
+	}
+	if win.pipelineDoc != nil {
+		win.pipelineDoc.Deactivate()
+	}
+	if win.renderPassDoc != nil {
+		win.renderPassDoc.Deactivate()
+	}
+	if win.materialDoc != nil {
+		win.materialDoc.Deactivate()
+	}
+	if win.shaderDesignerDoc != nil {
+		win.shaderDesignerDoc.Deactivate()
+	}
 	switch state {
-	case shaderDesignerStateHome:
-		win.shaderDesignerDoc.Activate()
+	case StateHome:
 		win.reloadShaderDesigner()
-	case shaderDesignerStateShader:
-		win.shaderDoc.Activate()
+		win.shaderDesignerDoc.Activate()
+	case StateShader:
 		win.reloadShaderDoc()
-	case shaderDesignerStateRenderPass:
-		win.renderPassDoc.Activate()
+		win.shaderDoc.Activate()
+	case StateRenderPass:
 		win.reloadRenderPassDoc()
-	case shaderDesignerStatePipeline:
-		win.pipelineDoc.Activate()
+		win.renderPassDoc.Activate()
+	case StatePipeline:
 		win.reloadPipelineDoc()
-	case shaderDesignerStateMaterial:
-		win.materialDoc.Activate()
+		win.pipelineDoc.Activate()
+	case StateMaterial:
 		win.reloadMaterialDoc()
+		win.materialDoc.Activate()
 	}
 	win.man.Host.Window.Focus()
 }
 
 func (win *ShaderDesigner) ShowDesignerWindow() {
-	win.ChangeWindowState(shaderDesignerStateHome)
+	win.ChangeWindowState(StateHome)
 }
 
 func (win *ShaderDesigner) ShowShaderWindow() {
-	win.ChangeWindowState(shaderDesignerStateShader)
+	win.ChangeWindowState(StateShader)
 }
 
 func (win *ShaderDesigner) ShowRenderPassWindow() {
-	win.ChangeWindowState(shaderDesignerStateRenderPass)
+	win.ChangeWindowState(StateRenderPass)
 }
 
 func (win *ShaderDesigner) ShowPipelineWindow() {
-	win.ChangeWindowState(shaderDesignerStatePipeline)
+	win.ChangeWindowState(StatePipeline)
 }
 
 func (win *ShaderDesigner) ShowMaterialWindow() {
-	win.ChangeWindowState(shaderDesignerStateMaterial)
+	win.ChangeWindowState(StateMaterial)
 }
 
 func (win *ShaderDesigner) returnHome(*document.Element) {
@@ -134,7 +194,7 @@ func (win *ShaderDesigner) reloadShaderDesigner() {
 	if win.shaderDesignerDoc != nil {
 		win.shaderDesignerDoc.Destroy()
 	}
-	win.shaderDesignerDoc, _ = markup.DocumentFromHTMLAsset(&win.man, shaderDesignerHTML,
+	win.shaderDesignerDoc, _ = markup.DocumentFromHTMLAssetRooted(win.man, shaderDesignerHTML,
 		nil, map[string]func(*document.Element){
 			"newShader": func(*document.Element) {
 				win.shader = rendering.ShaderData{}
@@ -152,5 +212,5 @@ func (win *ShaderDesigner) reloadShaderDesigner() {
 				win.material = rendering.MaterialData{}
 				win.ShowMaterialWindow()
 			},
-		})
+		}, win.root)
 }

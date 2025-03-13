@@ -14,6 +14,6 @@ func (o RenderPassOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 }
 
 func (o RenderPassOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
-	shader_designer.OpenRenderPass(adi.Path)
+	shader_designer.OpenRenderPass(adi.Path, ed.Host().LogStream)
 	return nil
 }

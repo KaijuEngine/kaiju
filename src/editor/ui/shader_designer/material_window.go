@@ -7,6 +7,7 @@ import (
 	"kaiju/markup"
 	"kaiju/markup/document"
 	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"log/slog"
 	"os"
@@ -64,7 +65,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["Texture"] = collectTextureOptions()
 	data := reflectUIStructure(&win.material, "", listings)
 	data.Name = "Material Editor"
-	win.materialDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
+	win.materialDoc, _ = markup.DocumentFromHTMLAssetRooted(win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showMaterialTooltip,
 			"valueChanged":    win.materialValueChanged,
@@ -72,7 +73,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 			"addToSlice":      win.materialAddToSlice,
 			"removeFromSlice": win.materialRemoveFromSlice,
 			"saveData":        win.materialSave,
-		})
+		}, win.root)
 	if sy != 0 {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
 		win.man.Host.RunAfterFrames(2, func() {
@@ -111,13 +112,12 @@ func loadMaterialData(path string) (rendering.MaterialData, bool) {
 	return m, true
 }
 
-func OpenMaterial(path string) {
-	setup(func(win *ShaderDesigner) {
-		if m, ok := loadMaterialData(path); ok {
-			win.material = m
-			win.ShowMaterialWindow()
-		}
-	})
+func OpenMaterial(path string, logStream *logging.LogStream) {
+	if m, ok := loadMaterialData(path); ok {
+		s := New(StateMaterial, logStream)
+		s.material = m
+		s.ShowMaterialWindow()
+	}
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {

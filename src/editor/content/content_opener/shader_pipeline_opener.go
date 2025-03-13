@@ -14,6 +14,6 @@ func (o ShaderPipelineOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 }
 
 func (o ShaderPipelineOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
-	shader_designer.OpenPipeline(adi.Path)
+	shader_designer.OpenPipeline(adi.Path, ed.Host().LogStream)
 	return nil
 }

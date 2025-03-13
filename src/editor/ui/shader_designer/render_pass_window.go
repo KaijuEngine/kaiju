@@ -6,25 +6,28 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/markup"
 	"kaiju/markup/document"
+	"kaiju/rendering"
+	"kaiju/systems/logging"
 	"kaiju/ui"
 	"log/slog"
 	"os"
 	"path/filepath"
 )
 
-func OpenRenderPass(path string) {
-	setup(func(win *ShaderDesigner) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			slog.Error("failed to load the render pass file", "file", path, "error", err)
-			return
-		}
-		if err := json.Unmarshal(data, &win.renderPass); err != nil {
-			slog.Error("failed to unmarshal the render pass data", "error", err)
-			return
-		}
-		win.ShowRenderPassWindow()
-	})
+func OpenRenderPass(path string, logStream *logging.LogStream) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to load the render pass file", "file", path, "error", err)
+		return
+	}
+	var rp rendering.RenderPassData
+	if err := json.Unmarshal(data, &rp); err != nil {
+		slog.Error("failed to unmarshal the render pass data", "error", err)
+		return
+	}
+	s := New(StateRenderPass, logStream)
+	s.renderPass = rp
+	s.ShowRenderPassWindow()
 }
 
 func setupRenderPassDoc(win *ShaderDesigner) {
@@ -41,7 +44,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 	}
 	data := reflectUIStructure(&win.renderPass, "", map[string][]string{})
 	data.Name = "Render Pass Editor"
-	win.renderPassDoc, _ = markup.DocumentFromHTMLAsset(&win.man, dataInputHTML,
+	win.renderPassDoc, _ = markup.DocumentFromHTMLAssetRooted(win.man, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showRenderPassTooltip,
 			"valueChanged":    win.renderPassValueChanged,
@@ -50,7 +53,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 			"removeFromSlice": win.renderPassRemoveFromSlice,
 			"saveData":        win.renderPassSaveRenderPass,
 			"returnHome":      win.returnHome,
-		})
+		}, win.root)
 	if sy != 0 {
 		content := win.renderPassDoc.GetElementsByClass("topFields")[0]
 		win.man.Host.RunAfterFrames(2, func() {

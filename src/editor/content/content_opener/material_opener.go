@@ -14,6 +14,6 @@ func (o MaterialOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 }
 
 func (o MaterialOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
-	shader_designer.OpenMaterial(adi.Path)
+	shader_designer.OpenMaterial(adi.Path, ed.Host().LogStream)
 	return nil
 }
