@@ -42,6 +42,7 @@ import (
 	"kaiju/audio"
 	"kaiju/cameras"
 	"kaiju/concurrent"
+	"kaiju/engine/collision_system"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/profiler/tracing"
@@ -76,36 +77,37 @@ type frameRun struct {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name           string
-	editorEntities editorEntities
-	entities       []*Entity
-	entityLookup   map[EntityId]*Entity
-	frameRunner    []frameRun
-	Window         *windowing.Window
-	LogStream      *logging.LogStream
-	workGroup      concurrent.WorkGroup
-	threads        concurrent.Threads
-	Camera         cameras.Camera
-	UICamera       cameras.Camera
-	audio          audio.Audio
-	shaderCache    rendering.ShaderCache
-	textureCache   rendering.TextureCache
-	meshCache      rendering.MeshCache
-	fontCache      rendering.FontCache
-	materialCache  rendering.MaterialCache
-	Drawings       rendering.Drawings
-	frame          FrameId
-	frameTime      float64
-	Closing        bool
-	UIUpdater      Updater
-	UILateUpdater  Updater
-	Updater        Updater
-	LateUpdater    Updater
-	assetDatabase  assets.Database
-	OnClose        events.Event
-	CloseSignal    chan struct{}
-	frameRateLimit *time.Ticker
-	inEditorEntity int
+	name             string
+	editorEntities   editorEntities
+	entities         []*Entity
+	entityLookup     map[EntityId]*Entity
+	frameRunner      []frameRun
+	Window           *windowing.Window
+	LogStream        *logging.LogStream
+	workGroup        concurrent.WorkGroup
+	threads          concurrent.Threads
+	Camera           cameras.Camera
+	UICamera         cameras.Camera
+	collisionManager collision_system.Manager
+	audio            audio.Audio
+	shaderCache      rendering.ShaderCache
+	textureCache     rendering.TextureCache
+	meshCache        rendering.MeshCache
+	fontCache        rendering.FontCache
+	materialCache    rendering.MaterialCache
+	Drawings         rendering.Drawings
+	frame            FrameId
+	frameTime        float64
+	Closing          bool
+	UIUpdater        Updater
+	UILateUpdater    Updater
+	Updater          Updater
+	LateUpdater      Updater
+	assetDatabase    assets.Database
+	OnClose          events.Event
+	CloseSignal      chan struct{}
+	frameRateLimit   *time.Ticker
+	inEditorEntity   int
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -200,6 +202,11 @@ func (host *Host) CreatingEditorEntities() {
 // entity created on the host will go to the standard entity pool.
 func (host *Host) DoneCreatingEditorEntities() {
 	host.inEditorEntity--
+}
+
+// CollisionManager returns the collision manager for this host
+func (host *Host) CollisionManager() *collision_system.Manager {
+	return &host.collisionManager
 }
 
 // ShaderCache returns the shader cache for the host
@@ -340,6 +347,7 @@ func (host *Host) Update(deltaTime float64) {
 	host.UILateUpdater.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
+	host.collisionManager.Update(deltaTime)
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}

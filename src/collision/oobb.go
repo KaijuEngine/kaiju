@@ -39,21 +39,21 @@ package collision
 
 import "kaiju/matrix"
 
-type OBB struct {
+type OOBB struct {
 	Center      matrix.Vec3
 	Extent      matrix.Vec3
 	Orientation matrix.Mat3
 }
 
-func OBBFromAABB(aabb AABB) OBB {
-	return OBB{
+func OBBFromAABB(aabb AABB) OOBB {
+	return OOBB{
 		Center:      aabb.Center,
 		Extent:      aabb.Extent,
 		Orientation: matrix.Mat3Identity(),
 	}
 }
 
-func (o OBB) ContainsPoint(point matrix.Vec3) bool {
+func (o OOBB) ContainsPoint(point matrix.Vec3) bool {
 	localPoint := o.Orientation.Transpose().MultiplyVec3(point.Subtract(o.Center))
 	if matrix.Abs(localPoint.X()) <= o.Extent.X() &&
 		matrix.Abs(localPoint.Y()) <= o.Extent.Y() &&
@@ -63,46 +63,42 @@ func (o OBB) ContainsPoint(point matrix.Vec3) bool {
 	return false
 }
 
-func (o OBB) ProjectOntoAxis(axis matrix.Vec3) OBB {
-	projection := OBB{
-		Center: o.Center,
-		Extent: matrix.Vec3{
-			matrix.Abs(matrix.Vec3Dot(o.Extent, axis)),
-			matrix.Abs(matrix.Vec3Dot(o.Extent, axis)),
-			matrix.Abs(matrix.Vec3Dot(o.Extent, axis)),
-		},
-		Orientation: o.Orientation,
-	}
-	return projection
-}
-
-func (o OBB) Overlaps(other OBB) bool {
-	if matrix.Abs(o.Center.X()-other.Center.X()) > o.Extent.X()+other.Extent.X() {
-		return false
-	}
-	if matrix.Abs(o.Center.Y()-other.Center.Y()) > o.Extent.Y()+other.Extent.Y() {
-		return false
-	}
-	if matrix.Abs(o.Center.Z()-other.Center.Z()) > o.Extent.Z()+other.Extent.Z() {
-		return false
-	}
-	return true
-}
-
-func (o OBB) Intersect(other OBB) bool {
+func (o OOBB) Intersect(other OOBB) bool {
+	axes := make([]matrix.Vec3, 6, 15)
 	for i := 0; i < 3; i++ {
-		axisA := o.Orientation.ColumnVector(i)
-		axisB := other.Orientation.ColumnVector(i)
-		projectionA := o.ProjectOntoAxis(axisA)
-		projectionB := other.ProjectOntoAxis(axisA)
-		if !projectionA.Overlaps(projectionB) {
-			return false
+		axes[i] = o.Orientation.ColumnVector(i)
+		axes[i+3] = other.Orientation.ColumnVector(i)
+	}
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			cross := matrix.Vec3Cross(o.Orientation.ColumnVector(i), other.Orientation.ColumnVector(j))
+			if cross.Length() > 1e-6 {
+				cross.Normalize()
+				axes = append(axes, cross)
+			}
 		}
-		projectionA = o.ProjectOntoAxis(axisB)
-		projectionB = other.ProjectOntoAxis(axisB)
-		if !projectionA.Overlaps(projectionB) {
+	}
+	for _, axis := range axes {
+		min1, max1 := o.projectInterval(axis)
+		min2, max2 := other.projectInterval(axis)
+		if !intervalsOverlap(min1, max1, min2, max2) {
 			return false
 		}
 	}
 	return true
+}
+
+func intervalsOverlap(min1, max1, min2, max2 float32) bool {
+	const epsilon = 1e-6
+	return max1 >= (min2-epsilon) && max2 >= (min1-epsilon)
+}
+
+func (o OOBB) projectInterval(axis matrix.Vec3) (float32, float32) {
+	p := matrix.Vec3Dot(o.Center, axis)
+	r := matrix.Abs(matrix.Vec3Dot(o.Orientation.ColumnVector(0), axis))*o.Extent.X() +
+		matrix.Abs(matrix.Vec3Dot(o.Orientation.ColumnVector(1), axis))*o.Extent.Y() +
+		matrix.Abs(matrix.Vec3Dot(o.Orientation.ColumnVector(2), axis))*o.Extent.Z()
+	minProj := p - r
+	maxProj := p + r
+	return minProj, maxProj
 }
