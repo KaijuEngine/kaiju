@@ -132,6 +132,12 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 			return
 		}
 	}
+	win.material.RenderPass = filepath.ToSlash(win.material.RenderPass)
+	win.material.Shader = filepath.ToSlash(win.material.Shader)
+	win.material.ShaderPipeline = filepath.ToSlash(win.material.ShaderPipeline)
+	for i := range win.material.Textures {
+		win.material.Textures[i].Texture = filepath.ToSlash(win.material.Textures[i].Texture)
+	}
 	res, err := json.Marshal(win.material)
 	if err != nil {
 		slog.Error("failed to marshal the material data", "error", err)

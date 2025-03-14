@@ -32,10 +32,16 @@ package lua
 #cgo noescape luaL_newstate
 #cgo noescape lua_pushlightuserdata
 
+#cgo LDFLAGS: -lm -ldl
+
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define LUA_USE_LONGJMP = 1
+#define LUA_USE_LONGJMP 1
+#if defined(__linux__)
+#define LUA_USE_LINUX 1
+#endif
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"

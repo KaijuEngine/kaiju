@@ -175,6 +175,11 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
 		return
 	}
+	win.shader.Vertex = filepath.ToSlash(win.shader.Vertex)
+	win.shader.Fragment = filepath.ToSlash(win.shader.Fragment)
+	win.shader.Geometry = filepath.ToSlash(win.shader.Geometry)
+	win.shader.TessellationControl = filepath.ToSlash(win.shader.TessellationControl)
+	win.shader.TessellationEvaluation = filepath.ToSlash(win.shader.TessellationEvaluation)
 	res, err := json.Marshal(win.shader)
 	if err != nil {
 		slog.Error("failed to marshal the shader data", "error", err)

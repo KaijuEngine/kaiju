@@ -26,7 +26,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor",
+			"buildFlags": "-tags=editor,vulkanValidation",
 		}, {
 			"name": "Launch X11 Runtime",
 			"type": "go",
