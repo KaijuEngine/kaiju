@@ -32,7 +32,7 @@ package lua
 #cgo noescape luaL_newstate
 #cgo noescape lua_pushlightuserdata
 
-#cgo LDFLAGS: -lm -ldl
+#cgo linux LDFLAGS: -lm -ldl
 
 #include <stdlib.h>
 #include <stdbool.h>
