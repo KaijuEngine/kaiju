@@ -93,6 +93,11 @@ func (win *ShaderDesigner) renderPassSaveRenderPass(e *document.Element) {
 			return
 		}
 	}
+	for i := range win.renderPass.SubpassDescriptions {
+		s := win.renderPass.SubpassDescriptions[i]
+		s.Subpass.Shader = filepath.ToSlash(s.Subpass.Shader)
+		s.Subpass.ShaderPipeline = filepath.ToSlash(s.Subpass.ShaderPipeline)
+	}
 	res, err := json.Marshal(win.renderPass)
 	if err != nil {
 		slog.Error("failed to marshal the render pass data", "error", err)
