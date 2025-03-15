@@ -67,15 +67,20 @@ import (
 */
 import "C"
 
+//export goProcessEvents
+func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
+	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
+}
+
 func scaleScrollDelta(delta float32) float32 {
 	return delta / 120.0
 }
 
-func (w *Window) createWindow(windowName string, win *Window, x, y int) {
+func (w *Window) createWindow(windowName string, x, y int) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
-	goWindow := uint64(uintptr(unsafe.Pointer(win)))
-	C.window_main(title, C.int(win.width), C.int(win.height),
+	goWindow := uint64(uintptr(unsafe.Pointer(w)))
+	C.window_main(title, C.int(w.width), C.int(w.height),
 		C.int(x), C.int(y), C.uint64_t(goWindow))
 }
 
@@ -85,48 +90,6 @@ func (w *Window) showWindow() {
 
 func (w *Window) destroy() {
 	C.window_destroy(w.handle)
-}
-
-//export goProcessEvents
-func goProcessEvents(goWindow uint64, events unsafe.Pointer, eventCount uint32) {
-	var win *Window
-	gw := unsafe.Pointer(uintptr(goWindow))
-	for i := range activeWindows {
-		if unsafe.Pointer(activeWindows[i]) == gw {
-			win = activeWindows[i]
-			break
-		}
-	}
-	for range eventCount {
-		eType, body := readType(events)
-		switch eType {
-		case windowEventTypeSetHandle:
-			evt := asSetHandleEvent(body)
-			win.handle = evt.hwnd
-			win.instance = evt.instance
-		case windowEventTypeActivity:
-			win.processWindowActivityEvent(asWindowActivityEvent(body))
-		case windowEventTypeMove:
-			win.processWindowMoveEvent(asWindowMoveEvent(body))
-		case windowEventTypeResize:
-			win.processWindowResizeEvent(asWindowResizeEvent(body))
-		case windowEventTypeMouseMove:
-			win.processMouseMoveEvent(asMouseMoveWindowEvent(body))
-		case windowEventTypeMouseScroll:
-			win.processMouseScrollEvent(asMouseScrollWindowEvent(body))
-		case windowEventTypeMouseButton:
-			win.processMouseButtonEvent(asMouseButtonWindowEvent(body))
-		case windowEventTypeKeyboardButton:
-			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
-		case windowEventTypeControllerState:
-			win.processControllerStateEvent(asControllerStateWindowEvent(body))
-		case windowEventTypeFatal:
-			events = body
-			win.fatalFromNativeAPI = true
-			break
-		}
-		events = unsafe.Pointer(uintptr(body) + evtUnionSize)
-	}
 }
 
 func (w *Window) poll() {

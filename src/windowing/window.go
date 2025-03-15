@@ -98,7 +98,7 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	w.createWindow(windowName+"\x00\x00", w, x, y)
+	w.createWindow(windowName+"\x00\x00", x, y)
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window " + windowName)
 	}
@@ -430,4 +430,45 @@ func (w *Window) becameActive() {
 		}
 	}
 	klib.SliceMove(activeWindows, idx, 0)
+}
+
+func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount uint32) {
+	var win *Window
+	gw := unsafe.Pointer(uintptr(goWindow))
+	for i := range activeWindows {
+		if unsafe.Pointer(activeWindows[i]) == gw {
+			win = activeWindows[i]
+			break
+		}
+	}
+	for range eventCount {
+		eType, body := readType(events)
+		switch eType {
+		case windowEventTypeSetHandle:
+			evt := asSetHandleEvent(body)
+			win.handle = evt.hwnd
+			win.instance = evt.instance
+		case windowEventTypeActivity:
+			win.processWindowActivityEvent(asWindowActivityEvent(body))
+		case windowEventTypeMove:
+			win.processWindowMoveEvent(asWindowMoveEvent(body))
+		case windowEventTypeResize:
+			win.processWindowResizeEvent(asWindowResizeEvent(body))
+		case windowEventTypeMouseMove:
+			win.processMouseMoveEvent(asMouseMoveWindowEvent(body))
+		case windowEventTypeMouseScroll:
+			win.processMouseScrollEvent(asMouseScrollWindowEvent(body))
+		case windowEventTypeMouseButton:
+			win.processMouseButtonEvent(asMouseButtonWindowEvent(body))
+		case windowEventTypeKeyboardButton:
+			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
+		case windowEventTypeControllerState:
+			win.processControllerStateEvent(asControllerStateWindowEvent(body))
+		case windowEventTypeFatal:
+			events = body
+			win.fatalFromNativeAPI = true
+			break
+		}
+		events = unsafe.Pointer(uintptr(body) + evtUnionSize)
+	}
 }

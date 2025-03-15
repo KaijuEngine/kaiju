@@ -42,6 +42,8 @@ package windowing
 /*
 #cgo LDFLAGS: -lX11 -lXcursor
 #cgo noescape window_main
+#cgo noescape window_poll_controller
+#cgo noescape window_poll
 #cgo noescape window_show
 #cgo noescape window_destroy
 #cgo noescape window_focus
@@ -56,21 +58,7 @@ package windowing
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
 
-#cgo nocallback window_main
-#cgo nocallback window_show
-#cgo nocallback window_destroy
-#cgo nocallback window_focus
-#cgo nocallback window_position
-#cgo nocallback window_set_position
-#cgo nocallback window_set_size
-#cgo nocallback window_width_mm
-#cgo nocallback window_height_mm
-#cgo nocallback window_cursor_standard
-#cgo nocallback window_cursor_ibeam
-#cgo nocallback window_cursor_size_all
-#cgo nocallback window_cursor_size_ns
-#cgo nocallback window_cursor_size_we
-
+#include <stdlib.h>
 #include "windowing.h"
 */
 import "C"
@@ -81,65 +69,24 @@ import (
 	"golang.design/x/clipboard"
 )
 
-func asEventType(msg int, e *evtMem) eventType {
-	switch msg {
-	case 2:
-		return evtKeyDown
-	case 3:
-		return evtKeyUp
-	case 6:
-		return evtMouseMove
-	case 4:
-		switch e.toMouseEvent().buttonId {
-		case nativeMouseButtonLeft:
-			return evtLeftMouseDown
-		case nativeMouseButtonMiddle:
-			return evtMiddleMouseDown
-		case nativeMouseButtonRight:
-			return evtRightMouseDown
-		case nativeMouseButtonX1:
-			return evtX1MouseDown
-		case nativeMouseButtonX2:
-			return evtX2MouseDown
-		default:
-			return evtUnknown
-		}
-	case 5:
-		switch e.toMouseEvent().buttonId {
-		case nativeMouseButtonLeft:
-			return evtLeftMouseUp
-		case nativeMouseButtonMiddle:
-			return evtMiddleMouseUp
-		case nativeMouseButtonRight:
-			return evtRightMouseUp
-		case nativeMouseButtonX1:
-			return evtX1MouseUp
-		case nativeMouseButtonX2:
-			return evtX2MouseUp
-		default:
-			return evtUnknown
-		}
-	case 9:
-		fallthrough
-	case 10:
-		return evtActivity
-	default:
-		return evtUnknown
-	}
+//export goProcessEvents
+func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
+	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
 }
 
 func scaleScrollDelta(delta float32) float32 {
 	return delta
 }
 
-func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
+func (w *Window) createWindow(windowName string, x, y int) {
 	title := C.CString(windowName)
-	C.window_main(title, C.int(width), C.int(height),
-		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
+	goWindow := uint64(uintptr(unsafe.Pointer(w)))
+	C.window_main(title, C.int(w.width), C.int(w.height),
+		C.int(x), C.int(y), C.uint64_t(goWindow))
 	C.free(unsafe.Pointer(title))
 }
 
-func (w *Window) showWindow(evtSharedMem *evtMem) {
+func (w *Window) showWindow() {
 	C.window_show(w.handle)
 }
 
@@ -148,18 +95,8 @@ func (w *Window) destroy() {
 }
 
 func (w *Window) poll() {
-	//evtType := uint32(C.window_poll_controller(w.handle))
-	//if evtType != 0 {
-	//	w.processControllerEvent(asEventType(evtType))
-	//}
-	evtType := 1
-	for evtType != 0 && !w.evtSharedMem.IsQuit() {
-		evtType = int(C.window_poll(w.handle))
-		if evtType != 0 {
-			t := asEventType(evtType, w.evtSharedMem)
-			w.processEvent(t)
-		}
-	}
+	C.window_poll_controller(w.handle)
+	C.window_poll(w.handle)
 }
 
 func (w *Window) cursorStandard() {

@@ -52,11 +52,11 @@ typedef struct {
 	Atom CLIPBOARD;
 } X11State;
 
-void window_main(const char* windowTitle, int width, int height,
-	int x, int y, void* evtSharedMem, int size);
+void window_main(const char* windowTitle,
+	int width, int height, int x, int y, uint64_t goWindow);
 void window_show(void* x11State);
-int window_poll_controller(void* x11State);
-int window_poll(void* x11State);
+void window_poll_controller(void* x11State);
+void window_poll(void* x11State);
 void window_destroy(void* x11State);
 void* display(void* x11State);
 void* window(void* x11State);
