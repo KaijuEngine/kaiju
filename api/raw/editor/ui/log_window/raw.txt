@@ -1,0 +1,29 @@
+package log_window // import "."
+
+
+TYPES
+
+type LogWindow struct {
+	Group viewGroup
+
+	// Has unexported fields.
+}
+
+func New(logStream *logging.LogStream, reloadTabFunc func(name string)) *LogWindow
+
+func (l *LogWindow) All() []visibleMessage
+
+func (l *LogWindow) Destroy()
+
+func (l *LogWindow) Document() *document.Document
+
+func (l *LogWindow) Errors() []visibleMessage
+
+func (l *LogWindow) Infos() []visibleMessage
+
+func (l *LogWindow) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (l *LogWindow) TabTitle() string
+
+func (l *LogWindow) Warnings() []visibleMessage
+

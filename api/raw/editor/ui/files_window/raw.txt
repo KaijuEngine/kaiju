@@ -1,0 +1,30 @@
+package files_window // import "."
+
+
+FUNCTIONS
+
+func Any(title string) chan string
+    Creates a window allowing the person to select any file or folder
+
+func Files(title string, extensions []string) chan string
+    Creates a window allowing the person to select a file with the given
+    extensions
+
+func Folder(title string) chan string
+    Creates a window allowing the person to select a folder
+
+
+TYPES
+
+type FileWindow struct {
+	Dir        []fs.DirEntry
+	Path       string
+	Extensions []string
+
+	Folders bool
+
+	// Has unexported fields.
+}
+
+func (s *FileWindow) CanSelectFolder() bool
+

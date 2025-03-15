@@ -1,0 +1,42 @@
+package tests // import "."
+
+
+CONSTANTS
+
+const TriangleShaderDataSize = int(unsafe.Sizeof(TestBasicShaderData{}))
+
+FUNCTIONS
+
+func SetupConsole(host *engine.Host)
+
+TYPES
+
+type BoneTransform struct {
+	Transform *matrix.Transform
+	Skin      matrix.Mat4
+}
+
+type TestBasicShaderData struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t TestBasicShaderData) Size() int
+
+type TestBasicSkinnedShaderData struct {
+	Bones []BoneTransform
+
+	rendering.ShaderDataBase
+	Color     matrix.Color
+	SkinIndex int32
+	// Has unexported fields.
+}
+
+func (t *TestBasicSkinnedShaderData) NamedDataInstanceSize(name string) int
+
+func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointer
+
+func (t TestBasicSkinnedShaderData) Size() int
+
+func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name string) bool
+

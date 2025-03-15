@@ -1,0 +1,7 @@
+package alert // import "."
+
+
+FUNCTIONS
+
+func New(title, description, ok, cancel string, host *engine.Host) chan bool
+func NewInput(title, hint, value, ok, cancel string, host *engine.Host) chan string
