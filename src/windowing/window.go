@@ -166,10 +166,6 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.top = int(evt.top)
 	w.right = int(evt.right)
 	w.bottom = int(evt.bottom)
-	if w.Renderer != nil {
-		w.Renderer.Resize(w.width, w.height)
-	}
-	w.OnResize.Execute()
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
@@ -441,6 +437,7 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			break
 		}
 	}
+	windowResized := false
 	for range eventCount {
 		eType, body := readType(events)
 		switch eType {
@@ -454,6 +451,7 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.processWindowMoveEvent(asWindowMoveEvent(body))
 		case windowEventTypeResize:
 			win.processWindowResizeEvent(asWindowResizeEvent(body))
+			windowResized = true
 		case windowEventTypeMouseMove:
 			win.processMouseMoveEvent(asMouseMoveWindowEvent(body))
 		case windowEventTypeMouseScroll:
@@ -467,8 +465,13 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 		case windowEventTypeFatal:
 			events = body
 			win.fatalFromNativeAPI = true
-			break
 		}
 		events = unsafe.Pointer(uintptr(body) + evtUnionSize)
+	}
+	if windowResized {
+		if win.Renderer != nil {
+			win.Renderer.Resize(win.width, win.height)
+		}
+		win.OnResize.Execute()
 	}
 }

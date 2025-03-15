@@ -186,6 +186,40 @@ void window_poll(void* x11State) {
 					}
 				});
 				break;
+			case ConfigureNotify:
+				if (s->x == 0 || s->y == 0 || s->width == 0 || s->height == 0) {
+					s->x = e.xconfigure.x;
+					s->y = e.xconfigure.y;
+					s->width = e.xconfigure.width;
+					s->height = e.xconfigure.height;
+				}
+				if (s->x != e.xconfigure.x || s->y != e.xconfigure.y) {
+					s->x = e.xconfigure.x;
+					s->y = e.xconfigure.y;
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_MOVE,
+						.windowMove = {
+							.x = s->x,
+							.y = s->y,
+						}
+					});
+				}
+				if (s->width != e.xconfigure.width || s->height != e.xconfigure.height) {
+					s->width = e.xconfigure.width;
+					s->height = e.xconfigure.height;
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_RESIZE,
+						.windowResize = {
+							.width = e.xconfigure.width,
+							.height = e.xconfigure.height,
+							.left = e.xconfigure.x,
+							.top = e.xconfigure.y,
+							.right = e.xconfigure.x + e.xconfigure.width,
+							.bottom = e.xconfigure.y + e.xconfigure.height,
+						}
+					});
+				}
+				break;
 			case KeyPress:
 			case KeyRelease:
 				shared_mem_add_event(&s->sm, (WindowEvent) {

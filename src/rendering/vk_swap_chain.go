@@ -97,23 +97,17 @@ func chooseSwapExtent(window RenderingContainer, capabilities *vk.SurfaceCapabil
 
 func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSupportDetails {
 	details := vkSwapChainSupportDetails{}
-
 	vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, nil)
-
 	vk.GetPhysicalDeviceSurfaceCapabilities(device, vr.surface, &details.capabilities)
-
 	if details.formatCount > 0 {
 		details.formats = make([]vk.SurfaceFormat, details.formatCount)
 		vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, &details.formats[0])
 	}
-
 	vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, nil)
-
 	if details.presentModeCount > 0 {
 		details.presentModes = make([]vk.PresentMode, details.presentModeCount)
 		vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, &details.presentModes[0])
 	}
-
 	return details
 }
 
