@@ -155,6 +155,18 @@ type ControllerStateWindowEvent struct {
 	_              [6]byte
 }
 
+const evtUnionSize = max(
+	unsafe.Sizeof(SetHandleEvent{}),
+	unsafe.Sizeof(WindowActivityEvent{}),
+	unsafe.Sizeof(WindowMoveEvent{}),
+	unsafe.Sizeof(WindowResizeEvent{}),
+	unsafe.Sizeof(MouseMoveWindowEvent{}),
+	unsafe.Sizeof(MouseScrollWindowEvent{}),
+	unsafe.Sizeof(MouseButtonWindowEvent{}),
+	unsafe.Sizeof(KeyboardButtonWindowEvent{}),
+	unsafe.Sizeof(ControllerStateWindowEvent{}),
+)
+
 func readType(head unsafe.Pointer) (WindowEventType, unsafe.Pointer) {
 	eType := WindowEventType(*(*uint64)(head))
 	return eType, unsafe.Pointer(uintptr(head) + unsafe.Sizeof(uint64(0)))

@@ -239,7 +239,7 @@ func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 	deltaX := scaleScrollDelta(float32(evt.deltaX))
 	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
 	deltaY := scaleScrollDelta(float32(evt.deltaY))
-	w.Mouse.SetScroll(s.X()+deltaY, s.Y())
+	w.Mouse.SetScroll(s.X(), s.Y()+deltaY)
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {

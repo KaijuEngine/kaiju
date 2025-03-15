@@ -102,46 +102,30 @@ func goProcessEvents(goWindow uint64, events unsafe.Pointer, eventCount uint32) 
 		switch eType {
 		case windowEventTypeSetHandle:
 			evt := asSetHandleEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
 			win.handle = evt.hwnd
 			win.instance = evt.instance
 		case windowEventTypeActivity:
-			evt := asWindowActivityEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processWindowActivityEvent(evt)
+			win.processWindowActivityEvent(asWindowActivityEvent(body))
 		case windowEventTypeMove:
-			evt := asWindowMoveEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processWindowMoveEvent(evt)
+			win.processWindowMoveEvent(asWindowMoveEvent(body))
 		case windowEventTypeResize:
-			evt := asWindowResizeEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processWindowResizeEvent(evt)
+			win.processWindowResizeEvent(asWindowResizeEvent(body))
 		case windowEventTypeMouseMove:
-			evt := asMouseMoveWindowEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processMouseMoveEvent(evt)
+			win.processMouseMoveEvent(asMouseMoveWindowEvent(body))
 		case windowEventTypeMouseScroll:
-			evt := asMouseScrollWindowEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processMouseScrollEvent(evt)
+			win.processMouseScrollEvent(asMouseScrollWindowEvent(body))
 		case windowEventTypeMouseButton:
-			evt := asMouseButtonWindowEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processMouseButtonEvent(evt)
+			win.processMouseButtonEvent(asMouseButtonWindowEvent(body))
 		case windowEventTypeKeyboardButton:
-			evt := asKeyboardButtonWindowEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processKeyboardButtonEvent(evt)
+			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
 		case windowEventTypeControllerState:
-			evt := asControllerStateWindowEvent(body)
-			events = unsafe.Pointer(uintptr(body) + unsafe.Sizeof(*evt))
-			win.processControllerStateEvent(evt)
+			win.processControllerStateEvent(asControllerStateWindowEvent(body))
 		case windowEventTypeFatal:
 			events = body
 			win.fatalFromNativeAPI = true
 			break
 		}
+		events = unsafe.Pointer(uintptr(body) + evtUnionSize)
 	}
 }
 
