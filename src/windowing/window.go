@@ -38,8 +38,6 @@
 package windowing
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"kaiju/assets"
 	"kaiju/hid"
@@ -50,32 +48,6 @@ import (
 	"kaiju/systems/events"
 	"slices"
 	"unsafe"
-)
-
-type eventType = int
-
-const (
-	evtUnknown eventType = iota
-	evtQuit
-	evtMouseMove
-	evtLeftMouseDown
-	evtLeftMouseUp
-	evtMiddleMouseDown
-	evtMiddleMouseUp
-	evtRightMouseDown
-	evtRightMouseUp
-	evtX1MouseDown
-	evtX1MouseUp
-	evtX2MouseDown
-	evtX2MouseUp
-	evtMouseWheelVertical
-	evtMouseWheelHorizontal
-	evtKeyDown
-	evtKeyUp
-	evtResize
-	evtMove
-	evtActivity
-	evtControllerStates
 )
 
 var activeWindows []*Window
@@ -90,7 +62,6 @@ type Window struct {
 	Controller               hid.Controller
 	Cursor                   hid.Cursor
 	Renderer                 rendering.Renderer
-	evtSharedMem             *evtMem
 	OnResize                 events.Event
 	OnMove                   events.Event
 	title                    string
@@ -98,11 +69,12 @@ type Window struct {
 	width, height            int
 	left, top, right, bottom int // Full window including title and borders
 	resetDragDataInFrames    int
-	isClosed                 bool
-	isCrashed                bool
 	cursorChangeCount        int
 	windowSync               chan struct{}
 	syncRequest              bool
+	isClosed                 bool
+	isCrashed                bool
+	fatalFromNativeAPI       bool
 }
 
 type FileSearch struct {
@@ -112,38 +84,31 @@ type FileSearch struct {
 
 func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
 	w := &Window{
-		Keyboard:     hid.NewKeyboard(),
-		Mouse:        hid.NewMouse(),
-		Touch:        hid.NewTouch(),
-		Stylus:       hid.NewStylus(),
-		Controller:   hid.NewController(),
-		width:        width,
-		height:       height,
-		evtSharedMem: new(evtMem),
-		x:            x,
-		y:            y,
-		title:        windowName,
-		windowSync:   make(chan struct{}),
+		Keyboard:   hid.NewKeyboard(),
+		Mouse:      hid.NewMouse(),
+		Touch:      hid.NewTouch(),
+		Stylus:     hid.NewStylus(),
+		Controller: hid.NewController(),
+		width:      width,
+		height:     height,
+		x:          x,
+		y:          y,
+		title:      windowName,
+		windowSync: make(chan struct{}),
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	createWindow(windowName+"\x00\x00", w.width, w.height, x, y, w.evtSharedMem)
-	if w.evtSharedMem.IsFatal() {
-		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	w.createWindow(windowName+"\x00\x00", w, x, y)
+	if w.fatalFromNativeAPI {
+		return nil, errors.New("failed to create the window " + windowName)
 	}
-	var hwndAddr, hInstance uint64
-	reader := bytes.NewReader(w.evtSharedMem[evtSharedMemDataStart:])
-	binary.Read(reader, binary.LittleEndian, &hwndAddr)
-	w.handle = unsafe.Pointer(uintptr(hwndAddr))
-	binary.Read(reader, binary.LittleEndian, &hInstance)
-	w.instance = unsafe.Pointer(uintptr(hInstance))
-	createWindowContext(w.handle, w.evtSharedMem)
-	if w.evtSharedMem.IsFatal() {
-		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	createWindowContext(w.handle)
+	if w.fatalFromNativeAPI {
+		return nil, errors.New("failed to create the window context for " + windowName)
 	}
-	w.showWindow(w.evtSharedMem)
-	if w.evtSharedMem.IsFatal() {
-		return nil, errors.New(w.evtSharedMem.FatalMessage())
+	w.showWindow()
+	if w.fatalFromNativeAPI {
+		return nil, errors.New("failed to present the window " + windowName)
 	}
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName, assets)
@@ -194,136 +159,112 @@ func (w *Window) Viewport() matrix.Vec4 {
 	return matrix.Vec4{0, 0, float32(w.width), float32(w.height)}
 }
 
-func (w *Window) processEvent(evtType eventType) {
-	w.processWindowEvent(evtType)
-	w.processMouseEvent(evtType)
-	w.processKeyboardEvent(evtType)
-	w.processControllerEvent(evtType)
+func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
+	w.width = int(evt.width)
+	w.height = int(evt.height)
+	w.left = int(evt.left)
+	w.top = int(evt.top)
+	w.right = int(evt.right)
+	w.bottom = int(evt.bottom)
+	if w.Renderer != nil {
+		w.Renderer.Resize(w.width, w.height)
+	}
+	w.OnResize.Execute()
 }
 
-func (w *Window) processWindowEvent(evtType eventType) {
-	switch evtType {
-	case evtResize:
-		we := w.evtSharedMem.toWindowResizeEvent()
-		w.width = int(we.width)
-		w.height = int(we.height)
-		w.left = int(we.left)
-		w.top = int(we.top)
-		w.right = int(we.right)
-		w.bottom = int(we.bottom)
-		if w.Renderer != nil {
-			w.Renderer.Resize(w.width, w.height)
-		}
-		w.OnResize.Execute()
-	case evtMove:
-		we := w.evtSharedMem.toWindowMoveEvent()
-		// When a window is created at a specific position, windows will
-		// sometimes report a move to position of 0,0 for some reason.
-		if we.x != 0 || we.y != 0 {
-			ww := w.right - w.left
-			wh := w.bottom - w.top
-			w.x = int(we.x)
-			w.y = int(we.y)
-			w.left = w.x
-			w.top = w.y
-			w.right = w.x + ww
-			w.bottom = w.y + wh
-		}
-		w.OnMove.Execute()
-	case evtActivity:
-		ee := w.evtSharedMem.toEnumEvent()
-		switch ee.value {
-		case 0:
-			w.becameInactive()
-		case 1:
-			w.becameActive()
+func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
+	// When a window is created at a specific position, windows will
+	// sometimes report a move to position of 0,0 for some reason.
+	if evt.x != 0 || evt.y != 0 {
+		ww := w.right - w.left
+		wh := w.bottom - w.top
+		w.x = int(evt.x)
+		w.y = int(evt.y)
+		w.left = w.x
+		w.top = w.y
+		w.right = w.x + ww
+		w.bottom = w.y + wh
+	}
+	w.OnMove.Execute()
+}
+
+func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
+	switch evt.activityType {
+	case windowEventActivityTypeMinimize:
+		// TODO:  Not implemented yet
+	case windowEventActivityTypeMaximize:
+		// TODO:  Not implemented yet
+	case windowEventActivityTypeClose:
+		w.isClosed = true
+	case windowEventActivityTypeFocus:
+		w.becameActive()
+	case windowEventActivityTypeBlur:
+		w.becameInactive()
+	}
+}
+
+func (w *Window) processMouseMoveEvent(evt *MouseMoveWindowEvent) {
+	w.Mouse.SetPosition(float32(evt.x), float32(evt.y), float32(w.width), float32(w.height))
+	UpdateDragData(w, int(evt.x), int(evt.y))
+}
+
+func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
+	var targetButton int
+	switch evt.buttonId {
+	case nativeMouseButtonLeft:
+		targetButton = hid.MouseButtonLeft
+	case nativeMouseButtonMiddle:
+		targetButton = hid.MouseButtonMiddle
+	case nativeMouseButtonRight:
+		targetButton = hid.MouseButtonRight
+	case nativeMouseButtonX1:
+		targetButton = hid.MouseButtonX1
+	case nativeMouseButtonX2:
+		targetButton = hid.MouseButtonX2
+	}
+	switch evt.action {
+	case windowEventButtonTypeDown:
+		w.Mouse.SetDown(targetButton)
+	case windowEventButtonTypeUp:
+		w.Mouse.SetUp(targetButton)
+		if targetButton == hid.MouseButtonLeft {
+			w.resetDragDataInFrames = 2
+			UpdateDragDrop(w, int(w.Mouse.SX), int(w.Mouse.SY))
 		}
 	}
 }
 
-func (w *Window) processMouseEvent(evtType eventType) {
-	switch evtType {
-	case evtMouseMove:
-		me := w.evtSharedMem.toMouseEvent()
-		w.Mouse.SetPosition(float32(me.x), float32(me.y), float32(w.width), float32(w.height))
-		UpdateDragData(w, int(me.x), int(me.y))
-	case evtLeftMouseDown:
-		w.Mouse.SetDown(hid.MouseButtonLeft)
-	case evtLeftMouseUp:
-		w.Mouse.SetUp(hid.MouseButtonLeft)
-		w.resetDragDataInFrames = 2
-		UpdateDragDrop(w, int(w.Mouse.SX), int(w.Mouse.SY))
-	case evtMiddleMouseDown:
-		w.Mouse.SetDown(hid.MouseButtonMiddle)
-	case evtMiddleMouseUp:
-		w.Mouse.SetUp(hid.MouseButtonMiddle)
-	case evtRightMouseDown:
-		w.Mouse.SetDown(hid.MouseButtonRight)
-	case evtRightMouseUp:
-		w.Mouse.SetUp(hid.MouseButtonRight)
-	case evtX1MouseDown:
-		me := w.evtSharedMem.toMouseEvent()
-		if me.buttonId == 4 {
-			w.Mouse.SetDown(hid.MouseButtonX2)
-		} else {
-			w.Mouse.SetDown(hid.MouseButtonX1)
-		}
-	case evtX1MouseUp:
-		me := w.evtSharedMem.toMouseEvent()
-		if me.buttonId == 4 {
-			w.Mouse.SetUp(hid.MouseButtonX2)
-		} else {
-			w.Mouse.SetUp(hid.MouseButtonX1)
-		}
-	case evtX2MouseDown:
-		w.Mouse.SetDown(hid.MouseButtonX2)
-	case evtX2MouseUp:
-		w.Mouse.SetUp(hid.MouseButtonX2)
-	case evtMouseWheelVertical:
-		s := w.Mouse.Scroll()
-		me := w.evtSharedMem.toMouseEvent()
-		delta := scaleScrollDelta(float32(me.delta))
-		w.Mouse.SetScroll(s.X(), s.Y()+delta)
-	case evtMouseWheelHorizontal:
-		s := w.Mouse.Scroll()
-		me := w.evtSharedMem.toMouseEvent()
-		delta := scaleScrollDelta(float32(me.delta))
-		w.Mouse.SetScroll(s.X()+delta, s.Y())
-	}
+func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
+	s := w.Mouse.Scroll()
+	deltaX := scaleScrollDelta(float32(evt.deltaX))
+	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
+	deltaY := scaleScrollDelta(float32(evt.deltaY))
+	w.Mouse.SetScroll(s.X()+deltaY, s.Y())
 }
 
-func (w *Window) processKeyboardEvent(evtType eventType) {
-	switch evtType {
-	case evtKeyDown:
-		ke := w.evtSharedMem.toKeyboardEvent()
-		key := hid.ToKeyboardKey(int(ke.key))
+func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
+	switch evt.action {
+	case windowEventButtonTypeDown:
+		key := hid.ToKeyboardKey(int(evt.buttonId))
 		w.Keyboard.SetKeyDown(key)
-	case evtKeyUp:
-		ke := w.evtSharedMem.toKeyboardEvent()
-		key := hid.ToKeyboardKey(int(ke.key))
+	case windowEventButtonTypeUp:
+		key := hid.ToKeyboardKey(int(evt.buttonId))
 		w.Keyboard.SetKeyUp(key)
 	}
 }
 
-func (w *Window) processControllerEvent(evtType eventType) {
-	switch evtType {
-	case evtControllerStates:
-		ce := w.evtSharedMem.toControllerEvent()
-		for id := range ce.controllerStates {
-			c := &ce.controllerStates[id]
-			if c.isConnected == 0 {
-				w.Controller.Disconnected(id)
-			} else {
-				w.Controller.Connected(id)
-			}
-			for i := 0; i < int(unsafe.Sizeof(c.buttons)*8); i++ {
-				buttonId := c.buttons & (1 << i)
-				if buttonId != 0 {
-					w.Controller.SetButtonDown(id, i)
-				} else {
-					w.Controller.SetButtonUp(id, i)
-				}
-			}
+func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
+	if evt.connectionType == windowEventControllerConnectionTypeDisconnected {
+		w.Controller.Disconnected(int(evt.controllerId))
+	} else {
+		w.Controller.Connected(int(evt.controllerId))
+	}
+	for i := 0; i < int(unsafe.Sizeof(evt.buttons)*8); i++ {
+		buttonId := evt.buttons & (1 << i)
+		if buttonId != 0 {
+			w.Controller.SetButtonDown(int(evt.controllerId), i)
+		} else {
+			w.Controller.SetButtonUp(int(evt.controllerId), i)
 		}
 	}
 }
@@ -336,8 +277,7 @@ func (w *Window) Poll() {
 		w.syncRequest = false
 	}
 	w.poll()
-	w.isClosed = w.isClosed || w.evtSharedMem.IsQuit()
-	w.isCrashed = w.isCrashed || w.evtSharedMem.IsFatal()
+	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI
 	w.Cursor.Poll()
 }
 

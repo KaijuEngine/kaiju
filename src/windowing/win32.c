@@ -57,8 +57,6 @@
 #include <windows.h>
 #include <windowsx.h>
 
-extern void goRaiseWindowEvent(void* hwnd, uint32_t msg);
-
 /*
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
@@ -81,37 +79,38 @@ extern void goRaiseWindowEvent(void* hwnd, uint32_t msg);
 #define CURSOR_PIN          15
 #define CURSOR_PERSON       16
 
-void setMouseEvent(InputEvent* evt, LPARAM lParam, int buttonId) {
-	evt->mouse.mouseButtonId = buttonId;
-	evt->mouse.mouseX = GET_X_LPARAM(lParam);
-	evt->mouse.mouseY = GET_Y_LPARAM(lParam);
+void readMousePosition(LPARAM lParam, int32_t* x, int32_t* y) {
+	*x = GET_X_LPARAM(lParam);
+	*y = GET_Y_LPARAM(lParam);
 }
 
 bool obtainControllerStates(SharedMem* sm) {
 	bool readControllerStates = false;
 	DWORD dwResult;
-	memset(&sm->evt->controllers, 0, sizeof(ControllerEvent));
 	for (DWORD i = 0; i < MAX_CONTROLLERS; i++) {
 		XINPUT_STATE state;
 		ZeroMemory(&state, sizeof(XINPUT_STATE));
 		// Simply get the state of the controller from XInput.
 		dwResult = XInputGetState(i, &state);
+		WindowEvent evt = { WINDOW_EVENT_TYPE_CONTROLLER_STATE };
+		evt.controllerState.controllerId = i;
 		if(dwResult == ERROR_SUCCESS) {
-			sm->evt->controllers.states[i].buttons = state.Gamepad.wButtons;
-			sm->evt->controllers.states[i].leftTrigger = state.Gamepad.bLeftTrigger;
-			sm->evt->controllers.states[i].rightTrigger = state.Gamepad.bRightTrigger;
-			sm->evt->controllers.states[i].thumbLX = state.Gamepad.sThumbLX;
-			sm->evt->controllers.states[i].thumbLY = state.Gamepad.sThumbLY;
-			sm->evt->controllers.states[i].thumbRX = state.Gamepad.sThumbRX;
-			sm->evt->controllers.states[i].thumbRY = state.Gamepad.sThumbRY;
-			sm->evt->controllers.states[i].isConnected = 1;
+			evt.controllerState.buttons = state.Gamepad.wButtons;
+			evt.controllerState.leftTrigger = state.Gamepad.bLeftTrigger;
+			evt.controllerState.rightTrigger = state.Gamepad.bRightTrigger;
+			evt.controllerState.thumbLX = state.Gamepad.sThumbLX;
+			evt.controllerState.thumbLY = state.Gamepad.sThumbLY;
+			evt.controllerState.thumbRX = state.Gamepad.sThumbRX;
+			evt.controllerState.thumbRY = state.Gamepad.sThumbRY;
+			evt.controllerState.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED;
 			readControllerStates = true;
 		} else {
 			// TODO:  readControllerStates would be true here too, but
 			// no need to spam the event if no controllers are available?
 			// Probably means the state of the controllers need tracking in C...
-			sm->evt->controllers.states[i].isConnected = 0;
+			evt.controllerState.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_DISCONNECTED;
 		}
+		shared_mem_add_event(sm, evt);
 	}
 	return readControllerStates;
 }
@@ -121,9 +120,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg) {
 		case WM_DESTROY:
 			if (sm != NULL) {
-				shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
-				goRaiseWindowEvent(hwnd, uMsg);
-				shared_memory_set_write_state(sm, SHARED_MEM_NONE);
+				shared_mem_add_event(sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_ACTIVITY,
+					.windowActivity = { WINDOW_EVENT_ACTIVITY_TYPE_CLOSE }
+				});
+				shared_mem_flush_events(sm);
 			}
 			PostQuitMessage(0);
 			return 0;
@@ -131,25 +132,30 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			switch (LOWORD(wParam)) {
 				case WA_ACTIVE:
 				case WA_CLICKACTIVE:
-					sm->evt->enumEvent.value = 1;
+					shared_mem_add_event(sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_ACTIVITY,
+						.windowActivity = { WINDOW_EVENT_ACTIVITY_TYPE_FOCUS }
+					});
 					break;
 				case WA_INACTIVE:
-					sm->evt->enumEvent.value = 0;
+					shared_mem_add_event(sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_ACTIVITY,
+						.windowActivity = { WINDOW_EVENT_ACTIVITY_TYPE_BLUR }
+					});
 					break;
 			}
-			shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_ACTIVITY);
-			goRaiseWindowEvent(hwnd, uMsg);
-			shared_memory_set_write_state(sm, SHARED_MEM_NONE);
+			shared_mem_flush_events(sm);
 			break;
 		case WM_MOVE:
 			// TODO:  Should handle this better, but move is called on focus too
-			if (sm->evt->writeState != SHARED_MEM_WINDOW_ACTIVITY) {
-				sm->evt->move.x = (int)(short)LOWORD(lParam);
-				sm->evt->move.y = (int)(short)HIWORD(lParam);
-				shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_MOVE);
-				goRaiseWindowEvent(hwnd, uMsg);
-				shared_memory_set_write_state(sm, SHARED_MEM_NONE);
-			}
+			shared_mem_add_event(sm, (WindowEvent) {
+				.type = WINDOW_EVENT_TYPE_ACTIVITY,
+				.windowMove = {
+					.x = (int32_t)(short)LOWORD(lParam),
+					.y = (int32_t)(short)HIWORD(lParam),
+				}
+			});
+			shared_mem_flush_events(sm);
 			break;
 		case WM_SIZE:
 			if (sm != NULL) {
@@ -160,18 +166,22 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (sm->windowWidth != width || sm->windowHeight != height) {
 					sm->windowWidth = width;
 					sm->windowHeight = height;
-					sm->evt->resize.width = width;
-					sm->evt->resize.height = height;
+					WindowEvent evt = (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_ACTIVITY,
+						.windowResize = {
+							.width = width,
+							.height = height,
+						}
+					};
 					RECT windowRect;
 					if (GetWindowRect(hwnd, &windowRect)) {
-						sm->evt->resize.left = windowRect.left;
-						sm->evt->resize.top = windowRect.top;
-						sm->evt->resize.right = windowRect.right;
-						sm->evt->resize.bottom = windowRect.bottom;
+						evt.windowResize.left = windowRect.left;
+						evt.windowResize.top = windowRect.top;
+						evt.windowResize.right = windowRect.right;
+						evt.windowResize.bottom = windowRect.bottom;
 					}
-					shared_memory_set_write_state(sm, SHARED_MEM_WINDOW_RESIZE);
-					goRaiseWindowEvent(hwnd, uMsg);
-					shared_memory_set_write_state(sm, SHARED_MEM_NONE);
+					shared_mem_add_event(sm, evt);
+					shared_mem_flush_events(sm);
 				}
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
@@ -181,83 +191,189 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 void process_message(SharedMem* sm, MSG *msg) {
-	sm->evt->evtType = msg->message;
 	switch (msg->message) {
 		case WM_QUIT:
 		case WM_DESTROY:
-			shared_memory_set_write_state(sm, SHARED_MEM_QUIT);
+		{
+			shared_mem_add_event(sm, (WindowEvent) {
+				.type = WINDOW_EVENT_TYPE_ACTIVITY,
+				.windowActivity = { WINDOW_EVENT_ACTIVITY_TYPE_CLOSE }
+			});
+			shared_mem_flush_events(sm);
 			break;
+		}
 		case WM_MOUSEMOVE:
-			setMouseEvent(sm->evt, msg->lParam, -1);
+		{
+			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+			readMousePosition(msg->lParam, &evt.mouseMove.x, &evt.mouseMove.y);
+			shared_mem_add_event(sm, evt);
 			break;
+		}
 		case WM_LBUTTONDOWN:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_LEFT,
+					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			SetCapture(msg->hwnd);
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
 			break;
+		}
 		case WM_LBUTTONUP:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_LEFT,
+					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_LEFT);
 			break;
+		}
 		case WM_MBUTTONDOWN:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_MIDDLE,
+					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			SetCapture(msg->hwnd);
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
 			break;
+		}
 		case WM_MBUTTONUP:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_MIDDLE,
+					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_MIDDLE);
 			break;
+		}
 		case WM_RBUTTONDOWN:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_RIGHT,
+					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			SetCapture(msg->hwnd);
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
 			break;
+		}
 		case WM_RBUTTONUP:
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+				.mouseButton = {
+					.buttonId = MOUSE_BUTTON_RIGHT,
+					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_RIGHT);
 			break;
+		}
 		case WM_XBUTTONDOWN:
 		case WM_XBUTTONUP:
+		{
+			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_BUTTON };
 			if (msg->wParam & 0x0010000) {
-				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X1);
+				evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
 			} else if (msg->wParam & 0x0020000) {
-				setMouseEvent(sm->evt, msg->lParam, MOUSE_BUTTON_X2);
+				evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
 			}
+			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			if (msg->message == WM_XBUTTONDOWN) {
+				evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+				SetCapture(msg->hwnd);
+			} else {
+				evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+				ReleaseCapture();
+			}
+			shared_mem_add_event(sm, evt);
 			break;
+		}
 		case WM_MOUSEWHEEL:
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_WHEEL_VERTICAL);
-			sm->evt->mouse.wheelDelta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
+				.mouseScroll = {
+					.deltaY = GET_WHEEL_DELTA_WPARAM(msg->wParam),
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
+			shared_mem_add_event(sm, evt);
 			break;
+		}
 		case WM_MOUSEHWHEEL:
-			setMouseEvent(sm->evt, msg->lParam, MOUSE_WHEEL_HORIZONTAL);
-			sm->evt->mouse.wheelDelta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
+		{
+			WindowEvent evt = {
+				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
+				.mouseScroll = {
+					.deltaX = GET_WHEEL_DELTA_WPARAM(msg->wParam),
+				}
+			};
+			readMousePosition(msg->lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
+			shared_mem_add_event(sm, evt);
 			break;
+		}
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:
 		case WM_KEYUP:
 		case WM_SYSKEYUP:
+		{
+			WindowEvent evt = { WINDOW_EVENT_TYPE_KEYBOARD_BUTTON };
+			if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
+				evt.keyboardButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+			} else {
+				evt.keyboardButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+			}
 			switch (msg->wParam) {
 				case VK_SHIFT:
 					UINT scancode = (msg->lParam & 0x00FF0000) >> 16;
-					sm->evt->keyboard.keyId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+					evt.keyboardButton.buttonId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
 					break;
 				case VK_CONTROL:
 					if (msg->lParam & 0x01000000) {
-						sm->evt->keyboard.keyId = VK_RCONTROL;
+						evt.keyboardButton.buttonId = VK_RCONTROL;
 					} else {
-						sm->evt->keyboard.keyId = VK_LCONTROL;
+						evt.keyboardButton.buttonId = VK_LCONTROL;
 					}
 					break;
 				case VK_MENU:
 					if (msg->lParam & 0x01000000) {
-						sm->evt->keyboard.keyId = VK_RMENU;
+						evt.keyboardButton.buttonId = VK_RMENU;
 					} else {
-						sm->evt->keyboard.keyId = VK_LMENU;
+						evt.keyboardButton.buttonId = VK_LMENU;
 					}
 					break;
 				default:
-					sm->evt->keyboard.keyId = msg->wParam;
+					evt.keyboardButton.buttonId = msg->wParam;
 					break;
 			}
+			shared_mem_add_event(sm, evt);
 			break;
+		}
 		case UWM_SET_CURSOR:
 		{
 			HCURSOR c = NULL;
@@ -320,10 +436,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 	}
 }
 
-void window_main(const wchar_t* windowTitle, int width, int height,
-	int x, int y, void* evtSharedMem, int size)
+void window_main(const wchar_t* windowTitle,
+	int width, int height, int x, int y, uint64_t goWindow)
 {
-	char* esm = evtSharedMem;
 	// Register the window class.
 	HMODULE hInstance = GetModuleHandle(NULL);
     const wchar_t className[]  = L"Kaiju Window Class";
@@ -356,18 +471,30 @@ void window_main(const wchar_t* windowTitle, int width, int height,
         hInstance,							// Instance handle
         NULL								// Additional application data
 	);
+	SharedMem* sm = malloc(sizeof(SharedMem));
+	sm->goWindow = (void*)goWindow;
     if (hwnd == NULL) {
-		write_fatal(esm, size, "Failed to create window.");
+		shared_mem_add_event(sm, (WindowEvent) {
+			.type = WINDOW_EVENT_TYPE_FATAL,
+			.setHandle = {
+				.hwnd = hwnd,
+				.instance = hInstance,
+			}
+		});
+		shared_mem_flush_events(sm);
 		return;
     }
 	window_cursor_standard(hwnd);
-	memcpy(esm+SHARED_MEM_DATA_START, &hwnd, sizeof(HWND*));
-	memcpy(esm+SHARED_MEM_DATA_START+sizeof(&hwnd), &hInstance, sizeof(HMODULE*));
-	SharedMem* sm = malloc(sizeof(SharedMem));
-	sm->sharedMem = evtSharedMem;
-	sm->size = size;
 	sm->windowWidth = width;
 	sm->windowHeight = height;
+	shared_mem_add_event(sm, (WindowEvent) {
+		.type = WINDOW_EVENT_TYPE_SET_HANDLE,
+		.setHandle = {
+			.hwnd = hwnd,
+			.instance = hInstance,
+		}
+	});
+	shared_mem_flush_events(sm);
 	SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)sm);
 }
 
@@ -375,27 +502,20 @@ void window_show(void* hwnd) {
 	ShowWindow(hwnd, SW_SHOW);
 }
 
-uint32_t window_poll_controller(void* hwnd) {
+void window_poll_controller(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (obtainControllerStates(sm)) {
-		return EVENT_TYPE_CONTROLLER;
-	}
-	return 0;
+	obtainControllerStates(sm);
 }
 
-uint32_t window_poll(void* hwnd) {
+void window_poll(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
- 	// Run the message loop.
     MSG msg = { 0 };
-	if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
+	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
 		TranslateMessage(&msg);
-		// TODO:  Window resize happens in here, but would be clobbered by &msg which is different
 		DispatchMessage(&msg);
 		process_message(sm, &msg);
-		return msg.message;
-	} else {
-		return 0;
 	}
+	shared_mem_flush_events(sm);
 }
 
 void window_destroy(void* hwnd) {

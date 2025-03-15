@@ -38,8 +38,7 @@
 #ifndef SHARED_MEM_H
 #define SHARED_MEM_H
 
-#include <stdint.h>
-#include <string.h>
+#include "window_event.h"
 
 #define SHARED_MEM_NONE				0x00
 #define SHARED_MEM_WINDOW_ACTIVITY	0xF9
@@ -69,95 +68,30 @@
 #define MAX_CONTROLLERS				4
 #endif
 
-typedef struct {
-	int32_t value;
-} EnumEvent;
+extern void goProcessEvents(uint64_t goWindow, void* events, uint32_t eventCount);
 
 typedef struct {
-	int32_t mouseButtonId;
-	int32_t mouseX;
-	int32_t mouseY;
-	int32_t wheelDelta;
-} MouseEvent;
-
-typedef struct {
-	int32_t keyId;
-} KeyboardEvent;
-
-typedef struct {
-	int32_t width;
-	int32_t height;
-	int32_t left;
-	int32_t top;
-	int32_t right;
-	int32_t bottom;
-} ResizeEvent;
-
-typedef struct {
-	int32_t x;
-	int32_t y;
-} MoveEvent;
-
-typedef struct {
-	uint16_t buttons;
-	int16_t thumbLX;
-	int16_t thumbLY;
-	int16_t thumbRX;
-	int16_t thumbRY;
-	uint8_t leftTrigger;
-	uint8_t rightTrigger;
-	uint8_t isConnected;
-} ControllerState;
-
-typedef struct {
-	ControllerState states[MAX_CONTROLLERS];
-} ControllerEvent;
-
-typedef struct {
-	union {
-		uint8_t writeState;
-		int32_t buffer;
-	};
-	uint32_t evtType;
-	union {
-		EnumEvent enumEvent;
-		MouseEvent mouse;
-		KeyboardEvent keyboard;
-		MoveEvent move;
-		ResizeEvent resize;
-		ControllerEvent controllers;
-	};
-} InputEvent;
-
-typedef struct {
-	union {
-		uint8_t* sharedMem;
-		InputEvent* evt;
-	};
-	int size;
+	void* goWindow;
 	int windowWidth;
 	int windowHeight;
-	int windowLeft;
-	int windowTop;
-	int windowRight;
-	int windowBottom;
+	uint32_t eventCount;
+	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
 } SharedMem;
 
-static inline void shared_memory_set_write_state(SharedMem* sm, uint8_t state) {
-	uint8_t smState = sm->evt->writeState;
-	if (smState != SHARED_MEM_QUIT && smState != SHARED_MEM_FATAL) {
-		sm->evt->writeState = state;
+static inline void shared_mem_flush_events(SharedMem* mem) {
+	if (mem->eventCount == 0) {
+		return;
 	}
+	goProcessEvents((uint64_t)mem->goWindow, mem->events, mem->eventCount);
+	mem->eventCount = 0;
 }
 
-static inline void write_fatal(char* evtSharedMem, int size, const char* msg) {
-	int msgLen = strlen(msg);
-	if (msgLen > size - SHARED_MEM_DATA_START) {
-		msgLen = size - SHARED_MEM_DATA_START - 1;
+static inline void shared_mem_add_event(SharedMem* mem, WindowEvent evt) {
+	mem->events[mem->eventCount];
+	mem->eventCount++;
+	if (mem->eventCount == WINDOW_EVENT_BUFFER_SIZE) {
+		shared_mem_flush_events(mem);
 	}
-	memcpy(evtSharedMem + SHARED_MEM_DATA_START, msg, msgLen);
-	evtSharedMem[SHARED_MEM_DATA_START + msgLen] = '\0';
-	evtSharedMem[0] = SHARED_MEM_FATAL;
 }
 
 #endif

@@ -58,6 +58,6 @@ func (w *Window) GetInstanceExtensions() []string {
 func swapBuffers(handle unsafe.Pointer) {
 }
 
-func createWindowContext(handle unsafe.Pointer, evtSharedMem *evtMem) {
+func createWindowContext(handle unsafe.Pointer) {
 
 }

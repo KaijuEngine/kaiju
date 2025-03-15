@@ -37,9 +37,12 @@
 
 package windowing
 
-import (
-	"unsafe"
-)
+import "unsafe"
+
+type WindowEventType = uint8
+type WindowEventActivityType = uint8
+type WindowEventButtonType = uint8
+type WindowEventControllerConnectionType = uint8
 
 const (
 	sharedMemWindowActivity  = 0xF9
@@ -60,31 +63,51 @@ const (
 )
 
 const (
-	evtSharedMemSize      = 256
-	evtSharedMemDataStart = 4
+	windowEventTypeSetHandle       = WindowEventType(1)
+	windowEventTypeActivity        = WindowEventType(2)
+	windowEventTypeMove            = WindowEventType(3)
+	windowEventTypeResize          = WindowEventType(4)
+	windowEventTypeMouseMove       = WindowEventType(5)
+	windowEventTypeMouseScroll     = WindowEventType(6)
+	windowEventTypeMouseButton     = WindowEventType(7)
+	windowEventTypeKeyboardButton  = WindowEventType(8)
+	windowEventTypeControllerState = WindowEventType(9)
+	windowEventTypeFatal           = WindowEventType(10)
 )
 
-type evtMem [evtSharedMemSize]byte
+const (
+	windowEventActivityTypeMinimize = WindowEventActivityType(1)
+	windowEventActivityTypeMaximize = WindowEventActivityType(2)
+	windowEventActivityTypeClose    = WindowEventActivityType(3)
+	windowEventActivityTypeFocus    = WindowEventActivityType(4)
+	windowEventActivityTypeBlur     = WindowEventActivityType(5)
+)
 
-type baseEvent struct {
-	eventType uint32
+const (
+	windowEventButtonTypeDown = WindowEventButtonType(1)
+	windowEventButtonTypeUp   = WindowEventButtonType(2)
+)
+
+const (
+	windowEventControllerConnectionTypeDisconnected = WindowEventControllerConnectionType(1)
+	windowEventControllerConnectionTypeConnected    = WindowEventControllerConnectionType(2)
+)
+
+type SetHandleEvent struct {
+	hwnd     unsafe.Pointer
+	instance unsafe.Pointer
 }
 
-type enumEvent struct {
-	baseEvent
-	value int32
+type WindowActivityEvent struct {
+	activityType WindowEventActivityType
 }
 
-type mouseEvent struct {
-	baseEvent
-	buttonId int32
-	x        int32
-	y        int32
-	delta    int32
+type WindowMoveEvent struct {
+	x int32
+	y int32
 }
 
-type windowResizeEvent struct {
-	baseEvent
+type WindowResizeEvent struct {
 	width  int32
 	height int32
 	left   int32
@@ -93,73 +116,79 @@ type windowResizeEvent struct {
 	bottom int32
 }
 
-type windowMoveEvent struct {
-	baseEvent
+type MouseMoveWindowEvent struct {
 	x int32
 	y int32
 }
 
-type keyboardEvent struct {
-	baseEvent
-	key int32
+type MouseScrollWindowEvent struct {
+	deltaX int32
+	deltaY int32
+	x      int32
+	y      int32
 }
 
-type controllerState struct {
-	baseEvent
-	buttons      uint16
-	thumbLX      int16
-	thumbLY      int16
-	thumbRX      int16
-	thumbRY      int16
-	leftTrigger  uint8
-	rightTrigger uint8
-	isConnected  uint8
+type MouseButtonWindowEvent struct {
+	buttonId int32
+	action   WindowEventButtonType
+	x        int32
+	y        int32
 }
 
-type controllerEvent struct {
-	// TODO:  This 4 will need to be pulled from C
-	controllerStates [4]controllerState
+type KeyboardButtonWindowEvent struct {
+	buttonId int32
+	action   WindowEventButtonType
 }
 
-func (e *evtMem) AsPointer() unsafe.Pointer     { return unsafe.Pointer(&e[0]) }
-func (e *evtMem) AsDataPointer() unsafe.Pointer { return unsafe.Pointer(&e[evtSharedMemDataStart]) }
-func (e *evtMem) IsFatal() bool                 { return e[0] == sharedMemFatal }
-func (e *evtMem) FatalMessage() string          { return string([]byte(e[evtSharedMemDataStart:])) }
-func (e *evtMem) IsQuit() bool                  { return e[0] == sharedMemQuit }
-func (e *evtMem) IsResize() bool                { return e[0] == sharedMemWindowResize }
-func (e *evtMem) IsMove() bool                  { return e[0] == sharedMemWindowMove }
-func (e *evtMem) IsActivity() bool              { return e[0] == sharedMemWindowActivity }
-func (e *evtMem) ResetHeader()                  { e[0] = 0 }
-
-func (e *evtMem) SetFatal(message string) {
-	e[0] = sharedMemFatal
-	msg := []byte(message)
-	for i := 0; i < len(msg) && i < len(e)-evtSharedMemDataStart; i++ {
-		// TODO:  This could cut off right in the middle of a rune (utf8 char)
-		e[i+evtSharedMemDataStart] = msg[i]
-	}
+type ControllerStateWindowEvent struct {
+	controllerId   uint8
+	connectionType WindowEventControllerConnectionType
+	buttons        uint16
+	thumbLX        int16
+	thumbLY        int16
+	thumbRX        int16
+	thumbRY        int16
+	leftTrigger    uint8
+	rightTrigger   uint8
 }
 
-func (e *evtMem) toEnumEvent() *enumEvent {
-	return (*enumEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func readType(head unsafe.Pointer) (WindowEventType, unsafe.Pointer) {
+	eType := WindowEventType(*(*uint32)(head))
+	return eType, unsafe.Pointer(uintptr(head) + unsafe.Sizeof(uint32(0)))
 }
 
-func (e *evtMem) toWindowResizeEvent() *windowResizeEvent {
-	return (*windowResizeEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func asSetHandleEvent(data unsafe.Pointer) *SetHandleEvent {
+	return (*SetHandleEvent)(data)
 }
 
-func (e *evtMem) toWindowMoveEvent() *windowMoveEvent {
-	return (*windowMoveEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func asWindowActivityEvent(data unsafe.Pointer) *WindowActivityEvent {
+	return (*WindowActivityEvent)(data)
 }
 
-func (e *evtMem) toMouseEvent() *mouseEvent {
-	return (*mouseEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func asWindowMoveEvent(data unsafe.Pointer) *WindowMoveEvent {
+	return (*WindowMoveEvent)(data)
 }
 
-func (e *evtMem) toKeyboardEvent() *keyboardEvent {
-	return (*keyboardEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func asWindowResizeEvent(data unsafe.Pointer) *WindowResizeEvent {
+	return (*WindowResizeEvent)(data)
 }
 
-func (e *evtMem) toControllerEvent() *controllerEvent {
-	return (*controllerEvent)(unsafe.Pointer(&e[unsafe.Sizeof(uint32(0))]))
+func asMouseMoveWindowEvent(data unsafe.Pointer) *MouseMoveWindowEvent {
+	return (*MouseMoveWindowEvent)(data)
+}
+
+func asMouseScrollWindowEvent(data unsafe.Pointer) *MouseScrollWindowEvent {
+	return (*MouseScrollWindowEvent)(data)
+}
+
+func asMouseButtonWindowEvent(data unsafe.Pointer) *MouseButtonWindowEvent {
+	return (*MouseButtonWindowEvent)(data)
+}
+
+func asKeyboardButtonWindowEvent(data unsafe.Pointer) *KeyboardButtonWindowEvent {
+	return (*KeyboardButtonWindowEvent)(data)
+}
+
+func asControllerStateWindowEvent(data unsafe.Pointer) *ControllerStateWindowEvent {
+	return (*ControllerStateWindowEvent)(data)
 }
