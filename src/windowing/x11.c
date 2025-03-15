@@ -212,10 +212,10 @@ void window_poll(void* x11State) {
 						.windowResize = {
 							.width = e.xconfigure.width,
 							.height = e.xconfigure.height,
-							.left = e.xconfigure.x,
-							.top = e.xconfigure.y,
-							.right = e.xconfigure.x + e.xconfigure.width,
-							.bottom = e.xconfigure.y + e.xconfigure.height,
+							.left = s->x,
+							.top = s->y,
+							.right = s->x + e.xconfigure.width,
+							.bottom = s->y + e.xconfigure.height,
 						}
 					});
 				}

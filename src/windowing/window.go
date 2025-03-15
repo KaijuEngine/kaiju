@@ -93,6 +93,10 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 		height:     height,
 		x:          x,
 		y:          y,
+		left:       x,
+		top:        y,
+		right:      x + width,
+		bottom:     y + height,
 		title:      windowName,
 		windowSync: make(chan struct{}),
 	}
