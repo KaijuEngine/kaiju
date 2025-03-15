@@ -85,6 +85,10 @@ void window_main(const char* windowTitle,
 {
 	X11State* x11State = calloc(1, sizeof(X11State));
 	x11State->sm.goWindow = (void*)goWindow;
+	x11State->x = x;
+	x11State->y = y;
+	x11State->width = width;
+	x11State->height = height;
 	XInitThreads();
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
@@ -187,9 +191,8 @@ void window_poll(void* x11State) {
 				});
 				break;
 			case ConfigureNotify:
-				if (s->x == 0 || s->y == 0 || s->width == 0 || s->height == 0) {
-					s->x = e.xconfigure.x;
-					s->y = e.xconfigure.y;
+				// No need to trigger a resize on init
+				if (s->width == 0 || s->height == 0) {
 					s->width = e.xconfigure.width;
 					s->height = e.xconfigure.height;
 				}
