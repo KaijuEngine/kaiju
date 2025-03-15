@@ -471,7 +471,7 @@ void window_main(const wchar_t* windowTitle,
         hInstance,							// Instance handle
         NULL								// Additional application data
 	);
-	SharedMem* sm = malloc(sizeof(SharedMem));
+	SharedMem* sm = calloc(1, sizeof(SharedMem));
 	sm->goWindow = (void*)goWindow;
     if (hwnd == NULL) {
 		shared_mem_add_event(sm, (WindowEvent) {

@@ -40,9 +40,9 @@ package windowing
 import "unsafe"
 
 type WindowEventType = uint8
-type WindowEventActivityType = uint8
-type WindowEventButtonType = uint8
-type WindowEventControllerConnectionType = uint8
+type WindowEventActivityType = uint32
+type WindowEventButtonType = uint32
+type WindowEventControllerConnectionType = uint32
 
 const (
 	sharedMemWindowActivity  = 0xF9
@@ -100,6 +100,7 @@ type SetHandleEvent struct {
 
 type WindowActivityEvent struct {
 	activityType WindowEventActivityType
+	_            [4]byte
 }
 
 type WindowMoveEvent struct {
@@ -142,19 +143,21 @@ type KeyboardButtonWindowEvent struct {
 
 type ControllerStateWindowEvent struct {
 	controllerId   uint8
+	leftTrigger    uint8
+	rightTrigger   uint8
+	_              byte
 	connectionType WindowEventControllerConnectionType
 	buttons        uint16
 	thumbLX        int16
 	thumbLY        int16
 	thumbRX        int16
 	thumbRY        int16
-	leftTrigger    uint8
-	rightTrigger   uint8
+	_              [6]byte
 }
 
 func readType(head unsafe.Pointer) (WindowEventType, unsafe.Pointer) {
-	eType := WindowEventType(*(*uint32)(head))
-	return eType, unsafe.Pointer(uintptr(head) + unsafe.Sizeof(uint32(0)))
+	eType := WindowEventType(*(*uint64)(head))
+	return eType, unsafe.Pointer(uintptr(head) + unsafe.Sizeof(uint64(0)))
 }
 
 func asSetHandleEvent(data unsafe.Pointer) *SetHandleEvent {

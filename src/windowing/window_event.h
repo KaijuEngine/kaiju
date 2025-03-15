@@ -2,6 +2,7 @@
 #define WINDOW_EVENT_H
 
 #include <stdint.h>
+#include <stdalign.h>
 
 #define WINDOW_EVENT_BUFFER_SIZE	128
 
@@ -37,67 +38,69 @@ typedef enum {
 } WindowEventControllerConnectionType;
 
 typedef struct {
-	void* hwnd;
-	void* instance;
+	alignas(8) void* hwnd;
+	alignas(8) void* instance;
 } SetHandleEvent;
 
 typedef struct {
-	WindowEventActivityType activityType;
+	alignas(4) WindowEventActivityType activityType;
+	char _[4];
 } WindowActivityEvent;
 
 typedef struct {
-	int32_t x;
-	int32_t y;
+	alignas(4) int32_t x;
+	alignas(4) int32_t y;
 } WindowMoveEvent;
 
 typedef struct {
-	int32_t width;
-	int32_t height;
-	int32_t left;
-	int32_t top;
-	int32_t right;
-	int32_t bottom;
+	alignas(4) int32_t width;
+	alignas(4) int32_t height;
+	alignas(4) int32_t left;
+	alignas(4) int32_t top;
+	alignas(4) int32_t right;
+	alignas(4) int32_t bottom;
 } WindowResizeEvent;
 
 typedef struct {
-	int32_t x;
-	int32_t y;
+	alignas(4) int32_t x;
+	alignas(4) int32_t y;
 } MouseMoveWindowEvent;
 
 typedef struct {
-	int32_t deltaX;
-	int32_t deltaY;
-	int32_t x;
-	int32_t y;
+	alignas(4) int32_t deltaX;
+	alignas(4) int32_t deltaY;
+	alignas(4) int32_t x;
+	alignas(4) int32_t y;
 } MouseScrollWindowEvent;
 
 typedef struct {
-	int32_t buttonId;
-	WindowEventButtonType action;
-	int32_t x;
-	int32_t y;
+	alignas(4) int32_t buttonId;
+	alignas(4) WindowEventButtonType action;
+	alignas(4) int32_t x;
+	alignas(4) int32_t y;
 } MouseButtonWindowEvent;
 
 typedef struct {
-	int32_t buttonId;
-	WindowEventButtonType action;
+	alignas(4) int32_t buttonId;
+	alignas(4) WindowEventButtonType action;
 } KeyboardButtonWindowEvent;
 
 typedef struct {
-	uint8_t controllerId;
-	WindowEventControllerConnectionType connectionType;
-	uint16_t buttons;
-	int16_t thumbLX;
-	int16_t thumbLY;
-	int16_t thumbRX;
-	int16_t thumbRY;
-	uint8_t leftTrigger;
-	uint8_t rightTrigger;
+	alignas(1) uint8_t controllerId;
+	alignas(1) uint8_t leftTrigger;
+	alignas(1) uint8_t rightTrigger;
+	char _0[1];
+	alignas(4) WindowEventControllerConnectionType connectionType;
+	alignas(2) uint16_t buttons;
+	alignas(2) int16_t thumbLX;
+	alignas(2) int16_t thumbLY;
+	alignas(2) int16_t thumbRX;
+	alignas(2) int16_t thumbRY;
+	char _1[6];
 } ControllerStateWindowEvent;
 
 typedef struct {
-	//WindowEventType type;
-	uint32_t type;
+	alignas(8) WindowEventType type;
 	union {
 		SetHandleEvent setHandle;
 		WindowActivityEvent windowActivity;

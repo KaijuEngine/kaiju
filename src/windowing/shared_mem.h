@@ -87,8 +87,7 @@ static inline void shared_mem_flush_events(SharedMem* mem) {
 }
 
 static inline void shared_mem_add_event(SharedMem* mem, WindowEvent evt) {
-	mem->events[mem->eventCount];
-	mem->eventCount++;
+	mem->events[mem->eventCount++] = evt;
 	if (mem->eventCount == WINDOW_EVENT_BUFFER_SIZE) {
 		shared_mem_flush_events(mem);
 	}
