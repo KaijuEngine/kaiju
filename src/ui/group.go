@@ -58,12 +58,13 @@ type groupRequest struct {
 }
 
 type Group struct {
-	requests    []groupRequest
-	focus       *UI
-	updateId    int
-	lock        sync.Mutex
-	hadRequests requestState
-	isThreaded  bool
+	requests        []groupRequest
+	focus           *UI
+	hoveredElements []*UI
+	updateId        int
+	lock            sync.Mutex
+	hadRequests     requestState
+	isThreaded      bool
 }
 
 func NewGroup() *Group {
@@ -125,9 +126,10 @@ func (group *Group) Detach(host *engine.Host) {
 	group.updateId = -1
 }
 
+func sortElements(a *UI, b *UI) bool { return a.IsInFrontOf(b) }
+
 func sortRequests(a *groupRequest, b *groupRequest) bool {
-	return a.target.Entity().Transform.WorldPosition().Z() >
-		b.target.Entity().Transform.WorldPosition().Z()
+	return sortElements(a.target, b.target)
 }
 
 func (group *Group) lateUpdate() {
@@ -140,6 +142,23 @@ func (group *Group) lateUpdate() {
 			r := &group.requests[i]
 			requestSets[r.eventType] = append(requestSets[r.eventType], *r)
 		}
+		// TODO:  Improve this later, it should be done when a new hover happens?
+		{
+			man := group.requests[0].target.man
+			group.hoveredElements = group.hoveredElements[:0]
+			man.pools.Each(func(e *UI) {
+				if e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
+					group.hoveredElements = append(group.hoveredElements, e)
+				}
+			})
+			sort.Slice(group.hoveredElements, func(i, j int) bool {
+				return sortElements(group.hoveredElements[i], group.hoveredElements[j])
+			})
+		}
+		var top *UI
+		if len(group.hoveredElements) > 0 {
+			top = group.hoveredElements[0]
+		}
 		for i := range requestSets {
 			g := requestSets[i]
 			shouldContinue := true
@@ -147,13 +166,19 @@ func (group *Group) lateUpdate() {
 				req := &g[j]
 				if shouldContinue {
 					switch req.eventType {
-					case EventTypeEnter, EventTypeExit, EventTypeMiss,
-						EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
-						EventTypeSubmit:
+					case EventTypeMiss, EventTypeKeyDown, EventTypeKeyUp,
+						EventTypeChange, EventTypeSubmit:
 						req.target.ExecuteEvent(req.eventType)
-					case EventTypeClick, EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
-						EventTypeDropEnter, EventTypeDropExit, EventTypeDragStart,
-						EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
+					case EventTypeEnter, EventTypeMove, EventTypeDown, EventTypeUp,
+						EventTypeDropEnter, EventTypeDragStart, EventTypeScroll:
+						if top == nil || req.target.IsInFrontOf(top) {
+							if req.target.ExecuteEvent(req.eventType) {
+								shouldContinue = false
+							}
+						}
+					case EventTypeExit, EventTypeClick, EventTypeRightClick,
+						EventTypeDoubleClick, EventTypeDropExit,
+						EventTypeDragEnd, EventTypeDrop:
 						if req.target.ExecuteEvent(req.eventType) {
 							shouldContinue = false
 						}
