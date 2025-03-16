@@ -174,18 +174,14 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
-	// When a window is created at a specific position, windows will
-	// sometimes report a move to position of 0,0 for some reason.
-	if evt.x != 0 || evt.y != 0 {
-		ww := w.right - w.left
-		wh := w.bottom - w.top
-		w.x = int(evt.x)
-		w.y = int(evt.y)
-		w.left = w.x
-		w.top = w.y
-		w.right = w.x + ww
-		w.bottom = w.y + wh
-	}
+	ww := w.right - w.left
+	wh := w.bottom - w.top
+	w.x = int(evt.x)
+	w.y = int(evt.y)
+	w.left = w.x
+	w.top = w.y
+	w.right = w.x + ww
+	w.bottom = w.y + wh
 	w.OnMove.Execute()
 }
 
@@ -335,7 +331,7 @@ func DPI2PX(pixels, mm, targetMM int) int {
 }
 
 func (w *Window) CursorStandard() {
-	w.cursorChangeCount--
+	w.cursorChangeCount = max(0, w.cursorChangeCount-1)
 	if w.cursorChangeCount == 0 {
 		w.cursorStandard()
 	}

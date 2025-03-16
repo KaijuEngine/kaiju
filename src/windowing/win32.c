@@ -149,7 +149,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_MOVE:
 			// TODO:  Should handle this better, but move is called on focus too
 			shared_mem_add_event(sm, (WindowEvent) {
-				.type = WINDOW_EVENT_TYPE_ACTIVITY,
+				.type = WINDOW_EVENT_TYPE_MOVE,
 				.windowMove = {
 					.x = (int32_t)(short)LOWORD(lParam),
 					.y = (int32_t)(short)HIWORD(lParam),
