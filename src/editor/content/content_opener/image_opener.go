@@ -39,9 +39,15 @@ package content_opener
 
 import (
 	"errors"
+	"kaiju/assets"
 	"kaiju/assets/asset_info"
+	"kaiju/collision"
+	"kaiju/editor/content/content_history"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
+	"kaiju/engine"
+	"kaiju/matrix"
+	"kaiju/rendering"
 	"kaiju/systems/console"
 )
 
@@ -53,5 +59,62 @@ func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 
 func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
 	console.For(ed.Host()).Write("Opening an image")
-	return errors.New("not implemented")
+	host := ed.Host()
+	filter := rendering.TextureFilterLinear
+	if f := adi.MetaValue("Filter"); f != "" {
+		switch f {
+		case "Nearest":
+			filter = rendering.TextureFilterNearest
+		}
+	}
+	texture, err := host.TextureCache().Texture(adi.Path, filter)
+	if err != nil {
+		return errors.New("failed to load the texture " + adi.Path)
+	}
+	// TODO:  Swap this to sprite and remove the visuals2d sprite stuff and make it 3D
+	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	if err != nil {
+		return errors.New("failed to find the sprite material")
+	}
+	mesh := rendering.NewMeshQuad(host.MeshCache())
+	e := engine.NewEntity(ed.Host().WorkGroup())
+	e.GenerateId()
+	p := ed.Camera().LookAtPoint()
+	p.SetZ(0)
+	e.Transform.SetPosition(p)
+	host.AddEntity(e)
+	e.SetName(adi.MetaValue("name"))
+	// TODO:  Swap this to a sprite basic that has control over UVs
+	shaderData := &rendering.ShaderDataBasic{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.ColorWhite(),
+	}
+	drawing := rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Material:   mat.CreateInstance([]*rendering.Texture{texture}),
+		Mesh:       mesh,
+		ShaderData: shaderData,
+		Transform:  &e.Transform,
+	}
+	host.Drawings.AddDrawing(drawing)
+	e.EditorBindings.AddDrawing(drawing)
+	e.OnActivate.Add(func() { shaderData.Activate() })
+	e.OnDeactivate.Add(func() { shaderData.Deactivate() })
+	e.OnDestroy.Add(func() { shaderData.Destroy() })
+	bvh := collision.NewBVH()
+	bvh.Transform = &e.Transform
+	bvh.Insert(mesh.BVH())
+	if !bvh.IsLeaf() {
+		e.EditorBindings.Set("bvh", bvh)
+		ed.BVH().Insert(bvh)
+		e.OnDestroy.Add(func() { bvh.RemoveNode() })
+	}
+	ed.History().Add(&content_history.ModelOpen{
+		Host:   host,
+		Entity: e,
+		Editor: ed,
+	})
+	ed.ReloadTabs("Hierarchy")
+	host.Window.Focus()
+	return nil
 }
