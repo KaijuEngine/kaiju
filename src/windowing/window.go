@@ -75,6 +75,7 @@ type Window struct {
 	isClosed                 bool
 	isCrashed                bool
 	fatalFromNativeAPI       bool
+	resizedFromNativeAPI     bool
 }
 
 type FileSearch struct {
@@ -277,6 +278,13 @@ func (w *Window) Poll() {
 		w.syncRequest = false
 	}
 	w.poll()
+	if w.resizedFromNativeAPI {
+		w.resizedFromNativeAPI = false
+		if w.Renderer != nil {
+			w.Renderer.Resize(w.width, w.height)
+		}
+		w.OnResize.Execute()
+	}
 	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI
 	w.Cursor.Poll()
 }
@@ -441,7 +449,6 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			break
 		}
 	}
-	windowResized := false
 	for range eventCount {
 		eType, body := readType(events)
 		switch eType {
@@ -455,7 +462,7 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.processWindowMoveEvent(asWindowMoveEvent(body))
 		case windowEventTypeResize:
 			win.processWindowResizeEvent(asWindowResizeEvent(body))
-			windowResized = true
+			win.resizedFromNativeAPI = true
 		case windowEventTypeMouseMove:
 			win.processMouseMoveEvent(asMouseMoveWindowEvent(body))
 		case windowEventTypeMouseScroll:
@@ -471,11 +478,5 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.fatalFromNativeAPI = true
 		}
 		events = unsafe.Pointer(uintptr(body) + evtUnionSize)
-	}
-	if windowResized {
-		if win.Renderer != nil {
-			win.Renderer.Resize(win.width, win.height)
-		}
-		win.OnResize.Execute()
 	}
 }

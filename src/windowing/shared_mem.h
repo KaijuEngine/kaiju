@@ -74,6 +74,10 @@ typedef struct {
 	void* goWindow;
 	int windowWidth;
 	int windowHeight;
+	int left;
+	int top;
+	int right;
+	int bottom;
 	uint32_t eventCount;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
 } SharedMem;

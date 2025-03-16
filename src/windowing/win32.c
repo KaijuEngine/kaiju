@@ -167,7 +167,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					sm->windowWidth = width;
 					sm->windowHeight = height;
 					WindowEvent evt = (WindowEvent) {
-						.type = WINDOW_EVENT_TYPE_ACTIVITY,
+						.type = WINDOW_EVENT_TYPE_RESIZE,
 						.windowResize = {
 							.width = width,
 							.height = height,
@@ -175,10 +175,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					};
 					RECT windowRect;
 					if (GetWindowRect(hwnd, &windowRect)) {
-						evt.windowResize.left = windowRect.left;
-						evt.windowResize.top = windowRect.top;
-						evt.windowResize.right = windowRect.right;
-						evt.windowResize.bottom = windowRect.bottom;
+						sm->left = windowRect.left;
+						sm->top = windowRect.top;
+						sm->right = windowRect.right;
+						sm->bottom = windowRect.bottom;
+						evt.windowResize.left = sm->left;
+						evt.windowResize.top = sm->top;
+						evt.windowResize.right = sm->right;
+						evt.windowResize.bottom = sm->bottom;
 					}
 					shared_mem_add_event(sm, evt);
 					shared_mem_flush_events(sm);
@@ -499,7 +503,28 @@ void window_main(const wchar_t* windowTitle,
 }
 
 void window_show(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	ShowWindow(hwnd, SW_SHOW);
+	RECT windowRect;
+	if (GetWindowRect(hwnd, &windowRect)) {
+		if (sm->left != windowRect.left || sm->top != windowRect.top
+			|| sm->right != windowRect.right || sm->bottom != windowRect.bottom)
+		{
+			WindowEvent evt = (WindowEvent) {
+				.type = WINDOW_EVENT_TYPE_RESIZE,
+				.windowResize = {
+					.width = sm->windowWidth,
+					.height = sm->windowHeight,
+					.left = windowRect.left,
+					.top = windowRect.top,
+					.right = windowRect.right,
+					.bottom = windowRect.bottom,
+				}
+			};
+			shared_mem_add_event(sm, evt);
+			shared_mem_flush_events(sm);
+		}
+	}
 }
 
 void window_poll_controller(void* hwnd) {
