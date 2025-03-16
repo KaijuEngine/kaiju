@@ -47,6 +47,7 @@ import (
 	"kaiju/profiler/tracing"
 	"log/slog"
 	"math"
+	"sort"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -311,8 +312,17 @@ func (vr *Vulkan) remakeSwapChain() {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
 	for _, v := range vr.renderPassCache {
-		v.Recontstruct(vr)
+		passes = append(passes, v)
+	}
+	// We need to sort the passes because some passes require resources from
+	// others and need to be re-constructed afterwords
+	sort.Slice(passes, func(i, j int) bool {
+		return passes[i].construction.Sort < passes[j].construction.Sort
+	})
+	for i := range len(passes) {
+		passes[i].Recontstruct(vr)
 	}
 }
 
