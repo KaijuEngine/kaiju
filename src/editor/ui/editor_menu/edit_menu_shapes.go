@@ -55,7 +55,8 @@ func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
 	}
 	host.Drawings.AddDrawing(drawing)
 	e.EditorBindings.AddDrawing(drawing)
-	bvh := resMesh.GenerateBVH(&e.Transform)
+	bvh := resMesh.GenerateBVH(host.Threads())
+	bvh.Transform = &e.Transform
 	e.EditorBindings.Set("bvh", bvh)
 	ed.BVH().Insert(bvh)
 	e.OnDestroy.Add(func() { bvh.RemoveNode() })

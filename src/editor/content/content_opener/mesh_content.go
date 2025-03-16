@@ -38,7 +38,7 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 			return err
 		}
 		mesh = rendering.NewMesh(adi.ID, m.Verts, m.Indexes)
-		bvh.Insert(m.GenerateBVH(&e.Transform))
+		bvh.Insert(m.GenerateBVH(host.Threads()))
 	}
 	host.MeshCache().AddMesh(mesh)
 	drawing := rendering.Drawing{

@@ -39,6 +39,7 @@ package load_result
 
 import (
 	"kaiju/collision"
+	"kaiju/concurrent"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"sync"
@@ -136,7 +137,7 @@ func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 	return rad
 }
 
-func (m *Mesh) GenerateBVH(t *matrix.Transform) *collision.BVH {
+func (m *Mesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
 	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
 	group := sync.WaitGroup{}
 	construct := func(from, to int) {
@@ -152,15 +153,10 @@ func (m *Mesh) GenerateBVH(t *matrix.Transform) *collision.BVH {
 		}
 		group.Done()
 	}
-	group.Add(1)
-	if len(tris) > 100 {
-		group.Add(9)
-		for i := 0; i < 10; i++ {
-			go construct(i*len(tris)/10, (i+1)*len(tris)/10)
-		}
-	} else {
-		construct(0, len(tris))
+	group.Add(len(tris))
+	for i := range len(tris) {
+		threads.AddWork(func() { construct(i*3, (i+3)*3) })
 	}
 	group.Wait()
-	return collision.BVHBottomUp(tris, t)
+	return collision.BVHBottomUp(tris)
 }

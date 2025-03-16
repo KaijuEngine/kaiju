@@ -134,14 +134,13 @@ func (b *BVH) IsLeft() bool { return b.Parent != nil || b.Parent.Left == b }
 func (b *BVH) IsRight() bool { return b.Parent != nil || b.Parent.Right == b }
 
 // BVHBottomUp constructs a BVH from a list of triangles
-func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH {
+func BVHBottomUp(triangles []DetailedTriangle) *BVH {
 	// TODO:  Get all the current nodes and re-calculate
 	nodes := make([]*BVH, 0, len(triangles))
 	for i := range triangles {
 		nodes = append(nodes, &BVH{
-			bounds:    triangles[i].Bounds(),
-			Data:      &triangles[i],
-			Transform: transform,
+			bounds: triangles[i].Bounds(),
+			Data:   &triangles[i],
 		})
 	}
 	for len(nodes) > 1 {
@@ -153,10 +152,9 @@ func BVHBottomUp(triangles []DetailedTriangle, transform *matrix.Transform) *BVH
 		a := nodes[x]
 		b := nodes[y]
 		node := &BVH{
-			bounds:    AABBUnion(a.Bounds(), b.Bounds()),
-			Left:      a,
-			Right:     b,
-			Transform: transform,
+			bounds: AABBUnion(a.Bounds(), b.Bounds()),
+			Left:   a,
+			Right:  b,
 		}
 		a.Parent = node
 		b.Parent = node
@@ -282,7 +280,11 @@ func (b *BVH) RemoveNode() {
 func (b *BVH) RayHit(ray Ray, rayLen matrix.Float) (matrix.Vec3, bool) {
 	min := matrix.Float(100000.0)
 	ls := LineSegmentFromRay(ray, rayLen)
-	return node_ray(b, ray, ls, &min)
+	mat := matrix.Mat4Identity()
+	if b.Transform != nil {
+		mat = b.Transform.WorldMatrix()
+	}
+	return nodeRay(b, ray, ls, &min, &mat)
 }
 
 func nearest(nodes []*BVH, x, y *int) {
@@ -304,14 +306,13 @@ func nearest(nodes []*BVH, x, y *int) {
 	}
 }
 
-func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float) (matrix.Vec3, bool) {
+func nodeRay(b *BVH, r Ray, ls Segment, min *matrix.Float, mat *matrix.Mat4) (matrix.Vec3, bool) {
 	if b == nil {
 		return matrix.Vec3{}, false
 	}
 	bounds := b.bounds
-	mat := matrix.Mat4Identity()
 	if b.Transform != nil {
-		mat = b.Transform.WorldMatrix()
+		*mat = b.Transform.WorldMatrix()
 	}
 	bounds.Center = mat.TransformPoint(bounds.Center)
 	if _, ok := bounds.RayHit(r); ok {
@@ -327,9 +328,9 @@ func node_ray(b *BVH, r Ray, ls Segment, min *matrix.Float) (matrix.Vec3, bool) 
 				return hit, true
 			}
 		} else {
-			outHit, success := node_ray(b.Left, r, ls, min)
+			outHit, success := nodeRay(b.Left, r, ls, min, mat)
 			if !success {
-				outHit, success = node_ray(b.Right, r, ls, min)
+				outHit, success = nodeRay(b.Right, r, ls, min, mat)
 			}
 			return outHit, success
 		}
