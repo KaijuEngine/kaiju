@@ -145,6 +145,8 @@ func (s *ContentWindow) openContent(elm *document.Element) {
 	if path == "../" {
 		if s.path == contentPath {
 			return
+		} else if info, err := os.Stat(s.path); err == nil && !info.IsDir() {
+			s.path = filepath.Clean(filepath.Dir(s.path) + "/" + path)
 		} else {
 			s.path = filepath.Clean(s.path + "/" + path)
 		}
