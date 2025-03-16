@@ -170,7 +170,7 @@ func (group *Group) lateUpdate() {
 						EventTypeChange, EventTypeSubmit:
 						req.target.ExecuteEvent(req.eventType)
 					case EventTypeEnter, EventTypeMove, EventTypeDown, EventTypeUp,
-						EventTypeDropEnter, EventTypeDragStart, EventTypeScroll:
+						EventTypeDropEnter, EventTypeDragStart:
 						if top == nil || req.target.IsInFrontOf(top) {
 							if req.target.ExecuteEvent(req.eventType) {
 								shouldContinue = false
@@ -178,7 +178,7 @@ func (group *Group) lateUpdate() {
 						}
 					case EventTypeExit, EventTypeClick, EventTypeRightClick,
 						EventTypeDoubleClick, EventTypeDropExit,
-						EventTypeDragEnd, EventTypeDrop:
+						EventTypeDragEnd, EventTypeDrop, EventTypeScroll:
 						if req.target.ExecuteEvent(req.eventType) {
 							shouldContinue = false
 						}
