@@ -494,3 +494,11 @@ func (ui *UI) FindByName(name string) *UI {
 	}
 	return nil
 }
+
+func (ui *UI) IsInFrontOf(other *UI) bool {
+	if ui == other {
+		return true
+	}
+	return ui.entity.Transform.WorldPosition().Z() >
+		other.entity.Transform.WorldPosition().Z()
+}

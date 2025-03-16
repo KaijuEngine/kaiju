@@ -67,67 +67,24 @@ import (
 */
 import "C"
 
-func asEventType(msg uint32) eventType {
-	switch msg {
-	case 0x0002:
-		fallthrough
-	case 0x0012:
-		return evtQuit
-	case 0x0003:
-		return evtMove
-	case 0x0005:
-		return evtResize
-	case 0x0006:
-		return evtActivity
-	case 0x0104:
-		fallthrough
-	case 0x0100:
-		return evtKeyDown
-	case 0x0105:
-		fallthrough
-	case 0x0101:
-		return evtKeyUp
-	case 512:
-		return evtMouseMove
-	case 513:
-		return evtLeftMouseDown
-	case 514:
-		return evtLeftMouseUp
-	case 516:
-		return evtRightMouseDown
-	case 517:
-		return evtRightMouseUp
-	case 519:
-		return evtMiddleMouseDown
-	case 520:
-		return evtMiddleMouseUp
-	case 523:
-		return evtX1MouseDown
-	case 524:
-		return evtX1MouseUp
-	case 0x020A:
-		return evtMouseWheelVertical
-	case 0x020E:
-		return evtMouseWheelHorizontal
-	case 0xFFFFFFFF - 1:
-		return evtControllerStates
-	default:
-		return evtUnknown
-	}
+//export goProcessEvents
+func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
+	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
 }
 
 func scaleScrollDelta(delta float32) float32 {
 	return delta / 120.0
 }
 
-func createWindow(windowName string, width, height, x, y int, evtSharedMem *evtMem) {
+func (w *Window) createWindow(windowName string, x, y int) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
-	C.window_main(title, C.int(width), C.int(height),
-		C.int(x), C.int(y), evtSharedMem.AsPointer(), evtSharedMemSize)
+	goWindow := uint64(uintptr(unsafe.Pointer(w)))
+	C.window_main(title, C.int(w.width), C.int(w.height),
+		C.int(x), C.int(y), C.uint64_t(goWindow))
 }
 
-func (w *Window) showWindow(evtSharedMem *evtMem) {
+func (w *Window) showWindow() {
 	C.window_show(w.handle)
 }
 
@@ -135,44 +92,9 @@ func (w *Window) destroy() {
 	C.window_destroy(w.handle)
 }
 
-//export goRaiseWindowEvent
-func goRaiseWindowEvent(hwnd unsafe.Pointer, msg uint32) {
-	var w *Window
-	for i := range activeWindows {
-		if activeWindows[i].handle == hwnd {
-			w = activeWindows[i]
-			break
-		}
-	}
-	if w == nil {
-		return
-	}
-	w.processEvent(asEventType(msg))
-}
-
 func (w *Window) poll() {
-	evtType := uint32(C.window_poll_controller(w.handle))
-	if evtType != 0 {
-		w.processControllerEvent(asEventType(evtType))
-	}
-	evtType = 1
-	for evtType != 0 && !w.evtSharedMem.IsQuit() {
-		evtType = uint32(C.window_poll(w.handle))
-		t := asEventType(evtType)
-		if w.evtSharedMem.IsResize() {
-			t = evtResize
-			w.evtSharedMem.ResetHeader()
-		} else if w.evtSharedMem.IsMove() {
-			t = evtMove
-			w.evtSharedMem.ResetHeader()
-		} else if w.evtSharedMem.IsActivity() {
-			t = evtActivity
-			w.evtSharedMem.ResetHeader()
-		}
-		if t != evtUnknown {
-			w.processEvent(t)
-		}
-	}
+	C.window_poll_controller(w.handle)
+	C.window_poll(w.handle)
 }
 
 func (w *Window) cursorStandard() {

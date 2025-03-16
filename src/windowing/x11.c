@@ -80,13 +80,24 @@ static bool isExtensionSupported(const char* extList, const char* extension) {
 	return false;
 }
 
-void window_main(const char* windowTitle, int width, int height,
-	int x, int y, void* evtSharedMem, int size)
+void window_main(const char* windowTitle,
+	int width, int height, int x, int y, uint64_t goWindow)
 {
+	X11State* x11State = calloc(1, sizeof(X11State));
+	x11State->sm.goWindow = (void*)goWindow;
+	x11State->sm.x = x;
+	x11State->sm.y = y;
+	x11State->sm.windowWidth = width;
+	x11State->sm.windowHeight = height;
 	XInitThreads();
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
-		write_fatal(evtSharedMem, size, "Failed to open display");
+		printf("Failed to open display"); fflush(stdout);
+		shared_mem_add_event(&x11State->sm, (WindowEvent) {
+			.type = WINDOW_EVENT_TYPE_FATAL,
+		});
+		shared_mem_flush_events(&x11State->sm);
+		free(x11State);
 		return;
 	}
 	if (x < 0) {
@@ -98,16 +109,18 @@ void window_main(const char* windowTitle, int width, int height,
 	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), x, y,
 		width, height, 1, BlackPixel(d, DefaultScreen(d)), WhitePixel(d, DefaultScreen(d)));
 	if (w == None) {
-		write_fatal(evtSharedMem, size, "Failed to create window");
+		printf("Failed to create window"); fflush(stdout);
+		shared_mem_add_event(&x11State->sm, (WindowEvent) {
+			.type = WINDOW_EVENT_TYPE_FATAL,
+		});
+		shared_mem_flush_events(&x11State->sm);
+		free(x11State);
 		return;
 	}
 	XStoreName(d, w, windowTitle);
 	XSetIconName(d, w, windowTitle);
 	XSelectInput(d, w, EVT_MASK);
 	XMapWindow(d, w);
-	X11State* x11State = malloc(sizeof(X11State));
-	x11State->sm.sharedMem = evtSharedMem;
-	x11State->sm.size = size;
 	x11State->w = w;
 	x11State->d = d;
 	x11State->WM_DELETE_WINDOW = XInternAtom(d, "WM_DELETE_WINDOW", False);
@@ -118,93 +131,173 @@ void window_main(const char* windowTitle, int width, int height,
 		x11State->UTF8_STRING = XA_STRING;
 	}
 	x11State->CLIPBOARD = XInternAtom(d, "CLIPBOARD", 0);
-
 	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
-	memcpy(evtSharedMem+SHARED_MEM_DATA_START, &x11State, sizeof(x11State));
+	shared_mem_add_event(&x11State->sm, (WindowEvent) {
+		.type = WINDOW_EVENT_TYPE_SET_HANDLE,
+		.setHandle = {
+			.hwnd = x11State,
+		}
+	});
+	shared_mem_flush_events(&x11State->sm);
 }
 
 void window_show(void* x11State) {
 	X11State* s = x11State;
 	// Flush initial events
-	while (window_poll(x11State) != Expose) {}
-	while (window_poll(x11State) != 0) {}
+	//while (window_poll(x11State) != Expose) {}
+	//while (window_poll(x11State) != 0) {}
 }
 
-int window_poll_controller(void* x11State) {
+void window_poll_controller(void* x11State) {
 	// TODO:  Implement for controllers
-	return 0;
 }
 
-int window_poll(void* x11State) {
+void window_poll(void* x11State) {
 	X11State* s = x11State;
 	XEvent e = { 0 };
-	if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
-		if (!XCheckTypedEvent(s->d, ClientMessage, &e)) {
-			return 0;
+	while (true) {
+		if (!XCheckMaskEvent(s->d, EVT_MASK, &e)) {
+			if (!XCheckTypedEvent(s->d, ClientMessage, &e)) {
+				break;
+			}
+		}
+		bool filtered = XFilterEvent(&e, s->w);
+		switch (e.type) {
+			case DestroyNotify:
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_ACTIVITY,
+					.windowActivity = {
+						.activityType = WINDOW_EVENT_ACTIVITY_TYPE_CLOSE,
+					}
+				});
+				shared_mem_flush_events(&s->sm);
+				break;
+			case Expose:
+				break;
+			case FocusIn:
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_ACTIVITY,
+					.windowActivity = {
+						.activityType = WINDOW_EVENT_ACTIVITY_TYPE_FOCUS,
+					}
+				});
+				break;
+			case FocusOut:
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_ACTIVITY,
+					.windowActivity = {
+						.activityType = WINDOW_EVENT_ACTIVITY_TYPE_BLUR,
+					}
+				});
+				break;
+			case ConfigureNotify:
+				// No need to trigger a resize on init
+				if (s->sm->windowWidth == 0 || s->sm->windowHeight == 0) {
+					s->sm->windowWidth = e.xconfigure.width;
+					s->sm->windowHeight = e.xconfigure.height;
+				}
+				if (s->sm.x != e.xconfigure.x || s->sm.y != e.xconfigure.y) {
+					s->sm.x = e.xconfigure.x;
+					s->sm.y = e.xconfigure.y;
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_MOVE,
+						.windowMove = {
+							.x = s->sm.x,
+							.y = s->sm.y,
+						}
+					});
+				}
+				if (s->sm.windowWidth != e.xconfigure.width || s->sm.windowHeight != e.xconfigure.height) {
+					s->sm.windowWidth = e.xconfigure.width;
+					s->sm.windowHeight = e.xconfigure.height;
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_RESIZE,
+						.windowResize = {
+							.width = e.xconfigure.width,
+							.height = e.xconfigure.height,
+							.left = s->sm.x,
+							.top = s->sm.y,
+							.right = s->sm.x + e.xconfigure.width,
+							.bottom = s->sm.y + e.xconfigure.height,
+						}
+					});
+				}
+				break;
+			case KeyPress:
+			case KeyRelease:
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
+					.keyboardButton = {
+						.action = e.type == KeyPress
+							? WINDOW_EVENT_BUTTON_TYPE_DOWN : WINDOW_EVENT_BUTTON_TYPE_UP,
+						.buttonId = XLookupKeysym(&e.xkey, 0),
+					}
+				});
+				break;
+			case ButtonPress:
+			case ButtonRelease:
+			{
+				WindowEvent evt = {
+					.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+					.mouseButton.action = e.type == ButtonPress
+						? WINDOW_EVENT_BUTTON_TYPE_DOWN : WINDOW_EVENT_BUTTON_TYPE_UP,
+				};
+				switch (e.xbutton.button) {
+					case Button1:
+						evt.mouseButton.buttonId = MOUSE_BUTTON_LEFT;
+						break;
+					case Button2:
+						evt.mouseButton.buttonId = MOUSE_BUTTON_MIDDLE;
+						break;
+					case Button3:
+						evt.mouseButton.buttonId = MOUSE_BUTTON_RIGHT;
+						break;
+					case Button4:
+						evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
+						break;
+					case Button5:
+						evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
+						break;
+				}
+				evt.mouseButton.x = e.xbutton.x;
+				evt.mouseButton.y = e.xbutton.y;
+				shared_mem_add_event(&s->sm, evt);
+				break;
+			}
+			case MotionNotify:
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+					.mouseMove = {
+						.x = e.xmotion.x,
+						.y = e.xmotion.y,
+					}
+				});
+				break;
+			case ClientMessage:
+				if (!filtered) {
+					const Atom protocol = e.xclient.data.l[0];
+					if (protocol == s->WM_DELETE_WINDOW) {
+						XDestroyWindow(s->d, s->w);
+						shared_mem_add_event(&s->sm, (WindowEvent) {
+							.type = WINDOW_EVENT_TYPE_ACTIVITY,
+							.windowActivity = {
+								.activityType = WINDOW_EVENT_ACTIVITY_TYPE_CLOSE,
+							}
+						});
+						shared_mem_flush_events(&s->sm);
+					}
+				}
+				break;
 		}
 	}
-	bool filtered = XFilterEvent(&e, s->w);
-	s->sm.evt->evtType = e.type;
-	switch (e.type) {
-		case DestroyNotify:
-			shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
-			break;
-		case Expose:
-			break;
-		case FocusIn:
-			s->sm.evt->enumEvent.value = 1;
-			break;
-		case FocusOut:
-			s->sm.evt->enumEvent.value = 0;
-			break;
-		case KeyPress:
-		case KeyRelease:
-			s->sm.evt->keyboard.keyId = XLookupKeysym(&e.xkey, 0);
-			break;
-		case ButtonPress:
-		case ButtonRelease:
-			switch (e.xbutton.button) {
-				case Button1:
-					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_LEFT;
-					break;
-				case Button2:
-					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_MIDDLE;
-					break;
-				case Button3:
-					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_RIGHT;
-					break;
-				case Button4:
-					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X1;
-					break;
-				case Button5:
-					s->sm.evt->mouse.mouseButtonId = MOUSE_BUTTON_X2;
-					break;
-			}
-			s->sm.evt->mouse.mouseX = e.xbutton.x;
-			s->sm.evt->mouse.mouseY = e.xbutton.y;
-			break;
-		case MotionNotify:
-			s->sm.evt->mouse.mouseButtonId = -1;
-			s->sm.evt->mouse.mouseX = e.xmotion.x;
-			s->sm.evt->mouse.mouseY = e.xmotion.y;
-			break;
-		case ClientMessage:
-			if (!filtered) {
-				const Atom protocol = e.xclient.data.l[0];
-				if (protocol == s->WM_DELETE_WINDOW) {
-					XDestroyWindow(s->d, s->w);
-					shared_memory_set_write_state(&s->sm, SHARED_MEM_QUIT);
-				}
-			}
-			break;
-	}
-	return e.type;
+	shared_mem_flush_events(&s->sm);
 }
 
 void window_destroy(void* x11State) {
 	X11State* s = x11State;
 	XDestroyWindow(s->d, s->w);
 	XCloseDisplay(s->d);
+	free(s);
 }
 
 void* display(void* x11State) { return ((X11State*)x11State)->d; }

@@ -78,18 +78,19 @@ func (c contentEntry) Depth() int {
 }
 
 type ContentWindow struct {
-	doc        *document.Document
-	input      *ui.Input
-	listing    *ui.Panel
-	editor     interfaces.Editor
-	DirTree    []contentEntry
-	Dir        []contentEntry
-	path       string
-	SearchText string
-	Query      string
-	funcMap    map[string]func(*document.Element)
-	opener     *content_opener.Opener
-	selected   *ui.Panel
+	doc           *document.Document
+	input         *ui.Input
+	listing       *ui.Panel
+	editor        interfaces.Editor
+	DirTree       []contentEntry
+	Dir           []contentEntry
+	path          string
+	SearchText    string
+	Query         string
+	funcMap       map[string]func(*document.Element)
+	opener        *content_opener.Opener
+	selected      *ui.Panel
+	focusOnReload bool
 }
 
 func (s *ContentWindow) TabTitle() string             { return "Content" }
@@ -97,6 +98,7 @@ func (s *ContentWindow) Document() *document.Document { return s.doc }
 
 func (s *ContentWindow) Destroy() {
 	if s.doc != nil {
+		s.focusOnReload = s.input.IsFocused()
 		s.doc.Destroy()
 		s.doc = nil
 	}
@@ -143,6 +145,8 @@ func (s *ContentWindow) openContent(elm *document.Element) {
 	if path == "../" {
 		if s.path == contentPath {
 			return
+		} else if info, err := os.Stat(s.path); err == nil && !info.IsDir() {
+			s.path = filepath.Clean(filepath.Dir(s.path) + "/" + path)
 		} else {
 			s.path = filepath.Clean(s.path + "/" + path)
 		}
@@ -195,7 +199,7 @@ func (s *ContentWindow) duplicateContent(elm *document.Element) {
 func (s *ContentWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	const html = "editor/ui/content_window.html"
 	folderPanelScroll := float32(0)
-	shouldFocus := false
+	shouldFocus := s.focusOnReload
 	if s.doc != nil {
 		shouldFocus = s.input.IsFocused()
 		if fp, ok := s.doc.GetElementById("folderListing"); ok {

@@ -40,8 +40,9 @@ package ui
 type EventType = int
 
 const (
-	EventTypeInvalid = iota
+	EventTypeInvalid = EventType(iota)
 	EventTypeEnter
+	EventTypeMove
 	EventTypeExit
 	EventTypeClick
 	EventTypeRightClick

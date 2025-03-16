@@ -62,8 +62,10 @@ type Hierarchy struct {
 	selection            *selection.Selection
 	doc                  *document.Document
 	input                *ui.Input
+	searchText           string
 	query                string
 	reloadTab            func(name string)
+	focusOnReload        bool
 }
 
 func (h *Hierarchy) Document() *document.Document { return h.doc }
@@ -71,6 +73,7 @@ func (h *Hierarchy) TabTitle() string             { return "Hierarchy" }
 
 func (h *Hierarchy) Destroy() {
 	if h.doc != nil {
+		h.focusOnReload = h.input.IsFocused()
 		h.doc.Destroy()
 		h.doc = nil
 	}
@@ -82,8 +85,9 @@ type entityEntry struct {
 }
 
 type hierarchyData struct {
-	Entries []entityEntry
-	Query   string
+	Entries    []entityEntry
+	SearchText string
+	Query      string
 }
 
 func (e entityEntry) Depth() int {
@@ -148,14 +152,15 @@ func (h *Hierarchy) filter(entries []entityEntry) []entityEntry {
 }
 
 func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
-	focusInput := false
+	focusInput := h.focusOnReload
 	if h.doc != nil {
-		focusInput = h.input.IsFocused()
+		h.focusOnReload = h.input.IsFocused()
 		h.doc.Destroy()
 	}
 	data := hierarchyData{
-		Entries: h.filter(h.orderEntitiesVisually()),
-		Query:   h.query,
+		Entries:    h.filter(h.orderEntitiesVisually()),
+		SearchText: h.searchText,
+		Query:      h.query,
 	}
 	host := h.host
 	host.CreatingEditorEntities()
@@ -177,16 +182,13 @@ func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
 		h.input = elm.UI.ToInput()
 	}
 	h.doc.Clean()
-	//if s, ok := editor_cache.EditorConfigValue(sizeConfig); ok {
-	//	w, _ := h.doc.GetElementById("window")
-	//	w.UIPanel.Base().Layout().ScaleWidth(matrix.Float(s.(float64)))
-	//}
 	if focusInput {
 		h.input.Focus()
 	}
 }
 
 func (h *Hierarchy) submit() {
+	h.searchText = h.input.Text()
 	h.query = strings.ToLower(strings.TrimSpace(h.input.Text()))
 	h.reloadTab(h.TabTitle())
 }
