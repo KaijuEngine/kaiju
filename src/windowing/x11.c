@@ -85,10 +85,10 @@ void window_main(const char* windowTitle,
 {
 	X11State* x11State = calloc(1, sizeof(X11State));
 	x11State->sm.goWindow = (void*)goWindow;
-	x11State->x = x;
-	x11State->y = y;
-	x11State->width = width;
-	x11State->height = height;
+	x11State->sm.x = x;
+	x11State->sm.y = y;
+	x11State->sm.windowWidth = width;
+	x11State->sm.windowHeight = height;
 	XInitThreads();
 	Display* d = XOpenDisplay(NULL);
 	if (d == NULL) {
@@ -192,33 +192,33 @@ void window_poll(void* x11State) {
 				break;
 			case ConfigureNotify:
 				// No need to trigger a resize on init
-				if (s->width == 0 || s->height == 0) {
-					s->width = e.xconfigure.width;
-					s->height = e.xconfigure.height;
+				if (s->sm->windowWidth == 0 || s->sm->windowHeight == 0) {
+					s->sm->windowWidth = e.xconfigure.width;
+					s->sm->windowHeight = e.xconfigure.height;
 				}
-				if (s->x != e.xconfigure.x || s->y != e.xconfigure.y) {
-					s->x = e.xconfigure.x;
-					s->y = e.xconfigure.y;
+				if (s->sm.x != e.xconfigure.x || s->sm.y != e.xconfigure.y) {
+					s->sm.x = e.xconfigure.x;
+					s->sm.y = e.xconfigure.y;
 					shared_mem_add_event(&s->sm, (WindowEvent) {
 						.type = WINDOW_EVENT_TYPE_MOVE,
 						.windowMove = {
-							.x = s->x,
-							.y = s->y,
+							.x = s->sm.x,
+							.y = s->sm.y,
 						}
 					});
 				}
-				if (s->width != e.xconfigure.width || s->height != e.xconfigure.height) {
-					s->width = e.xconfigure.width;
-					s->height = e.xconfigure.height;
+				if (s->sm.windowWidth != e.xconfigure.width || s->sm.windowHeight != e.xconfigure.height) {
+					s->sm.windowWidth = e.xconfigure.width;
+					s->sm.windowHeight = e.xconfigure.height;
 					shared_mem_add_event(&s->sm, (WindowEvent) {
 						.type = WINDOW_EVENT_TYPE_RESIZE,
 						.windowResize = {
 							.width = e.xconfigure.width,
 							.height = e.xconfigure.height,
-							.left = s->x,
-							.top = s->y,
-							.right = s->x + e.xconfigure.width,
-							.bottom = s->y + e.xconfigure.height,
+							.left = s->sm.x,
+							.top = s->sm.y,
+							.right = s->sm.x + e.xconfigure.width,
+							.bottom = s->sm.y + e.xconfigure.height,
 						}
 					});
 				}

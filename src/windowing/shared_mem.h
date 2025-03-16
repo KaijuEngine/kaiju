@@ -72,6 +72,8 @@ extern void goProcessEvents(uint64_t goWindow, void* events, uint32_t eventCount
 
 typedef struct {
 	void* goWindow;
+	int x;
+	int y;
 	int windowWidth;
 	int windowHeight;
 	int left;

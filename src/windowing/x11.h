@@ -50,10 +50,6 @@ typedef struct {
 	Atom TEXT;
 	Atom UTF8_STRING;
 	Atom CLIPBOARD;
-	int x;
-	int y;
-	int width;
-	int height;
 } X11State;
 
 void window_main(const char* windowTitle,
