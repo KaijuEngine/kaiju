@@ -329,7 +329,7 @@ func (t *TabContainer) ReloadTabs(name string, forceOpen bool) bool {
 	found := false
 	for i := range t.Tabs {
 		if t.Tabs[i].Label == name {
-			if t.doc != nil || forceOpen {
+			if (t.doc != nil && t.doc.IsActive()) || forceOpen {
 				if t.activeTab == i {
 					t.reload()
 				} else {

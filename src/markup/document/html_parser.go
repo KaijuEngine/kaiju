@@ -355,6 +355,14 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 	return parsed
 }
 
+func (d *Document) IsActive() bool {
+	anyActive := false
+	for i := range d.Elements {
+		anyActive = anyActive || d.Elements[i].UI.Entity().IsActive()
+	}
+	return anyActive
+}
+
 func (d *Document) Activate() {
 	for i := range d.Elements {
 		d.Elements[i].UI.Entity().Activate()
