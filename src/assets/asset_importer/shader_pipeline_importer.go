@@ -8,12 +8,18 @@ import (
 
 type ShaderPipelineImporter struct{}
 
+type ShaderPipelineMetadata struct{}
+
+func (m ShaderPipelineImporter) MetadataStructure() any {
+	return &ShaderPipelineMetadata{}
+}
+
 func (m ShaderPipelineImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionShaderPipeline
 }
 
 func (m ShaderPipelineImporter) Import(path string) error {
-	adi, err := createADI(path, nil)
+	adi, err := createADI(m, path, nil)
 	if err != nil {
 		return err
 	}

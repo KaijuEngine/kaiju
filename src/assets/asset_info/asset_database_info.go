@@ -61,7 +61,7 @@ type AssetDatabaseInfo struct {
 	Type     string
 	ParentID string
 	Children []AssetDatabaseInfo
-	Metadata map[string]string
+	Metadata any
 }
 
 func InitForCurrentProject() error {
@@ -103,13 +103,6 @@ func New(path string, id string) AssetDatabaseInfo {
 	}
 }
 
-func (a *AssetDatabaseInfo) MetaValue(key string) string {
-	if v, ok := a.Metadata[key]; ok {
-		return v
-	}
-	return ""
-}
-
 func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 	return AssetDatabaseInfo{
 		ID:       id,
@@ -127,8 +120,10 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 // [-] ErrNoInfo: if the file does not exist
 // [-] json.Unmarshal error: if the file is corrupted
 // [-] filesystem.ReadTextFile error: if the file cannot be read
-func Read(path string) (AssetDatabaseInfo, error) {
-	adi := AssetDatabaseInfo{}
+func Read(path string, metadata any) (AssetDatabaseInfo, error) {
+	adi := AssetDatabaseInfo{
+		Metadata: metadata,
+	}
 	if !Exists(path) {
 		return adi, ErrNoInfo
 	}
@@ -149,13 +144,15 @@ func Read(path string) (AssetDatabaseInfo, error) {
 	return adi, nil
 }
 
+// Lookup will find any asset given it's id (path). This has no information for
+// importers, so it will populate the metadata with a non-castable interface
 func Lookup(id string) (AssetDatabaseInfo, error) {
 	adiFile := toIndexPath(id)
 	src, err := filesystem.ReadTextFile(adiFile)
 	if err != nil {
 		return AssetDatabaseInfo{}, err
 	}
-	adi, err := Read(src)
+	adi, err := Read(src, nil)
 	if err == nil {
 		if adi.ID != id {
 			for i := range adi.Children {
@@ -208,7 +205,7 @@ func Move(info AssetDatabaseInfo, newPath string) error {
 // ID returns the ID of the asset within it's ADI file, if
 // the ADI file is not found, the read error is returned
 func ID(path string) (string, error) {
-	aid, err := Read(path)
+	aid, err := Read(path, nil)
 	if err != nil {
 		return "", err
 	}

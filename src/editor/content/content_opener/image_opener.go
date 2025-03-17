@@ -40,6 +40,7 @@ package content_opener
 import (
 	"errors"
 	"kaiju/assets"
+	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/collision"
 	"kaiju/editor/content/content_history"
@@ -49,6 +50,8 @@ import (
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/systems/console"
+	"path/filepath"
+	"strings"
 )
 
 type ImageOpener struct{}
@@ -60,14 +63,8 @@ func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
 	console.For(ed.Host()).Write("Opening an image")
 	host := ed.Host()
-	filter := rendering.TextureFilterLinear
-	if f := adi.MetaValue("Filter"); f != "" {
-		switch f {
-		case "Nearest":
-			filter = rendering.TextureFilterNearest
-		}
-	}
-	texture, err := host.TextureCache().Texture(adi.Path, filter)
+	meta := adi.Metadata.(*asset_importer.ImageMetadata)
+	texture, err := host.TextureCache().Texture(adi.Path, meta.Filter())
 	if err != nil {
 		return errors.New("failed to load the texture " + adi.Path)
 	}
@@ -83,7 +80,7 @@ func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor
 	p.SetZ(0)
 	e.Transform.SetPosition(p)
 	host.AddEntity(e)
-	e.SetName(adi.MetaValue("name"))
+	e.SetName(strings.TrimSuffix(filepath.Base(adi.Path), filepath.Ext(adi.Path)))
 	// TODO:  Swap this to a sprite basic that has control over UVs
 	shaderData := &rendering.ShaderDataBasic{
 		ShaderDataBase: rendering.NewShaderDataBase(),

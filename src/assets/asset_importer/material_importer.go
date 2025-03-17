@@ -8,12 +8,18 @@ import (
 
 type MaterialImporter struct{}
 
+type MaterialMetadata struct{}
+
+func (m MaterialImporter) MetadataStructure() any {
+	return &MaterialMetadata{}
+}
+
 func (m MaterialImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionMaterial
 }
 
 func (m MaterialImporter) Import(path string) error {
-	adi, err := createADI(path, nil)
+	adi, err := createADI(m, path, nil)
 	if err != nil {
 		return err
 	}

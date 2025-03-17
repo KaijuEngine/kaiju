@@ -43,14 +43,20 @@ import (
 	"path/filepath"
 )
 
-type HTMLImporter struct{}
+type HtmlImporter struct{}
 
-func (m HTMLImporter) Handles(path string) bool {
+type HtmlMetadata struct{}
+
+func (m HtmlImporter) MetadataStructure() any {
+	return &HtmlMetadata{}
+}
+
+func (m HtmlImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionHTML
 }
 
-func (m HTMLImporter) Import(path string) error {
-	adi, err := createADI(path, nil)
+func (m HtmlImporter) Import(path string) error {
+	adi, err := createADI(m, path, nil)
 	if err != nil {
 		return err
 	}

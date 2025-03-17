@@ -45,12 +45,18 @@ import (
 
 type StageImporter struct{}
 
+type StageMetadata struct{}
+
+func (m StageImporter) MetadataStructure() any {
+	return &StageMetadata{}
+}
+
 func (m StageImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionStage
 }
 
 func (m StageImporter) Import(path string) error {
-	adi, err := createADI(path, nil)
+	adi, err := createADI(m, path, nil)
 	if err != nil {
 		return err
 	}

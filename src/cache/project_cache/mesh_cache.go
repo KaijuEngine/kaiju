@@ -45,13 +45,13 @@ import (
 	"path/filepath"
 )
 
-func toCachedMeshPath(path string, adi asset_info.AssetDatabaseInfo) string {
-	return filepath.Join(path, adi.ID+".msh")
+func toCachedMeshPath(path string, adiID string) string {
+	return filepath.Join(path, adiID+".msh")
 }
 
-func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh load_result.Mesh) error {
+func CacheMesh(adiID string, mesh load_result.Mesh) error {
 	path := cachePath(meshCache)
-	f, err := os.Create(toCachedMeshPath(path, adi))
+	f, err := os.Create(toCachedMeshPath(path, adiID))
 	if err != nil {
 		return err
 	}
@@ -60,9 +60,9 @@ func CacheMesh(adi asset_info.AssetDatabaseInfo, mesh load_result.Mesh) error {
 	return enc.Encode(mesh)
 }
 
-func LoadCachedMesh(adi asset_info.AssetDatabaseInfo) (load_result.Mesh, error) {
+func LoadCachedMesh(adiID string) (load_result.Mesh, error) {
 	path := cachePath(meshCache)
-	f, err := os.Open(toCachedMeshPath(path, adi))
+	f, err := os.Open(toCachedMeshPath(path, adiID))
 	if err != nil {
 		return load_result.Mesh{}, err
 	}
@@ -80,7 +80,7 @@ func DeleteMesh(adi asset_info.AssetDatabaseInfo) error {
 			return err
 		}
 	}
-	if err := os.Remove(toCachedMeshPath(path, adi)); err != nil {
+	if err := os.Remove(toCachedMeshPath(path, adi.ID)); err != nil {
 		if err != os.ErrNotExist {
 			return err
 		}

@@ -1,6 +1,7 @@
 package content_opener
 
 import (
+	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/cache/project_cache"
 	"kaiju/collision"
@@ -13,8 +14,9 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 	var err error
 	var data rendering.DrawInstance
 	var material *rendering.Material
-	if s, ok := adi.Metadata["material"]; ok {
-		if material, err = host.MaterialCache().Material(s); err != nil {
+	meta := adi.Metadata.(*asset_importer.MeshMetadata)
+	if meta.Material != "" {
+		if material, err = host.MaterialCache().Material(meta.Material); err != nil {
 			return err
 		}
 		// TODO:  We need to create or generate shader data given the definition
@@ -33,7 +35,7 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 	}
 	mesh, ok := host.MeshCache().FindMesh(adi.ID)
 	if !ok {
-		m, err := project_cache.LoadCachedMesh(adi)
+		m, err := project_cache.LoadCachedMesh(adi.ID)
 		if err != nil {
 			return err
 		}

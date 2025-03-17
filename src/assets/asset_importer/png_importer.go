@@ -38,16 +38,44 @@
 package asset_importer
 
 import (
+	"kaiju/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/rendering"
+	"log/slog"
 	"path/filepath"
 )
 
-type PNGImporter struct{}
+var (
+	textureFilterOptions = map[string]rendering.TextureFilter{
+		"Linear":  rendering.TextureFilterLinear,
+		"Nearest": rendering.TextureFilterNearest,
+	}
+)
 
-func (m PNGImporter) Handles(path string) bool {
+type PngImporter struct{}
+
+func (m PngImporter) MetadataStructure() any {
+	return &ImageMetadata{}
+}
+
+func (m PngImporter) Handles(path string) bool {
 	return filepath.Ext(path) == ".png"
 }
 
-func (m PNGImporter) Import(path string) error {
-	return noMutationImport(path, editor_config.AssetTypeImage)
+func (m PngImporter) Import(path string) error {
+	adi, err := createADI(m, path, nil)
+	if err != nil {
+		return err
+	}
+	adi.Type = editor_config.AssetTypeImage
+	return asset_info.Write(adi)
+}
+
+func (m *ImageMetadata) Filter() rendering.TextureFilter {
+	if f, ok := textureFilterOptions[m.FilterName]; ok {
+		return f
+	}
+	slog.Warn("tried to read image metadata filter but has invalid key",
+		"key", m.FilterName)
+	return rendering.TextureFilterLinear
 }

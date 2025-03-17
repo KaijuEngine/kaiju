@@ -10,12 +10,16 @@ import (
 
 type GltfImporter struct{}
 
+func (m GltfImporter) MetadataStructure() any {
+	return &MeshMetadata{}
+}
+
 func (m GltfImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionGltf
 }
 
 func (m GltfImporter) Import(path string) error {
-	adi, err := createADI(path, cleanupMesh)
+	adi, err := createADI(m, path, cleanupMesh)
 	if err != nil {
 		return err
 	}

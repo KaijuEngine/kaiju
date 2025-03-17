@@ -1,6 +1,7 @@
 package content_opener
 
 import (
+	"kaiju/assets/asset_importer"
 	"kaiju/assets/asset_info"
 	"kaiju/collision"
 	"kaiju/editor/content/content_history"
@@ -21,7 +22,8 @@ func (o GlbOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) 
 	e.GenerateId()
 	e.Transform.SetPosition(ed.Camera().LookAtPoint())
 	host.AddEntity(e)
-	e.SetName(adi.MetaValue("name"))
+	meta := adi.Metadata.(*asset_importer.MeshMetadata)
+	e.SetName(meta.Name)
 	bvh := collision.NewBVH()
 	bvh.Transform = &e.Transform
 	for i := range adi.Children {

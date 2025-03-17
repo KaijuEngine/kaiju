@@ -125,7 +125,7 @@ func setupDrawings(e *Entity, host *Host, defs []drawingDef) ([]rendering.Drawin
 			if err != nil {
 				return drawings, err
 			}
-			md, err := project_cache.LoadCachedMesh(adi)
+			md, err := project_cache.LoadCachedMesh(adi.ID)
 			if err != nil {
 				return drawings, err
 			}
