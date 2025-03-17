@@ -24,7 +24,7 @@ func (w *WorkGroup) Execute(name string, threads *Threads) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(list))
 		for i := range list {
-			threads.AddWork(func() {
+			threads.AddWork(func(int) {
 				list[i]()
 				wg.Done()
 			})

@@ -155,7 +155,7 @@ func (m *Mesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
 	}
 	group.Add(len(tris))
 	for i := range len(tris) {
-		threads.AddWork(func() { construct(i*3, (i+3)*3) })
+		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
 	}
 	group.Wait()
 	return collision.BVHBottomUp(tris)

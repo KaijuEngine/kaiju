@@ -58,13 +58,12 @@ type groupRequest struct {
 }
 
 type Group struct {
-	requests        []groupRequest
-	focus           *UI
-	hoveredElements []*UI
-	updateId        int
-	lock            sync.Mutex
-	hadRequests     requestState
-	isThreaded      bool
+	requests    []groupRequest
+	focus       *UI
+	updateId    int
+	lock        sync.Mutex
+	hadRequests requestState
+	isThreaded  bool
 }
 
 func NewGroup() *Group {
@@ -142,22 +141,15 @@ func (group *Group) lateUpdate() {
 			r := &group.requests[i]
 			requestSets[r.eventType] = append(requestSets[r.eventType], *r)
 		}
-		// TODO:  Improve this later, it should be done when a new hover happens?
-		{
-			man := group.requests[0].target.man
-			group.hoveredElements = group.hoveredElements[:0]
-			man.pools.Each(func(e *UI) {
-				if e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
-					group.hoveredElements = append(group.hoveredElements, e)
-				}
-			})
-			sort.Slice(group.hoveredElements, func(i, j int) bool {
-				return sortElements(group.hoveredElements[i], group.hoveredElements[j])
-			})
-		}
 		var top *UI
-		if len(group.hoveredElements) > 0 {
-			top = group.hoveredElements[0]
+		{
+			hovered := group.requests[0].target.man.Hovered()
+			sort.Slice(hovered, func(i, j int) bool {
+				return sortElements(hovered[i], hovered[j])
+			})
+			if len(hovered) > 0 {
+				top = hovered[0]
+			}
 		}
 		for i := range requestSets {
 			g := requestSets[i]

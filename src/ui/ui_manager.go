@@ -14,6 +14,7 @@ type Manager struct {
 	Host     *engine.Host
 	Group    *Group
 	pools    pooling.PoolGroup[UI]
+	hovered  [][]*UI
 	updateId int
 }
 
@@ -40,7 +41,7 @@ func (man *Manager) update(deltaTime float64) {
 	wg.Add(len(roots))
 	threads := man.Host.Threads()
 	for i := range roots {
-		threads.AddWork(func() {
+		threads.AddWork(func(int) {
 			roots[i].cleanIfNeeded()
 			wg.Done()
 		})
@@ -49,13 +50,39 @@ func (man *Manager) update(deltaTime float64) {
 	// Then we go through and update all the remaining UI elements
 	all := append(children, roots...)
 	wg.Add(len(all))
+	tCount := threads.ThreadCount()
+	if len(man.hovered) != tCount {
+		man.hovered = make([][]*UI, tCount)
+	} else {
+		for i := range len(man.hovered) {
+			man.hovered[i] = man.hovered[i][:0]
+		}
+	}
 	for i := range all {
-		threads.AddWork(func() {
-			all[i].updateFromManager(deltaTime)
+		threads.AddWork(func(threadId int) {
+			e := all[i]
+			e.updateFromManager(deltaTime)
+			if e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
+				man.hovered[threadId] = append(man.hovered[threadId], e)
+			}
 			wg.Done()
 		})
 	}
 	wg.Wait()
+}
+
+func (man *Manager) Hovered() []*UI {
+	count := 0
+	for i := range man.hovered {
+		count += len(man.hovered[i])
+	}
+	out := make([]*UI, 0, count)
+	for i := range man.hovered {
+		for j := range man.hovered[i] {
+			out = append(out, man.hovered[i][j])
+		}
+	}
+	return out
 }
 
 func (man *Manager) Init(host *engine.Host) {

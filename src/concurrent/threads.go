@@ -5,16 +5,18 @@ import "runtime"
 // TODO:  This is a stub and will need some work later
 
 type Threads struct {
-	pipe    chan func()
+	pipe    chan func(threadId int)
 	exitSig []chan struct{}
 }
 
 func NewThreads() Threads {
 	t := Threads{
-		pipe: make(chan func(), 1000),
+		pipe: make(chan func(threadId int), 1000),
 	}
 	return t
 }
+
+func (t *Threads) ThreadCount() int { return len(t.exitSig) }
 
 func (t *Threads) Start() {
 	t.exitSig = make([]chan struct{}, runtime.NumCPU())
@@ -30,7 +32,7 @@ func (t *Threads) Stop() {
 	}
 }
 
-func (t *Threads) AddWork(work ...func()) {
+func (t *Threads) AddWork(work ...func(threadId int)) {
 	for i := range work {
 		t.pipe <- work[i]
 	}
@@ -42,7 +44,7 @@ func (t *Threads) work(sigIdx int) {
 		case <-t.exitSig[sigIdx]:
 			break
 		case action := <-t.pipe:
-			action()
+			action(sigIdx)
 		}
 	}
 }
