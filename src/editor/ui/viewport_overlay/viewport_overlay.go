@@ -1,16 +1,16 @@
 package viewport_overlay
 
 import (
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/viewport/controls"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
 )
 
 type ViewportOverlay struct {
-	ed  interfaces.Editor
+	ed  editor_interface.Editor
 	doc *document.Document
 }
 
@@ -34,7 +34,7 @@ func (v *ViewportOverlay) setCameraMode2d(e *document.Element) {
 	v.updateSelectCameraModeColors(e)
 }
 
-func New(ed interfaces.Editor, uiMan *ui.Manager) {
+func New(ed editor_interface.Editor, uiMan *ui.Manager) {
 	const html = "editor/ui/viewport_overlay/viewport.html"
 	v := &ViewportOverlay{ed, nil}
 	host := ed.Host()

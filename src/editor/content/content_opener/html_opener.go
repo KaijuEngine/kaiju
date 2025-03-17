@@ -38,9 +38,9 @@
 package content_opener
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/systems/console"
 )
 
@@ -50,7 +50,7 @@ func (o HTMLOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeHTML
 }
 
-func (o HTMLOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o HTMLOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	_, err := console.For(ed.Host()).ExecCommand("preview", adi.Path)
 	return err
 }

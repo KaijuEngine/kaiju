@@ -38,14 +38,14 @@
 package content_history
 
 import (
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
 )
 
 type ModelOpen struct {
 	Host   *engine.Host
 	Entity *engine.Entity
-	Editor interfaces.Editor
+	Editor editor_interface.Editor
 }
 
 func (h *ModelOpen) Redo() {

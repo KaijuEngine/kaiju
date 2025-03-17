@@ -38,9 +38,9 @@
 package content_opener
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
+	"kaiju/engine/assets/asset_info"
 )
 
 type StageOpener struct{}
@@ -49,7 +49,7 @@ func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeStage
 }
 
-func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	err := ed.StageManager().Load(adi, ed.Host())
 	ed.Host().Window.Focus()
 	// Trigger all the drawings to update their matrices the frame after

@@ -5,7 +5,6 @@ package plugins
 import (
 	"fmt"
 	"io"
-	"kaiju/editor/interfaces"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"slices"
 	"strings"
 
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/plugins/lua"
 )
 
@@ -185,7 +185,7 @@ func (vm *LuaVM) rollup(lua, luaPath string, imported *[]string) error {
 	return nil
 }
 
-func (vm *LuaVM) setupPrerequisites(ed interfaces.Editor) error {
+func (vm *LuaVM) setupPrerequisites(ed editor_interface.Editor) error {
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
 		if state.IsTable(-1) {
 			state.Field(-1, goPtrField)
@@ -207,7 +207,7 @@ func (vm *LuaVM) setupPrerequisites(ed interfaces.Editor) error {
 	return nil
 }
 
-func launchPlugin(ed interfaces.Editor, entry string) (*LuaVM, error) {
+func launchPlugin(ed editor_interface.Editor, entry string) (*LuaVM, error) {
 	vm := &LuaVM{
 		PluginPath: entry,
 		runtime:    lua.New(),
@@ -249,7 +249,7 @@ func launchPlugin(ed interfaces.Editor, entry string) (*LuaVM, error) {
 	return vm, nil
 }
 
-func LaunchPlugins(ed interfaces.Editor) ([]*LuaVM, error) {
+func LaunchPlugins(ed editor_interface.Editor) ([]*LuaVM, error) {
 	pluginsPath := filepath.Join("content", plugins)
 	dirs, err := os.ReadDir(pluginsPath)
 	vms := make([]*LuaVM, 0)

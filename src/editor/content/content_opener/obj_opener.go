@@ -38,13 +38,13 @@
 package content_opener
 
 import (
+	"kaiju/editor/content/content_history"
+	"kaiju/editor/editor_config"
+	"kaiju/editor/editor_interface"
+	"kaiju/engine"
 	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/collision"
-	"kaiju/editor/content/content_history"
-	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
-	"kaiju/engine"
 )
 
 type ObjOpener struct{}
@@ -53,7 +53,7 @@ func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeObj
 }
 
-func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	host := ed.Host()
 	e := engine.NewEntity(ed.Host().WorkGroup())
 	e.GenerateId()

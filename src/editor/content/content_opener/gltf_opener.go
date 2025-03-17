@@ -1,13 +1,13 @@
 package content_opener
 
 import (
+	"kaiju/editor/content/content_history"
+	"kaiju/editor/editor_config"
+	"kaiju/editor/editor_interface"
+	"kaiju/engine"
 	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/collision"
-	"kaiju/editor/content/content_history"
-	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
-	"kaiju/engine"
 )
 
 type GltfOpener struct{}
@@ -16,7 +16,7 @@ func (o GltfOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeGltf
 }
 
-func (o GltfOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o GltfOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	host := ed.Host()
 	e := engine.NewEntity(ed.Host().WorkGroup())
 	e.GenerateId()

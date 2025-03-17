@@ -1,16 +1,16 @@
 package duplicator
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
+	"kaiju/engine/collision"
 	"kaiju/rendering"
 )
 
 type duplicateHistory struct {
 	entities   []*engine.Entity
 	duplicates []*engine.Entity
-	editor     interfaces.Editor
+	editor     editor_interface.Editor
 	sparse     bool
 }
 

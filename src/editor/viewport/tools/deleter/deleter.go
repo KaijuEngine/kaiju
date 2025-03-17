@@ -38,22 +38,22 @@
 package deleter
 
 import (
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
 	"slices"
 )
 
-func doDelete(h *deleteHistory, editor interfaces.Editor) {
+func doDelete(h *deleteHistory, editor editor_interface.Editor) {
 	h.Redo()
 	editor.History().Add(h)
 }
 
-func Delete(editor interfaces.Editor, entities []*engine.Entity) {
+func Delete(editor editor_interface.Editor, entities []*engine.Entity) {
 	h := &deleteHistory{entities, editor}
 	doDelete(h, editor)
 }
 
-func DeleteSelected(editor interfaces.Editor) {
+func DeleteSelected(editor editor_interface.Editor) {
 	h := &deleteHistory{slices.Clone(editor.Selection().Entities()), editor}
 	doDelete(h, editor)
 }

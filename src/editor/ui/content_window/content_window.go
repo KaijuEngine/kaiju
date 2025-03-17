@@ -39,21 +39,21 @@ package content_window
 
 import (
 	"io/fs"
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/alert"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/editor/ui/shader_designer"
-	"kaiju/platform/filesystem"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/matrix"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/windowing"
 	"log/slog"
 	"os"
@@ -81,7 +81,7 @@ type ContentWindow struct {
 	doc           *document.Document
 	input         *ui.Input
 	listing       *ui.Panel
-	editor        interfaces.Editor
+	editor        editor_interface.Editor
 	DirTree       []contentEntry
 	Dir           []contentEntry
 	path          string
@@ -106,7 +106,7 @@ func (s *ContentWindow) Destroy() {
 
 func (s *ContentWindow) IsRoot() bool { return s.path == contentPath }
 
-func New(opener *content_opener.Opener, editor interfaces.Editor) *ContentWindow {
+func New(opener *content_opener.Opener, editor editor_interface.Editor) *ContentWindow {
 	s := &ContentWindow{
 		funcMap: make(map[string]func(*document.Element)),
 		opener:  opener,
@@ -132,12 +132,22 @@ func (s *ContentWindow) contentDblClick(elm *document.Element) {
 }
 
 func (s *ContentWindow) contentClick(elm *document.Element) {
+	path := elm.Attribute("data-path")
 	for i := range elm.Parent.Value().Children {
 		p := elm.Parent.Value().Children[i].UIPanel
 		p.UnEnforceColor()
 	}
 	elm.UIPanel.EnforceColor(matrix.ColorDarkBlue())
 	s.selected = elm.UIPanel
+	if stat, err := os.Stat(path + asset_info.InfoExtension); err != nil || stat.IsDir() {
+		evt := &s.editor.Events().OnContentSelect
+		evt.Content = []string{}
+		evt.Event.Execute()
+	} else {
+		evt := &s.editor.Events().OnContentSelect
+		evt.Content = []string{path}
+		evt.Event.Execute()
+	}
 }
 
 func (s *ContentWindow) openContent(elm *document.Element) {

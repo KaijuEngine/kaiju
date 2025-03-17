@@ -35,11 +35,9 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package interfaces
+package editor_interface
 
 import (
-	"kaiju/engine/assets/asset_importer"
-	"kaiju/engine/collision"
 	"kaiju/editor/codegen"
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
@@ -49,6 +47,8 @@ import (
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/collision"
 	"kaiju/engine/host_container"
 )
 
@@ -73,4 +73,5 @@ type Editor interface {
 	IsMouseOverViewport() bool
 	ReloadTabs(name string)
 	ReloadOrOpenTab(name string)
+	Events() *EditorEvents
 }

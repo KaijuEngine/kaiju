@@ -1,10 +1,10 @@
 package editor_menu
 
 import (
-	"kaiju/engine/assets"
 	"kaiju/editor/content/content_history"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
@@ -21,7 +21,7 @@ const (
 	torusGLB      = "editor/meshes/torus.glb"
 )
 
-func createShape(name, glb string, ed interfaces.Editor, host *engine.Host) {
+func createShape(name, glb string, ed editor_interface.Editor, host *engine.Host) {
 	res, err := loaders.GLTF(glb, host.AssetDatabase())
 	if err != nil {
 		slog.Error("failed to load the cube mesh", "error", err.Error())

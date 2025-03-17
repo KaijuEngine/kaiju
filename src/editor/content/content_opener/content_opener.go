@@ -39,10 +39,10 @@ package content_opener
 
 import (
 	"errors"
+	"kaiju/editor/editor_interface"
+	"kaiju/editor/memento"
 	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
-	"kaiju/editor/interfaces"
-	"kaiju/editor/memento"
 	"kaiju/engine/host_container"
 )
 
@@ -52,7 +52,7 @@ var (
 
 type ContentOpener interface {
 	Handles(adi asset_info.AssetDatabaseInfo) bool
-	Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error
+	Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
 }
 
 type Opener struct {
@@ -75,7 +75,7 @@ func (o *Opener) Register(opener ContentOpener) {
 	o.openers = append(o.openers, opener)
 }
 
-func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	for i := range o.openers {
 		if o.openers[i].Handles(adi) {
 			return o.openers[i].Open(adi, ed)
@@ -84,7 +84,7 @@ func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) er
 	return ErrNoOpener
 }
 
-func (o *Opener) OpenPath(path string, ed interfaces.Editor) error {
+func (o *Opener) OpenPath(path string, ed editor_interface.Editor) error {
 	if !asset_info.Exists(path) {
 		if err := o.importer.Import(path); err != nil {
 			return err

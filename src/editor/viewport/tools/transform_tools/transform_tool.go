@@ -38,23 +38,23 @@
 package transform_tools
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
 	"kaiju/editor/cache/editor_cache"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/memento"
 	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
-	"kaiju/platform/hid"
+	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
 )
 
 type TransformTool struct {
-	editor         interfaces.Editor
+	editor         editor_interface.Editor
 	axis           AxisState
 	state          ToolState
 	lastHit        matrix.Vec3
@@ -90,7 +90,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 	}, nil
 }
 
-func New(host *engine.Host, editor interfaces.Editor, canvas string, history *memento.History) TransformTool {
+func New(host *engine.Host, editor editor_interface.Editor, canvas string, history *memento.History) TransformTool {
 	wt := matrix.NewTransform(editor.Host().WorkGroup())
 	t := TransformTool{
 		editor:        editor,

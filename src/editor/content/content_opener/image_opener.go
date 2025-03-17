@@ -39,17 +39,17 @@ package content_opener
 
 import (
 	"errors"
+	"kaiju/editor/content/content_history"
+	"kaiju/editor/editor_config"
+	"kaiju/editor/editor_interface"
+	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/collision"
-	"kaiju/editor/content/content_history"
-	"kaiju/editor/editor_config"
-	"kaiju/editor/interfaces"
-	"kaiju/engine"
+	"kaiju/engine/systems/console"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/engine/systems/console"
 	"path/filepath"
 	"strings"
 )
@@ -60,7 +60,7 @@ func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 	return adi.Type == editor_config.AssetTypeImage
 }
 
-func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed interfaces.Editor) error {
+func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	console.For(ed.Host()).Write("Opening an image")
 	host := ed.Host()
 	meta := adi.Metadata.(*asset_importer.ImageMetadata)

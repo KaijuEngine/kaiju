@@ -39,18 +39,18 @@ package details_window
 
 import (
 	"kaiju/editor/codegen"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
 	"kaiju/engine/host_container"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
 	"strconv"
 	"strings"
 )
 
 type DataPicker struct {
-	editor    interfaces.Editor
+	editor    editor_interface.Editor
 	container *host_container.Container
 	doc       *document.Document
 	uiMan     ui.Manager

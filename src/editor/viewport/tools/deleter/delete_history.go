@@ -38,13 +38,13 @@
 package deleter
 
 import (
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/engine"
 )
 
 type deleteHistory struct {
 	entities []*engine.Entity
-	editor   interfaces.Editor
+	editor   editor_interface.Editor
 }
 
 func (h *deleteHistory) Redo() {

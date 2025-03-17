@@ -39,18 +39,20 @@ package details_window
 
 import (
 	"kaiju/editor/codegen"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
+	"kaiju/editor/ui/details_common"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/matrix"
 	"log/slog"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 const sizeConfig = "detailsWindowSize"
@@ -66,19 +68,19 @@ func (t *transformInputField) update(v matrix.Vec3) {
 		return
 	}
 	if !t.x.IsFocused() {
-		x := matrix.Float(toFloat(t.x.Text()))
+		x := matrix.Float(details_common.ToFloat(t.x.Text()))
 		if x != v.X() {
 			t.x.SetText(strconv.FormatFloat(float64(v.X()), 'f', -1, 32))
 		}
 	}
 	if !t.y.IsFocused() {
-		y := matrix.Float(toFloat(t.y.Text()))
+		y := matrix.Float(details_common.ToFloat(t.y.Text()))
 		if y != v.Y() {
 			t.y.SetText(strconv.FormatFloat(float64(v.Y()), 'f', -1, 32))
 		}
 	}
 	if !t.z.IsFocused() {
-		z := matrix.Float(toFloat(t.z.Text()))
+		z := matrix.Float(details_common.ToFloat(t.z.Text()))
 		if z != v.Z() {
 			t.z.SetText(strconv.FormatFloat(float64(v.Z()), 'f', -1, 32))
 		}
@@ -92,7 +94,7 @@ func (t *transformInputField) setup(doc *document.Document, prefix string) {
 }
 
 type Details struct {
-	editor             interfaces.Editor
+	editor             editor_interface.Editor
 	doc                *document.Document
 	selectChangeId     events.Id
 	viewData           detailsData
@@ -160,26 +162,12 @@ func (f *entityDataField) ValueAsEntityName() string {
 	return e.Name()
 }
 
-func (f *entityDataField) IsNumber() bool {
-	switch f.Type {
-	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "float32", "float64", "complex64", "complex128":
-		return true
-	default:
-		return false
-	}
-}
+func (f *entityDataField) IsNumber() bool   { return details_common.IsNumber(f.Type) }
+func (f *entityDataField) IsInput() bool    { return details_common.IsInput(f.Type) }
+func (f *entityDataField) IsCheckbox() bool { return details_common.IsCheckbox(f.Type) }
+func (f *entityDataField) IsEntityId() bool { return details_common.IsEntityId(f.Pkg, f.Type) }
 
-func (f *entityDataField) IsInput() bool {
-	return f.Type == "string" || f.IsNumber()
-}
-
-func (f *entityDataField) IsCheckbox() bool { return f.Type == "bool" }
-
-func (f *entityDataField) IsEntityId() bool {
-	return f.Pkg == "kaiju/engine" && f.Type == "EntityId"
-}
-
-func New(editor interfaces.Editor) *Details {
+func New(editor editor_interface.Editor) *Details {
 	d := &Details{
 		editor: editor,
 	}
@@ -250,6 +238,18 @@ func (d *Details) addData(*document.Element) {
 	d.editor.ReloadTabs(d.TabTitle())
 }
 
+func (d *Details) elmToReflectedValue(elm *document.Element) (reflect.Value, bool) {
+	id := elm.Attribute("id")
+	lr := strings.Split(id, "_")
+	if len(lr) != 2 {
+		return reflect.Value{}, false
+	}
+	dataIdx, _ := strconv.Atoi(lr[0])
+	fieldIdx, _ := strconv.Atoi(lr[1])
+	data := d.viewData.Data[dataIdx]
+	return data.entityData.(reflect.Value).Elem().Field(fieldIdx), true
+}
+
 func (d *Details) changeData(elm *document.Element) {
 	v, ok := d.elmToReflectedValue(elm)
 	if !ok {
@@ -257,13 +257,13 @@ func (d *Details) changeData(elm *document.Element) {
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v.SetInt(toInt(elm.UI.ToInput().Text()))
+		v.SetInt(details_common.ToInt(elm.UI.ToInput().Text()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v.SetUint(toUint(elm.UI.ToInput().Text()))
+		v.SetUint(details_common.ToUint(elm.UI.ToInput().Text()))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(toFloat(elm.UI.ToInput().Text()))
+		v.SetFloat(details_common.ToFloat(elm.UI.ToInput().Text()))
 	case reflect.String:
-		v.SetString(inputString(elm))
+		v.SetString(details_common.InputString(elm))
 	case reflect.Bool:
 		v.SetBool(elm.UI.ToCheckbox().IsChecked())
 	}
@@ -343,7 +343,7 @@ func (d *Details) pullEntityData() []entityDataEntry {
 }
 
 func (d *Details) changeName(input *document.Element) {
-	d.editor.Selection().Entities()[0].SetName(inputString(input))
+	d.editor.Selection().Entities()[0].SetName(details_common.InputString(input))
 	if d.hierarchyReloading {
 		return
 	}
@@ -357,68 +357,68 @@ func (d *Details) changeName(input *document.Element) {
 func (d *Details) changePosX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
-	p.SetX(matrix.Float(toFloat(inputString(input))))
+	p.SetX(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetPosition(p)
 }
 
 func (d *Details) changePosY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
-	p.SetY(matrix.Float(toFloat(inputString(input))))
+	p.SetY(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetPosition(p)
 }
 
 func (d *Details) changePosZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	p := t.Position()
-	p.SetZ(matrix.Float(toFloat(inputString(input))))
+	p.SetZ(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetPosition(p)
 }
 
 func (d *Details) changeRotX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
-	r.SetX(matrix.Float(toFloat(inputString(input))))
+	r.SetX(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetRotation(r)
 }
 
 func (d *Details) changeRotY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
-	r.SetY(matrix.Float(toFloat(inputString(input))))
+	r.SetY(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetRotation(r)
 }
 
 func (d *Details) changeRotZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	r := t.Rotation()
-	r.SetZ(matrix.Float(toFloat(inputString(input))))
+	r.SetZ(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetRotation(r)
 }
 
 func (d *Details) changeScaleX(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
-	s.SetX(matrix.Float(toFloat(inputString(input))))
+	s.SetX(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetScale(s)
 }
 
 func (d *Details) changeScaleY(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
-	s.SetY(matrix.Float(toFloat(inputString(input))))
+	s.SetY(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetScale(s)
 }
 
 func (d *Details) changeScaleZ(input *document.Element) {
 	t := &d.editor.Selection().Entities()[0].Transform
 	s := t.Scale()
-	s.SetZ(matrix.Float(toFloat(inputString(input))))
+	s.SetZ(matrix.Float(details_common.ToFloat(details_common.InputString(input))))
 	t.SetScale(s)
 }
 
 func (d *Details) entityIdDrop(input *document.Element) {
-	id, ok := entityDragData(d.editor.Host())
+	id, ok := details_common.EntityDragData(d.editor.Host())
 	if !ok {
 		return
 	}
@@ -431,14 +431,14 @@ func (d *Details) entityIdDrop(input *document.Element) {
 }
 
 func (d *Details) entityIdDragEnter(input *document.Element) {
-	if _, ok := entityDragData(d.editor.Host()); !ok {
+	if _, ok := details_common.EntityDragData(d.editor.Host()); !ok {
 		return
 	}
 	input.EnforceColor(matrix.ColorOrange())
 }
 
 func (d *Details) entityIdDragExit(input *document.Element) {
-	if _, ok := entityDragData(d.editor.Host()); !ok {
+	if _, ok := details_common.EntityDragData(d.editor.Host()); !ok {
 		return
 	}
 	input.UnEnforceColor()

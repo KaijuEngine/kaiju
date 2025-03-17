@@ -38,9 +38,8 @@
 package editor_menu
 
 import (
-	"kaiju/platform/audio/audio_system"
 	"kaiju/editor/content/content_opener"
-	"kaiju/editor/interfaces"
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/ui/about_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/editor_settings_window"
@@ -49,11 +48,12 @@ import (
 	"kaiju/editor/ui/shader_designer"
 	"kaiju/engine"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/platform/audio/audio_system"
 	"log/slog"
 )
 
@@ -65,7 +65,7 @@ type Menu struct {
 	contentWindow   *content_window.ContentWindow
 	hierarchyWindow *hierarchy.Hierarchy
 	contentOpener   *content_opener.Opener
-	editor          interfaces.Editor
+	editor          editor_interface.Editor
 	uiGroup         *ui.Group
 	uiMan           *ui.Manager
 }
@@ -75,7 +75,7 @@ func New(container *host_container.Container,
 	contentWindow *content_window.ContentWindow,
 	hierarchyWindow *hierarchy.Hierarchy,
 	contentOpener *content_opener.Opener,
-	editor interfaces.Editor,
+	editor editor_interface.Editor,
 	uiMan *ui.Manager) *Menu {
 
 	host := container.Host
