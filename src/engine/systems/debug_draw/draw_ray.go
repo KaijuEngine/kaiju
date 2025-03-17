@@ -1,7 +1,5 @@
-//go:build !editor && debug
-
 /******************************************************************************/
-/* runtime_logger.dbg.go                                                      */
+/* draw_ray.go                                                                */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -37,10 +35,41 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package logging
+package debug
 
-import "log/slog"
+import (
+	"kaiju/engine"
+	"kaiju/engine/assets"
+	"kaiju/matrix"
+	"kaiju/rendering"
+	"log/slog"
+	"time"
 
-func minLogLevel() slog.Level {
-	return slog.LevelDebug
+	"github.com/KaijuEngine/uuid"
+)
+
+func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
+	// TODO:  Return the handle to delete this thing
+	grid := rendering.NewMeshGrid(host.MeshCache(),
+		"raycast_"+uuid.New().String(),
+		[]matrix.Vec3{from, to}, matrix.ColorWhite())
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
+	if err != nil {
+		slog.Error("failed to load the grid material for drawing raycast", "error", err)
+		return
+	}
+	sd := &rendering.ShaderDataBasic{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
+	}
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Material:   material,
+		Mesh:       grid,
+		ShaderData: sd,
+	})
+	func() {
+		time.Sleep(duration)
+		sd.Destroy()
+	}()
 }

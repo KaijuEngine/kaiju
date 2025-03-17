@@ -42,6 +42,7 @@ package logging
 import (
 	"context"
 	"io"
+	"kaiju/build"
 	"log/slog"
 )
 
@@ -50,7 +51,11 @@ type RuntimeLogHandler struct {
 }
 
 func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return level >= minLogLevel()
+	if build.Debug {
+		return level >= slog.LevelDebug
+	} else {
+		return level >= slog.LevelWarn
+	}
 }
 
 func newLogHandler(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
