@@ -92,8 +92,9 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	e.mode = mode
 	switch e.mode {
 	case EditorCameraMode3d:
-		cam := cameras.NewStandardCamera(float32(host.Window.Width()),
-			float32(host.Window.Height()), matrix.Vec3Backward())
+		w := float32(host.Window.Width())
+		h := float32(host.Window.Height())
+		cam := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
 		tc := cameras.ToTurntable(cam)
 		tc.SetYawPitchZoom(0, -25, 16)
 		tc.SetLookAt(matrix.Vec3Zero())
@@ -106,7 +107,7 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		ratio := cw / ch
 		w := (cw / cw) * ratio * 10
 		h := (ch / cw) * ratio * 10
-		oc := cameras.NewStandardCameraOrthographic(w, h, matrix.NewVec3(0, 0, 100))
+		oc := cameras.NewStandardCameraOrthographic(w, h, cw, ch, matrix.NewVec3(0, 0, 100))
 		e.camera = oc
 		host.Camera = e.camera
 		host.Window.OnResize.Remove(e.resizeId)

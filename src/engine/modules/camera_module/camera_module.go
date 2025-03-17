@@ -25,8 +25,9 @@ func (c *CameraModuleBinding) Init(e *engine.Entity, host *engine.Host) {
 	e.AddNamedData("CameraModule", cm)
 	cm.entity = e
 	cm.host = host
-	cm.camera = cameras.NewStandardCamera(float32(host.Window.Width()),
-		float32(host.Window.Height()), e.Transform.Position())
+	w := float32(host.Window.Width())
+	h := float32(host.Window.Height())
+	cm.camera = cameras.NewStandardCamera(w, h, w, h, e.Transform.Position())
 	cm.updateId = host.Updater.AddUpdate(cm.update)
 	cm.entity.OnDestroy.Add(func() { host.Updater.RemoveUpdate(cm.updateId) })
 	if c.IsPrimary {

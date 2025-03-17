@@ -58,26 +58,29 @@ type StandardCamera struct {
 	farPlane         float32
 	width            float32
 	height           float32
+	viewWidth        float32
+	viewHeight       float32
 	isOrthographic   bool
+	sizeIsViewSize   bool
 }
 
 // NewStandardCamera creates a new perspective camera using the width/height
 // for the viewport and the position to place the camera.
-func NewStandardCamera(width, height float32, position matrix.Vec3) *StandardCamera {
+func NewStandardCamera(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
 	c := new(StandardCamera)
 	c.initializeValues(position)
-	c.initialize(width, height)
+	c.initialize(width, height, viewWidth, viewHeight)
 	return c
 }
 
 // NewStandardCameraOrthographic creates a new orthographic camera using the
 // width/height for the viewport and the position to place the camera.
-func NewStandardCameraOrthographic(width, height float32, position matrix.Vec3) *StandardCamera {
+func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
 	c := new(StandardCamera)
 	c.initializeValues(position)
 	c.isOrthographic = true
 	c.nearPlane = -1
-	c.initialize(width, height)
+	c.initialize(width, height, viewWidth, viewHeight)
 	return c
 }
 
@@ -128,8 +131,12 @@ func (c *StandardCamera) Resize(width, height float32) {
 // be used when there is a change in the viewport. This is typically done
 // internally in the system and should not be called by the end-developer.
 func (c *StandardCamera) ViewportChanged(width, height float32) {
-	c.width = width
-	c.height = height
+	if c.sizeIsViewSize {
+		c.width = width
+		c.height = height
+	}
+	c.viewWidth = width
+	c.viewHeight = height
 	c.updateProjection()
 }
 
@@ -268,11 +275,14 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.lookAt = matrix.Vec3Forward()
 }
 
-func (c *StandardCamera) initialize(width, height float32) {
+func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32) {
 	c.updateProjection = c.internalUpdateProjection
 	c.updateView = c.internalUpdateView
+	c.viewWidth = viewWidth
+	c.viewHeight = viewHeight
 	c.setProjection(width, height)
 	c.updateView()
+	c.sizeIsViewSize = width == viewWidth && height == viewHeight
 }
 
 func (c *StandardCamera) setProjection(width, height float32) {
@@ -319,16 +329,28 @@ func (c *StandardCamera) updateFrustum() {
 }
 
 func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
-	x := (2.0*screenPos.X())/c.width - 1.0
-	y := 1.0 - (2.0*screenPos.Y())/c.height
-	// Normalized Device Coordinates
-	rayNds := matrix.Vec3{x, y, 1}
-	rayClip := matrix.Vec4{rayNds.X(), rayNds.Y(), -1, 1}
-	rayEye := matrix.Vec4MultiplyMat4(rayClip, c.iProjection)
-	rayEye = matrix.Vec4{rayEye.X(), rayEye.Y(), -1, 0}
-	// Normalize up/down/left/right
-	res := matrix.Vec4MultiplyMat4(rayEye, c.view)
-	rayWorld := matrix.Vec3{res.X(), res.Y(), res.Z()}
-	rayWorld.Normalize()
-	return collision.Ray{Origin: pos, Direction: rayWorld}
+	x := (2.0*screenPos.X())/c.viewWidth - 1.0
+	y := 1.0 - (2.0*screenPos.Y())/c.viewHeight
+	var origin, direction matrix.Vec3
+	if !c.isOrthographic {
+		origin = pos
+		// Normalized Device Coordinates
+		rayNds := matrix.Vec3{x, y, 1}
+		rayClip := matrix.Vec4{rayNds.X(), rayNds.Y(), -1, 1}
+		rayEye := matrix.Vec4MultiplyMat4(rayClip, c.iProjection)
+		rayEye = matrix.Vec4{rayEye.X(), rayEye.Y(), -1, 0}
+		// Normalize up/down/left/right
+		res := matrix.Vec4MultiplyMat4(rayEye, c.view)
+		direction = matrix.Vec3{res.X(), res.Y(), res.Z()}
+		direction.Normalize()
+	} else {
+		up := c.Up()
+		forward := c.Forward()
+		worldX := x * c.width / 2.0
+		worldY := y * c.height / 2.0
+		right := c.Right()
+		origin = c.position.Add(right.Scale(worldX)).Add(up.Scale(worldY))
+		direction = forward
+	}
+	return collision.Ray{Origin: origin, Direction: direction}
 }
