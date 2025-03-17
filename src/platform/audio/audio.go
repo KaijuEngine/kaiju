@@ -39,7 +39,7 @@ package audio
 
 import (
 	"bytes"
-	"kaiju/audio/audio_system"
+	"kaiju/platform/audio/audio_system"
 	"log/slog"
 	"time"
 

@@ -38,7 +38,7 @@
 package project
 
 import (
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"os"
 	"path/filepath"
 	"strings"

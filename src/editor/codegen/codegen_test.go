@@ -40,7 +40,7 @@ package codegen
 import (
 	"bytes"
 	"kaiju/engine"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"reflect"
 	"testing"
 )

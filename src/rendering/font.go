@@ -41,7 +41,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"log/slog"

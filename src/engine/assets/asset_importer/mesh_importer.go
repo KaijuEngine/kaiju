@@ -2,9 +2,9 @@ package asset_importer
 
 import (
 	"errors"
-	"kaiju/assets"
-	"kaiju/assets/asset_info"
-	"kaiju/cache/project_cache"
+	"kaiju/engine/assets"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
 	"kaiju/rendering/loaders/load_result"
 

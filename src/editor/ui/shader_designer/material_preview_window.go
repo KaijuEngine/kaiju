@@ -1,7 +1,7 @@
 package shader_designer
 
 import (
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 )
 
 func PreviewMaterial(path string) {

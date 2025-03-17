@@ -39,13 +39,13 @@ package windowing
 
 import (
 	"errors"
-	"kaiju/assets"
-	"kaiju/hid"
+	"kaiju/engine/assets"
+	"kaiju/platform/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/systems/events"
+	"kaiju/engine/systems/events"
 	"slices"
 	"unsafe"
 )

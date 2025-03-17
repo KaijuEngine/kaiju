@@ -39,7 +39,7 @@ package document
 
 import (
 	"kaiju/matrix"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 	"strings"
 	"weak"
 

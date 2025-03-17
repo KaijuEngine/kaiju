@@ -40,7 +40,7 @@ package editor_cache
 import (
 	"encoding/json"
 	"errors"
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"path/filepath"
 )
 

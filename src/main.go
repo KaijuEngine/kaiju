@@ -41,7 +41,7 @@ package main
 
 import (
 	"kaiju/bootstrap"
-	"kaiju/profiler"
+	"kaiju/platform/profiler"
 )
 
 func main() {

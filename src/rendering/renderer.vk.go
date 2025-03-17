@@ -39,12 +39,12 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/assets"
-	"kaiju/cameras"
+	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/pooling"
-	"kaiju/profiler/tracing"
+	"kaiju/engine/pooling"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"math"
 	"sort"

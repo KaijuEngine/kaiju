@@ -38,8 +38,8 @@
 package load_result
 
 import (
-	"kaiju/collision"
-	"kaiju/concurrent"
+	"kaiju/engine/collision"
+	"kaiju/platform/concurrent"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"sync"

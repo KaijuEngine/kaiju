@@ -40,7 +40,7 @@
 package profiler
 
 import (
-	"kaiju/contexts"
+	"kaiju/klib/contexts"
 	"os"
 	"os/exec"
 	"runtime"

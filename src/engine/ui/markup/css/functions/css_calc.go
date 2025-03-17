@@ -38,10 +38,10 @@
 package functions
 
 import (
-	"kaiju/markup/css/helpers"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/css/helpers"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 	"strconv"
 	"strings"
 )

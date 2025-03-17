@@ -39,11 +39,11 @@ package alert
 
 import (
 	"kaiju/engine"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 	"kaiju/klib"
-	"kaiju/markup"
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 )
 
 type alertMsg struct {

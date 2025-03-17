@@ -39,7 +39,7 @@ package asset_importer
 
 import (
 	"errors"
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 
 	"github.com/KaijuEngine/uuid"

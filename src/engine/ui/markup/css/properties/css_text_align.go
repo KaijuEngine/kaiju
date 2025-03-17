@@ -40,10 +40,10 @@ package properties
 import (
 	"fmt"
 	"kaiju/engine"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 )
 
 // left|right|center|justify|initial|inherit

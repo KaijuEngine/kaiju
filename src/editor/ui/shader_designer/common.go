@@ -1,8 +1,8 @@
 package shader_designer
 
 import (
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 )
 
 const (

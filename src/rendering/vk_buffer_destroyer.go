@@ -40,7 +40,7 @@ package rendering
 import (
 	"slices"
 
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 )
 

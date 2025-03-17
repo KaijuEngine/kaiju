@@ -2,7 +2,7 @@ package collision_system
 
 import (
 	"kaiju/matrix"
-	"kaiju/pooling"
+	"kaiju/engine/pooling"
 )
 
 type Shape = int

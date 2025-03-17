@@ -1,7 +1,7 @@
 package editor_menu
 
 import (
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/editor/content/content_history"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"

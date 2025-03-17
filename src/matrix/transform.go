@@ -38,7 +38,7 @@
 package matrix
 
 import (
-	"kaiju/concurrent"
+	"kaiju/platform/concurrent"
 	"kaiju/klib"
 	"slices"
 )

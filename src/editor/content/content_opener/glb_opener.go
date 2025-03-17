@@ -1,9 +1,9 @@
 package content_opener
 
 import (
-	"kaiju/assets/asset_importer"
-	"kaiju/assets/asset_info"
-	"kaiju/collision"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/engine/collision"
 	"kaiju/editor/content/content_history"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"

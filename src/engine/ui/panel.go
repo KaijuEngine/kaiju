@@ -38,11 +38,11 @@
 package ui
 
 import (
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/systems/events"
+	"kaiju/engine/systems/events"
 	"log/slog"
 )
 

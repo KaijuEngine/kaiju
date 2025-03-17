@@ -38,7 +38,7 @@
 package css
 
 import (
-	"kaiju/markup/css/rules"
+	"kaiju/engine/ui/markup/css/rules"
 	"testing"
 )
 

@@ -38,7 +38,7 @@
 package windowing
 
 import (
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/rendering"
 	"unsafe"
 )

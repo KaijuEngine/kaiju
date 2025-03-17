@@ -11,7 +11,7 @@ package main
 
 import (
 	"fmt"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"os"
 )
 

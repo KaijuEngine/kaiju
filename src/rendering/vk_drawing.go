@@ -38,9 +38,9 @@
 package rendering
 
 import (
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"unsafe"

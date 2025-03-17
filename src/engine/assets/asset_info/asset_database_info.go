@@ -40,7 +40,7 @@ package asset_info
 import (
 	"encoding/json"
 	"errors"
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"os"
 	"path/filepath"
 	"strings"

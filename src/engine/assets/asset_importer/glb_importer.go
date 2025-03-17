@@ -1,8 +1,8 @@
 package asset_importer
 
 import (
-	"kaiju/assets"
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
 	"kaiju/rendering/loaders"
 	"path/filepath"

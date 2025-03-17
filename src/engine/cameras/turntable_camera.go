@@ -38,7 +38,7 @@
 package cameras
 
 import (
-	"kaiju/collision"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
 )
 

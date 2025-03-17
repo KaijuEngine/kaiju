@@ -38,8 +38,8 @@
 package interfaces
 
 import (
-	"kaiju/assets/asset_importer"
-	"kaiju/collision"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/collision"
 	"kaiju/editor/codegen"
 	"kaiju/editor/memento"
 	"kaiju/editor/selection"
@@ -49,7 +49,7 @@ import (
 	"kaiju/editor/ui/status_bar"
 	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 )
 
 type Editor interface {

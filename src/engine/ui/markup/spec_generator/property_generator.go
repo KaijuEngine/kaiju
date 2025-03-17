@@ -414,10 +414,10 @@ func writePropertyFile() error {
 	pf.WriteString(`package properties
 
 import (
-	"kaiju/markup/css/rules"
-	"kaiju/markup/css/functions"
-	"kaiju/markup/markup"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/css/functions"
+	"kaiju/engine/ui/markup/markup"
+	"kaiju/engine/ui"
 )
 
 type Property interface {
@@ -482,9 +482,9 @@ func (p %s) Key() string { return "%s" }
 
 import (
 	"errors"
-	"kaiju/ui"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/markup"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/markup"
 )
 
 func (p %s) Process(panel *ui.Panel, elm document.DocumentElement, values []rules.PropertyValue, host *engine.Host) error {

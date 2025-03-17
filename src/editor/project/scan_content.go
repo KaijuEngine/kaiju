@@ -38,7 +38,7 @@
 package project
 
 import (
-	"kaiju/assets/asset_importer"
+	"kaiju/engine/assets/asset_importer"
 	"os"
 	"path/filepath"
 )

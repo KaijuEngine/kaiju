@@ -41,9 +41,9 @@ import (
 	"errors"
 	"kaiju/engine"
 	"kaiju/klib"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 )
 
 func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {

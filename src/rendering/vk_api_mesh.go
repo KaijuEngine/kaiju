@@ -38,7 +38,7 @@
 package rendering
 
 import (
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 )
 

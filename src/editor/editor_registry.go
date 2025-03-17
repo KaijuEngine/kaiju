@@ -38,7 +38,7 @@
 package editor
 
 import (
-	"kaiju/assets/asset_importer"
+	"kaiju/engine/assets/asset_importer"
 	"kaiju/editor/content/content_opener"
 )
 

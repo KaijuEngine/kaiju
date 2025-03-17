@@ -40,9 +40,9 @@ package stages
 import (
 	"bytes"
 	"io"
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/engine"
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"kaiju/klib"
 )
 

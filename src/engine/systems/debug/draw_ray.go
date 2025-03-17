@@ -38,7 +38,7 @@
 package debug
 
 import (
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"

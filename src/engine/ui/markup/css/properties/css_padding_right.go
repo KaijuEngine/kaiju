@@ -40,10 +40,10 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 )
 
 // length|initial|inherit

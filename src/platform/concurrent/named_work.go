@@ -1,7 +1,7 @@
 package concurrent
 
 import (
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"sync"
 )
 

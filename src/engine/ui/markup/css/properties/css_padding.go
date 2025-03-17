@@ -40,12 +40,12 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
-	"kaiju/markup/css/helpers"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup/css/helpers"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/ui"
-	"kaiju/windowing"
+	"kaiju/engine/ui"
+	"kaiju/platform/windowing"
 )
 
 func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorComponent, window *windowing.Window) (matrix.Vec4, error) {

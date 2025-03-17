@@ -41,7 +41,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"kaiju/klib"
 	"os"
 	"os/exec"

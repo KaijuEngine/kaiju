@@ -38,13 +38,13 @@
 package ui
 
 import (
-	"kaiju/assets"
-	"kaiju/hid"
+	"kaiju/engine/assets"
+	"kaiju/platform/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/systems/events"
+	"kaiju/engine/systems/events"
 	"math"
 	"unicode"
 	"unicode/utf8"

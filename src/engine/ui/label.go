@@ -39,7 +39,7 @@ package ui
 
 import (
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"unicode/utf8"
 )

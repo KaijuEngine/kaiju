@@ -2,7 +2,7 @@ package editor
 
 import (
 	"kaiju/engine"
-	"kaiju/systems/console"
+	"kaiju/engine/systems/console"
 	"strings"
 )
 

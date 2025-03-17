@@ -40,7 +40,7 @@ package rendering
 import (
 	"errors"
 
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 )
 

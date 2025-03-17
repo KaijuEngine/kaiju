@@ -2,11 +2,11 @@ package shader_designer
 
 import (
 	"kaiju/editor/ui/tab_container"
-	"kaiju/markup"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/systems/logging"
-	"kaiju/ui"
+	"kaiju/engine/systems/logging"
+	"kaiju/engine/ui"
 	"slices"
 )
 

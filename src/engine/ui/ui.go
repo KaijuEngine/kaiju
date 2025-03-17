@@ -39,13 +39,13 @@ package ui
 
 import (
 	"kaiju/engine"
-	"kaiju/hid"
+	"kaiju/platform/hid"
 	"kaiju/matrix"
-	"kaiju/pooling"
-	"kaiju/profiler/tracing"
+	"kaiju/engine/pooling"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/systems/events"
-	"kaiju/windowing"
+	"kaiju/engine/systems/events"
+	"kaiju/platform/windowing"
 )
 
 type DirtyType = int

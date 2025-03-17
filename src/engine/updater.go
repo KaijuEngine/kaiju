@@ -37,7 +37,7 @@
 
 package engine
 
-import "kaiju/profiler/tracing"
+import "kaiju/platform/profiler/tracing"
 
 type engineUpdate struct {
 	id     int

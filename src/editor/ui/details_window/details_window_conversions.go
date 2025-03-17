@@ -40,8 +40,8 @@ package details_window
 import (
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
-	"kaiju/markup/document"
-	"kaiju/windowing"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/windowing"
 	"reflect"
 	"strconv"
 	"strings"

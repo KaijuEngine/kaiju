@@ -39,7 +39,7 @@ package audio_system
 
 import (
 	"errors"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	"math"
 	"unsafe"

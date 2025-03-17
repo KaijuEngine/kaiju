@@ -40,7 +40,7 @@ package loaders
 import (
 	"encoding/binary"
 	"errors"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"

@@ -38,8 +38,8 @@
 package document
 
 import (
-	"kaiju/systems/events"
-	"kaiju/ui"
+	"kaiju/engine/systems/events"
+	"kaiju/engine/ui"
 	"log/slog"
 )
 

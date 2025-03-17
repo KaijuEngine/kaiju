@@ -38,7 +38,7 @@
 package editor_menu
 
 import (
-	"kaiju/audio/audio_system"
+	"kaiju/platform/audio/audio_system"
 	"kaiju/editor/content/content_opener"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/about_window"
@@ -48,12 +48,12 @@ import (
 	"kaiju/editor/ui/log_window"
 	"kaiju/editor/ui/shader_designer"
 	"kaiju/engine"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 	"kaiju/klib"
-	"kaiju/markup"
-	"kaiju/markup/document"
-	"kaiju/systems/console"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/systems/console"
+	"kaiju/engine/ui"
 	"log/slog"
 )
 

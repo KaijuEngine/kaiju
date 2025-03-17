@@ -88,9 +88,9 @@ func writeFunctionFile() error {
 	pf.WriteString(`package functions
 
 import (
-	"kaiju/ui"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/markup"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/markup"
 )
 
 type Function interface {
@@ -137,9 +137,9 @@ func (f %s) Key() string { return "%s" }
 
 import (
 	"errors"
-	"kaiju/ui"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/markup"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/markup"
 )
 
 func (f %s) Process(panel *ui.Panel, elm document.DocumentElement, value rules.PropertyValue) (string, error) {

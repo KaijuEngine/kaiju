@@ -38,15 +38,15 @@
 package transform_tools
 
 import (
-	"kaiju/assets"
-	"kaiju/cameras"
-	"kaiju/collision"
+	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
 	"kaiju/editor/viewport/controls"
 	"kaiju/engine"
-	"kaiju/hid"
+	"kaiju/platform/hid"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"log/slog"

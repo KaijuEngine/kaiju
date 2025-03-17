@@ -39,17 +39,17 @@ package content_opener
 
 import (
 	"errors"
-	"kaiju/assets"
-	"kaiju/assets/asset_importer"
-	"kaiju/assets/asset_info"
-	"kaiju/collision"
+	"kaiju/engine/assets"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/engine/collision"
 	"kaiju/editor/content/content_history"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/systems/console"
+	"kaiju/engine/systems/console"
 	"path/filepath"
 	"strings"
 )

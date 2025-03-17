@@ -41,10 +41,10 @@ package bootstrap
 
 import (
 	"kaiju/engine"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 	"kaiju/matrix"
 	"kaiju/source"
-	"kaiju/systems/logging"
+	"kaiju/engine/systems/logging"
 )
 
 func Main() {

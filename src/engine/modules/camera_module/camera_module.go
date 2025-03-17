@@ -1,7 +1,7 @@
 package camera_module
 
 import (
-	"kaiju/cameras"
+	"kaiju/engine/cameras"
 	"kaiju/engine"
 )
 

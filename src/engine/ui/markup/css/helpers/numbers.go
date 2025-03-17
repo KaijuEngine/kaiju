@@ -41,7 +41,7 @@ import (
 	"fmt"
 	"kaiju/klib"
 	"kaiju/rendering"
-	"kaiju/windowing"
+	"kaiju/platform/windowing"
 	"strconv"
 	"strings"
 )

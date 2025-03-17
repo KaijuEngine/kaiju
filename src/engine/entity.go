@@ -38,10 +38,10 @@
 package engine
 
 import (
-	"kaiju/concurrent"
+	"kaiju/platform/concurrent"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/systems/events"
+	"kaiju/engine/systems/events"
 	"log/slog"
 	"slices"
 )

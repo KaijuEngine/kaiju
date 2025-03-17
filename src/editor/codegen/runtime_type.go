@@ -38,7 +38,7 @@
 package codegen
 
 import (
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"reflect"
 )
 

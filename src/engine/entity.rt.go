@@ -41,7 +41,7 @@ package engine
 
 import (
 	"kaiju/rendering"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 )
 
 type entityEditorBindings struct{}

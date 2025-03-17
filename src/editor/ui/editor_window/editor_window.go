@@ -39,7 +39,7 @@ package editor_window
 
 import (
 	"kaiju/editor/cache/editor_cache"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 )
 
 type EditorWindow interface {

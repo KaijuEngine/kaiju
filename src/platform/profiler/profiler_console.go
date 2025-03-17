@@ -40,10 +40,10 @@ package profiler
 import (
 	"bufio"
 	"fmt"
-	"kaiju/contexts"
+	"kaiju/klib/contexts"
 	"kaiju/engine"
 	"kaiju/klib"
-	"kaiju/systems/console"
+	"kaiju/engine/systems/console"
 	"os"
 	"os/exec"
 	"runtime"

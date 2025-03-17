@@ -38,12 +38,12 @@
 package controls
 
 import (
-	"kaiju/cameras"
+	"kaiju/engine/cameras"
 	"kaiju/engine"
-	"kaiju/hid"
+	"kaiju/platform/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/systems/events"
+	"kaiju/engine/systems/events"
 	"math"
 )
 

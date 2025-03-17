@@ -43,7 +43,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 )

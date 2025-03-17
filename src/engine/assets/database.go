@@ -38,8 +38,8 @@
 package assets
 
 import (
-	"kaiju/filesystem"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/filesystem"
+	"kaiju/platform/profiler/tracing"
 )
 
 type Database struct {

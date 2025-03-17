@@ -40,11 +40,11 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
-	"kaiju/markup/css/helpers"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup/css/helpers"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 )
 
 // color|transparent|initial|inherit

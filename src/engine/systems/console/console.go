@@ -39,11 +39,11 @@ package console
 
 import (
 	"kaiju/engine"
-	"kaiju/hid"
-	"kaiju/markup"
-	"kaiju/markup/document"
+	"kaiju/platform/hid"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 	"strings"
 )
 

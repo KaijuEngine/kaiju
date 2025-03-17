@@ -3,10 +3,10 @@ package viewport_overlay
 import (
 	"kaiju/editor/interfaces"
 	"kaiju/editor/viewport/controls"
-	"kaiju/markup"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/ui"
+	"kaiju/engine/ui"
 )
 
 type ViewportOverlay struct {

@@ -40,7 +40,7 @@ package editor
 import (
 	"kaiju/editor/viewport/tools/deleter"
 	"kaiju/editor/viewport/tools/transform_tools"
-	"kaiju/hid"
+	"kaiju/platform/hid"
 	"kaiju/klib"
 )
 

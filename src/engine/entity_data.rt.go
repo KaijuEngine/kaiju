@@ -41,7 +41,7 @@ package engine
 
 import (
 	"errors"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"path/filepath"
 	"reflect"
 	"runtime"

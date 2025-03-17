@@ -2,7 +2,7 @@ package rendering
 
 import (
 	"encoding/json"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"path/filepath"
 	"sync"
 )

@@ -1,7 +1,7 @@
 package content_opener
 
 import (
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/ui/shader_designer"

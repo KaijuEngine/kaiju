@@ -39,11 +39,11 @@ package content_opener
 
 import (
 	"errors"
-	"kaiju/assets/asset_importer"
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/interfaces"
 	"kaiju/editor/memento"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 )
 
 var (

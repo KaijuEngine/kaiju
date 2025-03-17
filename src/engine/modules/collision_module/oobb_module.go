@@ -1,7 +1,7 @@
 package collision_module
 
 import (
-	"kaiju/collision"
+	"kaiju/engine/collision"
 	"kaiju/engine"
 	"kaiju/engine/collision_system"
 	"kaiju/matrix"

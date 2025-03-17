@@ -1,7 +1,7 @@
 package duplicator
 
 import (
-	"kaiju/collision"
+	"kaiju/engine/collision"
 	"kaiju/editor/interfaces"
 	"kaiju/engine"
 	"kaiju/rendering"

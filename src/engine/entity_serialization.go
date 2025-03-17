@@ -40,12 +40,14 @@ package engine
 import (
 	"errors"
 	"io"
-	"kaiju/assets/asset_info"
-	"kaiju/cache/project_cache"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"log/slog"
+	
+	// TODO:  Break this dependency
+	"kaiju/editor/cache/project_cache"
 )
 
 func init() {

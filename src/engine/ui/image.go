@@ -38,7 +38,7 @@
 package ui
 
 import (
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 )
 

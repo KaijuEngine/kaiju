@@ -38,7 +38,7 @@
 package editor_cache
 
 import (
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"kaiju/klib"
 	"os"
 	"path/filepath"

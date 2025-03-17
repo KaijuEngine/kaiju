@@ -7,7 +7,7 @@ package gob_test
 import (
 	"bytes"
 	"fmt"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"log"
 )
 

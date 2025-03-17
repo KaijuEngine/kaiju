@@ -38,10 +38,10 @@
 package asset_importer
 
 import (
-	"kaiju/assets/asset_info"
-	"kaiju/cache/project_cache"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"kaiju/rendering/loaders"
 	"path/filepath"
 )

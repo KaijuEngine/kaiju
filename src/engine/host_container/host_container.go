@@ -39,9 +39,9 @@ package host_container
 
 import (
 	"kaiju/engine"
-	"kaiju/profiler/tracing"
-	"kaiju/systems/console"
-	"kaiju/systems/logging"
+	"kaiju/platform/profiler/tracing"
+	"kaiju/engine/systems/console"
+	"kaiju/engine/systems/logging"
 	"runtime"
 	"strconv"
 	"strings"

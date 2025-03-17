@@ -39,8 +39,8 @@ package pseudos
 
 import (
 	"errors"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
 )
 
 func (p Focus) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {

@@ -38,7 +38,7 @@
 package asset_importer
 
 import (
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
 	"kaiju/rendering"
 	"log/slog"

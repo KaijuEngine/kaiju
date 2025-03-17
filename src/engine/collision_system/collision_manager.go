@@ -1,7 +1,7 @@
 package collision_system
 
 import (
-	"kaiju/pooling"
+	"kaiju/engine/pooling"
 )
 
 type Manager struct {

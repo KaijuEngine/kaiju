@@ -39,7 +39,7 @@ package editor
 
 import (
 	"errors"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
@@ -54,11 +54,11 @@ import (
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
-	"kaiju/host_container"
+	"kaiju/engine/host_container"
 	"kaiju/matrix"
-	"kaiju/profiler"
+	"kaiju/platform/profiler"
 	"kaiju/rendering"
-	"kaiju/systems/logging"
+	"kaiju/engine/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
 	"log/slog"

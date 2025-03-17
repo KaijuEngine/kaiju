@@ -2,7 +2,7 @@ package rendering
 
 import (
 	"kaiju/klib"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 )

@@ -38,8 +38,8 @@
 package rendering
 
 import (
-	"kaiju/assets"
-	"kaiju/cameras"
+	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
 	"kaiju/matrix"
 )
 

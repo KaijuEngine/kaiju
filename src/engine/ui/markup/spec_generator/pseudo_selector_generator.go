@@ -136,8 +136,8 @@ func writePseudoFile() error {
 	pf.WriteString(`package pseudos
 
 import (
-	"kaiju/markup/css/rules"
-	"kaiju/markup/markup"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/markup"
 )
 
 type Pseudo interface {
@@ -186,8 +186,8 @@ func (p %s) IsFunction() bool { return %v }
 
 import (
 	"errors"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/markup"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/markup"
 )
 
 func (p %s) Process(elm document.DocumentElement, value rules.SelectorPart) ([]document.DocumentElement, error) {

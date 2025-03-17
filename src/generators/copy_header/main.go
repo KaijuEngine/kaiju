@@ -38,7 +38,7 @@
 package main
 
 import (
-	"kaiju/filesystem"
+	"kaiju/platform/filesystem"
 	"os"
 	"path/filepath"
 	"runtime"

@@ -40,7 +40,7 @@ package rendering
 import (
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/runtime/encoding/gob"
+	"kaiju/engine/runtime/encoding/gob"
 	"reflect"
 	"unsafe"
 )

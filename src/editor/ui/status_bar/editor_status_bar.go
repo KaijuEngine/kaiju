@@ -39,11 +39,11 @@ package status_bar
 
 import (
 	"kaiju/klib"
-	"kaiju/markup"
-	"kaiju/markup/document"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/systems/logging"
-	"kaiju/ui"
+	"kaiju/engine/systems/logging"
+	"kaiju/engine/ui"
 	"regexp"
 	"strconv"
 	"strings"

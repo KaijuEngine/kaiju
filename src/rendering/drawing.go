@@ -39,7 +39,7 @@ package rendering
 
 import (
 	"kaiju/matrix"
-	"kaiju/profiler/tracing"
+	"kaiju/platform/profiler/tracing"
 	"sort"
 	"sync"
 )

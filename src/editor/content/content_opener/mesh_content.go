@@ -1,10 +1,10 @@
 package content_opener
 
 import (
-	"kaiju/assets/asset_importer"
-	"kaiju/assets/asset_info"
-	"kaiju/cache/project_cache"
-	"kaiju/collision"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/editor/cache/project_cache"
+	"kaiju/engine/collision"
 	"kaiju/engine"
 	"kaiju/matrix"
 	"kaiju/rendering"

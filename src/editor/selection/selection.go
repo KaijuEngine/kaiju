@@ -38,17 +38,17 @@
 package selection
 
 import (
-	"kaiju/assets"
-	"kaiju/cameras"
-	"kaiju/collision"
+	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/editor/memento"
 	"kaiju/engine"
-	"kaiju/hid"
+	"kaiju/platform/hid"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/systems/events"
-	"kaiju/systems/visual2d/sprite"
+	"kaiju/engine/systems/events"
+	"kaiju/engine/systems/visual2d/sprite"
 	"log/slog"
 	"slices"
 )

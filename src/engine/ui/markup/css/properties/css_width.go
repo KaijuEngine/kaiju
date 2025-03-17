@@ -40,11 +40,11 @@ package properties
 import (
 	"fmt"
 	"kaiju/engine"
-	"kaiju/markup/css/functions"
-	"kaiju/markup/css/helpers"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/css/functions"
+	"kaiju/engine/ui/markup/css/helpers"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 	"strings"
 )
 

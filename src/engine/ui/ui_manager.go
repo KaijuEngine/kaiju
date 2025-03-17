@@ -2,7 +2,7 @@ package ui
 
 import (
 	"kaiju/engine"
-	"kaiju/pooling"
+	"kaiju/engine/pooling"
 	"sync"
 )
 

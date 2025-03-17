@@ -38,8 +38,8 @@
 package rendering
 
 import (
-	"kaiju/assets"
-	"kaiju/profiler/tracing"
+	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"strings"
 	"unsafe"

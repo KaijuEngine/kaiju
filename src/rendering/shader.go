@@ -38,8 +38,8 @@
 package rendering
 
 import (
-	"kaiju/assets"
-	"kaiju/profiler/tracing"
+	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"path/filepath"
 	"strings"

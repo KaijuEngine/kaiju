@@ -37,7 +37,7 @@
 
 package rendering
 
-import "kaiju/assets"
+import "kaiju/engine/assets"
 
 type RenderCaches interface {
 	ShaderCache() *ShaderCache

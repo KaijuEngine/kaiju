@@ -43,7 +43,7 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"kaiju/assets"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"strings"
 )

@@ -40,9 +40,9 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
-	"kaiju/markup/css/rules"
-	"kaiju/markup/document"
-	"kaiju/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/engine/ui"
 )
 
 func setChildrenFontWeight(elm *document.Element, weight string, host *engine.Host) {

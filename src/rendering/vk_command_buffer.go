@@ -39,8 +39,8 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/pooling"
-	"kaiju/profiler/tracing"
+	"kaiju/engine/pooling"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 	"weak"

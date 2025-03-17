@@ -41,10 +41,10 @@ package bootstrap
 
 import (
 	"flag"
-	"kaiju/assets/asset_info"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/engine"
-	"kaiju/profiler"
-	"kaiju/systems/stages"
+	"kaiju/platform/profiler"
+	"kaiju/engine/systems/stages"
 	"log/slog"
 	"net"
 	"os"
