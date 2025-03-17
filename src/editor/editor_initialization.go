@@ -39,7 +39,7 @@ package editor
 
 import (
 	"errors"
-	"kaiju/engine/assets"
+	"kaiju/editor/ui/content_details_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
@@ -54,11 +54,12 @@ import (
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
+	"kaiju/engine/systems/logging"
 	"kaiju/matrix"
 	"kaiju/platform/profiler"
 	"kaiju/rendering"
-	"kaiju/engine/systems/logging"
 	tests "kaiju/tests/rendering_tests"
 	"kaiju/tools/html_preview"
 	"log/slog"
@@ -96,6 +97,7 @@ func constructEditorUI(ed *Editor) {
 	ed.logWindow = log_window.New(ed.Host().LogStream, ed.ReloadTabs)
 	ed.contentWindow = content_window.New(&ed.contentOpener, ed)
 	ed.detailsWindow = details_window.New(ed)
+	ed.contentDetailsWindow = content_details_window.New(ed)
 	ed.contextMenu = context_menu.New(ed.container, &ed.uiManager)
 	ed.hierarchy = hierarchy.New(ed.Host(), &ed.selection,
 		hierarchyContextMenuActions(ed), ed.ReloadTabs)
@@ -126,6 +128,7 @@ func constructEditorUI(ed *Editor) {
 	rightContainer := tab_container.New(ed.container.Host, &ed.uiManager,
 		[]tab_container.TabContainerTab{
 			tab_container.NewTab(ed.detailsWindow),
+			tab_container.NewTab(ed.contentDetailsWindow),
 		}, tab_container.SnapRight)
 	ed.tabContainers = append(ed.tabContainers, leftContainer)
 	ed.tabContainers = append(ed.tabContainers, rightContainer)

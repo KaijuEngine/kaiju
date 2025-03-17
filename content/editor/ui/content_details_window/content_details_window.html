@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="editor/ui/editor_style.css">
+		<link rel="stylesheet" type="text/css" href="editor/ui/content_details_window/content_details_window.css">
+	</head>
+	<body>
+		<div class="detailsView">
+		{{if eq .Count 1}}
+			<div class="nameRow">
+				<div>{{.Name}}</div>
+			</div>
+			<div class="dataTable">
+				{{range $i, $v := .Fields}}
+				<div class="dataEntry">
+					<span>{{$v.Name}}</span>
+					{{if $v.Options}}
+						<select id="{{$v.Name}}" class="dataInput" value="{{$v.Value}}" onchange="changeData">
+						{{range $_, $k := $v.Options}}
+							<option value="{{$k}}">{{$.PascalToTitle $k}}</option>
+						{{end}}
+						</select>
+					{{else if .IsInput}}
+						<input id="{{$v.Name}}" class="dataInput" type="text" placeholder="{{$v.Name}}..." value="{{$v.Value}}" onchange="changeData" />
+					{{else if .IsCheckbox}}
+						<input id="{{$v.Name}}" class="dataCheck" type="checkbox" {{if $v.Value}}checked="checked"{{end}} onchange="changeData" />
+					{{end}}
+				</div>
+				{{end}}
+			</div>
+			<div class="dataTable">
+				<button onclick="save">Save</button>
+			</div>
+		{{else if eq .Count 0}}
+			<div class="fill">No content selected</div>
+		{{else}}
+			<div class="fill">Multiple content files selected</div>
+		{{end}}
+		</div>
+	</body>
+</html>

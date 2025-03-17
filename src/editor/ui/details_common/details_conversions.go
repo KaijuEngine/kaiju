@@ -35,33 +35,20 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package details_window
+package details_common
 
 import (
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/windowing"
-	"reflect"
 	"strconv"
-	"strings"
 )
 
-func (d *Details) elmToReflectedValue(elm *document.Element) (reflect.Value, bool) {
-	id := elm.Attribute("id")
-	lr := strings.Split(id, "_")
-	if len(lr) != 2 {
-		return reflect.Value{}, false
-	}
-	dataIdx, _ := strconv.Atoi(lr[0])
-	fieldIdx, _ := strconv.Atoi(lr[1])
-	data := d.viewData.Data[dataIdx]
-	return data.entityData.(reflect.Value).Elem().Field(fieldIdx), true
-}
+func SelectString(input *document.Element) string { return input.UI.ToSelect().Value() }
+func InputString(input *document.Element) string  { return input.UI.ToInput().Text() }
 
-func inputString(input *document.Element) string { return input.UI.ToInput().Text() }
-
-func toInt(str string) int64 {
+func ToInt(str string) int64 {
 	if str == "" {
 		return 0
 	}
@@ -71,7 +58,7 @@ func toInt(str string) int64 {
 	return 0
 }
 
-func toUint(str string) uint64 {
+func ToUint(str string) uint64 {
 	if str == "" {
 		return 0
 	}
@@ -81,7 +68,7 @@ func toUint(str string) uint64 {
 	return 0
 }
 
-func toFloat(str string) float64 {
+func ToFloat(str string) float64 {
 	if str == "" {
 		return 0
 	}
@@ -91,7 +78,7 @@ func toFloat(str string) float64 {
 	return 0
 }
 
-func entityDragData(host *engine.Host) (engine.EntityId, bool) {
+func EntityDragData(host *engine.Host) (engine.EntityId, bool) {
 	dd, ok := windowing.DragData().(*drag_datas.EntityIdDragData)
 	return dd.EntityId, ok
 }

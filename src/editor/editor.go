@@ -38,17 +38,16 @@
 package editor
 
 import (
-	"kaiju/engine/assets/asset_importer"
-	"kaiju/engine/assets/asset_info"
-	"kaiju/engine/collision"
 	"kaiju/editor/cache/editor_cache"
 	"kaiju/editor/codegen"
 	"kaiju/editor/content/content_opener"
+	"kaiju/editor/editor_interface"
 	"kaiju/editor/memento"
 	"kaiju/editor/plugins"
 	"kaiju/editor/project"
 	"kaiju/editor/selection"
 	"kaiju/editor/stages"
+	"kaiju/editor/ui/content_details_window"
 	"kaiju/editor/ui/content_window"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/details_window"
@@ -62,12 +61,15 @@ import (
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
 	"kaiju/engine"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/engine/collision"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
-	"kaiju/matrix"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
+	"kaiju/klib"
+	"kaiju/matrix"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -80,30 +82,32 @@ const (
 )
 
 type Editor struct {
-	container      *host_container.Container
-	bvh            *collision.BVH
-	menu           *editor_menu.Menu
-	statusBar      *status_bar.StatusBar
-	uiManager      ui.Manager
-	editorDir      string
-	project        string
-	history        memento.History
-	camera         controls.EditorCamera
-	assetImporters asset_importer.ImportRegistry
-	stageManager   stages.Manager
-	contentOpener  content_opener.Opener
-	logWindow      *log_window.LogWindow
-	contextMenu    *context_menu.ContextMenu
-	hierarchy      *hierarchy.Hierarchy
-	contentWindow  *content_window.ContentWindow
-	detailsWindow  *details_window.Details
-	selection      selection.Selection
-	transformTool  transform_tools.TransformTool
-	windowListing  editor_window.Listing
-	runningProject *exec.Cmd
-	entityData     []codegen.GeneratedType
-	luaVMs         []*plugins.LuaVM
-	tabContainers  []*tab_container.TabContainer
+	container            *host_container.Container
+	bvh                  *collision.BVH
+	menu                 *editor_menu.Menu
+	statusBar            *status_bar.StatusBar
+	uiManager            ui.Manager
+	editorDir            string
+	project              string
+	history              memento.History
+	camera               controls.EditorCamera
+	assetImporters       asset_importer.ImportRegistry
+	stageManager         stages.Manager
+	contentOpener        content_opener.Opener
+	logWindow            *log_window.LogWindow
+	contextMenu          *context_menu.ContextMenu
+	hierarchy            *hierarchy.Hierarchy
+	contentWindow        *content_window.ContentWindow
+	detailsWindow        *details_window.Details
+	contentDetailsWindow *content_details_window.ContentDetails
+	selection            selection.Selection
+	transformTool        transform_tools.TransformTool
+	windowListing        editor_window.Listing
+	runningProject       *exec.Cmd
+	entityData           []codegen.GeneratedType
+	luaVMs               []*plugins.LuaVM
+	tabContainers        []*tab_container.TabContainer
+	events               editor_interface.EditorEvents
 }
 
 func (e *Editor) Closed()                                        {}
@@ -120,6 +124,7 @@ func (e *Editor) StatusBar() *status_bar.StatusBar               { return e.stat
 func (e *Editor) ContextMenu() *context_menu.ContextMenu         { return e.contextMenu }
 func (e *Editor) ImportRegistry() *asset_importer.ImportRegistry { return &e.assetImporters }
 func (e *Editor) Camera() *controls.EditorCamera                 { return &e.camera }
+func (e *Editor) Events() *editor_interface.EditorEvents         { return &e.events }
 
 func (e *Editor) BVH() *collision.BVH { return e.bvh }
 
