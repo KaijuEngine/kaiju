@@ -41,7 +41,6 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/rendering"
-	"log/slog"
 	"path/filepath"
 )
 
@@ -69,13 +68,4 @@ func (m PngImporter) Import(path string) error {
 	}
 	adi.Type = editor_config.AssetTypeImage
 	return asset_info.Write(adi)
-}
-
-func (m *ImageMetadata) Filter() rendering.TextureFilter {
-	if f, ok := textureFilterOptions[m.FilterName]; ok {
-		return f
-	}
-	slog.Warn("tried to read image metadata filter but has invalid key",
-		"key", m.FilterName)
-	return rendering.TextureFilterLinear
 }

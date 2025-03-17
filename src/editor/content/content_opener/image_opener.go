@@ -64,7 +64,7 @@ func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.
 	console.For(ed.Host()).Write("Opening an image")
 	host := ed.Host()
 	meta := adi.Metadata.(*asset_importer.ImageMetadata)
-	texture, err := host.TextureCache().Texture(adi.Path, meta.Filter())
+	texture, err := host.TextureCache().Texture(adi.Path, meta.TextureFilter())
 	if err != nil {
 		return errors.New("failed to load the texture " + adi.Path)
 	}
