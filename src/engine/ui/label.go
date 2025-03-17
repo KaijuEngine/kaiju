@@ -213,6 +213,8 @@ func (label *Label) renderText() {
 		} else {
 			maxWidth = label.MaxWidth()
 		}
+	} else {
+		maxWidth = matrix.FloatMax
 	}
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()

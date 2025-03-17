@@ -40,13 +40,37 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
 )
 
-func (p WordWrap) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("WordWrap not implemented")}
+func setChildTextWordWrap(elm *document.Element, wrap bool) {
+	for _, c := range elm.Children {
+		if c.IsText() {
+			c.UI.ToLabel().SetWrap(wrap)
+		} else {
+			setChildTextWordWrap(c, wrap)
+		}
+	}
+}
 
-	return problems[0]
+func (p WordWrap) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+	if len(values) != 1 {
+		return errors.New("WordWrap requires a single value")
+	}
+	switch values[0].Str {
+	case "normal":
+		setChildTextWordWrap(elm, true)
+	case "unset":
+		setChildTextWordWrap(elm, false)
+	case "inherit":
+	case "initial":
+	case "break-word":
+		// TODO:  Implement word breaking in labels
+		fallthrough
+	default:
+		return errors.New("WordWrap does not currently support " + values[0].Str)
+	}
+	return nil
 }
