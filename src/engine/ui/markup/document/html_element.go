@@ -38,8 +38,9 @@
 package document
 
 import (
-	"kaiju/matrix"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/rules"
+	"kaiju/matrix"
 	"strings"
 	"weak"
 
@@ -47,12 +48,13 @@ import (
 )
 
 type Element struct {
-	UI       *ui.UI
-	UIPanel  *ui.Panel
-	Parent   weak.Pointer[Element]
-	Children []*Element
-	node     *html.Node
-	attr     map[string]*html.Attribute
+	UI         *ui.UI
+	UIPanel    *ui.Panel
+	Parent     weak.Pointer[Element]
+	Children   []*Element
+	node       *html.Node
+	attr       map[string]*html.Attribute
+	StyleRules []rules.Rule
 }
 
 func (d Element) InnerLabel() *ui.Label {

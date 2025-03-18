@@ -3,17 +3,18 @@ package tab_container
 import (
 	"kaiju/engine"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/windowing"
+	"kaiju/rendering"
 	"log/slog"
 	"math"
 	"slices"
+	"strconv"
 	"weak"
 
 	"github.com/KaijuEngine/uuid"
@@ -125,6 +126,21 @@ func (t *TabContainer) tabDragLeave(e *document.Element) {
 		rendering.TextureFilterNearest)
 	if err == nil {
 		e.UI.ToPanel().SetBackground(tex)
+	}
+}
+
+func (t *TabContainer) calcTabWidths() {
+	tabElms := t.doc.GetElementsByGroup("tabGroup")
+	for i := range tabElms {
+		lbl := tabElms[i].Children[0].UI.ToLabel()
+		width := int(lbl.Measure().X() + 8)
+		tabElms[i].UI.ToPanel().Base().Layout().ScaleWidth(float32(width))
+		// The tab has a CSS hover effect so we need to alter the styling
+		for j := range tabElms[i].StyleRules {
+			if tabElms[i].StyleRules[j].Property == "width" {
+				tabElms[i].StyleRules[j].Values[0].Str = strconv.Itoa(width) + "px"
+			}
+		}
 	}
 }
 
@@ -272,6 +288,7 @@ func (t *TabContainer) reload() {
 			win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
 		}
 	}
+	t.calcTabWidths()
 	t.doc.Clean()
 }
 

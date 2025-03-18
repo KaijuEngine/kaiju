@@ -535,5 +535,9 @@ func (label *Label) CalculateMaxWidth() float32 {
 }
 
 func (label *Label) Measure() matrix.Vec2 {
-	return label.measure(label.CalculateMaxWidth())
+	if label.LabelData().wordWrap {
+		return label.measure(label.CalculateMaxWidth())
+	} else {
+		return label.measure(matrix.FloatMax)
+	}
 }

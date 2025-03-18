@@ -39,11 +39,11 @@ package css
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/properties"
 	"kaiju/engine/ui/markup/css/pseudos"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
 	"slices"
 )
 
@@ -57,15 +57,19 @@ func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
 }
 
 func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Host) []error {
+	elm.StyleRules = make([]rules.Rule, len(inRules))
+	for i := range inRules {
+		elm.StyleRules[i] = inRules[i].Clone()
+	}
 	panel := elm.UIPanel
 	hasHover := false
-	for i := 0; i < len(inRules) && !hasHover; i++ {
-		hasHover = inRules[i].Invocation == rules.RuleInvokeHover
+	for i := 0; i < len(elm.StyleRules) && !hasHover; i++ {
+		hasHover = elm.StyleRules[i].Invocation == rules.RuleInvokeHover
 	}
 	proc := func(invokeType rules.RuleInvoke) []error {
 		problems := make([]error, 0)
-		for i := range inRules {
-			rule := &inRules[i]
+		for i := range elm.StyleRules {
+			rule := &elm.StyleRules[i]
 			if p, ok := properties.PropertyMap[rule.Property]; ok {
 				if rule.Invocation == invokeType {
 					if err := p.Process(panel, elm, rule.Values, host); err != nil {

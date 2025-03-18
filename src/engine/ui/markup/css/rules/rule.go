@@ -37,6 +37,8 @@
 
 package rules
 
+import "slices"
+
 type RuleInvoke = int
 
 const (
@@ -49,6 +51,13 @@ type PropertyValue struct {
 	Args []string
 }
 
+func (p *PropertyValue) Clone() PropertyValue {
+	return PropertyValue{
+		Str:  p.Str,
+		Args: slices.Clone(p.Args),
+	}
+}
+
 func (p PropertyValue) IsFunction() bool {
 	return len(p.Args) > 0
 }
@@ -57,4 +66,16 @@ type Rule struct {
 	Property   string
 	Values     []PropertyValue
 	Invocation RuleInvoke
+}
+
+func (r *Rule) Clone() Rule {
+	out := Rule{
+		Property:   r.Property,
+		Invocation: r.Invocation,
+		Values:     make([]PropertyValue, len(r.Values)),
+	}
+	for i := range r.Values {
+		out.Values[i] = r.Values[i].Clone()
+	}
+	return out
 }
