@@ -1,0 +1,8 @@
+package build // import "."
+
+
+CONSTANTS
+
+const Debug = false
+const Shipping = false
+const Test = false

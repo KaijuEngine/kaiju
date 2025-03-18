@@ -1,0 +1,17 @@
+package drag_datas // import "."
+
+
+TYPES
+
+type EntityIdDragData struct {
+	EntityId engine.EntityId
+}
+
+func (e *EntityIdDragData) DragUpdate()
+
+type FileIdDragData struct {
+	FilePath string
+}
+
+func (e *FileIdDragData) DragUpdate()
+

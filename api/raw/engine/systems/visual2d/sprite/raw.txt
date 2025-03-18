@@ -1,0 +1,70 @@
+package sprite // import "."
+
+
+VARIABLES
+
+var ZAxisScaleFactor = float32(16.0)
+
+FUNCTIONS
+
+func ReadSpriteSheetData(jsonStr string) (spriteSheet, error)
+
+TYPES
+
+type ShaderData struct {
+	rendering.ShaderDataBase
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+}
+
+func (t ShaderData) Size() int
+
+type Sprite struct {
+	Entity *engine.Entity
+
+	// Has unexported fields.
+}
+
+func NewSprite(x, y, width, height matrix.Float,
+	host *engine.Host, texture *rendering.Texture, color matrix.Color) *Sprite
+
+func NewSpriteFlipBook(x, y, width, height float32,
+	host *engine.Host, images []*rendering.Texture, fps float32) *Sprite
+
+func NewSpriteSheet(x, y, width, height float32,
+	host *engine.Host, texture *rendering.Texture, jsonStr string,
+	fps float32, initialClip string) *Sprite
+
+func (s *Sprite) Activate()
+
+func (s Sprite) CurrentClipName() string
+
+func (s *Sprite) Deactivate()
+
+func (s *Sprite) Move(x, y matrix.Float)
+
+func (s *Sprite) Move3D(x, y, z matrix.Float)
+
+func (s *Sprite) PlayAnimation()
+
+func (s *Sprite) Position() matrix.Vec2
+
+func (s *Sprite) Resize(width, height matrix.Float)
+
+func (s *Sprite) SetColor(color matrix.Color)
+
+func (s *Sprite) SetFlipBookAnimation(
+	framesPerSecond float32, textures ...*rendering.Texture)
+
+func (s *Sprite) SetFrameRate(framesPerSecond float32)
+
+func (s *Sprite) SetPosition(x, y matrix.Float)
+
+func (s *Sprite) SetPosition3D(x, y, z matrix.Float)
+
+func (s *Sprite) SetSheetClip(clipName string)
+
+func (s *Sprite) SetTexture(texture *rendering.Texture)
+
+func (s *Sprite) StopAnimation()
+

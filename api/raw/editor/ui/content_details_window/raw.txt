@@ -1,0 +1,21 @@
+package content_details_window // import "."
+
+
+TYPES
+
+type ContentDetails struct {
+	// Has unexported fields.
+}
+
+func New(editor editor_interface.Editor) *ContentDetails
+
+func (d *ContentDetails) Destroy()
+
+func (d *ContentDetails) Document() *document.Document
+
+func (d *ContentDetails) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (d *ContentDetails) SetADIs(adis []asset_info.AssetDatabaseInfo)
+
+func (d *ContentDetails) TabTitle() string
+

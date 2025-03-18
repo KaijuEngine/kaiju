@@ -1,0 +1,27 @@
+package concurrent // import "."
+
+
+TYPES
+
+type Threads struct {
+	// Has unexported fields.
+}
+
+func NewThreads() Threads
+
+func (t *Threads) AddWork(work ...func(threadId int))
+
+func (t *Threads) Start()
+
+func (t *Threads) Stop()
+
+func (t *Threads) ThreadCount() int
+
+type WorkGroup struct {
+	// Has unexported fields.
+}
+
+func (w *WorkGroup) Add(name string, work func())
+
+func (w *WorkGroup) Execute(name string, threads *Threads)
+

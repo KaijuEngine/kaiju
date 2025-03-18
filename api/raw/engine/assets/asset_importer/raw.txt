@@ -1,0 +1,148 @@
+package asset_importer // import "."
+
+
+VARIABLES
+
+var (
+	ErrNoImporter = errors.New("no importer found for file")
+)
+var (
+	MetaOptions = map[string]any{
+		"textureFilterOptions": textureFilterOptions,
+	}
+)
+
+TYPES
+
+type GlbImporter struct{}
+
+func (m GlbImporter) Handles(path string) bool
+
+func (m GlbImporter) Import(path string) error
+
+func (m GlbImporter) MetadataStructure() any
+
+type GltfImporter struct{}
+
+func (m GltfImporter) Handles(path string) bool
+
+func (m GltfImporter) Import(path string) error
+
+func (m GltfImporter) MetadataStructure() any
+
+type HtmlImporter struct{}
+
+func (m HtmlImporter) Handles(path string) bool
+
+func (m HtmlImporter) Import(path string) error
+
+func (m HtmlImporter) MetadataStructure() any
+
+type HtmlMetadata struct{}
+
+type ImageMetadata struct {
+	Filter  string `options:"textureFilterOptions"`
+	Mipmaps int32
+}
+
+func (m *ImageMetadata) TextureFilter() rendering.TextureFilter
+
+type ImportRegistry struct {
+	// Has unexported fields.
+}
+
+func NewImportRegistry() ImportRegistry
+
+func (r *ImportRegistry) Import(path string) error
+
+func (r *ImportRegistry) ImportIfNew(path string) error
+
+func (r *ImportRegistry) ImportUsingDefault(path string) error
+
+func (r *ImportRegistry) MetadataStructure(path string) any
+
+func (r *ImportRegistry) Register(importer Importer)
+
+type ImportType = string
+
+type Importer interface {
+	Handles(path string) bool
+	Import(path string) error
+	MetadataStructure() any
+}
+    Importer is an interface for importing assets into the asset database.
+    It is used to allow for custom importers to be added to the system to handle
+    new asset types. Handles should return true if the importer can handle the
+    given path. Import should import the asset into the asset database.
+
+type MaterialImporter struct{}
+
+func (m MaterialImporter) Handles(path string) bool
+
+func (m MaterialImporter) Import(path string) error
+
+func (m MaterialImporter) MetadataStructure() any
+
+type MaterialMetadata struct{}
+
+type MeshMetadata struct {
+	Name     string
+	Material string
+}
+
+type ObjImporter struct{}
+
+func (m ObjImporter) Handles(path string) bool
+
+func (m ObjImporter) Import(path string) error
+
+func (m ObjImporter) MetadataStructure() any
+
+type PngImporter struct{}
+
+func (m PngImporter) Handles(path string) bool
+
+func (m PngImporter) Import(path string) error
+
+func (m PngImporter) MetadataStructure() any
+
+type RenderPassImporter struct{}
+
+func (m RenderPassImporter) Handles(path string) bool
+
+func (m RenderPassImporter) Import(path string) error
+
+func (m RenderPassImporter) MetadataStructure() any
+
+type RenderPassMetadata struct{}
+
+type ShaderImporter struct{}
+
+func (m ShaderImporter) Handles(path string) bool
+
+func (m ShaderImporter) Import(path string) error
+
+func (m ShaderImporter) MetadataStructure() any
+
+type ShaderMetadata struct{}
+
+type ShaderPipelineImporter struct{}
+
+func (m ShaderPipelineImporter) Handles(path string) bool
+
+func (m ShaderPipelineImporter) Import(path string) error
+
+func (m ShaderPipelineImporter) MetadataStructure() any
+
+type ShaderPipelineMetadata struct{}
+
+type StageImporter struct{}
+
+func (m StageImporter) Handles(path string) bool
+
+func (m StageImporter) Import(path string) error
+
+func (m StageImporter) MetadataStructure() any
+
+type StageMetadata struct{}
+
