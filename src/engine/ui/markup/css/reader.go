@@ -56,11 +56,7 @@ func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
 	m[elm] = append(m[elm], rule...)
 }
 
-func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Host) []error {
-	elm.StyleRules = make([]rules.Rule, len(inRules))
-	for i := range inRules {
-		elm.StyleRules[i] = inRules[i].Clone()
-	}
+func ApplyElementStyle(elm *document.Element, host *engine.Host) []error {
 	panel := elm.UIPanel
 	hasHover := false
 	for i := 0; i < len(elm.StyleRules) && !hasHover; i++ {
@@ -99,6 +95,14 @@ func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Ho
 	//	}
 	//}
 	return problems
+}
+
+func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Host) []error {
+	elm.StyleRules = make([]rules.Rule, len(inRules))
+	for i := range inRules {
+		elm.StyleRules[i] = inRules[i].Clone()
+	}
+	return ApplyElementStyle(elm, host)
 }
 
 func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule, host *engine.Host) {
