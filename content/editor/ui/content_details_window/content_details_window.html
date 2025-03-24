@@ -15,15 +15,15 @@
 				<div class="dataEntry">
 					<span>{{$v.Name}}</span>
 					{{if $v.Options}}
-						<select id="{{$v.Name}}" class="dataInput" value="{{$v.Value}}" onchange="changeData">
+						<select id="{{$v.Name}}" class="dataInput" value="{{$v.Field.Interface}}" onchange="changeData">
 						{{range $_, $k := $v.Options}}
 							<option value="{{$k}}">{{$.PascalToTitle $k}}</option>
 						{{end}}
 						</select>
 					{{else if .IsInput}}
-						<input id="{{$v.Name}}" class="dataInput" type="text" placeholder="{{$v.Name}}..." value="{{$v.Value}}" onchange="changeData" />
+						<input id="{{$v.Name}}" class="dataInput" type="text" placeholder="{{$v.Name}}..." value="{{$v.Field.Interface}}" onchange="changeData" />
 					{{else if .IsCheckbox}}
-						<input id="{{$v.Name}}" class="dataCheck" type="checkbox" {{if $v.Value}}checked="checked"{{end}} onchange="changeData" />
+						<input id="{{$v.Name}}" class="dataCheck" type="checkbox" {{if $v.Field.Interface}}checked="checked"{{end}} onchange="changeData" />
 					{{end}}
 				</div>
 				{{end}}

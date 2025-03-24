@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -34,7 +35,6 @@ type contentDetailsData struct {
 type contentDataField struct {
 	Name    string
 	Type    string
-	Value   any
 	Field   reflect.Value
 	Options []string
 }
@@ -82,7 +82,6 @@ func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
 		field := contentDataField{
 			Name:  f.Name,
 			Type:  f.Type.Name(),
-			Value: vf.Interface(),
 			Field: vf,
 		}
 		if op, ok := f.Tag.Lookup("options"); ok && op != "" {
@@ -92,9 +91,13 @@ func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
 				for i := range keys {
 					field.Options[i] = keys[i].String()
 				}
+				slices.Sort(field.Options)
 			} else {
 				slog.Error("failed to load the content metadata options for key", "key", op)
 			}
+		}
+		if init, ok := f.Tag.Lookup("default"); ok && init != "" {
+			field.setReflectValue(init)
 		}
 		fields = append(fields, field)
 	}
@@ -130,6 +133,26 @@ func (d *ContentDetails) contentSelected() {
 		adis = append(adis, a)
 	}
 	d.SetADIs(adis)
+}
+
+func (f *contentDataField) setReflectValue(strVal string) {
+	v := f.Field
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(details_common.ToInt(strVal))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		v.SetUint(details_common.ToUint(strVal))
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(details_common.ToFloat(strVal))
+	case reflect.String:
+		v.SetString(strVal)
+	case reflect.Bool:
+		if strings.ToLower(strVal) == "false" || strVal == "0" {
+			v.SetBool(false)
+		} else {
+			v.SetBool(true)
+		}
+	}
 }
 
 func (d *ContentDetails) changeData(elm *document.Element) {
