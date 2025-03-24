@@ -37,13 +37,23 @@ var (
 )
 
 type ImageMetadata struct {
-	Filter        string `options:"imageFilterOptions" default:"Linear"`
-	Pivot         string `options:"imagePivot" default:"Center"`
-	PixelsPerUnit int32  `default:"100"`
-	Mipmaps       int32  `default:"1"`
+	Filter        string `options:"imageFilterOptions"`
+	Pivot         string `options:"imagePivot"`
+	PixelsPerUnit int32
+	Mipmaps       int32
 
 	// TODO:  This needs to be used for packaging the content
-	MaxSize string `options:"imageMaxSize" default:"8192"`
+	MaxSize string `options:"imageMaxSize"`
+}
+
+func defaultImageMetadata() *ImageMetadata {
+	return &ImageMetadata{
+		Filter:        "Linear",
+		Pivot:         "Center",
+		PixelsPerUnit: 128,
+		Mipmaps:       1,
+		MaxSize:       "8192",
+	}
 }
 
 func (m *ImageMetadata) ImageFilterMeta() rendering.TextureFilter {

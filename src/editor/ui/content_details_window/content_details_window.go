@@ -96,9 +96,6 @@ func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
 				slog.Error("failed to load the content metadata options for key", "key", op)
 			}
 		}
-		if init, ok := f.Tag.Lookup("default"); ok && init != "" {
-			field.setReflectValue(init)
-		}
 		fields = append(fields, field)
 	}
 	return fields

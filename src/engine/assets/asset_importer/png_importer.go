@@ -46,7 +46,7 @@ import (
 type PngImporter struct{}
 
 func (m PngImporter) MetadataStructure() any {
-	return &ImageMetadata{}
+	return defaultImageMetadata()
 }
 
 func (m PngImporter) Handles(path string) bool {
