@@ -1,0 +1,51 @@
+package logging // import "."
+
+
+FUNCTIONS
+
+func ToMap(logMessage string) map[string]string
+
+TYPES
+
+type Event struct {
+	// Has unexported fields.
+}
+
+func (e *Event) Add(call func(string)) EventId
+
+func (e *Event) Execute(message string)
+
+func (e Event) IsEmpty() bool
+
+func (e *Event) Remove(id EventId)
+
+type EventId = int64
+
+type LogStream struct {
+	OnInfo  Event
+	OnWarn  TracedEvent
+	OnError TracedEvent
+}
+
+func Initialize(opts *slog.HandlerOptions) *LogStream
+
+func (l *LogStream) Write(p []byte) (n int, err error)
+
+type RuntimeLogHandler struct {
+	slog.Handler
+}
+
+func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool
+
+type TracedEvent struct {
+	// Has unexported fields.
+}
+
+func (e *TracedEvent) Add(call func(msg string, trace []string)) EventId
+
+func (e *TracedEvent) Execute(message string, trace []string)
+
+func (e TracedEvent) IsEmpty() bool
+
+func (e *TracedEvent) Remove(id EventId)
+

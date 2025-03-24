@@ -1,0 +1,74 @@
+package shader_designer // import "."
+
+
+CONSTANTS
+
+const (
+	StateHome = ShaderDesignerState(iota)
+	StateShader
+	StateRenderPass
+	StatePipeline
+	StateMaterial
+)
+
+FUNCTIONS
+
+func OpenMaterial(path string, logStream *logging.LogStream)
+func OpenPipeline(path string, logStream *logging.LogStream)
+func OpenRenderPass(path string, logStream *logging.LogStream)
+func OpenShader(path string, logStream *logging.LogStream)
+func PreviewMaterial(path string)
+
+TYPES
+
+type DataUISection struct {
+	Name   string
+	Fields []DataUISectionField
+}
+
+type DataUISectionField struct {
+	Name     string
+	Type     string
+	List     []string
+	Value    any
+	Sections []DataUISection
+	RootPath string
+	TipKey   string
+}
+
+func (f DataUISectionField) DisplayName() string
+
+func (f DataUISectionField) FullPath() string
+
+func (f DataUISectionField) PascalToTitle(str string) string
+
+func (f DataUISectionField) ValueListHas(val string) bool
+
+type ShaderDesigner struct {
+	// Has unexported fields.
+}
+
+func New(state ShaderDesignerState, logStream *logging.LogStream) *ShaderDesigner
+
+func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState)
+
+func (s *ShaderDesigner) Destroy()
+
+func (s *ShaderDesigner) Document() *document.Document
+
+func (s *ShaderDesigner) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (win *ShaderDesigner) ShowDesignerWindow()
+
+func (win *ShaderDesigner) ShowMaterialWindow()
+
+func (win *ShaderDesigner) ShowPipelineWindow()
+
+func (win *ShaderDesigner) ShowRenderPassWindow()
+
+func (win *ShaderDesigner) ShowShaderWindow()
+
+func (s *ShaderDesigner) TabTitle() string
+
+type ShaderDesignerState = int
+

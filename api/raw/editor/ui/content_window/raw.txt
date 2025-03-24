@@ -1,0 +1,27 @@
+package content_window // import "."
+
+
+TYPES
+
+type ContentWindow struct {
+	DirTree []contentEntry
+	Dir     []contentEntry
+
+	SearchText string
+	Query      string
+
+	// Has unexported fields.
+}
+
+func New(opener *content_opener.Opener, editor editor_interface.Editor) *ContentWindow
+
+func (s *ContentWindow) Destroy()
+
+func (s *ContentWindow) Document() *document.Document
+
+func (s *ContentWindow) IsRoot() bool
+
+func (s *ContentWindow) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (s *ContentWindow) TabTitle() string
+

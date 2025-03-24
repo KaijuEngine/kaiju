@@ -1,0 +1,18 @@
+package collision_module // import "."
+
+
+CONSTANTS
+
+const (
+	CollisionShapeEntityDataName = "CollisionShape"
+)
+
+TYPES
+
+type OOBBModuleBinding struct {
+	Center matrix.Vec3
+	Extent matrix.Vec3
+}
+
+func (b *OOBBModuleBinding) Init(e *engine.Entity, host *engine.Host)
+

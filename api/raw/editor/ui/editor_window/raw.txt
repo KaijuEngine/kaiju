@@ -1,0 +1,29 @@
+package editor_window // import "."
+
+
+FUNCTIONS
+
+func OpenWindow(win EditorWindow,
+	defaultWidth, defaultHeight, defaultX, defaultY int)
+
+TYPES
+
+type EditorWindow interface {
+	Tag() string
+	Container() *host_container.Container
+	Init()
+	Closed()
+}
+
+type Listing struct {
+	// Has unexported fields.
+}
+
+func New() Listing
+
+func (l *Listing) Add(w EditorWindow)
+
+func (l *Listing) CloseAll()
+
+func (l *Listing) Remove(w EditorWindow)
+

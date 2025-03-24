@@ -1,0 +1,7 @@
+package duplicator // import "."
+
+
+FUNCTIONS
+
+func Delete(editor editor_interface.Editor, entities []*engine.Entity)
+func DeleteSelected(editor editor_interface.Editor)

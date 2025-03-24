@@ -1,0 +1,20 @@
+package camera_module // import "."
+
+
+TYPES
+
+type CameraModule struct {
+	// Has unexported fields.
+}
+
+func (c *CameraModule) SetAsActive()
+
+type CameraModuleBinding struct {
+	FOV       float32 `clamp:"60,45,120"` //default,min,max
+	NearPlane float32 `default:"0.01"`
+	FarPlane  float32 `default:"500.0"`
+	IsPrimary bool
+}
+
+func (c *CameraModuleBinding) Init(e *engine.Entity, host *engine.Host)
+

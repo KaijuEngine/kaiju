@@ -1,0 +1,27 @@
+package details_window // import "."
+
+
+FUNCTIONS
+
+func NewDataPicker(host *engine.Host, types []codegen.GeneratedType) chan int
+
+TYPES
+
+type DataPicker struct {
+	// Has unexported fields.
+}
+
+type Details struct {
+	// Has unexported fields.
+}
+
+func New(editor editor_interface.Editor) *Details
+
+func (d *Details) Destroy()
+
+func (d *Details) Document() *document.Document
+
+func (d *Details) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (d *Details) TabTitle() string
+
