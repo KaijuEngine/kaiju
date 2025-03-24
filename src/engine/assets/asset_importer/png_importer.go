@@ -40,15 +40,7 @@ package asset_importer
 import (
 	"kaiju/editor/editor_config"
 	"kaiju/engine/assets/asset_info"
-	"kaiju/rendering"
 	"path/filepath"
-)
-
-var (
-	textureFilterOptions = map[string]rendering.TextureFilter{
-		"Linear":  rendering.TextureFilterLinear,
-		"Nearest": rendering.TextureFilterNearest,
-	}
 )
 
 type PngImporter struct{}

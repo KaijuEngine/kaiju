@@ -2,6 +2,8 @@ package asset_importer
 
 var (
 	MetaOptions = map[string]any{
-		"textureFilterOptions": textureFilterOptions,
+		"imageFilterOptions": imageFilterOptions,
+		"imagePivot":         imagePivot,
+		"imageMaxSize":       imageMaxSize,
 	}
 )

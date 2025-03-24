@@ -64,21 +64,28 @@ func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.
 	console.For(ed.Host()).Write("Opening an image")
 	host := ed.Host()
 	meta := adi.Metadata.(*asset_importer.ImageMetadata)
-	texture, err := host.TextureCache().Texture(adi.Path, meta.TextureFilter())
+	texture, err := host.TextureCache().Texture(adi.Path, meta.ImageFilterMeta())
 	if err != nil {
 		return errors.New("failed to load the texture " + adi.Path)
 	}
+	texture.MipLevels = int(meta.Mipmaps)
 	// TODO:  Swap this to sprite and remove the visuals2d sprite stuff and make it 3D
 	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		return errors.New("failed to find the sprite material")
 	}
-	mesh := rendering.NewMeshQuad(host.MeshCache())
+	mesh := rendering.NewMeshQuadAnchored(meta.ImagePivotMeta(), host.MeshCache())
+	ppu := matrix.Float(max(1, meta.PixelsPerUnit))
+	scaled := matrix.Vec2{
+		matrix.Float(texture.Width) / ppu,
+		matrix.Float(texture.Height) / ppu,
+	}
 	e := engine.NewEntity(ed.Host().WorkGroup())
 	e.GenerateId()
 	p := ed.Camera().LookAtPoint()
 	p.SetZ(0)
 	e.Transform.SetPosition(p)
+	e.Transform.SetScale(matrix.NewVec3(scaled.X(), scaled.Y(), 1))
 	host.AddEntity(e)
 	e.SetName(strings.TrimSuffix(filepath.Base(adi.Path), filepath.Ext(adi.Path)))
 	// TODO:  Swap this to a sprite basic that has control over UVs

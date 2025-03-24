@@ -44,6 +44,7 @@ import (
 
 type MeshDrawMode = int
 type MeshCullMode = int
+type QuadPivot = int32
 
 const (
 	MeshDrawModePoints MeshDrawMode = iota
@@ -56,6 +57,18 @@ const (
 	MeshCullModeBack MeshCullMode = iota
 	MeshCullModeFront
 	MeshCullModeNone
+)
+
+const (
+	QuadPivotCenter = QuadPivot(iota)
+	QuadPivotLeft
+	QuadPivotTop
+	QuadPivotRight
+	QuadPivotBottom
+	QuadPivotBottomLeft
+	QuadPivotBottomRight
+	QuadPivotTopLeft
+	QuadPivotTopRight
 )
 
 type Mesh struct {
@@ -121,30 +134,61 @@ func (m *Mesh) DelayedCreate(renderer Renderer) {
 func (m Mesh) Key() string   { return m.key }
 func (m Mesh) IsReady() bool { return m.MeshId.IsValid() }
 
-func NewMeshQuad(cache *MeshCache) *Mesh {
-	const key = "quad"
+var (
+	meshQuadUvs         = [4]matrix.Vec2{{0, 1}, {0, 0}, {1, 0}, {1, 1}}
+	meshQuadIndexes     = [6]uint32{0, 2, 1, 0, 3, 2}
+	meshQuadCenter      = [4]matrix.Vec3{{-0.5, -0.5, 0}, {-0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.5, -0.5, 0}}
+	meshQuadLeft        = [4]matrix.Vec3{{0, -0.5, 0}, {0, 0.5, 0}, {1, 0.5, 0}, {1, -0.5, 0}}
+	meshQuadTop         = [4]matrix.Vec3{{-0.5, -1, 0}, {-0.5, 0, 0}, {0.5, 0, 0}, {0.5, -1, 0}}
+	meshQuadRight       = [4]matrix.Vec3{{-1, -0.5, 0}, {-1, 0.5, 0}, {0, 0.5, 0}, {0, -0.5, 0}}
+	meshQuadBottom      = [4]matrix.Vec3{{-0.5, 0, 0}, {-0.5, 1, 0}, {0.5, 1, 0}, {0.5, 0, 0}}
+	meshQuadBottomLeft  = [4]matrix.Vec3{{0, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, 0, 0}}
+	meshQuadBottomRight = [4]matrix.Vec3{{-1, 0, 0}, {-1, 1, 0}, {0, 1, 0}, {0, 0, 0}}
+	meshQuadTopLeft     = [4]matrix.Vec3{{0, -1, 0}, {0, 0, 0}, {1, 0, 0}, {1, -1, 0}}
+	meshQuadTopRight    = [4]matrix.Vec3{{-1, -1, 0}, {-1, 0, 0}, {0, 0, 0}, {0, -1, 0}}
+)
+
+func newMeshQuad(key string, points [4]matrix.Vec3, cache *MeshCache) *Mesh {
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
-		verts := make([]Vertex, 4)
-		verts[0].Position = matrix.Vec3{-0.5, -0.5, 0.0}
-		verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
-		verts[0].UV0 = matrix.Vec2{0.0, 1.0}
-		verts[0].Color = matrix.ColorWhite()
-		verts[1].Position = matrix.Vec3{-0.5, 0.5, 0.0}
-		verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
-		verts[1].UV0 = matrix.Vec2{0.0, 0.0}
-		verts[1].Color = matrix.ColorWhite()
-		verts[2].Position = matrix.Vec3{0.5, 0.5, 0.0}
-		verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
-		verts[2].UV0 = matrix.Vec2{1.0, 0.0}
-		verts[2].Color = matrix.ColorWhite()
-		verts[3].Position = matrix.Vec3{0.5, -0.5, 0.0}
-		verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
-		verts[3].UV0 = matrix.Vec2{1.0, 1.0}
-		verts[3].Color = matrix.ColorWhite()
-		indexes := []uint32{0, 2, 1, 0, 3, 2}
-		return cache.Mesh(key, verts, indexes)
+		verts := make([]Vertex, len(points))
+		for i := range points {
+			verts[i].Position = points[i]
+			verts[i].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+			verts[i].UV0 = meshQuadUvs[i]
+			verts[i].Color = matrix.ColorWhite()
+		}
+		return cache.Mesh(key, verts, meshQuadIndexes[:])
+	}
+}
+
+func NewMeshQuad(cache *MeshCache) *Mesh {
+	return NewMeshQuadAnchored(QuadPivotCenter, cache)
+}
+
+func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh {
+	switch anchor {
+	case QuadPivotLeft:
+		return newMeshQuad("quad_left", meshQuadLeft, cache)
+	case QuadPivotTop:
+		return newMeshQuad("quad_top", meshQuadTop, cache)
+	case QuadPivotRight:
+		return newMeshQuad("quad_right", meshQuadRight, cache)
+	case QuadPivotBottom:
+		return newMeshQuad("quad_bottom", meshQuadBottom, cache)
+	case QuadPivotBottomLeft:
+		return newMeshQuad("quad_bottom_left", meshQuadBottomLeft, cache)
+	case QuadPivotBottomRight:
+		return newMeshQuad("quad_bottom_right", meshQuadBottomRight, cache)
+	case QuadPivotTopLeft:
+		return newMeshQuad("quad_top_left", meshQuadTopLeft, cache)
+	case QuadPivotTopRight:
+		return newMeshQuad("quad_top_right", meshQuadTopRight, cache)
+	case QuadPivotCenter:
+		fallthrough
+	default:
+		return newMeshQuad("quad", meshQuadCenter, cache)
 	}
 }
 
