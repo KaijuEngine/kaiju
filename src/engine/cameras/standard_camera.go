@@ -326,19 +326,14 @@ func (c *StandardCamera) internalUpdateProjection() {
 
 func (c *StandardCamera) internalUpdateView() {
 	defer tracing.NewRegion("StandardCamera.internalUpdateView").End()
-		c.view = matrix.Mat4LookAt(c.position, c.lookAt, c.up)
-	} else {
-		iPos := c.position
-		iPos.ScaleAssign(-1.0)
-		c.view.Reset()
-		c.view.Translate(iPos)
-	}
+	c.view = matrix.Mat4LookAt(c.position, c.lookAt, c.up)
 	c.iView = c.view
 	c.iView.Inverse()
 	c.updateFrustum()
 }
 
 func (c *StandardCamera) updateFrustum() {
+	defer tracing.NewRegion("StandardCamera.updateFrustum").End()
 	vp := matrix.Mat4Multiply(c.view, c.projection)
 	for i := 3; i >= 0; i-- {
 		c.frustum.Planes[0].SetFloatValue(vp[i*4+3]+vp[i*4+0], i)
