@@ -42,7 +42,6 @@ package rendering
 import vk "kaiju/rendering/vulkan"
 
 const vkGeometryShaderValid = vk.False
-const vkUseValidationLayers = true
 const vkInstanceFlags = 1
 
 func vkColorSpace(_ vk.SurfaceFormat) vk.ColorSpace {
