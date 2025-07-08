@@ -98,7 +98,7 @@ type Host struct {
 	Camera           cameras.Camera
 	UICamera         cameras.Camera
 	collisionManager collision_system.Manager
-	audio            audio.Audio
+	audio            *audio.Audio
 	shaderCache      rendering.ShaderCache
 	textureCache     rendering.TextureCache
 	meshCache        rendering.MeshCache
@@ -184,6 +184,10 @@ func (host *Host) InitializeAudio() error {
 		host.audio = a
 		return nil
 	}
+
+func (host *Host) InitializeAudio() (err error) {
+	host.audio, err = audio.New()
+	return err
 }
 
 // WorkGroup returns the work group for this instance of host
@@ -255,15 +259,7 @@ func (host *Host) Plugins() []*plugins.LuaVM {
 
 // Audio returns the audio system for the host
 func (host *Host) Audio() *audio.Audio {
-	return &host.audio
-}
-
-// AddEntity adds an entity to the host. This will add the entity to the
-// standard entity pool. If the host is in the process of creating editor
-// entities, then the entity will be added to the editor entity pool.
-func (host *Host) AddEntity(entity *Entity) {
-	host.addEntity(entity)
-	entity.initialize(host)
+	return host.audio
 }
 
 // ClearEntities will remove all entities from the host. This will remove all
