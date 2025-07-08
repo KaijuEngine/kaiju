@@ -67,6 +67,11 @@ type frameRun struct {
 	call  func()
 }
 
+type timeRun struct {
+	end  time.Time
+	call func()
+}
+
 // Host is the mediator to the entire runtime for the game/editor. It is the
 // main entry point for the game loop and is responsible for managing all
 // entities, the window, and the rendering context. The host can be used to
@@ -82,6 +87,7 @@ type Host struct {
 	editorEntities   editorEntities
 	entities         []*Entity
 	entityLookup     map[EntityId]*Entity
+	timeRunner       []timeRun
 	frameRunner      []frameRun
 	plugins          []*plugins.LuaVM
 	Window           *windowing.Window
@@ -350,6 +356,16 @@ func (host *Host) Update(deltaTime float64) {
 			i--
 		}
 	}
+	if len(host.timeRunner) > 0 {
+		now := time.Now()
+		for i := 0; i < len(host.timeRunner); i++ {
+			if host.timeRunner[i].end.Before(now) {
+				host.timeRunner[i].call()
+				host.timeRunner = klib.RemoveUnordered(host.timeRunner, i)
+				i--
+			}
+		}
+	}
 	host.UIUpdater.Update(deltaTime)
 	host.UILateUpdater.Update(deltaTime)
 	host.Updater.Update(deltaTime)
@@ -407,6 +423,15 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame + uint64(wait),
 		call:  call,
+	})
+}
+
+// RunAfterTime will call the given function after the given number of time
+// has passed from the current frame
+func (host *Host) RunAfterTime(wait time.Duration, call func()) {
+	host.timeRunner = append(host.timeRunner, timeRun{
+		end:  time.Now().Add(wait),
+		call: call,
 	})
 }
 
