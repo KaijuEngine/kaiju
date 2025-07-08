@@ -12,7 +12,9 @@ layout(location = 10) in vec2 fragBorderLen;
 layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 outColor;
+#ifdef OIT
 layout(location = 1) out float reveal;
+#endif
 
 void main(void) {
 	vec4 texColor = texture(texSampler, fragTexCoord) * fragColor;
