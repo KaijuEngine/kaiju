@@ -11,7 +11,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor,vulkanValidation",
+			"buildFlags": "-tags=debug,editor",
 			"env": {
 				"CGO_ENABLED": "1"
 			}
