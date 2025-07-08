@@ -39,9 +39,10 @@ package load_result
 
 import (
 	"kaiju/engine/collision"
-	"kaiju/platform/concurrent"
 	"kaiju/matrix"
+	"kaiju/platform/concurrent"
 	"kaiju/rendering"
+	"log/slog"
 	"sync"
 )
 
@@ -64,10 +65,12 @@ const (
 )
 
 type Mesh struct {
+	Node     *Node
 	Name     string
 	MeshName string
 	Verts    []rendering.Vertex
 	Indexes  []uint32
+	Textures []string
 }
 
 type AnimBone struct {
@@ -89,9 +92,10 @@ type Animation struct {
 }
 
 type Node struct {
-	Name      string
-	Parent    int
-	Transform matrix.Transform
+	Name       string
+	Parent     int
+	Transform  matrix.Transform
+	Attributes map[string]any
 }
 
 type Joint struct {
@@ -102,29 +106,59 @@ type Joint struct {
 type Result struct {
 	Nodes      []Node
 	Meshes     []Mesh
-	Textures   []string
 	Animations []Animation
 	Joints     []Joint
 }
 
-func NewResult() Result {
-	return Result{
-		Meshes:   make([]Mesh, 0),
-		Textures: make([]string, 0),
-	}
-}
-
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
-func (r *Result) Add(name, meshName string, verts []rendering.Vertex,
-	indexes []uint32, textures []string) {
-
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures []string, node *Node) {
 	r.Meshes = append(r.Meshes, Mesh{
 		Name:     name,
 		MeshName: meshName,
 		Verts:    verts,
 		Indexes:  indexes,
+		Textures: textures,
+		Node:     node,
 	})
+}
+
+func (r *Result) Textures() []string {
+	textures := make([]string, 0)
+	for i := range r.Meshes {
+		textures = append(textures, r.Meshes[i].Textures...)
+	}
+	return textures
+}
+
+func (r *Result) NodeByName(name string) *Node {
+	for i := range r.Nodes {
+		if r.Nodes[i].Name == name {
+			return &r.Nodes[i]
+		}
+	}
+	return nil
+}
+
+func (r *Result) Extract(names ...string) Result {
+	if len(r.Animations) > 0 || len(r.Joints) > 0 {
+		slog.Error("extracting animation entries from a mesh load result isn't yet supported")
+	}
+	res := Result{}
+	for i := range names {
+		for j := range r.Nodes {
+			if r.Nodes[j].Name == names[i] {
+				res.Nodes = append(res.Nodes, r.Nodes[j])
+				for k := range r.Meshes {
+					m := &r.Meshes[k]
+					if m.Node == &r.Nodes[j] {
+						res.Add(names[i], m.Name, m.Verts, m.Indexes, m.Textures, &res.Nodes[len(res.Nodes)-1])
+					}
+				}
+			}
+		}
+	}
+	return res
 }
 
 func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {

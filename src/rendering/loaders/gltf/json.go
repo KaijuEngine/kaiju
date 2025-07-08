@@ -47,6 +47,7 @@ import (
 type Asset struct {
 	Generator string `json:"generator"`
 	Version   string `json:"version"`
+	FilePath  string
 }
 
 type Scene struct {
@@ -55,18 +56,18 @@ type Scene struct {
 }
 
 type Node struct {
-	Name        string       `json:"name"`
-	Children    []int32      `json:"children"`
-	Mesh        *int32       `json:"mesh"`
-	Camera      *int32       `json:"camera"`
-	Skin        *int32       `json:"skin"`
-	Matrix      *matrix.Mat4 `json:"matrix"`
-	Rotation    *matrix.Vec4 `json:"rotation"` // Vec4 because glTF XYZW on quat
-	Scale       *matrix.Vec3 `json:"scale"`
-	Translation *matrix.Vec3 `json:"translation"`
-	Weights     []float32    `json:"weights"`
+	Name        string         `json:"name"`
+	Children    []int32        `json:"children"`
+	Mesh        *int32         `json:"mesh"`
+	Camera      *int32         `json:"camera"`
+	Skin        *int32         `json:"skin"`
+	Matrix      *matrix.Mat4   `json:"matrix"`
+	Rotation    *matrix.Vec4   `json:"rotation"` // Vec4 because glTF XYZW on quat
+	Scale       *matrix.Vec3   `json:"scale"`
+	Translation *matrix.Vec3   `json:"translation"`
+	Weights     []float32      `json:"weights"`
+	Extras      map[string]any `json:"extras"`
 	//Extensions  interface{}       `json:"extensions"`
-	//Extras      interface{}       `json:"extras"`
 }
 
 type ChannelTarget struct {
