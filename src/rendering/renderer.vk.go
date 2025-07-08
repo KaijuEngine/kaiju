@@ -41,9 +41,9 @@ import (
 	"errors"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
+	"kaiju/engine/pooling"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/engine/pooling"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"math"
@@ -105,8 +105,9 @@ type Vulkan struct {
 	hasSwapChain               bool
 	writtenCommands            []CommandRecorder
 	transientCommands          []CommandRecorder
-	delayWrittenCommands       bool
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
+	combineCmds                [maxFramesInFlight]CommandRecorder
+	blitCmds                   [maxFramesInFlight]CommandRecorder
 }
 
 func init() {
@@ -160,7 +161,10 @@ func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 }
 
 func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int) ([maxFramesInFlight]vk.DescriptorSet, vk.DescriptorPool, error) {
-	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{layout, layout}
+	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{}
+	for i := range layouts {
+		layouts[i] = layout
+	}
 	aInfo := vk.DescriptorSetAllocateInfo{}
 	aInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
 	aInfo.DescriptorPool = vr.descriptorPools[poolIdx]
@@ -283,6 +287,17 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 	}
 	if !vr.createSyncObjects() {
 		return nil, errors.New("failed to create sync objects")
+	}
+	var err error
+	for i := range len(vr.combineCmds) {
+		if vr.combineCmds[i], err = NewCommandRecorder(vr); err != nil {
+			return nil, err
+		}
+	}
+	for i := range len(vr.blitCmds) {
+		if vr.blitCmds[i], err = NewCommandRecorder(vr); err != nil {
+			return nil, err
+		}
 	}
 	vr.bufferTrash = newBufferDestroyer(vr.device, &vr.dbg)
 	return vr, nil
@@ -426,25 +441,6 @@ func (vr *Vulkan) forceQueueCommand(cmd CommandRecorder) {
 	vr.writtenCommands = append(vr.writtenCommands, cmd)
 }
 
-func (vr *Vulkan) tryQueueCommand(cmd CommandRecorder) bool {
-	if vr.delayWrittenCommands {
-		vr.forceQueueCommand(cmd)
-		return true
-	} else {
-		return false
-	}
-}
-
-func (vr *Vulkan) destroyTransientCommands() {
-	for i := range vr.transientCommands {
-		c := &vr.transientCommands[i]
-		if c.pooled {
-			vr.singleTimeCommandPool.Remove(c.poolingId, c.elmId)
-		}
-	}
-	vr.transientCommands = vr.transientCommands[:0]
-}
-
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	defer tracing.NewRegion("Vulkan.SwapFrame").End()
 	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
@@ -454,26 +450,20 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	for i := range vr.writtenCommands {
 		all[i] = vr.writtenCommands[i].buffer
 	}
-	defer func() {
-		vr.destroyTransientCommands()
-		vr.transientCommands = make([]CommandRecorder, len(vr.writtenCommands))
-		copy(vr.transientCommands, vr.writtenCommands)
-		vr.writtenCommands = vr.writtenCommands[:0]
-	}()
+	vr.writtenCommands = vr.writtenCommands[:0]
+	waitSemaphores := [...]vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
+	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
+	signalSemaphores := [...]vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
 	submitInfo := vk.SubmitInfo{
 		SType:                vk.StructureTypeSubmitInfo,
 		WaitSemaphoreCount:   1,
 		CommandBufferCount:   uint32(len(all)),
 		PCommandBuffers:      &all[0],
 		SignalSemaphoreCount: 1,
+		PWaitSemaphores:      &waitSemaphores[0],
+		PWaitDstStageMask:    &waitStages[0],
+		PSignalSemaphores:    &signalSemaphores[0],
 	}
-
-	waitSemaphores := []vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
-	waitStages := []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
-	signalSemaphores := []vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
-	submitInfo.PWaitSemaphores = &waitSemaphores[0]
-	submitInfo.PWaitDstStageMask = &waitStages[0]
-	submitInfo.PSignalSemaphores = &signalSemaphores[0]
 
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
 	if eCode != vk.Success {
@@ -517,8 +507,13 @@ func (vr *Vulkan) Destroy() {
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
-	vr.destroyTransientCommands()
 	if vr.device != vk.NullDevice {
+		for i := range vr.combineCmds {
+			vr.combineCmds[i].Destroy(vr)
+		}
+		for i := range vr.blitCmds {
+			vr.blitCmds[i].Destroy(vr)
+		}
 		vr.singleTimeCommandPool.All(func(elm *CommandRecorder) {
 			if elm.buffer != vk.NullCommandBuffer {
 				buff := elm.buffer

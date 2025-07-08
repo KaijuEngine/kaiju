@@ -260,14 +260,19 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	vr.caches.ShaderCache().CreatePending()
 	// Sort order of the passes matter, so we need a complete recreate if not ok
 	ok := false
-	mats := make([]*Material, len(passes))
+	mats := make([]*Material, 0, len(passes))
 	for i := range passes {
-		mats[i] = combineMat.CreateInstance([]*Texture{passes[i].SelectOutputAttachment(vr)})
+		tex := passes[i].SelectOutputAttachment(vr)
+		if tex == nil {
+			continue
+		}
+		mats = append(mats, combineMat.CreateInstance([]*Texture{tex}))
+		matIdx := len(mats) - 1
 		if len(vr.combinedDrawings.renderPassGroups) > 0 {
 			var d *ShaderDraw
-			d, _ = vr.combinedDrawings.renderPassGroups[0].findShaderDraw(mats[i])
+			d, _ = vr.combinedDrawings.renderPassGroups[0].findShaderDraw(mats[matIdx])
 			for _, v := range d.material.Instances {
-				if slices.Equal(mats[i].Textures, v.Textures) {
+				if slices.Equal(mats[matIdx].Textures, v.Textures) {
 					ok = true
 					break
 				}
@@ -277,19 +282,9 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	if ok {
 		return
 	}
-	for i := range vr.combinedDrawings.renderPassGroups {
-		rpg := &vr.combinedDrawings.renderPassGroups[i]
-		for j := range rpg.draws {
-			d := &rpg.draws[j]
-			for k := range d.instanceGroups {
-				ig := &d.instanceGroups[k]
-				ig.Clear(vr)
-			}
-		}
-	}
-	vr.combinedDrawings.Destroy(vr)
+	vr.combinedDrawings.Clear(vr)
 	mesh := NewMeshQuad(vr.caches.MeshCache())
-	for i := range passes {
+	for i := range mats {
 		sd := &ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 		m := matrix.Mat4Identity()
 		m.Scale(matrix.Vec3{1, 1, 1})
@@ -306,15 +301,19 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 
 func (vr *Vulkan) combineTargets() *TextureId {
 	defer tracing.NewRegion("Vulkan.combineTargets").End()
+	cmd := &vr.combineCmds[vr.currentFrame]
+	cmd.Begin()
+	defer cmd.End()
+	vr.forceQueueCommand(*cmd)
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
 		// Each material has a single texture for the image to add to the combined final image
 		color := &draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+			vk.ImageAspectFlags(vk.ImageAspectColorBit),
+			vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
-	vr.endSingleTimeCommands(cmd)
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
 	vr.Draw(combinePass, draws)
 	return &combinePass.textures[0].RenderId
@@ -339,11 +338,11 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 		return
 	}
 	vr.prepCombinedTargets(passes)
-	vr.delayWrittenCommands = true
-	defer func() { vr.delayWrittenCommands = false }()
 	img := vr.combineTargets()
-	cmd := vr.beginSingleTimeCommands()
-	defer vr.endSingleTimeCommands(cmd)
+	cmd := &vr.blitCmds[vr.currentFrame]
+	cmd.Begin()
+	defer cmd.End()
+	vr.forceQueueCommand(*cmd)
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
