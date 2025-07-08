@@ -111,6 +111,7 @@ type UI struct {
 }
 
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
+func (ui *UI) IsDown() bool   { return ui.isDown }
 
 func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	defer tracing.NewRegion("UI.init").End()
@@ -392,10 +393,13 @@ func (ui *UI) eventUpdates() {
 }
 
 func (ui *UI) Update(deltaTime float64) {
-	defer tracing.NewRegion("UI::Update").End()
-	if ui.dirtyType != DirtyTypeNone {
-		ui.Clean()
-	}
+	defer tracing.NewRegion("UI.Update").End()
+	// TODO:  Everything should be clean by this point, there is a bug where
+	// by the time the wait group in ui_manager.go:~49 is done, something is
+	// still in-flight to be cleaned?
+	//if ui.dirtyType != DirtyTypeNone {
+	//	ui.Clean()
+	//}
 	ui.lastActive = ui.entity.IsActive()
 }
 
