@@ -121,8 +121,8 @@ func (d *ContentDetails) contentSelected() {
 	paths := d.editor.Events().OnContentSelect.Content
 	adis := []asset_info.AssetDatabaseInfo{}
 	for i := range paths {
-		meta := d.editor.ImportRegistry().MetadataStructure(paths[i])
-		a, err := asset_info.Read(paths[i], meta)
+		metaFactory := func() any { return d.editor.ImportRegistry().MetadataStructure(paths[i]) }
+		a, err := asset_info.Read(paths[i], metaFactory)
 		if err != nil {
 			slog.Warn("failed to open the asset database info for file", "path", paths[i], "error", err)
 			continue

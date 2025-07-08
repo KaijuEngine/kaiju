@@ -116,7 +116,7 @@ func (r *ImportRegistry) ImportUsingDefault(path string) error {
 }
 
 func createADI(importer Importer, path string, cleanup func(adi asset_info.AssetDatabaseInfo)) (asset_info.AssetDatabaseInfo, error) {
-	adi, err := asset_info.Read(path, importer.MetadataStructure())
+	adi, err := asset_info.Read(path, func() any { return importer.MetadataStructure() })
 	if errors.Is(err, asset_info.ErrNoInfo) {
 		adi = asset_info.New(path, uuid.New().String())
 		err = nil

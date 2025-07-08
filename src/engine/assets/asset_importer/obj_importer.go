@@ -38,9 +38,9 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/platform/filesystem"
 	"kaiju/rendering/loaders"
 	"path/filepath"
@@ -59,7 +59,7 @@ func (m ObjImporter) Handles(path string) bool {
 func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
 	project_cache.DeleteMesh(adi)
 	adi.Children = adi.Children[:0]
-	adi.Metadata = make(map[string]string)
+	adi.Metadata = nil
 }
 
 func (m ObjImporter) Import(path string) error {

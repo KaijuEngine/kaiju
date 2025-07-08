@@ -91,7 +91,6 @@ func New(path string, id string) AssetDatabaseInfo {
 	if Exists(path) {
 		return AssetDatabaseInfo{
 			Children: make([]AssetDatabaseInfo, 0),
-			Metadata: make(map[string]string),
 		}
 	}
 	return AssetDatabaseInfo{
@@ -99,7 +98,6 @@ func New(path string, id string) AssetDatabaseInfo {
 		Path:     path,
 		Type:     strings.TrimPrefix(filepath.Ext(path), "."),
 		Children: make([]AssetDatabaseInfo, 0),
-		Metadata: make(map[string]string),
 	}
 }
 
@@ -110,7 +108,6 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 		Type:     a.Type,
 		ParentID: a.ID,
 		Children: make([]AssetDatabaseInfo, 0),
-		Metadata: make(map[string]string),
 	}
 }
 
@@ -120,9 +117,9 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 // [-] ErrNoInfo: if the file does not exist
 // [-] json.Unmarshal error: if the file is corrupted
 // [-] filesystem.ReadTextFile error: if the file cannot be read
-func Read(path string, metadata any) (AssetDatabaseInfo, error) {
+func Read(path string, metadataFactory func() any) (AssetDatabaseInfo, error) {
 	adi := AssetDatabaseInfo{
-		Metadata: metadata,
+		Metadata: metadataFactory(),
 	}
 	if !Exists(path) {
 		return adi, ErrNoInfo
@@ -137,9 +134,14 @@ func Read(path string, metadata any) (AssetDatabaseInfo, error) {
 	}
 	if adi.Children == nil {
 		adi.Children = make([]AssetDatabaseInfo, 0)
-	}
-	if adi.Metadata == nil {
-		adi.Metadata = make(map[string]string)
+	} else {
+		// TODO:  Silly solution, fix later. The gist is that the children
+		// need their Metadata to adopt the type of the supplied metadata
+		for i := range adi.Children {
+			tmp, _ := json.Marshal(adi.Children[i].Metadata)
+			adi.Children[i].Metadata = metadataFactory()
+			json.Unmarshal(tmp, adi.Children[i].Metadata)
+		}
 	}
 	return adi, nil
 }
