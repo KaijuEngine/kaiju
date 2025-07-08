@@ -41,8 +41,8 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"kaiju/platform/filesystem"
 	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -321,6 +321,10 @@ func writeTypes(md io.StringWriter, text string) {
 		if strings.HasPrefix(line, "type ") {
 			md.WriteString("### ")
 			parts := reg.FindAllStringSubmatch(line, -1)
+			if len(parts) == 0 || len(parts[0]) < 2 {
+				fmt.Printf("Failed to read API for line: %s", lines[i])
+				continue
+			}
 			name = parts[0][1]
 			//generic := parts[0][2]
 			//genericT := parts[0][3]
