@@ -39,11 +39,12 @@ package console
 
 import (
 	"kaiju/engine"
-	"kaiju/platform/hid"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
+	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"strings"
 )
 
@@ -250,6 +251,7 @@ func (c *Console) submit(input *ui.Input) {
 }
 
 func (c *Console) update(deltaTime float64) {
+	defer tracing.NewRegion("console.update").End()
 	kb := &c.host.Window.Keyboard
 	if kb.KeyDown(hid.KeyboardKeyBackQuote) {
 		c.toggle()

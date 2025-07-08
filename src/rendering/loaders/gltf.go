@@ -43,6 +43,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/gltf"
 	"kaiju/rendering/loaders/load_result"
@@ -58,6 +59,7 @@ type fullGLTF struct {
 }
 
 func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
+	defer tracing.NewRegion("loaders.readFileGLB").End()
 	const headSize = 12
 	const chunkHeadSize = 8
 	g := fullGLTF{}
@@ -89,6 +91,7 @@ func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
 	if err != nil {
 		return g, err
 	}
+	g.glTF.Asset.FilePath = file
 	bins := data[headSize+len(jsonData):]
 	if len(bins) < chunkHeadSize {
 		return g, errors.New("invalid glb file")
@@ -114,6 +117,7 @@ func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
 }
 
 func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
+	defer tracing.NewRegion("loaders.readFileGLTF").End()
 	g := fullGLTF{}
 	str, err := assetDB.ReadText(file)
 	if err != nil {
@@ -123,6 +127,7 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 	if err != nil {
 		return g, err
 	}
+	g.glTF.Asset.FilePath = file
 	g.bins = make([][]byte, len(g.glTF.Buffers))
 	root := filepath.Dir(file)
 	for i, path := range g.glTF.Buffers {
@@ -139,6 +144,7 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 }
 
 func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
+	defer tracing.NewRegion("loaders.GLTF").End()
 	if !assetDB.Exists(path) {
 		return load_result.Result{}, errors.New("file does not exist")
 	} else if filepath.Ext(path) == ".glb" {
@@ -159,10 +165,12 @@ func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
 }
 
 func gltfParse(doc *fullGLTF) (load_result.Result, error) {
-	res := load_result.NewResult()
+	defer tracing.NewRegion("loaders.gltfParse").End()
+	res := load_result.Result{}
 	res.Nodes = make([]load_result.Node, len(doc.glTF.Nodes))
 	for i := range res.Nodes {
 		res.Nodes[i].Parent = -1
+		res.Nodes[i].Attributes = make(map[string]any)
 	}
 	// TODO:  Deal with multiple skins
 	if len(doc.glTF.Skins) > 0 {
@@ -183,10 +191,12 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Name = n.Name
-		res.Nodes[i].Transform = matrix.NewRawTransform()
+		res.Nodes[i].Transform.SetupRawTransform()
 		res.Nodes[i].Transform.Identifier = uint8(i)
+		res.Nodes[i].Attributes = n.Extras
 		for j := range n.Children {
 			res.Nodes[n.Children[j]].Parent = i
+			res.Nodes[n.Children[j]].Transform.SetParent(&res.Nodes[i].Transform)
 		}
 		// TODO:  Come back for this scenario
 		//if n.Matrix != nil {
@@ -211,7 +221,25 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			return res, err
 		} else {
 			textures := gltfReadMeshTextures(m, &doc.glTF)
-			res.Add(n.Name, m.Name, verts, indices, klib.MapValues(textures))
+			sortedTextures := make([]string, 0, len(textures))
+			if t, ok := textures["baseColor"]; ok {
+				sortedTextures = append(sortedTextures, t)
+				delete(textures, "baseColor")
+			}
+			if t, ok := textures["normal"]; ok {
+				sortedTextures = append(sortedTextures, t)
+				delete(textures, "normal")
+			}
+			if t, ok := textures["metallicRoughness"]; ok {
+				sortedTextures = append(sortedTextures, t)
+				delete(textures, "metallicRoughness")
+			}
+			if t, ok := textures["emissive"]; ok {
+				sortedTextures = append(sortedTextures, t)
+				delete(textures, "emissive")
+			}
+			sortedTextures = append(sortedTextures, klib.MapValues(textures)...)
+			res.Add(n.Name, m.Name, verts, indices, sortedTextures, &res.Nodes[i])
 		}
 	}
 	res.Animations = gltfReadAnimations(doc)
@@ -219,15 +247,18 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 }
 
 func gltfAttr(primitive []gltf.Primitive, cmp string) (uint32, bool) {
+	defer tracing.NewRegion("loaders.gltfAttr").End()
 	idx, ok := primitive[0].Attributes[cmp]
 	return idx, ok
 }
 
 func gltfViewBytes(doc *fullGLTF, view *gltf.BufferView) []byte {
+	defer tracing.NewRegion("loaders.gltfViewBytes").End()
 	return doc.bins[view.Buffer][view.ByteOffset : view.ByteOffset+view.ByteLength]
 }
 
 func gltfReadMeshMorphTargets(mesh *gltf.Mesh, doc *fullGLTF, verts []rendering.Vertex) klib.ErrorList {
+	defer tracing.NewRegion("loaders.gltfReadMeshMorphTargets").End()
 	errs := klib.NewErrorList()
 	for _, target := range mesh.Primitives[0].Targets {
 		if target.POSITION == nil {
@@ -261,6 +292,7 @@ func gltfReadMeshMorphTargets(mesh *gltf.Mesh, doc *fullGLTF, verts []rendering.
 }
 
 func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, error) {
+	defer tracing.NewRegion("loaders.gltfReadMeshVerts").End()
 	var pos, nml, tan, tex0, tex1, jnt0, wei0 *gltf.BufferView
 	var posAcc, nmlAcc, tanAcc, tex0Acc, tex1Acc, jnt0Acc, wei0Acc *gltf.Accessor
 	g := &doc.glTF
@@ -415,6 +447,7 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 }
 
 func gltfReadMeshIndices(mesh *gltf.Mesh, doc *fullGLTF) ([]uint32, error) {
+	defer tracing.NewRegion("loaders.gltfReadMeshIndices").End()
 	idx := mesh.Primitives[0].Indices
 	view := doc.glTF.BufferViews[idx]
 	acc := doc.glTF.Accessors[idx]
@@ -458,30 +491,35 @@ func gltfReadMeshIndices(mesh *gltf.Mesh, doc *fullGLTF) ([]uint32, error) {
 }
 
 func gltfReadMeshTextures(mesh *gltf.Mesh, doc *gltf.GLTF) map[string]string {
+	defer tracing.NewRegion("loaders.gltfReadMeshTextures").End()
 	textures := make(map[string]string)
 	if len(doc.Materials) == 0 || mesh.Primitives[0].Material == nil {
 		return textures
 	}
+	uri := func(path string) string {
+		return filepath.ToSlash(filepath.Join(filepath.Dir(doc.Asset.FilePath), path))
+	}
 	mat := doc.Materials[*mesh.Primitives[0].Material]
 	if mat.PBRMetallicRoughness.BaseColorTexture != nil {
-		textures["baseColor"] = doc.Images[mat.PBRMetallicRoughness.BaseColorTexture.Index].URI
+		textures["baseColor"] = uri(doc.Images[mat.PBRMetallicRoughness.BaseColorTexture.Index].URI)
 	}
 	if mat.PBRMetallicRoughness.MetallicRoughnessTexture != nil {
-		textures["metallicRoughness"] = doc.Images[mat.PBRMetallicRoughness.MetallicRoughnessTexture.Index].URI
+		textures["metallicRoughness"] = uri(doc.Images[mat.PBRMetallicRoughness.MetallicRoughnessTexture.Index].URI)
 	}
 	if mat.NormalTexture != nil {
-		textures["normal"] = doc.Images[mat.NormalTexture.Index].URI
+		textures["normal"] = uri(doc.Images[mat.NormalTexture.Index].URI)
 	}
 	if mat.OcclusionTexture != nil {
-		textures["occlusion"] = doc.Images[mat.OcclusionTexture.Index].URI
+		textures["occlusion"] = uri(doc.Images[mat.OcclusionTexture.Index].URI)
 	}
 	if mat.EmissiveTexture != nil {
-		textures["emissive"] = doc.Images[mat.EmissiveTexture.Index].URI
+		textures["emissive"] = uri(doc.Images[mat.EmissiveTexture.Index].URI)
 	}
 	return textures
 }
 
 func gltfReadAnimations(doc *fullGLTF) []load_result.Animation {
+	defer tracing.NewRegion("loaders.gltfReadAnimations").End()
 	anims := make([]load_result.Animation, len(doc.glTF.Animations))
 	for i := range doc.glTF.Animations {
 		a := &doc.glTF.Animations[i]

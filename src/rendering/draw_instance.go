@@ -38,9 +38,9 @@
 package rendering
 
 import (
+	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/engine/runtime/encoding/gob"
 	"reflect"
 	"unsafe"
 )
@@ -64,6 +64,7 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
+	setShadow(shadow DrawInstance)
 }
 
 func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
@@ -82,9 +83,20 @@ type ShaderDataBase struct {
 	destroyed   bool
 	deactivated bool
 	_           [2]byte
+	shadow      DrawInstance
 	transform   *matrix.Transform
 	InitModel   matrix.Mat4
 	model       matrix.Mat4
+}
+
+type ShaderDataUnlit struct {
+	ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4
+}
+
+func (t ShaderDataUnlit) Size() int {
+	return int(unsafe.Sizeof(ShaderDataUnlit{}) - ShaderBaseDataStart)
 }
 
 type ShaderDataBasic struct {
@@ -94,6 +106,22 @@ type ShaderDataBasic struct {
 
 func (t ShaderDataBasic) Size() int {
 	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
+}
+
+type ShaderDataPBR struct {
+	ShaderDataBase
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	Light0     float32
+	Light1     float32
+	Light2     float32
+	Light3     float32
+}
+
+func (t ShaderDataPBR) Size() int {
+	return int(unsafe.Sizeof(ShaderDataPBR{}) - ShaderBaseDataStart)
 }
 
 func NewShaderDataBase() ShaderDataBase {
@@ -106,20 +134,35 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) Size() int {
-	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
-}
-
 func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
 func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
-func (s *ShaderDataBase) Activate()          { s.deactivated = false }
-func (s *ShaderDataBase) Deactivate()        { s.deactivated = true }
 func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }
 func (s *ShaderDataBase) Model() matrix.Mat4 { return s.model }
 
+func (s *ShaderDataBase) Activate() {
+	s.deactivated = false
+	if s.shadow != nil {
+		s.shadow.Activate()
+	}
+}
+
+func (s *ShaderDataBase) Deactivate() {
+	s.deactivated = true
+	if s.shadow != nil {
+		s.shadow.Deactivate()
+	}
+}
+
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
+}
+
+func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
+	s.shadow = shadow
+	if s.deactivated {
+		s.shadow.Deactivate()
+	}
 }
 
 func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
@@ -166,6 +209,7 @@ type DrawInstanceGroup struct {
 	namedInstanceData map[string]InstanceCopyData
 	instanceSize      int
 	visibleCount      int
+	sort              int
 	useBlending       bool
 	destroyed         bool
 }
@@ -303,12 +347,13 @@ func (d *DrawInstanceGroup) Clear(renderer Renderer) {
 	for i := range d.Instances {
 		d.Instances[i].Destroy()
 	}
-	d.Instances = d.Instances[:0]
 }
+
 func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 	if d.destroyed {
 		return
 	}
 	d.Clear(renderer)
+	d.Instances = d.Instances[:0]
 	renderer.DestroyGroup(d)
 }

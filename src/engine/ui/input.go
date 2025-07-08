@@ -39,12 +39,12 @@ package ui
 
 import (
 	"kaiju/engine/assets"
-	"kaiju/platform/hid"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/engine/systems/events"
 	"math"
 	"unicode"
 	"unicode/utf8"
@@ -446,7 +446,7 @@ func (input *Input) pointerPosWithin() int {
 //#endif
 
 func (input *Input) update(deltaTime float64) {
-	defer tracing.NewRegion("Input::update").End()
+	defer tracing.NewRegion("Input.update").End()
 	input.Base().ToPanel().update(deltaTime)
 	data := input.InputData()
 	if data.isActive {
@@ -624,8 +624,8 @@ func (input *Input) Focus() {
 		input.InputData().isActive = true
 		input.resetSelect()
 		input.showCursor()
-		if input.group != nil {
-			input.group.setFocus((*UI)(input))
+		if input.man != nil {
+			input.man.Group.setFocus((*UI)(input))
 		}
 	}
 }
@@ -636,8 +636,8 @@ func (input *Input) RemoveFocus() {
 		input.resetSelect()
 		input.hideCursor()
 		input.man.Host.Window.CursorStandard()
-		if input.group != nil {
-			input.group.setFocus(nil)
+		if input.man != nil {
+			input.man.Group.setFocus(nil)
 		}
 	}
 }

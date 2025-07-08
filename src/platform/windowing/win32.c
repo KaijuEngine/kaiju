@@ -84,10 +84,28 @@ void readMousePosition(LPARAM lParam, int32_t* x, int32_t* y) {
 	*y = GET_Y_LPARAM(lParam);
 }
 
+double now_seconds() {
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+    return (uli.QuadPart / 10000000.0) - 11644473600.0;
+}
+
 bool obtainControllerStates(SharedMem* sm) {
+	static double last = 0;
+	static double connectedControllers[MAX_CONTROLLERS] = { 0 };
 	bool readControllerStates = false;
+	double now = now_seconds();
+	double delta = now - last;
 	DWORD dwResult;
 	for (DWORD i = 0; i < MAX_CONTROLLERS; i++) {
+		// Don't check disconnected controllers every frame, bad perf
+		if (connectedControllers[i] > 0) {
+			connectedControllers[i] -= delta;
+			continue;
+		}
 		XINPUT_STATE state;
 		ZeroMemory(&state, sizeof(XINPUT_STATE));
 		// Simply get the state of the controller from XInput.
@@ -104,14 +122,17 @@ bool obtainControllerStates(SharedMem* sm) {
 			evt.controllerState.thumbRY = state.Gamepad.sThumbRY;
 			evt.controllerState.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED;
 			readControllerStates = true;
+			connectedControllers[i] = 0; // Check this controller next frame
 		} else {
 			// TODO:  readControllerStates would be true here too, but
 			// no need to spam the event if no controllers are available?
 			// Probably means the state of the controllers need tracking in C...
 			evt.controllerState.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_DISCONNECTED;
+			connectedControllers[i] = 3.0; // Wait a few seconds
 		}
 		shared_mem_add_event(sm, evt);
 	}
+	last = now;
 	return readControllerStates;
 }
 
@@ -570,7 +591,27 @@ void window_cursor_size_we(void* hwnd) {
 }
 
 float window_dpi(void* hwnd) {
-	return ((float)GetDpiForWindow(hwnd)) / 25.4F;
+	return ((float)GetDpiForWindow(hwnd));
+}
+
+int screen_width_mm(void* hwnd) {
+    HDC hdc = GetDC(hwnd);
+    if (hdc == NULL) {
+		return -1;
+    }
+    int widthMM = GetDeviceCaps(hdc, HORZSIZE);
+    ReleaseDC(NULL, hdc);
+	return widthMM;
+}
+
+int screen_height_mm(void* hwnd) {
+    HDC hdc = GetDC(hwnd);
+    if (hdc == NULL) {
+		return -1;
+    }
+    int heightMM = GetDeviceCaps(hdc, VERTSIZE);
+    ReleaseDC(NULL, hdc);
+	return heightMM;
 }
 
 void window_focus(void* hwnd) {
@@ -616,6 +657,14 @@ void window_add_border(void* hwnd) {
 	style |= WS_MAXIMIZEBOX;
 	style |= WS_SYSMENU;
 	SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
+void window_show_cursor(void* hwnd) {
+	ShowCursor(TRUE);
+}
+
+void window_hide_cursor(void* hwnd) {
+	ShowCursor(FALSE);
 }
 
 #endif

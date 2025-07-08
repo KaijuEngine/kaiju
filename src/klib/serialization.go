@@ -38,6 +38,7 @@
 package klib
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 )
@@ -50,4 +51,8 @@ func JsonDecode[T any](decoder *json.Decoder, container *T) error {
 	} else {
 		return nil
 	}
+}
+
+func ByteArrayToString(byteArray []byte) string {
+	return string(string(bytes.TrimRight(byteArray[:], "\x00")))
 }

@@ -3,5 +3,5 @@
 package build
 
 const Debug = false
-const Test = false
+const Test = true
 const Shipping = false

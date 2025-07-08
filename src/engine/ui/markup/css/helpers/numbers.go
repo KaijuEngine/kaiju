@@ -40,8 +40,8 @@ package helpers
 import (
 	"fmt"
 	"kaiju/klib"
-	"kaiju/rendering"
 	"kaiju/platform/windowing"
+	"kaiju/rendering"
 	"strconv"
 	"strings"
 )

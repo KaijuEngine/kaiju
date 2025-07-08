@@ -3,6 +3,8 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"path/filepath"
 	"sync"
 )
@@ -44,6 +46,7 @@ func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
 }
 
 func (m *MaterialCache) Material(key string) (*Material, error) {
+	defer tracing.NewRegion("MaterialCache.Material").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if material, ok := m.materials[key]; ok {
@@ -52,14 +55,17 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		matStr, err := m.assetDatabase.ReadText(
 			filepath.Join("renderer/materials/", key+".material"))
 		if err != nil {
+			slog.Error("failed to load the material", "material", key, "error", err)
 			return nil, err
 		}
 		var materialData MaterialData
 		if err := json.Unmarshal([]byte(matStr), &materialData); err != nil {
+			slog.Error("failed to read the material", "material", key, "error", err)
 			return nil, err
 		}
 		material, err := materialData.Compile(m.assetDatabase, m.renderer)
 		if err != nil {
+			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
 		m.pendingMaterials = append(m.pendingMaterials, material)
@@ -69,6 +75,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 }
 
 func (m *MaterialCache) Destroy() {
+	defer tracing.NewRegion("MaterialCache.Destroy").End()
 	for _, mat := range m.pendingMaterials {
 		mat.Destroy(m.renderer)
 	}

@@ -3,6 +3,7 @@ package ui
 import (
 	"kaiju/engine"
 	"kaiju/engine/pooling"
+	"kaiju/platform/profiler/tracing"
 	"sync"
 )
 
@@ -24,6 +25,7 @@ type manUp struct {
 }
 
 func (man *Manager) update(deltaTime float64) {
+	defer tracing.NewRegion("ui.Manager.update").End()
 	wg := sync.WaitGroup{}
 	roots := []*UI{}
 	children := []*UI{}
@@ -62,7 +64,7 @@ func (man *Manager) update(deltaTime float64) {
 		threads.AddWork(func(threadId int) {
 			e := all[i]
 			e.updateFromManager(deltaTime)
-			if e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
+			if e.isActive() && e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
 			wg.Done()
@@ -72,6 +74,7 @@ func (man *Manager) update(deltaTime float64) {
 }
 
 func (man *Manager) Hovered() []*UI {
+	defer tracing.NewRegion("ui.Manager.Hovered").End()
 	count := 0
 	for i := range man.hovered {
 		count += len(man.hovered[i])
@@ -86,6 +89,7 @@ func (man *Manager) Hovered() []*UI {
 }
 
 func (man *Manager) Init(host *engine.Host) {
+	defer tracing.NewRegion("ui.Manager.Init").End()
 	man.Host = host
 	man.updateId = host.UIUpdater.AddUpdate(man.update)
 	man.Group = NewGroup()
@@ -94,6 +98,7 @@ func (man *Manager) Init(host *engine.Host) {
 }
 
 func (man *Manager) Release() {
+	defer tracing.NewRegion("ui.Manager.Release").End()
 	man.Clear()
 	man.Host.UIUpdater.RemoveUpdate(man.updateId)
 	man.updateId = 0
@@ -101,28 +106,31 @@ func (man *Manager) Release() {
 }
 
 func (man *Manager) Clear() {
+	defer tracing.NewRegion("ui.Manager.Clear").End()
 	man.pools.Each(func(ui *UI) { ui.Entity().Destroy() })
 	// Clearing the pools shouldn't be needed as destroying the entities
 	// will remove the entry from the pool
 }
 
 func (man *Manager) Add() *UI {
+	defer tracing.NewRegion("ui.Manager.Add").End()
 	ui, poolId, elmId := man.pools.Add()
 	*ui = UI{}
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
-	ui.group = man.Group
 	ui.entity.Init(man.Host.WorkGroup())
 	man.Host.AddEntity(&ui.entity)
 	return ui
 }
 
 func (man *Manager) Remove(ui *UI) {
+	defer tracing.NewRegion("ui.Manager.Remove").End()
 	man.pools.Remove(ui.poolId, ui.id)
 }
 
 func (man *Manager) Reserve(additionalElements int) {
+	defer tracing.NewRegion("ui.Manager.Reserve").End()
 	man.pools.Reserve(additionalElements)
 	man.Host.ReserveEntities(additionalElements)
 }

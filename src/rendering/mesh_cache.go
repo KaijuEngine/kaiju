@@ -82,7 +82,7 @@ func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 }
 
 func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
-	defer tracing.NewRegion("MeshCache::Mesh").End()
+	defer tracing.NewRegion("MeshCache.Mesh").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
@@ -96,7 +96,7 @@ func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 }
 
 func (m *MeshCache) CreatePending() {
-	defer tracing.NewRegion("MeshCache::CreatePending").End()
+	defer tracing.NewRegion("MeshCache.CreatePending").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for _, mesh := range m.pendingMeshes {

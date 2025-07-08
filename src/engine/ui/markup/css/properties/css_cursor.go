@@ -40,10 +40,10 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
-	"kaiju/klib"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
+	"kaiju/klib"
 )
 
 func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {

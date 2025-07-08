@@ -40,6 +40,7 @@ package cameras
 import (
 	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 type TurntableCamera struct {
@@ -51,6 +52,7 @@ type TurntableCamera struct {
 
 // ToTurntable converts a standard camera to a turntable camera.
 func ToTurntable(camera *StandardCamera) *TurntableCamera {
+	defer tracing.NewRegion("cameras.ToTurntable").End()
 	tc := &TurntableCamera{
 		StandardCamera: *camera,
 		yaw:            0.0,
@@ -71,6 +73,7 @@ func (c *TurntableCamera) Zoom() float32 { return c.zoom }
 
 // SetPosition sets the position of the camera.
 func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.SetPosition").End()
 	c.position = position
 	c.zoom = position.Z()
 	c.updateViewAndPosition()
@@ -78,12 +81,14 @@ func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
 
 // SetLookAt sets the look at position of the camera.
 func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.SetLookAt").End()
 	c.lookAt = lookAt
 	c.updateViewAndPosition()
 }
 
 // SetLookAtWithUp sets the look at position of the camera and the up vector to use.
 func (c *TurntableCamera) SetLookAtWithUp(point, up matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.SetLookAtWithUp").End()
 	c.lookAt = point
 	c.up = up
 	c.updateViewAndPosition()
@@ -91,6 +96,7 @@ func (c *TurntableCamera) SetLookAtWithUp(point, up matrix.Vec3) {
 
 // Pan pans the camera while keeping the same facing by the given delta.
 func (c *TurntableCamera) Pan(delta matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.Pan").End()
 	d := delta.Scale(c.zoom)
 	u := c.Up()
 	u.ScaleAssign(-d.Y())
@@ -103,6 +109,7 @@ func (c *TurntableCamera) Pan(delta matrix.Vec3) {
 
 // Dolly moves the camera closer/further from the look at point by the given delta.
 func (c *TurntableCamera) Dolly(delta float32) {
+	defer tracing.NewRegion("TurntableCamera.Dolly").End()
 	zoom := c.zoom
 	diff := c.position.Subtract(c.lookAt)
 	length := diff.Length()
@@ -115,6 +122,7 @@ func (c *TurntableCamera) Dolly(delta float32) {
 
 // Orbit orbits the camera around the look at point by the given delta.
 func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.Orbit").End()
 	c.pitch += delta.X()
 	c.yaw += delta.Y()
 	c.updateViewAndPosition()
@@ -122,18 +130,21 @@ func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 
 // SetYaw sets the yaw of the camera.
 func (c *TurntableCamera) SetYaw(yaw float32) {
+	defer tracing.NewRegion("TurntableCamera.SetYaw").End()
 	c.setYaw(yaw)
 	c.updateViewAndPosition()
 }
 
 // SetPitch sets the pitch of the camera.
 func (c *TurntableCamera) SetPitch(pitch float32) {
+	defer tracing.NewRegion("TurntableCamera.SetPitch").End()
 	c.setPitch(pitch)
 	c.updateViewAndPosition()
 }
 
 // SetZoom sets the zoom of the camera.
 func (c *TurntableCamera) SetZoom(zoom float32) {
+	defer tracing.NewRegion("TurntableCamera.SetZoom").End()
 	c.setZoom(zoom)
 	c.updateViewAndPosition()
 }
@@ -141,6 +152,7 @@ func (c *TurntableCamera) SetZoom(zoom float32) {
 // SetYawAndPitch sets the yaw and pitch of the camera. This helps skip
 // needless view matrix calculations by setting both before updating the view.
 func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
+	defer tracing.NewRegion("TurntableCamera.SetYawAndPitch").End()
 	c.setYaw(yaw)
 	c.setPitch(pitch)
 	c.updateViewAndPosition()
@@ -149,6 +161,7 @@ func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
 // SetYawPitchZoom sets the yaw, pitch, and zoom of the camera. This helps skip
 // needless view matrix calculations by setting all three before updating the view.
 func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
+	defer tracing.NewRegion("TurntableCamera.SetYawPitchZoom").End()
 	c.setYaw(yaw)
 	c.setPitch(pitch)
 	c.setZoom(zoom)
@@ -158,12 +171,13 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
 func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+	defer tracing.NewRegion("TurntableCamera.RayCast").End()
 	return c.internalRayCast(screenPos, c.iView.Position())
 }
 
 func (c *TurntableCamera) internalUpdateView() {
+	defer tracing.NewRegion("TurntableCamera.internalUpdateView").End()
 	c.view = matrix.Mat4Identity()
-
 	tx := -c.lookAt.X()
 	ty := -c.lookAt.Y()
 	tz := -c.lookAt.Z()
@@ -171,7 +185,6 @@ func (c *TurntableCamera) internalUpdateView() {
 	ry := c.yaw
 	rz := float32(0.0)
 	di := c.zoom
-
 	a := rx * float32(0.5)
 	b := ry * float32(0.5)
 	cc := rz * float32(0.5)
@@ -230,12 +243,14 @@ func (c *TurntableCamera) internalUpdateView() {
 }
 
 func (c *TurntableCamera) updateViewAndPosition() {
+	defer tracing.NewRegion("TurntableCamera.updateViewAndPosition").End()
 	c.position.SetZ(c.zoom)
 	c.updateView()
 	c.position = c.iView.Position()
 }
 
 func (c *TurntableCamera) setYaw(yaw float32) {
+	defer tracing.NewRegion("TurntableCamera.setYaw").End()
 	c.yaw = matrix.Deg2Rad(yaw)
 	direction := matrix.Vec3{
 		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
@@ -247,6 +262,7 @@ func (c *TurntableCamera) setYaw(yaw float32) {
 }
 
 func (c *TurntableCamera) setPitch(pitch float32) {
+	defer tracing.NewRegion("TurntableCamera.setPitch").End()
 	c.pitch = matrix.Deg2Rad(pitch)
 	direction := matrix.Vec3{
 		matrix.Cos(c.yaw) * matrix.Cos(c.pitch),

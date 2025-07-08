@@ -38,7 +38,7 @@
 package klib
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"slices"
 	"unsafe"
 )
@@ -50,8 +50,22 @@ func RemoveUnordered[T any](slice []T, idx int) []T {
 }
 
 func Shuffle[T any](slice []T, rng *rand.Rand) {
+	if rng == nil {
+		for i := len(slice) - 1; i > 0; i-- {
+			j := rand.IntN(i + 1)
+			slice[i], slice[j] = slice[j], slice[i]
+		}
+	} else {
+		for i := len(slice) - 1; i > 0; i-- {
+			j := rng.IntN(i + 1)
+			slice[i], slice[j] = slice[j], slice[i]
+		}
+	}
+}
+
+func ShuffleRandom[T any](slice []T) {
 	for i := len(slice) - 1; i > 0; i-- {
-		j := rng.Intn(i + 1)
+		j := rand.IntN(i + 1)
 		slice[i], slice[j] = slice[j], slice[i]
 	}
 }

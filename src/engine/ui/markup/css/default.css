@@ -395,9 +395,15 @@ button {
 	padding: 5px;
 	font-size: 16px;
 	text-align: center;
-	background-color: #CCC;
+	vertical-align: middle;
 	overflow: hidden;
+	background-color: #373737;
+	background-image: url("textures/button-idle.png");
 }
 button:hover {
-	background-color: #AAA;
+	background-color: #555555;
+	background-image: url("textures/button-hover.png");
+}
+button:active {
+	background-image: url("textures/button-down.png");
 }

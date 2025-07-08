@@ -38,8 +38,9 @@
 package matrix
 
 import (
-	"kaiju/platform/concurrent"
 	"kaiju/klib"
+	"kaiju/platform/concurrent"
+	"kaiju/platform/profiler/tracing"
 	"slices"
 )
 
@@ -68,12 +69,16 @@ func (t *Transform) setup() {
 	t.position = Vec3Zero()
 	t.rotation = Vec3Zero()
 	t.scale = Vec3One()
-	t.isDirty = true
-	t.frameDirty = true
-	t.children = make([]*Transform, 0)
+	if t.workGroup != nil {
+		t.SetDirty()
+	} else {
+		t.isDirty = true
+		t.frameDirty = true
+	}
 }
 
 func NewTransform(workGroup *concurrent.WorkGroup) Transform {
+	defer tracing.NewRegion("matrix.NewTransform").End()
 	t := Transform{
 		workGroup: workGroup,
 	}
@@ -81,11 +86,7 @@ func NewTransform(workGroup *concurrent.WorkGroup) Transform {
 	return t
 }
 
-func NewRawTransform() Transform {
-	t := Transform{}
-	t.setup()
-	return t
-}
+func (t *Transform) SetupRawTransform() { t.setup() }
 
 func (t *Transform) WorkGroup() *concurrent.WorkGroup { return t.workGroup }
 

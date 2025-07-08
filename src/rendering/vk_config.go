@@ -40,26 +40,25 @@ package rendering
 import (
 	"unsafe"
 
+	"kaiju/build"
 	vk "kaiju/rendering/vulkan"
 )
 
 const (
-	useValidationLayers  = vkUseValidationLayers
+	useValidationLayers  = build.Debug
 	BytesInPixel         = 4
 	MaxCommandPools      = 5
 	MaxSecondaryCommands = 25
-	maxFramesInFlight    = 2
+	maxFramesInFlight    = 10
 	oitSuffix            = ".oit.spv"
 )
 
 func validationLayers() []string {
-	var validationLayers []string
 	if useValidationLayers {
-		validationLayers = append(validationLayers, "VK_LAYER_KHRONOS_validation\x00")
+		return []string{"VK_LAYER_KHRONOS_validation\x00"}
 	} else {
-		validationLayers = []string{}
+		return []string{}
 	}
-	return validationLayers
 }
 
 func requiredDeviceExtensions() []string {

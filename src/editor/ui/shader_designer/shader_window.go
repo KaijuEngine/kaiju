@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/systems/logging"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -118,9 +118,9 @@ func OpenShader(path string, logStream *logging.LogStream) {
 	s.ShowShaderWindow()
 }
 
-func compileShaderFile(s *rendering.ShaderData, src, flags string) error {
+func compileShaderFile(s *rendering.ShaderData, src, flags string) (string, error) {
 	if src == "" {
-		return nil
+		return "", nil
 	}
 	flags = strings.TrimSpace(flags)
 	out := s.CompileVariantName(src, flags)
@@ -129,7 +129,8 @@ func compileShaderFile(s *rendering.ShaderData, src, flags string) error {
 		args = append(args, flags)
 	}
 	compileCmd := exec.Command("glslc", args...)
-	return compileCmd.Run()
+	data, err := compileCmd.CombinedOutput()
+	return string(data), err
 }
 
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
@@ -155,24 +156,24 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	if s.EnableDebug {
 		addFlags = " -g"
 	}
-	if err := compileShaderFile(s, s.Vertex, s.VertexFlags+addFlags); err != nil {
-		slog.Error("failed to compile the vertex shader", "error", err)
+	if str, err := compileShaderFile(s, s.Vertex, s.VertexFlags+addFlags); err != nil {
+		slog.Error("failed to compile the vertex shader", "error", err, "message", str)
 		return
 	}
-	if err := compileShaderFile(s, s.Fragment, s.FragmentFlags+addFlags); err != nil {
-		slog.Error("failed to compile the fragment shader", "error", err)
+	if str, err := compileShaderFile(s, s.Fragment, s.FragmentFlags+addFlags); err != nil {
+		slog.Error("failed to compile the fragment shader", "error", err, "message", str)
 		return
 	}
-	if err := compileShaderFile(s, s.Geometry, s.GeometryFlags+addFlags); err != nil {
-		slog.Error("failed to compile the geometry shader", "error", err)
+	if str, err := compileShaderFile(s, s.Geometry, s.GeometryFlags+addFlags); err != nil {
+		slog.Error("failed to compile the geometry shader", "error", err, "message", str)
 		return
 	}
-	if err := compileShaderFile(s, s.TessellationControl, s.TessellationControlFlags+addFlags); err != nil {
-		slog.Error("failed to compile the tessellation control shader", "error", err)
+	if str, err := compileShaderFile(s, s.TessellationControl, s.TessellationControlFlags+addFlags); err != nil {
+		slog.Error("failed to compile the tessellation control shader", "error", err, "message", str)
 		return
 	}
-	if err := compileShaderFile(s, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
-		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
+	if str, err := compileShaderFile(s, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
+		slog.Error("failed to compile the tessellation evaluation shader", "error", err, "message", str)
 		return
 	}
 	win.shader.Vertex = filepath.ToSlash(win.shader.Vertex)

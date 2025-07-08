@@ -1,4 +1,4 @@
-//go:build !shipping
+//go:build debug
 
 package tracing
 

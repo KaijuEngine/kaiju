@@ -1,0 +1,77 @@
+package audio
+
+/*
+#cgo windows LDFLAGS: -LC:/Users/brent/Documents/git/ShieldCrush/libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
+#cgo linux LDFLAGS: -L/home/deck/git/ShieldCrush/libs -lsoloud_nix -lasound -lstdc++
+#include <stdlib.h>
+#include "soloud_c.h"
+*/
+import "C"
+import (
+	"log/slog"
+	"unsafe"
+)
+
+type SoloudHandle = *C.Soloud
+type SoloudWav = *C.Wav
+
+func errToString(soloud SoloudHandle, errCode int) string {
+	return C.GoString(C.Soloud_getErrorString(soloud, C.int(errCode)))
+}
+
+func create() SoloudHandle {
+	return C.Soloud_create()
+}
+
+func initialize(soloud SoloudHandle) int {
+	return int(C.Soloud_init(soloud))
+}
+
+func deinitialize(soloud SoloudHandle) {
+	C.Soloud_deinit(soloud)
+}
+
+func destroy(soloud SoloudHandle) {
+	C.Soloud_destroy(soloud)
+}
+
+func wavCreate() SoloudWav {
+	return C.Wav_create()
+}
+
+func wavLoad(path string, wav SoloudWav) {
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+	res := int(C.Wav_load(wav, cPath))
+	if res != 0 {
+		slog.Error("there was an error loading the sound file", "file", path, "code", res)
+	}
+}
+
+func wavDestroy(wav SoloudWav) {
+	C.Wav_destroy(wav)
+}
+
+func wavSetVolume(wav SoloudWav, volume float32) {
+	C.Wav_setVolume(wav, C.float(volume))
+}
+
+func setVolume(soloud SoloudHandle, handle uint32, volume float32) {
+	C.Soloud_setVolume(soloud, C.uint(handle), C.float(volume))
+}
+
+func play(soloud SoloudHandle, wav SoloudWav) uint32 {
+	return uint32(C.Soloud_play(soloud, (*C.AudioSource)(wav)))
+}
+
+func stopAudioSource(soloud SoloudHandle, wav SoloudWav) {
+	C.Soloud_stopAudioSource(soloud, (*C.AudioSource)(wav))
+}
+
+func setLooping(soloud SoloudHandle, handle uint32, loop bool) {
+	if loop {
+		C.Soloud_setLooping(soloud, C.uint(handle), C.int(1))
+	} else {
+		C.Soloud_setLooping(soloud, C.uint(handle), C.int(0))
+	}
+}

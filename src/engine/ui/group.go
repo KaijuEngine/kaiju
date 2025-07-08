@@ -39,6 +39,7 @@ package ui
 
 import (
 	"kaiju/engine"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"sort"
 	"sync"
@@ -58,12 +59,13 @@ type groupRequest struct {
 }
 
 type Group struct {
-	requests    []groupRequest
-	focus       *UI
-	updateId    int
-	lock        sync.Mutex
-	hadRequests requestState
-	isThreaded  bool
+	requests     []groupRequest
+	focus        *UI
+	updateId     int
+	lock         sync.Mutex
+	hadRequests  requestState
+	isThreaded   bool
+	isProcessing bool
 }
 
 func NewGroup() *Group {
@@ -92,15 +94,21 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 	if ui.events[eType].IsEmpty() {
 		return
 	}
-	if group.isThreaded {
-		group.lock.Lock()
-	}
-	group.requests = append(group.requests, groupRequest{
-		target:    ui,
-		eventType: eType,
-	})
-	if group.isThreaded {
-		group.lock.Unlock()
+	if group.isProcessing {
+		ui.Host().RunAfterFrames(0, func() {
+			group.requestEvent(ui, eType)
+		})
+	} else {
+		if group.isThreaded {
+			group.lock.Lock()
+		}
+		group.requests = append(group.requests, groupRequest{
+			target:    ui,
+			eventType: eType,
+		})
+		if group.isThreaded {
+			group.lock.Unlock()
+		}
 	}
 }
 
@@ -132,6 +140,7 @@ func sortRequests(a *groupRequest, b *groupRequest) bool {
 }
 
 func (group *Group) lateUpdate() {
+	defer tracing.NewRegion("ui.Group.lateUpdate").End()
 	if len(group.requests) > 0 {
 		sort.Slice(group.requests, func(i, j int) bool {
 			return sortRequests(&group.requests[i], &group.requests[j])
@@ -151,6 +160,7 @@ func (group *Group) lateUpdate() {
 				top = hovered[0]
 			}
 		}
+		group.isProcessing = true
 		for i := range requestSets {
 			g := requestSets[i]
 			shouldContinue := true
@@ -182,6 +192,7 @@ func (group *Group) lateUpdate() {
 			}
 		}
 		group.requests = group.requests[:0]
+		group.isProcessing = false
 	}
 	switch group.hadRequests {
 	case requestStateStarted:

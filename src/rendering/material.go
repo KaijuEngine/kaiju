@@ -3,6 +3,7 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"strings"
@@ -11,15 +12,26 @@ import (
 )
 
 type Material struct {
-	Name         string
-	shaderInfo   ShaderDataCompiled
-	renderPass   *RenderPass
-	pipelineInfo ShaderPipelineDataCompiled
-	Shader       *Shader
-	Textures     []*Texture
-	Instances    map[string]*Material
-	Root         weak.Pointer[Material]
-	mutex        sync.Mutex
+	Name          string
+	shaderInfo    ShaderDataCompiled
+	renderPass    *RenderPass
+	pipelineInfo  ShaderPipelineDataCompiled
+	Shader        *Shader
+	Textures      []*Texture
+	ShadowMap     *Texture
+	ShadowCubeMap *Texture
+	Instances     map[string]*Material
+	Root          weak.Pointer[Material]
+	mutex         sync.Mutex
+	IsLit         bool
+}
+
+func (m *Material) HasShadowMap() bool {
+	return m.ShadowMap != nil && m.ShadowMap.RenderId.IsValid()
+}
+
+func (m *Material) HasShadowCubeMap() bool {
+	return m.ShadowCubeMap != nil && m.ShadowCubeMap.RenderId.IsValid()
 }
 
 func (m *Material) SelectRoot() *Material {
@@ -43,6 +55,7 @@ type MaterialData struct {
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
+	defer tracing.NewRegion("Material.CreateInstance").End()
 	instanceKey := strings.Builder{}
 	for i := range textures {
 		instanceKey.WriteString(textures[i].Key)
@@ -58,6 +71,8 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
+	copy.ShadowMap = m.ShadowMap
+	copy.ShadowCubeMap = m.ShadowCubeMap
 	// TODO:  If using a read lock, then make sure to write lock the following line
 	m.Instances[key] = copy
 	copy.Root = weak.Make(m)
@@ -79,18 +94,8 @@ func (d *MaterialTextureData) FilterToVK() TextureFilter {
 	}
 }
 
-func materialUnmarshallData(assets *assets.Database, file string, to any) error {
-	s, err := assets.ReadText(file)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal([]byte(s), to); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
+	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
 		Name:      d.Name,
@@ -100,13 +105,13 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	sd := ShaderData{}
 	rp := RenderPassData{}
 	sp := ShaderPipelineData{}
-	if err := materialUnmarshallData(assets, d.Shader, &sd); err != nil {
+	if err := unmarshallJsonFile(assets, d.Shader, &sd); err != nil {
 		return c, err
 	}
-	if err := materialUnmarshallData(assets, d.RenderPass, &rp); err != nil {
+	if err := unmarshallJsonFile(assets, d.RenderPass, &rp); err != nil {
 		return c, err
 	}
-	if err := materialUnmarshallData(assets, d.ShaderPipeline, &sp); err != nil {
+	if err := unmarshallJsonFile(assets, d.ShaderPipeline, &sp); err != nil {
 		return c, err
 	}
 	c.shaderInfo = sd.Compile()
@@ -145,6 +150,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 }
 
 func (m *Material) Destroy(renderer Renderer) {
+	defer tracing.NewRegion("Material.Destroy").End()
 	vr := renderer.(*Vulkan)
 	m.renderPass.Destroy(vr)
 }

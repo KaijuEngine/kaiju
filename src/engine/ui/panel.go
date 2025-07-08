@@ -39,10 +39,10 @@ package ui
 
 import (
 	"kaiju/engine/assets"
+	"kaiju/engine/systems/events"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/engine/systems/events"
 	"log/slog"
 )
 
@@ -123,7 +123,7 @@ func (p *Panel) Base() *UI    { return (*UI)(p) }
 func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
 func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType ElementType) {
-	defer tracing.NewRegion("Panel::Init").End()
+	defer tracing.NewRegion("Panel.Init").End()
 	var pd *panelData
 	panel.elmType = elmType
 	if panel.elmData == nil {
@@ -238,7 +238,7 @@ func (p *Panel) FitContent() {
 }
 
 func (p *Panel) onScroll() {
-	defer tracing.NewRegion("Panel::onScroll").End()
+	defer tracing.NewRegion("Panel.onScroll").End()
 	pd := p.PanelData()
 	mouse := &p.man.Host.Window.Mouse
 	delta := mouse.Scroll()
@@ -274,7 +274,7 @@ func (p *Panel) onScroll() {
 }
 
 func (p *Panel) update(deltaTime float64) {
-	defer tracing.NewRegion("Panel::update").End()
+	defer tracing.NewRegion("Panel.update").End()
 	base := p.Base()
 	base.eventUpdates()
 	base.Update(deltaTime)
@@ -302,7 +302,8 @@ type rowBuilder struct {
 
 func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	eSize := e.Layout().PixelSize()
-	w := eSize.Width()
+	h := eSize.Height() + e.layout.padding.Top() + e.layout.padding.Bottom()
+	w := eSize.Width() + e.layout.padding.Left() + e.layout.padding.Right()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
 		return false
 	}
@@ -310,7 +311,7 @@ func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	rb.maxMarginTop = matrix.Max(rb.maxMarginTop, e.Layout().margin.Y())
 	rb.maxMarginBottom = matrix.Max(rb.maxMarginBottom, e.Layout().margin.W())
 	rb.x += w
-	rb.height = matrix.Max(rb.height, eSize.Height())
+	rb.height = matrix.Max(rb.height, h)
 	return true
 }
 
@@ -323,7 +324,7 @@ func (rb rowBuilder) Height() float32 {
 }
 
 func (rb rowBuilder) setElements(offsetX, offsetY float32) {
-	defer tracing.NewRegion("Panel::Init").End()
+	defer tracing.NewRegion("Panel.Init").End()
 	for _, e := range rb.elements {
 		layout := e.Layout()
 		x, y := offsetX, offsetY
@@ -350,7 +351,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 }
 
 func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
-	defer tracing.NewRegion("Panel::boundsChildren").End()
+	defer tracing.NewRegion("Panel.boundsChildren").End()
 	for _, kid := range p.entity.Children {
 		kui := FirstOnEntity(kid)
 		if kui.layout.screenAnchor.IsStretch() {
@@ -376,7 +377,10 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 }
 
 func (p *Panel) panelPostLayoutUpdate() {
-	defer tracing.NewRegion("Panel::panelPostLayoutUpdate").End()
+	defer tracing.NewRegion("Panel.panelPostLayoutUpdate").End()
+	if p.PanelData().drawing.IsValid() {
+		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+	}
 	if len(p.entity.Children) == 0 {
 		return
 	}
@@ -409,20 +413,6 @@ func (p *Panel) panelPostLayoutUpdate() {
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
-			if kLayout.Anchor().IsTop() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Top() +
-					p.layout.padding.Top() + p.layout.border.Top())
-			} else if kLayout.Anchor().IsBottom() {
-				kLayout.rowLayoutOffset.SetY(p.layout.InnerOffset().Bottom() +
-					p.layout.padding.Bottom() + p.layout.border.Bottom())
-			}
-			if kLayout.Anchor().IsLeft() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Left() +
-					p.layout.padding.Left() + p.layout.border.Left())
-			} else if kLayout.Anchor().IsRight() {
-				kLayout.rowLayoutOffset.SetX(p.layout.InnerOffset().Right() +
-					p.layout.padding.Right() + p.layout.border.Right())
-			}
 			kws := kid.Transform.WorldScale()
 			maxSize[matrix.Vx] = max(maxSize.X(), kLayout.left+kLayout.offset.X()+kws.Width())
 			maxSize[matrix.Vy] = max(maxSize.Y(), kLayout.top+kLayout.offset.Y()+kws.Height())
@@ -545,7 +535,6 @@ func (p *Panel) SetColor(bgColor matrix.Color) {
 		return
 	}
 	p.setColorInternal(bgColor)
-	p.ensureBGExists(nil)
 }
 
 func (p *Panel) SetScrollX(value float32) {
@@ -567,7 +556,7 @@ func (p *Panel) ResetScroll() {
 }
 
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
-	defer tracing.NewRegion("Panel::ensureBGExists").End()
+	defer tracing.NewRegion("Panel.ensureBGExists").End()
 	pd := p.PanelData()
 	if !pd.drawing.IsValid() {
 		if tex == nil {
@@ -616,11 +605,13 @@ func (p *Panel) Background() *rendering.Texture {
 }
 
 func (p *Panel) SetBackground(tex *rendering.Texture) {
-	defer tracing.NewRegion("Panel::SetBackground").End()
+	defer tracing.NewRegion("Panel.SetBackground").End()
 	pd := p.PanelData()
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
 		t := []*rendering.Texture{tex}
+		p.textureSize = matrix.NewVec2(float32(tex.Width), float32(tex.Height))
+		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		pd.drawing.Material = pd.drawing.Material.SelectRoot().CreateInstance(t)
 		if pd.transparentDrawing.Material != nil {
 			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)
@@ -697,7 +688,7 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 }
 
 func (p *Panel) SetUseBlending(useBlending bool) {
-	defer tracing.NewRegion("Panel::SetUseBlending").End()
+	defer tracing.NewRegion("Panel.SetUseBlending").End()
 	p.recreateDrawing()
 	pd := p.PanelData()
 	p.man.Host.Drawings.AddDrawing(pd.drawing)
@@ -729,7 +720,7 @@ func (p *Panel) HasEnforcedColor() bool {
 }
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
-	defer tracing.NewRegion("Panel::setColorInternal").End()
+	defer tracing.NewRegion("Panel.setColorInternal").End()
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return
 	}
@@ -741,7 +732,9 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		pd := p.PanelData()
 		p.man.Host.Drawings.AddDrawing(pd.drawing)
 		if shouldBlend {
+			sd := pd.transparentDrawing.ShaderData
 			pd.transparentDrawing = pd.drawing
+			pd.transparentDrawing.ShaderData = sd
 			m, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
 			if err != nil {
 				slog.Error("failed to load the material",

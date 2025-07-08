@@ -11,7 +11,10 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor,vulkanValidation",
+			"buildFlags": "-tags=debug,editor",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		}, {
 			"name": "Launch Windows Runtime",
 			"type": "go",
@@ -19,6 +22,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		}, {
 			"name": "Launch X11 Editor",
 			"type": "go",
@@ -27,6 +33,9 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags=editor,vulkanValidation",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		}, {
 			"name": "Launch X11 Runtime",
 			"type": "go",
@@ -34,6 +43,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		},
 		{
 			"name": "Documentation Generator",
@@ -42,6 +54,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/api",
 			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		}
 	]
 }

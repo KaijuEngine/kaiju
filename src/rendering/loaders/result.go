@@ -38,8 +38,8 @@
 package loaders
 
 import (
-	"kaiju/engine/collision"
 	"kaiju/engine"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/rendering/loaders/load_result"
 )

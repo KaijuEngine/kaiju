@@ -45,11 +45,13 @@ import (
 )
 
 type Drawing struct {
-	Renderer   Renderer
-	Material   *Material
-	Mesh       *Mesh
-	ShaderData DrawInstance
-	Transform  *matrix.Transform
+	Renderer     Renderer
+	Material     *Material
+	Mesh         *Mesh
+	ShaderData   DrawInstance
+	Transform    *matrix.Transform
+	Sort         int
+	CastsShadows bool
 }
 
 func (d *Drawing) IsValid() bool {
@@ -115,11 +117,36 @@ func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup
 	return nil, false
 }
 
+func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGroup) {
+	draw, ok := rpGroup.findShaderDraw(drawing.Material)
+	if !ok {
+		newDraw := NewShaderDraw(drawing.Material)
+		rpGroup.draws = append(rpGroup.draws, newDraw)
+		draw = &rpGroup.draws[len(rpGroup.draws)-1]
+	}
+	drawing.ShaderData.setTransform(drawing.Transform)
+	idx := d.matchGroup(draw, drawing)
+	if idx >= 0 && !draw.instanceGroups[idx].destroyed {
+		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
+	} else {
+		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
+		group.MaterialInstance = drawing.Material
+		group.AddInstance(drawing.ShaderData)
+		group.MaterialInstance.Textures = drawing.Material.Textures
+		group.sort = drawing.Sort
+		if idx >= 0 {
+			draw.instanceGroups[idx] = group
+		} else {
+			draw.AddInstanceGroup(group)
+		}
+	}
+}
+
 func (d *Drawings) PreparePending() {
-	defer tracing.NewRegion("Drawings::PreparePending").End()
+	defer tracing.NewRegion("Drawings.PreparePending").End()
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
-	for i := range d.backDraws {
+	for i := 0; i < len(d.backDraws); i++ {
 		drawing := &d.backDraws[i]
 		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
 		if !ok {
@@ -128,26 +155,10 @@ func (d *Drawings) PreparePending() {
 			})
 			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
 		}
-		draw, ok := rpGroup.findShaderDraw(drawing.Material)
-		if !ok {
-			newDraw := NewShaderDraw(drawing.Material)
-			rpGroup.draws = append(rpGroup.draws, newDraw)
-			draw = &rpGroup.draws[len(rpGroup.draws)-1]
-		}
-		drawing.ShaderData.setTransform(drawing.Transform)
-		idx := d.matchGroup(draw, drawing)
-		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
-		} else {
-			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.MaterialInstance = drawing.Material
-			group.AddInstance(drawing.ShaderData)
-			group.MaterialInstance.Textures = drawing.Material.Textures
-			if idx >= 0 {
-				draw.instanceGroups[idx] = group
-			} else {
-				draw.AddInstanceGroup(group)
-			}
+		d.addToRenderPassGroup(drawing, rpGroup)
+		if drawing.CastsShadows {
+			d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing))
+			//d.backDraws = append(d.backDraws, lightTransformDrawingToCubeDepth(drawing))
 		}
 	}
 	d.backDraws = d.backDraws[:0]
@@ -174,7 +185,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
-	defer tracing.NewRegion("Drawings::Render").End()
+	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
@@ -200,4 +211,12 @@ func (d *Drawings) Destroy(renderer Renderer) {
 		}
 	}
 	d.renderPassGroups = d.renderPassGroups[:0]
+}
+
+func (d *Drawings) Clear(renderer Renderer) {
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			d.renderPassGroups[i].draws[j].Clear(renderer)
+		}
+	}
 }

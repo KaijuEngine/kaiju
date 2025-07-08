@@ -39,17 +39,20 @@ package engine
 
 import (
 	"kaiju/engine/assets"
-	"kaiju/platform/audio"
 	"kaiju/engine/cameras"
-	"kaiju/platform/concurrent"
 	"kaiju/engine/collision_system"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/systems/logging"
+	"kaiju/engine/systems/tweening"
+	"kaiju/klib"
+	"kaiju/matrix"
+	"kaiju/platform/audio"
+	"kaiju/platform/concurrent"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
+	"kaiju/plugins"
+	"kaiju/rendering"
+	"log/slog"
 	"math"
 	"slices"
 	"time"
@@ -64,6 +67,11 @@ const InvalidFrameId = math.MaxUint64
 type frameRun struct {
 	frame FrameId
 	call  func()
+}
+
+type timeRun struct {
+	end  time.Time
+	call func()
 }
 
 // Host is the mediator to the entire runtime for the game/editor. It is the
@@ -81,7 +89,10 @@ type Host struct {
 	editorEntities   editorEntities
 	entities         []*Entity
 	entityLookup     map[EntityId]*Entity
+	lights           []rendering.Light
+	timeRunner       []timeRun
 	frameRunner      []frameRun
+	plugins          []*plugins.LuaVM
 	Window           *windowing.Window
 	LogStream        *logging.LogStream
 	workGroup        concurrent.WorkGroup
@@ -89,7 +100,7 @@ type Host struct {
 	Camera           cameras.Camera
 	UICamera         cameras.Camera
 	collisionManager collision_system.Manager
-	audio            audio.Audio
+	audio            *audio.Audio
 	shaderCache      rendering.ShaderCache
 	textureCache     rendering.TextureCache
 	meshCache        rendering.MeshCache
@@ -119,24 +130,22 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
 	host := &Host{
-		name:           name,
-		editorEntities: newEditorEntities(),
-		entities:       make([]*Entity, 0),
-		frameTime:      0,
-		Closing:        false,
-		UIUpdater:      NewUpdater(),
-		UILateUpdater:  NewUpdater(),
-		Updater:        NewUpdater(),
-		LateUpdater:    NewUpdater(),
-		assetDatabase:  assets.NewDatabase(),
-		Drawings:       rendering.NewDrawings(),
-		CloseSignal:    make(chan struct{}, 1),
-		Camera:         cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
-		UICamera:       cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
-		LogStream:      logStream,
-		frameRunner:    make([]frameRun, 0),
-		entityLookup:   make(map[EntityId]*Entity),
-		threads:        concurrent.NewThreads(),
+		name:          name,
+		entities:      make([]*Entity, 0),
+		frameTime:     0,
+		Closing:       false,
+		UIUpdater:     NewUpdater(),
+		UILateUpdater: NewUpdater(),
+		Updater:       NewUpdater(),
+		LateUpdater:   NewUpdater(),
+		assetDatabase: assets.NewDatabase(),
+		Drawings:      rendering.NewDrawings(),
+		CloseSignal:   make(chan struct{}, 1),
+		Camera:        cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
+		UICamera:      cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
+		LogStream:     logStream,
+		entityLookup:  make(map[EntityId]*Entity),
+		threads:       concurrent.NewThreads(),
 	}
 	return host
 }
@@ -168,13 +177,26 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	return nil
 }
 
-func (host *Host) InitializeAudio() error {
-	if a, err := audio.NewAudio(); err != nil {
+func (host *Host) InitializeRenderer() error {
+	w, h := int32(host.Window.Width()), int32(host.Window.Height())
+	if err := host.Window.Renderer.Initialize(host, w, h); err != nil {
+		slog.Error("failed to initialize the renderer", "error", err)
 		return err
-	} else {
-		host.audio = a
-		return nil
 	}
+	if err := host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host); err != nil {
+		slog.Error("failed to initialize the font cache", "error", err)
+		return err
+	}
+	if err := rendering.SetupLightMaterials(host.MaterialCache()); err != nil {
+		slog.Error("failed to setup the light materials", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (host *Host) InitializeAudio() (err error) {
+	host.audio, err = audio.New()
+	return err
 }
 
 // WorkGroup returns the work group for this instance of host
@@ -239,17 +261,14 @@ func (host *Host) AssetDatabase() *assets.Database {
 	return &host.assetDatabase
 }
 
-// Audio returns the audio system for the host
-func (host *Host) Audio() *audio.Audio {
-	return &host.audio
+// Plugins returns all of the loaded plugins for the host
+func (host *Host) Plugins() []*plugins.LuaVM {
+	return host.plugins
 }
 
-// AddEntity adds an entity to the host. This will add the entity to the
-// standard entity pool. If the host is in the process of creating editor
-// entities, then the entity will be added to the editor entity pool.
-func (host *Host) AddEntity(entity *Entity) {
-	host.addEntity(entity)
-	entity.initialize(host)
+// Audio returns the audio system for the host
+func (host *Host) Audio() *audio.Audio {
+	return host.audio
 }
 
 // ClearEntities will remove all entities from the host. This will remove all
@@ -280,11 +299,33 @@ func (host *Host) RemoveEntity(entity *Entity) {
 	}
 }
 
+// AddEntity adds an entity to the host. This will add the entity to the
+// standard entity pool. If the host is in the process of creating editor
+// entities, then the entity will be added to the editor entity pool.
+func (host *Host) AddEntity(entity *Entity) {
+	host.addEntity(entity)
+}
+
 // AddEntities adds multiple entities to the host. This will add the entities
 // using the same rules as AddEntity. If the host is in the process of creating
 // editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
 	host.addEntities(entities...)
+}
+
+// AddLight adds a light to the internal list of lights the host is aware of
+func (host *Host) AddLight(light rendering.Light) {
+	host.lights = append(host.lights, light)
+}
+
+// Lights returns all of the active lights managed by this host
+func (host *Host) Lights() []rendering.Light {
+	return host.lights
+}
+
+// ClearLights clears out all of the lights that the host is tracking
+func (host *Host) ClearLights() {
+	host.lights = host.lights[:0]
 }
 
 // FindEntity will search for an entity contained in this host by its id. If the
@@ -295,7 +336,7 @@ func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 	return e, ok
 }
 
-// Entities returns all the entities that are currently in the host. This will
+// Entities returns all the entities that are currently in the host. This will^
 // return all entities in the standard entity pool only. In the editor, this
 // will not return any entities that have been destroyed (and are pending
 // cleanup due to being in the undo history)
@@ -332,7 +373,7 @@ func (host *Host) NewEntity() *Entity {
 // Any destroyed entities will also be ticked for their cleanup. This will also
 // tick the editor entities for cleanup.
 func (host *Host) Update(deltaTime float64) {
-	defer tracing.NewRegion("Host::Update").End()
+	defer tracing.NewRegion("Host.Update").End()
 	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
@@ -343,8 +384,19 @@ func (host *Host) Update(deltaTime float64) {
 			i--
 		}
 	}
+	if len(host.timeRunner) > 0 {
+		now := time.Now()
+		for i := 0; i < len(host.timeRunner); i++ {
+			if host.timeRunner[i].end.Before(now) {
+				host.timeRunner[i].call()
+				host.timeRunner = klib.RemoveUnordered(host.timeRunner, i)
+				i--
+			}
+		}
+	}
 	host.UIUpdater.Update(deltaTime)
 	host.UILateUpdater.Update(deltaTime)
+	tweening.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
 	host.collisionManager.Update(deltaTime)
@@ -371,7 +423,7 @@ func (host *Host) Update(deltaTime float64) {
 // the start of the render. The frame is then readied, buffers swapped, and any
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
-	defer tracing.NewRegion("Host::Render").End()
+	defer tracing.NewRegion("Host.Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
@@ -379,7 +431,7 @@ func (host *Host) Render() {
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
 		if host.Window.Renderer.ReadyFrame(host.Camera,
-			host.UICamera, float32(host.Runtime())) {
+			host.UICamera, host.lights, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
 		}
 	}
@@ -400,6 +452,22 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame + uint64(wait),
 		call:  call,
+	})
+}
+
+func (host *Host) RunOnMainThread(call func()) {
+	host.frameRunner = append(host.frameRunner, frameRun{
+		frame: host.frame,
+		call:  call,
+	})
+}
+
+// RunAfterTime will call the given function after the given number of time
+// has passed from the current frame
+func (host *Host) RunAfterTime(wait time.Duration, call func()) {
+	host.timeRunner = append(host.timeRunner, timeRun{
+		end:  time.Now().Add(wait),
+		call: call,
 	})
 }
 
@@ -426,7 +494,7 @@ func (host *Host) Teardown() {
 
 // WaitForFrameRate will block until the desired frame rate limit is reached
 func (h *Host) WaitForFrameRate() {
-	defer tracing.NewRegion("Host::WaitForFrameRate").End()
+	defer tracing.NewRegion("Host.WaitForFrameRate").End()
 	if h.frameRateLimit != nil {
 		<-h.frameRateLimit.C
 	}
@@ -438,6 +506,7 @@ func (h *Host) WaitForFrameRate() {
 // If a frame rate is set, then the host will block until the desired frame rate
 // is reached before continuing the update loop.
 func (h *Host) SetFrameRateLimit(fps int64) {
+	defer tracing.NewRegion("Host.SetFrameRateLimit").End()
 	if fps == 0 {
 		h.frameRateLimit.Stop()
 		h.frameRateLimit = nil
@@ -452,12 +521,24 @@ func (host *Host) Close() {
 	host.Closing = true
 }
 
+// ReserveEntities will grow the internal entity list by the given amount,
+// this is useful for when you need to create a large amount of entities
+func (host *Host) ReserveEntities(additional int) {
+	defer tracing.NewRegion("Host.ReserveEntities").End()
+	host.entities = slices.Grow(host.entities, additional)
+}
+
+// BootstrapPlugins will initialize the plugin interface and read all of the
+// plugins that are in the content folder and prepare them for execution
+func (host *Host) BootstrapPlugins() error {
+	defer tracing.NewRegion("Host.BootstrapPlugins").End()
+	var err error
+	host.plugins, err = plugins.LaunchPlugins(host.AssetDatabase())
+	return err
+}
+
 func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Camera.ViewportChanged(w, h)
 	host.UICamera.ViewportChanged(w, h)
-}
-
-func (host *Host) ReserveEntities(additional int) {
-	host.entities = slices.Grow(host.entities, additional)
 }

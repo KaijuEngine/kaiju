@@ -545,7 +545,7 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 }
 
 func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
-	defer tracing.NewRegion("ShaderPipelineDataCompiled::ConstructPipeline").End()
+	defer tracing.NewRegion("ShaderPipelineDataCompiled.ConstructPipeline").End()
 	vr := renderer.(*Vulkan)
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,

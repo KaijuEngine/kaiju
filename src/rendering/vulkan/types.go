@@ -638,7 +638,9 @@ func (s *DeviceCreateInfo) SetEnabledLayerNames(names []string) {
 	for i := range names {
 		strs[i] = C.CString(names[i])
 	}
-	s.ppEnabledLayerNames = &strs[0]
+	if len(strs) > 0 {
+		s.ppEnabledLayerNames = &strs[0]
+	}
 }
 
 func (s *DeviceCreateInfo) SetEnabledExtensionNames(names []string) {

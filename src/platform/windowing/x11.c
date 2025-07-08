@@ -192,9 +192,9 @@ void window_poll(void* x11State) {
 				break;
 			case ConfigureNotify:
 				// No need to trigger a resize on init
-				if (s->sm->windowWidth == 0 || s->sm->windowHeight == 0) {
-					s->sm->windowWidth = e.xconfigure.width;
-					s->sm->windowHeight = e.xconfigure.height;
+				if (s->sm.windowWidth == 0 || s->sm.windowHeight == 0) {
+					s->sm.windowWidth = e.xconfigure.width;
+					s->sm.windowHeight = e.xconfigure.height;
 				}
 				if (s->sm.x != e.xconfigure.x || s->sm.y != e.xconfigure.y) {
 					s->sm.x = e.xconfigure.x;
@@ -349,6 +349,31 @@ void window_cursor_size_we(void* state) {
 	X11State* s = state;
 	Cursor c = XcursorLibraryLoadCursor(s->d, "sb_h_double_arrow");
 	XDefineCursor(s->d, s->w, c);
+}
+
+void window_show_cursor(void* state) {
+	X11State* s = state;
+	XUndefineCursor(s->d, s->w);
+	XFlush(s->d);
+}
+
+void window_hide_cursor(void* state) {
+	X11State* s = state;
+	Pixmap blank = XCreatePixmap(s->d, s->w, 1, 1, 1);
+	XColor dummy_color;
+	Cursor cursor = XCreatePixmapCursor(s->d, blank, blank, &dummy_color, &dummy_color, 0, 0);
+	XDefineCursor(s->d, s->w, cursor);
+	XFreePixmap(s->d, blank);
+	XFreeCursor(s->d, cursor);
+	XFlush(s->d);
+}
+
+float window_dpi(void* state) {
+	X11State* s = state;
+	int screen = XDefaultScreen(s->d);
+	int pixelWidth = DisplayWidth(s->d, screen);
+	int mmWidth = DisplayWidthMM(s->d, screen);
+	return pixelWidth / mmWidth;
 }
 
 void window_position(void* state, int* x, int* y) {

@@ -1,8 +1,8 @@
-//go:build shipping
+//go:build !debug
 
 package tracing
 
 type TraceRegion struct{}
 
-func NewTraceRegion(name string) TraceRegion { return TraceRegion{} }
-func (t TraceRegion) End()                   {}
+func NewRegion(name string) TraceRegion { return TraceRegion{} }
+func (t TraceRegion) End()              {}

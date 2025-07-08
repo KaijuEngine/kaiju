@@ -40,11 +40,11 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
 	"strings"
 )
 
@@ -77,7 +77,7 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 				if layout.Anchor() <= ui.AnchorTopRight {
 					val = -val
 				}
-				offset[matrix.Vy] += val
+				offset[matrix.Vy] = val
 			}
 		}
 		layout.SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())

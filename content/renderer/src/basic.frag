@@ -10,7 +10,9 @@ layout(location = 3) in vec3 fragLightDirection;
 layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 outColor;
+#ifdef OIT
 layout(location = 1) out float reveal;
+#endif
 
 void main() {
     vec4 baseColor = texture(texSampler, fragTexCoords) * fragColor;

@@ -71,5 +71,8 @@ void window_cursor_ibeam(void* state);
 void window_cursor_size_all(void* state);
 void window_cursor_size_ns(void* state);
 void window_cursor_size_we(void* state);
+void window_show_cursor(void* state);
+void window_hide_cursor(void* state);
+float window_dpi(void* state);
 
 #endif

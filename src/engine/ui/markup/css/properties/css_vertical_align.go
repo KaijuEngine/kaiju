@@ -41,10 +41,10 @@ import (
 	"errors"
 	"fmt"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/engine/ui"
 )
 
 // auto|baseline|bottom|middle|sub|super|text-bottom|text-top|top|initial|inherit
@@ -58,7 +58,13 @@ func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []
 		for _, l := range labels {
 			base := l.Base()
 			layout := base.Layout()
-			layout.AnchorTo(layout.Anchor().ConvertToLeft())
+			if layout.Anchor().IsLeft() {
+				layout.AnchorTo(ui.AnchorLeft)
+			} else if layout.Anchor().IsRight() {
+				layout.AnchorTo(ui.AnchorRight)
+			} else {
+				layout.AnchorTo(ui.AnchorCenter)
+			}
 			l.SetBaseline(rendering.FontBaselineCenter)
 		}
 		return nil

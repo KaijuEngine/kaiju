@@ -45,6 +45,7 @@ import (
 	"image/png"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"strings"
 )
 
@@ -144,6 +145,7 @@ type Texture struct {
 }
 
 func TextureKeys(textures []*Texture) []string {
+	defer tracing.NewRegion("rendering.TextureKeys").End()
 	keys := make([]string, len(textures))
 	for i, t := range textures {
 		keys[i] = t.Key
@@ -152,6 +154,7 @@ func TextureKeys(textures []*Texture) []string {
 }
 
 func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
+	defer tracing.NewRegion("rendering.ReadRawTextureData").End()
 	var res TextureData
 	res.InputType = inputType
 	switch inputType {
@@ -212,9 +215,13 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 		r := bytes.NewReader(mem)
 		if img, err := png.Decode(r); err == nil {
 			var mem []byte
-			switch img.(type) {
+			switch pic := img.(type) {
 			case *image.RGBA:
-				mem = img.(*image.RGBA).Pix
+				mem = pic.Pix
+			//case *image.Paletted:
+			//	mem = pic.Pix
+			//case *image.NRGBA:
+			//	mem = pic.Pix
 			default:
 				b := img.Bounds()
 				dst := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
@@ -272,6 +279,7 @@ func (t *Texture) create(imgBuff []byte) {
 }
 
 func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
+	defer tracing.NewRegion("rendering.NewTexture").End()
 	tex := &Texture{Key: textureKey, Filter: filter}
 	if assetDb.Exists(textureKey) {
 		if imgBuff, err := assetDb.Read(textureKey); err != nil {
@@ -288,11 +296,13 @@ func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, 
 }
 
 func (t *Texture) DelayedCreate(renderer Renderer) {
+	defer tracing.NewRegion("Texture.DelayedCreate").End()
 	renderer.CreateTexture(t, t.pendingData)
 	t.pendingData = nil
 }
 
 func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
 	tex.Width = width
@@ -301,10 +311,12 @@ func NewTextureFromMemory(key string, data []byte, width, height int, filter Tex
 }
 
 func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color {
+	defer tracing.NewRegion("Texture.ReadPixel").End()
 	return renderer.TextureReadPixel(t, x, y)
 }
 
 func (t *Texture) WritePixels(renderer Renderer, x, y, width, height int, pixels []byte) {
+	defer tracing.NewRegion("Texture.WritePixels").End()
 	renderer.TextureWritePixels(t, x, y, width, height, pixels)
 }
 
@@ -313,6 +325,7 @@ func (t Texture) Size() matrix.Vec2 {
 }
 
 func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (TextureData, error) {
+	defer tracing.NewRegion("rendering.TexturePixelsFromAsset").End()
 	if assetDb.Exists(textureKey) {
 		if imgBuff, err := assetDb.Read(textureKey); err != nil {
 			return TextureData{}, err
@@ -327,6 +340,7 @@ func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (Textur
 }
 
 func (t *Texture) Destroy(renderer Renderer) {
+	defer tracing.NewRegion("Texture.Destroy").End()
 	// TODO:  Anything needed cleaned up from pendingData?
 	t.pendingData = nil
 	renderer.DestroyTexture(t)

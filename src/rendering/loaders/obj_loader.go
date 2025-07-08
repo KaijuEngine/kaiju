@@ -194,7 +194,7 @@ func (obj *objBuilder) readFace(line string) {
 
 func OBJ(objData string) load_result.Result {
 	builders := ObjToRaw(objData)
-	res := load_result.NewResult()
+	res := load_result.Result{}
 	for i := range builders {
 		builder := &builders[i]
 		verts := make([]rendering.Vertex, len(builder.points))
@@ -207,7 +207,7 @@ func OBJ(objData string) load_result.Result {
 				Color:    builder.colors[builder.vIndexes[vi]],
 			}
 		}
-		res.Add(builder.name, builder.name, verts, builder.vIndexes, nil)
+		res.Add(builder.name, builder.name, verts, builder.vIndexes, nil, nil)
 	}
 	return res
 }

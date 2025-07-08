@@ -39,9 +39,10 @@ package host_container
 
 import (
 	"kaiju/engine"
-	"kaiju/platform/profiler/tracing"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/systems/logging"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"runtime"
 	"strconv"
 	"strings"
@@ -61,10 +62,17 @@ func (c *Container) RunFunction(f func()) {
 func (c *Container) Run(width, height, x, y int) error {
 	runtime.LockOSThread()
 	if err := c.Host.Initialize(width, height, x, y); err != nil {
+		slog.Error("Failed to initialize the host", "error", err)
 		return err
 	}
-	c.Host.Window.Renderer.Initialize(c.Host, int32(c.Host.Window.Width()), int32(c.Host.Window.Height()))
-	c.Host.FontCache().Init(c.Host.Window.Renderer, c.Host.AssetDatabase(), c.Host)
+	if err := c.Host.InitializeRenderer(); err != nil {
+		slog.Error("Failed to initialize the renderer", "error", err)
+		return err
+	}
+	if err := c.Host.InitializeAudio(); err != nil {
+		slog.Error("Failed to initialize audio", "error", err)
+		return err
+	}
 	lastTime := time.Now()
 	// Do one clean update and render before opening the prep lock
 	c.Host.Update(0)
@@ -93,6 +101,7 @@ func (c *Container) Run(width, height, x, y int) error {
 }
 
 func New(name string, logStream *logging.LogStream) *Container {
+	defer tracing.NewRegion("host_container.New").End()
 	host := engine.NewHost(name, logStream)
 	c := &Container{
 		Host:         host,
@@ -100,6 +109,7 @@ func New(name string, logStream *logging.LogStream) *Container {
 		PrepLock:     make(chan struct{}),
 	}
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
+		defer tracing.NewRegion("engine.Host.runFunctions").End()
 		if len(c.runFunctions) > 0 {
 			for _, f := range c.runFunctions {
 				f()
@@ -111,5 +121,6 @@ func New(name string, logStream *logging.LogStream) *Container {
 }
 
 func (c *Container) Close() {
+	defer tracing.NewRegion("Container.Close").End()
 	c.Host.Close()
 }

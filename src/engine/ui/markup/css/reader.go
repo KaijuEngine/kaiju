@@ -59,8 +59,10 @@ func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
 func ApplyElementStyle(elm *document.Element, host *engine.Host) []error {
 	panel := elm.UIPanel
 	hasHover := false
-	for i := 0; i < len(elm.StyleRules) && !hasHover; i++ {
-		hasHover = elm.StyleRules[i].Invocation == rules.RuleInvokeHover
+	hasActive := false
+	for i := 0; i < len(elm.StyleRules); i++ {
+		hasHover = hasHover || elm.StyleRules[i].Invocation == rules.RuleInvokeHover
+		hasActive = hasActive || elm.StyleRules[i].Invocation == rules.RuleInvokeActive
 	}
 	proc := func(invokeType rules.RuleInvoke) []error {
 		problems := make([]error, 0)
@@ -82,6 +84,28 @@ func ApplyElementStyle(elm *document.Element, host *engine.Host) []error {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 			proc(rules.RuleInvokeHover)
+		})
+		elm.UI.AddEvent(ui.EventTypeExit, func() {
+			elm.UI.Layout().ClearFunctions()
+			proc(rules.RuleInvokeImmediate)
+		})
+	}
+	if hasActive {
+		elm.UI.AddEvent(ui.EventTypeEnter, func() {
+			if elm.UI.IsDown() {
+				elm.UI.Layout().ClearFunctions()
+				proc(rules.RuleInvokeImmediate)
+				proc(rules.RuleInvokeActive)
+			}
+		})
+		elm.UI.AddEvent(ui.EventTypeDown, func() {
+			elm.UI.Layout().ClearFunctions()
+			proc(rules.RuleInvokeImmediate)
+			proc(rules.RuleInvokeActive)
+		})
+		elm.UI.AddEvent(ui.EventTypeUp, func() {
+			elm.UI.Layout().ClearFunctions()
+			proc(rules.RuleInvokeImmediate)
 		})
 		elm.UI.AddEvent(ui.EventTypeExit, func() {
 			elm.UI.Layout().ClearFunctions()

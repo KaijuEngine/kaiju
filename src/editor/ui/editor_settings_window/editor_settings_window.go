@@ -2,11 +2,11 @@ package editor_settings_window
 
 import (
 	"kaiju/editor/cache/editor_cache"
-	"kaiju/editor/plugins"
 	"kaiju/engine/host_container"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
+	"kaiju/plugins"
 	"strconv"
 )
 

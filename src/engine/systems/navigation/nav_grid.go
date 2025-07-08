@@ -37,11 +37,15 @@
 
 package navigation
 
-import "kaiju/matrix"
+import (
+	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
+)
 
 type Grid [][][]int8
 
 func NewGrid(width, height, depth int) Grid {
+	defer tracing.NewRegion("navigation.NewGrid").End()
 	cells := make([][][]int8, width)
 	for i := range cells {
 		cells[i] = make([][]int8, height)

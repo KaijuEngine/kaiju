@@ -85,7 +85,7 @@ func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
 func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, assets *assets.Database, index int) error {
 	r.subpasses = r.subpasses[:0]
 	sp := RenderPassSubpass{}
-	// TODO:  This is copied from Material::Compile
+	// TODO:  This is copied from Material.Compile
 	{
 		shaderConfig, err := assets.ReadText(c.Shader)
 		if err != nil {
@@ -105,7 +105,10 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 		}
 		sp.shaderPipeline = pipe.Compile(vr)
 		shaderCache := vr.caches.ShaderCache()
-		sp.shader, _ = shaderCache.Shader(rawSD.Compile())
+		var isNew bool
+		if sp.shader, isNew = shaderCache.Shader(rawSD.Compile()); isNew {
+			slog.Info("creating subpass shader", "shader", rawSD.Name)
+		}
 		sp.shader.pipelineInfo = &sp.shaderPipeline
 		sp.shader.renderPass = r
 		shaderCache.CreatePending()
@@ -186,7 +189,7 @@ func (r *RenderPass) ExecuteSecondaryCommands() {
 	if r.currentIdx > 0 {
 		rec = &r.subpasses[r.currentIdx-1].cmd[r.frame]
 	}
-	vk.EndCommandBuffer(rec.buffer)
+	rec.End()
 	buffs[0] = rec.buffer
 	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
 }
@@ -222,11 +225,22 @@ func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
 	if fallback != nil {
 		return fallback
 	}
-	slog.Error("failed to find an output color attachment for the render pass", "renderPass", r.construction.Name)
-	if len(r.textures) > 0 {
-		return &r.textures[0]
+	for i := range r.textures {
+		if !isDepthFormat(r.textures[i].RenderId.Format) {
+			slog.Error("failed to find an output color attachment for the render pass, using fallback", "renderPass", r.construction.Name)
+			return &r.textures[i]
+		}
 	}
 	return nil
+}
+
+func isDepthFormat(format vk.Format) bool {
+	switch format {
+	case vk.FormatD16Unorm, vk.FormatD32Sfloat, vk.FormatD16UnormS8Uint,
+		vk.FormatD24UnormS8Uint, vk.FormatD32SfloatS8Uint:
+		return true
+	}
+	return false
 }
 
 func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, error) {

@@ -40,12 +40,12 @@ package document
 import (
 	"html/template"
 	"kaiju/engine"
-	"kaiju/klib"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/elements"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"kaiju/engine/ui"
 	"log/slog"
 	"slices"
 	"strconv"
@@ -178,14 +178,42 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
 		panel := uiMan.Add().ToPanel()
 		if e.IsImage() {
-			tex, err := uiMan.Host.TextureCache().Texture(
-				e.Attribute("src"), rendering.TextureFilterLinear)
+			src := e.Attribute("src")
+			var tex *rendering.Texture
+			var err error
+			var spriteJSON string
+			if strings.HasSuffix(src, ".gif") {
+				root := strings.TrimSuffix(src, ".gif")
+				pngSrc := root + ".png"
+				jsonSrc := pngSrc + ".json"
+				assets := uiMan.Host.AssetDatabase()
+				if !assets.Exists(jsonSrc) {
+					slog.Error("failed to find the JSON for the sprite sheet", "png", pngSrc, "json", jsonSrc)
+					return
+				}
+				if tex, err = uiMan.Host.TextureCache().Texture(pngSrc, rendering.TextureFilterLinear); err != nil {
+					slog.Error("failed to read the sprite sheet PNG file", "png", pngSrc, "error", err)
+					return
+				}
+				if spriteJSON, err = assets.ReadText(jsonSrc); err != nil {
+					slog.Error("failed to read the sprite sheet JSON file", "json", jsonSrc, "error", err)
+					return
+				}
+				assets.Cache(jsonSrc, []byte(spriteJSON))
+			} else {
+				tex, err = uiMan.Host.TextureCache().Texture(src, rendering.TextureFilterLinear)
+			}
 			if err != nil {
 				slog.Error(err.Error())
 				return
 			}
 			img := panel.Base().ToImage()
-			img.Init(tex, ui.AnchorTopLeft)
+			if strings.HasSuffix(src, ".gif") {
+				img.InitSpriteSheet(12, tex, spriteJSON, ui.AnchorTopLeft)
+				img.PlayAnimation()
+			} else {
+				img.Init(tex, ui.AnchorTopLeft)
+			}
 			panel = (*ui.Panel)(img)
 		} else if e.IsInput() {
 			inputType := e.Attribute("type")
@@ -199,6 +227,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			case "slider":
 				slider := panel.Base().ToSlider()
 				slider.Init(ui.AnchorTopLeft)
+				panel.DontFitContent()
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
 						slider.SetValue(float32(f))

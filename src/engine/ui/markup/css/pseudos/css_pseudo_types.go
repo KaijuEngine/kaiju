@@ -42,9 +42,8 @@ import "kaiju/engine/ui/markup/css/rules"
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:active
 type Active struct{}
 
-func (p Active) Key() string                                { return "active" }
-func (p Active) IsFunction() bool                           { return false }
-func (p Active) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
+func (p Active) Key() string      { return "active" }
+func (p Active) IsFunction() bool { return false }
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:any-link
 type AnyLink struct{}

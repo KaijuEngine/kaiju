@@ -351,3 +351,7 @@ func QuaternionLookAt(from, to Vec3) Quaternion {
 	nmlCross := cross.Normal()
 	return QuaternionAxisAngle(nmlCross, angle)
 }
+
+func (q Quaternion) IsZero() bool {
+	return QuaternionApprox(q, Quaternion{})
+}

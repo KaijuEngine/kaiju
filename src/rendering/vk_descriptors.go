@@ -45,7 +45,7 @@ import (
 )
 
 func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure DescriptorSetLayoutStructure) (vk.DescriptorSetLayout, error) {
-	defer tracing.NewRegion("Vulkan::createDescriptorSetLayout").End()
+	defer tracing.NewRegion("Vulkan.createDescriptorSetLayout").End()
 	structureCount := len(structure.Types)
 	bindings := make([]vk.DescriptorSetLayoutBinding, structureCount)
 	for i := 0; i < structureCount; i++ {

@@ -40,11 +40,11 @@ package properties
 import (
 	"errors"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
 	"strings"
 )
 
@@ -76,7 +76,7 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 					l.SetInnerOffsetRight(pLayout.PixelSize().X() * val)
 				})
 			} else {
-				offset[matrix.Vz] += val
+				offset[matrix.Vz] = val
 			}
 		}
 		layout.SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())

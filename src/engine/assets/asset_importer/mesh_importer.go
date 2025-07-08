@@ -2,10 +2,10 @@ package asset_importer
 
 import (
 	"errors"
-	"kaiju/engine/assets"
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/rendering/loaders/load_result"
 
 	"github.com/KaijuEngine/uuid"
@@ -19,7 +19,7 @@ type MeshMetadata struct {
 func cleanupMesh(adi asset_info.AssetDatabaseInfo) {
 	project_cache.DeleteMesh(adi)
 	adi.Children = adi.Children[:0]
-	adi.Metadata = make(map[string]string)
+	adi.Metadata = nil
 }
 
 func importMeshToCache(adi *asset_info.AssetDatabaseInfo, mesh load_result.Result) error {

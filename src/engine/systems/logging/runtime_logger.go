@@ -52,7 +52,7 @@ type RuntimeLogHandler struct {
 
 func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool {
 	if build.Debug {
-		return level >= slog.LevelDebug
+		return true
 	} else {
 		return level >= slog.LevelWarn
 	}

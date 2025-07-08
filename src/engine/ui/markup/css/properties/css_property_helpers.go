@@ -1,8 +1,8 @@
 package properties
 
 import (
-	"kaiju/engine/ui/markup/document"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/document"
 )
 
 func childLabels(elm *document.Element) []*ui.Label {

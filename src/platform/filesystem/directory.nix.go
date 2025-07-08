@@ -40,6 +40,8 @@
 package filesystem
 
 import (
+	"errors"
+	"kaiju/klib"
 	"os"
 	"path/filepath"
 )
@@ -50,4 +52,14 @@ func imageDirectory() (string, error) {
 		return "", err
 	}
 	return filepath.Join(userFolder, "Pictures"), nil
+}
+
+func gameDirectory() (string, error) {
+	klib.NotYetImplemented(318)
+	return "", errors.New("not yet implemented")
+	//appdata, err := os.UserConfigDir()
+	//if err != nil {
+	//	return "", err
+	//}
+	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
 }

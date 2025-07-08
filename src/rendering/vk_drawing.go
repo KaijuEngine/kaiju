@@ -49,6 +49,7 @@ import (
 )
 
 func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
+	defer tracing.NewRegion("Vulkan.mapAndCopy").End()
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, sb.memories[vr.currentFrame], 0, mapLen, 0, &data)
 	if r != vk.Success {
@@ -58,12 +59,13 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 		slog.Error("MapMemory was a success, but data is nil")
 		return false
 	}
-	vk.Memcopy(data, fromBuffer)
+	vk.Memcopy(data, fromBuffer[:mapLen])
 	vk.UnmapMemory(vr.device, sb.memories[vr.currentFrame])
 	return true
 }
 
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup) bool {
+	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	shaderDataSize := material.Shader.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
 	updatedAnything := false
@@ -114,6 +116,22 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				prepareSetWriteImage(set, group.imageInfos, 1, false),
 			}
 			count := 2
+			if group.MaterialInstance.HasShadowMap() {
+				const id = 2
+				sm := &group.MaterialInstance.ShadowMap.RenderId
+				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
+				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
+				descriptorWrites[id+1] = prepareSetWriteImage(set, info, id, false)
+				count = 4
+			}
+			if group.MaterialInstance.HasShadowCubeMap() {
+				const id = 3
+				sm := &group.MaterialInstance.ShadowCubeMap.RenderId
+				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
+				descriptorWrites[id-1] = prepareSetWriteImage(set, info, id, false)
+				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
+				count = 4
+			}
 			for k := range group.namedBuffers {
 				if count >= maxDescriptorWrites {
 					slog.Error("need to increase max descriptor writes array size")
@@ -140,6 +158,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 }
 
 func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, pipeline)
 	for i := range groups {
 		group := &groups[i]
@@ -172,7 +191,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 }
 
 func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
-	defer tracing.NewRegion("Vulkan::Draw").End()
+	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return false
 	}
@@ -233,7 +252,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
-	defer tracing.NewRegion("Vulkan::prepCombinedTargets").End()
+	defer tracing.NewRegion("Vulkan.prepCombinedTargets").End()
 	combineMat, err := vr.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
 	if err != nil {
 		slog.Error("failed to load the combine material", "error", err)
@@ -241,14 +260,21 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	vr.caches.ShaderCache().CreatePending()
 	// Sort order of the passes matter, so we need a complete recreate if not ok
 	ok := false
-	mats := make([]*Material, len(passes))
+	sorts := make([]int, 0, len(passes))
+	mats := make([]*Material, 0, len(passes))
 	for i := range passes {
-		mats[i] = combineMat.CreateInstance([]*Texture{passes[i].SelectOutputAttachment(vr)})
+		tex := passes[i].SelectOutputAttachment(vr)
+		if tex == nil {
+			continue
+		}
+		mats = append(mats, combineMat.CreateInstance([]*Texture{tex}))
+		sorts = append(sorts, passes[i].construction.Sort)
+		matIdx := len(mats) - 1
 		if len(vr.combinedDrawings.renderPassGroups) > 0 {
 			var d *ShaderDraw
-			d, _ = vr.combinedDrawings.renderPassGroups[0].findShaderDraw(mats[i])
+			d, _ = vr.combinedDrawings.renderPassGroups[0].findShaderDraw(mats[matIdx])
 			for _, v := range d.material.Instances {
-				if slices.Equal(mats[i].Textures, v.Textures) {
+				if slices.Equal(mats[matIdx].Textures, v.Textures) {
 					ok = true
 					break
 				}
@@ -258,19 +284,9 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	if ok {
 		return
 	}
-	for i := range vr.combinedDrawings.renderPassGroups {
-		rpg := &vr.combinedDrawings.renderPassGroups[i]
-		for j := range rpg.draws {
-			d := &rpg.draws[j]
-			for k := range d.instanceGroups {
-				ig := &d.instanceGroups[k]
-				ig.Clear(vr)
-			}
-		}
-	}
-	vr.combinedDrawings.Destroy(vr)
+	vr.combinedDrawings.Clear(vr)
 	mesh := NewMeshQuad(vr.caches.MeshCache())
-	for i := range passes {
+	for i := range mats {
 		sd := &ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 		m := matrix.Mat4Identity()
 		m.Scale(matrix.Vec3{1, 1, 1})
@@ -280,30 +296,34 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			Material:   mats[i],
 			Mesh:       mesh,
 			ShaderData: sd,
+			Sort:       sorts[i],
 		})
 	}
 	vr.combinedDrawings.PreparePending()
 }
 
 func (vr *Vulkan) combineTargets() *TextureId {
-	defer tracing.NewRegion("Vulkan::combineTargets").End()
-	cmd := vr.beginSingleTimeCommands()
+	defer tracing.NewRegion("Vulkan.combineTargets").End()
+	cmd := &vr.combineCmds[vr.currentFrame]
+	cmd.Begin()
+	defer cmd.End()
+	vr.forceQueueCommand(*cmd)
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
 		// Each material has a single texture for the image to add to the combined final image
 		color := &draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
 		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+			vk.ImageAspectFlags(vk.ImageAspectColorBit),
+			vk.AccessFlags(vk.AccessTransferReadBit), cmd)
 	}
-	vr.endSingleTimeCommands(cmd)
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
 	vr.Draw(combinePass, draws)
 	return &combinePass.textures[0].RenderId
 }
 
 func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
-	defer tracing.NewRegion("Vulkan::cleanupCombined").End()
+	defer tracing.NewRegion("Vulkan.cleanupCombined").End()
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {
@@ -316,16 +336,16 @@ func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
 }
 
 func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
-	defer tracing.NewRegion("Vulkan::BlitTargets").End()
+	defer tracing.NewRegion("Vulkan.BlitTargets").End()
 	if !vr.hasSwapChain {
 		return
 	}
 	vr.prepCombinedTargets(passes)
-	vr.delayWrittenCommands = true
-	defer func() { vr.delayWrittenCommands = false }()
 	img := vr.combineTargets()
-	cmd := vr.beginSingleTimeCommands()
-	defer vr.endSingleTimeCommands(cmd)
+	cmd := &vr.blitCmds[vr.currentFrame]
+	cmd.Begin()
+	defer cmd.End()
+	vr.forceQueueCommand(*cmd)
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
@@ -359,6 +379,7 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 }
 
 func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
 	lastCount := group.InstanceDriverData.lastInstanceCount
 	if currentCount > lastCount {

@@ -39,18 +39,18 @@ package tests
 
 import (
 	"fmt"
-	"kaiju/engine/assets"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
+	"kaiju/engine/systems/console"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
 	"kaiju/rendering/loaders/load_result"
-	"kaiju/engine/systems/console"
-	"kaiju/engine/ui"
 	"log/slog"
 	"strings"
 	"unsafe"
@@ -422,8 +422,8 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
 	m := res.Meshes[0]
 	textures := make([]*rendering.Texture, 0)
-	for i := range res.Textures {
-		tex, _ := host.TextureCache().Texture(res.Textures[i], rendering.TextureFilterLinear)
+	for _, path := range res.Textures() {
+		tex, _ := host.TextureCache().Texture(path, rendering.TextureFilterLinear)
 		textures = append(textures, tex)
 	}
 	if len(textures) == 0 {

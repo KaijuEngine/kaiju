@@ -38,10 +38,10 @@
 package engine
 
 import (
-	"kaiju/platform/concurrent"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/engine/systems/events"
+	"kaiju/platform/concurrent"
 	"log/slog"
 	"slices"
 )
@@ -317,6 +317,12 @@ func (e *Entity) RemoveNamedData(key string, data interface{}) {
 			}
 		}
 	}
+}
+
+// RemoveNamedDataByName will remove all of the stored named data
+// that matches the given key on the entity
+func (e *Entity) RemoveNamedDataByName(key string) {
+	delete(e.namedData, key)
 }
 
 // NamedData will return the data associated with the specified key. If the key

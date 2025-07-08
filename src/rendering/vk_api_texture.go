@@ -101,7 +101,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 }
 
 func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
-	defer tracing.NewRegion("Vulkan::CreateTexture").End()
+	defer tracing.NewRegion("Vulkan.CreateTexture").End()
 	format := vk.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
@@ -220,12 +220,13 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		&stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(memLen), 0, &stageData)
-	vk.Memcopy(stageData, data.Mem)
+	vk.Memcopy(stageData, data.Mem[:memLen])
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1
 	vr.CreateImage(uint32(data.Width), uint32(data.Height), uint32(mip),
-		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use), vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
+		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
+		vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
 	texture.RenderId.MipLevels = uint32(mip)
 	texture.RenderId.Format = format
 	texture.RenderId.Width = data.Width
@@ -252,7 +253,7 @@ func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId) {
 }
 
 func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8) {
-	defer tracing.NewRegion("Vulkan::TextureWritePixels").End()
+	defer tracing.NewRegion("Vulkan.TextureWritePixels").End()
 	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	id := &texture.RenderId
 	vr.transitionImageLayout(id, vk.ImageLayoutTransferDstOptimal,
@@ -263,13 +264,13 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, 
 }
 
 func (vr *Vulkan) DestroyTexture(texture *Texture) {
-	defer tracing.NewRegion("Vulkan::DestroyTexture").End()
+	defer tracing.NewRegion("Vulkan.DestroyTexture").End()
 	vk.DeviceWaitIdle(vr.device)
 	vr.textureIdFree(&texture.RenderId)
 	texture.RenderId = TextureId{}
 }
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
-	defer tracing.NewRegion("Vulkan::TextureReadPixel").End()
+	defer tracing.NewRegion("Vulkan.TextureReadPixel").End()
 	panic("not implemented")
 }
