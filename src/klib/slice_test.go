@@ -38,7 +38,7 @@
 package klib
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 )
 
@@ -58,8 +58,8 @@ func TestRemoveUnordered(t *testing.T) {
 
 func TestShuffle(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5}
-	Shuffle(slice, rand.New(rand.NewSource(0)))
-	compare := []int{4, 1, 2, 3, 5}
+	Shuffle(slice, rand.New(rand.NewPCG(0, 0)))
+	compare := []int{1, 3, 4, 5, 2}
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
 	}
@@ -72,8 +72,8 @@ func TestShuffle(t *testing.T) {
 
 func TestShuffleFront(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5}
-	Shuffle(slice[:3], rand.New(rand.NewSource(0)))
-	compare := []int{2, 3, 1, 4, 5}
+	Shuffle(slice[:3], rand.New(rand.NewPCG(0, 0)))
+	compare := []int{3, 2, 1, 4, 5}
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
 	}
@@ -86,8 +86,8 @@ func TestShuffleFront(t *testing.T) {
 
 func TestShuffleBack(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5}
-	Shuffle(slice[2:], rand.New(rand.NewSource(0)))
-	compare := []int{1, 2, 4, 5, 3}
+	Shuffle(slice[2:], rand.New(rand.NewPCG(0, 0)))
+	compare := []int{1, 2, 5, 4, 3}
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
 	}
@@ -100,7 +100,7 @@ func TestShuffleBack(t *testing.T) {
 
 func TestShuffleEmpty(t *testing.T) {
 	slice := make([]int, 0)
-	Shuffle(slice, rand.New(rand.NewSource(0)))
+	Shuffle(slice, rand.New(rand.NewPCG(0, 0)))
 	compare := make([]int, 0)
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
@@ -114,7 +114,7 @@ func TestShuffleEmpty(t *testing.T) {
 
 func TestShuffleOne(t *testing.T) {
 	slice := []int{1}
-	Shuffle(slice, rand.New(rand.NewSource(0)))
+	Shuffle(slice, rand.New(rand.NewPCG(0, 0)))
 	compare := []int{1}
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
@@ -128,8 +128,8 @@ func TestShuffleOne(t *testing.T) {
 
 func TestShuffleMiddle(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5}
-	Shuffle(slice[1:4], rand.New(rand.NewSource(0)))
-	compare := []int{1, 3, 4, 2, 5}
+	Shuffle(slice[1:4], rand.New(rand.NewPCG(0, 0)))
+	compare := []int{1, 4, 3, 2, 5}
 	if len(slice) != len(compare) {
 		t.Errorf("len(slice) = %d, expected %d", len(slice), len(compare))
 	}
