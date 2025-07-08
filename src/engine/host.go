@@ -458,7 +458,7 @@ func (host *Host) Teardown() {
 
 // WaitForFrameRate will block until the desired frame rate limit is reached
 func (h *Host) WaitForFrameRate() {
-	defer tracing.NewRegion("Host::WaitForFrameRate").End()
+	defer tracing.NewRegion("Host.WaitForFrameRate").End()
 	if h.frameRateLimit != nil {
 		<-h.frameRateLimit.C
 	}
@@ -485,6 +485,13 @@ func (host *Host) Close() {
 	host.Closing = true
 }
 
+// ReserveEntities will grow the internal entity list by the given amount,
+// this is useful for when you need to create a large amount of entities
+func (host *Host) ReserveEntities(additional int) {
+	defer tracing.NewRegion("Host.ReserveEntities").End()
+	host.entities = slices.Grow(host.entities, additional)
+}
+
 // BootstrapPlugins will initialize the plugin interface and read all of the
 // plugins that are in the content folder and prepare them for execution
 func (host *Host) BootstrapPlugins() error {
@@ -498,8 +505,4 @@ func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Camera.ViewportChanged(w, h)
 	host.UICamera.ViewportChanged(w, h)
-}
-
-func (host *Host) ReserveEntities(additional int) {
-	host.entities = slices.Grow(host.entities, additional)
 }
