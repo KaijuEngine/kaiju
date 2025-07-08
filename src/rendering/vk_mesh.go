@@ -46,7 +46,8 @@ import (
 )
 
 func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {
-	bufferSize := vk.DeviceSize(int(unsafe.Sizeof(verts[0])) * len(verts))
+	vertBuff := klib.StructSliceToByteArray(verts)
+	bufferSize := vk.DeviceSize(len(vertBuff))
 	if bufferSize <= 0 {
 		panic("Buffer size is 0")
 	}
@@ -58,7 +59,7 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 	} else {
 		var data unsafe.Pointer
 		vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-		vk.Memcopy(data, klib.StructSliceToByteArray(verts))
+		vk.Memcopy(data, vertBuff)
 		vk.UnmapMemory(vr.device, stagingBufferMemory)
 		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
 			slog.Error("Failed to create from staging buffer for the verts")
@@ -75,7 +76,8 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 }
 
 func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, indexBufferMemory *vk.DeviceMemory) bool {
-	bufferSize := vk.DeviceSize(int(unsafe.Sizeof(indices[0])) * len(indices))
+	indexBuff := klib.StructSliceToByteArray(indices)
+	bufferSize := vk.DeviceSize(len(indexBuff))
 	if bufferSize <= 0 {
 		panic("Buffer size is 0")
 	}
@@ -87,7 +89,7 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	}
 	var data unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-	vk.Memcopy(data, klib.StructSliceToByteArray(indices))
+	vk.Memcopy(data, indexBuff)
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
 		slog.Error("Failed to create the index buffer")
