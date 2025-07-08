@@ -64,6 +64,18 @@ func ImageDirectory() (string, error) {
 	return imageDirectory()
 }
 
+// GameDirectory will attempt to find the default directory for the
+// application to store and load it's data to and from
+func GameDirectory() (string, error) {
+	dir, err := gameDirectory()
+	if err == nil {
+		if _, err := os.Stat(dir); err != nil {
+			return dir, os.MkdirAll(dir, os.ModePerm)
+		}
+	}
+	return dir, err
+}
+
 // ListRecursive returns a list of all files and directories in the specified,
 // it walks through all of the subdirectories as well.
 func ListRecursive(path string) ([]string, error) {
