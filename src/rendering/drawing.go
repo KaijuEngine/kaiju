@@ -210,3 +210,11 @@ func (d *Drawings) Destroy(renderer Renderer) {
 	}
 	d.renderPassGroups = d.renderPassGroups[:0]
 }
+
+func (d *Drawings) Clear(renderer Renderer) {
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			d.renderPassGroups[i].draws[j].Clear(renderer)
+		}
+	}
+}
