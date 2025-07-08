@@ -89,6 +89,16 @@ type ShaderDataBase struct {
 	model       matrix.Mat4
 }
 
+type ShaderDataUnlit struct {
+	ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4
+}
+
+func (t ShaderDataUnlit) Size() int {
+	return int(unsafe.Sizeof(ShaderDataUnlit{}) - ShaderBaseDataStart)
+}
+
 type ShaderDataBasic struct {
 	ShaderDataBase
 	Color matrix.Color
@@ -106,10 +116,6 @@ func NewShaderDataBase() ShaderDataBase {
 
 func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
-}
-
-func (s *ShaderDataBase) Size() int {
-	return int(unsafe.Sizeof(*s) - ShaderBaseDataStart)
 }
 
 func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
