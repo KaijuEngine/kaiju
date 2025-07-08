@@ -108,6 +108,22 @@ func (t ShaderDataBasic) Size() int {
 	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
 }
 
+type ShaderDataPBR struct {
+	ShaderDataBase
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	Light0     float32
+	Light1     float32
+	Light2     float32
+	Light3     float32
+}
+
+func (t ShaderDataPBR) Size() int {
+	return int(unsafe.Sizeof(ShaderDataPBR{}) - ShaderBaseDataStart)
+}
+
 func NewShaderDataBase() ShaderDataBase {
 	sdb := ShaderDataBase{}
 	sdb.Setup()
