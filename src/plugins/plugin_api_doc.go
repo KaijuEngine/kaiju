@@ -1,5 +1,3 @@
-//go:build editor
-
 package plugins
 
 import (
@@ -8,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -21,9 +20,11 @@ var pkgSources = map[string][]string{}
 const prefefinedAPIDocs = `---@Shape Pointer
 --- Start an interactive debugger in the console window
 function breakpoint() end
+
 `
 
 func reflectCreateDefaultForTypeName(name string) string {
+	defer tracing.NewRegion("plugins.reflectCreateDefaultForTypeName").End()
 	switch name {
 	case "boolean":
 		return "false"
@@ -37,6 +38,7 @@ func reflectCreateDefaultForTypeName(name string) string {
 }
 
 func reflectCommentDocCommonType(t reflect.Type) string {
+	defer tracing.NewRegion("plugins.reflectCommentDocCommonType").End()
 	switch t.Kind() {
 	case reflect.Bool:
 		return "boolean"
@@ -57,6 +59,7 @@ func reflectCommentDocCommonType(t reflect.Type) string {
 }
 
 func reflectCommentDocTypeHint(t reflect.Type) string {
+	defer tracing.NewRegion("plugins.reflectCommentDocTypeHint").End()
 	tName := reflectCommentDocCommonType(t)
 	switch t.Kind() {
 	case reflect.Map:
@@ -76,6 +79,7 @@ func reflectCommentDocTypeHint(t reflect.Type) string {
 }
 
 func pullSourceForType(t reflect.Type) ([]string, error) {
+	defer tracing.NewRegion("plugins.pullSourceForType").End()
 	pkg := t.PkgPath()
 	if sources, ok := pkgSources[pkg]; ok {
 		return sources, nil
@@ -105,6 +109,7 @@ func pullSourceForType(t reflect.Type) ([]string, error) {
 }
 
 func readMethodDoc(methodName string, t reflect.Type, m reflect.Type, sources []string) (comment string, args []string) {
+	defer tracing.NewRegion("plugins.readMethodDoc").End()
 	src := ""
 	tName := t.Name()
 	search := regexp.MustCompile(fmt.Sprintf(`func \(\w+\s+\*{0,}%s\) %s\(`, tName, methodName))
@@ -164,6 +169,7 @@ func readMethodDoc(methodName string, t reflect.Type, m reflect.Type, sources []
 }
 
 func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
+	defer tracing.NewRegion("plugins.reflectStructAPI").End()
 	pt := reflect.PointerTo(t)
 	sources, err := pullSourceForType(t)
 	if err != nil {
@@ -173,6 +179,10 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	for i := range pt.NumMethod() {
 		methods = append(methods, pt.Method(i))
 	}
+	apiOut.WriteString(fmt.Sprintf("---@class %s\n", t.Name()))
+	apiOut.WriteString(fmt.Sprintf("%s = {}\n\n", t.Name()))
+	apiOut.WriteString(fmt.Sprintf("---@return %s\n", t.Name()))
+	apiOut.WriteString(fmt.Sprintf("function %s.New() return nil end\n", t.Name()))
 	for _, m := range methods {
 		mt := m.Type
 		comment, args := readMethodDoc(m.Name, t, mt, sources)
@@ -218,7 +228,8 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 }
 
 func RegenerateAPI() error {
-	const apiFile = "content/editor/plugins/api.lua"
+	defer tracing.NewRegion("plugins.RegenerateAPI").End()
+	const apiFile = "content/plugins/api.lua"
 	f, err := os.OpenFile(apiFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err

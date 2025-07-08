@@ -1,5 +1,3 @@
-//go:build editor
-
 package plugins
 
 import (
@@ -13,8 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	"kaiju/editor/editor_interface"
-	"kaiju/editor/plugins/lua"
+	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
+	"kaiju/plugins/lua"
 )
 
 type jsLogType = int
@@ -42,7 +41,18 @@ type LuaVM struct {
 	sandbox    *os.Root
 }
 
+func (vm *LuaVM) InvokeGlobalFunction(name string) {
+	// TODO:  Support arguments...
+	vm.runtime.Global(name)
+	if vm.runtime.IsFunction(-1) {
+		vm.runtime.Call(0, 0)
+	} else {
+		vm.runtime.Pop(1)
+	}
+}
+
 func reflectStructToLua(t reflect.Type, vm *LuaVM) {
+	defer tracing.NewRegion("plugins.reflectStructToLua").End()
 	name := t.Name()
 	vm.runtime.NewTable()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
@@ -145,10 +155,12 @@ func reflectStructToLua(t reflect.Type, vm *LuaVM) {
 }
 
 func removeImportAPI(lua string) string {
+	defer tracing.NewRegion("plugins.removeImportAPI").End()
 	return apiReg.ReplaceAllString(lua, "")
 }
 
 func (vm *LuaVM) rollup(lua, luaPath string, imported *[]string) error {
+	defer tracing.NewRegion("LuaVM.rollup").End()
 	lua = removeImportAPI(lua)
 	matches := requireReg.FindAllStringSubmatch(lua, -1)
 	imports := make([]string, 0, len(matches))
@@ -185,7 +197,8 @@ func (vm *LuaVM) rollup(lua, luaPath string, imported *[]string) error {
 	return nil
 }
 
-func (vm *LuaVM) setupPrerequisites(ed editor_interface.Editor) error {
+func (vm *LuaVM) setupPrerequisites(assets *assets.Database) error {
+	defer tracing.NewRegion("LuaVM.setupPrerequisites").End()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
 		if state.IsTable(-1) {
 			state.Field(-1, goPtrField)
@@ -198,7 +211,7 @@ func (vm *LuaVM) setupPrerequisites(ed editor_interface.Editor) error {
 	vm.runtime.SetGlobal(globalCleanupPtrFn)
 	prereq := []string{"debugger.lua", "globals.lua"}
 	for i := range prereq {
-		err := vm.runtime.DoFile(ed.Host().AssetDatabase().ToRawPath(
+		err := vm.runtime.DoFile(assets.ToFilePath(
 			filepath.Join(plugins, prereq[i])))
 		if err != nil {
 			return err
@@ -207,13 +220,14 @@ func (vm *LuaVM) setupPrerequisites(ed editor_interface.Editor) error {
 	return nil
 }
 
-func launchPlugin(ed editor_interface.Editor, entry string) (*LuaVM, error) {
+func launchPlugin(assets *assets.Database, entry string) (*LuaVM, error) {
+	defer tracing.NewRegion("plugins.launchPlugin").End()
 	vm := &LuaVM{
 		PluginPath: entry,
 		runtime:    lua.New(),
 	}
 	vm.runtime.OpenLibraries()
-	if err := vm.setupPrerequisites(ed); err != nil {
+	if err := vm.setupPrerequisites(assets); err != nil {
 		return vm, err
 	}
 	for _, t := range reflectedTypes() {
@@ -249,7 +263,8 @@ func launchPlugin(ed editor_interface.Editor, entry string) (*LuaVM, error) {
 	return vm, nil
 }
 
-func LaunchPlugins(ed editor_interface.Editor) ([]*LuaVM, error) {
+func LaunchPlugins(assets *assets.Database) ([]*LuaVM, error) {
+	defer tracing.NewRegion("plugins.LaunchPlugins").End()
 	pluginsPath := filepath.Join("content", plugins)
 	dirs, err := os.ReadDir(pluginsPath)
 	vms := make([]*LuaVM, 0)
@@ -260,7 +275,7 @@ func LaunchPlugins(ed editor_interface.Editor) ([]*LuaVM, error) {
 		if !dirs[i].IsDir() {
 			continue
 		}
-		vm, err := launchPlugin(ed, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
+		vm, err := launchPlugin(assets, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
 		vms = append(vms, vm)
 		if err != nil {
 			slog.Error("plugin failed to load", "plugin", dirs[i].Name(), "error", err)

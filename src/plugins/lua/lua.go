@@ -1,5 +1,3 @@
-//go:build editor
-
 package lua
 
 /*
@@ -14,6 +12,7 @@ package lua
 #cgo noescape m_lua_isboolean
 #cgo noescape m_lua_islightuserdata
 #cgo noescape m_lua_istable
+#cgo noescape m_lua_isfunction
 #cgo noescape m_lua_tonumber
 #cgo noescape lua_toboolean
 #cgo noescape lua_isstring
@@ -310,6 +309,10 @@ func (l *State) IsString(idx int) bool {
 
 func (l *State) IsTable(idx int) bool {
 	return C.m_lua_istable(l.state, C.int(idx)) == 1
+}
+
+func (l *State) IsFunction(idx int) bool {
+	return C.m_lua_isfunction(l.state, C.int(idx)) == 1
 }
 
 func (l *State) IsUserData(idx int) bool {
