@@ -191,8 +191,8 @@ func (host *Host) InitializeRenderer() error {
 		slog.Error("failed to setup the light materials", "error", err)
 		return err
 	}
-		return nil
-	}
+	return nil
+}
 
 func (host *Host) InitializeAudio() (err error) {
 	host.audio, err = audio.New()
@@ -287,15 +287,21 @@ func (host *Host) ClearEntities() {
 // removed from the standard entity pool. Entities are not ordered, so they are
 // removed in O(n) time. Do not assume the entities are ordered at any time.
 func (host *Host) RemoveEntity(entity *Entity) {
-	if host.editorEntities.contains(entity) {
-		host.editorEntities.remove(entity)
-	} else {
-		for i, e := range host.entities {
-			if e == entity {
-				host.entities = klib.RemoveUnordered(host.entities, i)
-				break
-			}
+	for i, e := range host.entities {
+		if e == entity {
+			host.entities = klib.RemoveUnordered(host.entities, i)
+			break
 		}
+	}
+}
+
+// AddEntity adds an entity to the host. This will add the entity to the
+// standard entity pool. If the host is in the process of creating editor
+// entities, then the entity will be added to the editor entity pool.
+func (host *Host) AddEntity(entity *Entity) {
+	host.entities = append(host.entities, entity)
+	if entity.id != "" {
+		host.entityLookup[entity.id] = entity
 	}
 }
 
@@ -303,6 +309,13 @@ func (host *Host) RemoveEntity(entity *Entity) {
 // using the same rules as AddEntity. If the host is in the process of creating
 // editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
+	host.entities = append(host.entities, entities...)
+	for _, e := range entities {
+		if e.id != "" {
+			host.entityLookup[e.id] = e
+		}
+	}
+}
 
 // AddLight adds a light to the internal list of lights the host is aware of
 func (host *Host) AddLight(light rendering.Light) {
@@ -331,7 +344,7 @@ func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 // return all entities in the standard entity pool only. In the editor, this
 // will not return any entities that have been destroyed (and are pending
 // cleanup due to being in the undo history)
-func (host *Host) Entities() []*Entity { return host.selectAllValidEntities() }
+func (host *Host) Entities() []*Entity { return host.entities }
 
 // Entities returns all the entities that are currently in the host. This will
 // return all entities in the standard entity pool only. In the editor, this
@@ -387,7 +400,7 @@ func (host *Host) Update(deltaTime float64) {
 	}
 	host.UIUpdater.Update(deltaTime)
 	host.UILateUpdater.Update(deltaTime)
-tweening.Update(deltaTime)
+	tweening.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
 	host.collisionManager.Update(deltaTime)
