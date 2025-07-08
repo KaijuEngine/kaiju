@@ -38,6 +38,7 @@
 package logging
 
 import (
+	"kaiju/build"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -72,7 +73,9 @@ func (l *LogStream) writeLine(line string) {
 	} else if strings.HasPrefix(level, "ERROR") {
 		l.OnError.Execute(line, klib.TraceStrings(line, 7))
 	}
-	os.Stdout.WriteString(line)
+	if build.Debug {
+		os.Stdout.WriteString(line + "\n")
+	}
 }
 
 func (l *LogStream) Write(p []byte) (n int, err error) {
