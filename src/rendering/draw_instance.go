@@ -38,9 +38,9 @@
 package rendering
 
 import (
+	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/engine/runtime/encoding/gob"
 	"reflect"
 	"unsafe"
 )
@@ -64,6 +64,7 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
+	setShadow(shadow DrawInstance)
 }
 
 func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
@@ -82,6 +83,7 @@ type ShaderDataBase struct {
 	destroyed   bool
 	deactivated bool
 	_           [2]byte
+	shadow      DrawInstance
 	transform   *matrix.Transform
 	InitModel   matrix.Mat4
 	model       matrix.Mat4
@@ -113,13 +115,32 @@ func (s *ShaderDataBase) Size() int {
 func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
 func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
-func (s *ShaderDataBase) Activate()          { s.deactivated = false }
-func (s *ShaderDataBase) Deactivate()        { s.deactivated = true }
 func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }
 func (s *ShaderDataBase) Model() matrix.Mat4 { return s.model }
 
+func (s *ShaderDataBase) Activate() {
+	s.deactivated = false
+	if s.shadow != nil {
+		s.shadow.Activate()
+	}
+}
+
+func (s *ShaderDataBase) Deactivate() {
+	s.deactivated = true
+	if s.shadow != nil {
+		s.shadow.Deactivate()
+	}
+}
+
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
+}
+
+func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
+	s.shadow = shadow
+	if s.deactivated {
+		s.shadow.Deactivate()
+	}
 }
 
 func (s *ShaderDataBase) SetModel(model matrix.Mat4) {

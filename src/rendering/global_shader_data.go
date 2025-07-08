@@ -51,9 +51,12 @@ type GlobalShaderData struct {
 	UIProjection     matrix.Mat4
 	CameraPosition   matrix.Vec4
 	UICameraPosition matrix.Vec3
-	_                matrix.Float
+	_                float32
 	ScreenSize       matrix.Vec2
 	Time             float32
+	_                float32
+	VertLights       [maxLights]GPULight
+	LightInfos       [maxLights]GPULightInfo
 }
 
 type SkinnedShaderData struct {

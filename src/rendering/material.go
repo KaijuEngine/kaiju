@@ -3,6 +3,7 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/engine/assets"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"strings"
@@ -11,15 +12,26 @@ import (
 )
 
 type Material struct {
-	Name         string
-	shaderInfo   ShaderDataCompiled
-	renderPass   *RenderPass
-	pipelineInfo ShaderPipelineDataCompiled
-	Shader       *Shader
-	Textures     []*Texture
-	Instances    map[string]*Material
-	Root         weak.Pointer[Material]
-	mutex        sync.Mutex
+	Name          string
+	shaderInfo    ShaderDataCompiled
+	renderPass    *RenderPass
+	pipelineInfo  ShaderPipelineDataCompiled
+	Shader        *Shader
+	Textures      []*Texture
+	ShadowMap     *Texture
+	ShadowCubeMap *Texture
+	Instances     map[string]*Material
+	Root          weak.Pointer[Material]
+	mutex         sync.Mutex
+	IsLit         bool
+}
+
+func (m *Material) HasShadowMap() bool {
+	return m.ShadowMap != nil && m.ShadowMap.RenderId.IsValid()
+}
+
+func (m *Material) HasShadowCubeMap() bool {
+	return m.ShadowCubeMap != nil && m.ShadowCubeMap.RenderId.IsValid()
 }
 
 func (m *Material) SelectRoot() *Material {
@@ -59,6 +71,8 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
+	copy.ShadowMap = m.ShadowMap
+	copy.ShadowCubeMap = m.ShadowCubeMap
 	// TODO:  If using a read lock, then make sure to write lock the following line
 	m.Instances[key] = copy
 	copy.Root = weak.Make(m)

@@ -116,6 +116,22 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				prepareSetWriteImage(set, group.imageInfos, 1, false),
 			}
 			count := 2
+			if group.MaterialInstance.HasShadowMap() {
+				const id = 2
+				sm := &group.MaterialInstance.ShadowMap.RenderId
+				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
+				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
+				descriptorWrites[id+1] = prepareSetWriteImage(set, info, id, false)
+				count = 4
+			}
+			if group.MaterialInstance.HasShadowCubeMap() {
+				const id = 3
+				sm := &group.MaterialInstance.ShadowCubeMap.RenderId
+				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
+				descriptorWrites[id-1] = prepareSetWriteImage(set, info, id, false)
+				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
+				count = 4
+			}
 			for k := range group.namedBuffers {
 				if count >= maxDescriptorWrites {
 					slog.Error("need to increase max descriptor writes array size")

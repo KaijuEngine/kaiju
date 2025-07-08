@@ -182,7 +182,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	return sets, vr.descriptorPools[poolIdx], nil
 }
 
-func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) {
+func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) {
 	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
 	camOrtho := matrix.Float(0)
 	if camera.IsOrthographic() {
@@ -200,6 +200,11 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			matrix.Float(vr.swapChainExtent.Width),
 			matrix.Float(vr.swapChainExtent.Height),
 		},
+	}
+	for i := range lights {
+		lights[i].recalculate(nil)
+		ubo.VertLights[i] = lights[i].transformToGPULight()
+		ubo.LightInfos[i] = lights[i].transformToGPULightInfo()
 	}
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
@@ -382,7 +387,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 	return true
 }
 
-func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
+func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
 		vr.remakeSwapChain()
@@ -409,7 +414,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 	inlTrace.End()
 	vk.ResetFences(vr.device, 1, &fences[0])
 	vr.bufferTrash.Cycle()
-	vr.updateGlobalUniformBuffer(camera, uiCamera, runtime)
+	vr.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
 	for _, r := range vr.preRuns {
 		r()
 	}

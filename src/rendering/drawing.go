@@ -45,11 +45,12 @@ import (
 )
 
 type Drawing struct {
-	Renderer   Renderer
-	Material   *Material
-	Mesh       *Mesh
-	ShaderData DrawInstance
-	Transform  *matrix.Transform
+	Renderer     Renderer
+	Material     *Material
+	Mesh         *Mesh
+	ShaderData   DrawInstance
+	Transform    *matrix.Transform
+	CastsShadows bool
 }
 
 func (d *Drawing) IsValid() bool {
