@@ -37,7 +37,10 @@
 
 package engine
 
-import "kaiju/platform/profiler/tracing"
+import (
+	"kaiju/platform/concurrent"
+	"kaiju/platform/profiler/tracing"
+)
 
 type engineUpdate struct {
 	id     int
@@ -50,37 +53,40 @@ type engineUpdate struct {
 //
 // *Note that update functions are unordered, so don't rely on the order*
 type Updater struct {
-	updates      map[int]engineUpdate
-	backAdd      []engineUpdate
-	backRemove   []int
-	nextId       int
-	lastDelta    float64
-	pending      chan int
-	complete     chan int
-	isConcurrent bool
+	updates    map[int]engineUpdate
+	workGroup  *concurrent.WorkGroup
+	threads    *concurrent.Threads
+	backAdd    []engineUpdate
+	backRemove []int
+	nextId     int
+	lastDelta  float64
+	pending    chan int
+	complete   chan int
+}
+
+// IsConcurrent will return if this updater is a concurrent updater
+func (u *Updater) IsConcurrent() bool {
+	return u.threads != nil && u.workGroup != nil
 }
 
 // NewUpdater creates a new #Updater struct and returns it
 func NewUpdater() Updater {
 	return Updater{
-		updates:      make(map[int]engineUpdate),
-		backAdd:      make([]engineUpdate, 0),
-		backRemove:   make([]int, 0),
-		nextId:       1,
-		pending:      make(chan int, 100),
-		complete:     make(chan int, 100),
-		isConcurrent: false,
+		updates:    make(map[int]engineUpdate),
+		backAdd:    make([]engineUpdate, 0),
+		backRemove: make([]int, 0),
+		nextId:     1,
+		pending:    make(chan int, 100),
+		complete:   make(chan int, 100),
 	}
 }
 
-// StartConcurrent starts the number of goroutines specified to handle updates
-// concurrently. This will no longer use inline updates once this function is
-// called and all updates will be handled through the goroutines.
-func (u *Updater) StartConcurrent(goroutines int) {
-	u.isConcurrent = true
-	for i := 0; i < goroutines; i++ {
-		go u.updateConcurrent()
-	}
+// NewConcurrentUpdater creates a new concurrent #Updater struct and returns it
+func NewConcurrentUpdater(threads *concurrent.Threads, workGroup *concurrent.WorkGroup) Updater {
+	u := NewUpdater()
+	u.workGroup = workGroup
+	u.threads = threads
+	return u
 }
 
 // AddUpdate adds an update function to the list of updates to be called when
@@ -119,8 +125,8 @@ func (u *Updater) Update(deltaTime float64) {
 	u.lastDelta = deltaTime
 	u.addInternal()
 	u.removeInternal()
-	if u.isConcurrent {
-		u.coroutineUpdate()
+	if u.IsConcurrent() {
+		u.concurrentUpdate(deltaTime)
 	} else {
 		u.inlineUpdate(deltaTime)
 	}
@@ -143,24 +149,14 @@ func (u *Updater) inlineUpdate(deltaTime float64) {
 	}
 }
 
-func (u *Updater) coroutineUpdate() {
-	waitCount := 0
-	for id := range u.updates {
-		waitCount++
-		u.pending <- id
+func (u *Updater) concurrentUpdate(deltaTime float64) {
+	for i := range u.updates {
+		idx := i
+		u.workGroup.Add("concurrentUpdate", func() {
+			u.updates[idx].update(deltaTime)
+		})
 	}
-	for i := 0; i < waitCount; i++ {
-		<-u.complete
-	}
-}
-
-func (u *Updater) updateConcurrent() {
-	// TODO:  Does this need to be cleaned up?
-	for {
-		id := <-u.pending
-		u.updates[id].update(u.lastDelta)
-		u.complete <- id
-	}
+	u.workGroup.Execute("concurrentUpdate", u.threads)
 }
 
 func (u *Updater) addInternal() {
