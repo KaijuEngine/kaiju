@@ -126,7 +126,7 @@ func (vr *Vulkan) WaitForRender() {
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
 	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
-	for i := uint64(0); i < maxFramesInFlight; i++ {
+	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
 		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageUniformBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
 	}
 }
@@ -134,20 +134,20 @@ func (vr *Vulkan) createGlobalUniformBuffers() {
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	poolSizes := make([]vk.DescriptorPoolSize, 4)
 	poolSizes[0].Type = vk.DescriptorTypeUniformBuffer
-	poolSizes[0].DescriptorCount = counts * maxFramesInFlight
+	poolSizes[0].DescriptorCount = counts * vr.swapImageCount
 	poolSizes[1].Type = vk.DescriptorTypeCombinedImageSampler
-	poolSizes[1].DescriptorCount = counts * maxFramesInFlight
+	poolSizes[1].DescriptorCount = counts * vr.swapImageCount
 	poolSizes[2].Type = vk.DescriptorTypeCombinedImageSampler
-	poolSizes[2].DescriptorCount = counts * maxFramesInFlight
+	poolSizes[2].DescriptorCount = counts * vr.swapImageCount
 	poolSizes[3].Type = vk.DescriptorTypeInputAttachment
-	poolSizes[3].DescriptorCount = counts * maxFramesInFlight
+	poolSizes[3].DescriptorCount = counts * vr.swapImageCount
 
 	poolInfo := vk.DescriptorPoolCreateInfo{}
 	poolInfo.SType = vk.StructureTypeDescriptorPoolCreateInfo
 	poolInfo.PoolSizeCount = uint32(len(poolSizes))
 	poolInfo.PPoolSizes = &poolSizes[0]
 	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vk.DescriptorPoolCreateFreeDescriptorSetBit)
-	poolInfo.MaxSets = counts * maxFramesInFlight
+	poolInfo.MaxSets = counts * vr.swapImageCount
 	var descriptorPool vk.DescriptorPool
 	if vk.CreateDescriptorPool(vr.device, &poolInfo, nil, &descriptorPool) != vk.Success {
 		slog.Error("Failed to create descriptor pool")
@@ -164,7 +164,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	aInfo := vk.DescriptorSetAllocateInfo{}
 	aInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
 	aInfo.DescriptorPool = vr.descriptorPools[poolIdx]
-	aInfo.DescriptorSetCount = maxFramesInFlight
+	aInfo.DescriptorSetCount = vr.swapImageCount
 	aInfo.PSetLayouts = &layouts[0]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
 	res := vk.AllocateDescriptorSets(vr.device, &aInfo, &sets[0])
@@ -333,7 +333,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 	fInfo.SType = vk.StructureTypeFenceCreateInfo
 	fInfo.Flags = vk.FenceCreateFlags(vk.FenceCreateSignaledBit)
 	success := true
-	for i := 0; i < maxFramesInFlight && success; i++ {
+	for i := 0; i < int(vr.swapImageCount) && success; i++ {
 		var imgSemaphore vk.Semaphore
 		var rdrSemaphore vk.Semaphore
 		var fence vk.Fence
@@ -352,7 +352,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 		vr.renderFences[i] = fence
 	}
 	if !success {
-		for i := 0; i < maxFramesInFlight && success; i++ {
+		for i := 0; i < int(vr.swapImageCount) && success; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
 			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
@@ -503,7 +503,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 		return false
 	}
 
-	vr.currentFrame = (vr.currentFrame + 1) % maxFramesInFlight
+	vr.currentFrame = (vr.currentFrame + 1) % int(vr.swapImageCount)
 	return true
 }
 

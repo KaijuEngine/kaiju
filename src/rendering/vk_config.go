@@ -40,6 +40,7 @@ package rendering
 import (
 	"unsafe"
 
+	"kaiju/build"
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -48,7 +49,7 @@ const (
 	BytesInPixel         = 4
 	MaxCommandPools      = 5
 	MaxSecondaryCommands = 25
-	maxFramesInFlight    = 2
+	maxFramesInFlight    = 10
 	oitSuffix            = ".oit.spv"
 )
 

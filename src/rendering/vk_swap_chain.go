@@ -127,7 +127,7 @@ func (vr *Vulkan) createSwapChain() bool {
 	info := vk.SwapchainCreateInfo{}
 	info.SType = vk.StructureTypeSwapchainCreateInfo
 	info.Surface = vr.surface
-	info.MinImageCount = imgCount
+	info.MinImageCount = min(uint32(maxFramesInFlight), imgCount)
 	info.ImageFormat = surfaceFormat.Format
 	info.ImageColorSpace = vkColorSpace(surfaceFormat)
 	info.ImageExtent = extent
