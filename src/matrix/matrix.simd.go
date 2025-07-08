@@ -1,5 +1,7 @@
+//go:build amd64
+
 /******************************************************************************/
-/* vec4.simd.go                                                               */
+/* mat4.simd.go                                                               */
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
@@ -35,9 +37,13 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build amd64
-
 package matrix
+
+//go:noescape
+func Mat4Multiply(a, b Mat4) Mat4
+
+//go:noescape
+func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 
 //go:noescape
 func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
