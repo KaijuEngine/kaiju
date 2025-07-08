@@ -426,6 +426,13 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 	})
 }
 
+func (host *Host) RunOnMainThread(call func()) {
+	host.frameRunner = append(host.frameRunner, frameRun{
+		frame: host.frame,
+		call:  call,
+	})
+}
+
 // RunAfterTime will call the given function after the given number of time
 // has passed from the current frame
 func (host *Host) RunAfterTime(wait time.Duration, call func()) {
