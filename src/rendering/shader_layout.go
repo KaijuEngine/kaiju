@@ -82,6 +82,7 @@ type ShaderLayoutStructField struct {
 type ShaderLayout struct {
 	Location        int    // -1 if not set
 	Binding         int    // -1 if not set
+	Count           int    // 1 if not set
 	Set             int    // -1 if not set
 	InputAttachment int    // -1 if not set
 	Type            string // float, vec3, mat4, etc.
@@ -168,7 +169,7 @@ func (l *ShaderLayout) DescriptorType() vk.DescriptorType {
 	switch l.Type {
 	case "subpassInput":
 		return vk.DescriptorTypeInputAttachment
-	case "sampler2D":
+	case "sampler2D", "samplerCube":
 		return vk.DescriptorTypeCombinedImageSampler
 	default:
 		slog.Error("unknown descriptor type", slog.String("DescriptorType", l.Type))

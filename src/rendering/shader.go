@@ -133,10 +133,24 @@ func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayo
 			if layout.Binding < 0 {
 				continue
 			}
+			skip := false
+			for i := range structure.Types {
+				// TODO:  This can happen across 2+ different files (vert/frag)
+				// but an error should be shown if things don't match up or
+				// if it is the same file
+				if structure.Types[i].Binding == uint32(layout.Binding) {
+					structure.Types[i].Flags |= g.DescriptorFlag()
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
 			structure.Types = append(structure.Types, DescriptorSetLayoutStructureType{
 				Type:    layout.DescriptorType(),
 				Flags:   g.DescriptorFlag(),
-				Count:   1, // TODO:  Pull this
+				Count:   max(1, uint32(layout.Count)),
 				Binding: uint32(layout.Binding),
 			})
 		}
