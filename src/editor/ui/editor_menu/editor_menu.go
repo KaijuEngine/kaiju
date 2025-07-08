@@ -53,7 +53,7 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
-	"kaiju/platform/audio/audio_system"
+	"kaiju/platform/audio"
 	"log/slog"
 )
 
@@ -245,10 +245,7 @@ func (m *Menu) setupConsoleCommands() {
 	})
 
 	c.AddCommand("audio.test", "Tests playback of a wav", func(host *engine.Host, _ string) string {
-		wav, err := audio_system.LoadWav(host.AssetDatabase(), "editor/audio/sfx/fanfare.wav")
-		if err != nil {
-			return err.Error()
-		}
+		wav := audio.NewClip("editor/audio/sfx/fanfare.wav")
 		host.Audio().Play(wav)
 		return "Playing fanfare.wav"
 	})
