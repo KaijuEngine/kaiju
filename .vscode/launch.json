@@ -57,6 +57,28 @@
 			"env": {
 				"CGO_ENABLED": "1"
 			}
+		},
+		{
+			"name": "Project Template Generator",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/project_template",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
+		},
+		{
+			"name": "Copy Headers",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/copy_header",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1"
+			}
 		}
 	]
 }
