@@ -1,5 +1,3 @@
-//go:build vulkanValidation
-
 /******************************************************************************/
 /* renderer.dbg.vk.go                                                        */
 /******************************************************************************/
@@ -41,6 +39,7 @@ package rendering
 
 import (
 	"fmt"
+	"kaiju/build"
 	"kaiju/klib"
 	"log/slog"
 )
@@ -52,15 +51,21 @@ func debugVulkanNew() debugVulkan {
 }
 
 func (d debugVulkan) add(handle uintptr) {
-	d[handle] = klib.TraceString(fmt.Sprintf("VK Resource %x leak", handle))
+	if build.Debug {
+		d[handle] = klib.TraceString(fmt.Sprintf("VK Resource %x leak", handle))
+	}
 }
 
 func (d debugVulkan) remove(handle uintptr) {
-	delete(d, handle)
+	if build.Debug {
+		delete(d, handle)
+	}
 }
 
 func (d debugVulkan) print() {
-	for _, trace := range d {
-		slog.Info(trace)
+	if build.Debug {
+		for _, trace := range d {
+			slog.Info(trace)
+		}
 	}
 }

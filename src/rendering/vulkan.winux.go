@@ -1,4 +1,4 @@
-//go:build (windows || (linux && !android)) && vulkanValidation
+//go:build windows || (linux && !android)
 
 /******************************************************************************/
 /* vulkan.winux.go                                                           */
@@ -42,7 +42,6 @@ package rendering
 import vk "kaiju/rendering/vulkan"
 
 const vkGeometryShaderValid = vk.True
-const vkUseValidationLayers = true
 const vkInstanceFlags = 0
 
 func vkColorSpace(sf vk.SurfaceFormat) vk.ColorSpace {

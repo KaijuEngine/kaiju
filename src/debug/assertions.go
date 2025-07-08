@@ -6,6 +6,12 @@ import (
 	"runtime"
 )
 
+func Log(msg string, args ...any) {
+	if build.Debug {
+		slog.Debug(msg, args...)
+	}
+}
+
 func Assert(res bool, msg string) {
 	if build.Debug {
 		if !res {
