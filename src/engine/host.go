@@ -39,20 +39,20 @@ package engine
 
 import (
 	"kaiju/engine/assets"
-	"kaiju/platform/audio"
 	"kaiju/engine/cameras"
-	"kaiju/platform/concurrent"
 	"kaiju/engine/collision_system"
+	"kaiju/engine/systems/events"
+	"kaiju/engine/systems/logging"
 	"kaiju/engine/systems/tweening"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/audio"
+	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/systems/logging"
 	"kaiju/platform/windowing"
 	"kaiju/plugins"
 	"kaiju/rendering"
+	"log/slog"
 	"math"
 	"slices"
 	"time"
@@ -130,24 +130,22 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
 	host := &Host{
-		name:           name,
-		editorEntities: newEditorEntities(),
-		entities:       make([]*Entity, 0),
-		frameTime:      0,
-		Closing:        false,
-		UIUpdater:      NewUpdater(),
-		UILateUpdater:  NewUpdater(),
-		Updater:        NewUpdater(),
-		LateUpdater:    NewUpdater(),
-		assetDatabase:  assets.NewDatabase(),
-		Drawings:       rendering.NewDrawings(),
-		CloseSignal:    make(chan struct{}, 1),
-		Camera:         cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
-		UICamera:       cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
-		LogStream:      logStream,
-		frameRunner:    make([]frameRun, 0),
-		entityLookup:   make(map[EntityId]*Entity),
-		threads:        concurrent.NewThreads(),
+		name:          name,
+		entities:      make([]*Entity, 0),
+		frameTime:     0,
+		Closing:       false,
+		UIUpdater:     NewUpdater(),
+		UILateUpdater: NewUpdater(),
+		Updater:       NewUpdater(),
+		LateUpdater:   NewUpdater(),
+		assetDatabase: assets.NewDatabase(),
+		Drawings:      rendering.NewDrawings(),
+		CloseSignal:   make(chan struct{}, 1),
+		Camera:        cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
+		UICamera:      cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
+		LogStream:     logStream,
+		entityLookup:  make(map[EntityId]*Entity),
+		threads:       concurrent.NewThreads(),
 	}
 	return host
 }
@@ -179,11 +177,20 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	return nil
 }
 
-func (host *Host) InitializeAudio() error {
-	if a, err := audio.NewAudio(); err != nil {
+func (host *Host) InitializeRenderer() error {
+	w, h := int32(host.Window.Width()), int32(host.Window.Height())
+	if err := host.Window.Renderer.Initialize(host, w, h); err != nil {
+		slog.Error("failed to initialize the renderer", "error", err)
 		return err
-	} else {
-		host.audio = a
+	}
+	if err := host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host); err != nil {
+		slog.Error("failed to initialize the font cache", "error", err)
+		return err
+	}
+	if err := rendering.SetupLightMaterials(host.MaterialCache()); err != nil {
+		slog.Error("failed to setup the light materials", "error", err)
+		return err
+	}
 		return nil
 	}
 
