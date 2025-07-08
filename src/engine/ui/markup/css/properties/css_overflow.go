@@ -41,9 +41,9 @@ import (
 	"errors"
 	"fmt"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
 )
 
 // overflow: visible|hidden|clip|scroll|auto|initial|inherit;

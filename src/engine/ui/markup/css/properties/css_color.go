@@ -40,11 +40,11 @@ package properties
 import (
 	"fmt"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
 )
 
 func setChildTextColor(elm *document.Element, color matrix.Color) {

@@ -39,9 +39,9 @@ package functions
 
 import (
 	"errors"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
 )
 
 func (f Min) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {
