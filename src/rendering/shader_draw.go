@@ -37,6 +37,8 @@
 
 package rendering
 
+import "sort"
+
 type ShaderDraw struct {
 	material       *Material
 	instanceGroups []DrawInstanceGroup
@@ -51,6 +53,9 @@ func NewShaderDraw(material *Material) ShaderDraw {
 
 func (s *ShaderDraw) AddInstanceGroup(group DrawInstanceGroup) {
 	s.instanceGroups = append(s.instanceGroups, group)
+	sort.Slice(s.instanceGroups, func(i, j int) bool {
+		return s.instanceGroups[i].sort < s.instanceGroups[j].sort
+	})
 }
 
 func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanceGroup {

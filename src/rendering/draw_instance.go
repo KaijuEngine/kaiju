@@ -209,6 +209,7 @@ type DrawInstanceGroup struct {
 	namedInstanceData map[string]InstanceCopyData
 	instanceSize      int
 	visibleCount      int
+	sort              int
 	useBlending       bool
 	destroyed         bool
 }

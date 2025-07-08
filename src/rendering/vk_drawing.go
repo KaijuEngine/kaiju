@@ -260,6 +260,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	vr.caches.ShaderCache().CreatePending()
 	// Sort order of the passes matter, so we need a complete recreate if not ok
 	ok := false
+	sorts := make([]int, 0, len(passes))
 	mats := make([]*Material, 0, len(passes))
 	for i := range passes {
 		tex := passes[i].SelectOutputAttachment(vr)
@@ -267,6 +268,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			continue
 		}
 		mats = append(mats, combineMat.CreateInstance([]*Texture{tex}))
+		sorts = append(sorts, passes[i].construction.Sort)
 		matIdx := len(mats) - 1
 		if len(vr.combinedDrawings.renderPassGroups) > 0 {
 			var d *ShaderDraw
@@ -294,6 +296,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			Material:   mats[i],
 			Mesh:       mesh,
 			ShaderData: sd,
+			Sort:       sorts[i],
 		})
 	}
 	vr.combinedDrawings.PreparePending()

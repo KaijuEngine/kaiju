@@ -50,6 +50,7 @@ type Drawing struct {
 	Mesh         *Mesh
 	ShaderData   DrawInstance
 	Transform    *matrix.Transform
+	Sort         int
 	CastsShadows bool
 }
 
@@ -117,26 +118,27 @@ func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup
 }
 
 func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGroup) {
-		draw, ok := rpGroup.findShaderDraw(drawing.Material)
-		if !ok {
-			newDraw := NewShaderDraw(drawing.Material)
-			rpGroup.draws = append(rpGroup.draws, newDraw)
-			draw = &rpGroup.draws[len(rpGroup.draws)-1]
-		}
-		drawing.ShaderData.setTransform(drawing.Transform)
-		idx := d.matchGroup(draw, drawing)
-		if idx >= 0 && !draw.instanceGroups[idx].destroyed {
-			draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
+	draw, ok := rpGroup.findShaderDraw(drawing.Material)
+	if !ok {
+		newDraw := NewShaderDraw(drawing.Material)
+		rpGroup.draws = append(rpGroup.draws, newDraw)
+		draw = &rpGroup.draws[len(rpGroup.draws)-1]
+	}
+	drawing.ShaderData.setTransform(drawing.Transform)
+	idx := d.matchGroup(draw, drawing)
+	if idx >= 0 && !draw.instanceGroups[idx].destroyed {
+		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
+	} else {
+		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
+		group.MaterialInstance = drawing.Material
+		group.AddInstance(drawing.ShaderData)
+		group.MaterialInstance.Textures = drawing.Material.Textures
+		group.sort = drawing.Sort
+		if idx >= 0 {
+			draw.instanceGroups[idx] = group
 		} else {
-			group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
-			group.MaterialInstance = drawing.Material
-			group.AddInstance(drawing.ShaderData)
-			group.MaterialInstance.Textures = drawing.Material.Textures
-			if idx >= 0 {
-				draw.instanceGroups[idx] = group
-			} else {
-				draw.AddInstanceGroup(group)
-			}
+			draw.AddInstanceGroup(group)
+		}
 	}
 }
 
