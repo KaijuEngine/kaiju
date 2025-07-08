@@ -116,19 +116,7 @@ func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup
 	return nil, false
 }
 
-func (d *Drawings) PreparePending() {
-	defer tracing.NewRegion("Drawings::PreparePending").End()
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-	for i := range d.backDraws {
-		drawing := &d.backDraws[i]
-		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
-		if !ok {
-			d.renderPassGroups = append(d.renderPassGroups, RenderPassGroup{
-				renderPass: drawing.Material.renderPass,
-			})
-			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
-		}
+func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGroup) {
 		draw, ok := rpGroup.findShaderDraw(drawing.Material)
 		if !ok {
 			newDraw := NewShaderDraw(drawing.Material)
@@ -149,6 +137,26 @@ func (d *Drawings) PreparePending() {
 			} else {
 				draw.AddInstanceGroup(group)
 			}
+	}
+}
+
+func (d *Drawings) PreparePending() {
+	defer tracing.NewRegion("Drawings.PreparePending").End()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	for i := 0; i < len(d.backDraws); i++ {
+		drawing := &d.backDraws[i]
+		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
+		if !ok {
+			d.renderPassGroups = append(d.renderPassGroups, RenderPassGroup{
+				renderPass: drawing.Material.renderPass,
+			})
+			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
+		}
+		d.addToRenderPassGroup(drawing, rpGroup)
+		if drawing.CastsShadows {
+			d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing))
+			//d.backDraws = append(d.backDraws, lightTransformDrawingToCubeDepth(drawing))
 		}
 	}
 	d.backDraws = d.backDraws[:0]
