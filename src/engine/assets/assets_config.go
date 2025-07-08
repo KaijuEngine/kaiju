@@ -46,8 +46,11 @@ const (
 // Material definitions
 const (
 	MaterialDefinitionGrid              = "grid"
+	MaterialDefinitionUnlit             = "unlit"
+	MaterialDefinitionUnlitTransparent  = "unlit_transparent"
 	MaterialDefinitionBasic             = "basic"
 	MaterialDefinitionBasicTransparent  = "basic_transparent"
+	MaterialDefinitionPBR               = "pbr"
 	MaterialDefinitionBasicSkinned      = "basic_skinned"
 	MaterialDefinitionBasicColor        = "basic_color"
 	MaterialDefinitionText3D            = "text3d"
@@ -59,4 +62,6 @@ const (
 	MaterialDefinitionSprite            = "sprite"
 	MaterialDefinitionSpriteTransparent = "sprite_transparent"
 	MaterialDefinitionOutline           = "outline"
+	MaterialDefinitionLightDepth        = "light_depth"
+	MaterialDefinitionLightCubeDepth    = "light_cube_depth"
 )
