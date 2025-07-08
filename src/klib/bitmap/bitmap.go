@@ -69,6 +69,11 @@ func LengthFor(byteCount int) int {
 	return int(math.Ceil(float64(byteCount) / float64(bitsInByte)))
 }
 
+// IsSet will return true if the given bit is set to 1, otherwise false
+func (b Bitmap) IsSet(index int) bool {
+	return b[index/bitsInByte]&(0x01<<(index%bitsInByte)) != 0
+}
+
 // Set sets the bit at the specified index to true.
 func (b Bitmap) Set(index int) {
 	b[index/bitsInByte] |= 0x01 << (index % bitsInByte)
