@@ -52,6 +52,7 @@ import (
 	"kaiju/engine/systems/logging"
 	"kaiju/platform/windowing"
 	"kaiju/plugins"
+	"kaiju/rendering"
 	"math"
 	"slices"
 	"time"
@@ -88,6 +89,7 @@ type Host struct {
 	editorEntities   editorEntities
 	entities         []*Entity
 	entityLookup     map[EntityId]*Entity
+	lights           []rendering.Light
 	timeRunner       []timeRun
 	frameRunner      []frameRun
 	plugins          []*plugins.LuaVM
@@ -294,7 +296,20 @@ func (host *Host) RemoveEntity(entity *Entity) {
 // using the same rules as AddEntity. If the host is in the process of creating
 // editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
-	host.addEntities(entities...)
+
+// AddLight adds a light to the internal list of lights the host is aware of
+func (host *Host) AddLight(light rendering.Light) {
+	host.lights = append(host.lights, light)
+}
+
+// Lights returns all of the active lights managed by this host
+func (host *Host) Lights() []rendering.Light {
+	return host.lights
+}
+
+// ClearLights clears out all of the lights that the host is tracking
+func (host *Host) ClearLights() {
+	host.lights = host.lights[:0]
 }
 
 // FindEntity will search for an entity contained in this host by its id. If the
@@ -400,7 +415,7 @@ func (host *Host) Render() {
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
 		if host.Window.Renderer.ReadyFrame(host.Camera,
-			host.UICamera, float32(host.Runtime())) {
+			host.UICamera, host.lights, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
 		}
 	}
