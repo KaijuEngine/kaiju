@@ -51,12 +51,12 @@ func NewDatabase() Database {
 }
 
 func (a *Database) ReadText(key string) (string, error) {
-	defer tracing.NewRegion("AssetDatabase::ReadText: " + key).End()
+	defer tracing.NewRegion("AssetDatabase.ReadText: " + key).End()
 	return filesystem.ReadTextFile(a.toContentPath(key))
 }
 
 func (a *Database) Read(key string) ([]byte, error) {
-	defer tracing.NewRegion("AssetDatabase::Read: " + key).End()
+	defer tracing.NewRegion("AssetDatabase.Read: " + key).End()
 	return filesystem.ReadFile(a.toContentPath(key))
 }
 

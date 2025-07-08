@@ -103,7 +103,7 @@ func (sd *ShaderDataCompiled) Stride() uint32 {
 }
 
 func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription {
-	defer tracing.NewRegion("Shader::ToAttributeDescription").End()
+	defer tracing.NewRegion("Shader.ToAttributeDescription").End()
 	attrs := make([]vk.VertexInputAttributeDescription, 0)
 	offset := uint32(0)
 	g := sd.SelectLayout("Vertex")
@@ -126,7 +126,7 @@ func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.
 }
 
 func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure {
-	defer tracing.NewRegion("Shader::ToDescriptorSetLayoutStructure").End()
+	defer tracing.NewRegion("Shader.ToDescriptorSetLayoutStructure").End()
 	structure := DescriptorSetLayoutStructure{}
 	for _, g := range sd.LayoutGroups {
 		for _, layout := range g.Layouts {
@@ -145,7 +145,7 @@ func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayo
 }
 
 func (d *ShaderData) CompileVariantName(path, flags string) string {
-	defer tracing.NewRegion("Shader::CompileVariantName").End()
+	defer tracing.NewRegion("Shader.CompileVariantName").End()
 	// It is possible to have 2 shaders which have modules in common but other
 	// modules are different. When compiling using flags, the output file name
 	// will have the shader name prefixed to it as it's a variant. This will
@@ -164,7 +164,7 @@ func (d *ShaderData) CompileVariantName(path, flags string) string {
 }
 
 func (d *ShaderData) Compile() ShaderDataCompiled {
-	defer tracing.NewRegion("Shader::Compile").End()
+	defer tracing.NewRegion("Shader.Compile").End()
 	return ShaderDataCompiled{
 		Name:                   d.Name,
 		Vertex:                 d.CompileVariantName(d.Vertex, d.VertexFlags),

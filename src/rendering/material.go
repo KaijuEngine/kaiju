@@ -43,6 +43,7 @@ type MaterialData struct {
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
+	defer tracing.NewRegion("Material.CreateInstance").End()
 	instanceKey := strings.Builder{}
 	for i := range textures {
 		instanceKey.WriteString(textures[i].Key)
@@ -91,6 +92,7 @@ func materialUnmarshallData(assets *assets.Database, file string, to any) error 
 }
 
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
+	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
 		Name:      d.Name,
@@ -145,6 +147,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 }
 
 func (m *Material) Destroy(renderer Renderer) {
+	defer tracing.NewRegion("Material.Destroy").End()
 	vr := renderer.(*Vulkan)
 	m.renderPass.Destroy(vr)
 }

@@ -62,7 +62,7 @@ func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCac
 }
 
 func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isNew bool) {
-	defer tracing.NewRegion("ShaderCache::Shader").End()
+	defer tracing.NewRegion("ShaderCache.Shader").End()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if shader, ok := s.shaders[shaderData.Name]; ok {
@@ -78,7 +78,7 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 }
 
 func (s *ShaderCache) CreatePending() {
-	defer tracing.NewRegion("ShaderCache::CreatePending").End()
+	defer tracing.NewRegion("ShaderCache.CreatePending").End()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, shader := range s.pendingShaders {
@@ -88,7 +88,7 @@ func (s *ShaderCache) CreatePending() {
 }
 
 func (s *ShaderCache) Destroy() {
-	defer tracing.NewRegion("ShaderCache::Destroy").End()
+	defer tracing.NewRegion("ShaderCache.Destroy").End()
 	for _, shader := range s.pendingShaders {
 		shader.Destroy(s.renderer)
 	}

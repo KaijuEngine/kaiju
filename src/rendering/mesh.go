@@ -40,6 +40,7 @@ package rendering
 import (
 	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 type MeshDrawMode = int
@@ -83,6 +84,7 @@ type Mesh struct {
 func (m *Mesh) BVH() *collision.BVH { return m.bvh }
 
 func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
+	defer tracing.NewRegion("rendering.NewMesh").End()
 	m := &Mesh{
 		key:            key,
 		pendingVerts:   verts,
@@ -93,8 +95,10 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	m.Details.Set(verts, indexes)
 	return m
 }
+}
 
 func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
+	defer tracing.NewRegion("Mesh.generateMeshBVH").End()
 	idxLen := len(indexes)
 	if idxLen == 0 || idxLen%3 != 0 {
 		// We're doing some special stuff here, probably lines or grids
@@ -124,6 +128,7 @@ func (m *Mesh) SetKey(key string) {
 }
 
 func (m *Mesh) DelayedCreate(renderer Renderer) {
+	defer tracing.NewRegion("Mesh.DelayedCreate").End()
 	if len(m.pendingVerts) > 0 {
 		renderer.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
 		m.pendingVerts = m.pendingVerts[:0]
@@ -149,6 +154,7 @@ var (
 )
 
 func newMeshQuad(key string, points [4]matrix.Vec3, cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.newMeshQuad").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -164,10 +170,12 @@ func newMeshQuad(key string, points [4]matrix.Vec3, cache *MeshCache) *Mesh {
 }
 
 func NewMeshQuad(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshQuad").End()
 	return NewMeshQuadAnchored(QuadPivotCenter, cache)
 }
 
 func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshQuadAnchored").End()
 	switch anchor {
 	case QuadPivotLeft:
 		return newMeshQuad("quad_left", meshQuadLeft, cache)
@@ -193,6 +201,7 @@ func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh {
 }
 
 func NewMeshTriangle(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshTriangle").End()
 	const key = "triangle"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -216,6 +225,7 @@ func NewMeshTriangle(cache *MeshCache) *Mesh {
 }
 
 func NewMeshUnitQuad(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshUnitQuad").End()
 	const key = "unit_quad"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -243,6 +253,7 @@ func NewMeshUnitQuad(cache *MeshCache) *Mesh {
 }
 
 func NewMeshScreenQuad(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshScreenQuad").End()
 	const key = "screen_quad"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -270,6 +281,7 @@ func NewMeshScreenQuad(cache *MeshCache) *Mesh {
 }
 
 func NewMeshPlane(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshPlane").End()
 	const key = "plane"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -297,6 +309,7 @@ func NewMeshPlane(cache *MeshCache) *Mesh {
 }
 
 func NewMeshCube(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCube").End()
 	const key = "cube"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -347,6 +360,7 @@ func NewMeshCube(cache *MeshCache) *Mesh {
 }
 
 func NewMeshTexturableCube(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshTexturableCube").End()
 	const key = "texturable_cube"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -448,6 +462,7 @@ func NewMeshTexturableCube(cache *MeshCache) *Mesh {
 }
 
 func NewMeshSkyboxCube(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshSkyboxCube").End()
 	const key = "skybox"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -498,6 +513,7 @@ func NewMeshSkyboxCube(cache *MeshCache) *Mesh {
 }
 
 func NewMeshCubeInverse(cache *MeshCache) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCubeInverse").End()
 	const key = "cube_inverse"
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
@@ -516,6 +532,7 @@ func NewMeshCubeInverse(cache *MeshCache) *Mesh {
 }
 
 func meshCube(vertColor matrix.Color) []Vertex {
+	defer tracing.NewRegion("rendering.meshCube").End()
 	var verts = make([]Vertex, 8)
 	verts[0].Position = matrix.Vec3{-0.5, -0.5, 0.5} // 0
 	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
@@ -553,6 +570,7 @@ func meshCube(vertColor matrix.Color) []Vertex {
 }
 
 func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshFrustum").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -572,6 +590,7 @@ func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4)
 }
 
 func NewMeshOffsetQuad(cache *MeshCache, key string, sideOffsets matrix.Vec4) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshOffsetQuad").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -598,6 +617,7 @@ func NewMeshOffsetQuad(cache *MeshCache, key string, sideOffsets matrix.Vec4) *M
 }
 
 func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor matrix.Color) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshGrid").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -619,6 +639,7 @@ func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor m
 }
 
 func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor matrix.Color) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshPoint").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -633,6 +654,7 @@ func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor 
 }
 
 func NewMeshLine(cache *MeshCache, key string, p0, p1 matrix.Vec3, vertColor matrix.Color) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshLine").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -651,6 +673,7 @@ func NewMeshLine(cache *MeshCache, key string, p0, p1 matrix.Vec3, vertColor mat
 }
 
 func NewMeshWireQuad(cache *MeshCache, key string, vertColor matrix.Color) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireQuad").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
@@ -677,6 +700,7 @@ func NewMeshWireQuad(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
 }
 
 func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireCube").End()
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {

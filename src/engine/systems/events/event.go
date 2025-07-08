@@ -37,6 +37,8 @@
 
 package events
 
+import "kaiju/platform/profiler/tracing"
+
 type Id = int64
 
 type eventEntry struct {
@@ -64,6 +66,7 @@ func (e *Event) Clear() {
 }
 
 func (e *Event) Remove(id Id) {
+	defer tracing.NewRegion("Event.Remove").End()
 	for i := range e.calls {
 		if e.calls[i].id == id {
 			last := len(e.calls) - 1
@@ -75,6 +78,7 @@ func (e *Event) Remove(id Id) {
 }
 
 func (e *Event) Execute() {
+	defer tracing.NewRegion("Event.Execute").End()
 	for i := range e.calls {
 		e.calls[i].call()
 	}

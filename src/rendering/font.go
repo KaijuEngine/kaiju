@@ -44,6 +44,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"strings"
 	"sync"
@@ -186,6 +187,7 @@ func (s TextShaderData) Size() int {
 }
 
 func (cache *FontCache) TransparentMaterial(target *Material) *Material {
+	defer tracing.NewRegion("FontCache.TransparentMaterial").End()
 	if target.SelectRoot() == cache.textMaterial.SelectRoot() {
 		return cache.textMaterialTransparent
 	} else if target.SelectRoot() == cache.textOrthoMaterial.SelectRoot() {
@@ -204,6 +206,7 @@ func (cache *FontCache) nextInstanceKey(key rune) string {
 }
 
 func (cache *FontCache) requireFace(face FontFace) {
+	defer tracing.NewRegion("FontCache.requireFace").End()
 	cache.FaceMutex.RLock()
 	if _, ok := cache.fontFaces[face.string()]; !ok {
 		cache.FaceMutex.RUnlock()
@@ -221,6 +224,7 @@ func (cache *FontCache) EMSize(face FontFace) float32 {
 }
 
 func NewFontCache(renderer Renderer, assetDb *assets.Database) FontCache {
+	defer tracing.NewRegion("rendering.NewFontCache").End()
 	return FontCache{
 		renderer:  renderer,
 		assetDb:   assetDb,
@@ -254,6 +258,7 @@ func findBinChar(font fontBin, letter rune) fontBinChar {
 }
 
 func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
+	defer tracing.NewRegion("FontCache.charCountInWidth").End()
 	wrap := false
 	spaceIndex := 0
 	wx := float32(0.0)
@@ -282,6 +287,7 @@ func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, s
 }
 
 func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool) *cachedLetterMesh {
+	defer tracing.NewRegion("FontCache.cachedMeshLetter").End()
 	var outLetter *cachedLetterMesh
 	var ok bool
 	if isOrtho {
@@ -300,6 +306,7 @@ func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool
 }
 
 func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, renderer Renderer, meshCache *MeshCache) {
+	defer tracing.NewRegion("FontCache.createLetterMesh").End()
 	mat := cache.textMaterial
 	oMat := cache.textOrthoMaterial
 
@@ -341,6 +348,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 }
 
 func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *assets.Database) bool {
+	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
 	bin.texture.MipLevels = 1
@@ -403,6 +411,7 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 }
 
 func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
+	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
 	if cache.textMaterial, err = caches.MaterialCache().Material("text3d"); err != nil {
 		slog.Error("failed to load the text3d material", "error", err)
@@ -428,6 +437,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
 	is3D bool, face FontFace, lineHeight float32) []Drawing {
+	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
 	cx := x
 	cy := y
@@ -597,6 +607,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 }
 
 func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32 {
+	defer tracing.NewRegion("FontCache.MeasureString").End()
 	cache.requireFace(face)
 	x, maxX := float32(0.0), float32(0.0)
 	for _, r := range text {
@@ -612,6 +623,7 @@ func (cache *FontCache) MeasureString(face FontFace, text string, scale float32)
 }
 
 func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2 {
+	defer tracing.NewRegion("FontCache.MeasureStringWithin").End()
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
@@ -630,6 +642,7 @@ func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, m
 }
 
 func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
+	defer tracing.NewRegion("FontCache.StringRectsWithinNew").End()
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	rects := make([]matrix.Vec4, 0)
@@ -655,6 +668,7 @@ func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, 
 }
 
 func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int {
+	defer tracing.NewRegion("FontCache.LineCountWithin").End()
 	cache.requireFace(face)
 	lines := 0
 	runes := []rune(text)
@@ -675,6 +689,7 @@ func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32)
 }
 
 func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
+	defer tracing.NewRegion("FontCache.PointOffsetWithin").End()
 	cache.requireFace(face)
 	textLen := utf8.RuneCountInString(text)
 	idx := textLen

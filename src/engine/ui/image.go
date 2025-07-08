@@ -75,7 +75,7 @@ func (img *Image) resetDelay() {
 }
 
 func (img *Image) update(deltaTime float64) {
-	defer tracing.NewRegion("Image::update").End()
+	defer tracing.NewRegion("Image.update").End()
 	img.Base().ToPanel().update(deltaTime)
 	data := img.ImageData()
 	data.frameDelay -= float32(deltaTime)

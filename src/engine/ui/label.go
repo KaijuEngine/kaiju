@@ -86,7 +86,7 @@ func (l *Label) Base() *UI             { return (*UI)(l) }
 func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 
 func (label *Label) Init(text string, anchor Anchor) {
-	defer tracing.NewRegion("Label::Init").End()
+	defer tracing.NewRegion("Label.Init").End()
 	label.elmData = &labelData{
 		text:            text,
 		textLength:      utf8.RuneCountInString(text),
@@ -173,7 +173,7 @@ func (label *Label) clearDrawings() {
 }
 
 func (label *Label) labelPostLayoutUpdate() {
-	defer tracing.NewRegion("Label::labelPostLayoutUpdate").End()
+	defer tracing.NewRegion("Label.labelPostLayoutUpdate").End()
 	maxWidth := label.MaxWidth()
 	l := label.LabelData()
 	if l.wordWrap {
@@ -202,7 +202,7 @@ func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 }
 
 func (label *Label) renderText() {
-	defer tracing.NewRegion("Label::renderText").End()
+	defer tracing.NewRegion("Label.renderText").End()
 	maxWidth := label.MaxWidth()
 	ld := label.LabelData()
 	if ld.wordWrap {
@@ -245,7 +245,7 @@ func (label *Label) renderText() {
 }
 
 func (label *Label) labelRender() {
-	defer tracing.NewRegion("Label::labelRender").End()
+	defer tracing.NewRegion("Label.labelRender").End()
 	//label.Base().render() ---v
 	label.events[EventTypeRender].Execute()
 	maxWidth := label.nonOverrideMaxWidth()
@@ -409,7 +409,7 @@ func (label *Label) MaxWidth() float32 {
 }
 
 func (label *Label) SetWidthAutoHeight(width float32) {
-	defer tracing.NewRegion("Label::SetWidthAutoHeight").End()
+	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
 	ld := label.LabelData()
 	textSize := label.Base().man.Host.FontCache().MeasureStringWithin(
 		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
@@ -432,7 +432,7 @@ func (label *Label) findColorRange(start, end int) *colorRange {
 }
 
 func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
-	defer tracing.NewRegion("Label::ColorRange").End()
+	defer tracing.NewRegion("Label.ColorRange").End()
 	cRange := label.findColorRange(start, end)
 	cRange.hue = newColor
 	cRange.bgHue = bgColor
@@ -441,7 +441,7 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 }
 
 func (label *Label) BoldRange(start, end int) {
-	defer tracing.NewRegion("Label::BoldRange").End()
+	defer tracing.NewRegion("Label.BoldRange").End()
 	cRange := label.findColorRange(start, end)
 	ld := label.LabelData()
 	cRange.hue = ld.fgColor
@@ -451,13 +451,13 @@ func (label *Label) BoldRange(start, end int) {
 }
 
 func (label *Label) SetWrap(wrapText bool) {
-	defer tracing.NewRegion("Label::SetWrap").End()
+	defer tracing.NewRegion("Label.SetWrap").End()
 	label.LabelData().wordWrap = wrapText
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontWeight(weight string) {
-	defer tracing.NewRegion("Label::SetFontWeight").End()
+	defer tracing.NewRegion("Label.SetFontWeight").End()
 	ld := label.LabelData()
 	switch weight {
 	case "normal":
@@ -512,7 +512,7 @@ func (label *Label) SetFontStyle(style string) {
 }
 
 func (label *Label) CalculateMaxWidth() float32 {
-	defer tracing.NewRegion("Label::CalculateMaxWidth").End()
+	defer tracing.NewRegion("Label.CalculateMaxWidth").End()
 	var maxWidth matrix.Float
 	parent := label.entity.Parent
 	var p *Panel

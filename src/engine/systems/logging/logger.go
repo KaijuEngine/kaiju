@@ -39,6 +39,7 @@ package logging
 
 import (
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"regexp"
@@ -83,6 +84,7 @@ func (l *LogStream) Write(p []byte) (n int, err error) {
 }
 
 func Initialize(opts *slog.HandlerOptions) *LogStream {
+	defer tracing.NewRegion("logging.Initialize").End()
 	stream := &LogStream{
 		OnInfo:  newEvent(),
 		OnWarn:  newTracedEvent(),

@@ -40,9 +40,11 @@ package navigation
 import (
 	"container/heap"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 func AStar(grid Grid, start, end matrix.Vec3i) []*Node {
+	defer tracing.NewRegion("navigation.AStar").End()
 	if grid.IsBlocked(end) {
 		end = findNearestUnblockedNode(grid, end)
 		if end[matrix.Vx] == -1 && end[matrix.Vy] == -1 && end[matrix.Vz] == -1 {

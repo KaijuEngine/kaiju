@@ -115,7 +115,7 @@ func (u *Updater) RemoveUpdate(id int) {
 // It takes a deltaTime parameter that is the approximate amount of time since
 // the last call to #Updater.Update.
 func (u *Updater) Update(deltaTime float64) {
-	defer tracing.NewRegion("Updater::Update").End()
+	defer tracing.NewRegion("Updater.Update").End()
 	u.lastDelta = deltaTime
 	u.addInternal()
 	u.removeInternal()

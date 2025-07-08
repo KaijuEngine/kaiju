@@ -446,7 +446,7 @@ func (input *Input) pointerPosWithin() int {
 //#endif
 
 func (input *Input) update(deltaTime float64) {
-	defer tracing.NewRegion("Input::update").End()
+	defer tracing.NewRegion("Input.update").End()
 	input.Base().ToPanel().update(deltaTime)
 	data := input.InputData()
 	if data.isActive {

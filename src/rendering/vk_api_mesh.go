@@ -47,7 +47,7 @@ func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
 }
 
 func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
-	defer tracing.NewRegion("Vulkan::CreateMesh").End()
+	defer tracing.NewRegion("Vulkan.CreateMesh").End()
 	id := &mesh.MeshId
 	vNum := uint32(len(verts))
 	iNum := uint32(len(indices))
@@ -58,7 +58,7 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 }
 
 func (vr *Vulkan) DestroyMesh(mesh *Mesh) {
-	defer tracing.NewRegion("Vulkan::DestroyMesh").End()
+	defer tracing.NewRegion("Vulkan.DestroyMesh").End()
 	vk.DeviceWaitIdle(vr.device)
 	id := &mesh.MeshId
 	vk.DestroyBuffer(vr.device, id.indexBuffer, nil)

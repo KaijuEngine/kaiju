@@ -39,8 +39,8 @@ package sprite
 
 import (
 	"kaiju/engine/assets"
-	"kaiju/engine"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -117,6 +117,7 @@ func (s *Sprite) SetFrameRate(framesPerSecond float32) {
 }
 
 func (s *Sprite) recreateDrawing() {
+	defer tracing.NewRegion("Sprite.recreateDrawing").End()
 	s.shaderData.Destroy()
 	proxy := s.shaderData
 	proxy.CancelDestroy()
@@ -124,6 +125,7 @@ func (s *Sprite) recreateDrawing() {
 }
 
 func (s *Sprite) SetTexture(texture *rendering.Texture) {
+	defer tracing.NewRegion("Sprite.SetTexture").End()
 	s.texture = texture
 	if s.drawing.IsValid() {
 		s.recreateDrawing()
@@ -132,9 +134,8 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	}
 }
 
-func (s *Sprite) SetFlipBookAnimation(
-	framesPerSecond float32, textures ...*rendering.Texture) {
-
+func (s *Sprite) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture) {
+	defer tracing.NewRegion("Sprite.SetFlipBookAnimation").End()
 	count := len(textures)
 	s.flipBook = make([]*rendering.Texture, 0, count)
 	for i := 0; i < count; i++ {
@@ -148,6 +149,7 @@ func (s *Sprite) SetFlipBookAnimation(
 }
 
 func (s *Sprite) SetColor(color matrix.Color) {
+	defer tracing.NewRegion("Sprite.SetColor").End()
 	s.shaderData.FgColor = color
 	if color.A() < 1 {
 		s.recreateDrawing()
@@ -158,6 +160,7 @@ func (s *Sprite) SetColor(color matrix.Color) {
 func (s Sprite) CurrentClipName() string { return s.currentClipName }
 
 func (s *Sprite) SetSheetClip(clipName string) {
+	defer tracing.NewRegion("Sprite.SetSheetClip").End()
 	if s.currentClipName != clipName {
 		s.currentClipName = clipName
 		s.currentClip = s.spriteSheet.clips[clipName]
@@ -171,6 +174,7 @@ func (s *Sprite) resetDelay() {
 }
 
 func (s *Sprite) update(deltaTime float64) {
+	defer tracing.NewRegion("Sprite.update").End()
 	if !s.Entity.IsActive() {
 		return
 	}
@@ -195,6 +199,7 @@ func (s *Sprite) update(deltaTime float64) {
 }
 
 func (s *Sprite) setSheetFrame(frame int) {
+	defer tracing.NewRegion("Sprite.setSheetFrame").End()
 	s.clipIdx = frame
 	f := s.currentClip[frame]
 	h := float32(f.Frame.H) / s.texture.Size().Height()
@@ -207,18 +212,19 @@ func (s *Sprite) setSheetFrame(frame int) {
 }
 
 func (s *Sprite) Activate() {
+	defer tracing.NewRegion("Sprite.Activate").End()
 	s.Entity.Activate()
 	s.shaderData.Activate()
 }
 
 func (s *Sprite) Deactivate() {
+	defer tracing.NewRegion("Sprite.Deactivate").End()
 	s.Entity.Deactivate()
 	s.shaderData.Deactivate()
 }
 
-func NewSprite(x, y, width, height matrix.Float,
-	host *engine.Host, texture *rendering.Texture, color matrix.Color) *Sprite {
-
+func NewSprite(x, y, width, height matrix.Float, host *engine.Host, texture *rendering.Texture, color matrix.Color) *Sprite {
+	defer tracing.NewRegion("sprite.NewSprite").End()
 	e := host.NewEntity()
 	sprite := &Sprite{
 		host:     host,
@@ -262,9 +268,8 @@ func NewSprite(x, y, width, height matrix.Float,
 	return sprite
 }
 
-func NewSpriteFlipBook(x, y, width, height float32,
-	host *engine.Host, images []*rendering.Texture, fps float32) *Sprite {
-
+func NewSpriteFlipBook(x, y, width, height float32, host *engine.Host, images []*rendering.Texture, fps float32) *Sprite {
+	defer tracing.NewRegion("sprite.NewSpriteFlipBook").End()
 	s := NewSprite(x, y, width, height, host, images[0], matrix.ColorWhite())
 	s.fps = fps
 	s.flipBook = images
@@ -275,10 +280,8 @@ func NewSpriteFlipBook(x, y, width, height float32,
 	return s
 }
 
-func NewSpriteSheet(x, y, width, height float32,
-	host *engine.Host, texture *rendering.Texture, jsonStr string,
-	fps float32, initialClip string) *Sprite {
-
+func NewSpriteSheet(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, jsonStr string, fps float32, initialClip string) *Sprite {
+	defer tracing.NewRegion("sprite.NewSpriteSheet").End()
 	s := NewSprite(x, y, width, height, host, texture, matrix.ColorWhite())
 	var err error
 	s.spriteSheet, err = ReadSpriteSheetData(jsonStr)

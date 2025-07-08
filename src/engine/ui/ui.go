@@ -114,7 +114,7 @@ type UI struct {
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 
 func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
-	defer tracing.NewRegion("UI::init").End()
+	defer tracing.NewRegion("UI.init").End()
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
 	}
@@ -153,7 +153,7 @@ func (ui *UI) Type() ElementType               { return ui.elmType }
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
-	defer tracing.NewRegion("UI::ExecuteEvent").End()
+	defer tracing.NewRegion("UI.ExecuteEvent").End()
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
 }
@@ -173,6 +173,7 @@ func (ui *UI) Event(evtType EventType) *events.Event {
 func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
+	defer tracing.NewRegion("UI.setDirtyInternal").End()
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
@@ -193,11 +194,12 @@ func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 }
 
 func (ui *UI) SetDirty(dirtyType DirtyType) {
-	defer tracing.NewRegion("UI::SetDirty").End()
+	defer tracing.NewRegion("UI.SetDirty").End()
 	ui.setDirtyInternal(dirtyType)
 }
 
 func (ui *UI) rootUI() *UI {
+	defer tracing.NewRegion("UI.rootUI").End()
 	root := &ui.entity
 	var rootUI *UI = FirstOnEntity(root)
 	for root.Parent != nil {
@@ -212,7 +214,7 @@ func (ui *UI) rootUI() *UI {
 }
 
 func (ui *UI) Clean() {
-	defer tracing.NewRegion("UI::Clean").End()
+	defer tracing.NewRegion("UI.Clean").End()
 	if ui.dontClean {
 		return
 	}
@@ -248,7 +250,7 @@ func (ui *UI) Clean() {
 }
 
 func (ui *UI) GenerateScissor() {
-	defer tracing.NewRegion("UI::GenerateScissor").End()
+	defer tracing.NewRegion("UI.GenerateScissor").End()
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -275,11 +277,12 @@ func (ui *UI) GenerateScissor() {
 }
 
 func (ui *UI) setScissor(scissor matrix.Vec4) {
-	defer tracing.NewRegion("UI::setScissor").End()
+	defer tracing.NewRegion("UI.setScissor").End()
 	ui.setScissorInternal(scissor)
 }
 
 func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
+	defer tracing.NewRegion("UI.setScissorInternal").End()
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
@@ -300,6 +303,7 @@ func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 }
 
 func (ui *UI) requestEvent(evtType EventType) {
+	defer tracing.NewRegion("UI.requestEvent").End()
 	if ui.events[evtType].IsEmpty() {
 		return
 	}
@@ -311,7 +315,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 }
 
 func (ui *UI) eventUpdates() {
-	defer tracing.NewRegion("UI::eventUpdates").End()
+	defer tracing.NewRegion("UI.eventUpdates").End()
 	cursor := &ui.man.Host.Window.Cursor
 	mouse := &ui.man.Host.Window.Mouse
 	if cursor.Moved() {
@@ -397,6 +401,7 @@ func (ui *UI) Update(deltaTime float64) {
 }
 
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
+	defer tracing.NewRegion("UI.cursorPos").End()
 	pos := cursor.Position()
 	pos[matrix.Vx] -= matrix.Float(ui.man.Host.Window.Width()) * 0.5
 	pos[matrix.Vy] -= matrix.Float(ui.man.Host.Window.Height()) * 0.5
@@ -404,7 +409,7 @@ func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 }
 
 func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
-	defer tracing.NewRegion("UI::containedCheck").End()
+	defer tracing.NewRegion("UI.containedCheck").End()
 	cp := ui.cursorPos(cursor)
 	contained := entity.Transform.ContainsPoint2D(cp)
 	if contained && ui.hasScissor() {
@@ -426,21 +431,24 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 }
 
 func (ui *UI) changed() {
+	defer tracing.NewRegion("UI.changed").End()
 	ui.ExecuteEvent(EventTypeChange)
 }
 
 func (ui *UI) layoutChanged(dirtyType DirtyType) {
+	defer tracing.NewRegion("UI.layoutChanged").End()
 	ui.SetDirty(dirtyType)
 }
 
 func (ui *UI) cleanIfNeeded() {
+	defer tracing.NewRegion("UI.cleanIfNeeded").End()
 	if ui.anyChildDirty() {
 		ui.Clean()
 	}
 }
 
 func (ui *UI) anyChildDirty() bool {
-	defer tracing.NewRegion("UI::anyChildDirty").End()
+	defer tracing.NewRegion("UI.anyChildDirty").End()
 	if ui.dirtyType != DirtyTypeNone {
 		return true
 	}
@@ -454,7 +462,7 @@ func (ui *UI) anyChildDirty() bool {
 }
 
 func (ui *UI) updateFromManager(deltaTime float64) {
-	defer tracing.NewRegion("UI::updateFromManager").End()
+	defer tracing.NewRegion("UI.updateFromManager").End()
 	if !ui.isActive() {
 		return
 	}
@@ -479,15 +487,17 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 }
 
 func (ui *UI) Hide() {
+	defer tracing.NewRegion("UI.Hide").End()
 	ui.entity.Deactivate()
 }
 
 func (ui *UI) Show() {
+	defer tracing.NewRegion("UI.Show").End()
 	ui.entity.Activate()
 }
 
 func (ui *UI) FindByName(name string) *UI {
-	defer tracing.NewRegion("UI::FindByName").End()
+	defer tracing.NewRegion("UI.FindByName").End()
 	e := ui.entity.FindByName(name)
 	if e != nil {
 		return FirstOnEntity(e)
@@ -496,6 +506,7 @@ func (ui *UI) FindByName(name string) *UI {
 }
 
 func (ui *UI) IsInFrontOf(other *UI) bool {
+	defer tracing.NewRegion("UI.IsInFrontOf").End()
 	if ui == other {
 		return true
 	}

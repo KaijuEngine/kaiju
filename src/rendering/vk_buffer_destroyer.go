@@ -78,7 +78,7 @@ func (b *bufferDestroyer) Purge() {
 }
 
 func (b *bufferDestroyer) Cycle() {
-	defer tracing.NewRegion("bufferDestroyer::Cycle").End()
+	defer tracing.NewRegion("bufferDestroyer.Cycle").End()
 	if len(b.trash) == 0 {
 		return
 	}

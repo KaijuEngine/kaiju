@@ -115,7 +115,7 @@ func init() {
 }
 
 func (vr *Vulkan) WaitForRender() {
-	defer tracing.NewRegion("Vulkan::WaitForRender").End()
+	defer tracing.NewRegion("Vulkan.WaitForRender").End()
 	vk.DeviceWaitIdle(vr.device)
 	fences := [2]vk.Fence{}
 	for i := range fences {
@@ -183,7 +183,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 }
 
 func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) {
-	defer tracing.NewRegion("Vulkan::updateGlobalUniformBuffer").End()
+	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
 	camOrtho := matrix.Float(0)
 	if camera.IsOrthographic() {
 		camOrtho = 1
@@ -284,7 +284,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 }
 
 func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
-	defer tracing.NewRegion("Vulkan::Initialize").End()
+	defer tracing.NewRegion("Vulkan.Initialize").End()
 	var err error
 	vr.defaultTexture, err = caches.TextureCache().Texture(
 		assets.TextureSquare, TextureFilterLinear)
@@ -298,7 +298,7 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 }
 
 func (vr *Vulkan) remakeSwapChain() {
-	defer tracing.NewRegion("Vulkan::remakeSwapChain").End()
+	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
 	vr.WaitForRender()
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
@@ -383,7 +383,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 }
 
 func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, runtime float32) bool {
-	defer tracing.NewRegion("Vulkan::ReadyFrame").End()
+	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
 		vr.remakeSwapChain()
 		if !vr.hasSwapChain {
@@ -391,10 +391,10 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, run
 		}
 	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
-	inlTrace := tracing.NewRegion("Vulkan::ReadyFrame(WaitForFences)")
+	inlTrace := tracing.NewRegion("Vulkan.ReadyFrame(WaitForFences)")
 	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
 	inlTrace.End()
-	inlTrace = tracing.NewRegion("Vulkan::ReadyFrame(AcquireNextImage)")
+	inlTrace = tracing.NewRegion("Vulkan.ReadyFrame(AcquireNextImage)")
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain,
 		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
 		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
@@ -441,7 +441,7 @@ func (vr *Vulkan) destroyTransientCommands() {
 }
 
 func (vr *Vulkan) SwapFrame(width, height int32) bool {
-	defer tracing.NewRegion("Vulkan::SwapFrame").End()
+	defer tracing.NewRegion("Vulkan.SwapFrame").End()
 	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
 		return false
 	}
@@ -508,7 +508,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 }
 
 func (vr *Vulkan) Destroy() {
-	defer tracing.NewRegion("Vulkan::Destroy").End()
+	defer tracing.NewRegion("Vulkan.Destroy").End()
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
@@ -556,7 +556,7 @@ func (vr *Vulkan) Destroy() {
 }
 
 func (vr *Vulkan) Resize(width, height int) {
-	defer tracing.NewRegion("Vulkan::Resize").End()
+	defer tracing.NewRegion("Vulkan.Resize").End()
 	vr.remakeSwapChain()
 }
 
@@ -565,7 +565,7 @@ func (vr *Vulkan) AddPreRun(preRun func()) {
 }
 
 func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
-	defer tracing.NewRegion("Vulkan::DestroyGroup").End()
+	defer tracing.NewRegion("Vulkan.DestroyGroup").End()
 	vk.DeviceWaitIdle(vr.device)
 	pd := bufferTrash{delay: maxFramesInFlight}
 	pd.pool = group.descriptorPool

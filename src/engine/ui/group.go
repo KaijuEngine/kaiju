@@ -39,6 +39,7 @@ package ui
 
 import (
 	"kaiju/engine"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"sort"
 	"sync"
@@ -132,6 +133,7 @@ func sortRequests(a *groupRequest, b *groupRequest) bool {
 }
 
 func (group *Group) lateUpdate() {
+	defer tracing.NewRegion("ui.Group.lateUpdate").End()
 	if len(group.requests) > 0 {
 		sort.Slice(group.requests, func(i, j int) bool {
 			return sortRequests(&group.requests[i], &group.requests[j])

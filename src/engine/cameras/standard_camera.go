@@ -40,6 +40,7 @@ package cameras
 import (
 	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 type StandardCamera struct {
@@ -67,6 +68,7 @@ type StandardCamera struct {
 // NewStandardCamera creates a new perspective camera using the width/height
 // for the viewport and the position to place the camera.
 func NewStandardCamera(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
+	defer tracing.NewRegion("cameras.NewStandardCamera").End()
 	c := new(StandardCamera)
 	c.initializeValues(position)
 	c.initialize(width, height, viewWidth, viewHeight)
@@ -76,6 +78,7 @@ func NewStandardCamera(width, height, viewWidth, viewHeight float32, position ma
 // NewStandardCameraOrthographic creates a new orthographic camera using the
 // width/height for the viewport and the position to place the camera.
 func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
+	defer tracing.NewRegion("cameras.NewStandardCameraOrthographic").End()
 	c := new(StandardCamera)
 	c.initializeValues(position)
 	c.isOrthographic = true
@@ -86,42 +89,49 @@ func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32,
 
 // SetPosition sets the position of the camera.
 func (c *StandardCamera) SetPosition(position matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetPosition").End()
 	c.position = position
 	c.updateView()
 }
 
 // SetFOV sets the field of view for the camera.
 func (c *StandardCamera) SetFOV(fov float32) {
+	defer tracing.NewRegion("StandardCamera.SetFOV").End()
 	c.fieldOfView = fov
 	c.updateProjection()
 }
 
 // SetNearPlane sets the near plane for the camera.
 func (c *StandardCamera) SetNearPlane(near float32) {
+	defer tracing.NewRegion("StandardCamera.SetNearPlane").End()
 	c.nearPlane = near
 	c.updateProjection()
 }
 
 // SetFarPlane sets the far plane for the camera.
 func (c *StandardCamera) SetFarPlane(far float32) {
+	defer tracing.NewRegion("StandardCamera.SetFarPlane").End()
 	c.farPlane = far
 	c.updateProjection()
 }
 
 // SetWidth sets the width of the camera viewport.
 func (c *StandardCamera) SetWidth(width float32) {
+	defer tracing.NewRegion("StandardCamera.SetWidth").End()
 	c.width = width
 	c.updateProjection()
 }
 
 // SetHeight sets the height of the camera viewport.
 func (c *StandardCamera) SetHeight(height float32) {
+	defer tracing.NewRegion("StandardCamera.SetHeight").End()
 	c.height = height
 	c.updateProjection()
 }
 
 // Resize sets the width and height of the camera viewport.
 func (c *StandardCamera) Resize(width, height float32) {
+	defer tracing.NewRegion("StandardCamera.Resize").End()
 	c.width = width
 	c.height = height
 	c.updateProjection()
@@ -131,6 +141,7 @@ func (c *StandardCamera) Resize(width, height float32) {
 // be used when there is a change in the viewport. This is typically done
 // internally in the system and should not be called by the end-developer.
 func (c *StandardCamera) ViewportChanged(width, height float32) {
+	defer tracing.NewRegion("StandardCamera.ViewportChanged").End()
 	if c.sizeIsViewSize {
 		c.width = width
 		c.height = height
@@ -145,6 +156,7 @@ func (c *StandardCamera) ViewportChanged(width, height float32) {
 // each individual setter for fields would otherwise do needless projection
 // matrix updates.
 func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height float32) {
+	defer tracing.NewRegion("StandardCamera.SetProperties").End()
 	c.fieldOfView = fov
 	c.nearPlane = nearPlane
 	c.farPlane = farPlane
@@ -182,12 +194,14 @@ func (c *StandardCamera) Up() matrix.Vec3 {
 
 // SetLookAt sets the look at position of the camera.
 func (c *StandardCamera) SetLookAt(position matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetLookAt").End()
 	c.lookAt = position
 	c.updateView()
 }
 
 // SetLookAtWithUp sets the look at position of the camera and the up vector to use.
 func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetLookAtWithUp").End()
 	c.lookAt = point
 	c.up = up
 	c.updateView()
@@ -198,6 +212,7 @@ func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3) {
 // and avoids needless view matrix updates when setting the position and look
 // at separately.
 func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAt").End()
 	if matrix.Approx(position.Z(), lookAt.Z()) {
 		position[matrix.Vz] += 0.0001
 	}
@@ -209,6 +224,7 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
 func (c *StandardCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+	defer tracing.NewRegion("StandardCamera.RayCast").End()
 	return c.internalRayCast(screenPos, c.position)
 }
 
@@ -216,6 +232,7 @@ func (c *StandardCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
 // position and test if it hits a plane. If it does, it will return the hit
 // position and true. If it does not, it will return the zero vector and false.
 func (c *StandardCamera) TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool) {
+	defer tracing.NewRegion("StandardCamera.TryPlaneHit").End()
 	r := c.RayCast(screenPos)
 	d := matrix.Vec3Dot(planeNml, r.Direction)
 	if matrix.Abs(d) < matrix.FloatSmallestNonzero {
@@ -233,6 +250,7 @@ func (c *StandardCamera) TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml m
 // ForwardPlaneHit will project a ray from the camera's position given a screen
 // position and test if it hits a plane directly facing the cameras position.
 func (c *StandardCamera) ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool) {
+	defer tracing.NewRegion("StandardCamera.ForwardPlaneHit").End()
 	fwd := c.Forward()
 	return c.TryPlaneHit(screenPos, planePos, fwd)
 }
@@ -265,6 +283,7 @@ func (c *StandardCamera) FarPlane() float32 { return c.farPlane }
 func (c *StandardCamera) IsOrthographic() bool { return c.isOrthographic }
 
 func (c *StandardCamera) initializeValues(position matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.initializeValues").End()
 	c.fieldOfView = 60.0
 	c.nearPlane = 0.01
 	c.farPlane = 500.0
@@ -276,6 +295,7 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 }
 
 func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32) {
+	defer tracing.NewRegion("StandardCamera.initialize").End()
 	c.updateProjection = c.internalUpdateProjection
 	c.updateView = c.internalUpdateView
 	c.viewWidth = viewWidth
@@ -286,12 +306,14 @@ func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32
 }
 
 func (c *StandardCamera) setProjection(width, height float32) {
+	defer tracing.NewRegion("StandardCamera.setProjection").End()
 	c.width = width
 	c.height = height
 	c.updateProjection()
 }
 
 func (c *StandardCamera) internalUpdateProjection() {
+	defer tracing.NewRegion("StandardCamera.internalUpdateProjection").End()
 	if !c.isOrthographic {
 		c.projection.Perspective(matrix.Deg2Rad(c.fieldOfView),
 			c.width/c.height, c.nearPlane, c.farPlane)
@@ -303,7 +325,7 @@ func (c *StandardCamera) internalUpdateProjection() {
 }
 
 func (c *StandardCamera) internalUpdateView() {
-	if !c.isOrthographic {
+	defer tracing.NewRegion("StandardCamera.internalUpdateView").End()
 		c.view = matrix.Mat4LookAt(c.position, c.lookAt, c.up)
 	} else {
 		iPos := c.position
@@ -329,6 +351,7 @@ func (c *StandardCamera) updateFrustum() {
 }
 
 func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
+	defer tracing.NewRegion("StandardCamera.internalRayCast").End()
 	x := (2.0*screenPos.X())/c.viewWidth - 1.0
 	y := 1.0 - (2.0*screenPos.Y())/c.viewHeight
 	var origin, direction matrix.Vec3

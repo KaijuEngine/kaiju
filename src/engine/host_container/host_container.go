@@ -42,6 +42,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/systems/logging"
+	"kaiju/platform/profiler/tracing"
 	"runtime"
 	"strconv"
 	"strings"
@@ -93,6 +94,7 @@ func (c *Container) Run(width, height, x, y int) error {
 }
 
 func New(name string, logStream *logging.LogStream) *Container {
+	defer tracing.NewRegion("host_container.New").End()
 	host := engine.NewHost(name, logStream)
 	c := &Container{
 		Host:         host,
@@ -100,6 +102,7 @@ func New(name string, logStream *logging.LogStream) *Container {
 		PrepLock:     make(chan struct{}),
 	}
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
+		defer tracing.NewRegion("engine.Host.runFunctions").End()
 		if len(c.runFunctions) > 0 {
 			for _, f := range c.runFunctions {
 				f()
@@ -111,5 +114,6 @@ func New(name string, logStream *logging.LogStream) *Container {
 }
 
 func (c *Container) Close() {
+	defer tracing.NewRegion("Container.Close").End()
 	c.Host.Close()
 }

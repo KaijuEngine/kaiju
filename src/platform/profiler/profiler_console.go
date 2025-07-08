@@ -40,15 +40,15 @@ package profiler
 import (
 	"bufio"
 	"fmt"
-	"kaiju/klib/contexts"
 	"kaiju/engine"
-	"kaiju/klib"
 	"kaiju/engine/systems/console"
+	"kaiju/klib"
+	"kaiju/klib/contexts"
+	"kaiju/platform/profiler/tracing"
 	"os"
 	"os/exec"
 	"runtime"
 	"runtime/pprof"
-	"runtime/trace"
 	"strings"
 )
 
@@ -219,22 +219,19 @@ func pprofCommands(host *engine.Host, arg string) string {
 }
 
 func traceStart() string {
-	if f, err := os.Create(traceFile); err != nil {
+	if err := StartTrace(); err != nil {
 		return err.Error()
 	} else {
-		if err := trace.Start(f); err != nil {
-			return err.Error()
-		}
 		return "Trace started"
 	}
 }
 
 func traceStop() string {
-	trace.Stop()
-	if s, err := traceReview(); err != nil {
-		return s
+	if err := StopTrace(); err != nil {
+		return err.Error()
+	} else {
+		return "Trace stopped"
 	}
-	return "Trace stopped"
 }
 
 func traceReview() (string, error) {
@@ -301,6 +298,7 @@ func memStats(host *engine.Host, arg string) string {
 }
 
 func SetupConsole(host *engine.Host) {
+	defer tracing.NewRegion("profiler.SetupConsole").End()
 	c := console.For(host)
 	c.AddCommand("pprof", "Run profiler commands: 'mem' for heap, 'start/stop' for performance capture. View with 'web cpu', 'web mem', and end with 'web stop'", pprofCommands)
 	c.AddCommand("trace", "Run trace commands like 'start', 'stop'. After stopping gotraceui will automatically show", traceCommands)

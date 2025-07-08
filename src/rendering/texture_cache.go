@@ -52,6 +52,7 @@ type TextureCache struct {
 }
 
 func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache {
+	defer tracing.NewRegion("rendering.NewTextureCache").End()
 	tc := TextureCache{
 		renderer:        renderer,
 		assetDatabase:   assetDatabase,
@@ -65,6 +66,7 @@ func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureC
 }
 
 func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error) {
+	defer tracing.NewRegion("TextureCache.Texture").End()
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if texture, ok := t.textures[filter][textureKey]; ok {
@@ -81,7 +83,7 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 }
 
 func (t *TextureCache) CreatePending() {
-	defer tracing.NewRegion("TextureCache::CreatePending").End()
+	defer tracing.NewRegion("TextureCache.CreatePending").End()
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	for _, texture := range t.pendingTextures {

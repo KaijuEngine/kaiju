@@ -174,7 +174,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 }
 
 func (d *Drawings) Render(renderer Renderer) {
-	defer tracing.NewRegion("Drawings::Render").End()
+	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}

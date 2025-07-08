@@ -339,7 +339,7 @@ func (host *Host) NewEntity() *Entity {
 // Any destroyed entities will also be ticked for their cleanup. This will also
 // tick the editor entities for cleanup.
 func (host *Host) Update(deltaTime float64) {
-	defer tracing.NewRegion("Host::Update").End()
+	defer tracing.NewRegion("Host.Update").End()
 	host.frame++
 	host.frameTime += deltaTime
 	host.Window.Poll()
@@ -378,7 +378,7 @@ func (host *Host) Update(deltaTime float64) {
 // the start of the render. The frame is then readied, buffers swapped, and any
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
-	defer tracing.NewRegion("Host::Render").End()
+	defer tracing.NewRegion("Host.Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
@@ -445,6 +445,7 @@ func (h *Host) WaitForFrameRate() {
 // If a frame rate is set, then the host will block until the desired frame rate
 // is reached before continuing the update loop.
 func (h *Host) SetFrameRateLimit(fps int64) {
+	defer tracing.NewRegion("Host.SetFrameRateLimit").End()
 	if fps == 0 {
 		h.frameRateLimit.Stop()
 		h.frameRateLimit = nil

@@ -98,7 +98,7 @@ func (s *Slider) Init(anchor Anchor) {
 }
 
 func (slider *Slider) update(deltaTime float64) {
-	defer tracing.NewRegion("Slider::update").End()
+	defer tracing.NewRegion("Slider.update").End()
 	slider.Base().ToPanel().update(deltaTime)
 	if slider.drag {
 		slider.SetValue(slider.Delta())
