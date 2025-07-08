@@ -324,12 +324,13 @@ func (d *DrawInstanceGroup) Clear(renderer Renderer) {
 	for i := range d.Instances {
 		d.Instances[i].Destroy()
 	}
-	d.Instances = d.Instances[:0]
 }
+
 func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 	if d.destroyed {
 		return
 	}
 	d.Clear(renderer)
+	d.Instances = d.Instances[:0]
 	renderer.DestroyGroup(d)
 }

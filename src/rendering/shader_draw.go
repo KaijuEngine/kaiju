@@ -76,3 +76,9 @@ func (s *ShaderDraw) Destroy(renderer Renderer) {
 		s.instanceGroups[i].Destroy(renderer)
 	}
 }
+
+func (s *ShaderDraw) Clear(renderer Renderer) {
+	for i := range s.instanceGroups {
+		s.instanceGroups[i].Clear(renderer)
+	}
+}
