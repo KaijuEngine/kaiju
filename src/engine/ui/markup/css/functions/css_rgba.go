@@ -38,12 +38,18 @@
 package functions
 
 import (
-	"errors"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
+	"kaiju/matrix"
+	"strconv"
 )
 
 func (f Rgba) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {
-	return "", errors.New("not implemented")
+	r, _ := strconv.Atoi(value.Args[0])
+	g, _ := strconv.Atoi(value.Args[1])
+	b, _ := strconv.Atoi(value.Args[2])
+	a, _ := strconv.ParseFloat(value.Args[3], 64)
+	c := matrix.NewColor8(uint8(r), uint8(g), uint8(b), uint8(a*255))
+	return c.Hex(), nil
 }

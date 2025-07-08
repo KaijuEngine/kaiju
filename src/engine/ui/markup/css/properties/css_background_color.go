@@ -40,7 +40,7 @@ package properties
 import (
 	"fmt"
 	"kaiju/engine/assets"
-	"kaiju/engine"
+	"kaiju/engine/ui/markup/css/functions"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
@@ -80,6 +80,12 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		}
 		return nil
 	} else {
+		switch values[0].Str {
+		case "rgb":
+			hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
+		case "rgba":
+			hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
+		}
 		if newHex, ok := helpers.ColorMap[hex]; ok {
 			hex = newHex
 		}
