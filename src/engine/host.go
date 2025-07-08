@@ -287,10 +287,14 @@ func (host *Host) ClearEntities() {
 // removed from the standard entity pool. Entities are not ordered, so they are
 // removed in O(n) time. Do not assume the entities are ordered at any time.
 func (host *Host) RemoveEntity(entity *Entity) {
-	for i, e := range host.entities {
-		if e == entity {
-			host.entities = klib.RemoveUnordered(host.entities, i)
-			break
+	if host.editorEntities.contains(entity) {
+		host.editorEntities.remove(entity)
+	} else {
+		for i, e := range host.entities {
+			if e == entity {
+				host.entities = klib.RemoveUnordered(host.entities, i)
+				break
+			}
 		}
 	}
 }
@@ -299,22 +303,14 @@ func (host *Host) RemoveEntity(entity *Entity) {
 // standard entity pool. If the host is in the process of creating editor
 // entities, then the entity will be added to the editor entity pool.
 func (host *Host) AddEntity(entity *Entity) {
-	host.entities = append(host.entities, entity)
-	if entity.id != "" {
-		host.entityLookup[entity.id] = entity
-	}
+	host.addEntity(entity)
 }
 
 // AddEntities adds multiple entities to the host. This will add the entities
 // using the same rules as AddEntity. If the host is in the process of creating
 // editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
-	host.entities = append(host.entities, entities...)
-	for _, e := range entities {
-		if e.id != "" {
-			host.entityLookup[e.id] = e
-		}
-	}
+	host.addEntities(entities...)
 }
 
 // AddLight adds a light to the internal list of lights the host is aware of
@@ -340,11 +336,11 @@ func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 	return e, ok
 }
 
-// Entities returns all the entities that are currently in the host. This will
+// Entities returns all the entities that are currently in the host. This will^
 // return all entities in the standard entity pool only. In the editor, this
 // will not return any entities that have been destroyed (and are pending
 // cleanup due to being in the undo history)
-func (host *Host) Entities() []*Entity { return host.entities }
+func (host *Host) Entities() []*Entity { return host.selectAllValidEntities() }
 
 // Entities returns all the entities that are currently in the host. This will
 // return all entities in the standard entity pool only. In the editor, this
