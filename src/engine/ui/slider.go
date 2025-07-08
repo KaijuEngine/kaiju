@@ -106,10 +106,11 @@ func (slider *Slider) update(deltaTime float64) {
 }
 
 func (slider Slider) Delta() float32 {
+	ww := float32(slider.man.Host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
-	xPos := slider.entity.Transform.WorldPosition().X()
+	xPos := slider.entity.Transform.WorldPosition().X() + (ww * 0.5)
 	xPos -= w * 0.5
-	mp := slider.man.Host.Window.Cursor.ScreenPosition()
+	mp := slider.man.Host.Window.Cursor.Position()
 	return (mp.X() - xPos) / w
 }
 
