@@ -220,7 +220,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		&stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(memLen), 0, &stageData)
-	vk.Memcopy(stageData, data.Mem)
+	vk.Memcopy(stageData, data.Mem[:memLen])
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1

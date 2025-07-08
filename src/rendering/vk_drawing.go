@@ -58,7 +58,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 		slog.Error("MapMemory was a success, but data is nil")
 		return false
 	}
-	vk.Memcopy(data, fromBuffer)
+	vk.Memcopy(data, fromBuffer[:mapLen])
 	vk.UnmapMemory(vr.device, sb.memories[vr.currentFrame])
 	return true
 }
