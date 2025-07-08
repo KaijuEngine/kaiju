@@ -49,6 +49,7 @@ import (
 )
 
 func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
+	defer tracing.NewRegion("Vulkan.mapAndCopy").End()
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, sb.memories[vr.currentFrame], 0, mapLen, 0, &data)
 	if r != vk.Success {
@@ -64,6 +65,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 }
 
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup) bool {
+	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	shaderDataSize := material.Shader.DriverData.Stride
 	instanceSize := vr.padUniformBufferSize(vk.DeviceSize(shaderDataSize))
 	updatedAnything := false
@@ -140,6 +142,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 }
 
 func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, pipeline)
 	for i := range groups {
 		group := &groups[i]
@@ -172,7 +175,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 }
 
 func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
-	defer tracing.NewRegion("Vulkan::Draw").End()
+	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return false
 	}
@@ -233,7 +236,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
-	defer tracing.NewRegion("Vulkan::prepCombinedTargets").End()
+	defer tracing.NewRegion("Vulkan.prepCombinedTargets").End()
 	combineMat, err := vr.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
 	if err != nil {
 		slog.Error("failed to load the combine material", "error", err)
@@ -286,8 +289,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 }
 
 func (vr *Vulkan) combineTargets() *TextureId {
-	defer tracing.NewRegion("Vulkan::combineTargets").End()
-	cmd := vr.beginSingleTimeCommands()
+	defer tracing.NewRegion("Vulkan.combineTargets").End()
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
@@ -303,7 +305,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 }
 
 func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
-	defer tracing.NewRegion("Vulkan::cleanupCombined").End()
+	defer tracing.NewRegion("Vulkan.cleanupCombined").End()
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {
@@ -316,7 +318,7 @@ func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
 }
 
 func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
-	defer tracing.NewRegion("Vulkan::BlitTargets").End()
+	defer tracing.NewRegion("Vulkan.BlitTargets").End()
 	if !vr.hasSwapChain {
 		return
 	}
@@ -359,6 +361,7 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 }
 
 func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
 	lastCount := group.InstanceDriverData.lastInstanceCount
 	if currentCount > lastCount {

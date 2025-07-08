@@ -95,6 +95,10 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	m.Details.Set(verts, indexes)
 	return m
 }
+
+func (m *Mesh) Destroy(renderer Renderer) {
+	defer tracing.NewRegion("Mesh.Destroy").End()
+	renderer.DestroyMesh(m)
 }
 
 func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
@@ -712,8 +716,4 @@ func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
 		}
 		return cache.Mesh(key, verts, indexes)
 	}
-}
-
-func (m *Mesh) Destroy(renderer Renderer) {
-	renderer.DestroyMesh(m)
 }

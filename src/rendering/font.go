@@ -684,8 +684,7 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 
 func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
 	ch := findBinChar(cache.fontFaces[face], r)
-	return matrix.Vec2{ch.Width() * pixelSize,
-		ch.Height() * pixelSize}
+	return matrix.Vec2{ch.Width() * pixelSize, ch.Height() * pixelSize}
 }
 
 func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {

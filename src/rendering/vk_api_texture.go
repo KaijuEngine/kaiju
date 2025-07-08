@@ -225,7 +225,8 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1
 	vr.CreateImage(uint32(data.Width), uint32(data.Height), uint32(mip),
-		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use), vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
+		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
+		vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
 	texture.RenderId.MipLevels = uint32(mip)
 	texture.RenderId.Format = format
 	texture.RenderId.Width = data.Width

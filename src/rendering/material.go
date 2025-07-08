@@ -80,17 +80,6 @@ func (d *MaterialTextureData) FilterToVK() TextureFilter {
 	}
 }
 
-func materialUnmarshallData(assets *assets.Database, file string, to any) error {
-	s, err := assets.ReadText(file)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal([]byte(s), to); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
@@ -102,13 +91,13 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	sd := ShaderData{}
 	rp := RenderPassData{}
 	sp := ShaderPipelineData{}
-	if err := materialUnmarshallData(assets, d.Shader, &sd); err != nil {
+	if err := unmarshallJsonFile(assets, d.Shader, &sd); err != nil {
 		return c, err
 	}
-	if err := materialUnmarshallData(assets, d.RenderPass, &rp); err != nil {
+	if err := unmarshallJsonFile(assets, d.RenderPass, &rp); err != nil {
 		return c, err
 	}
-	if err := materialUnmarshallData(assets, d.ShaderPipeline, &sp); err != nil {
+	if err := unmarshallJsonFile(assets, d.ShaderPipeline, &sp); err != nil {
 		return c, err
 	}
 	c.shaderInfo = sd.Compile()
