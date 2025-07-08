@@ -39,13 +39,14 @@ package properties
 
 import (
 	"fmt"
+	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/functions"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/engine/ui"
 )
 
 func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
@@ -90,7 +91,7 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 			hex = newHex
 		}
 		if color, err = matrix.ColorFromHexString(hex); err == nil {
-			if applyPanelColor {
+			if applyPanelColor || panel.Base().Type() == ui.ElementTypeImage {
 				panel.SetColor(color)
 			}
 			if !panel.HasEnforcedColor() {
