@@ -43,6 +43,7 @@ import (
 	"kaiju/engine/cameras"
 	"kaiju/platform/concurrent"
 	"kaiju/engine/collision_system"
+	"kaiju/engine/systems/tweening"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -368,6 +369,7 @@ func (host *Host) Update(deltaTime float64) {
 	}
 	host.UIUpdater.Update(deltaTime)
 	host.UILateUpdater.Update(deltaTime)
+tweening.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	host.LateUpdater.Update(deltaTime)
 	host.collisionManager.Update(deltaTime)
