@@ -218,6 +218,11 @@ func (cache *FontCache) requireFace(face FontFace) {
 	}
 }
 
+func (cache *FontCache) PreloadFace(face FontFace) {
+	defer tracing.NewRegion("FontCache.PreloadFace").End()
+	cache.requireFace(face)
+}
+
 func (cache *FontCache) EMSize(face FontFace) float32 {
 	cache.requireFace(face)
 	return cache.fontFaces[face.string()].metrics.EMSize * DefaultFontEMSize
