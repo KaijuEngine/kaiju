@@ -174,7 +174,6 @@ func New() *Editor {
 	setupEditorWindow(ed, logStream)
 	host := ed.container.Host
 	ed.uiManager.Init(host)
-	host.SetFrameRateLimit(60)
 	ed.stageManager = stages.NewManager(host, &ed.assetImporters, &ed.history)
 	ed.selection = selection.New(host, &ed.history)
 	registerAssetImporters(ed)
