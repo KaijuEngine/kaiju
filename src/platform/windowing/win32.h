@@ -54,11 +54,15 @@ void window_cursor_size_all(void* hwnd);
 void window_cursor_size_ns(void* hwnd);
 void window_cursor_size_we(void* hwnd);
 float window_dpi(void* hwnd);
+int screen_width_mm(void* hwnd);
+int screen_height_mm(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void window_set_position(void* hwnd, int x, int y);
 void window_set_size(void* hwnd, int width, int height);
 void window_remove_border(void* hwnd);
 void window_add_border(void* hwnd);
+void window_show_cursor(void* hwnd);
+void window_hide_cursor(void* hwnd);
 
 #endif

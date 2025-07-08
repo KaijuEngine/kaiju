@@ -40,6 +40,7 @@
 package windowing
 
 /*
+#cgo CFLAGS: -I/usr/include
 #cgo LDFLAGS: -lX11 -lXcursor
 #cgo noescape window_main
 #cgo noescape window_poll_controller
@@ -57,6 +58,9 @@ package windowing
 #cgo noescape window_cursor_size_all
 #cgo noescape window_cursor_size_ns
 #cgo noescape window_cursor_size_we
+#cgo noescape window_show_cursor
+#cgo noescape window_hide_cursor
+#cgo noescape window_dpi
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -159,4 +163,21 @@ func (w *Window) removeBorder() {
 
 func (w *Window) addBorder() {
 	klib.NotYetImplemented(234)
+}
+
+func (w *Window) showCursor() {
+	C.window_show_cursor(w.handle)
+}
+
+func (w *Window) hideCursor() {
+	C.window_hide_cursor(w.handle)
+}
+
+func (w *Window) dotsPerMillimeter() float64 {
+	return float64(C.window_dpi(w.handle))
+}
+
+func (w *Window) screenSizeMM() (int, int, error) {
+	mm := float64(C.window_dpi(w.handle))
+	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }

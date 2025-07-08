@@ -40,12 +40,12 @@ package windowing
 import (
 	"errors"
 	"kaiju/engine/assets"
-	"kaiju/platform/hid"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"kaiju/engine/systems/events"
 	"slices"
 	"unsafe"
 )
@@ -84,6 +84,7 @@ type FileSearch struct {
 }
 
 func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
+	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
 		Mouse:      hid.NewMouse(),
@@ -126,6 +127,7 @@ func (w *Window) requestSync() {
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
+	defer tracing.NewRegion("windowing.FindWindowAtPoint").End()
 	for i := range activeWindows {
 		w := activeWindows[i]
 		if x >= w.left && x <= w.right && y >= w.top && y <= w.bottom {
@@ -186,6 +188,7 @@ func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
 }
 
 func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
+	defer tracing.NewRegion("Window.processWindowActivityEvent").End()
 	switch evt.activityType {
 	case windowEventActivityTypeMinimize:
 		// TODO:  Not implemented yet
@@ -201,11 +204,13 @@ func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
 }
 
 func (w *Window) processMouseMoveEvent(evt *MouseMoveWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseMoveEvent").End()
 	w.Mouse.SetPosition(float32(evt.x), float32(evt.y), float32(w.width), float32(w.height))
 	UpdateDragData(w, int(evt.x), int(evt.y))
 }
 
 func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseButtonEvent").End()
 	var targetButton int
 	switch evt.buttonId {
 	case nativeMouseButtonLeft:
@@ -232,6 +237,7 @@ func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
 }
 
 func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
 	s := w.Mouse.Scroll()
 	deltaX := scaleScrollDelta(float32(evt.deltaX))
 	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
@@ -240,6 +246,7 @@ func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
+	defer tracing.NewRegion("Window.processKeyboardButtonEvent").End()
 	switch evt.action {
 	case windowEventButtonTypeDown:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
@@ -251,6 +258,7 @@ func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
 }
 
 func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
+	defer tracing.NewRegion("Window.processControllerStateEvent").End()
 	if evt.connectionType == windowEventControllerConnectionTypeDisconnected {
 		w.Controller.Disconnected(int(evt.controllerId))
 	} else {
@@ -267,7 +275,7 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 }
 
 func (w *Window) Poll() {
-	defer tracing.NewRegion("Window::Poll").End()
+	defer tracing.NewRegion("Window.Poll").End()
 	if w.syncRequest {
 		w.windowSync <- struct{}{}
 		<-w.windowSync
@@ -286,7 +294,7 @@ func (w *Window) Poll() {
 }
 
 func (w *Window) EndUpdate() {
-	defer tracing.NewRegion("Window::EndUpdate").End()
+	defer tracing.NewRegion("Window.EndUpdate").End()
 	w.Keyboard.EndUpdate()
 	w.Mouse.EndUpdate()
 	w.Touch.EndUpdate()
@@ -302,14 +310,22 @@ func (w *Window) EndUpdate() {
 }
 
 func (w *Window) SwapBuffers() {
-	defer tracing.NewRegion("Window::SwapBuffers").End()
+	defer tracing.NewRegion("Window.SwapBuffers").End()
 	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}
 }
 
+func (w *Window) DotsPerMillimeter() float64 {
+	return w.dotsPerMillimeter()
+}
+
 func (w *Window) SizeMM() (int, int, error) {
 	return w.sizeMM()
+}
+
+func (w *Window) ScreenSizeMM() (int, int, error) {
+	return w.screenSizeMM()
 }
 
 func (w *Window) IsPhoneSize() bool {
@@ -327,6 +343,10 @@ func (w *Window) IsTabletSize() bool {
 }
 
 func DPI2PX(pixels, mm, targetMM int) int {
+	return targetMM * (pixels / mm)
+}
+
+func DPI2PXF(pixels, mm, targetMM float64) float64 {
 	return targetMM * (pixels / mm)
 }
 
@@ -369,6 +389,7 @@ func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) removeFromActiveWindows() {
+	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
 	for i := range activeWindows {
 		if activeWindows[i] == w {
 			activeWindows = slices.Delete(activeWindows, i, i+1)
@@ -378,6 +399,7 @@ func (w *Window) removeFromActiveWindows() {
 }
 
 func (w *Window) Destroy() {
+	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
 	w.Renderer.Destroy()
 	w.destroy()
@@ -385,6 +407,7 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) Focus() {
+	defer tracing.NewRegion("Window.Focus").End()
 	w.focus()
 	w.cursorStandard()
 }
@@ -410,6 +433,8 @@ func (w *Window) SetSize(width, height int) {
 
 func (w *Window) RemoveBorder() { w.removeBorder() }
 func (w *Window) AddBorder()    { w.addBorder() }
+func (w *Window) ShowCursor()   { w.showCursor() }
+func (w *Window) HideCursor()   { w.hideCursor() }
 
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
@@ -417,6 +442,7 @@ func (w *Window) Center() (x int, y int) {
 }
 
 func (w *Window) becameInactive() {
+	defer tracing.NewRegion("Window.becameInactive").End()
 	w.Keyboard.Reset()
 	w.Mouse.Reset()
 	w.Touch.Reset()
@@ -425,6 +451,7 @@ func (w *Window) becameInactive() {
 }
 
 func (w *Window) becameActive() {
+	defer tracing.NewRegion("Window.becameActive").End()
 	w.cursorStandard()
 	idx := -1
 	for i := range activeWindows {
@@ -437,6 +464,7 @@ func (w *Window) becameActive() {
 }
 
 func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount uint32) {
+	defer tracing.NewRegion("windowing.goProcessEventsCommon").End()
 	var win *Window
 	gw := unsafe.Pointer(uintptr(goWindow))
 	for i := range activeWindows {

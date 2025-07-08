@@ -40,6 +40,7 @@
 package windowing
 
 import (
+	"errors"
 	"unicode/utf16"
 	"unsafe"
 
@@ -54,6 +55,8 @@ import (
 #cgo noescape window_cursor_standard
 #cgo noescape window_cursor_ibeam
 #cgo noescape window_dpi
+#cgo noescape screen_width_mm
+#cgo noescape screen_height_mm
 #cgo noescape window_focus
 #cgo noescape window_position
 #cgo noescape window_set_position
@@ -62,6 +65,8 @@ import (
 #cgo noescape window_add_border
 #cgo noescape window_poll_controller
 #cgo noescape window_poll
+#cgo noescape window_show_cursor
+#cgo noescape window_hide_cursor
 
 #include "windowing.h"
 */
@@ -125,10 +130,27 @@ func (w *Window) clipboardContents() string {
 	return string(clipboard.Read(clipboard.FmtText))
 }
 
+func (w *Window) dotsPerMillimeter() float64 {
+	dpi := float64(C.window_dpi(w.handle))
+	return dpi / 25.4
+}
+
 func (w *Window) sizeMM() (int, int, error) {
 	dpi := float64(C.window_dpi(w.handle))
 	mm := dpi / 25.4
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+}
+
+func (w *Window) screenSizeMM() (int, int, error) {
+	width := int(C.screen_width_mm(w.handle))
+	height := int(C.screen_height_mm(w.handle))
+	var err error
+	if width == -1 {
+		err = errors.New("width: failed to get the device context for HWND")
+	} else if height == -1 {
+		err = errors.New("height: failed to get the device context for HWND")
+	}
+	return width, height, err
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
@@ -157,4 +179,12 @@ func (w *Window) removeBorder() {
 
 func (w *Window) addBorder() {
 	C.window_add_border(w.handle)
+}
+
+func (w *Window) showCursor() {
+	C.window_show_cursor(w.handle)
+}
+
+func (w *Window) hideCursor() {
+	C.window_hide_cursor(w.handle)
 }
