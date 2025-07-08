@@ -363,3 +363,16 @@ func (vr *Vulkan) textureIdFree(id *TextureId) {
 		id.Sampler = vk.NullSampler
 	}
 }
+
+func (vr *Vulkan) FormatIsTileable(format vk.Format, tiling vk.ImageTiling) bool {
+	var formatProps vk.FormatProperties
+	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
+	switch tiling {
+	case vk.ImageTilingOptimal:
+		return (formatProps.OptimalTilingFeatures & vk.FormatFeatureFlags(vk.FormatFeatureSampledImageFilterLinearBit)) != 0
+	case vk.ImageTilingLinear:
+		return (formatProps.LinearTilingFeatures & vk.FormatFeatureFlags(vk.FormatFeatureSampledImageFilterLinearBit)) != 0
+	default:
+		return false
+	}
+}
