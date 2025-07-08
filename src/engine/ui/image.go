@@ -38,8 +38,11 @@
 package ui
 
 import (
+	"kaiju/engine/systems/visual2d/sprite"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"log/slog"
 )
 
 type Image Panel
@@ -47,6 +50,7 @@ type Image Panel
 type imageData struct {
 	panelData
 	flipBook                 []*rendering.Texture
+	spriteSheet              sprite.SpriteSheet
 	frameDelay, fps          float32
 	frameCount, currentFrame int
 	paused                   bool
@@ -67,6 +71,29 @@ func (s *Image) Init(texture *rendering.Texture, anchor Anchor) {
 	}
 	p := s.Base().ToPanel()
 	p.Init(texture, anchor, ElementTypeImage)
+	if p.shaderData != nil {
+		p.shaderData.BorderLen = matrix.Vec2Zero()
+	}
+}
+
+func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Texture, anchor Anchor) {
+	s.elmData = &imageData{}
+	p := s.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeImage)
+	s.SetFlipBookAnimation(framesPerSecond, textures...)
+	if p.shaderData != nil {
+		p.shaderData.BorderLen = matrix.Vec2Zero()
+	}
+}
+
+func (s *Image) InitSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string, anchor Anchor) {
+	s.elmData = &imageData{}
+	p := s.Base().ToPanel()
+	p.Init(nil, anchor, ElementTypeImage)
+	s.SetSpriteSheet(framesPerSecond, texture, jsonStr)
+	if p.shaderData != nil {
+		p.shaderData.BorderLen = matrix.Vec2Zero()
+	}
 }
 
 func (img *Image) resetDelay() {
@@ -78,14 +105,16 @@ func (img *Image) update(deltaTime float64) {
 	defer tracing.NewRegion("Image.update").End()
 	img.Base().ToPanel().update(deltaTime)
 	data := img.ImageData()
-	data.frameDelay -= float32(deltaTime)
+	if !data.paused {
+		data.frameDelay -= float32(deltaTime)
+	}
 	if data.frameCount > 0 && data.frameDelay <= 0.0 {
-		data.currentFrame++
-		if data.currentFrame == data.frameCount {
-			data.currentFrame = 0
+		next := data.currentFrame + 1
+		if next == data.frameCount {
+			next = 0
 		}
-		if len(data.flipBook) > 0 {
-			img.SetTexture(data.flipBook[data.currentFrame])
+		if data.spriteSheet.IsValid() || len(data.flipBook) > 0 {
+			img.SetFrame(next)
 		}
 		// TODO:  Else Atlas animation
 		img.resetDelay()
@@ -108,6 +137,38 @@ func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*ren
 	data.currentFrame = 0
 	img.resetDelay()
 	img.SetTexture(data.flipBook[data.currentFrame])
+}
+
+func (img *Image) SetSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string) {
+	data := img.ImageData()
+	var err error
+	data.spriteSheet, err = sprite.ReadSpriteSheetData(jsonStr)
+	if err != nil {
+		slog.Error("failed to load the UI sprite sheet", "error", err)
+		return
+	}
+	data.frameCount = len(data.spriteSheet.FirstClip().Frames)
+	data.fps = framesPerSecond
+	data.currentFrame = -1
+	img.resetDelay()
+	img.SetTexture(texture)
+	img.SetFrame(0)
+}
+
+func (img *Image) Frame() int { return img.ImageData().currentFrame }
+
+func (img *Image) SetFrame(index int) {
+	data := img.ImageData()
+	if data.currentFrame == index {
+		return
+	}
+	data.currentFrame = index
+	if data.spriteSheet.IsValid() {
+		clip := data.spriteSheet.FirstClip()
+		img.shaderData.UVs = clip.Frames[data.currentFrame].UVs(img.textureSize)
+	} else {
+		img.SetTexture(data.flipBook[data.currentFrame])
+	}
 }
 
 func (img *Image) SetFrameRate(framesPerSecond float32) {

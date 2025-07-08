@@ -40,60 +40,94 @@ package sprite
 import (
 	"encoding/json"
 	"kaiju/klib"
-	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"strconv"
 	"strings"
+	"unicode"
 )
 
-type SpriteSheetClip struct {
-	Name   string             `json:"name"`
-	Frames []SpriteSheetFrame `json:"frames"`
-}
-
-type SpriteSheetFrame struct {
+type spriteSheetFrameDataRect struct {
 	X int `json:"x"`
 	Y int `json:"y"`
-	Z int `json:"z"`
 	W int `json:"w"`
+	H int `json:"h"`
 }
 
-type SpriteSheet struct {
-	clips    map[string]*SpriteSheetClip
-	clipList []SpriteSheetClip
+type spriteSheetFrameDataSize struct {
+	W int `json:"w"`
+	H int `json:"h"`
 }
 
-func (s *SpriteSheet) FirstClip() SpriteSheetClip {
-	return s.clipList[0]
+type spriteSheetFrameDataPivot struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
 }
 
-func (s *SpriteSheet) IsValid() bool {
-	return len(s.clipList) > 0
+type spriteSheetFrameData struct {
+	Frame            spriteSheetFrameDataRect  `json:"frame"`
+	Rotated          bool                      `json:"rotated"`
+	Trimmed          bool                      `json:"trimmed"`
+	SpriteSourceSize spriteSheetFrameDataRect  `json:"spriteSourceSize"`
+	SourceSize       spriteSheetFrameDataSize  `json:"sourceSize"`
+	Pivot            spriteSheetFrameDataPivot `json:"pivot"`
 }
 
-func (f SpriteSheetFrame) Left() int   { return f.X }
-func (f SpriteSheetFrame) Top() int    { return f.Y }
-func (f SpriteSheetFrame) Width() int  { return f.Z }
-func (f SpriteSheetFrame) Height() int { return f.W }
-
-func (f SpriteSheetFrame) UVs(texSize matrix.Vec2) matrix.Vec4 {
-	w := texSize.Width()
-	h := texSize.Height()
-	bh := matrix.Float(f.Height()) / h
-	return matrix.NewVec4(matrix.Float(f.X)/w, 1.0-matrix.Float(f.Y)/h-bh,
-		matrix.Float(f.Width())/w, bh)
+type spriteSheetData struct {
+	ClipStart int                             `json:"clipStart"`
+	MirrorX   bool                            `json:"mirrorX"`
+	Frames    map[string]spriteSheetFrameData `json:"frames"`
 }
 
-func ReadSpriteSheetData(jsonStr string) (SpriteSheet, error) {
+type spriteSheet struct {
+	data  spriteSheetData
+	clips map[string][]spriteSheetFrameData
+}
+
+func ReadSpriteSheetData(jsonStr string) (spriteSheet, error) {
 	defer tracing.NewRegion("sprite.ReadSpriteSheetData").End()
-	sheet := SpriteSheet{
-		clips: make(map[string]*SpriteSheetClip),
+	var data spriteSheetData
+	err := klib.JsonDecode(json.NewDecoder(strings.NewReader(jsonStr)), &data)
+	sheet := spriteSheet{
+		data:  data,
+		clips: make(map[string][]spriteSheetFrameData),
 	}
-	err := klib.JsonDecode(json.NewDecoder(strings.NewReader(jsonStr)), &sheet.clipList)
-	if err != nil {
-		return sheet, err
+	if err == nil {
+		for k, v := range data.Frames {
+			k = strings.TrimSuffix(k, ".png")
+			parts := strings.Split(k, "_")
+			last := parts[len(parts)-1]
+			isClip := true
+			for _, r := range last {
+				isClip = isClip && unicode.IsDigit(r)
+			}
+			if isClip {
+				idx, _ := strconv.Atoi(last)
+				idx -= data.ClipStart
+				clipName := strings.Join(parts[:len(parts)-1], "_")
+				if _, ok := sheet.clips[clipName]; !ok {
+					sheet.clips[clipName] = make([]spriteSheetFrameData, 0)
+				}
+				for len(sheet.clips[clipName]) <= idx {
+					sheet.clips[clipName] = append(sheet.clips[clipName], spriteSheetFrameData{})
+				}
+				sheet.clips[clipName][idx] = v
+			} else {
+				sheet.clips[k] = []spriteSheetFrameData{v}
+			}
+		}
 	}
-	for i := range sheet.clipList {
-		sheet.clips[sheet.clipList[i].Name] = &sheet.clipList[i]
+	if sheet.data.MirrorX {
+		for k, v := range sheet.clips {
+			if strings.HasSuffix(k, "left") {
+				cpy := make([]spriteSheetFrameData, len(v))
+				for i := range v {
+					cpy[i] = v[i]
+					cpy[i].Frame.X += cpy[i].Frame.W
+					cpy[i].Frame.W *= -1
+				}
+				sheet.clips[strings.TrimSuffix(k, "left")+"right"] = cpy
+			}
+		}
 	}
 	return sheet, err
 }

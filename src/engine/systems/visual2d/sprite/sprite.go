@@ -38,6 +38,7 @@
 package sprite
 
 import (
+	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -55,11 +56,11 @@ type Sprite struct {
 	frameDelay, fps          float32
 	frameCount, currentFrame int
 	paused                   bool
-	spriteSheet              spriteSheet
+	spriteSheet              SpriteSheet
 	shaderData               ShaderData
 	drawing                  rendering.Drawing
 	currentClipName          string
-	currentClip              []spriteSheetFrameData
+	currentClip              *SpriteSheetClip
 	clipIdx                  int
 	baseScale                matrix.Vec3
 }
@@ -69,7 +70,7 @@ func (s Sprite) isFlipBook() bool {
 }
 
 func (s Sprite) isSpriteSheet() bool {
-	return len(s.spriteSheet.clips) > 0
+	return len(s.spriteSheet.clipList) > 0
 }
 
 func (s *Sprite) Resize(width, height matrix.Float) {
@@ -165,7 +166,7 @@ func (s *Sprite) SetSheetClip(clipName string) {
 		s.currentClipName = clipName
 		s.currentClip = s.spriteSheet.clips[clipName]
 		s.setSheetFrame(0)
-		s.frameCount = len(s.currentClip)
+		s.frameCount = len(s.currentClip.Frames)
 	}
 }
 
@@ -201,12 +202,12 @@ func (s *Sprite) update(deltaTime float64) {
 func (s *Sprite) setSheetFrame(frame int) {
 	defer tracing.NewRegion("Sprite.setSheetFrame").End()
 	s.clipIdx = frame
-	f := s.currentClip[frame]
-	h := float32(f.Frame.H) / s.texture.Size().Height()
+	f := s.currentClip.Frames[frame]
+	h := float32(f.Height()) / s.texture.Size().Height()
 	s.shaderData.UVs = matrix.Vec4{
-		float32(f.Frame.X) / s.texture.Size().Width(),
-		1.0 - h - float32(f.Frame.Y)/s.texture.Size().Height(),
-		float32(f.Frame.W) / s.texture.Size().Width(),
+		float32(f.Left()) / s.texture.Size().Width(),
+		1.0 - h - float32(f.Top())/s.texture.Size().Height(),
+		float32(f.Width()) / s.texture.Size().Width(),
 		h,
 	}
 }
