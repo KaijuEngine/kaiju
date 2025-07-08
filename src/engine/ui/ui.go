@@ -39,13 +39,13 @@ package ui
 
 import (
 	"kaiju/engine"
-	"kaiju/platform/hid"
-	"kaiju/matrix"
 	"kaiju/engine/pooling"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"kaiju/engine/systems/events"
+	"kaiju/matrix"
+	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
+	"kaiju/rendering"
 )
 
 type DirtyType = int
@@ -89,7 +89,6 @@ type UI struct {
 	entity           engine.Entity
 	elmData          UIElementData
 	events           [EventTypeEnd]events.Event
-	group            *Group
 	postLayoutUpdate func()
 	render           func()
 	layout           Layout
@@ -307,8 +306,8 @@ func (ui *UI) requestEvent(evtType EventType) {
 	if ui.events[evtType].IsEmpty() {
 		return
 	}
-	if ui.group != nil {
-		ui.group.requestEvent(ui, evtType)
+	if ui.man != nil {
+		ui.man.Group.requestEvent(ui, evtType)
 	} else {
 		ui.ExecuteEvent(evtType)
 	}
