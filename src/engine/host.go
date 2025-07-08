@@ -50,6 +50,7 @@ import (
 	"kaiju/engine/systems/events"
 	"kaiju/engine/systems/logging"
 	"kaiju/platform/windowing"
+	"kaiju/plugins"
 	"math"
 	"slices"
 	"time"
@@ -82,6 +83,7 @@ type Host struct {
 	entities         []*Entity
 	entityLookup     map[EntityId]*Entity
 	frameRunner      []frameRun
+	plugins          []*plugins.LuaVM
 	Window           *windowing.Window
 	LogStream        *logging.LogStream
 	workGroup        concurrent.WorkGroup
@@ -237,6 +239,11 @@ func (host *Host) MaterialCache() *rendering.MaterialCache {
 // AssetDatabase returns the asset database for the host
 func (host *Host) AssetDatabase() *assets.Database {
 	return &host.assetDatabase
+}
+
+// Plugins returns all of the loaded plugins for the host
+func (host *Host) Plugins() []*plugins.LuaVM {
+	return host.plugins
 }
 
 // Audio returns the audio system for the host
@@ -450,6 +457,15 @@ func (h *Host) SetFrameRateLimit(fps int64) {
 // resources and close the window.
 func (host *Host) Close() {
 	host.Closing = true
+}
+
+// BootstrapPlugins will initialize the plugin interface and read all of the
+// plugins that are in the content folder and prepare them for execution
+func (host *Host) BootstrapPlugins() error {
+	defer tracing.NewRegion("Host.BootstrapPlugins").End()
+	var err error
+	host.plugins, err = plugins.LaunchPlugins(host.AssetDatabase())
+	return err
 }
 
 func (host *Host) resized() {
