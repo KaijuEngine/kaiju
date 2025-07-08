@@ -59,6 +59,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		return false
 	}
 	cmd := vr.beginSingleTimeCommands()
+	defer vr.endSingleTimeCommands(cmd)
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
 	barrier.Image = image
@@ -119,7 +120,6 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
 		vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-	vr.endSingleTimeCommands(cmd)
 	return true
 }
 
@@ -273,6 +273,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	commandBuffer := cmd
 	if cmd == nil {
 		commandBuffer = vr.beginSingleTimeCommands()
+		defer vr.endSingleTimeCommands(commandBuffer)
 	}
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
@@ -291,9 +292,6 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
 	vk.CmdPipelineBarrier(commandBuffer.buffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
-	if cmd == nil {
-		vr.endSingleTimeCommands(commandBuffer)
-	}
 	vt.Layout = newLayout
 	vt.Access = newAccess
 	return true
@@ -301,6 +299,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 
 func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, height uint32) {
 	cmd := vr.beginSingleTimeCommands()
+	defer vr.endSingleTimeCommands(cmd)
 	region := vk.BufferImageCopy{}
 	region.BufferOffset = 0
 	region.BufferRowLength = 0
@@ -312,7 +311,6 @@ func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, hei
 	region.ImageOffset = vk.Offset3D{X: 0, Y: 0, Z: 0}
 	region.ImageExtent = vk.Extent3D{Width: width, Height: height, Depth: 1}
 	vk.CmdCopyBufferToImage(cmd.buffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, &region)
-	vr.endSingleTimeCommands(cmd)
 }
 
 func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, width, height int) {
@@ -325,6 +323,7 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 
 	cmd := vr.beginSingleTimeCommands()
+	defer vr.endSingleTimeCommands(cmd)
 	region := vk.BufferImageCopy{}
 	region.BufferOffset = 0
 	region.BufferRowLength = 0
@@ -337,7 +336,6 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, 
 	region.ImageExtent = vk.Extent3D{Width: uint32(width), Height: uint32(height), Depth: 1}
 	vk.CmdCopyBufferToImage(cmd.buffer, stagingBuffer, image,
 		vk.ImageLayoutTransferDstOptimal, 1, &region)
-	vr.endSingleTimeCommands(cmd)
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
 	// TODO:  Generate mips?
