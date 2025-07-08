@@ -44,23 +44,41 @@ import (
 
 type Database struct {
 	EditorContext EditorContext
+	cache         map[string][]byte
 }
 
 func NewDatabase() Database {
-	return Database{}
+	return Database{
+		cache: make(map[string][]byte),
+	}
 }
+
+func (a *Database) ToFilePath(key string) string { return a.toContentPath(key) }
+
+func (a *Database) Cache(key string, data []byte) { a.cache[key] = data }
+func (a *Database) CacheRemove(key string)        { delete(a.cache, key) }
+func (a *Database) CacheClear()                   { clear(a.cache) }
 
 func (a *Database) ReadText(key string) (string, error) {
 	defer tracing.NewRegion("AssetDatabase.ReadText: " + key).End()
+	if data, ok := a.cache[key]; ok {
+		return string(data), nil
+	}
 	return filesystem.ReadTextFile(a.toContentPath(key))
 }
 
 func (a *Database) Read(key string) ([]byte, error) {
 	defer tracing.NewRegion("AssetDatabase.Read: " + key).End()
+	if data, ok := a.cache[key]; ok {
+		return data, nil
+	}
 	return filesystem.ReadFile(a.toContentPath(key))
 }
 
 func (a *Database) Exists(key string) bool {
+	if _, ok := a.cache[key]; ok {
+		return true
+	}
 	return filesystem.FileExists(a.toContentPath(key))
 }
 
