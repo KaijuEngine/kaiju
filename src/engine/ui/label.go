@@ -225,11 +225,11 @@ func (label *Label) renderText() {
 			ld.baseline, label.entity.Transform.WorldScale(), true,
 			false, ld.fontFace, ld.lineHeight)
 		transparentDrawings := make([]rendering.Drawing, 0, len(ld.runeDrawings))
+		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
-			ld.runeShaderData = append(ld.runeShaderData,
-				rd.ShaderData.(*rendering.TextShaderData))
+			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 			if ld.bgColor.A() < 1.0 {
 				transparent := ld.runeDrawings[i]
 				transparent.Material = label.man.Host.FontCache().TransparentMaterial(
@@ -293,6 +293,9 @@ func (label *Label) Text() string { return label.LabelData().text }
 
 func (label *Label) SetText(text string) {
 	ld := label.LabelData()
+	if ld.text == text {
+		return
+	}
 	ld.text = text
 	ld.renderRequired = true
 	// TODO:  Put a cap on the length of the string
@@ -360,7 +363,7 @@ func (label *Label) UnEnforceBGColor() {
 }
 
 func (label *Label) SetBGColor(newColor matrix.Color) {
-	defer tracing.NewRegion("Label::SetBGColor").End()
+	defer tracing.NewRegion("Label.SetBGColor").End()
 	ld := label.LabelData()
 	if ld.isForcedBGColor || ld.bgColor.Equals(newColor) {
 		return
