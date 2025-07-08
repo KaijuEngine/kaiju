@@ -135,9 +135,12 @@ func (c *CommandRecorder) Begin() {
 
 func (c *CommandRecorder) Destroy(vr *Vulkan) {
 	buff := c.buffer
+	if buff != vk.NullCommandBuffer {
 	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
 	vk.DestroyCommandPool(vr.device, c.pool, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+		vulkan.DestroyFence(vr.device, c.fence, nil)
+	}
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {
