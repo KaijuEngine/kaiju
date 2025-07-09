@@ -1,0 +1,20 @@
+package hierarchy // import "."
+
+
+TYPES
+
+type Hierarchy struct {
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, selection *selection.Selection,
+	ctxMenuSet context_menu.ContextMenuSet, reloadTabFunc func(name string)) *Hierarchy
+
+func (h *Hierarchy) Destroy()
+
+func (h *Hierarchy) Document() *document.Document
+
+func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element)
+
+func (h *Hierarchy) TabTitle() string
+

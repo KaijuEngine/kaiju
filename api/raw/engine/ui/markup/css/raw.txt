@@ -1,0 +1,16 @@
+package css // import "."
+
+
+VARIABLES
+
+var DefaultCSS string
+
+FUNCTIONS
+
+func Apply(s rules.StyleSheet, doc *document.Document, host *engine.Host)
+func ApplyElementStyle(elm *document.Element, host *engine.Host) []error
+
+TYPES
+
+type CSSMap map[*ui.UI][]rules.Rule
+

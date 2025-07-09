@@ -1,0 +1,13 @@
+package status_bar // import "."
+
+
+TYPES
+
+type StatusBar struct {
+	// Has unexported fields.
+}
+
+func New(uiMan *ui.Manager, openLogWindow func()) *StatusBar
+
+func (s *StatusBar) SetMessage(status string)
+

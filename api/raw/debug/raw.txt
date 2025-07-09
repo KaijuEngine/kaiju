@@ -1,0 +1,8 @@
+package debug // import "."
+
+
+FUNCTIONS
+
+func Assert(res bool, msg string)
+func Ensure(res bool, msg string)
+func Log(msg string, args ...any)

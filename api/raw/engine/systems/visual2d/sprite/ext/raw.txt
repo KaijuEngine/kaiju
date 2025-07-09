@@ -1,0 +1,6 @@
+package sprite // import "."
+
+
+FUNCTIONS
+
+func ReadSpriteSheetData(jsonStr string) (spriteSheet, error)
