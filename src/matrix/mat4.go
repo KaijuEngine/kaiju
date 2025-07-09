@@ -571,3 +571,12 @@ func (m Mat4) Invert() Mat4 {
 	res[x3y3] = 1.0
 	return res
 }
+
+func (m Mat4) IsIdentity() bool {
+	match := Mat4Identity()
+	success := true
+	for i := 0; i < len(match) && success; i++ {
+		success = match[i] == m[i]
+	}
+	return success
+}
