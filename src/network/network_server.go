@@ -44,6 +44,7 @@ import (
 	"log/slog"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -116,7 +117,8 @@ func (s *NetworkServer) addClient(addr *net.UDPAddr) *ServerClient {
 }
 
 func (s *NetworkServer) HolePunchClient(address string, port uint16) (*ServerClient, error) {
-	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", address, port))
+	portStr := strconv.Itoa(int(port))
+	addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(address, portStr))
 	if err != nil {
 		slog.Error("failed to resolve the client address for a hole punch", "address", address, "port", port)
 	}

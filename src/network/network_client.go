@@ -39,11 +39,11 @@ package network
 
 import (
 	"encoding/binary"
-	"fmt"
 	"kaiju/engine"
 	"kaiju/platform/concurrent"
 	"log/slog"
 	"net"
+	"strconv"
 	"time"
 	"unsafe"
 )
@@ -64,7 +64,8 @@ func NewClientUDP() NetworkClient {
 }
 
 func (c *NetworkClient) Connect(updater *engine.Updater, address string, port uint16) error {
-	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", address, port))
+	portStr := strconv.Itoa(int(port))
+	serverAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(address, portStr))
 	if err != nil {
 		slog.Error("failed to resolve the UDP host address", "error", err, "address", address, "port", port)
 		return err
