@@ -13,7 +13,8 @@
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags=debug,editor",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Launch Windows Runtime",
@@ -23,7 +24,8 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Launch X11 Editor",
@@ -34,7 +36,8 @@
 			"cwd": "${workspaceFolder}",
 			"buildFlags": "-tags=editor,vulkanValidation",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Launch X11 Runtime",
@@ -44,7 +47,8 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		},
 		{
@@ -55,7 +59,8 @@
 			"program": "${workspaceFolder}/src/generators/api",
 			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		},
 		{
@@ -66,7 +71,8 @@
 			"program": "${workspaceFolder}/src/generators/project_template",
 			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		},
 		{
@@ -77,7 +83,8 @@
 			"program": "${workspaceFolder}/src/generators/copy_header",
 			"cwd": "${workspaceFolder}",
 			"env": {
-				"CGO_ENABLED": "1"
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
 			}
 		}
 	]

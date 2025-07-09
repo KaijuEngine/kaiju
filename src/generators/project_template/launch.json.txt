@@ -17,14 +17,22 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": ["-tags=debug"],
+			"buildFlags": ["-tags=debug"],,
+			"env": {
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
+			}
 		}, {
 			"name": "NoDebug Windows",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}",,
+			"env": {
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
+			}
 		}, {
 			"name": "Debug X11",
 			"type": "go",
@@ -32,14 +40,22 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": ["-tags=debug"],
+			"buildFlags": ["-tags=debug"],,
+			"env": {
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
+			}
 		}, {
 			"name": "NoDebug X11",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}",,
+			"env": {
+				"CGO_ENABLED": "1",
+				"GOEXPERIMENT": "greenteagc"
+			}
 		}
 	]
 }
