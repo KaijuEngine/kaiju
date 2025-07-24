@@ -53,6 +53,7 @@
 #include "strings.h"
 
 #include "win32.h"
+#include <assert.h>
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
@@ -239,7 +240,18 @@ void process_message(SharedMem* sm, MSG *msg) {
 		{
 			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
 			readMousePosition(msg->lParam, &evt.mouseMove.x, &evt.mouseMove.y);
+			sm->mouseX = evt.mouseMove.x;
+			sm->mouseX = evt.mouseMove.y;
 			shared_mem_add_event(sm, evt);
+			if (!sm->rawInputFailed && !sm->forcedRawInput) {
+				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
+					|| evt.mouseMove.x <= sm->clientRect.right
+					|| evt.mouseMove.y <= sm->clientRect.bottom;
+				if (mouseEnteredWindow) {
+					window_enable_raw_mouse(msg->hwnd);
+					sm->forcedRawInput = false;
+				}
+			}
 			break;
 		}
 		case WM_LBUTTONDOWN:
@@ -564,10 +576,130 @@ void window_poll_controller(void* hwnd) {
 void window_poll(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
     MSG msg = { 0 };
+	LPBYTE rawInputBuffer[4096];
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0) {
 		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-		process_message(sm, &msg);
+		if (msg.message == WM_INPUT) {
+			 // Batch-process all raw input at once for efficiency
+			UINT dwSize = 0;
+			GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+			if (dwSize > 0) {
+				assert(dwSize < sizeof(rawInputBuffer));
+				if (GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
+					RAWINPUT* raw = (RAWINPUT*)rawInputBuffer;
+					if (raw->header.dwType == RIM_TYPEMOUSE) {
+						RAWMOUSE* mouse = &raw->data.mouse;
+						POINT pt;
+						GetCursorPos(&pt);
+						// TODO:  Don't do this in full screen or borderless
+						int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
+						int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
+						int left = sm->left+borderSize;
+						int top = sm->top+titleSize;
+						pt.x -= left;
+						pt.y -= top;
+						// Mouse buttons
+						{
+							WindowEvent evt = {
+								.type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
+								.mouseButton = { .x = pt.x, .y = pt.y, },
+							};
+							if (mouse->usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_LEFT;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_LEFT;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_MIDDLE;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_MIDDLE;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_RIGHT;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_RIGHT;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_BUTTON_1_DOWN) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_BUTTON_1_UP) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_BUTTON_2_DOWN) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
+								shared_mem_add_event(sm, evt);
+							}
+							if (mouse->usButtonFlags & RI_MOUSE_BUTTON_2_UP) {
+								evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
+								evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
+								shared_mem_add_event(sm, evt);
+							}
+						}
+						// Mouse wheel
+						{
+							if (mouse->usButtonFlags & RI_MOUSE_WHEEL) {
+								short wheelDelta = (short)mouse->usButtonData;
+							    float scrollDelta = (float)wheelDelta / WHEEL_DELTA;
+								// Delta is signed short; positive = forward
+								WindowEvent evt = {
+									.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
+									.mouseScroll = {
+										.deltaY = (int)scrollDelta,
+										.x = pt.x,
+										.y = pt.y,
+									}
+								};
+								shared_mem_add_event(sm, evt);
+							}
+						}
+						// Mouse move
+						{
+							bool hadMouseEvent = false;
+							if (sm->eventCount > 0) {
+								int type = sm->events[sm->eventCount-1].type;
+								hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
+									|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
+							}
+							if (!hadMouseEvent) {
+								WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+								evt.mouseMove.x = pt.x;
+								evt.mouseMove.y = pt.y;
+								shared_mem_add_event(sm, evt);
+							}
+						}
+						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
+							|| pt.x > sm->clientRect.right
+							|| pt.y > sm->clientRect.bottom;
+						if (mouseLeftWindow) {
+							window_disable_raw_mouse(hwnd);
+						}
+					}
+				}
+			}
+		} else {
+			DispatchMessage(&msg);
+			process_message(sm, &msg);
+		}
 	}
 	shared_mem_flush_events(sm);
 }
@@ -724,6 +856,31 @@ void window_set_windowed(void* hwnd, int width, int height) {
 			width, height,
 			SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 	}
+}
+
+void window_enable_raw_mouse(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	RAWINPUTDEVICE rid = { 0 };
+	rid.usUsagePage = 0x01;  // Generic desktop controls
+	rid.usUsage = 0x02;      // Mouse
+	// Suppress legacy messages; receive input even if window inactive
+	rid.dwFlags = RIDEV_NOLEGACY | RIDEV_INPUTSINK;
+	rid.hwndTarget = hwnd;
+	if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
+		sm->rawInputFailed = true;
+	}
+	sm->forcedRawInput = true;
+}
+
+void window_disable_raw_mouse(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	RAWINPUTDEVICE rid = {0};
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = RIDEV_REMOVE;
+	rid.hwndTarget = NULL;  // Must be NULL for removal
+	RegisterRawInputDevices(&rid, 1, sizeof(rid));
+	sm->forcedRawInput = false;
 }
 
 #endif

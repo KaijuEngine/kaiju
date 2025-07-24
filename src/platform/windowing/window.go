@@ -43,6 +43,7 @@ import (
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
@@ -451,9 +452,43 @@ func (w *Window) SetWindowed(width, height int) {
 	w.isFullScreen = false
 }
 
+func (w *Window) EnableRawMouse() {
+	w.enableRawMouse()
+}
+
+func (w *Window) DisableRawMouse() {
+	w.disableRawMouse()
+}
+
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
 	return x + w.Width()/2, y + w.Height()/2
+}
+
+func (w *Window) OpenFileDialog(startPath string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error {
+	w.disableRawMouse()
+	return filesystem.OpenFileDialogWindow(startPath, extensions, func(path string) {
+		w.enableRawMouse()
+		ok(path)
+	}, func() {
+		w.enableRawMouse()
+		if cancel != nil {
+			cancel()
+		}
+	}, w.handle)
+}
+
+func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error {
+	w.disableRawMouse()
+	return filesystem.OpenSaveFileDialogWindow(startPath, fileName, extensions, func(path string) {
+		w.enableRawMouse()
+		ok(path)
+	}, func() {
+		w.enableRawMouse()
+		if cancel != nil {
+			cancel()
+		}
+	}, w.handle)
 }
 
 func (w *Window) becameInactive() {

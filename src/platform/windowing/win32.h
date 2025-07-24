@@ -66,5 +66,7 @@ void window_show_cursor(void* hwnd);
 void window_hide_cursor(void* hwnd);
 void window_set_fullscreen(void* hwnd);
 void window_set_windowed(void* hwnd, int width, int height);
+void window_enable_raw_mouse(void* hwnd);
+void window_disable_raw_mouse(void* hwnd);
 
 #endif

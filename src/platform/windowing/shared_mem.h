@@ -38,6 +38,8 @@
 #ifndef SHARED_MEM_H
 #define SHARED_MEM_H
 
+#include <stdbool.h>
+
 #include "window_event.h"
 
 #define SHARED_MEM_NONE				0x00
@@ -81,6 +83,10 @@ typedef struct {
 	int right;
 	int bottom;
 	RECT clientRect;
+	int mouseX;
+	int mouseY;
+	bool rawInputFailed;
+	bool forcedRawInput;
 	struct {
 		LONG style;
 		LONG exStyle;
