@@ -39,11 +39,23 @@
 
 package filesystem
 
+/*
+#cgo windows LDFLAGS: -lcomdlg32
+#cgo noescape   open_file_dialog
+#cgo noescape   save_file_dialog
+#include "directory.win32.h"
+*/
+import "C"
+
 import (
 	"errors"
+	"fmt"
 	"kaiju/klib"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"unsafe"
 )
 
 func imageDirectory() (string, error) {
@@ -62,4 +74,54 @@ func gameDirectory() (string, error) {
 	//	return "", err
 	//}
 	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+}
+
+func openFileBrowserCommand(path string) *exec.Cmd {
+	return exec.Command("cmd.exe", "/C", "start", path)
+}
+
+func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	ext := strings.Builder{}
+	for i := range extensions {
+		e := &extensions[i]
+		ext.WriteString(fmt.Sprintf("%s\n*%s\n", e.Name, e.Extension))
+	}
+	if len(extensions) == 0 {
+		ext.WriteString("All Files\x00*.*\x00\x00")
+	}
+	cStartPath := C.CString(startPath)
+	defer C.free(unsafe.Pointer(cStartPath))
+	cExt := C.CString(ext.String())
+	defer C.free(unsafe.Pointer(cExt))
+	savePath := C.GoString(C.open_file_dialog(cStartPath, cExt, windowHandle))
+	if savePath != "" {
+		ok(savePath)
+	} else if cancel != nil {
+		cancel()
+	}
+	return nil
+}
+
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	ext := strings.Builder{}
+	for i := range extensions {
+		e := &extensions[i]
+		ext.WriteString(fmt.Sprintf("%s\n*%s\n", e.Name, e.Extension))
+	}
+	if len(extensions) == 0 {
+		ext.WriteString("All Files\x00*.*\x00\x00")
+	}
+	cStartPath := C.CString(startPath)
+	defer C.free(unsafe.Pointer(cStartPath))
+	cFileName := C.CString(fileName)
+	defer C.free(unsafe.Pointer(cFileName))
+	cExt := C.CString(ext.String())
+	defer C.free(unsafe.Pointer(cExt))
+	savePath := C.GoString(C.save_file_dialog(cStartPath, cFileName, cExt, windowHandle))
+	if savePath != "" {
+		ok(savePath)
+	} else if cancel != nil {
+		cancel()
+	}
+	return nil
 }

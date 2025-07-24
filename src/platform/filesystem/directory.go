@@ -38,9 +38,16 @@
 package filesystem
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
+	"unsafe"
 )
+
+type DialogExtension struct {
+	Name      string
+	Extension string
+}
 
 // CreateDirectory creates a directory at the specified path with full permissions.
 func CreateDirectory(path string) error {
@@ -143,4 +150,20 @@ func CopyDirectory(src, dst string) error {
 		}
 	}
 	return nil
+}
+
+func OpenFileBrowserToFolder(path string) error {
+	err := openFileBrowserCommand(filepath.ToSlash(path)).Run()
+	if err != nil {
+		slog.Error("failed to open the file browser", "error", err)
+	}
+	return err
+}
+
+func OpenFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	return openFileDialogWindow(startPath, extensions, ok, cancel, windowHandle)
+}
+
+func OpenSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	return openSaveFileDialogWindow(startPath, fileName, extensions, ok, cancel, windowHandle)
 }

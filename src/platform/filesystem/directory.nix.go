@@ -43,6 +43,7 @@ import (
 	"errors"
 	"kaiju/klib"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -62,4 +63,14 @@ func gameDirectory() (string, error) {
 	//	return "", err
 	//}
 	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+}
+
+func openFileBrowserCommand(path string) *exec.Cmd {
+	return exec.Command("xdg-open", path)
+}
+
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func()) error {
+	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
+	klib.NotYetImplemented(-1)
+	return nil
 }
