@@ -124,10 +124,6 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	return w, err
 }
 
-func (w *Window) requestSync() {
-	w.syncRequest = true
-}
-
 func FindWindowAtPoint(x, y int) (*Window, bool) {
 	defer tracing.NewRegion("windowing.FindWindowAtPoint").End()
 	for i := range activeWindows {
@@ -138,8 +134,6 @@ func FindWindowAtPoint(x, y int) (*Window, bool) {
 	}
 	return nil, false
 }
-
-func (w *Window) canChangeCursor() bool { return w.cursorChangeCount == 0 }
 
 func (w *Window) ToScreenPosition(x, y int) (int, int) {
 	leftBorder := (w.right - w.left - w.width) / 2
@@ -166,114 +160,6 @@ func (w *Window) Height() int     { return w.height }
 
 func (w *Window) Viewport() matrix.Vec4 {
 	return matrix.Vec4{0, 0, float32(w.width), float32(w.height)}
-}
-
-func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
-	w.width = int(evt.width)
-	w.height = int(evt.height)
-	w.left = int(evt.left)
-	w.top = int(evt.top)
-	w.right = int(evt.right)
-	w.bottom = int(evt.bottom)
-}
-
-func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
-	ww := w.right - w.left
-	wh := w.bottom - w.top
-	w.x = int(evt.x)
-	w.y = int(evt.y)
-	w.left = w.x
-	w.top = w.y
-	w.right = w.x + ww
-	w.bottom = w.y + wh
-	w.OnMove.Execute()
-}
-
-func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
-	defer tracing.NewRegion("Window.processWindowActivityEvent").End()
-	switch evt.activityType {
-	case windowEventActivityTypeMinimize:
-		// TODO:  Not implemented yet
-	case windowEventActivityTypeMaximize:
-		// TODO:  Not implemented yet
-	case windowEventActivityTypeClose:
-		w.isClosed = true
-	case windowEventActivityTypeFocus:
-		w.becameActive()
-	case windowEventActivityTypeBlur:
-		w.becameInactive()
-	}
-}
-
-func (w *Window) processMouseMoveEvent(evt *MouseMoveWindowEvent) {
-	defer tracing.NewRegion("Window.processMouseMoveEvent").End()
-	w.Mouse.SetPosition(float32(evt.x), float32(evt.y), float32(w.width), float32(w.height))
-	UpdateDragData(w, int(evt.x), int(evt.y))
-}
-
-func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
-	defer tracing.NewRegion("Window.processMouseButtonEvent").End()
-	var targetButton int
-	switch evt.buttonId {
-	case nativeMouseButtonLeft:
-		targetButton = hid.MouseButtonLeft
-	case nativeMouseButtonMiddle:
-		targetButton = hid.MouseButtonMiddle
-	case nativeMouseButtonRight:
-		targetButton = hid.MouseButtonRight
-	case nativeMouseButtonX1:
-		targetButton = hid.MouseButtonX1
-	case nativeMouseButtonX2:
-		targetButton = hid.MouseButtonX2
-	}
-	switch evt.action {
-	case windowEventButtonTypeDown:
-		w.Mouse.SetDown(targetButton)
-	case windowEventButtonTypeUp:
-		w.Mouse.SetUp(targetButton)
-		if targetButton == hid.MouseButtonLeft {
-			w.resetDragDataInFrames = 2
-			UpdateDragDrop(w, int(w.Mouse.SX), int(w.Mouse.SY))
-		}
-	}
-}
-
-func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
-	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
-	s := w.Mouse.Scroll()
-	deltaX := scaleScrollDelta(float32(evt.deltaX))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
-	deltaY := scaleScrollDelta(float32(evt.deltaY))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaY)
-}
-
-func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
-	defer tracing.NewRegion("Window.processKeyboardButtonEvent").End()
-	switch evt.action {
-	case windowEventButtonTypeDown:
-		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyDown(key)
-	case windowEventButtonTypeUp:
-		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyUp(key)
-	}
-}
-
-func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
-	defer tracing.NewRegion("Window.processControllerStateEvent").End()
-	if evt.connectionType == windowEventControllerConnectionTypeDisconnected {
-		w.Controller.Disconnected(int(evt.controllerId))
-	} else {
-		w.Controller.Connected(int(evt.controllerId))
-	}
-	for i := 0; i < int(unsafe.Sizeof(evt.buttons)*8); i++ {
-		buttonId := evt.buttons & (1 << i)
-		if buttonId != 0 {
-			w.Controller.SetButtonDown(int(evt.controllerId), i)
-		} else {
-			w.Controller.SetButtonUp(int(evt.controllerId), i)
-		}
-	}
 }
 
 func (w *Window) Poll() {
@@ -390,16 +276,6 @@ func (w *Window) CursorSizeWE() {
 func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
 func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
-func (w *Window) removeFromActiveWindows() {
-	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
-	for i := range activeWindows {
-		if activeWindows[i] == w {
-			activeWindows = slices.Delete(activeWindows, i, i+1)
-			break
-		}
-	}
-}
-
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
@@ -452,14 +328,6 @@ func (w *Window) SetWindowed(width, height int) {
 	w.isFullScreen = false
 }
 
-func (w *Window) EnableRawMouse() {
-	w.enableRawMouse()
-}
-
-func (w *Window) DisableRawMouse() {
-	w.disableRawMouse()
-}
-
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
 	return x + w.Width()/2, y + w.Height()/2
@@ -493,6 +361,130 @@ func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []
 
 func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
 func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
+
+func (w *Window) requestSync() {
+	w.syncRequest = true
+}
+
+func (w *Window) canChangeCursor() bool { return w.cursorChangeCount == 0 }
+
+func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
+	w.width = int(evt.width)
+	w.height = int(evt.height)
+	w.left = int(evt.left)
+	w.top = int(evt.top)
+	w.right = int(evt.right)
+	w.bottom = int(evt.bottom)
+}
+
+func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
+	ww := w.right - w.left
+	wh := w.bottom - w.top
+	w.x = int(evt.x)
+	w.y = int(evt.y)
+	w.left = w.x
+	w.top = w.y
+	w.right = w.x + ww
+	w.bottom = w.y + wh
+	w.OnMove.Execute()
+}
+
+func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
+	defer tracing.NewRegion("Window.processWindowActivityEvent").End()
+	switch evt.activityType {
+	case windowEventActivityTypeMinimize:
+		// TODO:  Not implemented yet
+	case windowEventActivityTypeMaximize:
+		// TODO:  Not implemented yet
+	case windowEventActivityTypeClose:
+		w.isClosed = true
+	case windowEventActivityTypeFocus:
+		w.becameActive()
+	case windowEventActivityTypeBlur:
+		w.becameInactive()
+	}
+}
+
+func (w *Window) processMouseMoveEvent(evt *MouseMoveWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseMoveEvent").End()
+	w.Mouse.SetPosition(float32(evt.x), float32(evt.y), float32(w.width), float32(w.height))
+	UpdateDragData(w, int(evt.x), int(evt.y))
+}
+
+func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseButtonEvent").End()
+	var targetButton int
+	switch evt.buttonId {
+	case nativeMouseButtonLeft:
+		targetButton = hid.MouseButtonLeft
+	case nativeMouseButtonMiddle:
+		targetButton = hid.MouseButtonMiddle
+	case nativeMouseButtonRight:
+		targetButton = hid.MouseButtonRight
+	case nativeMouseButtonX1:
+		targetButton = hid.MouseButtonX1
+	case nativeMouseButtonX2:
+		targetButton = hid.MouseButtonX2
+	}
+	switch evt.action {
+	case windowEventButtonTypeDown:
+		w.Mouse.SetDown(targetButton)
+	case windowEventButtonTypeUp:
+		w.Mouse.SetUp(targetButton)
+		if targetButton == hid.MouseButtonLeft {
+			w.resetDragDataInFrames = 2
+			UpdateDragDrop(w, int(w.Mouse.SX), int(w.Mouse.SY))
+		}
+	}
+}
+
+func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
+	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
+	s := w.Mouse.Scroll()
+	deltaX := scaleScrollDelta(float32(evt.deltaX))
+	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
+	deltaY := scaleScrollDelta(float32(evt.deltaY))
+	w.Mouse.SetScroll(s.X(), s.Y()+deltaY)
+}
+
+func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
+	defer tracing.NewRegion("Window.processKeyboardButtonEvent").End()
+	switch evt.action {
+	case windowEventButtonTypeDown:
+		key := hid.ToKeyboardKey(int(evt.buttonId))
+		w.Keyboard.SetKeyDown(key)
+	case windowEventButtonTypeUp:
+		key := hid.ToKeyboardKey(int(evt.buttonId))
+		w.Keyboard.SetKeyUp(key)
+	}
+}
+
+func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
+	defer tracing.NewRegion("Window.processControllerStateEvent").End()
+	if evt.connectionType == windowEventControllerConnectionTypeDisconnected {
+		w.Controller.Disconnected(int(evt.controllerId))
+	} else {
+		w.Controller.Connected(int(evt.controllerId))
+	}
+	for i := 0; i < int(unsafe.Sizeof(evt.buttons)*8); i++ {
+		buttonId := evt.buttons & (1 << i)
+		if buttonId != 0 {
+			w.Controller.SetButtonDown(int(evt.controllerId), i)
+		} else {
+			w.Controller.SetButtonUp(int(evt.controllerId), i)
+		}
+	}
+}
+
+func (w *Window) removeFromActiveWindows() {
+	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
+	for i := range activeWindows {
+		if activeWindows[i] == w {
+			activeWindows = slices.Delete(activeWindows, i, i+1)
+			break
+		}
+	}
+}
 
 func (w *Window) becameInactive() {
 	defer tracing.NewRegion("Window.becameInactive").End()
