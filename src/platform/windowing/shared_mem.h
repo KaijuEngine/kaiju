@@ -80,6 +80,12 @@ typedef struct {
 	int top;
 	int right;
 	int bottom;
+	RECT clientRect;
+	struct {
+		LONG style;
+		LONG exStyle;
+		RECT rect;
+	} savedState;
 	uint32_t eventCount;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
 } SharedMem;

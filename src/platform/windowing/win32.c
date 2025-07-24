@@ -169,6 +169,13 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOVE:
 			// TODO:  Should handle this better, but move is called on focus too
+			RECT windowRect;
+			if (GetWindowRect(hwnd, &windowRect)) {
+				sm->left = windowRect.left;
+				sm->top = windowRect.top;
+				sm->right = windowRect.right;
+				sm->bottom = windowRect.bottom;
+			}
 			shared_mem_add_event(sm, (WindowEvent) {
 				.type = WINDOW_EVENT_TYPE_MOVE,
 				.windowMove = {
@@ -205,6 +212,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						evt.windowResize.right = sm->right;
 						evt.windowResize.bottom = sm->bottom;
 					}
+					GetClientRect(hwnd, &sm->clientRect);
 					shared_mem_add_event(sm, evt);
 					shared_mem_flush_events(sm);
 				}
@@ -665,6 +673,57 @@ void window_show_cursor(void* hwnd) {
 
 void window_hide_cursor(void* hwnd) {
 	ShowCursor(FALSE);
+}
+
+void window_set_fullscreen(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	sm->savedState.style = GetWindowLong(hwnd, GWL_STYLE);
+	sm->savedState.exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+	GetWindowRect(hwnd, &sm->savedState.rect);
+	MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+	HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+	GetMonitorInfo(hMonitor, &monitorInfo);
+	SetWindowLong(hwnd, GWL_STYLE, sm->savedState.style & ~(WS_CAPTION | WS_THICKFRAME));
+	SetWindowLong(hwnd, GWL_EXSTYLE, sm->savedState.exStyle & ~(WS_EX_DLGMODALFRAME | 
+		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+	SetWindowPos(hwnd, NULL,
+		monitorInfo.rcMonitor.left, 
+		monitorInfo.rcMonitor.top, 
+		monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+		monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+		SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+}
+
+void window_set_windowed(void* hwnd, int width, int height) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm->savedState.style == 0) {
+		sm->savedState.style = GetWindowLong(hwnd, GWL_STYLE);
+	}
+	if (sm->savedState.exStyle == 0) {
+		sm->savedState.exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+	}
+	SetWindowLong(hwnd, GWL_STYLE, sm->savedState.style);
+	SetWindowLong(hwnd, GWL_EXSTYLE, sm->savedState.exStyle);
+	if (width <= 0 || height <= 0) {
+		SetWindowPos(hwnd, NULL,
+			sm->savedState.rect.left,
+			sm->savedState.rect.top,
+			sm->savedState.rect.right - sm->savedState.rect.left,
+			sm->savedState.rect.bottom - sm->savedState.rect.top,
+			SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+	} else {
+		RECT clientArea = {0, 0, width, height};
+		AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
+		width = clientArea.right-clientArea.left;
+		height = clientArea.bottom-clientArea.top;
+		sm->windowWidth = width;
+		sm->windowHeight = height;
+		SetWindowPos(hwnd, NULL,
+			sm->savedState.rect.left, 
+			sm->savedState.rect.top,
+			width, height,
+			SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+	}
 }
 
 #endif

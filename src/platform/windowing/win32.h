@@ -64,5 +64,7 @@ void window_remove_border(void* hwnd);
 void window_add_border(void* hwnd);
 void window_show_cursor(void* hwnd);
 void window_hide_cursor(void* hwnd);
+void window_set_fullscreen(void* hwnd);
+void window_set_windowed(void* hwnd, int width, int height);
 
 #endif

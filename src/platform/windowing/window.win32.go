@@ -41,6 +41,7 @@ package windowing
 
 import (
 	"errors"
+	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
 	"unsafe"
 
@@ -67,6 +68,8 @@ import (
 #cgo noescape window_poll
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
+#cgo noescape window_set_fullscreen
+#cgo noescape window_set_windowed
 
 #include "windowing.h"
 */
@@ -187,4 +190,12 @@ func (w *Window) showCursor() {
 
 func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
+}
+
+func (w *Window) setFullscreen() {
+	C.window_set_fullscreen(w.handle)
+}
+
+func (w *Window) setWindowed(width, height int) {
+	C.window_set_windowed(w.handle, C.int(width), C.int(height))
 }

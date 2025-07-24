@@ -76,6 +76,7 @@ type Window struct {
 	isCrashed                bool
 	fatalFromNativeAPI       bool
 	resizedFromNativeAPI     bool
+	isFullScreen             bool
 }
 
 type FileSearch struct {
@@ -431,10 +432,24 @@ func (w *Window) SetSize(width, height int) {
 	w.height = height
 }
 
-func (w *Window) RemoveBorder() { w.removeBorder() }
-func (w *Window) AddBorder()    { w.addBorder() }
-func (w *Window) ShowCursor()   { w.showCursor() }
-func (w *Window) HideCursor()   { w.hideCursor() }
+func (w *Window) RemoveBorder()      { w.removeBorder() }
+func (w *Window) AddBorder()         { w.addBorder() }
+func (w *Window) ShowCursor()        { w.showCursor() }
+func (w *Window) HideCursor()        { w.hideCursor() }
+func (w *Window) IsFullScreen() bool { return w.isFullScreen }
+
+func (w *Window) SetFullscreen() {
+	if w.isFullScreen {
+		return
+	}
+	w.setFullscreen()
+	w.isFullScreen = true
+}
+
+func (w *Window) SetWindowed(width, height int) {
+	w.setWindowed(width, height)
+	w.isFullScreen = false
+}
 
 func (w *Window) Center() (x int, y int) {
 	x, y = w.Position()
