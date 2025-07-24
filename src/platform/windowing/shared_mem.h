@@ -86,7 +86,7 @@ typedef struct {
 	int mouseX;
 	int mouseY;
 	bool rawInputFailed;
-	bool forcedRawInput;
+	bool rawInputRequested;
 	struct {
 		LONG style;
 		LONG exStyle;

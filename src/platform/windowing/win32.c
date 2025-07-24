@@ -243,13 +243,12 @@ void process_message(SharedMem* sm, MSG *msg) {
 			sm->mouseX = evt.mouseMove.x;
 			sm->mouseX = evt.mouseMove.y;
 			shared_mem_add_event(sm, evt);
-			if (!sm->rawInputFailed && !sm->forcedRawInput) {
+			if (!sm->rawInputFailed && sm->rawInputRequested) {
 				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
 					|| evt.mouseMove.x <= sm->clientRect.right
 					|| evt.mouseMove.y <= sm->clientRect.bottom;
 				if (mouseEnteredWindow) {
 					window_enable_raw_mouse(msg->hwnd);
-					sm->forcedRawInput = false;
 				}
 			}
 			break;
@@ -690,8 +689,10 @@ void window_poll(void* hwnd) {
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
 							|| pt.x > sm->clientRect.right
 							|| pt.y > sm->clientRect.bottom;
-						if (mouseLeftWindow) {
+						if (mouseLeftWindow && sm->rawInputRequested) {
 							window_disable_raw_mouse(hwnd);
+							// Reset rawInputRequested as requested by develper code
+							sm->rawInputRequested = true;
 						}
 					}
 				}
@@ -869,7 +870,7 @@ void window_enable_raw_mouse(void* hwnd) {
 	if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
 		sm->rawInputFailed = true;
 	}
-	sm->forcedRawInput = true;
+	sm->rawInputRequested = true;
 }
 
 void window_disable_raw_mouse(void* hwnd) {
@@ -880,7 +881,7 @@ void window_disable_raw_mouse(void* hwnd) {
 	rid.dwFlags = RIDEV_REMOVE;
 	rid.hwndTarget = NULL;  // Must be NULL for removal
 	RegisterRawInputDevices(&rid, 1, sizeof(rid));
-	sm->forcedRawInput = false;
+	sm->rawInputRequested = false;
 }
 
 #endif

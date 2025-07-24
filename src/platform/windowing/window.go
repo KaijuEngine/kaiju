@@ -491,6 +491,9 @@ func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []
 	}, w.handle)
 }
 
+func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
+func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
+
 func (w *Window) becameInactive() {
 	defer tracing.NewRegion("Window.becameInactive").End()
 	w.Keyboard.Reset()
