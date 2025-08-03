@@ -104,7 +104,6 @@ type Vulkan struct {
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 	writtenCommands            []CommandRecorder
-	transientCommands          []CommandRecorder
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 	combineCmds                [maxFramesInFlight]CommandRecorder
 	blitCmds                   [maxFramesInFlight]CommandRecorder
@@ -515,13 +514,11 @@ func (vr *Vulkan) Destroy() {
 			vr.blitCmds[i].Destroy(vr)
 		}
 		vr.singleTimeCommandPool.All(func(elm *CommandRecorder) {
-			if elm.buffer != vk.NullCommandBuffer {
-				buff := elm.buffer
-				vk.FreeCommandBuffers(vr.device, elm.pool, 1, &buff)
-				vk.DestroyCommandPool(vr.device, elm.pool, nil)
-				vr.dbg.remove(vk.TypeToUintPtr(elm.pool))
-			}
+			elm.Destroy(vr)
 		})
+		for k := range vr.renderPassCache {
+			vr.renderPassCache[k].Destroy(vr)
+		}
 		vr.defaultTexture = nil
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)

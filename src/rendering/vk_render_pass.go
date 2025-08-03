@@ -488,10 +488,7 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	}
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
-			buff := p.subpasses[i].cmd[j].buffer
-			vk.FreeCommandBuffers(vr.device, p.subpasses[i].cmd[j].pool, 1, &buff)
-			vk.DestroyCommandPool(vr.device, p.subpasses[i].cmd[j].pool, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(p.subpasses[i].cmd[j].pool))
+			p.subpasses[i].cmd[j].Destroy(vr)
 		}
 	}
 	for i := range p.cmd {

@@ -41,6 +41,7 @@ package windowing
 
 import (
 	"errors"
+	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
 	"unsafe"
 
@@ -67,6 +68,10 @@ import (
 #cgo noescape window_poll
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
+#cgo noescape window_set_fullscreen
+#cgo noescape window_set_windowed
+#cgo noescape window_enable_raw_mouse
+#cgo noescape window_disable_raw_mouse
 
 #include "windowing.h"
 */
@@ -78,7 +83,13 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 }
 
 func scaleScrollDelta(delta float32) float32 {
-	return delta / 120.0
+	// TODO:  Store if we are using raw input (from C) and pick which to use
+	v := delta / 120.0
+	if v < 1 && v > -1 {
+		// We are most likely using raw input
+		v = delta
+	}
+	return v
 }
 
 func (w *Window) createWindow(windowName string, x, y int) {
@@ -97,9 +108,19 @@ func (w *Window) destroy() {
 	C.window_destroy(w.handle)
 }
 
-func (w *Window) poll() {
+func (w *Window) pollController() {
+	defer tracing.NewRegion("Window.pollController").End()
 	C.window_poll_controller(w.handle)
+}
+
+func (w *Window) pollEvents() {
+	defer tracing.NewRegion("Window.pollEvents").End()
 	C.window_poll(w.handle)
+}
+
+func (w *Window) poll() {
+	w.pollController()
+	w.pollEvents()
 }
 
 func (w *Window) cursorStandard() {
@@ -187,4 +208,20 @@ func (w *Window) showCursor() {
 
 func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
+}
+
+func (w *Window) setFullscreen() {
+	C.window_set_fullscreen(w.handle)
+}
+
+func (w *Window) setWindowed(width, height int) {
+	C.window_set_windowed(w.handle, C.int(width), C.int(height))
+}
+
+func (w *Window) enableRawMouse() {
+	C.window_enable_raw_mouse(w.handle)
+}
+
+func (w *Window) disableRawMouse() {
+	C.window_disable_raw_mouse(w.handle)
 }

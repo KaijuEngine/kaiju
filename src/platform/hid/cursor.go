@@ -39,6 +39,7 @@ package hid
 
 import (
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 type Cursor struct {
@@ -76,6 +77,7 @@ func (c *Cursor) Released() bool {
 }
 
 func (c *Cursor) Poll() {
+	defer tracing.NewRegion("Cursor.Poll").End()
 	c.lastPos = c.pos
 	c.pos = c.Position()
 	if len(c.touch.Pointers) > 0 {
