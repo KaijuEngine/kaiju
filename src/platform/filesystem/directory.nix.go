@@ -45,6 +45,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"unsafe"
 )
 
 func imageDirectory() (string, error) {
@@ -69,7 +70,13 @@ func openFileBrowserCommand(path string) *exec.Cmd {
 	return exec.Command("xdg-open", path)
 }
 
-func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func()) error {
+func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
+	klib.NotYetImplemented(-1)
+	return nil
+}
+
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
 	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
 	klib.NotYetImplemented(-1)
 	return nil
