@@ -313,32 +313,63 @@ func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, hei
 	vk.CmdCopyBufferToImage(cmd.buffer, buffer, image, vk.ImageLayoutTransferDstOptimal, 1, &region)
 }
 
-func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, buffer []byte, x, y, width, height int) {
+func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWriteRequest) error {
+	defer tracing.NewRegion("Vulkan.writeBufferToImageRegion").End()
+	// TODO:  Might need to match up the color here...
+	memLen := vk.DeviceSize(0)
+	for i := range requests {
+		memLen += vk.DeviceSize(requests[i].Region.Width()) * vk.DeviceSize(requests[i].Region.Height()) * BytesInPixel
+	}
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
-	vr.CreateBuffer(vk.DeviceSize(len(buffer)), vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory)
+	ok := vr.CreateBuffer(memLen, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit),
+		vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
+		&stagingBuffer, &stagingBufferMemory)
+	if !ok {
+		return fmt.Errorf("failed to create the buffer with size %d", memLen)
+	}
+	defer vr.DestroyBuffer(stagingBuffer, stagingBufferMemory)
 	var stageData unsafe.Pointer
-	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(len(buffer)), 0, &stageData)
-	vk.Memcopy(stageData, buffer)
+	res := vk.MapMemory(vr.device, stagingBufferMemory, 0, memLen, 0, &stageData)
+	if res != vk.Success {
+		return fmt.Errorf("failed to map the staging memory with size %d", memLen)
+	}
+	offset := uintptr(0)
+	for i := range requests {
+		vk.Memcopy(unsafe.Pointer(uintptr(stageData)+offset), requests[i].Pixels)
+		offset += uintptr(requests[i].Region.Width()) * uintptr(requests[i].Region.Height()) * BytesInPixel
+	}
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
-
 	cmd := vr.beginSingleTimeCommands()
 	defer vr.endSingleTimeCommands(cmd)
-	region := vk.BufferImageCopy{}
-	region.BufferOffset = 0
-	region.BufferRowLength = 0
-	region.BufferImageHeight = 0
-	region.ImageSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
-	region.ImageSubresource.MipLevel = 0
-	region.ImageSubresource.BaseArrayLayer = 0
-	region.ImageSubresource.LayerCount = 1
-	region.ImageOffset = vk.Offset3D{X: int32(x), Y: int32(y), Z: 0}
-	region.ImageExtent = vk.Extent3D{Width: uint32(width), Height: uint32(height), Depth: 1}
+	regions := make([]vk.BufferImageCopy, len(requests))
+	for i := range requests {
+		regions[i] = vk.BufferImageCopy{
+			BufferOffset:      0,
+			BufferRowLength:   0,
+			BufferImageHeight: 0,
+			ImageSubresource: vk.ImageSubresourceLayers{
+				AspectMask:     vk.ImageAspectFlags(vk.ImageAspectColorBit),
+				MipLevel:       0,
+				BaseArrayLayer: 0,
+				LayerCount:     1,
+			},
+			ImageOffset: vk.Offset3D{
+				X: requests[i].Region.X(),
+				Y: requests[i].Region.Y(),
+				Z: 0,
+			},
+			ImageExtent: vk.Extent3D{
+				Width:  uint32(requests[i].Region.Width()),
+				Height: uint32(requests[i].Region.Height()),
+				Depth:  1,
+			},
+		}
+	}
 	vk.CmdCopyBufferToImage(cmd.buffer, stagingBuffer, image,
-		vk.ImageLayoutTransferDstOptimal, 1, &region)
-	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
+		vk.ImageLayoutTransferDstOptimal, uint32(len(regions)), &regions[0])
 	// TODO:  Generate mips?
+	return nil
 }
 
 func (vr *Vulkan) textureIdFree(id *TextureId) {

@@ -68,7 +68,6 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	} else {
 		vr.dbg.add(vk.TypeToUintPtr(image))
 	}
-
 	textureId.Image = image
 	var memRequirements vk.MemoryRequirements
 	vk.GetImageMemoryRequirements(vr.device, textureId.Image, &memRequirements)
@@ -252,15 +251,35 @@ func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId) {
 	texture.RenderId = other
 }
 
-func (vr *Vulkan) TextureWritePixels(texture *Texture, x, y, width, height int, pixels []uint8) {
+func (vr *Vulkan) TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Vulkan.TextureWritePixels").End()
-	//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	type layoutState = int
+	const (
+		layoutStateUnchanged = layoutState(iota)
+		layoutStateChanged
+		layoutStateFailed
+		layout = vk.ImageLayoutTransferDstOptimal
+		flags  = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+	)
 	id := &texture.RenderId
-	vr.transitionImageLayout(id, vk.ImageLayoutTransferDstOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
-	vr.writeBufferToImageRegion(id.Image, pixels, x, y, width, height)
+	initLayout := id.Layout
+	state := layoutStateUnchanged
+	if initLayout != vk.ImageLayoutTransferDstOptimal {
+		if vr.transitionImageLayout(id, layout, flags, id.Access, nil) {
+			state = layoutStateChanged
+		} else {
+			state = layoutStateFailed
+		}
+	}
+	if state != layoutStateFailed {
+		if err := vr.writeBufferToImageRegion(id.Image, requests); err != nil {
+			slog.Error("error writing the image region", "error", err)
+		}
+	}
+	if state == layoutStateChanged {
 	vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
+	}
 }
 
 func (vr *Vulkan) DestroyTexture(texture *Texture) {
