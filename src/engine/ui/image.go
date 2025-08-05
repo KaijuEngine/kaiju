@@ -140,7 +140,7 @@ func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*ren
 func (img *Image) SetSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string) {
 	data := img.ImageData()
 	var err error
-	data.spriteSheet, err = sprite.ReadSpriteSheetData(jsonStr)
+	data.spriteSheet, err = sprite.NewSheetFromJson(jsonStr)
 	if err != nil {
 		slog.Error("failed to load the UI sprite sheet", "error", err)
 		return

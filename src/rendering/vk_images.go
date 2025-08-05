@@ -38,9 +38,11 @@
 package rendering
 
 import (
+	"fmt"
 	"log/slog"
 	"unsafe"
 
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 )
 
@@ -51,7 +53,8 @@ var accessMaskPipelineStageFlagsDefault = uint32(vk.PipelineStageVertexShaderBit
 	vk.PipelineStageFragmentShaderBit |
 	vk.PipelineStageComputeShaderBit)
 
-func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidth, texHeight, mipLevels uint32, filter vk.Filter) bool {
+func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vk.Format, texWidth, texHeight, mipLevels uint32, filter vk.Filter) bool {
+	defer tracing.NewRegion("Vulkan.generateMipmaps").End()
 	var fp vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, imageFormat, &fp)
 	if (uint32(fp.OptimalTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) == 0 {
@@ -62,7 +65,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	defer vr.endSingleTimeCommands(cmd)
 	barrier := vk.ImageMemoryBarrier{}
 	barrier.SType = vk.StructureTypeImageMemoryBarrier
-	barrier.Image = image
+	barrier.Image = texId.Image
 	barrier.SrcQueueFamilyIndex = vk.QueueFamilyIgnored
 	barrier.DstQueueFamilyIndex = vk.QueueFamilyIgnored
 	barrier.SubresourceRange.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
@@ -125,6 +128,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 }
 
 func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags) bool {
+	defer tracing.NewRegion("Vulkan.createImageView").End()
 	viewInfo := vk.ImageViewCreateInfo{}
 	viewInfo.SType = vk.StructureTypeImageViewCreateInfo
 	viewInfo.Image = id.Image
@@ -147,6 +151,7 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 }
 
 func (vr *Vulkan) createImageViews() bool {
+	defer tracing.NewRegion("Vulkan.createImageViews").End()
 	vr.swapChainImageViewCount = vr.swapImageCount
 	success := true
 	for i := uint32(0); i < vr.swapChainImageViewCount && success; i++ {
@@ -159,6 +164,7 @@ func (vr *Vulkan) createImageViews() bool {
 }
 
 func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vk.Filter) bool {
+	defer tracing.NewRegion("Vulkan.createTextureSampler").End()
 	properties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(vr.physicalDevice, &properties)
 	samplerInfo := vk.SamplerCreateInfo{}
@@ -201,6 +207,7 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 }
 
 func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFlagBits {
+	defer tracing.NewRegion("rendering.makeAccessMaskPipelineStageFlags").End()
 	if access == 0 {
 		return vk.PipelineStageTopOfPipeBit
 	}
@@ -259,6 +266,10 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vk.PipelineStageFla
 }
 
 func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd *CommandRecorder) bool {
+	defer tracing.NewRegion("Vulkan.transitionImageLayout").End()
+	if vt.Layout == newLayout {
+		return true
+	}
 	// Note that in larger applications, we could batch together pipeline
 	// barriers for better performance!
 	if aspectMask == 0 {
@@ -299,6 +310,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vk.ImageLayout,
 }
 
 func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, height uint32) {
+	defer tracing.NewRegion("Vulkan.copyBufferToImage").End()
 	cmd := vr.beginSingleTimeCommands()
 	defer vr.endSingleTimeCommands(cmd)
 	region := vk.BufferImageCopy{}
@@ -374,6 +386,7 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWr
 }
 
 func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
+	defer tracing.NewRegion("Vulkan.textureIdFree").End()
 	if id.View != vk.NullImageView {
 		vk.DestroyImageView(vr.device, id.View, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(id.View))
@@ -398,6 +411,7 @@ func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
 }
 
 func (vr *Vulkan) FormatIsTileable(format vk.Format, tiling vk.ImageTiling) bool {
+	defer tracing.NewRegion("Vulkan.FormatIsTileable").End()
 	var formatProps vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
 	switch tiling {

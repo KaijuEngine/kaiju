@@ -129,14 +129,6 @@ func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []
 	})
 }
 
-func (r *Result) Textures() []string {
-	textures := make([]string, 0)
-	for i := range r.Meshes {
-		textures = append(textures, r.Meshes[i].Textures...)
-	}
-	return textures
-}
-
 func (r *Result) NodeByName(name string) *Node {
 	for i := range r.Nodes {
 		if r.Nodes[i].Name == name {

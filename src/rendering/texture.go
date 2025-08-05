@@ -121,6 +121,11 @@ const (
 	CubeMapSides = 6
 )
 
+type GPUImageWriteRequest struct {
+	Region matrix.Vec4i
+	Pixels []byte
+}
+
 type TextureData struct {
 	Mem            []byte
 	InternalFormat TextureInputType
@@ -315,9 +320,9 @@ func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color {
 	return renderer.TextureReadPixel(t, x, y)
 }
 
-func (t *Texture) WritePixels(renderer Renderer, x, y, width, height int, pixels []byte) {
+func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Texture.WritePixels").End()
-	renderer.TextureWritePixels(t, x, y, width, height, pixels)
+	renderer.TextureWritePixels(t, requests)
 }
 
 func (t Texture) Size() matrix.Vec2 {
@@ -337,11 +342,4 @@ func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (Textur
 	} else {
 		return TextureData{}, errors.New("texture does not exist")
 	}
-}
-
-func (t *Texture) Destroy(renderer Renderer) {
-	defer tracing.NewRegion("Texture.Destroy").End()
-	// TODO:  Anything needed cleaned up from pendingData?
-	t.pendingData = nil
-	renderer.DestroyTexture(t)
 }
