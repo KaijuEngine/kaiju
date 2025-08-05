@@ -104,6 +104,7 @@ type Vulkan struct {
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 	writtenCommands            []CommandRecorder
+	transientCommands          []CommandRecorder
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 	combineCmds                [maxFramesInFlight]CommandRecorder
 	blitCmds                   [maxFramesInFlight]CommandRecorder
@@ -445,6 +446,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
 		return false
 	}
+	qSubmit := tracing.NewRegion("Vulkan.QueueSubmit")
 	all := make([]vk.CommandBuffer, len(vr.writtenCommands))
 	for i := range vr.writtenCommands {
 		all[i] = vr.writtenCommands[i].buffer
@@ -463,13 +465,13 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 		PWaitDstStageMask:    &waitStages[0],
 		PSignalSemaphores:    &signalSemaphores[0],
 	}
-
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
 	if eCode != vk.Success {
 		slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
 		return false
 	}
-
+	qSubmit.End()
+	qPresent := tracing.NewRegion("Vulkan.QueuePresent")
 	dependency := vk.SubpassDependency{}
 	dependency.SrcSubpass = vk.SubpassExternal
 	dependency.DstSubpass = 0
@@ -477,7 +479,6 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	dependency.SrcAccessMask = 0
 	dependency.DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
 	dependency.DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
-
 	swapChains := []vk.Swapchain{vr.swapChain}
 	presentInfo := vk.PresentInfo{}
 	presentInfo.SType = vk.StructureTypePresentInfo
@@ -487,16 +488,14 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	presentInfo.PSwapchains = &swapChains[0]
 	presentInfo.PImageIndices = &vr.imageIndex[vr.currentFrame]
 	presentInfo.PResults = nil // Optional
-
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
-
+	qPresent.End()
 	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal {
 		vr.remakeSwapChain()
 	} else if vr.acquireImageResult != vk.Success {
 		slog.Error("Failed to present swap chain image")
 		return false
 	}
-
 	vr.currentFrame = (vr.currentFrame + 1) % int(vr.swapImageCount)
 	return true
 }
@@ -514,11 +513,13 @@ func (vr *Vulkan) Destroy() {
 			vr.blitCmds[i].Destroy(vr)
 		}
 		vr.singleTimeCommandPool.All(func(elm *CommandRecorder) {
-			elm.Destroy(vr)
+			if elm.buffer != vk.NullCommandBuffer {
+				buff := elm.buffer
+				vk.FreeCommandBuffers(vr.device, elm.pool, 1, &buff)
+				vk.DestroyCommandPool(vr.device, elm.pool, nil)
+				vr.dbg.remove(vk.TypeToUintPtr(elm.pool))
+			}
 		})
-		for k := range vr.renderPassCache {
-			vr.renderPassCache[k].Destroy(vr)
-		}
 		vr.defaultTexture = nil
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)

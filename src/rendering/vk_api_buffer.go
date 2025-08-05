@@ -83,6 +83,13 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	return true
 }
 
+func (vr *Vulkan) DestroyBuffer(buffer vk.Buffer, bufferMemory vk.DeviceMemory) {
+	vk.DestroyBuffer(vr.device, buffer, nil)
+	vk.FreeMemory(vr.device, bufferMemory, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(buffer))
+	vr.dbg.remove(vk.TypeToUintPtr(bufferMemory))
+}
+
 func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize) {
 	cmd := vr.beginSingleTimeCommands()
 	defer vr.endSingleTimeCommands(cmd)
