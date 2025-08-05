@@ -43,6 +43,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"slices"
 )
 
 type Image Panel
@@ -128,10 +129,7 @@ func (img *Image) SetTexture(texture *rendering.Texture) {
 func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture) {
 	data := img.ImageData()
 	count := len(textures)
-	data.flipBook = make([]*rendering.Texture, 0, count)
-	for i := 0; i < count; i++ {
-		data.flipBook = append(data.flipBook, textures[i])
-	}
+	data.flipBook = slices.Clone(textures)
 	data.frameCount = count
 	data.fps = framesPerSecond
 	data.currentFrame = 0

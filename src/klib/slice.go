@@ -127,3 +127,38 @@ func SliceMove[S any](s []S, from, to int) {
 		s[b-1] = temp
 	}
 }
+
+func SliceSetCap[S any](s []S, amount int) []S {
+	return slices.Grow(s, max(0, amount-len(s)))
+}
+
+func SliceSetLen[S any](s []S, newLen int) []S {
+	if cap(s) < newLen {
+		SliceSetCap(s, newLen)
+	}
+	if len(s) < newLen {
+		return append(s, make([]S, newLen-len(s))...)
+	} else {
+		return s[:newLen]
+	}
+}
+
+func SlicesAreTheSame[S comparable](a []S, b []S) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	same := true
+	for i := 0; i < len(a) && same; i++ {
+		same = a[i] == b[i]
+	}
+	return same
+}
+
+func SlicesRemoveElement[S comparable](s []S, e S) []S {
+	for i := range s {
+		if s[i] == e {
+			s = slices.Delete(s, i, i+1)
+		}
+	}
+	return s
+}

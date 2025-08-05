@@ -80,37 +80,43 @@ func ApplyElementStyle(elm *document.Element, host *engine.Host) []error {
 	}
 	problems := proc(rules.RuleInvokeImmediate)
 	if hasHover {
-		elm.UI.AddEvent(ui.EventTypeEnter, func() {
+		enterId := elm.UI.AddEvent(ui.EventTypeEnter, func() {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 			proc(rules.RuleInvokeHover)
 		})
-		elm.UI.AddEvent(ui.EventTypeExit, func() {
+		exitId := elm.UI.AddEvent(ui.EventTypeExit, func() {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 		})
+		elm.UIEventIds[ui.EventTypeEnter] = append(elm.UIEventIds[ui.EventTypeEnter], enterId)
+		elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], exitId)
 	}
 	if hasActive {
-		elm.UI.AddEvent(ui.EventTypeEnter, func() {
+		enterId := elm.UI.AddEvent(ui.EventTypeEnter, func() {
 			if elm.UI.IsDown() {
 				elm.UI.Layout().ClearFunctions()
 				proc(rules.RuleInvokeImmediate)
 				proc(rules.RuleInvokeActive)
 			}
 		})
-		elm.UI.AddEvent(ui.EventTypeDown, func() {
+		downId := elm.UI.AddEvent(ui.EventTypeDown, func() {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 			proc(rules.RuleInvokeActive)
 		})
-		elm.UI.AddEvent(ui.EventTypeUp, func() {
+		upId := elm.UI.AddEvent(ui.EventTypeUp, func() {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 		})
-		elm.UI.AddEvent(ui.EventTypeExit, func() {
+		exitId := elm.UI.AddEvent(ui.EventTypeExit, func() {
 			elm.UI.Layout().ClearFunctions()
 			proc(rules.RuleInvokeImmediate)
 		})
+		elm.UIEventIds[ui.EventTypeEnter] = append(elm.UIEventIds[ui.EventTypeEnter], enterId)
+		elm.UIEventIds[ui.EventTypeDown] = append(elm.UIEventIds[ui.EventTypeDown], downId)
+		elm.UIEventIds[ui.EventTypeUp] = append(elm.UIEventIds[ui.EventTypeUp], upId)
+		elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], exitId)
 	}
 	//if len(problems) > 0 {
 	//	slog.Error("There were errors during processing the document", "count", len(problems))
@@ -210,7 +216,18 @@ func cleanMapDuplicates(cssMap CSSMap) {
 	}
 }
 
-func Apply(s rules.StyleSheet, doc *document.Document, host *engine.Host) {
+type Stylizer struct{}
+
+func (_ Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document, host *engine.Host) {
+	for i := range doc.Elements {
+		e := doc.Elements[i]
+		e.UI.Layout().ClearFunctions()
+		for j := range e.UIEventIds {
+			for k := range e.UIEventIds[j] {
+				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
+			}
+		}
+	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
 		for _, sel := range group.Selectors {

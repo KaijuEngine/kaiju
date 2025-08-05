@@ -41,6 +41,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -205,17 +206,6 @@ func (label *Label) renderText() {
 	defer tracing.NewRegion("Label.renderText").End()
 	maxWidth := label.MaxWidth()
 	ld := label.LabelData()
-	if ld.wordWrap {
-		if label.entity.Parent != nil {
-			p := FirstOnEntity(label.entity.Parent)
-			o := p.Layout().Padding()
-			maxWidth = label.layout.PixelSize().Width() - o.X() - o.Z()
-		} else {
-			maxWidth = label.MaxWidth()
-		}
-	} else {
-		maxWidth = matrix.FloatMax
-	}
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if ld.textLength > 0 {
@@ -395,7 +385,7 @@ func (label *Label) SetMaxWidth(maxWidth float32) {
 func (label *Label) nonOverrideMaxWidth() float32 {
 	if label.entity.IsRoot() {
 		// TODO:  Return a the window width?
-		return 100000.0
+		return matrix.FloatMax
 	} else if label.LabelData().wordWrap {
 		return label.CalculateMaxWidth()
 	} else {
@@ -528,9 +518,10 @@ func (label *Label) CalculateMaxWidth() float32 {
 		}
 		parent = parent.Parent
 	}
-	if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
+	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
+	if parent == nil {
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(label.man.Host.Window.Width())
+		maxWidth = matrix.Float(label.man.Host.Window.Width()) - o.X() - o.Z()
 	} else {
 		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
 	}
@@ -543,4 +534,21 @@ func (label *Label) Measure() matrix.Vec2 {
 	} else {
 		return label.measure(matrix.FloatMax)
 	}
+}
+
+func (label *Label) Clone(to *Label) {
+	ld := label.LabelData()
+	to.Init(ld.text, label.layout.screenAnchor)
+	toLD := to.LabelData()
+	toLD.colorRanges = slices.Clone(ld.colorRanges)
+	toLD.diffScore = ld.diffScore
+	to.SetFontSize(ld.fontSize)
+	to.SetLineHeight(ld.lineHeight)
+	to.SetMaxWidth(ld.overrideMaxWidth)
+	to.SetColor(ld.fgColor)
+	to.SetBGColor(ld.bgColor)
+	to.SetJustify(ld.justify)
+	to.SetBaseline(ld.baseline)
+	// TODO:  Set font face?
+	to.SetWrap(ld.wordWrap)
 }

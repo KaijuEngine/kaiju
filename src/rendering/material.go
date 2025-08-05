@@ -71,6 +71,10 @@ func (m *Material) HasShadowCubeMap() bool {
 	return m.ShadowCubeMap != nil && m.ShadowCubeMap.RenderId.IsValid()
 }
 
+func (m *Material) HasTransparentSuffix() bool {
+	return strings.HasSuffix(m.Name, "_transparent")
+}
+
 func (m *Material) SelectRoot() *Material {
 	if m.Root.Value() != nil {
 		return m.Root.Value()

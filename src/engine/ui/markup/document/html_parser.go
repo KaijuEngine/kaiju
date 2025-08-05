@@ -39,17 +39,22 @@ package document
 
 import (
 	"html/template"
+	"log/slog"
+	"kaiju/build"
+	"kaiju/debug"
 	"kaiju/engine"
+	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/elements"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
-	"log/slog"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
+	"weak"
 )
 
 type TemplateIndexedAny struct {
@@ -79,6 +84,10 @@ var funcMap = template.FuncMap{
 	},
 }
 
+var Debug = struct {
+	ReloadStylesEvent events.Event
+}{}
+
 type Document struct {
 	host          *engine.Host
 	Elements      []*Element
@@ -89,22 +98,25 @@ type Document struct {
 	classElements map[string][]*Element
 	tagElements   map[string][]*Element
 	style         rules.StyleSheet
-	stylizer      func(rules.StyleSheet, *Document, *engine.Host)
+	stylizer      Stylizer
 	// TODO:  Should this be here?
 	firstInput *ui.Input
 	lastInput  *ui.Input
+	funcMap    map[string]func(*Element)
+	Debug      struct {
+		ReloadEventId events.Id
+	}
 }
 
-func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host,
-	styleReader func(rules.StyleSheet, *Document, *engine.Host)) {
+func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host, stylizer Stylizer) {
 	d.style = style
-	d.stylizer = styleReader
+	d.stylizer = stylizer
 	d.host = host
-	d.ApplyStyle()
+	d.ApplyStyles()
 }
 
-func (d *Document) ApplyStyle() {
-	d.stylizer(d.style, d, d.host)
+func (d *Document) ApplyStyles() {
+	d.stylizer.ApplyStyles(d.style, d, d.host)
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -120,6 +132,66 @@ func (h *Document) GetElementsByGroup(group string) []*Element {
 		return e
 	} else {
 		return []*Element{}
+	}
+}
+
+func (h *Document) reloadElementCaches() {
+	h.recacheElementIds()
+	h.recacheElementTags()
+	h.recacheElementGroups()
+	h.recacheElementClasses()
+}
+
+func (h *Document) recacheElementClasses() {
+	clear(h.classElements)
+	for i := range h.Elements {
+		e := h.Elements[i]
+		classList := e.ClassList()
+		for _, c := range classList {
+			if len(c) == 0 {
+				continue
+			}
+			if m, ok := h.classElements[c]; ok {
+				h.classElements[c] = append(m, e)
+			} else {
+				h.classElements[c] = []*Element{e}
+			}
+		}
+	}
+}
+
+func (h *Document) recacheElementGroups() {
+	clear(h.groups)
+	for i := range h.Elements {
+		e := h.Elements[i]
+		if group := e.Attribute("group"); group != "" {
+			g, ok := h.groups[group]
+			if !ok {
+				g = make([]*Element, 0, 1)
+			}
+			g = append(g, e)
+			h.groups[group] = g
+		}
+	}
+}
+
+func (h *Document) recacheElementTags() {
+	clear(h.tagElements)
+	for i := range h.Elements {
+		e := h.Elements[i]
+		if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
+			h.tagElement(e, tag.Key())
+		}
+	}
+}
+
+func (h *Document) recacheElementIds() {
+	clear(h.ids)
+	for i := range h.Elements {
+		e := h.Elements[i]
+		if id := e.Attribute("id"); id != "" {
+			h.ids[id] = e
+		}
 	}
 }
 
@@ -164,7 +236,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 	}
 	if e.IsText() {
 		anchor := ui.AnchorTopLeft
-		txt := strings.TrimSpace(e.Data())
+		txt := strings.TrimSpace(e.Data)
 		txt = strings.ReplaceAll(txt, "\r", "")
 		txt = strings.ReplaceAll(txt, "\n", " ")
 		txt = strings.ReplaceAll(txt, "\t", " ")
@@ -175,7 +247,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
 		appendElement(label.Base(), nil)
-	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data())]; ok {
+	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 		panel := uiMan.Add().ToPanel()
 		if e.IsImage() {
 			src := e.Attribute("src")
@@ -259,7 +331,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				if child.IsSelectOption() {
 					childText := ""
 					if len(child.Children) > 0 {
-						childText = child.Children[0].Data()
+						childText = child.Children[0].Data
 					}
 					val := child.Attribute("value")
 					if val != "" {
@@ -293,7 +365,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		if len(group) > 0 {
 			d.groups[group] = append(d.groups[group], entry)
 		}
-		classList := strings.Split(e.Attribute("class"), " ")
+		classList := e.ClassList()
 		for _, c := range classList {
 			if len(c) == 0 {
 				continue
@@ -332,7 +404,7 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 	body.UIPanel = bodyPanel
 	d.Elements = append(d.Elements, body)
 	d.tagElements["body"] = []*Element{body}
-	bodyClasses := strings.Split(body.Attribute("class"), " ")
+	bodyClasses := body.ClassList()
 	for _, c := range bodyClasses {
 		if len(c) == 0 {
 			continue
@@ -354,6 +426,7 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		classElements: map[string][]*Element{},
 		tagElements:   map[string][]*Element{},
 		HeadElements:  make([]*Element, 0),
+		funcMap:       funcMap,
 	}
 	transformed, err := TransformHTML(htmlStr, withData)
 	if err != nil {
@@ -372,10 +445,10 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		}
 	}
 	for i := range parsed.Elements {
-		setupEvents(parsed.Elements[i], funcMap)
+		setupEvents(parsed.Elements[i], parsed.funcMap)
 	}
 	for _, elm := range h.Children[len(h.Children)-1].Children {
-		if elm.Data() == "head" {
+		if elm.Data == "head" {
 			for _, child := range elm.Children {
 				parsed.HeadElements = append(parsed.HeadElements, child)
 			}
@@ -408,6 +481,9 @@ func (d *Document) Destroy() {
 	for i := range d.Elements {
 		d.Elements[i].UI.Entity().Destroy()
 	}
+	if build.Debug {
+		Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
+	}
 }
 
 func (d *Document) Clean() {
@@ -424,10 +500,10 @@ func (d *Document) indexElement(elm *Element) {
 	if group := elm.Attribute("group"); group != "" {
 		d.groups[group] = append(d.groups[group], elm)
 	}
-	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data())]; ok {
+	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data)]; ok {
 		d.tagElement(elm, tag.Key())
 	}
-	for _, c := range strings.Split(elm.Attribute("class"), " ") {
+	for _, c := range elm.ClassList() {
 		if len(c) == 0 {
 			continue
 		}
@@ -442,7 +518,7 @@ func (d *Document) indexElement(elm *Element) {
 func (d *Document) removeIndexedElement(elm *Element) {
 	for i, e := range d.Elements {
 		if e == elm {
-			klib.RemoveUnordered(d.Elements, i)
+			d.Elements = klib.RemoveUnordered(d.Elements, i)
 			break
 		}
 	}
@@ -456,7 +532,7 @@ func (d *Document) removeIndexedElement(elm *Element) {
 			}
 		}
 	}
-	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data())]; ok {
+	if tag, ok := elements.ElementMap[strings.ToLower(elm.Data)]; ok {
 		if _, ok := d.tagElements[tag.Key()]; ok {
 			for i := range d.tagElements[tag.Key()] {
 				if d.tagElements[tag.Key()][i] == elm {
@@ -467,7 +543,7 @@ func (d *Document) removeIndexedElement(elm *Element) {
 			}
 		}
 	}
-	for _, c := range strings.Split(elm.Attribute("class"), " ") {
+	for _, c := range elm.ClassList() {
 		if len(c) == 0 {
 			continue
 		}
@@ -489,15 +565,189 @@ func (d *Document) AddChildElement(parent *Element, elm *Element) {
 	d.indexElement(elm)
 }
 
+// RemoveElement removes the specified element from the document by first
+// recursively removing all child elements, then removing the element from
+// its parent's children list, destroying the UI entity, and updating the
+// document's element caches. Finally, it reapplies all document styles.
+//
+// Parameters:
+//   - elm: pointer to the Element to be removed from the document
+//
+// The function performs the following operations:
+// 1. Recursively removes all child elements starting from the last child
+// 2. Removes the element from its parent's Children list if it has a parent
+// 3. Destroys the UI entity associated with the element
+// 4. Updates the parent's layout dirty flag
+// 5. Removes the element from document's indexed elements
+// 6. Applies all document styles to reflect changes
 func (d *Document) RemoveElement(elm *Element) {
+	for i := len(elm.Children) - 1; i >= 0; i-- {
+		d.RemoveElement(elm.Children[i])
+	}
 	if elm.Parent.Value() != nil {
 		for i, c := range elm.Parent.Value().Children {
 			if c == elm {
-				elm.Parent.Value().Children = slices.Delete(elm.Parent.Value().Children, i, i+1)
+				c.UI.Entity().Destroy()
+				parent := elm.Parent.Value()
+				parent.Children = slices.Delete(parent.Children, i, i+1)
+				parent.UI.SetDirty(ui.DirtyTypeLayout)
 				break
 			}
 		}
 	}
 	d.removeIndexedElement(elm)
-	d.ApplyStyle()
+	d.ApplyStyles()
+}
+
+// SetElementClassesWithoutApply updates the class list of the given element
+// without applying styles. It removes the element from its previous class
+// lists, sets the new classes, and updates the document's classElements map
+// to reflect the new class assignments.
+//
+// Parameters:
+//   - elm: pointer to the Element whose classes will be updated
+//   - classes: variadic string parameters representing the new class names
+//
+// The function performs the following operations:
+// 1. Sorts both the input classes and existing element classes
+// 2. Returns early if classes are identical
+// 3. Removes element from previous class lists in classElements map
+// 4. Sets the new class list on the element
+// 5. Adds element to the appropriate class lists in classElements map
+func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string) {
+	elmClasses := elm.ClassList()
+	sort.Strings(classes)
+	sort.Strings(elmClasses)
+	if klib.SlicesAreTheSame(classes, elmClasses) {
+		return
+	}
+	for i := range elmClasses {
+		elms := d.classElements[elmClasses[i]]
+		target := slices.Index(elms, elm)
+		if target >= 0 {
+			d.classElements[elmClasses[i]] = slices.Delete(elms, target, target+1)
+		}
+	}
+	elm.SetClasses(classes...)
+	for _, c := range classes {
+		if len(c) == 0 {
+			continue
+		}
+		if m, ok := d.classElements[c]; ok {
+			d.classElements[c] = append(m, elm)
+		} else {
+			d.classElements[c] = []*Element{elm}
+		}
+	}
+}
+
+// SetElementClasses updates the class list of the given element and applies
+// style changes to the entire document. It calls SetElementClassesWithoutApply
+// to update classes, then applies all styles in the document.
+//
+// Parameters:
+//   - elm: pointer to the Element whose classes will be updated
+//   - classes: variadic string parameters representing the new class names
+func (d *Document) SetElementClasses(elm *Element, classes ...string) {
+	d.SetElementClassesWithoutApply(elm, classes...)
+	d.ApplyStyles()
+}
+
+// DupicateElement will create a duplicate of a given element, nesting it under
+// the same parent as the given element (at the end). If you wish to just
+// duplicate an element and use one of the Insert functions, then use
+// Element.Clone followed by an Insert function instead
+func (d *Document) DupicateElement(elm *Element) *Element {
+	cpy := elm.Clone(elm.Parent.Value())
+	d.appendElement(cpy)
+	d.ApplyStyles()
+	return cpy
+}
+
+func (d *Document) appendElement(elm *Element) {
+	var addChildren func(target *Element)
+	addChildren = func(target *Element) {
+		d.Elements = append(d.Elements, target)
+		setupEvents(target, d.funcMap)
+		for i := range target.Children {
+			addChildren(target.Children[i])
+		}
+	}
+	addChildren(elm)
+	d.reloadElementCaches()
+}
+
+func (d *Document) isElementInDocument(elm *Element) bool {
+	for i := range d.Elements {
+		if d.Elements[i] == elm {
+			return true
+		}
+	}
+	return false
+}
+
+// InsertElementBefore inserts the given element elm into the document before
+// the specified element before. It handles the removal of elm from its current
+// parent if it has one, and then inserts it into the children of before's
+// parent at the correct position. The function ensures that elm is properly
+// added to the document's element list and updates all necessary caches and
+// styles after the insertion.
+//
+// Parameters:
+//   - elm: the element to be inserted
+//   - before: the element before which elm should be inserted
+//
+// Preconditions:
+//   - Both elm and before must not be nil (enforced by debug.Ensure)
+func (d *Document) InsertElementBefore(elm *Element, before *Element) {
+	debug.Ensure(elm != nil)
+	debug.Ensure(before != nil)
+	parent := before.Parent.Value()
+	idx := -1
+	if parent != nil {
+		idx = parent.IndexOfChild(before)
+	}
+	d.insertElementAt(elm, before.Parent.Value(), idx)
+}
+
+// InsertElementAfter inserts the given element elm into the document after
+// the specified element after. It handles the removal of elm from its current
+// parent if it has one, and then inserts it into the children of after's
+// parent at the correct position. The function ensures that elm is properly
+// added to the document's element list and updates all necessary caches and
+// styles after the insertion.
+//
+// Parameters:
+//   - elm: the element to be inserted
+//   - after: the element after which elm should be inserted
+//
+// Preconditions:
+//   - Both elm and after must not be nil (enforced by debug.Ensure)
+func (d *Document) InsertElementAfter(elm *Element, after *Element) {
+	debug.Ensure(elm != nil)
+	debug.Ensure(after != nil)
+	parent := after.Parent.Value()
+	idx := -1
+	if parent != nil {
+		idx = parent.IndexOfChild(after) + 1
+	}
+	d.insertElementAt(elm, after.Parent.Value(), idx)
+}
+
+func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
+	fromParent := elm.Parent.Value()
+	if fromParent != nil {
+		idx := fromParent.IndexOfChild(elm)
+		fromParent.Children = slices.Delete(fromParent.Children, idx, idx+1)
+		elm.Parent = weak.Make[Element](nil)
+	}
+	if parent != nil {
+		parent.Children = slices.Insert(parent.Children, index, elm)
+		elm.Parent = weak.Make(parent)
+		parent.UI.ToPanel().AddChild(elm.UI)
+	}
+	if !d.isElementInDocument(elm) {
+		d.appendElement(elm)
+	}
+	d.ApplyStyles()
 }

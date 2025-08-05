@@ -38,10 +38,13 @@
 package debug
 
 import (
+	"errors"
 	"kaiju/build"
 	"log/slog"
 	"runtime"
 )
+
+var NotImplementedError = errors.New("not implemented")
 
 func Log(msg string, args ...any) {
 	if build.Debug {
@@ -59,7 +62,22 @@ func Assert(res bool, msg string) {
 	}
 }
 
-func Ensure(res bool, msg string) {
+func Halt(msg string) {
+	if !build.Shipping {
+		slog.Error(msg)
+		runtime.Breakpoint()
+	}
+}
+
+func Ensure(res bool) {
+	if !build.Shipping {
+		if !res {
+			runtime.Breakpoint()
+		}
+	}
+}
+
+func EnsureMsg(res bool, msg string) {
 	if !build.Shipping {
 		if !res {
 			slog.Error(msg)
@@ -67,3 +85,13 @@ func Ensure(res bool, msg string) {
 		}
 	}
 }
+
+func EnsureNotError(err error) {
+	if !build.Shipping {
+		if err != nil {
+			EnsureMsg(false, err.Error())
+		}
+	}
+}
+
+func ThrowNotImplemented(todo string) { EnsureMsg(false, todo) }

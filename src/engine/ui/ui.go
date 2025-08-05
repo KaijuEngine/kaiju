@@ -516,3 +516,53 @@ func (ui *UI) IsInFrontOf(other *UI) bool {
 	return ui.entity.Transform.WorldPosition().Z() >
 		other.entity.Transform.WorldPosition().Z()
 }
+
+func (ui *UI) Clone(parent *engine.Entity) *UI {
+	cpy := ui.man.Add()
+	switch ui.elmType {
+	case ElementTypeLabel:
+		ui.ToLabel().Clone(cpy.ToLabel())
+	case ElementTypePanel:
+		t := ui.ToPanel()
+		cpy.ToPanel().Init(t.Background(), t.layout.screenAnchor, ElementTypePanel)
+	case ElementTypeButton:
+		t := ui.ToButton()
+		cpy.ToButton().Init(ui.ToPanel().Background(), t.Label().Text(), t.layout.screenAnchor)
+	case ElementTypeCheckbox:
+		t := ui.ToCheckbox()
+		cpy.ToCheckbox().Init(t.layout.screenAnchor)
+	case ElementTypeImage:
+		t := ui.ToImage()
+		tData := t.ImageData()
+		if len(tData.flipBook) > 0 {
+			cpy.ToImage().InitFlipbook(tData.fps, tData.flipBook, t.layout.screenAnchor)
+		} else if tData.spriteSheet.IsValid() {
+			s, _ := tData.spriteSheet.ToJson()
+			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s, t.layout.screenAnchor)
+		} else {
+			cpy.ToImage().Init(tData.flipBook[0], t.layout.screenAnchor)
+		}
+	case ElementTypeInput:
+		t := ui.ToInput()
+		cpy.ToInput().Init(t.InputData().placeholder.Text(), t.layout.screenAnchor)
+	case ElementTypeProgressBar:
+		t := ui.ToProgressBar()
+		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background(), t.layout.screenAnchor)
+	case ElementTypeSelect:
+		t := ui.ToSelect()
+		cpy.ToSelect().Init(t.SelectData().text, t.SelectData().options, t.layout.screenAnchor)
+	case ElementTypeSlider:
+		t := ui.ToSlider()
+		cpy.ToSlider().Init(t.layout.screenAnchor)
+	}
+	if parent != nil {
+		panel := FirstPanelOnEntity(parent)
+		if panel != nil {
+			panel.AddChild(cpy)
+		} else {
+			cpy.entity.SetParent(parent)
+		}
+	}
+	cpy.entity.Transform.Copy(ui.entity.Transform)
+	return cpy
+}

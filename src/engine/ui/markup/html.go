@@ -38,12 +38,17 @@
 package markup
 
 import (
+	"log/slog"
+	"kaiju/build"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
+	"strings"
 	"weak"
+
+	gohtml "golang.org/x/net/html"
 )
 
 func sizeTexts(doc *document.Document, host *engine.Host) {
@@ -59,7 +64,7 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 						parentWidth = newParentWidth
 						lbl := l.Ui().ToLabel()
 						textSize := host.FontCache().MeasureStringWithin(
-							lbl.FontFace(), e.Data(), lbl.FontSize(),
+							lbl.FontFace(), e.Data, lbl.FontSize(),
 							parentWidth, lbl.LineHeight())
 						height = textSize.Height()
 					}
@@ -87,7 +92,13 @@ func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, fun
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil), nil
+	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil)
+	if build.Debug {
+		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, uiMan.Host)
+		})
+	}
+	return doc, nil
 }
 
 func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error) {
@@ -95,7 +106,13 @@ func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData an
 	if err != nil {
 		return nil, err
 	}
-	return DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root), nil
+	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root)
+	if build.Debug {
+		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, uiMan.Host)
+		})
+	}
+	return doc, nil
 }
 
 func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) *document.Document {
@@ -112,9 +129,9 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 	s.Parse(css.DefaultCSS)
 	s.Parse(cssStr)
 	for i := range doc.HeadElements {
-		if doc.HeadElements[i].Data() == "style" {
-			s.Parse(doc.HeadElements[i].Children[0].Data())
-		} else if doc.HeadElements[i].Data() == "link" {
+		if doc.HeadElements[i].Data == "style" {
+			s.Parse(doc.HeadElements[i].Children[0].Data)
+		} else if doc.HeadElements[i].Data == "link" {
 			if doc.HeadElements[i].Attribute("rel") == "stylesheet" {
 				cssPath := doc.HeadElements[i].Attribute("href")
 				css, err := host.AssetDatabase().ReadText(cssPath)
@@ -125,7 +142,69 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 			}
 		}
 	}
-	doc.SetupStylizer(s, host, css.Apply)
+	doc.SetupStylizer(s, host, css.Stylizer{})
 	sizeTexts(doc, host)
 	return doc
+}
+
+func reloadDocumentStyles(doc *document.Document, files []string, raw []string, host *engine.Host) {
+	if !build.Debug {
+		slog.Error("reloadDocumentStyles should not be called in a non-debug build")
+		return
+	}
+	findAttr := func(n *gohtml.Node, key string) string {
+		for i := range n.Attr {
+			if n.Attr[i].Key == key {
+				return n.Attr[i].Val
+			}
+		}
+		return ""
+	}
+	s := rules.NewStyleSheet()
+	s.Parse(css.DefaultCSS)
+	for i := range files {
+		data, err := host.AssetDatabase().Read(files[i])
+		if err != nil {
+			slog.Error("reloadDocumentStyles failed to read the file", "file", files[i], "error", err)
+			continue
+		}
+		if strings.HasSuffix(files[i], ".html") {
+			tpl, err := gohtml.Parse(strings.NewReader(string(data)))
+			if err != nil {
+				slog.Error("reloadDocumentStyles failed to parse the html string", "file", files[i], "error", err)
+				continue
+			}
+			for root := range tpl.ChildNodes() {
+				if root.Data == "html" {
+					for top := range root.ChildNodes() {
+						if top.Data == "head" {
+							for c := range top.ChildNodes() {
+								if c.Data == "style" {
+									s.Parse(c.FirstChild.Data)
+								} else if c.Data == "link" {
+									if findAttr(c, "rel") == "stylesheet" {
+										cssPath := findAttr(c, "href")
+										css, err := host.AssetDatabase().ReadText(cssPath)
+										if err != nil {
+											continue
+										}
+										s.Parse(css)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		} else if strings.HasSuffix(files[i], ".css") {
+			s.Parse(string(data))
+		} else {
+			slog.Error("failed to reloadDocumentStyles for file", "file", files[i])
+		}
+	}
+	for i := range raw {
+		s.Parse(raw[i])
+	}
+	doc.SetupStylizer(s, host, css.Stylizer{})
+	doc.ApplyStyles()
 }

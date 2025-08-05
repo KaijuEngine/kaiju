@@ -42,6 +42,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"slices"
 )
 
 type selectData struct {
@@ -119,10 +120,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		data.triangle = tri
 		//img.layout.SetOffset(5, 0)
 	}
-	data.options = make([]string, 0, len(options))
-	for i := range options {
-		s.AddOption(options[i])
-	}
+	data.options = slices.Clone(options)
 	// TODO:  On list miss, close it, which means this local_select_click
 	// will probably need to skip on that miss?
 	s.Base().AddEvent(EventTypeClick, s.onClick)
