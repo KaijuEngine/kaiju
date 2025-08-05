@@ -563,6 +563,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			tex, _ = p.man.Host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
 		}
+		tex.MipLevels = 1
 		material, err := p.man.Host.MaterialCache().Material(assets.MaterialDefinitionUI)
 		if err != nil {
 			slog.Error("failed to load the ui material for panel", "error", err)
@@ -610,6 +611,8 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 	if pd.drawing.IsValid() {
 		p.recreateDrawing()
 		t := []*rendering.Texture{tex}
+		// TODO:  Should this setting of mips be here?
+		tex.MipLevels = 1
 		p.textureSize = matrix.NewVec2(float32(tex.Width), float32(tex.Height))
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		pd.drawing.Material = pd.drawing.Material.SelectRoot().CreateInstance(t)
@@ -721,10 +724,10 @@ func (p *Panel) HasEnforcedColor() bool {
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	defer tracing.NewRegion("Panel.setColorInternal").End()
+	p.ensureBGExists(nil)
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return
 	}
-	p.ensureBGExists(nil)
 	hasBlending := p.shaderData.FgColor.A() < 1.0
 	shouldBlend := bgColor.A() < 1.0
 	if hasBlending != shouldBlend {
