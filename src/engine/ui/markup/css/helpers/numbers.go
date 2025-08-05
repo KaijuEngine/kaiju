@@ -39,7 +39,6 @@ package helpers
 
 import (
 	"fmt"
-	"kaiju/klib"
 	"kaiju/platform/windowing"
 	"kaiju/rendering"
 	"strconv"
@@ -91,10 +90,7 @@ func ArithmeticString(args []string) (int, error) {
 }
 
 func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float32) float32 {
-	w := window.Width()
-	//h := window.Height
-	//wmm, hmm, _ := window.SizeMM()
-	wmm, _, _ := window.SizeMM()
+	dpmm := window.DotsPerMillimeter()
 	var suffix string
 	if str[len(str)-1] == '%' {
 		suffix = "%"
@@ -123,15 +119,15 @@ func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float3
 	case "em":
 		size = size * fontSize
 	case "cm":
-		size = float32(klib.MM2PX(w, wmm, int(size*10)))
+		size = float32(dpmm) * float32(size*10)
 	case "mm":
-		size = float32(klib.MM2PX(w, wmm, int(size)))
+		size = float32(dpmm) * float32(size)
 	case "in":
-		size = float32(klib.MM2PX(w, wmm, int(size*25.4)))
+		size = float32(dpmm) * float32(size*25.4)
 	case "pt":
-		size = float32(klib.MM2PX(w, wmm, int(size*25.4/72)))
+		size = float32(dpmm) * float32(size*25.4/72)
 	case "pc":
-		size = float32(klib.MM2PX(w, wmm, int(size*25.4/6)))
+		size = float32(dpmm) * float32(size*25.4/6)
 	default:
 		size = 0
 	}
