@@ -46,6 +46,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"unicode"
@@ -58,6 +59,11 @@ const (
 	distanceFieldRange = 4.0
 	invalidRuneProxy   = '_'
 )
+
+// We need overlapping letters to be drawn first when rendering blocks of text,
+// otherwise, when they have a background, they will clip the text that they
+// are overlapping
+var overlappingLetters = []rune{'j', 'J'}
 
 type FontJustify int
 
@@ -383,7 +389,7 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 		binary.Read(read, binary.LittleEndian, &fbc.atlasBounds)
 		bin.letters[fbc.letter] = fbc
 	}
-	sample := findBinChar(bin, 'j')
+	sample := findBinChar(bin, '-')
 	cSpace := fontBinChar{
 		letter:      ' ',
 		advance:     sample.advance,
@@ -591,13 +597,18 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					Scissor:        matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax},
 				}
 				shaderData.SetModel(model)
-				fontMeshes = append(fontMeshes, Drawing{
+				drawing := Drawing{
 					Renderer:   cache.renderer,
 					Material:   material.CreateInstance([]*Texture{fontFace.texture}),
 					Mesh:       m,
 					ShaderData: shaderData,
 					Transform:  nil,
-				})
+				}
+				if slices.Contains(overlappingLetters, c) {
+					fontMeshes = append([]Drawing{drawing}, fontMeshes...)
+				} else {
+					fontMeshes = append(fontMeshes, drawing)
+				}
 				cx += ch.advance * scale * inverseWidth
 				ay := fontFace.metrics.LineHeight * scale * inverseHeight
 				height = matrix.Max(height, ay)
