@@ -55,6 +55,18 @@ func tryMap(attr string, elm *Element, evt *events.Event, funcMap map[string]fun
 	}
 }
 
+func tryExecute(attr string, elm *Element, funcMap map[string]func(*Element)) {
+	if funcName := elm.Attribute(attr); len(funcName) > 0 {
+		if f, ok := funcMap[funcName]; ok {
+			f(elm)
+		} else {
+			slog.Warn("Failed to find the event function",
+				slog.String("func", funcName),
+				slog.String("event", attr))
+		}
+	}
+}
+
 func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
 	tryMap("onrightclick", elm, elm.UI.Event(ui.EventTypeRightClick), funcMap)
@@ -76,4 +88,6 @@ func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("ondragstart", elm, elm.UI.Event(ui.EventTypeDragStart), funcMap)
 	tryMap("ondrop", elm, elm.UI.Event(ui.EventTypeDrop), funcMap)
 	tryMap("ondragend", elm, elm.UI.Event(ui.EventTypeDragEnd), funcMap)
+	// Special case for onload
+	tryExecute("onload", elm, funcMap)
 }
