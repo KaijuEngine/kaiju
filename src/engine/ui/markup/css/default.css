@@ -391,8 +391,9 @@ ul {
 var {
 	font-style: italic; 
 }
+/* input[type="text"] {} */
 button {
-	padding: 5px;
+	padding: 3px 5px 7px 5px;
 	font-size: 16px;
 	text-align: center;
 	vertical-align: middle;
@@ -405,5 +406,6 @@ button:hover {
 	background-image: url("textures/button-hover.png");
 }
 button:active {
-	background-image: url("textures/button-down.png");
+	padding: 1px 5px 9px 5px;
+	background-image: url("sudoku/textures/button-down.png");
 }
