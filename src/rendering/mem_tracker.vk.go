@@ -42,30 +42,33 @@ import (
 	"kaiju/build"
 	"kaiju/klib"
 	"log/slog"
+	"sync"
 )
 
-type debugVulkan map[uintptr]string
+type debugVulkan sync.Map
 
 func debugVulkanNew() debugVulkan {
-	return make(debugVulkan)
+	return debugVulkan{}
 }
 
-func (d debugVulkan) add(handle uintptr) {
+func (d *debugVulkan) asMap() *sync.Map { return (*sync.Map)(d) }
+
+func (d *debugVulkan) add(handle uintptr) {
 	if build.Debug {
-		d[handle] = klib.TraceString(fmt.Sprintf("VK Resource %x leak", handle))
+		d.asMap().Store(handle, klib.TraceString(fmt.Sprintf("VK Resource %x leak", handle)))
 	}
 }
 
-func (d debugVulkan) remove(handle uintptr) {
+func (d *debugVulkan) remove(handle uintptr) {
 	if build.Debug {
-		delete(d, handle)
+		d.asMap().Delete(handle)
 	}
 }
 
-func (d debugVulkan) print() {
+func (d *debugVulkan) print() {
 	if build.Debug {
-		for _, trace := range d {
-			slog.Info(trace)
+		for _, trace := range d.asMap().Range {
+			slog.Info(trace.(string))
 		}
 	}
 }
