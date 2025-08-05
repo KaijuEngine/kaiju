@@ -96,11 +96,6 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	return m
 }
 
-func (m *Mesh) Destroy(renderer Renderer) {
-	defer tracing.NewRegion("Mesh.Destroy").End()
-	renderer.DestroyMesh(m)
-}
-
 func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
 	defer tracing.NewRegion("Mesh.generateMeshBVH").End()
 	idxLen := len(indexes)

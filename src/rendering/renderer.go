@@ -50,16 +50,13 @@ type Renderer interface {
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
-	TextureWritePixels(texture *Texture, x, y, width, height int, pixels []byte)
+	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
 	Draw(renderPass *RenderPass, drawings []ShaderDraw) bool
 	BlitTargets(passes []*RenderPass)
 	SwapFrame(width, height int32) bool
 	Resize(width, height int)
 	AddPreRun(preRun func())
 	DestroyGroup(group *DrawInstanceGroup)
-	DestroyTexture(texture *Texture)
-	DestroyShader(shader *Shader)
-	DestroyMesh(mesh *Mesh)
 	Destroy()
 	WaitForRender()
 }

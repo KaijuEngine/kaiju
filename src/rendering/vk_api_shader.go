@@ -41,11 +41,17 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"runtime"
 	"strings"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
+
+type ShaderCleanup struct {
+	id       ShaderId
+	renderer Renderer
+}
 
 type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
 
@@ -177,6 +183,12 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 		subShader.DriverData = shader.DriverData
 		shader.AddSubShader("transparent", subShader)
 	}
+	runtime.AddCleanup(shader, func(state ShaderCleanup) {
+		v := state.renderer.(*Vulkan)
+		v.preRuns = append(v.preRuns, func() {
+			state.renderer.(*Vulkan).destroyShaderHandle(state.id)
+		})
+	}, ShaderCleanup{shader.RenderId, vr})
 	return nil
 }
 
@@ -196,32 +208,29 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	}
 }
 
-func (vr *Vulkan) DestroyShader(shader *Shader) {
+func (vr *Vulkan) destroyShaderHandle(id ShaderId) {
 	defer tracing.NewRegion("Vulkan.DestroyShader").End()
 	vk.DeviceWaitIdle(vr.device)
-	vk.DestroyPipeline(vr.device, shader.RenderId.graphicsPipeline, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.graphicsPipeline))
-	vk.DestroyPipelineLayout(vr.device, shader.RenderId.pipelineLayout, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.pipelineLayout))
-	vk.DestroyShaderModule(vr.device, shader.RenderId.vertModule, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.vertModule))
-	vk.DestroyShaderModule(vr.device, shader.RenderId.fragModule, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.fragModule))
-	if shader.RenderId.geomModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.geomModule, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.geomModule))
+	vk.DestroyPipeline(vr.device, id.graphicsPipeline, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.graphicsPipeline))
+	vk.DestroyPipelineLayout(vr.device, id.pipelineLayout, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.pipelineLayout))
+	vk.DestroyShaderModule(vr.device, id.vertModule, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.vertModule))
+	vk.DestroyShaderModule(vr.device, id.fragModule, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.fragModule))
+	if id.geomModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, id.geomModule, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.geomModule))
 	}
-	if shader.RenderId.tescModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.tescModule, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.tescModule))
+	if id.tescModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, id.tescModule, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.tescModule))
 	}
-	if shader.RenderId.teseModule != vk.ShaderModule(vk.NullHandle) {
-		vk.DestroyShaderModule(vr.device, shader.RenderId.teseModule, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.teseModule))
+	if id.teseModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, id.teseModule, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.teseModule))
 	}
-	vk.DestroyDescriptorSetLayout(vr.device, shader.RenderId.descriptorSetLayout, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(shader.RenderId.descriptorSetLayout))
-	for _, ss := range shader.subShaders {
-		vr.DestroyShader(ss)
-	}
+	vk.DestroyDescriptorSetLayout(vr.device, id.descriptorSetLayout, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.descriptorSetLayout))
 }

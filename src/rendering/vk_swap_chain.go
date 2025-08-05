@@ -178,8 +178,8 @@ func (vr *Vulkan) createSwapChain() bool {
 }
 
 func (vr *Vulkan) swapChainCleanup() {
-	vr.textureIdFree(&vr.color)
-	vr.textureIdFree(&vr.depth)
+	vr.color = vr.textureIdFree(vr.color)
+	vr.depth = vr.textureIdFree(vr.depth)
 	for i := uint32(0); i < vr.swapChainFrameBufferCount; i++ {
 		vk.DestroyFramebuffer(vr.device, vr.swapChainFrameBuffers[i], nil)
 		vr.dbg.remove(vk.TypeToUintPtr(vr.swapChainFrameBuffers[i]))

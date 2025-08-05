@@ -106,12 +106,6 @@ func (m *MeshCache) CreatePending() {
 }
 
 func (m *MeshCache) Destroy() {
-	for _, mesh := range m.pendingMeshes {
-		mesh.Destroy(m.renderer)
-	}
 	m.pendingMeshes = m.pendingMeshes[:0]
-	for _, mesh := range m.meshes {
-		mesh.Destroy(m.renderer)
-	}
 	m.meshes = make(map[string]*Mesh)
 }

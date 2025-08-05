@@ -302,7 +302,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 			if !success {
 				const e = "failed to create image view for render pass attachment"
 				for j := range i + 1 {
-					vr.textureIdFree(&p.textures[j].RenderId)
+					p.textures[j].RenderId = vr.textureIdFree(p.textures[j].RenderId)
 				}
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
@@ -312,7 +312,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 			if !success {
 				const e = "failed to create image sampler for render pass attachment"
 				for j := range i + 1 {
-					vr.textureIdFree(&p.textures[j].RenderId)
+					p.textures[j].RenderId = vr.textureIdFree(p.textures[j].RenderId)
 				}
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
@@ -324,7 +324,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 			if !success {
 				const e = "failed to transition image layout for render pass attachment"
 				for j := range i + 1 {
-					vr.textureIdFree(&p.textures[j].RenderId)
+					p.textures[j].RenderId = vr.textureIdFree(p.textures[j].RenderId)
 				}
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
@@ -481,14 +481,14 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
 	p.Buffer = vk.NullFramebuffer
 	for i := range p.textures {
-		vr.textureIdFree(&p.textures[i].RenderId)
-	}
-	for i := range p.textures {
-		vr.DestroyTexture(&p.textures[i])
+		p.textures[i].RenderId = vr.textureIdFree(p.textures[i].RenderId)
 	}
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
-			p.subpasses[i].cmd[j].Destroy(vr)
+			buff := p.subpasses[i].cmd[j].buffer
+			vk.FreeCommandBuffers(vr.device, p.subpasses[i].cmd[j].pool, 1, &buff)
+			vk.DestroyCommandPool(vr.device, p.subpasses[i].cmd[j].pool, nil)
+			vr.dbg.remove(vk.TypeToUintPtr(p.subpasses[i].cmd[j].pool))
 		}
 	}
 	for i := range p.cmd {

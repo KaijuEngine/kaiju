@@ -41,12 +41,19 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"runtime"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 )
 
+type TextureCleanup struct {
+	id       TextureId
+	renderer Renderer
+}
+
 func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
+	textureId.Layout = vk.ImageLayoutUndefined
 	imageInfo := vk.ImageCreateInfo{}
 	imageInfo.SType = vk.StructureTypeImageCreateInfo
 	imageInfo.ImageType = vk.ImageType2d
@@ -101,6 +108,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 
 func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	defer tracing.NewRegion("Vulkan.CreateTexture").End()
+	width, height := max(data.Width, texture.Width), max(data.Height, texture.Height)
 	format := vk.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
@@ -205,7 +213,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	props := vk.MemoryPropertyDeviceLocalBit
 	mip := texture.MipLevels
 	if mip <= 0 {
-		w, h := float32(data.Width), float32(data.Height)
+		w, h := float32(width), float32(height)
 		mip = int(matrix.Floor(matrix.Log2(matrix.Max(w, h)))) + 1
 	}
 	// TODO:  This should be the channels in the image rather than just 4
@@ -223,28 +231,34 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1
-	vr.CreateImage(uint32(data.Width), uint32(data.Height), uint32(mip),
+	vr.CreateImage(uint32(width), uint32(height), uint32(mip),
 		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
 		vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
 	texture.RenderId.MipLevels = uint32(mip)
 	texture.RenderId.Format = format
-	texture.RenderId.Width = data.Width
-	texture.RenderId.Height = data.Height
+	texture.RenderId.Width = width
+	texture.RenderId.Height = height
 	texture.RenderId.LayerCount = layerCount
 	vr.transitionImageLayout(&texture.RenderId,
 		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
 		texture.RenderId.Access, nil)
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
-		uint32(data.Width), uint32(data.Height))
+		uint32(width), uint32(height))
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
-	vr.generateMipmaps(texture.RenderId.Image, format,
-		uint32(data.Width), uint32(data.Height), uint32(mip), filter)
+	vr.generateMipmaps(&texture.RenderId, format,
+		uint32(width), uint32(height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
 		vk.ImageAspectFlags(vk.ImageAspectColorBit))
 	vr.createTextureSampler(&texture.RenderId.Sampler, uint32(mip), filter)
+	runtime.AddCleanup(texture, func(state TextureCleanup) {
+		v := state.renderer.(*Vulkan)
+		v.preRuns = append(v.preRuns, func() {
+			state.renderer.(*Vulkan).destroyTextureHandle(state.id)
+		})
+	}, TextureCleanup{texture.RenderId, vr})
 }
 
 func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId) {
@@ -277,16 +291,15 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, requests []GPUImageWriteR
 		}
 	}
 	if state == layoutStateChanged {
-	vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
+		vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
+			vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
 	}
 }
 
-func (vr *Vulkan) DestroyTexture(texture *Texture) {
-	defer tracing.NewRegion("Vulkan.DestroyTexture").End()
+func (vr *Vulkan) destroyTextureHandle(id TextureId) {
+	defer tracing.NewRegion("Vulkan.destroyTextureHandle").End()
 	vk.DeviceWaitIdle(vr.device)
-	vr.textureIdFree(&texture.RenderId)
-	texture.RenderId = TextureId{}
+	vr.textureIdFree(id)
 }
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {

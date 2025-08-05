@@ -40,7 +40,13 @@ package rendering
 import (
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
+	"runtime"
 )
+
+type MeshCleanup struct {
+	id       MeshId
+	renderer Renderer
+}
 
 func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
 	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
@@ -55,19 +61,24 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id.vertexCount = vNum
 	vr.createVertexBuffer(verts, &id.vertexBuffer, &id.vertexBufferMemory)
 	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
+	runtime.AddCleanup(mesh, func(state MeshCleanup) {
+		v := state.renderer.(*Vulkan)
+		v.preRuns = append(v.preRuns, func() {
+			state.renderer.(*Vulkan).destroyMeshHandle(state.id)
+		})
+	}, MeshCleanup{mesh.MeshId, vr})
 }
 
-func (vr *Vulkan) DestroyMesh(mesh *Mesh) {
+func (vr *Vulkan) destroyMeshHandle(handle MeshId) MeshId {
 	defer tracing.NewRegion("Vulkan.DestroyMesh").End()
 	vk.DeviceWaitIdle(vr.device)
-	id := &mesh.MeshId
-	vk.DestroyBuffer(vr.device, id.indexBuffer, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.indexBuffer))
-	vk.FreeMemory(vr.device, id.indexBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.indexBufferMemory))
-	vk.DestroyBuffer(vr.device, id.vertexBuffer, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.vertexBuffer))
-	vk.FreeMemory(vr.device, id.vertexBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(id.vertexBufferMemory))
-	mesh.MeshId = MeshId{}
+	vk.DestroyBuffer(vr.device, handle.indexBuffer, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(handle.indexBuffer))
+	vk.FreeMemory(vr.device, handle.indexBufferMemory, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(handle.indexBufferMemory))
+	vk.DestroyBuffer(vr.device, handle.vertexBuffer, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(handle.vertexBuffer))
+	vk.FreeMemory(vr.device, handle.vertexBufferMemory, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(handle.vertexBufferMemory))
+	return MeshId{}
 }

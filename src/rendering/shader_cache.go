@@ -89,12 +89,6 @@ func (s *ShaderCache) CreatePending() {
 
 func (s *ShaderCache) Destroy() {
 	defer tracing.NewRegion("ShaderCache.Destroy").End()
-	for _, shader := range s.pendingShaders {
-		shader.Destroy(s.renderer)
-	}
 	s.pendingShaders = s.pendingShaders[:0]
-	for _, shader := range s.shaders {
-		shader.Destroy(s.renderer)
-	}
 	s.shaders = make(map[string]*Shader)
 }

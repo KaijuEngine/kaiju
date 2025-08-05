@@ -98,8 +98,8 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 		blit.DstSubresource.MipLevel = i
 		blit.DstSubresource.BaseArrayLayer = 0
 		blit.DstSubresource.LayerCount = 1
-		vk.CmdBlitImage(cmd.buffer, image, vk.ImageLayoutTransferSrcOptimal,
-			image, vk.ImageLayoutTransferDstOptimal, 1, &blit, filter)
+		vk.CmdBlitImage(cmd.buffer, texId.Image, vk.ImageLayoutTransferSrcOptimal,
+			texId.Image, vk.ImageLayoutTransferDstOptimal, 1, &blit, filter)
 		barrier.OldLayout = vk.ImageLayoutTransferSrcOptimal
 		barrier.NewLayout = vk.ImageLayoutShaderReadOnlyOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vk.AccessTransferReadBit)
@@ -120,6 +120,7 @@ func (vr *Vulkan) generateMipmaps(image vk.Image, imageFormat vk.Format, texWidt
 	barrier.DstAccessMask = vk.AccessFlags(vk.AccessShaderReadBit)
 	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vk.PipelineStageTransferBit),
 		vk.PipelineStageFlags(vk.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
+	texId.Layout = barrier.NewLayout
 	return true
 }
 
@@ -372,7 +373,7 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWr
 	return nil
 }
 
-func (vr *Vulkan) textureIdFree(id *TextureId) {
+func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
 	if id.View != vk.NullImageView {
 		vk.DestroyImageView(vr.device, id.View, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(id.View))
@@ -393,6 +394,7 @@ func (vr *Vulkan) textureIdFree(id *TextureId) {
 		vr.dbg.remove(vk.TypeToUintPtr(id.Sampler))
 		id.Sampler = vk.NullSampler
 	}
+	return id
 }
 
 func (vr *Vulkan) FormatIsTileable(format vk.Format, tiling vk.ImageTiling) bool {

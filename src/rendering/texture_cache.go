@@ -93,14 +93,9 @@ func (t *TextureCache) CreatePending() {
 }
 
 func (t *TextureCache) Destroy() {
-	for _, texture := range t.pendingTextures {
-		texture.Destroy(t.renderer)
-	}
+	defer tracing.NewRegion("TextureCache.Destroy").End()
 	t.pendingTextures = t.pendingTextures[:0]
 	for i := range t.textures {
-		for _, texture := range t.textures[i] {
-			texture.Destroy(t.renderer)
-		}
 		t.textures[i] = make(map[string]*Texture)
 	}
 }

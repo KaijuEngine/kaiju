@@ -219,7 +219,3 @@ func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database
 		renderer.CreateShader(ss, assetDatabase)
 	}
 }
-
-func (s *Shader) Destroy(renderer Renderer) {
-	renderer.DestroyShader(s)
-}
