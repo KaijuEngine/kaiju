@@ -61,3 +61,10 @@ func (e *ErrorList) AddAny(err error) {
 		e.Errors = append(e.Errors, err)
 	}
 }
+
+func Check(outError *error, newError error) bool {
+	*outError = newError
+	return newError != nil
+}
+
+func CheckAll(res bool) {}

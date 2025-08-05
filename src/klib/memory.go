@@ -49,35 +49,43 @@ type Serializable interface {
 	Deserialize(stream io.Reader)
 }
 
-func BinaryWrite(w io.Writer, data any) {
-	binary.Write(w, binary.LittleEndian, data)
+func BinaryWrite(w io.Writer, data any) error {
+	return binary.Write(w, binary.LittleEndian, data)
 }
 
-func BinaryWriteSliceLen[T any](w io.Writer, data []T) {
-	BinaryWrite(w, int32(len(data)))
+func BinaryWriteSliceLen[T any](w io.Writer, data []T) error {
+	return BinaryWrite(w, int32(len(data)))
 }
 
-func BinaryWriteSlice[T any](w io.Writer, data []T) {
-	BinaryWriteSliceLen[T](w, data)
-	if len(data) > 0 {
-		BinaryWrite(w, data)
+func BinaryWriteSlice[T any](w io.Writer, data []T) error {
+	err := BinaryWriteSliceLen[T](w, data)
+	if err == nil && len(data) > 0 {
+		return BinaryWrite(w, data)
 	}
+	return err
 }
 
-func BinaryWriteMapLen[K comparable, V any](w io.Writer, data map[K]V) {
-	BinaryWrite(w, int32(len(data)))
+func BinaryWriteMapLen[K comparable, V any](w io.Writer, data map[K]V) error {
+	return BinaryWrite(w, int32(len(data)))
 }
 
-func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V) {
-	BinaryWriteMapLen[K](w, data)
+func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V) error {
+	if err := BinaryWriteMapLen(w, data); err != nil {
+		return err
+	}
 	for k, v := range data {
-		BinaryWrite(w, k)
-		BinaryWrite(w, v)
+		if err := BinaryWrite(w, k); err != nil {
+			return err
+		}
+		if err := BinaryWrite(w, v); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func BinaryRead(r io.Reader, data any) {
-	binary.Read(r, binary.LittleEndian, data)
+func BinaryRead(r io.Reader, data any) error {
+	return binary.Read(r, binary.LittleEndian, data)
 }
 
 func BinaryReadLen(r io.Reader) (int32, error) {
@@ -92,37 +100,43 @@ func BinaryReadVar[T any](r io.Reader) (T, error) {
 
 func BinaryReadVarSlice[T any](r io.Reader) ([]T, error) {
 	var length int32
-	binary.Read(r, binary.LittleEndian, &length)
+	if err := binary.Read(r, binary.LittleEndian, &length); err != nil {
+		return nil, err
+	}
 	if length < 0 {
 		return nil, errors.New("negative length read")
 	}
 	if length > 0 {
 		data := make([]T, length)
-		binary.Read(r, binary.LittleEndian, &data)
-		return data, nil
+		err := binary.Read(r, binary.LittleEndian, &data)
+		return data, err
 	} else {
 		return []T{}, nil
 	}
 }
 
-func BinaryWriteString(w io.Writer, str string) {
+func BinaryWriteString(w io.Writer, str string) error {
 	length := int32(len(str))
-	binary.Write(w, binary.LittleEndian, length)
-	if length > 0 {
-		binary.Write(w, binary.LittleEndian, []byte(str))
+	err := binary.Write(w, binary.LittleEndian, length)
+	if err != nil && length > 0 {
+		return binary.Write(w, binary.LittleEndian, []byte(str))
 	}
+	return err
 }
 
 func BinaryReadString(r io.Reader) (string, error) {
 	var length int32
-	binary.Read(r, binary.LittleEndian, &length)
+	err := binary.Read(r, binary.LittleEndian, &length)
+	if err != nil {
+		return "", err
+	}
 	if length < 0 {
 		return "", errors.New("negative length read")
 	}
 	if length > 0 {
 		buff := make([]byte, length)
-		binary.Read(r, binary.LittleEndian, &buff)
-		return string(buff), nil
+		err := binary.Read(r, binary.LittleEndian, &buff)
+		return string(buff), err
 	} else {
 		return "", nil
 	}
