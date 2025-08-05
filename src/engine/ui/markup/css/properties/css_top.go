@@ -41,6 +41,7 @@ import (
 	"errors"
 	"kaiju/engine"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/functions"
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
@@ -73,6 +74,17 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 					pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 					l.SetInnerOffsetTop(pLayout.PixelSize().Y() * -val)
 				})
+			} else if values[0].IsFunction() {
+				if values[0].Str == "calc" {
+					panel.Base().Layout().AddFunction(func(l *ui.Layout) {
+						val := values[0]
+						val.Args = append(val.Args, "height")
+						res, _ := functions.Calc{}.Process(panel, elm, val)
+						top := helpers.NumFromLength(res, host.Window)
+						inOff := l.InnerOffset()
+						l.SetInnerOffset(inOff.Left(), -top, inOff.Right(), inOff.Bottom())
+					})
+				}
 			} else {
 				if layout.Anchor() <= ui.AnchorTopRight {
 					val = -val

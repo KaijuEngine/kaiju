@@ -78,11 +78,12 @@ func (f Calc) Process(panel *ui.Panel, elm *document.Element, value rules.Proper
 		default:
 			v := helpers.NumFromLength(value.Args[i], panel.Base().Host().Window)
 			if strings.HasSuffix(value.Args[i], "%") {
-				if prop == "width" {
+				switch prop {
+				case "width":
 					pl := elm.Parent.Value().UI.Layout()
 					p := pl.Padding()
 					v *= pl.PixelSize().Width() - p.X() - p.Z()
-				} else if prop == "height" {
+				case "height":
 					pl := elm.Parent.Value().UI.Layout()
 					p := pl.Padding()
 					v *= pl.PixelSize().Height() - p.Y() - p.W()
