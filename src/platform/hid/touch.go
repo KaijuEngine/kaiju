@@ -37,7 +37,10 @@
 
 package hid
 
-import "slices"
+import (
+	"kaiju/klib"
+	"slices"
+)
 
 const (
 	MaxTouchPointersAvailable = 10
@@ -191,7 +194,7 @@ func (t *Touch) EndUpdate() {
 		case TouchActionCancel:
 			t.Pool[i].State = TouchActionNone
 			t.Pool[i].Id = -1
-			t.Pointers = t.Pointers[:0]
+			t.Pointers = klib.WipeSlice(t.Pointers)
 		}
 	}
 }

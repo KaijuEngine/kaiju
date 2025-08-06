@@ -47,6 +47,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"math"
+	"runtime"
 	"sort"
 	"unsafe"
 
@@ -67,7 +68,6 @@ type vkSwapChainSupportDetails struct {
 }
 
 type Vulkan struct {
-	defaultTexture             *Texture
 	swapImages                 []TextureId
 	caches                     RenderCaches
 	window                     RenderingContainer
@@ -305,13 +305,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 
 func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	defer tracing.NewRegion("Vulkan.Initialize").End()
-	var err error
-	vr.defaultTexture, err = caches.TextureCache().Texture(
-		assets.TextureSquare, TextureFilterLinear)
-	if err != nil {
-		slog.Error(err.Error())
-		return err
-	}
 	vr.caches = caches
 	caches.TextureCache().CreatePending()
 	return nil
@@ -433,7 +426,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, lig
 	for _, r := range vr.preRuns {
 		r()
 	}
-	vr.preRuns = vr.preRuns[:0]
+	vr.preRuns = klib.WipeSlice(vr.preRuns)
 	return true
 }
 
@@ -505,6 +498,7 @@ func (vr *Vulkan) Destroy() {
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
+	runtime.GC()
 	if vr.device != vk.NullDevice {
 		for i := range vr.combineCmds {
 			vr.combineCmds[i].Destroy(vr)
@@ -520,7 +514,6 @@ func (vr *Vulkan) Destroy() {
 				vr.dbg.remove(vk.TypeToUintPtr(elm.pool))
 			}
 		})
-		vr.defaultTexture = nil
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))

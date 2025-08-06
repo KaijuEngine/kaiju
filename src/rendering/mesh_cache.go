@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
 )
@@ -102,10 +103,10 @@ func (m *MeshCache) CreatePending() {
 	for _, mesh := range m.pendingMeshes {
 		mesh.DelayedCreate(m.renderer)
 	}
-	m.pendingMeshes = m.pendingMeshes[:0]
+	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
 }
 
 func (m *MeshCache) Destroy() {
-	m.pendingMeshes = m.pendingMeshes[:0]
+	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
 	m.meshes = make(map[string]*Mesh)
 }

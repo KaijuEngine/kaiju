@@ -39,6 +39,7 @@ package ui
 
 import (
 	"kaiju/engine"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"sort"
@@ -191,7 +192,7 @@ func (group *Group) lateUpdate() {
 				}
 			}
 		}
-		group.requests = group.requests[:0]
+		group.requests = klib.WipeSlice(group.requests)
 		group.isProcessing = false
 	}
 	switch group.hadRequests {

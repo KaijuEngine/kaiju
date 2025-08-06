@@ -86,7 +86,7 @@ func (l *Listing) CloseAll() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	cpy := slices.Clone(l.windows)
-	l.windows = l.windows[:0]
+	l.windows = make([]EditorWindow, 0)
 	for _, win := range cpy {
 		saveLayout(win, true)
 		win.Container().Host.Close()

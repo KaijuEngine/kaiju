@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
 )
@@ -89,12 +90,12 @@ func (t *TextureCache) CreatePending() {
 	for _, texture := range t.pendingTextures {
 		texture.DelayedCreate(t.renderer)
 	}
-	t.pendingTextures = t.pendingTextures[:0]
+	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 }
 
 func (t *TextureCache) Destroy() {
 	defer tracing.NewRegion("TextureCache.Destroy").End()
-	t.pendingTextures = t.pendingTextures[:0]
+	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 	for i := range t.textures {
 		t.textures[i] = make(map[string]*Texture)
 	}

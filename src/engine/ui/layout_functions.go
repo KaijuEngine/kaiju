@@ -37,6 +37,8 @@
 
 package ui
 
+import "kaiju/klib"
+
 type LayoutFuncId = int64
 
 type layoutFuncEntry struct {
@@ -56,7 +58,7 @@ func NewEvent() LayoutFunctions {
 	}
 }
 
-func (lf *LayoutFunctions) Clear()        { lf.calls = lf.calls[:0] }
+func (lf *LayoutFunctions) Clear()        { lf.calls = klib.WipeSlice(lf.calls) }
 func (lf *LayoutFunctions) IsEmpty() bool { return len(lf.calls) == 0 }
 
 func (lf *LayoutFunctions) Add(call func(layout *Layout)) LayoutFuncId {

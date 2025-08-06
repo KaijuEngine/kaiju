@@ -37,6 +37,8 @@
 
 package memento
 
+import "kaiju/klib"
+
 type History struct {
 	undoStack []Memento
 	position  int
@@ -86,6 +88,6 @@ func (h *History) Clear() {
 	for i := 0; i < len(h.undoStack); i++ {
 		h.undoStack[i].Exit()
 	}
-	h.undoStack = h.undoStack[:0]
+	h.undoStack = klib.RemakeSlice(h.undoStack)
 	h.position = 0
 }

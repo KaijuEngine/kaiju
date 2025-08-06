@@ -38,6 +38,7 @@
 package concurrent
 
 import (
+	"kaiju/klib"
 	"sync"
 )
 
@@ -61,7 +62,7 @@ func (q *MessageQueue[T]) Enqueue(msg T) {
 
 func (q *MessageQueue[T]) Flush() []T {
 	q.mutex.Lock()
-	q.flushBuffer = q.flushBuffer[:0]
+	q.flushBuffer = klib.WipeSlice(q.flushBuffer)
 	q.messages, q.flushBuffer = q.flushBuffer, q.messages
 	q.mutex.Unlock()
 	return q.flushBuffer

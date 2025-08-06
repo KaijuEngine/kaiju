@@ -354,6 +354,6 @@ func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 		return
 	}
 	d.Clear(renderer)
-	d.Instances = d.Instances[:0]
+	d.Instances = klib.WipeSlice(d.Instances)
 	renderer.DestroyGroup(d)
 }

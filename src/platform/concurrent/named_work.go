@@ -38,6 +38,7 @@
 package concurrent
 
 import (
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
 )
@@ -67,7 +68,7 @@ func (w *WorkGroup) Execute(name string, threads *Threads) {
 			})
 		}
 		wg.Wait()
-		list = list[:0]
+		list = klib.WipeSlice(list[:0])
 		w.work.Store(name, list)
 	}
 }

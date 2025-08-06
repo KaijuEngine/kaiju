@@ -205,7 +205,7 @@ func Clear() {
 		t := &tweens[i]
 		t.stop(true, false)
 	}
-	tweens = tweens[:0]
+	tweens = klib.WipeSlice(tweens)
 }
 
 func Stop(val *float32, jumpToEnd, skipCallback bool) {

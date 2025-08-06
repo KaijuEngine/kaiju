@@ -39,6 +39,7 @@ package rendering
 
 import (
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
 )
@@ -84,11 +85,11 @@ func (s *ShaderCache) CreatePending() {
 	for _, shader := range s.pendingShaders {
 		shader.DelayedCreate(s.renderer, s.assetDatabase)
 	}
-	s.pendingShaders = s.pendingShaders[:0]
+	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
 }
 
 func (s *ShaderCache) Destroy() {
 	defer tracing.NewRegion("ShaderCache.Destroy").End()
-	s.pendingShaders = s.pendingShaders[:0]
+	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
 	s.shaders = make(map[string]*Shader)
 }

@@ -113,6 +113,7 @@ func For(host *engine.Host) *Console {
 		c = initialize(host)
 		host.DoneCreatingEditorEntities()
 		consoles[host] = c
+		host.OnClose.Add(func() { delete(consoles, host) })
 	}
 	return c
 }
@@ -142,8 +143,6 @@ func initialize(host *engine.Host) *Console {
 	console.AddCommand("clear", "Clears the console text", console.clear)
 	return console
 }
-
-func UnlinkHost(host *engine.Host) { delete(consoles, host) }
 
 func (c *Console) Host() *engine.Host                   { return c.host }
 func (c *Console) SetData(key string, data ConsoleData) { c.data[key] = data }

@@ -39,14 +39,15 @@ package host_container
 
 import (
 	"kaiju/engine"
-	"kaiju/engine/systems/console"
 	"kaiju/engine/systems/logging"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+	"weak"
 )
 
 type Container struct {
@@ -94,7 +95,6 @@ func (c *Container) Run(width, height, x, y int) error {
 		}
 		r.End()
 	}
-	console.UnlinkHost(c.Host)
 	c.Host.Teardown()
 	runtime.UnlockOSThread()
 	return nil
@@ -108,13 +108,18 @@ func New(name string, logStream *logging.LogStream) *Container {
 		runFunctions: []func(){},
 		PrepLock:     make(chan struct{}),
 	}
+	cw := weak.Make(c)
 	c.Host.Updater.AddUpdate(func(deltaTime float64) {
 		defer tracing.NewRegion("engine.Host.runFunctions").End()
-		if len(c.runFunctions) > 0 {
-			for _, f := range c.runFunctions {
+		cc := cw.Value()
+		if cc == nil {
+			return
+		}
+		if len(cc.runFunctions) > 0 {
+			for _, f := range cc.runFunctions {
 				f()
 			}
-			c.runFunctions = c.runFunctions[:0]
+			cc.runFunctions = klib.WipeSlice(cc.runFunctions)
 		}
 	})
 	return c

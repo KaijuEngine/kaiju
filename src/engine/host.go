@@ -54,6 +54,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"math"
+	"runtime"
 	"slices"
 	"time"
 )
@@ -325,7 +326,7 @@ func (host *Host) Lights() []rendering.Light {
 
 // ClearLights clears out all of the lights that the host is tracking
 func (host *Host) ClearLights() {
-	host.lights = host.lights[:0]
+	host.lights = klib.WipeSlice(host.lights)
 }
 
 // FindEntity will search for an entity contained in this host by its id. If the
@@ -476,6 +477,14 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 func (host *Host) Teardown() {
 	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
+	host.OnClose.Clear()
+	for i := range host.entities {
+		host.entities[i].Destroy()
+		for !host.entities[i].TickCleanup() {
+		}
+	}
+	host.entities = make([]*Entity, 0)
+	host.editorEntities.close()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
@@ -490,6 +499,7 @@ func (host *Host) Teardown() {
 	host.Window.Destroy()
 	host.threads.Stop()
 	host.CloseSignal <- struct{}{}
+	runtime.GC()
 }
 
 // WaitForFrameRate will block until the desired frame rate limit is reached

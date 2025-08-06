@@ -40,6 +40,7 @@ package ui
 import (
 	"kaiju/engine"
 	"kaiju/engine/pooling"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
 )
@@ -94,7 +95,7 @@ func (man *Manager) update(deltaTime float64) {
 		man.hovered = make([][]*UI, tCount)
 	} else {
 		for i := range len(man.hovered) {
-			man.hovered[i] = man.hovered[i][:0]
+			man.hovered[i] = klib.WipeSlice(man.hovered[i])
 		}
 	}
 	for i := range all {
@@ -152,7 +153,6 @@ func (man *Manager) Clear() {
 func (man *Manager) Add() *UI {
 	defer tracing.NewRegion("ui.Manager.Add").End()
 	ui, poolId, elmId := man.pools.Add()
-	*ui = UI{}
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
@@ -163,7 +163,10 @@ func (man *Manager) Add() *UI {
 
 func (man *Manager) Remove(ui *UI) {
 	defer tracing.NewRegion("ui.Manager.Remove").End()
-	man.pools.Remove(ui.poolId, ui.id)
+	id := ui.id
+	pid := ui.poolId
+	*ui = UI{}
+	man.pools.Remove(pid, id)
 }
 
 func (man *Manager) Reserve(additionalElements int) {

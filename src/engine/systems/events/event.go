@@ -37,7 +37,10 @@
 
 package events
 
-import "kaiju/platform/profiler/tracing"
+import (
+	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
+)
 
 type Id = int64
 
@@ -61,7 +64,7 @@ func (e *Event) Add(call func()) Id {
 }
 
 func (e *Event) Clear() {
-	e.calls = e.calls[:0]
+	e.calls = klib.WipeSlice(e.calls)
 	e.nextId = 0
 }
 

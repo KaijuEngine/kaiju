@@ -38,6 +38,7 @@
 package rendering
 
 import (
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"sort"
@@ -161,7 +162,7 @@ func (d *Drawings) PreparePending() {
 			//d.backDraws = append(d.backDraws, lightTransformDrawingToCubeDepth(drawing))
 		}
 	}
-	d.backDraws = d.backDraws[:0]
+	d.backDraws = klib.WipeSlice(d.backDraws)
 }
 
 func (d *Drawings) AddDrawing(drawing Drawing) {
@@ -210,7 +211,7 @@ func (d *Drawings) Destroy(renderer Renderer) {
 			d.renderPassGroups[i].draws[j].Destroy(renderer)
 		}
 	}
-	d.renderPassGroups = d.renderPassGroups[:0]
+	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
 }
 
 func (d *Drawings) Clear(renderer Renderer) {

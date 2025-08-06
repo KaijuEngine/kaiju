@@ -85,6 +85,15 @@ func (e editorEntities) resetDirty() {
 	}
 }
 
+func (e editorEntities) close() {
+	for i := range e {
+		e[i].Destroy()
+		for !e[i].TickCleanup() {
+		}
+	}
+	e = make(editorEntities, 0)
+}
+
 func (host *Host) addEntity(entity *Entity) {
 	if host.inEditorEntity > 0 {
 		host.editorEntities = append(host.editorEntities, entity)

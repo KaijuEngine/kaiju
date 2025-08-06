@@ -37,7 +37,10 @@
 
 package rendering
 
-import "sort"
+import (
+	"kaiju/klib"
+	"sort"
+)
 
 type ShaderDraw struct {
 	material       *Material
@@ -80,6 +83,7 @@ func (s *ShaderDraw) Destroy(renderer Renderer) {
 	for i := range s.instanceGroups {
 		s.instanceGroups[i].Destroy(renderer)
 	}
+	s.instanceGroups = klib.WipeSlice(s.instanceGroups)
 }
 
 func (s *ShaderDraw) Clear(renderer Renderer) {

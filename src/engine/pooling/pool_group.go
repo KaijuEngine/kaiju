@@ -69,7 +69,7 @@ func (p *PoolGroup[T]) Clear() {
 		p.pools[i].availableLen = ElementsInPool
 		p.pools[i].takenLen = 0
 	}
-	// TODO:  Should the pools be cleared [:0] instead?
+	// TODO:  Should the pools be cleared instead?
 }
 
 func (p *PoolGroup[T]) Add() (elm *T, poolId PoolGroupId, elmId PoolIndex) {

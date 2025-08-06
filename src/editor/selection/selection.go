@@ -45,6 +45,7 @@ import (
 	"kaiju/engine/collision"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/systems/visual2d/sprite"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/rendering"
@@ -113,7 +114,7 @@ func (s *Selection) clearInternal() {
 		}
 	}
 	clear(s.shaderDatas)
-	s.entities = s.entities[:0]
+	s.entities = klib.WipeSlice(s.entities)
 	s.Changed.Execute()
 }
 

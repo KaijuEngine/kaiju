@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
@@ -169,8 +170,8 @@ func (label *Label) clearDrawings() {
 	for i := range ld.runeShaderData {
 		ld.runeShaderData[i].Destroy()
 	}
-	ld.runeShaderData = ld.runeShaderData[:0]
-	ld.runeDrawings = ld.runeDrawings[:0]
+	ld.runeShaderData = klib.WipeSlice(ld.runeShaderData)
+	ld.runeDrawings = klib.WipeSlice(ld.runeDrawings)
 }
 
 func (label *Label) labelPostLayoutUpdate() {

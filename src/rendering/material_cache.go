@@ -40,6 +40,7 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
@@ -116,7 +117,7 @@ func (m *MaterialCache) Destroy() {
 	for _, mat := range m.pendingMaterials {
 		mat.Destroy(m.renderer)
 	}
-	m.pendingMaterials = m.pendingMaterials[:0]
+	m.pendingMaterials = klib.WipeSlice(m.pendingMaterials)
 	for _, mat := range m.materials {
 		mat.Destroy(m.renderer)
 	}

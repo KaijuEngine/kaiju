@@ -38,6 +38,7 @@
 package engine
 
 import (
+	"kaiju/klib"
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 )
@@ -139,8 +140,8 @@ func (u *Updater) Destroy() {
 	close(u.pending)
 	close(u.complete)
 	clear(u.updates)
-	u.backAdd = u.backAdd[:0]
-	u.backRemove = u.backRemove[:0]
+	u.backAdd = make([]engineUpdate, 0)
+	u.backRemove = make([]int, 0)
 }
 
 func (u *Updater) inlineUpdate(deltaTime float64) {
@@ -163,12 +164,12 @@ func (u *Updater) addInternal() {
 	for _, update := range u.backAdd {
 		u.updates[update.id] = update
 	}
-	u.backAdd = u.backAdd[:0]
+	u.backAdd = klib.WipeSlice(u.backAdd)
 }
 
 func (u *Updater) removeInternal() {
 	for _, id := range u.backRemove {
 		delete(u.updates, id)
 	}
-	u.backRemove = u.backRemove[:0]
+	u.backRemove = klib.WipeSlice(u.backRemove)
 }

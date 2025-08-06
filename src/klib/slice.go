@@ -162,3 +162,15 @@ func SlicesRemoveElement[S comparable](s []S, e S) []S {
 	}
 	return s
 }
+
+// WipeSlice will clear out the slice before returning [:0]. The purpose for
+// this is that if there are pointers held within the slice, they hold their
+// references for as long as they are within the capacity of the slice. Due to
+// this, pointers are not collected by the GC unless actually wiped out from
+// the slice.
+func WipeSlice[S any](s []S) []S {
+	clear(s)
+	return s[:0]
+}
+
+func RemakeSlice[S any](s []S) []S { return make([]S, 0, len(s)) }

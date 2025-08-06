@@ -48,6 +48,7 @@ func newEditorEntities() editorEntities {
 func (e editorEntities) tickCleanup()          {}
 func (e editorEntities) resetDirty()           {}
 func (e editorEntities) remove(entity *Entity) {}
+func (e editorEntities) close()                {}
 
 func (e editorEntities) contains(entity *Entity) bool { return false }
 
