@@ -41,13 +41,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"kaiju/engine"
-	"kaiju/platform/filesystem"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"os"
 	"path/filepath"
 	"strings"
@@ -82,7 +82,7 @@ func (p *Preview) filesChanged() bool {
 func (p *Preview) pullStyles() {
 	p.styles = p.styles[:0]
 	for i := range p.doc.HeadElements {
-		if p.doc.HeadElements[i].Data() == "link" {
+		if p.doc.HeadElements[i].Data == "link" {
 			if p.doc.HeadElements[i].Attribute("rel") == "stylesheet" {
 				cssPath := p.doc.HeadElements[i].Attribute("href")
 				p.styles = append(p.styles, linkFile(cssPath))

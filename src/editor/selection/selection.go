@@ -38,17 +38,16 @@
 package selection
 
 import (
+	"kaiju/editor/memento"
+	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/platform/hid"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/systems/visual2d/sprite"
+	"kaiju/matrix"
+	"kaiju/platform/hid"
+	"kaiju/rendering"
 	"log/slog"
 	"slices"
 )
@@ -71,10 +70,9 @@ type Selection struct {
 func (s *Selection) isBoxDrag() bool { return s.box.Entity.IsActive() }
 
 func New(host *engine.Host, history *memento.History) Selection {
-	tex := klib.MustReturn(host.TextureCache().Texture(
-		assets.TextureSquare, rendering.TextureFilterLinear))
 	host.CreatingEditorEntities()
-	b := sprite.NewSprite(0, 0, 0, 0, host, tex, matrix.Color{0.7, 0.7, 0.7, 0.5})
+	b := &sprite.Sprite{}
+	b.Init(0, 0, 0, 0, host, assets.TextureSquare, matrix.Color{0.7, 0.7, 0.7, 0.5})
 	host.DoneCreatingEditorEntities()
 	b.Deactivate()
 	return Selection{
@@ -101,7 +99,7 @@ func (s *Selection) Contains(e *engine.Entity) bool {
 func (s *Selection) IsEmpty() bool { return len(s.entities) == 0 }
 
 func (s *Selection) deactivateBox() {
-	s.box.Resize(0, 0)
+	s.box.SetSize(0, 0)
 	s.box.Deactivate()
 }
 
@@ -278,7 +276,7 @@ func (s *Selection) boxDrag(host *engine.Host) {
 	w := box.Right() - box.Left()
 	h := box.Top() - box.Bottom()
 	s.box.SetPosition(box.Left()+w*0.5, box.Bottom()+h*0.5)
-	s.box.Resize(w, h)
+	s.box.SetSize(w, h)
 }
 
 func (s *Selection) clickSelect(host *engine.Host) {

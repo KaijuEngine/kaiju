@@ -159,6 +159,14 @@ func (r *Result) Extract(names ...string) Result {
 	return res
 }
 
+func (r *Result) Textures() []string {
+	out := []string{}
+	for i := range r.Meshes {
+		out = append(out, r.Meshes[i].Textures...)
+	}
+	return out
+}
+
 func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 	rad := matrix.Float(0)
 	// TODO:  Take scale into consideration
