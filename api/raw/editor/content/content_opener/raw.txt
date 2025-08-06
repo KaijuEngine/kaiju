@@ -1,0 +1,94 @@
+package content_opener // import "."
+
+
+VARIABLES
+
+var (
+	ErrNoOpener = errors.New("no opener found")
+)
+
+FUNCTIONS
+
+func EditTextFile(file string) error
+func IsATextFile(file string) bool
+
+TYPES
+
+type ContentOpener interface {
+	Handles(adi asset_info.AssetDatabaseInfo) bool
+	Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+}
+
+type GlbOpener struct{}
+
+func (o GlbOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o GlbOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type GltfOpener struct{}
+
+func (o GltfOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o GltfOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type HTMLOpener struct{}
+
+func (o HTMLOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o HTMLOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type ImageOpener struct{}
+
+func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type MaterialOpener struct{}
+
+func (o MaterialOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o MaterialOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type ObjOpener struct{}
+
+func (o ObjOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ObjOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type Opener struct {
+	// Has unexported fields.
+}
+
+func New(importer *asset_importer.ImportRegistry,
+	container *host_container.Container, history *memento.History) Opener
+
+func (o *Opener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+func (o *Opener) OpenPath(path string, ed editor_interface.Editor) error
+
+func (o *Opener) Register(opener ContentOpener)
+
+type RenderPassOpener struct{}
+
+func (o RenderPassOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o RenderPassOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type ShaderOpener struct{}
+
+func (o ShaderOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ShaderOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type ShaderPipelineOpener struct{}
+
+func (o ShaderPipelineOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o ShaderPipelineOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+
+type StageOpener struct{}
+
+func (o StageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool
+
+func (o StageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error
+

@@ -1,0 +1,16 @@
+package debug // import "."
+
+
+VARIABLES
+
+var NotImplementedError = errors.New("not implemented")
+
+FUNCTIONS
+
+func Assert(res bool, msg string)
+func Ensure(res bool)
+func EnsureMsg(res bool, msg string)
+func EnsureNotError(err error)
+func Halt(msg string)
+func Log(msg string, args ...any)
+func ThrowNotImplemented(todo string)

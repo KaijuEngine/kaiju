@@ -1,0 +1,28 @@
+package codegen // import "."
+
+
+FUNCTIONS
+
+func RegisterType(t any)
+func RegisterTypeName(name string, t any)
+
+TYPES
+
+type GeneratedType struct {
+	Pkg     string
+	PkgPath string
+	Name    string
+	Fields  []reflect.StructField
+	Type    reflect.Type
+	// Has unexported fields.
+}
+
+func Walk(srcPath, pkgPrefix string) ([]GeneratedType, error)
+
+func (g *GeneratedType) New() RuntimeType
+
+type RuntimeType struct {
+	Generator *GeneratedType
+	Value     reflect.Value
+}
+

@@ -1,0 +1,15 @@
+package details_common // import "."
+
+
+FUNCTIONS
+
+func EntityDragData(host *engine.Host) (engine.EntityId, bool)
+func InputString(input *document.Element) string
+func IsCheckbox(typeName string) bool
+func IsEntityId(packageName, typeName string) bool
+func IsInput(typeName string) bool
+func IsNumber(typeName string) bool
+func SelectString(input *document.Element) string
+func ToFloat(str string) float64
+func ToInt(str string) int64
+func ToUint(str string) uint64

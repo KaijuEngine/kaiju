@@ -1,0 +1,16 @@
+package editor_settings_window // import "."
+
+
+FUNCTIONS
+
+func New()
+
+TYPES
+
+type EditorSettingsWindow struct {
+	GoCompilerPath   string
+	GridSnapping     float32
+	RotationSnapping float32
+	// Has unexported fields.
+}
+
