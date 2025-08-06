@@ -38,6 +38,7 @@
 package selection
 
 import (
+	"kaiju/debug"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -51,6 +52,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"weak"
 )
 
 const (
@@ -59,7 +61,7 @@ const (
 )
 
 type Selection struct {
-	host        *engine.Host
+	host        weak.Pointer[engine.Host]
 	box         *sprite.Sprite
 	entities    []*engine.Entity
 	downPos     matrix.Vec2
@@ -77,7 +79,7 @@ func New(host *engine.Host, history *memento.History) Selection {
 	host.DoneCreatingEditorEntities()
 	b.Deactivate()
 	return Selection{
-		host:        host,
+		host:        weak.Make(host),
 		box:         b,
 		entities:    make([]*engine.Entity, 0),
 		shaderDatas: make(map[*engine.Entity][]*rendering.ShaderDataBasic),
@@ -156,8 +158,10 @@ func (s *Selection) addInternal(e *engine.Entity) {
 	if slices.Contains(s.entities, e) {
 		return
 	}
+	host := s.host.Value()
+	debug.EnsureNotNil(host)
 	s.entities = append(s.entities, e)
-	outline, err := s.host.MaterialCache().Material(assets.MaterialDefinitionOutline)
+	outline, err := host.MaterialCache().Material(assets.MaterialDefinitionOutline)
 	if err != nil {
 		slog.Error("failed to load the outline material", "error", err)
 		return
@@ -174,9 +178,9 @@ func (s *Selection) addInternal(e *engine.Entity) {
 		s.shaderDatas[e] = append(s.shaderDatas[e], ds)
 		d.Material = outline
 		d.ShaderData = ds
-		s.host.Drawings.AddDrawing(d)
+		host.Drawings.AddDrawing(d)
 	}
-	s.host.RunAfterFrames(1, func() {
+	host.RunAfterFrames(1, func() {
 		// Make drawings snap to transform
 		for _, d := range draws {
 			d.Transform.SetDirty()

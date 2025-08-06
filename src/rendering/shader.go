@@ -43,6 +43,7 @@ import (
 	vk "kaiju/rendering/vulkan"
 	"path/filepath"
 	"strings"
+	"weak"
 )
 
 type Shader struct {
@@ -52,7 +53,7 @@ type Shader struct {
 	DriverData   ShaderDriverData
 	subShaders   map[string]*Shader
 	pipelineInfo *ShaderPipelineDataCompiled
-	renderPass   *RenderPass
+	renderPass   weak.Pointer[RenderPass]
 }
 
 type ShaderData struct {

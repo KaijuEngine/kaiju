@@ -39,7 +39,6 @@ package document
 
 import (
 	"html/template"
-	"log/slog"
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine"
@@ -50,6 +49,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"log/slog"
 	"slices"
 	"sort"
 	"strconv"
@@ -89,7 +89,7 @@ var Debug = struct {
 }{}
 
 type Document struct {
-	host          *engine.Host
+	host          weak.Pointer[engine.Host]
 	Elements      []*Element
 	TopElements   []*Element
 	HeadElements  []*Element
@@ -111,12 +111,14 @@ type Document struct {
 func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host, stylizer Stylizer) {
 	d.style = style
 	d.stylizer = stylizer
-	d.host = host
+	d.host = weak.Make(host)
 	d.ApplyStyles()
 }
 
 func (d *Document) ApplyStyles() {
-	d.stylizer.ApplyStyles(d.style, d, d.host)
+	host := d.host.Value()
+	debug.EnsureNotNil(host)
+	d.stylizer.ApplyStyles(d.style, d, host)
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -249,6 +251,8 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 		panel := uiMan.Add().ToPanel()
+		host := uiMan.Host.Value()
+		debug.EnsureNotNil(host)
 		if e.IsImage() {
 			src := e.Attribute("src")
 			var tex *rendering.Texture
@@ -258,12 +262,12 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				root := strings.TrimSuffix(src, ".gif")
 				pngSrc := root + ".png"
 				jsonSrc := pngSrc + ".json"
-				assets := uiMan.Host.AssetDatabase()
+				assets := host.AssetDatabase()
 				if !assets.Exists(jsonSrc) {
 					slog.Error("failed to find the JSON for the sprite sheet", "png", pngSrc, "json", jsonSrc)
 					return
 				}
-				if tex, err = uiMan.Host.TextureCache().Texture(pngSrc, rendering.TextureFilterLinear); err != nil {
+				if tex, err = host.TextureCache().Texture(pngSrc, rendering.TextureFilterLinear); err != nil {
 					slog.Error("failed to read the sprite sheet PNG file", "png", pngSrc, "error", err)
 					return
 				}
@@ -273,7 +277,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 				assets.Cache(jsonSrc, []byte(spriteJSON))
 			} else {
-				tex, err = uiMan.Host.TextureCache().Texture(src, rendering.TextureFilterLinear)
+				tex, err = host.TextureCache().Texture(src, rendering.TextureFilterLinear)
 			}
 			if err != nil {
 				slog.Error(err.Error())
@@ -389,10 +393,10 @@ func (d *Document) tagElement(elm *Element, tag string) {
 }
 
 func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	body := h.Body()
-	var bodyPanel *ui.Panel
-	bodyPanel = uiMan.Add().ToPanel()
+	bodyPanel := uiMan.Add().ToPanel()
 	bodyPanel.Init(nil, ui.AnchorCenter, ui.ElementTypePanel)
 	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
 		w, h := float32(host.Window.Width()), float32(host.Window.Height())

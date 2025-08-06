@@ -38,6 +38,7 @@
 package console
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -46,6 +47,7 @@ import (
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"strings"
+	"weak"
 )
 
 type ConsoleFunc func(*engine.Host, string) string
@@ -95,7 +97,7 @@ type consoleCommand struct {
 
 type Console struct {
 	doc        *document.Document
-	host       *engine.Host
+	host       weak.Pointer[engine.Host]
 	uiMan      ui.Manager
 	commands   map[string]consoleCommand
 	history    history
@@ -120,7 +122,7 @@ func For(host *engine.Host) *Console {
 
 func initialize(host *engine.Host) *Console {
 	console := &Console{
-		host:     host,
+		host:     weak.Make(host),
 		commands: map[string]consoleCommand{},
 		history:  newHistory(),
 		data:     make(map[string]ConsoleData),
@@ -144,7 +146,6 @@ func initialize(host *engine.Host) *Console {
 	return console
 }
 
-func (c *Console) Host() *engine.Host                   { return c.host }
 func (c *Console) SetData(key string, data ConsoleData) { c.data[key] = data }
 func (c *Console) HasData(key string) bool              { _, ok := c.data[key]; return ok }
 func (c *Console) Data(key string) ConsoleData          { return c.data[key] }
@@ -186,7 +187,9 @@ func (c *Console) AddCommand(key, description string, fn ConsoleFunc) {
 
 func (c *Console) ExecCommand(key, arg string) (string, error) {
 	if cmd, ok := c.commands[strings.ToLower(key)]; ok {
-		return cmd.fn(c.host, arg), nil
+		host := c.host.Value()
+		debug.EnsureNotNil(host)
+		return cmd.fn(host, arg), nil
 	} else {
 		return "", ErrCommandNotFound
 	}
@@ -237,7 +240,9 @@ func (c *Console) submit(input *ui.Input) {
 	}
 	var res string
 	if cmd, ok := c.commands[key]; ok {
-		res = strings.TrimSpace(cmd.fn(c.host, value))
+		host := c.host.Value()
+		debug.EnsureNotNil(host)
+		res = strings.TrimSpace(cmd.fn(host, value))
 	}
 	lblParent, _ := c.doc.GetElementById("consoleContent")
 	lbl := c.outputLabel()
@@ -251,7 +256,9 @@ func (c *Console) submit(input *ui.Input) {
 
 func (c *Console) update(deltaTime float64) {
 	defer tracing.NewRegion("console.update").End()
-	kb := &c.host.Window.Keyboard
+	host := c.host.Value()
+	debug.EnsureNotNil(host)
+	kb := &host.Window.Keyboard
 	if kb.KeyDown(hid.KeyboardKeyBackQuote) {
 		c.toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyUp) {

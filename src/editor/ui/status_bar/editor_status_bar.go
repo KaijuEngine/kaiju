@@ -38,12 +38,13 @@
 package status_bar
 
 import (
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
+	"kaiju/debug"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/matrix"
 	"regexp"
 	"strconv"
 	"strings"
@@ -67,7 +68,8 @@ func New(uiMan *ui.Manager, openLogWindow func()) *StatusBar {
 	l, _ := s.doc.GetElementById("log")
 	s.msg = m.Children[0].UI.ToLabel()
 	s.log = l.Children[0].UI.ToLabel()
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	host.LogStream.OnInfo.Add(func(msg string) {
 		host.RunAfterFrames(1, func() { s.setLog(msg, matrix.ColorWhite()) })
 	})

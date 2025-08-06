@@ -40,7 +40,6 @@ package rendering
 import (
 	"encoding/json"
 	"kaiju/engine/assets"
-	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
@@ -48,26 +47,23 @@ import (
 )
 
 type MaterialCache struct {
-	renderer         Renderer
-	assetDatabase    *assets.Database
-	materials        map[string]*Material
-	pendingMaterials []*Material
-	mutex            sync.Mutex
+	renderer      Renderer
+	assetDatabase *assets.Database
+	materials     map[string]*Material
+	mutex         sync.Mutex
 }
 
 func NewMaterialCache(renderer Renderer, assetDatabase *assets.Database) MaterialCache {
 	return MaterialCache{
-		renderer:         renderer,
-		assetDatabase:    assetDatabase,
-		materials:        make(map[string]*Material),
-		pendingMaterials: make([]*Material, 0),
-		mutex:            sync.Mutex{},
+		renderer:      renderer,
+		assetDatabase: assetDatabase,
+		materials:     make(map[string]*Material),
+		mutex:         sync.Mutex{},
 	}
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
 	if found, ok := m.materials[material.Name]; !ok {
-		m.pendingMaterials = append(m.pendingMaterials, material)
 		m.materials[material.Name] = material
 		return material
 	} else {
@@ -106,7 +102,6 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
-		m.pendingMaterials = append(m.pendingMaterials, material)
 		m.materials[materialData.Name] = material
 		return material, nil
 	}
@@ -114,10 +109,6 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 
 func (m *MaterialCache) Destroy() {
 	defer tracing.NewRegion("MaterialCache.Destroy").End()
-	for _, mat := range m.pendingMaterials {
-		mat.Destroy(m.renderer)
-	}
-	m.pendingMaterials = klib.WipeSlice(m.pendingMaterials)
 	for _, mat := range m.materials {
 		mat.Destroy(m.renderer)
 	}

@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -74,7 +75,9 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	s.elmData = data
 	p := s.Base().ToPanel()
 	p.DontFitContent()
-	bg, _ := s.man.Host.TextureCache().Texture(
+	host := s.man.Host.Value()
+	debug.EnsureNotNil(host)
+	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(bg, anchor, ElementTypeSelect)
 	data.selected = -1
@@ -106,7 +109,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	}
 	{
 		// Up/down triangle
-		triTex, _ := s.man.Host.TextureCache().Texture(
+		triTex, _ := host.TextureCache().Texture(
 			assets.TextureTriangle, rendering.TextureFilterLinear)
 		triTex.MipLevels = 1
 		tri := s.man.Add()

@@ -38,12 +38,14 @@
 package sprite
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"log/slog"
+	"weak"
 )
 
 const (
@@ -57,7 +59,7 @@ var (
 
 type Sprite struct {
 	Entity          *engine.Entity
-	host            *engine.Host
+	host            weak.Pointer[engine.Host]
 	currentClipName string
 	currentClip     SpriteSheetClip
 	uvAnimation     []AnimatedUV
@@ -227,7 +229,9 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	if s.drawings[0].IsValid() {
 		s.recreateDrawing(0, s.drawings[0].Material.HasTransparentSuffix())
 		s.drawings[0].Material = s.drawings[0].Material.SelectRoot().CreateInstance([]*rendering.Texture{texture})
-		s.host.Drawings.AddDrawing(s.drawings[0])
+		host := s.host.Value()
+		debug.EnsureNotNil(host)
+		host.Drawings.AddDrawing(s.drawings[0])
 	}
 }
 
@@ -237,8 +241,10 @@ func (s *Sprite) SetFlipBookAnimation(inFPS float32, textures []*rendering.Textu
 		s.drawings[i].ShaderData.Destroy()
 	}
 	s.drawings = klib.SliceSetLen(s.drawings, count)
+	host := s.host.Value()
+	debug.EnsureNotNil(host)
 	for i := range count {
-		s.drawings[i], _ = s.buildDrawing(s.host, matrix.ColorWhite(), textures[i])
+		s.drawings[i], _ = s.buildDrawing(host, matrix.ColorWhite(), textures[i])
 	}
 	s.frameCount = count
 	s.fps = inFPS
@@ -292,10 +298,12 @@ func (s *Sprite) SetUnBlended() {
 }
 
 func (s *Sprite) SwapMaterial(mat *rendering.Material) {
+	host := s.host.Value()
+	debug.EnsureNotNil(host)
 	for i := range s.drawings {
 		s.drawings[i].Material = mat
 		s.recreateDrawing(i, mat.HasTransparentSuffix())
-		s.host.Drawings.AddDrawing(s.drawings[i])
+		host.Drawings.AddDrawing(s.drawings[i])
 	}
 }
 
@@ -326,7 +334,9 @@ func (s *Sprite) recreateDrawing(drawingIndex int, blended bool) {
 	*sd = proxy
 	d.ShaderData = sd
 	if d.Material.HasTransparentSuffix() != blended {
-		mat, err := s.host.MaterialCache().Material(assets.MaterialDefinitionSpriteTransparent)
+		host := s.host.Value()
+		debug.EnsureNotNil(host)
+		mat, err := host.MaterialCache().Material(assets.MaterialDefinitionSpriteTransparent)
 		if err == nil {
 			d.Material = mat.CreateInstance(d.Material.Textures)
 		} else {
@@ -392,7 +402,7 @@ func (s *Sprite) baseInit(x, y, width, height float32, host *engine.Host) {
 	}
 	// TODO:  Return an error if the sprite is not new
 	*s = Sprite{
-		host:      host,
+		host:      weak.Make(host),
 		baseScale: matrix.NewVec3(width, height, 1.0),
 	}
 	s.Entity = host.NewEntity()
@@ -427,10 +437,12 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 }
 
 func (s *Sprite) setBlendingInternal(blended bool) {
+	host := s.host.Value()
+	debug.EnsureNotNil(host)
 	for i := range s.drawings {
 		if s.drawings[i].Material.HasTransparentSuffix() != blended {
 			s.recreateDrawing(i, blended)
-			s.host.Drawings.AddDrawing(s.drawings[i])
+			host.Drawings.AddDrawing(s.drawings[i])
 		}
 	}
 }

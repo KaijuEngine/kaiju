@@ -44,6 +44,7 @@ import (
 	vk "kaiju/rendering/vulkan"
 	"log/slog"
 	"unsafe"
+	"weak"
 )
 
 const (
@@ -59,8 +60,8 @@ const (
 )
 
 var (
-	lightDepthMaterial     *Material = nil
-	lightCubeDepthMaterial *Material = nil
+	lightDepthMaterial     weak.Pointer[Material]
+	lightCubeDepthMaterial weak.Pointer[Material]
 )
 
 type LightType int
@@ -139,9 +140,10 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 		}
 		return mat, nil
 	}
-	var err error
-	if lightDepthMaterial, err = setupMat(assets.MaterialDefinitionLightDepth, materialCache); err != nil {
+	if mat, err := setupMat(assets.MaterialDefinitionLightDepth, materialCache); err != nil {
 		return err
+	} else {
+		lightDepthMaterial = weak.Make(mat)
 	}
 	//if lightCubeDepthMaterial, err = setupMat(assets.MaterialDefinitionLightCubeDepth, materialCache); err != nil {
 	//	return err
@@ -173,18 +175,18 @@ func NewLight(vr *Vulkan, assetDb *assets.Database, materialCache *MaterialCache
 	case LightTypeDirectional:
 		fallthrough
 	default:
-		light.depthMaterial = lightDepthMaterial
+		light.depthMaterial = lightDepthMaterial.Value()
 		light.camera = cameras.NewStandardCameraOrthographic(20, 20, 20, 20, v30)
 		light.camera.SetFarPlane(lightDirectionalScaleOut * 2.0)
 	case LightTypePoint:
-		light.depthMaterial = lightCubeDepthMaterial
+		light.depthMaterial = lightCubeDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		// Make FOV exactly large enough for each face of cubemap
 		light.camera.SetFOV(90)
 		light.camera.SetFarPlane(50.0)
 	case LightTypeSpot:
-		light.depthMaterial = lightDepthMaterial
+		light.depthMaterial = lightDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		light.camera.SetFOV(90)
@@ -200,7 +202,7 @@ func (l *Light) ShadowMapTexture() *Texture {
 
 func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
-	copy.Material = lightDepthMaterial
+	copy.Material = lightDepthMaterial.Value()
 	copy.CastsShadows = false // Shadows don't cast shadows
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	drawing.ShaderData.setShadow(sd)
@@ -210,7 +212,7 @@ func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 
 func lightTransformDrawingToCubeDepth(drawing *Drawing) Drawing {
 	copy := *drawing
-	copy.Material = lightDepthMaterial
+	copy.Material = lightDepthMaterial.Value()
 	copy.CastsShadows = false // Shadows don't cast shadows
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	copy.ShaderData = sd

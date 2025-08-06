@@ -173,7 +173,7 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 	if teseStage.SType != 0 {
 		stages = append(stages, teseStage)
 	}
-	shader.pipelineInfo.ConstructPipeline(vr, shader, shader.renderPass, stages)
+	shader.pipelineInfo.ConstructPipeline(vr, shader, shader.renderPass.Value(), stages)
 	// TODO:  Setup subshader in the shader definition?
 	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
 	if assetDB.Exists(subShaderCheck) {

@@ -498,6 +498,10 @@ func (vr *Vulkan) Destroy() {
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
 	vr.bufferTrash.Purge()
+	for k := range vr.renderPassCache {
+		vr.renderPassCache[k].Destroy(vr)
+	}
+	vr.renderPassCache = make(map[string]*RenderPass)
 	runtime.GC()
 	if vr.device != vk.NullDevice {
 		for i := range vr.combineCmds {

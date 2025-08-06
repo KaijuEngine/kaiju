@@ -178,7 +178,7 @@ func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Mat
 	}
 	c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
 	c.Shader.pipelineInfo = &c.pipelineInfo
-	c.Shader.renderPass = c.renderPass
+	c.Shader.renderPass = weak.Make(c.renderPass)
 	for i := range d.Textures {
 		tex, err := vr.caches.TextureCache().Texture(
 			d.Textures[i].Texture, d.Textures[i].FilterToVK())
@@ -194,4 +194,10 @@ func (m *Material) Destroy(renderer Renderer) {
 	defer tracing.NewRegion("Material.Destroy").End()
 	vr := renderer.(*Vulkan)
 	m.renderPass.Destroy(vr)
+	m.renderPass = nil
+	m.Shader = nil
+	m.Textures = make([]*Texture, 0)
+	m.ShadowMap = nil
+	m.ShadowCubeMap = nil
+	clear(m.Instances)
 }

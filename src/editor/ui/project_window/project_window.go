@@ -43,11 +43,12 @@ import (
 	"kaiju/editor/project"
 	"kaiju/editor/ui/files_window"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
+	"kaiju/klib"
 	"os"
+	"runtime"
 	"slices"
 )
 
@@ -159,5 +160,8 @@ func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 	})
 	<-p.container.PrepLock
 	p.container.RunFunction(p.load)
+	runtime.AddCleanup(p.container.Host, func(s string) {
+		println("Hello, World!")
+	}, "")
 	return p, nil
 }

@@ -38,6 +38,7 @@
 package tab_container
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/logging"
@@ -68,7 +69,7 @@ const (
 )
 
 type TabContainer struct {
-	host           *engine.Host
+	host           weak.Pointer[engine.Host]
 	doc            *document.Document
 	activeTab      int
 	uiMan          *ui.Manager
@@ -105,6 +106,8 @@ func (t *TabContainer) findTab(id string) *TabContainerTab {
 }
 
 func (t *TabContainer) removeTab(tab *TabContainerTab) {
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
 	for i := range t.Tabs {
 		if &t.Tabs[i] == tab {
 			tab.Destroy()
@@ -114,7 +117,7 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 				t.doc = nil
 				t.activeTab = -1
 				if t.usingOwnWindow {
-					t.host.Close()
+					host.Close()
 				}
 			} else if t.activeTab >= len(t.Tabs) {
 				t.activeTab = len(t.Tabs) - 1
@@ -126,32 +129,38 @@ func (t *TabContainer) removeTab(tab *TabContainerTab) {
 
 func (t *TabContainer) tabDragStart(e *document.Element) {
 	windowing.SetDragData(t.findTab(e.Attribute("id")))
-	t.host.Window.CursorSizeAll()
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.CursorSizeAll()
 	// We don't need to remove this because the event clears after removal
 	windowing.OnDragStop.Add(func() { t.tabDragEnd(e) })
 }
 
 func (t *TabContainer) tabDragEnd(e *document.Element) {
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
 	if !windowing.IsDragDataUsed() {
 		dd := windowing.UseDragData()
 		tab, ok := dd.(*TabContainerTab)
 		if !ok {
 			return
 		}
-		sp := t.host.Window.Mouse.ScreenPosition()
+		sp := host.Window.Mouse.ScreenPosition()
 		tab.Destroy()
 		copy := *tab
 		copy.parent = weak.Pointer[TabContainer]{}
 		t.removeTab(tab)
 		t.reload()
-		x, y := t.host.Window.ToScreenPosition(int(sp.X()), int(sp.Y()))
-		NewWindow(copy.Label, x, y, []TabContainerTab{copy}, t.host.LogStream)
+		x, y := host.Window.ToScreenPosition(int(sp.X()), int(sp.Y()))
+		NewWindow(copy.Label, x, y, []TabContainerTab{copy}, host.LogStream)
 	}
-	t.host.Window.CursorStandard()
+	host.Window.CursorStandard()
 }
 
 func (t *TabContainer) tabDragEnter(e *document.Element) {
-	tex, err := t.host.TextureCache().Texture("textures/window_tab_drag_enter.png",
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	tex, err := host.TextureCache().Texture("textures/window_tab_drag_enter.png",
 		rendering.TextureFilterNearest)
 	if err == nil {
 		e.UI.ToPanel().SetBackground(tex)
@@ -159,7 +168,9 @@ func (t *TabContainer) tabDragEnter(e *document.Element) {
 }
 
 func (t *TabContainer) tabDragLeave(e *document.Element) {
-	tex, err := t.host.TextureCache().Texture("textures/window_tab.png",
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	tex, err := host.TextureCache().Texture("textures/window_tab.png",
 		rendering.TextureFilterNearest)
 	if err == nil {
 		e.UI.ToPanel().SetBackground(tex)
@@ -183,7 +194,9 @@ func (t *TabContainer) calcTabWidths() {
 
 func (t *TabContainer) resetTabTextures() {
 	// Fixes drop bug running to fast and swapping the texture to drag hover
-	t.host.RunAfterFrames(2, func() {
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	host.RunAfterFrames(2, func() {
 		tabElms := t.doc.GetElementsByGroup("tabGroup")
 		for i := range tabElms {
 			t.tabDragLeave(tabElms[i])
@@ -291,7 +304,9 @@ func (t *TabContainer) reload() {
 	if t.doc != nil {
 		t.doc.Destroy()
 	}
-	t.host.CreatingEditorEntities()
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	host.CreatingEditorEntities()
 	t.doc, _ = markup.DocumentFromHTMLAsset(t.uiMan, html, t, map[string]func(*document.Element){
 		"tabClick":         t.tabClick,
 		"tabDragStart":     t.tabDragStart,
@@ -311,7 +326,7 @@ func (t *TabContainer) reload() {
 		root, _ := t.doc.GetElementById("tabContent")
 		t.Tabs[t.activeTab].Reload(t.uiMan, root)
 	}
-	t.host.DoneCreatingEditorEntities()
+	host.DoneCreatingEditorEntities()
 	if t.dragScale > 0 {
 		win, _ := t.doc.GetElementById("window")
 		switch t.Snap {
@@ -331,7 +346,7 @@ func (t *TabContainer) reload() {
 
 func newInternal(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab) *TabContainer {
 	t := &TabContainer{
-		host:  host,
+		host:  weak.Make(host),
 		uiMan: uiMan,
 	}
 	if t.uiMan == nil {
@@ -397,35 +412,41 @@ func (t *TabContainer) ReloadTabs(name string, forceOpen bool) bool {
 }
 
 func (t *TabContainer) resizeHover(e *document.Element) {
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
 	switch t.Snap {
 	case "left":
 		fallthrough
 	case "right":
-		t.host.Window.CursorSizeWE()
+		host.Window.CursorSizeWE()
 	case "top":
 		fallthrough
 	case "bottom":
-		t.host.Window.CursorSizeNS()
+		host.Window.CursorSizeNS()
 	}
 }
 
 func (t *TabContainer) resizeExit(e *document.Element) {
 	dd := windowing.DragData()
 	if dd != t {
-		t.host.Window.CursorStandard()
+		host := t.host.Value()
+		debug.EnsureNotNil(host)
+		host.Window.CursorStandard()
 	}
 }
 
 func (t *TabContainer) resizeStart(e *document.Element) {
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
 	switch t.Snap {
 	case "left":
 		fallthrough
 	case "right":
-		t.host.Window.CursorSizeWE()
+		host.Window.CursorSizeWE()
 	case "top":
 		fallthrough
 	case "bottom":
-		t.host.Window.CursorSizeNS()
+		host.Window.CursorSizeNS()
 	}
 	windowing.SetDragData(t)
 }
@@ -435,7 +456,9 @@ func (t *TabContainer) resizeStop(e *document.Element) {
 	if dd != t {
 		return
 	}
-	t.host.Window.CursorStandard()
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.CursorStandard()
 	//w, _ := h.doc.GetElementById("window")
 	//s := w.UIPanel.Base().Layout().PixelSize().Width()
 	//editor_cache.SetEditorConfigValue(sizeConfig, s)
@@ -463,22 +486,24 @@ func (t *TabContainer) Toggle() {
 
 func (t *TabContainer) DragUpdate() {
 	win, _ := t.doc.GetElementById("window")
+	host := t.host.Value()
+	debug.EnsureNotNil(host)
 	switch t.Snap {
 	case "left":
-		w := float32(t.host.Window.Width())
-		t.dragScale = klib.Clamp(t.host.Window.Mouse.Position().X(), 50, w-100)
+		w := float32(host.Window.Width())
+		t.dragScale = klib.Clamp(host.Window.Mouse.Position().X(), 50, w-100)
 		win.UIPanel.Base().Layout().ScaleWidth(t.dragScale)
 	case "top":
-		h := float32(t.host.Window.Height())
-		t.dragScale = klib.Clamp(matrix.Float(h)-t.host.Window.Mouse.Position().Y(), 50, h-100)
+		h := float32(host.Window.Height())
+		t.dragScale = klib.Clamp(matrix.Float(h)-host.Window.Mouse.Position().Y(), 50, h-100)
 		win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
 	case "bottom":
-		h := float32(t.host.Window.Height())
-		t.dragScale = klib.Clamp(t.host.Window.Mouse.Position().Y()-20, 50, h-100)
+		h := float32(host.Window.Height())
+		t.dragScale = klib.Clamp(host.Window.Mouse.Position().Y()-20, 50, h-100)
 		win.UIPanel.Base().Layout().ScaleHeight(t.dragScale)
 	case "right":
-		w := float32(t.host.Window.Width())
-		t.dragScale = klib.Clamp(matrix.Float(w)-t.host.Window.Mouse.Position().X(), 50, w-100)
+		w := float32(host.Window.Width())
+		t.dragScale = klib.Clamp(matrix.Float(w)-host.Window.Mouse.Position().X(), 50, w-100)
 		win.UIPanel.Base().Layout().ScaleWidth(t.dragScale)
 	case "center":
 		// This shouldn't be something that happens...

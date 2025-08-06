@@ -38,6 +38,7 @@
 package details_window
 
 import (
+	"kaiju/debug"
 	"kaiju/editor/codegen"
 	"kaiju/editor/editor_interface"
 	"kaiju/editor/ui/details_common"
@@ -53,6 +54,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"weak"
 )
 
 const sizeConfig = "detailsWindowSize"
@@ -128,7 +130,7 @@ type entityDataEntry struct {
 }
 
 type entityDataField struct {
-	host  *engine.Host
+	host  weak.Pointer[engine.Host]
 	Idx   int
 	Name  string
 	Type  string
@@ -154,7 +156,9 @@ func (f *entityDataField) ValueAsEntityName() string {
 		slog.Error("Value is not an EntityId", f.Value)
 		return ""
 	}
-	e, ok := f.host.FindEntity(dd.EntityId)
+	host := f.host.Value()
+	debug.EnsureNotNil(host)
+	e, ok := host.FindEntity(dd.EntityId)
 	if !ok {
 		slog.Error("Entity not found", "entity", dd.EntityId)
 		return ""
@@ -320,7 +324,7 @@ func (d *Details) pullEntityData() []entityDataEntry {
 		for j := range g.Fields {
 			if g.Fields[j].IsExported() {
 				ef := entityDataField{
-					host:  d.editor.Host(),
+					host:  weak.Make(d.editor.Host()),
 					Idx:   j,
 					Name:  g.Fields[j].Name,
 					Type:  g.Fields[j].Type.Name(),
