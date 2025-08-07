@@ -47,6 +47,7 @@ import (
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"runtime"
 	"slices"
 	"unsafe"
 )
@@ -126,10 +127,10 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName, assets)
 	w.x, w.y = w.position()
-	//runtime.AddCleanup(w, func(state WindowCleanup) {
-	//	state.renderer.Destroy()
-	//	destroyWindow(state.handle)
-	//}, WindowCleanup{w.handle, w.Renderer})
+	runtime.AddCleanup(w, func(state WindowCleanup) {
+		state.renderer.Destroy()
+		destroyWindow(state.handle)
+	}, WindowCleanup{w.handle, w.Renderer})
 	return w, err
 }
 
@@ -288,8 +289,6 @@ func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
-	w.Renderer.Destroy()
-	destroyWindow(w.handle)
 	w.removeFromActiveWindows()
 }
 
