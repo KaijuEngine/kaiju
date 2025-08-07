@@ -503,6 +503,10 @@ func (vr *Vulkan) Destroy() {
 	}
 	vr.renderPassCache = make(map[string]*RenderPass)
 	runtime.GC()
+	for i := range vr.preRuns {
+		vr.preRuns[i]()
+	}
+	vr.preRuns = make([]func(), 0)
 	if vr.device != vk.NullDevice {
 		for i := range vr.combineCmds {
 			vr.combineCmds[i].Destroy(vr)
@@ -512,10 +516,7 @@ func (vr *Vulkan) Destroy() {
 		}
 		vr.singleTimeCommandPool.All(func(elm *CommandRecorder) {
 			if elm.buffer != vk.NullCommandBuffer {
-				buff := elm.buffer
-				vk.FreeCommandBuffers(vr.device, elm.pool, 1, &buff)
-				vk.DestroyCommandPool(vr.device, elm.pool, nil)
-				vr.dbg.remove(vk.TypeToUintPtr(elm.pool))
+				elm.Destroy(vr)
 			}
 		})
 		for i := range maxFramesInFlight {
