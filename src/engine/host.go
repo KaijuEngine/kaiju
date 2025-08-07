@@ -477,13 +477,11 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 func (host *Host) Teardown() {
 	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
-	host.OnClose.Clear()
 	for i := range host.entities {
 		host.entities[i].Destroy()
 		for !host.entities[i].TickCleanup() {
 		}
 	}
-	host.entities = make([]*Entity, 0)
 	host.editorEntities.close()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
@@ -499,6 +497,7 @@ func (host *Host) Teardown() {
 	host.Window.Destroy()
 	host.threads.Stop()
 	host.CloseSignal <- struct{}{}
+	*host = Host{}
 	runtime.GC()
 }
 

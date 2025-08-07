@@ -274,6 +274,7 @@ func (e *Entity) TickCleanup() bool {
 	if e.isDestroyed {
 		if e.destroyedFrames <= 0 {
 			e.OnDestroy.Execute()
+			*e = Entity{}
 			return true
 		}
 		e.destroyedFrames--

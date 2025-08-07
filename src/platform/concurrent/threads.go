@@ -66,7 +66,9 @@ func (t *Threads) Start() {
 func (t *Threads) Stop() {
 	for i := range t.exitSig {
 		t.exitSig[i] <- struct{}{}
+		close(t.exitSig[i])
 	}
+	close(t.pipe)
 }
 
 func (t *Threads) AddWork(work ...func(threadId int)) {
@@ -76,7 +78,7 @@ func (t *Threads) AddWork(work ...func(threadId int)) {
 }
 
 func (t *Threads) work(sigIdx int) {
-	for {
+	for len(t.exitSig) > 0 {
 		select {
 		case <-t.exitSig[sigIdx]:
 		case action := <-t.pipe:
