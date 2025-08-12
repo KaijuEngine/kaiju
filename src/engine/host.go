@@ -57,6 +57,7 @@ import (
 	"runtime"
 	"slices"
 	"time"
+	"weak"
 )
 
 // FrameId is a unique identifier for a frame
@@ -174,7 +175,8 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
 	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, &host.assetDatabase)
-	host.Window.OnResize.Add(host.resized)
+	w := weak.Make(host)
+	host.Window.OnResize.Add(func() { w.Value().resized() })
 	return nil
 }
 

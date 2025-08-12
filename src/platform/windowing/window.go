@@ -290,6 +290,7 @@ func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
 	w.removeFromActiveWindows()
+	w.Renderer.Teardown()
 }
 
 func (w *Window) Focus() {

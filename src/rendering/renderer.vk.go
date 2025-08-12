@@ -310,6 +310,10 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	return nil
 }
 
+func (vr *Vulkan) Teardown() {
+	vr.caches = nil
+}
+
 func (vr *Vulkan) remakeSwapChain() {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
 	vr.WaitForRender()
