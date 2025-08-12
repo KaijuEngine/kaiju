@@ -207,7 +207,8 @@ func OBJ(objData string) load_result.Result {
 				Color:    builder.colors[builder.vIndexes[vi]],
 			}
 		}
-		res.Add(builder.name, builder.name, verts, builder.vIndexes, nil, nil)
+		// TODO:  Read the .obj material file for textures
+		res.Add(builder.name, builder.name, verts, builder.vIndexes, []string{}, nil)
 	}
 	return res
 }
