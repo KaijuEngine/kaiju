@@ -46,7 +46,7 @@ import (
 func RemoveUnordered[T any](slice []T, idx int) []T {
 	last := len(slice) - 1
 	slice[idx] = slice[last]
-	clear(slice[:last]) // Free any held pointers
+	clear(slice[last:]) // Free any held pointers
 	return slice[:last]
 }
 

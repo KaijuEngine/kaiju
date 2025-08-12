@@ -48,7 +48,6 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"os"
-	"runtime"
 	"slices"
 )
 
@@ -160,8 +159,5 @@ func New(templatePath string, cx, cy int) (*ProjectWindow, error) {
 	})
 	<-p.container.PrepLock
 	p.container.RunFunction(p.load)
-	runtime.AddCleanup(p.container.Host, func(s string) {
-		println("Hello, World!")
-	}, "")
 	return p, nil
 }
