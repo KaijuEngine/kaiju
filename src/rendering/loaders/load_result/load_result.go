@@ -113,10 +113,12 @@ type Result struct {
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
 func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures []string, node *Node) {
-	mat := node.Transform.CalcWorldMatrix()
-	if !mat.IsIdentity() {
-		for i := range verts {
-			verts[i].Position = mat.TransformPoint(verts[i].Position)
+	if node != nil {
+		mat := node.Transform.CalcWorldMatrix()
+		if !mat.IsIdentity() {
+			for i := range verts {
+				verts[i].Position = mat.TransformPoint(verts[i].Position)
+			}
 		}
 	}
 	r.Meshes = append(r.Meshes, Mesh{
