@@ -180,7 +180,7 @@ func (w *Window) Poll() {
 	if w.resizedFromNativeAPI {
 		w.resizedFromNativeAPI = false
 		if w.Renderer != nil {
-			w.Renderer.Resize(w.width, w.height)
+			w.Renderer.Resize(w, w.width, w.height)
 		}
 		w.OnResize.Execute()
 	}
@@ -206,7 +206,7 @@ func (w *Window) EndUpdate() {
 
 func (w *Window) SwapBuffers() {
 	defer tracing.NewRegion("Window.SwapBuffers").End()
-	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
+	if w.Renderer.SwapFrame(w, int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}
 }
@@ -515,7 +515,7 @@ func (w *Window) becameActive() {
 		}
 	}
 	if idx >= 0 {
-	klib.SliceMove(activeWindows, idx, 0)
+		klib.SliceMove(activeWindows, idx, 0)
 	}
 }
 
