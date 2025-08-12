@@ -84,9 +84,10 @@ func scaleScrollDelta(delta float32) float32 {
 
 func (w *Window) createWindow(windowName string, x, y int) {
 	title := C.CString(windowName)
-	goWindow := uint64(uintptr(unsafe.Pointer(w)))
+	w.lookupId = nextLookupId.Add(1)
+	windowLookup.Store(w.lookupId, w)
 	C.window_main(title, C.int(w.width), C.int(w.height),
-		C.int(x), C.int(y), C.uint64_t(goWindow))
+		C.int(x), C.int(y), C.uint64_t(w.lookupId))
 	C.free(unsafe.Pointer(title))
 }
 
