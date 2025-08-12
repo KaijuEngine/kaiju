@@ -1,0 +1,51 @@
+package framework // import "."
+
+
+FUNCTIONS
+
+func CreateDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error)
+func CreateDrawingFromMeshUnlitTransparent(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error)
+
+TYPES
+
+type EncryptedInt32 struct {
+	RawValue int32
+	// Has unexported fields.
+}
+
+func (e *EncryptedInt32) Add(amount int32)
+
+func (e *EncryptedInt32) Decrement()
+
+func (e *EncryptedInt32) Decrypt()
+
+func (e *EncryptedInt32) Encrypt()
+
+func (e *EncryptedInt32) Increment()
+
+func (e *EncryptedInt32) SetValue(value int32)
+
+func (e *EncryptedInt32) Subtract(amount int32)
+
+func (e EncryptedInt32) Value() int32
+
+type ModelDrawing struct {
+	Node     *load_result.Node
+	MeshName string
+	Drawing  rendering.Drawing
+}
+
+type ModelDrawingSlice []ModelDrawing
+
+func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func (s ModelDrawingSlice) AllDrawings() []rendering.Drawing
+
+func (s ModelDrawingSlice) AllForNode(node *load_result.Node) []ModelDrawing
+
