@@ -60,8 +60,8 @@ func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 	return success
 }
 
-func (vr *Vulkan) createVulkanInstance(appInfo vk.ApplicationInfo) bool {
-	windowExtensions := vr.window.GetInstanceExtensions()
+func (vr *Vulkan) createVulkanInstance(window RenderingContainer, appInfo vk.ApplicationInfo) bool {
+	windowExtensions := window.GetInstanceExtensions()
 	added := make([]string, 0, 3)
 	if useValidationLayers {
 		added = append(added, vk.ExtDebugReportExtensionName+"\x00")

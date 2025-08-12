@@ -111,11 +111,11 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 	return details
 }
 
-func (vr *Vulkan) createSwapChain() bool {
+func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	scs := vr.querySwapChainSupport(vr.physicalDevice)
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)
-	extent := chooseSwapExtent(vr.window, &scs.capabilities)
+	extent := chooseSwapExtent(window, &scs.capabilities)
 	vr.hasSwapChain = extent.Width != 0 && extent.Height != 0
 	if !vr.hasSwapChain {
 		return false

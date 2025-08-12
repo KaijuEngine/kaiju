@@ -70,7 +70,6 @@ type vkSwapChainSupportDetails struct {
 type Vulkan struct {
 	swapImages                 []TextureId
 	caches                     RenderCaches
-	window                     RenderingContainer
 	instance                   vk.Instance
 	physicalDevice             vk.PhysicalDevice
 	physicalDeviceProperties   vk.PhysicalDeviceProperties
@@ -232,7 +231,6 @@ func (vr *Vulkan) createColorResources() bool {
 
 func NewVKRenderer(window RenderingContainer, applicationName string, assets *assets.Database) (*Vulkan, error) {
 	vr := &Vulkan{
-		window:           window,
 		instance:         vk.NullInstance,
 		physicalDevice:   vk.NullPhysicalDevice,
 		device:           vk.NullDevice,
@@ -249,7 +247,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 	appInfo.PEngineName = (*vk.Char)(unsafe.Pointer(&([]byte("Kaiju\x00"))[0]))
 	appInfo.EngineVersion = vk.MakeVersion(1, 0, 0)
 	appInfo.ApiVersion = vk.ApiVersion11
-	if !vr.createVulkanInstance(appInfo) {
+	if !vr.createVulkanInstance(window, appInfo) {
 		return nil, errors.New("failed to create Vulkan instance")
 	}
 	if !vr.createSurface(window) {
@@ -263,7 +261,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets *as
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
 	}
-	if !vr.createSwapChain() {
+	if !vr.createSwapChain(window) {
 		return nil, errors.New("failed to create swap chain")
 	}
 	if !vr.createImageViews() {
@@ -310,17 +308,13 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	return nil
 }
 
-func (vr *Vulkan) Teardown() {
-	vr.caches = nil
-}
-
-func (vr *Vulkan) remakeSwapChain() {
+func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
 	vr.WaitForRender()
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
 	}
-	vr.createSwapChain()
+	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
 	}
@@ -399,10 +393,10 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 	return true
 }
 
-func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) bool {
+func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
-		vr.remakeSwapChain()
+		vr.remakeSwapChain(window)
 		if !vr.hasSwapChain {
 			return false
 		}
@@ -416,7 +410,7 @@ func (vr *Vulkan) ReadyFrame(camera cameras.Camera, uiCamera cameras.Camera, lig
 		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
 		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
 	if vr.acquireImageResult == vk.ErrorOutOfDate {
-		vr.remakeSwapChain()
+		vr.remakeSwapChain(window)
 		return false
 	} else if vr.acquireImageResult != vk.Success {
 		slog.Error("Failed to present swap chain image")
@@ -438,7 +432,7 @@ func (vr *Vulkan) forceQueueCommand(cmd CommandRecorder) {
 	vr.writtenCommands = append(vr.writtenCommands, cmd)
 }
 
-func (vr *Vulkan) SwapFrame(width, height int32) bool {
+func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool {
 	defer tracing.NewRegion("Vulkan.SwapFrame").End()
 	if !vr.hasSwapChain || len(vr.writtenCommands) == 0 {
 		return false
@@ -488,7 +482,7 @@ func (vr *Vulkan) SwapFrame(width, height int32) bool {
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
 	qPresent.End()
 	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal {
-		vr.remakeSwapChain()
+		vr.remakeSwapChain(window)
 	} else if vr.acquireImageResult != vk.Success {
 		slog.Error("Failed to present swap chain image")
 		return false
@@ -555,9 +549,9 @@ func (vr *Vulkan) Destroy() {
 	vr.dbg.print()
 }
 
-func (vr *Vulkan) Resize(width, height int) {
+func (vr *Vulkan) Resize(window RenderingContainer, width, height int) {
 	defer tracing.NewRegion("Vulkan.Resize").End()
-	vr.remakeSwapChain()
+	vr.remakeSwapChain(window)
 }
 
 func (vr *Vulkan) AddPreRun(preRun func()) {

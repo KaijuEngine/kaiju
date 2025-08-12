@@ -433,7 +433,7 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
-		if host.Window.Renderer.ReadyFrame(host.Camera,
+		if host.Window.Renderer.ReadyFrame(host.Window, host.Camera,
 			host.UICamera, host.lights, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
 		}
