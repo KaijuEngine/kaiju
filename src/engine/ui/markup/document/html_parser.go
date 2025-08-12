@@ -119,6 +119,13 @@ func (d *Document) ApplyStyles() {
 	host := d.host.Value()
 	debug.EnsureNotNil(host)
 	d.stylizer.ApplyStyles(d.style, d, host)
+	bodies := d.GetElementsByTagName("body")
+	for i := range bodies {
+		bodies[i].UI.Layout().AddFunction(func(l *ui.Layout) {
+			w, h := float32(host.Window.Width()), float32(host.Window.Height())
+			l.Scale(w, h)
+		})
+	}
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -398,10 +405,6 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 	body := h.Body()
 	bodyPanel := uiMan.Add().ToPanel()
 	bodyPanel.Init(nil, ui.AnchorCenter, ui.ElementTypePanel)
-	bodyPanel.Base().Layout().AddFunction(func(l *ui.Layout) {
-		w, h := float32(host.Window.Width()), float32(host.Window.Height())
-		l.Scale(w, h)
-	})
 	bodyPanel.DontFitContent()
 	bodyPanel.Base().Clean()
 	body.UI = bodyPanel.Base()
