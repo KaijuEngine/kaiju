@@ -21,9 +21,9 @@
 	bottom: 0;
 	width: 100%;
 }
-.okBtn {
-	width: 50%;
+.okBtn, .cancelBtn {
+	position: absolute;
+	width: 48%;
 }
-.cancelBtn {
-	width: 50%;
-}
+.okBtn { left: 0; }
+.cancelBtn { right: 0; }
