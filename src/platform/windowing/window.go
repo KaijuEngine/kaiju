@@ -47,7 +47,6 @@ import (
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -93,11 +92,6 @@ type FileSearch struct {
 	Extension string
 }
 
-type WindowCleanup struct {
-	handle   unsafe.Pointer
-	renderer rendering.Renderer
-}
-
 func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
@@ -134,10 +128,6 @@ func New(windowName string, width, height, x, y int, assets *assets.Database) (*
 	var err error
 	w.Renderer, err = selectRenderer(w, windowName, assets)
 	w.x, w.y = w.position()
-	runtime.AddCleanup(w, func(state WindowCleanup) {
-		state.renderer.Destroy()
-		destroyWindow(state.handle)
-	}, WindowCleanup{w.handle, w.Renderer})
 	return w, err
 }
 
@@ -297,7 +287,9 @@ func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
 	w.removeFromActiveWindows()
-	w.Renderer.Teardown()
+	w.Renderer.Destroy()
+	destroyWindow(w.handle)
+	close(w.windowSync)
 }
 
 func (w *Window) Focus() {
