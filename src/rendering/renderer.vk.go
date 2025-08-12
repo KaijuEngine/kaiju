@@ -505,6 +505,7 @@ func (vr *Vulkan) Destroy() {
 		vr.preRuns[i]()
 	}
 	vr.preRuns = make([]func(), 0)
+	vr.caches = nil
 	if vr.device != vk.NullDevice {
 		for i := range vr.combineCmds {
 			vr.combineCmds[i].Destroy(vr)
