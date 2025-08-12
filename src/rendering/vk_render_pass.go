@@ -107,10 +107,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 		}
 		sp.shaderPipeline = pipe.Compile(vr)
 		shaderCache := vr.caches.ShaderCache()
-		var isNew bool
-		if sp.shader, isNew = shaderCache.Shader(rawSD.Compile()); isNew {
-			slog.Info("creating subpass shader", "shader", rawSD.Name)
-		}
+		sp.shader, _ = shaderCache.Shader(rawSD.Compile())
 		sp.shader.pipelineInfo = &sp.shaderPipeline
 		sp.shader.renderPass = weak.Make(r)
 		shaderCache.CreatePending()
