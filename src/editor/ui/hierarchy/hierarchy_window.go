@@ -38,25 +38,27 @@
 package hierarchy
 
 import (
+	"kaiju/debug"
 	"kaiju/editor/selection"
 	"kaiju/editor/ui/context_menu"
 	"kaiju/editor/ui/drag_datas"
 	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/windowing"
 	"log/slog"
 	"strings"
+	"weak"
 )
 
 const sizeConfig = "hierarchyWindowSize"
 
 type Hierarchy struct {
-	host                 *engine.Host
+	host                 weak.Pointer[engine.Host]
 	entityCtxMenuActions []context_menu.ContextMenuEntry
 	ctxMenuSet           context_menu.ContextMenuSet
 	selection            *selection.Selection
@@ -100,10 +102,9 @@ func (e entityEntry) Depth() int {
 	return depth
 }
 
-func New(host *engine.Host, selection *selection.Selection,
-	ctxMenuSet context_menu.ContextMenuSet, reloadTabFunc func(name string)) *Hierarchy {
+func New(host *engine.Host, selection *selection.Selection, ctxMenuSet context_menu.ContextMenuSet, reloadTabFunc func(name string)) *Hierarchy {
 	h := &Hierarchy{
-		host:       host,
+		host:       weak.Make(host),
 		selection:  selection,
 		ctxMenuSet: ctxMenuSet,
 		reloadTab:  reloadTabFunc,
@@ -113,7 +114,9 @@ func New(host *engine.Host, selection *selection.Selection,
 }
 
 func (h *Hierarchy) orderEntitiesVisually() []entityEntry {
-	allEntities := h.host.Entities()
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
+	allEntities := host.Entities()
 	entries := make([]entityEntry, 0, len(allEntities))
 	roots := make([]*engine.Entity, 0, len(allEntities))
 	for _, entity := range allEntities {
@@ -162,7 +165,8 @@ func (h *Hierarchy) Reload(uiMan *ui.Manager, root *document.Element) {
 		SearchText: h.searchText,
 		Query:      h.query,
 	}
-	host := h.host
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
 	host.CreatingEditorEntities()
 	h.doc = klib.MustReturn(markup.DocumentFromHTMLAssetRooted(
 		uiMan, "editor/ui/hierarchy_window.html", data,
@@ -217,11 +221,13 @@ func (h *Hierarchy) onSelectionChanged() {
 }
 
 func (h *Hierarchy) selectedEntity(elm *document.Element) {
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
 	id := engine.EntityId(elm.Attribute("id"))
-	if e, ok := h.host.FindEntity(id); !ok {
+	if e, ok := host.FindEntity(id); !ok {
 		slog.Error("Could not find entity", slog.String("id", string(id)))
 	} else {
-		kb := &h.host.Window.Keyboard
+		kb := &host.Window.Keyboard
 		if kb.HasCtrl() {
 			h.selection.Toggle(e)
 		} else if kb.HasShift() {
@@ -240,11 +246,13 @@ func (h *Hierarchy) drop(elm *document.Element) {
 		return
 	}
 	windowing.UseDragData()
-	if f, ok := h.host.FindEntity(from.EntityId); ok {
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
+	if f, ok := host.FindEntity(from.EntityId); ok {
 		toId := elm.Attribute("id")
 		if toId != "" {
 			to := engine.EntityId(toId)
-			if t, ok := h.host.FindEntity(to); ok {
+			if t, ok := host.FindEntity(to); ok {
 				f.SetParent(t)
 				h.reloadTab(h.TabTitle())
 			} else {
@@ -261,12 +269,14 @@ func (h *Hierarchy) drop(elm *document.Element) {
 
 func (h *Hierarchy) dragStart(elm *document.Element) {
 	id := engine.EntityId(elm.Attribute("id"))
-	h.host.Window.CursorSizeAll()
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.CursorSizeAll()
 	windowing.SetDragData(&drag_datas.EntityIdDragData{id})
 	elm.EnforceColor(matrix.ColorPurple())
 	var eid events.Id
 	eid = windowing.OnDragStop.Add(func() {
-		h.host.Window.CursorStandard()
+		host.Window.CursorStandard()
 		windowing.OnDragStop.Remove(eid)
 		elm.UnEnforceColor()
 	})
@@ -296,7 +306,9 @@ func (h *Hierarchy) dragExit(elm *document.Element) {
 
 func (h *Hierarchy) entryCtxMenu(elm *document.Element) {
 	eid := engine.EntityId(elm.Attribute("id"))
-	e, ok := h.host.FindEntity(eid)
+	host := h.host.Value()
+	debug.EnsureNotNil(host)
+	e, ok := host.FindEntity(eid)
 	if !ok {
 		return
 	}

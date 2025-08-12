@@ -355,5 +355,7 @@ func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
 	}
 	d.Clear(renderer)
 	d.Instances = klib.WipeSlice(d.Instances)
+	d.Mesh = nil
+	d.MaterialInstance = nil
 	renderer.DestroyGroup(d)
 }

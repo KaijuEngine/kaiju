@@ -39,6 +39,8 @@
 
 package ui
 
+import "kaiju/debug"
+
 func (input *Input) internalCopyToClipboard() {
 	data := input.InputData()
 	l := data.label
@@ -54,6 +56,8 @@ func (input *Input) internalCutToClipboard() {
 }
 
 func (input *Input) internalPasteFromClipboard() {
-	text := input.man.Host.Window.ClipboardContents()
+	host := input.man.Host.Value()
+	debug.EnsureNotNil(host)
+	text := host.Window.ClipboardContents()
 	input.InsertText(text)
 }

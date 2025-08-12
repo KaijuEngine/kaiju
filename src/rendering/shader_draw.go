@@ -83,6 +83,7 @@ func (s *ShaderDraw) Destroy(renderer Renderer) {
 	for i := range s.instanceGroups {
 		s.instanceGroups[i].Destroy(renderer)
 	}
+	s.material = nil
 	s.instanceGroups = klib.WipeSlice(s.instanceGroups)
 }
 

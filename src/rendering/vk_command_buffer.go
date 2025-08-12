@@ -109,11 +109,13 @@ func createCommandPoolBufferPair(vr *Vulkan, level vk.CommandBufferLevel) (Comma
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
 	}
+	vr.dbg.add(vk.TypeToUintPtr(buffer))
 	cr := CommandRecorder{pool: pool, buffer: buffer}
 	fenceInfo := vulkan.FenceCreateInfo{
 		SType: vulkan.StructureTypeFenceCreateInfo,
 	}
-	vulkan.CreateFence(vr.device, &fenceInfo, nil, &cr.fence)
+	vk.CreateFence(vr.device, &fenceInfo, nil, &cr.fence)
+	vr.dbg.add(vk.TypeToUintPtr(cr.fence))
 	return cr, nil
 }
 
@@ -136,8 +138,11 @@ func (c *CommandRecorder) Begin() {
 func (c *CommandRecorder) Destroy(vr *Vulkan) {
 	buff := c.buffer
 	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
+	vr.dbg.remove(vk.TypeToUintPtr(buff))
 	vk.DestroyCommandPool(vr.device, c.pool, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+	vk.DestroyFence(vr.device, c.fence, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(c.fence))
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {

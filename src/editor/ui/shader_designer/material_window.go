@@ -39,13 +39,14 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"kaiju/debug"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/systems/logging"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -113,9 +114,9 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 		}, win.root)
 	if sy != 0 {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
-		win.man.Host.RunAfterFrames(2, func() {
-			content.UIPanel.SetScrollY(sy)
-		})
+		host := win.man.Host.Value()
+		debug.EnsureNotNil(host)
+		host.RunAfterFrames(2, func() { content.UIPanel.SetScrollY(sy) })
 	}
 }
 
@@ -164,7 +165,9 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 	}
 	path := filepath.Join(materialFolder, win.material.Name+editor_config.FileExtensionMaterial)
 	if _, err := os.Stat(path); err == nil {
-		ok := <-alert.New("Overwrite?", "You are about to overwrite a material with the same name, would you like to continue?", "Yes", "No", win.man.Host)
+		host := win.man.Host.Value()
+		debug.EnsureNotNil(host)
+		ok := <-alert.New("Overwrite?", "You are about to overwrite a material with the same name, would you like to continue?", "Yes", "No", host)
 		if !ok {
 			return
 		}

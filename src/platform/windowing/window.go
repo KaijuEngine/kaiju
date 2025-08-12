@@ -48,12 +48,19 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"slices"
+	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
-var activeWindows []*Window
+var (
+	activeWindows []*Window
+	windowLookup  sync.Map
+	nextLookupId  atomic.Uint64
+)
 
 type Window struct {
+	lookupId                 uint64
 	handle                   unsafe.Pointer
 	instance                 unsafe.Pointer
 	Mouse                    hid.Mouse
@@ -173,7 +180,7 @@ func (w *Window) Poll() {
 	if w.resizedFromNativeAPI {
 		w.resizedFromNativeAPI = false
 		if w.Renderer != nil {
-			w.Renderer.Resize(w.width, w.height)
+			w.Renderer.Resize(w, w.width, w.height)
 		}
 		w.OnResize.Execute()
 	}
@@ -199,7 +206,7 @@ func (w *Window) EndUpdate() {
 
 func (w *Window) SwapBuffers() {
 	defer tracing.NewRegion("Window.SwapBuffers").End()
-	if w.Renderer.SwapFrame(int32(w.Width()), int32(w.Height())) {
+	if w.Renderer.SwapFrame(w, int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}
 }
@@ -279,9 +286,10 @@ func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
-	w.Renderer.Destroy()
-	w.destroy()
 	w.removeFromActiveWindows()
+	w.Renderer.Destroy()
+	destroyWindow(w.handle)
+	close(w.windowSync)
 }
 
 func (w *Window) Focus() {
@@ -484,6 +492,7 @@ func (w *Window) removeFromActiveWindows() {
 			break
 		}
 	}
+	windowLookup.Delete(w.lookupId)
 }
 
 func (w *Window) becameInactive() {
@@ -505,19 +514,18 @@ func (w *Window) becameActive() {
 			break
 		}
 	}
-	klib.SliceMove(activeWindows, idx, 0)
+	if idx >= 0 {
+		klib.SliceMove(activeWindows, idx, 0)
+	}
 }
 
 func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount uint32) {
 	defer tracing.NewRegion("windowing.goProcessEventsCommon").End()
-	var win *Window
-	gw := unsafe.Pointer(uintptr(goWindow))
-	for i := range activeWindows {
-		if unsafe.Pointer(activeWindows[i]) == gw {
-			win = activeWindows[i]
-			break
-		}
+	gw, ok := windowLookup.Load(goWindow)
+	if !ok || gw == nil {
+		return
 	}
+	win := gw.(*Window)
 	for range eventCount {
 		eType, body := readType(events)
 		switch eType {

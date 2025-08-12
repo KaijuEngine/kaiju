@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -68,7 +69,8 @@ func (s *Slider) Init(anchor Anchor) {
 	s.elmData = ld
 	p := s.Base().ToPanel()
 	p.Init(nil, anchor, ElementTypeSlider)
-	host := p.man.Host
+	host := p.man.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = s.man.Add().ToPanel()
@@ -106,11 +108,13 @@ func (slider *Slider) update(deltaTime float64) {
 }
 
 func (slider Slider) Delta() float32 {
-	ww := float32(slider.man.Host.Window.Width())
+	host := slider.man.Host.Value()
+	debug.EnsureNotNil(host)
+	ww := float32(host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X() + (ww * 0.5)
 	xPos -= w * 0.5
-	mp := slider.man.Host.Window.Cursor.Position()
+	mp := host.Window.Cursor.Position()
 	return (mp.X() - xPos) / w
 }
 

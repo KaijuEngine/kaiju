@@ -94,4 +94,10 @@ func EnsureNotError(err error) {
 	}
 }
 
+func EnsureNotNil(target any) {
+	if !build.Shipping {
+		EnsureMsg(target != nil, "the target was expected not to be nil, but was")
+	}
+}
+
 func ThrowNotImplemented(todo string) { EnsureMsg(false, todo) }

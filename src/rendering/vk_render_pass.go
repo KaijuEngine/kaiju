@@ -42,6 +42,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime"
+	"weak"
 
 	"kaiju/engine/assets"
 	"kaiju/klib"
@@ -110,7 +112,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 			slog.Info("creating subpass shader", "shader", rawSD.Name)
 		}
 		sp.shader.pipelineInfo = &sp.shaderPipeline
-		sp.shader.renderPass = r
+		sp.shader.renderPass = weak.Make(r)
 		shaderCache.CreatePending()
 	}
 	sp.descriptorSets, sp.descriptorPool = klib.MustReturn2(
@@ -168,6 +170,9 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 			renderPassInfo.PClearValues = &clearColors[0]
 		}
 		r.cmd[r.frame].Begin()
+		if renderPassInfo.Framebuffer == vk.NullFramebuffer {
+			runtime.Breakpoint()
+		}
 		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vk.SubpassContentsSecondaryCommandBuffers)
 		r.cmdSecondary[r.frame].Begin(viewport, scissor)
 	} else {
@@ -481,16 +486,15 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
 	p.Buffer = vk.NullFramebuffer
 	for i := range p.textures {
-		p.textures[i].RenderId = vr.textureIdFree(p.textures[i].RenderId)
+		vr.destroyTextureHandle(p.textures[i].RenderId)
+		p.textures[i].RenderId = TextureId{}
 	}
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
-			buff := p.subpasses[i].cmd[j].buffer
-			vk.FreeCommandBuffers(vr.device, p.subpasses[i].cmd[j].pool, 1, &buff)
-			vk.DestroyCommandPool(vr.device, p.subpasses[i].cmd[j].pool, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(p.subpasses[i].cmd[j].pool))
+			p.subpasses[i].cmd[j].Destroy(vr)
 		}
 	}
+	p.subpasses = klib.WipeSlice(p.subpasses)
 	for i := range p.cmd {
 		p.cmd[i].Destroy(vr)
 	}

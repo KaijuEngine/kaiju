@@ -243,7 +243,6 @@ func (m *Menu) setupConsoleCommands() {
 		m.openContentWindow(nil)
 		return ""
 	})
-
 	c.AddCommand("audio.test", "Tests playback of a wav", func(host *engine.Host, _ string) string {
 		wav := audio.NewClip("editor/audio/sfx/fanfare.wav")
 		host.Audio().Play(wav)

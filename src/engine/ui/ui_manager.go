@@ -38,11 +38,13 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/pooling"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"sync"
+	"weak"
 )
 
 const (
@@ -50,7 +52,7 @@ const (
 )
 
 type Manager struct {
-	Host     *engine.Host
+	Host     weak.Pointer[engine.Host]
 	Group    *Group
 	pools    pooling.PoolGroup[UI]
 	hovered  [][]*UI
@@ -64,6 +66,8 @@ type manUp struct {
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
+	// There is no update without a host, this is safe
+	host := man.Host.Value()
 	wg := sync.WaitGroup{}
 	roots := []*UI{}
 	children := []*UI{}
@@ -79,7 +83,7 @@ func (man *Manager) update(deltaTime float64) {
 	})
 	// First we update all the root UI elements, this will stabilize the tree
 	wg.Add(len(roots))
-	threads := man.Host.Threads()
+	threads := host.Threads()
 	for i := range roots {
 		threads.AddWork(func(int) {
 			roots[i].cleanIfNeeded()
@@ -128,7 +132,7 @@ func (man *Manager) Hovered() []*UI {
 
 func (man *Manager) Init(host *engine.Host) {
 	defer tracing.NewRegion("ui.Manager.Init").End()
-	man.Host = host
+	man.Host = weak.Make(host)
 	man.updateId = host.UIUpdater.AddUpdate(man.update)
 	man.Group = NewGroup()
 	man.Group.Attach(host)
@@ -138,9 +142,11 @@ func (man *Manager) Init(host *engine.Host) {
 func (man *Manager) Release() {
 	defer tracing.NewRegion("ui.Manager.Release").End()
 	man.Clear()
-	man.Host.UIUpdater.RemoveUpdate(man.updateId)
+	if host := man.Host.Value(); host != nil {
+		host.UIUpdater.RemoveUpdate(man.updateId)
+		man.Group.Detach(host)
+	}
 	man.updateId = 0
-	man.Group.Detach(man.Host)
 }
 
 func (man *Manager) Clear() {
@@ -156,8 +162,10 @@ func (man *Manager) Add() *UI {
 	ui.poolId = poolId
 	ui.id = elmId
 	ui.man = man
-	ui.entity.Init(man.Host.WorkGroup())
-	man.Host.AddEntity(&ui.entity)
+	host := man.Host.Value()
+	debug.EnsureNotNil(host)
+	ui.entity.Init(host.WorkGroup())
+	host.AddEntity(&ui.entity)
 	return ui
 }
 
@@ -172,5 +180,7 @@ func (man *Manager) Remove(ui *UI) {
 func (man *Manager) Reserve(additionalElements int) {
 	defer tracing.NewRegion("ui.Manager.Reserve").End()
 	man.pools.Reserve(additionalElements)
-	man.Host.ReserveEntities(additionalElements)
+	host := man.Host.Value()
+	debug.EnsureNotNil(host)
+	host.ReserveEntities(additionalElements)
 }

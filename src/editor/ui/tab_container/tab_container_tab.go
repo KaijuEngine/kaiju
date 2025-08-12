@@ -38,8 +38,9 @@
 package tab_container
 
 import (
-	"kaiju/engine/ui/markup/document"
+	"kaiju/debug"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/document"
 	"weak"
 )
 
@@ -60,9 +61,11 @@ func NewTab(content TabContent) TabContainerTab {
 func (t *TabContainerTab) DragUpdate() {}
 
 func (t *TabContainerTab) Reload(uiMan *ui.Manager, root *document.Element) {
-	t.parent.Value().host.CreatingEditorEntities()
+	host := t.parent.Value().host.Value()
+	debug.EnsureNotNil(host)
+	host.CreatingEditorEntities()
 	t.content.Reload(uiMan, root)
-	t.parent.Value().host.DoneCreatingEditorEntities()
+	host.DoneCreatingEditorEntities()
 }
 
 func (t *TabContainerTab) Destroy() { t.content.Destroy() }

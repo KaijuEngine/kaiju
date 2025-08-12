@@ -38,12 +38,13 @@
 package log_window
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"slices"
 	"strconv"
 	"strings"
@@ -301,7 +302,9 @@ func (l *LogWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	if l.doc != nil {
 		l.doc.Destroy()
 	}
-	frame := uiMan.Host.Frame()
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
+	frame := host.Frame()
 	if l.lastReload == frame {
 		return
 	}

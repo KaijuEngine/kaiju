@@ -40,19 +40,21 @@ package stages
 import (
 	"bytes"
 	"errors"
-	"kaiju/engine/assets/asset_importer"
-	"kaiju/engine/assets/asset_info"
+	"kaiju/debug"
 	"kaiju/editor/alert"
 	"kaiju/editor/editor_config"
 	"kaiju/editor/memento"
 	"kaiju/editor/ui/status_bar"
 	"kaiju/engine"
-	"kaiju/platform/filesystem"
-	"kaiju/klib"
+	"kaiju/engine/assets/asset_importer"
+	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/systems/stages"
+	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"weak"
 )
 
 var (
@@ -60,7 +62,7 @@ var (
 )
 
 type Manager struct {
-	host     *engine.Host
+	host     weak.Pointer[engine.Host]
 	registry *asset_importer.ImportRegistry
 	history  *memento.History
 	stage    string
@@ -69,7 +71,7 @@ type Manager struct {
 func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
 	history *memento.History) Manager {
 	return Manager{
-		host:     host,
+		host:     weak.Make(host),
 		registry: registry,
 		history:  history,
 	}
@@ -78,24 +80,30 @@ func NewManager(host *engine.Host, registry *asset_importer.ImportRegistry,
 func (m *Manager) StageName() string { return m.stage }
 
 func (m *Manager) confirmCheck() bool {
+	host := m.host.Value()
+	debug.EnsureNotNil(host)
 	return <-alert.New("Save Changes",
 		"You are changing stages, any unsaved changes will be lost. Are you sure you wish to continue?",
-		"Yes", "No", m.host)
+		"Yes", "No", host)
 }
 
 func (m *Manager) New() {
 	if !m.confirmCheck() {
 		return
 	}
+	host := m.host.Value()
+	debug.EnsureNotNil(host)
 	m.stage = ""
 	m.history.Clear()
-	m.host.ClearEntities()
+	host.ClearEntities()
 }
 
 func (m *Manager) saveInternal() error {
+	host := m.host.Value()
+	debug.EnsureNotNil(host)
 	if m.stage == "" {
 		name := <-alert.NewInput("Stage Name", "Name of stage...",
-			"", "Save", "Cancel", m.host)
+			"", "Save", "Cancel", host)
 		if name == "" {
 			return ErrorSaveCancelled
 		}
@@ -103,7 +111,7 @@ func (m *Manager) saveInternal() error {
 		if _, err := os.Stat(path); err == nil {
 			ok := <-alert.New("Overwrite stage?",
 				"The stage "+path+" already exists. Would you like to overwrite it?",
-				"Yes", "No", m.host)
+				"Yes", "No", host)
 			if !ok {
 				return ErrorSaveCancelled
 			}
@@ -111,7 +119,7 @@ func (m *Manager) saveInternal() error {
 		m.stage = path
 	}
 	stream := bytes.NewBuffer(make([]byte, 0))
-	all := m.host.Entities()
+	all := host.Entities()
 	roots := make([]*engine.Entity, 0, len(all))
 	for i := 0; i < len(all); i++ {
 		if all[i].IsRoot() {
@@ -152,8 +160,9 @@ func (m *Manager) Load(adi asset_info.AssetDatabaseInfo, host *engine.Host) erro
 	if !m.confirmCheck() {
 		return nil
 	}
+	debug.EnsureNotNil(host)
 	m.history.Clear()
-	m.host.ClearEntities()
+	host.ClearEntities()
 	m.stage = adi.Path
 	return stages.Load(adi, host)
 }

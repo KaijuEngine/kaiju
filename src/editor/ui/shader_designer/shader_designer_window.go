@@ -38,12 +38,13 @@
 package shader_designer
 
 import (
+	"kaiju/debug"
 	"kaiju/editor/ui/tab_container"
+	"kaiju/engine/systems/logging"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
 	"slices"
 )
 
@@ -200,7 +201,9 @@ func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
 		win.reloadMaterialDoc()
 		win.materialDoc.Activate()
 	}
-	win.man.Host.Window.Focus()
+	host := win.man.Host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.Focus()
 }
 
 func (win *ShaderDesigner) ShowDesignerWindow() {

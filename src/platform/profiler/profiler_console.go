@@ -302,7 +302,7 @@ func SetupConsole(host *engine.Host) {
 	c := console.For(host)
 	c.AddCommand("pprof", "Run profiler commands: 'mem' for heap, 'start/stop' for performance capture. View with 'web cpu', 'web mem', and end with 'web stop'", pprofCommands)
 	c.AddCommand("trace", "Run trace commands like 'start', 'stop'. After stopping gotraceui will automatically show", traceCommands)
-	c.Host().OnClose.Add(func() {
+	host.OnClose.Add(func() {
 		if c.HasData(pprofCtxDataKey) {
 			c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
 		}

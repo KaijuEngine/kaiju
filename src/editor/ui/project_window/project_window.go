@@ -43,10 +43,10 @@ import (
 	"kaiju/editor/project"
 	"kaiju/editor/ui/files_window"
 	"kaiju/engine/host_container"
-	"kaiju/klib"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/engine/ui"
+	"kaiju/klib"
 	"os"
 	"slices"
 )

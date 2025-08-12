@@ -38,13 +38,14 @@
 package markup
 
 import (
-	"log/slog"
 	"kaiju/build"
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
+	"log/slog"
 	"strings"
 	"weak"
 
@@ -88,35 +89,40 @@ func sizeTexts(doc *document.Document, host *engine.Host) {
 }
 
 func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
-	m, err := uiMan.Host.AssetDatabase().ReadText(htmlPath)
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
+	m, err := host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil)
 	if build.Debug {
 		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, uiMan.Host)
+			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
 		})
 	}
 	return doc, nil
 }
 
 func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error) {
-	m, err := uiMan.Host.AssetDatabase().ReadText(htmlPath)
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
+	m, err := host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root)
 	if build.Debug {
 		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, uiMan.Host)
+			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
 		})
 	}
 	return doc, nil
 }
 
 func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) *document.Document {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	doc := document.DocumentFromHTMLString(uiMan, html, withData, funcMap)
 	if root != nil {
 		for i := range doc.TopElements {

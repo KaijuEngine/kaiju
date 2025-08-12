@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
@@ -107,7 +108,8 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data := &inputData{}
 	input.elmData = data
 	p := input.Base().ToPanel()
-	host := p.man.Host
+	host := p.man.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, anchor, ElementTypeInput)
 	p.DontFitContent()
@@ -251,7 +253,9 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		strWidth = input.man.Host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
+		host := input.man.Host.Value()
+		debug.EnsureNotNil(host)
+		strWidth = host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
 }
@@ -422,13 +426,15 @@ func (input *Input) pointerPosWithin() int {
 	if len(ld.text) == 0 {
 		return 0
 	} else {
-		pos := (*UI)(input).cursorPos(&input.man.Host.Window.Cursor)
+		host := input.man.Host.Value()
+		debug.EnsureNotNil(host)
+		pos := (*UI)(input).cursorPos(&host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
-		return input.man.Host.FontCache().PointOffsetWithin(
+		return host.FontCache().PointOffsetWithin(
 			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
 	}
 }
@@ -506,11 +512,15 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	input.man.Host.Window.CursorIbeam()
+	host := input.man.Host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.CursorIbeam()
 }
 
 func (input *Input) onExit() {
-	input.man.Host.Window.CursorStandard()
+	host := input.man.Host.Value()
+	debug.EnsureNotNil(host)
+	host.Window.CursorStandard()
 }
 
 func (input *Input) onDown() {
@@ -635,7 +645,9 @@ func (input *Input) RemoveFocus() {
 		input.InputData().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		input.man.Host.Window.CursorStandard()
+		host := input.man.Host.Value()
+		debug.EnsureNotNil(host)
+		host.Window.CursorStandard()
 		if input.man != nil {
 			input.man.Group.setFocus(nil)
 		}
@@ -655,13 +667,15 @@ func (input *Input) SetCursorOffset(offset int) {
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
+	host := input.man.Host.Value()
+	debug.EnsureNotNil(host)
 	if input.entity.IsActive() && input.InputData().isActive {
 		if keyState == hid.KeyStateDown {
 			if keyId == hid.KeyboardKeyEscape {
 				input.RemoveFocus()
 				return
 			}
-			kb := &input.man.Host.Window.Keyboard
+			kb := &host.Window.Keyboard
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
@@ -697,7 +711,7 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.submit()
 				case hid.KeyboardKeyTab:
 					// Delay a frame so we don't hit a loop of going to next
-					input.man.Host.RunAfterFrames(1, func() {
+					host.RunAfterFrames(1, func() {
 						next := input.InputData().nextFocusInput
 						if next != nil {
 							next.Focus()

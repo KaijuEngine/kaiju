@@ -424,19 +424,20 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
 	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
-	if cache.textMaterial, err = caches.MaterialCache().Material("text3d"); err != nil {
+	mc := caches.MaterialCache()
+	if cache.textMaterial, err = mc.Material("text3d"); err != nil {
 		slog.Error("failed to load the text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterial, err = caches.MaterialCache().Material("text"); err != nil {
+	if cache.textOrthoMaterial, err = mc.Material("text"); err != nil {
 		slog.Error("failed to load the text material", "error", err)
 		return err
 	}
-	if cache.textMaterialTransparent, err = caches.MaterialCache().Material("text3d_transparent"); err != nil {
+	if cache.textMaterialTransparent, err = mc.Material("text3d_transparent"); err != nil {
 		slog.Error("failed to load the transparent text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterialTransparent, err = caches.MaterialCache().Material("text_transparent"); err != nil {
+	if cache.textOrthoMaterialTransparent, err = mc.Material("text_transparent"); err != nil {
 		slog.Error("failed to load the transparent text material", "error", err)
 		return err
 	}
@@ -721,5 +722,9 @@ func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matr
 }
 
 func (cache *FontCache) Destroy() {
-	// TODO:  Anything?
+	cache.textMaterial = nil
+	cache.textOrthoMaterial = nil
+	cache.textMaterialTransparent = nil
+	cache.textOrthoMaterialTransparent = nil
+	cache.fontFaces = make(map[string]fontBin)
 }

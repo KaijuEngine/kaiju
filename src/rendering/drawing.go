@@ -211,6 +211,7 @@ func (d *Drawings) Destroy(renderer Renderer) {
 			d.renderPassGroups[i].draws[j].Destroy(renderer)
 		}
 	}
+	d.backDraws = klib.WipeSlice(d.backDraws)
 	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
 }
 

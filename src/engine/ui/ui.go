@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/pooling"
 	"kaiju/engine/systems/events"
@@ -128,11 +129,13 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui, anchor)
-	rzId := ui.man.Host.Window.OnResize.Add(func() {
+	host := ui.man.Host.Value()
+	debug.EnsureNotNil(host)
+	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
 	})
 	ui.entity.OnDestroy.Add(func() {
-		ui.man.Host.Window.OnResize.Remove(rzId)
+		host.Window.OnResize.Remove(rzId)
 		ui.shaderData.Destroy()
 		ui.events[EventTypeDestroy].Execute()
 		ui.elmData = nil
@@ -144,11 +147,16 @@ func (ui *UI) Entity() *engine.Entity          { return &ui.entity }
 func (ui *UI) Layout() *Layout                 { return &ui.layout }
 func (ui *UI) hasScissor() bool                { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
 func (ui *UI) selfScissor() matrix.Vec4        { return ui.shaderData.Scissor }
-func (ui *UI) Host() *engine.Host              { return ui.man.Host }
 func (ui *UI) dirty() DirtyType                { return ui.dirtyType }
 func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
 func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
+
+func (ui *UI) Host() *engine.Host {
+	host := ui.man.Host.Value()
+	debug.EnsureNotNil(host)
+	return host
+}
 
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
 
@@ -316,15 +324,17 @@ func (ui *UI) requestEvent(evtType EventType) {
 
 func (ui *UI) eventUpdates() {
 	defer tracing.NewRegion("UI.eventUpdates").End()
-	cursor := &ui.man.Host.Window.Cursor
-	mouse := &ui.man.Host.Window.Mouse
+	host := ui.man.Host.Value()
+	debug.EnsureNotNil(host)
+	cursor := &host.Window.Cursor
+	mouse := &host.Window.Mouse
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
 		ui.containedCheck(cursor, &ui.entity)
 		if ui.isDown && !ui.drag {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
-			wmm, hmm, _ := ui.man.Host.Window.SizeMM()
+			wmm, hmm, _ := host.Window.SizeMM()
 			threshold := max(windowing.DPI2PX(w, wmm, 1), windowing.DPI2PX(h, hmm, 1))
 			if ui.downPos.Distance(pos) > float32(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
@@ -366,7 +376,7 @@ func (ui *UI) eventUpdates() {
 				ui.drag = false
 				ui.requestEvent(EventTypeDragEnd)
 				if ui.hovering && !dragged {
-					rt := ui.man.Host.Runtime()
+					rt := host.Runtime()
 					if rt-ui.lastClick < dblCLickTime && !ui.events[EventTypeDoubleClick].IsEmpty() {
 						ui.requestEvent(EventTypeDoubleClick)
 						ui.lastClick = 0
@@ -406,8 +416,10 @@ func (ui *UI) Update(deltaTime float64) {
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	defer tracing.NewRegion("UI.cursorPos").End()
 	pos := cursor.Position()
-	pos[matrix.Vx] -= matrix.Float(ui.man.Host.Window.Width()) * 0.5
-	pos[matrix.Vy] -= matrix.Float(ui.man.Host.Window.Height()) * 0.5
+	host := ui.man.Host.Value()
+	debug.EnsureNotNil(host)
+	pos[matrix.Vx] -= matrix.Float(host.Window.Width()) * 0.5
+	pos[matrix.Vy] -= matrix.Float(host.Window.Height()) * 0.5
 	return pos
 }
 

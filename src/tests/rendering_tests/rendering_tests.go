@@ -39,6 +39,7 @@ package tests
 
 import (
 	"fmt"
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
@@ -128,7 +129,8 @@ func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointe
 }
 
 func testDrawing(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	matKey := assets.MaterialDefinitionBasic
 	material, err := host.MaterialCache().Material(matKey)
 	if err != nil {
@@ -149,7 +151,8 @@ func testDrawing(uiMan *ui.Manager) {
 }
 
 func testTwoDrawings(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	positions := []matrix.Vec3{
 		{-1, 0.0, 0.0},
 		{1, 0.0, 0.0},
@@ -185,7 +188,8 @@ func testTwoDrawings(uiMan *ui.Manager) {
 }
 
 func testFont(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	drawings := host.FontCache().RenderMeshes(host, "Hello, World!",
 		0, float32(host.Window.Height())*0.5, 0, 64, float32(host.Window.Width()), matrix.ColorBlack(), matrix.ColorDarkBG(),
 		rendering.FontJustifyCenter, rendering.FontBaselineCenter,
@@ -194,7 +198,8 @@ func testFont(uiMan *ui.Manager) {
 }
 
 func testOIT(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	positions := []matrix.Vec3{
 		{-0.75, 0.0, -0.75},
 		{-0.5, 0.0, -0.5},
@@ -245,7 +250,8 @@ func testOIT(uiMan *ui.Manager) {
 }
 
 func testPanel(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p := uiMan.Add().ToPanel()
 	p.Init(tex, ui.AnchorBottomLeft, ui.ElementTypePanel)
@@ -261,7 +267,8 @@ func testLabel(uiMan *ui.Manager) {
 }
 
 func testButton(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	btn := uiMan.Add().ToButton()
 	btn.Init(tex, "Click me!", ui.AnchorCenter)
@@ -274,7 +281,8 @@ func testButton(uiMan *ui.Manager) {
 }
 
 func testHTML(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	events := map[string]func(*document.Element){
 		"playGame":     func(*document.Element) { slog.Info("Clicked playGame") },
 		"showSettings": func(*document.Element) { slog.Info("Clicked showSettings") },
@@ -286,7 +294,8 @@ func testHTML(uiMan *ui.Manager) {
 }
 
 func testHTMLBinding(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	demoData := struct {
 		EntityNames []string
 	}{
@@ -297,7 +306,8 @@ func testHTMLBinding(uiMan *ui.Manager) {
 }
 
 func testLayoutSimple(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	anchors := []ui.Anchor{
 		ui.AnchorBottomLeft,
@@ -323,7 +333,8 @@ func testLayoutSimple(uiMan *ui.Manager) {
 }
 
 func testLayout(uiMan *ui.Manager) {
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 
 	p1 := uiMan.Add().ToPanel()
@@ -376,7 +387,8 @@ func drawBasicMesh(host *engine.Host, res load_result.Result) {
 
 func testMonkeyOBJ(uiMan *ui.Manager) {
 	const monkeyObj = "meshes/monkey.obj"
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	monkeyData := klib.MustReturn(host.AssetDatabase().ReadText(monkeyObj))
 	res := loaders.OBJ(monkeyData)
@@ -389,7 +401,8 @@ func testMonkeyOBJ(uiMan *ui.Manager) {
 
 func testMonkeyGLTF(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.gltf"
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
@@ -401,7 +414,8 @@ func testMonkeyGLTF(uiMan *ui.Manager) {
 
 func testMonkeyGLB(uiMan *ui.Manager) {
 	const monkeyGLTF = "meshes/monkey.glb"
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	host.Camera.SetPosition(matrix.Vec3Backward().Scale(3))
 	res := klib.MustReturn(loaders.GLTF(monkeyGLTF, host.AssetDatabase()))
 	if !res.IsValid() || len(res.Meshes) != 1 {
@@ -413,7 +427,8 @@ func testMonkeyGLB(uiMan *ui.Manager) {
 
 func testAnimationGLTF(uiMan *ui.Manager) {
 	const animationGLTF = "editor/meshes/fox/Fox.gltf"
-	host := uiMan.Host
+	host := uiMan.Host.Value()
+	debug.EnsureNotNil(host)
 	host.Camera.SetPositionAndLookAt(matrix.Vec3{150, 25, 0}, matrix.Vec3{0, 25, 0})
 	//const animationGLTF = "editor/meshes/cube_animation.gltf"
 	//const animationGLTF = "editor/meshes/cube_animation_slow.gltf"
@@ -433,7 +448,7 @@ func testAnimationGLTF(uiMan *ui.Manager) {
 	entities := make([]*engine.Entity, len(res.Nodes))
 	boneTransforms := make([]BoneTransform, len(res.Joints))
 	for i := range res.Nodes {
-		entities[i] = engine.NewEntity(uiMan.Host.WorkGroup())
+		entities[i] = engine.NewEntity(host.WorkGroup())
 		entities[i].SetName(res.Nodes[i].Name)
 		entities[i].Transform = res.Nodes[i].Transform
 	}

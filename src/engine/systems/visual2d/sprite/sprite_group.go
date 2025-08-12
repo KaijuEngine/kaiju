@@ -1,9 +1,11 @@
 package sprite
 
 import (
+	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/klib"
 	"slices"
+	"weak"
 )
 
 type SpriteGroupId = int
@@ -14,14 +16,14 @@ type IndexedSprite struct {
 }
 
 type SpriteGroup struct {
-	host     *engine.Host
+	host     weak.Pointer[engine.Host]
 	nextId   int
 	index    []IndexedSprite
 	updateId int
 }
 
 func (g *SpriteGroup) Init(host *engine.Host) {
-	g.host = host
+	g.host = weak.Make(host)
 	host.Updater.AddUpdate(g.update)
 }
 
@@ -41,7 +43,9 @@ func (g *SpriteGroup) Find(id SpriteGroupId) *Sprite {
 func (g *SpriteGroup) Add(sprite Sprite) SpriteGroupId {
 	g.nextId++
 	if g.updateId > 0 {
-		g.host.Updater.RemoveUpdate(sprite.updateId)
+		host := g.host.Value()
+		debug.EnsureNotNil(host)
+		host.Updater.RemoveUpdate(sprite.updateId)
 	}
 	sprite.updateId = 0
 	entry := IndexedSprite{

@@ -38,6 +38,7 @@
 package ui
 
 import (
+	"kaiju/debug"
 	"kaiju/rendering"
 )
 
@@ -82,7 +83,9 @@ func (cb *Checkbox) Init(anchor Anchor) {
 	cb.elmData = ld
 	base := cb.Base()
 	p := base.ToPanel()
-	tc := p.man.Host.TextureCache()
+	host := p.man.Host.Value()
+	debug.EnsureNotNil(host)
+	tc := host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
 	ld.textures[texOffDown], _ = tc.Texture(

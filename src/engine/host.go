@@ -57,6 +57,7 @@ import (
 	"runtime"
 	"slices"
 	"time"
+	"weak"
 )
 
 // FrameId is a unique identifier for a frame
@@ -174,7 +175,8 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
 	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, &host.assetDatabase)
-	host.Window.OnResize.Add(host.resized)
+	w := weak.Make(host)
+	host.Window.OnResize.Add(func() { w.Value().resized() })
 	return nil
 }
 
@@ -431,7 +433,7 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
-		if host.Window.Renderer.ReadyFrame(host.Camera,
+		if host.Window.Renderer.ReadyFrame(host.Window, host.Camera,
 			host.UICamera, host.lights, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
 		}
@@ -477,13 +479,11 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 func (host *Host) Teardown() {
 	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
-	host.OnClose.Clear()
 	for i := range host.entities {
 		host.entities[i].Destroy()
 		for !host.entities[i].TickCleanup() {
 		}
 	}
-	host.entities = make([]*Entity, 0)
 	host.editorEntities.close()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
@@ -499,6 +499,7 @@ func (host *Host) Teardown() {
 	host.Window.Destroy()
 	host.threads.Stop()
 	host.CloseSignal <- struct{}{}
+	*host = Host{}
 	runtime.GC()
 }
 
