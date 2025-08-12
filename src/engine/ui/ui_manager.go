@@ -159,9 +159,11 @@ func (man *Manager) Clear() {
 func (man *Manager) Add() *UI {
 	defer tracing.NewRegion("ui.Manager.Add").End()
 	ui, poolId, elmId := man.pools.Add()
-	ui.poolId = poolId
-	ui.id = elmId
-	ui.man = man
+	*ui = UI{
+		poolId: poolId,
+		id:     elmId,
+		man:    man,
+	}
 	host := man.Host.Value()
 	debug.EnsureNotNil(host)
 	ui.entity.Init(host.WorkGroup())
@@ -173,7 +175,6 @@ func (man *Manager) Remove(ui *UI) {
 	defer tracing.NewRegion("ui.Manager.Remove").End()
 	id := ui.id
 	pid := ui.poolId
-	*ui = UI{}
 	man.pools.Remove(pid, id)
 }
 

@@ -82,7 +82,9 @@ func (t *Threads) work(sigIdx int) {
 		select {
 		case <-t.exitSig[sigIdx]:
 		case action := <-t.pipe:
-			action(sigIdx)
+			if action != nil {
+				action(sigIdx)
+			}
 		}
 	}
 }
