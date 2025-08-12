@@ -53,7 +53,6 @@ import (
 	"kaiju/editor/ui/viewport_overlay"
 	"kaiju/editor/viewport/controls"
 	"kaiju/editor/viewport/tools/transform_tools"
-	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/logging"
@@ -76,8 +75,7 @@ func addConsole(ed *Editor) {
 func setupEditorWindow(ed *Editor, logStream *logging.LogStream) {
 	ed.container = host_container.New("Kaiju Editor", logStream)
 	ed.container.Host.InitializeAudio()
-	editor_window.OpenWindow(ed,
-		engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	editor_window.OpenWindow(ed, 1280, 720, -1, -1)
 	ed.RunOnHost(func() { addConsole(ed) })
 }
 
