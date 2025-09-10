@@ -17,14 +17,12 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
   - Mine is `C:\mingw64\bin`
 - Pull the repository
 - To build the exe, run `go run build/build.go`
-  - Make sure to use the Kaiju Engine Go compiler
 
 ## Linux development
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
 - To build the exe, run `go run build/build.go`
-  - Make sure to use the Kaiju Engine Go compiler
 
 ## Issues with SoLoud audio library linking?
 If you are having trouble linking with the soloud library (`libs/libsoloud_*.a`), then you'll need to rebuild the library files to link against. It is likely that you're using a different compiler than the original (and it's a C++ library). Below are the instructions on how to build the library. Once built, copy the library `.a` file into the `libs/` folder and overwrite the existing ones.
