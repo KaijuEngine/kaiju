@@ -10,6 +10,16 @@
 			<div class="nameRow">
 				<div>{{.Name}}</div>
 			</div>
+			<div class="tags">
+				<div class="tagList">
+					{{range $i, $t := .Tags}}
+					<input group="tags" class="removableDataInput" type="text" value="{{$t}}" placeholder="Tag..." />
+					<button data-idx="{{$i}}" class="removeDataInputButton" onclick="removeTag">-</button>
+					<br />
+					{{end}}
+				</div>
+				<button onclick="addTag">Add tag</button>
+			</div>
 			<div class="dataTable">
 				{{range $i, $v := .Fields}}
 				<div class="dataEntry">

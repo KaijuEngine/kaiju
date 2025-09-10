@@ -50,6 +50,7 @@ import (
 	"reflect"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -65,6 +66,7 @@ type ContentDetails struct {
 type contentDetailsData struct {
 	Name   string
 	Count  int
+	Tags   *[]string
 	Fields []contentDataField
 }
 
@@ -101,8 +103,9 @@ func (d *ContentDetails) SetADIs(adis []asset_info.AssetDatabaseInfo) {
 		a := &adis[0]
 		d.viewData.Name = strings.TrimSuffix(filepath.Base(a.Path), filepath.Ext(a.Path))
 		d.viewData.Fields = pullADIFields(a)
+		d.viewData.Tags = &a.Tags
 	}
-	d.editor.ReloadTabs(d.TabTitle())
+	d.softReload()
 }
 
 func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
@@ -149,6 +152,8 @@ func (d *ContentDetails) Reload(uiMan *ui.Manager, root *document.Element) {
 		map[string]func(*document.Element){
 			"changeData": d.changeData,
 			"save":       d.save,
+			"addTag":     d.addTag,
+			"removeTag":  d.removeTag,
 		}, root))
 	host.DoneCreatingEditorEntities()
 	d.doc.Clean()
@@ -221,8 +226,40 @@ func (d *ContentDetails) save(*document.Element) {
 	d.saveAdis()
 }
 
+func (d *ContentDetails) addTag(*document.Element) {
+	*d.viewData.Tags = append(d.listTags(), "")
+	d.editor.ReloadTabs(d.TabTitle())
+}
+
+func (d *ContentDetails) removeTag(elm *document.Element) {
+	idxStr := elm.Attribute("data-idx")
+	*d.viewData.Tags = d.listTags()
+	if idx, err := strconv.Atoi(idxStr); err == nil {
+		*d.viewData.Tags = slices.Delete(*d.viewData.Tags, idx, idx+1)
+	}
+	d.editor.ReloadTabs(d.TabTitle())
+}
+
+func (d *ContentDetails) softReload() {
+	if d.doc != nil {
+		*d.viewData.Tags = d.listTags()
+	}
+	d.editor.ReloadTabs(d.TabTitle())
+}
+
+func (d *ContentDetails) listTags() []string {
+	tagInputs := d.doc.GetElementsByGroup("tags")
+	tags := make([]string, len(tagInputs))
+	for i := range tagInputs {
+		tags[i] = tagInputs[i].UI.ToInput().Text()
+	}
+	return tags
+}
+
 func (d *ContentDetails) saveAdis() {
+	tags := d.listTags()
 	for i := range d.adis {
+		d.adis[i].Tags = tags
 		if err := asset_info.Write(d.adis[i]); err != nil {
 			slog.Error("failed to update the asset database info",
 				"asset", d.adis[i].Path, "error", err)

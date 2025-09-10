@@ -43,6 +43,7 @@ import (
 	"kaiju/platform/filesystem"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -177,6 +178,11 @@ func writeIndexes(info AssetDatabaseInfo) error {
 
 func Write(adi AssetDatabaseInfo) error {
 	adiFile := toADI(adi.Path)
+	for i := range adi.Tags {
+		if strings.TrimSpace(adi.Tags[i]) == "" {
+			adi.Tags = slices.Delete(adi.Tags, i, i+1)
+		}
+	}
 	src, err := json.Marshal(adi)
 	if err != nil {
 		return err
