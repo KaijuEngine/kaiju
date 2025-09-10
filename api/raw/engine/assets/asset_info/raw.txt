@@ -1,0 +1,118 @@
+package asset_info // import "."
+
+
+CONSTANTS
+
+const (
+	InfoExtension = ".adi"
+	ProjectCache  = ".cache"
+)
+
+VARIABLES
+
+var (
+	ImageMetaOptions = map[string]any{
+		"imageFilterOptions": imageFilterOptions,
+		"imagePivot":         imagePivot,
+		"imageMaxSize":       imageMaxSize,
+	}
+)
+var (
+	ErrNoInfo = errors.New("asset database does not have info for this file")
+)
+
+FUNCTIONS
+
+func Exists(path string) bool
+    Exists checks to see if a given path has a generated ADI file. The file it
+    searches for will be path/to/file.ext.adi
+
+func ID(path string) (string, error)
+    ID returns the ID of the asset within it's ADI file, if the ADI file is not
+    found, the read error is returned
+
+func InitForCurrentProject() error
+func Move(info AssetDatabaseInfo, newPath string) error
+func RegisterMetadataStructure(typeExtension string, metadata any) bool
+func Write(adi AssetDatabaseInfo) error
+
+TYPES
+
+type AssetDatabaseInfo struct {
+	ID       string
+	Path     string
+	Type     string
+	ParentID string
+	Tags     []string
+	Children []AssetDatabaseInfo
+	Metadata AssetMetadata
+}
+
+func Lookup(id string) (AssetDatabaseInfo, error)
+    Lookup will find any asset given it's id (path). This has no information for
+    importers, so it will populate the metadata with a non-castable interface
+
+func New(path string, id string) AssetDatabaseInfo
+
+func Read(path string) (AssetDatabaseInfo, error)
+    Read will read the ADI file for the given path and return the
+    AssetDatabaseInfo struct. Possible errors are:
+
+    [-] ErrNoInfo: if the file does not exist [-] json.Unmarshal error: if the
+    file is corrupted [-] filesystem.ReadTextFile error: if the file cannot be
+    read
+
+func (a *AssetDatabaseInfo) MetadataStructure() any
+
+func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo
+
+type AssetMetadata struct {
+	HTML           HtmlMetadata
+	Image          ImageMetadata
+	Material       MaterialMetadata
+	Mesh           MeshMetadata
+	RenderPass     RenderPassMetadata
+	Shader         ShaderMetadata
+	ShaderPipeline ShaderPipelineMetadata
+	Stage          StageMetadata
+}
+    Rather than using interfaces, doing casting, and all that nonsense,
+    we're just going to have a flat structure for asset metadata that is easy to
+    access, easy to fill out, and easy to write. Since this is offline from the
+    game, there is no need to try and abstract this out.
+
+type HtmlMetadata struct{}
+
+type ImageMetadata struct {
+	Filter        string `options:"imageFilterOptions"`
+	Pivot         string `options:"imagePivot"`
+	PixelsPerUnit int32
+	Mipmaps       int32
+
+	// TODO:  This needs to be used for packaging the content
+	MaxSize string `options:"imageMaxSize"`
+}
+
+func NewDefaultImageMetadata() ImageMetadata
+
+func (m *ImageMetadata) ImageFilterMeta() rendering.TextureFilter
+
+func (m *ImageMetadata) ImagePivotMeta() rendering.QuadPivot
+
+func (m *ImageMetadata) MaxSizeMeta() int32
+
+type MaterialMetadata struct{}
+
+type MeshMetadata struct {
+	Name     string
+	Material string
+}
+
+type RenderPassMetadata struct{}
+
+type ShaderMetadata struct{}
+
+type ShaderPipelineMetadata struct{}
+
+type StageMetadata struct{}
+

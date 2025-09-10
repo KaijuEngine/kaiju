@@ -1,0 +1,96 @@
+package asset_importer // import "."
+
+
+VARIABLES
+
+var (
+	ErrNoImporter = errors.New("no importer found for file")
+)
+
+TYPES
+
+type GlbImporter struct{}
+
+func (m GlbImporter) Handles(path string) bool
+
+func (m GlbImporter) Import(path string) error
+
+type GltfImporter struct{}
+
+func (m GltfImporter) Handles(path string) bool
+
+func (m GltfImporter) Import(path string) error
+
+type HtmlImporter struct{}
+
+func (m HtmlImporter) Handles(path string) bool
+
+func (m HtmlImporter) Import(path string) error
+
+type ImportRegistry struct {
+	// Has unexported fields.
+}
+
+func NewImportRegistry() ImportRegistry
+
+func (r *ImportRegistry) Import(path string) error
+
+func (r *ImportRegistry) ImportIfNew(path string) error
+
+func (r *ImportRegistry) ImportUsingDefault(path string) error
+
+func (r *ImportRegistry) Register(importer Importer)
+
+type ImportType = string
+
+type Importer interface {
+	Handles(path string) bool
+	Import(path string) error
+}
+    Importer is an interface for importing assets into the asset database.
+    It is used to allow for custom importers to be added to the system to handle
+    new asset types. Handles should return true if the importer can handle the
+    given path. Import should import the asset into the asset database.
+
+type MaterialImporter struct{}
+
+func (m MaterialImporter) Handles(path string) bool
+
+func (m MaterialImporter) Import(path string) error
+
+type ObjImporter struct{}
+
+func (m ObjImporter) Handles(path string) bool
+
+func (m ObjImporter) Import(path string) error
+
+type PngImporter struct{}
+
+func (m PngImporter) Handles(path string) bool
+
+func (m PngImporter) Import(path string) error
+
+type RenderPassImporter struct{}
+
+func (m RenderPassImporter) Handles(path string) bool
+
+func (m RenderPassImporter) Import(path string) error
+
+type ShaderImporter struct{}
+
+func (m ShaderImporter) Handles(path string) bool
+
+func (m ShaderImporter) Import(path string) error
+
+type ShaderPipelineImporter struct{}
+
+func (m ShaderPipelineImporter) Handles(path string) bool
+
+func (m ShaderPipelineImporter) Import(path string) error
+
+type StageImporter struct{}
+
+func (m StageImporter) Handles(path string) bool
+
+func (m StageImporter) Import(path string) error
+

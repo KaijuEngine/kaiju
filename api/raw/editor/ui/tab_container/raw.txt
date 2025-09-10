@@ -1,0 +1,60 @@
+package tab_container // import "."
+
+
+CONSTANTS
+
+const (
+	SnapCenter = Snap("center")
+	SnapLeft   = Snap("left")
+	SnapTop    = Snap("top")
+	SnapRight  = Snap("right")
+	SnapBottom = Snap("bottom")
+)
+
+TYPES
+
+type Snap = string
+
+type TabContainer struct {
+	Tabs []TabContainerTab
+	Snap string
+
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, uiMan *ui.Manager, tabs []TabContainerTab, snap string) *TabContainer
+
+func NewWindow(title string, x, y int, tabs []TabContainerTab, logStream *logging.LogStream) *TabContainer
+
+func (t *TabContainer) DragUpdate()
+
+func (t *TabContainer) Hide()
+
+func (t *TabContainer) ReloadTabs(name string, forceOpen bool) bool
+
+func (t *TabContainer) Show()
+
+func (t *TabContainer) Toggle()
+
+type TabContainerTab struct {
+	Id    string
+	Label string
+
+	// Has unexported fields.
+}
+
+func NewTab(content TabContent) TabContainerTab
+
+func (t *TabContainerTab) Destroy()
+
+func (t *TabContainerTab) DragUpdate()
+
+func (t *TabContainerTab) Reload(uiMan *ui.Manager, root *document.Element)
+
+type TabContent interface {
+	TabTitle() string
+	Document() *document.Document
+	Reload(uiMan *ui.Manager, root *document.Element)
+	Destroy()
+}
+
