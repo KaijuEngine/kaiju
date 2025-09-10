@@ -39,9 +39,9 @@ package steam
 
 /*
 #cgo CXXFLAGS: -std=c++11
-#cgo windows LDFLAGS: -LC:/Users/brent/Documents/git/ShieldCrush/libs -lsteam_api64 -lstdc++
-#cgo steamdeck LDFLAGS: -L/home/deck/git/ShieldCrush/libs -lsteam_api -lstdc++ -Wl,-rpath=/home/deck/git/ShieldCrush/libs
-#cgo linux LDFLAGS: -L/media/brent/Popeye/git/ShieldCrush/libs -lsteam_api -lstdc++ -Wl,-rpath=/media/brent/Popeye/git/ShieldCrush/libs
+#cgo windows LDFLAGS: -L../../../libs -lsteam_api64 -lstdc++
+#cgo steamdeck LDFLAGS: -L../../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../../libs
+#cgo linux LDFLAGS: -L../../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../../libs
 #include "steam_wrapper.h"
 
 #cgo noescape   c_SteamAPI_Init
