@@ -14,16 +14,16 @@ func RegisterMetadataStructure(typeExtension string, metadata any) bool {
 }
 
 func init() {
-	RegisterMetadataStructure("png", ImageMetadata{})
-	RegisterMetadataStructure("glb", MeshMetadata{})
-	RegisterMetadataStructure("gltf", MeshMetadata{})
-	RegisterMetadataStructure("obj", MeshMetadata{})
-	RegisterMetadataStructure("html", HtmlMetadata{})
-	RegisterMetadataStructure("material", MaterialMetadata{})
-	RegisterMetadataStructure("renderpass", RenderPassMetadata{})
-	RegisterMetadataStructure("shader", ShaderMetadata{})
-	RegisterMetadataStructure("shaderpipeline", ShaderPipelineMetadata{})
-	RegisterMetadataStructure("stage", StageMetadata{})
+	RegisterMetadataStructure("png", &ImageMetadata{})
+	RegisterMetadataStructure("glb", &MeshMetadata{})
+	RegisterMetadataStructure("gltf", &MeshMetadata{})
+	RegisterMetadataStructure("obj", &MeshMetadata{})
+	RegisterMetadataStructure("html", &HtmlMetadata{})
+	RegisterMetadataStructure("material", &MaterialMetadata{})
+	RegisterMetadataStructure("renderpass", &RenderPassMetadata{})
+	RegisterMetadataStructure("shader", &ShaderMetadata{})
+	RegisterMetadataStructure("shaderpipeline", &ShaderPipelineMetadata{})
+	RegisterMetadataStructure("stage", &StageMetadata{})
 }
 
 // Rather than using interfaces, doing casting, and all that nonsense, we're
