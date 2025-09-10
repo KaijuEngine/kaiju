@@ -38,18 +38,12 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 )
 
 type StageImporter struct{}
-
-type StageMetadata struct{}
-
-func (m StageImporter) MetadataStructure() any {
-	return &StageMetadata{}
-}
 
 func (m StageImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionStage

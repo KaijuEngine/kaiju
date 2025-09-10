@@ -38,11 +38,10 @@
 package content_opener
 
 import (
-	"kaiju/engine/assets/asset_importer"
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/cache/project_cache"
-	"kaiju/engine/collision"
 	"kaiju/engine"
+	"kaiju/engine/assets/asset_info"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
@@ -51,7 +50,7 @@ func loadMesh(host *engine.Host, adi asset_info.AssetDatabaseInfo, e *engine.Ent
 	var err error
 	var data rendering.DrawInstance
 	var material *rendering.Material
-	meta := adi.Metadata.(*asset_importer.MeshMetadata)
+	meta := &adi.Metadata.Mesh
 	if meta.Material != "" {
 		if material, err = host.MaterialCache().Material(meta.Material); err != nil {
 			return err

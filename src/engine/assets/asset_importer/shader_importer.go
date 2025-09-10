@@ -38,18 +38,12 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 )
 
 type ShaderImporter struct{}
-
-type ShaderMetadata struct{}
-
-func (m ShaderImporter) MetadataStructure() any {
-	return &ShaderMetadata{}
-}
 
 func (m ShaderImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionShader

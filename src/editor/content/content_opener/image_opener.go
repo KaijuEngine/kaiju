@@ -44,7 +44,6 @@ import (
 	"kaiju/editor/editor_interface"
 	"kaiju/engine"
 	"kaiju/engine/assets"
-	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/collision"
 	"kaiju/engine/systems/console"
@@ -63,7 +62,7 @@ func (o ImageOpener) Handles(adi asset_info.AssetDatabaseInfo) bool {
 func (o ImageOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.Editor) error {
 	console.For(ed.Host()).Write("Opening an image")
 	host := ed.Host()
-	meta := adi.Metadata.(*asset_importer.ImageMetadata)
+	meta := &adi.Metadata.Image
 	texture, err := host.TextureCache().Texture(adi.Path, meta.ImageFilterMeta())
 	if err != nil {
 		return errors.New("failed to load the texture " + adi.Path)

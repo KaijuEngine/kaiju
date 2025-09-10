@@ -38,18 +38,12 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 )
 
 type HtmlImporter struct{}
-
-type HtmlMetadata struct{}
-
-func (m HtmlImporter) MetadataStructure() any {
-	return &HtmlMetadata{}
-}
 
 func (m HtmlImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionHTML

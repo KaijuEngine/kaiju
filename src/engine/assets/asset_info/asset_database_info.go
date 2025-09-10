@@ -60,8 +60,9 @@ type AssetDatabaseInfo struct {
 	Path     string
 	Type     string
 	ParentID string
+	Tags     []string
 	Children []AssetDatabaseInfo
-	Metadata any
+	Metadata AssetMetadata
 }
 
 func InitForCurrentProject() error {
@@ -80,8 +81,8 @@ func toADI(path string) string {
 	return path + InfoExtension
 }
 
-// Exists checks to see if a given path has a generated ADI file
-// the file it searches for will be path/to/file.ext.adi
+// Exists checks to see if a given path has a generated ADI file.
+// The file it searches for will be path/to/file.ext.adi
 func Exists(path string) bool {
 	s, err := os.Stat(toADI(path))
 	return err == nil && !s.IsDir()
@@ -89,15 +90,12 @@ func Exists(path string) bool {
 
 func New(path string, id string) AssetDatabaseInfo {
 	if Exists(path) {
-		return AssetDatabaseInfo{
-			Children: make([]AssetDatabaseInfo, 0),
-		}
+		return AssetDatabaseInfo{}
 	}
 	return AssetDatabaseInfo{
-		ID:       id,
-		Path:     path,
-		Type:     strings.TrimPrefix(filepath.Ext(path), "."),
-		Children: make([]AssetDatabaseInfo, 0),
+		ID:   id,
+		Path: path,
+		Type: strings.TrimPrefix(filepath.Ext(path), "."),
 	}
 }
 
@@ -107,7 +105,6 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 		Path:     a.Path,
 		Type:     a.Type,
 		ParentID: a.ID,
-		Children: make([]AssetDatabaseInfo, 0),
 	}
 }
 
@@ -117,10 +114,8 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 // [-] ErrNoInfo: if the file does not exist
 // [-] json.Unmarshal error: if the file is corrupted
 // [-] filesystem.ReadTextFile error: if the file cannot be read
-func Read(path string, metadataFactory func() any) (AssetDatabaseInfo, error) {
-	adi := AssetDatabaseInfo{
-		Metadata: metadataFactory(),
-	}
+func Read(path string) (AssetDatabaseInfo, error) {
+	adi := AssetDatabaseInfo{}
 	if !Exists(path) {
 		return adi, ErrNoInfo
 	}
@@ -134,14 +129,6 @@ func Read(path string, metadataFactory func() any) (AssetDatabaseInfo, error) {
 	}
 	if adi.Children == nil {
 		adi.Children = make([]AssetDatabaseInfo, 0)
-	} else {
-		// TODO:  Silly solution, fix later. The gist is that the children
-		// need their Metadata to adopt the type of the supplied metadata
-		for i := range adi.Children {
-			tmp, _ := json.Marshal(adi.Children[i].Metadata)
-			adi.Children[i].Metadata = metadataFactory()
-			json.Unmarshal(tmp, adi.Children[i].Metadata)
-		}
 	}
 	return adi, nil
 }
@@ -154,7 +141,7 @@ func Lookup(id string) (AssetDatabaseInfo, error) {
 	if err != nil {
 		return AssetDatabaseInfo{}, err
 	}
-	adi, err := Read(src, nil)
+	adi, err := Read(src)
 	if err == nil {
 		if adi.ID != id {
 			for i := range adi.Children {
@@ -207,7 +194,7 @@ func Move(info AssetDatabaseInfo, newPath string) error {
 // ID returns the ID of the asset within it's ADI file, if
 // the ADI file is not found, the read error is returned
 func ID(path string) (string, error) {
-	aid, err := Read(path, nil)
+	aid, err := Read(path)
 	if err != nil {
 		return "", err
 	}

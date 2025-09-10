@@ -38,18 +38,12 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 )
 
 type RenderPassImporter struct{}
-
-type RenderPassMetadata struct{}
-
-func (m RenderPassImporter) MetadataStructure() any {
-	return &RenderPassMetadata{}
-}
 
 func (m RenderPassImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionRenderPass

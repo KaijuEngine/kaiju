@@ -48,10 +48,6 @@ import (
 
 type ObjImporter struct{}
 
-func (m ObjImporter) MetadataStructure() any {
-	return &MeshMetadata{}
-}
-
 func (m ObjImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionObj
 }
@@ -59,7 +55,6 @@ func (m ObjImporter) Handles(path string) bool {
 func cleanupOBJ(adi asset_info.AssetDatabaseInfo) {
 	project_cache.DeleteMesh(adi)
 	adi.Children = adi.Children[:0]
-	adi.Metadata = nil
 }
 
 func (m ObjImporter) Import(path string) error {

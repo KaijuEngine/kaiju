@@ -42,7 +42,6 @@ import (
 	"kaiju/editor/editor_config"
 	"kaiju/editor/editor_interface"
 	"kaiju/engine"
-	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/collision"
 )
@@ -59,8 +58,7 @@ func (o GltfOpener) Open(adi asset_info.AssetDatabaseInfo, ed editor_interface.E
 	e.GenerateId()
 	e.Transform.SetPosition(ed.Camera().LookAtPoint())
 	host.AddEntity(e)
-	meta := adi.Metadata.(*asset_importer.MeshMetadata)
-	e.SetName(meta.Name)
+	e.SetName(adi.Metadata.Mesh.Name)
 	bvh := collision.NewBVH()
 	bvh.Transform = &e.Transform
 	for i := range adi.Children {

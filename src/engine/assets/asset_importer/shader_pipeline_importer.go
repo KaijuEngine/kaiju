@@ -38,18 +38,12 @@
 package asset_importer
 
 import (
-	"kaiju/engine/assets/asset_info"
 	"kaiju/editor/editor_config"
+	"kaiju/engine/assets/asset_info"
 	"path/filepath"
 )
 
 type ShaderPipelineImporter struct{}
-
-type ShaderPipelineMetadata struct{}
-
-func (m ShaderPipelineImporter) MetadataStructure() any {
-	return &ShaderPipelineMetadata{}
-}
 
 func (m ShaderPipelineImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionShaderPipeline

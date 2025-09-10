@@ -38,18 +38,14 @@
 package asset_importer
 
 import (
+	"kaiju/editor/editor_config"
 	"kaiju/engine/assets"
 	"kaiju/engine/assets/asset_info"
-	"kaiju/editor/editor_config"
 	"kaiju/rendering/loaders"
 	"path/filepath"
 )
 
 type GltfImporter struct{}
-
-func (m GltfImporter) MetadataStructure() any {
-	return &MeshMetadata{}
-}
 
 func (m GltfImporter) Handles(path string) bool {
 	return filepath.Ext(path) == editor_config.FileExtensionGltf

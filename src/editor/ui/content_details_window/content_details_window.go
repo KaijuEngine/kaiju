@@ -40,7 +40,6 @@ package content_details_window
 import (
 	"kaiju/editor/editor_interface"
 	"kaiju/editor/ui/details_common"
-	"kaiju/engine/assets/asset_importer"
 	"kaiju/engine/assets/asset_info"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -107,10 +106,11 @@ func (d *ContentDetails) SetADIs(adis []asset_info.AssetDatabaseInfo) {
 }
 
 func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
-	if adi.Metadata == nil {
+	structure := adi.MetadataStructure()
+	if structure == nil {
 		return []contentDataField{}
 	}
-	v := reflect.ValueOf(adi.Metadata).Elem()
+	v := reflect.ValueOf(structure).Elem()
 	t := v.Type()
 	fields := make([]contentDataField, 0, t.NumField())
 	for i := range t.NumField() {
@@ -122,7 +122,7 @@ func pullADIFields(adi *asset_info.AssetDatabaseInfo) []contentDataField {
 			Field: vf,
 		}
 		if op, ok := f.Tag.Lookup("options"); ok && op != "" {
-			if v, ok := asset_importer.MetaOptions[op]; ok {
+			if v, ok := asset_info.ImageMetaOptions[op]; ok {
 				keys := reflect.ValueOf(v).MapKeys()
 				field.Options = make([]string, len(keys))
 				for i := range keys {
@@ -158,8 +158,7 @@ func (d *ContentDetails) contentSelected() {
 	paths := d.editor.Events().OnContentSelect.Content
 	adis := []asset_info.AssetDatabaseInfo{}
 	for i := range paths {
-		metaFactory := func() any { return d.editor.ImportRegistry().MetadataStructure(paths[i]) }
-		a, err := asset_info.Read(paths[i], metaFactory)
+		a, err := asset_info.Read(paths[i])
 		if err != nil {
 			slog.Warn("failed to open the asset database info for file", "path", paths[i], "error", err)
 			continue

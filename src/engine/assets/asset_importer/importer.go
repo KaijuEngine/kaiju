@@ -53,7 +53,6 @@ import (
 type Importer interface {
 	Handles(path string) bool
 	Import(path string) error
-	MetadataStructure() any
 }
 
 type ImportRegistry struct {
@@ -93,19 +92,6 @@ func (r *ImportRegistry) Import(path string) error {
 	return ErrNoImporter
 }
 
-func (r *ImportRegistry) MetadataStructure(path string) any {
-	if filepath.Ext(path) == asset_info.InfoExtension {
-		return nil
-	}
-	// We go back to front so devs can override default importers
-	for i := len(r.importers) - 1; i >= 0; i-- {
-		if r.importers[i].Handles(path) {
-			return r.importers[i].MetadataStructure()
-		}
-	}
-	return nil
-}
-
 func (r *ImportRegistry) ImportUsingDefault(path string) error {
 	for i := range r.importers {
 		if r.importers[i].Handles(path) {
@@ -116,7 +102,7 @@ func (r *ImportRegistry) ImportUsingDefault(path string) error {
 }
 
 func createADI(importer Importer, path string, cleanup func(adi asset_info.AssetDatabaseInfo)) (asset_info.AssetDatabaseInfo, error) {
-	adi, err := asset_info.Read(path, func() any { return importer.MetadataStructure() })
+	adi, err := asset_info.Read(path)
 	if errors.Is(err, asset_info.ErrNoInfo) {
 		adi = asset_info.New(path, uuid.New().String())
 		err = nil

@@ -90,8 +90,7 @@ func (o *Opener) OpenPath(path string, ed editor_interface.Editor) error {
 			return err
 		}
 	}
-	metaFactory := func() any { return o.importer.MetadataStructure(path) }
-	if adi, err := asset_info.Read(path, metaFactory); err != nil {
+	if adi, err := asset_info.Read(path); err != nil {
 		return err
 	} else {
 		return o.Open(adi, ed)
