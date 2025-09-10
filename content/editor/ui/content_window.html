@@ -1,16 +1,3 @@
-{{define "folderTree"}}
-	{{range .}}
-		<div class="folderEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}">
-			{{range count .Depth}}
-				<span class="indent"></span>
-			{{end}}
-			<img class="folderImg" src="editor/textures/icons/folder-small.png" />
-			<span>{{.Name}}</span>
-		</div>
-		{{template "folderTree" .Children}}
-	{{end}}
-{{end}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -21,26 +8,19 @@
 		<div class="searchInput">
 			<input id="searchInput" type="text" placeholder="Search..." value="{{.SearchText}}" onchange="updateSearch" onsubmit="updateSearch" />
 		</div>
-		<div class="folderPanel">
-			<div id="folderListing" class="listing">
-				{{template "folderTree" .DirTree}}
-			</div>
-		</div>
 		<div class="entriesPanel">
 			<div id="listing" class="listing">
-				{{if not .IsRoot}}
-				<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="../">
-					<img class="listImg" src="editor/textures/icons/folder.png" />
-					<span>..</span>
-				</div>
+				{{if and (not .Dir) (not .SearchText)}}
+					{{range .TypeFilters}}
+					<div class="listEntry" data-filter="{{.Filter}}" onclick="filterByType">
+						<img class="listImg" src="{{.Texture}}" />
+						<span>Filter by: {{.Label}}</span>
+					</div>
+					{{end}}
 				{{end}}
 				{{range .Dir}}
-				<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" {{if not .IsDir}}onrightclick="entryCtxMenu" ondragstart="entryDragStart"{{end}}>
-					{{if .IsDir}}
-						<img class="listImg" src="editor/textures/icons/folder.png" />
-					{{else}}
-						<img class="listImg" src="editor/textures/icons/file.png" />
-					{{end}}
+				<div class="listEntry" onclick="contentClick" ondblclick="contentDblClick" data-path="{{.Path}}" onrightclick="entryCtxMenu" ondragstart="entryDragStart">
+					<img class="listImg" src="editor/textures/icons/file.png" />
 					<span>{{.Name}}</span>
 				</div>
 				{{end}}

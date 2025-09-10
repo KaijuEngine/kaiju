@@ -58,7 +58,16 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+)
+
+type searchType = int
+
+const (
+	searchTypeQuery = searchType(iota)
+	searchTypeType
+	searchTypeTagGroup
 )
 
 const (
@@ -70,11 +79,16 @@ type contentEntry struct {
 	Path     string
 	Name     string
 	Children []contentEntry
-	IsDir    bool
 }
 
 func (c contentEntry) Depth() int {
 	return strings.Count(c.Path, "/") + strings.Count(c.Path, "\\")
+}
+
+type contentWindowFilter struct {
+	Label   string
+	Texture string
+	Filter  string
 }
 
 type ContentWindow struct {
@@ -84,6 +98,7 @@ type ContentWindow struct {
 	editor        editor_interface.Editor
 	DirTree       []contentEntry
 	Dir           []contentEntry
+	TypeFilters   []contentWindowFilter
 	path          string
 	SearchText    string
 	Query         string
@@ -112,6 +127,17 @@ func New(opener *content_opener.Opener, editor editor_interface.Editor) *Content
 		opener:  opener,
 		path:    contentPath,
 		editor:  editor,
+		// TODO:  Setup the different textures for each filter
+		TypeFilters: []contentWindowFilter{
+			{Label: "Stage", Texture: "editor/textures/icons/file.png", Filter: "t:stage"},
+			{Label: "Mesh", Texture: "editor/textures/icons/file.png", Filter: "t:mesh"},
+			{Label: "HTML", Texture: "editor/textures/icons/file.png", Filter: "t:html"},
+			{Label: "Image", Texture: "editor/textures/icons/file.png", Filter: "t:image"},
+			{Label: "Material", Texture: "editor/textures/icons/file.png", Filter: "t:material"},
+			{Label: "Shader", Texture: "editor/textures/icons/file.png", Filter: "t:shader"},
+			{Label: "Shader Pipeline", Texture: "editor/textures/icons/file.png", Filter: "t:shaderpipeline"},
+			{Label: "Render Pass", Texture: "editor/textures/icons/file.png", Filter: "t:renderpass"},
+		},
 	}
 	s.funcMap["openContent"] = s.openContent
 	s.funcMap["contentClick"] = s.contentClick
@@ -119,6 +145,7 @@ func New(opener *content_opener.Opener, editor editor_interface.Editor) *Content
 	s.funcMap["entryCtxMenu"] = s.entryCtxMenu
 	s.funcMap["updateSearch"] = s.updateSearch
 	s.funcMap["entryDragStart"] = s.entryDragStart
+	s.funcMap["filterByType"] = s.filterByType
 	editor.Host().OnClose.Add(func() {
 		if s.doc != nil {
 			s.doc.Destroy()
@@ -241,70 +268,64 @@ func (s *ContentWindow) Reload(uiMan *ui.Manager, root *document.Element) {
 	}
 }
 
-func (s *ContentWindow) listSearch() {
+func (s *ContentWindow) list() {
 	s.Dir = s.Dir[:0]
+	if s.Query == "" {
+		return
+	}
+	searchType := searchTypeQuery
+	query := s.Query
+	if strings.HasPrefix(s.Query, "t:") {
+		query = strings.TrimPrefix(s.Query, "t:")
+		searchType = searchTypeType
+	} else if strings.HasPrefix(s.Query, "g:") {
+		query = strings.TrimPrefix(s.Query, "g:")
+		searchType = searchTypeTagGroup
+	}
 	filepath.Walk(contentPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			slog.Error(err.Error())
 			return nil
 		}
-		if filepath.Ext(info.Name()) == asset_info.InfoExtension {
+		if info.IsDir() {
 			return nil
 		}
-		name := strings.ToLower(info.Name())
-		if strings.Contains(name, s.Query) {
-			s.Dir = append(s.Dir, contentEntry{
-				Path:  path,
-				Name:  info.Name(),
-				IsDir: info.IsDir(),
-			})
-		}
-		return nil
-	})
-}
-
-func (s *ContentWindow) listAll() {
-	dir, err := os.ReadDir(s.path)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-	s.Dir = make([]contentEntry, 0, len(dir))
-	for i := range dir {
-		if filepath.Ext(dir[i].Name()) != asset_info.InfoExtension {
-			s.Dir = append(s.Dir, contentEntry{
-				Path:  filepath.Join(s.path, dir[i].Name()),
-				Name:  dir[i].Name(),
-				IsDir: dir[i].IsDir(),
-			})
-		}
-	}
-}
-
-func (s *ContentWindow) list() {
-	if s.Query != "" {
-		s.listSearch()
-	} else {
-		s.listAll()
-	}
-	s.DirTree = s.DirTree[:0]
-	parentMap := map[string]*contentEntry{}
-	filepath.Walk(contentPath, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
-			self := contentEntry{
-				Path:     path,
-				Name:     info.Name(),
-				IsDir:    true,
-				Children: make([]contentEntry, 0),
+		if filepath.Ext(info.Name()) == asset_info.InfoExtension {
+			if searchType == searchTypeQuery {
+				return nil
 			}
-			parent := filepath.Dir(path)
-			if parent == "." {
-				s.DirTree = append(s.DirTree, self)
-				parentMap[path] = &s.DirTree[len(s.DirTree)-1]
-			} else {
-				p := parentMap[parent]
-				p.Children = append(p.Children, self)
-				parentMap[path] = &p.Children[len(p.Children)-1]
+			// TODO:  This is very slow, use a in-memory database instead
+			adi, err := asset_info.Read(path)
+			if err != nil {
+				return err
+			}
+			match := false
+			switch searchType {
+			case searchTypeType:
+				switch query {
+				case "mesh":
+					match = adi.Type == editor_config.AssetTypeGlb ||
+						adi.Type == editor_config.AssetTypeGltf ||
+						adi.Type == editor_config.AssetTypeObj
+				default:
+					match = adi.Type == query
+				}
+			case searchTypeTagGroup:
+				match = slices.Contains(adi.Tags, query)
+			}
+			if match {
+				s.Dir = append(s.Dir, contentEntry{
+					Path: adi.Path,
+					Name: strings.TrimSuffix(info.Name(), asset_info.InfoExtension),
+				})
+			}
+		} else if query == "" {
+			name := strings.ToLower(info.Name())
+			if strings.Contains(name, s.Query) {
+				s.Dir = append(s.Dir, contentEntry{
+					Path: path,
+					Name: info.Name(),
+				})
 			}
 		}
 		return nil
@@ -360,4 +381,9 @@ func (s *ContentWindow) entryDragStart(elm *document.Element) {
 		windowing.OnDragStop.Remove(eid)
 		elm.UnEnforceColor()
 	})
+}
+
+func (s *ContentWindow) filterByType(elm *document.Element) {
+	filter := elm.Attribute("data-filter")
+	s.input.SetText(filter)
 }

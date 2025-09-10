@@ -81,6 +81,10 @@ func toADI(path string) string {
 	return path + InfoExtension
 }
 
+func isADI(path string) bool {
+	return strings.HasSuffix(path, InfoExtension)
+}
+
 // Exists checks to see if a given path has a generated ADI file.
 // The file it searches for will be path/to/file.ext.adi
 func Exists(path string) bool {
@@ -116,10 +120,13 @@ func (a *AssetDatabaseInfo) SpawnChild(id string) AssetDatabaseInfo {
 // [-] filesystem.ReadTextFile error: if the file cannot be read
 func Read(path string) (AssetDatabaseInfo, error) {
 	adi := AssetDatabaseInfo{}
-	if !Exists(path) {
+	if !isADI(path) && !Exists(path) {
 		return adi, ErrNoInfo
 	}
-	adiFile := toADI(path)
+	adiFile := path
+	if !isADI(path) {
+		adiFile = toADI(path)
+	}
 	src, err := filesystem.ReadTextFile(adiFile)
 	if err != nil {
 		return adi, err
