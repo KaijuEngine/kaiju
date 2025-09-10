@@ -38,8 +38,8 @@
 package audio
 
 /*
-#cgo windows LDFLAGS: -LC:/Users/brent/Documents/git/ShieldCrush/libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
-#cgo linux LDFLAGS: -L/home/deck/git/ShieldCrush/libs -lsoloud_nix -lasound -lstdc++
+#cgo windows LDFLAGS: -L../../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
+#cgo linux LDFLAGS: -L../../../libs -lsoloud_nix -lasound -lstdc++
 #include <stdlib.h>
 #include "soloud_c.h"
 */

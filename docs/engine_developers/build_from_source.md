@@ -26,6 +26,31 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 - To build the exe, run `go run build/build.go`
   - Make sure to use the Kaiju Engine Go compiler
 
+## Issues with SoLoud audio library linking?
+If you are having trouble linking with the soloud library (`libs/libsoloud_*.a`), then you'll need to rebuild the library files to link against. It is likely that you're using a different compiler than the original (and it's a C++ library). Below are the instructions on how to build the library. Once built, copy the library `.a` file into the `libs/` folder and overwrite the existing ones.
+
+**Windows**
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud
+cd contrib
+mkdir build
+cd build
+cmake .. -G "MinGW Makefiles" .. -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_WASAPI=ON -DSOLOUD_C_API=ON
+cmake --build . --config Release
+```
+
+**Linux**
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud
+cd contrib
+mkdir build
+cd build
+cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON -DSOLOUD_C_API=ON
+cmake --build . --config Release
+```
+
 ## Building content
 The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
 ```bash
