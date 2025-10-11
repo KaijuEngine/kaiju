@@ -1,4 +1,6 @@
 body {
+	width: 100%;
+	height: 100%;
 	color: black;
 }
 a:link {
@@ -95,6 +97,9 @@ dl {
 }
 dt {
 	display: block;
+}
+span {
+	overflow: visible;
 }
 em {
 	font-style: italic;
@@ -398,12 +403,12 @@ button {
 	text-align: center;
 	vertical-align: middle;
 	overflow: hidden;
-	background-color: #373737;
-	background-image: url("textures/button-idle.png");
+	background-color: #581E0A;
+	background-image: url("sudoku/textures/button-idle.png");
 }
 button:hover {
-	background-color: #555555;
-	background-image: url("textures/button-hover.png");
+	background-color: #76280D;
+	background-image: url("sudoku/textures/button-hover.png");
 }
 button:active {
 	padding: 1px 5px 9px 5px;

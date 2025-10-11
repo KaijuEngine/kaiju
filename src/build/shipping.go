@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* shipping.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,10 +35,9 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build shipping
+//go:build !debug
 
 package build
 
 const Debug = false
-const Test = false
 const Shipping = true

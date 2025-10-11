@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* input.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
@@ -108,8 +107,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data := &inputData{}
 	input.elmData = data
 	p := input.Base().ToPanel()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, anchor, ElementTypeInput)
 	p.DontFitContent()
@@ -121,14 +119,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
 	data.label.LabelData().wordWrap = false
-	data.label.layout.ClearFunctions()
 	data.label.layout.SetPositioning(PositioningAbsolute)
-	data.label.layout.AddFunction(func(l *Layout) {
-		l.SetOffset(horizontalPadding+input.InputData().labelShift, 0)
-		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
-		ps := pLayout.PixelSize()
-		l.ScaleWidth(ps.Width())
-	})
 
 	// Placeholder
 	data.placeholder = input.man.Add().ToLabel()
@@ -137,14 +128,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
 	data.placeholder.LabelData().wordWrap = false
-	data.placeholder.layout.ClearFunctions()
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
-	data.placeholder.layout.AddFunction(func(l *Layout) {
-		l.SetOffset(horizontalPadding, 0)
-		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
-		ps := pLayout.PixelSize()
-		l.ScaleWidth(ps.Width())
-	})
 
 	// Create the cursor
 	data.cursor = input.man.Add().ToPanel()
@@ -153,10 +137,6 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
 	p.AddChild((*UI)(data.cursor))
-	data.cursor.layout.AddFunction(func(l *Layout) {
-		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
-		l.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
-	})
 
 	// Create the highlight
 	data.highlight = input.man.Add().ToPanel()
@@ -184,6 +164,25 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 	input.entity.OnDeactivate.Add(input.deactivated)
 	input.entity.OnActivate.Add(input.activated)
 	input.hideCursor()
+}
+
+func (input *Input) onLayoutUpdating() {
+	data := input.elmData.(*inputData)
+
+	// Label
+	ll := &data.label.layout
+	ll.SetOffset(horizontalPadding+data.labelShift, 0)
+	pLayout := FirstOnEntity(ll.Ui().Entity().Parent).Layout()
+	ps := pLayout.PixelSize()
+	ll.ScaleWidth(ps.Width())
+
+	// Placeholder
+	pl := &data.placeholder.layout
+	pl.SetOffset(horizontalPadding, 0)
+	pl.ScaleWidth(ps.Width())
+
+	// Cursor
+	data.cursor.layout.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
 }
 
 func (input *Input) showCursor() {
@@ -253,8 +252,7 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		host := input.man.Host.Value()
-		debug.EnsureNotNil(host)
+		host := input.man.Host
 		strWidth = host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
@@ -426,8 +424,7 @@ func (input *Input) pointerPosWithin() int {
 	if len(ld.text) == 0 {
 		return 0
 	} else {
-		host := input.man.Host.Value()
-		debug.EnsureNotNil(host)
+		host := input.man.Host
 		pos := (*UI)(input).cursorPos(&host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
@@ -512,14 +509,12 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	host := input.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := input.man.Host
 	host.Window.CursorIbeam()
 }
 
 func (input *Input) onExit() {
-	host := input.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := input.man.Host
 	host.Window.CursorStandard()
 }
 
@@ -645,8 +640,7 @@ func (input *Input) RemoveFocus() {
 		input.InputData().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		host := input.man.Host.Value()
-		debug.EnsureNotNil(host)
+		host := input.man.Host
 		host.Window.CursorStandard()
 		if input.man != nil {
 			input.man.Group.setFocus(nil)
@@ -667,8 +661,7 @@ func (input *Input) SetCursorOffset(offset int) {
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
-	host := input.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := input.man.Host
 	if input.entity.IsActive() && input.InputData().isActive {
 		if keyState == hid.KeyStateDown {
 			if keyId == hid.KeyboardKeyEscape {

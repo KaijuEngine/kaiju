@@ -1,11 +1,11 @@
 //go:build windows || darwin || (linux && !android)
 
 /******************************************************************************/
-/* vulkan.desktop.go                                                         */
+/* vulkan.desktop.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */

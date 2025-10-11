@@ -3,9 +3,9 @@
 /******************************************************************************/
 /* window.win32.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -68,6 +68,8 @@ import (
 #cgo noescape window_poll
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
+#cgo noescape window_lock_cursor
+#cgo noescape window_unlock_cursor
 #cgo noescape window_set_fullscreen
 #cgo noescape window_set_windowed
 #cgo noescape window_enable_raw_mouse
@@ -209,6 +211,14 @@ func (w *Window) showCursor() {
 
 func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
+}
+
+func (w *Window) lockCursor(x, y int) {
+	C.window_lock_cursor(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) unlockCursor() {
+	C.window_unlock_cursor(w.handle)
 }
 
 func (w *Window) setFullscreen() {

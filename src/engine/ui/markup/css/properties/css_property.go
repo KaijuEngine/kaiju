@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_property.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,18 +38,14 @@
 package properties
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 )
 
-type Property interface {
-	Key() string
-	Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error
+func init() {
+	document.LinkedPropertyMap = PropertyMap
 }
 
-var PropertyMap = map[string]Property{
+var PropertyMap = map[string]document.CSSProperty{
 	"accent-color":                AccentColor{},
 	"align-content":               AlignContent{},
 	"align-items":                 AlignItems{},

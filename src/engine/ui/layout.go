@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* layout.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -194,20 +194,8 @@ type Layout struct {
 	margin           matrix.Vec4
 	inset            matrix.Vec4
 	positioning      Positioning
-	functions        LayoutFunctions
-	runningFuncs     bool
-}
-
-func (l *Layout) AddFunction(fn func(layout *Layout)) LayoutFuncId {
-	return l.functions.Add(fn)
-}
-
-func (l *Layout) RemoveFunction(id LayoutFuncId) {
-	l.functions.Remove(id)
-}
-
-func (l *Layout) ClearFunctions() {
-	l.functions.Clear()
+	Stylizer         LayoutStylizer
+	runningStylizer  bool
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -376,12 +364,21 @@ func layoutStretch(self *Layout) {
 }
 
 func (l *Layout) prepare() {
-	if l.runningFuncs {
-		return
+	switch l.ui.elmType {
+	case ElementTypeInput:
+		l.runningStylizer = true
+		l.ui.ToInput().onLayoutUpdating()
+		l.runningStylizer = false
+	case ElementTypeSlider:
+		l.runningStylizer = true
+		l.ui.ToSlider().onLayoutUpdating()
+		l.runningStylizer = false
 	}
-	l.runningFuncs = true
-	l.functions.Execute(l)
-	l.runningFuncs = false
+	if !l.runningStylizer && l.Stylizer != nil {
+		l.runningStylizer = true
+		l.Stylizer.ProcessStyle(l)
+		l.runningStylizer = false
+	}
 }
 
 func (l *Layout) bounds() matrix.Vec2 {
@@ -416,10 +413,11 @@ func (l *Layout) SetOffset(x, y float32) {
 }
 
 func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
-	if matrix.Vec4ApproxTo(l.innerOffset, matrix.Vec4{left, top, right, bottom}, fractionOfPixel) {
+	io := matrix.Vec4{left, top, right, bottom}
+	if matrix.Vec4ApproxTo(l.innerOffset, io, fractionOfPixel) {
 		return
 	}
-	l.innerOffset = matrix.Vec4{left, top, right, bottom}
+	l.innerOffset = io
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
@@ -577,21 +575,31 @@ func (l *Layout) Stretch() matrix.Vec4 {
 }
 
 func (l *Layout) SetBorder(left, top, right, bottom float32) {
-	l.border = matrix.Vec4{left, top, right, bottom}
+	b := matrix.Vec4{left, top, right, bottom}
+	if matrix.Vec4ApproxTo(l.border, b, fractionOfPixel) {
+		return
+	}
+	l.border = b
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (l *Layout) SetPadding(left, top, right, bottom float32) {
-	lastPad := l.padding
-	l.padding = matrix.Vec4{left, top, right, bottom}
+	newPadding := matrix.Vec4{left, top, right, bottom}
+	if matrix.Vec4ApproxTo(l.padding, newPadding, fractionOfPixel) {
+		return
+	}
 	ps := l.PixelSize()
-	l.Scale(ps.Width()-lastPad.X()-lastPad.Z(),
-		ps.Height()-lastPad.Y()-lastPad.W())
+	l.padding = newPadding
+	l.Scale(ps.Width()+newPadding.Horizontal(), ps.Height()+newPadding.Vertical())
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
 func (l *Layout) SetMargin(left, top, right, bottom float32) {
-	l.margin = matrix.Vec4{left, top, right, bottom}
+	m := matrix.Vec4{left, top, right, bottom}
+	if matrix.Vec4ApproxTo(m, l.margin, fractionOfPixel) {
+		return
+	}
+	l.margin = m
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
@@ -601,49 +609,50 @@ func (l *Layout) AnchorTo(anchorPosition Anchor) {
 	}
 	var lfn func(*Layout) = nil
 	var afn func(*Layout, float32, float32, matrix.Vec2) matrix.Vec4 = nil
-	if anchorPosition == AnchorTopLeft {
+	switch anchorPosition {
+	case AnchorTopLeft:
 		afn = anchorTopLeft
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorTopCenter {
+	case AnchorTopCenter:
 		afn = anchorTopCenter
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorTopRight {
+	case AnchorTopRight:
 		afn = anchorTopRight
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorLeft {
+	case AnchorLeft:
 		afn = anchorLeft
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorCenter {
+	case AnchorCenter:
 		afn = anchorCenter
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorRight {
+	case AnchorRight:
 		afn = anchorRight
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorBottomLeft {
+	case AnchorBottomLeft:
 		afn = anchorBottomLeft
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorBottomCenter {
+	case AnchorBottomCenter:
 		afn = anchorBottomCenter
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorBottomRight {
+	case AnchorBottomRight:
 		afn = anchorBottomRight
 		lfn = layoutFloating
-	} else if anchorPosition == AnchorStretchLeft {
+	case AnchorStretchLeft:
 		afn = anchorStretchLeft
 		lfn = layoutStretch
-	} else if anchorPosition == AnchorStretchTop {
+	case AnchorStretchTop:
 		afn = anchorStretchTop
 		lfn = layoutStretch
-	} else if anchorPosition == AnchorStretchRight {
+	case AnchorStretchRight:
 		afn = anchorStretchRight
 		lfn = layoutStretch
-	} else if anchorPosition == AnchorStretchBottom {
+	case AnchorStretchBottom:
 		afn = anchorStretchBottom
 		lfn = layoutStretch
-	} else if anchorPosition == AnchorStretchCenter {
+	case AnchorStretchCenter:
 		afn = anchorStretchCenter
 		lfn = layoutStretch
-	} else {
+	default:
 		slog.Error("Invalid anchor position")
 		afn = anchorTopLeft
 		lfn = layoutFloating
@@ -671,8 +680,10 @@ func (l *Layout) SetZ(z float32) {
 }
 
 func (l *Layout) SetPositioning(pos Positioning) {
-	l.positioning = pos
-	l.ui.SetDirty(DirtyTypeLayout)
+	if l.positioning != pos {
+		l.positioning = pos
+		l.ui.SetDirty(DirtyTypeLayout)
+	}
 }
 
 func (l *Layout) ContentSize() (float32, float32) {

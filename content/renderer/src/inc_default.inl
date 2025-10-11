@@ -1,12 +1,19 @@
-#define NR_LIGHTS		4
-#define MAX_LIGHTS		20
-#define CUBEMAP_SIDES	6
-#define PI              3.14159265359
+#define NR_LIGHTS			4
+#define MAX_LIGHTS			20
+#define MAX_POINT_SHADOWS	50
+#define CUBEMAP_SIDES		6
+#define PI              	3.14159265359
 
 struct Light {
 	mat4 matrix[CUBEMAP_SIDES];
 	vec3 position;
 	vec3 direction;
+};
+
+struct PointShadow {
+	vec2 point; // X,Z
+	float radius;
+	float strength;
 };
 
 struct LightInfo {
@@ -36,6 +43,8 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	vec3 uiCameraPosition;
 	vec2 screenSize;
 	float time;
+	PointShadow staticShadows[MAX_POINT_SHADOWS];
+	PointShadow dynamicShadows[MAX_POINT_SHADOWS];
 	Light vertLights[MAX_LIGHTS];
 	LightInfo lightInfos[MAX_LIGHTS];
 };

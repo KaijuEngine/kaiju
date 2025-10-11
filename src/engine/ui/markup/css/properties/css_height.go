@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_height.go                                                              */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -57,29 +57,27 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		height = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
+		l := panel.Base().Layout()
 		if strings.HasSuffix(values[0].Str, "%") {
-			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-				if l.Ui().Entity().IsRoot() {
-					return
-				}
-				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-				s := pLayout.PixelSize().Y()
-				pPad := pLayout.Padding()
-				s -= pPad.Y() + pPad.W()
-				// Subtracting local padding because it's added in final scale
-				p := l.Padding()
-				h := s*height - p.Y() - p.W()
-				l.ScaleHeight(h)
-			})
+			if l.Ui().Entity().IsRoot() {
+				l.ScaleHeight(float32(host.Window.Height()) * height)
+				return nil
+			}
+			pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+			s := pLayout.PixelSize().Y()
+			pPad := pLayout.Padding()
+			s -= pPad.Y() + pPad.W()
+			// Subtracting local padding because it's added in final scale
+			p := l.Padding()
+			h := s*height - p.Y() - p.W()
+			l.ScaleHeight(h)
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {
-				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-					val := values[0]
-					val.Args = append(val.Args, "height")
-					res, _ := functions.Calc{}.Process(panel, elm, val)
-					height = helpers.NumFromLength(res, host.Window)
-					l.ScaleHeight(height)
-				})
+				val := values[0]
+				val.Args = append(val.Args, "height")
+				res, _ := functions.Calc{}.Process(panel, elm, val)
+				height = helpers.NumFromLength(res, host.Window)
+				l.ScaleHeight(height)
 			}
 		} else {
 			panel.Base().Layout().ScaleHeight(height)

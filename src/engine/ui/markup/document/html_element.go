@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* html_element.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -41,7 +41,6 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/matrix"
 	"slices"
 	"strings"
@@ -60,7 +59,7 @@ type Element struct {
 	Parent     weak.Pointer[Element]
 	Children   []*Element
 	attrMap    map[string]*html.Attribute
-	StyleRules []rules.Rule
+	Stylizer   ElementLayoutStylizer
 	UIEventIds [ui.EventTypeEnd][]events.Id
 }
 
@@ -200,7 +199,7 @@ func (e *Element) setParents(parent *Element) {
 }
 
 func toElement(node *html.Node) *Element {
-	elm := Element{
+	elm := &Element{
 		Type:      node.Type,
 		Data:      node.Data,
 		namespace: node.Namespace,
@@ -208,13 +207,14 @@ func toElement(node *html.Node) *Element {
 		attrMap:   make(map[string]*html.Attribute),
 		Children:  make([]*Element, 0),
 	}
+	elm.Stylizer = ElementLayoutStylizer{element: weak.Make(elm)}
 	elm.recacheAttrs()
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
 		if len(strings.TrimSpace(c.Data)) > 0 {
 			elm.Children = append(elm.Children, toElement(c))
 		}
 	}
-	return &elm
+	return elm
 }
 
 func (e *Element) Root() *Element {
@@ -304,9 +304,9 @@ func (e *Element) Clone(parent *Element) *Element {
 		Data:      e.Data,
 		namespace: e.namespace,
 	}
+	elm.Stylizer = e.Stylizer.clone(elm)
 	elm.attr = append(elm.attr, e.attr...)
 	elm.recacheAttrs()
-	elm.StyleRules = slices.Clone(e.StyleRules)
 	for i := range e.UIEventIds {
 		elm.UIEventIds[i] = make([]events.Id, 0, len(e.UIEventIds[i]))
 	}

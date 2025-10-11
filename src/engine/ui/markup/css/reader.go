@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* reader.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,12 +38,11 @@
 package css
 
 import (
-	"kaiju/engine"
 	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/properties"
 	"kaiju/engine/ui/markup/css/pseudos"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/windowing"
 	"slices"
 )
 
@@ -56,96 +55,25 @@ func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
 	m[elm] = append(m[elm], rule...)
 }
 
-func ApplyElementStyle(elm *document.Element, host *engine.Host) []error {
-	panel := elm.UIPanel
-	hasHover := false
-	hasActive := false
-	for i := 0; i < len(elm.StyleRules); i++ {
-		hasHover = hasHover || elm.StyleRules[i].Invocation == rules.RuleInvokeHover
-		hasActive = hasActive || elm.StyleRules[i].Invocation == rules.RuleInvokeActive
-	}
-	proc := func(invokeType rules.RuleInvoke) []error {
-		problems := make([]error, 0)
-		for i := range elm.StyleRules {
-			rule := &elm.StyleRules[i]
-			if p, ok := properties.PropertyMap[rule.Property]; ok {
-				if rule.Invocation == invokeType {
-					if err := p.Process(panel, elm, rule.Values, host); err != nil {
-						problems = append(problems, err)
-					}
-				}
-			}
-		}
-		return problems
-	}
-	problems := proc(rules.RuleInvokeImmediate)
-	if hasHover {
-		enterId := elm.UI.AddEvent(ui.EventTypeEnter, func() {
-			elm.UI.Layout().ClearFunctions()
-			proc(rules.RuleInvokeImmediate)
-			proc(rules.RuleInvokeHover)
-		})
-		exitId := elm.UI.AddEvent(ui.EventTypeExit, func() {
-			elm.UI.Layout().ClearFunctions()
-			proc(rules.RuleInvokeImmediate)
-		})
-		elm.UIEventIds[ui.EventTypeEnter] = append(elm.UIEventIds[ui.EventTypeEnter], enterId)
-		elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], exitId)
-	}
-	if hasActive {
-		enterId := elm.UI.AddEvent(ui.EventTypeEnter, func() {
-			if elm.UI.IsDown() {
-				elm.UI.Layout().ClearFunctions()
-				proc(rules.RuleInvokeImmediate)
-				proc(rules.RuleInvokeActive)
-			}
-		})
-		downId := elm.UI.AddEvent(ui.EventTypeDown, func() {
-			elm.UI.Layout().ClearFunctions()
-			proc(rules.RuleInvokeImmediate)
-			proc(rules.RuleInvokeActive)
-		})
-		upId := elm.UI.AddEvent(ui.EventTypeUp, func() {
-			elm.UI.Layout().ClearFunctions()
-			proc(rules.RuleInvokeImmediate)
-		})
-		exitId := elm.UI.AddEvent(ui.EventTypeExit, func() {
-			elm.UI.Layout().ClearFunctions()
-			proc(rules.RuleInvokeImmediate)
-		})
-		elm.UIEventIds[ui.EventTypeEnter] = append(elm.UIEventIds[ui.EventTypeEnter], enterId)
-		elm.UIEventIds[ui.EventTypeDown] = append(elm.UIEventIds[ui.EventTypeDown], downId)
-		elm.UIEventIds[ui.EventTypeUp] = append(elm.UIEventIds[ui.EventTypeUp], upId)
-		elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], exitId)
-	}
-	//if len(problems) > 0 {
-	//	slog.Error("There were errors during processing the document", "count", len(problems))
-	//	for i := range problems {
-	//		slog.Error(problems[i].Error())
-	//	}
-	//}
-	return problems
-}
-
-func applyToElement(inRules []rules.Rule, elm *document.Element, host *engine.Host) []error {
-	elm.StyleRules = make([]rules.Rule, len(inRules))
+func applyToElement(inRules []rules.Rule, elm *document.Element) {
 	for i := range inRules {
-		elm.StyleRules[i] = inRules[i].Clone()
+		elm.Stylizer.AddRule(inRules[i].Clone())
 	}
-	return ApplyElementStyle(elm, host)
+	elm.UI.Layout().Stylizer = &elm.Stylizer
+	elm.UI.SetDirty(ui.DirtyTypeGenerated)
 }
 
-func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule, host *engine.Host) {
+func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule) {
 	for i := range doc.Elements {
 		// TODO:  Make sure this is applying in order from parent to child
 		// Since this array is intrinsically ordered, it should be fine
 		if rules, ok := cssMap[doc.Elements[i].UI]; ok {
-			applyToElement(rules, doc.Elements[i], host)
+			applyToElement(rules, doc.Elements[i])
 		}
 	}
 }
 
-func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, host *engine.Host, cssMap CSSMap) {
+func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
 	switch part.SelectType {
 	case rules.ReadingId:
 		if elm, ok := doc.GetElementById(part.Name); ok {
@@ -162,7 +90,7 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 	}
 }
 
-func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, host *engine.Host, cssMap CSSMap) {
+func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
 	elms := make([]*document.Element, 0)
 	switch parts[0].SelectType {
 	case rules.ReadingId:
@@ -216,12 +144,14 @@ func cleanMapDuplicates(cssMap CSSMap) {
 	}
 }
 
-type Stylizer struct{}
+type Stylizer struct {
+	Window *windowing.Window
+}
 
-func (_ Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document, host *engine.Host) {
+func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 	for i := range doc.Elements {
 		e := doc.Elements[i]
-		e.UI.Layout().ClearFunctions()
+		e.Stylizer.ClearRules()
 		for j := range e.UIEventIds {
 			for k := range e.UIEventIds[j] {
 				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
@@ -232,18 +162,18 @@ func (_ Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document, host *
 	for _, group := range s.Groups {
 		for _, sel := range group.Selectors {
 			if len(sel.Parts) == 1 {
-				applyDirect(sel.Parts[0], group.Rules, doc, host, cssMap)
+				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)
 			} else if len(sel.Parts) > 1 {
-				applyIndirect(sel.Parts, group.Rules, doc, host, cssMap)
+				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
 			}
 		}
 	}
 	cleanMapDuplicates(cssMap)
-	applyMappings(doc, cssMap, host)
+	applyMappings(doc, cssMap)
 	for _, elm := range doc.Elements {
 		if inlineStyle := elm.Attribute("style"); inlineStyle != "" {
-			group := s.ParseInline(inlineStyle)
-			applyToElement(group.Rules, elm, host)
+			group := s.ParseInline(inlineStyle, z.Window)
+			applyToElement(group.Rules, elm)
 		}
 	}
 }

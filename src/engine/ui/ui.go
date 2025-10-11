@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* ui.go                                                                      */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/pooling"
 	"kaiju/engine/systems/events"
@@ -129,8 +128,7 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui, anchor)
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := ui.man.Host
 	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
 	})
@@ -153,9 +151,7 @@ func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
 
 func (ui *UI) Host() *engine.Host {
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
-	return host
+	return ui.man.Host
 }
 
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
@@ -324,8 +320,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 
 func (ui *UI) eventUpdates() {
 	defer tracing.NewRegion("UI.eventUpdates").End()
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := ui.man.Host
 	cursor := &host.Window.Cursor
 	mouse := &host.Window.Mouse
 	if cursor.Moved() {
@@ -416,8 +411,7 @@ func (ui *UI) Update(deltaTime float64) {
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	defer tracing.NewRegion("UI.cursorPos").End()
 	pos := cursor.Position()
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := ui.man.Host
 	pos[matrix.Vx] -= matrix.Float(host.Window.Width()) * 0.5
 	pos[matrix.Vy] -= matrix.Float(host.Window.Height()) * 0.5
 	return pos

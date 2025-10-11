@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* renderer.vk.go                                                            */
+/* renderer.vk.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -185,7 +185,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	return sets, vr.descriptorPools[poolIdx], nil
 }
 
-func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) {
+func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) {
 	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
 	camOrtho := matrix.Float(0)
 	if camera.IsOrthographic() {
@@ -204,10 +204,18 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			matrix.Float(vr.swapChainExtent.Height),
 		},
 	}
+	for i := range min(len(staticShadows), len(ubo.StaticShadows)) {
+		ubo.StaticShadows[i] = staticShadows[i]
+	}
+	for i := range min(len(dynamicShadows), len(ubo.DynamicShadows)) {
+		ubo.DynamicShadows[i] = dynamicShadows[i]
+	}
 	for i := range lights {
-		lights[i].recalculate(nil)
-		ubo.VertLights[i] = lights[i].transformToGPULight()
-		ubo.LightInfos[i] = lights[i].transformToGPULightInfo()
+		if lights[i].IsValid() {
+			lights[i].recalculate(nil)
+			ubo.VertLights[i] = lights[i].transformToGPULight()
+			ubo.LightInfos[i] = lights[i].transformToGPULightInfo()
+		}
 	}
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
@@ -393,7 +401,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
 	return true
 }
 
-func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) bool {
+func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
 		vr.remakeSwapChain(window)
@@ -420,7 +428,7 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 	inlTrace.End()
 	vk.ResetFences(vr.device, 1, &fences[0])
 	vr.bufferTrash.Cycle()
-	vr.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
+	vr.updateGlobalUniformBuffer(camera, uiCamera, lights, staticShadows, dynamicShadows, runtime)
 	for _, r := range vr.preRuns {
 		r()
 	}

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* vk_render_pass.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -42,7 +42,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"runtime"
 	"weak"
 
 	"kaiju/engine/assets"
@@ -167,9 +166,6 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 			renderPassInfo.PClearValues = &clearColors[0]
 		}
 		r.cmd[r.frame].Begin()
-		if renderPassInfo.Framebuffer == vk.NullFramebuffer {
-			runtime.Breakpoint()
-		}
 		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vk.SubpassContentsSecondaryCommandBuffers)
 		r.cmdSecondary[r.frame].Begin(viewport, scissor)
 	} else {

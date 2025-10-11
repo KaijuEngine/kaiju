@@ -1,11 +1,11 @@
 //go:build windows
 
 /******************************************************************************/
-/* directory.win.go                                                          */
+/* directory.win.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -48,9 +48,8 @@ package filesystem
 import "C"
 
 import (
-	"errors"
 	"fmt"
-	"kaiju/klib"
+	"kaiju/build"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -67,13 +66,11 @@ func imageDirectory() (string, error) {
 }
 
 func gameDirectory() (string, error) {
-	klib.NotYetImplemented(318)
-	return "", errors.New("not yet implemented")
-	//appdata, err := os.UserConfigDir()
-	//if err != nil {
-	//	return "", err
-	//}
-	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+	appdata, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.AsFilePathString()), nil
 }
 
 func openFileBrowserCommand(path string) *exec.Cmd {

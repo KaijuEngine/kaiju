@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_right.go                                                               */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -68,13 +68,12 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		default:
 			val := -helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
-				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-					if l.Ui().Entity().IsRoot() {
-						return
-					}
-					pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-					l.SetInnerOffsetRight(pLayout.PixelSize().X() * val)
-				})
+				l := panel.Base().Layout()
+				if l.Ui().Entity().IsRoot() {
+					return nil
+				}
+				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+				l.SetInnerOffsetRight(pLayout.PixelSize().X() * val)
 			} else {
 				offset[matrix.Vz] = val
 			}

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* label.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,8 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
-	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
@@ -171,8 +169,8 @@ func (label *Label) clearDrawings() {
 	for i := range ld.runeShaderData {
 		ld.runeShaderData[i].Destroy()
 	}
-	ld.runeShaderData = klib.WipeSlice(ld.runeShaderData)
-	ld.runeDrawings = klib.WipeSlice(ld.runeDrawings)
+	ld.runeShaderData = ld.runeShaderData[:0]
+	ld.runeDrawings = ld.runeDrawings[:0]
 }
 
 func (label *Label) labelPostLayoutUpdate() {
@@ -200,26 +198,23 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	ld := label.LabelData()
-	host := label.man.Host.Value()
-	debug.EnsureNotNil(host)
-	return host.FontCache().MeasureStringWithin(ld.fontFace,
+	return label.man.Host.FontCache().MeasureStringWithin(ld.fontFace,
 		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
 }
 
 func (label *Label) renderText() {
 	defer tracing.NewRegion("Label.renderText").End()
-	maxWidth := label.MaxWidth()
 	ld := label.LabelData()
+	maxWidth := label.MaxWidth()
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
-	host := label.man.Host.Value()
-	debug.EnsureNotNil(host)
 	if ld.textLength > 0 {
-		ld.runeDrawings = host.FontCache().RenderMeshes(
-			host, ld.text, 0, 0, 0, ld.fontSize,
+		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
+			label.man.Host, ld.text, 0, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
-			ld.baseline, label.entity.Transform.WorldScale(), true,
-			false, ld.fontFace, ld.lineHeight)
+			ld.baseline, label.entity.Transform.WorldScale(),
+			true, false, ld.fontFace, ld.lineHeight)
+		transparentDrawings := make([]rendering.Drawing, 0, len(ld.runeDrawings))
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
@@ -227,14 +222,15 @@ func (label *Label) renderText() {
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 			if ld.bgColor.A() < 1.0 {
 				transparent := ld.runeDrawings[i]
-				transparent.Material = host.FontCache().TransparentMaterial(
+				transparent.Material = label.man.Host.FontCache().TransparentMaterial(
 					ld.runeDrawings[i].Material)
+				transparentDrawings = append(transparentDrawings, transparent)
 			}
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
 		}
-		host.Drawings.AddDrawings(ld.runeDrawings)
+		label.man.Host.Drawings.AddDrawings(ld.runeDrawings)
 	}
 }
 
@@ -272,12 +268,20 @@ func (label *Label) updateColors() {
 func (label *Label) FontSize() float32 { return label.LabelData().fontSize }
 
 func (label *Label) SetFontSize(size float32) {
-	label.LabelData().fontSize = size
+	ld := label.LabelData()
+	if ld.fontSize == size {
+		return
+	}
+	ld.fontSize = size
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetLineHeight(height float32) {
-	label.LabelData().lineHeight = height
+	ld := label.LabelData()
+	if ld.lineHeight == height {
+		return
+	}
+	ld.lineHeight = height
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -373,12 +377,20 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 }
 
 func (label *Label) SetJustify(justify rendering.FontJustify) {
-	label.LabelData().justify = justify
+	ld := label.LabelData()
+	if ld.justify == justify {
+		return
+	}
+	ld.justify = justify
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetBaseline(baseline rendering.FontBaseline) {
-	label.LabelData().baseline = baseline
+	ld := label.LabelData()
+	if ld.baseline == baseline {
+		return
+	}
+	ld.baseline = baseline
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -407,13 +419,10 @@ func (label *Label) MaxWidth() float32 {
 
 func (label *Label) SetWidthAutoHeight(width float32) {
 	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
-	host := label.man.Host.Value()
-	debug.EnsureNotNil(host)
 	ld := label.LabelData()
-	textSize := host.FontCache().MeasureStringWithin(
+	textSize := label.Base().man.Host.FontCache().MeasureStringWithin(
 		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
 	label.layout.Scale(width, textSize.Y())
-	label.Base().SetDirty(DirtyTypeResize)
 }
 
 func (label *Label) findColorRange(start, end int) *colorRange {
@@ -451,62 +460,76 @@ func (label *Label) BoldRange(start, end int) {
 
 func (label *Label) SetWrap(wrapText bool) {
 	defer tracing.NewRegion("Label.SetWrap").End()
-	label.LabelData().wordWrap = wrapText
+	ld := label.LabelData()
+	if ld.wordWrap == wrapText {
+		return
+	}
+	ld.wordWrap = wrapText
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontWeight(weight string) {
 	defer tracing.NewRegion("Label.SetFontWeight").End()
 	ld := label.LabelData()
+	face := ld.fontFace
 	switch weight {
 	case "normal":
 		if ld.fontFace.IsItalic() {
-			ld.fontFace = rendering.FontItalic
+			face = rendering.FontItalic
 		} else {
-			ld.fontFace = rendering.FontRegular
+			face = rendering.FontRegular
 		}
 	case "bold":
 		if ld.fontFace.IsItalic() {
-			ld.fontFace = rendering.FontBoldItalic
+			face = rendering.FontBoldItalic
 		} else {
-			ld.fontFace = rendering.FontBold
+			face = rendering.FontBold
 		}
 	case "bolder":
 		if ld.fontFace.IsItalic() {
-			ld.fontFace = rendering.FontExtraBoldItalic
+			face = rendering.FontExtraBoldItalic
 		} else {
-			ld.fontFace = rendering.FontExtraBold
+			face = rendering.FontExtraBold
 		}
 	case "lighter":
 		if ld.fontFace.IsItalic() {
-			ld.fontFace = rendering.FontLightItalic
+			face = rendering.FontLightItalic
 		} else {
-			ld.fontFace = rendering.FontLight
+			face = rendering.FontLight
 		}
 	}
+	if ld.fontFace == face {
+		return
+	}
+	ld.fontFace = face
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontStyle(style string) {
 	ld := label.LabelData()
+	face := ld.fontFace
 	switch style {
 	case "normal":
 		if ld.fontFace.IsExtraBold() {
-			ld.fontFace = rendering.FontExtraBold
+			face = rendering.FontExtraBold
 		} else if ld.fontFace.IsBold() {
-			ld.fontFace = rendering.FontBold
+			face = rendering.FontBold
 		} else {
-			ld.fontFace = rendering.FontRegular
+			face = rendering.FontRegular
 		}
 	case "italic":
 		if ld.fontFace.IsExtraBold() {
-			ld.fontFace = rendering.FontExtraBoldItalic
+			face = rendering.FontExtraBoldItalic
 		} else if ld.fontFace.IsBold() {
-			ld.fontFace = rendering.FontBoldItalic
+			face = rendering.FontBoldItalic
 		} else {
-			ld.fontFace = rendering.FontItalic
+			face = rendering.FontItalic
 		}
 	}
+	if face == ld.fontFace {
+		return
+	}
+	ld.fontFace = face
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -526,10 +549,8 @@ func (label *Label) CalculateMaxWidth() float32 {
 	}
 	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 	if parent == nil {
-		host := label.man.Host.Value()
-		debug.EnsureNotNil(host)
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(host.Window.Width()) - o.X() - o.Z()
+		maxWidth = matrix.Float(label.man.Host.Window.Width()) - o.X() - o.Z()
 	} else {
 		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
 	}

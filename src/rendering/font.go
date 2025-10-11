@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* font.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -502,7 +502,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		case FontJustifyRight:
 			xOffset = left + (maxWidth - lineWidth)
 		case FontJustifyCenter:
-			xOffset = left + ((maxWidth * 0.5) - (lineWidth * 0.5))
+			xOffset = -(lineWidth * 0.5)
 		case FontJustifyLeft:
 			xOffset = left
 		default:

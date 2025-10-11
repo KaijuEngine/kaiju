@@ -8,8 +8,5 @@ layout(binding = 1) uniform sampler2D texSampler;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    vec4 unWeightedColor = texture(texSampler, fragTexCoords) * fragColor;
-	if (unWeightedColor.a < 0.01)
-		discard;
-	outColor = unWeightedColor;
+    outColor = texture(texSampler, fragTexCoords) * fragColor;
 }

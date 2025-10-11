@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* network_server.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -114,6 +114,10 @@ func (s *NetworkServer) addClient(addr *net.UDPAddr) *ServerClient {
 	s.clients[addr.String()] = client
 	s.nextClientId++
 	return client
+}
+
+func (s *NetworkServer) RemoveClient(client *ServerClient) {
+	delete(s.clients, client.addr.String())
 }
 
 func (s *NetworkServer) HolePunchClient(address string, port uint16) (*ServerClient, error) {

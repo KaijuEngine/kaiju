@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_top.go                                                                 */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -45,7 +45,6 @@ import (
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"strings"
 )
 
@@ -54,7 +53,7 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 	if len(values) != 1 {
 		return errors.New("top expects 1 value")
 	} else {
-		offset := panel.Base().Layout().InnerOffset()
+		yOffset := panel.Base().Layout().InnerOffset().Top()
 		s := values[0].Str
 		layout := elm.UI.Layout()
 		switch s {
@@ -62,37 +61,33 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 		case "initial":
 		case "inherit":
 			if elm.Parent.Value() != nil {
-				offset.SetTop(elm.Parent.Value().UI.Layout().Offset().Y())
+				yOffset = elm.Parent.Value().UI.Layout().Offset().Y()
 			}
 		default:
 			val := helpers.NumFromLength(values[0].Str, host.Window)
+			l := panel.Base().Layout()
 			if strings.HasSuffix(values[0].Str, "%") {
-				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-					if l.Ui().Entity().IsRoot() {
-						return
-					}
-					pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-					l.SetInnerOffsetTop(pLayout.PixelSize().Y() * -val)
-				})
+				if l.Ui().Entity().IsRoot() {
+					return nil
+				}
+				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+				yOffset = pLayout.PixelSize().Y() * -val
 			} else if values[0].IsFunction() {
 				if values[0].Str == "calc" {
-					panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-						val := values[0]
-						val.Args = append(val.Args, "height")
-						res, _ := functions.Calc{}.Process(panel, elm, val)
-						top := helpers.NumFromLength(res, host.Window)
-						inOff := l.InnerOffset()
-						l.SetInnerOffset(inOff.Left(), -top, inOff.Right(), inOff.Bottom())
-					})
+					val := values[0]
+					val.Args = append(val.Args, "height")
+					res, _ := functions.Calc{}.Process(panel, elm, val)
+					top := helpers.NumFromLength(res, host.Window)
+					yOffset = -top
 				}
 			} else {
 				if layout.Anchor() <= ui.AnchorTopRight {
 					val = -val
 				}
-				offset[matrix.Vy] = val
+				yOffset = val
 			}
 		}
-		layout.SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
+		layout.SetInnerOffsetTop(yOffset)
 		layout.AnchorTo(layout.Anchor().ConvertToTop())
 	}
 	return nil

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* light.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -49,7 +49,7 @@ import (
 
 const (
 	nrLights                 = 4
-	maxLights                = 20
+	MaxLights                = 20
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
@@ -200,6 +200,9 @@ func (l *Light) ShadowMapTexture() *Texture {
 	return &l.renderPass.textures[0]
 }
 
+func (l *Light) Type() LightType { return l.lightType }
+func (l *Light) IsValid() bool   { return l.renderer != nil }
+
 func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
 	copy.Material = lightDepthMaterial.Value()
@@ -315,5 +318,10 @@ func (l *Light) SetDirection(dir matrix.Vec3) {
 
 func (l *Light) SetIntensity(intensity float32) {
 	l.intensity = intensity
+	l.reset = true
+}
+
+func (l *Light) SetAmbient(ambient matrix.Color) {
+	l.ambient = l.ambient
 	l.reset = true
 }

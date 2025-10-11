@@ -1,11 +1,11 @@
 //go:build linux || darwin
 
 /******************************************************************************/
-/* directory.nix.go                                                          */
+/* directory.nix.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */

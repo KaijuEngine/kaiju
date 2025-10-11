@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* host_container.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -41,12 +41,12 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
 	"kaiju/klib"
+	"kaiju/platform/chrono"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 	"weak"
 )
 
@@ -74,7 +74,8 @@ func (c *Container) Run(width, height, x, y int) error {
 		slog.Error("Failed to initialize audio", "error", err)
 		return err
 	}
-	lastTime := time.Now()
+	clock := chrono.HighResolutionTimer{}
+	clock.Start()
 	// Do one clean update and render before opening the prep lock
 	c.Host.Update(0)
 	c.Host.Render()
@@ -86,9 +87,8 @@ func (c *Container) Run(width, height, x, y int) error {
 		traceRegionName.WriteString(strconv.FormatUint(c.Host.Frame(), 10))
 		r := tracing.NewRegion(traceRegionName.String())
 		c.Host.WaitForFrameRate()
-		since := time.Since(lastTime)
-		deltaTime := since.Seconds()
-		lastTime = time.Now()
+		deltaTime := clock.Stop()
+		clock.Start()
 		c.Host.Update(deltaTime)
 		if !c.Host.Closing {
 			c.Host.Render()

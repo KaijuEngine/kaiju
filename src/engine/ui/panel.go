@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* panel.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/engine/systems/events"
 	"kaiju/matrix"
@@ -133,7 +132,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 	pd = panel.elmData.innerPanelData()
 	pd.scrollEvent = 0
 	pd.scrollSpeed = 20.0
-	pd.scrollDirection = PanelScrollDirectionVertical
+	pd.scrollDirection = PanelScrollDirectionNone
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
@@ -241,8 +240,7 @@ func (p *Panel) FitContent() {
 func (p *Panel) onScroll() {
 	defer tracing.NewRegion("Panel.onScroll").End()
 	pd := p.PanelData()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	mouse := &host.Window.Mouse
 	delta := mouse.Scroll()
 	scroll := pd.scroll
@@ -360,7 +358,6 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 		if kui.layout.screenAnchor.IsStretch() {
 			continue
 		}
-		pos := kid.Transform.Position()
 		if kui.Layout().Positioning() == PositioningAbsolute {
 			continue
 		}
@@ -373,8 +370,11 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 			size = kid.Transform.WorldScale().AsVec2()
 			kui.ToPanel().boundsChildren(bounds)
 		}
-		r := pos.X() + size.X()
-		b := pos.Y() + size.Y()
+		//pos := kid.Transform.Position()
+		//r := pos.X() + size.X()
+		//b := pos.Y() + size.Y()
+		r := size.X()
+		b := size.Y()
 		*bounds = matrix.Vec2{max(bounds.X(), r), max(bounds.Y(), b)}
 	}
 }
@@ -446,13 +446,17 @@ func (p *Panel) panelPostLayoutUpdate() {
 	if p.FittingContent() {
 		p.boundsChildren(&bounds)
 		border := p.layout.border
-		if pd.fitContent == ContentFitWidth {
-			p.layout.ScaleWidth(max(1, bounds.X()+border.Left()+border.Right()))
-		} else if pd.fitContent == ContentFitHeight {
-			p.layout.ScaleHeight(max(1, bounds.Y()+border.Top()+border.Bottom()))
-		} else if pd.fitContent == ContentFitBoth {
-			p.layout.Scale(max(1, bounds.X()+border.Left()+border.Right()),
-				max(1, bounds.Y()+border.Top()+border.Bottom()))
+		w := bounds.X() + border.Left() + border.Right() +
+			p.layout.padding.Horizontal()
+		h := bounds.Y() + border.Top() + border.Bottom() +
+			p.layout.padding.Vertical()
+		switch pd.fitContent {
+		case ContentFitWidth:
+			p.layout.ScaleWidth(max(1, w))
+		case ContentFitHeight:
+			p.layout.ScaleHeight(max(1, h))
+		case ContentFitBoth:
+			p.layout.Scale(max(1, w), max(1, h))
 		}
 	} else {
 		bounds.SetX(maxRowsX)
@@ -561,8 +565,7 @@ func (p *Panel) ResetScroll() {
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	defer tracing.NewRegion("Panel.ensureBGExists").End()
 	pd := p.PanelData()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	if !pd.drawing.IsValid() {
 		if tex == nil {
 			tex, _ = host.TextureCache().Texture(
@@ -624,8 +627,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 		if pd.transparentDrawing.Material != nil {
 			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)
 		}
-		host := p.man.Host.Value()
-		debug.EnsureNotNil(host)
+		host := p.man.Host
 		host.Drawings.AddDrawing(pd.drawing)
 	} else {
 		p.ensureBGExists(tex)
@@ -654,6 +656,9 @@ func (p *Panel) IsFrozen() bool {
 
 func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	pd := p.PanelData()
+	if pd.scrollDirection == direction {
+		return
+	}
 	pd.scrollDirection = direction
 	p.Base().SetDirty(DirtyTypeLayout)
 	if pd.scrollDirection == PanelScrollDirectionNone {
@@ -701,8 +706,7 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 	defer tracing.NewRegion("Panel.SetUseBlending").End()
 	p.recreateDrawing()
 	pd := p.PanelData()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	host.Drawings.AddDrawing(pd.drawing)
 	if useBlending {
 		pd.transparentDrawing = pd.drawing
@@ -737,8 +741,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return
 	}
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	hasBlending := p.shaderData.FgColor.A() < 1.0
 	shouldBlend := bgColor.A() < 1.0
 	if hasBlending != shouldBlend {

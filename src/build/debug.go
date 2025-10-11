@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* debug.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -40,5 +40,4 @@
 package build
 
 const Debug = true
-const Test = false
 const Shipping = false

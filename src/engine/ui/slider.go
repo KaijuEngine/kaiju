@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* slider.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -69,34 +68,38 @@ func (s *Slider) Init(anchor Anchor) {
 	s.elmData = ld
 	p := s.Base().ToPanel()
 	p.Init(nil, anchor, ElementTypeSlider)
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = s.man.Add().ToPanel()
 	ld.bgPanel.Init(tex, AnchorLeft, ElementTypePanel)
-	ld.bgPanel.layout.AddFunction(func(l *Layout) {
-		pLayout := FirstOnEntity(l.Ui().Entity().Parent).Layout()
-		w, h := pLayout.ContentSize()
-		// TODO:  Why -10?
-		l.Scale(w-10, h)
-	})
 	ld.bgPanel.SetColor(matrix.ColorBlack())
 	ld.fgPanel = s.man.Add().ToPanel()
 	ld.fgPanel.Init(tex, AnchorTopLeft, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
-	ld.fgPanel.layout.AddFunction(func(l *Layout) {
-		pp := FirstPanelOnEntity(l.Ui().Entity().Parent)
-		ps := (*Slider)(pp)
-		_, h := pp.Base().layout.ContentSize()
-		l.Scale(h/2, h)
-		ps.SetValue(ps.Value())
-	})
 	ld.fgPanel.SetColor(matrix.ColorWhite())
 	ld.bgPanel.entity.SetParent(&p.entity)
 	ld.fgPanel.entity.SetParent(&p.entity)
 	p.Base().AddEvent(EventTypeDown, s.onDown)
+}
+
+func (slider *Slider) onLayoutUpdating() {
+	ld := slider.elmData.(*sliderData)
+
+	// Background
+	bl := &ld.bgPanel.layout
+	pLayout := FirstOnEntity(bl.Ui().Entity().Parent).Layout()
+	w, h := pLayout.ContentSize()
+	bl.Scale(w-10, h) // TODO:  Why -10?
+
+	// Foreground
+	fl := &ld.fgPanel.layout
+	pp := FirstPanelOnEntity(fl.Ui().Entity().Parent)
+	ps := (*Slider)(pp)
+	_, h = pp.Base().layout.ContentSize()
+	fl.Scale(h/2, h)
+	ps.SetValue(ps.Value())
 }
 
 func (slider *Slider) update(deltaTime float64) {
@@ -108,8 +111,7 @@ func (slider *Slider) update(deltaTime float64) {
 }
 
 func (slider Slider) Delta() float32 {
-	host := slider.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := slider.man.Host
 	ww := float32(host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X() + (ww * 0.5)

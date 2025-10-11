@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* vec3.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -58,9 +58,17 @@ func (v Vec3) AsVec2() Vec2               { return Vec2(v[:Vz]) }
 func (v Vec3) AsVec4() Vec4               { return Vec4{v[Vx], v[Vy], v[Vz], 1} }
 func (v Vec3) AsVec4WithW(w Float) Vec4   { return Vec4{v[Vx], v[Vy], v[Vz], w} }
 func (v Vec3) XYZ() (Float, Float, Float) { return v[Vx], v[Vy], v[Vz] }
+func (v Vec3) XY() Vec2                   { return Vec2{v[Vx], v[Vy]} }
+func (v Vec3) XZ() Vec2                   { return Vec2{v[Vx], v[Vz]} }
 func (v Vec3) Width() Float               { return v[Vx] }
 func (v Vec3) Height() Float              { return v[Vy] }
 func (v Vec3) Depth() Float               { return v[Vz] }
+func (v *Vec3) AddX(x Float)              { v[Vx] += x }
+func (v *Vec3) AddY(y Float)              { v[Vy] += y }
+func (v *Vec3) AddZ(z Float)              { v[Vz] += z }
+func (v *Vec3) ScaleX(s Float)            { v[Vx] *= s }
+func (v *Vec3) ScaleY(s Float)            { v[Vy] *= s }
+func (v *Vec3) ScaleZ(s Float)            { v[Vz] *= s }
 
 func (v Vec3) AsVec3i() Vec3i {
 	return Vec3i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz])}

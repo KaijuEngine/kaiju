@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* color.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,17 +38,13 @@
 package matrix
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strings"
 )
 
 type Color Vec4
-type Color8 struct {
-	R uint8
-	G uint8
-	B uint8
-	A uint8
-}
+type Color8 [4]uint8
 
 func (c Color) R() Float                           { return c[R] }
 func (c Color) G() Float                           { return c[G] }
@@ -64,6 +60,20 @@ func (c *Color) SetG(g Float)                      { c[G] = g }
 func (c *Color) SetB(b Float)                      { c[B] = b }
 func (c *Color) SetA(a Float)                      { c[A] = a }
 
+func (c Color8) R() uint8                           { return c[R] }
+func (c Color8) G() uint8                           { return c[G] }
+func (c Color8) B() uint8                           { return c[B] }
+func (c Color8) A() uint8                           { return c[A] }
+func (c *Color8) PR() *uint8                        { return &c[R] }
+func (c *Color8) PG() *uint8                        { return &c[G] }
+func (c *Color8) PB() *uint8                        { return &c[B] }
+func (c *Color8) PA() *uint8                        { return &c[A] }
+func (c Color8) RGBA() (uint8, uint8, uint8, uint8) { return c[R], c[G], c[B], c[A] }
+func (c *Color8) SetR(r uint8)                      { c[R] = r }
+func (c *Color8) SetG(g uint8)                      { c[G] = g }
+func (c *Color8) SetB(b uint8)                      { c[B] = b }
+func (c *Color8) SetA(a uint8)                      { c[A] = a }
+
 func NewColor(r, g, b, a Float) Color {
 	return Color{r, g, b, a}
 }
@@ -74,20 +84,24 @@ func NewColor8(r, g, b, a uint8) Color8 {
 
 func ColorFromColor8(c Color8) Color {
 	return Color{
-		Float(c.R) / 255.0,
-		Float(c.G) / 255.0,
-		Float(c.B) / 255.0,
-		Float(c.A) / 255.0,
+		Float(c[R]) / 255.0,
+		Float(c[G]) / 255.0,
+		Float(c[B]) / 255.0,
+		Float(c[A]) / 255.0,
 	}
 }
 
 func Color8FromColor(c Color) Color8 {
 	return Color8{
-		uint8(c.R() * 255),
-		uint8(c.G() * 255),
-		uint8(c.B() * 255),
-		uint8(c.A() * 255),
+		uint8(c[R] * 255),
+		uint8(c[G] * 255),
+		uint8(c[B] * 255),
+		uint8(c[A] * 255),
 	}
+}
+
+func Color8FromBytes(bytes []byte) Color8 {
+	return Color8{bytes[0], bytes[1], bytes[2], bytes[3]}
 }
 
 func ColorFromVec3(v Vec3) Color {
@@ -110,15 +124,15 @@ func (c Color) AsColor8() Color8 { return Color8FromColor(c) }
 func (c Color8) AsColor() Color  { return ColorFromColor8(c) }
 
 func (c Color8) Equal(rhs Color8) bool {
-	return c.R == rhs.R && c.G == rhs.G && c.B == rhs.B && c.A == rhs.A
+	return c[R] == rhs[R] && c[G] == rhs[G] && c[B] == rhs[B] && c[A] == rhs[A]
 }
 
 func ColorMix(lhs, rhs Color, amount Float) Color {
 	return Color{
-		lhs.R() + (rhs.R()-lhs.R())*amount,
-		lhs.G() + (rhs.G()-lhs.G())*amount,
-		lhs.B() + (rhs.B()-lhs.B())*amount,
-		lhs.A() + (rhs.A()-lhs.A())*amount,
+		lhs[R] + (rhs[R]-lhs[R])*amount,
+		lhs[G] + (rhs[G]-lhs[G])*amount,
+		lhs[B] + (rhs[B]-lhs[B])*amount,
+		lhs[A] + (rhs[A]-lhs[A])*amount,
 	}
 }
 
@@ -128,7 +142,7 @@ func ColorFromHexString(str string) (Color, error) {
 }
 
 func (c Color) Hex() string {
-	return fmt.Sprintf("#%02x%02x%02x%02x", uint8(c.R()*255), uint8(c.G()*255), uint8(c.B()*255), uint8(c.A()*255))
+	return fmt.Sprintf("#%02x%02x%02x%02x", uint8(c[R]*255), uint8(c[G]*255), uint8(c[B]*255), uint8(c[A]*255))
 }
 
 func Color8FromHexString(str string) (Color8, error) {
@@ -136,12 +150,12 @@ func Color8FromHexString(str string) (Color8, error) {
 	var err error
 	str = strings.TrimPrefix(str, "#")
 	if len(str) == 8 {
-		fmt.Sscanf(str, "%02x%02x%02x%02x", &rgba.R, &rgba.G, &rgba.B, &rgba.A)
+		fmt.Sscanf(str, "%02x%02x%02x%02x", &rgba[R], &rgba[G], &rgba[B], &rgba[A])
 	} else if len(str) == 6 {
-		fmt.Sscanf(str, "%02x%02x%02x", &rgba.R, &rgba.G, &rgba.B)
+		fmt.Sscanf(str, "%02x%02x%02x", &rgba[R], &rgba[G], &rgba[B])
 	} else if len(str) == 3 {
 		str = fmt.Sprintf("%c%c%c%c%c%c", str[0], str[0], str[1], str[1], str[2], str[2])
-		fmt.Sscanf(str, "%02x%02x%02x", &rgba.R, &rgba.G, &rgba.B)
+		fmt.Sscanf(str, "%02x%02x%02x", &rgba[R], &rgba[G], &rgba[B])
 	} else {
 		rgba = Color8FromColor(ColorMagenta())
 		err = fmt.Errorf("invalid hex color string: %s", str)
@@ -150,7 +164,11 @@ func Color8FromHexString(str string) (Color8, error) {
 }
 
 func (c Color8) Hex() string {
-	return fmt.Sprintf("#%02x%02x%02x%02x", c.R, c.G, c.B, c.A)
+	return fmt.Sprintf("#%02x%02x%02x%02x", c[R], c[G], c[B], c[A])
+}
+
+func (c Color8) ToUintRaw() uint32 {
+	return binary.LittleEndian.Uint32(c[:])
 }
 
 func ColorRed() Color                  { return Color{1, 0, 0, 1} }
@@ -301,17 +319,17 @@ func ColorTransparent() Color          { return Color{1, 1, 1, 0} }
 func ColorZero() Color                 { return Color{0, 0, 0, 0} }
 
 func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
-	return uint8(AbsInt(int(lhs.R)-int(rhs.R))) <= tolerance &&
-		uint8(AbsInt(int(lhs.G)-int(rhs.G))) <= tolerance &&
-		uint8(AbsInt(int(lhs.B)-int(rhs.B))) <= tolerance &&
-		uint8(AbsInt(int(lhs.A)-int(rhs.A))) <= tolerance
+	return uint8(AbsInt(int(lhs[R])-int(rhs[R]))) <= tolerance &&
+		uint8(AbsInt(int(lhs[G])-int(rhs[G]))) <= tolerance &&
+		uint8(AbsInt(int(lhs[B])-int(rhs[B]))) <= tolerance &&
+		uint8(AbsInt(int(lhs[A])-int(rhs[A]))) <= tolerance
 }
 
 func (lhs Color) Equals(rhs Color) bool { return Vec4(lhs).Equals(Vec4(rhs)) }
 func (c Color) IsZero() bool            { return c.Equals(ColorZero()) }
 
 func (c Color) ScaleWithoutAlpha(scale Float) Color {
-	return Color{c.R() * scale, c.G() * scale, c.B() * scale, c.A()}
+	return Color{c[R] * scale, c[G] * scale, c[B] * scale, c[A]}
 }
 
 func (c *Color) MultiplyAssign(other Color) {
@@ -322,5 +340,5 @@ func (c *Color) MultiplyAssign(other Color) {
 }
 
 func (c *Color) Inverted() Color {
-	return NewColor(1-c.R(), 1-c.G(), 1-c.B(), c.A())
+	return NewColor(1-c[R], 1-c[G], 1-c[B], c[A])
 }

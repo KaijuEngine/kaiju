@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* assertions.go                                                              */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -101,3 +101,4 @@ func EnsureNotNil(target any) {
 }
 
 func ThrowNotImplemented(todo string) { EnsureMsg(false, todo) }
+func Throw(message string)            { Assert(false, message) }

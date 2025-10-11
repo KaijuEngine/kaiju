@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* html_parser.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -108,24 +108,11 @@ type Document struct {
 	}
 }
 
-func (d *Document) SetupStylizer(style rules.StyleSheet, host *engine.Host, stylizer Stylizer) {
+func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylizer Stylizer) {
 	d.style = style
 	d.stylizer = stylizer
 	d.host = weak.Make(host)
-	d.ApplyStyles()
-}
-
-func (d *Document) ApplyStyles() {
-	host := d.host.Value()
-	debug.EnsureNotNil(host)
-	d.stylizer.ApplyStyles(d.style, d, host)
-	bodies := d.GetElementsByTagName("body")
-	for i := range bodies {
-		bodies[i].UI.Layout().AddFunction(func(l *ui.Layout) {
-			w, h := float32(host.Window.Width()), float32(host.Window.Height())
-			l.Scale(w, h)
-		})
-	}
+	d.stylizer.ApplyStyles(d.style, d)
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -258,8 +245,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 		panel := uiMan.Add().ToPanel()
-		host := uiMan.Host.Value()
-		debug.EnsureNotNil(host)
+		host := uiMan.Host
 		if e.IsImage() {
 			src := e.Attribute("src")
 			var tex *rendering.Texture
@@ -400,8 +386,6 @@ func (d *Document) tagElement(elm *Element, tag string) {
 }
 
 func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
-	host := uiMan.Host.Value()
-	debug.EnsureNotNil(host)
 	body := h.Body()
 	bodyPanel := uiMan.Add().ToPanel()
 	bodyPanel.Init(nil, ui.AnchorCenter, ui.ElementTypePanel)
@@ -603,7 +587,7 @@ func (d *Document) RemoveElement(elm *Element) {
 		}
 	}
 	d.removeIndexedElement(elm)
-	d.ApplyStyles()
+	d.stylizer.ApplyStyles(d.style, d)
 }
 
 // SetElementClassesWithoutApply updates the class list of the given element
@@ -657,7 +641,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 //   - classes: variadic string parameters representing the new class names
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
-	d.ApplyStyles()
+	d.stylizer.ApplyStyles(d.style, d)
 }
 
 // DupicateElement will create a duplicate of a given element, nesting it under
@@ -667,7 +651,7 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 func (d *Document) DupicateElement(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
 	d.appendElement(cpy)
-	d.ApplyStyles()
+	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
 }
 
@@ -756,5 +740,5 @@ func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
 	if !d.isElementInDocument(elm) {
 		d.appendElement(elm)
 	}
-	d.ApplyStyles()
+	d.stylizer.ApplyStyles(d.style, d)
 }

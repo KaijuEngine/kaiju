@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* checkbox.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/rendering"
 )
 
@@ -83,8 +82,7 @@ func (cb *Checkbox) Init(anchor Anchor) {
 	cb.elmData = ld
 	base := cb.Base()
 	p := base.ToPanel()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Host
 	tc := host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)

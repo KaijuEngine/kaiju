@@ -18,7 +18,7 @@ float median(float r, float g, float b) {
 }
 
 void main() {
-	ivec2 sz = ivec2(fragTexRange * vec2(textureSize(texSampler, 0)));
+	//ivec2 sz = ivec2(fragTexRange * vec2(textureSize(texSampler, 0)));
 	//ivec2 sz = textureSize(texSampler, 0).xy;
 	vec3 msdfColor = texture(texSampler, fragTexCoord).rgb;
 

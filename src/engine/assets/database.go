@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* database.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -40,11 +40,12 @@ package assets
 import (
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"path/filepath"
+	"strings"
 )
 
 type Database struct {
-	EditorContext EditorContext
-	cache         map[string][]byte
+	cache map[string][]byte
 }
 
 func NewDatabase() Database {
@@ -84,4 +85,12 @@ func (a *Database) Exists(key string) bool {
 
 func (a *Database) Destroy() {
 
+}
+
+func (a *Database) toContentPath(key string) string {
+	const contentPath = "content"
+	if strings.HasPrefix(key, contentPath) {
+		return key
+	}
+	return filepath.Join(contentPath, key)
 }

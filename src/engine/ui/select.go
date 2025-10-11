@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* select.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -75,8 +74,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	s.elmData = data
 	p := s.Base().ToPanel()
 	p.DontFitContent()
-	host := s.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := s.man.Host
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(bg, anchor, ElementTypeSelect)

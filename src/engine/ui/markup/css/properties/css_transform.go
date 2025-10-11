@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_transform.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -60,11 +60,10 @@ func translateXYZ(str string, panel *ui.Panel, host *engine.Host, vc matrix.Vect
 			p *= -1.0
 		}
 		if strings.HasSuffix(str, "%") {
-			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-				localInnerOffset := l.LocalInnerOffset()
-				localInnerOffset[vc] = l.PixelSize()[vc] * p
-				l.SetLocalInnerOffset(localInnerOffset.X(), localInnerOffset.Y(), localInnerOffset.Z(), localInnerOffset.W())
-			})
+			l := panel.Base().Layout()
+			localInnerOffset := l.LocalInnerOffset()
+			localInnerOffset[vc] = l.PixelSize()[vc] * p
+			l.SetLocalInnerOffset(localInnerOffset.X(), localInnerOffset.Y(), localInnerOffset.Z(), localInnerOffset.W())
 		} else {
 			offset[vc] += p
 			panel.Base().Layout().SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
