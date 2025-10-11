@@ -66,10 +66,52 @@ Likewise, developers can not change the name of any of the asset files, they
 will have a GUID name assigned on import that should never be touched. Instead
 the asset can have a virtual name associated with it, stored the same way that
 category and tag assignments are. Upon import, the asset will take on a virtual
-name equal to the file name that was imported.
+name equal to the file name that was imported. Content will be imported into the
+`database/content` folder.
 
 ## Database
 There will be various information that needs to be stored about content and the
-developer's project. This information will be stored in
-[SQLite](https://www.sqlite.org/).
+developer's project. This information will be stored locally both to the file
+as well as in a cache [SQLite](https://www.sqlite.org/) database.
 
+### Database - Asset configuration
+Developer-assigned information like name, category, tags, etc. Will be stored
+into a compressed JSON file format with the same GUID as the target asset. This
+file will have the extension `.json` and reside in the `database/configuration`
+folder matching the `database/content` folder structure. These files are to be
+committed to version control as they can be used to build the database cache.
+
+### Database - Cache (SQLite)
+The cache database is to speed up the process of search by mirroring all of the
+data found in the asset configuration files. It will also store any runtime 
+information to speed up the interface and usability, by storing things like the
+BVH structures for assets for example. This file is not to be committed to
+version control as it's a binary and can be re-constructed by scanning all of
+the asset configuration files as well as the assets to rebuild the cache. The
+cache database will be stored in the `database/cache.db` file.
+
+## Project folder layout
+- root
+	- database
+		- cache.db
+		- configuration
+			- * (matches content structure)
+		- content
+			- audio
+				- music
+				- sound
+			- font
+			- mesh
+			- ui
+				- html
+				- css
+			- render
+				- material
+				- spv
+				- src
+			- texture
+		- src
+			- font (pre-msdf font files)
+			- plugin (editor extensions)
+			- render
+				- shaders (raw shader source code)
