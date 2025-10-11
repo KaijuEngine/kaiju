@@ -11,8 +11,7 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 
 ## Windows Development
 - Download mingw into `C:/`
-  - I use [x86_64-13.2.0-release-win32-seh-msvcrt-rt_v11-rev1.7z
-](https://github.com/niXman/mingw-builds-binaries/releases)
+  - I use [x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z](https://github.com/niXman/mingw-builds-binaries/releases)
 - Add the `bin` folder to your environment path
   - Mine is `C:\mingw64\bin`
 - Pull the repository
