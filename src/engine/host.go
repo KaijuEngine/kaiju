@@ -1,40 +1,3 @@
-/******************************************************************************/
-/* host.go                                                                    */
-/******************************************************************************/
-/*                           This file is part of:                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
-/******************************************************************************/
-
 package engine
 
 import (
@@ -87,40 +50,40 @@ type timeRun struct {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name             string
-	editorEntities   editorEntities
-	entities         []*Entity
-	entityLookup     map[EntityId]*Entity
-	lights           []rendering.Light
-	timeRunner       []timeRun
-	frameRunner      []frameRun
-	plugins          []*plugins.LuaVM
-	Window           *windowing.Window
-	LogStream        *logging.LogStream
-	workGroup        concurrent.WorkGroup
-	threads          concurrent.Threads
-	Camera           cameras.Camera
-	UICamera         cameras.Camera
-	collisionManager collision_system.Manager
-	audio            *audio.Audio
-	shaderCache      rendering.ShaderCache
-	textureCache     rendering.TextureCache
-	meshCache        rendering.MeshCache
-	fontCache        rendering.FontCache
-	materialCache    rendering.MaterialCache
-	Drawings         rendering.Drawings
-	frame            FrameId
-	frameTime        float64
-	Closing          bool
-	UIUpdater        Updater
-	UILateUpdater    Updater
-	Updater          Updater
-	LateUpdater      Updater
-	assetDatabase    assets.Database
-	OnClose          events.Event
-	CloseSignal      chan struct{}
-	frameRateLimit   *time.Ticker
-	inEditorEntity   int
+	name              string
+	entities          []*Entity
+	entityLookup      map[EntityId]*Entity
+	lighting          lighting.LightingInformation
+	renderDetailsFrom matrix.Vec3
+	timeRunner        []timeRun
+	frameRunner       []frameRun
+	plugins           []*plugins.LuaVM
+	Window            *windowing.Window
+	LogStream         *logging.LogStream
+	workGroup         concurrent.WorkGroup
+	threads           concurrent.Threads
+	Camera            cameras.Camera
+	UICamera          cameras.Camera
+	collisionManager  collision_system.Manager
+	audio             *audio.Audio
+	shaderCache       rendering.ShaderCache
+	textureCache      rendering.TextureCache
+	meshCache         rendering.MeshCache
+	fontCache         rendering.FontCache
+	materialCache     rendering.MaterialCache
+	Drawings          rendering.Drawings
+	frame             FrameId
+	frameTime         float64
+	Closing           bool
+	UIUpdater         Updater
+	UILateUpdater     Updater
+	Updater           Updater
+	LateUpdater       Updater
+	assetDatabase     assets.Database
+	OnClose           events.Event
+	CloseSignal       chan struct{}
+	frameRateLimit    *time.Ticker
+	inEditorEntity    int
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -148,6 +111,7 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
 		threads:       concurrent.NewThreads(),
+		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
 	}
 	return host
 }
@@ -290,14 +254,10 @@ func (host *Host) ClearEntities() {
 // removed from the standard entity pool. Entities are not ordered, so they are
 // removed in O(n) time. Do not assume the entities are ordered at any time.
 func (host *Host) RemoveEntity(entity *Entity) {
-	if host.editorEntities.contains(entity) {
-		host.editorEntities.remove(entity)
-	} else {
-		for i, e := range host.entities {
-			if e == entity {
-				host.entities = klib.RemoveUnordered(host.entities, i)
-				break
-			}
+	for i, e := range host.entities {
+		if e == entity {
+			host.entities = klib.RemoveUnordered(host.entities, i)
+			break
 		}
 	}
 }
@@ -306,29 +266,27 @@ func (host *Host) RemoveEntity(entity *Entity) {
 // standard entity pool. If the host is in the process of creating editor
 // entities, then the entity will be added to the editor entity pool.
 func (host *Host) AddEntity(entity *Entity) {
-	host.addEntity(entity)
+	host.entities = append(host.entities, entity)
+	if entity.id != "" {
+		host.entityLookup[entity.id] = entity
+	}
 }
 
 // AddEntities adds multiple entities to the host. This will add the entities
 // using the same rules as AddEntity. If the host is in the process of creating
 // editor entities, then the entities will be added to the editor entity pool.
 func (host *Host) AddEntities(entities ...*Entity) {
-	host.addEntities(entities...)
+	host.entities = append(host.entities, entities...)
+	for _, e := range entities {
+		if e.id != "" {
+			host.entityLookup[e.id] = e
+		}
+	}
 }
 
-// AddLight adds a light to the internal list of lights the host is aware of
-func (host *Host) AddLight(light rendering.Light) {
-	host.lights = append(host.lights, light)
-}
-
-// Lights returns all of the active lights managed by this host
-func (host *Host) Lights() []rendering.Light {
-	return host.lights
-}
-
-// ClearLights clears out all of the lights that the host is tracking
-func (host *Host) ClearLights() {
-	host.lights = klib.WipeSlice(host.lights)
+// Lighting returns a pointer to the internal lighting information
+func (host *Host) Lighting() *lighting.LightingInformation {
+	return &host.lighting
 }
 
 // FindEntity will search for an entity contained in this host by its id. If the
@@ -343,7 +301,7 @@ func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
 // return all entities in the standard entity pool only. In the editor, this
 // will not return any entities that have been destroyed (and are pending
 // cleanup due to being in the undo history)
-func (host *Host) Entities() []*Entity { return host.selectAllValidEntities() }
+func (host *Host) Entities() []*Entity { return host.entities }
 
 // Entities returns all the entities that are currently in the host. This will
 // return all entities in the standard entity pool only. In the editor, this
@@ -417,8 +375,14 @@ func (host *Host) Update(deltaTime float64) {
 		}
 	}
 	host.entities = host.entities[:back]
-	host.editorEntities.tickCleanup()
 	host.Window.EndUpdate()
+}
+
+// SetRenderDetailsFrom will set the point where the lights and shadows will
+// be sourced from. This will limit the data sent to the GPU to only the render
+// details closest to the point.
+func (host *Host) SetRenderDetailsFrom(point matrix.Vec3) {
+	host.renderDetailsFrom = point
 }
 
 // Render will render the scene. This starts by preparing any drawings that are
@@ -433,8 +397,10 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
-		if host.Window.Renderer.ReadyFrame(host.Window, host.Camera,
-			host.UICamera, host.lights, float32(host.Runtime())) {
+		host.lighting.Update(host.renderDetailsFrom)
+		if host.Window.Renderer.ReadyFrame(host.Window, host.Camera, host.UICamera,
+			host.lighting.Lights.Cache, host.lighting.StaticShadows.Cache,
+			host.lighting.DynamicShadows.Cache, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
 		}
 	}
@@ -456,6 +422,21 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 		frame: host.frame + uint64(wait),
 		call:  call,
 	})
+}
+
+// RunNextFrame will run the given function on the next frame. This is the same
+// as calling RunAfterFrames(0, func(){})
+func (host *Host) RunNextFrame(call func()) { host.RunAfterFrames(0, call) }
+
+// RunAfterNextUIClean will run the given function on the next frame.
+func (host *Host) RunAfterNextUIClean(call func()) {
+	// Run after frames happens before the UI update, so doing the same thing
+	// as RunNextFrame or RunAfterFrames(0, func(){}) would cause the function
+	// to be ran before a UI clean, so we need to effectively wait 2 frames.
+
+	// TODO:  This may change in the future to have something special that runs
+	// after the UI update, but this is good enough for now
+	host.RunAfterFrames(1, call)
 }
 
 func (host *Host) RunOnMainThread(call func()) {
@@ -484,7 +465,6 @@ func (host *Host) Teardown() {
 		for !host.entities[i].TickCleanup() {
 		}
 	}
-	host.editorEntities.close()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
