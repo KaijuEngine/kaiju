@@ -5,6 +5,9 @@ If you'd like occasional updates on what I'm doing here, I post them [Twitter/X]
 
 Our discord server is located here: [Discord](https://discord.gg/HYj7Dh7ke3)
 
+## ⚠️ REFACTOR IN PROGRESS ⚠️
+A heavy refactor and re-design is currently being designed and developed in the `refactor` branch.
+
 ## ⚠️ WORK IN PROGRESS ⚠️
 For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3) or check my [Twitter/X](https://twitter.com/ShieldCrush).
 
