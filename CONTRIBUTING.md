@@ -1,34 +1,80 @@
-## How to contribute to Kaiju Engine
+# How to contribute to Kaiju Engine
 
-#### **Did you find a bug?**
+## Contributing via Git platform
+You are free to contribute to the project via git through bug reports, feature
+requests, pull requrests, discussions, video tutorials, etc. Below are some
+guides on how to use the platform to contribute in this way.
+
+### **Did you find a bug?**
 1. Search issues, both open and closed first
 2. If you didn't find the bug, report it via issues with bug tag
 
-#### **Pull requeset rules**
-1. You must make a pull request to the `staging` branch
-2. Title must be short and self explanitory
-3. Give a detailed description of the change, why it was made, and what it solves
-4. Pull request title should include issue number (eg: #1234)
-5. You can provide a video of your entire development process of the PR (see video rules below)
-	- Provide your video(s) as a downloadable link
-	- Include your name and a picture you wish to use for credit
-		- If not provided, your GitHub username/profile picture will be used
+### **Pull requeset rules**
+1. Ensure you've discussed the issue/addition before starting (issues, discussion, etc.)
+2. You must make a pull request to the `staging` branch
+3. Title must be short and self explanitory
+4. Give a detailed description of the change, why it was made, and what it solves
+5. Pull request title should include issue number (eg: #1234)
 
-#### **Video rules** (if you provide a video)
-- In your video, the text/code must be legible
-- Maximum video quality is 1080p 30fps
-- You must provide verbal or code comment commentary showing your thought process
-	- You can talk the whole video if you wish, you can also try to be funny, but **ALWAYS** stay on topic of the code/PR
-- No fancy editing required unless you want to
-	- Bare minimum is just hit record, do the code, stop recording
-- Time stamps for major parts of the process would be appreciated, but not required
-- Pause recordings or cut out useless sections of video that don't present any meaningful insight or process
-	- Example: You reading a web page or watching a video to learn something
-		- You can just summarize or reference what you used for reference
-- Do not include other people's videos, music, faces, or any copywritten information in your video
-- You are responsible for anything visible on your screen, don't share sensitive information
-- Your video must comply 100% with [YouTube's video guidelines](https://www.youtube.com/howyoutubeworks/policies/community-guidelines/)
+## Coding guidelines
+Every attempt is made to make the code as performant as possible and generate
+as little of memory garbage as possible. All new code must be thoroughly planned
+and designed before being written. This can be via technical design doc,
+flow charts, and/or any other type of specification document. Your go code
+should be well written prose, fancy code, tricks, and bespoke patterns are fun
+to code but not typically welcome.
 
-Thanks! :heart: :heart: :heart:
+### Comments and documentation
+All public functions and types must have clean, readable, thorough, and
+expressive comments to describe the intent. The comment format should be
+formatted the same way as Go's standard library. Comment lines should not
+exceed 80 columns in width.
 
-Kaiju Team
+Comments within the code are welcome for when the code is not possible to
+express itself in an understandable way. This is typical in tight performance
+loops, or code needed to access low-level resources. If your code is otherwise
+difficult to understand and needs a comment, consider improving your code first
+before writing a comment.
+
+*Note that the implementation of the `Error() string` error interface public
+function does not need to be documented, even though it is a public function.*
+
+### Pointers
+Pointers are to be deliberately hand selected and used as sparingly as possible.
+Prefer composition of structures with members into a single pointer over
+creating multiple pointers that can be passed around. This will require
+forethought and thorough design to reduce mistakes. Please review `host.go` for
+an example on how this mediator is used to access various systems without
+over-use of pointers.
+
+### Errors
+Though it's enticing to simply return `fmt.Errorf` or `errors.New`, these are
+frowned upon. Having a structure that implements the Error interface is the
+preferred method for the Go source code, and so too is it to be the preferred
+method within the engine. Typically errors stem from uncontrollable sources,
+but make every attempt to resolve the error with a fallback solution as soon as
+possible and avoid bubbling up the error if at all possible.
+
+### Interfaces
+Interfaces should be used sparingly, only when no other solution is possible.
+Typically an interface is to solve an unknown problem that a future developer
+may need, or to create a more generic way to interact with a part of a system.
+Most of the time, interfaces are not needed. Most interfaces built into the
+engine are for generic type constraints, bi-directional communication between
+packages, and solutions to larger problems like HTML/CSS parsing.
+
+### 3rd party packages
+It is our goal to keep 3rd party packages as minimal as possible. We have an
+intent to one day replace all 3rd party packages with our own solutions. Please
+do not add any other 3rd party packages into the engine.
+
+### Logging
+Please use `slog` to write your logs. We've implemented a base logging mechanism
+through this interface and may extend it in the future.
+
+### Assembly code
+When writing assembly code, ensure that you are correctly locking it to the
+target system with the go build flags, as well as providing a fallback method
+in Go code. Since you are creating a fallback method in Go anyway, you must
+create a benchmark to prove that your assembly implemenatation is superior to
+the go implementation of the code.

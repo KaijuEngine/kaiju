@@ -5,21 +5,45 @@ in as I thought of them. This created a non-cohesive code-base and also UI/UX.
 The goal of this new version of the editor is to be cohesive and having each
 part thought out before writing any code.
 
+*Note: "the developer" is used to describe the person interacting with the
+editor who is actively developing a game/application.*
+
+## Go code design
+Every attempt is made to make the code as performant as possible and generate
+as little of memory garbage as possible. All new code must be thoroughly planned
+and designed before being written. This can be via technical design doc,
+flow charts, and/or any other type of specification document. All public
+functions must have clean, readable, thorough, and expressive comments to
+describe the intent. Please review the
+[CONTRIBUTING](https://github.com/KaijuEngine/kaiju/blob/master/CONTRIBUTING.md)
+document for coding rules.
+
 ## Window design
 Having floating windows is at times useful, but they create a very clunky way
 for the developer to interact with the editor. For this reason, no external
 popup windows will be permitted. Virtual overlays like confirmations, progress
 bars, and other "obstructive" elements will be presented within the main window.
 
-## Work spaces
-Developers will be presented with "work spaces" for the different tasks that
+## Workspaces
+Developers will be presented with "workspaces" for the different tasks that
 they are focused on. For example, an "Animation", or "Stage", or "Content" work
 space that the developer can focus in on. Having custimizable UI is nice, and
 potentially a task for the future, but it greatly distracts from focusing on
 creating great engine/editor features and dramatically bloats the code.
 
-### Stage work space
-The stage work space presents developers with an asset browser, a hierarchy, and
+### Project workspace
+The project workspace allows the developer to manage existing projects or
+create a new project. This workspace will have a list of projects that the
+editor is aware of in the center/left of the view. Selecting a project will open
+the details about the project in the details panel on the right. The developer
+will also have the option to delete the workspace from the details panel. At the
+top of the workspace will be a button that will allow the developer to create a
+new project. Clicking this button will make the file browser overlay present
+itself. Upon selecting a new folder location, the project will be created and
+the stage workspace will be presented.
+
+### Stage workspace
+The stage workspace presents developers with an asset browser, a hierarchy, and
 a details panel. When selecting an entity in the hierarchy or within the stage
 viewport, it will present that entity's information in the details panel.
 
@@ -42,8 +66,8 @@ components assigned to them. Assets will show information about their current
 configuration, the "compression" of a texture, for example. The details panel
 will be positioned along the right of the window.
 
-### Content work space
-The content work space allows developers to manage the various content in their
+### Content workspace
+The content workspace allows developers to manage the various content in their
 game. It consists of a single large content search/preview area on the left of
 the screen, and a smaller details window on the right of the screen. The
 developer will be presented with a button to import new content on on the larger
@@ -90,11 +114,11 @@ version control as it's a binary and can be re-constructed by scanning all of
 the asset configuration files as well as the assets to rebuild the cache. The
 cache database will be stored in the `database/cache.db` file.
 
-## Project folder layout
+### Database - Folder layout
 - root
 	- database
 		- cache.db
-		- configuration
+		- config
 			- * (matches content structure)
 		- content
 			- audio
@@ -115,3 +139,48 @@ cache database will be stored in the `database/cache.db` file.
 			- plugin (editor extensions)
 			- render
 				- shaders (raw shader source code)
+
+## Project
+The "project" referrs to the game/application that the developer is using the
+editor to create. The editor can not be used without first selecting a project.
+This means that when the editor starts up, it should either be loading an
+existing project, either from last time, the command line, or the developer
+opening the project directly from their file browser. If the editor is otherwise
+started without such a project, the developer will be prompted with the
+"project" workspace. This workspace can not be exited until a project is
+either selected or created.
+
+## Overlays
+Some UI views do not fit neatly within the system as a "workspace" and therefore
+are labeled as "overlays". These overlays are used to select or present
+contextual information about the action of the developer or of the editor. Every
+overlay should block input to the rest of the editor while they are presented.
+
+### File browser overlay
+The file browser overlay allows the developer to select a file, a folder, or
+multiplies of them. This overlay will take up the majority of the screen and
+have a panel on the left for quick access to common locations and a center panel
+with a path input bar and a list of files and folders within that path.
+
+*Note: In the future we'll add a search input bar to the top next to the path
+input box to make it easier for the developer to search the current folder for
+files.*
+
+### Confirm overlay
+The confirm overlay is a simple overlay that presents 2 options, typically
+"Okay" or "Cancel". The overlay has a title and a description as well. The
+title, description, confirm, and cancel texts should all be settable upon
+invoking the overlay.
+
+### Input overlay
+The input overlay allows the developer to input a string into an input box and
+submit it to the invoker. The overlay has a title and a description as well. The
+title, description, input placeholder text, and input default text texts should
+all be settable upon invoking the overlay.
+
+### Progress bar overlay
+The progress bar overlay is used to present the developer with information on
+the current progress of an action. This overlay contains a progress bar across
+the center as well as a label at the bottom to show the status of what is being
+worked through. Optionally this overlay can include a title and description that
+can be set by the invoker to describe the action being processed.
