@@ -39,11 +39,14 @@ var (
 	}
 )
 
-// FileSystem is the project filesystem is rooted to the project and is
-// responsible for accessing any files or folders within the project. The type
-// is a composition of os.Root, so all functions availabe to that structure are
-// available to this one. Helper functions specific to projects are extended to
-// it's behavior.
+// FileSystem is the rooted project folder that is responsible for accessing any
+// files or folders within the project. The type is a composition of os.Root,
+// so all functions availabe to that structure are available to this one. Helper
+// functions specific to projects are extended to it's behavior.
+//
+// The FileSystem has no awareness of actual content/assets and simply
+// understands the structure for the project and allows raw read/write access
+// to the files within the project.
 type FileSystem struct {
 	*os.Root
 }

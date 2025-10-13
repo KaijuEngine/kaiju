@@ -132,7 +132,6 @@ cache database will be stored in the `database/cache.db` file.
 			- render
 				- material
 				- spv
-				- src
 			- texture
 		- src
 			- font (pre-msdf font files)
