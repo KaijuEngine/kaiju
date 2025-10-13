@@ -17,12 +17,12 @@ guides on how to use the platform to contribute in this way.
 5. Pull request title should include issue number (eg: #1234)
 
 ## Coding guidelines
-Every attempt is made to make the code as performant as possible and generate
-as little of memory garbage as possible. All new code must be thoroughly planned
-and designed before being written. This can be via technical design doc,
-flow charts, and/or any other type of specification document. Your go code
-should be well written prose, fancy code, tricks, and bespoke patterns are fun
-to code but not typically welcome.
+Every attempt is made to make the code as performant as possible as well as
+generate minimal memory garbage. All new code must be thoroughly planned and
+designed before being written. This can be via technical design doc, flow
+charts, and/or any other type of specification document. Your go code should be
+well written prose, fancy code, tricks, and bespoke patterns are fun to code but
+not typically welcome.
 
 ### Comments and documentation
 All public functions and types must have clean, readable, thorough, and
@@ -69,12 +69,17 @@ intent to one day replace all 3rd party packages with our own solutions. Please
 do not add any other 3rd party packages into the engine.
 
 ### Logging
-Please use `slog` to write your logs. We've implemented a base logging mechanism
+Use `slog` to write your logs. We've implemented a base logging mechanism
 through this interface and may extend it in the future.
 
 ### Assembly code
 When writing assembly code, ensure that you are correctly locking it to the
 target system with the go build flags, as well as providing a fallback method
 in Go code. Since you are creating a fallback method in Go anyway, you must
-create a benchmark to prove that your assembly implemenatation is superior to
+create a benchmark to prove that your assembly implementation is superior to
 the go implementation of the code.
+
+### In any other case
+Generally, if you would like a guide at how the code should be formatted and
+what standards you should hold yourself to, review the existing code in the
+repository. When in Rome, do as the Romans do.

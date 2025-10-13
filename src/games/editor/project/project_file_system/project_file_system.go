@@ -39,15 +39,16 @@ var (
 	}
 )
 
-// The project filesystem is rooted to the project and is responsible for
-// accessing any files or folders within the project. The type is a composition
-// of os.Root, so all functions availabe to that structure are available to this
-// one. Helper functions specific to projects are extended to it's behavior.
+// FileSystem is the project filesystem is rooted to the project and is
+// responsible for accessing any files or folders within the project. The type
+// is a composition of os.Root, so all functions availabe to that structure are
+// available to this one. Helper functions specific to projects are extended to
+// it's behavior.
 type FileSystem struct {
 	*os.Root
 }
 
-// Create a new FileSystem that is rooted to the given project path. This
+// New creates a new FileSystem that is rooted to the given project path. This
 // function does not care about the status of the given path and only expects
 // that the path supplied is to a folder on the filesystem. If the supplied path
 // does not exist, an attempt will be made to create the folder.
@@ -65,11 +66,12 @@ func New(rootPath string) (FileSystem, error) {
 	return fs, err
 }
 
-// Go through and ensure all the base folders are created for the project. This
-// will only create the folders if they do not yet exist. Folders are often
-// missing if pulling the project from version control, as empty folders are not
-// typically submitted. For more information on folder structure layout, please
-// review the high level editor design documentation in the
+// SetupStructure goes through and ensure all the base folders are created for
+// the project. This will only create the folders if they do not yet exist.
+// Folders are often missing if pulling the project from version control, as
+// empty folders are not typically submitted. For more information on folder
+// structure layout, please review the high level editor design documentation
+// in the
 // [README](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md).
 func (fs *FileSystem) SetupStructure() error {
 	for i := range baseStructure {
