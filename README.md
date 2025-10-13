@@ -5,7 +5,7 @@ If you'd like occasional updates on what I'm doing here, I post them [Twitter/X]
 
 The discord server is located here: [Discord](https://discord.gg/HYj7Dh7ke3)
 
-The mailing list is located at [here](https://www.freelists.org/list/kaijuengine) OR you can join by sending an email to [kaijuengine-request@freelists.org](mailto:kaijuengine-request@freelists.org) with 'subscribe' in the Subject field
+The mailing list is located [here](https://www.freelists.org/list/kaijuengine) OR you can join by sending an email to [kaijuengine-request@freelists.org](mailto:kaijuengine-request@freelists.org) with 'subscribe' in the Subject field.
 
 ## ⚠️ REFACTOR IN PROGRESS ⚠️
 A heavy refactor and re-design is currently being designed and developed in the `refactor` branch.
