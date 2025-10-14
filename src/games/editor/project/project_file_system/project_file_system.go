@@ -8,34 +8,35 @@ import (
 
 var (
 	baseStructure = []string{
-		"database",
-		"database/config",
-		"database/content",
-		"database/content/src",
-		"database/content/src/font",
-		"database/content/src/plugin",
-		"database/content/src/render",
-		"database/content/src/render/shaders",
+		DatabaseFolder,
+		ContentFolder,
+		ContentConfigFolder,
+		SrcFolder,
+		SrcFontFolder,
+		SrcCharsetFolder,
+		SrcPluginFolder,
+		SrcRenderFolder,
+		SrcShaderFolder,
 	}
 	contentStructure = []string{
-		"audio",
-		"audio/music",
-		"audio/sound",
-		"font",
-		"mesh",
-		"ui",
-		"ui/html",
-		"ui/css",
-		"render",
-		"render/material",
-		"render/spv",
-		"render/src",
-		"render/texture",
+		ContentAudioFolder,
+		ContentMusicFolder,
+		ContentSoundFolder,
+		ContentFontFolder,
+		ContentMeshFolder,
+		ContentUiFolder,
+		ContentHtmlFolder,
+		ContentCssFolder,
+		ContentRenderFolder,
+		ContentMaterialFolder,
+		ContentSpvFolder,
+		ContentTextureFolder,
 	}
 	coreRequiredFolders = []string{
-		"database",
-		"database/config",
-		"database/content",
+		DatabaseFolder,
+		ContentFolder,
+		ContentConfigFolder,
+		SrcFolder,
 	}
 )
 
@@ -109,4 +110,17 @@ func (fs *FileSystem) EnsureDatabaseExists() error {
 		}
 	}
 	return nil
+}
+
+// ReadDir is a wrapper around [os.ReadDir] since [os.Root] doesn't provide an
+// interface to this function directly. This simply grabs the rooted directory
+// path and joins the name argument to it before forwarding to [os.ReadDir].
+func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error) {
+	return os.ReadDir(filepath.Join(fs.Name(), name))
+}
+
+// FullPath will return the a cleaned version of the rooted file system path
+// with the supplied name joined onto it.
+func (fs *FileSystem) FullPath(name string) string {
+	return filepath.Clean(filepath.Join(fs.Name(), name))
 }

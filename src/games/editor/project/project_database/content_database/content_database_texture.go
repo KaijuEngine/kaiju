@@ -1,17 +1,23 @@
 package content_database
 
-import "kaiju/platform/filesystem"
+import (
+	"kaiju/games/editor/project/project_file_system"
+)
 
 func init() { contentCategories = append(contentCategories, Texture{}) }
 
+// Texture is a [ContentCategory] represented by a file with a ".png", ".jpg",
+// or ".jpeg" extension. Textures are as they seem.
 type Texture struct{}
 type TextureConfig struct{}
 
-func (Texture) Path() string       { return "texture" }
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
+
+func (Texture) Path() string       { return project_file_system.ContentTextureFolder }
 func (Texture) TypeName() string   { return "texture" }
 func (Texture) ExtNames() []string { return []string{".png", ".jpg", ".jpeg"} }
 
-func (Texture) Import(src string) (data []byte, dependencies []string, err error) {
-	data, err = filesystem.ReadFile(src)
-	return data, dependencies, err
+func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	return pathToBinaryData(src)
 }

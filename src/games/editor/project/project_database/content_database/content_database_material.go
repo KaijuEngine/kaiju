@@ -1,17 +1,24 @@
 package content_database
 
-import "kaiju/platform/filesystem"
+import (
+	"kaiju/games/editor/project/project_file_system"
+)
 
 func init() { contentCategories = append(contentCategories, Material{}) }
 
+// Material is a [ContentCategory] represented by a file with a ".material"
+// extension. A material is a conglomeration of a specific render pass, a
+// specific shader pipeline, and a set of specific shaders.
 type Material struct{}
 type MaterialConfig struct{}
 
-func (Material) Path() string       { return "render/material" }
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
+
+func (Material) Path() string       { return project_file_system.ContentMaterialFolder }
 func (Material) TypeName() string   { return "material" }
 func (Material) ExtNames() []string { return []string{".material"} }
 
-func (Material) Import(src string) (data []byte, dependencies []string, err error) {
-	txt, err := filesystem.ReadTextFile(src)
-	return []byte(txt), dependencies, err
+func (Material) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	return pathToTextData(src)
 }

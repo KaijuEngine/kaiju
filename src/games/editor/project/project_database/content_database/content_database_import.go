@@ -2,7 +2,9 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/filesystem"
 	"path/filepath"
+	"strings"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -12,6 +14,16 @@ type ImportResult struct {
 	Path         string
 	Category     ContentCategory
 	Dependencies []ImportResult
+}
+
+type ProcessedImport struct {
+	Dependencies []string
+	Variants     []ImportVariant
+}
+
+type ImportVariant struct {
+	Name string
+	Data []byte
 }
 
 func (r ImportResult) ContentPath() string {
@@ -41,4 +53,22 @@ func (r ImportResult) failureCleanup(fs *project_file_system.FileSystem) {
 	for i := range r.Dependencies {
 		r.Dependencies[i].failureCleanup(fs)
 	}
+}
+
+func fileNameNoExt(path string) string {
+	return strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+}
+
+func pathToTextData(path string) (ProcessedImport, error) {
+	txt, err := filesystem.ReadTextFile(path)
+	return ProcessedImport{Variants: []ImportVariant{
+		{Name: fileNameNoExt(path), Data: []byte(txt)},
+	}}, err
+}
+
+func pathToBinaryData(path string) (ProcessedImport, error) {
+	txt, err := filesystem.ReadFile(path)
+	return ProcessedImport{Variants: []ImportVariant{
+		{Name: fileNameNoExt(path), Data: []byte(txt)},
+	}}, err
 }

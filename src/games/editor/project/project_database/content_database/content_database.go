@@ -21,29 +21,31 @@ func (c ContentDatabase) Import(path string, fs *project_file_system.FileSystem)
 		return res, CategoryNotFoundError{Path: path}
 	}
 	res.Category = cat
-	data, deps, err := cat.Import(path)
+	proc, err := cat.Import(path, fs)
 	if err != nil {
 		return res, err
 	}
-	res.generateUniqueFileId(fs)
-	f, err := os.Create(res.ConfigPath())
-	if err != nil {
-		return res, err
-	}
-	f.Close()
-	if err = fs.WriteFile(res.ContentPath(), data, os.ModePerm); err != nil {
-		res.failureCleanup(fs)
-		return res, err
-	}
-	res.Dependencies = make([]ImportResult, len(deps))
-	for i := range deps {
-		res.Dependencies[i], err = c.Import(deps[i], fs)
+	for i := range proc.Variants {
+		res.generateUniqueFileId(fs)
+		f, err := os.Create(res.ConfigPath())
 		if err != nil {
-			break
+			return res, err
 		}
-	}
-	if err != nil {
-		res.failureCleanup(fs)
+		f.Close()
+		if err = fs.WriteFile(res.ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
+			res.failureCleanup(fs)
+			return res, err
+		}
+		res.Dependencies = make([]ImportResult, len(proc.Dependencies))
+		for i := range proc.Dependencies {
+			res.Dependencies[i], err = c.Import(proc.Dependencies[i], fs)
+			if err != nil {
+				break
+			}
+		}
+		if err != nil {
+			res.failureCleanup(fs)
+		}
 	}
 	return res, err
 }
