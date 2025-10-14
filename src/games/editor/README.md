@@ -134,10 +134,11 @@ cache database will be stored in the `database/cache.db` file.
 				- spv
 			- texture
 		- src
-			- font (pre-msdf font files)
+			- font
+				- charset
 			- plugin (editor extensions)
 			- render
-				- shaders (raw shader source code)
+				- shader (raw shader source code)
 
 ## Project
 The "project" referrs to the game/application that the developer is using the
