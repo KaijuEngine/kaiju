@@ -70,6 +70,9 @@ func New(rootPath string) (FileSystem, error) {
 	return fs, err
 }
 
+// IsValid will return true if this project file system has been setup already.
+func (fs *FileSystem) IsValid() bool { return fs.Root != nil }
+
 // SetupStructure goes through and ensure all the base folders are created for
 // the project. This will only create the folders if they do not yet exist.
 // Folders are often missing if pulling the project from version control, as

@@ -5,16 +5,7 @@ import (
 	"os"
 )
 
-const (
-	contentFolder = "content"
-	configFolder  = "config"
-)
-
-// ContentDatabase is the primary interface for importing content or pulling
-// information about existing content.
-type ContentDatabase struct{}
-
-func (c ContentDatabase) Import(path string, fs *project_file_system.FileSystem) (ImportResult, error) {
+func Import(path string, fs *project_file_system.FileSystem) (ImportResult, error) {
 	res := ImportResult{Path: path}
 	cat, ok := selectCategory(path)
 	if !ok {
@@ -38,7 +29,7 @@ func (c ContentDatabase) Import(path string, fs *project_file_system.FileSystem)
 		}
 		res.Dependencies = make([]ImportResult, len(proc.Dependencies))
 		for i := range proc.Dependencies {
-			res.Dependencies[i], err = c.Import(proc.Dependencies[i], fs)
+			res.Dependencies[i], err = Import(proc.Dependencies[i], fs)
 			if err != nil {
 				break
 			}

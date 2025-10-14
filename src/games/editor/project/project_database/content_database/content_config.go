@@ -1,5 +1,11 @@
 package content_database
 
+import (
+	"encoding/gob"
+	"kaiju/games/editor/project/project_file_system"
+	"strings"
+)
+
 // ContentConfig is a composition of all possible configs, identified by their
 // matching field name. It also contains some generic developer-facing
 // properties.
@@ -37,4 +43,22 @@ type ContentConfig struct {
 	Sound    SoundConfig
 	Spv      SpvConfig
 	Texture  TextureConfig
+}
+
+// ReadConfig is used to read a config file from the project file system. This
+// is primarily used by the cache database, but could be used for other needs
+// to extend the editor.
+func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig, error) {
+	cfg := ContentConfig{}
+	if strings.HasPrefix(path, project_file_system.ContentFolder) {
+		path = strings.Replace(path, project_file_system.ContentFolder,
+			project_file_system.ContentConfigFolder, 0)
+	}
+	f, err := fs.Open(path)
+	if err != nil {
+		return cfg, err
+	}
+	defer f.Close()
+	err = gob.NewDecoder(f).Decode(&cfg)
+	return cfg, err
 }
