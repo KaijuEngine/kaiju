@@ -5,14 +5,15 @@ const (
 	ContentFolder       = "database/content"
 	ContentConfigFolder = "database/config"
 	SrcFolder           = "database/src"
+	CacheFolder         = "database/cache"
 )
 
 const (
-	SrcFontFolder    = "database/src/font"
-	SrcCharsetFolder = "database/src/font/charset"
-	SrcPluginFolder  = "database/src/plugin"
-	SrcRenderFolder  = "database/src/render"
-	SrcShaderFolder  = "database/src/render/shader"
+	SrcFontFolder    = SrcFolder + "/font"
+	SrcCharsetFolder = SrcFolder + "/font/charset"
+	SrcPluginFolder  = SrcFolder + "/plugin"
+	SrcRenderFolder  = SrcFolder + "/render"
+	SrcShaderFolder  = SrcFolder + "/render/shader"
 )
 
 const (
@@ -28,4 +29,8 @@ const (
 	ContentMaterialFolder = "render/material"
 	ContentSpvFolder      = "render/spv"
 	ContentTextureFolder  = "render/texture"
+)
+
+const (
+	CacheBvhFolder = CacheFolder + "/bvh"
 )

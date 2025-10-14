@@ -124,3 +124,22 @@ func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error) {
 func (fs *FileSystem) FullPath(name string) string {
 	return filepath.Clean(filepath.Join(fs.Name(), name))
 }
+
+// FileExists will return true if the file exists in the rooted file system
+func (fs *FileSystem) FileExists(name string) bool {
+	s, err := fs.Stat(name)
+	return err == nil && !s.IsDir()
+}
+
+// FolderExists will return true if the folder exists in the rooted file system
+func (fs *FileSystem) FolderExists(name string) bool {
+	s, err := fs.Stat(name)
+	return err == nil && s.IsDir()
+}
+
+// Exists will return true if the target file or folder exists in the rooted
+// file system
+func (fs *FileSystem) Exists(name string) bool {
+	_, err := fs.Stat(name)
+	return err == nil
+}

@@ -2,6 +2,8 @@ package project
 
 import (
 	"fmt"
+	"kaiju/games/editor/project/project_database/cache_database"
+	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"os"
 )
@@ -10,7 +12,24 @@ import (
 // project. This type is used to access the file system, project specific
 // settings, content, cache, and anything related to the project.
 type Project struct {
-	FileSystem project_file_system.FileSystem
+	fileSystem      project_file_system.FileSystem
+	cacheDatabase   cache_database.CacheDatabase
+	contentDatabase content_database.ContentDatabase
+}
+
+// FileSystem returns a pointer to [project_file_system.FileSystem]
+func (p *Project) FileSystem() *project_file_system.FileSystem {
+	return &p.fileSystem
+}
+
+// ContentDatabase returns a pointer to [cache_database.CacheDatabase]
+func (p *Project) CacheDatabase() *cache_database.CacheDatabase {
+	return &p.cacheDatabase
+}
+
+// ContentDatabase returns a pointer to [content_database.ContentDatabase]
+func (p *Project) ContentDatabase() *content_database.ContentDatabase {
+	return &p.contentDatabase
 }
 
 // New constructs a new project that is bound to the given path. This function
@@ -22,8 +41,8 @@ func New(path string) (Project, error) {
 		return p, err
 	}
 	var err error
-	if p.FileSystem, err = project_file_system.New(path); err == nil {
-		err = p.FileSystem.SetupStructure()
+	if p.fileSystem, err = project_file_system.New(path); err == nil {
+		err = p.fileSystem.SetupStructure()
 	}
 	return p, err
 }
@@ -36,11 +55,11 @@ func New(path string) (Project, error) {
 func Open(path string) (Project, error) {
 	p := Project{}
 	var err error
-	if p.FileSystem, err = project_file_system.New(path); err != nil {
+	if p.fileSystem, err = project_file_system.New(path); err != nil {
 		return p, err
 	}
-	if err = p.FileSystem.EnsureDatabaseExists(); err == nil {
-		err = p.FileSystem.SetupStructure()
+	if err = p.fileSystem.EnsureDatabaseExists(); err == nil {
+		err = p.fileSystem.SetupStructure()
 	}
 	return p, err
 }
