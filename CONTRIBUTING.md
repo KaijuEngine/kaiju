@@ -25,7 +25,7 @@ well written prose, fancy code, tricks, and bespoke patterns are fun to code but
 not typically welcome.
 
 ### Comments and documentation
-All public functions and types must have clean, readable, thorough, and
+All public functions, types, and fields must have clean, readable, thorough, and
 expressive comments to describe the intent. The comment format should be
 formatted the same way as Go's standard library. Comment lines should not
 exceed 80 columns in width.
@@ -35,6 +35,13 @@ express itself in an understandable way. This is typical in tight performance
 loops, or code needed to access low-level resources. If your code is otherwise
 difficult to understand and needs a comment, consider improving your code first
 before writing a comment.
+
+Do not commit TODO, FIXME, or any other sorts of similar comments without first
+discussing why it needs to be there and getting approval for it's addition. No
+such comment should be committed without an accompanying issue id, regardless
+of it's approval. If you create an issue, remove the TODO or FIXME comment and
+add in the klib.NotYetImplemented(X) function call, replacing `X` with the id
+of the issue.
 
 *Note that the implementation of the `Error() string` error interface public
 function does not need to be documented, even though it is a public function.*
