@@ -95,29 +95,40 @@ name equal to the file name that was imported. Content will be imported into the
 
 ## Database
 There will be various information that needs to be stored about content and the
-developer's project. This information will be stored locally both to the file
-as well as in a cache [SQLite](https://www.sqlite.org/) database.
+developer's project. This information will be stored locally in text file
+formats (like .json) within the database folder. The content is the raw content
+that is used in the game and any referenced will be packaged with the game. The
+config is a mirror of content and will hold developer-set information about
+the content. The cache is a folder to store auxiliary data that could be in text
+or binary form, it is not to be commited to version control. 
 
-### Database - Asset configuration
+### Database - Content
+Content is the main player facing content for the game. It holds various assets
+like textures, meshes, fonts, music, ui and more. These assets can be either 
+text or binary. When a developer imports content it will be read, given a unique
+identifier, and then stored within this folder. At the same time a matching
+configuration file will be created and stored in the config folder holding
+the name, type, tags, and any other information about the asset.
+
+### Database - Content configuration
 Developer-assigned information like name, category, tags, etc. Will be stored
 into a compressed JSON file format with the same GUID as the target asset. This
 file will have the extension `.json` and reside in the `database/configuration`
 folder matching the `database/content` folder structure. These files are to be
 committed to version control as they can be used to build the database cache.
 
-### Database - Cache (SQLite)
-The cache database is to speed up the process of search by mirroring all of the
-data found in the asset configuration files. It will also store any runtime 
-information to speed up the interface and usability, by storing things like the
-BVH structures for assets for example. This file is not to be committed to
-version control as it's a binary and can be re-constructed by scanning all of
-the asset configuration files as well as the assets to rebuild the cache. The
-cache database will be stored in the `database/cache.db` file.
+### Database - Cache
+The cache is a special folder that holds auxiliary information about content. An
+example of this would be that when a mesh is imported, a BVH is created so that
+a triangle-pefect selection could happen for it in the editor. This BVH doesn't
+change other than in transformation, so it is generated and stored into the
+`database/cache/bvh` folder with a matching id of the mesh content.
 
 ### Database - Folder layout
 - root
 	- database
-		- cache.db
+		- cache
+			- bvh
 		- config
 			- * (matches content structure)
 		- content
