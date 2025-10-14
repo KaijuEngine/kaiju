@@ -103,7 +103,6 @@ type Vulkan struct {
 	renderPassCache            map[string]*RenderPass
 	hasSwapChain               bool
 	writtenCommands            []CommandRecorder
-	transientCommands          []CommandRecorder
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 	combineCmds                [maxFramesInFlight]CommandRecorder
 	blitCmds                   [maxFramesInFlight]CommandRecorder
