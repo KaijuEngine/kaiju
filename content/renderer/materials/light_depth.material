@@ -1,1 +1,1 @@
-{"Name":"light_depth","Shader":"content/renderer/shaders/light_depth.shader","RenderPass":"content/renderer/passes/light_depth.renderpass","ShaderPipeline":"content/renderer/pipelines/light_depth.shaderpipeline","Textures":null}
+{"Name":"light_depth","Shader":"renderer/shaders/light_depth.shader","RenderPass":"renderer/passes/light_depth.renderpass","ShaderPipeline":"renderer/pipelines/light_depth.shaderpipeline","Textures":null}
