@@ -237,7 +237,7 @@ func (vr *Vulkan) createColorResources() bool {
 	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vk.ImageAspectColorBit))
 }
 
-func NewVKRenderer(window RenderingContainer, applicationName string, assets *assets.Database) (*Vulkan, error) {
+func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error) {
 	vr := &Vulkan{
 		instance:         vk.NullInstance,
 		physicalDevice:   vk.NullPhysicalDevice,
@@ -383,7 +383,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 	return success
 }
 
-func (vr *Vulkan) createSwapChainRenderPass(assets *assets.Database) bool {
+func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
 	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
 	if err != nil {
 		return false

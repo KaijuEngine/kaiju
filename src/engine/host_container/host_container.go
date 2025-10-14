@@ -39,6 +39,7 @@ package host_container
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/systems/logging"
 	"kaiju/klib"
 	"kaiju/platform/chrono"
@@ -100,9 +101,9 @@ func (c *Container) Run(width, height, x, y int) error {
 	return nil
 }
 
-func New(name string, logStream *logging.LogStream) *Container {
+func New(name string, logStream *logging.LogStream, adb assets.Database) *Container {
 	defer tracing.NewRegion("host_container.New").End()
-	host := engine.NewHost(name, logStream)
+	host := engine.NewHost(name, logStream, adb)
 	c := &Container{
 		Host:         host,
 		runFunctions: []func(){},

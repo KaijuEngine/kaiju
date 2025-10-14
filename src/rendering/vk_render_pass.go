@@ -83,7 +83,7 @@ func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
 	return nil, false
 }
 
-func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, assets *assets.Database, index int) error {
+func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, assets assets.Database, index int) error {
 	r.subpasses = klib.WipeSlice(r.subpasses)
 	sp := RenderPassSubpass{}
 	// TODO:  This is copied from Material.Compile

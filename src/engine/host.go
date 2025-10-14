@@ -129,7 +129,7 @@ type Host struct {
 // is created through NewHost has no function until #Host.Initialize is called.
 //
 // This is primarily called from #host_container/New
-func NewHost(name string, logStream *logging.LogStream) *Host {
+func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
 	host := &Host{
@@ -141,7 +141,7 @@ func NewHost(name string, logStream *logging.LogStream) *Host {
 		UILateUpdater: NewUpdater(),
 		Updater:       NewUpdater(),
 		LateUpdater:   NewUpdater(),
-		assetDatabase: assets.NewDatabase(),
+		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
 		CloseSignal:   make(chan struct{}, 1),
 		Camera:        cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
@@ -164,7 +164,7 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	if height <= 0 {
 		height = DefaultWindowHeight
 	}
-	win, err := windowing.New(host.name, width, height, x, y, &host.assetDatabase)
+	win, err := windowing.New(host.name, width, height, x, y, host.assetDatabase)
 	if err != nil {
 		return err
 	}
@@ -172,11 +172,11 @@ func (host *Host) Initialize(width, height, x, y int) error {
 	host.threads.Start()
 	host.Camera.ViewportChanged(float32(width), float32(height))
 	host.UICamera.ViewportChanged(float32(width), float32(height))
-	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, &host.assetDatabase)
-	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, &host.assetDatabase)
-	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, &host.assetDatabase)
-	host.fontCache = rendering.NewFontCache(host.Window.Renderer, &host.assetDatabase)
-	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, &host.assetDatabase)
+	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, host.assetDatabase)
+	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, host.assetDatabase)
+	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, host.assetDatabase)
+	host.fontCache = rendering.NewFontCache(host.Window.Renderer, host.assetDatabase)
+	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, host.assetDatabase)
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
 	return nil
@@ -262,8 +262,8 @@ func (host *Host) MaterialCache() *rendering.MaterialCache {
 }
 
 // AssetDatabase returns the asset database for the host
-func (host *Host) AssetDatabase() *assets.Database {
-	return &host.assetDatabase
+func (host *Host) AssetDatabase() assets.Database {
+	return host.assetDatabase
 }
 
 // Plugins returns all of the loaded plugins for the host
@@ -513,7 +513,7 @@ func (host *Host) Teardown() {
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
 	host.materialCache.Destroy()
-	host.assetDatabase.Destroy()
+	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
 	host.CloseSignal <- struct{}{}

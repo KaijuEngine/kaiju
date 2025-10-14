@@ -41,6 +41,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/ui"
@@ -158,7 +159,11 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 }
 
 func New(htmlFile string) (*host_container.Container, error) {
-	c := host_container.New("HTML Preview", nil)
+	adb, err := assets.NewFileDatabase("content")
+	if err != nil {
+		return nil, err
+	}
+	c := host_container.New("HTML Preview", nil, adb)
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-c.PrepLock

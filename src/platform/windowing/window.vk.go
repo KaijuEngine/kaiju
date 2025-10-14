@@ -43,7 +43,7 @@ import (
 	"unsafe"
 )
 
-func selectRenderer(w *Window, name string, assets *assets.Database) (rendering.Renderer, error) {
+func selectRenderer(w *Window, name string, assets assets.Database) (rendering.Renderer, error) {
 	return rendering.NewVKRenderer(w, name, assets)
 }
 

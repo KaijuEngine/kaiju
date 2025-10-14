@@ -45,5 +45,5 @@ type RenderCaches interface {
 	MeshCache() *MeshCache
 	FontCache() *FontCache
 	MaterialCache() *MaterialCache
-	AssetDatabase() *assets.Database
+	AssetDatabase() assets.Database
 }

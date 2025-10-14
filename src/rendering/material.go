@@ -135,7 +135,7 @@ func (d *MaterialTextureData) FilterToVK() TextureFilter {
 	}
 }
 
-func (d *MaterialData) Compile(assets *assets.Database, renderer Renderer) (*Material, error) {
+func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{

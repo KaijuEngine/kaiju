@@ -42,6 +42,7 @@ package bootstrap
 import (
 	"kaiju/build"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/logging"
 	"kaiju/games"
@@ -49,7 +50,6 @@ import (
 	"kaiju/platform/profiler"
 	"kaiju/plugins"
 	"kaiju/tools/html_preview"
-	"kaiju/tools/shader_designer"
 	"log/slog"
 	"runtime"
 	"time"
@@ -58,7 +58,12 @@ import (
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool
 
 func bootstrapLoop(logStream *logging.LogStream) {
-	container := host_container.New(build.Title.String(), logStream)
+	adb, err := assets.NewFileDatabase("content")
+	if err != nil {
+		slog.Error("failed to start the game, could not access the content database")
+		return
+	}
+	container := host_container.New(build.Title.String(), logStream, adb)
 	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-container.PrepLock
 	initExternalGameService()
@@ -69,7 +74,6 @@ func bootstrapLoop(logStream *logging.LogStream) {
 		if build.Debug {
 			profiler.SetupConsole(container.Host)
 			html_preview.SetupConsole(container.Host)
-			shader_designer.SetupConsole(container.Host)
 		}
 		games.LaunchGame(container.Host)
 		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, games.GamePluginRegistry()...)

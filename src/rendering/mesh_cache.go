@@ -46,13 +46,13 @@ import (
 
 type MeshCache struct {
 	renderer      Renderer
-	assetDatabase *assets.Database
+	assetDatabase assets.Database
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
 	mutex         sync.Mutex
 }
 
-func NewMeshCache(renderer Renderer, assetDatabase *assets.Database) MeshCache {
+func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
 	return MeshCache{
 		renderer:      renderer,
 		assetDatabase: assetDatabase,

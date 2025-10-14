@@ -46,13 +46,13 @@ import (
 
 type TextureCache struct {
 	renderer        Renderer
-	assetDatabase   *assets.Database
+	assetDatabase   assets.Database
 	textures        [TextureFilterMax]map[string]*Texture
 	pendingTextures []*Texture
 	mutex           sync.Mutex
 }
 
-func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache {
+func NewTextureCache(renderer Renderer, assetDatabase assets.Database) TextureCache {
 	defer tracing.NewRegion("rendering.NewTextureCache").End()
 	tc := TextureCache{
 		renderer:        renderer,

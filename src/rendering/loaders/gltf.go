@@ -65,7 +65,7 @@ type rawMeshData struct {
 	indices []uint32
 }
 
-func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
+func readFileGLB(file string, assetDB assets.Database) (fullGLTF, error) {
 	defer tracing.NewRegion("loaders.readFileGLB").End()
 	const headSize = 12
 	const chunkHeadSize = 8
@@ -123,7 +123,7 @@ func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
+func readFileGLTF(file string, assetDB assets.Database) (fullGLTF, error) {
 	defer tracing.NewRegion("loaders.readFileGLTF").End()
 	g := fullGLTF{path: file}
 	str, err := assetDB.ReadText(file)
@@ -150,7 +150,7 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
+func GLTF(path string, assetDB assets.Database) (load_result.Result, error) {
 	defer tracing.NewRegion("loaders.GLTF").End()
 	if !assetDB.Exists(path) {
 		return load_result.Result{}, errors.New("file does not exist")

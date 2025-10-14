@@ -92,7 +92,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
+func New(windowName string, width, height, x, y int, assets assets.Database) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),

@@ -42,7 +42,7 @@ import (
 	"kaiju/engine/assets"
 )
 
-func unmarshallJsonFile(assets *assets.Database, file string, to any) error {
+func unmarshallJsonFile(assets assets.Database, file string, to any) error {
 	s, err := assets.ReadText(file)
 	if err != nil {
 		return err

@@ -151,7 +151,7 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 	return nil
 }
 
-func NewLight(vr *Vulkan, assetDb *assets.Database, materialCache *MaterialCache, lightType LightType) Light {
+func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
 	light := Light{
 		ambient:     matrix.NewVec3(0.1, 0.1, 0.1),
 		diffuse:     matrix.Vec3One(),
@@ -274,7 +274,7 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 	}
 }
 
-func (l *Light) setupRenderPass(assets *assets.Database) {
+func (l *Light) setupRenderPass(assets assets.Database) {
 	vr := l.renderer
 	rp := RenderPassData{}
 	if err := unmarshallJsonFile(assets, "renderer/passes/light_depth.renderpass", &rp); err != nil {

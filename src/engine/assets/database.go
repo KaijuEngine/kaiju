@@ -37,60 +37,12 @@
 
 package assets
 
-import (
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
-	"path/filepath"
-	"strings"
-)
-
-type Database struct {
-	cache map[string][]byte
-}
-
-func NewDatabase() Database {
-	return Database{
-		cache: make(map[string][]byte),
-	}
-}
-
-func (a *Database) ToFilePath(key string) string { return a.toContentPath(key) }
-
-func (a *Database) Cache(key string, data []byte) { a.cache[key] = data }
-func (a *Database) CacheRemove(key string)        { delete(a.cache, key) }
-func (a *Database) CacheClear()                   { clear(a.cache) }
-
-func (a *Database) ReadText(key string) (string, error) {
-	defer tracing.NewRegion("AssetDatabase.ReadText: " + key).End()
-	if data, ok := a.cache[key]; ok {
-		return string(data), nil
-	}
-	return filesystem.ReadTextFile(a.toContentPath(key))
-}
-
-func (a *Database) Read(key string) ([]byte, error) {
-	defer tracing.NewRegion("AssetDatabase.Read: " + key).End()
-	if data, ok := a.cache[key]; ok {
-		return data, nil
-	}
-	return filesystem.ReadFile(a.toContentPath(key))
-}
-
-func (a *Database) Exists(key string) bool {
-	if _, ok := a.cache[key]; ok {
-		return true
-	}
-	return filesystem.FileExists(a.toContentPath(key))
-}
-
-func (a *Database) Destroy() {
-
-}
-
-func (a *Database) toContentPath(key string) string {
-	const contentPath = "content"
-	if strings.HasPrefix(key, contentPath) {
-		return key
-	}
-	return filepath.Join(contentPath, key)
+type Database interface {
+	Cache(key string, data []byte)
+	CacheRemove(key string)
+	CacheClear()
+	Read(key string) ([]byte, error)
+	ReadText(key string) (string, error)
+	Exists(key string) bool
+	Close()
 }
