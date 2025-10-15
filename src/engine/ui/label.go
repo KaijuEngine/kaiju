@@ -209,8 +209,16 @@ func (label *Label) renderText() {
 	label.clearDrawings()
 	label.entity.Transform.SetDirty()
 	if ld.textLength > 0 {
+		xOffset := float32(0)
+		p := FirstOnEntity(label.entity.Parent)
+		switch ld.justify {
+		case rendering.FontJustifyRight:
+			xOffset -= p.layout.padding.Left() + p.layout.padding.Right()
+		case rendering.FontJustifyCenter:
+			xOffset -= p.layout.padding.Left()
+		}
 		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
-			label.man.Host, ld.text, 0, 0, 0, ld.fontSize,
+			label.man.Host, ld.text, xOffset, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight)
