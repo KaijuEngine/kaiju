@@ -414,3 +414,5 @@ button:active {
 	padding: 1px 5px 9px 5px;
 	background-image: url("editor/textures/button_down.png");
 }
+/** Unconventional helpers **/
+.centerText { text-align: center; }
