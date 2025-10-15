@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.overlay {
+                position: absolute;
+				width: 75%;
+				height: 75%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+                color: white;
+                background-color: #121212;
+				border: 2px solid #575757;
+			}
+			.titleBar {
+				width: 100%;
+				height: 2em;
+				text-align: center;
+				vertical-align: middle;
+			}
+			.content {
+				width: 100%;
+				height: calc(100% - 2em - 4px);
+			}
+			.leftPanel {
+				width: 20%;
+				height: 100%;
+				background-color: #282828;
+			}
+			.rightPanel {
+				position: absolute;
+				right: 2px;
+				width: 79%;
+				height: 100%;
+			}
+			.navBar {
+				width: 100%;
+				height: 2em;
+				background-color: #282828;
+			}
+			.entryList { width: 100%; }
+			.quickEntry {
+				width: 100%;
+				height: 1.375em;
+				padding-left: 5px;
+				background-color: #282828;
+			}
+			.quickEntry:hover {
+				background-color: #575757;
+			}
+			.quickEntry img {
+				width: 1.375em;
+				height: 1.375em;
+			}
+			img { image-rendering: pixelated; }
+			input {
+				margin-left: 1em;
+				width: 50%;
+				height: 100%;
+			}
+			button {
+				height: 2em;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="overlay">
+			<div class="titleBar">Title goes here...</div>
+			<div class="content">
+				<div class="leftPanel">
+					<div class="centerText">Quick access</div>
+					{{range .QuickAccessFolders}}
+					<div class="quickEntry" data-path="{{.Path}}" onclick="selectQuickAccess">
+						<img src="editor/textures/icons/folder_small.png" />
+						<span>{{.Name}}</span>
+					</div>
+					{{end}}
+				</div>
+				<div class="rightPanel">
+					<div class="navBar">
+						<button>&lt;</button>
+						<button>&gt;</button>
+						<button>^</button>
+						<button>@</button>
+						<button>New folder</button>
+						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" />
+					</div>
+					<div class="entryList">
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

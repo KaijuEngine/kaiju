@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .panel {
+                position: absolute;
+                color: white;
+                background-image: url("editor/textures/overlay_panel_background.png");
+                text-align: center;
+                border-image-slice: 25px;
+                background-color: #121212;
+                width: 50%;
+                height: 50%;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50% -50%);
+                padding: 22px;
+            }
+            .inputPanel {
+                width: 100%;
+                height: 2em;
+                margin-bottom: 5px;
+            }
+            .fullWidth { width: 100%; }
+            input, .browseButton { height: 100%; }
+            .folderInput { width: 73%; }
+            .browseButton {
+                position: absolute;
+                right: 0;
+                width: 20%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="panel">
+            <h1>New Project</h1>
+            <p>You've selected to start a new project</p>
+            <div class="inputPanel">
+                <input id="name" class="fullWidth" type="text" placeholder="Name..." />
+            </div>
+            <div class="inputPanel">
+                <input id="folder" class="folderInput" type="text" placeholder="Folder..." />
+                <button class="browseButton" onclick="browse">Browse...</button>
+            </div>
+        </div>
+    </body>
+</html>
