@@ -403,14 +403,14 @@ button {
 	text-align: center;
 	vertical-align: middle;
 	overflow: hidden;
-	background-color: #581E0A;
-	background-image: url("sudoku/textures/button-idle.png");
+	background-color: #282828;
+	background-image: url("editor/textures/button_idle.png");
 }
 button:hover {
-	background-color: #76280D;
-	background-image: url("sudoku/textures/button-hover.png");
+	background-color: #575757;
+	background-image: url("editor/textures/button_hover.png");
 }
 button:active {
 	padding: 1px 5px 9px 5px;
-	background-image: url("sudoku/textures/button-down.png");
+	background-image: url("editor/textures/button_down.png");
 }
