@@ -62,6 +62,7 @@ func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, fun
 		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
 			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
 		})
+		host.OnClose.Add(func() { document.Debug.ReloadStylesEvent.Clear() })
 	}
 	return doc, nil
 }
