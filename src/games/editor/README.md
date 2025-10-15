@@ -195,3 +195,20 @@ the current progress of an action. This overlay contains a progress bar across
 the center as well as a label at the bottom to show the status of what is being
 worked through. Optionally this overlay can include a title and description that
 can be set by the invoker to describe the action being processed.
+
+## UI
+
+### UI - Colors
+| Label      | Color     |
+|------------|-----------|
+| Background | `#121212` |
+| Panel      | `#282828` |
+| Highlight  | `#575757` |
+| Primary    | `#B03535` |
+| Secondary  | `#C7655D` |
+| Tirtiary   | `#E4A79F` |
+| Success    | `#22946E` |
+| Warning    | `#A87A2A` |
+| Danger     | `#9C2121` |
+| Info       | `#21498A` |
+| Text       | `#FFFFFF` |
