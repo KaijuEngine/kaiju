@@ -366,13 +366,21 @@ func layoutStretch(self *Layout) {
 func (l *Layout) prepare() {
 	switch l.ui.elmType {
 	case ElementTypeInput:
-		l.runningStylizer = true
-		l.ui.ToInput().onLayoutUpdating()
-		l.runningStylizer = false
+		if l.runningStylizer {
+			l.ui.ToInput().onLayoutUpdating()
+		} else {
+			l.runningStylizer = true
+			l.ui.ToInput().onLayoutUpdating()
+			l.runningStylizer = false
+		}
 	case ElementTypeSlider:
-		l.runningStylizer = true
-		l.ui.ToSlider().onLayoutUpdating()
-		l.runningStylizer = false
+		if l.runningStylizer {
+			l.ui.ToSlider().onLayoutUpdating()
+		} else {
+			l.runningStylizer = true
+			l.ui.ToSlider().onLayoutUpdating()
+			l.runningStylizer = false
+		}
 	}
 	if !l.runningStylizer && l.Stylizer != nil {
 		l.runningStylizer = true
