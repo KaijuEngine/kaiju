@@ -190,10 +190,8 @@ func (label *Label) labelPostLayoutUpdate() {
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
-	if label.layout.screenAnchor < AnchorStretchLeft {
-		m := label.measure(maxWidth)
-		label.layout.ScaleHeight(m.Y())
-	}
+	m := label.measure(maxWidth)
+	label.layout.ScaleHeight(m.Y())
 }
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {

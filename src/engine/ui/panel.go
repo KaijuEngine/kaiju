@@ -355,9 +355,6 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 	defer tracing.NewRegion("Panel.boundsChildren").End()
 	for _, kid := range p.entity.Children {
 		kui := FirstOnEntity(kid)
-		if kui.layout.screenAnchor.IsStretch() {
-			continue
-		}
 		if kui.Layout().Positioning() == PositioningAbsolute {
 			continue
 		}

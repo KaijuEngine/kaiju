@@ -59,11 +59,6 @@ const (
 	AnchorBottomLeft
 	AnchorBottomCenter
 	AnchorBottomRight
-	AnchorStretchLeft
-	AnchorStretchTop
-	AnchorStretchRight
-	AnchorStretchBottom
-	AnchorStretchCenter
 )
 
 const (
@@ -82,8 +77,6 @@ func (a Anchor) ConvertToTop() Anchor {
 		return AnchorTopCenter
 	case AnchorBottomRight:
 		return AnchorTopRight
-	case AnchorStretchTop:
-		return AnchorStretchBottom
 	default:
 		return a
 	}
@@ -97,8 +90,6 @@ func (a Anchor) ConvertToBottom() Anchor {
 		return AnchorBottomCenter
 	case AnchorTopRight:
 		return AnchorBottomRight
-	case AnchorStretchBottom:
-		return AnchorStretchTop
 	default:
 		return a
 	}
@@ -112,8 +103,6 @@ func (a Anchor) ConvertToLeft() Anchor {
 		return AnchorLeft
 	case AnchorBottomRight:
 		return AnchorBottomLeft
-	case AnchorStretchRight:
-		return AnchorStretchLeft
 	default:
 		return a
 	}
@@ -127,8 +116,6 @@ func (a Anchor) ConvertToRight() Anchor {
 		return AnchorRight
 	case AnchorBottomLeft:
 		return AnchorBottomRight
-	case AnchorStretchLeft:
-		return AnchorStretchRight
 	default:
 		return a
 	}
@@ -154,24 +141,19 @@ func (a Anchor) ConvertToCenter() Anchor {
 }
 
 func (a Anchor) IsLeft() bool {
-	return a == AnchorLeft || a == AnchorTopLeft || a == AnchorBottomLeft || a == AnchorStretchLeft
+	return a == AnchorLeft || a == AnchorTopLeft || a == AnchorBottomLeft
 }
 
 func (a Anchor) IsRight() bool {
-	return a == AnchorRight || a == AnchorTopRight || a == AnchorBottomRight || a == AnchorStretchRight
+	return a == AnchorRight || a == AnchorTopRight || a == AnchorBottomRight
 }
 
 func (a Anchor) IsTop() bool {
-	return a == AnchorTopLeft || a == AnchorTopCenter || a == AnchorTopRight || a == AnchorStretchTop
+	return a == AnchorTopLeft || a == AnchorTopCenter || a == AnchorTopRight
 }
 
 func (a Anchor) IsBottom() bool {
-	return a == AnchorBottomLeft || a == AnchorBottomCenter || a == AnchorBottomRight || a == AnchorStretchBottom
-}
-
-func (a Anchor) IsStretch() bool {
-	return a == AnchorStretchLeft || a == AnchorStretchTop ||
-		a == AnchorStretchRight || a == AnchorStretchBottom || a == AnchorStretchCenter
+	return a == AnchorBottomLeft || a == AnchorBottomCenter || a == AnchorBottomRight
 }
 
 type Layout struct {
@@ -645,21 +627,6 @@ func (l *Layout) AnchorTo(anchorPosition Anchor) {
 	case AnchorBottomRight:
 		afn = anchorBottomRight
 		lfn = layoutFloating
-	case AnchorStretchLeft:
-		afn = anchorStretchLeft
-		lfn = layoutStretch
-	case AnchorStretchTop:
-		afn = anchorStretchTop
-		lfn = layoutStretch
-	case AnchorStretchRight:
-		afn = anchorStretchRight
-		lfn = layoutStretch
-	case AnchorStretchBottom:
-		afn = anchorStretchBottom
-		lfn = layoutStretch
-	case AnchorStretchCenter:
-		afn = anchorStretchCenter
-		lfn = layoutStretch
 	default:
 		slog.Error("Invalid anchor position")
 		afn = anchorTopLeft

@@ -83,7 +83,8 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		// Create the label
 		label := s.man.Add()
 		lbl := label.ToLabel()
-		lbl.Init(data.text, AnchorStretchCenter)
+		lbl.Init(data.text, AnchorTopLeft)
+		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{label}}
 		label.layout.SetStretch(5, 0, 0, 0)
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
@@ -135,14 +136,16 @@ func (s *Select) AddOption(name string) {
 	// Create panel to hold the label
 	panel := s.man.Add()
 	p := panel.ToPanel()
-	p.Init(nil, AnchorStretchTop, ElementTypePanel)
+	p.Init(nil, AnchorTopLeft, ElementTypePanel)
+	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
 	p.DontFitContent()
 	p.entity.SetName(name)
 	panel.layout.SetStretch(0, 0, 0, 25)
 	// Create the label
 	label := s.man.Add()
 	lbl := label.ToLabel()
-	lbl.Init(name, AnchorStretchCenter)
+	lbl.Init(name, AnchorTopLeft)
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{label}}
 	label.layout.SetStretch(5, 0, 0, 0)
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
