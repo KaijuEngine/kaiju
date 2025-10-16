@@ -39,7 +39,6 @@
 				height: 2em;
 				background-color: #282828;
 			}
-			.entryList { width: 100%; }
 			.quickEntry {
 				width: 100%;
 				height: 1.375em;
@@ -49,24 +48,45 @@
 			.quickEntry:hover {
 				background-color: #575757;
 			}
-			.quickEntry img {
+			img {
 				width: 1.375em;
 				height: 1.375em;
 			}
 			img { image-rendering: pixelated; }
 			input {
 				margin-left: 1em;
-				width: 50%;
+				width: 37%;
 				height: 100%;
 			}
 			button {
 				height: 2em;
 			}
+			#entryList {
+				top: 20px;
+				width: 100%;
+				height: calc(100% - 4em);
+				background-color: #121212;
+				overflow-y: scroll;
+			}
+			.entry {
+				width: 100%;
+				height: 2em;
+				background-color: #121212;
+			}
+			.entry img {
+				margin-right: 5px;
+			}
+			#entryList:nth-child(odd) {
+				background-color: #282828;
+			}
+			.entry:hover {
+				background-color: #575757;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="overlay">
-			<div class="titleBar">Title goes here...</div>
+			<div class="titleBar">Select a folder</div>
 			<div class="content">
 				<div class="leftPanel">
 					<div class="centerText">Quick access</div>
@@ -79,15 +99,22 @@
 				</div>
 				<div class="rightPanel">
 					<div class="navBar">
-						<button>&lt;</button>
-						<button>&gt;</button>
-						<button>^</button>
-						<button>@</button>
-						<button>New folder</button>
-						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" />
+						<button onclick="back">&lt;</button>
+						<button onclick="forward">&gt;</button>
+						<button onclick="upFolder">^</button>
+						<button onclick="reload">@</button>
+						<button onclick="newFolder">New folder</button>
+						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" onsubmit="setPath" />
+						{{if .OnlyFolders}}
+						<button onclick="selectFolder">Select</button>
+						{{end}}
 					</div>
-					<div class="entryList">
-
+					<!-- Populated in Go -->
+					<div id="entryList">
+						<div id="entryTemplate" class="entry" data-path="" data-is-folder="" ondblclick="selectEntry">
+							<img src="editor/textures/icons/folder_small.png" />
+							<span>Name 1</span>
+						</div>
 					</div>
 				</div>
 			</div>

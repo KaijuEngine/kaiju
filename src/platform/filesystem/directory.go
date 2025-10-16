@@ -61,15 +61,15 @@ func DirectoryExists(path string) bool {
 }
 
 // DeleteDirectory deletes the directory at the specified path.
-func DeleteDirectory(path string) error {
-	return os.RemoveAll(path)
-}
+func DeleteDirectory(path string) error { return os.RemoveAll(path) }
+
+// KnownDirectories returns a list of known, common directories on the current
+// computer. On windows this is things like Photos, Documents, etc.
+func KnownDirectories() map[string]string { return knownPaths() }
 
 // ImageDirectory will attempt to find the default user directory where
 // images are stored. This function is OS specific.
-func ImageDirectory() (string, error) {
-	return imageDirectory()
-}
+func ImageDirectory() (string, error) { return imageDirectory() }
 
 // GameDirectory will attempt to find the default directory for the
 // application to store and load it's data to and from

@@ -41,27 +41,15 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
 	"kaiju/framework"
+	"kaiju/games/editor/editor_overlay/file_browser"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"log/slog"
 )
 
 type Editor struct {
 	host  *engine.Host
 	uiMan ui.Manager
-}
-
-type FileBrowserData struct {
-	QuickAccessFolders []QuickAccessFolder
-	CurrentPath        string
-}
-
-type QuickAccessFolder struct {
-	Name string
-	Path string
 }
 
 func Launch(host *engine.Host) {
@@ -75,36 +63,5 @@ func Launch(host *engine.Host) {
 		rendering.NewMeshCube(ed.host.MeshCache()), []*rendering.Texture{tex})
 	ed.host.Drawings.AddDrawing(draw)
 
-	var doc *document.Document
-	var err error
-	data := FileBrowserData{
-		CurrentPath: "C:/hello_world",
-		QuickAccessFolders: []QuickAccessFolder{
-			{"Desktop", "C:/desktop"},
-			{"Photos", "C:/photos"},
-		},
-	}
-	//doc, err = markup.DocumentFromHTMLAsset(&ed.uiMan, "editor/ui/new_project_overlay.go.html",
-	doc, err = markup.DocumentFromHTMLAsset(&ed.uiMan, "editor/ui/file_browser.go.html",
-		data, map[string]func(*document.Element){
-			"selectQuickAccess": func(e *document.Element) {
-				path := e.Attribute("data-path")
-				f, _ := doc.GetElementById("filePath")
-				f.UI.ToInput().SetText(path)
-			},
-			"browse": func(*document.Element) {
-				// TODO:  Open the file browser overlay
-				println(doc)
-				//host.RunOnMainThread(func() {
-				//	host.Window.OpenFolderDialog("", func(path string) {
-				//		f, _ := doc.GetElementById("folder")
-				//		f.UI.ToInput().SetText(path)
-				//	}, nil)
-				//})
-			},
-		})
-	if err != nil {
-		slog.Error("failed to load the new project overlay", "error", err)
-		return
-	}
+	file_browser.ShowFolderBrowser(host)
 }

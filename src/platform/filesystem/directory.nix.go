@@ -48,6 +48,14 @@ import (
 	"unsafe"
 )
 
+func knownPaths() map[string]string {
+	return map[string]string{
+		"Root":      "/",
+		"Home":      "/home",
+		"User Home": "~/",
+	}
+}
+
 func imageDirectory() (string, error) {
 	userFolder, err := os.UserHomeDir()
 	if err != nil {
