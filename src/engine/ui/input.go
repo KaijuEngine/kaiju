@@ -103,18 +103,19 @@ func (input *Input) SetNextFocusedInput(next *Input) {
 	input.InputData().nextFocusInput = next
 }
 
-func (input *Input) Init(placeholderText string, anchor Anchor) {
+func (input *Input) Init(placeholderText string) {
 	data := &inputData{}
 	input.elmData = data
 	p := input.Base().ToPanel()
 	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	p.Init(tex, anchor, ElementTypeInput)
+	p.Init(tex, ElementTypeInput)
 	p.DontFitContent()
 
 	// Label
 	data.label = input.man.Add().ToLabel()
-	data.label.Init("", AnchorLeft)
+	data.label.Init("")
+	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -123,7 +124,8 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 
 	// Placeholder
 	data.placeholder = input.man.Add().ToLabel()
-	data.placeholder.Init(placeholderText, AnchorLeft)
+	data.placeholder.Init(placeholderText)
+	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
@@ -132,7 +134,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 
 	// Create the cursor
 	data.cursor = input.man.Add().ToPanel()
-	data.cursor.Init(tex, AnchorTopLeft, ElementTypePanel)
+	data.cursor.Init(tex, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
@@ -140,7 +142,7 @@ func (input *Input) Init(placeholderText string, anchor Anchor) {
 
 	// Create the highlight
 	data.highlight = input.man.Add().ToPanel()
-	data.highlight.Init(tex, AnchorTopLeft, ElementTypePanel)
+	data.highlight.Init(tex, ElementTypePanel)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
@@ -503,8 +505,6 @@ func (input *Input) onRebuild() {
 	data := input.InputData()
 	ws := input.entity.Transform.WorldScale()
 	data.cursor.layout.Scale(cursorWidth/ws.X(), 1.0-(verticalPadding/ws.Y()))
-	data.label.layout.SetStretch(horizontalPadding,
-		verticalPadding, horizontalPadding, verticalPadding)
 	input.updateCursorPosition()
 }
 

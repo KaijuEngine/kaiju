@@ -77,7 +77,6 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 			}
 		}
 		layout.SetInnerOffsetLeft(offsetX)
-		layout.AnchorTo(layout.Anchor().ConvertToLeft())
 	}
 	return nil
 }

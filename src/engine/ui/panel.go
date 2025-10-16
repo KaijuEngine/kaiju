@@ -122,7 +122,7 @@ func (p *Panel) Base() *UI    { return (*UI)(p) }
 
 func (p *Panel) PanelData() *panelData { return p.elmData.innerPanelData() }
 
-func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType ElementType) {
+func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	defer tracing.NewRegion("Panel.Init").End()
 	var pd *panelData
 	panel.elmType = elmType
@@ -142,7 +142,7 @@ func (panel *Panel) Init(texture *rendering.Texture, anchor Anchor, elmType Elem
 		ts = texture.Size()
 	}
 	base := panel.Base()
-	base.init(ts, anchor)
+	base.init(ts)
 	panel.shaderData.FgColor = matrix.Color{1.0, 1.0, 1.0, 1.0}
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
@@ -333,16 +333,7 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		case PositioningAbsolute:
 			fallthrough
 		case PositioningRelative:
-			if layout.Anchor().IsLeft() {
-				x += layout.InnerOffset().Left()
-			} else {
-				x += layout.InnerOffset().Right()
-			}
-			if layout.Anchor().IsTop() {
-				y += layout.InnerOffset().Top()
-			} else {
-				y += layout.InnerOffset().Bottom()
-			}
+			x += layout.InnerOffset().Left()
 		}
 		x += layout.margin.X()
 		y += rb.maxMarginTop

@@ -66,31 +66,31 @@ func (s *Image) ImageData() *imageData {
 	return s.elmData.(*imageData)
 }
 
-func (s *Image) Init(texture *rendering.Texture, anchor Anchor) {
+func (s *Image) Init(texture *rendering.Texture) {
 	s.elmData = &imageData{
 		flipBook: []*rendering.Texture{texture},
 	}
 	p := s.Base().ToPanel()
-	p.Init(texture, anchor, ElementTypeImage)
+	p.Init(texture, ElementTypeImage)
 	if p.shaderData != nil {
 		p.shaderData.BorderLen = matrix.Vec2Zero()
 	}
 }
 
-func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Texture, anchor Anchor) {
+func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Texture) {
 	s.elmData = &imageData{}
 	p := s.Base().ToPanel()
-	p.Init(nil, anchor, ElementTypeImage)
+	p.Init(nil, ElementTypeImage)
 	s.SetFlipBookAnimation(framesPerSecond, textures...)
 	if p.shaderData != nil {
 		p.shaderData.BorderLen = matrix.Vec2Zero()
 	}
 }
 
-func (s *Image) InitSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string, anchor Anchor) {
+func (s *Image) InitSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string) {
 	s.elmData = &imageData{}
 	p := s.Base().ToPanel()
-	p.Init(nil, anchor, ElementTypeImage)
+	p.Init(nil, ElementTypeImage)
 	s.SetSpriteSheet(framesPerSecond, texture, jsonStr)
 	if p.shaderData != nil {
 		p.shaderData.BorderLen = matrix.Vec2Zero()

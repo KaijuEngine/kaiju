@@ -502,7 +502,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		case FontJustifyRight:
 			xOffset = left + (maxWidth - lineWidth)
 		case FontJustifyCenter:
-			xOffset = -(lineWidth * 0.5)
+			xOffset = (maxWidth * 0.5) - (lineWidth * 0.5)
 		case FontJustifyLeft:
 			xOffset = left
 		default:

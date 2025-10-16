@@ -55,7 +55,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		return nil
 	}
 	if len(values) != 1 {
-		err = fmt.Errorf("Expected exactly 1 value but got %d", len(values))
+		err = fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	} else if values[0].Str == "fit-content" {
 		panel.FitContentWidth()
 		return nil
@@ -75,7 +75,8 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 			s -= pPad.X() + pPad.Z()
 			// Subtracting local padding because it's added in final scale
 			p := l.Padding()
-			w := s*width - p.X() - p.Z()
+			b := pLayout.Border()
+			w := s*width - p.X() - p.Z() - b.X() - b.Z()
 			l.ScaleWidth(w)
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {

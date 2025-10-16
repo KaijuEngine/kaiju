@@ -67,7 +67,7 @@ func (s *Select) SelectData() *selectData {
 	return s.elmData.(*selectData)
 }
 
-func (s *Select) Init(text string, options []string, anchor Anchor) {
+func (s *Select) Init(text string, options []string) {
 	s.elmType = ElementTypeSelect
 	data := &selectData{}
 	data.text = text
@@ -77,15 +77,14 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	host := s.man.Host
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	p.Init(bg, anchor, ElementTypeSelect)
+	p.Init(bg, ElementTypeSelect)
 	data.selected = -1
 	{
 		// Create the label
 		label := s.man.Add()
 		lbl := label.ToLabel()
-		lbl.Init(data.text, AnchorTopLeft)
-		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{label}}
-		label.layout.SetStretch(5, 0, 0, 0)
+		lbl.Init(data.text)
+		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
 		lbl.SetFontSize(14)
@@ -98,7 +97,7 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		// Create the list panel
 		listPanel := s.man.Add()
 		lp := listPanel.ToPanel()
-		lp.Init(bg, AnchorCenter, ElementTypePanel)
+		lp.Init(bg, ElementTypePanel)
 		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
@@ -113,7 +112,8 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		triTex.MipLevels = 1
 		tri := s.man.Add()
 		img := tri.ToImage()
-		img.Init(triTex, AnchorRight)
+		img.Init(triTex)
+		img.layout.Stylizer = RightStylizer{BasicStylizer{p.Base()}}
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
@@ -136,17 +136,15 @@ func (s *Select) AddOption(name string) {
 	// Create panel to hold the label
 	panel := s.man.Add()
 	p := panel.ToPanel()
-	p.Init(nil, AnchorTopLeft, ElementTypePanel)
+	p.Init(nil, ElementTypePanel)
 	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
 	p.DontFitContent()
 	p.entity.SetName(name)
-	panel.layout.SetStretch(0, 0, 0, 25)
 	// Create the label
 	label := s.man.Add()
 	lbl := label.ToLabel()
-	lbl.Init(name, AnchorTopLeft)
-	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{label}}
-	label.layout.SetStretch(5, 0, 0, 0)
+	lbl.Init(name)
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
 	lbl.SetFontSize(14)

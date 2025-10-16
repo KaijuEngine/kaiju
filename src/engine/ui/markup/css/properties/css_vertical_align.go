@@ -58,13 +58,11 @@ func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []
 		for _, l := range labels {
 			base := l.Base()
 			layout := base.Layout()
-			if layout.Anchor().IsLeft() {
-				layout.AnchorTo(ui.AnchorLeft)
-			} else if layout.Anchor().IsRight() {
-				layout.AnchorTo(ui.AnchorRight)
-			} else {
-				layout.AnchorTo(ui.AnchorCenter)
-			}
+			parent := ui.FirstOnEntity(l.Base().Entity().Parent)
+			pt := parent.Layout().Padding()
+			ph := parent.Layout().PixelSize().Y()
+			th := l.Measure().Height()
+			layout.SetInnerOffsetTop(-ph*0.5 + th*0.5 + pt.Top() + pt.Bottom())
 			l.SetBaseline(rendering.FontBaselineCenter)
 		}
 		return nil

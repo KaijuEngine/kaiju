@@ -44,7 +44,6 @@ import (
 	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"strings"
 )
 
@@ -53,7 +52,16 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 	if len(values) != 1 {
 		return errors.New("right expects 1 value")
 	} else {
-		offset := panel.Base().Layout().InnerOffset()
+		offset := panel.Base().Layout().InnerOffset().Right()
+		parent := elm.Parent.Value()
+		pad := float32(0)
+		border := float32(0)
+		width := float32(host.Window.Width())
+		if parent != nil {
+			width = parent.UI.Layout().PixelSize().X()
+			pad = parent.UI.Layout().Padding().Right()
+			border = parent.UI.Layout().Border().Right()
+		}
 		s := values[0].Str
 		layout := elm.UI.Layout()
 		switch s {
@@ -63,10 +71,10 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 			return errors.New("right Not implemented [initial]")
 		case "inherit":
 			if elm.Parent.Value() != nil {
-				offset.SetRight(elm.Parent.Value().UI.Layout().Offset().X())
+				offset = elm.Parent.Value().UI.Layout().Offset().X()
 			}
 		default:
-			val := -helpers.NumFromLength(values[0].Str, host.Window)
+			val := helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
 				l := panel.Base().Layout()
 				if l.Ui().Entity().IsRoot() {
@@ -75,11 +83,11 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 				l.SetInnerOffsetRight(pLayout.PixelSize().X() * val)
 			} else {
-				offset[matrix.Vz] = val
+				offset = val
 			}
 		}
-		layout.SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
-		layout.AnchorTo(layout.Anchor().ConvertToRight())
+		selfWidth := layout.PixelSize().X()
+		layout.SetInnerOffsetLeft(width - selfWidth - offset - pad - border)
 	}
 	return nil
 }

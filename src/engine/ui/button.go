@@ -72,12 +72,12 @@ func (b *Button) Label() *Label {
 	return pui.ToLabel()
 }
 
-func (b *Button) Init(texture *rendering.Texture, text string, anchor Anchor) {
+func (b *Button) Init(texture *rendering.Texture, text string) {
 	p := b.Base().ToPanel()
 	b.elmData = &buttonData{
 		color: matrix.ColorWhite(),
 	}
-	p.Init(texture, anchor, ElementTypeButton)
+	p.Init(texture, ElementTypeButton)
 	p.SetColor(matrix.ColorWhite())
 	b.setupEvents()
 	ps := p.layout.PixelSize()
@@ -85,9 +85,8 @@ func (b *Button) Init(texture *rendering.Texture, text string, anchor Anchor) {
 
 	// Create the label for the button
 	lbl := b.man.Add().ToLabel()
-	lbl.Init("", AnchorTopLeft)
+	lbl.Init("")
 	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{b.Base()}}
-	lbl.layout.SetStretch(0, 0, 0, 0)
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)

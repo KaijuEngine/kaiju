@@ -231,14 +231,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		return e
 	}
 	if e.IsText() {
-		anchor := ui.AnchorTopLeft
 		txt := strings.TrimSpace(e.Data)
 		txt = strings.ReplaceAll(txt, "\r", "")
 		txt = strings.ReplaceAll(txt, "\n", " ")
 		txt = strings.ReplaceAll(txt, "\t", " ")
 		txt = klib.ReplaceStringRecursive(txt, "  ", " ")
 		label := uiMan.Add().ToLabel()
-		label.Init(txt, anchor)
+		label.Init(txt)
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
@@ -278,10 +277,10 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			}
 			img := panel.Base().ToImage()
 			if strings.HasSuffix(src, ".gif") {
-				img.InitSpriteSheet(12, tex, spriteJSON, ui.AnchorTopLeft)
+				img.InitSpriteSheet(12, tex, spriteJSON)
 				img.PlayAnimation()
 			} else {
-				img.Init(tex, ui.AnchorTopLeft)
+				img.Init(tex)
 			}
 			panel = (*ui.Panel)(img)
 		} else if e.IsInput() {
@@ -289,13 +288,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			switch inputType {
 			case "checkbox":
 				cb := panel.Base().ToCheckbox()
-				cb.Init(ui.AnchorTopLeft)
+				cb.Init()
 				if e.Attribute("checked") != "" {
 					cb.SetChecked(true)
 				}
 			case "slider":
 				slider := panel.Base().ToSlider()
-				slider.Init(ui.AnchorTopLeft)
+				slider.Init()
 				panel.DontFitContent()
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
@@ -304,7 +303,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 			case "text":
 				input := panel.Base().ToInput()
-				input.Init(e.Attribute("placeholder"), ui.AnchorTopLeft)
+				input.Init(e.Attribute("placeholder"))
 				input.SetText(e.Attribute("value"))
 				if d.firstInput == nil {
 					d.firstInput = input
@@ -318,7 +317,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			panel.SetOverflow(ui.OverflowVisible)
 		} else if e.IsSelect() {
 			sel := panel.Base().ToSelect()
-			sel.Init("", []string{}, ui.AnchorTopLeft)
+			sel.Init("", []string{})
 			selectStartValue := ""
 			if a := e.Attribute("value"); a != "" {
 				selectStartValue = a
@@ -344,7 +343,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 			}
 		} else {
-			panel.Init(nil, ui.AnchorTopLeft, ui.ElementTypePanel)
+			panel.Init(nil, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		entry := appendElement(panel.Base(), panel)
@@ -388,7 +387,7 @@ func (d *Document) tagElement(elm *Element, tag string) {
 func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 	body := h.Body()
 	bodyPanel := uiMan.Add().ToPanel()
-	bodyPanel.Init(nil, ui.AnchorCenter, ui.ElementTypePanel)
+	bodyPanel.Init(nil, ui.ElementTypePanel)
 	bodyPanel.DontFitContent()
 	bodyPanel.Base().Clean()
 	body.UI = bodyPanel.Base()

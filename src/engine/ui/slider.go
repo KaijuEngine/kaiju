@@ -62,20 +62,21 @@ func (s *Slider) SliderData() *sliderData {
 	return s.elmData.(*sliderData)
 }
 
-func (s *Slider) Init(anchor Anchor) {
+func (s *Slider) Init() {
 	s.elmType = ElementTypeSlider
 	ld := &sliderData{}
 	s.elmData = ld
 	p := s.Base().ToPanel()
-	p.Init(nil, anchor, ElementTypeSlider)
+	p.Init(nil, ElementTypeSlider)
 	host := p.man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = s.man.Add().ToPanel()
-	ld.bgPanel.Init(tex, AnchorLeft, ElementTypePanel)
+	ld.bgPanel.Init(tex, ElementTypePanel)
+	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	ld.bgPanel.SetColor(matrix.ColorBlack())
 	ld.fgPanel = s.man.Add().ToPanel()
-	ld.fgPanel.Init(tex, AnchorTopLeft, ElementTypePanel)
+	ld.fgPanel.Init(tex, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
 	ld.fgPanel.SetColor(matrix.ColorWhite())

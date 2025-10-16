@@ -53,6 +53,11 @@ func (p Bottom) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		return errors.New("bottom expects 1 value")
 	} else {
 		offset := panel.Base().Layout().InnerOffset().Bottom()
+		parent := elm.Parent.Value()
+		height := float32(host.Window.Height())
+		if parent != nil {
+			height = parent.UI.Layout().PixelSize().Y()
+		}
 		s := values[0].Str
 		layout := elm.UI.Layout()
 		switch s {
@@ -75,8 +80,8 @@ func (p Bottom) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 				offset = val
 			}
 		}
-		layout.SetInnerOffsetBottom(offset)
-		layout.AnchorTo(layout.Anchor().ConvertToBottom())
+		selfHeight := layout.PixelSize().Y()
+		layout.SetInnerOffsetTop(-height + selfHeight + offset)
 	}
 	return nil
 }

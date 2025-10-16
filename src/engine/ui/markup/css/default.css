@@ -282,6 +282,7 @@ output {
 }
 p {
 	display: block;
+	width: 100%;
 	margin-top: 1em;
 	margin-bottom: 1em;
 	margin-left: 0;
@@ -398,7 +399,7 @@ var {
 }
 /* input[type="text"] {} */
 button {
-	padding: 3px 5px 7px 5px;
+	padding: 3px 5px 3px 5px;
 	font-size: 16px;
 	text-align: center;
 	vertical-align: middle;
@@ -411,7 +412,7 @@ button:hover {
 	background-image: url("editor/textures/button_hover.png");
 }
 button:active {
-	padding: 1px 5px 9px 5px;
+	padding: 4px 5px 3px 5px;
 	background-image: url("editor/textures/button_down.png");
 }
 /** Unconventional helpers **/

@@ -113,7 +113,7 @@ type UI struct {
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.isDown }
 
-func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
+func (ui *UI) init(textureSize matrix.Vec2) {
 	defer tracing.NewRegion("UI.init").End()
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
@@ -127,7 +127,7 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
-	ui.layout.initialize(ui, anchor)
+	ui.layout.initialize(ui)
 	host := ui.man.Host
 	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
@@ -530,36 +530,34 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 		ui.ToLabel().Clone(cpy.ToLabel())
 	case ElementTypePanel:
 		t := ui.ToPanel()
-		cpy.ToPanel().Init(t.Background(), t.layout.screenAnchor, ElementTypePanel)
+		cpy.ToPanel().Init(t.Background(), ElementTypePanel)
 	case ElementTypeButton:
 		t := ui.ToButton()
-		cpy.ToButton().Init(ui.ToPanel().Background(), t.Label().Text(), t.layout.screenAnchor)
+		cpy.ToButton().Init(ui.ToPanel().Background(), t.Label().Text())
 	case ElementTypeCheckbox:
-		t := ui.ToCheckbox()
-		cpy.ToCheckbox().Init(t.layout.screenAnchor)
+		cpy.ToCheckbox().Init()
 	case ElementTypeImage:
 		t := ui.ToImage()
 		tData := t.ImageData()
 		if len(tData.flipBook) > 0 {
-			cpy.ToImage().InitFlipbook(tData.fps, tData.flipBook, t.layout.screenAnchor)
+			cpy.ToImage().InitFlipbook(tData.fps, tData.flipBook)
 		} else if tData.spriteSheet.IsValid() {
 			s, _ := tData.spriteSheet.ToJson()
-			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s, t.layout.screenAnchor)
+			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s)
 		} else {
-			cpy.ToImage().Init(tData.flipBook[0], t.layout.screenAnchor)
+			cpy.ToImage().Init(tData.flipBook[0])
 		}
 	case ElementTypeInput:
 		t := ui.ToInput()
-		cpy.ToInput().Init(t.InputData().placeholder.Text(), t.layout.screenAnchor)
+		cpy.ToInput().Init(t.InputData().placeholder.Text())
 	case ElementTypeProgressBar:
 		t := ui.ToProgressBar()
-		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background(), t.layout.screenAnchor)
+		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background())
 	case ElementTypeSelect:
 		t := ui.ToSelect()
-		cpy.ToSelect().Init(t.SelectData().text, t.SelectData().options, t.layout.screenAnchor)
+		cpy.ToSelect().Init(t.SelectData().text, t.SelectData().options)
 	case ElementTypeSlider:
-		t := ui.ToSlider()
-		cpy.ToSlider().Init(t.layout.screenAnchor)
+		cpy.ToSlider().Init()
 	}
 	if parent != nil {
 		panel := FirstPanelOnEntity(parent)

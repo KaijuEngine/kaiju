@@ -86,7 +86,7 @@ func (u *UI) ToLabel() *Label          { return (*Label)(u) }
 func (l *Label) Base() *UI             { return (*UI)(l) }
 func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 
-func (label *Label) Init(text string, anchor Anchor) {
+func (label *Label) Init(text string) {
 	defer tracing.NewRegion("Label.Init").End()
 	label.elmData = &labelData{
 		text:            text,
@@ -106,7 +106,7 @@ func (label *Label) Init(text string, anchor Anchor) {
 	label.elmType = ElementTypeLabel
 	label.postLayoutUpdate = label.labelPostLayoutUpdate
 	label.render = label.labelRender
-	label.Base().init(matrix.Vec2Zero(), anchor)
+	label.Base().init(matrix.Vec2Zero())
 	label.SetText(text)
 	label.Base().SetDirty(DirtyTypeGenerated)
 	label.entity.OnActivate.Add(func() {
@@ -203,18 +203,11 @@ func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 func (label *Label) renderText() {
 	defer tracing.NewRegion("Label.renderText").End()
 	ld := label.LabelData()
-	maxWidth := label.MaxWidth()
 	label.clearDrawings()
-	label.entity.Transform.SetDirty()
 	if ld.textLength > 0 {
+		maxWidth := label.MaxWidth()
+		label.layout.ScaleHeight(label.Measure().Height())
 		xOffset := float32(0)
-		p := FirstOnEntity(label.entity.Parent)
-		switch ld.justify {
-		case rendering.FontJustifyRight:
-			xOffset -= p.layout.padding.Left() + p.layout.padding.Right()
-		case rendering.FontJustifyCenter:
-			xOffset -= p.layout.padding.Left()
-		}
 		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
 			label.man.Host, ld.text, xOffset, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
@@ -543,22 +536,18 @@ func (label *Label) CalculateMaxWidth() float32 {
 	defer tracing.NewRegion("Label.CalculateMaxWidth").End()
 	var maxWidth matrix.Float
 	parent := label.entity.Parent
-	var p *Panel
-	o := matrix.Vec4Zero()
-	for parent != nil {
-		p = FirstPanelOnEntity(parent)
-		o.AddAssign(p.Base().layout.Padding())
-		if !p.FittingContent() || p.layout.Positioning() == PositioningAbsolute {
-			break
-		}
-		parent = parent.Parent
-	}
 	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 	if parent == nil {
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(label.man.Host.Window.Width()) - o.X() - o.Z()
+		maxWidth = matrix.Float(label.man.Host.Window.Width())
 	} else {
-		maxWidth = parent.Transform.WorldScale().X() - o.X() - o.Z()
+		panel := FirstPanelOnEntity(parent)
+		o := panel.layout.Padding()
+		w := parent.Transform.WorldScale().X()
+		if panel.FittingContentWidth() {
+			w = label.measure(matrix.FloatMax).X() + o.X() + o.Z()
+		}
+		maxWidth = w
 	}
 	return maxWidth
 }
@@ -573,7 +562,7 @@ func (label *Label) Measure() matrix.Vec2 {
 
 func (label *Label) Clone(to *Label) {
 	ld := label.LabelData()
-	to.Init(ld.text, label.layout.screenAnchor)
+	to.Init(ld.text)
 	toLD := to.LabelData()
 	toLD.colorRanges = slices.Clone(ld.colorRanges)
 	toLD.diffScore = ld.diffScore

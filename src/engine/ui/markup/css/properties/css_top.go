@@ -81,14 +81,10 @@ func (p Top) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 					yOffset = -top
 				}
 			} else {
-				if layout.Anchor() <= ui.AnchorTopRight {
-					val = -val
-				}
-				yOffset = val
+				yOffset = -val
 			}
 		}
 		layout.SetInnerOffsetTop(yOffset)
-		layout.AnchorTo(layout.Anchor().ConvertToTop())
 	}
 	return nil
 }
