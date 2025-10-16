@@ -63,7 +63,7 @@ func Show(host *engine.Host, config FileBrowserConfig) (*FileBrowser, error) {
 			Path: v,
 		})
 	}
-	fb.doc, err = markup.DocumentFromHTMLAsset(&fb.uiMan, "editor/ui/file_browser.go.html",
+	fb.doc, err = markup.DocumentFromHTMLAsset(&fb.uiMan, "editor/ui/overlay/file_browser.go.html",
 		data, map[string]func(*document.Element){
 			"selectQuickAccess": fb.selectQuickAccess,
 			"upFolder":          fb.upFolder,
