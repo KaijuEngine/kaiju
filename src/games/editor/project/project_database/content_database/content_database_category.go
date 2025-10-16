@@ -2,6 +2,7 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"path/filepath"
 	"strings"
 )
@@ -42,6 +43,7 @@ type ContentCategory interface {
 }
 
 func selectCategory(path string) (ContentCategory, bool) {
+	defer tracing.NewRegion("content_database.selectCategory").End()
 	ext := strings.ToLower(filepath.Ext(path))
 	for i := range contentCategories {
 		cat := contentCategories[i]

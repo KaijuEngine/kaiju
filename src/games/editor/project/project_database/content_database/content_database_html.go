@@ -2,6 +2,7 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
 func init() { contentCategories = append(contentCategories, Html{}) }
@@ -21,5 +22,6 @@ func (Html) TypeName() string   { return "html" }
 func (Html) ExtNames() []string { return []string{".html"} }
 
 func (Html) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Html.Import").End()
 	return pathToTextData(src)
 }

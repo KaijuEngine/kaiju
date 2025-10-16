@@ -2,10 +2,12 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"os"
 )
 
 func Import(path string, fs *project_file_system.FileSystem) (ImportResult, error) {
+	defer tracing.NewRegion("content_database.Import").End()
 	res := ImportResult{Path: path}
 	cat, ok := selectCategory(path)
 	if !ok {

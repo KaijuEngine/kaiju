@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kaiju/engine/assets"
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering/loaders"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/rendering/loaders/load_result"
@@ -27,6 +28,7 @@ func (Mesh) TypeName() string   { return "mesh" }
 func (Mesh) ExtNames() []string { return []string{".gltf", ".glb"} }
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Mesh.Import").End()
 	ext := filepath.Ext(src)
 	p := ProcessedImport{}
 	var res load_result.Result

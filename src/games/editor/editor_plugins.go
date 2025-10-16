@@ -37,8 +37,12 @@
 
 package editor
 
-import "reflect"
+import (
+	"kaiju/platform/profiler/tracing"
+	"reflect"
+)
 
 func PluginRegistry() []reflect.Type {
+	defer tracing.NewRegion("editor.PluginRegistry").End()
 	return []reflect.Type{}
 }

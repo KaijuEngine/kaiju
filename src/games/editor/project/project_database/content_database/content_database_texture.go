@@ -2,6 +2,7 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
 func init() { contentCategories = append(contentCategories, Texture{}) }
@@ -19,5 +20,6 @@ func (Texture) TypeName() string   { return "texture" }
 func (Texture) ExtNames() []string { return []string{".png", ".jpg", ".jpeg"} }
 
 func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Texture.Import").End()
 	return pathToBinaryData(src)
 }

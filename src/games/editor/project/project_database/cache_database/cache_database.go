@@ -8,6 +8,7 @@ import (
 	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -84,6 +85,7 @@ func (c *CacheDatabase) TagFilter(tags []string) []CachedContent {
 // This is an OR comparison so that any content that has at least one of the
 // types will be selected by the filter.
 func (c *CacheDatabase) TypeFilter(types []string) []CachedContent {
+	defer tracing.NewRegion("CacheDatabase.TypeFilter").End()
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range types {
@@ -100,6 +102,7 @@ func (c *CacheDatabase) TypeFilter(types []string) []CachedContent {
 // is the developer-given name of the content. This is an exact match on part or
 // all of the name (case-insensitive), fuzzy search may be introduced later.
 func (c *CacheDatabase) Search(query string) []CachedContent {
+	defer tracing.NewRegion("CacheDatabase.Search").End()
 	out := []CachedContent{}
 	q := strings.ToLower(query)
 	for i := range c.cache {
@@ -117,6 +120,7 @@ func (c *CacheDatabase) Search(query string) []CachedContent {
 // but [Read] will not (due to it's mapping nature). You can use
 // [OnBuildFinished] to know when the build has completed.
 func (c *CacheDatabase) Build(pfs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("CacheDatabase.Build").End()
 	c.isBuilding.Store(true)
 	if cap(c.cache) == 0 {
 		c.cache = make([]CachedContent, 0, 1024)
@@ -142,6 +146,7 @@ func (c *CacheDatabase) Build(pfs *project_file_system.FileSystem) error {
 // building the cache, importing new content to the project, or when the
 // developer changes settings for content that alters the configuration.
 func (c *CacheDatabase) Index(path string, pfs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("CacheDatabase.Index").End()
 	cfg, err := content_database.ReadConfig(path, pfs)
 	if err != nil {
 		return err
@@ -166,6 +171,7 @@ func (c *CacheDatabase) Index(path string, pfs *project_file_system.FileSystem) 
 // and resize the length. This once last item will have the index of the removed
 // entry and it's lookup will be updated.
 func (c *CacheDatabase) Remove(id string) {
+	defer tracing.NewRegion("CacheDatabase.Remove").End()
 	if idx, ok := c.lookup[id]; ok {
 		lastId := c.cache[len(c.cache)-1].Id()
 		c.cache = klib.RemoveUnordered(c.cache, idx)

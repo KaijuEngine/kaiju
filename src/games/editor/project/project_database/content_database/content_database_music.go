@@ -2,6 +2,7 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
 func init() { contentCategories = append(contentCategories, Music{}) }
@@ -19,5 +20,6 @@ func (Music) TypeName() string   { return "music" }
 func (Music) ExtNames() []string { return []string{".mp3", ".ogg"} }
 
 func (Music) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Music.Import").End()
 	return pathToBinaryData(src)
 }

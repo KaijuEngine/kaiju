@@ -2,6 +2,7 @@ package content_database
 
 import (
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
 func init() { contentCategories = append(contentCategories, Spv{}) }
@@ -19,5 +20,6 @@ func (Spv) TypeName() string   { return "spv" }
 func (Spv) ExtNames() []string { return []string{".spv"} }
 
 func (Spv) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Spv.Import").End()
 	return pathToBinaryData(src)
 }

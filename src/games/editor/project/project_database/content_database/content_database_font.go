@@ -3,6 +3,7 @@ package content_database
 import (
 	"fmt"
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/tools/font_to_msdf"
 	"path/filepath"
 )
@@ -25,6 +26,7 @@ func (Font) TypeName() string   { return "font" }
 func (Font) ExtNames() []string { return []string{".ttf"} }
 
 func (Font) Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Font.Import").End()
 	p := ProcessedImport{}
 	dir, err := fs.ReadDir(project_file_system.SrcCharsetFolder)
 	if err != nil {

@@ -3,6 +3,7 @@ package content_database
 import (
 	"encoding/gob"
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"strings"
 )
 
@@ -49,6 +50,7 @@ type ContentConfig struct {
 // is primarily used by the cache database, but could be used for other needs
 // to extend the editor.
 func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig, error) {
+	defer tracing.NewRegion("content_database.ReadConfig").End()
 	cfg := ContentConfig{}
 	if strings.HasPrefix(path, project_file_system.ContentFolder) {
 		path = strings.Replace(path, project_file_system.ContentFolder,

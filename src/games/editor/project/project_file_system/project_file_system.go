@@ -2,6 +2,7 @@ package project_file_system
 
 import (
 	"errors"
+	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 )
@@ -57,6 +58,7 @@ type FileSystem struct {
 // that the path supplied is to a folder on the filesystem. If the supplied path
 // does not exist, an attempt will be made to create the folder.
 func New(rootPath string) (FileSystem, error) {
+	defer tracing.NewRegion("project_file_system.New").End()
 	fs := FileSystem{}
 	var err error
 	if s, err := os.Stat(rootPath); err != nil {
@@ -81,6 +83,7 @@ func (fs *FileSystem) IsValid() bool { return fs.Root != nil }
 // in the
 // [README](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md).
 func (fs *FileSystem) SetupStructure() error {
+	defer tracing.NewRegion("FileSystem.SetupStructure").End()
 	for i := range baseStructure {
 		if err := fs.Mkdir(baseStructure[i], os.ModePerm); err != nil {
 			return err
@@ -103,6 +106,7 @@ func (fs *FileSystem) SetupStructure() error {
 // source code file for this function to review the required core files and
 // folders used, they are set as local package variables.
 func (fs *FileSystem) EnsureDatabaseExists() error {
+	defer tracing.NewRegion("FileSystem.EnsureDatabaseExists").End()
 	for i := range coreRequiredFolders {
 		if s, err := fs.Stat(coreRequiredFolders[i]); err != nil {
 			return err
@@ -119,6 +123,7 @@ func (fs *FileSystem) EnsureDatabaseExists() error {
 // interface to this function directly. This simply grabs the rooted directory
 // path and joins the name argument to it before forwarding to [os.ReadDir].
 func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error) {
+	defer tracing.NewRegion("FileSystem.ReadDir").End()
 	return os.ReadDir(filepath.Join(fs.Name(), name))
 }
 

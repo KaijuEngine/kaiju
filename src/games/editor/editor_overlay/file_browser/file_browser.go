@@ -8,6 +8,7 @@ import (
 	"kaiju/games/editor/editor_overlay/input_prompt"
 	"kaiju/klib"
 	"kaiju/platform/filesystem"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -46,6 +47,7 @@ type QuickAccessFolder struct {
 }
 
 func Show(host *engine.Host, config FileBrowserConfig) (*FileBrowser, error) {
+	defer tracing.NewRegion("file_browser.Show").End()
 	fb := &FileBrowser{
 		historyIdx: -1,
 		config:     config,
@@ -96,6 +98,7 @@ func (fb *FileBrowser) currentFolder() string {
 }
 
 func (fb *FileBrowser) openFolder(folder string) {
+	defer tracing.NewRegion("FileBrowser.openFolder").End()
 	entries, err := os.ReadDir(folder)
 	if err != nil {
 		slog.Error("failed to read the directory for the file browser", "folder", folder, "error", err)
@@ -135,29 +138,40 @@ func (fb *FileBrowser) openFolder(folder string) {
 }
 
 func (fb *FileBrowser) selectQuickAccess(e *document.Element) {
+	defer tracing.NewRegion("FileBrowser.selectQuickAccess").End()
 	fb.openFolder(e.Attribute("data-path"))
 }
 
 func (fb *FileBrowser) upFolder(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.upFolder").End()
 	f := fb.currentFolder()
 	fb.openFolder(filepath.Clean(filepath.Join(f, "../")))
 }
 
 func (fb *FileBrowser) back(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.back").End()
 	fb.historyIdx = max(0, fb.historyIdx-1)
 	fb.openFolder(fb.history[fb.historyIdx])
 }
 
 func (fb *FileBrowser) forward(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.forward").End()
 	fb.historyIdx = min(len(fb.history)-1, fb.historyIdx+1)
 	fb.openFolder(fb.history[fb.historyIdx])
 }
 
-func (fb *FileBrowser) reload(*document.Element) { fb.execReload() }
+func (fb *FileBrowser) reload(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.reload").End()
+	fb.execReload()
+}
 
-func (fb *FileBrowser) execReload() { fb.openFolder(fb.currentFolder()) }
+func (fb *FileBrowser) execReload() {
+	defer tracing.NewRegion("FileBrowser.execReload").End()
+	fb.openFolder(fb.currentFolder())
+}
 
 func (fb *FileBrowser) newFolder(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.newFolder").End()
 	fb.uiMan.DisableUpdate()
 	confirm := func(name string) {
 		fb.uiMan.EnableUpdate()
@@ -183,6 +197,7 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 }
 
 func (fb *FileBrowser) clearSelection() {
+	defer tracing.NewRegion("FileBrowser.clearSelection").End()
 	for i := range fb.selected {
 		fb.doc.SetElementClasses(fb.selected[i], "entry")
 	}
@@ -190,6 +205,7 @@ func (fb *FileBrowser) clearSelection() {
 }
 
 func (fb *FileBrowser) selectEntry(e *document.Element) {
+	defer tracing.NewRegion("FileBrowser.selectEntry").End()
 	kb := &fb.uiMan.Host.Window.Keyboard
 	if !fb.config.MultiSelect || (!kb.HasCtrl() && !kb.HasShift()) {
 		fb.clearSelection()
@@ -204,6 +220,7 @@ func (fb *FileBrowser) selectEntry(e *document.Element) {
 }
 
 func (fb *FileBrowser) openEntry(e *document.Element) {
+	defer tracing.NewRegion("FileBrowser.openEntry").End()
 	path := e.Attribute("data-path")
 	if s, err := os.Stat(path); err != nil {
 		slog.Error("unknown path has been selected", "path", path, "error", err)
@@ -218,6 +235,7 @@ func (fb *FileBrowser) openEntry(e *document.Element) {
 }
 
 func (fb *FileBrowser) confirmSelection(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.confirmSelection").End()
 	paths := make([]string, 0, len(fb.selected))
 	for i := range fb.selected {
 		paths = append(paths, fb.selected[i].Attribute("data-path"))
@@ -231,6 +249,7 @@ func (fb *FileBrowser) confirmSelection(*document.Element) {
 }
 
 func (fb *FileBrowser) cancel(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.cancel").End()
 	fb.Close()
 	if fb.config.OnCancel != nil {
 		fb.config.OnCancel()
@@ -238,5 +257,6 @@ func (fb *FileBrowser) cancel(*document.Element) {
 }
 
 func (fb *FileBrowser) setPath(*document.Element) {
+	defer tracing.NewRegion("FileBrowser.setPath").End()
 	fb.openFolder(fb.currentFolder())
 }

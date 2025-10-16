@@ -5,6 +5,7 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 )
 
@@ -27,6 +28,7 @@ type InputPromptConfig struct {
 }
 
 func Show(host *engine.Host, config InputPromptConfig) (*InputPrompt, error) {
+	defer tracing.NewRegion("input_prompt.Show").End()
 	ip := &InputPrompt{
 		config: config,
 	}
@@ -47,6 +49,7 @@ func Show(host *engine.Host, config InputPromptConfig) (*InputPrompt, error) {
 func (ip *InputPrompt) Close() { ip.doc.Destroy() }
 
 func (ip *InputPrompt) confirm(e *document.Element) {
+	defer tracing.NewRegion("InputPrompt.confirm").End()
 	txt := ip.input.UI.ToInput().Text()
 	ip.Close()
 	if ip.config.OnConfirm == nil {
@@ -57,6 +60,7 @@ func (ip *InputPrompt) confirm(e *document.Element) {
 }
 
 func (ip *InputPrompt) cancel(e *document.Element) {
+	defer tracing.NewRegion("InputPrompt.cancel").End()
 	ip.Close()
 	if ip.config.OnCancel != nil {
 		ip.config.OnCancel()
