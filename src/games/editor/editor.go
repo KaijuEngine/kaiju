@@ -45,6 +45,7 @@ import (
 	"kaiju/games/editor/editor_overlay/file_browser"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"log/slog"
 )
 
 type Editor struct {
@@ -63,5 +64,12 @@ func Launch(host *engine.Host) {
 		rendering.NewMeshCube(ed.host.MeshCache()), []*rendering.Texture{tex})
 	ed.host.Drawings.AddDrawing(draw)
 
-	file_browser.ShowFolderBrowser(host)
+	file_browser.Show(host, file_browser.FileBrowserConfig{
+		OnlyFolders: true,
+		OnConfirm: func(paths []string) {
+			for i := range paths {
+				slog.Info("selected file", "file", paths[i])
+			}
+		}, OnCancel: func() { slog.Info("cancelled the file browser") },
+	})
 }

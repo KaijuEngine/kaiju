@@ -58,7 +58,6 @@ type Element struct {
 	UIPanel    *ui.Panel
 	Parent     weak.Pointer[Element]
 	Children   []*Element
-	attrMap    map[string]*html.Attribute
 	Stylizer   ElementLayoutStylizer
 	UIEventIds [ui.EventTypeEnd][]events.Id
 }
@@ -97,7 +96,6 @@ func (e *Element) SetAttribute(key, value string) {
 				Key: key,
 				Val: value,
 			})
-			e.recacheAttrs()
 		}
 	}
 }
@@ -114,7 +112,6 @@ func (e *Element) SetClasses(classes ...string) {
 		Key: classKey,
 		Val: strings.Join(classes, " "),
 	})
-	e.attrMap[classKey] = &e.attr[len(e.attr)-1]
 }
 
 func (d *Element) IndexOfChild(child *Element) int {
@@ -204,11 +201,9 @@ func toElement(node *html.Node) *Element {
 		Data:      node.Data,
 		namespace: node.Namespace,
 		attr:      node.Attr,
-		attrMap:   make(map[string]*html.Attribute),
 		Children:  make([]*Element, 0),
 	}
 	elm.Stylizer = ElementLayoutStylizer{element: weak.Make(elm)}
-	elm.recacheAttrs()
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
 		if len(strings.TrimSpace(c.Data)) > 0 {
 			elm.Children = append(elm.Children, toElement(c))
@@ -252,8 +247,10 @@ func (e *Element) Body() *Element {
 }
 
 func (e *Element) Attribute(key string) string {
-	if a, ok := e.attrMap[key]; ok {
-		return a.Val
+	for i := range e.attr {
+		if e.attr[i].Key == key {
+			return e.attr[i].Val
+		}
 	}
 	return ""
 }
@@ -305,7 +302,6 @@ func (e *Element) Clone(parent *Element) *Element {
 		namespace: e.namespace,
 	}
 	elm.attr = append(elm.attr, e.attr...)
-	elm.recacheAttrs()
 	for i := range e.UIEventIds {
 		elm.UIEventIds[i] = make([]events.Id, 0, len(e.UIEventIds[i]))
 	}
@@ -327,11 +323,4 @@ func (e *Element) Clone(parent *Element) *Element {
 	}
 	elm.Stylizer = e.Stylizer.clone(elm)
 	return elm
-}
-
-func (e *Element) recacheAttrs() {
-	e.attrMap = make(map[string]*html.Attribute)
-	for i := range e.attr {
-		e.attrMap[e.attr[i].Key] = &e.attr[i]
-	}
 }

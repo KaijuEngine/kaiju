@@ -6,10 +6,12 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/platform/filesystem"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 type FileBrowser struct {
@@ -18,9 +20,18 @@ type FileBrowser struct {
 	entryListElm  *document.Element
 	entryTemplate *document.Element
 	filePath      *document.Element
+	selected      []*document.Element
 	history       []string
 	historyIdx    int
-	onlyFolders   bool
+	config        FileBrowserConfig
+}
+
+type FileBrowserConfig struct {
+	OnConfirm   func(paths []string)
+	OnCancel    func()
+	OnlyFolders bool
+	MultiSelect bool
+	ExtFilter   []string
 }
 
 type FileBrowserData struct {
@@ -34,17 +45,17 @@ type QuickAccessFolder struct {
 	Path string
 }
 
-func ShowFolderBrowser(host *engine.Host) (*FileBrowser, error) {
+func Show(host *engine.Host, config FileBrowserConfig) (*FileBrowser, error) {
 	fb := &FileBrowser{
-		historyIdx:  -1,
-		onlyFolders: true,
+		historyIdx: -1,
+		config:     config,
 	}
 	fb.uiMan.Init(host)
 	var err error
 	data := FileBrowserData{
 		CurrentPath:        "C:\\",
 		QuickAccessFolders: []QuickAccessFolder{},
-		OnlyFolders:        fb.onlyFolders,
+		OnlyFolders:        fb.config.OnlyFolders,
 	}
 	for k, v := range filesystem.KnownDirectories() {
 		data.QuickAccessFolders = append(data.QuickAccessFolders, QuickAccessFolder{
@@ -61,7 +72,9 @@ func ShowFolderBrowser(host *engine.Host) (*FileBrowser, error) {
 			"reload":            fb.reload,
 			"newFolder":         fb.newFolder,
 			"selectEntry":       fb.selectEntry,
-			"selectFolder":      fb.selectFolder,
+			"openEntry":         fb.openEntry,
+			"confirmSelection":  fb.confirmSelection,
+			"cancel":            fb.cancel,
 			"setPath":           fb.setPath,
 		})
 	if err != nil {
@@ -76,6 +89,8 @@ func ShowFolderBrowser(host *engine.Host) (*FileBrowser, error) {
 	return fb, nil
 }
 
+func (fb *FileBrowser) Close() { fb.doc.Destroy() }
+
 func (fb *FileBrowser) currentFolder() string {
 	return fb.filePath.UI.ToInput().Text()
 }
@@ -86,6 +101,7 @@ func (fb *FileBrowser) openFolder(folder string) {
 		slog.Error("failed to read the directory for the file browser", "folder", folder, "error", err)
 		return
 	}
+	fb.clearSelection()
 	if fb.historyIdx < 0 || fb.history[fb.historyIdx] != folder {
 		fb.history = append(fb.history[:fb.historyIdx+1], folder)
 		fb.historyIdx++
@@ -96,20 +112,22 @@ func (fb *FileBrowser) openFolder(folder string) {
 	}
 	filtered := make([]os.DirEntry, 0, len(entries))
 	for i := range entries {
-		if fb.onlyFolders && !entries[i].IsDir() {
-			continue
+		if !entries[i].IsDir() {
+			if fb.config.OnlyFolders {
+				continue
+			}
+			valid := len(fb.config.ExtFilter) == 0 ||
+				slices.Contains(fb.config.ExtFilter, filepath.Ext(entries[i].Name()))
+			if !valid {
+				continue
+			}
 		}
 		filtered = append(filtered, entries[i])
 	}
 	elmCopies := fb.doc.DuplicateElementRepeat(fb.entryTemplate, len(filtered))
 	for i := range filtered {
-		isFolder := "0"
-		if entries[i].IsDir() {
-			isFolder = "1"
-		}
 		entry := elmCopies[i]
 		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), entries[i].Name()))
-		entry.SetAttribute("data-is-folder", isFolder)
 		name := entry.FindElementByTag("span")
 		name.Children[0].UI.ToLabel().SetText(entries[i].Name())
 	}
@@ -143,20 +161,59 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 	debug.ThrowNotImplemented("need to show input prompt overlay for the folder name")
 }
 
-func (fb *FileBrowser) selectEntry(e *document.Element) {
-	if e.Attribute("data-is-folder") != "0" {
-		fb.openFolder(e.Attribute("data-path"))
-		return
+func (fb *FileBrowser) clearSelection() {
+	for i := range fb.selected {
+		fb.doc.SetElementClasses(fb.selected[i], "entry")
 	}
-	if fb.onlyFolders {
-		return
-	}
-	debug.ThrowNotImplemented("This file has been selected, raise event")
+	fb.selected = klib.WipeSlice(fb.selected)
 }
 
-func (fb *FileBrowser) selectFolder(*document.Element) {
-	//fb.currentFolder()
-	debug.ThrowNotImplemented("This folder has been selected, raise event")
+func (fb *FileBrowser) selectEntry(e *document.Element) {
+	kb := &fb.uiMan.Host.Window.Keyboard
+	if !fb.config.MultiSelect || (!kb.HasCtrl() && !kb.HasShift()) {
+		fb.clearSelection()
+	} else if slices.Contains(fb.selected, e) {
+		idx := slices.Index(fb.selected, e)
+		fb.selected = klib.RemoveUnordered(fb.selected, idx)
+		fb.doc.SetElementClasses(e, "entry")
+		return
+	}
+	fb.doc.SetElementClasses(e, "entry", "selected")
+	fb.selected = append(fb.selected, e)
+}
+
+func (fb *FileBrowser) openEntry(e *document.Element) {
+	path := e.Attribute("data-path")
+	if s, err := os.Stat(path); err != nil {
+		slog.Error("unknown path has been selected", "path", path, "error", err)
+		return
+	} else if s.IsDir() {
+		fb.openFolder(path)
+	}
+	if fb.config.OnlyFolders {
+		return
+	}
+	fb.confirmSelection(e)
+}
+
+func (fb *FileBrowser) confirmSelection(*document.Element) {
+	if fb.config.OnConfirm == nil {
+		slog.Error("the OnConfirm call has not been set, nothing to do")
+		return
+	}
+	paths := make([]string, 0, len(fb.selected))
+	for i := range fb.selected {
+		paths = append(paths, fb.selected[i].Attribute("data-path"))
+	}
+	fb.Close()
+	fb.config.OnConfirm(paths)
+}
+
+func (fb *FileBrowser) cancel(*document.Element) {
+	fb.Close()
+	if fb.config.OnCancel != nil {
+		fb.config.OnCancel()
+	}
 }
 
 func (fb *FileBrowser) setPath(*document.Element) {

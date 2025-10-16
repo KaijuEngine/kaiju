@@ -11,7 +11,8 @@
 				transform: translate(-50% -50%);
                 color: white;
                 background-color: #121212;
-				border: 2px solid #575757;
+				border: 5px solid #575757;
+				border-radius: 5px;
 			}
 			.titleBar {
 				width: 100%;
@@ -25,7 +26,7 @@
 			}
 			.leftPanel {
 				width: 20%;
-				height: 100%;
+				height: calc(100% - 5px);
 				background-color: #282828;
 			}
 			.rightPanel {
@@ -55,16 +56,16 @@
 			img { image-rendering: pixelated; }
 			input {
 				margin-left: 1em;
-				width: 37%;
+				width: calc(100% - 26.5em);
 				height: 100%;
 			}
 			button {
 				height: 2em;
 			}
 			#entryList {
-				top: 20px;
+				margin-top: 5px;
 				width: 100%;
-				height: calc(100% - 4em);
+				height: calc(100% - 5em - 5px);
 				background-color: #121212;
 				overflow-y: scroll;
 			}
@@ -81,6 +82,19 @@
 			}
 			.entry:hover {
 				background-color: #575757;
+			}
+			.selected {
+				background-color: #C7655D;
+			}
+			.actionBar {
+				width: 100%;
+				height: 2em;
+			}
+			.actionBtns {
+				position: absolute;
+				width: 11em;
+				height: 100%;
+				right: 10px;
 			}
 		</style>
 	</head>
@@ -105,15 +119,18 @@
 						<button onclick="reload">@</button>
 						<button onclick="newFolder">New folder</button>
 						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" onsubmit="setPath" />
-						{{if .OnlyFolders}}
-						<button onclick="selectFolder">Select</button>
-						{{end}}
 					</div>
 					<!-- Populated in Go -->
 					<div id="entryList">
-						<div id="entryTemplate" class="entry" data-path="" data-is-folder="" ondblclick="selectEntry">
+						<div id="entryTemplate" class="entry" data-path="" onclick="selectEntry" ondblclick="openEntry">
 							<img src="editor/textures/icons/folder_small.png" />
 							<span>Name 1</span>
+						</div>
+					</div>
+					<div class="actionBar">
+						<div class="actionBtns">
+							<button onclick="confirmSelection">Select</button>
+							<button onclick="cancel">Cancel</button>
 						</div>
 					</div>
 				</div>
