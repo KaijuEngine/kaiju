@@ -1,11 +1,11 @@
 package file_browser
 
 import (
-	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/games/editor/editor_overlay/input_prompt"
 	"kaiju/klib"
 	"kaiju/platform/filesystem"
 	"log/slog"
@@ -153,12 +153,33 @@ func (fb *FileBrowser) forward(*document.Element) {
 	fb.openFolder(fb.history[fb.historyIdx])
 }
 
-func (fb *FileBrowser) reload(*document.Element) {
-	fb.openFolder(fb.history[fb.historyIdx])
-}
+func (fb *FileBrowser) reload(*document.Element) { fb.execReload() }
+
+func (fb *FileBrowser) execReload() { fb.openFolder(fb.currentFolder()) }
 
 func (fb *FileBrowser) newFolder(*document.Element) {
-	debug.ThrowNotImplemented("need to show input prompt overlay for the folder name")
+	fb.uiMan.DisableUpdate()
+	confirm := func(name string) {
+		fb.uiMan.EnableUpdate()
+		path := filepath.Join(fb.currentFolder(), name)
+		err := os.Mkdir(path, os.ModePerm)
+		if err != nil {
+			slog.Error("failed to create the new folder", "path", path, "error", err)
+			return
+		}
+		fb.execReload()
+	}
+	cancel := func() { fb.uiMan.EnableUpdate() }
+	input_prompt.Show(fb.uiMan.Host, input_prompt.InputPromptConfig{
+		Title:       "New Folder",
+		Description: "Input the name for the new folder",
+		Placeholder: "Name...",
+		Value:       "New Folder",
+		ConfirmText: "Create",
+		CancelText:  "Cancel",
+		OnConfirm:   confirm,
+		OnCancel:    cancel,
+	})
 }
 
 func (fb *FileBrowser) clearSelection() {
@@ -197,15 +218,15 @@ func (fb *FileBrowser) openEntry(e *document.Element) {
 }
 
 func (fb *FileBrowser) confirmSelection(*document.Element) {
-	if fb.config.OnConfirm == nil {
-		slog.Error("the OnConfirm call has not been set, nothing to do")
-		return
-	}
 	paths := make([]string, 0, len(fb.selected))
 	for i := range fb.selected {
 		paths = append(paths, fb.selected[i].Attribute("data-path"))
 	}
 	fb.Close()
+	if fb.config.OnConfirm == nil {
+		slog.Error("the OnConfirm call has not been set, nothing to do")
+		return
+	}
 	fb.config.OnConfirm(paths)
 }
 

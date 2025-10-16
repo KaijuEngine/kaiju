@@ -50,20 +50,19 @@ const (
 )
 
 type Manager struct {
-	Host     *engine.Host
-	Group    *Group
-	pools    pooling.PoolGroup[UI]
-	hovered  [][]*UI
-	updateId int
-}
-
-type manUp struct {
-	deltaTime float64
-	ui        *UI
+	Host       *engine.Host
+	Group      *Group
+	pools      pooling.PoolGroup[UI]
+	hovered    [][]*UI
+	updateId   int
+	skipUpdate int
 }
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
+	if man.skipUpdate > 0 {
+		return
+	}
 	// There is no update without a host, this is safe
 	wg := sync.WaitGroup{}
 	roots := []*UI{}
@@ -176,3 +175,9 @@ func (man *Manager) Reserve(additionalElements int) {
 	man.pools.Reserve(additionalElements)
 	man.Host.ReserveEntities(additionalElements)
 }
+
+func (man *Manager) DisableUpdate() {
+	man.Host.RunNextFrame(func() { man.skipUpdate++ })
+}
+
+func (man *Manager) EnableUpdate() { man.skipUpdate = min(0, man.skipUpdate-1) }
