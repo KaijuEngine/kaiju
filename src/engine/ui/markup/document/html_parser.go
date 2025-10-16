@@ -643,11 +643,11 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
-// DupicateElement will create a duplicate of a given element, nesting it under
+// DuplicateElement will create a duplicate of a given element, nesting it under
 // the same parent as the given element (at the end). If you wish to just
 // duplicate an element and use one of the Insert functions, then use
 // Element.Clone followed by an Insert function instead
-func (d *Document) DupicateElement(elm *Element) *Element {
+func (d *Document) DuplicateElement(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
 	d.appendElement(cpy)
 	d.stylizer.ApplyStyles(d.style, d)
