@@ -65,15 +65,17 @@ func (c *Container) Run(width, height, x, y int) error {
 	runtime.LockOSThread()
 	if err := c.Host.Initialize(width, height, x, y); err != nil {
 		slog.Error("Failed to initialize the host", "error", err)
+		c.Host.Close()
 		return err
 	}
 	if err := c.Host.InitializeRenderer(); err != nil {
 		slog.Error("Failed to initialize the renderer", "error", err)
+		c.Host.Close()
 		return err
 	}
 	if err := c.Host.InitializeAudio(); err != nil {
 		slog.Error("Failed to initialize audio", "error", err)
-		return err
+		//return err
 	}
 	clock := chrono.HighResolutionTimer{}
 	clock.Start()
