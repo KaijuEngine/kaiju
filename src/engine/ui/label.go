@@ -545,7 +545,7 @@ func (label *Label) CalculateMaxWidth() float32 {
 		o := panel.layout.Padding()
 		w := parent.Transform.WorldScale().X()
 		if panel.FittingContentWidth() {
-			w = label.measure(matrix.FloatMax).X() + o.X() + o.Z()
+			w = label.measure(matrix.FloatMax).X() + o.X() + o.Z() + 1
 		}
 		maxWidth = w
 	}

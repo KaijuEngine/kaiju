@@ -57,6 +57,7 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		height = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
+		panel.DontFitContentHeight()
 		l := panel.Base().Layout()
 		if strings.HasSuffix(values[0].Str, "%") {
 			if l.Ui().Entity().IsRoot() {
@@ -82,7 +83,6 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		} else {
 			panel.Base().Layout().ScaleHeight(height)
 		}
-		panel.DontFitContentHeight()
 	}
 	return err
 }

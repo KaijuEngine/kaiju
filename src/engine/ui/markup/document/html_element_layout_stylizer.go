@@ -200,5 +200,6 @@ func (s *ElementLayoutStylizer) clone(newElm *Element) ElementLayoutStylizer {
 	for i := range s.styleRules {
 		out.AddRule(s.styleRules[i].Clone())
 	}
+	newElm.UI.Layout().Stylizer = s
 	return out
 }

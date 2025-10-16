@@ -304,7 +304,6 @@ func (e *Element) Clone(parent *Element) *Element {
 		Data:      e.Data,
 		namespace: e.namespace,
 	}
-	elm.Stylizer = e.Stylizer.clone(elm)
 	elm.attr = append(elm.attr, e.attr...)
 	elm.recacheAttrs()
 	for i := range e.UIEventIds {
@@ -326,6 +325,7 @@ func (e *Element) Clone(parent *Element) *Element {
 	for i := range e.Children {
 		e.Children[i].Clone(elm)
 	}
+	elm.Stylizer = e.Stylizer.clone(elm)
 	return elm
 }
 

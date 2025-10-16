@@ -568,5 +568,6 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 		}
 	}
 	cpy.entity.Transform.Copy(ui.entity.Transform)
+	cpy.SetDirty(DirtyTypeGenerated)
 	return cpy
 }
