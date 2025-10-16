@@ -45,10 +45,6 @@ import (
 	"sync"
 )
 
-const (
-	concurrentUpdateLimit = 100
-)
-
 type Manager struct {
 	Host       *engine.Host
 	Group      *Group
