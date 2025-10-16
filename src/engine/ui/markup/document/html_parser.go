@@ -654,6 +654,20 @@ func (d *Document) DuplicateElement(elm *Element) *Element {
 	return cpy
 }
 
+// DuplicateElementRepeat is the same as [DuplicateElement], but will duplicate
+// the element a specified number of times. This is an optimization to avoid
+// calling [ApplyStyles] on each duplicated element and instead call it at the
+// end, after all copies are created.
+func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
+	elms := make([]*Element, count)
+	for i := range count {
+		elms[i] = elm.Clone(elm.Parent.Value())
+		d.appendElement(elms[i])
+	}
+	d.stylizer.ApplyStyles(d.style, d)
+	return elms
+}
+
 func (d *Document) appendElement(elm *Element) {
 	var addChildren func(target *Element)
 	addChildren = func(target *Element) {

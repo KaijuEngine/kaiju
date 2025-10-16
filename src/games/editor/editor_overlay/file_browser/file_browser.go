@@ -94,16 +94,20 @@ func (fb *FileBrowser) openFolder(folder string) {
 	for i := len(fb.entryListElm.Children) - 1; i >= 1; i-- {
 		fb.doc.RemoveElement(fb.entryListElm.Children[i])
 	}
+	filtered := make([]os.DirEntry, 0, len(entries))
 	for i := range entries {
-		isDir := entries[i].IsDir()
-		if fb.onlyFolders && !isDir {
+		if fb.onlyFolders && !entries[i].IsDir() {
 			continue
 		}
+		filtered = append(filtered, entries[i])
+	}
+	elmCopies := fb.doc.DuplicateElementRepeat(fb.entryTemplate, len(filtered))
+	for i := range filtered {
 		isFolder := "0"
-		if isDir {
+		if entries[i].IsDir() {
 			isFolder = "1"
 		}
-		entry := fb.doc.DuplicateElement(fb.entryTemplate)
+		entry := elmCopies[i]
 		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), entries[i].Name()))
 		entry.SetAttribute("data-is-folder", isFolder)
 		name := entry.FindElementByTag("span")
