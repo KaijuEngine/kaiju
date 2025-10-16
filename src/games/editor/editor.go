@@ -42,10 +42,9 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui"
 	"kaiju/framework"
-	"kaiju/games/editor/editor_overlay/file_browser"
+	"kaiju/games/editor/editor_overlay/new_project"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
-	"log/slog"
 )
 
 type Editor struct {
@@ -64,12 +63,8 @@ func Launch(host *engine.Host) {
 		rendering.NewMeshCube(ed.host.MeshCache()), []*rendering.Texture{tex})
 	ed.host.Drawings.AddDrawing(draw)
 
-	file_browser.Show(host, file_browser.FileBrowserConfig{
-		OnlyFolders: true,
-		OnConfirm: func(paths []string) {
-			for i := range paths {
-				slog.Info("selected file", "file", paths[i])
-			}
-		}, OnCancel: func() { slog.Info("cancelled the file browser") },
+	new_project.Show(host, new_project.Config{
+		OnCreate: func(s string) {},
+		OnOpen:   func(s string) {},
 	})
 }

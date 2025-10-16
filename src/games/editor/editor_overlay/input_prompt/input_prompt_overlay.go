@@ -12,11 +12,11 @@ import (
 type InputPrompt struct {
 	doc    *document.Document
 	uiMan  ui.Manager
-	config InputPromptConfig
+	config Config
 	input  *document.Element
 }
 
-type InputPromptConfig struct {
+type Config struct {
 	Title       string
 	Description string
 	Placeholder string
@@ -27,7 +27,7 @@ type InputPromptConfig struct {
 	OnCancel    func()
 }
 
-func Show(host *engine.Host, config InputPromptConfig) (*InputPrompt, error) {
+func Show(host *engine.Host, config Config) (*InputPrompt, error) {
 	defer tracing.NewRegion("input_prompt.Show").End()
 	ip := &InputPrompt{
 		config: config,

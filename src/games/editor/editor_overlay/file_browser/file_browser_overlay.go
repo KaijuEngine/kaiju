@@ -24,10 +24,10 @@ type FileBrowser struct {
 	selected      []*document.Element
 	history       []string
 	historyIdx    int
-	config        FileBrowserConfig
+	config        Config
 }
 
-type FileBrowserConfig struct {
+type Config struct {
 	OnConfirm   func(paths []string)
 	OnCancel    func()
 	OnlyFolders bool
@@ -46,7 +46,7 @@ type QuickAccessFolder struct {
 	Path string
 }
 
-func Show(host *engine.Host, config FileBrowserConfig) (*FileBrowser, error) {
+func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	defer tracing.NewRegion("file_browser.Show").End()
 	fb := &FileBrowser{
 		historyIdx: -1,
@@ -59,10 +59,11 @@ func Show(host *engine.Host, config FileBrowserConfig) (*FileBrowser, error) {
 		QuickAccessFolders: []QuickAccessFolder{},
 		OnlyFolders:        fb.config.OnlyFolders,
 	}
-	for k, v := range filesystem.KnownDirectories() {
+	knownDirs := filesystem.KnownDirectories()
+	for _, k := range klib.MapKeysSorted(knownDirs) {
 		data.QuickAccessFolders = append(data.QuickAccessFolders, QuickAccessFolder{
 			Name: k,
-			Path: v,
+			Path: knownDirs[k],
 		})
 	}
 	fb.doc, err = markup.DocumentFromHTMLAsset(&fb.uiMan, "editor/ui/overlay/file_browser.go.html",
@@ -114,6 +115,7 @@ func (fb *FileBrowser) openFolder(folder string) {
 		fb.doc.RemoveElement(fb.entryListElm.Children[i])
 	}
 	filtered := make([]os.DirEntry, 0, len(entries))
+	entries = klib.SortDirEntries(entries)
 	for i := range entries {
 		if !entries[i].IsDir() {
 			if fb.config.OnlyFolders {
@@ -184,7 +186,7 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 		fb.execReload()
 	}
 	cancel := func() { fb.uiMan.EnableUpdate() }
-	input_prompt.Show(fb.uiMan.Host, input_prompt.InputPromptConfig{
+	input_prompt.Show(fb.uiMan.Host, input_prompt.Config{
 		Title:       "New Folder",
 		Description: "Input the name for the new folder",
 		Placeholder: "Name...",
@@ -244,6 +246,9 @@ func (fb *FileBrowser) confirmSelection(*document.Element) {
 	if fb.config.OnConfirm == nil {
 		slog.Error("the OnConfirm call has not been set, nothing to do")
 		return
+	}
+	if len(paths) == 0 && fb.config.OnlyFolders {
+		paths = append(paths, fb.filePath.UI.ToInput().Text())
 	}
 	fb.config.OnConfirm(paths)
 }
