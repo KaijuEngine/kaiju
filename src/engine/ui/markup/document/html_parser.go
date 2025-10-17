@@ -643,6 +643,12 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
+// ApplyStyles will go through and apply styles to all elements within the
+// document. This is typically used after [SetElementClassesWithoutApply]. The
+// typical flow is to call [SetElementClassesWithoutApply] in a loop to change
+// styles of many elements at the same time, then apply styles after.
+func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
+
 // DuplicateElement will create a duplicate of a given element, nesting it under
 // the same parent as the given element (at the end). If you wish to just
 // duplicate an element and use one of the Insert functions, then use

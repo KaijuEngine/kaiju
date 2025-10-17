@@ -91,6 +91,22 @@ func (l *Layout) SetOffset(x, y float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
+func (l *Layout) SetOffsetX(x float32) {
+	if matrix.ApproxTo(l.offset.X(), x, fractionOfPixel) {
+		return
+	}
+	l.offset.SetX(x)
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetOffsetY(y float32) {
+	if matrix.ApproxTo(l.offset.Y(), y, fractionOfPixel) {
+		return
+	}
+	l.offset.SetY(y)
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
 func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
 	io := matrix.Vec4{left, top, right, bottom}
 	if matrix.Vec4ApproxTo(l.innerOffset, io, fractionOfPixel) {

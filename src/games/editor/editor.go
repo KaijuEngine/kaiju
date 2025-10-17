@@ -42,15 +42,29 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui"
 	"kaiju/framework"
+	"kaiju/games/editor/editor_workspace/stage_workspace"
+	"kaiju/games/editor/global_interface/menu_bar"
+	"kaiju/games/editor/global_interface/status_bar"
 	"kaiju/games/editor/project"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 )
 
 type Editor struct {
-	host    *engine.Host
-	uiMan   ui.Manager
-	project project.Project
+	host             *engine.Host
+	uiMan            ui.Manager
+	project          project.Project
+	Workspaces       Workspaces
+	GlobalInterfaces GlobalInterface
+}
+
+type Workspaces struct {
+	Stage stage_workspace.Workspace
+}
+
+type GlobalInterface struct {
+	MenuBar   menu_bar.MenuBar
+	StatusBar status_bar.StatusBar
 }
 
 func Launch(host *engine.Host) {
@@ -67,5 +81,7 @@ func Launch(host *engine.Host) {
 }
 
 func (ed *Editor) loadInterface() {
-
+	ed.GlobalInterfaces.MenuBar.Initialize(ed.host)
+	ed.GlobalInterfaces.StatusBar.Initialize(ed.host)
+	ed.Workspaces.Stage.Initialize(ed.host)
 }
