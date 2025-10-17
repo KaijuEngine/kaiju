@@ -57,9 +57,11 @@ func (np *NewProject) browse(e *document.Element) {
 
 func (np *NewProject) showFolderPick(isOpen bool) {
 	defer tracing.NewRegion("NewProject.showFolderPick").End()
+	np.uiMan.DisableUpdate()
 	file_browser.Show(np.uiMan.Host, file_browser.Config{
 		OnlyFolders: true,
 		OnConfirm: func(paths []string) {
+			np.uiMan.EnableUpdate()
 			if isOpen {
 				np.Close()
 				if np.config.OnOpen == nil {
@@ -70,7 +72,9 @@ func (np *NewProject) showFolderPick(isOpen bool) {
 			} else {
 				np.folder.UI.ToInput().SetText(paths[0])
 			}
-		}, OnCancel: nil,
+		}, OnCancel: func() {
+			np.uiMan.EnableUpdate()
+		},
 	})
 }
 
