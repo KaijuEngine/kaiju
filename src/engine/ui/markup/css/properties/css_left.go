@@ -71,7 +71,7 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 					return nil
 				}
 				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-				offsetX = pLayout.PixelSize().X() * val
+				offsetX = pLayout.ContentSize().X() * val
 			} else {
 				offsetX = val
 			}

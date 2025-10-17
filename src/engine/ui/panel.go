@@ -303,8 +303,8 @@ type rowBuilder struct {
 
 func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	eSize := e.Layout().PixelSize()
-	h := eSize.Height() + e.layout.padding.Top() + e.layout.padding.Bottom()
-	w := eSize.Width() + e.layout.padding.Left() + e.layout.padding.Right()
+	h := eSize.Height()
+	w := eSize.Width()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
 		return false
 	}
@@ -389,8 +389,7 @@ func (p *Panel) panelPostLayoutUpdate() {
 	offsetStart := matrix.Vec2{-pd.scroll.X(), pd.scroll.Y()}
 	rows := make([]rowBuilder, 0)
 	ps := p.layout.PixelSize()
-	areaWidth := ps.X() - p.layout.padding.X() - p.layout.padding.Z() -
-		p.layout.border.X() - p.layout.border.Z()
+	areaWidth := ps.X()
 	maxSize := matrix.Vec2{}
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
@@ -405,8 +404,8 @@ func (p *Panel) panelPostLayoutUpdate() {
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
 			kws := kid.Transform.WorldScale()
-			maxSize[matrix.Vx] = max(maxSize.X(), kLayout.left+kLayout.offset.X()+kws.Width())
-			maxSize[matrix.Vy] = max(maxSize.Y(), kLayout.top+kLayout.offset.Y()+kws.Height())
+			maxSize[matrix.Vx] = max(maxSize.X(), kLayout.left+kws.Width())
+			maxSize[matrix.Vy] = max(maxSize.Y(), kLayout.top+kws.Height())
 		case PositioningRelative:
 			fallthrough
 		case PositioningStatic:
@@ -419,12 +418,13 @@ func (p *Panel) panelPostLayoutUpdate() {
 		}
 	}
 	nextPos := offsetStart
-	addY := p.layout.padding.Y() + p.layout.border.Y()
+	nextPos[matrix.Vx] += p.layout.padding.Left() + p.layout.border.Left()
+	addY := p.layout.padding.Top() + p.layout.border.Top()
 	nextPos[matrix.Vy] += addY
 	maxSize[matrix.Vy] += addY
 	maxRowsX := matrix.Float(0)
 	for i := range rows {
-		rows[i].setElements(nextPos[matrix.Vx]+p.layout.padding.X()+p.layout.border.X(), nextPos[matrix.Vy])
+		rows[i].setElements(nextPos[matrix.Vx], nextPos[matrix.Vy])
 		addY = rows[i].height + rows[i].maxMarginTop + rows[i].maxMarginBottom
 		maxRowsX = max(maxRowsX, rows[i].x)
 		nextPos[matrix.Vy] += addY
@@ -433,11 +433,8 @@ func (p *Panel) panelPostLayoutUpdate() {
 	bounds := matrix.Vec2{maxSize.X(), maxSize.Y()}
 	if p.FittingContent() {
 		p.boundsChildren(&bounds)
-		border := p.layout.border
-		w := bounds.X() + border.Left() + border.Right() +
-			p.layout.padding.Horizontal()
-		h := bounds.Y() + border.Top() + border.Bottom() +
-			p.layout.padding.Vertical()
+		w := bounds.X() + p.layout.padding.Horizontal() + p.layout.border.Horizontal()
+		h := bounds.Y() + p.layout.padding.Bottom() + p.layout.border.Bottom()
 		switch pd.fitContent {
 		case ContentFitWidth:
 			p.layout.ScaleWidth(max(1, w))

@@ -91,15 +91,15 @@ func (slider *Slider) onLayoutUpdating() {
 	// Background
 	bl := &ld.bgPanel.layout
 	pLayout := FirstOnEntity(bl.Ui().Entity().Parent).Layout()
-	w, h := pLayout.ContentSize()
-	bl.Scale(w-10, h) // TODO:  Why -10?
+	wh := pLayout.ContentSize()
+	bl.Scale(wh.Width()-10, wh.Height()) // TODO:  Why -10?
 
 	// Foreground
 	fl := &ld.fgPanel.layout
 	pp := FirstPanelOnEntity(fl.Ui().Entity().Parent)
 	ps := (*Slider)(pp)
-	_, h = pp.Base().layout.ContentSize()
-	fl.Scale(h/2, h)
+	wh = pp.Base().layout.ContentSize()
+	fl.Scale(wh.Height()/2, wh.Height())
 	ps.SetValue(ps.Value())
 }
 

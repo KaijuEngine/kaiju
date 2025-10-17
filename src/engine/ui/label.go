@@ -207,7 +207,8 @@ func (label *Label) renderText() {
 	if ld.textLength > 0 {
 		maxWidth := label.MaxWidth()
 		label.layout.ScaleHeight(label.Measure().Height())
-		xOffset := float32(0)
+		pl := &FirstPanelOnEntity(label.entity.Parent).layout
+		xOffset := -pl.padding.Left() - pl.border.Left()
 		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
 			label.man.Host, ld.text, xOffset, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,

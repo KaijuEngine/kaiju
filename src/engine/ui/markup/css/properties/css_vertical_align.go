@@ -58,11 +58,12 @@ func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []
 		for _, l := range labels {
 			base := l.Base()
 			layout := base.Layout()
-			parent := ui.FirstOnEntity(l.Base().Entity().Parent)
-			pt := parent.Layout().Padding()
-			ph := parent.Layout().PixelSize().Y()
-			th := l.Measure().Height()
-			layout.SetInnerOffsetTop(-ph*0.5 + th*0.5 + pt.Top() + pt.Bottom())
+			pl := ui.FirstOnEntity(l.Base().Entity().Parent).Layout()
+			pp := pl.Padding()
+			pb := pl.Border()
+			//ph := pl.PixelSize().Y() - pp.Vertical() - pb.Vertical()
+			//th := l.Measure().Height()
+			layout.SetInnerOffsetTop(pp.Top()*0.5 - pb.Top()*0.5)
 			l.SetBaseline(rendering.FontBaselineCenter)
 		}
 		return nil

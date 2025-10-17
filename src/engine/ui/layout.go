@@ -62,15 +62,11 @@ type Layout struct {
 	localInnerOffset matrix.Vec4
 	left             float32
 	top              float32
-	right            float32
-	bottom           float32
 	z                float32
-	anchor           matrix.Vec2
 	ui               *UI
 	border           matrix.Vec4
 	padding          matrix.Vec4
 	margin           matrix.Vec4
-	inset            matrix.Vec4
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
@@ -158,8 +154,6 @@ func (l *Layout) InnerOffset() matrix.Vec4 {
 }
 
 func (l *Layout) Scale(width, height float32) bool {
-	width += l.padding.X() + l.padding.Z()
-	height += l.padding.Y() + l.padding.W()
 	ps := l.PixelSize()
 	if matrix.Vec2ApproxTo(ps, matrix.Vec2{width, height}, fractionOfPixel) {
 		return false
@@ -177,7 +171,6 @@ func (l *Layout) Scale(width, height float32) bool {
 }
 
 func (l *Layout) ScaleWidth(width float32) bool {
-	width += l.padding.X() + l.padding.Z()
 	ps := l.PixelSize()
 	if matrix.ApproxTo(ps[matrix.Vx], width, fractionOfPixel) {
 		return false
@@ -193,7 +186,6 @@ func (l *Layout) ScaleWidth(width float32) bool {
 }
 
 func (l *Layout) ScaleHeight(height float32) bool {
-	height += l.padding.Y() + l.padding.W()
 	ps := l.PixelSize()
 	if matrix.ApproxTo(ps.Y(), height, fractionOfPixel) {
 		return false
@@ -222,7 +214,14 @@ func (l *Layout) SetBorder(left, top, right, bottom float32) {
 	if matrix.Vec4ApproxTo(l.border, b, fractionOfPixel) {
 		return
 	}
+	ps := l.PixelSize()
+	// Undo last border applied to the size
+	ps.SetX(ps.X() - l.border.Horizontal())
+	ps.SetY(ps.Y() - l.border.Vertical())
 	l.border = b
+	ps.SetX(ps.X() + l.border.Horizontal())
+	ps.SetY(ps.Y() + l.border.Vertical())
+	l.Scale(ps.Width(), ps.Height())
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
@@ -266,10 +265,10 @@ func (l *Layout) SetPositioning(pos Positioning) {
 	}
 }
 
-func (l *Layout) ContentSize() (float32, float32) {
+func (l *Layout) ContentSize() matrix.Vec2 {
 	ps := l.PixelSize()
-	return ps.X() - l.padding.X() - l.padding.Z(),
-		ps.Y() - l.padding.Y() - l.padding.W()
+	return matrix.NewVec2(ps.X()-l.padding.Horizontal()-l.border.Horizontal(),
+		ps.Y()-l.padding.Vertical()-l.border.Vertical())
 }
 
 func (l *Layout) SetRowLayoutOffset(offset matrix.Vec2) {
@@ -358,7 +357,6 @@ func (l *Layout) bounds() matrix.Vec2 {
 }
 
 func (l *Layout) initialize(ui *UI) {
-	l.anchor = matrix.Vec2Zero()
 	l.ui = ui
 	//l.prepare()
 	//l.update()
