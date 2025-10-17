@@ -74,14 +74,15 @@ func (s *Select) Init(text string, options []string) {
 	s.elmData = data
 	p := s.Base().ToPanel()
 	p.DontFitContent()
-	host := s.man.Host
+	man := s.man.Value()
+	host := man.Host
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(bg, ElementTypeSelect)
 	data.selected = -1
 	{
 		// Create the label
-		label := s.man.Add()
+		label := man.Add()
 		lbl := label.ToLabel()
 		lbl.Init(data.text)
 		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
@@ -95,7 +96,7 @@ func (s *Select) Init(text string, options []string) {
 	}
 	{
 		// Create the list panel
-		listPanel := s.man.Add()
+		listPanel := man.Add()
 		lp := listPanel.ToPanel()
 		lp.Init(bg, ElementTypePanel)
 		lp.SetOverflow(OverflowScroll)
@@ -110,7 +111,7 @@ func (s *Select) Init(text string, options []string) {
 		triTex, _ := host.TextureCache().Texture(
 			assets.TextureTriangle, rendering.TextureFilterLinear)
 		triTex.MipLevels = 1
-		tri := s.man.Add()
+		tri := man.Add()
 		img := tri.ToImage()
 		img.Init(triTex)
 		img.layout.Stylizer = RightStylizer{BasicStylizer{p.Base()}}
@@ -134,14 +135,15 @@ func (s *Select) AddOption(name string) {
 	data := s.SelectData()
 	data.options = append(data.options, name)
 	// Create panel to hold the label
-	panel := s.man.Add()
+	man := s.man.Value()
+	panel := man.Add()
 	p := panel.ToPanel()
 	p.Init(nil, ElementTypePanel)
 	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
 	p.DontFitContent()
 	p.entity.SetName(name)
 	// Create the label
-	label := s.man.Add()
+	label := man.Add()
 	lbl := label.ToLabel()
 	lbl.Init(name)
 	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}

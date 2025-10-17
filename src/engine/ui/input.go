@@ -107,13 +107,14 @@ func (input *Input) Init(placeholderText string) {
 	data := &inputData{}
 	input.elmData = data
 	p := input.Base().ToPanel()
-	host := p.man.Host
+	man := p.man.Value()
+	host := man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeInput)
 	p.DontFitContent()
 
 	// Label
-	data.label = input.man.Add().ToLabel()
+	data.label = man.Add().ToLabel()
 	data.label.Init("")
 	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	p.AddChild(data.label.Base())
@@ -123,7 +124,7 @@ func (input *Input) Init(placeholderText string) {
 	data.label.layout.SetPositioning(PositioningAbsolute)
 
 	// Placeholder
-	data.placeholder = input.man.Add().ToLabel()
+	data.placeholder = man.Add().ToLabel()
 	data.placeholder.Init(placeholderText)
 	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	p.AddChild(data.placeholder.Base())
@@ -133,7 +134,7 @@ func (input *Input) Init(placeholderText string) {
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 
 	// Create the cursor
-	data.cursor = input.man.Add().ToPanel()
+	data.cursor = man.Add().ToPanel()
 	data.cursor.Init(tex, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
@@ -141,7 +142,7 @@ func (input *Input) Init(placeholderText string) {
 	p.AddChild((*UI)(data.cursor))
 
 	// Create the highlight
-	data.highlight = input.man.Add().ToPanel()
+	data.highlight = man.Add().ToPanel()
 	data.highlight.Init(tex, ElementTypePanel)
 	data.highlight.DontFitContent()
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
@@ -254,7 +255,7 @@ func (input *Input) charX(index int) float32 {
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
-		host := input.man.Host
+		host := input.man.Value().Host
 		strWidth = host.FontCache().MeasureString(data.label.LabelData().fontFace, tmp, data.label.LabelData().fontSize)
 	}
 	return left + strWidth
@@ -426,7 +427,7 @@ func (input *Input) pointerPosWithin() int {
 	if len(ld.text) == 0 {
 		return 0
 	} else {
-		host := input.man.Host
+		host := input.man.Value().Host
 		pos := (*UI)(input).cursorPos(&host.Window.Cursor)
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
@@ -509,13 +510,11 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	host := input.man.Host
-	host.Window.CursorIbeam()
+	input.man.Value().Host.Window.CursorIbeam()
 }
 
 func (input *Input) onExit() {
-	host := input.man.Host
-	host.Window.CursorStandard()
+	input.man.Value().Host.Window.CursorStandard()
 }
 
 func (input *Input) onDown() {
@@ -629,8 +628,9 @@ func (input *Input) Focus() {
 		input.InputData().isActive = true
 		input.resetSelect()
 		input.showCursor()
-		if input.man != nil {
-			input.man.Group.setFocus((*UI)(input))
+		man := input.man.Value()
+		if man != nil {
+			man.Group.setFocus((*UI)(input))
 		}
 	}
 }
@@ -640,10 +640,10 @@ func (input *Input) RemoveFocus() {
 		input.InputData().isActive = false
 		input.resetSelect()
 		input.hideCursor()
-		host := input.man.Host
-		host.Window.CursorStandard()
-		if input.man != nil {
-			input.man.Group.setFocus(nil)
+		man := input.man.Value()
+		if man != nil {
+			man.Host.Window.CursorStandard()
+			man.Group.setFocus(nil)
 		}
 	}
 }
@@ -661,7 +661,7 @@ func (input *Input) SetCursorOffset(offset int) {
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
-	host := input.man.Host
+	host := input.man.Value().Host
 	if input.entity.IsActive() && input.InputData().isActive {
 		if keyState == hid.KeyStateDown {
 			if keyId == hid.KeyboardKeyEscape {

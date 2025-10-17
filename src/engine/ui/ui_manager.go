@@ -40,23 +40,29 @@ package ui
 import (
 	"kaiju/engine"
 	"kaiju/engine/pooling"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
+	"runtime"
 	"sync"
+	"weak"
 )
 
 type Manager struct {
-	Host       *engine.Host
-	Group      *Group
-	pools      pooling.PoolGroup[UI]
-	hovered    [][]*UI
-	updateId   int
-	skipUpdate int
+	Host          *engine.Host
+	Group         Group
+	pools         pooling.PoolGroup[UI]
+	hovered       [][]*UI
+	updateId      int
+	skipUpdate    int
+	resizeEvtId   events.Id
+	windowResized bool
 }
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
-	if man.skipUpdate > 0 {
+	if man.skipUpdate > 0 && !man.windowResized {
 		return
 	}
 	// There is no update without a host, this is safe
@@ -105,6 +111,7 @@ func (man *Manager) update(deltaTime float64) {
 		})
 	}
 	wg.Wait()
+	man.windowResized = false
 }
 
 func (man *Manager) Hovered() []*UI {
@@ -125,18 +132,41 @@ func (man *Manager) Hovered() []*UI {
 func (man *Manager) Init(host *engine.Host) {
 	defer tracing.NewRegion("ui.Manager.Init").End()
 	man.Host = host
-	man.updateId = host.UIUpdater.AddUpdate(man.update)
-	man.Group = NewGroup()
+	wMan := weak.Make(man)
+	man.updateId = host.UIUpdater.AddUpdate(func(deltaTime float64) {
+		if wMan.Value() != nil {
+			wMan.Value().update(deltaTime)
+		}
+	})
 	man.Group.Attach(man.Host)
 	man.Group.SetThreaded()
-}
-
-func (man *Manager) Release() {
-	defer tracing.NewRegion("ui.Manager.Release").End()
-	man.Clear()
-	man.Host.UIUpdater.RemoveUpdate(man.updateId)
-	man.Group.Detach(man.Host)
-	man.updateId = 0
+	man.resizeEvtId = host.Window.OnResize.Add(func() {
+		if wMan.Value() != nil {
+			wMan.Value().windowResized = true
+		}
+	})
+	type manCleanup struct {
+		host          weak.Pointer[engine.Host]
+		win           weak.Pointer[windowing.Window]
+		updateId      int
+		resizeId      events.Id
+		groupUpdateId int
+	}
+	clean := manCleanup{weak.Make(host), weak.Make(host.Window),
+		man.updateId, man.resizeEvtId, man.Group.updateId}
+	runtime.AddCleanup(man, func(c manCleanup) {
+		h := c.host.Value()
+		if h == nil {
+			return
+		}
+		h.Updater.RemoveUpdate(c.updateId)
+		h.UILateUpdater.RemoveUpdate(c.groupUpdateId)
+		w := c.win.Value()
+		if w == nil {
+			return
+		}
+		w.OnResize.Remove(c.resizeId)
+	}, clean)
 }
 
 func (man *Manager) Clear() {
@@ -152,7 +182,7 @@ func (man *Manager) Add() *UI {
 	*ui = UI{
 		poolId: poolId,
 		id:     elmId,
-		man:    man,
+		man:    weak.Make(man),
 	}
 	ui.entity.Init(man.Host.WorkGroup())
 	man.Host.AddEntity(&ui.entity)

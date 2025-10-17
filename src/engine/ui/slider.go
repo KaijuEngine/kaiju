@@ -68,14 +68,15 @@ func (s *Slider) Init() {
 	s.elmData = ld
 	p := s.Base().ToPanel()
 	p.Init(nil, ElementTypeSlider)
-	host := p.man.Host
+	man := p.man.Value()
+	host := man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	ld.bgPanel = s.man.Add().ToPanel()
+	ld.bgPanel = man.Add().ToPanel()
 	ld.bgPanel.Init(tex, ElementTypePanel)
 	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
 	ld.bgPanel.SetColor(matrix.ColorBlack())
-	ld.fgPanel = s.man.Add().ToPanel()
+	ld.fgPanel = man.Add().ToPanel()
 	ld.fgPanel.Init(tex, ElementTypePanel)
 	ld.fgPanel.layout.SetPositioning(PositioningAbsolute)
 	ld.fgPanel.layout.SetZ(0.2)
@@ -112,7 +113,7 @@ func (slider *Slider) update(deltaTime float64) {
 }
 
 func (slider Slider) Delta() float32 {
-	host := slider.man.Host
+	host := slider.man.Value().Host
 	ww := float32(host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X() + (ww * 0.5)

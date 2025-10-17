@@ -46,6 +46,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
 	"kaiju/rendering"
+	"weak"
 )
 
 type DirtyType = int
@@ -85,7 +86,7 @@ type UIElementData interface {
 }
 
 type UI struct {
-	man              *Manager
+	man              weak.Pointer[Manager]
 	entity           engine.Entity
 	elmData          UIElementData
 	events           [EventTypeEnd]events.Event
@@ -128,7 +129,7 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
 	ui.layout.initialize(ui)
-	host := ui.man.Host
+	host := ui.man.Value().Host
 	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
 	})
@@ -137,7 +138,16 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 		ui.shaderData.Destroy()
 		ui.events[EventTypeDestroy].Execute()
 		ui.elmData = nil
-		ui.man.Remove(ui)
+		ui.postLayoutUpdate = nil
+		ui.render = nil
+		ui.layout.ui = nil
+		ui.layout.Stylizer = nil
+		for i := range ui.events {
+			ui.events[i].Clear()
+		}
+		if ui.man.Value() != nil {
+			ui.man.Value().Remove(ui)
+		}
 	})
 }
 
@@ -151,7 +161,10 @@ func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
 
 func (ui *UI) Host() *engine.Host {
-	return ui.man.Host
+	if ui.man.Value() != nil {
+		return ui.man.Value().Host
+	}
+	return nil
 }
 
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
@@ -311,8 +324,9 @@ func (ui *UI) requestEvent(evtType EventType) {
 	if ui.events[evtType].IsEmpty() {
 		return
 	}
-	if ui.man != nil {
-		ui.man.Group.requestEvent(ui, evtType)
+	man := ui.man.Value()
+	if man != nil {
+		man.Group.requestEvent(ui, evtType)
 	} else {
 		ui.ExecuteEvent(evtType)
 	}
@@ -320,7 +334,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 
 func (ui *UI) eventUpdates() {
 	defer tracing.NewRegion("UI.eventUpdates").End()
-	host := ui.man.Host
+	host := ui.man.Value().Host
 	cursor := &host.Window.Cursor
 	mouse := &host.Window.Mouse
 	if cursor.Moved() {
@@ -411,7 +425,7 @@ func (ui *UI) Update(deltaTime float64) {
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	defer tracing.NewRegion("UI.cursorPos").End()
 	pos := cursor.Position()
-	host := ui.man.Host
+	host := ui.man.Value().Host
 	pos[matrix.Vx] -= matrix.Float(host.Window.Width()) * 0.5
 	pos[matrix.Vy] -= matrix.Float(host.Window.Height()) * 0.5
 	return pos
@@ -524,7 +538,7 @@ func (ui *UI) IsInFrontOf(other *UI) bool {
 }
 
 func (ui *UI) Clone(parent *engine.Entity) *UI {
-	cpy := ui.man.Add()
+	cpy := ui.man.Value().Add()
 	switch ui.elmType {
 	case ElementTypeLabel:
 		ui.ToLabel().Clone(cpy.ToLabel())

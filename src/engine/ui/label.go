@@ -196,7 +196,7 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	ld := label.LabelData()
-	return label.man.Host.FontCache().MeasureStringWithin(ld.fontFace,
+	return label.man.Value().Host.FontCache().MeasureStringWithin(ld.fontFace,
 		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
 }
 
@@ -209,8 +209,9 @@ func (label *Label) renderText() {
 		label.layout.ScaleHeight(label.Measure().Height())
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
 		xOffset := -pl.padding.Left() - pl.border.Left()
-		ld.runeDrawings = label.man.Host.FontCache().RenderMeshes(
-			label.man.Host, ld.text, xOffset, 0, 0, ld.fontSize,
+		host := label.man.Value().Host
+		ld.runeDrawings = host.FontCache().RenderMeshes(
+			host, ld.text, xOffset, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight)
@@ -222,7 +223,7 @@ func (label *Label) renderText() {
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 			if ld.bgColor.A() < 1.0 {
 				transparent := ld.runeDrawings[i]
-				transparent.Material = label.man.Host.FontCache().TransparentMaterial(
+				transparent.Material = host.FontCache().TransparentMaterial(
 					ld.runeDrawings[i].Material)
 				transparentDrawings = append(transparentDrawings, transparent)
 			}
@@ -230,7 +231,7 @@ func (label *Label) renderText() {
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
 		}
-		label.man.Host.Drawings.AddDrawings(ld.runeDrawings)
+		host.Drawings.AddDrawings(ld.runeDrawings)
 	}
 }
 
@@ -420,7 +421,7 @@ func (label *Label) MaxWidth() float32 {
 func (label *Label) SetWidthAutoHeight(width float32) {
 	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
 	ld := label.LabelData()
-	textSize := label.Base().man.Host.FontCache().MeasureStringWithin(
+	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithin(
 		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
 	label.layout.Scale(width, textSize.Y())
 }
@@ -540,7 +541,7 @@ func (label *Label) CalculateMaxWidth() float32 {
 	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
 	if parent == nil {
 		// TODO:  This will need to be bounded by left offset
-		maxWidth = matrix.Float(label.man.Host.Window.Width())
+		maxWidth = matrix.Float(label.man.Value().Host.Window.Width())
 	} else {
 		panel := FirstPanelOnEntity(parent)
 		o := panel.layout.Padding()

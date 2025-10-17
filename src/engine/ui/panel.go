@@ -240,7 +240,7 @@ func (p *Panel) FitContent() {
 func (p *Panel) onScroll() {
 	defer tracing.NewRegion("Panel.onScroll").End()
 	pd := p.PanelData()
-	host := p.man.Host
+	host := p.man.Value().Host
 	mouse := &host.Window.Mouse
 	delta := mouse.Scroll()
 	scroll := pd.scroll
@@ -552,7 +552,7 @@ func (p *Panel) ResetScroll() {
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	defer tracing.NewRegion("Panel.ensureBGExists").End()
 	pd := p.PanelData()
-	host := p.man.Host
+	host := p.man.Value().Host
 	if !pd.drawing.IsValid() {
 		if tex == nil {
 			tex, _ = host.TextureCache().Texture(
@@ -616,7 +616,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 		if pd.transparentDrawing.Material != nil {
 			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)
 		}
-		host := p.man.Host
+		host := p.man.Value().Host
 		host.Drawings.AddDrawing(pd.drawing)
 	} else {
 		p.ensureBGExists(tex)
@@ -695,7 +695,7 @@ func (p *Panel) SetUseBlending(useBlending bool) {
 	defer tracing.NewRegion("Panel.SetUseBlending").End()
 	p.recreateDrawing()
 	pd := p.PanelData()
-	host := p.man.Host
+	host := p.man.Value().Host
 	host.Drawings.AddDrawing(pd.drawing)
 	if useBlending {
 		pd.transparentDrawing = pd.drawing
@@ -730,7 +730,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return
 	}
-	host := p.man.Host
+	host := p.man.Value().Host
 	hasBlending := p.shaderData.FgColor.A() < 1.0
 	shouldBlend := bgColor.A() < 1.0
 	if hasBlending != shouldBlend {

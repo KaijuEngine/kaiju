@@ -82,7 +82,7 @@ func (cb *Checkbox) Init() {
 	cb.elmData = ld
 	base := cb.Base()
 	p := base.ToPanel()
-	host := p.man.Host
+	host := p.man.Value().Host
 	tc := host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)

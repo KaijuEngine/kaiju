@@ -41,7 +41,6 @@ import (
 	"html/template"
 	"kaiju/debug"
 	"kaiju/engine"
-	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/elements"
@@ -102,9 +101,9 @@ type Document struct {
 	firstInput *ui.Input
 	lastInput  *ui.Input
 	funcMap    map[string]func(*Element)
-	Debug      struct {
-		ReloadEventId events.Id
-	}
+	//Debug      struct {
+	//	ReloadEventId events.Id
+	//}
 }
 
 func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylizer Stylizer) {
@@ -470,6 +469,8 @@ func (d *Document) Destroy() {
 	for i := range d.Elements {
 		d.Elements[i].UI.Entity().Destroy()
 	}
+	clear(d.funcMap)
+	*d = Document{}
 	//if build.Debug {
 	//	Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
 	//}

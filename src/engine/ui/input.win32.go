@@ -1,3 +1,5 @@
+//go:build windows
+
 /******************************************************************************/
 /* input.win32.go                                                             */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build windows
-
 package ui
 
 func (input *Input) internalCopyToClipboard() {
@@ -54,7 +54,6 @@ func (input *Input) internalCutToClipboard() {
 }
 
 func (input *Input) internalPasteFromClipboard() {
-	host := input.man.Host
-	text := host.Window.ClipboardContents()
+	text := input.man.Value().Host.Window.ClipboardContents()
 	input.InsertText(text)
 }

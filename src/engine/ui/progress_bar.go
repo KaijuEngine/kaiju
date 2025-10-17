@@ -63,8 +63,8 @@ func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture) {
 	}
 	p.elmData = pd
 	p.Base().ToPanel().Init(nil, ElementTypeProgressBar)
-	panel := p.man.Add().ToPanel()
-	fgPanel := p.man.Add().ToPanel()
+	panel := p.man.Value().Add().ToPanel()
+	fgPanel := p.man.Value().Add().ToPanel()
 	panel.Init(bgTexture, ElementTypePanel)
 	fgPanel.Init(fgTexture, ElementTypePanel)
 	fgPanel.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
