@@ -47,7 +47,7 @@ const (
 type GameTitle string
 
 const (
-	GameTitleEditor           = GameTitle("Kaiju Editor")
+	GameTitleEditor           = GameTitle("Kaiju Engine Editor")
 	GameTitleGradingGenerator = GameTitle("Kaiju Generator")
 )
 

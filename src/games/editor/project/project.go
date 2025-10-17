@@ -78,10 +78,16 @@ func (p *Project) Open(path string) error {
 		return err
 	}
 	if err = p.fileSystem.EnsureDatabaseExists(); err != nil {
-		err = p.fileSystem.SetupStructure()
+		if err = p.fileSystem.SetupStructure(); err != nil {
+			return err
+		}
 	}
-	return err
+	return p.config.load(&p.fileSystem)
 }
+
+// Name will return the name that has been set for this project. If the name is
+// not set, either the project hasn't been setup/selected or it is an error.
+func (p *Project) Name() string { return p.config.Name }
 
 // SetName will update the name of the project and save the project config file.
 func (p *Project) SetName(name string) {

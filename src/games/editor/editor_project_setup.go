@@ -2,6 +2,7 @@ package editor
 
 import (
 	"errors"
+	"fmt"
 	"kaiju/games/editor/editor_overlay/new_project"
 	"kaiju/games/editor/project"
 	"kaiju/platform/profiler/tracing"
@@ -22,8 +23,13 @@ func (ed *Editor) createProject(name, path string) {
 		slog.Error("failed to create the project", "error", err)
 		return
 	}
-	ed.project.SetName(name)
+	ed.SetProjectName(name)
 	ed.loadInterface()
+}
+
+func (ed *Editor) SetProjectName(name string) {
+	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
+	ed.project.SetName(name)
 }
 
 func (ed *Editor) openProject(path string) {
@@ -32,5 +38,6 @@ func (ed *Editor) openProject(path string) {
 		slog.Error("failed to create the project", "error", err)
 		return
 	}
+	ed.SetProjectName(ed.project.Name())
 	ed.loadInterface()
 }
