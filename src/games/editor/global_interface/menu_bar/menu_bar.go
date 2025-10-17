@@ -23,8 +23,7 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 			"clickFile":            b.openMenuTarget,
 			"clickEdit":            b.openMenuTarget,
 			"clickHelp":            b.openMenuTarget,
-			"clickStage3D":         b.clickStage3D,
-			"clickStage2D":         b.clickStage2D,
+			"clickStage":           b.clickStage,
 			"clickContent":         b.clickContent,
 			"clickAnimation":       b.clickAnimation,
 			"clickUI":              b.clickUI,
@@ -63,11 +62,7 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 	}
 }
 
-func (b *MenuBar) clickStage3D(e *document.Element) {
-	b.selectTab(e)
-}
-
-func (b *MenuBar) clickStage2D(e *document.Element) {
+func (b *MenuBar) clickStage(e *document.Element) {
 	b.selectTab(e)
 }
 
