@@ -42,6 +42,7 @@ import (
 	"kaiju/engine/ui/markup/css/pseudos"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/platform/windowing"
 	"slices"
 )
@@ -107,18 +108,24 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 		}
 	}
 	targets := make([]*document.Element, 0)
-	for _, part := range parts[1:] {
-		for _, elm := range elms {
+	lastTargets := []*document.Element{}
+	for _, elm := range elms {
+		lastTargets = append(lastTargets, elm)
+		for _, part := range parts[1:] {
 			if p, ok := pseudos.PseudoMap[part.Name]; ok {
-				if selects, err := p.Process(elm, part); err == nil {
-					targets = append(targets, selects...)
-					applyRules = p.AlterRules(applyRules)
+				for i := range lastTargets {
+					if selects, err := p.Process(lastTargets[i], part); err == nil {
+						targets = klib.AppendUnique(targets, selects...)
+						applyRules = p.AlterRules(applyRules)
+					}
 				}
 			} else {
 				tagged := doc.GetElementsByTagName(part.Name)
+				lastTargets = lastTargets[:0]
 				for _, t := range tagged {
 					if t.Parent.Value() == elm {
 						targets = append(targets, t)
+						lastTargets = append(lastTargets, t)
 					}
 				}
 			}
