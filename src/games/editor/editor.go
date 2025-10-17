@@ -39,20 +39,15 @@ package editor
 
 import (
 	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/ui"
-	"kaiju/framework"
 	"kaiju/games/editor/editor_workspace/stage_workspace"
 	"kaiju/games/editor/global_interface/menu_bar"
 	"kaiju/games/editor/global_interface/status_bar"
 	"kaiju/games/editor/project"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 )
 
 type Editor struct {
 	host             *engine.Host
-	uiMan            ui.Manager
 	project          project.Project
 	Workspaces       Workspaces
 	GlobalInterfaces GlobalInterface
@@ -69,14 +64,7 @@ type GlobalInterface struct {
 
 func Launch(host *engine.Host) {
 	defer tracing.NewRegion("editor.Launch").End()
-	ed := &Editor{
-		host: host,
-	}
-	ed.uiMan.Init(host)
-	tex, _ := ed.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-	draw, _ := framework.CreateDrawingFromMeshUnlit(ed.host,
-		rendering.NewMeshCube(ed.host.MeshCache()), []*rendering.Texture{tex})
-	ed.host.Drawings.AddDrawing(draw)
+	ed := &Editor{host: host}
 	ed.newProjectOverlay()
 }
 
@@ -84,4 +72,7 @@ func (ed *Editor) loadInterface() {
 	ed.GlobalInterfaces.MenuBar.Initialize(ed.host)
 	ed.GlobalInterfaces.StatusBar.Initialize(ed.host)
 	ed.Workspaces.Stage.Initialize(ed.host)
+
+	// TODO:  This is temp for testing
+	ed.Workspaces.Stage.Open()
 }

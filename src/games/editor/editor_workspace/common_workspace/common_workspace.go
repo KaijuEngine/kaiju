@@ -8,21 +8,26 @@ import (
 )
 
 type CommonWorkspace struct {
+	Host  *engine.Host
 	Doc   *document.Document
 	UiMan ui.Manager
 }
 
-func (w *CommonWorkspace) Initialize(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) error {
+func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) error {
+	w.Host = host
 	w.UiMan.Init(host)
 	var err error
 	w.Doc, err = markup.DocumentFromHTMLAsset(&w.UiMan, htmlPath, withData, funcMap)
+	w.Doc.Deactivate()
 	return err
 }
 
-func (w *CommonWorkspace) Open() {
+func (w *CommonWorkspace) CommonOpen() {
+	w.Doc.Activate()
 	w.UiMan.EnableUpdate()
 }
 
-func (w *CommonWorkspace) Close() {
+func (w *CommonWorkspace) CommonClose() {
 	w.UiMan.DisableUpdate()
+	w.Doc.Deactivate()
 }
