@@ -70,7 +70,6 @@ func (w *Workspace) createViewportGrid() {
 }
 
 func (w *Workspace) setupCamera() {
-	w.camera.SetMode(editor_controls.EditorCameraMode2d, w.Host)
 	w.camera.OnModeChange.Add(func() {
 		m := matrix.Mat4Identity()
 		switch w.camera.Mode() {
@@ -81,4 +80,5 @@ func (w *Workspace) setupCamera() {
 		}
 		w.gridShader.SetModel(m)
 	})
+	w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
 }
