@@ -42,14 +42,15 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui"
 	"kaiju/framework"
-	"kaiju/games/editor/editor_overlay/new_project"
+	"kaiju/games/editor/project"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 )
 
 type Editor struct {
-	host  *engine.Host
-	uiMan ui.Manager
+	host    *engine.Host
+	uiMan   ui.Manager
+	project project.Project
 }
 
 func Launch(host *engine.Host) {
@@ -62,9 +63,9 @@ func Launch(host *engine.Host) {
 	draw, _ := framework.CreateDrawingFromMeshUnlit(ed.host,
 		rendering.NewMeshCube(ed.host.MeshCache()), []*rendering.Texture{tex})
 	ed.host.Drawings.AddDrawing(draw)
+	ed.newProjectOverlay()
+}
 
-	new_project.Show(host, new_project.Config{
-		OnCreate: func(s string) {},
-		OnOpen:   func(s string) {},
-	})
+func (ed *Editor) loadInterface() {
+
 }

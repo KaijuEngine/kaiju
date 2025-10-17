@@ -19,7 +19,7 @@ type NewProject struct {
 }
 
 type Config struct {
-	OnCreate func(string)
+	OnCreate func(name, path string)
 	OnOpen   func(string)
 }
 
@@ -31,8 +31,9 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.doc, err = markup.DocumentFromHTMLAsset(&np.uiMan,
 		"editor/ui/overlay/new_project_overlay.go.html",
 		nil, map[string]func(*document.Element){
-			"openProject": np.openProject,
-			"browse":      np.browse,
+			"openProject":   np.openProject,
+			"browse":        np.browse,
+			"createProject": np.createProject,
 		})
 	if err != nil {
 		return np, err
@@ -46,7 +47,7 @@ func (np *NewProject) Close() { np.doc.Destroy() }
 
 func (np *NewProject) openProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.openProject").End()
-	np.showFolderPick(false)
+	np.showFolderPick(true)
 }
 
 func (np *NewProject) browse(e *document.Element) {
@@ -60,18 +61,27 @@ func (np *NewProject) showFolderPick(isOpen bool) {
 		OnlyFolders: true,
 		OnConfirm: func(paths []string) {
 			if isOpen {
+				np.Close()
 				if np.config.OnOpen == nil {
 					slog.Error("nothing bound to OnOpen, doing nothing")
 					return
 				}
 				np.config.OnOpen(paths[0])
 			} else {
-				if np.config.OnCreate == nil {
-					slog.Error("nothing bound to OnCreate, doing nothing")
-					return
-				}
 				np.folder.UI.ToInput().SetText(paths[0])
 			}
 		}, OnCancel: nil,
 	})
+}
+
+func (np *NewProject) createProject(e *document.Element) {
+	defer tracing.NewRegion("NewProject.createProject").End()
+	name := np.nameInput.UI.ToInput().Text()
+	path := np.folder.UI.ToInput().Text()
+	np.Close()
+	if np.config.OnCreate == nil {
+		slog.Error("nothing bound to OnCreate, doing nothing")
+		return
+	}
+	np.config.OnCreate(name, path)
 }

@@ -232,8 +232,13 @@ func (l *Layout) SetPadding(left, top, right, bottom float32) {
 		return
 	}
 	ps := l.PixelSize()
+	// Undo last padding applied to the size
+	ps.SetX(ps.X() - l.padding.Horizontal())
+	ps.SetY(ps.Y() - l.padding.Vertical())
 	l.padding = newPadding
-	l.Scale(ps.Width()+newPadding.Horizontal(), ps.Height()+newPadding.Vertical())
+	ps.SetX(ps.X() + l.padding.Horizontal())
+	ps.SetY(ps.Y() + l.padding.Vertical())
+	l.Scale(ps.Width(), ps.Height())
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 

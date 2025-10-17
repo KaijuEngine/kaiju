@@ -4,15 +4,20 @@ import (
 	"fmt"
 	"kaiju/games/editor/project/project_database/cache_database"
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
+	"strings"
 )
 
 // Project is the mediator/container for all information about the developer's
 // project. This type is used to access the file system, project specific
 // settings, content, cache, and anything related to the project.
 type Project struct {
+	OnNameChange  func(string)
 	fileSystem    project_file_system.FileSystem
 	cacheDatabase cache_database.CacheDatabase
+	config        Config
 }
 
 // IsValid will return if this project has been constructed by simply returning
@@ -33,6 +38,7 @@ func (p *Project) CacheDatabase() *cache_database.CacheDatabase {
 // function can fail if the project path already exists and is not empty, or if
 // the supplied path is to that of a file and not a folder.
 func (p *Project) Initialize(path string) error {
+	defer tracing.NewRegion("Project.Initialize").End()
 	if err := ensurePathIsNewOrEmpty(path); err != nil {
 		return err
 	}
@@ -41,7 +47,17 @@ func (p *Project) Initialize(path string) error {
 		err = p.fileSystem.SetupStructure()
 	}
 	p.cacheDatabase.Build(&p.fileSystem)
+	if err = p.config.load(&p.fileSystem); err != nil {
+		slog.Error("failed to read the project configuration", "error", err)
+	}
 	return err
+}
+
+// Close will finalize the closing of the project and save any unsaved
+// configurations for the project. An error can be returned if there was an
+// error saving the config.
+func (p *Project) Close() error {
+	return p.config.save(&p.fileSystem)
 }
 
 // Open constructs an existing project given a target folder. This function can
@@ -50,6 +66,7 @@ func (p *Project) Initialize(path string) error {
 // opened will check that all the base folder structure is in place and if not,
 // it will create the missing folders.
 func (p *Project) Open(path string) error {
+	defer tracing.NewRegion("Project.Open").End()
 	p.reconstruct()
 	var err error
 	if p.fileSystem, err = project_file_system.New(path); err != nil {
@@ -61,9 +78,26 @@ func (p *Project) Open(path string) error {
 	return err
 }
 
-func (p *Project) reconstruct() { *p = Project{} }
+// SetName will update the name of the project and save the project config file.
+func (p *Project) SetName(name string) {
+	name = strings.TrimSpace(name)
+	if name == "" || p.config.Name == name {
+		return
+	}
+	p.config.Name = name
+	p.config.save(&p.fileSystem)
+	if p.OnNameChange != nil {
+		p.OnNameChange(p.config.Name)
+	}
+}
+
+func (p *Project) reconstruct() {
+	defer tracing.NewRegion("Project.reconstruct").End()
+	*p = Project{}
+}
 
 func ensurePathIsNewOrEmpty(path string) error {
+	defer tracing.NewRegion("Project.ensurePathIsNewOrEmpty").End()
 	if stat, err := os.Stat(path); err == nil {
 		if !stat.IsDir() {
 			return fmt.Errorf("the supplied path '%s' is a file", path)

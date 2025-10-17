@@ -6,6 +6,7 @@ const (
 	ContentConfigFolder = "database/config"
 	SrcFolder           = "database/src"
 	CacheFolder         = "database/cache"
+	ProjectConfigFile   = "database/project.json"
 )
 
 const (

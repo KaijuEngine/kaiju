@@ -10,7 +10,6 @@
 				border-image-slice: 25px;
 				background-color: #282828;
 				width: 50%;
-				height: 50%;
 				left: 50%;
 				top: 50%;
 				transform: translate(-50% -50%);
@@ -31,11 +30,16 @@
 			}
 			span { height: 2em; vertical-align: middle; }
 			.openProject button { margin-left: 10px; }
+			.createBtn {
+				left: 50%;
+				margin-top: 0.5em;
+				transform: translateX(-50%);
+			}
 		</style>
 	</head>
 	<body>
-		<div class="panel">
-			<h1>New Project</h1>
+		<div id="PANEL" class="panel">
+			<!-- <h1>New Project</h1>
 			<div class="openProject">
 				<span>Start by opening an existing project: </span>
 				<button onclick="openProject">Open Project</button>
@@ -47,7 +51,8 @@
 			<div class="inputPanel">
 				<input id="folder" class="folderInput" type="text" placeholder="Folder..." />
 				<button onclick="browse">Browse...</button>
-			</div>
+			</div> -->
+			<!-- <button class="createBtn" onclick="createProject">Create</button> -->
 		</div>
 	</body>
 </html>
