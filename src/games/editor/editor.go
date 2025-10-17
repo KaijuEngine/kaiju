@@ -39,6 +39,8 @@ package editor
 
 import (
 	"kaiju/engine"
+	"kaiju/games/editor/editor_workspace"
+	"kaiju/games/editor/editor_workspace/content_workspace"
 	"kaiju/games/editor/editor_workspace/stage_workspace"
 	"kaiju/games/editor/global_interface/menu_bar"
 	"kaiju/games/editor/global_interface/status_bar"
@@ -49,12 +51,15 @@ import (
 type Editor struct {
 	host             *engine.Host
 	project          project.Project
-	Workspaces       Workspaces
-	GlobalInterfaces GlobalInterface
+	workspaceState   WorkspaceState
+	workspaces       Workspaces
+	globalInterfaces GlobalInterface
+	currentWorkspace editor_workspace.Workspace
 }
 
 type Workspaces struct {
-	Stage stage_workspace.Workspace
+	Stage   stage_workspace.Workspace
+	Content content_workspace.Workspace
 }
 
 type GlobalInterface struct {
@@ -74,20 +79,21 @@ func Launch(host *engine.Host) {
 }
 
 func (ed *Editor) focusInterface() {
-	ed.GlobalInterfaces.MenuBar.Focus()
-	ed.GlobalInterfaces.StatusBar.Focus()
-	ed.Workspaces.Stage.Focus()
+	ed.globalInterfaces.MenuBar.Focus()
+	ed.globalInterfaces.StatusBar.Focus()
+	ed.currentWorkspace.Focus()
 }
 
 func (ed *Editor) blurInterface() {
-	ed.GlobalInterfaces.MenuBar.Blur()
-	ed.GlobalInterfaces.StatusBar.Blur()
-	ed.Workspaces.Stage.Blur()
+	ed.globalInterfaces.MenuBar.Blur()
+	ed.globalInterfaces.StatusBar.Blur()
+	ed.currentWorkspace.Blur()
 }
 
 func (ed *Editor) loadInterface() {
-	ed.GlobalInterfaces.MenuBar.Initialize(ed.host)
-	ed.GlobalInterfaces.StatusBar.Initialize(ed.host)
-	ed.Workspaces.Stage.Initialize(ed.host)
-	ed.Workspaces.Stage.Open()
+	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
+	ed.globalInterfaces.StatusBar.Initialize(ed.host)
+	ed.workspaces.Stage.Initialize(ed.host)
+	ed.workspaces.Content.Initialize(ed.host)
+	ed.setWorkspaceState(WorkspaceStateStage)
 }

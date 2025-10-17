@@ -13,10 +13,12 @@ type MenuBar struct {
 	doc           *document.Document
 	uiMan         ui.Manager
 	selectedPopup *document.Element
+	handler       MenuBarHandler
 }
 
-func (b *MenuBar) Initialize(host *engine.Host) error {
+func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	defer tracing.NewRegion("TitleBar.Initialize").End()
+	b.handler = handler
 	b.uiMan.Init(host)
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
@@ -70,10 +72,12 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 
 func (b *MenuBar) clickStage(e *document.Element) {
 	b.selectTab(e)
+	b.handler.OnStageWorkspaceSelected()
 }
 
 func (b *MenuBar) clickContent(e *document.Element) {
 	b.selectTab(e)
+	b.handler.OnContentWorkspaceSelected()
 }
 
 func (b *MenuBar) clickAnimation(e *document.Element) {

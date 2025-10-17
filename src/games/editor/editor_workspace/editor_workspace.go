@@ -5,5 +5,4 @@ type Workspace interface {
 	Close()
 	Focus()
 	Blur()
-	Update(deltaTime float64)
 }
