@@ -521,6 +521,8 @@ func (p *Panel) UnEnforceColor() {
 	pd.enforcedColorStack = pd.enforcedColorStack[:last]
 }
 
+func (p *Panel) Color() matrix.Color { return p.shaderData.FgColor }
+
 func (p *Panel) SetColor(bgColor matrix.Color) {
 	if p.HasEnforcedColor() {
 		p.PanelData().enforcedColorStack[0] = bgColor
@@ -589,6 +591,8 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.Base().AddEvent(EventTypeUp, func() { /* Do nothing, but block things */ })
 	}
 }
+
+func (p *Panel) HasBackground() bool { return p.PanelData().drawing.IsValid() }
 
 func (p *Panel) Background() *rendering.Texture {
 	pd := p.PanelData()
