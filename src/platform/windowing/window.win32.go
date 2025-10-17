@@ -74,6 +74,7 @@ import (
 #cgo noescape window_set_windowed
 #cgo noescape window_enable_raw_mouse
 #cgo noescape window_disable_raw_mouse
+#cgo noescape window_set_title
 
 #include "windowing.h"
 */
@@ -235,4 +236,10 @@ func (w *Window) enableRawMouse() {
 
 func (w *Window) disableRawMouse() {
 	C.window_disable_raw_mouse(w.handle)
+}
+
+func (w Window) setTitle(newTitle string) {
+	windowTitle := utf16.Encode([]rune(newTitle))
+	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
+	C.window_set_title(w.handle, title)
 }

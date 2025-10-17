@@ -876,4 +876,8 @@ void window_disable_raw_mouse(void* hwnd) {
 	sm->rawInputRequested = false;
 }
 
+void window_set_title(void* hwnd, const wchar_t* windowTitle) {
+	SetWindowTextW(hwnd, windowTitle);
+}
+
 #endif

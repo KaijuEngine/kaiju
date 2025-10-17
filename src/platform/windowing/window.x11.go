@@ -182,3 +182,7 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	mm := float64(C.window_dpi(w.handle))
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
+
+func (w Window) setTitle() {
+	klib.NotYetImplemented(234)
+}

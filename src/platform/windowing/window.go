@@ -372,6 +372,8 @@ func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []
 func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
 func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
+func (w *Window) SetTitle(name string) { w.setTitle(name) }
+
 func (w *Window) requestSync() {
 	w.syncRequest = true
 }
