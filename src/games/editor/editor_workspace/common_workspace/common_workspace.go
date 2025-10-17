@@ -8,9 +8,10 @@ import (
 )
 
 type CommonWorkspace struct {
-	Host  *engine.Host
-	Doc   *document.Document
-	UiMan ui.Manager
+	Host      *engine.Host
+	Doc       *document.Document
+	UiMan     ui.Manager
+	IsBlurred bool
 }
 
 func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) error {
@@ -30,4 +31,14 @@ func (w *CommonWorkspace) CommonOpen() {
 func (w *CommonWorkspace) CommonClose() {
 	w.UiMan.DisableUpdate()
 	w.Doc.Deactivate()
+}
+
+func (w *CommonWorkspace) Focus() {
+	w.UiMan.EnableUpdate()
+	w.IsBlurred = false
+}
+
+func (w *CommonWorkspace) Blur() {
+	w.UiMan.DisableUpdate()
+	w.IsBlurred = true
 }

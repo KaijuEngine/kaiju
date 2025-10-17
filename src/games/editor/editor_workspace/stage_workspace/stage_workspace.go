@@ -31,11 +31,15 @@ func (w *Workspace) Open() {
 
 func (w *Workspace) Close() {
 	w.Host.Updater.RemoveUpdate(w.updateId)
+	w.updateId = 0
 	w.gridShader.Deactivate()
 	w.CommonClose()
 }
 
 func (w *Workspace) update(deltaTime float64) {
+	if w.IsBlurred {
+		return
+	}
 	w.camera.Update(w.Host, deltaTime)
 }
 

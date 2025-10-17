@@ -44,6 +44,9 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 	return err
 }
 
+func (b *MenuBar) Focus() { b.uiMan.EnableUpdate() }
+func (b *MenuBar) Blur()  { b.uiMan.DisableUpdate() }
+
 func (b *MenuBar) openMenuTarget(e *document.Element) {
 	target := e.Attribute("data-target")
 	pop, _ := b.doc.GetElementById(target)

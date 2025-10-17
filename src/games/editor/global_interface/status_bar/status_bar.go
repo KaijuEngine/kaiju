@@ -21,3 +21,6 @@ func (b *StatusBar) Initialize(host *engine.Host) error {
 		nil, map[string]func(*document.Element){})
 	return err
 }
+
+func (b *StatusBar) Focus() { b.uiMan.EnableUpdate() }
+func (b *StatusBar) Blur()  { b.uiMan.DisableUpdate() }

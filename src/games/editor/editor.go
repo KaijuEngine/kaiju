@@ -65,14 +65,29 @@ type GlobalInterface struct {
 func Launch(host *engine.Host) {
 	defer tracing.NewRegion("editor.Launch").End()
 	ed := &Editor{host: host}
-	ed.newProjectOverlay()
+	ed.loadInterface()
+	// Wait 2 frames to blur so the UI is updated properly before being disabled
+	host.RunAfterFrames(2, func() {
+		ed.blurInterface()
+		ed.newProjectOverlay()
+	})
+}
+
+func (ed *Editor) focusInterface() {
+	ed.GlobalInterfaces.MenuBar.Focus()
+	ed.GlobalInterfaces.StatusBar.Focus()
+	ed.Workspaces.Stage.Focus()
+}
+
+func (ed *Editor) blurInterface() {
+	ed.GlobalInterfaces.MenuBar.Blur()
+	ed.GlobalInterfaces.StatusBar.Blur()
+	ed.Workspaces.Stage.Blur()
 }
 
 func (ed *Editor) loadInterface() {
 	ed.GlobalInterfaces.MenuBar.Initialize(ed.host)
 	ed.GlobalInterfaces.StatusBar.Initialize(ed.host)
 	ed.Workspaces.Stage.Initialize(ed.host)
-
-	// TODO:  This is temp for testing
 	ed.Workspaces.Stage.Open()
 }
