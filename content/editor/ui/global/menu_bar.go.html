@@ -61,16 +61,16 @@
 			<span group="tabs" class="workspaceTab" onclick="clickAnimation">Animation</span>
 			<span group="tabs" class="workspaceTab" onclick="clickUI">UI</span>
 		</div>
-		<div id="filePopup" class="popup">
+		<div id="filePopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
 			<div class="popupEntry" onclick="clickOpenStage">Open stage</div>
 			<div class="popupEntry" onclick="clickSaveStage">Save stage</div>
 		</div>
-		<div id="editPopup" class="popup">
+		<div id="editPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickProjectSettings">Project settings</div>
 			<div class="popupEntry" onclick="clickEditorSettings">Editor settings</div>
 		</div>
-		<div id="helpPopup" class="popup">
+		<div id="helpPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickAbout">About</div>
 			<div class="popupEntry" onclick="clickRepository">Repository</div>
 			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>

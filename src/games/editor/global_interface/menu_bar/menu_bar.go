@@ -9,8 +9,9 @@ import (
 )
 
 type MenuBar struct {
-	doc   *document.Document
-	uiMan ui.Manager
+	doc           *document.Document
+	uiMan         ui.Manager
+	selectedPopup *document.Element
 }
 
 func (b *MenuBar) Initialize(host *engine.Host) error {
@@ -36,6 +37,7 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 			"clickRepository":      b.clickRepository,
 			"clickJoinMailingList": b.clickJoinMailingList,
 			"clickMailArchives":    b.clickMailArchives,
+			"popupMiss":            b.popupMiss,
 		})
 	return err
 }
@@ -43,15 +45,16 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 func (b *MenuBar) openMenuTarget(e *document.Element) {
 	target := e.Attribute("data-target")
 	pop, _ := b.doc.GetElementById(target)
-	pops := b.doc.GetElementsByClass("popup")
-	for i := range pops {
-		if pop != pops[i] {
-			pops[i].UI.Hide()
-		}
-	}
+	b.selectedPopup = pop
 	if pop.UI.Entity().IsActive() {
-		pop.UI.Hide()
+		b.hidePopups()
 	} else {
+		pops := b.doc.GetElementsByClass("popup")
+		for i := range pops {
+			if pop != pops[i] {
+				pops[i].UI.Hide()
+			}
+		}
 		pop.UI.Show()
 		t := &e.UI.Entity().Transform
 		x := t.WorldPosition().X() + float32(b.uiMan.Host.Window.Width())*0.5 -
@@ -81,30 +84,45 @@ func (b *MenuBar) clickUI(e *document.Element) {
 }
 
 func (b *MenuBar) clickNewStage(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickOpenStage(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickSaveStage(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickProjectSettings(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickEditorSettings(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickAbout(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickRepository(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickJoinMailingList(e *document.Element) {
+	b.hidePopups()
 }
 
 func (b *MenuBar) clickMailArchives(e *document.Element) {
+	b.hidePopups()
+}
+
+func (b *MenuBar) popupMiss(e *document.Element) {
+	if e == b.selectedPopup {
+		b.hidePopups()
+	}
 }
 
 func (b *MenuBar) selectTab(e *document.Element) {
@@ -114,4 +132,13 @@ func (b *MenuBar) selectTab(e *document.Element) {
 	}
 	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "tabSelected")
 	b.doc.ApplyStyles()
+	b.hidePopups()
+}
+
+func (b *MenuBar) hidePopups() {
+	pops := b.doc.GetElementsByClass("popup")
+	for i := range pops {
+		pops[i].UI.Hide()
+	}
+	b.selectedPopup = nil
 }
