@@ -19,8 +19,13 @@ type NewProject struct {
 }
 
 type Config struct {
+	// OnCreate will be called when the "Create" button is clicked, it will
+	// return the name that the developer typed in and the path they selected.
 	OnCreate func(name, path string)
-	OnOpen   func(string)
+
+	// OnOpen will be called when the "Browse" button is clicked, it will return
+	// the path that was selected.
+	OnOpen func(string)
 }
 
 func Show(host *engine.Host, config Config) (*NewProject, error) {

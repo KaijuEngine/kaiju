@@ -1,11 +1,15 @@
 package editor
 
 import (
+	"errors"
 	"kaiju/games/editor/editor_overlay/new_project"
+	"kaiju/games/editor/project"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 )
 
 func (ed *Editor) newProjectOverlay() {
+	defer tracing.NewRegion("Editor.newProjectOverlay").End()
 	new_project.Show(ed.host, new_project.Config{
 		OnCreate: ed.createProject,
 		OnOpen:   ed.openProject,
@@ -13,7 +17,9 @@ func (ed *Editor) newProjectOverlay() {
 }
 
 func (ed *Editor) createProject(name, path string) {
-	if err := ed.setProject(path); err != nil {
+	defer tracing.NewRegion("Editor.createProject").End()
+	if err := ed.project.Initialize(path); !errors.Is(err, project.ConfigLoadError{}) {
+		slog.Error("failed to create the project", "error", err)
 		return
 	}
 	ed.project.SetName(name)
@@ -21,15 +27,10 @@ func (ed *Editor) createProject(name, path string) {
 }
 
 func (ed *Editor) openProject(path string) {
-	ed.setProject(path)
-	ed.loadInterface()
-}
-
-func (ed *Editor) setProject(path string) error {
-	err := ed.project.Initialize(path)
-	if err != nil {
-		slog.Error("failed to initialize the project", "error", err)
-		return err
+	defer tracing.NewRegion("Editor.openProject").End()
+	if err := ed.project.Open(path); err != nil {
+		slog.Error("failed to create the project", "error", err)
+		return
 	}
-	return nil
+	ed.loadInterface()
 }

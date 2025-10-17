@@ -5,7 +5,6 @@ import (
 	"kaiju/games/editor/project/project_database/cache_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
-	"log/slog"
 	"os"
 	"strings"
 )
@@ -14,6 +13,8 @@ import (
 // project. This type is used to access the file system, project specific
 // settings, content, cache, and anything related to the project.
 type Project struct {
+	// OnNameChange will fire whenever [SetName] is called, it will pass the
+	// name that was set as the argument.
 	OnNameChange  func(string)
 	fileSystem    project_file_system.FileSystem
 	cacheDatabase cache_database.CacheDatabase
@@ -44,19 +45,23 @@ func (p *Project) Initialize(path string) error {
 	}
 	var err error
 	if p.fileSystem, err = project_file_system.New(path); err == nil {
-		err = p.fileSystem.SetupStructure()
+		err := p.fileSystem.SetupStructure()
+		if err != nil {
+			return err
+		}
 	}
 	p.cacheDatabase.Build(&p.fileSystem)
-	if err = p.config.load(&p.fileSystem); err != nil {
-		slog.Error("failed to read the project configuration", "error", err)
+	if err := p.config.load(&p.fileSystem); err != nil {
+		return ConfigLoadError{}
 	}
-	return err
+	return nil
 }
 
 // Close will finalize the closing of the project and save any unsaved
 // configurations for the project. An error can be returned if there was an
 // error saving the config.
 func (p *Project) Close() error {
+	defer tracing.NewRegion("Project.Close").End()
 	return p.config.save(&p.fileSystem)
 }
 
@@ -72,7 +77,7 @@ func (p *Project) Open(path string) error {
 	if p.fileSystem, err = project_file_system.New(path); err != nil {
 		return err
 	}
-	if err = p.fileSystem.EnsureDatabaseExists(); err == nil {
+	if err = p.fileSystem.EnsureDatabaseExists(); err != nil {
 		err = p.fileSystem.SetupStructure()
 	}
 	return err
@@ -80,6 +85,7 @@ func (p *Project) Open(path string) error {
 
 // SetName will update the name of the project and save the project config file.
 func (p *Project) SetName(name string) {
+	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
 	if name == "" || p.config.Name == name {
 		return
