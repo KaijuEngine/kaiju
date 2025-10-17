@@ -39,7 +39,6 @@ package document
 
 import (
 	"html/template"
-	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
@@ -84,9 +83,9 @@ var funcMap = template.FuncMap{
 	},
 }
 
-var Debug = struct {
-	ReloadStylesEvent events.Event
-}{}
+//var Debug = struct {
+//	ReloadStylesEvent events.Event
+//}{}
 
 type Document struct {
 	host          weak.Pointer[engine.Host]
@@ -471,9 +470,9 @@ func (d *Document) Destroy() {
 	for i := range d.Elements {
 		d.Elements[i].UI.Entity().Destroy()
 	}
-	if build.Debug {
-		Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
-	}
+	//if build.Debug {
+	//	Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
+	//}
 }
 
 func (d *Document) Clean() {

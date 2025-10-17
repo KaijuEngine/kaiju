@@ -183,8 +183,8 @@ func SetupConsole(host *engine.Host) {
 		}
 		return fmt.Sprintf("Previewing file: %s", filePath)
 	})
-	console.For(host).AddCommand("reloadui", "Reloads all of the UI elements from disk", func(*engine.Host, string) string {
-		document.Debug.ReloadStylesEvent.Execute()
-		return ""
-	})
+	//console.For(host).AddCommand("reloadui", "Reloads all of the UI elements from disk", func(*engine.Host, string) string {
+	//	document.Debug.ReloadStylesEvent.Execute()
+	//	return ""
+	//})
 }

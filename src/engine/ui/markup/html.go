@@ -58,12 +58,12 @@ func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, fun
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil)
-	if build.Debug {
-		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
-		})
-		host.OnClose.Add(func() { document.Debug.ReloadStylesEvent.Clear() })
-	}
+	//if build.Debug {
+	//	doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+	//		reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
+	//	})
+	//	host.OnClose.Add(func() { document.Debug.ReloadStylesEvent.Clear() })
+	//}
 	return doc, nil
 }
 
@@ -74,11 +74,11 @@ func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData an
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root)
-	if build.Debug {
-		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
-		})
-	}
+	//if build.Debug {
+	//	doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+	//		reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
+	//	})
+	//}
 	return doc, nil
 }
 
