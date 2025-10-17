@@ -5,6 +5,7 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 )
 
@@ -20,6 +21,7 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		nil, map[string]func(*document.Element){
+			"clickLogo":            b.openMenuTarget,
 			"clickFile":            b.openMenuTarget,
 			"clickEdit":            b.openMenuTarget,
 			"clickHelp":            b.openMenuTarget,
@@ -33,6 +35,7 @@ func (b *MenuBar) Initialize(host *engine.Host) error {
 			"clickProjectSettings": b.clickProjectSettings,
 			"clickEditorSettings":  b.clickEditorSettings,
 			"clickAbout":           b.clickAbout,
+			"clickIssues":          b.clickIssues,
 			"clickRepository":      b.clickRepository,
 			"clickJoinMailingList": b.clickJoinMailingList,
 			"clickMailArchives":    b.clickMailArchives,
@@ -102,16 +105,24 @@ func (b *MenuBar) clickAbout(e *document.Element) {
 	b.hidePopups()
 }
 
+func (b *MenuBar) clickIssues(e *document.Element) {
+	b.hidePopups()
+	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/issues")
+}
+
 func (b *MenuBar) clickRepository(e *document.Element) {
 	b.hidePopups()
+	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju")
 }
 
 func (b *MenuBar) clickJoinMailingList(e *document.Element) {
 	b.hidePopups()
+	klib.OpenWebsite("https://www.freelists.org/list/kaijuengine")
 }
 
 func (b *MenuBar) clickMailArchives(e *document.Element) {
 	b.hidePopups()
+	klib.OpenWebsite("https://www.freelists.org/archive/kaijuengine/")
 }
 
 func (b *MenuBar) popupMiss(e *document.Element) {

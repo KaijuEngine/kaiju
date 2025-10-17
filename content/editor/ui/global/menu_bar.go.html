@@ -13,7 +13,9 @@
 				width: 24px;
 				height: 24px;
 				margin-right: 10px;
+				background-color: #AAA;
 			}
+			.logo:hover { background-color: white; }
 			.menuEntry {
 				margin-right: 10px;
 				padding: 0 5px;
@@ -51,7 +53,7 @@
 	</head>
 	<body>
 		<div class="bar">
-			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" />
+			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
 			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
 			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
 			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
@@ -59,6 +61,11 @@
 			<span group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
 			<span group="tabs" class="workspaceTab" onclick="clickAnimation">Animation</span>
 			<span group="tabs" class="workspaceTab" onclick="clickUI">UI</span>
+		</div>
+		<div id="logoPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickAbout">About</div>
+			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>
+			
 		</div>
 		<div id="filePopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
@@ -70,7 +77,7 @@
 			<div class="popupEntry" onclick="clickEditorSettings">Editor settings</div>
 		</div>
 		<div id="helpPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickAbout">About</div>
+			<div class="popupEntry" onclick="clickIssues">Issues</div>
 			<div class="popupEntry" onclick="clickRepository">Repository</div>
 			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>
 			<div class="popupEntry" onclick="clickMailArchives">Mailing Archives</div>
