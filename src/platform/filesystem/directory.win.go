@@ -69,6 +69,15 @@ func knownPaths() map[string]string {
 		"Videos":    windows.FOLDERID_Videos,
 	}
 	paths := make(map[string]string, len(folders))
+	for _, r := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+		str := fmt.Sprintf("%c:\\", r)
+		s, err := os.Stat(str)
+		if err != nil || !s.IsDir() {
+			continue
+		}
+		// TODO:  Get the drive name
+		paths[str] = str
+	}
 	for name, id := range folders {
 		path, err := windows.KnownFolderPath(id, 0)
 		if err != nil {
