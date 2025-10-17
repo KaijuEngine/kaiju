@@ -204,11 +204,12 @@ can be set by the invoker to describe the action being processed.
 | Background | `#121212` |
 | Panel      | `#282828` |
 | Highlight  | `#575757` |
-| Primary    | `#B03535` |
-| Secondary  | `#C7655D` |
-| Tirtiary   | `#E4A79F` |
+| Red        | `#B03535` |
+| Red 2      | `#C7655D` |
+| Red 3      | `#E4A79F` |
 | Success    | `#22946E` |
 | Warning    | `#A87A2A` |
 | Danger     | `#9C2121` |
 | Info       | `#21498A` |
 | Text       | `#FFFFFF` |
+| Green      | `#1d731c` |
