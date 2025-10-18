@@ -156,7 +156,7 @@ func SlicesAreTheSame[S comparable](a []S, b []S) bool {
 }
 
 func SlicesRemoveElement[S comparable](s []S, e S) []S {
-	for i := range s {
+	for i := len(s) - 1; i >= 0; i-- {
 		if s[i] == e {
 			s = slices.Delete(s, i, i+1)
 		}
