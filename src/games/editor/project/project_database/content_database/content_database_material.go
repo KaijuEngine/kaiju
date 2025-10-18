@@ -5,7 +5,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Material{}) }
+func init() { addCategory(Material{}) }
 
 // Material is a [ContentCategory] represented by a file with a ".material"
 // extension. A material is a conglomeration of a specific render pass, a

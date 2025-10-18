@@ -19,7 +19,7 @@ type ContentConfig struct {
 	// things together. This removes the need for the developer to manage their
 	// own folder structure and allows them to control content without
 	// physically moving things around.
-	Tags []string
+	Tags []string `json:",omitempty"`
 
 	// Name is a developer-facing friendly name for the content. This is often
 	// set to the same name as the asset that was imported. The developer can
@@ -34,16 +34,17 @@ type ContentConfig struct {
 	// definition of the type directly. As more categories of content are added
 	// in the future, they should be added to the list below. Feel free to keep
 	// them in alphabetical order, the sorting of these fields do not matter.
+	//
+	// Using a pointer on these to reduce JSON serialization and size in memory.
+	// If the category doesn't have anything for configuration, it should be
+	// removed from this list.
 
-	Css      CssConfig
-	Font     FontConfig
-	Html     HtmlConfig
-	Material MaterialConfig
-	Mesh     MeshConfig
-	Music    MusicConfig
-	Sound    SoundConfig
-	Spv      SpvConfig
-	Texture  TextureConfig
+	Font     *FontConfig     `json:",omitempty"`
+	Material *MaterialConfig `json:",omitempty"`
+	Mesh     *MeshConfig     `json:",omitempty"`
+	Music    *MusicConfig    `json:",omitempty"`
+	Sound    *SoundConfig    `json:",omitempty"`
+	Texture  *TextureConfig  `json:",omitempty"`
 }
 
 // ReadConfig is used to read a config file from the project file system. This

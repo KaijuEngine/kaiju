@@ -5,12 +5,11 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Spv{}) }
+func init() { addCategory(Spv{}) }
 
 // Spv is a [ContentCategory] represented by a file with a ".spv" extension. SPV
 // is a file format for compiled shaders in Vulkan.
 type Spv struct{}
-type SpvConfig struct{}
 
 // See the documentation for the interface [ContentCategory] to learn more about
 // the following functions

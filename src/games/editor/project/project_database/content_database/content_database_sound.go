@@ -5,7 +5,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Sound{}) }
+func init() { addCategory(Sound{}) }
 
 // Sound is a [ContentCategory] represented by a file with a ".wav" extension.
 // Sound is as it sounds.

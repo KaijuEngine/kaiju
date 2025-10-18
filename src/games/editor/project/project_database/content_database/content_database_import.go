@@ -27,15 +27,15 @@ type ImportVariant struct {
 	Data []byte
 }
 
-func (r ImportResult) ContentPath() string {
+func (r *ImportResult) ContentPath() string {
 	return filepath.Join(project_file_system.ContentFolder, r.Category.Path(), r.Id)
 }
 
-func (r ImportResult) ConfigPath() string {
+func (r *ImportResult) ConfigPath() string {
 	return filepath.Join(project_file_system.ContentConfigFolder, r.Category.Path(), r.Id)
 }
 
-func (r ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) string {
+func (r *ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) string {
 	defer tracing.NewRegion("ImportResult.generateUniqueFileId").End()
 	for {
 		r.Id = uuid.New().String()
@@ -49,7 +49,7 @@ func (r ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) s
 	}
 }
 
-func (r ImportResult) failureCleanup(fs *project_file_system.FileSystem) {
+func (r *ImportResult) failureCleanup(fs *project_file_system.FileSystem) {
 	defer tracing.NewRegion("ImportResult.failureCleanup").End()
 	fs.Remove(r.ContentPath())
 	fs.Remove(r.ConfigPath())

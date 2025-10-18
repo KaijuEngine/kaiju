@@ -5,14 +5,13 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Html{}) }
+func init() { addCategory(Html{}) }
 
 // Html is a [ContentCategory] represented by a file with a ".html" extension.
 // It is a HTML (hyper-text markup language) file as they are known to web
 // browsers. This expects to be a singular text file with the extension ".html"
 // and containing HTML parsable markup code.
 type Html struct{}
-type HtmlConfig struct{}
 
 // See the documentation for the interface [ContentCategory] to learn more about
 // the following functions

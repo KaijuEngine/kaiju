@@ -23,13 +23,13 @@ const (
 	ContentSoundFolder    = "audio/sound"
 	ContentFontFolder     = "font"
 	ContentMeshFolder     = "mesh"
-	ContentUiFolder       = "ui"
-	ContentHtmlFolder     = "ui/html"
-	ContentCssFolder      = "ui/css"
 	ContentRenderFolder   = "render"
 	ContentMaterialFolder = "render/material"
 	ContentSpvFolder      = "render/spv"
-	ContentTextureFolder  = "render/texture"
+	ContentTextureFolder  = "texture"
+	ContentUiFolder       = "ui"
+	ContentHtmlFolder     = "ui/html"
+	ContentCssFolder      = "ui/css"
 )
 
 const (

@@ -1,7 +1,41 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<style>
+			.content {
+				margin-top: 2em;
+				width: 100%;
+				height: calc(100% - 2em);
+			}
+			.importButton {
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid #575757;
+				border-radius: 5px;
+				color: #AAA;
+				width: 11em;
+			}
+			.importButton:hover {
+				color: white;
+				background-color: #353535;
+			}
+			.importButton:active {
+				background-color: #121212;
+			}
+			.importButton img {
+				width: 18px;
+				height: 18px;
+				background-color: #1D731C;
+				margin-right: 5px;
+			}
+		</style>
 	</head>
 	<body>
+		<div class="content">
+			<span class="importButton" onclick="clickImport">
+				<img src="editor/textures/icons/plus.png" />
+				<span>Import content...</span>
+			</span>
+		</div>
 	</body>
 </html>

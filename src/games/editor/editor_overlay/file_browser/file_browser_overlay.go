@@ -28,14 +28,17 @@ type FileBrowser struct {
 }
 
 type Config struct {
+	Title       string
+	ExtFilter   []string
 	OnConfirm   func(paths []string)
 	OnCancel    func()
+	OnlyFiles   bool
 	OnlyFolders bool
 	MultiSelect bool
-	ExtFilter   []string
 }
 
 type FileBrowserData struct {
+	Title              string
 	QuickAccessFolders []QuickAccessFolder
 	CurrentPath        string
 	OnlyFolders        bool
@@ -54,7 +57,24 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	}
 	fb.uiMan.Init(host)
 	var err error
+	title := fb.config.Title
+	if title == "" {
+		if fb.config.OnlyFolders {
+			if fb.config.MultiSelect {
+				title = "Select one or more folders"
+			} else {
+				title = "Select a folder"
+			}
+		} else {
+			if fb.config.MultiSelect {
+				title = "Select one or more files"
+			} else {
+				title = "Select a file"
+			}
+		}
+	}
 	data := FileBrowserData{
+		Title:              title,
 		CurrentPath:        "C:\\",
 		QuickAccessFolders: []QuickAccessFolder{},
 		OnlyFolders:        fb.config.OnlyFolders,
@@ -132,6 +152,11 @@ func (fb *FileBrowser) openFolder(folder string) {
 	elmCopies := fb.doc.DuplicateElementRepeat(fb.entryTemplate, len(filtered))
 	for i := range filtered {
 		entry := elmCopies[i]
+		if filtered[i].IsDir() {
+			entry.Children[1].UI.Hide()
+		} else {
+			entry.Children[0].UI.Hide()
+		}
 		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), entries[i].Name()))
 		name := entry.FindElementByTag("span")
 		name.Children[0].UI.ToLabel().SetText(entries[i].Name())
@@ -240,9 +265,14 @@ func (fb *FileBrowser) confirmSelection(*document.Element) {
 	defer tracing.NewRegion("FileBrowser.confirmSelection").End()
 	paths := make([]string, 0, len(fb.selected))
 	for i := range fb.selected {
-		paths = append(paths, fb.selected[i].Attribute("data-path"))
+		p := fb.selected[i].Attribute("data-path")
+		if fb.config.OnlyFiles {
+			if s, err := os.Stat(p); err != nil || s.IsDir() {
+				continue
+			}
+		}
+		paths = append(paths, p)
 	}
-	fb.Close()
 	if fb.config.OnConfirm == nil {
 		slog.Error("the OnConfirm call has not been set, nothing to do")
 		return
@@ -250,6 +280,10 @@ func (fb *FileBrowser) confirmSelection(*document.Element) {
 	if len(paths) == 0 && fb.config.OnlyFolders {
 		paths = append(paths, fb.filePath.UI.ToInput().Text())
 	}
+	if len(paths) == 0 {
+		return
+	}
+	fb.Close()
 	fb.config.OnConfirm(paths)
 }
 

@@ -212,4 +212,4 @@ can be set by the invoker to describe the action being processed.
 | Danger     | `#9C2121` |
 | Info       | `#21498A` |
 | Text       | `#FFFFFF` |
-| Green      | `#1d731c` |
+| Green      | `#1D731C` |

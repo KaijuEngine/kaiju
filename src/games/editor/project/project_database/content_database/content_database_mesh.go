@@ -12,7 +12,7 @@ import (
 	"slices"
 )
 
-func init() { contentCategories = append(contentCategories, Mesh{}) }
+func init() { addCategory(Mesh{}) }
 
 // Mesh is a [ContentCategory] represented by a file with a ".gltf" or ".glb"
 // extension. This file can contain multiple meshes as well as the textures that

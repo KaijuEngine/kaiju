@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func init() { contentCategories = append(contentCategories, Font{}) }
+func init() { addCategory(Font{}) }
 
 // Font is a [ContentCategory] represented by a file with a ".ttf" extension.
 // This file is expected to be a binary file. When imported, the file will be

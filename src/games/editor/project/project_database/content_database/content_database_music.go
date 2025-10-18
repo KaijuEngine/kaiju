@@ -5,7 +5,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Music{}) }
+func init() { addCategory(Music{}) }
 
 // Music is a [ContentCategory] represented by a file with a ".mp3" or ".ogg"
 // extension. Music is as it sounds.

@@ -9,6 +9,7 @@ import (
 
 var (
 	contentCategories = []ContentCategory{}
+	ImportableTypes   = []string{}
 )
 
 // ContentCategory is the representation of a single category within the content
@@ -55,4 +56,9 @@ func selectCategory(path string) (ContentCategory, bool) {
 		}
 	}
 	return nil, false
+}
+
+func addCategory(cat ContentCategory) {
+	contentCategories = append(contentCategories, cat)
+	ImportableTypes = append(ImportableTypes, cat.ExtNames()...)
 }

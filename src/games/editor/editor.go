@@ -94,6 +94,6 @@ func (ed *Editor) loadInterface() {
 	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.StatusBar.Initialize(ed.host)
 	ed.workspaces.Stage.Initialize(ed.host)
-	ed.workspaces.Content.Initialize(ed.host)
+	ed.workspaces.Content.Initialize(ed.host, ed.project.FileSystem())
 	ed.setWorkspaceState(WorkspaceStateStage)
 }

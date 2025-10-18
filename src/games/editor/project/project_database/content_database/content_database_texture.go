@@ -5,7 +5,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-func init() { contentCategories = append(contentCategories, Texture{}) }
+func init() { addCategory(Texture{}) }
 
 // Texture is a [ContentCategory] represented by a file with a ".png", ".jpg",
 // or ".jpeg" extension. Textures are as they seem.
