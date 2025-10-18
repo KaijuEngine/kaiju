@@ -132,6 +132,11 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 	host := ui.man.Value().Host
 	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
+		if ui.Type() == ElementTypeInput {
+			// Labels that make up the input box don't always re-render with
+			// minor events, this is a full window resize so it needs to happen.
+			ui.ToInput().forceLabelAndPlaceholderRerender()
+		}
 	})
 	ui.entity.OnDestroy.Add(func() {
 		host.Window.OnResize.Remove(rzId)

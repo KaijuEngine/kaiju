@@ -782,3 +782,9 @@ func (input *Input) delete(kb *hid.Keyboard) {
 		input.setText(str, false)
 	}
 }
+
+func (input *Input) forceLabelAndPlaceholderRerender() {
+	id := input.InputData()
+	id.label.LabelData().renderRequired = true
+	id.placeholder.LabelData().renderRequired = true
+}
