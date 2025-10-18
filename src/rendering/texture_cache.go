@@ -83,6 +83,19 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 	}
 }
 
+func (t *TextureCache) InsertTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+	if texture, err := t.Texture(key, filter); err == nil {
+		return texture, nil
+	}
+	texture, err := NewTextureFromMemory(key, data, width, height, filter)
+	if err != nil {
+		return nil, err
+	}
+	t.pendingTextures = append(t.pendingTextures, texture)
+	t.textures[filter][key] = texture
+	return texture, nil
+}
+
 func (t *TextureCache) CreatePending() {
 	defer tracing.NewRegion("TextureCache.CreatePending").End()
 	t.mutex.Lock()
