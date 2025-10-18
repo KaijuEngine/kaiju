@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	contentCategories = []ContentCategory{}
+	ContentCategories = []ContentCategory{}
 	ImportableTypes   = []string{}
 )
 
@@ -46,8 +46,8 @@ type ContentCategory interface {
 func selectCategory(path string) (ContentCategory, bool) {
 	defer tracing.NewRegion("content_database.selectCategory").End()
 	ext := strings.ToLower(filepath.Ext(path))
-	for i := range contentCategories {
-		cat := contentCategories[i]
+	for i := range ContentCategories {
+		cat := ContentCategories[i]
 		exts := cat.ExtNames()
 		for j := range exts {
 			if ext == exts[j] {
@@ -59,6 +59,6 @@ func selectCategory(path string) (ContentCategory, bool) {
 }
 
 func addCategory(cat ContentCategory) {
-	contentCategories = append(contentCategories, cat)
+	ContentCategories = append(ContentCategories, cat)
 	ImportableTypes = append(ImportableTypes, cat.ExtNames()...)
 }

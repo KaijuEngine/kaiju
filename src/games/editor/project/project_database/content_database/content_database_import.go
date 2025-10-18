@@ -72,8 +72,8 @@ func pathToTextData(path string) (ProcessedImport, error) {
 
 func pathToBinaryData(path string) (ProcessedImport, error) {
 	defer tracing.NewRegion("ImportResult.pathToBinaryData").End()
-	txt, err := filesystem.ReadFile(path)
+	data, err := filesystem.ReadFile(path)
 	return ProcessedImport{Variants: []ImportVariant{
-		{Name: fileNameNoExt(path), Data: []byte(txt)},
+		{Name: fileNameNoExt(path), Data: data},
 	}}, err
 }

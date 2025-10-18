@@ -5,6 +5,7 @@ import (
 	"kaiju/games/editor/project/project_database/cache_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -45,14 +46,17 @@ func (p *Project) Initialize(path string) error {
 	}
 	var err error
 	if p.fileSystem, err = project_file_system.New(path); err == nil {
-		err := p.fileSystem.SetupStructure()
+		err = p.fileSystem.SetupStructure()
 		if err != nil {
 			return err
 		}
 	}
-	p.cacheDatabase.Build(&p.fileSystem)
-	if err := p.config.load(&p.fileSystem); err != nil {
-		return ConfigLoadError{}
+	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
+		slog.Error("failed to read the cache database", "error", err)
+		return err
+	}
+	if err = p.config.load(&p.fileSystem); err != nil {
+		return ConfigLoadError{Err: err}
 	}
 	return nil
 }
@@ -82,7 +86,14 @@ func (p *Project) Open(path string) error {
 			return err
 		}
 	}
-	return p.config.load(&p.fileSystem)
+	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
+		slog.Error("failed to read the cache database", "error", err)
+		return err
+	}
+	if err = p.config.load(&p.fileSystem); err != nil {
+		return ConfigLoadError{Err: err}
+	}
+	return nil
 }
 
 // Name will return the name that has been set for this project. If the name is

@@ -1,9 +1,11 @@
 package content_database
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
+	"path/filepath"
 	"strings"
 )
 
@@ -47,21 +49,38 @@ type ContentConfig struct {
 	Texture  *TextureConfig  `json:",omitempty"`
 }
 
+// NameLower is an auxiliary function that simply returns a lowercase version
+// of the Name assigned to the config
+func (c *ContentConfig) NameLower() string { return strings.ToLower(c.Name) }
+
+// ToContentPath is an auxiliary function to simplify getting the matching
+// content path relative to the project file system.
+func ToContentPath(configPath string) string {
+	configPath = filepath.ToSlash(configPath)
+	if strings.HasPrefix(configPath, project_file_system.ContentConfigFolder) {
+		return strings.Replace(configPath, project_file_system.ContentConfigFolder,
+			project_file_system.ContentFolder, 1)
+	}
+	slog.Error("the supplied content config is not valid", "path", configPath)
+	return ""
+}
+
 // ReadConfig is used to read a config file from the project file system. This
 // is primarily used by the cache database, but could be used for other needs
 // to extend the editor.
 func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig, error) {
 	defer tracing.NewRegion("content_database.ReadConfig").End()
 	cfg := ContentConfig{}
+	path = filepath.ToSlash(path)
 	if strings.HasPrefix(path, project_file_system.ContentFolder) {
 		path = strings.Replace(path, project_file_system.ContentFolder,
-			project_file_system.ContentConfigFolder, 0)
+			project_file_system.ContentConfigFolder, 1)
 	}
 	f, err := fs.Open(path)
 	if err != nil {
 		return cfg, err
 	}
 	defer f.Close()
-	err = gob.NewDecoder(f).Decode(&cfg)
+	err = json.NewDecoder(f).Decode(&cfg)
 	return cfg, err
 }

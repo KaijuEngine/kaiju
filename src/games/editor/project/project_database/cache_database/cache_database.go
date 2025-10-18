@@ -2,6 +2,7 @@ package cache_database
 
 import (
 	"io/fs"
+	"iter"
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine/systems/events"
@@ -9,6 +10,7 @@ import (
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -64,6 +66,15 @@ func (c *CacheDatabase) Read(id string) (CachedContent, error) {
 	} else {
 		return c.cache[idx], nil
 	}
+}
+
+// AllIds will return all content ids that are contained within the cache. This
+// function will return an error if the cache is currently being built
+func (c *CacheDatabase) AllIds() (iter.Seq[string], error) {
+	if c.isBuilding.Load() {
+		return func(yield func(string) bool) {}, ReadDuringBuildError{}
+	}
+	return maps.Keys(c.lookup), nil
 }
 
 // TagFilter will filter all content to that which matches the given tags. This
@@ -129,11 +140,13 @@ func (c *CacheDatabase) Build(pfs *project_file_system.FileSystem) error {
 		klib.WipeSlice(c.cache)
 		clear(c.lookup)
 	}
-	err := filepath.Walk(pfs.FullPath(project_file_system.ContentConfigFolder), func(path string, info fs.FileInfo, err error) error {
+	root := pfs.FullPath(project_file_system.ContentConfigFolder)
+	err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
 		if info.IsDir() {
 			return err
 		}
-		return c.Index(path, pfs)
+		p := filepath.Join(project_file_system.ContentConfigFolder, strings.TrimPrefix(path, root))
+		return c.Index(p, pfs)
 	})
 	c.isBuilding.Store(false)
 	c.OnBuildFinished.Execute()
@@ -159,7 +172,7 @@ func (c *CacheDatabase) Index(path string, pfs *project_file_system.FileSystem) 
 		c.cache[idx] = cc
 	} else {
 		c.cache = append(c.cache, cc)
-		c.lookup[cc.Id()] = len(c.cache)
+		c.lookup[cc.Id()] = len(c.cache) - 1
 	}
 	return nil
 }

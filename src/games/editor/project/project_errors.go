@@ -1,7 +1,11 @@
 package project
 
-type ConfigLoadError struct{}
+import "fmt"
+
+type ConfigLoadError struct {
+	Err error
+}
 
 func (e ConfigLoadError) Error() string {
-	return "failed to load the project configuration file"
+	return fmt.Sprintf("failed to load the project configuration file: %v", e.Err)
 }

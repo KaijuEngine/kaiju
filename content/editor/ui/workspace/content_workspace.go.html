@@ -7,35 +7,96 @@
 				width: 100%;
 				height: calc(100% - 2em);
 			}
-			.importButton {
-				padding: 5px;
+			.left {
+				padding: 0 5px;
+				width: 20%;
+				height: 100%;
+				background-color: #282828;
+				overflow-y: scroll;
+			}
+			.leftBtn {
+				padding: 1px;
 				background-color: #282828;
 				border: 2px solid #575757;
 				border-radius: 5px;
 				color: #AAA;
-				width: 11em;
+				width: 100%;
+				font-size: 1em;
+				vertical-align: middle;
+				text-align: center;
 			}
-			.importButton:hover {
+			.leftBtn:hover {
 				color: white;
 				background-color: #353535;
 			}
-			.importButton:active {
+			.leftBtn:active {
 				background-color: #121212;
 			}
-			.importButton img {
-				width: 18px;
-				height: 18px;
+			.leftBtn img {
+				width: 1em;
+				height: 1em;
 				background-color: #1D731C;
 				margin-right: 5px;
+			}
+			.filterSelected {
+				background-color: #575757;
+				color: white;
+			}
+			.center {
+				width: 60%;
+				height: 100%;
+				background-color: #121212;
+				padding: 10px;
+				text-align: center;
+			}
+			.right {
+				width: 20%;
+				height: 100%;
+				background-color: #282828;
+			}
+			.search {
+				width: 100%;
+				height: 2em;
+				margin-bottom: 0.5em;
+			}
+			.entry {
+				width: 10em;
+				height: 12em;
+				background-color: #282828;
+				color: #AAA;
+				margin-right: 5px;
+			}
+			.entry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.entry img {
+				width: 10em;
+				height: 10em;
 			}
 		</style>
 	</head>
 	<body>
 		<div class="content">
-			<span class="importButton" onclick="clickImport">
-				<img src="editor/textures/icons/plus.png" />
-				<span>Import content...</span>
-			</span>
+			<div class="left">
+				<input class="search" type="text" placeholder="Search..." onsubmit="inputFilter" />
+				<div class="leftBtn" onclick="clickImport">
+					<img src="editor/textures/icons/plus.png" />
+					<span>Import content...</span>
+				</div>
+				{{range .Filters}}
+				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				{{end}}
+			</div>
+			<div class="center">
+				<span id="entryTemplate" data-type="" group="entry" class="entry">
+					<img class="preview" src="editor/textures/icons/file.png" />
+					<div>Name...</div>
+				</span>
+			</div>
+			<div class="right">
+
+			</div>
 		</div>
 	</body>
 </html>
