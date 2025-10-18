@@ -114,6 +114,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 		case WM_DESTROY:
+		{
 			if (sm != NULL) {
 				shared_mem_add_event(sm, (WindowEvent) {
 					.type = WINDOW_EVENT_TYPE_ACTIVITY,
@@ -123,7 +124,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostQuitMessage(0);
 			return 0;
+		}
 		case WM_ACTIVATE:
+		{
 			switch (LOWORD(wParam)) {
 				case WA_ACTIVE:
 				case WA_CLICKACTIVE:
@@ -141,7 +144,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			shared_mem_flush_events(sm);
 			break;
+		}
 		case WM_MOVE:
+		{
 			// TODO:  Should handle this better, but move is called on focus too
 			RECT windowRect;
 			if (GetWindowRect(hwnd, &windowRect)) {
@@ -159,7 +164,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			});
 			shared_mem_flush_events(sm);
 			break;
+		}
 		case WM_SIZE:
+		{
 			if (sm != NULL) {
 				RECT clientArea;
 				GetClientRect(hwnd, &clientArea);
@@ -193,6 +200,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
 			break;
+		}
+		case WM_SYSCOMMAND:
+		{
+			if (wParam == SC_KEYMENU) {
+				return 0;  // Block menu activation; do not call DefWindowProc here
+			}
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
