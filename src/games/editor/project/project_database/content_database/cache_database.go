@@ -2,14 +2,12 @@ package content_database
 
 import (
 	"io/fs"
-	"iter"
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine/systems/events"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
-	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -51,6 +49,9 @@ func (c *CachedContent) Id() string {
 	return filepath.Base(c.Path)
 }
 
+// List will return the internally held cached content slice.
+func (c *Cache) List() []CachedContent { return c.cache }
+
 // Read will try and locate the cached content data by id. This can fail if the
 // content is not in the cache, in which case the caller should call [Index] to
 // index the file. This can also fail if the cache is currently in the process
@@ -65,15 +66,6 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 	} else {
 		return c.cache[idx], nil
 	}
-}
-
-// AllIds will return all content ids that are contained within the cache. This
-// function will return an error if the cache is currently being built
-func (c *Cache) AllIds() (iter.Seq[string], error) {
-	if c.isBuilding.Load() {
-		return func(yield func(string) bool) {}, ReadDuringBuildError{}
-	}
-	return maps.Keys(c.lookup), nil
 }
 
 // TagFilter will filter all content to that which matches the given tags. This

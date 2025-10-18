@@ -403,9 +403,6 @@ func (p *Panel) panelPostLayoutUpdate() {
 		kLayout := kui.Layout()
 		switch kLayout.Positioning() {
 		case PositioningAbsolute:
-			kws := kid.Transform.WorldScale()
-			maxSize[matrix.Vx] = max(maxSize.X(), kLayout.left+kws.Width())
-			maxSize[matrix.Vy] = max(maxSize.Y(), kLayout.top+kws.Height())
 		case PositioningRelative:
 			fallthrough
 		case PositioningStatic:

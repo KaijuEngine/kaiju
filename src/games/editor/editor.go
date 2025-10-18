@@ -70,7 +70,7 @@ type GlobalInterface struct {
 func Launch(host *engine.Host) {
 	defer tracing.NewRegion("editor.Launch").End()
 	ed := &Editor{host: host}
-	ed.loadInterface()
+	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
 		ed.blurInterface()
@@ -90,11 +90,14 @@ func (ed *Editor) blurInterface() {
 	ed.currentWorkspace.Blur()
 }
 
-func (ed *Editor) loadInterface() {
+func (ed *Editor) earlyLoadUI() {
 	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.StatusBar.Initialize(ed.host)
 	ed.workspaces.Stage.Initialize(ed.host)
+	ed.setWorkspaceState(WorkspaceStateStage)
+}
+
+func (ed *Editor) lateLoadUI() {
 	ed.workspaces.Content.Initialize(ed.host,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
-	ed.setWorkspaceState(WorkspaceStateStage)
 }

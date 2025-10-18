@@ -3,9 +3,11 @@ package content_database
 import (
 	"encoding/json"
 	"kaiju/games/editor/project/project_file_system"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -53,6 +55,36 @@ type ContentConfig struct {
 // of the Name assigned to the config
 func (c *ContentConfig) NameLower() string { return strings.ToLower(c.Name) }
 
+// AddTag is an auxiliary function that will try to add the tag to the config.
+// If the config already contains the tag (case insensitive), then it will
+// return false. It will also return false if the tag is invalid. In both pass
+// and failed cases, it will return the cleaned tag value.
+func (c *ContentConfig) AddTag(tag string) (string, bool) {
+	tag = strings.TrimSpace(tag)
+	if strings.TrimSpace(tag) == "" {
+		slog.Warn("the tag name supplied was empty, skipping")
+		return tag, false
+	}
+	if klib.StringsContainsCaseInsensitive(c.Tags, tag) {
+		slog.Warn("the tag is already applied to the content, skipping")
+		return tag, false
+	}
+	c.Tags = append(c.Tags, tag)
+	return tag, true
+}
+
+// RemoveTag will attempt to locate the tag (case insensitive) and remove it. If
+// it finds the tag and removes it, this will return true, otherwise false.
+func (c *ContentConfig) RemoveTag(tag string) bool {
+	for i := range c.Tags {
+		if strings.EqualFold(c.Tags[i], tag) {
+			c.Tags = slices.Delete(c.Tags, i, i+1)
+			return true
+		}
+	}
+	return false
+}
+
 // ToContentPath is an auxiliary function to simplify getting the matching
 // content path relative to the project file system.
 func ToContentPath(configPath string) string {
@@ -63,6 +95,21 @@ func ToContentPath(configPath string) string {
 	}
 	slog.Error("the supplied content config is not valid", "path", configPath)
 	return ""
+}
+
+func WriteConfig(path string, cfg ContentConfig, fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("content_database.WriteConfig").End()
+	path = filepath.ToSlash(path)
+	if strings.HasPrefix(path, project_file_system.ContentFolder) {
+		path = strings.Replace(path, project_file_system.ContentFolder,
+			project_file_system.ContentConfigFolder, 1)
+	}
+	f, err := fs.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return json.NewEncoder(f).Encode(&cfg)
 }
 
 // ReadConfig is used to read a config file from the project file system. This

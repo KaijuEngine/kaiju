@@ -40,6 +40,7 @@ package klib
 import (
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"unsafe"
 )
 
@@ -162,6 +163,15 @@ func SlicesRemoveElement[S comparable](s []S, e S) []S {
 		}
 	}
 	return s
+}
+
+func StringsContainsCaseInsensitive(s []string, value string) bool {
+	for i := range s {
+		if strings.EqualFold(s[i], value) {
+			return true
+		}
+	}
+	return false
 }
 
 // WipeSlice will clear out the slice before returning [:0]. The purpose for

@@ -24,6 +24,7 @@ func (ed *Editor) createProject(name, path string) {
 		return
 	}
 	ed.SetProjectName(name)
+	ed.lateLoadUI()
 	ed.focusInterface()
 }
 
@@ -39,5 +40,6 @@ func (ed *Editor) openProject(path string) {
 		return
 	}
 	ed.SetProjectName(ed.project.Name())
+	ed.lateLoadUI()
 	ed.focusInterface()
 }

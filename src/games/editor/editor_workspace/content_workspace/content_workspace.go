@@ -17,44 +17,73 @@ import (
 
 type Workspace struct {
 	common_workspace.CommonWorkspace
-	pfs           *project_file_system.FileSystem
-	cCache        *content_database.Cache
-	typeFilters   []string
-	tagFilters    []string
-	query         string
-	queryTag      string
-	entryTemplate *document.Element
-	didFirstLoad  bool
+	pfs             *project_file_system.FileSystem
+	cCache          *content_database.Cache
+	typeFilters     []string
+	tagFilters      []string
+	query           string
+	entryTemplate   *document.Element
+	addTagbtn       *document.Element
+	selectedContent *document.Element
+	pageData        WorkspaceUIData
+	info            struct {
+		nameInput        *document.Element
+		tagList          *document.Element
+		entryTagTemplate *document.Element
+		newTagInput      *document.Element
+		newTagHint       *document.Element
+		tagHintTemplate  *document.Element
+	}
 }
 
 type WorkspaceUIData struct {
 	Filters []string
+	Tags    []string
 }
 
 func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	w.pfs = pfs
 	w.cCache = cdb
-	data := WorkspaceUIData{}
 	for _, cat := range content_database.ContentCategories {
-		data.Filters = append(data.Filters, cat.TypeName())
+		w.pageData.Filters = append(w.pageData.Filters, cat.TypeName())
+	}
+	list := w.cCache.List()
+	ids := make([]string, 0, len(list))
+	for i := range list {
+		ids = append(ids, list[i].Id())
+		for j := range list[i].Config.Tags {
+			w.pageData.Tags = klib.AppendUnique(w.pageData.Tags, list[i].Config.Tags[j])
+		}
 	}
 	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/content_workspace.go.html", data, map[string]func(*document.Element){
-			"inputFilter": w.inputFilter,
-			"tagFilter":   w.tagFilter,
-			"clickImport": w.clickImport,
-			"clickFilter": w.clickFilter,
+		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
+			"inputFilter":    w.inputFilter,
+			"tagFilter":      w.tagFilter,
+			"clickImport":    w.clickImport,
+			"clickFilter":    w.clickFilter,
+			"clickEntry":     w.clickEntry,
+			"clickDeleteTag": w.clickDeleteTag,
+			"updateTagHint":  w.updateTagHint,
+			"submitNewTag":   w.submitNewTag,
+			"clickTagHint":   w.clickTagHint,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
+	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
+	w.addTagbtn, _ = w.Doc.GetElementById("addTagbtn")
+	w.info.nameInput, _ = w.Doc.GetElementById("entryName")
+	w.info.tagList, _ = w.Doc.GetElementById("entryTags")
+	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
+	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
+	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
+	w.addContent(ids)
 }
 
 func (w *Workspace) Open() {
 	w.CommonOpen()
 	w.entryTemplate.UI.Hide()
-	if !w.didFirstLoad {
-		w.didFirstLoad = true
-		w.initListing()
-	}
+	w.info.entryTagTemplate.UI.Hide()
+	w.info.tagHintTemplate.UI.Hide()
+	w.Doc.Clean()
 }
 
 func (w *Workspace) Close() { w.CommonClose() }
@@ -89,21 +118,6 @@ func (w *Workspace) clickImport(*document.Element) {
 	})
 }
 
-func (w *Workspace) initListing() {
-	idIter, err := w.cCache.AllIds()
-	if err != nil {
-		slog.Error("failed to get all of the cached ids", "error", err)
-	} else {
-		// TODO:  Actually use the iter later rather than aggregating, there
-		// could be a ton of ids.
-		ids := []string{}
-		for s := range idIter {
-			ids = append(ids, s)
-		}
-		w.addContent(ids)
-	}
-}
-
 func (w *Workspace) addContent(ids []string) {
 	if len(ids) == 0 {
 		return
@@ -117,7 +131,6 @@ func (w *Workspace) addContent(ids []string) {
 		}
 		ccAll = append(ccAll, cc)
 	}
-	// TODO:  Go through each ID and add an entry into the list
 	cpys := w.Doc.DuplicateElementRepeat(w.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
@@ -156,8 +169,17 @@ func (w *Workspace) inputFilter(e *document.Element) {
 }
 
 func (w *Workspace) tagFilter(e *document.Element) {
-	w.queryTag = strings.ToLower(e.UI.ToInput().Text())
-	// TODO:  Filter the list of tag buttons to matching ones
+	q := strings.ToLower(e.UI.ToInput().Text())
+	tagElms := w.Doc.GetElementsByGroup("tag")
+	for i := range tagElms {
+		tag := tagElms[i].Attribute("data-tag")
+		show := strings.Contains(strings.ToLower(tag), q)
+		if show {
+			tagElms[i].UI.Show()
+		} else {
+			tagElms[i].UI.Hide()
+		}
+	}
 }
 
 func (w *Workspace) clickFilter(e *document.Element) {
@@ -171,7 +193,7 @@ func (w *Workspace) clickFilter(e *document.Element) {
 			w.typeFilters = append(w.typeFilters, typeName)
 		}
 		if tagName != "" {
-			w.tagFilters = append(w.tagFilters, typeName)
+			w.tagFilters = append(w.tagFilters, tagName)
 		}
 	} else {
 		w.Doc.SetElementClasses(e, "leftBtn")
@@ -179,10 +201,101 @@ func (w *Workspace) clickFilter(e *document.Element) {
 			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
 		}
 		if tagName != "" {
-			w.tagFilters = klib.SlicesRemoveElement(w.tagFilters, typeName)
+			w.tagFilters = klib.SlicesRemoveElement(w.tagFilters, tagName)
 		}
 	}
 	w.runFilter()
+}
+
+func (w *Workspace) clickEntry(e *document.Element) {
+	id := e.Attribute("id")
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
+		return
+	}
+	w.selectedContent = e
+	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
+		w.Doc.RemoveElement(w.info.tagList.Children[i])
+	}
+	w.info.nameInput.UI.ToInput().SetText(cc.Config.Name)
+	cpys := w.Doc.DuplicateElementRepeat(w.info.entryTagTemplate, len(cc.Config.Tags))
+	for i := range cpys {
+		cpys[i].Children[0].Children[0].UI.ToLabel().SetText(cc.Config.Tags[i])
+		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
+	}
+}
+
+func (w *Workspace) clickDeleteTag(e *document.Element) {
+	id := w.selectedId()
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
+		return
+	}
+	tag := e.Attribute("data-tag")
+	if cc.Config.RemoveTag(tag) {
+		w.updateIndexForCachedContent(&cc)
+	} else {
+		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
+	}
+	w.Doc.RemoveElement(e.Parent.Value())
+}
+
+func (w *Workspace) updateTagHint(e *document.Element) {
+	q := strings.ToLower(e.UI.ToInput().Text())
+	for i := len(w.info.newTagHint.Children) - 1; i >= 1; i-- {
+		w.Doc.RemoveElement(w.info.newTagHint.Children[i])
+	}
+	if q == "" {
+		w.info.newTagHint.UI.Hide()
+		return
+	}
+	options := make([]string, 0, len(w.pageData.Tags))
+	for i := range w.pageData.Tags {
+		if strings.Contains(strings.ToLower(w.pageData.Tags[i]), q) {
+			options = append(options, w.pageData.Tags[i])
+		}
+	}
+	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
+	for i := range cpys {
+		cpys[i].Children[0].UI.ToLabel().SetText(options[i])
+	}
+	w.info.newTagHint.UI.Show()
+}
+
+func (w *Workspace) submitNewTag(e *document.Element) {
+	input := e.UI.ToInput()
+	txt := input.Text()
+	if strings.TrimSpace(txt) == "" {
+		return
+	}
+	w.addTagToSelected(txt)
+	input.SetTextWithoutEvent("")
+}
+
+func (w *Workspace) clickTagHint(e *document.Element) {
+	w.addTagToSelected(e.Children[0].UI.ToInput().Text())
+}
+
+func (w *Workspace) addTagToSelected(tag string) {
+	id := w.selectedId()
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+		return
+	}
+	if _, ok := cc.Config.AddTag(tag); ok {
+		w.updateIndexForCachedContent(&cc)
+	}
+	// TODO:  Update w.pageData.Tags and create a new entry in the UI
+}
+
+func (w *Workspace) selectedId() string {
+	if w.selectedContent != nil {
+		return w.selectedContent.Attribute("id")
+	}
+	return ""
 }
 
 func (w *Workspace) runFilter() {
@@ -193,8 +306,14 @@ func (w *Workspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		show := len(w.typeFilters) == 0 || slices.Contains(w.typeFilters, e.Attribute("data-type"))
-		if show && w.query != "" {
+		show := len(w.typeFilters) == 0 && len(w.tagFilters) == 0
+		if !show && len(w.typeFilters) > 0 {
+			show = slices.Contains(w.typeFilters, e.Attribute("data-type"))
+		}
+		if !show || len(w.tagFilters) > 0 {
+			show = w.filterThroughTags(id)
+		}
+		if !show && w.query != "" {
 			show = w.runQueryOnContent(id)
 		}
 		if show {
@@ -203,6 +322,19 @@ func (w *Workspace) runFilter() {
 			e.UI.Entity().Deactivate()
 		}
 	}
+}
+
+func (w *Workspace) filterThroughTags(id string) bool {
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		return false
+	}
+	for i := range cc.Config.Tags {
+		if klib.StringsContainsCaseInsensitive(w.tagFilters, cc.Config.Tags[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *Workspace) runQueryOnContent(id string) bool {
@@ -220,4 +352,13 @@ func (w *Workspace) runQueryOnContent(id string) bool {
 		}
 	}
 	return false
+}
+
+func (w *Workspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
+	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
+	if err := w.cCache.Index(cc.Path, w.pfs); err != nil {
+		slog.Error("failed to index the content after updating tags", "error", err)
+		return err
+	}
+	return nil
 }
