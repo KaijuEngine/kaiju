@@ -5,7 +5,6 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/games/editor/editor_overlay/file_browser"
 	"kaiju/games/editor/editor_workspace/common_workspace"
-	"kaiju/games/editor/project/project_database/cache_database"
 	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/klib"
@@ -19,7 +18,7 @@ import (
 type Workspace struct {
 	common_workspace.CommonWorkspace
 	pfs           *project_file_system.FileSystem
-	cdb           *cache_database.CacheDatabase
+	cCache        *content_database.Cache
 	filters       []string
 	query         string
 	entryTemplate *document.Element
@@ -30,9 +29,9 @@ type WorkspaceUIData struct {
 	Filters []string
 }
 
-func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *cache_database.CacheDatabase) {
+func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	w.pfs = pfs
-	w.cdb = cdb
+	w.cCache = cdb
 	data := WorkspaceUIData{}
 	for _, cat := range content_database.ContentCategories {
 		data.Filters = append(data.Filters, cat.TypeName())
@@ -66,7 +65,7 @@ func (w *Workspace) clickImport(*document.Element) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
 			for i := range paths {
-				res, err := content_database.Import(paths[i], w.pfs)
+				res, err := content_database.Import(paths[i], w.pfs, w.cCache)
 				if err != nil {
 					slog.Error("failed to import content", "path", paths[i], "error", err)
 				} else {
@@ -88,7 +87,7 @@ func (w *Workspace) clickImport(*document.Element) {
 }
 
 func (w *Workspace) initListing() {
-	idIter, err := w.cdb.AllIds()
+	idIter, err := w.cCache.AllIds()
 	if err != nil {
 		slog.Error("failed to get all of the cached ids", "error", err)
 	} else {
@@ -106,9 +105,9 @@ func (w *Workspace) addContent(ids []string) {
 	if len(ids) == 0 {
 		return
 	}
-	ccAll := make([]cache_database.CachedContent, 0, len(ids))
+	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cdb.Read(ids[i])
+		cc, err := w.cCache.Read(ids[i])
 		if err != nil {
 			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
 			continue
@@ -195,7 +194,7 @@ func (w *Workspace) runFilter() {
 }
 
 func (w *Workspace) runQueryOnContent(id string) bool {
-	if cc, err := w.cdb.Read(id); err != nil {
+	if cc, err := w.cCache.Read(id); err != nil {
 		return false
 	} else {
 		// TODO:  Use filters like tag:..., type:..., etc.

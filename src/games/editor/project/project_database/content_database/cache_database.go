@@ -1,4 +1,4 @@
-package cache_database
+package content_database
 
 import (
 	"io/fs"
@@ -6,7 +6,6 @@ import (
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine/systems/events"
-	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
@@ -17,14 +16,14 @@ import (
 	"sync/atomic"
 )
 
-// CacheDatabase is an in-memory cache of all of the content in the project. It
+// Cache is an in-memory cache of all of the content in the project. It
 // keeps an internal lookup so that it's quick to look up cached information on
 // an asset by it's id. The structure is designed so that it keeps track of when
 // it is building internally atomically which is set when the [Build] function
 // is called. Removing items from the cache will cause a swap removal which
 // means that the ids inside of the lookup are not stable and change with
 // removals.
-type CacheDatabase struct {
+type Cache struct {
 	cache           []CachedContent
 	lookup          map[string]int
 	isBuilding      atomic.Bool
@@ -35,13 +34,13 @@ type CacheDatabase struct {
 // and searches.
 type CachedContent struct {
 	Path   string
-	Config content_database.ContentConfig
+	Config ContentConfig
 }
 
 // New will return a new instance of the cache database with it's members
 // pre-sized to an arbitrary amount to speed up initial loading
-func New() CacheDatabase {
-	return CacheDatabase{
+func New() Cache {
+	return Cache{
 		cache:  make([]CachedContent, 0, 1024),
 		lookup: make(map[string]int, 1024),
 	}
@@ -57,7 +56,7 @@ func (c *CachedContent) Id() string {
 // index the file. This can also fail if the cache is currently in the process
 // of being built, in which case the caller should wait until it's done
 // building and try again, or bind to the [OnBuildFinished] event.
-func (c *CacheDatabase) Read(id string) (CachedContent, error) {
+func (c *Cache) Read(id string) (CachedContent, error) {
 	if c.isBuilding.Load() {
 		return CachedContent{}, ReadDuringBuildError{}
 	}
@@ -70,7 +69,7 @@ func (c *CacheDatabase) Read(id string) (CachedContent, error) {
 
 // AllIds will return all content ids that are contained within the cache. This
 // function will return an error if the cache is currently being built
-func (c *CacheDatabase) AllIds() (iter.Seq[string], error) {
+func (c *Cache) AllIds() (iter.Seq[string], error) {
 	if c.isBuilding.Load() {
 		return func(yield func(string) bool) {}, ReadDuringBuildError{}
 	}
@@ -80,7 +79,7 @@ func (c *CacheDatabase) AllIds() (iter.Seq[string], error) {
 // TagFilter will filter all content to that which matches the given tags. This
 // is an OR comparison so that any content that has at least one of the tags
 // will be selected by the filter.
-func (c *CacheDatabase) TagFilter(tags []string) []CachedContent {
+func (c *Cache) TagFilter(tags []string) []CachedContent {
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range tags {
@@ -95,7 +94,7 @@ func (c *CacheDatabase) TagFilter(tags []string) []CachedContent {
 // TypeFilter will filter all content to that which matches the given types.
 // This is an OR comparison so that any content that has at least one of the
 // types will be selected by the filter.
-func (c *CacheDatabase) TypeFilter(types []string) []CachedContent {
+func (c *Cache) TypeFilter(types []string) []CachedContent {
 	defer tracing.NewRegion("CacheDatabase.TypeFilter").End()
 	out := []CachedContent{}
 	for i := range c.cache {
@@ -112,7 +111,7 @@ func (c *CacheDatabase) TypeFilter(types []string) []CachedContent {
 // matches the query. Currently the only thing that is matched by this query
 // is the developer-given name of the content. This is an exact match on part or
 // all of the name (case-insensitive), fuzzy search may be introduced later.
-func (c *CacheDatabase) Search(query string) []CachedContent {
+func (c *Cache) Search(query string) []CachedContent {
 	defer tracing.NewRegion("CacheDatabase.Search").End()
 	out := []CachedContent{}
 	q := strings.ToLower(query)
@@ -130,7 +129,7 @@ func (c *CacheDatabase) Search(query string) []CachedContent {
 // of the cache. While the build is running, searches and filters will work,
 // but [Read] will not (due to it's mapping nature). You can use
 // [OnBuildFinished] to know when the build has completed.
-func (c *CacheDatabase) Build(pfs *project_file_system.FileSystem) error {
+func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("CacheDatabase.Build").End()
 	c.isBuilding.Store(true)
 	if cap(c.cache) == 0 {
@@ -158,9 +157,9 @@ func (c *CacheDatabase) Build(pfs *project_file_system.FileSystem) error {
 // currently held values with the new values. This should be called when
 // building the cache, importing new content to the project, or when the
 // developer changes settings for content that alters the configuration.
-func (c *CacheDatabase) Index(path string, pfs *project_file_system.FileSystem) error {
+func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("CacheDatabase.Index").End()
-	cfg, err := content_database.ReadConfig(path, pfs)
+	cfg, err := ReadConfig(path, pfs)
 	if err != nil {
 		return err
 	}
@@ -183,7 +182,7 @@ func (c *CacheDatabase) Index(path string, pfs *project_file_system.FileSystem) 
 // removing items from the cache will swap the deleted entry with the last entry
 // and resize the length. This once last item will have the index of the removed
 // entry and it's lookup will be updated.
-func (c *CacheDatabase) Remove(id string) {
+func (c *Cache) Remove(id string) {
 	defer tracing.NewRegion("CacheDatabase.Remove").End()
 	if idx, ok := c.lookup[id]; ok {
 		lastId := c.cache[len(c.cache)-1].Id()

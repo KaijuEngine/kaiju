@@ -2,7 +2,7 @@ package project
 
 import (
 	"fmt"
-	"kaiju/games/editor/project/project_database/cache_database"
+	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -18,7 +18,7 @@ type Project struct {
 	// name that was set as the argument.
 	OnNameChange  func(string)
 	fileSystem    project_file_system.FileSystem
-	cacheDatabase cache_database.CacheDatabase
+	cacheDatabase content_database.Cache
 	config        Config
 }
 
@@ -32,7 +32,7 @@ func (p *Project) FileSystem() *project_file_system.FileSystem {
 }
 
 // ContentDatabase returns a pointer to [cache_database.CacheDatabase]
-func (p *Project) CacheDatabase() *cache_database.CacheDatabase {
+func (p *Project) CacheDatabase() *content_database.Cache {
 	return &p.cacheDatabase
 }
 

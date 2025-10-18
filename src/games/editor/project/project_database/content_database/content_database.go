@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func Import(path string, fs *project_file_system.FileSystem) (ImportResult, error) {
+func Import(path string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error) {
 	defer tracing.NewRegion("content_database.Import").End()
 	res := ImportResult{Path: path}
 	cat, ok := selectCategory(path)
@@ -43,11 +43,12 @@ func Import(path string, fs *project_file_system.FileSystem) (ImportResult, erro
 		}
 		res.Dependencies = make([]ImportResult, len(proc.Dependencies))
 		for i := range proc.Dependencies {
-			res.Dependencies[i], err = Import(proc.Dependencies[i], fs)
+			res.Dependencies[i], err = Import(proc.Dependencies[i], fs, cache)
 			if err != nil {
 				break
 			}
 		}
+		cache.Index(res.ConfigPath(), fs)
 	}
 	return res, err
 }

@@ -1,4 +1,4 @@
-package cache_database
+package content_database
 
 import "fmt"
 

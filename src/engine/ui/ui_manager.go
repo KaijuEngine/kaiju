@@ -206,4 +206,4 @@ func (man *Manager) DisableUpdate() {
 	man.Host.RunNextFrame(func() { man.skipUpdate++ })
 }
 
-func (man *Manager) EnableUpdate() { man.skipUpdate = min(0, man.skipUpdate-1) }
+func (man *Manager) EnableUpdate() { man.skipUpdate = max(0, man.skipUpdate-1) }
