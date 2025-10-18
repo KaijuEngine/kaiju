@@ -17,16 +17,17 @@ import (
 
 type Workspace struct {
 	common_workspace.CommonWorkspace
-	pfs             *project_file_system.FileSystem
-	cCache          *content_database.Cache
-	typeFilters     []string
-	tagFilters      []string
-	query           string
-	entryTemplate   *document.Element
-	addTagbtn       *document.Element
-	selectedContent *document.Element
-	pageData        WorkspaceUIData
-	info            struct {
+	pfs               *project_file_system.FileSystem
+	cCache            *content_database.Cache
+	typeFilters       []string
+	tagFilters        []string
+	query             string
+	entryTemplate     *document.Element
+	tagFilterTemplate *document.Element
+	addTagbtn         *document.Element
+	selectedContent   *document.Element
+	pageData          WorkspaceUIData
+	info              struct {
 		nameInput        *document.Element
 		tagList          *document.Element
 		entryTagTemplate *document.Element
@@ -68,6 +69,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 			"clickTagHint":   w.clickTagHint,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
+	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
 	w.addTagbtn, _ = w.Doc.GetElementById("addTagbtn")
 	w.info.nameInput, _ = w.Doc.GetElementById("entryName")
@@ -81,8 +83,10 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 func (w *Workspace) Open() {
 	w.CommonOpen()
 	w.entryTemplate.UI.Hide()
+	w.tagFilterTemplate.UI.Hide()
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
+	w.info.newTagHint.UI.Hide()
 	w.Doc.Clean()
 }
 
@@ -214,7 +218,11 @@ func (w *Workspace) clickEntry(e *document.Element) {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
+	if w.selectedContent != nil {
+		w.Doc.SetElementClasses(w.selectedContent, "entry")
+	}
 	w.selectedContent = e
+	w.Doc.SetElementClasses(w.selectedContent, "entry", "entrySelected")
 	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.tagList.Children[i])
 	}
@@ -223,6 +231,7 @@ func (w *Workspace) clickEntry(e *document.Element) {
 	for i := range cpys {
 		cpys[i].Children[0].Children[0].UI.ToLabel().SetText(cc.Config.Tags[i])
 		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
+		cpys[i].UI.Show()
 	}
 }
 
@@ -257,9 +266,14 @@ func (w *Workspace) updateTagHint(e *document.Element) {
 			options = append(options, w.pageData.Tags[i])
 		}
 	}
+	if len(options) == 0 {
+		w.info.newTagHint.UI.Hide()
+		return
+	}
 	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
 	for i := range cpys {
 		cpys[i].Children[0].UI.ToLabel().SetText(options[i])
+		cpys[i].UI.Show()
 	}
 	w.info.newTagHint.UI.Show()
 }
@@ -275,7 +289,9 @@ func (w *Workspace) submitNewTag(e *document.Element) {
 }
 
 func (w *Workspace) clickTagHint(e *document.Element) {
-	w.addTagToSelected(e.Children[0].UI.ToInput().Text())
+	w.addTagToSelected(e.Children[0].UI.ToLabel().Text())
+	w.info.newTagHint.UI.Hide()
+	w.info.newTagInput.UI.ToInput().SetTextWithoutEvent("")
 }
 
 func (w *Workspace) addTagToSelected(tag string) {
@@ -285,10 +301,20 @@ func (w *Workspace) addTagToSelected(tag string) {
 		slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
 		return
 	}
-	if _, ok := cc.Config.AddTag(tag); ok {
+	var ok bool
+	if tag, ok = cc.Config.AddTag(tag); ok {
 		w.updateIndexForCachedContent(&cc)
 	}
-	// TODO:  Update w.pageData.Tags and create a new entry in the UI
+	w.clickEntry(w.selectedContent)
+	for i := range w.pageData.Tags {
+		if strings.EqualFold(tag, w.pageData.Tags[i]) {
+			return
+		}
+	}
+	w.pageData.Tags = append(w.pageData.Tags, tag)
+	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
+	elm.Children[0].UI.ToLabel().SetText(tag)
+	elm.SetAttribute("data-tag", tag)
 }
 
 func (w *Workspace) selectedId() string {

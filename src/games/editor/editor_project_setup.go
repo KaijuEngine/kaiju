@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"errors"
 	"fmt"
 	"kaiju/games/editor/editor_overlay/new_project"
 	"kaiju/games/editor/project"
@@ -19,7 +18,10 @@ func (ed *Editor) newProjectOverlay() {
 
 func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
-	if err := ed.project.Initialize(path); !errors.Is(err, project.ConfigLoadError{}) {
+	err := ed.project.Initialize(path)
+	if _, ok := err.(project.ConfigLoadError); !ok {
+		// TODO:  The new project window is gone by this point, it neesd to
+		// come back in the case of a failure here
 		slog.Error("failed to create the project", "error", err)
 		return
 	}

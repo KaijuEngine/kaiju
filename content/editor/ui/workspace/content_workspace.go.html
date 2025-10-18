@@ -75,6 +75,10 @@
 				margin-right: 5px;
 				margin-bottom: 5px;
 			}
+			.entrySelected {
+				background-color: #575757;
+				color: white;
+			}
 			.entry:hover {
 				background-color: #575757;
 				color: white;
@@ -111,10 +115,9 @@
 				overflow-y: scroll;
 				border: 2px solid #575757;
 				background-color: #121212;
-				display: none;
 			}
-			#newTagHint div { color: #AAA; background-color: #121212; }
-			#newTagHint div:hover { color: white; background-color: #575757; }
+			.tagHint { color: #AAA; background-color: #121212; }
+			.tagHint:hover { color: white; background-color: #575757; }
 		</style>
 	</head>
 	<body>
@@ -129,9 +132,12 @@
 				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
-				{{range .Tags}}
-				<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
-				{{end}}
+				<div id="tagFilterList">
+					<div id="tagFilterTemplate" class="leftBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</div>
+					{{range .Tags}}
+					<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
+					{{end}}
+				</div>
 			</div>
 			<div class="center">
 				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry">
@@ -151,7 +157,7 @@
 					</div>
 					<input id="newTagInput" type="text" placeholder="Add new tag..." onchange="updateTagHint" onsubmit="submitNewTag" />
 					<div id="newTagHint">
-						<div id="tagHintTemplate" onclick="clickTagHint">Hint tag name...</div>
+						<div id="tagHintTemplate" class="tagHint" onclick="clickTagHint">Hint tag name...</div>
 					</div>
 				</div>
 			</div>
