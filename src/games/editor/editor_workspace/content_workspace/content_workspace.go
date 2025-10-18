@@ -19,8 +19,10 @@ type Workspace struct {
 	common_workspace.CommonWorkspace
 	pfs           *project_file_system.FileSystem
 	cCache        *content_database.Cache
-	filters       []string
+	typeFilters   []string
+	tagFilters    []string
 	query         string
+	queryTag      string
 	entryTemplate *document.Element
 	didFirstLoad  bool
 }
@@ -39,6 +41,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", data, map[string]func(*document.Element){
 			"inputFilter": w.inputFilter,
+			"tagFilter":   w.tagFilter,
 			"clickImport": w.clickImport,
 			"clickFilter": w.clickFilter,
 		})
@@ -149,28 +152,37 @@ func (w *Workspace) addContent(ids []string) {
 func (w *Workspace) inputFilter(e *document.Element) {
 	w.query = strings.ToLower(e.UI.ToInput().Text())
 	// TODO:  Regex out the filters like tag:..., type:..., etc.
-	w.filterOnMainThread()
+	w.runFilter()
+}
+
+func (w *Workspace) tagFilter(e *document.Element) {
+	w.queryTag = strings.ToLower(e.UI.ToInput().Text())
+	// TODO:  Filter the list of tag buttons to matching ones
 }
 
 func (w *Workspace) clickFilter(e *document.Element) {
-	typeName := e.Attribute("data-type")
 	isSelected := slices.Contains(e.ClassList(), "filterSelected")
 	isSelected = !isSelected
+	typeName := e.Attribute("data-type")
+	tagName := e.Attribute("data-tag")
 	if isSelected {
 		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
+		if typeName != "" {
+			w.typeFilters = append(w.typeFilters, typeName)
+		}
+		if tagName != "" {
+			w.tagFilters = append(w.tagFilters, typeName)
+		}
 	} else {
 		w.Doc.SetElementClasses(e, "leftBtn")
+		if typeName != "" {
+			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
+		}
+		if tagName != "" {
+			w.tagFilters = klib.SlicesRemoveElement(w.tagFilters, typeName)
+		}
 	}
-	if isSelected {
-		w.filters = append(w.filters, typeName)
-	} else {
-		w.filters = klib.SlicesRemoveElement(w.filters, typeName)
-	}
-	w.filterOnMainThread()
-}
-
-func (w *Workspace) filterOnMainThread() {
-	w.Host.RunOnMainThread(func() { w.runFilter() })
+	w.runFilter()
 }
 
 func (w *Workspace) runFilter() {
@@ -181,7 +193,7 @@ func (w *Workspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		show := len(w.filters) == 0 || slices.Contains(w.filters, e.Attribute("data-type"))
+		show := len(w.typeFilters) == 0 || slices.Contains(w.typeFilters, e.Attribute("data-type"))
 		if show && w.query != "" {
 			show = w.runQueryOnContent(id)
 		}
@@ -194,10 +206,18 @@ func (w *Workspace) runFilter() {
 }
 
 func (w *Workspace) runQueryOnContent(id string) bool {
-	if cc, err := w.cCache.Read(id); err != nil {
+	cc, err := w.cCache.Read(id)
+	if err != nil {
 		return false
-	} else {
-		// TODO:  Use filters like tag:..., type:..., etc.
-		return strings.Contains(cc.Config.NameLower(), w.query)
 	}
+	// TODO:  Use filters like tag:..., type:..., etc.
+	if strings.Contains(cc.Config.NameLower(), w.query) {
+		return true
+	}
+	for i := range cc.Config.Tags {
+		if slices.Contains(w.tagFilters, cc.Config.Tags[i]) {
+			return true
+		}
+	}
+	return false
 }

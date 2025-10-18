@@ -9,10 +9,22 @@
 			}
 			.left {
 				padding: 0 5px;
-				width: 20%;
+				width: 15em;
 				height: 100%;
 				background-color: #282828;
 				overflow-y: scroll;
+			}
+			.center {
+				width: calc(100% - 30em);
+				height: 100%;
+				background-color: #121212;
+				padding: 10px;
+				text-align: center;
+			}
+			.right {
+				width: 15em;
+				height: 100%;
+				background-color: #282828;
 			}
 			.leftBtn {
 				padding: 1px;
@@ -41,18 +53,6 @@
 			.filterSelected {
 				background-color: #575757;
 				color: white;
-			}
-			.center {
-				width: 60%;
-				height: 100%;
-				background-color: #121212;
-				padding: 10px;
-				text-align: center;
-			}
-			.right {
-				width: 20%;
-				height: 100%;
-				background-color: #282828;
 			}
 			.search {
 				width: 100%;
@@ -87,6 +87,10 @@
 				</div>
 				{{range .Filters}}
 				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				{{end}}
+				<input class="search" type="text" placeholder="Tag search..." onchange="tagFilter" />
+				{{range .Tags}}
+				<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
 				{{end}}
 			</div>
 			<div class="center">
