@@ -302,10 +302,9 @@ func launchPlugin(adb assets.Database, entry string) (*LuaVM, error) {
 	return vm, nil
 }
 
-func LaunchPlugins(adb assets.Database) ([]*LuaVM, error) {
+func LaunchPlugins(adb assets.Database, path string) ([]*LuaVM, error) {
 	defer tracing.NewRegion("plugins.LaunchPlugins").End()
-	pluginsPath := filepath.Join("content", plugins)
-	dirs, err := os.ReadDir(pluginsPath)
+	dirs, err := os.ReadDir(path)
 	vms := make([]*LuaVM, 0)
 	if err != nil {
 		return vms, err
@@ -314,7 +313,7 @@ func LaunchPlugins(adb assets.Database) ([]*LuaVM, error) {
 		if !dirs[i].IsDir() {
 			continue
 		}
-		vm, err := launchPlugin(adb, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
+		vm, err := launchPlugin(adb, filepath.Join(path, dirs[i].Name(), "main.lua"))
 		vms = append(vms, vm)
 		if err != nil {
 			slog.Error("plugin failed to load", "plugin", dirs[i].Name(), "error", err)

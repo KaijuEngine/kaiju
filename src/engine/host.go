@@ -557,13 +557,16 @@ func (host *Host) ReserveEntities(additional int) {
 	host.entities = slices.Grow(host.entities, additional)
 }
 
-// BootstrapPlugins will initialize the plugin interface and read all of the
-// plugins that are in the content folder and prepare them for execution
-func (host *Host) BootstrapPlugins() error {
-	defer tracing.NewRegion("Host.BootstrapPlugins").End()
-	var err error
-	host.plugins, err = plugins.LaunchPlugins(host.AssetDatabase())
-	return err
+// ImportPlugins will read all of the plugins that are in the specified folder
+// and prepare them for execution.
+func (host *Host) ImportPlugins(path string) error {
+	defer tracing.NewRegion("Host.ImportPlugins").End()
+	plugs, err := plugins.LaunchPlugins(host.AssetDatabase(), path)
+	if err != nil {
+		return err
+	}
+	host.plugins = append(host.plugins, plugs...)
+	return nil
 }
 
 func (host *Host) resized() {

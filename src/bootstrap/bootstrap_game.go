@@ -75,9 +75,6 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
 		}
 		game.Launch(container.Host)
 		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-		if err := container.Host.BootstrapPlugins(); err != nil {
-			slog.Error("failed to initialize host plugins", "error", err)
-		}
 	})
 	if build.Debug {
 		runtime.AddCleanup(container, func(s struct{}) { containerCleanedUp = true }, struct{}{})
