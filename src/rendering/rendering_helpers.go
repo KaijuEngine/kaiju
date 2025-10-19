@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* rendering_helpers.go                                                       */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -42,7 +42,7 @@ import (
 	"kaiju/engine/assets"
 )
 
-func unmarshallJsonFile(assets *assets.Database, file string, to any) error {
+func unmarshallJsonFile(assets assets.Database, file string, to any) error {
 	s, err := assets.ReadText(file)
 	if err != nil {
 		return err

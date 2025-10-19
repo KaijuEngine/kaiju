@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_text_align.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -55,20 +55,14 @@ func (p TextAlign) Process(panel *ui.Panel, elm *document.Element, values []rule
 	switch values[0].Str {
 	case "left":
 		for _, l := range labels {
-			base := l.Base()
-			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToLeft())
 			l.SetJustify(rendering.FontJustifyLeft)
 		}
 	case "right":
 		for _, l := range labels {
-			base := l.Base()
-			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToRight())
 			l.SetJustify(rendering.FontJustifyRight)
 		}
 	case "center":
 		for _, l := range labels {
-			base := l.Base()
-			base.Layout().AnchorTo(base.Layout().Anchor().ConvertToCenter())
 			l.SetJustify(rendering.FontJustifyCenter)
 		}
 	case "justify":

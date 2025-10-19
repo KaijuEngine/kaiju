@@ -1,0 +1,1 @@
+{"Name":"pbr","Shader":"renderer/shaders/terrain.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/terrain.shaderpipeline","Textures":[{"Texture":"textures/square.png","Filter":"Linear"}]}

@@ -1,11 +1,11 @@
 //go:build android || ios
 
 /******************************************************************************/
-/* vulkan.mobile.go                                                          */
+/* vulkan.mobile.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */

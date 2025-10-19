@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* ui_manager.go                                                              */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,36 +38,34 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/pooling"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
+	"runtime"
 	"sync"
 	"weak"
 )
 
-const (
-	concurrentUpdateLimit = 100
-)
-
 type Manager struct {
-	Host     weak.Pointer[engine.Host]
-	Group    *Group
-	pools    pooling.PoolGroup[UI]
-	hovered  [][]*UI
-	updateId int
-}
-
-type manUp struct {
-	deltaTime float64
-	ui        *UI
+	Host          *engine.Host
+	Group         Group
+	pools         pooling.PoolGroup[UI]
+	hovered       [][]*UI
+	updateId      int
+	skipUpdate    int
+	resizeEvtId   events.Id
+	windowResized bool
 }
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
+	if man.skipUpdate > 0 && !man.windowResized {
+		return
+	}
 	// There is no update without a host, this is safe
-	host := man.Host.Value()
 	wg := sync.WaitGroup{}
 	roots := []*UI{}
 	children := []*UI{}
@@ -83,7 +81,7 @@ func (man *Manager) update(deltaTime float64) {
 	})
 	// First we update all the root UI elements, this will stabilize the tree
 	wg.Add(len(roots))
-	threads := host.Threads()
+	threads := man.Host.Threads()
 	for i := range roots {
 		threads.AddWork(func(int) {
 			roots[i].cleanIfNeeded()
@@ -113,6 +111,7 @@ func (man *Manager) update(deltaTime float64) {
 		})
 	}
 	wg.Wait()
+	man.windowResized = false
 }
 
 func (man *Manager) Hovered() []*UI {
@@ -132,21 +131,42 @@ func (man *Manager) Hovered() []*UI {
 
 func (man *Manager) Init(host *engine.Host) {
 	defer tracing.NewRegion("ui.Manager.Init").End()
-	man.Host = weak.Make(host)
-	man.updateId = host.UIUpdater.AddUpdate(man.update)
-	man.Group = NewGroup()
-	man.Group.Attach(host)
+	man.Host = host
+	wMan := weak.Make(man)
+	man.updateId = host.UIUpdater.AddUpdate(func(deltaTime float64) {
+		if wMan.Value() != nil {
+			wMan.Value().update(deltaTime)
+		}
+	})
+	man.Group.Attach(man.Host)
 	man.Group.SetThreaded()
-}
-
-func (man *Manager) Release() {
-	defer tracing.NewRegion("ui.Manager.Release").End()
-	man.Clear()
-	if host := man.Host.Value(); host != nil {
-		host.UIUpdater.RemoveUpdate(man.updateId)
-		man.Group.Detach(host)
+	man.resizeEvtId = host.Window.OnResize.Add(func() {
+		if wMan.Value() != nil {
+			wMan.Value().windowResized = true
+		}
+	})
+	type manCleanup struct {
+		host          weak.Pointer[engine.Host]
+		win           weak.Pointer[windowing.Window]
+		updateId      int
+		resizeId      events.Id
+		groupUpdateId int
 	}
-	man.updateId = 0
+	clean := manCleanup{weak.Make(host), weak.Make(host.Window),
+		man.updateId, man.resizeEvtId, man.Group.updateId}
+	runtime.AddCleanup(man, func(c manCleanup) {
+		h := c.host.Value()
+		if h == nil {
+			return
+		}
+		h.Updater.RemoveUpdate(c.updateId)
+		h.UILateUpdater.RemoveUpdate(c.groupUpdateId)
+		w := c.win.Value()
+		if w == nil {
+			return
+		}
+		w.OnResize.Remove(c.resizeId)
+	}, clean)
 }
 
 func (man *Manager) Clear() {
@@ -162,12 +182,10 @@ func (man *Manager) Add() *UI {
 	*ui = UI{
 		poolId: poolId,
 		id:     elmId,
-		man:    man,
+		man:    weak.Make(man),
 	}
-	host := man.Host.Value()
-	debug.EnsureNotNil(host)
-	ui.entity.Init(host.WorkGroup())
-	host.AddEntity(&ui.entity)
+	ui.entity.Init(man.Host.WorkGroup())
+	man.Host.AddEntity(&ui.entity)
 	return ui
 }
 
@@ -181,7 +199,11 @@ func (man *Manager) Remove(ui *UI) {
 func (man *Manager) Reserve(additionalElements int) {
 	defer tracing.NewRegion("ui.Manager.Reserve").End()
 	man.pools.Reserve(additionalElements)
-	host := man.Host.Value()
-	debug.EnsureNotNil(host)
-	host.ReserveEntities(additionalElements)
+	man.Host.ReserveEntities(additionalElements)
 }
+
+func (man *Manager) DisableUpdate() {
+	man.Host.RunNextFrame(func() { man.skipUpdate++ })
+}
+
+func (man *Manager) EnableUpdate() { man.skipUpdate = max(0, man.skipUpdate-1) }

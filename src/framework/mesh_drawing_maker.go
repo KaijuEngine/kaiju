@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* mesh_drawing_maker.go                                                      */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -73,4 +73,42 @@ func CreateDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 
 func CreateDrawingFromMeshUnlitTransparent(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
 	return createDrawingFromMeshUnlit(host, mesh, textures, true)
+}
+
+func CreateDrawingFromMeshBasicLit(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
+	var mat *rendering.Material
+	var err error
+	mat, err = host.MaterialCache().Material(basicLitMaterialKey)
+	if err != nil {
+		return rendering.Drawing{}, err
+	}
+	mat = mat.CreateInstance(textures)
+	return rendering.Drawing{
+		Renderer: host.Window.Renderer,
+		Material: mat,
+		Mesh:     mesh,
+		ShaderData: &rendering.ShaderDataBasicLit{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+		},
+	}, nil
+}
+
+func CreateDrawingFromMeshBasicLitDynamic(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
+	var mat *rendering.Material
+	var err error
+	mat, err = host.MaterialCache().Material(basicLitDynamicMaterialKey)
+	if err != nil {
+		return rendering.Drawing{}, err
+	}
+	mat = mat.CreateInstance(textures)
+	return rendering.Drawing{
+		Renderer: host.Window.Renderer,
+		Material: mat,
+		Mesh:     mesh,
+		ShaderData: &rendering.ShaderDataBasicLit{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+		},
+	}, nil
 }

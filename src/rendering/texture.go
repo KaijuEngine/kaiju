@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* texture.go                                                                 */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -283,7 +283,7 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(renderer Renderer, assetDb *assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
+func NewTexture(renderer Renderer, assetDb assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
 	tex := &Texture{Key: textureKey, Filter: filter}
 	if assetDb.Exists(textureKey) {
@@ -329,7 +329,7 @@ func (t Texture) Size() matrix.Vec2 {
 	return matrix.Vec2{float32(t.Width), float32(t.Height)}
 }
 
-func TexturePixelsFromAsset(assetDb *assets.Database, textureKey string) (TextureData, error) {
+func TexturePixelsFromAsset(assetDb assets.Database, textureKey string) (TextureData, error) {
 	defer tracing.NewRegion("rendering.TexturePixelsFromAsset").End()
 	if assetDb.Exists(textureKey) {
 		if imgBuff, err := assetDb.Read(textureKey); err != nil {

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* entity.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -67,12 +67,10 @@ type Entity struct {
 	Children              []*Entity
 	matrix                matrix.Mat4
 	namedData             map[string][]any
-	data                  []EntityData
 	OnDestroy             events.Event
 	OnActivate            events.Event
 	OnDeactivate          events.Event
 	name                  string
-	EditorBindings        entityEditorBindings
 	destroyedFrames       int8
 	isDestroyed           bool
 	isActive              bool
@@ -94,8 +92,6 @@ func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.matrix = matrix.Mat4Identity()
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
-	e.data = make([]EntityData, 0)
-	e.EditorBindings.init()
 }
 
 // ID returns the unique identifier of the entity. The Id is only valid for

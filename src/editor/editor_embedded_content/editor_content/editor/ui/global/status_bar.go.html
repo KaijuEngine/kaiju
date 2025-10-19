@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			#bar {
+				position: absolute;
+				bottom: 0;
+				width: 100%;
+				height: 1.3em;
+				color: white;
+				background-color: #1f1f1f;
+				z-index: 90;
+			}
+			.msg {
+				font-size: 0.9em;
+				background-color: #1f1f1f;
+				width: 50%;
+				height: 100%;
+				border: 2px solid #575757;
+			}
+			.msg span {
+				margin-left: 5px;
+			}
+			#logPopup {
+				position: absolute;
+				bottom: 2em;
+				width: 50%;
+				left: 50%;
+				height: 30%;
+				transform: translateX(-50%);
+				background-color: #1f1f1f;
+				border: 2px solid #575757;
+				border-radius: 5px;
+				color: white;
+				overflow-y: scroll;
+			}
+			.logLine {
+				padding: 5px;
+			}
+			.error {
+				background-color: #9C2121;
+			}
+			.warn {
+				background-color: #A87A2A;
+			}
+			.errorStatus { color: #ee6b6b; }
+			.warnStatus { color: #f7ed69; }
+		</style>
+	</head>
+	<body>
+		<div id="bar">
+			<div class="msg">
+				<span id="msg">Editor launched</span>
+			</div>
+			<div class="msg">
+				<span id="log" onclick="openLogWindow">No logs</span>
+			</div>
+		</div>
+		<div id="logPopup" onclick="closePopup" onmiss="closePopup">
+			<div id="logEntryTemplate" class="logLine">Logs...</div>
+		</div>
+	</body>
+</html>

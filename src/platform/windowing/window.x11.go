@@ -1,11 +1,11 @@
 //go:build linux && !android
 
 /******************************************************************************/
-/* window.x11.go                                                             */
+/* window.x11.go                                                              */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -181,4 +181,8 @@ func (w *Window) dotsPerMillimeter() float64 {
 func (w *Window) screenSizeMM() (int, int, error) {
 	mm := float64(C.window_dpi(w.handle))
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+}
+
+func (w Window) setTitle() {
+	klib.NotYetImplemented(234)
 }

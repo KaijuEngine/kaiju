@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* shader_cache.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -46,13 +46,13 @@ import (
 
 type ShaderCache struct {
 	renderer       Renderer
-	assetDatabase  *assets.Database
+	assetDatabase  assets.Database
 	shaders        map[string]*Shader
 	pendingShaders []*Shader
 	mutex          sync.Mutex
 }
 
-func NewShaderCache(renderer Renderer, assetDatabase *assets.Database) ShaderCache {
+func NewShaderCache(renderer Renderer, assetDatabase assets.Database) ShaderCache {
 	return ShaderCache{
 		renderer:       renderer,
 		assetDatabase:  assetDatabase,

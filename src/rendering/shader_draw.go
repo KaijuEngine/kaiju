@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* shader_draw.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -69,14 +69,6 @@ func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanc
 		}
 	}
 	return selected
-}
-
-func (s *ShaderDraw) SolidGroups() []*DrawInstanceGroup {
-	return s.Filter(func(g *DrawInstanceGroup) bool { return !g.useBlending })
-}
-
-func (s *ShaderDraw) TransparentGroups() []*DrawInstanceGroup {
-	return s.Filter(func(g *DrawInstanceGroup) bool { return g.useBlending })
 }
 
 func (s *ShaderDraw) Destroy(renderer Renderer) {

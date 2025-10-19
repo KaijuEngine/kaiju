@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* progress_bar.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -57,16 +57,17 @@ func (p *ProgressBar) data() *progressBarData {
 	return p.elmData.(*progressBarData)
 }
 
-func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture, anchor Anchor) {
+func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture) {
 	pd := &progressBarData{
 		value: 0,
 	}
 	p.elmData = pd
-	p.Base().ToPanel().Init(nil, anchor, ElementTypeProgressBar)
-	panel := p.man.Add().ToPanel()
-	fgPanel := p.man.Add().ToPanel()
-	panel.Init(bgTexture, anchor, ElementTypePanel)
-	fgPanel.Init(fgTexture, AnchorStretchCenter, ElementTypePanel)
+	p.Base().ToPanel().Init(nil, ElementTypeProgressBar)
+	panel := p.man.Value().Add().ToPanel()
+	fgPanel := p.man.Value().Add().ToPanel()
+	panel.Init(bgTexture, ElementTypePanel)
+	fgPanel.Init(fgTexture, ElementTypePanel)
+	fgPanel.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 	panel.AddChild(fgPanel.Base())
 	pd.fgPanel = fgPanel
 }
@@ -75,7 +76,7 @@ func (b *ProgressBar) SetValue(value float32) {
 	data := b.data()
 	data.value = value
 	w := b.entity.Transform.WorldScale().X()
-	data.fgPanel.layout.SetStretch(1, 1, w-(w*data.value)+1, 1)
+	data.fgPanel.layout.ScaleWidth(w*data.value + 1)
 }
 
 func (b ProgressBar) Value() float32 {

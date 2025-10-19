@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* pprof.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -51,6 +51,18 @@ const (
 )
 
 var runningPprof *exec.Cmd = nil
+
+func StartPGOProfiler() error {
+	pprofFile, err := os.Create(pprofMergeFile)
+	if err != nil {
+		return err
+	}
+	return pprof.StartCPUProfile(pprofFile)
+}
+
+func StopPGOProfiler() {
+	pprof.StopCPUProfile()
+}
 
 func StartDefaultProfiler() error {
 	if build.Debug {

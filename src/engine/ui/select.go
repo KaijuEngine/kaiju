@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* select.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -68,25 +67,25 @@ func (s *Select) SelectData() *selectData {
 	return s.elmData.(*selectData)
 }
 
-func (s *Select) Init(text string, options []string, anchor Anchor) {
+func (s *Select) Init(text string, options []string) {
 	s.elmType = ElementTypeSelect
 	data := &selectData{}
 	data.text = text
 	s.elmData = data
 	p := s.Base().ToPanel()
 	p.DontFitContent()
-	host := s.man.Host.Value()
-	debug.EnsureNotNil(host)
+	man := s.man.Value()
+	host := man.Host
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
-	p.Init(bg, anchor, ElementTypeSelect)
+	p.Init(bg, ElementTypeSelect)
 	data.selected = -1
 	{
 		// Create the label
-		label := s.man.Add()
+		label := man.Add()
 		lbl := label.ToLabel()
-		lbl.Init(data.text, AnchorStretchCenter)
-		label.layout.SetStretch(5, 0, 0, 0)
+		lbl.Init(data.text)
+		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
 		lbl.SetFontSize(14)
@@ -97,9 +96,9 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 	}
 	{
 		// Create the list panel
-		listPanel := s.man.Add()
+		listPanel := man.Add()
 		lp := listPanel.ToPanel()
-		lp.Init(bg, AnchorCenter, ElementTypePanel)
+		lp.Init(bg, ElementTypePanel)
 		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
@@ -112,9 +111,10 @@ func (s *Select) Init(text string, options []string, anchor Anchor) {
 		triTex, _ := host.TextureCache().Texture(
 			assets.TextureTriangle, rendering.TextureFilterLinear)
 		triTex.MipLevels = 1
-		tri := s.man.Add()
+		tri := man.Add()
 		img := tri.ToImage()
-		img.Init(triTex, AnchorRight)
+		img.Init(triTex)
+		img.layout.Stylizer = RightStylizer{BasicStylizer{p.Base()}}
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
@@ -135,17 +135,18 @@ func (s *Select) AddOption(name string) {
 	data := s.SelectData()
 	data.options = append(data.options, name)
 	// Create panel to hold the label
-	panel := s.man.Add()
+	man := s.man.Value()
+	panel := man.Add()
 	p := panel.ToPanel()
-	p.Init(nil, AnchorStretchTop, ElementTypePanel)
+	p.Init(nil, ElementTypePanel)
+	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
 	p.DontFitContent()
 	p.entity.SetName(name)
-	panel.layout.SetStretch(0, 0, 0, 25)
 	// Create the label
-	label := s.man.Add()
+	label := man.Add()
 	lbl := label.ToLabel()
-	lbl.Init(name, AnchorStretchCenter)
-	label.layout.SetStretch(5, 0, 0, 0)
+	lbl.Init(name)
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
 	lbl.SetFontSize(14)

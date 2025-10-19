@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_border_image_slice.go                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,15 +38,22 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/matrix"
 )
 
 func (p BorderImageSlice) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("BorderImageSlice not implemented")}
-
-	return problems[0]
+	width := float32(0)
+	if len(values) != 1 {
+		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
+	} else {
+		width = helpers.NumFromLength(values[0].Str, host.Window)
+		panel.Base().ShaderData().BorderLen = matrix.NewVec2(width, width)
+	}
+	return nil
 }

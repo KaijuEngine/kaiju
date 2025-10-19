@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.bar {
+				width: 100%;
+				height: 24px;
+				background-color: #121212;
+				color: #AAA;
+				z-index: 90;
+			}
+			.logo {
+				width: 24px;
+				height: 24px;
+				margin-right: 10px;
+				background-color: #AAA;
+			}
+			.logo:hover { background-color: white; }
+			.menuEntry {
+				margin-right: 10px;
+				padding: 0 5px;
+			}
+			.bar span {
+				top: 6px;
+				height: 18px;
+				text-align: center;
+			}
+			.bar span:hover {
+				color: white;
+			}
+			.workspaceTab {
+				background-color: #282828;
+				border-radius: 0 0 5px 5px;
+				padding: 0 10px;
+				margin: 0 2px;
+			}
+			.tabSelected {
+				background-color: #575757;
+				color: white;
+			}
+			.popup {
+				position: absolute;
+				display: none;
+				top: 24px;
+				color: #AAA;
+				width: 200px;
+				background-color: #121212;
+				border: 2px solid #AAA;
+				z-index: 90;
+			}
+			.popupEntry { background-color: #121212; }
+			.popupEntry:hover { color: white; background-color: #575757; }
+		</style>
+	</head>
+	<body>
+		<div class="bar">
+			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
+			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
+			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
+			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
+			<span group="tabs" class="workspaceTab tabSelected" onclick="clickStage">Stage</span>
+			<span group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
+			<span group="tabs" class="workspaceTab" onclick="clickAnimation">Animation</span>
+			<span group="tabs" class="workspaceTab" onclick="clickUI">UI</span>
+			<span group="tabs" class="workspaceTab" onclick="clickLog">Log</span>
+		</div>
+		<div id="logoPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickAbout">About Kaiju Engine</div>
+			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>
+		</div>
+		<div id="filePopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickNewStage">New stage</div>
+			<div class="popupEntry" onclick="clickOpenStage">Open stage</div>
+			<div class="popupEntry" onclick="clickSaveStage">Save stage</div>
+		</div>
+		<div id="editPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickProjectSettings">Project settings</div>
+			<div class="popupEntry" onclick="clickEditorSettings">Editor settings</div>
+		</div>
+		<div id="helpPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickIssues">Issues</div>
+			<div class="popupEntry" onclick="clickRepository">Repository</div>
+			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>
+			<div class="popupEntry" onclick="clickMailArchives">Mailing Archives</div>
+		</div>
+	</body>
+</html>

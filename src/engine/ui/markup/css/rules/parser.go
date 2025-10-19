@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* parser.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -39,6 +39,8 @@ package rules
 
 import (
 	"bytes"
+	"kaiju/engine/ui/markup/css/helpers"
+	"kaiju/platform/windowing"
 	"strings"
 
 	"github.com/tdewolff/parse/v2"
@@ -121,7 +123,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	s.Groups[idx].Selectors = append(s.Groups[idx].Selectors, sel)
 }
 
-func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser) {
+func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window *windowing.Window) {
 	r := Rule{
 		Property: prop,
 		Values:   make([]PropertyValue, 0),
@@ -150,6 +152,17 @@ func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser) {
 			}
 		}
 	}
+	for i := range r.Values {
+		v := &r.Values[i]
+		if len(v.Args) > 0 {
+			v.ArgNums = make([]float32, len(v.Args))
+			for i := range v.Args {
+				v.ArgNums[i] = helpers.NumFromLength(v.Args[i], window)
+			}
+		} else {
+			v.Num = helpers.NumFromLength(v.Str, window)
+		}
+	}
 	s.currentGroup().AddRule(r)
 }
 
@@ -161,7 +174,7 @@ func NewStyleSheet() StyleSheet {
 	}
 }
 
-func (s *StyleSheet) Parse(cssStr string) {
+func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), false)
 	exit := false
 	s.addGroup()
@@ -186,7 +199,7 @@ func (s *StyleSheet) Parse(cssStr string) {
 			s.state = ReadingTag
 			s.addGroup()
 		case css.DeclarationGrammar:
-			s.readProperty(string(propData), cssParser)
+			s.readProperty(string(propData), cssParser, window)
 		case css.TokenGrammar:
 		case css.CustomPropertyGrammar:
 			name := string(propData)
@@ -200,7 +213,7 @@ func (s *StyleSheet) Parse(cssStr string) {
 	s.removeLastGroup()
 }
 
-func (s *StyleSheet) ParseInline(cssStr string) *SelectorGroup {
+func (s *StyleSheet) ParseInline(cssStr string, window *windowing.Window) *SelectorGroup {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), true)
 	exit := false
 	s.addGroup()
@@ -212,7 +225,7 @@ func (s *StyleSheet) ParseInline(cssStr string) *SelectorGroup {
 		case css.CommentGrammar:
 			// Do nothing
 		case css.DeclarationGrammar:
-			s.readProperty(string(propData), cssParser)
+			s.readProperty(string(propData), cssParser, window)
 		}
 	}
 	group := s.currentGroup()

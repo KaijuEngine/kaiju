@@ -1,11 +1,11 @@
 //go:build windows || (linux && !android)
 
 /******************************************************************************/
-/* vulkan.winux.go                                                           */
+/* vulkan.winux.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */

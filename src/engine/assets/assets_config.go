@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* assets_config.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -45,23 +45,28 @@ const (
 
 // Material definitions
 const (
-	MaterialDefinitionGrid              = "grid"
-	MaterialDefinitionUnlit             = "unlit"
-	MaterialDefinitionUnlitTransparent  = "unlit_transparent"
-	MaterialDefinitionBasic             = "basic"
-	MaterialDefinitionBasicTransparent  = "basic_transparent"
-	MaterialDefinitionPBR               = "pbr"
-	MaterialDefinitionBasicSkinned      = "basic_skinned"
-	MaterialDefinitionBasicColor        = "basic_color"
-	MaterialDefinitionText3D            = "text3d"
-	MaterialDefinitionText              = "text"
-	MaterialDefinitionCombine           = "combine"
-	MaterialDefinitionComposite         = "composite"
-	MaterialDefinitionUI                = "ui"
-	MaterialDefinitionUITransparent     = "ui_transparent"
-	MaterialDefinitionSprite            = "sprite"
-	MaterialDefinitionSpriteTransparent = "sprite_transparent"
-	MaterialDefinitionOutline           = "outline"
-	MaterialDefinitionLightDepth        = "light_depth"
-	MaterialDefinitionLightCubeDepth    = "light_cube_depth"
+	MaterialDefinitionGrid                = "grid"
+	MaterialDefinitionUnlit               = "unlit"
+	MaterialDefinitionUnlitTransparent    = "unlit_transparent"
+	MaterialDefinitionBasic               = "basic"
+	MaterialDefinitionBasicLit            = "basic_lit"
+	MaterialDefinitionBasicLitStatic      = "basic_lit_static"
+	MaterialDefinitionBasicLitDynamic     = "basic_lit_dynamic"
+	MaterialDefinitionBasicLitTransparent = "basic_lit_transparent"
+	MaterialDefinitionBasicTransparent    = "basic_transparent"
+	MaterialDefinitionPBR                 = "pbr"
+	MaterialDefinitionTerrain             = "terrain"
+	MaterialDefinitionBasicSkinned        = "basic_skinned"
+	MaterialDefinitionBasicColor          = "basic_color"
+	MaterialDefinitionText3D              = "text3d"
+	MaterialDefinitionText                = "text"
+	MaterialDefinitionCombine             = "combine"
+	MaterialDefinitionComposite           = "composite"
+	MaterialDefinitionUI                  = "ui"
+	MaterialDefinitionUITransparent       = "ui_transparent"
+	MaterialDefinitionSprite              = "sprite"
+	MaterialDefinitionSpriteTransparent   = "sprite_transparent"
+	MaterialDefinitionOutline             = "outline"
+	MaterialDefinitionLightDepth          = "light_depth"
+	MaterialDefinitionLightCubeDepth      = "light_cube_depth"
 )

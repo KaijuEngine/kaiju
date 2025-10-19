@@ -1,39 +1,4 @@
-/******************************************************************************/
-/* win32.c                                                                   */
-/******************************************************************************/
-/*                           This file is part of:                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
-/******************************************************************************/
+
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -80,12 +45,12 @@
 #define CURSOR_PIN          15
 #define CURSOR_PERSON       16
 
-void readMousePosition(LPARAM lParam, int32_t* x, int32_t* y) {
+static inline void readMousePosition(LPARAM lParam, int32_t* x, int32_t* y) {
 	*x = GET_X_LPARAM(lParam);
 	*y = GET_Y_LPARAM(lParam);
 }
 
-double now_seconds() {
+static inline double now_seconds() {
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
     ULARGE_INTEGER uli;
@@ -94,7 +59,15 @@ double now_seconds() {
     return (uli.QuadPart / 10000000.0) - 11644473600.0;
 }
 
-bool obtainControllerStates(SharedMem* sm) {
+static inline void lock_cursor_position(SharedMem* sm) {
+	int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
+	int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
+	int x = sm->left + sm->lockCursor.x + borderSize;
+	int y = sm->top + sm->lockCursor.y + titleSize;
+	SetCursorPos(x, y);
+}
+
+static inline bool obtainControllerStates(SharedMem* sm) {
 	static double last = 0;
 	static double connectedControllers[MAX_CONTROLLERS] = { 0 };
 	bool readControllerStates = false;
@@ -141,6 +114,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 		case WM_DESTROY:
+		{
 			if (sm != NULL) {
 				shared_mem_add_event(sm, (WindowEvent) {
 					.type = WINDOW_EVENT_TYPE_ACTIVITY,
@@ -150,7 +124,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostQuitMessage(0);
 			return 0;
+		}
 		case WM_ACTIVATE:
+		{
 			switch (LOWORD(wParam)) {
 				case WA_ACTIVE:
 				case WA_CLICKACTIVE:
@@ -168,7 +144,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			shared_mem_flush_events(sm);
 			break;
+		}
 		case WM_MOVE:
+		{
 			// TODO:  Should handle this better, but move is called on focus too
 			RECT windowRect;
 			if (GetWindowRect(hwnd, &windowRect)) {
@@ -186,7 +164,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			});
 			shared_mem_flush_events(sm);
 			break;
+		}
 		case WM_SIZE:
+		{
 			if (sm != NULL) {
 				RECT clientArea;
 				GetClientRect(hwnd, &clientArea);
@@ -220,6 +200,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			PostMessage(hwnd, WM_PAINT, 0, 0);
 			break;
+		}
+		case WM_SYSCOMMAND:
+		{
+			if (wParam == SC_KEYMENU) {
+				return 0;  // Block menu activation; do not call DefWindowProc here
+			}
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -241,7 +229,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
 			readMousePosition(msg->lParam, &evt.mouseMove.x, &evt.mouseMove.y);
 			sm->mouseX = evt.mouseMove.x;
-			sm->mouseX = evt.mouseMove.y;
+			sm->mouseY = evt.mouseMove.y;
 			shared_mem_add_event(sm, evt);
 			if (!sm->rawInputFailed && sm->rawInputRequested) {
 				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
@@ -250,6 +238,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 				if (mouseEnteredWindow) {
 					window_enable_raw_mouse(msg->hwnd);
 				}
+			}
+			if (sm->lockCursor.active) {
+				lock_cursor_position(sm);
 			}
 			break;
 		}
@@ -684,7 +675,11 @@ void window_poll(void* hwnd) {
 								evt.mouseMove.x = pt.x;
 								evt.mouseMove.y = pt.y;
 								shared_mem_add_event(sm, evt);
+								hadMouseEvent = true;
 							}
+						}
+						if (sm->lockCursor.active) {
+							lock_cursor_position(sm);
 						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
 							|| pt.x > sm->clientRect.right
@@ -808,6 +803,18 @@ void window_hide_cursor(void* hwnd) {
 	ShowCursor(FALSE);
 }
 
+void window_lock_cursor(void* hwnd, int x, int y) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	sm->lockCursor.x = x;
+	sm->lockCursor.y = y;
+	sm->lockCursor.active = true;
+}
+
+void window_unlock_cursor(void* hwnd) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	sm->lockCursor.active = false;
+}
+
 void window_set_fullscreen(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->savedState.style = GetWindowLong(hwnd, GWL_STYLE);
@@ -882,6 +889,10 @@ void window_disable_raw_mouse(void* hwnd) {
 	rid.hwndTarget = NULL;  // Must be NULL for removal
 	RegisterRawInputDevices(&rid, 1, sizeof(rid));
 	sm->rawInputRequested = false;
+}
+
+void window_set_title(void* hwnd, const wchar_t* windowTitle) {
+	SetWindowTextW(hwnd, windowTitle);
 }
 
 #endif

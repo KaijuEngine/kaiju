@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* light.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -49,7 +49,7 @@ import (
 
 const (
 	nrLights                 = 4
-	maxLights                = 20
+	MaxLights                = 20
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
@@ -151,7 +151,7 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 	return nil
 }
 
-func NewLight(vr *Vulkan, assetDb *assets.Database, materialCache *MaterialCache, lightType LightType) Light {
+func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
 	light := Light{
 		ambient:     matrix.NewVec3(0.1, 0.1, 0.1),
 		diffuse:     matrix.Vec3One(),
@@ -199,6 +199,9 @@ func NewLight(vr *Vulkan, assetDb *assets.Database, materialCache *MaterialCache
 func (l *Light) ShadowMapTexture() *Texture {
 	return &l.renderPass.textures[0]
 }
+
+func (l *Light) Type() LightType { return l.lightType }
+func (l *Light) IsValid() bool   { return l.renderer != nil }
 
 func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
@@ -271,7 +274,7 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 	}
 }
 
-func (l *Light) setupRenderPass(assets *assets.Database) {
+func (l *Light) setupRenderPass(assets assets.Database) {
 	vr := l.renderer
 	rp := RenderPassData{}
 	if err := unmarshallJsonFile(assets, "renderer/passes/light_depth.renderpass", &rp); err != nil {
@@ -315,5 +318,10 @@ func (l *Light) SetDirection(dir matrix.Vec3) {
 
 func (l *Light) SetIntensity(intensity float32) {
 	l.intensity = intensity
+	l.reset = true
+}
+
+func (l *Light) SetAmbient(ambient matrix.Color) {
+	l.ambient = l.ambient
 	l.reset = true
 }

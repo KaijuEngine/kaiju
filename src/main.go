@@ -1,11 +1,9 @@
-//go:build !android
-
 /******************************************************************************/
 /* main.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -40,11 +38,49 @@
 package main
 
 import (
+	"flag"
 	"kaiju/bootstrap"
+	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
 	"kaiju/platform/profiler"
+	"kaiju/plugins"
 )
 
+type LaunchParams struct {
+	Generate  string
+	Trace     bool
+	RecordPGO bool
+}
+
+func parseFlags() LaunchParams {
+	var flags LaunchParams
+	flag.StringVar(&flags.Generate, "generate", "", "The generator to run: 'pluginapi'")
+	flag.BoolVar(&flags.Trace, "trace", false, "If supplied, the entire run will be traced")
+	flag.BoolVar(&flags.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
+	flag.Parse()
+	return flags
+}
+
 func main() {
-	bootstrap.Main()
+	params := parseFlags()
+	game := getGame()
+	if params.Generate != "" {
+		switch params.Generate {
+		case "pluginapi":
+			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
+			plugins.RegenerateAPI()
+		}
+		return
+	}
+	if params.Trace {
+		profiler.StartTrace()
+		defer profiler.StopTrace()
+	}
+	if params.RecordPGO {
+		profiler.StartPGOProfiler()
+	}
+	bootstrap.Main(game)
+	if params.RecordPGO {
+		profiler.StopPGOProfiler()
+	}
 	profiler.CleanupProfiler()
 }

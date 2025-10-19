@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* mat4.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -381,8 +381,8 @@ func (m *Mat4) RotateZ(angles Float) {
 
 func (m *Mat4) RotateAngles(axis Vec3, angle Float) {
 	a := angle
-	c := Cos(a)
-	s := Sin(a)
+	c := Cos(Deg2Rad(a))
+	s := Sin(Deg2Rad(a))
 	axisNorm := axis.Normal()
 	temp := axisNorm.Scale(1.0 - c)
 	var rot Mat4
@@ -579,4 +579,24 @@ func (m Mat4) IsIdentity() bool {
 		success = match[i] == m[i]
 	}
 	return success
+}
+
+func Mat4Approx(a, b Mat4) bool {
+	res := false
+	for i := range a {
+		res = res || Abs(a[i]-b[i]) < FloatSmallestNonzero
+	}
+	return res
+}
+
+func Mat4ApproxTo(a, b Vec4, delta Float) bool {
+	res := false
+	for i := range a {
+		res = res || Abs(a[i]-b[i]) < delta
+	}
+	return res
+}
+
+func (m Mat4) Equals(other Mat4) bool {
+	return Mat4Approx(m, other)
 }

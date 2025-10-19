@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* rule.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -48,14 +48,18 @@ const (
 )
 
 type PropertyValue struct {
-	Str  string
-	Args []string
+	Str     string
+	Num     float32
+	Args    []string
+	ArgNums []float32
 }
 
 func (p *PropertyValue) Clone() PropertyValue {
 	return PropertyValue{
-		Str:  p.Str,
-		Args: slices.Clone(p.Args),
+		Str:     p.Str,
+		Num:     p.Num,
+		Args:    slices.Clone(p.Args),
+		ArgNums: slices.Clone(p.ArgNums),
 	}
 }
 
@@ -64,9 +68,10 @@ func (p PropertyValue) IsFunction() bool {
 }
 
 type Rule struct {
-	Property   string
-	Values     []PropertyValue
-	Invocation RuleInvoke
+	Property     string
+	Values       []PropertyValue
+	Invocation   RuleInvoke
+	SelfDestruct bool
 }
 
 func (r *Rule) Clone() Rule {

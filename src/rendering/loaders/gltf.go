@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* gltf.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -40,6 +40,7 @@ package loaders
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -54,15 +55,21 @@ import (
 )
 
 type fullGLTF struct {
+	path string
 	glTF gltf.GLTF
 	bins [][]byte
 }
 
-func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
+type rawMeshData struct {
+	verts   []rendering.Vertex
+	indices []uint32
+}
+
+func readFileGLB(file string, assetDB assets.Database) (fullGLTF, error) {
 	defer tracing.NewRegion("loaders.readFileGLB").End()
 	const headSize = 12
 	const chunkHeadSize = 8
-	g := fullGLTF{}
+	g := fullGLTF{path: file}
 	data, err := assetDB.Read(file)
 	if err != nil {
 		return g, err
@@ -116,9 +123,9 @@ func readFileGLB(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
+func readFileGLTF(file string, assetDB assets.Database) (fullGLTF, error) {
 	defer tracing.NewRegion("loaders.readFileGLTF").End()
-	g := fullGLTF{}
+	g := fullGLTF{path: file}
 	str, err := assetDB.ReadText(file)
 	if err != nil {
 		return g, err
@@ -143,7 +150,7 @@ func readFileGLTF(file string, assetDB *assets.Database) (fullGLTF, error) {
 	return g, nil
 }
 
-func GLTF(path string, assetDB *assets.Database) (load_result.Result, error) {
+func GLTF(path string, assetDB assets.Database) (load_result.Result, error) {
 	defer tracing.NewRegion("loaders.GLTF").End()
 	if !assetDB.Exists(path) {
 		return load_result.Result{}, errors.New("file does not exist")
@@ -188,6 +195,7 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			bin = bin[16:]
 		}
 	}
+	meshDatas := map[int32]rawMeshData{}
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Name = n.Name
@@ -215,32 +223,39 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			continue
 		}
 		m := &doc.glTF.Meshes[*n.Mesh]
-		if verts, err := gltfReadMeshVerts(m, doc); err != nil {
-			return res, err
-		} else if indices, err := gltfReadMeshIndices(m, doc); err != nil {
-			return res, err
-		} else {
-			textures := gltfReadMeshTextures(m, &doc.glTF)
-			sortedTextures := make([]string, 0, len(textures))
-			if t, ok := textures["baseColor"]; ok {
-				sortedTextures = append(sortedTextures, t)
-				delete(textures, "baseColor")
+		rmd, ok := meshDatas[*n.Mesh]
+		if !ok {
+			if verts, err := gltfReadMeshVerts(m, doc); err != nil {
+				return res, err
+			} else if indices, err := gltfReadMeshIndices(m, doc); err != nil {
+				return res, err
+			} else {
+				rmd.verts = verts
+				rmd.indices = indices
 			}
-			if t, ok := textures["normal"]; ok {
-				sortedTextures = append(sortedTextures, t)
-				delete(textures, "normal")
-			}
-			if t, ok := textures["metallicRoughness"]; ok {
-				sortedTextures = append(sortedTextures, t)
-				delete(textures, "metallicRoughness")
-			}
-			if t, ok := textures["emissive"]; ok {
-				sortedTextures = append(sortedTextures, t)
-				delete(textures, "emissive")
-			}
-			sortedTextures = append(sortedTextures, klib.MapValues(textures)...)
-			res.Add(n.Name, m.Name, verts, indices, sortedTextures, &res.Nodes[i])
+			meshDatas[*n.Mesh] = rmd
 		}
+		textures := gltfReadMeshTextures(m, &doc.glTF)
+		sortedTextures := make([]string, 0, len(textures))
+		if t, ok := textures["baseColor"]; ok {
+			sortedTextures = append(sortedTextures, t)
+			delete(textures, "baseColor")
+		}
+		if t, ok := textures["normal"]; ok {
+			sortedTextures = append(sortedTextures, t)
+			delete(textures, "normal")
+		}
+		if t, ok := textures["metallicRoughness"]; ok {
+			sortedTextures = append(sortedTextures, t)
+			delete(textures, "metallicRoughness")
+		}
+		if t, ok := textures["emissive"]; ok {
+			sortedTextures = append(sortedTextures, t)
+			delete(textures, "emissive")
+		}
+		sortedTextures = append(sortedTextures, klib.MapValues(textures)...)
+		key := fmt.Sprintf("%s/%s", doc.path, m.Name)
+		res.Add(n.Name, key, rmd.verts, rmd.indices, sortedTextures, &res.Nodes[i])
 	}
 	res.Animations = gltfReadAnimations(doc)
 	return res, nil

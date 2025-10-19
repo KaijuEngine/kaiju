@@ -1,11 +1,11 @@
 //go:build linux || darwin
 
 /******************************************************************************/
-/* directory.nix.go                                                          */
+/* directory.nix.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -47,6 +47,14 @@ import (
 	"path/filepath"
 	"unsafe"
 )
+
+func knownPaths() map[string]string {
+	return map[string]string{
+		"Root":      "/",
+		"Home":      "/home",
+		"User Home": "~/",
+	}
+}
 
 func imageDirectory() (string, error) {
 	userFolder, err := os.UserHomeDir()

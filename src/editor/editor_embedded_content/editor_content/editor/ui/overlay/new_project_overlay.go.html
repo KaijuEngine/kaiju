@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.panel {
+				position: absolute;
+				color: white;
+				background-image: url("editor/textures/overlay_panel_background.png");
+				text-align: center;
+				border-image-slice: 25px;
+				background-color: #282828;
+				width: 50%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				padding: 22px;
+			}
+			.inputPanel {
+				width: 100%;
+				height: 2em;
+				margin-bottom: 5px;
+			}
+			.fullWidth { width: 100%; }
+			input, .browseButton { height: 100%; }
+			.folderInput { width: 73%; }
+			.browseButton {
+				position: absolute;
+				right: 0;
+				width: 20%;
+			}
+			span { height: 2em; vertical-align: middle; }
+			.openProject button { margin-left: 10px; }
+			.createBtn {
+				left: 50%;
+				margin-top: 0.5em;
+				transform: translateX(-50%);
+			}
+			.error {
+				color: #C7655D;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="panel">
+			<h1>New Project</h1>
+			{{if .}}
+			<div class="error">{{.}}</div>
+			{{end}}
+			<div class="openProject">
+				<span>Start by opening an existing project: </span>
+				<button onclick="openProject">Open Project</button>
+			</div>
+			<p>Or by creating a new one</p>
+			<div class="inputPanel">
+				<input id="nameInput" class="fullWidth" type="text" placeholder="Name..." />
+			</div>
+			<div class="inputPanel">
+				<input id="folder" class="folderInput" type="text" placeholder="Folder..." />
+				<button onclick="browse">Browse...</button>
+			</div>
+			<button class="createBtn" onclick="createProject">Create</button>
+		</div>
+	</body>
+</html>

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* ui.go                                                                      */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/pooling"
 	"kaiju/engine/systems/events"
@@ -47,6 +46,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
 	"kaiju/rendering"
+	"weak"
 )
 
 type DirtyType = int
@@ -86,7 +86,7 @@ type UIElementData interface {
 }
 
 type UI struct {
-	man              *Manager
+	man              weak.Pointer[Manager]
 	entity           engine.Entity
 	elmData          UIElementData
 	events           [EventTypeEnd]events.Event
@@ -114,7 +114,7 @@ type UI struct {
 func (ui *UI) isActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.isDown }
 
-func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
+func (ui *UI) init(textureSize matrix.Vec2) {
 	defer tracing.NewRegion("UI.init").End()
 	if ui.postLayoutUpdate == nil {
 		ui.postLayoutUpdate = func() {}
@@ -128,18 +128,31 @@ func (ui *UI) init(textureSize matrix.Vec2, anchor Anchor) {
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
-	ui.layout.initialize(ui, anchor)
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	ui.layout.initialize(ui)
+	host := ui.man.Value().Host
 	rzId := host.Window.OnResize.Add(func() {
 		ui.SetDirty(DirtyTypeResize)
+		if ui.Type() == ElementTypeInput {
+			// Labels that make up the input box don't always re-render with
+			// minor events, this is a full window resize so it needs to happen.
+			ui.ToInput().forceLabelAndPlaceholderRerender()
+		}
 	})
 	ui.entity.OnDestroy.Add(func() {
 		host.Window.OnResize.Remove(rzId)
 		ui.shaderData.Destroy()
 		ui.events[EventTypeDestroy].Execute()
 		ui.elmData = nil
-		ui.man.Remove(ui)
+		ui.postLayoutUpdate = nil
+		ui.render = nil
+		ui.layout.ui = nil
+		ui.layout.Stylizer = nil
+		for i := range ui.events {
+			ui.events[i].Clear()
+		}
+		if ui.man.Value() != nil {
+			ui.man.Value().Remove(ui)
+		}
 	})
 }
 
@@ -153,9 +166,10 @@ func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
 
 func (ui *UI) Host() *engine.Host {
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
-	return host
+	if ui.man.Value() != nil {
+		return ui.man.Value().Host
+	}
+	return nil
 }
 
 func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
@@ -315,8 +329,9 @@ func (ui *UI) requestEvent(evtType EventType) {
 	if ui.events[evtType].IsEmpty() {
 		return
 	}
-	if ui.man != nil {
-		ui.man.Group.requestEvent(ui, evtType)
+	man := ui.man.Value()
+	if man != nil {
+		man.Group.requestEvent(ui, evtType)
 	} else {
 		ui.ExecuteEvent(evtType)
 	}
@@ -324,8 +339,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 
 func (ui *UI) eventUpdates() {
 	defer tracing.NewRegion("UI.eventUpdates").End()
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := ui.man.Value().Host
 	cursor := &host.Window.Cursor
 	mouse := &host.Window.Mouse
 	if cursor.Moved() {
@@ -416,8 +430,7 @@ func (ui *UI) Update(deltaTime float64) {
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
 	defer tracing.NewRegion("UI.cursorPos").End()
 	pos := cursor.Position()
-	host := ui.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := ui.man.Value().Host
 	pos[matrix.Vx] -= matrix.Float(host.Window.Width()) * 0.5
 	pos[matrix.Vy] -= matrix.Float(host.Window.Height()) * 0.5
 	return pos
@@ -530,42 +543,40 @@ func (ui *UI) IsInFrontOf(other *UI) bool {
 }
 
 func (ui *UI) Clone(parent *engine.Entity) *UI {
-	cpy := ui.man.Add()
+	cpy := ui.man.Value().Add()
 	switch ui.elmType {
 	case ElementTypeLabel:
 		ui.ToLabel().Clone(cpy.ToLabel())
 	case ElementTypePanel:
 		t := ui.ToPanel()
-		cpy.ToPanel().Init(t.Background(), t.layout.screenAnchor, ElementTypePanel)
+		cpy.ToPanel().Init(t.Background(), ElementTypePanel)
 	case ElementTypeButton:
 		t := ui.ToButton()
-		cpy.ToButton().Init(ui.ToPanel().Background(), t.Label().Text(), t.layout.screenAnchor)
+		cpy.ToButton().Init(ui.ToPanel().Background(), t.Label().Text())
 	case ElementTypeCheckbox:
-		t := ui.ToCheckbox()
-		cpy.ToCheckbox().Init(t.layout.screenAnchor)
+		cpy.ToCheckbox().Init()
 	case ElementTypeImage:
 		t := ui.ToImage()
 		tData := t.ImageData()
 		if len(tData.flipBook) > 0 {
-			cpy.ToImage().InitFlipbook(tData.fps, tData.flipBook, t.layout.screenAnchor)
+			cpy.ToImage().InitFlipbook(tData.fps, tData.flipBook)
 		} else if tData.spriteSheet.IsValid() {
 			s, _ := tData.spriteSheet.ToJson()
-			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s, t.layout.screenAnchor)
+			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s)
 		} else {
-			cpy.ToImage().Init(tData.flipBook[0], t.layout.screenAnchor)
+			cpy.ToImage().Init(tData.flipBook[0])
 		}
 	case ElementTypeInput:
 		t := ui.ToInput()
-		cpy.ToInput().Init(t.InputData().placeholder.Text(), t.layout.screenAnchor)
+		cpy.ToInput().Init(t.InputData().placeholder.Text())
 	case ElementTypeProgressBar:
 		t := ui.ToProgressBar()
-		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background(), t.layout.screenAnchor)
+		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background())
 	case ElementTypeSelect:
 		t := ui.ToSelect()
-		cpy.ToSelect().Init(t.SelectData().text, t.SelectData().options, t.layout.screenAnchor)
+		cpy.ToSelect().Init(t.SelectData().text, t.SelectData().options)
 	case ElementTypeSlider:
-		t := ui.ToSlider()
-		cpy.ToSlider().Init(t.layout.screenAnchor)
+		cpy.ToSlider().Init()
 	}
 	if parent != nil {
 		panel := FirstPanelOnEntity(parent)
@@ -576,5 +587,6 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 		}
 	}
 	cpy.entity.Transform.Copy(ui.entity.Transform)
+	cpy.SetDirty(DirtyTypeGenerated)
 	return cpy
 }

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* material_cache.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -48,12 +48,12 @@ import (
 
 type MaterialCache struct {
 	renderer      Renderer
-	assetDatabase *assets.Database
+	assetDatabase assets.Database
 	materials     map[string]*Material
 	mutex         sync.Mutex
 }
 
-func NewMaterialCache(renderer Renderer, assetDatabase *assets.Database) MaterialCache {
+func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache {
 	return MaterialCache{
 		renderer:      renderer,
 		assetDatabase: assetDatabase,

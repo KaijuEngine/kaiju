@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* window.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -92,7 +92,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets *assets.Database) (*Window, error) {
+func New(windowName string, width, height, x, y int, assets assets.Database) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
@@ -317,11 +317,13 @@ func (w *Window) SetSize(width, height int) {
 	w.height = height
 }
 
-func (w *Window) RemoveBorder()      { w.removeBorder() }
-func (w *Window) AddBorder()         { w.addBorder() }
-func (w *Window) ShowCursor()        { w.showCursor() }
-func (w *Window) HideCursor()        { w.hideCursor() }
-func (w *Window) IsFullScreen() bool { return w.isFullScreen }
+func (w *Window) RemoveBorder()       { w.removeBorder() }
+func (w *Window) AddBorder()          { w.addBorder() }
+func (w *Window) ShowCursor()         { w.showCursor() }
+func (w *Window) HideCursor()         { w.hideCursor() }
+func (w *Window) IsFullScreen() bool  { return w.isFullScreen }
+func (w *Window) LockCursor(x, y int) { w.lockCursor(x, y) }
+func (w *Window) UnlockCursor()       { w.unlockCursor() }
 
 func (w *Window) SetFullscreen() {
 	if w.isFullScreen {
@@ -369,6 +371,8 @@ func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []
 
 func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
 func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
+
+func (w *Window) SetTitle(name string) { w.setTitle(name) }
 
 func (w *Window) requestSync() {
 	w.syncRequest = true

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* host_container.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -39,14 +39,15 @@ package host_container
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/systems/logging"
 	"kaiju/klib"
+	"kaiju/platform/chrono"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 	"weak"
 )
 
@@ -64,17 +65,20 @@ func (c *Container) Run(width, height, x, y int) error {
 	runtime.LockOSThread()
 	if err := c.Host.Initialize(width, height, x, y); err != nil {
 		slog.Error("Failed to initialize the host", "error", err)
+		c.Host.Close()
 		return err
 	}
 	if err := c.Host.InitializeRenderer(); err != nil {
 		slog.Error("Failed to initialize the renderer", "error", err)
+		c.Host.Close()
 		return err
 	}
 	if err := c.Host.InitializeAudio(); err != nil {
 		slog.Error("Failed to initialize audio", "error", err)
-		return err
+		//return err
 	}
-	lastTime := time.Now()
+	clock := chrono.HighResolutionTimer{}
+	clock.Start()
 	// Do one clean update and render before opening the prep lock
 	c.Host.Update(0)
 	c.Host.Render()
@@ -86,9 +90,8 @@ func (c *Container) Run(width, height, x, y int) error {
 		traceRegionName.WriteString(strconv.FormatUint(c.Host.Frame(), 10))
 		r := tracing.NewRegion(traceRegionName.String())
 		c.Host.WaitForFrameRate()
-		since := time.Since(lastTime)
-		deltaTime := since.Seconds()
-		lastTime = time.Now()
+		deltaTime := clock.Stop()
+		clock.Start()
 		c.Host.Update(deltaTime)
 		if !c.Host.Closing {
 			c.Host.Render()
@@ -100,9 +103,9 @@ func (c *Container) Run(width, height, x, y int) error {
 	return nil
 }
 
-func New(name string, logStream *logging.LogStream) *Container {
+func New(name string, logStream *logging.LogStream, adb assets.Database) *Container {
 	defer tracing.NewRegion("host_container.New").End()
-	host := engine.NewHost(name, logStream)
+	host := engine.NewHost(name, logStream, adb)
 	c := &Container{
 		Host:         host,
 		runFunctions: []func(){},

@@ -1,7 +1,0 @@
-editor
-plugins
-source
-go.mod
-go.sum
-__debug
-default.pgo

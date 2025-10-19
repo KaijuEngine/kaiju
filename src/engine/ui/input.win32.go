@@ -1,11 +1,11 @@
 //go:build windows
 
 /******************************************************************************/
-/* input.win32.go                                                            */
+/* input.win32.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -39,8 +39,6 @@
 
 package ui
 
-import "kaiju/debug"
-
 func (input *Input) internalCopyToClipboard() {
 	data := input.InputData()
 	l := data.label
@@ -56,8 +54,6 @@ func (input *Input) internalCutToClipboard() {
 }
 
 func (input *Input) internalPasteFromClipboard() {
-	host := input.man.Host.Value()
-	debug.EnsureNotNil(host)
-	text := host.Window.ClipboardContents()
+	text := input.man.Value().Host.Window.ClipboardContents()
 	input.InsertText(text)
 }

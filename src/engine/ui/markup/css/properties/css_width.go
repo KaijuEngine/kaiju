@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_width.go                                                               */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -55,7 +55,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		return nil
 	}
 	if len(values) != 1 {
-		err = fmt.Errorf("Expected exactly 1 value but got %d", len(values))
+		err = fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	} else if values[0].Str == "fit-content" {
 		panel.FitContentWidth()
 		return nil
@@ -63,34 +63,33 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		width = helpers.NumFromLength(values[0].Str, host.Window)
 	}
 	if err == nil {
-		if strings.HasSuffix(values[0].Str, "%") && elm.Parent.Value() != nil {
-			panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-				if l.Ui().Entity().IsRoot() {
-					return
-				}
-				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-				s := pLayout.PixelSize().X()
-				pPad := pLayout.Padding()
-				s -= pPad.X() + pPad.Z()
-				// Subtracting local padding because it's added in final scale
-				p := l.Padding()
-				w := s*width - p.X() - p.Z()
-				l.ScaleWidth(w)
-			})
+		panel.DontFitContentWidth()
+		l := panel.Base().Layout()
+		if strings.HasSuffix(values[0].Str, "%") {
+			if l.Ui().Entity().IsRoot() {
+				l.ScaleWidth(float32(host.Window.Width()) * width)
+				return nil
+			}
+			pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+			s := pLayout.PixelSize().X()
+			pPad := pLayout.Padding()
+			s -= pPad.X() + pPad.Z()
+			// Subtracting local padding because it's added in final scale
+			p := l.Padding()
+			b := pLayout.Border()
+			w := s*width - p.X() - p.Z() - b.X() - b.Z()
+			l.ScaleWidth(w)
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {
-				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-					val := values[0]
-					val.Args = append(val.Args, "width")
-					res, _ := functions.Calc{}.Process(panel, elm, val)
-					width = helpers.NumFromLength(res, host.Window)
-					l.ScaleWidth(width)
-				})
+				val := values[0]
+				val.Args = append(val.Args, "width")
+				res, _ := functions.Calc{}.Process(panel, elm, val)
+				width = helpers.NumFromLength(res, host.Window)
+				l.ScaleWidth(width)
 			}
 		} else {
 			panel.Base().Layout().ScaleWidth(width)
 		}
-		panel.DontFitContentWidth()
 	}
 	return err
 }
