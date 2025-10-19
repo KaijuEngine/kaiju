@@ -25,3 +25,12 @@ type NoMeshesInFileError struct {
 func (e NoMeshesInFileError) Error() string {
 	return fmt.Sprintf("no meshes were found within the file '%s'", e.Path)
 }
+
+type ImageImportError struct {
+	Err   error
+	Stage string
+}
+
+func (e ImageImportError) Error() string {
+	return fmt.Sprintf("image import failed on stage '%s' with error: %v", e.Stage, e.Err)
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kaiju/editor/editor_overlay/new_project"
 	"kaiju/editor/project"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 )
@@ -19,7 +20,7 @@ func (ed *Editor) newProjectOverlay() {
 func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
 	err := ed.project.Initialize(path)
-	if _, ok := err.(project.ConfigLoadError); !ok {
+	if klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
 		new_project.Show(ed.host, new_project.Config{
 			OnCreate: ed.createProject,

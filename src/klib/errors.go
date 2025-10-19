@@ -41,6 +41,11 @@ type ErrorList struct {
 	Errors []error
 }
 
+func ErrorIs[T error](err error) bool {
+	_, ok := err.(T)
+	return ok
+}
+
 func NewErrorList() ErrorList {
 	return ErrorList{}
 }
