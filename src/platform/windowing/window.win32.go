@@ -239,7 +239,7 @@ func (w *Window) disableRawMouse() {
 }
 
 func (w Window) setTitle(newTitle string) {
-	windowTitle := utf16.Encode([]rune(newTitle))
+	windowTitle := utf16.Encode(append([]rune(newTitle), []rune("\x00\x00")...))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	C.window_set_title(w.handle, title)
 }
