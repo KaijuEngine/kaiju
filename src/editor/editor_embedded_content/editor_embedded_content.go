@@ -13,7 +13,7 @@ func (EditorContent) CacheClear()                   { /* No caching planned*/ }
 func (EditorContent) Close()                        {}
 
 func toEmbedPath(key string) string {
-	return filepath.ToSlash(filepath.Join("editor/editor_content", key))
+	return filepath.ToSlash(filepath.Join("editor/editor_embedded_content/editor_content", key))
 }
 
 func (EditorContent) Read(key string) ([]byte, error) {
