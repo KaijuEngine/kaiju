@@ -183,6 +183,30 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
 
-func (w Window) setTitle() {
+func (w Window) setTitle(name string) {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) lockCursor(x, y int) {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) unlockCursor() {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) setFullscreen() {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) setWindowed(width, height int) {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) disableRawMouse() {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) enableRawMouse() {
 	klib.NotYetImplemented(234)
 }

@@ -50,9 +50,8 @@ import (
 
 func knownPaths() map[string]string {
 	return map[string]string{
-		"Root":      "/",
-		"Home":      "/home",
-		"User Home": "~/",
+		"Root": "/",
+		"Home": "/home",
 	}
 }
 

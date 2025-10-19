@@ -37,6 +37,16 @@
 
 extern void goProcessEvents(uint64_t goWindow, void* events, uint32_t eventCount);
 
+#if __linux__
+typedef long LONG;
+typedef struct {
+	LONG left;
+	LONG top;
+	LONG right;
+	LONG bottom;
+} RECT;
+#endif
+
 typedef struct {
 	void* goWindow;
 	int x;
