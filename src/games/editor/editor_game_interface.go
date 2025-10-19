@@ -38,11 +38,30 @@
 package editor
 
 import (
+	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"reflect"
 )
 
-func PluginRegistry() []reflect.Type {
+type EditorGame struct{}
+
+func (EditorGame) PluginRegistry() []reflect.Type {
 	defer tracing.NewRegion("editor.PluginRegistry").End()
 	return []reflect.Type{}
+}
+
+func (EditorGame) ContentDatabase() (assets.Database, error) {
+	return assets.NewFileDatabase("content")
+}
+
+func (EditorGame) Launch(host *engine.Host) {
+	defer tracing.NewRegion("editor.Launch").End()
+	ed := &Editor{host: host}
+	ed.earlyLoadUI()
+	// Wait 2 frames to blur so the UI is updated properly before being disabled
+	host.RunAfterFrames(2, func() {
+		ed.blurInterface()
+		ed.newProjectOverlay()
+	})
 }

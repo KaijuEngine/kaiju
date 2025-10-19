@@ -41,7 +41,6 @@ import (
 	"flag"
 	"kaiju/bootstrap"
 	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/games"
 	"kaiju/platform/profiler"
 	"kaiju/plugins"
 )
@@ -63,10 +62,11 @@ func parseFlags() LaunchParams {
 
 func main() {
 	params := parseFlags()
+	game := getGame()
 	if params.Generate != "" {
 		switch params.Generate {
 		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, games.GamePluginRegistry()...)
+			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
 			plugins.RegenerateAPI()
 		}
 		return
@@ -78,7 +78,7 @@ func main() {
 	if params.RecordPGO {
 		profiler.StartPGOProfiler()
 	}
-	bootstrap.Main()
+	bootstrap.Main(game)
 	if params.RecordPGO {
 		profiler.StopPGOProfiler()
 	}

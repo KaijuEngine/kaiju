@@ -42,10 +42,8 @@ package bootstrap
 import (
 	"kaiju/build"
 	"kaiju/engine"
-	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/logging"
-	"kaiju/games"
 	"kaiju/matrix"
 	"kaiju/platform/profiler"
 	"kaiju/plugins"
@@ -57,8 +55,8 @@ import (
 
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool
 
-func bootstrapLoop(logStream *logging.LogStream) {
-	adb, err := assets.NewFileDatabase("content")
+func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
+	adb, err := game.ContentDatabase()
 	if err != nil {
 		slog.Error("failed to start the game, could not access the content database")
 		return
@@ -75,8 +73,8 @@ func bootstrapLoop(logStream *logging.LogStream) {
 			profiler.SetupConsole(container.Host)
 			html_preview.SetupConsole(container.Host)
 		}
-		games.LaunchGame(container.Host)
-		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, games.GamePluginRegistry()...)
+		game.Launch(container.Host)
+		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
 		if err := container.Host.BootstrapPlugins(); err != nil {
 			slog.Error("failed to initialize host plugins", "error", err)
 		}
@@ -90,8 +88,8 @@ func bootstrapLoop(logStream *logging.LogStream) {
 	terminateExternalGameService()
 }
 
-func bootstrapInternal(logStream *logging.LogStream) {
-	bootstrapLoop(logStream)
+func bootstrapInternal(logStream *logging.LogStream, game GameInterface) {
+	bootstrapLoop(logStream, game)
 	if build.Debug {
 		runtime.GC()
 		for !containerCleanedUp {

@@ -67,17 +67,6 @@ type GlobalInterface struct {
 	StatusBar status_bar.StatusBar
 }
 
-func Launch(host *engine.Host) {
-	defer tracing.NewRegion("editor.Launch").End()
-	ed := &Editor{host: host}
-	ed.earlyLoadUI()
-	// Wait 2 frames to blur so the UI is updated properly before being disabled
-	host.RunAfterFrames(2, func() {
-		ed.blurInterface()
-		ed.newProjectOverlay()
-	})
-}
-
 func (ed *Editor) focusInterface() {
 	ed.globalInterfaces.MenuBar.Focus()
 	ed.globalInterfaces.StatusBar.Focus()

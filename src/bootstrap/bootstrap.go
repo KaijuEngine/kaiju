@@ -43,7 +43,7 @@ import (
 	"log/slog"
 )
 
-func Main() {
+func Main(game GameInterface) {
 	var ops *slog.HandlerOptions = nil
 	if build.Shipping {
 		ops = &slog.HandlerOptions{
@@ -51,5 +51,5 @@ func Main() {
 		}
 	}
 	logStream := logging.Initialize(ops)
-	bootstrapInternal(logStream)
+	bootstrapInternal(logStream, game)
 }
