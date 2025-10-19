@@ -8,7 +8,6 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"regexp"
 	"strconv"
@@ -18,8 +17,8 @@ import (
 
 type StatusBar struct {
 	doc              *document.Document
-	msg              *ui.Label
-	log              *ui.Label
+	msg              *document.Element
+	log              *document.Element
 	logPopup         *document.Element
 	logEntryTemplate *document.Element
 	uiMan            ui.Manager
@@ -54,12 +53,10 @@ func (b *StatusBar) Blur() {
 
 func (b *StatusBar) setupUIReferences() {
 	defer tracing.NewRegion("StatusBar.setupUIReferences").End()
-	m, _ := b.doc.GetElementById("msg")
-	l, _ := b.doc.GetElementById("log")
+	b.msg, _ = b.doc.GetElementById("msg")
+	b.log, _ = b.doc.GetElementById("log")
 	b.logPopup, _ = b.doc.GetElementById("logPopup")
 	b.logEntryTemplate, _ = b.doc.GetElementById("logEntryTemplate")
-	b.msg = m.Children[0].UI.ToLabel()
-	b.log = l.Children[0].UI.ToLabel()
 	b.logPopup.UI.Hide()
 }
 
@@ -71,38 +68,42 @@ func (b *StatusBar) bindToSlog(host *engine.Host) {
 		if bar == nil {
 			return
 		}
-		host.RunAfterFrames(1, func() { bar.setLog(msg, matrix.ColorWhite()) })
+		bar.doc.SetElementClasses(bar.log, "")
+		bar.setLog(msg)
 	})
 	host.LogStream.OnWarn.Add(func(msg string, _ []string) {
 		bar := wb.Value()
 		if bar == nil {
 			return
 		}
-		host.RunAfterFrames(1, func() { bar.setLog(msg, matrix.ColorYellow()) })
+		bar.doc.SetElementClasses(bar.log, "statusLogWarn")
+		bar.setLog(msg)
 	})
 	host.LogStream.OnError.Add(func(msg string, _ []string) {
 		bar := wb.Value()
 		if bar == nil {
 			return
 		}
-		host.RunAfterFrames(1, func() { bar.setLog(msg, matrix.ColorLightCoral()) })
+		bar.doc.SetElementClasses(bar.log, "statusLogError")
+		bar.setLog(msg)
 	})
 }
 
-func (b *StatusBar) setLog(msg string, color matrix.Color) {
+func (b *StatusBar) setLog(msg string) {
 	defer tracing.NewRegion("StatusBar.setLog").End()
-	b.log.SetColor(color)
 	res := logging.ToMap(msg)
+	lbl := b.log.Children[0].UI.ToLabel()
 	if m, ok := res["msg"]; ok {
-		b.log.SetText(m)
+		lbl.SetText(m)
 	} else {
-		b.log.SetText(msg)
+		lbl.SetText(msg)
 	}
 }
 
 func (b *StatusBar) SetMessage(status string) {
 	defer tracing.NewRegion("StatusBar.SetMessage").End()
-	t := b.msg.Text()
+	lbl := b.msg.Children[0].UI.ToLabel()
+	t := lbl.Text()
 	if strings.HasSuffix(t, status) {
 		count := 1
 		if strings.HasPrefix(t, "(") {
@@ -115,7 +116,7 @@ func (b *StatusBar) SetMessage(status string) {
 		}
 		status = "(" + strconv.Itoa(count) + ") " + status
 	}
-	b.log.Base().Host().RunAfterFrames(1, func() { b.msg.SetText(status) })
+	lbl.SetText(status)
 }
 
 func (b *StatusBar) openLogWindow(*document.Element) {
@@ -132,7 +133,7 @@ func (b *StatusBar) openLogWindow(*document.Element) {
 	all := b.logging.All()
 	elms := b.doc.DuplicateElementRepeat(b.logEntryTemplate, len(all))
 	for i := range elms {
-		elms[i].Children[0].UI.ToLabel().SetText(all[i].Time + ": " + all[i].Message + " " + all[i].Message)
+		elms[i].Children[0].UI.ToLabel().SetText(all[i].Time + ": " + all[i].Message)
 		b.doc.SetElementClassesWithoutApply(elms[i], "logLine", all[i].Category)
 	}
 	b.doc.ApplyStyles()
