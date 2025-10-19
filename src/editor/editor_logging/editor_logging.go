@@ -1,6 +1,7 @@
 package editor_logging
 
 import (
+	"kaiju/engine"
 	"kaiju/engine/systems/logging"
 	"strings"
 	"sync"
@@ -23,7 +24,7 @@ type visibleMessage struct {
 	Category string
 }
 
-func (l *Logging) Initialize(logStream *logging.LogStream) {
+func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream) {
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		l.add(msg, nil, "info")
 	})
@@ -32,6 +33,11 @@ func (l *Logging) Initialize(logStream *logging.LogStream) {
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		l.add(msg, trace, "error")
+	})
+	host.OnClose.Add(func() {
+		logStream.OnInfo.Remove(l.infoEvtId)
+		logStream.OnWarn.Remove(l.warnEvtId)
+		logStream.OnError.Remove(l.errEvtId)
 	})
 }
 

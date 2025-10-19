@@ -63,7 +63,7 @@ func (b *StatusBar) setupUIReferences() {
 func (b *StatusBar) bindToSlog(host *engine.Host) {
 	defer tracing.NewRegion("StatusBar.bindToSlog").End()
 	wb := weak.Make(b)
-	host.LogStream.OnInfo.Add(func(msg string) {
+	infoEvtId := host.LogStream.OnInfo.Add(func(msg string) {
 		bar := wb.Value()
 		if bar == nil {
 			return
@@ -71,7 +71,7 @@ func (b *StatusBar) bindToSlog(host *engine.Host) {
 		bar.doc.SetElementClasses(bar.log, "")
 		bar.setLog(msg)
 	})
-	host.LogStream.OnWarn.Add(func(msg string, _ []string) {
+	warnEvtId := host.LogStream.OnWarn.Add(func(msg string, _ []string) {
 		bar := wb.Value()
 		if bar == nil {
 			return
@@ -79,13 +79,19 @@ func (b *StatusBar) bindToSlog(host *engine.Host) {
 		bar.doc.SetElementClasses(bar.log, "statusLogWarn")
 		bar.setLog(msg)
 	})
-	host.LogStream.OnError.Add(func(msg string, _ []string) {
+	errEvtId := host.LogStream.OnError.Add(func(msg string, _ []string) {
 		bar := wb.Value()
 		if bar == nil {
 			return
 		}
 		bar.doc.SetElementClasses(bar.log, "statusLogError")
 		bar.setLog(msg)
+	})
+	logStream := host.LogStream
+	host.OnClose.Add(func() {
+		logStream.OnInfo.Remove(infoEvtId)
+		logStream.OnWarn.Remove(warnEvtId)
+		logStream.OnError.Remove(errEvtId)
 	})
 }
 
