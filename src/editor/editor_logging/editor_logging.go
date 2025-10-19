@@ -9,14 +9,15 @@ import (
 )
 
 type Logging struct {
-	all       []visibleMessage
+	all       []Message
 	infoEvtId logging.EventId
 	warnEvtId logging.EventId
 	errEvtId  logging.EventId
+	OnNewLog  func(msg Message)
 	mutex     sync.Mutex
 }
 
-type visibleMessage struct {
+type Message struct {
 	Time     string
 	Message  string
 	Trace    string
@@ -41,20 +42,24 @@ func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream) {
 	})
 }
 
-func (l *Logging) Clear()                     { l.all = l.all[:0] }
-func (l *Logging) All() []visibleMessage      { return l.all }
-func (l *Logging) Infos() []visibleMessage    { return l.filter("info") }
-func (l *Logging) Warnings() []visibleMessage { return l.filter("warn") }
-func (l *Logging) Errors() []visibleMessage   { return l.filter("error") }
+func (l *Logging) Clear()              { l.all = l.all[:0] }
+func (l *Logging) All() []Message      { return l.all }
+func (l *Logging) Infos() []Message    { return l.filter("info") }
+func (l *Logging) Warnings() []Message { return l.filter("warn") }
+func (l *Logging) Errors() []Message   { return l.filter("error") }
 
 func (l *Logging) add(msg string, trace []string, cat string) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.all = append(l.all, newVisibleMessage(msg, trace, cat))
+	m := newVisibleMessage(msg, trace, cat)
+	l.all = append(l.all, m)
+	if l.OnNewLog != nil {
+		l.OnNewLog(m)
+	}
 }
 
-func (l *Logging) filter(typeName string) []visibleMessage {
-	res := make([]visibleMessage, 0, len(l.all))
+func (l *Logging) filter(typeName string) []Message {
+	res := make([]Message, 0, len(l.all))
 	for i := range l.all {
 		if l.all[i].Category == typeName {
 			res = append(res, l.all[i])
@@ -63,13 +68,13 @@ func (l *Logging) filter(typeName string) []visibleMessage {
 	return res
 }
 
-func newVisibleMessage(msg string, trace []string, cat string) visibleMessage {
+func newVisibleMessage(msg string, trace []string, cat string) Message {
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
 	message := mapping["msg"]
 	delete(mapping, "time")
 	delete(mapping, "msg")
-	return visibleMessage{
+	return Message{
 		Time:     t.Format(time.StampMilli),
 		Message:  message,
 		Trace:    strings.Join(trace, "\n"),
