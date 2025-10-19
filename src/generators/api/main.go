@@ -315,7 +315,7 @@ func writeTypes(md io.StringWriter, text string) {
 	src = strings.TrimSpace(src)
 	lines := strings.Split(src, "\n")
 	name := ""
-	reg := regexp.MustCompile(`type\s+([\w]+)(\[(\w+)\s([\w\.]+)\]){0,}[\s=]+([\[\]\w\.]+)`)
+	reg := regexp.MustCompile(`type\s+([\w]+)(\[(\w+)\s([\w\.]+)\]){0,}[\s=]+([\*\[\]\w\.]+)`)
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		if strings.HasPrefix(line, "type ") {
