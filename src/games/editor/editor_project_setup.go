@@ -20,9 +20,13 @@ func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
 	err := ed.project.Initialize(path)
 	if _, ok := err.(project.ConfigLoadError); !ok {
-		// TODO:  The new project window is gone by this point, it neesd to
-		// come back in the case of a failure here
 		slog.Error("failed to create the project", "error", err)
+		// Re-show the project setup window
+		// TODO:  Present an error on the screen on why it didn't work
+		new_project.Show(ed.host, new_project.Config{
+			OnCreate: ed.createProject,
+			OnOpen:   ed.openProject,
+		})
 		return
 	}
 	ed.SetProjectName(name)
