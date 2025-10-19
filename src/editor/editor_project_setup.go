@@ -9,6 +9,11 @@ import (
 	"log/slog"
 )
 
+func (ed *Editor) setProjectName(name string) {
+	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
+	ed.project.SetName(name)
+}
+
 func (ed *Editor) newProjectOverlay() {
 	defer tracing.NewRegion("Editor.newProjectOverlay").End()
 	new_project.Show(ed.host, new_project.Config{
@@ -29,14 +34,9 @@ func (ed *Editor) createProject(name, path string) {
 		})
 		return
 	}
-	ed.SetProjectName(name)
+	ed.setProjectName(name)
 	ed.lateLoadUI()
 	ed.FocusInterface()
-}
-
-func (ed *Editor) SetProjectName(name string) {
-	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
-	ed.project.SetName(name)
 }
 
 func (ed *Editor) openProject(path string) {
@@ -45,7 +45,7 @@ func (ed *Editor) openProject(path string) {
 		slog.Error("failed to create the project", "error", err)
 		return
 	}
-	ed.SetProjectName(ed.project.Name())
+	ed.setProjectName(ed.project.Name())
 	ed.lateLoadUI()
 	ed.FocusInterface()
 }

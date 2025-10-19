@@ -97,6 +97,9 @@ func ToContentPath(configPath string) string {
 	return ""
 }
 
+// WriteConfig is used to write a config file to the project file system. This
+// is primarily used by the cache database, but could be used for other needs
+// to extend the editor.
 func WriteConfig(path string, cfg ContentConfig, fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("content_database.WriteConfig").End()
 	path = filepath.ToSlash(path)

@@ -45,6 +45,8 @@ import (
 	"reflect"
 )
 
+// EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
+// bootstrap the editor (as it would a game).
 type EditorGame struct{}
 
 func (EditorGame) PluginRegistry() []reflect.Type {

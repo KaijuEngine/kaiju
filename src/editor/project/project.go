@@ -103,6 +103,7 @@ func (p *Project) Open(path string) error {
 func (p *Project) Name() string { return p.config.Name }
 
 // SetName will update the name of the project and save the project config file.
+// When the name is successfully set, the [OnNameChange] func will be called.
 func (p *Project) SetName(name string) {
 	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
@@ -117,6 +118,8 @@ func (p *Project) SetName(name string) {
 }
 
 // Compile will build all of the Go code for the project without launching it.
+// Any errors during the build process will be contained within an error slog.
+// Look for the fields "error", "log", and "errorlog" for more details.
 func (p *Project) Compile() {
 	slog.Info("compiling the project")
 	cmd := exec.Command("go", "build", "./src")

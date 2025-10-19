@@ -18,9 +18,9 @@ func (ed *Editor) setWorkspaceState(state WorkspaceState) {
 	ed.workspaceState = state
 	switch ed.workspaceState {
 	case WorkspaceStateStage:
-		ed.currentWorkspace = &ed.workspaces.Stage
+		ed.currentWorkspace = &ed.workspaces.stage
 	case WorkspaceStateContent:
-		ed.currentWorkspace = &ed.workspaces.Content
+		ed.currentWorkspace = &ed.workspaces.content
 	}
 	ed.currentWorkspace.Open()
 }

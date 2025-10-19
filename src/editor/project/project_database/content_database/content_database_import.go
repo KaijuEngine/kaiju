@@ -10,27 +10,55 @@ import (
 	"github.com/KaijuEngine/uuid"
 )
 
+// ImportResult contains the result of importing a singular file into the
+// content database. The most important field is the Id field, which holds the
+// new content's GUID.
 type ImportResult struct {
-	Id           string
-	Path         string
-	Category     ContentCategory
+	// Id is a globally unique identifier for this imported content
+	Id string
+
+	// Path holds the path to the imported content within the content database
+	Path string
+
+	// Category is the content type category that was used to import this file
+	Category ContentCategory
+
+	// Dependencies lists out the import results for all of the imported
+	// dependencies. An example of this is, when importing a mesh, that file
+	// will also contain references to textures that need to be imported. So,
+	// those textures would be imported and listed in this slice.
 	Dependencies []ImportResult
 }
 
+// ProcessedImport holds all the information related to the single target file
+// that was imported. A single imported file may expand into multiple pieces of
+// content being imported, those are stored in the Variants.
 type ProcessedImport struct {
+	// Dependencies are the other files being imported when importing this file
 	Dependencies []string
-	Variants     []ImportVariant
+
+	// Variants holds all of the imported variants from this file. An example of
+	// this (in the future) might be different languages when importing a font.
+	Variants []ImportVariant
 }
 
+// ImportVariant contains information about a variant of the imported content
 type ImportVariant struct {
+	// Name is the name of the content, typically the file name associated
 	Name string
+
+	// Data contains the binary representation of the content that was imported
 	Data []byte
 }
 
+// ContentPath will return the project file system path for the matching content
+// file for the target content.
 func (r *ImportResult) ContentPath() string {
 	return filepath.Join(project_file_system.ContentFolder, r.Category.Path(), r.Id)
 }
 
+// ConfigPath will return the project file system path for the matching config
+// file for the target content.
 func (r *ImportResult) ConfigPath() string {
 	return filepath.Join(project_file_system.ContentConfigFolder, r.Category.Path(), r.Id)
 }

@@ -49,48 +49,62 @@ import (
 	"log/slog"
 )
 
+// Editor is the entry point structure for the entire editor. It acts as the
+// delegate to the various systems and holds the primary members that make up
+// the bulk of the editor identity.
+//
+// The design goal of the editor is different than that of the [engine.Host], as
+// it is not intended to be passed around for access to the system. Instead it
+// will supply interface functions that are needed to the systems that it holds
+// internally.
 type Editor struct {
 	host             *engine.Host
 	project          project.Project
 	workspaceState   WorkspaceState
-	workspaces       Workspaces
-	globalInterfaces GlobalInterface
+	workspaces       workspaces
+	globalInterfaces globalInterface
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
 }
 
-type Workspaces struct {
-	Stage   stage_workspace.Workspace
-	Content content_workspace.Workspace
+type workspaces struct {
+	stage   stage_workspace.Workspace
+	content content_workspace.Workspace
 }
 
-type GlobalInterface struct {
-	MenuBar   menu_bar.MenuBar
-	StatusBar status_bar.StatusBar
+type globalInterface struct {
+	menuBar   menu_bar.MenuBar
+	statusBar status_bar.StatusBar
 }
 
+// FocusInterface is responsible for enabling the input on the various
+// interfaces that are currently presented to the developer. This primarily
+// includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) FocusInterface() {
-	ed.globalInterfaces.MenuBar.Focus()
-	ed.globalInterfaces.StatusBar.Focus()
+	ed.globalInterfaces.menuBar.Focus()
+	ed.globalInterfaces.statusBar.Focus()
 	ed.currentWorkspace.Focus()
 }
 
+// FocusInterface is responsible for disabling the input on the various
+// interfaces that are currently presented to the developer. This primarily
+// includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) BlurInterface() {
-	ed.globalInterfaces.MenuBar.Blur()
-	ed.globalInterfaces.StatusBar.Blur()
+	ed.globalInterfaces.menuBar.Blur()
+	ed.globalInterfaces.statusBar.Blur()
 	ed.currentWorkspace.Blur()
 }
 
 func (ed *Editor) earlyLoadUI() {
-	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
-	ed.globalInterfaces.StatusBar.Initialize(ed.host, &ed.logging, ed)
-	ed.workspaces.Stage.Initialize(ed.host)
+	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
+	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
+	ed.workspaces.stage.Initialize(ed.host)
 	ed.setWorkspaceState(WorkspaceStateStage)
 }
 
 func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
-	ed.workspaces.Content.Initialize(ed.host,
+	ed.workspaces.content.Initialize(ed.host,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 }

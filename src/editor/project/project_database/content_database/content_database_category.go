@@ -8,8 +8,15 @@ import (
 )
 
 var (
+	// ContentCategories is a list of categories that the file system currently
+	// operates on. This is exported so that other parts of the editor can use
+	// it for filtering or generating menus and options.
 	ContentCategories = []ContentCategory{}
-	ImportableTypes   = []string{}
+
+	// ImportableTypes is a list of content types that the file system currently
+	// imports. This is exported so that other parts of the editor can use
+	// it for filtering or generating menus and options.
+	ImportableTypes = []string{}
 )
 
 // ContentCategory is the representation of a single category within the content
