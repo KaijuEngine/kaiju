@@ -31,6 +31,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickContent":         b.clickContent,
 			"clickAnimation":       b.clickAnimation,
 			"clickUI":              b.clickUI,
+			"clickLog":             b.clickLog,
 			"clickNewStage":        b.clickNewStage,
 			"clickOpenStage":       b.clickOpenStage,
 			"clickSaveStage":       b.clickSaveStage,
@@ -85,6 +86,10 @@ func (b *MenuBar) clickAnimation(e *document.Element) {
 }
 
 func (b *MenuBar) clickUI(e *document.Element) {
+	b.selectTab(e)
+}
+
+func (b *MenuBar) clickLog(e *document.Element) {
 	b.selectTab(e)
 }
 
