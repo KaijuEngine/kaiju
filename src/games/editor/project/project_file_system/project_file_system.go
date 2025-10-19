@@ -97,6 +97,7 @@ func (fs *FileSystem) SetupStructure() error {
 			return err
 		}
 	}
+	fs.createCodeProject()
 	return nil
 }
 

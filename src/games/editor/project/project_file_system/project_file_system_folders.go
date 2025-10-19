@@ -35,3 +35,14 @@ const (
 const (
 	CacheBvhFolder = CacheFolder + "/bvh"
 )
+
+const (
+	KaijuSrcFolder        = "kaiju"
+	ProjectCodeFolder     = "src"
+	ProjectVSCodeFolder   = ".vscode"
+	ProjectLaunchJsonFile = ".vscode/launch.json"
+	ProjectCodeMain       = "src/main.go"
+	ProjectCodeGame       = "src/game.go"
+	ProjectModFile        = "src/go.mod"
+	ProjectWorkFile       = "go.work"
+)
