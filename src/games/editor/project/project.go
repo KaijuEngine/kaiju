@@ -1,12 +1,14 @@
 package project
 
 import (
+	"bytes"
 	"fmt"
 	"kaiju/games/editor/project/project_database/content_database"
 	"kaiju/games/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -111,6 +113,24 @@ func (p *Project) SetName(name string) {
 	p.config.save(&p.fileSystem)
 	if p.OnNameChange != nil {
 		p.OnNameChange(p.config.Name)
+	}
+}
+
+// Compile will build all of the Go code for the project without launching it.
+func (p *Project) Compile() {
+	slog.Info("compiling the project")
+	cmd := exec.Command("go", "build", "./src")
+	cmd.Dir = p.fileSystem.Name()
+	var stderr, stdout bytes.Buffer
+	cmd.Stderr, cmd.Stdout = &stderr, &stdout
+	if err := cmd.Run(); err != nil {
+		slog.Error("project compilation failed!", "error", err, "log", stdout.String())
+	} else {
+		if stderr.Len() > 0 {
+			slog.Info("project successfully compiled with warnings", "warnings", stderr.String())
+		} else {
+			slog.Info("project successfully compiled")
+		}
 	}
 }
 

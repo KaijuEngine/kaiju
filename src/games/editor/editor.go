@@ -45,7 +45,7 @@ import (
 	"kaiju/games/editor/global_interface/menu_bar"
 	"kaiju/games/editor/global_interface/status_bar"
 	"kaiju/games/editor/project"
-	"kaiju/platform/profiler/tracing"
+	"log/slog"
 )
 
 type Editor struct {
@@ -87,6 +87,8 @@ func (ed *Editor) earlyLoadUI() {
 }
 
 func (ed *Editor) lateLoadUI() {
+	slog.Info("compiling the project to get things ready")
+	go ed.project.Compile()
 	ed.workspaces.Content.Initialize(ed.host,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 }
