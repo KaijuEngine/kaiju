@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/editor/editor_embedded_content"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
@@ -52,11 +53,12 @@ func (EditorGame) PluginRegistry() []reflect.Type {
 }
 
 func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return assets.NewFileDatabase("content")
+	return editor_embedded_content.EditorContent{}, nil
 }
 
 func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("editor.Launch").End()
+	host.SetFrameRateLimit(60)
 	ed := &Editor{host: host}
 	ed.logging.Initialize(host, host.LogStream)
 	ed.earlyLoadUI()
