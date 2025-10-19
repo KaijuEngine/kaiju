@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* global_shader_data.go                                                      */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -42,7 +42,14 @@ import "kaiju/matrix"
 const (
 	MaxJoints        = 50
 	MaxSkinInstances = 50
+	MaxPointShadows  = 50
 )
+
+type PointShadow struct {
+	Point    matrix.Vec2 // X,Z
+	Radius   float32
+	Strength float32
+}
 
 type GlobalShaderData struct {
 	View             matrix.Mat4
@@ -55,8 +62,10 @@ type GlobalShaderData struct {
 	ScreenSize       matrix.Vec2
 	Time             float32
 	_                float32
-	VertLights       [maxLights]GPULight
-	LightInfos       [maxLights]GPULightInfo
+	StaticShadows    [MaxPointShadows]PointShadow
+	DynamicShadows   [MaxPointShadows]PointShadow
+	VertLights       [MaxLights]GPULight
+	LightInfos       [MaxLights]GPULightInfo
 }
 
 type SkinnedShaderData struct {

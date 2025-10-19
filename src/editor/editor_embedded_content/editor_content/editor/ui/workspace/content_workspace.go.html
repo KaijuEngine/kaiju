@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.content {
+				margin-top: 2em;
+				width: 100%;
+				height: calc(100% - 2em);
+			}
+			.left {
+				padding: 0 5px;
+				width: 15em;
+				height: 100%;
+				background-color: #282828;
+				overflow-y: scroll;
+			}
+			.center {
+				width: calc(100% - 30em);
+				height: 100%;
+				background-color: #121212;
+				padding: 10px;
+				text-align: center;
+				overflow-y: scroll;
+			}
+			.right {
+				width: 15em;
+				height: 100%;
+				background-color: #282828;
+				overflow-y: scroll;
+			}
+			.rightBody {
+				width: 100%;
+				height: 100%;
+				color: white;
+				overflow-y: scroll;
+			}
+			.leftBtn {
+				padding: 1px;
+				background-color: #282828;
+				border: 2px solid #575757;
+				border-radius: 5px;
+				color: #AAA;
+				width: 100%;
+				font-size: 1em;
+				vertical-align: middle;
+				text-align: center;
+			}
+			.leftBtn:hover {
+				color: white;
+				background-color: #353535;
+			}
+			.leftBtn:active {
+				background-color: #121212;
+			}
+			.leftBtn img {
+				width: 1em;
+				height: 1em;
+				background-color: #1D731C;
+				margin-right: 5px;
+			}
+			.filterSelected {
+				background-color: #575757;
+				color: white;
+			}
+			input {
+				width: 100%;
+				height: 2em;
+				margin: 0.5em 0;
+			}
+			.entry {
+				width: 10em;
+				height: 12em;
+				background-color: #282828;
+				color: #AAA;
+				margin-right: 5px;
+				margin-bottom: 5px;
+			}
+			.entrySelected {
+				background-color: #575757;
+				color: white;
+			}
+			.entry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.entry img {
+				width: 10em;
+				height: 10em;
+			}
+			.entryTag {
+				margin-bottom: 0.25em;
+			}
+			.entryTag span {
+				width: calc(100% - 2em);
+				margin-left: 5px;
+			}
+			.entryTag button {
+				width: 2em;
+				height: 2em;
+				font-size: 1em;
+			}
+			#entryTags {
+				width: 100%;
+				border: 2px solid #575757;
+				background-color: #121212;
+				margin-bottom: 0.25em;
+			}
+			#addTagbtn {
+				left: 50%;
+				transform: translateX(-50%);
+			}
+			#newTagHint {
+				width: 100%;
+				height: 10em;
+				overflow-y: scroll;
+				border: 2px solid #575757;
+				background-color: #121212;
+			}
+			.tagHint { color: #AAA; background-color: #121212; }
+			.tagHint:hover { color: white; background-color: #575757; }
+		</style>
+	</head>
+	<body>
+		<div class="content">
+			<div class="left">
+				<input type="text" placeholder="Content search..." onsubmit="inputFilter" />
+				<div class="leftBtn" onclick="clickImport">
+					<img src="editor/textures/icons/plus.png" />
+					<span>Import content...</span>
+				</div>
+				{{range .Filters}}
+				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				{{end}}
+				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
+				<div id="tagFilterList">
+					<div id="tagFilterTemplate" class="leftBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</div>
+					{{range .Tags}}
+					<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="center">
+				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry">
+					<img class="preview" src="editor/textures/icons/file.png" />
+					<div>Name...</div>
+				</span>
+			</div>
+			<div class="right">
+				<div class="rightBody">
+					<input id="entryName" type="text" placeholder="Name..." />
+					<div class="centerText">Tags</div>
+					<div id="entryTags">
+						<div id="entryTagTemplate" class="entryTag">
+							<span>hats</span>
+							<button data-tag="" onclick="clickDeleteTag">X</button>
+						</div>
+					</div>
+					<input id="newTagInput" type="text" placeholder="Add new tag..." onchange="updateTagHint" onsubmit="submitNewTag" />
+					<div id="newTagHint">
+						<div id="tagHintTemplate" class="tagHint" onclick="clickTagHint">Hint tag name...</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

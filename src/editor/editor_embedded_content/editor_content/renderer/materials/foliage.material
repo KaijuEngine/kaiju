@@ -1,0 +1,1 @@
+{"Name":"foliage","Shader":"renderer/shaders/foliage.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/foliage.shaderpipeline","Textures":[{"Texture":"textures/square.png"}]}

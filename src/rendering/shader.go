@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* shader.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -214,7 +214,7 @@ func NewShader(shaderData ShaderDataCompiled) *Shader {
 	return s
 }
 
-func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase *assets.Database) {
+func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase assets.Database) {
 	renderer.CreateShader(s, assetDatabase)
 	for _, ss := range s.subShaders {
 		renderer.CreateShader(ss, assetDatabase)

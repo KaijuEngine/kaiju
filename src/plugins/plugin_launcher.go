@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* plugin_launcher.go                                                         */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -234,7 +234,7 @@ func (vm *LuaVM) rollup(lua, luaPath string, imported *[]string) error {
 	return nil
 }
 
-func (vm *LuaVM) setupPrerequisites(assets *assets.Database) error {
+func (vm *LuaVM) setupPrerequisites(adb assets.Database) error {
 	defer tracing.NewRegion("LuaVM.setupPrerequisites").End()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
 		if state.IsTable(-1) {
@@ -248,23 +248,25 @@ func (vm *LuaVM) setupPrerequisites(assets *assets.Database) error {
 	vm.runtime.SetGlobal(globalCleanupPtrFn)
 	prereq := []string{"debugger.lua", "globals.lua"}
 	for i := range prereq {
-		err := vm.runtime.DoFile(assets.ToFilePath(
-			filepath.Join(plugins, prereq[i])))
+		s, err := adb.ReadText(filepath.Join(plugins, prereq[i]))
 		if err != nil {
+			return err
+		}
+		if err = vm.runtime.DoString(s); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func launchPlugin(assets *assets.Database, entry string) (*LuaVM, error) {
+func launchPlugin(adb assets.Database, entry string) (*LuaVM, error) {
 	defer tracing.NewRegion("plugins.launchPlugin").End()
 	vm := &LuaVM{
 		PluginPath: entry,
 		runtime:    lua.New(),
 	}
 	vm.runtime.OpenLibraries()
-	if err := vm.setupPrerequisites(assets); err != nil {
+	if err := vm.setupPrerequisites(adb); err != nil {
 		return vm, err
 	}
 	for _, t := range reflectedTypes() {
@@ -300,7 +302,7 @@ func launchPlugin(assets *assets.Database, entry string) (*LuaVM, error) {
 	return vm, nil
 }
 
-func LaunchPlugins(assets *assets.Database) ([]*LuaVM, error) {
+func LaunchPlugins(adb assets.Database) ([]*LuaVM, error) {
 	defer tracing.NewRegion("plugins.LaunchPlugins").End()
 	pluginsPath := filepath.Join("content", plugins)
 	dirs, err := os.ReadDir(pluginsPath)
@@ -312,7 +314,7 @@ func LaunchPlugins(assets *assets.Database) ([]*LuaVM, error) {
 		if !dirs[i].IsDir() {
 			continue
 		}
-		vm, err := launchPlugin(assets, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
+		vm, err := launchPlugin(adb, filepath.Join(pluginsPath, dirs[i].Name(), "main.lua"))
 		vms = append(vms, vm)
 		if err != nil {
 			slog.Error("plugin failed to load", "plugin", dirs[i].Name(), "error", err)

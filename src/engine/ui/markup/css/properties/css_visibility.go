@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_visibility.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -51,7 +51,6 @@ func (p Visibility) Process(panel *ui.Panel, elm *document.Element, values []rul
 	if len(values) != 1 {
 		return fmt.Errorf("Visibility arguments expects 1 argument only but received: %d", len(values))
 	}
-
 	s := values[0].Str
 	switch s {
 	case "initial":
@@ -65,6 +64,5 @@ func (p Visibility) Process(panel *ui.Panel, elm *document.Element, values []rul
 	case "inherit":
 		panel.Base().Entity().SetActive(panel.Base().Entity().Parent.IsActive())
 	}
-
 	return nil
 }

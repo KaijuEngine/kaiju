@@ -1,11 +1,9 @@
-//go:build !F64
-
 /******************************************************************************/
 /* float32.go                                                                 */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -36,6 +34,8 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
+
+//go:build !F64
 
 package matrix
 
@@ -124,4 +124,8 @@ func Mod(x Float, y Float) Float {
 
 func Round(x Float) Float {
 	return Float(math.Round(float64(x)))
+}
+
+func Lerp(v0, v1, t Float) Float {
+	return (1-t)*v0 + t*v1
 }

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* plugin_api_doc.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -266,7 +266,7 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 
 func RegenerateAPI() error {
 	defer tracing.NewRegion("plugins.RegenerateAPI").End()
-	const apiFile = "content/plugins/api.lua"
+	const apiFile = "plugins/api.lua"
 	f, err := os.OpenFile(apiFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err

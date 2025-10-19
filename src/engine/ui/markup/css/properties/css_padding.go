@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_padding.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -51,15 +51,16 @@ import (
 func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorComponent, window *windowing.Window) (matrix.Vec4, error) {
 	current := elm.UI.Layout().Padding()
 	size := current[idx]
-	if str == "initial" {
+	switch str {
+	case "initial":
 		size = 0
-	} else if str == "inherit" {
+	case "inherit":
 		if elm.Parent.Value() == nil {
 			size = 0
 		} else {
 			size = elm.Parent.Value().UI.Layout().Padding()[idx]
 		}
-	} else {
+	default:
 		size = helpers.NumFromLength(str, window)
 	}
 	current[idx] = size

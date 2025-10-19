@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* button.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -72,21 +72,21 @@ func (b *Button) Label() *Label {
 	return pui.ToLabel()
 }
 
-func (b *Button) Init(texture *rendering.Texture, text string, anchor Anchor) {
+func (b *Button) Init(texture *rendering.Texture, text string) {
 	p := b.Base().ToPanel()
 	b.elmData = &buttonData{
 		color: matrix.ColorWhite(),
 	}
-	p.Init(texture, anchor, ElementTypeButton)
+	p.Init(texture, ElementTypeButton)
 	p.SetColor(matrix.ColorWhite())
 	b.setupEvents()
 	ps := p.layout.PixelSize()
 	p.layout.Scale(ps.Width(), ps.Height()+1)
 
 	// Create the label for the button
-	lbl := b.man.Add().ToLabel()
-	lbl.Init("", AnchorStretchCenter)
-	lbl.layout.SetStretch(0, 0, 0, 0)
+	lbl := b.man.Value().Add().ToLabel()
+	lbl.Init("")
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{b.Base()}}
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)

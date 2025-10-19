@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* vec4.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -72,6 +72,8 @@ func (v *Vec4) SetWidth(z Float)                  { v[Vz] = z }
 func (v *Vec4) SetHeight(w Float)                 { v[Vw] = w }
 func (v Vec4) AsVec3() Vec3                       { return Vec3(v[:Vw]) }
 func (v Vec4) XYZW() (Float, Float, Float, Float) { return v[Vx], v[Vy], v[Vz], v[Vw] }
+func (v Vec4) Horizontal() Float                  { return v[Vx] + v[Vz] }
+func (v Vec4) Vertical() Float                    { return v[Vy] + v[Vw] }
 
 func (v Vec4) AsVec4i() Vec4i {
 	return Vec4i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz]), int32(v[Vw])}

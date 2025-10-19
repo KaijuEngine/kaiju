@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* vk_api_shader.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -42,7 +42,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
-	"strings"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -55,7 +54,7 @@ type ShaderCleanup struct {
 
 type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
 
-func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
+func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 	defer tracing.NewRegion("Vulkan.CreateShader").End()
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
@@ -174,15 +173,6 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB *assets.Database) error {
 		stages = append(stages, teseStage)
 	}
 	shader.pipelineInfo.ConstructPipeline(vr, shader, shader.renderPass.Value(), stages)
-	// TODO:  Setup subshader in the shader definition?
-	subShaderCheck := strings.TrimSuffix(shader.data.Fragment, ".spv") + oitSuffix
-	if assetDB.Exists(subShaderCheck) {
-		cpy := shader.data
-		cpy.Fragment = subShaderCheck
-		subShader := NewShader(cpy)
-		subShader.DriverData = shader.DriverData
-		shader.AddSubShader("transparent", subShader)
-	}
 	runtime.AddCleanup(shader, func(state ShaderCleanup) {
 		v := state.renderer.(*Vulkan)
 		v.preRuns = append(v.preRuns, func() {

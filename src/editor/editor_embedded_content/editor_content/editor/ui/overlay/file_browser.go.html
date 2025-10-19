@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 99; }
+			.overlay {
+				position: absolute;
+				width: 75%;
+				height: 75%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				color: white;
+				background-color: #121212;
+				border: 5px solid #575757;
+				border-radius: 5px;
+			}
+			.titleBar {
+				width: 100%;
+				height: 2.5em;
+				text-align: center;
+				vertical-align: middle;
+			}
+			.content {
+				width: 100%;
+				height: calc(100% - 2.5em - 4px);
+			}
+			.leftPanel {
+				width: 20%;
+				height: calc(100% - 5px);
+				background-color: #282828;
+			}
+			.rightPanel {
+				position: absolute;
+				right: 0px;
+				width: 79%;
+				height: 100%;
+			}
+			.navBar {
+				width: 100%;
+				height: 2.5em;
+				background-color: #282828;
+			}
+			.quickEntry {
+				width: 100%;
+				height: 1.375em;
+				padding-left: 5px;
+				background-color: #282828;
+			}
+			.quickEntry:hover {
+				background-color: #575757;
+			}
+			img {
+				width: 1.375em;
+				height: 1.375em;
+			}
+			img { image-rendering: pixelated; }
+			input {
+				margin-left: 1em;
+				width: calc(100% - 26.5em);
+				height: 100%;
+			}
+			button {
+				height: 2.5em;
+			}
+			#entryList {
+				margin-top: 5px;
+				width: 100%;
+				height: calc(100% - 5.5em - 5px);
+				background-color: #121212;
+				overflow-y: scroll;
+			}
+			.entry {
+				width: 100%;
+				height: 2em;
+				background-color: #121212;
+			}
+			.entry img {
+				margin-right: 5px;
+			}
+			#entryList:nth-child(odd) {
+				background-color: #282828;
+			}
+			.entry:hover {
+				background-color: #575757;
+			}
+			.selected {
+				background-color: #1d731c;
+			}
+			.actionBar {
+				width: 100%;
+				height: 2.5em;
+			}
+			.actionBtns {
+				position: absolute;
+				width: 11em;
+				height: 100%;
+				right: 0;
+			}
+			.actionBtns button {
+				margin-left: 0.5em;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="overlay">
+			<div class="titleBar">{{.Title}}</div>
+			<div class="content">
+				<div class="leftPanel">
+					<div class="centerText">Quick access</div>
+					{{range .QuickAccessFolders}}
+					<div class="quickEntry" data-path="{{.Path}}" onclick="selectQuickAccess">
+						<img src="editor/textures/icons/folder_small.png" />
+						<span>{{.Name}}</span>
+					</div>
+					{{end}}
+				</div>
+				<div class="rightPanel">
+					<div class="navBar">
+						<button onclick="back">&lt;</button>
+						<button onclick="forward">&gt;</button>
+						<button onclick="upFolder">^</button>
+						<button onclick="reload">@</button>
+						<button onclick="newFolder">New folder</button>
+						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" onsubmit="setPath" />
+					</div>
+					<!-- Populated in Go -->
+					<div id="entryList">
+						<div id="entryTemplate" class="entry" data-path="" onclick="selectEntry" ondblclick="openEntry">
+							<img src="editor/textures/icons/folder_small.png" />
+							<img src="editor/textures/icons/file.png" />
+							<span>Name 1</span>
+						</div>
+					</div>
+					<div class="actionBar">
+						<div class="actionBtns">
+							<button onclick="confirmSelection">Select</button>
+							<button onclick="cancel">Cancel</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

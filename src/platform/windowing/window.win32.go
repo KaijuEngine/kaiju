@@ -3,9 +3,9 @@
 /******************************************************************************/
 /* window.win32.go                                                            */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -68,10 +68,13 @@ import (
 #cgo noescape window_poll
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
+#cgo noescape window_lock_cursor
+#cgo noescape window_unlock_cursor
 #cgo noescape window_set_fullscreen
 #cgo noescape window_set_windowed
 #cgo noescape window_enable_raw_mouse
 #cgo noescape window_disable_raw_mouse
+#cgo noescape window_set_title
 
 #include "windowing.h"
 */
@@ -211,6 +214,14 @@ func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
 }
 
+func (w *Window) lockCursor(x, y int) {
+	C.window_lock_cursor(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) unlockCursor() {
+	C.window_unlock_cursor(w.handle)
+}
+
 func (w *Window) setFullscreen() {
 	C.window_set_fullscreen(w.handle)
 }
@@ -225,4 +236,10 @@ func (w *Window) enableRawMouse() {
 
 func (w *Window) disableRawMouse() {
 	C.window_disable_raw_mouse(w.handle)
+}
+
+func (w Window) setTitle(newTitle string) {
+	windowTitle := utf16.Encode(append([]rune(newTitle), []rune("\x00\x00")...))
+	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
+	C.window_set_title(w.handle, title)
 }

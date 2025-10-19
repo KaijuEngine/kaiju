@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* preview.go                                                                 */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -41,6 +41,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/host_container"
 	"kaiju/engine/systems/console"
 	"kaiju/engine/ui"
@@ -48,6 +49,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/filesystem"
+	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"
@@ -157,7 +159,11 @@ func startPreview(previewContainer *host_container.Container, htmlFile string) {
 }
 
 func New(htmlFile string) (*host_container.Container, error) {
-	c := host_container.New("HTML Preview", nil)
+	adb, err := assets.NewFileDatabase("content")
+	if err != nil {
+		return nil, err
+	}
+	c := host_container.New("HTML Preview", nil, adb)
 	c.Host.SetFrameRateLimit(60)
 	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
 	<-c.PrepLock
@@ -166,6 +172,7 @@ func New(htmlFile string) (*host_container.Container, error) {
 }
 
 func SetupConsole(host *engine.Host) {
+	defer tracing.NewRegion("html_preview.SetupConsole").End()
 	console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
 		filePath = linkFile(filePath)
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -176,4 +183,8 @@ func SetupConsole(host *engine.Host) {
 		}
 		return fmt.Sprintf("Previewing file: %s", filePath)
 	})
+	//console.For(host).AddCommand("reloadui", "Reloads all of the UI elements from disk", func(*engine.Host, string) string {
+	//	document.Debug.ReloadStylesEvent.Execute()
+	//	return ""
+	//})
 }

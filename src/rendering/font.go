@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* font.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -172,7 +172,7 @@ type FontCache struct {
 	textOrthoMaterialTransparent *Material
 	renderer                     Renderer
 	renderCaches                 RenderCaches
-	assetDb                      *assets.Database
+	assetDb                      assets.Database
 	fontFaces                    map[string]fontBin
 	instanceKey                  int64
 	FaceMutex                    sync.RWMutex
@@ -234,7 +234,7 @@ func (cache *FontCache) EMSize(face FontFace) float32 {
 	return cache.fontFaces[face.string()].metrics.EMSize * DefaultFontEMSize
 }
 
-func NewFontCache(renderer Renderer, assetDb *assets.Database) FontCache {
+func NewFontCache(renderer Renderer, assetDb assets.Database) FontCache {
 	defer tracing.NewRegion("rendering.NewFontCache").End()
 	return FontCache{
 		renderer:  renderer,
@@ -358,14 +358,14 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	font.cachedOrthoLetters[key] = &clmCpy
 }
 
-func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *assets.Database) bool {
+func (cache *FontCache) initFont(face FontFace, renderer Renderer, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
 	bin.texture.MipLevels = 1
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
-	out, _ := assetDb.Read(face.string() + ".bin")
+	out, _ := adb.Read(face.string() + ".bin")
 	if bin.texture == nil || out == nil || len(out) == 0 {
 		return false
 	}
@@ -421,7 +421,7 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, assetDb *asse
 	return true
 }
 
-func (cache *FontCache) Init(renderer Renderer, assetDb *assets.Database, caches RenderCaches) error {
+func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches RenderCaches) error {
 	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
 	mc := caches.MaterialCache()
@@ -502,7 +502,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		case FontJustifyRight:
 			xOffset = left + (maxWidth - lineWidth)
 		case FontJustifyCenter:
-			xOffset = left + ((maxWidth * 0.5) - (lineWidth * 0.5))
+			xOffset = (maxWidth * 0.5) - (lineWidth * 0.5)
 		case FontJustifyLeft:
 			xOffset = left
 		default:

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* checkbox.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,7 +38,6 @@
 package ui
 
 import (
-	"kaiju/debug"
 	"kaiju/rendering"
 )
 
@@ -78,13 +77,12 @@ func (cb *Checkbox) CheckboxData() *checkboxData {
 	return cb.Base().elmData.(*checkboxData)
 }
 
-func (cb *Checkbox) Init(anchor Anchor) {
+func (cb *Checkbox) Init() {
 	ld := &checkboxData{}
 	cb.elmData = ld
 	base := cb.Base()
 	p := base.ToPanel()
-	host := p.man.Host.Value()
-	debug.EnsureNotNil(host)
+	host := p.man.Value().Host
 	tc := host.TextureCache()
 	ld.textures[texOffIdle], _ = tc.Texture(
 		offIdleTexture, rendering.TextureFilterLinear)
@@ -101,7 +99,7 @@ func (cb *Checkbox) Init(anchor Anchor) {
 	for i := range ld.textures {
 		ld.textures[i].MipLevels = 1
 	}
-	p.Init(ld.textures[texOffIdle], anchor, ElementTypeCheckbox)
+	p.Init(ld.textures[texOffIdle], ElementTypeCheckbox)
 	base.AddEvent(EventTypeEnter, cb.onHover)
 	base.AddEvent(EventTypeExit, cb.onBlur)
 	base.AddEvent(EventTypeDown, cb.onDown)

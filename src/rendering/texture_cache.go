@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* texture_cache.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -46,13 +46,13 @@ import (
 
 type TextureCache struct {
 	renderer        Renderer
-	assetDatabase   *assets.Database
+	assetDatabase   assets.Database
 	textures        [TextureFilterMax]map[string]*Texture
 	pendingTextures []*Texture
 	mutex           sync.Mutex
 }
 
-func NewTextureCache(renderer Renderer, assetDatabase *assets.Database) TextureCache {
+func NewTextureCache(renderer Renderer, assetDatabase assets.Database) TextureCache {
 	defer tracing.NewRegion("rendering.NewTextureCache").End()
 	tc := TextureCache{
 		renderer:        renderer,
@@ -81,6 +81,19 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 			return nil, err
 		}
 	}
+}
+
+func (t *TextureCache) InsertTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+	if texture, err := t.Texture(key, filter); err == nil {
+		return texture, nil
+	}
+	texture, err := NewTextureFromMemory(key, data, width, height, filter)
+	if err != nil {
+		return nil, err
+	}
+	t.pendingTextures = append(t.pendingTextures, texture)
+	t.textures[filter][key] = texture
+	return texture, nil
 }
 
 func (t *TextureCache) CreatePending() {

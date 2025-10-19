@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* errors.go                                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -39,6 +39,11 @@ package klib
 
 type ErrorList struct {
 	Errors []error
+}
+
+func ErrorIs[T error](err error) bool {
+	_, ok := err.(T)
+	return ok
 }
 
 func NewErrorList() ErrorList {

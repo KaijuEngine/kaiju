@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* soloud.c.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,8 +38,8 @@
 package audio
 
 /*
-#cgo windows LDFLAGS: -L../../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
-#cgo linux LDFLAGS: -L../../../libs -lsoloud_nix -lasound -lstdc++
+#cgo windows LDFLAGS: -L../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
+#cgo linux LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
 #include <stdlib.h>
 #include "soloud_c.h"
 */

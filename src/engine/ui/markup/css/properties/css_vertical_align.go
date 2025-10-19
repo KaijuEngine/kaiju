@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_vertical_align.go                                                      */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -58,13 +58,12 @@ func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []
 		for _, l := range labels {
 			base := l.Base()
 			layout := base.Layout()
-			if layout.Anchor().IsLeft() {
-				layout.AnchorTo(ui.AnchorLeft)
-			} else if layout.Anchor().IsRight() {
-				layout.AnchorTo(ui.AnchorRight)
-			} else {
-				layout.AnchorTo(ui.AnchorCenter)
-			}
+			pl := ui.FirstOnEntity(l.Base().Entity().Parent).Layout()
+			pp := pl.Padding()
+			pb := pl.Border()
+			//ph := pl.PixelSize().Y() - pp.Vertical() - pb.Vertical()
+			//th := l.Measure().Height()
+			layout.SetInnerOffsetTop(pp.Top()*0.5 - pb.Top()*0.5)
 			l.SetBaseline(rendering.FontBaselineCenter)
 		}
 		return nil

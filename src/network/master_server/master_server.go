@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* master_server.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/network"
+	"log/slog"
 	"maps"
 	"time"
 	"unsafe"
@@ -51,7 +52,7 @@ const (
 	MaxPasswordSize = 16
 
 	masterAddress = "localhost"
-	masterPort    = 15940
+	masterPort    = 15973
 	serverTimeout = time.Second * 30
 	gameKeySize   = 32
 	gameNameSize  = 64
@@ -96,6 +97,8 @@ func (m *MasterServer) evictUnresponsiveServers() {
 	for k := range keys {
 		serv := m.serverList[k]
 		if serv.timeoutAt.Before(now) {
+			slog.Info("Game server has timed out", "address", serv.client.Address())
+			m.server.RemoveClient(serv.client)
 			delete(m.serverList, k)
 		}
 	}

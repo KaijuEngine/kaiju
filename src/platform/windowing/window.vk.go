@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* window.vk.go                                                              */
+/* window.vk.go                                                               */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -43,7 +43,7 @@ import (
 	"unsafe"
 )
 
-func selectRenderer(w *Window, name string, assets *assets.Database) (rendering.Renderer, error) {
+func selectRenderer(w *Window, name string, assets assets.Database) (rendering.Renderer, error) {
 	return rendering.NewVKRenderer(w, name, assets)
 }
 

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* group.go                                                                   */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -44,6 +44,7 @@ import (
 	"log/slog"
 	"sort"
 	"sync"
+	"weak"
 )
 
 type requestState = int
@@ -67,13 +68,6 @@ type Group struct {
 	hadRequests  requestState
 	isThreaded   bool
 	isProcessing bool
-}
-
-func NewGroup() *Group {
-	return &Group{
-		requests: make([]groupRequest, 0),
-		focus:    nil,
-	}
 }
 
 func (group *Group) HasRequests() bool {
@@ -124,14 +118,17 @@ func (group *Group) setFocus(ui *UI) {
 }
 
 func (group *Group) Attach(host *engine.Host) {
+	wGroup := weak.Make(group)
 	group.updateId = host.UILateUpdater.AddUpdate(func(dt float64) {
-		group.lateUpdate()
+		if wGroup.Value() != nil {
+			wGroup.Value().lateUpdate()
+		}
 	})
 }
 
 func (group *Group) Detach(host *engine.Host) {
 	host.UILateUpdater.RemoveUpdate(group.updateId)
-	group.updateId = -1
+	group.updateId = 0
 }
 
 func sortElements(a *UI, b *UI) bool { return a.IsInFrontOf(b) }
@@ -153,7 +150,7 @@ func (group *Group) lateUpdate() {
 		}
 		var top *UI
 		{
-			hovered := group.requests[0].target.man.Hovered()
+			hovered := group.requests[0].target.man.Value().Hovered()
 			sort.Slice(hovered, func(i, j int) bool {
 				return sortElements(hovered[i], hovered[j])
 			})

@@ -1,0 +1,1 @@
+{"Name":"light_cube_depth","Shader":"renderer/shaders/light_cube_depth.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/basic.shaderpipeline","Textures":null}

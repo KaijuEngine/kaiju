@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* render_caches.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -45,5 +45,5 @@ type RenderCaches interface {
 	MeshCache() *MeshCache
 	FontCache() *FontCache
 	MaterialCache() *MaterialCache
-	AssetDatabase() *assets.Database
+	AssetDatabase() assets.Database
 }

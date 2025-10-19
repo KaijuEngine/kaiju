@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* draw_instance.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,16 +38,11 @@
 package rendering
 
 import (
-	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"reflect"
 	"unsafe"
 )
-
-func init() {
-	gob.Register(&ShaderDataBasic{})
-}
 
 type DrawInstance interface {
 	Destroy()
@@ -106,6 +101,19 @@ type ShaderDataBasic struct {
 
 func (t ShaderDataBasic) Size() int {
 	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
+}
+
+type ShaderDataBasicLit struct {
+	ShaderDataBase
+	Color  matrix.Color
+	Light0 float32
+	Light1 float32
+	Light2 float32
+	Light3 float32
+}
+
+func (t ShaderDataBasicLit) Size() int {
+	return int(unsafe.Sizeof(ShaderDataBasicLit{}) - ShaderBaseDataStart)
 }
 
 type ShaderDataPBR struct {
@@ -210,7 +218,6 @@ type DrawInstanceGroup struct {
 	instanceSize      int
 	visibleCount      int
 	sort              int
-	useBlending       bool
 	destroyed         bool
 }
 

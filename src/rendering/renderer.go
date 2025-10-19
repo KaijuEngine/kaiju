@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* renderer.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -45,8 +45,9 @@ import (
 
 type Renderer interface {
 	Initialize(caches RenderCaches, width, height int32) error
-	ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, runtime float32) bool
-	CreateShader(shader *Shader, assetDatabase *assets.Database) error
+	ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera,
+		lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool
+	CreateShader(shader *Shader, assetDatabase assets.Database) error
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color

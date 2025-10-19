@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* html.go                                                                    */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -39,7 +39,6 @@ package markup
 
 import (
 	"kaiju/build"
-	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css"
@@ -52,77 +51,40 @@ import (
 	gohtml "golang.org/x/net/html"
 )
 
-func sizeTexts(doc *document.Document, host *engine.Host) {
-	for i := range doc.Elements {
-		e := doc.Elements[i]
-		if e.IsText() {
-			parentWidth := float32(-1.0)
-			updateSize := func(l *ui.Layout) {
-				if p := ui.FirstOnEntity(l.Ui().Entity().Parent); p != nil {
-					newParentWidth := p.Layout().PixelSize().Width()
-					height := l.PixelSize().Height()
-					if newParentWidth != parentWidth {
-						parentWidth = newParentWidth
-						lbl := l.Ui().ToLabel()
-						textSize := host.FontCache().MeasureStringWithin(
-							lbl.FontFace(), e.Data, lbl.FontSize(),
-							parentWidth, lbl.LineHeight())
-						height = textSize.Height()
-					}
-					l.Scale(parentWidth, height)
-				}
-			}
-			label := e.UI.ToLabel()
-			updateSize(label.Base().Layout())
-			label.Base().Layout().AddFunction(updateSize)
-		}
-		height := e.UI.Layout().PixelSize().Y()
-		p := e.Parent.Value()
-		for p != nil && p.UIPanel != nil {
-			pPanel := p.UIPanel
-			if pPanel.FittingContentHeight() && pPanel.Base().Layout().PixelSize().Y() < height {
-				pPanel.Base().Layout().ScaleHeight(height)
-			}
-			p = p.Parent.Value()
-		}
-	}
-}
-
 func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error) {
-	host := uiMan.Host.Value()
-	debug.EnsureNotNil(host)
+	host := uiMan.Host
 	m, err := host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, nil)
-	if build.Debug {
-		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
-		})
-	}
+	//if build.Debug {
+	//	doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+	//		reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
+	//	})
+	//	host.OnClose.Add(func() { document.Debug.ReloadStylesEvent.Clear() })
+	//}
 	return doc, nil
 }
 
 func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error) {
-	host := uiMan.Host.Value()
-	debug.EnsureNotNil(host)
+	host := uiMan.Host
 	m, err := host.AssetDatabase().ReadText(htmlPath)
 	if err != nil {
 		return nil, err
 	}
 	doc := DocumentFromHTMLString(uiMan, m, "", withData, funcMap, root)
-	if build.Debug {
-		doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
-			reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
-		})
-	}
+	//if build.Debug {
+	//	doc.Debug.ReloadEventId = document.Debug.ReloadStylesEvent.Add(func() {
+	//		reloadDocumentStyles(doc, []string{htmlPath}, []string{}, host)
+	//	})
+	//}
 	return doc, nil
 }
 
 func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) *document.Document {
-	host := uiMan.Host.Value()
-	debug.EnsureNotNil(host)
+	host := uiMan.Host
+	window := host.Window
 	doc := document.DocumentFromHTMLString(uiMan, html, withData, funcMap)
 	if root != nil {
 		for i := range doc.TopElements {
@@ -132,11 +94,11 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 		}
 	}
 	s := rules.NewStyleSheet()
-	s.Parse(css.DefaultCSS)
-	s.Parse(cssStr)
+	s.Parse(css.DefaultCSS, window)
+	s.Parse(cssStr, window)
 	for i := range doc.HeadElements {
 		if doc.HeadElements[i].Data == "style" {
-			s.Parse(doc.HeadElements[i].Children[0].Data)
+			s.Parse(doc.HeadElements[i].Children[0].Data, window)
 		} else if doc.HeadElements[i].Data == "link" {
 			if doc.HeadElements[i].Attribute("rel") == "stylesheet" {
 				cssPath := doc.HeadElements[i].Attribute("href")
@@ -144,12 +106,11 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 				if err != nil {
 					continue
 				}
-				s.Parse(css)
+				s.Parse(css, window)
 			}
 		}
 	}
-	doc.SetupStylizer(s, host, css.Stylizer{})
-	sizeTexts(doc, host)
+	doc.SetupStyle(s, host, css.Stylizer{Window: uiMan.Host.Window})
 	return doc
 }
 
@@ -166,8 +127,9 @@ func reloadDocumentStyles(doc *document.Document, files []string, raw []string, 
 		}
 		return ""
 	}
+	window := host.Window
 	s := rules.NewStyleSheet()
-	s.Parse(css.DefaultCSS)
+	s.Parse(css.DefaultCSS, window)
 	for i := range files {
 		data, err := host.AssetDatabase().Read(files[i])
 		if err != nil {
@@ -186,7 +148,7 @@ func reloadDocumentStyles(doc *document.Document, files []string, raw []string, 
 						if top.Data == "head" {
 							for c := range top.ChildNodes() {
 								if c.Data == "style" {
-									s.Parse(c.FirstChild.Data)
+									s.Parse(c.FirstChild.Data, window)
 								} else if c.Data == "link" {
 									if findAttr(c, "rel") == "stylesheet" {
 										cssPath := findAttr(c, "href")
@@ -194,7 +156,7 @@ func reloadDocumentStyles(doc *document.Document, files []string, raw []string, 
 										if err != nil {
 											continue
 										}
-										s.Parse(css)
+										s.Parse(css, window)
 									}
 								}
 							}
@@ -203,14 +165,13 @@ func reloadDocumentStyles(doc *document.Document, files []string, raw []string, 
 				}
 			}
 		} else if strings.HasSuffix(files[i], ".css") {
-			s.Parse(string(data))
+			s.Parse(string(data), window)
 		} else {
 			slog.Error("failed to reloadDocumentStyles for file", "file", files[i])
 		}
 	}
 	for i := range raw {
-		s.Parse(raw[i])
+		s.Parse(raw[i], window)
 	}
-	doc.SetupStylizer(s, host, css.Stylizer{})
-	doc.ApplyStyles()
+	doc.SetupStyle(s, host, css.Stylizer{})
 }

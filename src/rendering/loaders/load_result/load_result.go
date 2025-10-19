@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* load_result.go                                                             */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -114,12 +114,13 @@ func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
 func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures []string, node *Node) {
 	if node != nil {
-		mat := node.Transform.CalcWorldMatrix()
-		if !mat.IsIdentity() {
-			for i := range verts {
-				verts[i].Position = mat.TransformPoint(verts[i].Position)
-			}
-		}
+		// TODO:  This breaks Sudoku, but seems like something that should be done...
+		//mat := node.Transform.CalcWorldMatrix()
+		//if !mat.IsIdentity() {
+		//	for i := range verts {
+		//		verts[i].Position = mat.TransformPoint(verts[i].Position)
+		//	}
+		//}
 	}
 	r.Meshes = append(r.Meshes, Mesh{
 		Name:     name,

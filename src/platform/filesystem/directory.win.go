@@ -1,11 +1,11 @@
 //go:build windows
 
 /******************************************************************************/
-/* directory.win.go                                                          */
+/* directory.win.go                                                           */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -48,15 +48,46 @@ package filesystem
 import "C"
 
 import (
-	"errors"
 	"fmt"
-	"kaiju/klib"
+	"kaiju/build"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
+
+func knownPaths() map[string]string {
+	folders := map[string]*windows.KNOWNFOLDERID{
+		"Desktop":   windows.FOLDERID_Desktop,
+		"Documents": windows.FOLDERID_Documents,
+		"Downloads": windows.FOLDERID_Downloads,
+		"Music":     windows.FOLDERID_Music,
+		"Pictures":  windows.FOLDERID_Pictures,
+		"Videos":    windows.FOLDERID_Videos,
+	}
+	paths := make(map[string]string, len(folders))
+	for _, r := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+		str := fmt.Sprintf("%c:\\", r)
+		s, err := os.Stat(str)
+		if err != nil || !s.IsDir() {
+			continue
+		}
+		// TODO:  Get the drive name
+		paths[str] = str
+	}
+	for name, id := range folders {
+		path, err := windows.KnownFolderPath(id, 0)
+		if err != nil {
+			fmt.Printf("%s: %v\n", name, err)
+			continue
+		}
+		paths[name] = path
+	}
+	return paths
+}
 
 func imageDirectory() (string, error) {
 	userFolder, err := os.UserHomeDir()
@@ -67,13 +98,11 @@ func imageDirectory() (string, error) {
 }
 
 func gameDirectory() (string, error) {
-	klib.NotYetImplemented(318)
-	return "", errors.New("not yet implemented")
-	//appdata, err := os.UserConfigDir()
-	//if err != nil {
-	//	return "", err
-	//}
-	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+	appdata, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.AsFilePathString()), nil
 }
 
 func openFileBrowserCommand(path string) *exec.Cmd {

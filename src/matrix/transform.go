@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* transform.go                                                               */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -239,12 +239,17 @@ func (t *Transform) CalcWorldMatrix() Mat4 {
 }
 
 func (t *Transform) Copy(other Transform) {
-	t.position = other.position
-	t.rotation = other.rotation
-	t.scale = other.scale
-	t.localMatrix = other.localMatrix
-	t.worldMatrix = other.worldMatrix
-	t.isDirty = other.isDirty
+	if t.parent == nil {
+		t.position, t.rotation, t.scale = other.WorldTransform()
+		t.isDirty = true
+	} else {
+		t.position = other.position
+		t.rotation = other.rotation
+		t.scale = other.scale
+		t.localMatrix = other.localMatrix
+		t.worldMatrix = other.worldMatrix
+		t.isDirty = other.isDirty
+	}
 }
 
 func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3) {

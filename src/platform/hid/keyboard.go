@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* keyboard.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -244,7 +244,7 @@ func (k *Keyboard) SetKeyDownUp(key KeyboardKey) {
 }
 
 func (k *Keyboard) SetKeyDown(key KeyboardKey) {
-	if key != KeyBoardKeyInvalid {
+	if key != KeyBoardKeyInvalid && k.keyStates[key] != KeyStateHeld {
 		k.keyStates[key] = KeyStateDown
 		k.doKeyCallbacks(key, KeyStateDown)
 	}

@@ -1,9 +1,9 @@
 /******************************************************************************/
 /* css_left.go                                                                */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -41,10 +41,8 @@ import (
 	"errors"
 	"kaiju/engine"
 	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"strings"
 )
 
@@ -53,7 +51,7 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if len(values) != 1 {
 		return errors.New("left expects 1 value")
 	} else {
-		offset := panel.Base().Layout().InnerOffset()
+		offsetX := panel.Base().Layout().InnerOffset().Left()
 		s := values[0].Str
 		layout := elm.UI.Layout()
 		switch s {
@@ -63,24 +61,22 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 			return errors.New("Left Not implemented [initial]")
 		case "inherit":
 			if elm.Parent.Value() != nil {
-				offset[matrix.Vx] += elm.Parent.Value().UI.Layout().Offset().X()
+				offsetX += elm.Parent.Value().UI.Layout().Offset().X()
 			}
 		default:
-			val := helpers.NumFromLength(values[0].Str, host.Window)
+			val := values[0].Num
 			if strings.HasSuffix(values[0].Str, "%") {
-				panel.Base().Layout().AddFunction(func(l *ui.Layout) {
-					if l.Ui().Entity().IsRoot() {
-						return
-					}
-					pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
-					l.SetInnerOffsetLeft(pLayout.PixelSize().X() * val)
-				})
+				l := panel.Base().Layout()
+				if l.Ui().Entity().IsRoot() {
+					return nil
+				}
+				pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
+				offsetX = pLayout.ContentSize().X() * val
 			} else {
-				offset[matrix.Vx] = val
+				offsetX = val
 			}
 		}
-		layout.SetInnerOffset(offset.X(), offset.Y(), offset.Z(), offset.W())
-		layout.AnchorTo(layout.Anchor().ConvertToLeft())
+		layout.SetInnerOffsetLeft(offsetX)
 	}
 	return nil
 }
