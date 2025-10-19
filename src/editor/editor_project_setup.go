@@ -1,0 +1,51 @@
+package editor
+
+import (
+	"fmt"
+	"kaiju/editor/editor_overlay/new_project"
+	"kaiju/editor/project"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
+)
+
+func (ed *Editor) newProjectOverlay() {
+	defer tracing.NewRegion("Editor.newProjectOverlay").End()
+	new_project.Show(ed.host, new_project.Config{
+		OnCreate: ed.createProject,
+		OnOpen:   ed.openProject,
+	})
+}
+
+func (ed *Editor) createProject(name, path string) {
+	defer tracing.NewRegion("Editor.createProject").End()
+	err := ed.project.Initialize(path)
+	if _, ok := err.(project.ConfigLoadError); !ok {
+		slog.Error("failed to create the project", "error", err)
+		// Re-show the project setup window
+		// TODO:  Present an error on the screen on why it didn't work
+		new_project.Show(ed.host, new_project.Config{
+			OnCreate: ed.createProject,
+			OnOpen:   ed.openProject,
+		})
+		return
+	}
+	ed.SetProjectName(name)
+	ed.lateLoadUI()
+	ed.focusInterface()
+}
+
+func (ed *Editor) SetProjectName(name string) {
+	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
+	ed.project.SetName(name)
+}
+
+func (ed *Editor) openProject(path string) {
+	defer tracing.NewRegion("Editor.openProject").End()
+	if err := ed.project.Open(path); err != nil {
+		slog.Error("failed to create the project", "error", err)
+		return
+	}
+	ed.SetProjectName(ed.project.Name())
+	ed.lateLoadUI()
+	ed.focusInterface()
+}

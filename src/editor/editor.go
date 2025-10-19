@@ -1,0 +1,94 @@
+/******************************************************************************/
+/* editor.go                                                                  */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
+package editor
+
+import (
+	"kaiju/editor/editor_workspace"
+	"kaiju/editor/editor_workspace/content_workspace"
+	"kaiju/editor/editor_workspace/stage_workspace"
+	"kaiju/editor/global_interface/menu_bar"
+	"kaiju/editor/global_interface/status_bar"
+	"kaiju/editor/project"
+	"kaiju/engine"
+	"log/slog"
+)
+
+type Editor struct {
+	host             *engine.Host
+	project          project.Project
+	workspaceState   WorkspaceState
+	workspaces       Workspaces
+	globalInterfaces GlobalInterface
+	currentWorkspace editor_workspace.Workspace
+}
+
+type Workspaces struct {
+	Stage   stage_workspace.Workspace
+	Content content_workspace.Workspace
+}
+
+type GlobalInterface struct {
+	MenuBar   menu_bar.MenuBar
+	StatusBar status_bar.StatusBar
+}
+
+func (ed *Editor) focusInterface() {
+	ed.globalInterfaces.MenuBar.Focus()
+	ed.globalInterfaces.StatusBar.Focus()
+	ed.currentWorkspace.Focus()
+}
+
+func (ed *Editor) blurInterface() {
+	ed.globalInterfaces.MenuBar.Blur()
+	ed.globalInterfaces.StatusBar.Blur()
+	ed.currentWorkspace.Blur()
+}
+
+func (ed *Editor) earlyLoadUI() {
+	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
+	ed.globalInterfaces.StatusBar.Initialize(ed.host)
+	ed.workspaces.Stage.Initialize(ed.host)
+	ed.setWorkspaceState(WorkspaceStateStage)
+}
+
+func (ed *Editor) lateLoadUI() {
+	slog.Info("compiling the project to get things ready")
+	go ed.project.Compile()
+	ed.workspaces.Content.Initialize(ed.host,
+		ed.project.FileSystem(), ed.project.CacheDatabase())
+}

@@ -5,8 +5,8 @@ package main
 import (
 	"embed"
 	"kaiju/bootstrap"
-	"kaiju/games/editor"
-	"kaiju/games/editor/project/project_file_system"
+	"kaiju/editor"
+	"kaiju/editor/project/project_file_system"
 )
 
 //go:embed *
