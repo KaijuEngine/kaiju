@@ -39,7 +39,7 @@ package physics
 
 /*
 #cgo CXXFLAGS: -std=c++11
-#cgo LDFLAGS: -L../../../libs -lBulletDynamics -lBulletCollision -lLinearMath -lstdc++ -lm
+#cgo LDFLAGS: -L../../libs -lBulletDynamics -lBulletCollision -lLinearMath -lstdc++ -lm
 #include "bullet3_wrapper.h"
 #cgo noescape new_btSequentialImpulseConstraintSolver
 #cgo nocallback new_btSequentialImpulseConstraintSolver
