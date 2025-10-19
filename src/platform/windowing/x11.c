@@ -113,6 +113,14 @@ void window_show(void* x11State) {
 	//while (window_poll(x11State) != 0) {}
 }
 
+static inline void lock_cursor_position(X11State* s) {
+	int borderSize = ((s->sm.right-s->sm.left)-s->sm.clientRect.right) / 2;
+	int titleSize = (s->sm.bottom-s->sm.top)-s->sm.clientRect.bottom-borderSize;
+	int x = s->sm.left + s->sm.lockCursor.x + borderSize;
+	int y = s->sm.top + s->sm.lockCursor.y + titleSize;
+	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, x, y);
+}
+
 void window_poll_controller(void* x11State) {
 	// TODO:  Implement for controllers
 }
@@ -237,6 +245,9 @@ void window_poll(void* x11State) {
 						.y = e.xmotion.y,
 					}
 				});
+				if (s->sm.lockCursor.active) {
+					lock_cursor_position(s);
+				}
 				break;
 			case ClientMessage:
 				if (!filtered) {
@@ -331,6 +342,18 @@ void window_hide_cursor(void* state) {
 	XFreePixmap(s->d, blank);
 	XFreeCursor(s->d, cursor);
 	XFlush(s->d);
+}
+
+void window_lock_cursor(void* state, int x, int y) {
+	X11State* s = state;
+	s->sm.lockCursor.x = x;
+	s->sm.lockCursor.y = y;
+	s->sm.lockCursor.active = true;
+}
+
+void window_unlock_cursor(void* state) {
+	X11State* s = state;
+	s->sm.lockCursor.active = false;
 }
 
 float window_dpi(void* state) {

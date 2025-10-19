@@ -64,6 +64,8 @@ package windowing
 #cgo noescape window_set_title
 #cgo noescape window_set_full_screen
 #cgo noescape window_set_windowed
+#cgo noescape window_lock_cursor
+#cgo noescape window_unlock_cursor
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -192,19 +194,19 @@ func (w Window) setWindowed(width, height int) {
 	C.window_set_windowed(w.handle, C.int(width), C.int(height))
 }
 
+func (w Window) lockCursor(x, y int) {
+	C.window_lock_cursor(w.handle, C.int(x), C.int(y))
+}
+
+func (w Window) unlockCursor() {
+	C.window_unlock_cursor(w.handle)
+}
+
 func (w *Window) removeBorder() {
 	klib.NotYetImplemented(234)
 }
 
 func (w *Window) addBorder() {
-	klib.NotYetImplemented(234)
-}
-
-func (w Window) lockCursor(x, y int) {
-	klib.NotYetImplemented(234)
-}
-
-func (w Window) unlockCursor() {
 	klib.NotYetImplemented(234)
 }
 
