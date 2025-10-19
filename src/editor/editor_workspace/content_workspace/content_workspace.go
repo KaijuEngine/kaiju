@@ -174,7 +174,7 @@ func (w *Workspace) inputFilter(e *document.Element) {
 
 func (w *Workspace) tagFilter(e *document.Element) {
 	q := strings.ToLower(e.UI.ToInput().Text())
-	tagElms := w.Doc.GetElementsByGroup("tag")
+	tagElms := w.Doc.GetElementsByGroup("tag")[1:]
 	for i := range tagElms {
 		tag := tagElms[i].Attribute("data-tag")
 		show := strings.Contains(strings.ToLower(tag), q)
