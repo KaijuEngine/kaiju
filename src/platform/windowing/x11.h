@@ -40,5 +40,7 @@ void window_show_cursor(void* state);
 void window_hide_cursor(void* state);
 float window_dpi(void* state);
 void window_set_title(void* state, const char* windowTitle);
+void window_set_full_screen(void* state);
+void window_set_windowed(void* state, int width, int height);
 
 #endif

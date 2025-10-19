@@ -62,6 +62,8 @@ package windowing
 #cgo noescape window_hide_cursor
 #cgo noescape window_dpi
 #cgo noescape window_set_title
+#cgo noescape window_set_full_screen
+#cgo noescape window_set_windowed
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -176,6 +178,20 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
 
+func (w Window) setTitle(name string) {
+	title := C.CString(name)
+	defer C.free(unsafe.Pointer(title))
+	C.window_set_title(w.handle, title)
+}
+
+func (w Window) setFullscreen() {
+	C.window_set_full_screen(w.handle)
+}
+
+func (w Window) setWindowed(width, height int) {
+	C.window_set_windowed(w.handle, C.int(width), C.int(height))
+}
+
 func (w *Window) removeBorder() {
 	klib.NotYetImplemented(234)
 }
@@ -184,25 +200,11 @@ func (w *Window) addBorder() {
 	klib.NotYetImplemented(234)
 }
 
-func (w Window) setTitle(name string) {
-	title := C.CString(name)
-	defer C.free(unsafe.Pointer(title))
-	C.window_set_title(w.handle, title)
-}
-
 func (w Window) lockCursor(x, y int) {
 	klib.NotYetImplemented(234)
 }
 
 func (w Window) unlockCursor() {
-	klib.NotYetImplemented(234)
-}
-
-func (w Window) setFullscreen() {
-	klib.NotYetImplemented(234)
-}
-
-func (w Window) setWindowed(width, height int) {
 	klib.NotYetImplemented(234)
 }
 

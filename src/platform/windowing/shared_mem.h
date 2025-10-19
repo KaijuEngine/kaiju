@@ -66,6 +66,8 @@ typedef struct {
 		LONG style;
 		LONG exStyle;
 		RECT rect;
+		int borderWidth;
+		int overrideRedirect;
 	} savedState;
 	uint32_t eventCount;
 	struct {
@@ -73,6 +75,7 @@ typedef struct {
 		int y;
 		bool active;
 	} lockCursor;
+
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
 } SharedMem;
 

@@ -346,6 +346,63 @@ void window_set_title(void* state, const char* windowTitle) {
 	XStoreName(s->d, s->w, windowTitle);
 }
 
+void window_set_full_screen(void* state) {
+	X11State* s = state;
+	int screen = DefaultScreen(s->d);
+	XWindowAttributes attrs;
+	XGetWindowAttributes(s->d, s->w, &attrs);
+	s->sm.savedState.rect.left = attrs.x;
+	s->sm.savedState.rect.top = attrs.y;
+	s->sm.savedState.rect.right = attrs.x + attrs.width;
+	s->sm.savedState.rect.bottom = attrs.y + attrs.height;
+	// TODO:  Save the border state
+	s->sm.savedState.borderWidth = attrs.border_width;
+	s->sm.savedState.overrideRedirect = attrs.override_redirect;
+	int screenWidth = DisplayWidth(s->d, screen);
+	int screenHeight = DisplayHeight(s->d, screen);
+	XSetWindowAttributes attr = { 0 };
+	XChangeWindowAttributes(s->d, s->w, CWOverrideRedirect, &attr);
+	XSetWindowBorderWidth(s->d, s->w, 0);
+	XWindowChanges changes;
+	changes.x = 0;
+	changes.y = 0;
+	changes.width = screenWidth;
+	changes.height = screenHeight;
+	changes.border_width = 0;
+	unsigned int value_mask = CWX | CWY | CWWidth | CWHeight | CWBorderWidth;
+	XConfigureWindow(s->d, s->w, value_mask, &changes);
+	XFlush(s->d);
+}
+
+void window_set_windowed(void* state, int width, int height) {
+    X11State* s = state;
+    XSetWindowAttributes attr = { 0 };
+    attr.override_redirect = s->sm.savedState.overrideRedirect;
+    XChangeWindowAttributes(s->d, s->w, CWOverrideRedirect, &attr);
+    XSetWindowBorderWidth(s->d, s->w, s->sm.savedState.borderWidth);
+    XClientMessageEvent ev = { 0 };
+    ev.type = ClientMessage;
+    ev.window = s->w;
+    ev.message_type = XInternAtom(s->d, "_NET_WM_STATE", False);
+    ev.format = 32;
+    ev.data.l[0] = 0;
+    ev.data.l[1] = XInternAtom(s->d, "_NET_WM_STATE_FULLSCREEN", False);
+    ev.data.l[2] = 0;
+    ev.data.l[3] = 1;
+    XSendEvent(s->d, DefaultRootWindow(s->d), False, 
+               SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev);
+    XWindowChanges changes;
+    changes.x = s->sm.savedState.rect.left;
+    changes.y = s->sm.savedState.rect.top;
+    changes.width = width;
+    changes.height = height;
+    changes.border_width = s->sm.savedState.borderWidth;
+    unsigned int value_mask = CWX | CWY | CWWidth | CWHeight | CWBorderWidth;
+    XConfigureWindow(s->d, s->w, value_mask, &changes);
+    XFlush(s->d);
+    XSync(s->d, False);
+}
+
 void window_position(void* state, int* x, int* y) {
 	X11State* s = state;
 	XWindowAttributes attributes;
