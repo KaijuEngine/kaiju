@@ -7,11 +7,11 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
 var CodeFS embed.FS
-var GoVersion = "1.25.0"
 
 const srcWorkFileData = `go %s
 
@@ -101,11 +101,12 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil {
 		return err
 	}
-	workFile := []byte(fmt.Sprintf(srcWorkFileData, GoVersion))
+	goVersion := strings.TrimPrefix(runtime.Version(), "go")
+	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
 		return err
 	}
-	modFile := []byte(fmt.Sprintf(srcModFileData, GoVersion))
+	modFile := []byte(fmt.Sprintf(srcModFileData, goVersion))
 	if err := pfs.WriteFile(ProjectModFile, modFile, os.ModePerm); err != nil {
 		return err
 	}
