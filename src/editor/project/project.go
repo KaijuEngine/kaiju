@@ -124,13 +124,9 @@ func (p *Project) Compile() {
 	var stderr, stdout bytes.Buffer
 	cmd.Stderr, cmd.Stdout = &stderr, &stdout
 	if err := cmd.Run(); err != nil {
-		slog.Error("project compilation failed!", "error", err, "log", stdout.String())
+		slog.Error("project compilation failed!", "error", err, "log", stdout.String(), "errlog", stderr.String())
 	} else {
-		if stderr.Len() > 0 {
-			slog.Info("project successfully compiled with warnings", "warnings", stderr.String())
-		} else {
-			slog.Info("project successfully compiled")
-		}
+		slog.Info("project successfully compiled")
 	}
 }
 
