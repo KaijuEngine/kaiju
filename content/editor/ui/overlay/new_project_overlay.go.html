@@ -35,11 +35,17 @@
 				margin-top: 0.5em;
 				transform: translateX(-50%);
 			}
+			.error {
+				color: #C7655D;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="panel">
 			<h1>New Project</h1>
+			{{if .}}
+			<div class="error">{{.}}</div>
+			{{end}}
 			<div class="openProject">
 				<span>Start by opening an existing project: </span>
 				<button onclick="openProject">Open Project</button>

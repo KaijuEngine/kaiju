@@ -26,6 +26,9 @@ type Config struct {
 	// OnOpen will be called when the "Browse" button is clicked, it will return
 	// the path that was selected.
 	OnOpen func(string)
+
+	// Error will be used to print out an error to the developer in the window.
+	Error string
 }
 
 func Show(host *engine.Host, config Config) (*NewProject, error) {
@@ -35,7 +38,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	var err error
 	np.doc, err = markup.DocumentFromHTMLAsset(&np.uiMan,
 		"editor/ui/overlay/new_project_overlay.go.html",
-		nil, map[string]func(*document.Element){
+		config.Error, map[string]func(*document.Element){
 			"openProject":   np.openProject,
 			"browse":        np.browse,
 			"createProject": np.createProject,

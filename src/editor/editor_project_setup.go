@@ -21,11 +21,10 @@ func (ed *Editor) createProject(name, path string) {
 	err := ed.project.Initialize(path)
 	if _, ok := err.(project.ConfigLoadError); !ok {
 		slog.Error("failed to create the project", "error", err)
-		// Re-show the project setup window
-		// TODO:  Present an error on the screen on why it didn't work
 		new_project.Show(ed.host, new_project.Config{
 			OnCreate: ed.createProject,
 			OnOpen:   ed.openProject,
+			Error:    err.Error(),
 		})
 		return
 	}
