@@ -341,6 +341,11 @@ float window_dpi(void* state) {
 	return pixelWidth / mmWidth;
 }
 
+void window_set_title(void* state, const char* windowTitle) {
+	X11State* s = state;
+	XStoreName(s->d, s->w, windowTitle);
+}
+
 void window_position(void* state, int* x, int* y) {
 	X11State* s = state;
 	XWindowAttributes attributes;

@@ -39,5 +39,6 @@ void window_cursor_size_we(void* state);
 void window_show_cursor(void* state);
 void window_hide_cursor(void* state);
 float window_dpi(void* state);
+void window_set_title(void* state, const char* windowTitle);
 
 #endif

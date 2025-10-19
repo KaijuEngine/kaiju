@@ -61,6 +61,7 @@ package windowing
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
 #cgo noescape window_dpi
+#cgo noescape window_set_title
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -84,11 +85,11 @@ func scaleScrollDelta(delta float32) float32 {
 
 func (w *Window) createWindow(windowName string, x, y int) {
 	title := C.CString(windowName)
+	defer C.free(unsafe.Pointer(title))
 	w.lookupId = nextLookupId.Add(1)
 	windowLookup.Store(w.lookupId, w)
 	C.window_main(title, C.int(w.width), C.int(w.height),
 		C.int(x), C.int(y), C.uint64_t(w.lookupId))
-	C.free(unsafe.Pointer(title))
 }
 
 func (w *Window) showWindow() {
@@ -158,14 +159,6 @@ func (w *Window) setSize(width, height int) {
 	C.window_set_size(w.handle, C.int(width), C.int(height))
 }
 
-func (w *Window) removeBorder() {
-	klib.NotYetImplemented(234)
-}
-
-func (w *Window) addBorder() {
-	klib.NotYetImplemented(234)
-}
-
 func (w *Window) showCursor() {
 	C.window_show_cursor(w.handle)
 }
@@ -183,8 +176,18 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
 }
 
-func (w Window) setTitle(name string) {
+func (w *Window) removeBorder() {
 	klib.NotYetImplemented(234)
+}
+
+func (w *Window) addBorder() {
+	klib.NotYetImplemented(234)
+}
+
+func (w Window) setTitle(name string) {
+	title := C.CString(name)
+	defer C.free(unsafe.Pointer(title))
+	C.window_set_title(w.handle, title)
 }
 
 func (w Window) lockCursor(x, y int) {
