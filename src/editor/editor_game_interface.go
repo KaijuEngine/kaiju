@@ -58,10 +58,11 @@ func (EditorGame) ContentDatabase() (assets.Database, error) {
 func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("editor.Launch").End()
 	ed := &Editor{host: host}
+	ed.logging.Initialize(host.LogStream)
 	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
-		ed.blurInterface()
+		ed.BlurInterface()
 		ed.newProjectOverlay()
 	})
 }

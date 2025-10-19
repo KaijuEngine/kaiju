@@ -30,7 +30,7 @@ func (ed *Editor) createProject(name, path string) {
 	}
 	ed.SetProjectName(name)
 	ed.lateLoadUI()
-	ed.focusInterface()
+	ed.FocusInterface()
 }
 
 func (ed *Editor) SetProjectName(name string) {
@@ -46,5 +46,5 @@ func (ed *Editor) openProject(path string) {
 	}
 	ed.SetProjectName(ed.project.Name())
 	ed.lateLoadUI()
-	ed.focusInterface()
+	ed.FocusInterface()
 }

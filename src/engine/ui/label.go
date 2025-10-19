@@ -208,7 +208,10 @@ func (label *Label) renderText() {
 		maxWidth := label.MaxWidth()
 		label.layout.ScaleHeight(label.Measure().Height())
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
-		xOffset := -pl.padding.Left() - pl.border.Left()
+		xOffset := float32(0)
+		if label.LabelData().justify == rendering.FontJustifyCenter {
+			xOffset = -pl.padding.Left() - pl.border.Left()
+		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshes(
 			host, ld.text, xOffset, 0, 0, ld.fontSize,

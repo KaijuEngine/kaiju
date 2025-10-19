@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace"
@@ -55,6 +56,7 @@ type Editor struct {
 	workspaces       Workspaces
 	globalInterfaces GlobalInterface
 	currentWorkspace editor_workspace.Workspace
+	logging          editor_logging.Logging
 }
 
 type Workspaces struct {
@@ -67,13 +69,13 @@ type GlobalInterface struct {
 	StatusBar status_bar.StatusBar
 }
 
-func (ed *Editor) focusInterface() {
+func (ed *Editor) FocusInterface() {
 	ed.globalInterfaces.MenuBar.Focus()
 	ed.globalInterfaces.StatusBar.Focus()
 	ed.currentWorkspace.Focus()
 }
 
-func (ed *Editor) blurInterface() {
+func (ed *Editor) BlurInterface() {
 	ed.globalInterfaces.MenuBar.Blur()
 	ed.globalInterfaces.StatusBar.Blur()
 	ed.currentWorkspace.Blur()
@@ -81,7 +83,7 @@ func (ed *Editor) blurInterface() {
 
 func (ed *Editor) earlyLoadUI() {
 	ed.globalInterfaces.MenuBar.Initialize(ed.host, ed)
-	ed.globalInterfaces.StatusBar.Initialize(ed.host)
+	ed.globalInterfaces.StatusBar.Initialize(ed.host, &ed.logging, ed)
 	ed.workspaces.Stage.Initialize(ed.host)
 	ed.setWorkspaceState(WorkspaceStateStage)
 }
