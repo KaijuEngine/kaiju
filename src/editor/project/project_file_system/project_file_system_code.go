@@ -32,6 +32,8 @@ import (
 	"kaiju/bootstrap"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"os"
+	"path/filepath"
 	"reflect"
 )
 
@@ -40,7 +42,13 @@ type Game struct{}
 func (Game) PluginRegistry() []reflect.Type { return []reflect.Type{} }
 
 func (Game) ContentDatabase() (assets.Database, error) {
-	return assets.NewFileDatabase("content")
+	obfuscationKey := []byte("")
+	p, err := os.Executable()
+	if err != nil {
+		return assets.NewArchiveDatabase("kaiju.dat", obfuscationKey)
+	} else {
+		return assets.NewArchiveDatabase(filepath.Join(filepath.Dir(p), "kaiju.dat"), obfuscationKey)
+	}
 }
 
 func (Game) Launch(host *engine.Host) {

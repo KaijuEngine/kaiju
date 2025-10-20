@@ -1,0 +1,131 @@
+package content_archive
+
+import (
+	"encoding/binary"
+	"fmt"
+	"hash/crc32"
+	"kaiju/debug"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"unsafe"
+)
+
+func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"
+
+type SourceContent struct {
+	RelativePath string
+	FullPath     string
+}
+
+func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
+	files := []SourceContent{}
+	err := filepath.Walk(inPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() || strings.HasPrefix(info.Name(), ".") {
+			return nil
+		}
+		relPath := strings.TrimPrefix(filepath.ToSlash(path), inPath+"/")
+		if relPath == "" {
+			return nil
+		}
+		files = append(files, SourceContent{
+			RelativePath: relPath,
+			FullPath:     path,
+		})
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("no assets found in the supplied folder: %s", inPath)
+	}
+	return CreateArchiveFromFiles(outPath, files, key)
+}
+
+func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) error {
+	if len(files) == 0 {
+		return fmt.Errorf("no assets were provided to archive")
+	}
+	entries := make([]Asset, 0, len(files))
+	for i := range files {
+		origData, err := os.ReadFile(files[i].FullPath)
+		if err != nil {
+			return err
+		}
+		crc := crc32.ChecksumIEEE(origData)
+		obfData := make([]byte, len(origData))
+		copy(obfData, origData)
+		keyLen := len(key)
+		if keyLen > 0 {
+			for i, b := range obfData {
+				obfData[i] = b ^ key[i%keyLen]
+			}
+		}
+		entries = append(entries, Asset{
+			Name: files[i].RelativePath,
+			Data: obfData,
+			Size: uint32(len(origData)),
+			CRC:  crc,
+		})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+	indexSize := uint64(0)
+	for i := range entries {
+		indexSize += uint64(len([]byte(entries[i].Name))+1) +
+			uint64(unsafe.Sizeof(entries[i].Offset)+
+				unsafe.Sizeof(entries[i].Size)+unsafe.Sizeof(entries[i].CRC))
+	}
+	indexBuf := make([]byte, 0, indexSize)
+	for i := range entries {
+		indexBuf = append(indexBuf, []byte(entries[i].Name)...)
+		indexBuf = append(indexBuf, byte(0))                     // Name null terminator
+		indexBuf = binary.LittleEndian.AppendUint64(indexBuf, 0) // Offset placeholder
+		indexBuf = binary.LittleEndian.AppendUint32(indexBuf, entries[i].Size)
+		indexBuf = binary.LittleEndian.AppendUint32(indexBuf, entries[i].CRC)
+	}
+	debug.Ensure(indexSize == uint64(len(indexBuf)))
+	dataStart := uint64(18) + indexSize
+	offset := dataStart
+	for i := range entries {
+		entries[i].Offset = offset
+		pad := (4 - int(entries[i].Size)%4) % 4
+		offset += uint64(entries[i].Size) + uint64(pad)
+	}
+	indexWritePos := uint64(0)
+	for i := range entries {
+		indexWritePos += uint64(len([]byte(entries[i].Name)) + 1)
+		binary.LittleEndian.PutUint64(indexBuf[indexWritePos:], entries[i].Offset)
+		indexWritePos += uint64(unsafe.Sizeof(entries[i].Offset) +
+			unsafe.Sizeof(entries[i].Size) + unsafe.Sizeof(entries[i].CRC))
+	}
+	f, err := os.Create(outPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	f.Write(title())
+	binary.Write(f, binary.LittleEndian, uint16(1))
+	binary.Write(f, binary.LittleEndian, uint32(len(entries)))
+	binary.Write(f, binary.LittleEndian, indexSize)
+	f.Write(indexBuf)
+	totalSize := uint64(0)
+	for i := range entries {
+		f.Write(entries[i].Data)
+		pad := (4 - int(entries[i].Size)%4) % 4
+		if pad > 0 {
+			f.Write(make([]byte, pad))
+		}
+		totalSize += uint64(len(entries[i].Data) + pad)
+	}
+	slog.Info("packaged content archive", "count", len(entries),
+		"size", totalSize, "obfuscated", len(key) > 0)
+	return nil
+}

@@ -23,7 +23,7 @@ func (a *FileDatabase) CacheRemove(key string)        { delete(a.cache, key) }
 func (a *FileDatabase) CacheClear()                   { clear(a.cache) }
 
 func (a *FileDatabase) ReadText(key string) (string, error) {
-	defer tracing.NewRegion("AssetDatabase.ReadText: " + key).End()
+	defer tracing.NewRegion("FileDatabase.ReadText: " + key).End()
 	if data, ok := a.cache[key]; ok {
 		return string(data), nil
 	}
@@ -32,7 +32,7 @@ func (a *FileDatabase) ReadText(key string) (string, error) {
 }
 
 func (a *FileDatabase) Read(key string) ([]byte, error) {
-	defer tracing.NewRegion("AssetDatabase.Read: " + key).End()
+	defer tracing.NewRegion("FileDatabase.Read: " + key).End()
 	if data, ok := a.cache[key]; ok {
 		return data, nil
 	}
@@ -40,7 +40,7 @@ func (a *FileDatabase) Read(key string) ([]byte, error) {
 }
 
 func (a *FileDatabase) Exists(key string) bool {
-	defer tracing.NewRegion("AssetDatabase.Exists: " + key).End()
+	defer tracing.NewRegion("FileDatabase.Exists: " + key).End()
 	if _, ok := a.cache[key]; ok {
 		return true
 	}
