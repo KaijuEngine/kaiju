@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"weak"
 )
 
 type Logging struct {
@@ -26,14 +27,24 @@ type Message struct {
 }
 
 func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream) {
+	wl := weak.Make(l)
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
-		l.add(msg, nil, "info")
+		ll := wl.Value()
+		if ll != nil {
+			ll.add(msg, nil, "info")
+		}
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
-		l.add(msg, trace, "warn")
+		ll := wl.Value()
+		if ll != nil {
+			ll.add(msg, trace, "warn")
+		}
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
-		l.add(msg, trace, "error")
+		ll := wl.Value()
+		if ll != nil {
+			ll.add(msg, trace, "error")
+		}
 	})
 	host.OnClose.Add(func() {
 		logStream.OnInfo.Remove(l.infoEvtId)
