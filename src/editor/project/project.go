@@ -12,6 +12,11 @@ import (
 	"strings"
 )
 
+const nameSetCodeTitleFileContentFormat = `package build
+
+const Title = GameTitle("%s")
+`
+
 // Project is the mediator/container for all information about the developer's
 // project. This type is used to access the file system, project specific
 // settings, content, cache, and anything related to the project.
@@ -114,6 +119,12 @@ func (p *Project) SetName(name string) {
 	p.config.save(&p.fileSystem)
 	if p.OnNameChange != nil {
 		p.OnNameChange(p.config.Name)
+	}
+	err := p.fileSystem.WriteFile(project_file_system.ProjectCodeGameTitle,
+		[]byte(fmt.Sprintf(nameSetCodeTitleFileContentFormat, name)), os.ModePerm)
+	if err != nil {
+		slog.Error("could not set the title in source, please update or create it",
+			"file", project_file_system.ProjectCodeGameTitle)
 	}
 }
 

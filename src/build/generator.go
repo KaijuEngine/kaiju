@@ -1,3 +1,5 @@
+//go:build !editor && !game && !debug && !test && !shipping
+
 /******************************************************************************/
 /* generator.go                                                               */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build !editor && !game && !debug && !test && !shipping
-
 package build
 
-const Title = GameTitleGradingGenerator
+const Title = GameTitleGenerator

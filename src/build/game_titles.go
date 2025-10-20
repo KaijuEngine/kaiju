@@ -47,8 +47,8 @@ const (
 type GameTitle string
 
 const (
-	GameTitleEditor           = GameTitle("Kaiju Engine Editor")
-	GameTitleGradingGenerator = GameTitle("Kaiju Generator")
+	GameTitleEditor    = GameTitle("Kaiju Engine Editor")
+	GameTitleGenerator = GameTitle("Kaiju Generator")
 )
 
 func (t GameTitle) String() string           { return string(t) }
