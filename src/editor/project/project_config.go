@@ -43,7 +43,8 @@ import (
 )
 
 type Config struct {
-	Name string
+	Name                 string
+	ArchiveEncryptionKey string
 }
 
 func (c *Config) save(fs *project_file_system.FileSystem) error {

@@ -74,6 +74,7 @@ const srcGameFileData = `package main
 
 import (
 	"kaiju/bootstrap"
+	"kaiju/build"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"os"
@@ -86,12 +87,11 @@ type Game struct{}
 func (Game) PluginRegistry() []reflect.Type { return []reflect.Type{} }
 
 func (Game) ContentDatabase() (assets.Database, error) {
-	obfuscationKey := []byte("")
 	p, err := os.Executable()
 	if err != nil {
-		return assets.NewArchiveDatabase("kaiju.dat", obfuscationKey)
+		return assets.NewArchiveDatabase("kaiju.dat", []byte(build.ArchiveEncryptionKey))
 	} else {
-		return assets.NewArchiveDatabase(filepath.Join(filepath.Dir(p), "kaiju.dat"), obfuscationKey)
+		return assets.NewArchiveDatabase(filepath.Join(filepath.Dir(p), "kaiju.dat"), []byte(build.ArchiveEncryptionKey))
 	}
 }
 
