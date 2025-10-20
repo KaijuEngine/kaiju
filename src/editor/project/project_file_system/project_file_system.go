@@ -42,6 +42,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -171,6 +172,14 @@ func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error) {
 // with the supplied name joined onto it.
 func (fs *FileSystem) FullPath(name string) string {
 	return filepath.Clean(filepath.Join(fs.Name(), name))
+}
+
+// NormalizePath will attempt to determine if the input path is a location held
+// within the project file system. If it is a path within this file systme, then
+// it will return the path as a relative path to the system, otherwise it will
+// return the path supplied.
+func (fs *FileSystem) NormalizePath(path string) string {
+	return strings.TrimPrefix(filepath.ToSlash(fs.Name()), filepath.ToSlash(path))
 }
 
 // FileExists will return true if the file exists in the rooted file system

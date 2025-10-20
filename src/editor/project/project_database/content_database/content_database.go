@@ -44,7 +44,7 @@ import (
 	"os"
 )
 
-func Import(path string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error) {
+func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (ImportResult, error) {
 	defer tracing.NewRegion("content_database.Import").End()
 	res := ImportResult{Path: path}
 	cat, ok := selectCategory(path)
@@ -56,8 +56,13 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 	if err != nil {
 		return res, err
 	}
+	useLinkedId := linkedId != "" || len(proc.Variants) > 1 ||
+		len(res.Dependencies) > 0
 	for i := range proc.Variants {
 		res.generateUniqueFileId(fs)
+		if useLinkedId && linkedId == "" {
+			linkedId = res.Id
+		}
 		f, err := fs.Create(res.ConfigPath())
 		if err != nil {
 			return res, err
@@ -69,8 +74,10 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 		}()
 		defer f.Close()
 		cfg := ContentConfig{
-			Name: proc.Variants[i].Name,
-			Type: cat.TypeName(),
+			Name:     proc.Variants[i].Name,
+			Type:     cat.TypeName(),
+			SrcPath:  fs.NormalizePath(path),
+			LinkedId: linkedId,
 		}
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
 			return res, err
@@ -80,7 +87,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 		}
 		res.Dependencies = make([]ImportResult, len(proc.Dependencies))
 		for i := range proc.Dependencies {
-			res.Dependencies[i], err = Import(proc.Dependencies[i], fs, cache)
+			res.Dependencies[i], err = Import(proc.Dependencies[i], fs, cache, linkedId)
 			if err != nil {
 				break
 			}

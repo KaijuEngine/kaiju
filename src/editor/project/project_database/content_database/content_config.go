@@ -71,6 +71,19 @@ type ContentConfig struct {
 	// ContentCategory.TypeName() and can not be changed by the developer.
 	Type string
 
+	// SrcPath is the path to the file that was used to import this content. If
+	// the path is within the project folder, then a relative path will be used.
+	// If the path is outside of the project folder, an absolute path will be
+	// used. This path is not guarenteed to exist, as the developer may have
+	// moved or deleted the file.
+	SrcPath string
+
+	// LinkedId will contain a unique identifier across all content that was
+	// linked to a single file import. This field will be empty if there is no
+	// other linked content to this one. All content that is linked together
+	// will have the same LinkedId.
+	LinkedId string `json:",omitempty"`
+
 	// Documentation for each of the fields below can be read by going to the
 	// definition of the type directly. As more categories of content are added
 	// in the future, they should be added to the list below. Feel free to keep

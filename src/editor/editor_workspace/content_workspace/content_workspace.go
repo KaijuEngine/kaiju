@@ -138,7 +138,7 @@ func (w *Workspace) clickImport(*document.Element) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
 			for i := range paths {
-				res, err := content_database.Import(paths[i], w.pfs, w.cCache)
+				res, err := content_database.Import(paths[i], w.pfs, w.cCache, "")
 				if err != nil {
 					slog.Error("failed to import content", "path", paths[i], "error", err)
 				} else {
