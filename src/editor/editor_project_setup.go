@@ -25,7 +25,7 @@ func (ed *Editor) newProjectOverlay() {
 func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
 	err := ed.project.Initialize(path)
-	if klib.ErrorIs[project.ConfigLoadError](err) {
+	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
 		new_project.Show(ed.host, new_project.Config{
 			OnCreate: ed.createProject,
