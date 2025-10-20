@@ -97,8 +97,10 @@ func (fs *FileSystem) SetupStructure() error {
 			return err
 		}
 	}
-	fs.createCodeProject()
-	return nil
+	if err := fs.WriteFile(ProjectConfigFile, []byte("{}"), os.ModePerm); err != nil {
+		return err
+	}
+	return fs.createCodeProject()
 }
 
 // Used to review the loaded FileSystem to ensure that the primary folders
