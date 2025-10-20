@@ -8,10 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 )
 
 var CodeFS embed.FS
+
+var skipFiles = []string{
+	"main.ed.go",
+	"main.test.go",
+	"build/generator.go",
+}
 
 const srcWorkFileData = `go %s
 
@@ -147,16 +154,20 @@ func (pfs *FileSystem) createCodeProject() error {
 			return err
 		}
 		for i := range dir {
-			if filepath.Ext(dir[i].Name()) == ".exe" {
+			name := dir[i].Name()
+			if filepath.Ext(name) == ".exe" {
 				continue
 			}
-			entryPath := filepath.ToSlash(filepath.Join(path, dir[i].Name()))
+			entryPath := filepath.ToSlash(filepath.Join(path, name))
 			if dir[i].IsDir() {
 				if copyFolder(entryPath); err != nil {
 					return err
 				} else {
 					continue
 				}
+			}
+			if slices.Contains(skipFiles, entryPath) {
+				continue
 			}
 			f, err := CodeFS.Open(entryPath)
 			if err != nil {
