@@ -528,16 +528,10 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					continue
 				}
 				ch := findBinChar(fontFace, c)
-
-				// TODO:  Can probably use bounds directly
-				//float xpos = cx + ch.bearingX * scale;
-				//float ypos = cy - (ch.height - ch.bearingY) * scale;
-				xpos := cx + (ch.planeBounds[0] * scale * inverseWidth)
-				ypos := cy + (ch.planeBounds[1] * scale * inverseHeight)
-
-				xpos += xOffset
-				ypos += yOffset
-
+				xPos := cx + (ch.planeBounds[0] * scale * inverseWidth)
+				yPos := cy + (ch.planeBounds[1] * scale * inverseHeight)
+				xPos += xOffset
+				yPos += yOffset
 				w := ch.Width() * scale * inverseWidth
 				h := ch.Height() * scale * inverseHeight
 				// TODO:  Figure out the distance field size
@@ -555,20 +549,24 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				var m *Mesh
 				model := matrix.Mat4Identity()
 				if clm == nil {
+					zPos := z
+					if slices.Contains(overlappingLetters, c) {
+						zPos += 0.0001
+					}
 					var verts [4]Vertex
-					verts[0].Position = matrix.Vec3{xpos, ypos, z}
+					verts[0].Position = matrix.Vec3{xPos, yPos, zPos}
 					verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[0].UV0 = matrix.Vec2{0.0, 1.0}
 					verts[0].Color = matrix.ColorWhite()
-					verts[1].Position = matrix.Vec3{xpos, ypos + h, z}
+					verts[1].Position = matrix.Vec3{xPos, yPos + h, zPos}
 					verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[1].UV0 = matrix.Vec2{0.0, 0.0}
 					verts[1].Color = matrix.ColorWhite()
-					verts[2].Position = matrix.Vec3{xpos + w, ypos + h, z}
+					verts[2].Position = matrix.Vec3{xPos + w, yPos + h, zPos}
 					verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[2].UV0 = matrix.Vec2{1.0, 0.0}
 					verts[2].Color = matrix.ColorWhite()
-					verts[3].Position = matrix.Vec3{xpos + w, ypos, z}
+					verts[3].Position = matrix.Vec3{xPos + w, yPos, zPos}
 					verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
@@ -585,7 +583,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
 					model.Scale(matrix.Vec3{scale * inverseWidth, scale * inverseHeight, 1.0})
-					model.Translate(matrix.Vec3{xpos, (ypos + h), z})
+					model.Translate(matrix.Vec3{xPos, (yPos + h), z})
 					uvs = clm.uvs
 					m = clm.mesh
 				}
@@ -605,11 +603,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					ShaderData: shaderData,
 					Transform:  nil,
 				}
-				if slices.Contains(overlappingLetters, c) {
-					fontMeshes = append([]Drawing{drawing}, fontMeshes...)
-				} else {
-					fontMeshes = append(fontMeshes, drawing)
-				}
+				fontMeshes = append(fontMeshes, drawing)
 				cx += ch.advance * scale * inverseWidth
 				ay := fontFace.metrics.LineHeight * scale * inverseHeight
 				height = matrix.Max(height, ay)
