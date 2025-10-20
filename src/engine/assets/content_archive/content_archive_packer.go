@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"kaiju/debug"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ type SourceContent struct {
 }
 
 func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
+	defer tracing.NewRegion("content_archive.CreateArchiveFromFolder").End()
 	files := []SourceContent{}
 	err := filepath.Walk(inPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -49,6 +51,7 @@ func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
 }
 
 func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) error {
+	defer tracing.NewRegion("content_archive.CreateArchiveFromFiles").End()
 	if len(files) == 0 {
 		return fmt.Errorf("no assets were provided to archive")
 	}

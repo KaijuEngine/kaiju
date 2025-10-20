@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"kaiju/platform/profiler/tracing"
 	"os"
 	"unsafe"
 )
@@ -27,6 +28,7 @@ type Archive struct {
 }
 
 func OpenArchiveFile(path string, key []byte) (*Archive, error) {
+	defer tracing.NewRegion("content_archive.OpenArchiveFile").End()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -35,6 +37,7 @@ func OpenArchiveFile(path string, key []byte) (*Archive, error) {
 }
 
 func OpenArchiveFromBytes(data []byte, key []byte) (*Archive, error) {
+	defer tracing.NewRegion("content_archive.OpenArchiveFromBytes").End()
 	if len(data) < 18 || !bytes.Equal(data[:4], title()) {
 		return nil, errors.New("invalid content archive")
 	}
@@ -75,6 +78,7 @@ func (a *Archive) Exists(name string) bool {
 }
 
 func (a *Archive) Read(name string) ([]byte, error) {
+	defer tracing.NewRegion("content_archive.Read").End()
 	asset, ok := a.assets[name]
 	if !ok {
 		return nil, fmt.Errorf("asset %q not found", name)
