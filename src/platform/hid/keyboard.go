@@ -41,6 +41,7 @@ import "strings"
 
 type KeyState = uint8
 type KeyboardKey = int
+type KeyCallbackId int
 
 const (
 	KeyStateIdle KeyState = iota
@@ -152,13 +153,13 @@ const (
 )
 
 type keyCallback struct {
-	id int
+	id KeyCallbackId
 	fn func(keyId int, keyState KeyState)
 }
 
 type Keyboard struct {
 	keyStates      [KeyboardKeyMaximum]KeyState
-	nextCallbackId int
+	nextCallbackId KeyCallbackId
 	keyCallbacks   []keyCallback
 }
 
@@ -169,7 +170,7 @@ func NewKeyboard() Keyboard {
 	}
 }
 
-func (k *Keyboard) AddKeyCallback(cb func(keyId int, keyState KeyState)) int {
+func (k *Keyboard) AddKeyCallback(cb func(keyId int, keyState KeyState)) KeyCallbackId {
 	id := k.nextCallbackId
 	k.keyCallbacks = append(k.keyCallbacks, keyCallback{
 		id: id,
@@ -179,7 +180,7 @@ func (k *Keyboard) AddKeyCallback(cb func(keyId int, keyState KeyState)) int {
 	return id
 }
 
-func (k *Keyboard) RemoveKeyCallback(id int) {
+func (k *Keyboard) RemoveKeyCallback(id KeyCallbackId) {
 	for i, cb := range k.keyCallbacks {
 		if cb.id == id {
 			last := len(k.keyCallbacks) - 1
