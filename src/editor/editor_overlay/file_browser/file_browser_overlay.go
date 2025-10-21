@@ -51,6 +51,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"unicode"
 )
 
 type FileBrowser struct {
@@ -63,7 +64,6 @@ type FileBrowser struct {
 	history       []string
 	historyIdx    int
 	config        Config
-	updateId      engine.UpdateId
 }
 
 type Config struct {
@@ -148,8 +148,39 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	fb.filePath, _ = fb.doc.GetElementById("filePath")
 	fb.entryTemplate.UI.Hide()
 	fb.openFolder(data.CurrentPath)
-	fb.updateId = host.Updater.AddUpdate(fb.update)
+	updateId := host.Updater.AddUpdate(fb.update)
+	keyCallbackId := host.Window.Keyboard.AddKeyCallback(fb.onKeyboardType)
+	fb.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
+		fb.uiMan.Host.Updater.RemoveUpdate(&updateId)
+		fb.uiMan.Host.Window.Keyboard.RemoveKeyCallback(keyCallbackId)
+	})
 	return fb, nil
+}
+
+func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
+	if keyState != hid.KeyStateDown {
+		return
+	}
+	r := fb.uiMan.Host.Window.Keyboard.KeyToRune(keyId)
+	from := 0
+	if len(fb.selected) > 0 {
+		from = fb.entryListElm.IndexOfChild(fb.selected[len(fb.selected)-1]) + 1
+	}
+	locate := func(start int) bool {
+		for _, c := range fb.entryListElm.Children[start:] {
+			name := c.Children[2].Children[0].UI.ToLabel().Text()
+			if unicode.ToLower([]rune(name)[0]) == unicode.ToLower(r) {
+				fb.selectEntry(c)
+				fb.entryListElm.UIPanel.ScrollToChild(c.UI)
+				return true
+			}
+		}
+		return false
+	}
+	fb.clearSelection()
+	if !locate(from) && from > 0 {
+		locate(0)
+	}
 }
 
 func (fb *FileBrowser) update(float64) {
@@ -173,13 +204,20 @@ func (fb *FileBrowser) update(float64) {
 		fb.selectEntry(fb.entryListElm.Children[idx])
 		p := fb.entryListElm.UI.ToPanel()
 		p.ScrollToChild(fb.entryListElm.Children[idx].UI)
+	} else if kb.KeyDown(hid.KeyboardKeyEnter) || kb.KeyDown(hid.KeyboardKeyReturn) {
+		if len(fb.selected) == 1 {
+			fb.openEntry(fb.selected[0])
+		} else {
+			fb.confirmSelection(nil)
+		}
+	} else if kb.KeyDown(hid.KeyboardKeyLeft) || kb.KeyDown(hid.KeyboardKeyBackspace) {
+		fb.back(nil)
+	} else if kb.KeyDown(hid.KeyboardKeyRight) {
+		fb.forward(nil)
 	}
 }
 
-func (fb *FileBrowser) Close() {
-	fb.uiMan.Host.Updater.RemoveUpdate(&fb.updateId)
-	fb.doc.Destroy()
-}
+func (fb *FileBrowser) Close() { fb.doc.Destroy() }
 
 func (fb *FileBrowser) currentFolder() string {
 	return fb.filePath.UI.ToInput().Text()
