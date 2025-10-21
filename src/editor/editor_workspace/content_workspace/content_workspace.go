@@ -203,15 +203,13 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 				return
 			}
 			td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
-			w.Host.RunOnMainThread(func() {
-				tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
+			tex, err := w.Host.TextureCache().InsertTexture(key, data,
 					td.Width, td.Height, rendering.TextureFilterLinear)
 				if err != nil {
 					slog.Error("failed to insert the texture to the cache", "error", err)
 					return
 				}
 				img.SetBackground(tex)
-			})
 		}()
 	}
 }
