@@ -271,6 +271,8 @@ func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, 
 		inputType = TextureFileFormatAstc
 	} else if strings.HasSuffix(key, ".png") {
 		inputType = TextureFileFormatPng
+	} else if len(imgBuff) > 4 && imgBuff[0] == '\x89' && imgBuff[1] == 'P' && imgBuff[2] == 'N' && imgBuff[3] == 'G' {
+		inputType = TextureFileFormatPng
 	}
 	data := ReadRawTextureData(imgBuff, inputType)
 	if data.Width == 0 {
