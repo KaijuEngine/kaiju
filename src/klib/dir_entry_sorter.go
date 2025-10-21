@@ -40,6 +40,7 @@ package klib
 import (
 	"os"
 	"sort"
+	"strings"
 )
 
 type dirEntries []os.DirEntry
@@ -56,7 +57,7 @@ func (d dirEntries) Less(i, j int) bool {
 	if d[i].IsDir() != d[j].IsDir() {
 		return d[i].IsDir()
 	}
-	return d[i].Name() < d[j].Name()
+	return strings.ToLower(d[i].Name()) < strings.ToLower(d[j].Name())
 }
 
 func SortDirEntries(entries []os.DirEntry) []os.DirEntry {
