@@ -376,8 +376,6 @@ func (w *Workspace) clickReimport(*document.Element) {
 	}
 	slog.Info("successfully re-imported the content")
 	w.Host.TextureCache().ForceRemoveTexture(filepath.Base(res.ConfigPath()), rendering.TextureFilterLinear)
-	t, _ := w.Host.TextureCache().Texture(":C:/Users/brent/Desktop/refactor/database/content/texture/f2fac8a1-9d40-43f8-86fe-2dd07ddb1396", rendering.TextureFilterLinear)
-	w.selectedContent.Children[0].UI.ToPanel().SetBackground(t)
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
