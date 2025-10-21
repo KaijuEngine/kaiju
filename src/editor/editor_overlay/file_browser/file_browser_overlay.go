@@ -45,6 +45,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/filesystem"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
@@ -62,6 +63,7 @@ type FileBrowser struct {
 	history       []string
 	historyIdx    int
 	config        Config
+	updateId      int
 }
 
 type Config struct {
@@ -146,10 +148,39 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	fb.filePath, _ = fb.doc.GetElementById("filePath")
 	fb.entryTemplate.UI.Hide()
 	fb.openFolder(data.CurrentPath)
+	fb.updateId = host.Updater.AddUpdate(fb.update)
 	return fb, nil
 }
 
-func (fb *FileBrowser) Close() { fb.doc.Destroy() }
+func (fb *FileBrowser) update(float64) {
+	if len(fb.entryListElm.Children) == 0 {
+		return
+	}
+	kb := &fb.uiMan.Host.Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyUp) || kb.KeyDown(hid.KeyboardKeyDown) {
+		// We start at 1 because of the template being 0
+		idx := 1
+		if len(fb.selected) > 0 {
+			last := fb.selected[len(fb.selected)-1]
+			if kb.KeyDown(hid.KeyboardKeyUp) {
+				idx = max(1, fb.entryListElm.IndexOfChild(last)-1)
+			} else if kb.KeyDown(hid.KeyboardKeyDown) {
+				idx = min(len(fb.entryListElm.Children)-1,
+					fb.entryListElm.IndexOfChild(last)+1)
+			}
+		}
+		fb.clearSelection()
+		fb.selectEntry(fb.entryListElm.Children[idx])
+		p := fb.entryListElm.UI.ToPanel()
+		p.ScrollToChild(fb.entryListElm.Children[idx].UI)
+	}
+}
+
+func (fb *FileBrowser) Close() {
+	fb.uiMan.Host.Updater.RemoveUpdate(fb.updateId)
+	fb.updateId = 0
+	fb.doc.Destroy()
+}
 
 func (fb *FileBrowser) currentFolder() string {
 	return fb.filePath.UI.ToInput().Text()
