@@ -54,7 +54,7 @@ type Manager struct {
 	Group         Group
 	pools         pooling.PoolGroup[UI]
 	hovered       [][]*UI
-	updateId      int
+	updateId      engine.UpdateId
 	skipUpdate    int
 	resizeEvtId   events.Id
 	windowResized bool
@@ -148,9 +148,9 @@ func (man *Manager) Init(host *engine.Host) {
 	type manCleanup struct {
 		host          weak.Pointer[engine.Host]
 		win           weak.Pointer[windowing.Window]
-		updateId      int
+		updateId      engine.UpdateId
 		resizeId      events.Id
-		groupUpdateId int
+		groupUpdateId engine.UpdateId
 	}
 	clean := manCleanup{weak.Make(host), weak.Make(host.Window),
 		man.updateId, man.resizeEvtId, man.Group.updateId}
@@ -159,8 +159,8 @@ func (man *Manager) Init(host *engine.Host) {
 		if h == nil {
 			return
 		}
-		h.Updater.RemoveUpdate(c.updateId)
-		h.UILateUpdater.RemoveUpdate(c.groupUpdateId)
+		h.Updater.RemoveUpdate(&c.updateId)
+		h.UILateUpdater.RemoveUpdate(&c.groupUpdateId)
 		w := c.win.Value()
 		if w == nil {
 			return

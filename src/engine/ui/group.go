@@ -63,7 +63,7 @@ type groupRequest struct {
 type Group struct {
 	requests     []groupRequest
 	focus        *UI
-	updateId     int
+	updateId     engine.UpdateId
 	lock         sync.Mutex
 	hadRequests  requestState
 	isThreaded   bool
@@ -127,8 +127,7 @@ func (group *Group) Attach(host *engine.Host) {
 }
 
 func (group *Group) Detach(host *engine.Host) {
-	host.UILateUpdater.RemoveUpdate(group.updateId)
-	group.updateId = 0
+	host.UILateUpdater.RemoveUpdate(&group.updateId)
 }
 
 func sortElements(a *UI, b *UI) bool { return a.IsInFrontOf(b) }

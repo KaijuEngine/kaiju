@@ -53,7 +53,7 @@ const (
 type MasterServerClient struct {
 	client       network.NetworkClient
 	pingTime     float64
-	updateId     int
+	updateId     engine.UpdateId
 	isServer     bool
 	OnServerList func([]ResponseServerList, uint32)
 	OnServerJoin func(string)
@@ -90,8 +90,7 @@ func (c *MasterServerClient) Connect(updater *engine.Updater) error {
 
 func (c *MasterServerClient) Disconnect(updater *engine.Updater) {
 	debug.Log("Disconnecting the master server client")
-	updater.RemoveUpdate(c.updateId)
-	c.updateId = 0
+	updater.RemoveUpdate(&c.updateId)
 	c.client.Close(updater)
 }
 

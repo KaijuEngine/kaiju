@@ -50,7 +50,7 @@ import (
 type Workspace struct {
 	common_workspace.CommonWorkspace
 	camera     editor_controls.EditorCamera
-	updateId   int
+	updateId   engine.UpdateId
 	gridShader *rendering.ShaderDataBasic
 }
 
@@ -67,8 +67,7 @@ func (w *Workspace) Open() {
 }
 
 func (w *Workspace) Close() {
-	w.Host.Updater.RemoveUpdate(w.updateId)
-	w.updateId = 0
+	w.Host.Updater.RemoveUpdate(&w.updateId)
 	w.gridShader.Deactivate()
 	w.CommonClose()
 }

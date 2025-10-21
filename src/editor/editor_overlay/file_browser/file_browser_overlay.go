@@ -63,7 +63,7 @@ type FileBrowser struct {
 	history       []string
 	historyIdx    int
 	config        Config
-	updateId      int
+	updateId      engine.UpdateId
 }
 
 type Config struct {
@@ -177,8 +177,7 @@ func (fb *FileBrowser) update(float64) {
 }
 
 func (fb *FileBrowser) Close() {
-	fb.uiMan.Host.Updater.RemoveUpdate(fb.updateId)
-	fb.updateId = 0
+	fb.uiMan.Host.Updater.RemoveUpdate(&fb.updateId)
 	fb.doc.Destroy()
 }
 

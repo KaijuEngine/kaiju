@@ -48,7 +48,7 @@ type MainStage struct {
 	host        *engine.Host
 	physics     stage_physics.StagePhysics
 	stages      []Stage
-	updateId    int
+	updateId    engine.UpdateId
 	nextStageId StageId
 }
 
@@ -65,8 +65,7 @@ func (s *MainStage) InitPhysics() {
 }
 
 func (s *MainStage) Teardown() {
-	s.host.Updater.RemoveUpdate(s.updateId)
-	s.updateId = 0
+	s.host.Updater.RemoveUpdate(&s.updateId)
 	s.TeardownStages()
 }
 

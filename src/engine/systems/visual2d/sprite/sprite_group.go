@@ -56,12 +56,13 @@ type SpriteGroup struct {
 	host     weak.Pointer[engine.Host]
 	nextId   int
 	index    []IndexedSprite
-	updateId int
+	updateId engine.UpdateId
 }
 
 func (g *SpriteGroup) Init(host *engine.Host) {
 	g.host = weak.Make(host)
-	host.Updater.AddUpdate(g.update)
+	// TODO:  Need to remove the update somewhere
+	g.updateId = host.Updater.AddUpdate(g.update)
 }
 
 func (g *SpriteGroup) Reserve(count int) {
@@ -82,7 +83,7 @@ func (g *SpriteGroup) Add(sprite Sprite) SpriteGroupId {
 	if g.updateId > 0 {
 		host := g.host.Value()
 		debug.EnsureNotNil(host)
-		host.Updater.RemoveUpdate(sprite.updateId)
+		host.Updater.RemoveUpdate(&sprite.updateId)
 	}
 	sprite.updateId = 0
 	entry := IndexedSprite{

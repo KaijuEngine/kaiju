@@ -102,7 +102,7 @@ type Console struct {
 	commands   map[string]consoleCommand
 	history    history
 	historyIdx int
-	updateId   int
+	updateId   engine.UpdateId
 	isActive   bool
 	input      *ui.Input
 	data       map[string]ConsoleData
@@ -133,7 +133,7 @@ func initialize(host *engine.Host) *Console {
 		string(consoleHTML), "", nil, nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
-		host.Updater.RemoveUpdate(console.updateId)
+		host.Updater.RemoveUpdate(&console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
 	input := inputElm.UI.ToInput()
