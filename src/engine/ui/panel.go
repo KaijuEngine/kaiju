@@ -542,6 +542,19 @@ func (p *Panel) SetScrollY(value float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
+func (p *Panel) ScrollToChild(child *UI) {
+	pps := p.Base().Layout().PixelSize()
+	cps := child.layout.PixelSize()
+	ct := child.entity.Transform
+	top := pps.Y()*0.5 - cps.Y()*0.5 - ct.Position().Y()
+	bottom := -(pps.Y()*0.5 - cps.Y()*0.5) - ct.Position().Y()
+	if top < 0 {
+		p.SetScrollY(p.ScrollY() + top)
+	} else if bottom >= 0 {
+		p.SetScrollY(p.ScrollY() + bottom)
+	}
+}
+
 func (p *Panel) ResetScroll() {
 	p.PanelData().scroll = matrix.Vec2Zero()
 }
