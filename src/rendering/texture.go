@@ -164,42 +164,48 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 	res.InputType = inputType
 	switch inputType {
 	case TextureFileFormatAstc:
-		if mem[4] == 4 {
+		switch mem[4] {
+		case 4:
 			res.InternalFormat = TextureInputTypeCompressedRgbaAstc4x4
-		} else if mem[4] == 5 {
-			if mem[5] == 4 {
+		case 5:
+			switch mem[5] {
+			case 4:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x4
-			} else if mem[5] == 5 {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x5
 			}
-		} else if mem[4] == 6 {
-			if mem[5] == 5 {
+		case 6:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x6
 			}
-		} else if mem[4] == 8 {
-			if mem[5] == 5 {
+		case 8:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x6
-			} else if mem[5] == 8 {
+			case 8:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x8
 			}
-		} else if mem[4] == 10 {
-			if mem[5] == 5 {
+		case 10:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x6
-			} else if mem[5] == 8 {
+			case 8:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x8
-			} else if mem[5] == 10 {
+			case 10:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x10
 			}
-		} else if mem[4] == 12 {
-			if mem[5] == 10 {
+		case 12:
+			switch mem[5] {
+			case 10:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x10
-			} else if mem[5] == 12 {
+			case 12:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x12
 			}
 		}
