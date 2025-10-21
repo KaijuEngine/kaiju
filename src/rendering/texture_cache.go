@@ -96,6 +96,10 @@ func (t *TextureCache) InsertTexture(key string, data []byte, width, height int,
 	return texture, nil
 }
 
+func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter) {
+	delete(t.textures[filter], key)
+}
+
 func (t *TextureCache) CreatePending() {
 	defer tracing.NewRegion("TextureCache.CreatePending").End()
 	t.mutex.Lock()

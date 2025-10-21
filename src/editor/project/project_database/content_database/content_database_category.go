@@ -85,9 +85,15 @@ type ContentCategory interface {
 	// some processing of the file to extract the relevant information which is
 	// contained within (i.e. glTF files).
 	Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// Reimport will mostly do the same thing as import, however it will also
+	// determine if the content can be re-imported. In some cases, like model
+	// files, there are multiple pices of content that match up in specific
+	// ways. This function will return an error if the re-import isn't possible.
+	Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
 }
 
-func selectCategory(path string) (ContentCategory, bool) {
+func selectCategoryForFile(path string) (ContentCategory, bool) {
 	defer tracing.NewRegion("content_database.selectCategory").End()
 	ext := strings.ToLower(filepath.Ext(path))
 	for i := range ContentCategories {
@@ -105,4 +111,14 @@ func selectCategory(path string) (ContentCategory, bool) {
 func addCategory(cat ContentCategory) {
 	ContentCategories = append(ContentCategories, cat)
 	ImportableTypes = append(ImportableTypes, cat.ExtNames()...)
+}
+
+func categoryFromTypeName(typeName string) (ContentCategory, bool) {
+	defer tracing.NewRegion("content_database.categoryFromTypeName").End()
+	for i := range ContentCategories {
+		if ContentCategories[i].TypeName() == typeName {
+			return ContentCategories[i], true
+		}
+	}
+	return nil, false
 }

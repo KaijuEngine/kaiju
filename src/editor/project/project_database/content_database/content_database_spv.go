@@ -59,3 +59,8 @@ func (Spv) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpor
 	defer tracing.NewRegion("Spv.Import").End()
 	return pathToBinaryData(src)
 }
+
+func (c Spv) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Spv.Import").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}

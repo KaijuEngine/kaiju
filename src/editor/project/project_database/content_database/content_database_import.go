@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,9 +54,6 @@ import (
 type ImportResult struct {
 	// Id is a globally unique identifier for this imported content
 	Id string
-
-	// Path holds the path to the imported content within the content database
-	Path string
 
 	// Category is the content type category that was used to import this file
 	Category ContentCategory
@@ -141,4 +139,46 @@ func pathToBinaryData(path string) (ProcessedImport, error) {
 	return ProcessedImport{Variants: []ImportVariant{
 		{Name: fileNameNoExt(path), Data: data},
 	}}, err
+}
+
+func contentIdToSrcPath(id string, cache *Cache, fs *project_file_system.FileSystem) (string, error) {
+	cc, err := cache.Read(id)
+	if err != nil {
+		return "", err
+	}
+	path := cc.Config.SrcPath
+	if fs.Exists(path) {
+		path = fs.FullPath(path)
+	}
+	if _, err := os.Stat(path); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func reimportByNameMatching(cat ContentCategory, id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("content_database.reimportByNameMatching").End()
+	path, err := contentIdToSrcPath(id, cache, fs)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	proc, err := cat.Import(path, fs)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	cc, err := cache.Read(id)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	for i := range proc.Variants {
+		if proc.Variants[i].Name == cc.Config.SrcName {
+			return ProcessedImport{
+				Variants: []ImportVariant{proc.Variants[i]},
+			}, nil
+		}
+	}
+	return ProcessedImport{}, ReimportMeshMissingError{
+		Path: path,
+		Name: cc.Config.SrcName,
+	}
 }

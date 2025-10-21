@@ -61,3 +61,8 @@ func (Material) Import(src string, _ *project_file_system.FileSystem) (Processed
 	defer tracing.NewRegion("Material.Import").End()
 	return pathToTextData(src)
 }
+
+func (c Material) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Material.Import").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}

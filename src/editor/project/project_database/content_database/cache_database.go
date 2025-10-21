@@ -105,6 +105,25 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 	}
 }
 
+// ReadLinked will return all of the linked content for the given id. This will
+// also return the content for the id itself.
+func (c *Cache) ReadLinked(id string) ([]CachedContent, error) {
+	cc, err := c.Read(id)
+	if err != nil {
+		return []CachedContent{}, err
+	}
+	if cc.Config.LinkedId == "" {
+		return []CachedContent{cc}, nil
+	}
+	linked := []CachedContent{}
+	for i := range c.cache {
+		if c.cache[i].Config.LinkedId == cc.Config.LinkedId {
+			linked = append(linked, c.cache[i])
+		}
+	}
+	return linked, nil
+}
+
 // TagFilter will filter all content to that which matches the given tags. This
 // is an OR comparison so that any content that has at least one of the tags
 // will be selected by the filter.

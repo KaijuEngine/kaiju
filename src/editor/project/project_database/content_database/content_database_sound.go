@@ -60,3 +60,8 @@ func (Sound) Import(src string, _ *project_file_system.FileSystem) (ProcessedImp
 	defer tracing.NewRegion("Sound.Import").End()
 	return pathToBinaryData(src)
 }
+
+func (c Sound) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Sound.Import").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}

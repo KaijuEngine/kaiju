@@ -106,6 +106,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 			"submitNewTag":   w.submitNewTag,
 			"clickTagHint":   w.clickTagHint,
 			"submitName":     w.submitName,
+			"clickReimport":  w.clickReimport,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -185,27 +186,31 @@ func (w *Workspace) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
-		img := cpys[i].Children[0].UI.ToPanel()
-		if cc.Config.Type == (content_database.Texture{}).TypeName() {
-			// Loose goroutine
-			go func() {
-				path := content_database.ToContentPath(cc.Path)
-				key := filepath.Base(path)
-				data, err := w.pfs.ReadFile(path)
-				if err != nil {
-					slog.Error("error reading the image file", "path", path)
-					return
-				}
-				td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
-				tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
-					td.Width, td.Height, rendering.TextureFilterLinear)
-				if err != nil {
-					slog.Error("failed to insert the texture to the cache", "error", err)
-					return
-				}
-				img.SetBackground(tex)
-			}()
-		}
+		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+	}
+}
+
+func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+	img := e.Children[0].UI.ToPanel()
+	if typeName == (content_database.Texture{}).TypeName() {
+		// Loose goroutine
+		go func() {
+			path := content_database.ToContentPath(configPath)
+			key := filepath.Base(path)
+			data, err := w.pfs.ReadFile(path)
+			if err != nil {
+				slog.Error("error reading the image file", "path", path)
+				return
+			}
+			td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
+			tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
+				td.Width, td.Height, rendering.TextureFilterLinear)
+			if err != nil {
+				slog.Error("failed to insert the texture to the cache", "error", err)
+				return
+			}
+			img.SetBackground(tex)
+		}()
 	}
 }
 
@@ -255,6 +260,9 @@ func (w *Workspace) clickFilter(e *document.Element) {
 }
 
 func (w *Workspace) clickEntry(e *document.Element) {
+	if w.selectedContent == e {
+		return
+	}
 	id := e.Attribute("id")
 	cc, err := w.cCache.Read(id)
 	if err != nil {
@@ -356,6 +364,17 @@ func (w *Workspace) submitName(e *document.Element) {
 		return
 	}
 	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
+}
+
+func (w *Workspace) clickReimport(*document.Element) {
+	res, err := content_database.Reimport(w.selectedId(), w.pfs, w.cCache)
+	if err != nil {
+		slog.Error("failed to re-import the content", "error", err)
+		return
+	}
+	slog.Info("successfully re-imported the content")
+	w.Host.TextureCache().ForceRemoveTexture(filepath.Base(res.ConfigPath()), rendering.TextureFilterLinear)
+	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
 func (w *Workspace) addTagToSelected(tag string) {

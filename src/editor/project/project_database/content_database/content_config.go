@@ -78,6 +78,11 @@ type ContentConfig struct {
 	// moved or deleted the file.
 	SrcPath string
 
+	// SrcName is the name given to this content when it was imported by the
+	// source file. This name is not allowed to be changed, it is mainly used
+	// for re-importing content.
+	SrcName string
+
 	// LinkedId will contain a unique identifier across all content that was
 	// linked to a single file import. This field will be empty if there is no
 	// other linked content to this one. All content that is linked together

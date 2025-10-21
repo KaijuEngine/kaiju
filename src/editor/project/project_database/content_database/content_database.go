@@ -39,6 +39,7 @@ package content_database
 
 import (
 	"encoding/json"
+	"kaiju/debug"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"os"
@@ -46,8 +47,8 @@ import (
 
 func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (ImportResult, error) {
 	defer tracing.NewRegion("content_database.Import").End()
-	res := ImportResult{Path: path}
-	cat, ok := selectCategory(path)
+	res := ImportResult{}
+	cat, ok := selectCategoryForFile(path)
 	if !ok {
 		return res, CategoryNotFoundError{Path: path}
 	}
@@ -75,6 +76,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		defer f.Close()
 		cfg := ContentConfig{
 			Name:     proc.Variants[i].Name,
+			SrcName:  proc.Variants[i].Name,
 			Type:     cat.TypeName(),
 			SrcPath:  fs.NormalizePath(path),
 			LinkedId: linkedId,
@@ -95,4 +97,39 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		cache.Index(res.ConfigPath(), fs)
 	}
 	return res, err
+}
+
+func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error) {
+	cc, err := cache.Read(id)
+	if err != nil {
+		return ImportResult{}, err
+	}
+	if cc.Config.SrcPath == "" {
+		return ImportResult{}, ReimportSourceMissingError{id}
+	}
+	path := cc.Config.SrcPath
+	if fs.Exists(path) {
+		path = fs.FullPath(path)
+	}
+	if _, err := os.Stat(path); err != nil {
+		return ImportResult{}, ReimportSourceMissingError{id}
+	}
+	cat, ok := categoryFromTypeName(cc.Config.Type)
+	if !ok {
+		return ImportResult{}, CategoryNotFoundError{Type: cc.Config.Type}
+	}
+	proc, err := cat.Reimport(id, cache, fs)
+	if err != nil {
+		return ImportResult{}, err
+	}
+	debug.Assert(len(proc.Dependencies) == 0, "dependencies are not allowed for re-import")
+	debug.Assert(len(proc.Variants) == 1, "only 1 variant is allowed on re-import")
+	res := ImportResult{
+		Id:       id,
+		Category: cat,
+	}
+	if err = fs.WriteFile(res.ContentPath(), proc.Variants[0].Data, os.ModePerm); err != nil {
+		return res, err
+	}
+	return res, nil
 }

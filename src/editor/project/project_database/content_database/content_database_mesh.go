@@ -101,3 +101,8 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	return p, nil
 }
+
+func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Font.ReImport").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}

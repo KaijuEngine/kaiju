@@ -97,3 +97,8 @@ func (Font) Import(src string, fs *project_file_system.FileSystem) (ProcessedImp
 	}
 	return p, nil
 }
+
+func (c Font) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Font.ReImport").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}
