@@ -501,6 +501,7 @@ func (w *Window) removeFromActiveWindows() {
 
 func (w *Window) becameInactive() {
 	defer tracing.NewRegion("Window.becameInactive").End()
+	w.disableRawMouse()
 	w.Keyboard.Reset()
 	w.Mouse.Reset()
 	w.Touch.Reset()
@@ -510,6 +511,7 @@ func (w *Window) becameInactive() {
 
 func (w *Window) becameActive() {
 	defer tracing.NewRegion("Window.becameActive").End()
+	w.enableRawMouse()
 	w.cursorStandard()
 	idx := -1
 	for i := range activeWindows {
