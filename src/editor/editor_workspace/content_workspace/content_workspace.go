@@ -63,6 +63,7 @@ type Workspace struct {
 	tagFilterTemplate *document.Element
 	addTagbtn         *document.Element
 	selectedContent   *document.Element
+	rightBody         *document.Element
 	pageData          WorkspaceUIData
 	info              struct {
 		nameInput        *document.Element
@@ -109,6 +110,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
 	w.addTagbtn, _ = w.Doc.GetElementById("addTagbtn")
+	w.rightBody, _ = w.Doc.GetElementById("rightBody")
 	w.info.nameInput, _ = w.Doc.GetElementById("entryName")
 	w.info.tagList, _ = w.Doc.GetElementById("entryTags")
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
@@ -124,6 +126,9 @@ func (w *Workspace) Open() {
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
+	if w.selectedContent == nil {
+		w.rightBody.UI.Hide()
+	}
 	w.Doc.Clean()
 }
 
@@ -259,6 +264,7 @@ func (w *Workspace) clickEntry(e *document.Element) {
 		w.Doc.SetElementClasses(w.selectedContent, "entry")
 	}
 	w.selectedContent = e
+	w.rightBody.UI.Show()
 	w.Doc.SetElementClasses(w.selectedContent, "entry", "entrySelected")
 	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.tagList.Children[i])
