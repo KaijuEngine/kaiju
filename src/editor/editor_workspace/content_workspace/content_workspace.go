@@ -203,13 +203,15 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 				return
 			}
 			td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
-			tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
-				td.Width, td.Height, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
-				return
-			}
-			img.SetBackground(tex)
+			w.Host.RunOnMainThread(func() {
+				tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
+					td.Width, td.Height, rendering.TextureFilterLinear)
+				if err != nil {
+					slog.Error("failed to insert the texture to the cache", "error", err)
+					return
+				}
+				img.SetBackground(tex)
+			})
 		}()
 	}
 }
@@ -374,6 +376,8 @@ func (w *Workspace) clickReimport(*document.Element) {
 	}
 	slog.Info("successfully re-imported the content")
 	w.Host.TextureCache().ForceRemoveTexture(filepath.Base(res.ConfigPath()), rendering.TextureFilterLinear)
+	t, _ := w.Host.TextureCache().Texture(":C:/Users/brent/Desktop/refactor/database/content/texture/f2fac8a1-9d40-43f8-86fe-2dd07ddb1396", rendering.TextureFilterLinear)
+	w.selectedContent.Children[0].UI.ToPanel().SetBackground(t)
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
