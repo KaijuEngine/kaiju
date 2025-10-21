@@ -68,12 +68,12 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if err != nil {
 			return res, err
 		}
+		defer f.Close()
 		defer func() {
 			if err != nil {
 				res.failureCleanup(fs)
 			}
 		}()
-		defer f.Close()
 		cfg := ContentConfig{
 			Name:     proc.Variants[i].Name,
 			SrcName:  proc.Variants[i].Name,

@@ -202,14 +202,15 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 				slog.Error("error reading the image file", "path", path)
 				return
 			}
-			td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
-			tex, err := w.Host.TextureCache().InsertTexture(key, data,
-					td.Width, td.Height, rendering.TextureFilterLinear)
-				if err != nil {
-					slog.Error("failed to insert the texture to the cache", "error", err)
-					return
-				}
-				img.SetBackground(tex)
+			tex, err := rendering.NewTextureFromMemory(key, data, 0, 0, rendering.TextureFilterLinear)
+			if err != nil {
+				slog.Error("failed to insert the texture to the cache", "error", err)
+				return
+			}
+			img.SetBackground(tex)
+			w.Host.RunOnMainThread(func() {
+				tex.DelayedCreate(w.Host.Window.Renderer)
+			})
 		}()
 	}
 }

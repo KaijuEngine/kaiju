@@ -318,8 +318,12 @@ func NewTextureFromMemory(key string, data []byte, width, height int, filter Tex
 	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
-	tex.Width = width
-	tex.Height = height
+	if tex.Width == 0 {
+		tex.Width = width
+	}
+	if tex.Height == 0 {
+		tex.Height = height
+	}
 	return tex, nil
 }
 
