@@ -105,6 +105,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 			"updateTagHint":  w.updateTagHint,
 			"submitNewTag":   w.submitNewTag,
 			"clickTagHint":   w.clickTagHint,
+			"submitName":     w.submitName,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -335,6 +336,26 @@ func (w *Workspace) clickTagHint(e *document.Element) {
 	w.addTagToSelected(e.Children[0].UI.ToLabel().Text())
 	w.info.newTagHint.UI.Hide()
 	w.info.newTagInput.UI.ToInput().SetTextWithoutEvent("")
+}
+
+func (w *Workspace) submitName(e *document.Element) {
+	name := strings.TrimSpace(e.UI.ToInput().Text())
+	if name == "" {
+		slog.Warn("The name for the content can't be left blank, ignoring change")
+		return
+	}
+	id := w.selectedId()
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the content by id", "id", id, "error", err)
+		return
+	}
+	cc.Config.Name = name
+	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
+		slog.Error("failed to update the content config file", "id", id, "error", err)
+		return
+	}
+	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
 }
 
 func (w *Workspace) addTagToSelected(tag string) {
