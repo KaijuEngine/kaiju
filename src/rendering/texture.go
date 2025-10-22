@@ -47,6 +47,8 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"strings"
+
+	"github.com/KaijuEngine/uuid"
 )
 
 /*
@@ -119,6 +121,10 @@ const (
 const (
 	bytesInPixel = 4
 	CubeMapSides = 6
+)
+
+const (
+	GenerateUniqueTextureKey = ""
 )
 
 type GPUImageWriteRequest struct {
@@ -291,11 +297,12 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(renderer Renderer, assetDb assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
+func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
-	tex := &Texture{Key: textureKey, Filter: filter}
-	if assetDb.Exists(textureKey) {
-		if imgBuff, err := assetDb.Read(textureKey); err != nil {
+	key = selectKey(key)
+	tex := &Texture{Key: key, Filter: filter}
+	if assetDb.Exists(key) {
+		if imgBuff, err := assetDb.Read(key); err != nil {
 			return nil, err
 		} else if len(imgBuff) == 0 {
 			return nil, errors.New("no data in texture")
@@ -316,6 +323,7 @@ func (t *Texture) DelayedCreate(renderer Renderer) {
 
 func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
+	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
 	if tex.Width == 0 {
@@ -341,10 +349,11 @@ func (t Texture) Size() matrix.Vec2 {
 	return matrix.Vec2{float32(t.Width), float32(t.Height)}
 }
 
-func TexturePixelsFromAsset(assetDb assets.Database, textureKey string) (TextureData, error) {
+func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error) {
 	defer tracing.NewRegion("rendering.TexturePixelsFromAsset").End()
-	if assetDb.Exists(textureKey) {
-		if imgBuff, err := assetDb.Read(textureKey); err != nil {
+	key = selectKey(key)
+	if assetDb.Exists(key) {
+		if imgBuff, err := assetDb.Read(key); err != nil {
 			return TextureData{}, err
 		} else if len(imgBuff) == 0 {
 			return TextureData{}, errors.New("no data in texture")
@@ -354,4 +363,11 @@ func TexturePixelsFromAsset(assetDb assets.Database, textureKey string) (Texture
 	} else {
 		return TextureData{}, errors.New("texture does not exist")
 	}
+}
+
+func selectKey(req string) string {
+	if req == GenerateUniqueTextureKey {
+		return uuid.New().String()
+	}
+	return req
 }
