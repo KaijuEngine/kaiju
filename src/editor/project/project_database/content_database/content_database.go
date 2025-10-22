@@ -114,7 +114,7 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 	if _, err := os.Stat(path); err != nil {
 		return ImportResult{}, ReimportSourceMissingError{id}
 	}
-	cat, ok := categoryFromTypeName(cc.Config.Type)
+	cat, ok := CategoryFromTypeName(cc.Config.Type)
 	if !ok {
 		return ImportResult{}, CategoryNotFoundError{Type: cc.Config.Type}
 	}

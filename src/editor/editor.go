@@ -83,7 +83,9 @@ type globalInterface struct {
 func (ed *Editor) FocusInterface() {
 	ed.globalInterfaces.menuBar.Focus()
 	ed.globalInterfaces.statusBar.Focus()
-	ed.currentWorkspace.Focus()
+	if ed.currentWorkspace != nil {
+		ed.currentWorkspace.Focus()
+	}
 }
 
 // FocusInterface is responsible for disabling the input on the various
@@ -92,19 +94,22 @@ func (ed *Editor) FocusInterface() {
 func (ed *Editor) BlurInterface() {
 	ed.globalInterfaces.menuBar.Blur()
 	ed.globalInterfaces.statusBar.Blur()
-	ed.currentWorkspace.Blur()
+	if ed.currentWorkspace != nil {
+		ed.currentWorkspace.Blur()
+	}
 }
 
 func (ed *Editor) earlyLoadUI() {
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
-	ed.workspaces.stage.Initialize(ed.host)
-	ed.setWorkspaceState(WorkspaceStateStage)
 }
 
 func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
+	ed.workspaces.stage.Initialize(ed.host,
+		ed.project.FileSystem(), ed.project.CacheDatabase())
 	ed.workspaces.content.Initialize(ed.host,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
+	ed.setWorkspaceState(WorkspaceStateStage)
 }

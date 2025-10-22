@@ -74,25 +74,10 @@ type Workspace struct {
 	}
 }
 
-type WorkspaceUIData struct {
-	Filters []string
-	Tags    []string
-}
-
 func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	w.pfs = pfs
 	w.cCache = cdb
-	for _, cat := range content_database.ContentCategories {
-		w.pageData.Filters = append(w.pageData.Filters, cat.TypeName())
-	}
-	list := w.cCache.List()
-	ids := make([]string, 0, len(list))
-	for i := range list {
-		ids = append(ids, list[i].Id())
-		for j := range list[i].Config.Tags {
-			w.pageData.Tags = klib.AppendUnique(w.pageData.Tags, list[i].Config.Tags[j])
-		}
-	}
+	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
 			"inputFilter":    w.inputFilter,
@@ -414,52 +399,12 @@ func (w *Workspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		show := len(w.typeFilters) == 0 && len(w.tagFilters) == 0
-		if !show && len(w.typeFilters) > 0 {
-			show = slices.Contains(w.typeFilters, e.Attribute("data-type"))
-		}
-		if !show || len(w.tagFilters) > 0 {
-			show = w.filterThroughTags(id)
-		}
-		if !show && w.query != "" {
-			show = w.runQueryOnContent(id)
-		}
-		if show {
+		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cCache) {
 			e.UI.Entity().Activate()
 		} else {
 			e.UI.Entity().Deactivate()
 		}
 	}
-}
-
-func (w *Workspace) filterThroughTags(id string) bool {
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		return false
-	}
-	for i := range cc.Config.Tags {
-		if klib.StringsContainsCaseInsensitive(w.tagFilters, cc.Config.Tags[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-func (w *Workspace) runQueryOnContent(id string) bool {
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		return false
-	}
-	// TODO:  Use filters like tag:..., type:..., etc.
-	if strings.Contains(cc.Config.NameLower(), w.query) {
-		return true
-	}
-	for i := range cc.Config.Tags {
-		if slices.Contains(w.tagFilters, cc.Config.Tags[i]) {
-			return true
-		}
-	}
-	return false
 }
 
 func (w *Workspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {

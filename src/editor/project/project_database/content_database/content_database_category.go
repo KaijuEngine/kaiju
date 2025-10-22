@@ -93,6 +93,19 @@ type ContentCategory interface {
 	Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
 }
 
+// CategoryFromTypeName is an auxiliary function for getting the category that
+// matches the type supplied. If the content is found, true will be returned,
+// otherwise false.
+func CategoryFromTypeName(typeName string) (ContentCategory, bool) {
+	defer tracing.NewRegion("content_database.categoryFromTypeName").End()
+	for i := range ContentCategories {
+		if ContentCategories[i].TypeName() == typeName {
+			return ContentCategories[i], true
+		}
+	}
+	return nil, false
+}
+
 func selectCategoryForFile(path string) (ContentCategory, bool) {
 	defer tracing.NewRegion("content_database.selectCategory").End()
 	ext := strings.ToLower(filepath.Ext(path))
@@ -111,14 +124,4 @@ func selectCategoryForFile(path string) (ContentCategory, bool) {
 func addCategory(cat ContentCategory) {
 	ContentCategories = append(ContentCategories, cat)
 	ImportableTypes = append(ImportableTypes, cat.ExtNames()...)
-}
-
-func categoryFromTypeName(typeName string) (ContentCategory, bool) {
-	defer tracing.NewRegion("content_database.categoryFromTypeName").End()
-	for i := range ContentCategories {
-		if ContentCategories[i].TypeName() == typeName {
-			return ContentCategories[i], true
-		}
-	}
-	return nil, false
 }
