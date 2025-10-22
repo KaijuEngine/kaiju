@@ -47,7 +47,6 @@ import (
 	"kaiju/klib"
 	"kaiju/rendering"
 	"log/slog"
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -196,20 +195,20 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 		// Loose goroutine
 		go func() {
 			path := content_database.ToContentPath(configPath)
-			key := filepath.Base(path)
 			data, err := w.pfs.ReadFile(path)
 			if err != nil {
 				slog.Error("error reading the image file", "path", path)
 				return
 			}
-			tex, err := rendering.NewTextureFromMemory(key, data, 0, 0, rendering.TextureFilterLinear)
+			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
+				data, 0, 0, rendering.TextureFilterLinear)
 			if err != nil {
 				slog.Error("failed to insert the texture to the cache", "error", err)
 				return
 			}
-			img.SetBackground(tex)
 			w.Host.RunOnMainThread(func() {
 				tex.DelayedCreate(w.Host.Window.Renderer)
+				img.SetBackground(tex)
 			})
 		}()
 	}
@@ -374,7 +373,6 @@ func (w *Workspace) clickReimport(*document.Element) {
 		return
 	}
 	slog.Info("successfully re-imported the content")
-	w.Host.TextureCache().ForceRemoveTexture(filepath.Base(res.ConfigPath()), rendering.TextureFilterLinear)
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
