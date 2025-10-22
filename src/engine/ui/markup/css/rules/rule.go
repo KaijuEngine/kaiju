@@ -71,6 +71,7 @@ type Rule struct {
 	Property     string
 	Values       []PropertyValue
 	Invocation   RuleInvoke
+	Sort         int
 	SelfDestruct bool
 }
 

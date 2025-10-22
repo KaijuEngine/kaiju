@@ -66,12 +66,9 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 			}
 			pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 			s := pLayout.PixelSize().Y()
-			pPad := pLayout.Padding()
-			s -= pPad.Y() + pPad.W()
-			// Subtracting local padding because it's added in final scale
-			p := l.Padding()
-			h := s*height - p.Y() - p.W()
-			l.ScaleHeight(h)
+			s -= pLayout.Padding().Vertical()
+			s -= pLayout.Border().Vertical()
+			l.ScaleHeight(s * height)
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {
 				val := values[0]

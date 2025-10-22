@@ -59,6 +59,7 @@ var (
 type CSSProperty interface {
 	Key() string
 	Process(panel *ui.Panel, elm *Element, values []rules.PropertyValue, host *engine.Host) error
+	Sort() int
 }
 
 type ElementLayoutStylizer struct {
@@ -108,7 +109,15 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 		return
 	}
 	_, rule.SelfDestruct = selfDestructingRules[rule.Property]
-	s.styleRules = append(s.styleRules, rule)
+	rule.Sort = LinkedPropertyMap[rule.Property].Sort()
+	insertIdx := len(s.styleRules)
+	for i := range s.styleRules {
+		if s.styleRules[i].Sort >= rule.Sort {
+			insertIdx = i
+			break
+		}
+	}
+	s.styleRules = slices.Insert(s.styleRules, insertIdx, rule)
 	switch rule.Invocation {
 	case rules.RuleInvokeHover:
 		if s.hoverEvtId == 0 {
@@ -183,6 +192,7 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 		}
 	}
 	all := append(a, b...)
+	slices.SortFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
 	for i := range all {
 		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
 			if err := p.Process(layout.Ui().ToPanel(), elm, all[i].Values, host); err != nil {
