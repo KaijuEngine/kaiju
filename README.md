@@ -33,3 +33,5 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 [content-tagging.mp4](https://github.com/user-attachments/assets/15122db6-efda-4458-bf69-f384def5aa31)
 
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
+
+[status-bar-update.mp4](https://github.com/user-attachments/assets/09ee5e96-6c47-47d5-9e66-6e92888562ce)
