@@ -511,7 +511,6 @@ func (w *Window) becameInactive() {
 
 func (w *Window) becameActive() {
 	defer tracing.NewRegion("Window.becameActive").End()
-	w.enableRawMouse()
 	w.cursorStandard()
 	idx := -1
 	for i := range activeWindows {
