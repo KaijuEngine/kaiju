@@ -294,9 +294,9 @@ func (e *Entity) Root() *Entity {
 // Named data is stored in a map of slices, so you can add multiple pieces of
 // data to the same key. It is recommended to compile the data into a single
 // structure so the slice length is 1, but sometimes that's not reasonable.
-func (e *Entity) AddNamedData(key string, data interface{}) {
+func (e *Entity) AddNamedData(key string, data any) {
 	if _, ok := e.namedData[key]; !ok {
-		e.namedData[key] = make([]interface{}, 0)
+		e.namedData[key] = make([]any, 0)
 	}
 	e.namedData[key] = append(e.namedData[key], data)
 }
@@ -305,7 +305,7 @@ func (e *Entity) AddNamedData(key string, data interface{}) {
 // map. If the key does not exist, this function will do nothing.
 //
 // *This will remove the entire slice and all of it's data*
-func (e *Entity) RemoveNamedData(key string, data interface{}) {
+func (e *Entity) RemoveNamedData(key string, data any) {
 	if _, ok := e.namedData[key]; ok {
 		for i := range e.namedData[key] {
 			if e.namedData[key][i] == data {
@@ -324,7 +324,7 @@ func (e *Entity) RemoveNamedDataByName(key string) {
 
 // NamedData will return the data associated with the specified key. If the key
 // does not exist, nil will be returned.
-func (e *Entity) NamedData(key string) []interface{} {
+func (e *Entity) NamedData(key string) []any {
 	if _, ok := e.namedData[key]; ok {
 		return e.namedData[key]
 	}
