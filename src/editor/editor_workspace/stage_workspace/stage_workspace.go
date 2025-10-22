@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"kaiju/editor/editor_controls"
+	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -47,7 +48,6 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/platform/hid"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -63,11 +63,17 @@ type Workspace struct {
 	pfs        *project_file_system.FileSystem
 	cdb        *content_database.Cache
 	contentUI  WorkspaceContentUI
+	manager    editor_stage_manager.StageManager
+}
+
+func (w *Workspace) StageManager() *editor_stage_manager.StageManager {
+	return &w.manager
 }
 
 func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	w.pfs = pfs
 	w.cdb = cdb
+	w.manager.Initialize(host)
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
@@ -150,72 +156,4 @@ func (w *Workspace) setupCamera() {
 		w.gridShader.SetModel(m)
 	})
 	w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
-}
-
-func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mouse) {
-	// TODO:  Spawn the content in the viewport
-	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
-	if !ok {
-		slog.Error("failed to find the content category for type",
-			"id", cc.Id(), "type", cc.Config.Type)
-		return
-	}
-	ray := w.Host.Camera.RayCast(m.Position())
-	// TODO:  Try to hit something else on the stage, otherwise fall back to the
-	// ground plane hit test
-	hit, ok := ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
-	if !ok {
-		hit = ray.Point(maxContentDropDistance)
-	}
-	switch cat.(type) {
-	case content_database.Texture:
-		// TODO:  There is more to this than simply spawning something, the
-		// content id will need to be referenced by the entity that is spawned
-		// into the world. This is mostly for testing things out.
-
-		mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
-		if err != nil {
-			slog.Error("failed to find the basic material", "error", err)
-			return
-		}
-
-		path := content_database.ToContentPath(cc.Path)
-		data, err := w.pfs.ReadFile(path)
-		if err != nil {
-			slog.Error("error reading the image file", "path", path)
-			return
-		}
-		tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-			data, 0, 0, rendering.TextureFilterLinear)
-		if err != nil {
-			slog.Error("failed to create the texture resource", "id", cc.Id(), "error", err)
-			return
-		}
-		mat = mat.CreateInstance([]*rendering.Texture{tex})
-		mesh := rendering.NewMeshPlane(w.Host.MeshCache())
-		e := w.Host.NewEntity()
-		e.AddNamedData("drawing", struct {
-			MeshId     string
-			TextureIds []string
-		}{mesh.Key(), []string{cc.Id()}})
-		e.Transform.SetPosition(hit)
-		// TODO:  Add the entity to be tracked by the editor?
-		w.Host.RunOnMainThread(func() {
-			tex.DelayedCreate(w.Host.Window.Renderer)
-			draw := rendering.Drawing{
-				Renderer: w.Host.Window.Renderer,
-				Material: mat,
-				Mesh:     mesh,
-				ShaderData: &rendering.ShaderDataBasic{
-					ShaderDataBase: rendering.NewShaderDataBase(),
-					Color:          matrix.ColorWhite(),
-				},
-				Transform: &e.Transform,
-			}
-			w.Host.Drawings.AddDrawing(draw)
-		})
-	default:
-		slog.Error("dropping this type of content into the stage is not supported",
-			"id", cc.Id(), "type", cc.Config.Type)
-	}
 }
