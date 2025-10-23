@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	ROT_SCALE     = 0.01
+	ROT_SCALE     = 0.005
 	ZOOM_SCALE_3D = float32(0.05)
 	ZOOM_SCALE_2D = float32(0.25)
 )
