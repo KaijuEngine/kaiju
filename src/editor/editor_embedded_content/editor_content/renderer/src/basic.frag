@@ -3,10 +3,11 @@
 #define AMBIENT_LIGHT_COLOR vec3(0.05, 0.05, 0.05)
 
 layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec3 fragPos;
-layout(location = 2) in vec2 fragTexCoords;
-layout(location = 3) in vec3 fragNormal;
-layout(location = 4) in vec3 viewDir;
+layout(location = 1) in flat uint fragFlags;
+layout(location = 2) in vec3 fragPos;
+layout(location = 3) in vec2 fragTexCoords;
+layout(location = 4) in vec3 fragNormal;
+layout(location = 5) in vec3 viewDir;
 
 layout(binding = 1) uniform sampler2D texSampler;
 
@@ -14,8 +15,8 @@ layout(location = 0) out vec4 outColor;
 #ifdef OIT
 layout(location = 1) out float reveal;
 #else
-layout(location = 1) out vec3 outPosition;
-layout(location = 2) out vec3 outNormal;
+layout(location = 1) out vec4 outPosition;
+layout(location = 2) out vec4 outNormal;
 #endif
 
 // Hardcoded sun light (directional light)
@@ -31,8 +32,16 @@ void main() {
 	vec4 texColor = texture(texSampler, fragTexCoords) * fragColor;
 	vec3 normal = normalize(fragNormal);
 #ifndef OIT
-    outPosition = fragPos;
-    outNormal = normal;
+    outPosition = vec4(fragPos, 0.0);
+    outNormal = vec4(normal, 0.0);
+    if ((fragFlags & 0x00000001) != 0) {
+        uint packed = packHalf2x16(vec2(outPosition.w, 0.0));
+        uint alphaBits = packed & uint(0xFFFF);
+        alphaBits |= uint(1) << uint(1);
+        uint newPacked = alphaBits;
+        vec2 newHalves = unpackHalf2x16(newPacked);
+        outPosition.w = newHalves.x;
+    }
 #endif
 	// Ambient
     vec3 ambient = ambientStrength * sunLightColor * texColor.rgb;

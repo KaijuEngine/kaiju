@@ -58,10 +58,11 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	esd.Rendering.TextureIds = []string{cc.Id()}
 	w.Host.RunOnMainThread(func() {
 		tex.DelayedCreate(w.Host.Window.Renderer)
-		sd := &rendering.ShaderDataBasic{
+		sd := &rendering.ShaderDataStandard{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
+		sd.SetFlag(rendering.ShaderDataStandardFlagOutline)
 		draw := rendering.Drawing{
 			Renderer:   w.Host.Window.Renderer,
 			Material:   mat,

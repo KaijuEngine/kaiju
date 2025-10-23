@@ -70,6 +70,7 @@ var (
 		"mat4":   {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
 		"int":    {uint32(int32Size), vk.FormatR32Sint, 1},
 		"int32":  {uint32(int32Size), vk.FormatR32Sint, 1},
+		"uint":   {uint32(uint32Size), vk.FormatR32Uint, 1},
 		"uint32": {uint32(uint32Size), vk.FormatR32Uint, 1},
 	}
 )
