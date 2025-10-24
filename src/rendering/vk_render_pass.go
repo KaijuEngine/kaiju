@@ -42,6 +42,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"weak"
 
 	"kaiju/engine/assets"
@@ -230,6 +231,15 @@ func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
 		}
 	}
 	return nil
+}
+
+func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string) (*Texture, bool) {
+	for i := range r.construction.AttachmentDescriptions {
+		if strings.HasSuffix(r.construction.AttachmentDescriptions[i].Image.Name, suffix) {
+			return &r.textures[i], true
+		}
+	}
+	return nil, false
 }
 
 func isDepthFormat(format vk.Format) bool {

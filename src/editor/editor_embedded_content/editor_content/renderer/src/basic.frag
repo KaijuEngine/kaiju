@@ -32,16 +32,8 @@ void main() {
 	vec4 texColor = texture(texSampler, fragTexCoords) * fragColor;
 	vec3 normal = normalize(fragNormal);
 #ifndef OIT
-    outPosition = vec4(fragPos, 0.0);
+    outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
     outNormal = vec4(normal, 0.0);
-    if ((fragFlags & 0x00000001) != 0) {
-        uint packed = packHalf2x16(vec2(outPosition.w, 0.0));
-        uint alphaBits = packed & uint(0xFFFF);
-        alphaBits |= uint(1) << uint(1);
-        uint newPacked = alphaBits;
-        vec2 newHalves = unpackHalf2x16(newPacked);
-        outPosition.w = newHalves.x;
-    }
 #endif
 	// Ambient
     vec3 ambient = ambientStrength * sunLightColor * texColor.rgb;
