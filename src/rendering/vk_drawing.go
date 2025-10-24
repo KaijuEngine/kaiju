@@ -262,12 +262,21 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	ok := false
 	sorts := make([]int, 0, len(passes))
 	mats := make([]*Material, 0, len(passes))
-	for i := range passes {
-		tex := passes[i].SelectOutputAttachment(vr)
+	blankTex, _ := vr.caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	for i, p := range passes {
+		tex := p.SelectOutputAttachment(vr)
 		if tex == nil {
 			continue
 		}
-		mats = append(mats, combineMat.CreateInstance([]*Texture{tex}))
+		var ok bool
+		var pTex, nTex *Texture
+		if pTex, ok = p.SelectOutputAttachmentWithSuffix(vr, ".position"); !ok {
+			pTex = blankTex
+		}
+		if nTex, ok = p.SelectOutputAttachmentWithSuffix(vr, ".normal"); !ok {
+			nTex = blankTex
+		}
+		mats = append(mats, combineMat.CreateInstance([]*Texture{tex, pTex, nTex}))
 		sorts = append(sorts, passes[i].construction.Sort)
 		matIdx := len(mats) - 1
 		if len(vr.combinedDrawings.renderPassGroups) > 0 {
@@ -311,11 +320,12 @@ func (vr *Vulkan) combineTargets() *TextureId {
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
-		// Each material has a single texture for the image to add to the combined final image
-		color := &draws[0].instanceGroups[i].MaterialInstance.Textures[0].RenderId
-		vr.transitionImageLayout(color, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+		mi := draws[0].instanceGroups[i].MaterialInstance
+		for j := range mi.Textures {
+			vr.transitionImageLayout(&mi.Textures[j].RenderId, vk.ImageLayoutShaderReadOnlyOptimal,
+				vk.ImageAspectFlags(vk.ImageAspectColorBit),
+				vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
 	vr.Draw(combinePass, draws)
@@ -327,11 +337,14 @@ func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := vr.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {
-		// Each material has a single texture for the image to add to the combined final image
-		color := &groups[i].MaterialInstance.Textures[0].RenderId
-		vr.transitionImageLayout(color, vk.ImageLayoutColorAttachmentOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit),
-			vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
+		mi := groups[i].MaterialInstance
+		for j := range mi.Textures {
+			if mi.Textures[j].RenderId.Access != 0 {
+				vr.transitionImageLayout(&mi.Textures[j].RenderId, vk.ImageLayoutColorAttachmentOptimal,
+					vk.ImageAspectFlags(vk.ImageAspectColorBit),
+					vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
+			}
+		}
 	}
 }
 
