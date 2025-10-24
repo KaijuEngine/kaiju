@@ -136,7 +136,7 @@ func (w *Workspace) clickImport(*document.Element) {
 					var addDependencies func(target *content_database.ImportResult)
 					addDependencies = func(target *content_database.ImportResult) {
 						index = append(index, target.Id)
-						for i := range res.Dependencies {
+						for i := range target.Dependencies {
 							addDependencies(&target.Dependencies[i])
 						}
 					}

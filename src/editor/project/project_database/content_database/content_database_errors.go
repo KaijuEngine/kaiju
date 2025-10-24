@@ -68,6 +68,17 @@ func (e NoMeshesInFileError) Error() string {
 	return fmt.Sprintf("no meshes were found within the file '%s'", e.Path)
 }
 
+type MeshInvalidTextureError struct {
+	Mesh          string
+	SrcTexture    string
+	BackupTexture string
+}
+
+func (e MeshInvalidTextureError) Error() string {
+	return fmt.Sprintf("the texture '%s' on the mesh '%s' could not be located; also tried '%s'",
+		e.SrcTexture, e.Mesh, e.BackupTexture)
+}
+
 type ImageImportError struct {
 	Err   error
 	Stage string

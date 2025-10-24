@@ -41,10 +41,13 @@ import (
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
+	"kaiju/engine/collision"
+	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering/loaders"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/rendering/loaders/load_result"
+	"os"
 	"path/filepath"
 	"slices"
 )
@@ -77,7 +80,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
-		if res, err = loaders.GLTF(src, adb); err != nil {
+		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
 	}
@@ -86,6 +89,9 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	baseName := fileNameNoExt(src)
 	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
+	bvh := []*collision.BVH{}
+	t := concurrent.NewThreads()
+	t.Start()
 	for i := range kms {
 		kd, err := kms[i].Serialize()
 		if err != nil {
@@ -95,9 +101,22 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			Name: fmt.Sprintf("%s-%s", baseName, kms[i].Name),
 			Data: kd,
 		})
+		bvh = append(bvh, res.Meshes[i].GenerateBVH(&t))
 	}
+	t.Stop()
 	for i := range res.Meshes {
-		p.Dependencies = append(p.Dependencies, slices.Clone(res.Meshes[i].Textures)...)
+		t := res.Meshes[i].Textures
+		p.Dependencies = slices.Grow(p.Dependencies, len(p.Dependencies)+len(t))
+		for j := range t {
+			tp := t[j]
+			if _, err := os.Stat(tp); err != nil {
+				tp = filepath.Join(filepath.Dir(src), t[j])
+			}
+			if _, err := os.Stat(tp); err != nil {
+				return p, MeshInvalidTextureError{src, t[j], tp}
+			}
+			p.Dependencies = append(p.Dependencies, tp)
+		}
 	}
 	return p, nil
 }
