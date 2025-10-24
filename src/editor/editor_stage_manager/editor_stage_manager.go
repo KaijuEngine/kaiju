@@ -4,6 +4,7 @@ import (
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/rendering"
 	"weak"
 )
 
@@ -21,6 +22,7 @@ type StageEntityData struct {
 	Rendering struct {
 		MeshId     string
 		TextureIds []string
+		ShaderData rendering.DrawInstance
 	}
 }
 
@@ -43,6 +45,9 @@ func (m *StageManager) AddEntity(point matrix.Vec3) (*engine.Entity, *StageEntit
 		sm := wm.Value()
 		if sm == nil {
 			return
+		}
+		if sd.Rendering.ShaderData != nil {
+			sd.Rendering.ShaderData.Destroy()
 		}
 		se := we.Value()
 		for i := range sm.entities {
