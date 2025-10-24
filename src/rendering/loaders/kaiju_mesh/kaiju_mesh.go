@@ -41,9 +41,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"kaiju/debug"
+	"kaiju/engine/collision"
+	"kaiju/matrix"
+	"kaiju/platform/concurrent"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/load_result"
 	"slices"
+	"sync"
 )
 
 // KaijuMesh is a base primitive representing a single mesh. This is the
@@ -93,4 +97,28 @@ func Deserialize(data []byte) (KaijuMesh, error) {
 	var km KaijuMesh
 	err := dec.Decode(&km)
 	return km, err
+}
+
+func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
+	tris := make([]collision.HitObject, len(k.Indexes)/3)
+	group := sync.WaitGroup{}
+	construct := func(from, to int) {
+		for i := from; i < to; i += 3 {
+			for i := 0; i < len(k.Indexes); i += 3 {
+				points := [3]matrix.Vec3{
+					k.Verts[k.Indexes[i]].Position,
+					k.Verts[k.Indexes[i+1]].Position,
+					k.Verts[k.Indexes[i+2]].Position,
+				}
+				tris[i/3] = collision.DetailedTriangleFromPoints(points)
+			}
+		}
+		group.Done()
+	}
+	group.Add(len(tris))
+	for i := range len(tris) {
+		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
+	}
+	group.Wait()
+	return collision.NewBVH(tris)
 }

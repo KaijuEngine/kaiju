@@ -2,6 +2,7 @@ package editor_stage_manager
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/collision"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"weak"
@@ -18,6 +19,7 @@ type StageManager struct {
 // linking data about the entity on this stage. That will include things like
 // content linkage, data bindings, etc.
 type StageEntityData struct {
+	Bvh       *collision.BVH
 	Rendering struct {
 		MeshId     string
 		TextureIds []string

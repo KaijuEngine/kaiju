@@ -4,8 +4,10 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/platform/concurrent"
 	"kaiju/platform/hid"
 	"kaiju/rendering"
+	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 )
 
@@ -27,6 +29,8 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 	switch cat.(type) {
 	case content_database.Texture:
 		w.spawnTexture(cc, hit)
+	case content_database.Mesh:
+		w.spawnMesh(cc, hit)
 	default:
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -73,4 +77,48 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		w.Host.Drawings.AddDrawing(draw)
 		e.OnDestroy.Add(func() { sd.Destroy() })
 	})
+}
+
+func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
+	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	if err != nil {
+		slog.Error("failed to find the basic material", "error", err)
+		return
+	}
+	path := content_database.ToContentPath(cc.Path)
+	data, err := w.pfs.ReadFile(path)
+	if err != nil {
+		slog.Error("error reading the image file", "path", path)
+		return
+	}
+	km, err := kaiju_mesh.Deserialize(data)
+	if err != nil {
+		slog.Error("failed to create the texture resource", "id", cc.Id(), "error", err)
+		return
+	}
+	mesh := w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
+	tex, _ := w.Host.TextureCache().Texture(assets.TextureSquare,
+		rendering.TextureFilterLinear)
+	mat = mat.CreateInstance([]*rendering.Texture{tex})
+	e, esd := w.manager.AddEntity(point)
+	esd.Rendering.MeshId = mesh.Key()
+	esd.Rendering.TextureIds = []string{cc.Id()}
+	t := concurrent.NewThreads()
+	t.Start()
+	esd.Bvh = km.GenerateBVH(&t)
+	t.Stop()
+	sd := &rendering.ShaderDataStandard{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.ColorWhite(),
+	}
+	sd.SetFlag(rendering.ShaderDataStandardFlagOutline)
+	draw := rendering.Drawing{
+		Renderer:   w.Host.Window.Renderer,
+		Material:   mat,
+		Mesh:       mesh,
+		ShaderData: sd,
+		Transform:  &e.Transform,
+	}
+	w.Host.Drawings.AddDrawing(draw)
+	e.OnDestroy.Add(func() { sd.Destroy() })
 }
