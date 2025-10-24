@@ -102,7 +102,7 @@ func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
 		// We're doing some special stuff here, probably lines or grids
 		return
 	}
-	tris := make([]collision.DetailedTriangle, len(indexes)/3)
+	tris := make([]collision.HitObject, len(indexes)/3)
 	construct := func(from, to int) {
 		for i := from; i < to; i += 3 {
 			for i := 0; i < len(indexes); i += 3 {
@@ -118,7 +118,7 @@ func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
 	for i := range len(tris) {
 		construct(i*3, (i+3)*3)
 	}
-	m.bvh = collision.BVHBottomUp(tris)
+	m.bvh = collision.NewBVH(tris)
 }
 
 func (m *Mesh) SetKey(key string) {

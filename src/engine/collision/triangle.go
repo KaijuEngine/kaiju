@@ -52,7 +52,7 @@ type DetailedTriangle struct {
 	Radius   matrix.Float
 }
 
-func (t *DetailedTriangle) Bounds() AABB {
+func (t DetailedTriangle) Bounds() AABB {
 	min := t.Points[0]
 	max := t.Points[0]
 	for i := 1; i < 3; i++ {
@@ -65,7 +65,7 @@ func (t *DetailedTriangle) Bounds() AABB {
 	}
 }
 
-func (t *DetailedTriangle) RayIntersect(ray Ray, length float32) bool {
+func (t DetailedTriangle) RayIntersect(ray Ray, length float32) bool {
 	return ray.TriangleHit(length, t.Points[0], t.Points[1], t.Points[2])
 }
 

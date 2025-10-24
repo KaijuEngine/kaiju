@@ -181,7 +181,7 @@ func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 }
 
 func (m *Mesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
-	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
+	tris := make([]collision.HitObject, len(m.Indexes)/3)
 	group := sync.WaitGroup{}
 	construct := func(from, to int) {
 		for i := from; i < to; i += 3 {
@@ -201,5 +201,5 @@ func (m *Mesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
 		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
 	}
 	group.Wait()
-	return collision.BVHBottomUp(tris)
+	return collision.NewBVH(tris)
 }
