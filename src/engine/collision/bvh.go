@@ -44,16 +44,15 @@ import (
 
 type HitObject interface {
 	Bounds() AABB
-	RayIntersect(ray Ray, length float32) bool
+	RayIntersect(ray Ray, length float32, transform *matrix.Transform) bool
 }
 
 type BVH struct {
-	bounds    AABB
-	Left      *BVH
-	Right     *BVH
-	Parent    *BVH
-	Transform *matrix.Transform
-	Data      HitObject
+	bounds AABB
+	Left   *BVH
+	Right  *BVH
+	Parent *BVH
+	Data   HitObject
 }
 
 type BVHItem struct {
@@ -98,4 +97,35 @@ func NewBVH(entries []HitObject) *BVH {
 	left.Parent = bvh
 	right.Parent = bvh
 	return bvh
+}
+
+func (b *BVH) Bounds(transform *matrix.Transform) AABB {
+	if transform == nil {
+		return b.bounds
+	} else {
+		mat := transform.WorldMatrix()
+		min := mat.TransformPoint(b.bounds.Min())
+		max := mat.TransformPoint(b.bounds.Max())
+		return AABB{
+			Center: min.Add(max).Shrink(2.0),
+			Extent: max.Subtract(min).Shrink(2.0),
+		}
+	}
+}
+
+func (b *BVH) RayIntersect(ray Ray, length float32, transform *matrix.Transform) bool {
+	if b == nil {
+		return false
+	}
+	if b.Left != nil && b.Left.Data != nil && b.Left.Data.RayIntersect(ray, length, transform) {
+		return true
+	}
+	if b.Right != nil && b.Right.Data != nil && b.Right.Data.RayIntersect(ray, length, transform) {
+		return true
+	}
+	bounds := b.Bounds(transform)
+	if _, ok := bounds.RayHit(ray); ok {
+		return b.Left.RayIntersect(ray, length, transform) || b.Right.RayIntersect(ray, length, transform)
+	}
+	return false
 }

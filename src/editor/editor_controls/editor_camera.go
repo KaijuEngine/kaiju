@@ -40,6 +40,7 @@ package editor_controls
 import (
 	"kaiju/engine"
 	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -154,6 +155,10 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	default:
 		return false
 	}
+}
+
+func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray {
+	return e.camera.RayCast(mouse.Position())
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {

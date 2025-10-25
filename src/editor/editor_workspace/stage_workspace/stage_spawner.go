@@ -56,10 +56,10 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	mesh := rendering.NewMeshPlane(w.Host.MeshCache())
-	e, esd := w.manager.AddEntity(point)
-	esd.Rendering.MeshId = mesh.Key()
-	esd.Rendering.TextureIds = []string{cc.Id()}
-	esd.Rendering.ShaderData = &rendering.ShaderDataStandard{
+	e := w.manager.AddEntity(point)
+	e.StageData.Rendering.MeshId = mesh.Key()
+	e.StageData.Rendering.TextureIds = []string{cc.Id()}
+	e.StageData.Rendering.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}
@@ -69,7 +69,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 			Renderer:   w.Host.Window.Renderer,
 			Material:   mat,
 			Mesh:       mesh,
-			ShaderData: esd.Rendering.ShaderData,
+			ShaderData: e.StageData.Rendering.ShaderData,
 			Transform:  &e.Transform,
 		}
 		w.Host.Drawings.AddDrawing(draw)
@@ -97,22 +97,21 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	tex, _ := w.Host.TextureCache().Texture(assets.TextureSquare,
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	e, esd := w.manager.AddEntity(point)
-	esd.Rendering.MeshId = mesh.Key()
-	esd.Rendering.TextureIds = []string{cc.Id()}
-	esd.Bvh = km.GenerateBVH(w.Host.Threads())
-	sd := &rendering.ShaderDataStandard{
+	e := w.manager.AddEntity(point)
+	e.StageData.Rendering.MeshId = mesh.Key()
+	e.StageData.Rendering.TextureIds = []string{cc.Id()}
+	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
+	e.StageData.Rendering.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}
-	sd.SetFlag(rendering.ShaderDataStandardFlagOutline)
 	draw := rendering.Drawing{
 		Renderer:   w.Host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
-		ShaderData: sd,
+		ShaderData: e.StageData.Rendering.ShaderData,
 		Transform:  &e.Transform,
 	}
 	w.Host.Drawings.AddDrawing(draw)
-	e.OnDestroy.Add(func() { sd.Destroy() })
+	e.OnDestroy.Add(func() { e.StageData.Rendering.ShaderData.Destroy() })
 }

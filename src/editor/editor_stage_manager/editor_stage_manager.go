@@ -9,11 +9,17 @@ import (
 	"weak"
 )
 
+type StageEntity struct {
+	engine.Entity
+	StageData StageEntityData
+}
+
 // StageManager represents the current stage in the editor. It contains all of
 // the entities on the stage.
 type StageManager struct {
 	host     *engine.Host
-	entities []*engine.Entity
+	entities []*StageEntity
+	selected []*StageEntity
 }
 
 // StageEntityData is the structure holding all the uniquely identifiable and
@@ -31,16 +37,17 @@ type StageEntityData struct {
 func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 
 // List will return all of the internally held entities for the stage
-func (m *StageManager) List() []*engine.Entity { return m.entities }
+func (m *StageManager) List() []*StageEntity { return m.entities }
 
 // AddEntity will create a new entity for the stage. This entity will have a
 // #StageEntityData automatically added to it as named data named "stage".
-func (m *StageManager) AddEntity(point matrix.Vec3) (*engine.Entity, *StageEntityData) {
-	e := m.host.NewEntity()
+func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
+	e := &StageEntity{}
+	e.Init(m.host.WorkGroup())
+	m.host.AddEntity(&e.Entity)
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
-	sd := &StageEntityData{}
-	e.AddNamedData("stage", sd)
+	e.AddNamedData("stage", e.StageData)
 	wm := weak.Make(m)
 	we := weak.Make(e)
 	e.OnDestroy.Add(func() {
@@ -48,8 +55,8 @@ func (m *StageManager) AddEntity(point matrix.Vec3) (*engine.Entity, *StageEntit
 		if sm == nil {
 			return
 		}
-		if sd.Rendering.ShaderData != nil {
-			sd.Rendering.ShaderData.Destroy()
+		if e.StageData.Rendering.ShaderData != nil {
+			e.StageData.Rendering.ShaderData.Destroy()
 		}
 		se := we.Value()
 		for i := range sm.entities {
@@ -59,7 +66,7 @@ func (m *StageManager) AddEntity(point matrix.Vec3) (*engine.Entity, *StageEntit
 			}
 		}
 	})
-	return e, sd
+	return e
 }
 
 // Clear will destroy all entities that are managed by this stage manager.

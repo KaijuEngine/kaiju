@@ -48,6 +48,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -111,7 +112,16 @@ func (w *Workspace) update(deltaTime float64) {
 		return
 	}
 	w.contentUI.processHotkeys(w.Host)
-	w.camera.Update(w.Host, deltaTime)
+	if !w.camera.Update(w.Host, deltaTime) {
+		w.processMouse()
+	}
+}
+
+func (w *Workspace) processMouse() {
+	m := &w.Host.Window.Mouse
+	if m.Pressed(hid.MouseButtonLeft) {
+		w.manager.TrySelect(w.camera.RayCast(m))
+	}
 }
 
 func (w *Workspace) createViewportGrid() {
