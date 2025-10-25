@@ -123,7 +123,7 @@ func (w *Workspace) update(deltaTime float64) {
 }
 
 func (w *Workspace) createViewportGrid() {
-	const gridCount = 20
+	const gridCount = 100
 	const halfGridCount = gridCount / 2
 	material, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionGrid)
 	if err != nil {
