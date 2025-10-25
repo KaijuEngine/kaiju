@@ -257,7 +257,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 	}
 }
 
-func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) (hit matrix.Vec3) {
+func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) matrix.Vec3 {
 	nml := matrix.Vec3Forward()
 	var df, db, dl, dr, du, dd matrix.Float = -1.0, -1.0, -1.0, -1.0, -1.0, -1.0
 	if t.state != ToolStateMove || t.axis != AxisStateX {
@@ -294,9 +294,9 @@ func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) (
 	}
 	hitPoint, ok := r.PlaneHit(center, nml)
 	if !ok {
-		return
+		return t.lastHit
 	}
-	hit = hitPoint
+	hit := hitPoint
 	switch t.axis {
 	case AxisStateX:
 		hit.SetY(center.Y())
@@ -318,7 +318,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	switch t.stage.Camera().Mode() {
 	case editor_controls.EditorCameraMode3d:
 		r := host.Camera.RayCast(mp)
-		center := t.stage.Manager().SelectionCenter()
+		center := t.stage.Manager().SelectionPivotCenter()
 		delta = matrix.Vec3Zero()
 		point = matrix.Vec3Zero()
 		switch t.state {
