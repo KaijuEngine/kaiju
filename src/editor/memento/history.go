@@ -45,12 +45,7 @@ type History struct {
 	limit     int
 }
 
-func NewHistory(limit int) History {
-	return History{
-		undoStack: make([]Memento, 0),
-		limit:     limit,
-	}
-}
+func (h *History) Initialize(limit int) { h.limit = limit }
 
 func (h *History) Add(m Memento) {
 	for i := h.position; i < len(h.undoStack); i++ {

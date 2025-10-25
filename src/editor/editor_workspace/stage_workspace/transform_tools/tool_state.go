@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* editor_plugins.go                                                          */
+/* tool_state.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.org                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,39 +35,13 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor
+package transform_tools
 
-import (
-	"kaiju/editor/editor_embedded_content"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	"reflect"
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
 )
-
-// EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
-// bootstrap the editor (as it would a game).
-type EditorGame struct{}
-
-func (EditorGame) PluginRegistry() []reflect.Type {
-	defer tracing.NewRegion("editor.PluginRegistry").End()
-	return []reflect.Type{}
-}
-
-func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return editor_embedded_content.EditorContent{}, nil
-}
-
-func (EditorGame) Launch(host *engine.Host) {
-	defer tracing.NewRegion("editor.Launch").End()
-	host.SetFrameRateLimit(60)
-	ed := &Editor{host: host}
-	ed.logging.Initialize(host, host.LogStream)
-	ed.history.Initialize(128)
-	ed.earlyLoadUI()
-	// Wait 2 frames to blur so the UI is updated properly before being disabled
-	host.RunAfterFrames(2, func() {
-		ed.BlurInterface()
-		ed.newProjectOverlay()
-	})
-}

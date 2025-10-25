@@ -39,6 +39,8 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 // List will return all of the internally held entities for the stage
 func (m *StageManager) List() []*StageEntity { return m.entities }
 
+func (m *StageManager) Selection() []*StageEntity { return m.selected }
+
 // AddEntity will create a new entity for the stage. This entity will have a
 // #StageEntityData automatically added to it as named data named "stage".
 func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {

@@ -42,6 +42,8 @@ import (
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
+	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
+	"kaiju/editor/memento"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine"
@@ -56,21 +58,24 @@ const maxContentDropDistance = 10
 
 type Workspace struct {
 	common_workspace.CommonWorkspace
-	camera     editor_controls.EditorCamera
-	updateId   engine.UpdateId
-	gridShader *rendering.ShaderDataBasic
-	pageData   content_workspace.WorkspaceUIData
-	pfs        *project_file_system.FileSystem
-	cdb        *content_database.Cache
-	contentUI  WorkspaceContentUI
-	manager    editor_stage_manager.StageManager
+	camera        editor_controls.EditorCamera
+	updateId      engine.UpdateId
+	gridShader    *rendering.ShaderDataBasic
+	pageData      content_workspace.WorkspaceUIData
+	pfs           *project_file_system.FileSystem
+	cdb           *content_database.Cache
+	contentUI     WorkspaceContentUI
+	manager       editor_stage_manager.StageManager
+	transformTool transform_tools.TransformTool
 }
 
-func (w *Workspace) StageManager() *editor_stage_manager.StageManager {
-	return &w.manager
-}
+func (w *Workspace) WorkspaceHost() *engine.Host { return w.Host }
 
-func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *Workspace) Manager() *editor_stage_manager.StageManager { return &w.manager }
+
+func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
+
+func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	w.pfs = pfs
 	w.cdb = cdb
 	w.manager.Initialize(host)
@@ -87,6 +92,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	w.createViewportGrid()
 	w.setupCamera()
 	w.contentUI.setup(w, ids)
+	w.transformTool.Initialize(host, w, history)
 }
 
 func (w *Workspace) Open() {

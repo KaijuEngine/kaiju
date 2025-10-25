@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* editor_plugins.go                                                          */
+/* tool_history.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.org                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,39 +35,50 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor
+package transform_tools
 
 import (
-	"kaiju/editor/editor_embedded_content"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	"reflect"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/matrix"
 )
 
-// EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
-// bootstrap the editor (as it would a game).
-type EditorGame struct{}
-
-func (EditorGame) PluginRegistry() []reflect.Type {
-	defer tracing.NewRegion("editor.PluginRegistry").End()
-	return []reflect.Type{}
+type toolHistory struct {
+	stage    StageInterface
+	entities []*editor_stage_manager.StageEntity
+	from     []matrix.Vec3
+	to       []matrix.Vec3
+	state    ToolState
 }
 
-func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return editor_embedded_content.EditorContent{}, nil
+func (h *toolHistory) Redo() {
+	for i, e := range h.entities {
+		switch h.state {
+		case ToolStateMove:
+			e.Transform.SetPosition(h.to[i])
+		case ToolStateRotate:
+			e.Transform.SetRotation(h.to[i])
+		case ToolStateScale:
+			e.Transform.SetScale(h.to[i])
+		}
+	}
+	// TODO:  Re-implement once the global stage BVH has been setup
+	// h.stage.BVHEntityUpdates(h.stage.Manager().Selection()...)
 }
 
-func (EditorGame) Launch(host *engine.Host) {
-	defer tracing.NewRegion("editor.Launch").End()
-	host.SetFrameRateLimit(60)
-	ed := &Editor{host: host}
-	ed.logging.Initialize(host, host.LogStream)
-	ed.history.Initialize(128)
-	ed.earlyLoadUI()
-	// Wait 2 frames to blur so the UI is updated properly before being disabled
-	host.RunAfterFrames(2, func() {
-		ed.BlurInterface()
-		ed.newProjectOverlay()
-	})
+func (h *toolHistory) Undo() {
+	for i, e := range h.entities {
+		switch h.state {
+		case ToolStateMove:
+			e.Transform.SetPosition(h.from[i])
+		case ToolStateRotate:
+			e.Transform.SetRotation(h.from[i])
+		case ToolStateScale:
+			e.Transform.SetScale(h.from[i])
+		}
+	}
+	// TODO:  Re-implement once the global stage BVH has been setup
+	// h.stage.BVHEntityUpdates(h.stage.Manager().Selection()...)
 }
+
+func (h *toolHistory) Delete() {}
+func (h *toolHistory) Exit()   {}

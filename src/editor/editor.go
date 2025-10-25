@@ -44,6 +44,7 @@ import (
 	"kaiju/editor/editor_workspace/stage_workspace"
 	"kaiju/editor/global_interface/menu_bar"
 	"kaiju/editor/global_interface/status_bar"
+	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"log/slog"
@@ -65,6 +66,7 @@ type Editor struct {
 	globalInterfaces globalInterface
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
+	history          memento.History
 }
 
 type workspaces struct {
@@ -107,7 +109,7 @@ func (ed *Editor) earlyLoadUI() {
 func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
-	ed.workspaces.stage.Initialize(ed.host,
+	ed.workspaces.stage.Initialize(ed.host, &ed.history,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 	ed.workspaces.content.Initialize(ed.host,
 		ed.project.FileSystem(), ed.project.CacheDatabase())

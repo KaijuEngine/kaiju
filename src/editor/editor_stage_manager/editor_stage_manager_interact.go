@@ -81,6 +81,23 @@ func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
 	return nil, false
 }
 
+func (m *StageManager) SelectionCenter() matrix.Vec3 {
+	center := matrix.Vec3Zero()
+	for _, e := range m.selected {
+		b := e.StageData.Bvh.Bounds(&e.Transform)
+		center.AddAssign(b.Center)
+	}
+	return center
+}
+
+func (m *StageManager) SelectionPivotCenter() matrix.Vec3 {
+	center := matrix.Vec3Zero()
+	for _, e := range m.selected {
+		center.AddAssign(e.Transform.WorldPosition())
+	}
+	return center
+}
+
 func (m *StageManager) SelectionBounds() collision.AABB {
 	low := matrix.Vec3Inf(1)
 	high := matrix.Vec3Inf(-1)
