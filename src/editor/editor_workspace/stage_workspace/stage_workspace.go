@@ -48,7 +48,6 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
-	"kaiju/platform/hid"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -113,22 +112,7 @@ func (w *Workspace) update(deltaTime float64) {
 	}
 	w.contentUI.processHotkeys(w.Host)
 	if !w.camera.Update(w.Host, deltaTime) {
-		w.processMouse()
-	}
-}
-
-func (w *Workspace) processMouse() {
-	m := &w.Host.Window.Mouse
-	if m.Pressed(hid.MouseButtonLeft) {
-		kb := &w.Host.Window.Keyboard
-		ray := w.camera.RayCast(m)
-		if kb.HasShift() {
-			w.manager.TryAppendSelect(ray)
-		} else if kb.HasCtrl() {
-			w.manager.TryToggleSelect(ray)
-		} else {
-			w.manager.TrySelect(ray)
-		}
+		w.processViewportInteractions()
 	}
 }
 

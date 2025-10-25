@@ -117,6 +117,53 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	e.OnModeChange.Execute()
 }
 
+func (e *EditorCamera) OnWindowResize() {
+	klib.NotYetImplemented(309)
+}
+
+func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
+	switch e.mode {
+	case EditorCameraMode3d:
+		return e.update3d(host, delta)
+	case EditorCameraMode2d:
+		return e.update2d(host, delta)
+	case EditorCameraModeNone:
+		fallthrough
+	default:
+		return false
+	}
+}
+
+func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray {
+	return e.camera.RayCast(mouse.Position())
+}
+
+func (e *EditorCamera) Focus(bounds collision.AABB) {
+	z := bounds.Extent.Length()
+	if z <= 0.01 {
+		z = 5
+	} else {
+		z *= 2
+	}
+	if e.camera.IsOrthographic() {
+		c := e.camera.(*cameras.StandardCamera)
+		p := c.Position()
+		p.SetX(bounds.Center.X())
+		p.SetY(bounds.Center.Y())
+		c.SetPositionAndLookAt(p, bounds.Center.Negative())
+		r := c.Width() / c.Height()
+		if c.Width() > c.Height() {
+			c.Resize(z*r, z)
+		} else {
+			c.Resize(z, z*r)
+		}
+	} else {
+		c := e.camera.(*cameras.TurntableCamera)
+		c.SetLookAt(bounds.Center.Negative())
+		c.SetZoom(z)
+	}
+}
+
 func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.LookAt()); ok {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
@@ -138,27 +185,6 @@ func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *e
 	delta := e.lastHit.Subtract(hitPoint).Multiply(matrix.NewVec3(cw, ch, 0))
 	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
 	e.lastHit = hitPoint.Add(delta)
-}
-
-func (e *EditorCamera) OnWindowResize() {
-	klib.NotYetImplemented(309)
-}
-
-func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
-	switch e.mode {
-	case EditorCameraMode3d:
-		return e.update3d(host, delta)
-	case EditorCameraMode2d:
-		return e.update2d(host, delta)
-	case EditorCameraModeNone:
-		fallthrough
-	default:
-		return false
-	}
-}
-
-func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray {
-	return e.camera.RayCast(mouse.Position())
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {

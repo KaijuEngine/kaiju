@@ -8,6 +8,8 @@ import (
 	"slices"
 )
 
+func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
+
 func (m *StageManager) IsSelected(e *StageEntity) bool {
 	for i := range m.selected {
 		if m.selected[i] == e {
@@ -77,4 +79,23 @@ func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (m *StageManager) SelectionBounds() collision.AABB {
+	low := matrix.Vec3Inf(1)
+	high := matrix.Vec3Inf(-1)
+	center := matrix.Vec3Zero()
+	for _, e := range m.selected {
+		p := e.Transform.Position()
+		b := e.StageData.Bvh.Bounds(&e.Transform)
+		center.AddAssign(b.Center)
+		ex := matrix.Vec3Max(matrix.Vec3Zero(), b.Extent)
+		low = matrix.Vec3Min(low, p.Subtract(ex))
+		high = matrix.Vec3Max(high, p.Add(ex))
+	}
+	center.ShrinkAssign(float32(len(m.selected)))
+	return collision.AABB{
+		Center: center,
+		Extent: high.Subtract(low).Scale(0.5),
+	}
 }
