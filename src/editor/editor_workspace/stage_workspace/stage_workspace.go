@@ -120,7 +120,15 @@ func (w *Workspace) update(deltaTime float64) {
 func (w *Workspace) processMouse() {
 	m := &w.Host.Window.Mouse
 	if m.Pressed(hid.MouseButtonLeft) {
-		w.manager.TrySelect(w.camera.RayCast(m))
+		kb := &w.Host.Window.Keyboard
+		ray := w.camera.RayCast(m)
+		if kb.HasShift() {
+			w.manager.TryAppendSelect(ray)
+		} else if kb.HasCtrl() {
+			w.manager.TryToggleSelect(ray)
+		} else {
+			w.manager.TrySelect(ray)
+		}
 	}
 }
 
