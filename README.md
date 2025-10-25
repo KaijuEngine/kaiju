@@ -35,3 +35,5 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
 
 [status-bar-update.mp4](https://github.com/user-attachments/assets/09ee5e96-6c47-47d5-9e66-6e92888562ce)
+
+[focus-and-transform-hotkeys](https://github.com/user-attachments/assets/95a9bcdc-55fe-4317-9200-412f84a494ce)
