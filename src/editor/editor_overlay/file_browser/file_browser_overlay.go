@@ -162,6 +162,9 @@ func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
 		return
 	}
 	r := fb.uiMan.Host.Window.Keyboard.KeyToRune(keyId)
+	if r == 0 {
+		return
+	}
 	from := 0
 	if len(fb.selected) > 0 {
 		from = fb.entryListElm.IndexOfChild(fb.selected[len(fb.selected)-1]) + 1
@@ -185,6 +188,9 @@ func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
 
 func (fb *FileBrowser) update(float64) {
 	if len(fb.entryListElm.Children) == 0 {
+		return
+	}
+	if fb.uiMan.Group.HasRequests() {
 		return
 	}
 	kb := &fb.uiMan.Host.Window.Keyboard
