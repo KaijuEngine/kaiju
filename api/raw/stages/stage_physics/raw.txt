@@ -1,0 +1,26 @@
+package stage_physics // import "."
+
+
+TYPES
+
+type StagePhysics struct {
+	// Has unexported fields.
+}
+
+func New(host *engine.Host) StagePhysics
+
+func (p *StagePhysics) AddEntity(entity *engine.Entity, body *physics.RigidBody)
+
+func (p *StagePhysics) FindCollision(hit physics.CollisionHit) (*StagePhysicsEntry, bool)
+
+func (p *StagePhysics) IsValid() bool
+
+func (p *StagePhysics) Update(host *engine.Host, deltaTime float64)
+
+func (p *StagePhysics) World() *physics.World
+
+type StagePhysicsEntry struct {
+	Entity *engine.Entity
+	Body   *physics.RigidBody
+}
+

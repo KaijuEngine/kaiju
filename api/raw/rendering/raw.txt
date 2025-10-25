@@ -1,0 +1,2074 @@
+package rendering // import "."
+
+
+CONSTANTS
+
+const (
+	FontJustifyLeft = FontJustify(iota)
+	FontJustifyCenter
+	FontJustifyRight
+)
+const (
+	FontBaselineBottom = FontBaseline(iota)
+	FontBaselineCenter
+	FontBaselineTop
+)
+const (
+	FontCondensedBold                = FontFace("fonts/OpenSans_Condensed-Bold")
+	FontCondensedBoldItalic          = FontFace("fonts/OpenSans_Condensed-BoldItalic")
+	FontCondensedExtraBold           = FontFace("fonts/OpenSans_Condensed-ExtraBold")
+	FontCondensedExtraBoldItalic     = FontFace("fonts/OpenSans_Condensed-ExtraBoldItalic")
+	FontCondensedItalic              = FontFace("fonts/OpenSans_Condensed-Italic")
+	FontCondensedLight               = FontFace("fonts/OpenSans_Condensed-Light")
+	FontCondensedLightItalic         = FontFace("fonts/OpenSans_Condensed-LightItalic")
+	FontCondensedMedium              = FontFace("fonts/OpenSans_Condensed-Medium")
+	FontCondensedMediumItalic        = FontFace("fonts/OpenSans_Condensed-MediumItalic")
+	FontCondensedRegular             = FontFace("fonts/OpenSans_Condensed-Regular")
+	FontCondensedSemiBold            = FontFace("fonts/OpenSans_Condensed-SemiBold")
+	FontCondensedSemiBoldItalic      = FontFace("fonts/OpenSans_Condensed-SemiBoldItalic")
+	FontSemiCondensedBold            = FontFace("fonts/OpenSans_SemiCondensed-Bold")
+	FontSemiCondensedBoldItalic      = FontFace("fonts/OpenSans_SemiCondensed-BoldItalic")
+	FontSemiCondensedExtraBold       = FontFace("fonts/OpenSans_SemiCondensed-ExtraBold")
+	FontSemiCondensedExtraBoldItalic = FontFace("fonts/OpenSans_SemiCondensed-ExtraBoldItalic")
+	FontSemiCondensedItalic          = FontFace("fonts/OpenSans_SemiCondensed-Italic")
+	FontSemiCondensedLight           = FontFace("fonts/OpenSans_SemiCondensed-Light")
+	FontSemiCondensedLightItalic     = FontFace("fonts/OpenSans_SemiCondensed-LightItalic")
+	FontSemiCondensedMedium          = FontFace("fonts/OpenSans_SemiCondensed-Medium")
+	FontSemiCondensedMediumItalic    = FontFace("fonts/OpenSans_SemiCondensed-MediumItalic")
+	FontSemiCondensedRegular         = FontFace("fonts/OpenSans_SemiCondensed-Regular")
+	FontSemiCondensedSemiBold        = FontFace("fonts/OpenSans_SemiCondensed-SemiBold")
+	FontSemiCondensedSemiBoldItalic  = FontFace("fonts/OpenSans_SemiCondensed-SemiBoldItalic")
+	FontBold                         = FontFace("fonts/OpenSans-Bold")
+	FontBoldItalic                   = FontFace("fonts/OpenSans-BoldItalic")
+	FontExtraBold                    = FontFace("fonts/OpenSans-ExtraBold")
+	FontExtraBoldItalic              = FontFace("fonts/OpenSans-ExtraBoldItalic")
+	FontItalic                       = FontFace("fonts/OpenSans-Italic")
+	FontLight                        = FontFace("fonts/OpenSans-Light")
+	FontLightItalic                  = FontFace("fonts/OpenSans-LightItalic")
+	FontMedium                       = FontFace("fonts/OpenSans-Medium")
+	FontMediumItalic                 = FontFace("fonts/OpenSans-MediumItalic")
+	FontRegular                      = FontFace("fonts/OpenSans-Regular")
+	FontSemiBold                     = FontFace("fonts/OpenSans-SemiBold")
+	FontSemiBoldItalic               = FontFace("fonts/OpenSans-SemiBoldItalic")
+
+	DefaultFontEMSize = 14.0
+)
+const (
+	MaxJoints        = 50
+	MaxSkinInstances = 50
+	MaxPointShadows  = 50
+)
+const (
+	MaxLights = 20
+)
+const (
+	LightTypeDirectional = LightType(iota)
+	LightTypePoint
+	LightTypeSpot
+)
+const (
+	QuadPivotCenter = QuadPivot(iota)
+	QuadPivotLeft
+	QuadPivotTop
+	QuadPivotRight
+	QuadPivotBottom
+	QuadPivotBottomLeft
+	QuadPivotBottomRight
+	QuadPivotTopLeft
+	QuadPivotTopRight
+)
+const (
+	QuaternionSize = int(unsafe.Sizeof(matrix.Quaternion{}))
+)
+const (
+	ShaderDataStandardFlagOutline = ShaderDataStandardFlags(1 << iota)
+	// Enable bit will be set anytime there are flags. This is needed because
+	// bits at the extremes of the float will be truncated to 0 otherwise. By
+	// setting this bit (largest exponent bit 2^1) this issue can be prevented.
+	ShaderDataStandardFlagEnable = 1 << 30
+)
+const (
+	CubeMapSides = 6
+)
+const (
+	BytesInPixel         = 4
+	MaxCommandPools      = 5
+	MaxSecondaryCommands = 25
+)
+const (
+	GenerateUniqueTextureKey = ""
+)
+const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
+
+VARIABLES
+
+var (
+	StringVkFormat = map[string]vk.Format{
+		"Undefined":                            vk.FormatUndefined,
+		detectDepthFormatKey:                   vk.FormatUndefined,
+		swapChainFormatKey:                     vk.FormatUndefined,
+		"R4g4UnormPack8":                       vk.FormatR4g4UnormPack8,
+		"R4g4b4a4UnormPack16":                  vk.FormatR4g4b4a4UnormPack16,
+		"B4g4r4a4UnormPack16":                  vk.FormatB4g4r4a4UnormPack16,
+		"R5g6b5UnormPack16":                    vk.FormatR5g6b5UnormPack16,
+		"B5g6r5UnormPack16":                    vk.FormatB5g6r5UnormPack16,
+		"R5g5b5a1UnormPack16":                  vk.FormatR5g5b5a1UnormPack16,
+		"B5g5r5a1UnormPack16":                  vk.FormatB5g5r5a1UnormPack16,
+		"A1r5g5b5UnormPack16":                  vk.FormatA1r5g5b5UnormPack16,
+		"R8Unorm":                              vk.FormatR8Unorm,
+		"R8Snorm":                              vk.FormatR8Snorm,
+		"R8Uscaled":                            vk.FormatR8Uscaled,
+		"R8Sscaled":                            vk.FormatR8Sscaled,
+		"R8Uint":                               vk.FormatR8Uint,
+		"R8Sint":                               vk.FormatR8Sint,
+		"R8Srgb":                               vk.FormatR8Srgb,
+		"R8g8Unorm":                            vk.FormatR8g8Unorm,
+		"R8g8Snorm":                            vk.FormatR8g8Snorm,
+		"R8g8Uscaled":                          vk.FormatR8g8Uscaled,
+		"R8g8Sscaled":                          vk.FormatR8g8Sscaled,
+		"R8g8Uint":                             vk.FormatR8g8Uint,
+		"R8g8Sint":                             vk.FormatR8g8Sint,
+		"R8g8Srgb":                             vk.FormatR8g8Srgb,
+		"R8g8b8Unorm":                          vk.FormatR8g8b8Unorm,
+		"R8g8b8Snorm":                          vk.FormatR8g8b8Snorm,
+		"R8g8b8Uscaled":                        vk.FormatR8g8b8Uscaled,
+		"R8g8b8Sscaled":                        vk.FormatR8g8b8Sscaled,
+		"R8g8b8Uint":                           vk.FormatR8g8b8Uint,
+		"R8g8b8Sint":                           vk.FormatR8g8b8Sint,
+		"R8g8b8Srgb":                           vk.FormatR8g8b8Srgb,
+		"B8g8r8Unorm":                          vk.FormatB8g8r8Unorm,
+		"B8g8r8Snorm":                          vk.FormatB8g8r8Snorm,
+		"B8g8r8Uscaled":                        vk.FormatB8g8r8Uscaled,
+		"B8g8r8Sscaled":                        vk.FormatB8g8r8Sscaled,
+		"B8g8r8Uint":                           vk.FormatB8g8r8Uint,
+		"B8g8r8Sint":                           vk.FormatB8g8r8Sint,
+		"B8g8r8Srgb":                           vk.FormatB8g8r8Srgb,
+		"R8g8b8a8Unorm":                        vk.FormatR8g8b8a8Unorm,
+		"R8g8b8a8Snorm":                        vk.FormatR8g8b8a8Snorm,
+		"R8g8b8a8Uscaled":                      vk.FormatR8g8b8a8Uscaled,
+		"R8g8b8a8Sscaled":                      vk.FormatR8g8b8a8Sscaled,
+		"R8g8b8a8Uint":                         vk.FormatR8g8b8a8Uint,
+		"R8g8b8a8Sint":                         vk.FormatR8g8b8a8Sint,
+		"R8g8b8a8Srgb":                         vk.FormatR8g8b8a8Srgb,
+		"B8g8r8a8Unorm":                        vk.FormatB8g8r8a8Unorm,
+		"B8g8r8a8Snorm":                        vk.FormatB8g8r8a8Snorm,
+		"B8g8r8a8Uscaled":                      vk.FormatB8g8r8a8Uscaled,
+		"B8g8r8a8Sscaled":                      vk.FormatB8g8r8a8Sscaled,
+		"B8g8r8a8Uint":                         vk.FormatB8g8r8a8Uint,
+		"B8g8r8a8Sint":                         vk.FormatB8g8r8a8Sint,
+		"B8g8r8a8Srgb":                         vk.FormatB8g8r8a8Srgb,
+		"A8b8g8r8UnormPack32":                  vk.FormatA8b8g8r8UnormPack32,
+		"A8b8g8r8SnormPack32":                  vk.FormatA8b8g8r8SnormPack32,
+		"A8b8g8r8UscaledPack32":                vk.FormatA8b8g8r8UscaledPack32,
+		"A8b8g8r8SscaledPack32":                vk.FormatA8b8g8r8SscaledPack32,
+		"A8b8g8r8UintPack32":                   vk.FormatA8b8g8r8UintPack32,
+		"A8b8g8r8SintPack32":                   vk.FormatA8b8g8r8SintPack32,
+		"A8b8g8r8SrgbPack32":                   vk.FormatA8b8g8r8SrgbPack32,
+		"A2r10g10b10UnormPack32":               vk.FormatA2r10g10b10UnormPack32,
+		"A2r10g10b10SnormPack32":               vk.FormatA2r10g10b10SnormPack32,
+		"A2r10g10b10UscaledPack32":             vk.FormatA2r10g10b10UscaledPack32,
+		"A2r10g10b10SscaledPack32":             vk.FormatA2r10g10b10SscaledPack32,
+		"A2r10g10b10UintPack32":                vk.FormatA2r10g10b10UintPack32,
+		"A2r10g10b10SintPack32":                vk.FormatA2r10g10b10SintPack32,
+		"A2b10g10r10UnormPack32":               vk.FormatA2b10g10r10UnormPack32,
+		"A2b10g10r10SnormPack32":               vk.FormatA2b10g10r10SnormPack32,
+		"A2b10g10r10UscaledPack32":             vk.FormatA2b10g10r10UscaledPack32,
+		"A2b10g10r10SscaledPack32":             vk.FormatA2b10g10r10SscaledPack32,
+		"A2b10g10r10UintPack32":                vk.FormatA2b10g10r10UintPack32,
+		"A2b10g10r10SintPack32":                vk.FormatA2b10g10r10SintPack32,
+		"R16Unorm":                             vk.FormatR16Unorm,
+		"R16Snorm":                             vk.FormatR16Snorm,
+		"R16Uscaled":                           vk.FormatR16Uscaled,
+		"R16Sscaled":                           vk.FormatR16Sscaled,
+		"R16Uint":                              vk.FormatR16Uint,
+		"R16Sint":                              vk.FormatR16Sint,
+		"R16Sfloat":                            vk.FormatR16Sfloat,
+		"R16g16Unorm":                          vk.FormatR16g16Unorm,
+		"R16g16Snorm":                          vk.FormatR16g16Snorm,
+		"R16g16Uscaled":                        vk.FormatR16g16Uscaled,
+		"R16g16Sscaled":                        vk.FormatR16g16Sscaled,
+		"R16g16Uint":                           vk.FormatR16g16Uint,
+		"R16g16Sint":                           vk.FormatR16g16Sint,
+		"R16g16Sfloat":                         vk.FormatR16g16Sfloat,
+		"R16g16b16Unorm":                       vk.FormatR16g16b16Unorm,
+		"R16g16b16Snorm":                       vk.FormatR16g16b16Snorm,
+		"R16g16b16Uscaled":                     vk.FormatR16g16b16Uscaled,
+		"R16g16b16Sscaled":                     vk.FormatR16g16b16Sscaled,
+		"R16g16b16Uint":                        vk.FormatR16g16b16Uint,
+		"R16g16b16Sint":                        vk.FormatR16g16b16Sint,
+		"R16g16b16Sfloat":                      vk.FormatR16g16b16Sfloat,
+		"R16g16b16a16Unorm":                    vk.FormatR16g16b16a16Unorm,
+		"R16g16b16a16Snorm":                    vk.FormatR16g16b16a16Snorm,
+		"R16g16b16a16Uscaled":                  vk.FormatR16g16b16a16Uscaled,
+		"R16g16b16a16Sscaled":                  vk.FormatR16g16b16a16Sscaled,
+		"R16g16b16a16Uint":                     vk.FormatR16g16b16a16Uint,
+		"R16g16b16a16Sint":                     vk.FormatR16g16b16a16Sint,
+		"R16g16b16a16Sfloat":                   vk.FormatR16g16b16a16Sfloat,
+		"R32Uint":                              vk.FormatR32Uint,
+		"R32Sint":                              vk.FormatR32Sint,
+		"R32Sfloat":                            vk.FormatR32Sfloat,
+		"R32g32Uint":                           vk.FormatR32g32Uint,
+		"R32g32Sint":                           vk.FormatR32g32Sint,
+		"R32g32Sfloat":                         vk.FormatR32g32Sfloat,
+		"R32g32b32Uint":                        vk.FormatR32g32b32Uint,
+		"R32g32b32Sint":                        vk.FormatR32g32b32Sint,
+		"R32g32b32Sfloat":                      vk.FormatR32g32b32Sfloat,
+		"R32g32b32a32Uint":                     vk.FormatR32g32b32a32Uint,
+		"R32g32b32a32Sint":                     vk.FormatR32g32b32a32Sint,
+		"R32g32b32a32Sfloat":                   vk.FormatR32g32b32a32Sfloat,
+		"R64Uint":                              vk.FormatR64Uint,
+		"R64Sint":                              vk.FormatR64Sint,
+		"R64Sfloat":                            vk.FormatR64Sfloat,
+		"R64g64Uint":                           vk.FormatR64g64Uint,
+		"R64g64Sint":                           vk.FormatR64g64Sint,
+		"R64g64Sfloat":                         vk.FormatR64g64Sfloat,
+		"R64g64b64Uint":                        vk.FormatR64g64b64Uint,
+		"R64g64b64Sint":                        vk.FormatR64g64b64Sint,
+		"R64g64b64Sfloat":                      vk.FormatR64g64b64Sfloat,
+		"R64g64b64a64Uint":                     vk.FormatR64g64b64a64Uint,
+		"R64g64b64a64Sint":                     vk.FormatR64g64b64a64Sint,
+		"R64g64b64a64Sfloat":                   vk.FormatR64g64b64a64Sfloat,
+		"B10g11r11UfloatPack32":                vk.FormatB10g11r11UfloatPack32,
+		"E5b9g9r9UfloatPack32":                 vk.FormatE5b9g9r9UfloatPack32,
+		"D16Unorm":                             vk.FormatD16Unorm,
+		"X8D24UnormPack32":                     vk.FormatX8D24UnormPack32,
+		"D32Sfloat":                            vk.FormatD32Sfloat,
+		"S8Uint":                               vk.FormatS8Uint,
+		"D16UnormS8Uint":                       vk.FormatD16UnormS8Uint,
+		"D24UnormS8Uint":                       vk.FormatD24UnormS8Uint,
+		"D32SfloatS8Uint":                      vk.FormatD32SfloatS8Uint,
+		"Bc1RgbUnormBlock":                     vk.FormatBc1RgbUnormBlock,
+		"Bc1RgbSrgbBlock":                      vk.FormatBc1RgbSrgbBlock,
+		"Bc1RgbaUnormBlock":                    vk.FormatBc1RgbaUnormBlock,
+		"Bc1RgbaSrgbBlock":                     vk.FormatBc1RgbaSrgbBlock,
+		"Bc2UnormBlock":                        vk.FormatBc2UnormBlock,
+		"Bc2SrgbBlock":                         vk.FormatBc2SrgbBlock,
+		"Bc3UnormBlock":                        vk.FormatBc3UnormBlock,
+		"Bc3SrgbBlock":                         vk.FormatBc3SrgbBlock,
+		"Bc4UnormBlock":                        vk.FormatBc4UnormBlock,
+		"Bc4SnormBlock":                        vk.FormatBc4SnormBlock,
+		"Bc5UnormBlock":                        vk.FormatBc5UnormBlock,
+		"Bc5SnormBlock":                        vk.FormatBc5SnormBlock,
+		"Bc6hUfloatBlock":                      vk.FormatBc6hUfloatBlock,
+		"Bc6hSfloatBlock":                      vk.FormatBc6hSfloatBlock,
+		"Bc7UnormBlock":                        vk.FormatBc7UnormBlock,
+		"Bc7SrgbBlock":                         vk.FormatBc7SrgbBlock,
+		"Etc2R8g8b8UnormBlock":                 vk.FormatEtc2R8g8b8UnormBlock,
+		"Etc2R8g8b8SrgbBlock":                  vk.FormatEtc2R8g8b8SrgbBlock,
+		"Etc2R8g8b8a1UnormBlock":               vk.FormatEtc2R8g8b8a1UnormBlock,
+		"Etc2R8g8b8a1SrgbBlock":                vk.FormatEtc2R8g8b8a1SrgbBlock,
+		"Etc2R8g8b8a8UnormBlock":               vk.FormatEtc2R8g8b8a8UnormBlock,
+		"Etc2R8g8b8a8SrgbBlock":                vk.FormatEtc2R8g8b8a8SrgbBlock,
+		"EacR11UnormBlock":                     vk.FormatEacR11UnormBlock,
+		"EacR11SnormBlock":                     vk.FormatEacR11SnormBlock,
+		"EacR11g11UnormBlock":                  vk.FormatEacR11g11UnormBlock,
+		"EacR11g11SnormBlock":                  vk.FormatEacR11g11SnormBlock,
+		"Astc4x4UnormBlock":                    vk.FormatAstc4x4UnormBlock,
+		"Astc4x4SrgbBlock":                     vk.FormatAstc4x4SrgbBlock,
+		"Astc5x4UnormBlock":                    vk.FormatAstc5x4UnormBlock,
+		"Astc5x4SrgbBlock":                     vk.FormatAstc5x4SrgbBlock,
+		"Astc5x5UnormBlock":                    vk.FormatAstc5x5UnormBlock,
+		"Astc5x5SrgbBlock":                     vk.FormatAstc5x5SrgbBlock,
+		"Astc6x5UnormBlock":                    vk.FormatAstc6x5UnormBlock,
+		"Astc6x5SrgbBlock":                     vk.FormatAstc6x5SrgbBlock,
+		"Astc6x6UnormBlock":                    vk.FormatAstc6x6UnormBlock,
+		"Astc6x6SrgbBlock":                     vk.FormatAstc6x6SrgbBlock,
+		"Astc8x5UnormBlock":                    vk.FormatAstc8x5UnormBlock,
+		"Astc8x5SrgbBlock":                     vk.FormatAstc8x5SrgbBlock,
+		"Astc8x6UnormBlock":                    vk.FormatAstc8x6UnormBlock,
+		"Astc8x6SrgbBlock":                     vk.FormatAstc8x6SrgbBlock,
+		"Astc8x8UnormBlock":                    vk.FormatAstc8x8UnormBlock,
+		"Astc8x8SrgbBlock":                     vk.FormatAstc8x8SrgbBlock,
+		"Astc10x5UnormBlock":                   vk.FormatAstc10x5UnormBlock,
+		"Astc10x5SrgbBlock":                    vk.FormatAstc10x5SrgbBlock,
+		"Astc10x6UnormBlock":                   vk.FormatAstc10x6UnormBlock,
+		"Astc10x6SrgbBlock":                    vk.FormatAstc10x6SrgbBlock,
+		"Astc10x8UnormBlock":                   vk.FormatAstc10x8UnormBlock,
+		"Astc10x8SrgbBlock":                    vk.FormatAstc10x8SrgbBlock,
+		"Astc10x10UnormBlock":                  vk.FormatAstc10x10UnormBlock,
+		"Astc10x10SrgbBlock":                   vk.FormatAstc10x10SrgbBlock,
+		"Astc12x10UnormBlock":                  vk.FormatAstc12x10UnormBlock,
+		"Astc12x10SrgbBlock":                   vk.FormatAstc12x10SrgbBlock,
+		"Astc12x12UnormBlock":                  vk.FormatAstc12x12UnormBlock,
+		"Astc12x12SrgbBlock":                   vk.FormatAstc12x12SrgbBlock,
+		"G8b8g8r8422Unorm":                     vk.FormatG8b8g8r8422Unorm,
+		"B8g8r8g8422Unorm":                     vk.FormatB8g8r8g8422Unorm,
+		"G8B8R83plane420Unorm":                 vk.FormatG8B8R83plane420Unorm,
+		"G8B8r82plane420Unorm":                 vk.FormatG8B8r82plane420Unorm,
+		"G8B8R83plane422Unorm":                 vk.FormatG8B8R83plane422Unorm,
+		"G8B8r82plane422Unorm":                 vk.FormatG8B8r82plane422Unorm,
+		"G8B8R83plane444Unorm":                 vk.FormatG8B8R83plane444Unorm,
+		"R10x6UnormPack16":                     vk.FormatR10x6UnormPack16,
+		"R10x6g10x6Unorm2pack16":               vk.FormatR10x6g10x6Unorm2pack16,
+		"R10x6g10x6b10x6a10x6Unorm4pack16":     vk.FormatR10x6g10x6b10x6a10x6Unorm4pack16,
+		"G10x6b10x6g10x6r10x6422Unorm4pack16":  vk.FormatG10x6b10x6g10x6r10x6422Unorm4pack16,
+		"B10x6g10x6r10x6g10x6422Unorm4pack16":  vk.FormatB10x6g10x6r10x6g10x6422Unorm4pack16,
+		"G10x6B10x6R10x63plane420Unorm3pack16": vk.FormatG10x6B10x6R10x63plane420Unorm3pack16,
+		"G10x6B10x6r10x62plane420Unorm3pack16": vk.FormatG10x6B10x6r10x62plane420Unorm3pack16,
+		"G10x6B10x6R10x63plane422Unorm3pack16": vk.FormatG10x6B10x6R10x63plane422Unorm3pack16,
+		"G10x6B10x6r10x62plane422Unorm3pack16": vk.FormatG10x6B10x6r10x62plane422Unorm3pack16,
+		"G10x6B10x6R10x63plane444Unorm3pack16": vk.FormatG10x6B10x6R10x63plane444Unorm3pack16,
+		"R12x4UnormPack16":                     vk.FormatR12x4UnormPack16,
+		"R12x4g12x4Unorm2pack16":               vk.FormatR12x4g12x4Unorm2pack16,
+		"R12x4g12x4b12x4a12x4Unorm4pack16":     vk.FormatR12x4g12x4b12x4a12x4Unorm4pack16,
+		"G12x4b12x4g12x4r12x4422Unorm4pack16":  vk.FormatG12x4b12x4g12x4r12x4422Unorm4pack16,
+		"B12x4g12x4r12x4g12x4422Unorm4pack16":  vk.FormatB12x4g12x4r12x4g12x4422Unorm4pack16,
+		"G12x4B12x4R12x43plane420Unorm3pack16": vk.FormatG12x4B12x4R12x43plane420Unorm3pack16,
+		"G12x4B12x4r12x42plane420Unorm3pack16": vk.FormatG12x4B12x4r12x42plane420Unorm3pack16,
+		"G12x4B12x4R12x43plane422Unorm3pack16": vk.FormatG12x4B12x4R12x43plane422Unorm3pack16,
+		"G12x4B12x4r12x42plane422Unorm3pack16": vk.FormatG12x4B12x4r12x42plane422Unorm3pack16,
+		"G12x4B12x4R12x43plane444Unorm3pack16": vk.FormatG12x4B12x4R12x43plane444Unorm3pack16,
+		"G16b16g16r16422Unorm":                 vk.FormatG16b16g16r16422Unorm,
+		"B16g16r16g16422Unorm":                 vk.FormatB16g16r16g16422Unorm,
+		"G16B16R163plane420Unorm":              vk.FormatG16B16R163plane420Unorm,
+		"G16B16r162plane420Unorm":              vk.FormatG16B16r162plane420Unorm,
+		"G16B16R163plane422Unorm":              vk.FormatG16B16R163plane422Unorm,
+		"G16B16r162plane422Unorm":              vk.FormatG16B16r162plane422Unorm,
+		"G16B16R163plane444Unorm":              vk.FormatG16B16R163plane444Unorm,
+		"Pvrtc12bppUnormBlockImg":              vk.FormatPvrtc12bppUnormBlockImg,
+		"Pvrtc14bppUnormBlockImg":              vk.FormatPvrtc14bppUnormBlockImg,
+		"Pvrtc22bppUnormBlockImg":              vk.FormatPvrtc22bppUnormBlockImg,
+		"Pvrtc24bppUnormBlockImg":              vk.FormatPvrtc24bppUnormBlockImg,
+		"Pvrtc12bppSrgbBlockImg":               vk.FormatPvrtc12bppSrgbBlockImg,
+		"Pvrtc14bppSrgbBlockImg":               vk.FormatPvrtc14bppSrgbBlockImg,
+		"Pvrtc22bppSrgbBlockImg":               vk.FormatPvrtc22bppSrgbBlockImg,
+		"Pvrtc24bppSrgbBlockImg":               vk.FormatPvrtc24bppSrgbBlockImg,
+	}
+	StringVkBlendFactor = map[string]vk.BlendFactor{
+		"Zero":                  vk.BlendFactorZero,
+		"One":                   vk.BlendFactorOne,
+		"SrcColor":              vk.BlendFactorSrcColor,
+		"SrcAlpha":              vk.BlendFactorSrcAlpha,
+		"OneMinusSrcColor":      vk.BlendFactorOneMinusSrcColor,
+		"DstColor":              vk.BlendFactorDstColor,
+		"OneMinusDstColor":      vk.BlendFactorOneMinusDstColor,
+		"OneMinusSrcAlpha":      vk.BlendFactorOneMinusSrcAlpha,
+		"DstAlpha":              vk.BlendFactorDstAlpha,
+		"OneMinusDstAlpha":      vk.BlendFactorOneMinusDstAlpha,
+		"ConstantColor":         vk.BlendFactorConstantColor,
+		"OneMinusConstantColor": vk.BlendFactorOneMinusConstantColor,
+		"ConstantAlpha":         vk.BlendFactorConstantAlpha,
+		"OneMinusConstantAlpha": vk.BlendFactorOneMinusConstantAlpha,
+		"SrcAlphaSaturate":      vk.BlendFactorSrcAlphaSaturate,
+		"Src1Color":             vk.BlendFactorSrc1Color,
+		"OneMinusSrc1Color":     vk.BlendFactorOneMinusSrc1Color,
+		"Src1Alpha":             vk.BlendFactorSrc1Alpha,
+		"OneMinusSrc1Alpha":     vk.BlendFactorOneMinusSrc1Alpha,
+	}
+	StringVkBlendOp = map[string]vk.BlendOp{
+		"Add":              vk.BlendOpAdd,
+		"Subtract":         vk.BlendOpSubtract,
+		"ReverseSubtract":  vk.BlendOpReverseSubtract,
+		"Min":              vk.BlendOpMin,
+		"Max":              vk.BlendOpMax,
+		"Zero":             vk.BlendOpZero,
+		"Src":              vk.BlendOpSrc,
+		"Dst":              vk.BlendOpDst,
+		"SrcOver":          vk.BlendOpSrcOver,
+		"DstOver":          vk.BlendOpDstOver,
+		"SrcIn":            vk.BlendOpSrcIn,
+		"DstIn":            vk.BlendOpDstIn,
+		"SrcOut":           vk.BlendOpSrcOut,
+		"DstOut":           vk.BlendOpDstOut,
+		"SrcAtop":          vk.BlendOpSrcAtop,
+		"DstAtop":          vk.BlendOpDstAtop,
+		"Xor":              vk.BlendOpXor,
+		"Multiply":         vk.BlendOpMultiply,
+		"Screen":           vk.BlendOpScreen,
+		"Overlay":          vk.BlendOpOverlay,
+		"Darken":           vk.BlendOpDarken,
+		"Lighten":          vk.BlendOpLighten,
+		"Colordodge":       vk.BlendOpColordodge,
+		"Colorburn":        vk.BlendOpColorburn,
+		"Hardlight":        vk.BlendOpHardlight,
+		"Softlight":        vk.BlendOpSoftlight,
+		"Difference":       vk.BlendOpDifference,
+		"Exclusion":        vk.BlendOpExclusion,
+		"Invert":           vk.BlendOpInvert,
+		"InvertRgb":        vk.BlendOpInvertRgb,
+		"Lineardodge":      vk.BlendOpLineardodge,
+		"Linearburn":       vk.BlendOpLinearburn,
+		"Vividlight":       vk.BlendOpVividlight,
+		"Linearlight":      vk.BlendOpLinearlight,
+		"Pinlight":         vk.BlendOpPinlight,
+		"Hardmix":          vk.BlendOpHardmix,
+		"HslHue":           vk.BlendOpHslHue,
+		"HslSaturation":    vk.BlendOpHslSaturation,
+		"HslColor":         vk.BlendOpHslColor,
+		"HslLuminosity":    vk.BlendOpHslLuminosity,
+		"Plus":             vk.BlendOpPlus,
+		"PlusClamped":      vk.BlendOpPlusClamped,
+		"PlusClampedAlpha": vk.BlendOpPlusClampedAlpha,
+		"PlusDarker":       vk.BlendOpPlusDarker,
+		"Minus":            vk.BlendOpMinus,
+		"MinusClamped":     vk.BlendOpMinusClamped,
+		"Contrast":         vk.BlendOpContrast,
+		"InvertOvg":        vk.BlendOpInvertOvg,
+		"Red":              vk.BlendOpRed,
+		"Green":            vk.BlendOpBlue,
+		"Blue":             vk.BlendOpBlue,
+	}
+	StringVkLogicOp = map[string]vk.LogicOp{
+		"Clear":        vk.LogicOpClear,
+		"And":          vk.LogicOpAnd,
+		"AndReverse":   vk.LogicOpAndReverse,
+		"Copy":         vk.LogicOpCopy,
+		"AndInverted":  vk.LogicOpAndInverted,
+		"NoOp":         vk.LogicOpNoOp,
+		"Xor":          vk.LogicOpXor,
+		"Or":           vk.LogicOpOr,
+		"Nor":          vk.LogicOpNor,
+		"Equivalent":   vk.LogicOpEquivalent,
+		"Invert":       vk.LogicOpInvert,
+		"OrReverse":    vk.LogicOpOrReverse,
+		"CopyInverted": vk.LogicOpCopyInverted,
+		"OrInverted":   vk.LogicOpOrInverted,
+		"Nand":         vk.LogicOpNand,
+		"Set":          vk.LogicOpSet,
+	}
+	StringVkCompareOp = map[string]vk.CompareOp{
+		"Never":          vk.CompareOpNever,
+		"Equal":          vk.CompareOpEqual,
+		"LessOrEqual":    vk.CompareOpLessOrEqual,
+		"Greater":        vk.CompareOpGreater,
+		"NotEqual":       vk.CompareOpNotEqual,
+		"GreaterOrEqual": vk.CompareOpGreaterOrEqual,
+		"Always":         vk.CompareOpAlways,
+		"Less":           vk.CompareOpLess,
+	}
+	StringVkStencilOp = map[string]vk.StencilOp{
+		"Zero":              vk.StencilOpZero,
+		"Replace":           vk.StencilOpReplace,
+		"IncrementAndClamp": vk.StencilOpIncrementAndClamp,
+		"DecrementAndClamp": vk.StencilOpDecrementAndClamp,
+		"Invert":            vk.StencilOpInvert,
+		"IncrementAndWrap":  vk.StencilOpIncrementAndWrap,
+		"DecrementAndWrap":  vk.StencilOpDecrementAndWrap,
+		"Keep":              vk.StencilOpKeep,
+	}
+	StringVkPrimitiveTopology = map[string]vk.PrimitiveTopology{
+		"Points":    vk.PrimitiveTopologyPointList,
+		"Lines":     vk.PrimitiveTopologyLineList,
+		"Triangles": vk.PrimitiveTopologyTriangleList,
+		"Patches":   vk.PrimitiveTopologyPatchList,
+	}
+	StringVkPolygonMode = map[string]vk.PolygonMode{
+		"Point": vk.PolygonModePoint,
+		"Line":  vk.PolygonModeLine,
+		"Fill":  vk.PolygonModeFill,
+	}
+	StringVkCullModeFlagBits = map[string]vk.CullModeFlagBits{
+		"None":  vk.CullModeNone,
+		"Front": vk.CullModeFrontBit,
+		"Back":  vk.CullModeBackBit,
+	}
+	StringVkFrontFace = map[string]vk.FrontFace{
+		"Clockwise":        vk.FrontFaceClockwise,
+		"CounterClockwise": vk.FrontFaceCounterClockwise,
+	}
+	StringVkSampleCountFlagBits = map[string]vk.SampleCountFlagBits{
+		swapChainSampleCountKey: vk.SampleCountFlagBitsMaxEnum,
+		"1Bit":                  vk.SampleCount1Bit,
+		"2Bit":                  vk.SampleCount2Bit,
+		"4Bit":                  vk.SampleCount4Bit,
+		"8Bit":                  vk.SampleCount8Bit,
+		"16Bit":                 vk.SampleCount16Bit,
+		"32Bit":                 vk.SampleCount32Bit,
+		"64Bit":                 vk.SampleCount64Bit,
+	}
+	StringVkPatchControlPoints = map[string]uint32{
+		"Lines":     2,
+		"Triangles": 3,
+		"Quads":     4,
+	}
+	StringVkAttachmentLoadOp = map[string]vk.AttachmentLoadOp{
+		"Load":     vk.AttachmentLoadOpLoad,
+		"Clear":    vk.AttachmentLoadOpClear,
+		"DontCare": vk.AttachmentLoadOpDontCare,
+	}
+	StringVkAttachmentStoreOp = map[string]vk.AttachmentStoreOp{
+		"Store":    vk.AttachmentStoreOpStore,
+		"DontCare": vk.AttachmentStoreOpDontCare,
+	}
+	StringVkImageLayout = map[string]vk.ImageLayout{
+		"Undefined":                             vk.ImageLayoutUndefined,
+		"General":                               vk.ImageLayoutGeneral,
+		"ColorAttachmentOptimal":                vk.ImageLayoutColorAttachmentOptimal,
+		"DepthStencilAttachmentOptimal":         vk.ImageLayoutDepthStencilAttachmentOptimal,
+		"DepthStencilReadOnlyOptimal":           vk.ImageLayoutDepthStencilReadOnlyOptimal,
+		"ShaderReadOnlyOptimal":                 vk.ImageLayoutShaderReadOnlyOptimal,
+		"TransferSrcOptimal":                    vk.ImageLayoutTransferSrcOptimal,
+		"TransferDstOptimal":                    vk.ImageLayoutTransferDstOptimal,
+		"Preinitialized":                        vk.ImageLayoutPreinitialized,
+		"DepthReadOnlyStencilAttachmentOptimal": vk.ImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		"DepthAttachmentStencilReadOnlyOptimal": vk.ImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		"PresentSrc":                            vk.ImageLayoutPresentSrc,
+		"SharedPresent":                         vk.ImageLayoutSharedPresent,
+		"ShadingRateOptimalNv":                  vk.ImageLayoutShadingRateOptimalNv,
+	}
+	StringVkPipelineStageFlagBits = map[string]vk.PipelineStageFlagBits{
+		"TopOfPipeBit":                    vk.PipelineStageTopOfPipeBit,
+		"DrawIndirectBit":                 vk.PipelineStageDrawIndirectBit,
+		"VertexInputBit":                  vk.PipelineStageVertexInputBit,
+		"VertexShaderBit":                 vk.PipelineStageVertexShaderBit,
+		"TessellationControlShaderBit":    vk.PipelineStageTessellationControlShaderBit,
+		"TessellationEvaluationShaderBit": vk.PipelineStageTessellationEvaluationShaderBit,
+		"GeometryShaderBit":               vk.PipelineStageGeometryShaderBit,
+		"FragmentShaderBit":               vk.PipelineStageFragmentShaderBit,
+		"EarlyFragmentTestsBit":           vk.PipelineStageEarlyFragmentTestsBit,
+		"LateFragmentTestsBit":            vk.PipelineStageLateFragmentTestsBit,
+		"ColorAttachmentOutputBit":        vk.PipelineStageColorAttachmentOutputBit,
+		"ComputeShaderBit":                vk.PipelineStageComputeShaderBit,
+		"TransferBit":                     vk.PipelineStageTransferBit,
+		"BottomOfPipeBit":                 vk.PipelineStageBottomOfPipeBit,
+		"HostBit":                         vk.PipelineStageHostBit,
+		"AllGraphicsBit":                  vk.PipelineStageAllGraphicsBit,
+		"AllCommandsBit":                  vk.PipelineStageAllCommandsBit,
+		"TransformFeedbackBit":            vk.PipelineStageTransformFeedbackBit,
+		"ConditionalRenderingBit":         vk.PipelineStageConditionalRenderingBit,
+		"CommandProcessBitNvx":            vk.PipelineStageCommandProcessBitNvx,
+		"ShadingRateImageBitNv":           vk.PipelineStageShadingRateImageBitNv,
+		"RaytracingBitNvx":                vk.PipelineStageRaytracingBitNvx,
+		"TaskShaderBitNv":                 vk.PipelineStageTaskShaderBitNv,
+		"MeshShaderBitNv":                 vk.PipelineStageMeshShaderBitNv,
+	}
+	StringVkAccessFlagBits = map[string]vk.AccessFlagBits{
+		"IndirectCommandReadBit":            vk.AccessIndirectCommandReadBit,
+		"IndexReadBit":                      vk.AccessIndexReadBit,
+		"VertexAttributeReadBit":            vk.AccessVertexAttributeReadBit,
+		"UniformReadBit":                    vk.AccessUniformReadBit,
+		"InputAttachmentReadBit":            vk.AccessInputAttachmentReadBit,
+		"ShaderReadBit":                     vk.AccessShaderReadBit,
+		"ShaderWriteBit":                    vk.AccessShaderWriteBit,
+		"ColorAttachmentReadBit":            vk.AccessColorAttachmentReadBit,
+		"ColorAttachmentWriteBit":           vk.AccessColorAttachmentWriteBit,
+		"DepthStencilAttachmentReadBit":     vk.AccessDepthStencilAttachmentReadBit,
+		"DepthStencilAttachmentWriteBit":    vk.AccessDepthStencilAttachmentWriteBit,
+		"TransferReadBit":                   vk.AccessTransferReadBit,
+		"TransferWriteBit":                  vk.AccessTransferWriteBit,
+		"HostReadBit":                       vk.AccessHostReadBit,
+		"HostWriteBit":                      vk.AccessHostWriteBit,
+		"MemoryReadBit":                     vk.AccessMemoryReadBit,
+		"MemoryWriteBit":                    vk.AccessMemoryWriteBit,
+		"TransformFeedbackWriteBit":         vk.AccessTransformFeedbackWriteBit,
+		"TransformFeedbackCounterReadBit":   vk.AccessTransformFeedbackCounterReadBit,
+		"TransformFeedbackCounterWriteBit":  vk.AccessTransformFeedbackCounterWriteBit,
+		"ConditionalRenderingReadBit":       vk.AccessConditionalRenderingReadBit,
+		"CommandProcessReadBitNvx":          vk.AccessCommandProcessReadBitNvx,
+		"CommandProcessWriteBitNvx":         vk.AccessCommandProcessWriteBitNvx,
+		"ColorAttachmentReadNoncoherentBit": vk.AccessColorAttachmentReadNoncoherentBit,
+		"ShadingRateImageReadBitNv":         vk.AccessShadingRateImageReadBitNv,
+		"AccelerationStructureReadBitNvx":   vk.AccessAccelerationStructureReadBitNvx,
+		"AccelerationStructureWriteBitNvx":  vk.AccessAccelerationStructureWriteBitNvx,
+	}
+	StringVkPipelineBindPoint = map[string]vk.PipelineBindPoint{
+		"Graphics":      vk.PipelineBindPointGraphics,
+		"Compute":       vk.PipelineBindPointCompute,
+		"RaytracingNvx": vk.PipelineBindPointRaytracingNvx,
+	}
+	StringVkDependencyFlagBits = map[string]vk.DependencyFlagBits{
+		"ByRegionBit":    vk.DependencyByRegionBit,
+		"DeviceGroupBit": vk.DependencyDeviceGroupBit,
+		"ViewLocalBit":   vk.DependencyViewLocalBit,
+	}
+	StringVkColorComponentFlagBits = map[string]vk.ColorComponentFlagBits{
+		"R": vk.ColorComponentRBit,
+		"G": vk.ColorComponentGBit,
+		"B": vk.ColorComponentBBit,
+		"A": vk.ColorComponentABit,
+	}
+	StringVkPipelineCreateFlagBits = map[string]vk.PipelineCreateFlagBits{
+		"DisableOptimizationBit":      vk.PipelineCreateDisableOptimizationBit,
+		"AllowDerivativesBit":         vk.PipelineCreateAllowDerivativesBit,
+		"DerivativeBit":               vk.PipelineCreateDerivativeBit,
+		"ViewIndexFromDeviceIndexBit": vk.PipelineCreateViewIndexFromDeviceIndexBit,
+		"DispatchBase":                vk.PipelineCreateDispatchBase,
+		"DeferCompileBitNvx":          vk.PipelineCreateDeferCompileBitNvx,
+	}
+	StringVkImageTiling = map[string]vk.ImageTiling{
+		"Optimal":           vk.ImageTilingOptimal,
+		"Linear":            vk.ImageTilingLinear,
+		"DrmFormatModifier": vk.ImageTilingDrmFormatModifier,
+	}
+	StringVkFilter = map[string]vk.Filter{
+		"Nearest":  vk.FilterNearest,
+		"Linear":   vk.FilterLinear,
+		"CubicImg": vk.FilterCubicImg,
+	}
+	StringVkImageUsageFlagBits = map[string]vk.ImageUsageFlagBits{
+		"TransferSrcBit":            vk.ImageUsageTransferSrcBit,
+		"TransferDstBit":            vk.ImageUsageTransferDstBit,
+		"SampledBit":                vk.ImageUsageSampledBit,
+		"StorageBit":                vk.ImageUsageStorageBit,
+		"ColorAttachmentBit":        vk.ImageUsageColorAttachmentBit,
+		"DepthStencilAttachmentBit": vk.ImageUsageDepthStencilAttachmentBit,
+		"TransientAttachmentBit":    vk.ImageUsageTransientAttachmentBit,
+		"InputAttachmentBit":        vk.ImageUsageInputAttachmentBit,
+		"ShadingRateImageBitNv":     vk.ImageUsageShadingRateImageBitNv,
+	}
+	StringVkMemoryPropertyFlagBits = map[string]vk.MemoryPropertyFlagBits{
+		"DeviceLocalBit":     vk.MemoryPropertyDeviceLocalBit,
+		"HostVisibleBit":     vk.MemoryPropertyHostVisibleBit,
+		"HostCoherentBit":    vk.MemoryPropertyHostCoherentBit,
+		"HostCachedBit":      vk.MemoryPropertyHostCachedBit,
+		"LazilyAllocatedBit": vk.MemoryPropertyLazilyAllocatedBit,
+		"ProtectedBit":       vk.MemoryPropertyProtectedBit,
+	}
+	StringVkImageAspectFlagBits = map[string]vk.ImageAspectFlagBits{
+		"ColorBit":        vk.ImageAspectColorBit,
+		"DepthBit":        vk.ImageAspectDepthBit,
+		"StencilBit":      vk.ImageAspectStencilBit,
+		"MetadataBit":     vk.ImageAspectMetadataBit,
+		"Plane0Bit":       vk.ImageAspectPlane0Bit,
+		"Plane1Bit":       vk.ImageAspectPlane1Bit,
+		"Plane2Bit":       vk.ImageAspectPlane2Bit,
+		"MemoryPlane0Bit": vk.ImageAspectMemoryPlane0Bit,
+		"MemoryPlane1Bit": vk.ImageAspectMemoryPlane1Bit,
+		"MemoryPlane2Bit": vk.ImageAspectMemoryPlane2Bit,
+		"MemoryPlane3Bit": vk.ImageAspectMemoryPlane3Bit,
+	}
+	StringVkMap = map[string]any{
+		"StringVkFormat":                 StringVkFormat,
+		"StringVkBlendFactor":            StringVkBlendFactor,
+		"StringVkBlendOp":                StringVkBlendOp,
+		"StringVkLogicOp":                StringVkLogicOp,
+		"StringVkCompareOp":              StringVkCompareOp,
+		"StringVkStencilOp":              StringVkStencilOp,
+		"StringVkPrimitiveTopology":      StringVkPrimitiveTopology,
+		"StringVkPolygonMode":            StringVkPolygonMode,
+		"StringVkCullModeFlagBits":       StringVkCullModeFlagBits,
+		"StringVkFrontFace":              StringVkFrontFace,
+		"StringVkSampleCountFlagBits":    StringVkSampleCountFlagBits,
+		"StringVkPatchControlPoints":     StringVkPatchControlPoints,
+		"StringVkAttachmentLoadOp":       StringVkAttachmentLoadOp,
+		"StringVkAttachmentStoreOp":      StringVkAttachmentStoreOp,
+		"StringVkImageLayout":            StringVkImageLayout,
+		"StringVkPipelineStageFlagBits":  StringVkPipelineStageFlagBits,
+		"StringVkAccessFlagBits":         StringVkAccessFlagBits,
+		"StringVkPipelineBindPoint":      StringVkPipelineBindPoint,
+		"StringVkDependencyFlagBits":     StringVkDependencyFlagBits,
+		"StringVkColorComponentFlagBits": StringVkColorComponentFlagBits,
+		"StringVkPipelineCreateFlagBits": StringVkPipelineCreateFlagBits,
+		"StringVkImageTiling":            StringVkImageTiling,
+		"StringVkFilter":                 StringVkFilter,
+		"StringVkImageUsageFlagBits":     StringVkImageUsageFlagBits,
+		"StringVkMemoryPropertyFlagBits": StringVkMemoryPropertyFlagBits,
+		"StringVkImageAspectFlagBits":    StringVkImageAspectFlagBits,
+	}
+)
+
+FUNCTIONS
+
+func SetupLightMaterials(materialCache *MaterialCache) error
+func TextureKeys(textures []*Texture) []string
+func VertexFaceNormal(verts [3]Vertex) matrix.Vec3
+
+TYPES
+
+type CommandRecorder struct {
+	// Has unexported fields.
+}
+
+func NewCommandRecorder(vr *Vulkan) (CommandRecorder, error)
+
+func (c *CommandRecorder) Begin()
+
+func (c *CommandRecorder) Destroy(vr *Vulkan)
+
+func (c *CommandRecorder) End()
+
+func (c *CommandRecorder) Reset()
+
+type CommandRecorderSecondary struct {
+	CommandRecorder
+
+	// Has unexported fields.
+}
+
+func NewCommandRecorderSecondary(vr *Vulkan, rp *RenderPass, subpassIdx int) (CommandRecorderSecondary, error)
+
+func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D)
+
+type DescriptorSetLayoutStructure struct {
+	Types []DescriptorSetLayoutStructureType
+}
+
+type DescriptorSetLayoutStructureType struct {
+	Type           vk.DescriptorType
+	Flags          vk.ShaderStageFlagBits
+	Count, Binding uint32
+}
+
+type DrawInstance interface {
+	Destroy()
+	IsDestroyed() bool
+	Activate()
+	Deactivate()
+	IsActive() bool
+	Size() int
+	SetModel(model matrix.Mat4)
+	UpdateModel()
+	DataPointer() unsafe.Pointer
+	// Returns true if it should write the data, otherwise false
+	UpdateNamedData(index, capacity int, name string) bool
+	NamedDataPointer(name string) unsafe.Pointer
+	NamedDataInstanceSize(name string) int
+
+	// Has unexported methods.
+}
+
+func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance
+
+type DrawInstanceGroup struct {
+	Mesh *Mesh
+	InstanceDriverData
+	MaterialInstance *Material
+	Instances        []DrawInstance
+
+	// Has unexported fields.
+}
+
+func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup
+
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance)
+
+func (d *DrawInstanceGroup) AlterPadding(blockSize int)
+
+func (d *DrawInstanceGroup) AnyVisible() bool
+
+func (d *DrawInstanceGroup) Clear(renderer Renderer)
+
+func (d *DrawInstanceGroup) Destroy(renderer Renderer)
+
+func (d *DrawInstanceGroup) IsEmpty() bool
+
+func (d *DrawInstanceGroup) IsReady() bool
+
+func (d *DrawInstanceGroup) TotalSize() int
+
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer)
+
+func (d *DrawInstanceGroup) VisibleCount() int
+
+func (d *DrawInstanceGroup) VisibleSize() int
+
+type Drawing struct {
+	Renderer     Renderer
+	Material     *Material
+	Mesh         *Mesh
+	ShaderData   DrawInstance
+	Transform    *matrix.Transform
+	Sort         int
+	CastsShadows bool
+}
+
+func (d *Drawing) IsValid() bool
+
+type Drawings struct {
+	// Has unexported fields.
+}
+
+func NewDrawings() Drawings
+
+func (d *Drawings) AddDrawing(drawing Drawing)
+
+func (d *Drawings) AddDrawings(drawings []Drawing)
+
+func (d *Drawings) Clear(renderer Renderer)
+
+func (d *Drawings) Destroy(renderer Renderer)
+
+func (d *Drawings) HasDrawings() bool
+
+func (d *Drawings) PreparePending()
+
+func (d *Drawings) Render(renderer Renderer)
+
+type FontBaseline int
+
+type FontCache struct {
+	FaceMutex sync.RWMutex
+	// Has unexported fields.
+}
+
+func NewFontCache(renderer Renderer, assetDb assets.Database) FontCache
+
+func (cache *FontCache) Destroy()
+
+func (cache *FontCache) EMSize(face FontFace) float32
+
+func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches RenderCaches) error
+
+func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int
+
+func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2
+
+func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32
+
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2
+
+func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int
+
+func (cache *FontCache) PreloadFace(face FontFace)
+
+func (cache *FontCache) RenderMeshes(caches RenderCaches,
+	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
+	is3D bool, face FontFace, lineHeight float32) []Drawing
+
+func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4
+
+func (cache *FontCache) TransparentMaterial(target *Material) *Material
+
+type FontFace string
+
+func (f FontFace) IsBold() bool
+
+func (f FontFace) IsExtraBold() bool
+
+func (f FontFace) IsItalic() bool
+
+type FontJustify int
+
+type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
+
+type GPUImageWriteRequest struct {
+	Region matrix.Vec4i
+	Pixels []byte
+}
+
+type GPULight struct {
+	Matrix   [cubeMapSides]matrix.Mat4
+	Position matrix.Vec3
+
+	Direction matrix.Vec3
+	// Has unexported fields.
+}
+
+type GPULightInfo struct {
+	Position    matrix.Vec3
+	Intensity   float32
+	Direction   matrix.Vec3
+	Cutoff      float32
+	Ambient     matrix.Vec3
+	OuterCutoff float32
+	Diffuse     matrix.Vec3
+	Constant    float32
+	Specular    matrix.Vec3
+	Linear      float32
+	Quadratic   float32
+	NearPlane   float32
+	FarPlane    float32
+	Type        int32
+	// Has unexported fields.
+}
+
+type GlobalShaderData struct {
+	View             matrix.Mat4
+	Projection       matrix.Mat4
+	UIView           matrix.Mat4
+	UIProjection     matrix.Mat4
+	CameraPosition   matrix.Vec4
+	UICameraPosition matrix.Vec3
+
+	ScreenSize matrix.Vec2
+	Time       float32
+
+	StaticShadows  [MaxPointShadows]PointShadow
+	DynamicShadows [MaxPointShadows]PointShadow
+	VertLights     [MaxLights]GPULight
+	LightInfos     [MaxLights]GPULightInfo
+	// Has unexported fields.
+}
+
+type InstanceCopyData struct {
+	// Has unexported fields.
+}
+
+func InstanceCopyDataNew(padding int) InstanceCopyData
+
+type InstanceDriverData struct {
+	// Has unexported fields.
+}
+
+type InstanceGroupSkinningData struct {
+}
+
+type Light struct {
+	// Has unexported fields.
+}
+
+func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light
+
+func (l *Light) Direction(followcam cameras.Camera) matrix.Vec3
+
+func (l *Light) IsValid() bool
+
+func (l *Light) SetAmbient(ambient matrix.Color)
+
+func (l *Light) SetDirection(dir matrix.Vec3)
+
+func (l *Light) SetIntensity(intensity float32)
+
+func (l *Light) SetPosition(position matrix.Vec3)
+
+func (l *Light) ShadowMapTexture() *Texture
+
+func (l *Light) Type() LightType
+
+func (l *Light) WorldSpace(followcam cameras.Camera) matrix.Vec3
+
+type LightShadowShaderData struct {
+	ShaderDataBase
+	LightIndex int32
+}
+
+func (t LightShadowShaderData) Size() int
+
+type LightType int
+
+type Material struct {
+	Name string
+
+	Shader        *Shader
+	Textures      []*Texture
+	ShadowMap     *Texture
+	ShadowCubeMap *Texture
+	Instances     map[string]*Material
+	Root          weak.Pointer[Material]
+
+	IsLit bool
+	// Has unexported fields.
+}
+
+func (m *Material) CreateInstance(textures []*Texture) *Material
+
+func (m *Material) Destroy(renderer Renderer)
+
+func (m *Material) HasShadowCubeMap() bool
+
+func (m *Material) HasShadowMap() bool
+
+func (m *Material) HasTransparentSuffix() bool
+
+func (m *Material) SelectRoot() *Material
+
+type MaterialCache struct {
+	// Has unexported fields.
+}
+
+func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache
+
+func (m *MaterialCache) AddMaterial(material *Material) *Material
+
+func (m *MaterialCache) Destroy()
+
+func (m *MaterialCache) FindMaterial(key string) (*Material, bool)
+
+func (m *MaterialCache) Material(key string) (*Material, error)
+
+type MaterialData struct {
+	Name           string
+	Shader         string `options:""` // Blank = fallback
+	RenderPass     string `options:""` // Blank = fallback
+	ShaderPipeline string `options:""` // Blank = fallback
+	Textures       []MaterialTextureData
+}
+
+func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Material, error)
+
+type MaterialTextureData struct {
+	Texture string `options:""` // Blank = fallback
+	Filter  string `options:"StringVkFilter"`
+}
+
+func (d *MaterialTextureData) FilterToVK() TextureFilter
+
+type Mesh struct {
+	MeshId MeshId
+
+	// Has unexported fields.
+}
+
+func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings int) *Mesh
+    NewMeshCapsule creates a capsule mesh (cylinder with hemispherical ends)
+    with the specified radius and height. The capsule is aligned along the
+    Y-axis, with hemispheres at y=height/2 and y=-height/2. segments controls
+    the number of subdivisions around the circumference, rings controls the
+    number of rings per hemisphere.
+
+func NewMeshCube(cache *MeshCache) *Mesh
+
+func NewMeshCubeInverse(cache *MeshCache) *Mesh
+
+func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh
+
+func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshLine(cache *MeshCache, key string, p0, p1 matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshOffsetQuad(cache *MeshCache, key string, sideOffsets matrix.Vec4) *Mesh
+
+func NewMeshPlane(cache *MeshCache) *Mesh
+
+func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshQuad(cache *MeshCache) *Mesh
+
+func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh
+
+func NewMeshScreenQuad(cache *MeshCache) *Mesh
+
+func NewMeshSkyboxCube(cache *MeshCache) *Mesh
+
+func NewMeshTexturableCube(cache *MeshCache) *Mesh
+
+func NewMeshTriangle(cache *MeshCache) *Mesh
+
+func NewMeshUnitQuad(cache *MeshCache) *Mesh
+
+func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func NewMeshWireQuad(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func (m *Mesh) BVH() *collision.BVH
+
+func (m *Mesh) DelayedCreate(renderer Renderer)
+
+func (m Mesh) IsReady() bool
+
+func (m Mesh) Key() string
+
+func (m *Mesh) SetKey(key string)
+
+type MeshCache struct {
+	// Has unexported fields.
+}
+
+func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache
+
+func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh
+    Try to add the mesh to the cache, if it already exists, return the existing
+    mesh
+
+func (m *MeshCache) CreatePending()
+
+func (m *MeshCache) Destroy()
+
+func (m *MeshCache) FindMesh(key string) (*Mesh, bool)
+
+func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+type MeshCleanup struct {
+	// Has unexported fields.
+}
+
+type MeshCullMode = int
+
+const (
+	MeshCullModeBack MeshCullMode = iota
+	MeshCullModeFront
+	MeshCullModeNone
+)
+type MeshDrawMode = int
+
+const (
+	MeshDrawModePoints MeshDrawMode = iota
+	MeshDrawModeLines
+	MeshDrawModeTriangles
+	MeshDrawModePatches
+)
+type MeshId struct {
+	// Has unexported fields.
+}
+
+func (m MeshId) IsValid() bool
+
+type PointShadow struct {
+	Point    matrix.Vec2 // X,Z
+	Radius   float32
+	Strength float32
+}
+
+type QuadPivot = int32
+
+type RenderCaches interface {
+	ShaderCache() *ShaderCache
+	TextureCache() *TextureCache
+	MeshCache() *MeshCache
+	FontCache() *FontCache
+	MaterialCache() *MaterialCache
+	AssetDatabase() assets.Database
+}
+
+type RenderPass struct {
+	Handle vk.RenderPass
+	Buffer vk.Framebuffer
+
+	// Has unexported fields.
+}
+
+func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, error)
+
+func (p *RenderPass) CreateFrameBuffer(vr *Vulkan,
+	imageViews []vk.ImageView, width, height int) error
+
+func (p *RenderPass) Destroy(vr *Vulkan)
+
+func (r *RenderPass) ExecuteSecondaryCommands()
+
+func (p *RenderPass) Recontstruct(vr *Vulkan) error
+
+func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture
+
+func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string) (*Texture, bool)
+
+type RenderPassAttachmentDescription struct {
+	Format         string `options:"StringVkFormat"`
+	Samples        string `options:"StringVkSampleCountFlagBits"`
+	LoadOp         string `options:"StringVkAttachmentLoadOp"`
+	StoreOp        string `options:"StringVkAttachmentStoreOp"`
+	StencilLoadOp  string `options:"StringVkAttachmentLoadOp"`
+	StencilStoreOp string `options:"StringVkAttachmentStoreOp"`
+	InitialLayout  string `options:"StringVkImageLayout"`
+	FinalLayout    string `options:"StringVkImageLayout"`
+	Image          RenderPassAttachmentImage
+}
+
+func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vk.ImageLayout
+
+func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format
+
+func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() vk.ImageLayout
+
+func (ad *RenderPassAttachmentDescription) LoadOpToVK() vk.AttachmentLoadOp
+
+func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vk.SampleCountFlagBits
+
+func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() vk.AttachmentLoadOp
+
+func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() vk.AttachmentStoreOp
+
+func (ad *RenderPassAttachmentDescription) StoreOpToVK() vk.AttachmentStoreOp
+
+type RenderPassAttachmentDescriptionCompiled struct {
+	Format         vk.Format
+	Samples        vk.SampleCountFlagBits
+	LoadOp         vk.AttachmentLoadOp
+	StoreOp        vk.AttachmentStoreOp
+	StencilLoadOp  vk.AttachmentLoadOp
+	StencilStoreOp vk.AttachmentStoreOp
+	InitialLayout  vk.ImageLayout
+	FinalLayout    vk.ImageLayout
+	Image          RenderPassAttachmentImageCompiled
+}
+
+func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool
+
+type RenderPassAttachmentImage struct {
+	Name           string
+	ExistingImage  string
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         string                         `options:"StringVkImageTiling"`
+	Filter         string                         `options:"StringVkFilter"`
+	Usage          []string                       `options:"StringVkImageUsageFlagBits"`
+	MemoryProperty []string                       `options:"StringVkMemoryPropertyFlagBits"`
+	Aspect         []string                       `options:"StringVkImageAspectFlagBits"`
+	Access         []string                       `options:"StringVkAccessFlagBits"`
+	Clear          RenderPassAttachmentImageClear `tip:"AttachmentImageClear"`
+}
+
+func (ai *RenderPassAttachmentImage) AccessToVK() vk.AccessFlags
+
+func (ai *RenderPassAttachmentImage) AspectToVK() vk.ImageAspectFlags
+
+func (ai *RenderPassAttachmentImage) FilterToVK() vk.Filter
+
+func (img *RenderPassAttachmentImage) IsInvalid() bool
+
+func (ai *RenderPassAttachmentImage) MemoryPropertyToVK() vk.MemoryPropertyFlags
+
+func (ai *RenderPassAttachmentImage) TilingToVK() vk.ImageTiling
+
+func (ai *RenderPassAttachmentImage) UsageToVK() vk.ImageUsageFlags
+
+type RenderPassAttachmentImageClear struct {
+	R       float32
+	G       float32
+	B       float32
+	A       float32
+	Depth   float32
+	Stencil uint32
+}
+
+type RenderPassAttachmentImageCompiled struct {
+	Name           string
+	ExistingImage  string
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         vk.ImageTiling
+	Filter         vk.Filter
+	Usage          vk.ImageUsageFlags
+	MemoryProperty vk.MemoryPropertyFlags
+	Aspect         vk.ImageAspectFlags
+	Access         vk.AccessFlags
+}
+
+func (img *RenderPassAttachmentImageCompiled) IsInvalid() bool
+
+type RenderPassAttachmentReference struct {
+	Attachment uint32
+	Layout     string `options:"StringVkImageLayout"`
+}
+
+func (ad *RenderPassAttachmentReference) LayoutToVK() vk.ImageLayout
+
+type RenderPassAttachmentReferenceCompiled struct {
+	Attachment uint32
+	Layout     vk.ImageLayout
+}
+
+type RenderPassData struct {
+	Name                   string
+	Sort                   int
+	AttachmentDescriptions []RenderPassAttachmentDescription
+	SubpassDescriptions    []RenderPassSubpassDescription
+	SubpassDependencies    []RenderPassSubpassDependency
+}
+
+func NewRenderPassData(src string) (RenderPassData, error)
+
+func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled
+
+type RenderPassDataCompiled struct {
+	Name                   string
+	Sort                   int
+	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
+	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
+	SubpassDependencies    []RenderPassSubpassDependencyCompiled
+	ImageClears            []vk.ClearValue
+	Subpass                []RenderPassSubpassDataCompiled
+}
+
+func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool)
+
+type RenderPassGroup struct {
+	// Has unexported fields.
+}
+
+type RenderPassSubpass struct {
+	// Has unexported fields.
+}
+
+type RenderPassSubpassData struct {
+	Shader         string `options:""`
+	ShaderPipeline string `options:""`
+	SampledImages  []RenderPassSubpassImageData
+}
+
+type RenderPassSubpassDataCompiled struct {
+	Shader         string
+	ShaderPipeline string
+	SampledImages  []int
+}
+
+type RenderPassSubpassDependency struct {
+	SrcSubpass      int64
+	DstSubpass      int64
+	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	SrcAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DstAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
+}
+
+func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags
+
+func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags
+
+func (sd *RenderPassSubpassDependency) DstStageMaskToVK() vk.PipelineStageFlags
+
+func (sd *RenderPassSubpassDependency) SrcAccessMaskToVK() vk.AccessFlags
+
+func (sd *RenderPassSubpassDependency) SrcStageMaskToVK() vk.PipelineStageFlags
+
+type RenderPassSubpassDependencyCompiled struct {
+	SrcSubpass      uint32
+	DstSubpass      uint32
+	SrcStageMask    vk.PipelineStageFlags
+	DstStageMask    vk.PipelineStageFlags
+	SrcAccessMask   vk.AccessFlags
+	DstAccessMask   vk.AccessFlags
+	DependencyFlags vk.DependencyFlags
+}
+
+type RenderPassSubpassDescription struct {
+	PipelineBindPoint         string `options:"StringVkPipelineBindPoint"`
+	ColorAttachmentReferences []RenderPassAttachmentReference
+	InputAttachmentReferences []RenderPassAttachmentReference
+	ResolveAttachments        []RenderPassAttachmentReference
+	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
+	PreserveAttachments       []uint32                        // TODO
+	Subpass                   RenderPassSubpassData
+}
+
+func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint
+
+type RenderPassSubpassDescriptionCompiled struct {
+	PipelineBindPoint         vk.PipelineBindPoint
+	ColorAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	InputAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	ResolveAttachments        []RenderPassAttachmentReferenceCompiled
+	DepthStencilAttachment    []RenderPassAttachmentReferenceCompiled // 1 max
+	PreserveAttachments       []uint32                                // TODO
+}
+
+type RenderPassSubpassImageData struct {
+	SampledImage string
+}
+
+type Renderer interface {
+	Initialize(caches RenderCaches, width, height int32) error
+	ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera,
+		lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool
+	CreateShader(shader *Shader, assetDatabase assets.Database) error
+	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
+	CreateTexture(texture *Texture, textureData *TextureData)
+	TextureReadPixel(texture *Texture, x, y int) matrix.Color
+	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
+	Draw(renderPass *RenderPass, drawings []ShaderDraw) bool
+	BlitTargets(passes []*RenderPass)
+	SwapFrame(window RenderingContainer, width, height int32) bool
+	Resize(window RenderingContainer, width, height int)
+	AddPreRun(preRun func())
+	DestroyGroup(group *DrawInstanceGroup)
+	Destroy()
+	WaitForRender()
+}
+
+type RenderingContainer interface {
+	GetDrawableSize() (int32, int32)
+	GetInstanceExtensions() []string
+	PlatformWindow() unsafe.Pointer
+	PlatformInstance() unsafe.Pointer
+}
+
+type Shader struct {
+	RenderId ShaderId
+
+	Material   MaterialData
+	DriverData ShaderDriverData
+
+	// Has unexported fields.
+}
+
+func NewShader(shaderData ShaderDataCompiled) *Shader
+
+func (s *Shader) AddSubShader(key string, shader *Shader)
+
+func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase assets.Database)
+
+func (s *Shader) RemoveSubShader(key string)
+
+func (s *Shader) SubShader(key string) *Shader
+
+type ShaderBuffer struct {
+	// Has unexported fields.
+}
+
+type ShaderCache struct {
+	// Has unexported fields.
+}
+
+func NewShaderCache(renderer Renderer, assetDatabase assets.Database) ShaderCache
+
+func (s *ShaderCache) CreatePending()
+
+func (s *ShaderCache) Destroy()
+
+func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isNew bool)
+
+type ShaderCleanup struct {
+	// Has unexported fields.
+}
+
+type ShaderData struct {
+	Name                        string
+	EnableDebug                 bool
+	Vertex                      string              `options:""`
+	VertexFlags                 string              `tip:"CompileFlags"`
+	Fragment                    string              `options:""`
+	FragmentFlags               string              `tip:"CompileFlags"`
+	Geometry                    string              `options:""`
+	GeometryFlags               string              `tip:"CompileFlags"`
+	TessellationControl         string              `options:""`
+	TessellationControlFlags    string              `tip:"CompileFlags"`
+	TessellationEvaluation      string              `options:""`
+	TessellationEvaluationFlags string              `tip:"CompileFlags"`
+	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
+}
+
+func (d *ShaderData) Compile() ShaderDataCompiled
+
+func (d *ShaderData) CompileVariantName(path, flags string) string
+
+type ShaderDataBase struct {
+	InitModel matrix.Mat4
+	// Has unexported fields.
+}
+
+func NewShaderDataBase() ShaderDataBase
+
+func (s *ShaderDataBase) Activate()
+
+func (s *ShaderDataBase) CancelDestroy()
+
+func (s *ShaderDataBase) DataPointer() unsafe.Pointer
+
+func (s *ShaderDataBase) Deactivate()
+
+func (s *ShaderDataBase) Destroy()
+
+func (s *ShaderDataBase) IsActive() bool
+
+func (s *ShaderDataBase) IsDestroyed() bool
+
+func (s *ShaderDataBase) Model() matrix.Mat4
+
+func (s *ShaderDataBase) NamedDataInstanceSize(name string) int
+
+func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer
+
+func (s *ShaderDataBase) SetModel(model matrix.Mat4)
+
+func (s *ShaderDataBase) Setup()
+
+func (s *ShaderDataBase) UpdateModel()
+
+func (s *ShaderDataBase) UpdateNamedData(index, capacity int, name string) bool
+
+type ShaderDataBasic struct {
+	ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataBasic) Size() int
+
+type ShaderDataBasicLit struct {
+	ShaderDataBase
+	Color  matrix.Color
+	Light0 float32
+	Light1 float32
+	Light2 float32
+	Light3 float32
+}
+
+func (t ShaderDataBasicLit) Size() int
+
+type ShaderDataCompiled struct {
+	Name                   string
+	Vertex                 string
+	Fragment               string
+	Geometry               string
+	TessellationControl    string
+	TessellationEvaluation string
+	LayoutGroups           []ShaderLayoutGroup
+}
+
+func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup
+
+func (sd *ShaderDataCompiled) Stride() uint32
+
+func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription
+
+func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure
+
+type ShaderDataPBR struct {
+	ShaderDataBase
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	Light0     float32
+	Light1     float32
+	Light2     float32
+	Light3     float32
+}
+
+func (t ShaderDataPBR) Size() int
+
+type ShaderDataStandard struct {
+	ShaderDataBase
+	Color matrix.Color
+	Flags ShaderDataStandardFlags
+}
+
+func (s *ShaderDataStandard) ClearFlag(flag ShaderDataStandardFlags)
+
+func (s *ShaderDataStandard) SetFlag(flag ShaderDataStandardFlags)
+
+func (ShaderDataStandard) Size() int
+
+func (s *ShaderDataStandard) TestFlag(flag ShaderDataStandardFlags) bool
+
+type ShaderDataStandardFlags = uint32
+
+type ShaderDataUnlit struct {
+	ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4
+}
+
+func (t ShaderDataUnlit) Size() int
+
+type ShaderDraw struct {
+	// Has unexported fields.
+}
+
+func NewShaderDraw(material *Material) ShaderDraw
+
+func (s *ShaderDraw) AddInstanceGroup(group DrawInstanceGroup)
+
+func (s *ShaderDraw) Clear(renderer Renderer)
+
+func (s *ShaderDraw) Destroy(renderer Renderer)
+
+func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanceGroup
+
+type ShaderDriverData struct {
+	DescriptorSetLayoutStructure
+	Stride                uint32
+	AttributeDescriptions []vk.VertexInputAttributeDescription
+}
+
+func NewShaderDriverData() ShaderDriverData
+
+type ShaderId struct {
+	// Has unexported fields.
+}
+
+func (s ShaderId) IsValid() bool
+
+type ShaderLayout struct {
+	Location        int    // -1 if not set
+	Binding         int    // -1 if not set
+	Count           int    // 1 if not set
+	Set             int    // -1 if not set
+	InputAttachment int    // -1 if not set
+	Type            string // float, vec3, mat4, etc.
+	Name            string
+	Source          string // in, out, uniform
+	Fields          []ShaderLayoutStructField
+}
+
+func (l *ShaderLayout) Capacity() int
+
+func (l *ShaderLayout) DescriptorType() vk.DescriptorType
+
+func (l *ShaderLayout) FullName() string
+
+func (l *ShaderLayout) IsBuffer() bool
+
+func (l *ShaderLayout) Stride() int
+
+type ShaderLayoutGroup struct {
+	Type    string
+	Layouts []ShaderLayout
+}
+
+func (g *ShaderLayoutGroup) DescriptorFlag() vk.ShaderStageFlagBits
+
+type ShaderLayoutStructField struct {
+	Type string // float, vec3, mat4, etc.
+	Name string
+}
+
+type ShaderPipelineColorBlend struct {
+	LogicOpEnable   bool
+	LogicOp         string  `options:"StringVkLogicOp"`
+	BlendConstants0 float32 `tip:"BlendConstants"`
+	BlendConstants1 float32 `tip:"BlendConstants"`
+	BlendConstants2 float32 `tip:"BlendConstants"`
+	BlendConstants3 float32 `tip:"BlendConstants"`
+}
+
+func (s *ShaderPipelineColorBlend) LogicOpToVK() vk.LogicOp
+
+type ShaderPipelineColorBlendAttachments struct {
+	BlendEnable         bool
+	SrcColorBlendFactor string   `options:"StringVkBlendFactor"`
+	DstColorBlendFactor string   `options:"StringVkBlendFactor"`
+	ColorBlendOp        string   `options:"StringVkBlendOp"`
+	SrcAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	DstAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	AlphaBlendOp        string   `options:"StringVkBlendOp"`
+	ColorWriteMask      []string `options:"StringVkColorComponentFlagBits"`
+}
+
+func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToVK() vk.BlendOp
+
+func (a *ShaderPipelineColorBlendAttachments) BlendEnableToVK() vk.Bool32
+
+func (a *ShaderPipelineColorBlendAttachments) ColorBlendOpToVK() vk.BlendOp
+
+func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToVK() vk.ColorComponentFlagBits
+
+func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToVK() vk.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) DstColorBlendFactorToVK() vk.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListColorBlendOp() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstAlphaBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstColorBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcAlphaBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) SrcAlphaBlendFactorToVK() vk.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) SrcColorBlendFactorToVK() vk.BlendFactor
+
+type ShaderPipelineColorBlendAttachmentsCompiled struct {
+	BlendEnable         vk.Bool32
+	SrcColorBlendFactor vk.BlendFactor
+	DstColorBlendFactor vk.BlendFactor
+	ColorBlendOp        vk.BlendOp
+	SrcAlphaBlendFactor vk.BlendFactor
+	DstAlphaBlendFactor vk.BlendFactor
+	AlphaBlendOp        vk.BlendOp
+	ColorWriteMask      vk.ColorComponentFlags
+}
+
+type ShaderPipelineColorBlendCompiled struct {
+	LogicOpEnable  vk.Bool32
+	LogicOp        vk.LogicOp
+	BlendConstants [4]float32
+}
+
+type ShaderPipelineData struct {
+	Name                  string
+	InputAssembly         ShaderPipelineInputAssembly
+	Rasterization         ShaderPipelinePipelineRasterization
+	Multisample           ShaderPipelinePipelineMultisample
+	ColorBlend            ShaderPipelineColorBlend
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachments
+	DepthStencil          ShaderPipelineDepthStencil
+	Tessellation          ShaderPipelineTessellation
+	GraphicsPipeline      ShaderPipelineGraphicsPipeline
+}
+
+func (s *ShaderPipelineData) AlphaToCoverageEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) AlphaToOneEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) BackStencilOpStateToVK() vk.StencilOpState
+
+func (s *ShaderPipelineData) BlendConstants() [4]float32
+
+func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompiled
+
+func (s *ShaderPipelineData) DepthBiasEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthBoundsTestEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthClampEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthTestEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthWriteEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) FrontStencilOpStateToVK() vk.StencilOpState
+    TODO: This and the BackStencilOpStateToVK are duplicates because of a bad
+    structure setup, please fix later
+
+func (s ShaderPipelineData) ListBackCompareOp() []string
+
+func (s ShaderPipelineData) ListBackDepthFailOp() []string
+
+func (s ShaderPipelineData) ListBackFailOp() []string
+
+func (s ShaderPipelineData) ListBackPassOp() []string
+
+func (s ShaderPipelineData) ListBlendFactor() []string
+
+func (s ShaderPipelineData) ListBlendOp() []string
+
+func (s ShaderPipelineData) ListCullMode() []string
+
+func (s ShaderPipelineData) ListDepthCompareOp() []string
+
+func (s ShaderPipelineData) ListFrontCompareOp() []string
+
+func (s ShaderPipelineData) ListFrontDepthFailOp() []string
+
+func (s ShaderPipelineData) ListFrontFace() []string
+
+func (s ShaderPipelineData) ListFrontFailOp() []string
+
+func (s ShaderPipelineData) ListFrontPassOp() []string
+
+func (s ShaderPipelineData) ListLogicOp() []string
+
+func (s ShaderPipelineData) ListPatchControlPoints() []string
+
+func (s ShaderPipelineData) ListPolygonMode() []string
+
+func (s ShaderPipelineData) ListRasterizationSamples() []string
+
+func (s ShaderPipelineData) ListTopology() []string
+
+func (s *ShaderPipelineData) LogicOpEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32
+
+func (s *ShaderPipelineData) RasterizerDiscardEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) SampleShadingEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32
+
+type ShaderPipelineDataCompiled struct {
+	Name                  string
+	InputAssembly         ShaderPipelineInputAssemblyCompiled
+	Rasterization         ShaderPipelinePipelineRasterizationCompiled
+	Multisample           ShaderPipelinePipelineMultisampleCompiled
+	ColorBlend            ShaderPipelineColorBlendCompiled
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachmentsCompiled
+	DepthStencil          ShaderPipelineDepthStencilCompiled
+	Tessellation          ShaderPipelineTessellationCompiled
+	GraphicsPipeline      ShaderPipelineGraphicsPipelineCompiled
+}
+
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool
+
+type ShaderPipelineDepthStencil struct {
+	DepthTestEnable       bool
+	DepthWriteEnable      bool
+	DepthCompareOp        string `options:"StringVkCompareOp"`
+	DepthBoundsTestEnable bool
+	StencilTestEnable     bool
+	FrontFailOp           string `options:"StringVkStencilOp" tip:"FailOp"`
+	FrontPassOp           string `options:"StringVkStencilOp" tip:"PassOp"`
+	FrontDepthFailOp      string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	FrontCompareOp        string `options:"StringVkCompareOp" tip:"CompareOp"`
+	FrontCompareMask      uint32 `tip:"CompareMask"`
+	FrontWriteMask        uint32 `tip:"WriteMask"`
+	FrontReference        uint32 `tip:"Reference"`
+	BackFailOp            string `options:"StringVkStencilOp" tip:"FailOp"`
+	BackPassOp            string `options:"StringVkStencilOp" tip:"PassOp"`
+	BackDepthFailOp       string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	BackCompareOp         string `options:"StringVkCompareOp" tip:"CompareOp"`
+	BackCompareMask       uint32 `tip:"CompareMask"`
+	BackWriteMask         uint32 `tip:"WriteMask"`
+	BackReference         uint32 `tip:"Reference"`
+	MinDepthBounds        float32
+	MaxDepthBounds        float32
+}
+
+type ShaderPipelineDepthStencilCompiled struct {
+	DepthTestEnable       vk.Bool32
+	DepthWriteEnable      vk.Bool32
+	DepthCompareOp        vk.CompareOp
+	DepthBoundsTestEnable vk.Bool32
+	StencilTestEnable     vk.Bool32
+	Front                 vk.StencilOpState
+	Back                  vk.StencilOpState
+	MinDepthBounds        float32
+	MaxDepthBounds        float32
+}
+
+type ShaderPipelineGraphicsPipeline struct {
+	Subpass             uint32
+	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
+}
+
+func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCreateFlags
+
+type ShaderPipelineGraphicsPipelineCompiled struct {
+	Subpass             uint32
+	PipelineCreateFlags vk.PipelineCreateFlags
+}
+
+type ShaderPipelineInputAssembly struct {
+	Topology         string `options:"StringVkPrimitiveTopology"`
+	PrimitiveRestart bool
+}
+
+func (s *ShaderPipelineInputAssembly) TopologyToVK() vk.PrimitiveTopology
+
+type ShaderPipelineInputAssemblyCompiled struct {
+	Topology         vk.PrimitiveTopology
+	PrimitiveRestart vk.Bool32
+}
+
+type ShaderPipelinePipelineMultisample struct {
+	RasterizationSamples  string `options:"StringVkSampleCountFlagBits"`
+	SampleShadingEnable   bool
+	MinSampleShading      float32
+	AlphaToCoverageEnable bool
+	AlphaToOneEnable      bool
+}
+
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(vr *Vulkan) vk.SampleCountFlagBits
+
+type ShaderPipelinePipelineMultisampleCompiled struct {
+	RasterizationSamples  vk.SampleCountFlagBits
+	SampleShadingEnable   vk.Bool32
+	MinSampleShading      float32
+	AlphaToCoverageEnable vk.Bool32
+	AlphaToOneEnable      vk.Bool32
+}
+
+type ShaderPipelinePipelineRasterization struct {
+	DepthClampEnable        bool
+	RasterizerDiscardEnable bool
+	PolygonMode             string `options:"StringVkPolygonMode"`
+	CullMode                string `options:"StringVkCullModeFlagBits"`
+	FrontFace               string `options:"StringVkFrontFace"`
+	DepthBiasEnable         bool
+	DepthBiasConstantFactor float32
+	DepthBiasClamp          float32
+	DepthBiasSlopeFactor    float32
+	LineWidth               float32
+}
+
+func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vk.CullModeFlagBits
+
+func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vk.FrontFace
+
+func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vk.PolygonMode
+
+type ShaderPipelinePipelineRasterizationCompiled struct {
+	DepthClampEnable        vk.Bool32
+	DiscardEnable           vk.Bool32
+	PolygonMode             vk.PolygonMode
+	CullMode                vk.CullModeFlags
+	FrontFace               vk.FrontFace
+	DepthBiasEnable         vk.Bool32
+	DepthBiasConstantFactor float32
+	DepthBiasClamp          float32
+	DepthBiasSlopeFactor    float32
+	LineWidth               float32
+}
+
+type ShaderPipelineTessellation struct {
+	PatchControlPoints string `options:"StringVkPatchControlPoints"`
+}
+
+func (s *ShaderPipelineTessellation) PatchControlPointsToVK() uint32
+
+type ShaderPipelineTessellationCompiled struct {
+	PatchControlPoints uint32
+}
+
+type SkinnedShaderData struct {
+	// Has unexported fields.
+}
+
+type TextShaderData struct {
+	ShaderDataBase
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+	BgColor matrix.Color
+	Scissor matrix.Vec4
+	PxRange matrix.Vec2
+}
+
+func (s TextShaderData) Size() int
+
+type Texture struct {
+	Key               string
+	TexturePixelCache []byte
+	RenderId          TextureId
+	Channels          int
+	Filter            int
+	MipLevels         int
+	Width             int
+	Height            int
+	CacheInvalid      bool
+	// Has unexported fields.
+}
+
+func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter TextureFilter) (*Texture, error)
+
+func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error)
+
+func (t *Texture) DelayedCreate(renderer Renderer)
+
+func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color
+
+func (t Texture) Size() matrix.Vec2
+
+func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest)
+
+type TextureCache struct {
+	// Has unexported fields.
+}
+
+func NewTextureCache(renderer Renderer, assetDatabase assets.Database) TextureCache
+
+func (t *TextureCache) CreatePending()
+
+func (t *TextureCache) Destroy()
+
+func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter)
+
+func (t *TextureCache) InsertTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error)
+
+func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error)
+
+type TextureCleanup struct {
+	// Has unexported fields.
+}
+
+type TextureColorFormat int
+
+const (
+	TextureColorFormatRgbaUnorm TextureColorFormat = iota
+	TextureColorFormatRgbUnorm
+	TextureColorFormatRgbaSrgb
+	TextureColorFormatRgbSrgb
+	TextureColorFormatLuminance
+)
+type TextureData struct {
+	Mem            []byte
+	InternalFormat TextureInputType
+	Format         TextureColorFormat
+	Type           TextureMemType
+	Width          int
+	Height         int
+	InputType      TextureFileFormat
+}
+
+func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData
+
+func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error)
+
+type TextureFileFormat = int
+
+const (
+	TextureFileFormatAstc TextureFileFormat = iota
+	TextureFileFormatPng
+	TextureFileFormatRaw
+)
+type TextureFilter = int
+
+const (
+	TextureFilterLinear TextureFilter = iota
+	TextureFilterNearest
+	TextureFilterMax
+)
+type TextureId struct {
+	Image      vk.Image
+	Memory     vk.DeviceMemory
+	View       vk.ImageView
+	Sampler    vk.Sampler
+	Format     vk.Format
+	MipLevels  uint32
+	Layout     vk.ImageLayout
+	Access     vk.AccessFlags
+	Samples    vk.SampleCountFlagBits
+	Width      int
+	Height     int
+	LayerCount int
+}
+
+func (t TextureId) IsValid() bool
+
+type TextureInputType int
+
+const (
+	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
+	TextureInputTypeCompressedRgbaAstc5x4
+	TextureInputTypeCompressedRgbaAstc5x5
+	TextureInputTypeCompressedRgbaAstc6x5
+	TextureInputTypeCompressedRgbaAstc6x6
+	TextureInputTypeCompressedRgbaAstc8x5
+	TextureInputTypeCompressedRgbaAstc8x6
+	TextureInputTypeCompressedRgbaAstc8x8
+	TextureInputTypeCompressedRgbaAstc10x5
+	TextureInputTypeCompressedRgbaAstc10x6
+	TextureInputTypeCompressedRgbaAstc10x8
+	TextureInputTypeCompressedRgbaAstc10x10
+	TextureInputTypeCompressedRgbaAstc12x10
+	TextureInputTypeCompressedRgbaAstc12x12
+	TextureInputTypeRgba8
+	TextureInputTypeRgb8
+	TextureInputTypeLuminance
+)
+type TextureMemType = int
+
+const (
+	TextureMemTypeUnsignedByte TextureMemType = iota
+)
+type Vertex struct {
+	Position     matrix.Vec3
+	Normal       matrix.Vec3
+	Tangent      matrix.Vec4
+	UV0          matrix.Vec2
+	Color        matrix.Color
+	JointIds     matrix.Vec4i
+	JointWeights matrix.Vec4
+	MorphTarget  matrix.Vec3
+}
+
+type Vulkan struct {
+	// Has unexported fields.
+}
+
+func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error)
+
+func (vr *Vulkan) AddPreRun(preRun func())
+
+func (vr *Vulkan) BlitTargets(passes []*RenderPass)
+
+func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize)
+
+func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags, buffer *vk.Buffer, bufferMemory *vk.DeviceMemory) bool
+
+func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool)
+
+func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool
+
+func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
+
+func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error
+
+func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData)
+
+func (vr *Vulkan) Destroy()
+
+func (vr *Vulkan) DestroyBuffer(buffer vk.Buffer, bufferMemory vk.DeviceMemory)
+
+func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup)
+
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool
+
+func (vr *Vulkan) FormatIsTileable(format vk.Format, tiling vk.ImageTiling) bool
+
+func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error
+
+func (vr *Vulkan) MeshIsReady(mesh Mesh) bool
+
+func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool
+
+func (vr *Vulkan) Resize(window RenderingContainer, width, height int)
+
+func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
+
+func (vr *Vulkan) TextureFromId(texture *Texture, other TextureId)
+
+func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color
+
+func (vr *Vulkan) TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
+
+func (vr *Vulkan) WaitForRender()
+

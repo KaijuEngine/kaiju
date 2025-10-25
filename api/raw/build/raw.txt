@@ -1,0 +1,25 @@
+package build // import "."
+
+
+CONSTANTS
+
+const (
+	CompanyName    = "Marshmallow Bear"
+	CompanyDirName = "MarshmallowBear"
+)
+const (
+	GameTitleEditor    = GameTitle("Kaiju Engine Editor")
+	GameTitleGenerator = GameTitle("Kaiju Generator")
+)
+const Debug = false
+const Shipping = true
+const Title = GameTitleGenerator
+
+TYPES
+
+type GameTitle string
+
+func (t GameTitle) AsFilePathString() string
+
+func (t GameTitle) String() string
+

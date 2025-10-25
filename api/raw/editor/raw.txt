@@ -1,0 +1,57 @@
+package editor // import "."
+
+
+CONSTANTS
+
+const (
+	WorkspaceStateNone = WorkspaceState(iota)
+	WorkspaceStateStage
+	WorkspaceStateContent
+)
+
+TYPES
+
+type Editor struct {
+	// Has unexported fields.
+}
+    Editor is the entry point structure for the entire editor. It acts as the
+    delegate to the various systems and holds the primary members that make up
+    the bulk of the editor identity.
+
+    The design goal of the editor is different than that of the engine.Host,
+    as it is not intended to be passed around for access to the system. Instead
+    it will supply interface functions that are needed to the systems that it
+    holds internally.
+
+func (ed *Editor) BlurInterface()
+    FocusInterface is responsible for disabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) FocusInterface()
+    FocusInterface is responsible for enabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) OnContentWorkspaceSelected()
+    OnContentWorkspaceSelected will inform the editor that the developer has
+    changed to the content workspace. This is an exposed function to meet the
+    interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) OnStageWorkspaceSelected()
+    OnStageWorkspaceSelected will inform the editor that the developer has
+    changed to the stage workspace. This is an exposed function to meet the
+    interface needs of menu_bar.MenuBarHandler.
+
+type EditorGame struct{}
+    EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
+    bootstrap the editor (as it would a game).
+
+func (EditorGame) ContentDatabase() (assets.Database, error)
+
+func (EditorGame) Launch(host *engine.Host)
+
+func (EditorGame) PluginRegistry() []reflect.Type
+
+type WorkspaceState = uint8
+

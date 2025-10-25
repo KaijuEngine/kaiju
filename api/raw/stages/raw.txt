@@ -1,0 +1,39 @@
+package stages // import "."
+
+
+TYPES
+
+type MainStage struct {
+	// Has unexported fields.
+}
+
+func NewMainStage(host *engine.Host) MainStage
+
+func (s *MainStage) AddStage(stage Stage) StageId
+
+func (s *MainStage) InitPhysics()
+
+func (s *MainStage) Physics() *stage_physics.StagePhysics
+
+func (s *MainStage) RemoveStage(stageId StageId)
+
+func (s *MainStage) Stage(stageId StageId) (*Stage, bool)
+
+func (s *MainStage) Teardown()
+
+func (s *MainStage) TeardownStages()
+
+type Stage struct {
+	// Has unexported fields.
+}
+
+func NewStage() Stage
+
+func (s *Stage) AddEntity(entity *engine.Entity)
+
+func (s *Stage) AddEntityWithRigidBody(entity *engine.Entity, body *physics.RigidBody)
+
+func (s *Stage) Clear()
+
+type StageId = int
+

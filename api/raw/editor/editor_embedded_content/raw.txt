@@ -1,0 +1,21 @@
+package editor_embedded_content // import "."
+
+
+TYPES
+
+type EditorContent struct{}
+
+func (EditorContent) Cache(key string, data []byte)
+
+func (EditorContent) CacheClear()
+
+func (EditorContent) CacheRemove(key string)
+
+func (EditorContent) Close()
+
+func (EditorContent) Exists(key string) bool
+
+func (EditorContent) Read(key string) ([]byte, error)
+
+func (EditorContent) ReadText(key string) (string, error)
+

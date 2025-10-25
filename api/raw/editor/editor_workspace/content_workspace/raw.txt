@@ -1,0 +1,28 @@
+package content_workspace // import "."
+
+
+FUNCTIONS
+
+func ShouldShowContent(query, id string, typeFilters, tagFilters []string, cdb *content_database.Cache) bool
+
+TYPES
+
+type Workspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *Workspace) Close()
+
+func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache)
+
+func (w *Workspace) Open()
+
+type WorkspaceUIData struct {
+	Filters []string
+	Tags    []string
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string
+

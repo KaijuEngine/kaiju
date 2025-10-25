@@ -1,0 +1,18 @@
+
+
+TYPES
+
+type DummyGame struct{}
+
+func (DummyGame) ContentDatabase() (assets.Database, error)
+
+func (DummyGame) Launch(*engine.Host)
+
+func (DummyGame) PluginRegistry() []reflect.Type
+
+type LaunchParams struct {
+	Generate  string
+	Trace     bool
+	RecordPGO bool
+}
+

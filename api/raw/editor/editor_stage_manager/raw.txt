@@ -1,0 +1,64 @@
+package editor_stage_manager // import "."
+
+
+TYPES
+
+type StageEntity struct {
+	engine.Entity
+	StageData StageEntityData
+}
+
+type StageEntityData struct {
+	Bvh       *collision.BVH
+	Rendering struct {
+		MeshId     string
+		TextureIds []string
+		ShaderData rendering.DrawInstance
+	}
+}
+    StageEntityData is the structure holding all the uniquely identifiable and
+    linking data about the entity on this stage. That will include things like
+    content linkage, data bindings, etc.
+
+type StageManager struct {
+	// Has unexported fields.
+}
+    StageManager represents the current stage in the editor. It contains all of
+    the entities on the stage.
+
+func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity
+    AddEntity will create a new entity for the stage. This entity will have a
+    #StageEntityData automatically added to it as named data named "stage".
+
+func (m *StageManager) Clear()
+    Clear will destroy all entities that are managed by this stage manager.
+
+func (m *StageManager) ClearSelection()
+
+func (m *StageManager) DeselectEntity(e *StageEntity)
+
+func (m *StageManager) HasSelection() bool
+
+func (m *StageManager) Initialize(host *engine.Host)
+
+func (m *StageManager) IsSelected(e *StageEntity) bool
+
+func (m *StageManager) List() []*StageEntity
+    List will return all of the internally held entities for the stage
+
+func (m *StageManager) SelectEntity(e *StageEntity)
+
+func (m *StageManager) Selection() []*StageEntity
+
+func (m *StageManager) SelectionBounds() collision.AABB
+
+func (m *StageManager) SelectionCenter() matrix.Vec3
+
+func (m *StageManager) SelectionPivotCenter() matrix.Vec3
+
+func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool)
+
+func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool)
+
+func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool)
+

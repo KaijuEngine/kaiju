@@ -1,0 +1,27 @@
+package stage_workspace // import "."
+
+
+TYPES
+
+type Workspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *Workspace) Camera() *editor_controls.EditorCamera
+
+func (w *Workspace) Close()
+
+func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache)
+
+func (w *Workspace) Manager() *editor_stage_manager.StageManager
+
+func (w *Workspace) Open()
+
+func (w *Workspace) WorkspaceHost() *engine.Host
+
+type WorkspaceContentUI struct {
+	// Has unexported fields.
+}
+
