@@ -4,7 +4,6 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
-	"kaiju/platform/concurrent"
 	"kaiju/platform/hid"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
@@ -101,10 +100,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	e, esd := w.manager.AddEntity(point)
 	esd.Rendering.MeshId = mesh.Key()
 	esd.Rendering.TextureIds = []string{cc.Id()}
-	t := concurrent.NewThreads()
-	t.Start()
-	esd.Bvh = km.GenerateBVH(&t)
-	t.Stop()
+	esd.Bvh = km.GenerateBVH(w.Host.Threads())
 	sd := &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
