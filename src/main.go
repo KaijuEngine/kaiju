@@ -40,7 +40,6 @@ package main
 import (
 	"flag"
 	"kaiju/bootstrap"
-	"kaiju/engine"
 	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
 	"kaiju/platform/profiler"
 	"kaiju/plugins"
@@ -84,43 +83,4 @@ func main() {
 		profiler.StopPGOProfiler()
 	}
 	profiler.CleanupProfiler()
-}
-
-func init() {
-	engine.RegisterEntityData("Something", SomeThing{})
-	engine.RegisterEntityData("Nothing", Nothing{})
-}
-
-type Nothing struct {
-	Age   int
-	Name  string
-	Kids  map[string]int
-	nums  [3]int
-	other []int
-	anon  struct {
-		X int
-		Y int
-	}
-}
-
-func (n Nothing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of nothing")
-}
-
-type SkipMe struct {
-	Age  int
-	Name string
-}
-
-type SomeThing struct {
-	Age   int
-	Name  string
-	Map   map[string]int
-	Kids  Nothing
-	nums  [3]int
-	other []int
-}
-
-func (n SomeThing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of something")
 }
