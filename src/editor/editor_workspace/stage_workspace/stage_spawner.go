@@ -85,12 +85,12 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	path := content_database.ToContentPath(cc.Path)
 	data, err := w.pfs.ReadFile(path)
 	if err != nil {
-		slog.Error("error reading the image file", "path", path)
+		slog.Error("error reading the mesh file", "path", path)
 		return
 	}
 	km, err := kaiju_mesh.Deserialize(data)
 	if err != nil {
-		slog.Error("failed to create the texture resource", "id", cc.Id(), "error", err)
+		slog.Error("failed to deserialize the mesh", "id", cc.Id(), "error", err)
 		return
 	}
 	mesh := w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)

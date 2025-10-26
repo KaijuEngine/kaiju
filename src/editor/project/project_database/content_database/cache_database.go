@@ -68,6 +68,9 @@ type Cache struct {
 // CachedContent is the content entry in the cache that is returned from lookups
 // and searches.
 type CachedContent struct {
+	// Path is the location in the file system for this cached configuration.
+	// You will typically want to use [content_database.ToContentPath] with this
+	// path to get the content's location in the content folder.
 	Path   string
 	Config ContentConfig
 }

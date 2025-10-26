@@ -317,6 +317,9 @@ func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter T
 
 func (t *Texture) DelayedCreate(renderer Renderer) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
+	if t.RenderId.IsValid() {
+		return
+	}
 	renderer.CreateTexture(t, t.pendingData)
 	t.pendingData = nil
 }

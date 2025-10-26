@@ -79,6 +79,7 @@ func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs 
 	w.pfs = pfs
 	w.cdb = cdb
 	w.manager.Initialize(host)
+	w.manager.NewStage()
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){

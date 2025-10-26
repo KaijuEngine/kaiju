@@ -63,6 +63,7 @@ const (
 	ContentRenderFolder   = "render"
 	ContentMaterialFolder = "render/material"
 	ContentSpvFolder      = "render/spv"
+	ContentStageFolder    = "stage"
 	ContentTextureFolder  = "texture"
 	ContentUiFolder       = "ui"
 	ContentHtmlFolder     = "ui/html"

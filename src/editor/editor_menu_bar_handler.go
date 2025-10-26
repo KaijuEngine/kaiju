@@ -37,7 +37,10 @@
 
 package editor
 
-import "os/exec"
+import (
+	"log/slog"
+	"os/exec"
+)
 
 // StageWorkspaceSelected will inform the editor that the developer has
 // changed to the stage workspace. This is an exposed function to meet the
@@ -63,5 +66,8 @@ func (ed *Editor) OpenVSCodeProject() {
 // SaveCurrentStage will save the currently open stage file. This is an exposed
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
-	ed.workspaces.stage.Manager().SaveStage()
+	err := ed.workspaces.stage.Manager().SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem())
+	if err != nil {
+		slog.Error("failed to save the current stage", "error", err)
+	}
 }
