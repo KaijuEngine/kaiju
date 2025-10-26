@@ -37,6 +37,8 @@
 
 package editor
 
+import "os/exec"
+
 // OnStageWorkspaceSelected will inform the editor that the developer has
 // changed to the stage workspace. This is an exposed function to meet the
 // interface needs of [menu_bar.MenuBarHandler].
@@ -49,4 +51,11 @@ func (ed *Editor) OnStageWorkspaceSelected() {
 // interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) OnContentWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateContent)
+}
+
+// OnOpenVSCodeProject will open Visual Studio Code directly to the project top-
+// level folder. This is an exposed function to meet the interface needs of
+// [menu_bar.MenuBarHandler].
+func (ed *Editor) OnOpenVSCodeProject() {
+	exec.Command("code", ed.project.FileSystem().FullPath("")).Run()
 }

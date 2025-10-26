@@ -72,6 +72,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickNewStage":        b.clickNewStage,
 			"clickOpenStage":       b.clickOpenStage,
 			"clickSaveStage":       b.clickSaveStage,
+			"clickOpenVSCode":      b.clickOpenVSCode,
 			"clickProjectSettings": b.clickProjectSettings,
 			"clickEditorSettings":  b.clickEditorSettings,
 			"clickAbout":           b.clickAbout,
@@ -144,6 +145,11 @@ func (b *MenuBar) clickOpenStage(e *document.Element) {
 
 func (b *MenuBar) clickSaveStage(e *document.Element) {
 	b.hidePopups()
+}
+
+func (b *MenuBar) clickOpenVSCode(e *document.Element) {
+	b.hidePopups()
+	b.handler.OnOpenVSCodeProject()
 }
 
 func (b *MenuBar) clickProjectSettings(e *document.Element) {
