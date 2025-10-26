@@ -125,9 +125,7 @@ func (p *Project) Open(path string) error {
 		return err
 	}
 	if err = p.fileSystem.EnsureDatabaseExists(); err != nil {
-		if err = p.fileSystem.SetupStructure(); err != nil {
-			return err
-		}
+		return ProjectOpenError{path}
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
 		slog.Error("failed to read the cache database", "error", err)

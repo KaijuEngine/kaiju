@@ -46,3 +46,11 @@ type ConfigLoadError struct {
 func (e ConfigLoadError) Error() string {
 	return fmt.Sprintf("failed to load the project configuration file: %v", e.Err)
 }
+
+type ProjectOpenError struct {
+	Path string
+}
+
+func (e ProjectOpenError) Error() string {
+	return fmt.Sprintf("the path specified is not a Kaiju project: %s", e.Path)
+}

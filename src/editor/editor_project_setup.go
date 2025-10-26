@@ -59,16 +59,20 @@ func (ed *Editor) newProjectOverlay() {
 	})
 }
 
+func (ed *Editor) retryNewProjectOverlay(err error) {
+	new_project.Show(ed.host, new_project.Config{
+		OnCreate: ed.createProject,
+		OnOpen:   ed.openProject,
+		Error:    err.Error(),
+	})
+}
+
 func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
 	err := ed.project.Initialize(path)
 	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
-		new_project.Show(ed.host, new_project.Config{
-			OnCreate: ed.createProject,
-			OnOpen:   ed.openProject,
-			Error:    err.Error(),
-		})
+		ed.retryNewProjectOverlay(err)
 		return
 	}
 	ed.setProjectName(name)
@@ -79,7 +83,8 @@ func (ed *Editor) createProject(name, path string) {
 func (ed *Editor) openProject(path string) {
 	defer tracing.NewRegion("Editor.openProject").End()
 	if err := ed.project.Open(path); err != nil {
-		slog.Error("failed to create the project", "error", err)
+		slog.Error("failed to open the project", "error", err)
+		ed.retryNewProjectOverlay(err)
 		return
 	}
 	ed.setProjectName(ed.project.Name())
