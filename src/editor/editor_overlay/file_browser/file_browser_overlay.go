@@ -158,7 +158,7 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 }
 
 func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
-	if keyState != hid.KeyStateDown {
+	if keyState != hid.KeyStateDown || fb.uiMan.Group.HasRequests() {
 		return
 	}
 	r := fb.uiMan.Host.Window.Keyboard.KeyToRune(keyId)
