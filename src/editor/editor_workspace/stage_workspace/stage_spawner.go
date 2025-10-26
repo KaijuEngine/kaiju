@@ -57,8 +57,8 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	mesh := rendering.NewMeshPlane(w.Host.MeshCache())
 	e := w.manager.AddEntity(point)
-	e.StageData.Description.Rendering.Mesh = mesh.Key()
-	e.StageData.Description.Rendering.Textures = []string{cc.Id()}
+	e.StageData.Description.Mesh = mesh.Key()
+	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
@@ -98,7 +98,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	e := w.manager.AddEntity(point)
-	e.StageData.Description.Rendering.Mesh = mesh.Key()
+	e.StageData.Description.Mesh = mesh.Key()
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
 	e.StageData.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),

@@ -104,9 +104,9 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 	var readEntity func(parent *StageEntity)
 	readEntity = func(parent *StageEntity) {
 		desc := &parent.StageData.Description
-		desc.Transform.Position = parent.Transform.Position()
-		desc.Transform.Rotation = parent.Transform.Rotation()
-		desc.Transform.Scale = parent.Transform.Scale()
+		desc.Position = parent.Transform.Position()
+		desc.Rotation = parent.Transform.Rotation()
+		desc.Scale = parent.Transform.Scale()
 		for i := range m.entities {
 			if m.entities[i].Parent == &parent.Entity {
 				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
@@ -127,7 +127,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		return err
 	}
 	defer f.Close()
-	if err := json.NewEncoder(f).Encode(s); err != nil {
+	if err := json.NewEncoder(f).Encode(s.ToMinimized()); err != nil {
 		return err
 	}
 	// TODO:  Run through the stage importer?
@@ -164,21 +164,22 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 		return err
 	}
 	defer f.Close()
-	var s stages.Stage
-	if err := json.NewDecoder(f).Decode(&s); err != nil {
+	var ss stages.StageJson
+	if err := json.NewDecoder(f).Decode(&ss); err != nil {
 		return err
 	}
-	m.stageId = s.Id
+	s := stages.Stage{}
+	s.FromMinimized(ss)
 	var importTarget func(parent *StageEntity, desc *stages.EntityDescription) error
 	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
 		e := m.AddEntity(matrix.Vec3Zero())
 		e.StageData.Description = *desc
 		e.SetParent(&parent.Entity)
-		e.Transform.SetPosition(desc.Transform.Position)
-		e.Transform.SetRotation(desc.Transform.Rotation)
-		e.Transform.SetScale(desc.Transform.Scale)
+		e.Transform.SetPosition(desc.Position)
+		e.Transform.SetRotation(desc.Rotation)
+		e.Transform.SetScale(desc.Scale)
 		// TODO:  Setup all the other data for the entity
-		if desc.Rendering.Mesh != "" {
+		if desc.Mesh != "" {
 			m.spawnLoadedEntity(e, host, fs)
 		}
 		// TODO:  Setup any of the data bindings
@@ -204,9 +205,9 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	const matFolder = project_file_system.ContentMaterialFolder
 	const texFolder = project_file_system.ContentTextureFolder
 	desc := &e.StageData.Description
-	meshId := desc.Rendering.Mesh
-	materialId := desc.Rendering.Material
-	textureIds := desc.Rendering.Textures
+	meshId := desc.Mesh
+	materialId := desc.Material
+	textureIds := desc.Textures
 	kmData, err := fs.ReadFile(filepath.Join(rootFolder, meshFolder, meshId))
 	if err != nil {
 		slog.Error("failed to load the mesh data", "id", meshId, "error", err)

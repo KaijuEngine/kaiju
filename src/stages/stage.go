@@ -1,29 +1,154 @@
 package stages
 
-import "kaiju/matrix"
+import (
+	"kaiju/build"
+	"kaiju/debug"
+	"kaiju/matrix"
+	"reflect"
+)
 
-type EntityDescription struct {
-	Id        string
-	Rendering struct {
-		Mesh     string
-		Material string
-		Textures []string `json:",omitempty"`
-	}
-	Transform struct {
-		Position matrix.Vec3
-		Rotation matrix.Vec3
-		Scale    matrix.Vec3
-	}
-	DataBinding []EntityDataBinding `json:",omitempty"`
-	Children    []EntityDescription `json:",omitempty"`
+// //////////////////////////////////////////////////////////////////////////////
+type Stage struct {
+	Id       string
+	Entities []EntityDescription
 }
 
+type StageJson struct {
+	Id        string
+	Meshes    []string                `json:",omitempty"`
+	Materials []string                `json:",omitempty"`
+	Textures  []string                `json:",omitempty"`
+	Entities  []EntityDescriptionJson `json:",omitempty"`
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// //////////////////////////////////////////////////////////////////////////////
+type EntityDescription struct {
+	Id          string
+	Mesh        string
+	Material    string
+	Textures    []string
+	Position    matrix.Vec3
+	Rotation    matrix.Vec3
+	Scale       matrix.Vec3
+	DataBinding []EntityDataBinding
+	Children    []EntityDescription
+}
+
+type EntityDescriptionJson struct {
+	Id          string
+	Mesh        int
+	Material    int                     `json:"Mat"`
+	Textures    []int                   `json:"Tex,omitempty"`
+	Position    matrix.Vec3             `json:"P"`
+	Rotation    matrix.Vec3             `json:"R"`
+	Scale       matrix.Vec3             `json:"S"`
+	DataBinding []EntityDataBinding     `json:"Data,omitempty"`
+	Children    []EntityDescriptionJson `json:"Kids,omitempty"`
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// //////////////////////////////////////////////////////////////////////////////
 type EntityDataBinding struct {
 	Name   string
 	Fields map[string]any `json:",omitempty"`
 }
 
-type Stage struct {
-	Id       string
-	Entities []EntityDescription `json:",omitempty"`
+// //////////////////////////////////////////////////////////////////////////////
+func debugEnsureStructsMatch() {
+	if build.Debug {
+		ra := reflect.TypeFor[Stage]()
+		rb := reflect.TypeFor[StageJson]()
+		debug.Assert(ra.NumField() == rb.NumField()-3,
+			"the Stage field has been modified but the matching StageSerialized was not updated")
+		ea := reflect.TypeFor[EntityDescription]()
+		eb := reflect.TypeFor[EntityDescriptionJson]()
+		debug.Assert(ea.NumField() == eb.NumField(),
+			"the EntityDescription field has been modified but the matching EntityDescriptionSerialized was not updated")
+	}
+}
+
+func (s *Stage) ToMinimized() StageJson {
+	debugEnsureStructsMatch()
+	ss := StageJson{
+		Id:       s.Id,
+		Entities: make([]EntityDescriptionJson, len(s.Entities)),
+	}
+	meshMap := map[string]int{}
+	matMap := map[string]int{}
+	texMap := map[string]int{}
+	// Add a blank string into each for the case that they are not assigned
+	meshMap[""] = 0
+	matMap[""] = 0
+	texMap[""] = 0
+	for i := range s.Entities {
+		meshMap[s.Entities[i].Mesh] = 0
+		matMap[s.Entities[i].Material] = 0
+		for j := range s.Entities[i].Textures {
+			texMap[s.Entities[i].Textures[j]] = 0
+		}
+	}
+	for k := range meshMap {
+		meshMap[k] = len(ss.Meshes)
+		ss.Meshes = append(ss.Meshes, k)
+	}
+	for k := range matMap {
+		matMap[k] = len(ss.Materials)
+		ss.Materials = append(ss.Materials, k)
+	}
+	for k := range texMap {
+		texMap[k] = len(ss.Textures)
+		ss.Textures = append(ss.Textures, k)
+	}
+	var proc func(from *EntityDescription, to *EntityDescriptionJson)
+	proc = func(from *EntityDescription, to *EntityDescriptionJson) {
+		to.Id = from.Id
+		to.Position = from.Position
+		to.Rotation = from.Rotation
+		to.Scale = from.Scale
+		to.DataBinding = from.DataBinding
+		to.Mesh = meshMap[from.Mesh]
+		to.Material = matMap[from.Material]
+		to.Textures = make([]int, len(from.Textures))
+		for i := range from.Textures {
+			to.Textures[i] = texMap[from.Textures[i]]
+		}
+		to.Children = make([]EntityDescriptionJson, len(to.Children))
+		for i := range from.Children {
+			proc(&from.Children[i], &to.Children[i])
+		}
+	}
+	for i := range s.Entities {
+		proc(&s.Entities[i], &ss.Entities[i])
+	}
+	return ss
+}
+
+func (s *Stage) FromMinimized(ss StageJson) {
+	debugEnsureStructsMatch()
+	s.Id = ss.Id
+	s.Entities = make([]EntityDescription, len(ss.Entities))
+	var proc func(from *EntityDescriptionJson, to *EntityDescription)
+	proc = func(from *EntityDescriptionJson, to *EntityDescription) {
+		to.Id = from.Id
+		to.Position = from.Position
+		to.Rotation = from.Rotation
+		to.Scale = from.Scale
+		to.DataBinding = from.DataBinding
+		to.Mesh = ss.Meshes[from.Mesh]
+		to.Material = ss.Materials[from.Material]
+		to.Textures = make([]string, len(from.Textures))
+		for i := range from.Textures {
+			to.Textures[i] = ss.Textures[from.Textures[i]]
+		}
+		to.Children = make([]EntityDescription, len(from.Children))
+		for i := range from.Children {
+			proc(&from.Children[i], &to.Children[i])
+		}
+	}
+	for i := range ss.Entities {
+		proc(&ss.Entities[i], &s.Entities[i])
+	}
 }
