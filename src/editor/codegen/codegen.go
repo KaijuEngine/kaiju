@@ -43,6 +43,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"kaiju/klib"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -60,9 +61,10 @@ var (
 )
 
 type structure struct {
-	Doc  string
-	Name string
-	Spec *ast.StructType
+	Doc                string
+	Name               string
+	Spec               *ast.StructType
+	satisfiesInterface bool
 }
 
 func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
@@ -100,14 +102,12 @@ func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, err
 	return gens, wErr
 }
 
-func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *map[string]string) ([]GeneratedType, error) {
-	genTypes := []GeneratedType{}
+func readAst(srcRoot *os.Root, file string, registrations *map[string]string, localRegs *map[string]string) (*ast.File, error) {
 	fs := token.NewFileSet()
 	src, err := srcRoot.ReadFile(file)
 	if err != nil {
-		return genTypes, err
+		return nil, err
 	}
-	localRegs := map[string]string{}
 	for _, r := range registerRe.FindAllStringSubmatch(string(src), -1) {
 		if len(r) <= 2 {
 			continue
@@ -115,19 +115,25 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 		key := r[1]
 		typeName := r[2]
 		if _, ok := (*registrations)[key]; ok {
-			return genTypes, fmt.Errorf("the key '%s' has already been registered", key)
+			return nil, fmt.Errorf("the key '%s' has already been registered", key)
 		}
 		(*registrations)[key] = typeName
-		localRegs[typeName] = key
+		(*localRegs)[typeName] = key
+	}
+	return parser.ParseFile(fs, "", src, parser.ParseComments)
+}
+
+func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *map[string]string) ([]GeneratedType, error) {
+	genTypes := []GeneratedType{}
+	localRegs := map[string]string{}
+	a, err := readAst(srcRoot, file, registrations, &localRegs)
+	if err != nil {
+		return genTypes, err
 	}
 	if len(localRegs) == 0 {
 		return genTypes, nil
 	}
 	pkgPath := filepath.Dir(file)
-	a, err := parser.ParseFile(fs, "", src, parser.ParseComments)
-	if err != nil {
-		return genTypes, err
-	}
 	for i := range a.Imports {
 		path := strings.Trim(a.Imports[i].Path.Value, `"`)
 		// TODO:  Only walk things in this path
@@ -152,6 +158,29 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 		}
 	}
 	types := allTypes(a)
+	// Find all sibling files and add them to the list of types
+	dir, err := os.ReadDir(filepath.Dir(filepath.Join(srcRoot.Name(), file)))
+	if err != nil {
+		return genTypes, err
+	}
+	selfName := filepath.Base(file)
+	selfDir := filepath.Dir(file)
+	for i := range dir {
+		if dir[i].IsDir() {
+			continue
+		}
+		if filepath.Ext(dir[i].Name()) != ext {
+			continue
+		}
+		if dir[i].Name() == selfName {
+			continue
+		}
+		da, err := readAst(srcRoot, filepath.Join(selfDir, dir[i].Name()), registrations, &localRegs)
+		if err != nil {
+			continue
+		}
+		types = append(types, allTypes(da)...)
+	}
 	typesCount := 0
 	var lastErr error
 	for typesCount != len(types) && len(types) > 0 {
@@ -166,9 +195,15 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 			if k, ok := localRegs[g.Name]; ok {
 				g.RegisterKey = k
 			}
+			g.satisfiesInterface = types[i].satisfiesInterface
 			genTypes = append(genTypes, g)
 			types = slices.Delete(types, i, i+1)
 			i--
+		}
+	}
+	for i := len(genTypes) - 1; i >= 0; i-- {
+		if !genTypes[i].satisfiesInterface || genTypes[i].RegisterKey == "" {
+			genTypes = klib.RemoveUnordered(genTypes, i)
 		}
 	}
 	return genTypes, lastErr
@@ -346,14 +381,13 @@ func allTypes(a *ast.File) []structure {
 	for _, d := range a.Decls {
 		if g, ok := d.(*ast.GenDecl); ok {
 			if s, ok := g.Specs[0].(*ast.TypeSpec); ok {
-				if satisfiesInterface(s, a.Decls) {
-					doc := ""
-					if g.Doc != nil {
-						doc = strings.TrimSpace(g.Doc.Text())
-					}
-					types = append(types, structure{
-						doc, s.Name.Name, s.Type.(*ast.StructType)})
+				doc := ""
+				if g.Doc != nil {
+					doc = strings.TrimSpace(g.Doc.Text())
 				}
+				types = append(types, structure{
+					doc, s.Name.Name, s.Type.(*ast.StructType),
+					satisfiesInterface(s, a.Decls)})
 			}
 		}
 	}
