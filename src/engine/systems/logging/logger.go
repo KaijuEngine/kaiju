@@ -66,12 +66,16 @@ func (l *LogStream) writeLine(line string) {
 		levelOffset = 41
 	}
 	level := line[levelOffset:]
-	if strings.HasPrefix(level, "INFO") {
-		l.OnInfo.Execute(line)
-	} else if strings.HasPrefix(level, "WARN") {
-		l.OnWarn.Execute(line, klib.TraceStrings(line, 7))
+	if strings.HasPrefix(level, "WARN") {
+		if !l.OnWarn.IsEmpty() {
+			l.OnWarn.Execute(line, klib.TraceStrings(line, 7))
+		}
 	} else if strings.HasPrefix(level, "ERROR") {
-		l.OnError.Execute(line, klib.TraceStrings(line, 7))
+		if !l.OnError.IsEmpty() {
+			l.OnError.Execute(line, klib.TraceStrings(line, 7))
+		}
+	} else {
+		l.OnInfo.Execute(line)
 	}
 	if build.Debug {
 		os.Stdout.WriteString(line + "\n")

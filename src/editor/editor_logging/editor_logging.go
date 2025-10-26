@@ -63,24 +63,43 @@ type Message struct {
 	Category string
 }
 
+func (m *Message) ToString() string {
+	endLen := len(m.Time) + 1 + len(m.Message)
+	for k, v := range m.Data {
+		endLen += 1 + len(k) + 1 + len(v)
+	}
+	sb := strings.Builder{}
+	sb.Grow(endLen)
+	sb.WriteString(m.Time)
+	sb.WriteRune(' ')
+	sb.WriteString(m.Message)
+	for k, v := range m.Data {
+		sb.WriteRune(' ')
+		sb.WriteString(k)
+		sb.WriteRune('=')
+		sb.WriteString(v)
+	}
+	return sb.String()
+}
+
 func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream) {
 	wl := weak.Make(l)
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		ll := wl.Value()
 		if ll != nil {
-			ll.add(msg, nil, "info")
+			ll.add(msg, nil)
 		}
 	})
 	l.warnEvtId = logStream.OnWarn.Add(func(msg string, trace []string) {
 		ll := wl.Value()
 		if ll != nil {
-			ll.add(msg, trace, "warn")
+			ll.add(msg, trace)
 		}
 	})
 	l.errEvtId = logStream.OnError.Add(func(msg string, trace []string) {
 		ll := wl.Value()
 		if ll != nil {
-			ll.add(msg, trace, "error")
+			ll.add(msg, trace)
 		}
 	})
 	host.OnClose.Add(func() {
@@ -96,10 +115,10 @@ func (l *Logging) Infos() []Message    { return l.filter("info") }
 func (l *Logging) Warnings() []Message { return l.filter("warn") }
 func (l *Logging) Errors() []Message   { return l.filter("error") }
 
-func (l *Logging) add(msg string, trace []string, cat string) {
+func (l *Logging) add(msg string, trace []string) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	m := newVisibleMessage(msg, trace, cat)
+	m := newVisibleMessage(msg, trace)
 	l.all = append(l.all, m)
 	if l.OnNewLog != nil {
 		l.OnNewLog(m)
@@ -116,12 +135,14 @@ func (l *Logging) filter(typeName string) []Message {
 	return res
 }
 
-func newVisibleMessage(msg string, trace []string, cat string) Message {
+func newVisibleMessage(msg string, trace []string) Message {
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
 	message := mapping["msg"]
+	cat := strings.ToLower(mapping["level"])
 	delete(mapping, "time")
 	delete(mapping, "msg")
+	delete(mapping, "level")
 	return Message{
 		Time:     t.Format(time.StampMilli),
 		Message:  message,

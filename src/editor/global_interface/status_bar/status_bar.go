@@ -76,7 +76,7 @@ func (b *StatusBar) Initialize(host *engine.Host, logging *editor_logging.Loggin
 			"closePopup":    b.closePopup,
 		})
 	b.setupUIReferences()
-	b.bindToSlog(host)
+	b.bindToSlog()
 	return err
 }
 
@@ -97,7 +97,7 @@ func (b *StatusBar) setupUIReferences() {
 	b.logPopup.UI.Hide()
 }
 
-func (b *StatusBar) bindToSlog(host *engine.Host) {
+func (b *StatusBar) bindToSlog() {
 	defer tracing.NewRegion("StatusBar.bindToSlog").End()
 	wb := weak.Make(b)
 	b.logging.OnNewLog = func(msg editor_logging.Message) {
@@ -108,7 +108,7 @@ func (b *StatusBar) bindToSlog(host *engine.Host) {
 		bar.doc.SetElementClasses(bar.log, msg.Category+"Status")
 		bar.setLog(msg.Message)
 		elm := b.doc.DuplicateElement(b.logEntryTemplate)
-		elm.Children[0].UI.ToLabel().SetText(msg.Time + ": " + msg.Message)
+		elm.Children[0].UI.ToLabel().SetText(msg.ToString())
 		b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
 	}
 }
