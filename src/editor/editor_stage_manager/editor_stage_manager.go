@@ -1,17 +1,22 @@
 package editor_stage_manager
 
 import (
+	"encoding/json"
 	"kaiju/engine"
 	"kaiju/engine/collision"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"kaiju/stages"
+	"os"
 	"weak"
+
+	"github.com/KaijuEngine/uuid"
 )
 
 type StageEntity struct {
 	engine.Entity
-	StageData StageEntityData
+	StageData StageEntityEditorData
 }
 
 // StageManager represents the current stage in the editor. It contains all of
@@ -22,16 +27,13 @@ type StageManager struct {
 	selected []*StageEntity
 }
 
-// StageEntityData is the structure holding all the uniquely identifiable and
-// linking data about the entity on this stage. That will include things like
-// content linkage, data bindings, etc.
-type StageEntityData struct {
-	Bvh       *collision.BVH
-	Rendering struct {
-		MeshId     string
-		TextureIds []string
-		ShaderData rendering.DrawInstance
-	}
+// StageEntityEditorData is the structure holding all the uniquely identifiable
+// and linking data about the entity on this stage. That will include things
+// like content linkage, data bindings, etc.
+type StageEntityEditorData struct {
+	Bvh         *collision.BVH
+	ShaderData  rendering.DrawInstance
+	Description stages.EntityDescription
 }
 
 func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
@@ -57,8 +59,8 @@ func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
 		if sm == nil {
 			return
 		}
-		if e.StageData.Rendering.ShaderData != nil {
-			e.StageData.Rendering.ShaderData.Destroy()
+		if e.StageData.ShaderData != nil {
+			e.StageData.ShaderData.Destroy()
 		}
 		se := we.Value()
 		for i := range sm.entities {
@@ -76,4 +78,43 @@ func (m *StageManager) Clear() {
 	for i := range m.entities {
 		m.entities[i].Destroy()
 	}
+}
+
+func (m *StageManager) SaveStage() {
+	s := stages.Stage{
+		Id: uuid.NewString(),
+	}
+	rootCount := 0
+	for i := range m.entities {
+		if m.entities[i].IsRoot() {
+			rootCount++
+		}
+	}
+	s.Entities = make([]stages.EntityDescription, 0, rootCount)
+	var readEntity func(parent *StageEntity)
+	readEntity = func(parent *StageEntity) {
+		desc := &parent.StageData.Description
+		desc.Transform.Position = parent.Transform.Position()
+		desc.Transform.Rotation = parent.Transform.Rotation()
+		desc.Transform.Scale = parent.Transform.Scale()
+		for i := range m.entities {
+			if m.entities[i].Parent == &parent.Entity {
+				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
+				readEntity(m.entities[i])
+			}
+		}
+	}
+	for i := range m.entities {
+		if m.entities[i].IsRoot() {
+			readEntity(m.entities[i])
+			s.Entities = append(s.Entities, m.entities[i].StageData.Description)
+		}
+	}
+	// TODO:  The code below is test code
+	f, err := os.Create("tmp_stage.json")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	json.NewEncoder(f).Encode(s)
 }

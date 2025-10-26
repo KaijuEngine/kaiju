@@ -21,7 +21,7 @@ func (m *StageManager) IsSelected(e *StageEntity) bool {
 
 func (m *StageManager) ClearSelection() {
 	for i := range m.selected {
-		if sd, ok := m.selected[i].StageData.Rendering.ShaderData.(*rendering.ShaderDataStandard); ok {
+		if sd, ok := m.selected[i].StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
 			sd.ClearFlag(rendering.ShaderDataStandardFlagOutline)
 		}
 	}
@@ -34,7 +34,7 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 			return
 		}
 	}
-	if sd, ok := e.StageData.Rendering.ShaderData.(*rendering.ShaderDataStandard); ok {
+	if sd, ok := e.StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
 		sd.SetFlag(rendering.ShaderDataStandardFlagOutline)
 	}
 	m.selected = append(m.selected, e)
@@ -44,7 +44,7 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	for i := range m.selected {
 		if m.selected[i] == e {
 			m.selected = slices.Delete(m.selected, i, i+1)
-			if sd, ok := e.StageData.Rendering.ShaderData.(*rendering.ShaderDataStandard); ok {
+			if sd, ok := e.StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
 				sd.ClearFlag(rendering.ShaderDataStandardFlagOutline)
 			}
 			return
