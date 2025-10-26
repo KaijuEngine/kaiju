@@ -48,6 +48,7 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
+	e.StageData.Description.Id = uuid.NewString()
 	m.host.AddEntity(&e.Entity)
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
