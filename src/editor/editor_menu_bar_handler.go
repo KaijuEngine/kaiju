@@ -39,23 +39,29 @@ package editor
 
 import "os/exec"
 
-// OnStageWorkspaceSelected will inform the editor that the developer has
+// StageWorkspaceSelected will inform the editor that the developer has
 // changed to the stage workspace. This is an exposed function to meet the
 // interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) OnStageWorkspaceSelected() {
+func (ed *Editor) StageWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateStage)
 }
 
-// OnContentWorkspaceSelected will inform the editor that the developer has
+// ContentWorkspaceSelected will inform the editor that the developer has
 // changed to the content workspace. This is an exposed function to meet the
 // interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) OnContentWorkspaceSelected() {
+func (ed *Editor) ContentWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateContent)
 }
 
-// OnOpenVSCodeProject will open Visual Studio Code directly to the project top-
+// OpenVSCodeProject will open Visual Studio Code directly to the project top-
 // level folder. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].
-func (ed *Editor) OnOpenVSCodeProject() {
+func (ed *Editor) OpenVSCodeProject() {
 	exec.Command("code", ed.project.FileSystem().FullPath("")).Run()
+}
+
+// SaveCurrentStage will save the currently open stage file. This is an exposed
+// function to meet the interface needs of [menu_bar.MenuBarHandler].
+func (ed *Editor) SaveCurrentStage() {
+	ed.workspaces.stage.Manager().SaveStage()
 }

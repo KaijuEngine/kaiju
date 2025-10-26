@@ -111,12 +111,12 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 
 func (b *MenuBar) clickStage(e *document.Element) {
 	b.selectTab(e)
-	b.handler.OnStageWorkspaceSelected()
+	b.handler.StageWorkspaceSelected()
 }
 
 func (b *MenuBar) clickContent(e *document.Element) {
 	b.selectTab(e)
-	b.handler.OnContentWorkspaceSelected()
+	b.handler.ContentWorkspaceSelected()
 }
 
 func (b *MenuBar) clickShading(e *document.Element) {
@@ -145,11 +145,12 @@ func (b *MenuBar) clickOpenStage(e *document.Element) {
 
 func (b *MenuBar) clickSaveStage(e *document.Element) {
 	b.hidePopups()
+	b.handler.SaveCurrentStage()
 }
 
 func (b *MenuBar) clickOpenVSCode(e *document.Element) {
 	b.hidePopups()
-	b.handler.OnOpenVSCodeProject()
+	b.handler.OpenVSCodeProject()
 }
 
 func (b *MenuBar) clickProjectSettings(e *document.Element) {
