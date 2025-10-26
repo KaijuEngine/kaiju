@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* codgen_registry.go                                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.org                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,92 +35,50 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package codegen
 
 import (
-	"flag"
-	"kaiju/bootstrap"
 	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
+	"kaiju/matrix"
+	"reflect"
 )
 
-type LaunchParams struct {
-	Generate  string
-	Trace     bool
-	RecordPGO bool
-}
-
-func parseFlags() LaunchParams {
-	var flags LaunchParams
-	flag.StringVar(&flags.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	flag.BoolVar(&flags.Trace, "trace", false, "If supplied, the entire run will be traced")
-	flag.BoolVar(&flags.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
-	return flags
-}
-
-func main() {
-	params := parseFlags()
-	game := getGame()
-	if params.Generate != "" {
-		switch params.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
-		return
-	}
-	if params.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
-	}
-	if params.RecordPGO {
-		profiler.StartPGOProfiler()
-	}
-	bootstrap.Main(game)
-	if params.RecordPGO {
-		profiler.StopPGOProfiler()
-	}
-	profiler.CleanupProfiler()
-}
+var (
+	registry = make(map[string]reflect.Type)
+)
 
 func init() {
-	engine.RegisterEntityData("Something", SomeThing{})
-	engine.RegisterEntityData("Nothing", Nothing{})
+	RegisterTypeName("matrix.Float", matrix.Float(0))
+	RegisterType(matrix.Color{})
+	RegisterType(matrix.Color{})
+	RegisterType(matrix.Mat3{})
+	RegisterType(matrix.Mat3{})
+	RegisterType(matrix.Mat4{})
+	RegisterType(matrix.Mat4{})
+	RegisterType(matrix.Quaternion{})
+	RegisterType(matrix.Quaternion{})
+	RegisterType(matrix.Transform{})
+	RegisterType(matrix.Transform{})
+	RegisterType(matrix.Vec2{})
+	RegisterType(matrix.Vec2{})
+	RegisterType(matrix.Vec2i{})
+	RegisterType(matrix.Vec2i{})
+	RegisterType(matrix.Vec3{})
+	RegisterType(matrix.Vec3{})
+	RegisterType(matrix.Vec3i{})
+	RegisterType(matrix.Vec3i{})
+	RegisterType(matrix.Vec4{})
+	RegisterType(matrix.Vec4{})
+	RegisterType(matrix.Vec4i{})
+	RegisterType(engine.Entity{})
+	RegisterType(engine.EntityId(""))
+	RegisterType(engine.Host{})
 }
 
-type Nothing struct {
-	Age   int
-	Name  string
-	Kids  map[string]int
-	nums  [3]int
-	other []int
-	anon  struct {
-		X int
-		Y int
-	}
+func RegisterType(t any) {
+	registry[reflect.TypeOf(t).String()] = reflect.TypeOf(t)
 }
 
-func (n Nothing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of nothing")
-}
-
-type SkipMe struct {
-	Age  int
-	Name string
-}
-
-type SomeThing struct {
-	Age   int
-	Name  string
-	Map   map[string]int
-	Kids  Nothing
-	nums  [3]int
-	other []int
-}
-
-func (n SomeThing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of something")
+func RegisterTypeName(name string, t any) {
+	registry[name] = reflect.TypeOf(t)
 }

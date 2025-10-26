@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* codegen_test.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.org                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,92 +35,63 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package codegen
 
 import (
-	"flag"
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
+	"bytes"
+	"kaiju/engine/runtime/encoding/gob"
+	"os"
+	"reflect"
+	"testing"
 )
 
-type LaunchParams struct {
-	Generate  string
-	Trace     bool
-	RecordPGO bool
-}
-
-func parseFlags() LaunchParams {
-	var flags LaunchParams
-	flag.StringVar(&flags.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	flag.BoolVar(&flags.Trace, "trace", false, "If supplied, the entire run will be traced")
-	flag.BoolVar(&flags.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
-	return flags
-}
-
-func main() {
-	params := parseFlags()
-	game := getGame()
-	if params.Generate != "" {
-		switch params.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
-		return
+func TestWalk(t *testing.T) {
+	srcRoot, err := os.OpenRoot("test_structure")
+	if err != nil {
+		t.Error(err)
 	}
-	if params.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
+	gens, err := walkInternal(srcRoot, "test_structure", ".txt")
+	if err != nil {
+		t.Error(err)
 	}
-	if params.RecordPGO {
-		profiler.StartPGOProfiler()
+	if len(gens) != 2 {
+		t.Error("Expected 2 generated types, got ", len(gens))
 	}
-	bootstrap.Main(game)
-	if params.RecordPGO {
-		profiler.StopPGOProfiler()
+	if gens[0].Name != "Nothing" {
+		t.Error("Expected first type to be Nothing, got ", gens[0].Name)
 	}
-	profiler.CleanupProfiler()
-}
-
-func init() {
-	engine.RegisterEntityData("Something", SomeThing{})
-	engine.RegisterEntityData("Nothing", Nothing{})
-}
-
-type Nothing struct {
-	Age   int
-	Name  string
-	Kids  map[string]int
-	nums  [3]int
-	other []int
-	anon  struct {
-		X int
-		Y int
+	if gens[1].Name != "SomeThing" {
+		t.Error("Expected second type to be Something, got ", gens[1].Name)
 	}
-}
-
-func (n Nothing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of nothing")
-}
-
-type SkipMe struct {
-	Age  int
-	Name string
-}
-
-type SomeThing struct {
-	Age   int
-	Name  string
-	Map   map[string]int
-	Kids  Nothing
-	nums  [3]int
-	other []int
-}
-
-func (n SomeThing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of something")
+	if gens[0].Pkg != "sub_test_data" {
+		t.Error("Expected first type to be in test_data, got ", gens[0].Pkg)
+	}
+	if gens[1].Pkg != "test_data" {
+		t.Error("Expected second type to be in test_data, got ", gens[1].Pkg)
+	}
+	if gens[0].PkgPath != "test_structure/test_data/sub_test_data" {
+		t.Error("Expected first type to be in test_data, got ", gens[0].Pkg)
+	}
+	if gens[1].PkgPath != "test_structure/test_data" {
+		t.Error("Expected second type to be in test_data, got ", gens[1].Pkg)
+	}
+	rt := gens[0].New()
+	rt.Value.Elem().FieldByName("Age").SetInt(10)
+	thing := []any{rt.Value}
+	s := bytes.NewBuffer([]byte{})
+	enc := gob.NewEncoder(s)
+	if err := enc.Encode(thing); err != nil {
+		t.Error(err)
+	}
+	rt.Value.Elem().FieldByName("Age").SetInt(15)
+	dec := gob.NewDecoder(s)
+	out := []any{}
+	if err := dec.Decode(&out); err != nil {
+		t.Error(err)
+	}
+	v := reflect.ValueOf(out[0])
+	a := v.Elem().FieldByName("Age").Int()
+	if a != 10 {
+		t.Error("Expected 10, got ", a)
+	}
 }

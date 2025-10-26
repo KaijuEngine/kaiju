@@ -109,6 +109,7 @@ func (ed *Editor) earlyLoadUI() {
 func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
+	// go ed.project.ReadSourceCode()
 	ed.workspaces.stage.Initialize(ed.host, &ed.history,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 	ed.workspaces.content.Initialize(ed.host,

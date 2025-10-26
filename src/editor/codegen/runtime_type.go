@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* main.go                                                                    */
+/* runtime_type.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.org                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -35,92 +35,27 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package main
+package codegen
 
 import (
-	"flag"
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
+	"kaiju/engine/runtime/encoding/gob"
+	"reflect"
 )
 
-type LaunchParams struct {
-	Generate  string
-	Trace     bool
-	RecordPGO bool
+type RuntimeType struct {
+	Generator *GeneratedType
+	Value     reflect.Value
 }
 
-func parseFlags() LaunchParams {
-	var flags LaunchParams
-	flag.StringVar(&flags.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	flag.BoolVar(&flags.Trace, "trace", false, "If supplied, the entire run will be traced")
-	flag.BoolVar(&flags.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
-	return flags
-}
-
-func main() {
-	params := parseFlags()
-	game := getGame()
-	if params.Generate != "" {
-		switch params.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
-		return
+func (g *GeneratedType) New() RuntimeType {
+	rt := RuntimeType{
+		Generator: g,
+		Value:     reflect.New(g.Type),
 	}
-	if params.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
+	if !g.registered {
+		gob.UnRegisterName(g.RegisterKey)
+		gob.RegisterNamedType(g.RegisterKey, rt.Value.Type())
+		g.registered = true
 	}
-	if params.RecordPGO {
-		profiler.StartPGOProfiler()
-	}
-	bootstrap.Main(game)
-	if params.RecordPGO {
-		profiler.StopPGOProfiler()
-	}
-	profiler.CleanupProfiler()
-}
-
-func init() {
-	engine.RegisterEntityData("Something", SomeThing{})
-	engine.RegisterEntityData("Nothing", Nothing{})
-}
-
-type Nothing struct {
-	Age   int
-	Name  string
-	Kids  map[string]int
-	nums  [3]int
-	other []int
-	anon  struct {
-		X int
-		Y int
-	}
-}
-
-func (n Nothing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of nothing")
-}
-
-type SkipMe struct {
-	Age  int
-	Name string
-}
-
-type SomeThing struct {
-	Age   int
-	Name  string
-	Map   map[string]int
-	Kids  Nothing
-	nums  [3]int
-	other []int
-}
-
-func (n SomeThing) Init(entity *engine.Entity, host *engine.Host) {
-	println("testing init of something")
+	return rt
 }

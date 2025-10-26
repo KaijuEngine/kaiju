@@ -1,0 +1,23 @@
+package test_data
+
+import (
+	"fake/test_data/sub_test_data"
+	"kaiju/engine"
+)
+
+func init() {
+	engine.RegisterEntityData("Something", SomeThing{})
+}
+
+type SomeThing struct {
+	Age   int
+	Name  string
+	Map   map[string]int
+	Kids  sub_test_data.Nothing
+	nums  [3]int
+	other []int
+}
+
+func (n SomeThing) Init(entity *engine.Entity, host *engine.Host) {
+
+}

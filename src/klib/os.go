@@ -50,10 +50,6 @@ func ExeExtension() string {
 	return ""
 }
 
-func ToUnixPath(path string) string {
-	return ReplaceStringRecursive(path, "\\", "/")
-}
-
 func ReadRootFile(fs *os.Root, filePath string) ([]byte, error) {
 	if f, err := fs.OpenFile(filePath, os.O_RDONLY, os.ModePerm); err != nil {
 		return []byte{}, err

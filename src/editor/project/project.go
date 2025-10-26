@@ -40,12 +40,14 @@ package project
 import (
 	"bytes"
 	"fmt"
+	"kaiju/editor/codegen"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -59,6 +61,7 @@ type Project struct {
 	fileSystem    project_file_system.FileSystem
 	cacheDatabase content_database.Cache
 	config        Config
+	entityData    []codegen.GeneratedType
 }
 
 // IsValid will return if this project has been constructed by simply returning
@@ -169,6 +172,23 @@ func (p *Project) Compile() {
 	} else {
 		slog.Info("project successfully compiled")
 	}
+}
+
+func (p *Project) ReadSourceCode() {
+	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
+	if err != nil {
+		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
+		return
+	}
+	srcRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "src"))
+	if err != nil {
+		slog.Error("failed to read the source code folder for the project", "error", err)
+		return
+	}
+	a, _ := codegen.Walk(kaijuRoot, "kaiju")
+	// TODO:  Need to figure out the package path for the project
+	b, _ := codegen.Walk(srcRoot, "game")
+	p.entityData = append(a, b...)
 }
 
 func (p *Project) reconstruct() {
