@@ -152,17 +152,26 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 		}
 	}
 	types := allTypes(a)
-	for i := range types {
-		g, err := generateStructType(a.Name.Name, pkgPath, types[i], genTypes)
-		if err != nil {
-			return genTypes, err
+	typesCount := 0
+	var lastErr error
+	for typesCount != len(types) && len(types) > 0 {
+		lastErr = nil
+		typesCount = len(types)
+		for i := 0; i < len(types); i++ {
+			g, err := generateStructType(a.Name.Name, pkgPath, types[i], genTypes)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			if k, ok := localRegs[g.Name]; ok {
+				g.RegisterKey = k
+			}
+			genTypes = append(genTypes, g)
+			types = slices.Delete(types, i, i+1)
+			i--
 		}
-		if k, ok := localRegs[g.Name]; ok {
-			g.RegisterKey = k
-		}
-		genTypes = append(genTypes, g)
 	}
-	return genTypes, nil
+	return genTypes, lastErr
 }
 
 func toType(name string) (reflect.Type, error) {
@@ -232,6 +241,12 @@ func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, p
 		*ptrDepth += 1
 		return typeFromType(pkg, pkgPath, t.X, genTypes, ptrDepth)
 	case *ast.Ident:
+		structName := t.Name
+		for i := range genTypes {
+			if genTypes[i].Name == structName {
+				return genTypes[i].Type, nil
+			}
+		}
 		return toType(t.Name)
 	case *ast.SelectorExpr:
 		structPkg := t.X.(*ast.Ident).Name
