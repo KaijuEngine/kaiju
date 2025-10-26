@@ -51,7 +51,7 @@ import (
 func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 	// TODO:  Return the handle to delete this thing
 	grid := rendering.NewMeshGrid(host.MeshCache(),
-		"raycast_"+uuid.New().String(),
+		"raycast_"+uuid.NewString(),
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
 	if err != nil {

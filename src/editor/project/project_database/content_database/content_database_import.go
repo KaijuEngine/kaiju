@@ -101,7 +101,7 @@ func (r *ImportResult) ConfigPath() string {
 func (r *ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) string {
 	defer tracing.NewRegion("ImportResult.generateUniqueFileId").End()
 	for {
-		r.Id = uuid.New().String()
+		r.Id = uuid.NewString()
 		if _, err := fs.Stat(r.ContentPath()); err == nil {
 			continue
 		}

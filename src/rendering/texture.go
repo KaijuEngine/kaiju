@@ -367,7 +367,7 @@ func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, e
 
 func selectKey(req string) string {
 	if req == GenerateUniqueTextureKey {
-		return uuid.New().String()
+		return uuid.NewString()
 	}
 	return req
 }
