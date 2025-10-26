@@ -47,7 +47,9 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/engine"
+	"kaiju/engine/systems/events"
 	"log/slog"
+	"time"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -67,6 +69,11 @@ type Editor struct {
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
 	history          memento.History
+	window           struct {
+		activateId     events.Id
+		deactivateId   events.Id
+		lastActiveTime time.Time
+	}
 }
 
 type workspaces struct {
@@ -109,7 +116,8 @@ func (ed *Editor) earlyLoadUI() {
 func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
-	// go ed.project.ReadSourceCode()
+	go ed.project.ReadSourceCode()
+	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, &ed.history,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 	ed.workspaces.content.Initialize(ed.host,

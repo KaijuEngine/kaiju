@@ -72,6 +72,8 @@ type Window struct {
 	Renderer                 rendering.Renderer
 	OnResize                 events.Event
 	OnMove                   events.Event
+	OnActivate               events.Event
+	OnDeactivate             events.Event
 	title                    string
 	x, y                     int
 	width, height            int
@@ -507,6 +509,7 @@ func (w *Window) becameInactive() {
 	w.Touch.Reset()
 	w.Stylus.Reset()
 	w.Controller.Reset()
+	w.OnDeactivate.Execute()
 }
 
 func (w *Window) becameActive() {
@@ -522,6 +525,7 @@ func (w *Window) becameActive() {
 	if idx >= 0 {
 		klib.SliceMove(activeWindows, idx, 0)
 	}
+	w.OnActivate.Execute()
 }
 
 func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount uint32) {

@@ -62,6 +62,7 @@ type Project struct {
 	cacheDatabase content_database.Cache
 	config        Config
 	entityData    []codegen.GeneratedType
+	readingCode   bool
 }
 
 // IsValid will return if this project has been constructed by simply returning
@@ -175,6 +176,11 @@ func (p *Project) Compile() {
 }
 
 func (p *Project) ReadSourceCode() {
+	if p.readingCode {
+		return
+	}
+	p.readingCode = true
+	slog.Info("reading through project code to find bindable data")
 	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
 	if err != nil {
 		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
@@ -186,9 +192,10 @@ func (p *Project) ReadSourceCode() {
 		return
 	}
 	a, _ := codegen.Walk(kaijuRoot, "kaiju")
-	// TODO:  Need to figure out the package path for the project
-	b, _ := codegen.Walk(srcRoot, "game")
+	b, _ := codegen.Walk(srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
+	slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
+	p.readingCode = false
 }
 
 func (p *Project) reconstruct() {

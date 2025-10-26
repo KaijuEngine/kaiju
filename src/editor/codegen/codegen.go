@@ -65,6 +65,10 @@ type structure struct {
 	Spec *ast.StructType
 }
 
+func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
+	return walkInternal(srcRoot, pkgPrefix, ".go")
+}
+
 func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, error) {
 	gens := []GeneratedType{}
 	skips := []string{}
@@ -94,10 +98,6 @@ func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, err
 		return nil
 	})
 	return gens, wErr
-}
-
-func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
-	return walkInternal(srcRoot, pkgPrefix, ".go")
 }
 
 func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *map[string]string) ([]GeneratedType, error) {

@@ -44,12 +44,16 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
 )
 
-var CodeFS embed.FS
+var (
+	CodeFS    embed.FS
+	modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
+)
 
 var skipFiles = []string{
 	"main.ed.go",
@@ -223,4 +227,17 @@ func (pfs *FileSystem) createCodeProject() error {
 		return nil
 	}
 	return copyFolder(".")
+}
+
+func (pfs *FileSystem) ReadModName() string {
+	name := "game"
+	str, err := pfs.ReadFile("src/go.mod")
+	if err != nil {
+		return name
+	}
+	s := modNameRe.FindStringSubmatch(string(str))
+	if len(s) > 1 && s[1] != "" {
+		name = s[1]
+	}
+	return name
 }
