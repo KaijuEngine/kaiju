@@ -28,3 +28,7 @@ func (c Stage) Reimport(id string, cache *Cache, fs *project_file_system.FileSys
 	defer tracing.NewRegion("Stage.Import").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }
+
+func (Stage) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}

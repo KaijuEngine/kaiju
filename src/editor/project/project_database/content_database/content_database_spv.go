@@ -64,3 +64,7 @@ func (c Spv) Reimport(id string, cache *Cache, fs *project_file_system.FileSyste
 	defer tracing.NewRegion("Spv.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }
+
+func (Spv) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}

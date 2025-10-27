@@ -59,6 +59,8 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	}
 	useLinkedId := linkedId != "" || len(proc.Variants) > 1 ||
 		len(res.Dependencies) > 0
+	// TODO:  Instead of reusing `res`, we need to return a slice of results for
+	// each variant. This will also allow post-processing to add to the list.
 	for i := range proc.Variants {
 		res.generateUniqueFileId(fs)
 		if useLinkedId && linkedId == "" {
@@ -95,6 +97,9 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			}
 		}
 		cache.Index(res.ConfigPath(), fs)
+		if err = cat.PostImportProcessing(proc, res, fs, cache, linkedId); err != nil {
+			return res, err
+		}
 	}
 	return res, err
 }

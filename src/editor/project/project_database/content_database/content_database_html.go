@@ -66,3 +66,7 @@ func (c Html) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 	defer tracing.NewRegion("Html.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }
+
+func (Html) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}

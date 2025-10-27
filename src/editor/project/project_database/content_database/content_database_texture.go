@@ -107,3 +107,7 @@ func (c Texture) Reimport(id string, cache *Cache, fs *project_file_system.FileS
 	defer tracing.NewRegion("Texture.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }
+
+func (Texture) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}

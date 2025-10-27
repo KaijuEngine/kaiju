@@ -91,6 +91,13 @@ type ContentCategory interface {
 	// files, there are multiple pices of content that match up in specific
 	// ways. This function will return an error if the re-import isn't possible.
 	Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// PostImportProcessing allows for any optional post-processing to be done
+	// now that the file and all of the dependencies have been imported into the
+	// project. This is called for each variant that has been imported. This is
+	// useful to do things like creating/importing new materials based on
+	// imported mesh files, for example.
+	PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
 }
 
 // CategoryFromTypeName is an auxiliary function for getting the category that
