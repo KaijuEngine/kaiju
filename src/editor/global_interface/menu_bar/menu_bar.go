@@ -54,7 +54,7 @@ type MenuBar struct {
 }
 
 func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
-	defer tracing.NewRegion("TitleBar.Initialize").End()
+	defer tracing.NewRegion("MenuBar.Initialize").End()
 	b.handler = handler
 	b.uiMan.Init(host)
 	var err error
@@ -89,6 +89,7 @@ func (b *MenuBar) Focus() { b.uiMan.EnableUpdate() }
 func (b *MenuBar) Blur()  { b.uiMan.DisableUpdate() }
 
 func (b *MenuBar) openMenuTarget(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.openMenuTarget").End()
 	target := e.Attribute("data-target")
 	pop, _ := b.doc.GetElementById(target)
 	b.selectedPopup = pop
@@ -110,88 +111,102 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 }
 
 func (b *MenuBar) clickStage(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickStage").End()
 	b.selectTab(e)
 	b.handler.StageWorkspaceSelected()
 }
 
 func (b *MenuBar) clickContent(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickContent").End()
 	b.selectTab(e)
 	b.handler.ContentWorkspaceSelected()
 }
 
 func (b *MenuBar) clickShading(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickShading").End()
 	b.selectTab(e)
 }
 
 func (b *MenuBar) clickAnimation(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickAnimation").End()
 	b.selectTab(e)
 }
 
 func (b *MenuBar) clickUI(e *document.Element) {
-	b.selectTab(e)
-}
-
-func (b *MenuBar) clickLog(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickUI").End()
 	b.selectTab(e)
 }
 
 func (b *MenuBar) clickNewStage(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickNewStage").End()
 	b.hidePopups()
 }
 
 func (b *MenuBar) clickOpenStage(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickOpenStage").End()
 	b.hidePopups()
 }
 
 func (b *MenuBar) clickSaveStage(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickSaveStage").End()
 	b.hidePopups()
 	b.handler.SaveCurrentStage()
 }
 
 func (b *MenuBar) clickOpenVSCode(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickOpenVSCode").End()
 	b.hidePopups()
 	b.handler.OpenVSCodeProject()
 }
 
 func (b *MenuBar) clickProjectSettings(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickProjectSettings").End()
 	b.hidePopups()
 }
 
 func (b *MenuBar) clickEditorSettings(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickEditorSettings").End()
 	b.hidePopups()
 }
 
 func (b *MenuBar) clickAbout(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickAbout").End()
 	b.hidePopups()
 }
 
 func (b *MenuBar) clickIssues(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickIssues").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/issues")
 }
 
 func (b *MenuBar) clickRepository(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickRepository").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju")
 }
 
 func (b *MenuBar) clickJoinMailingList(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickJoinMailingList").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://www.freelists.org/list/kaijuengine")
 }
 
 func (b *MenuBar) clickMailArchives(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickMailArchives").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://www.freelists.org/archive/kaijuengine/")
 }
 
 func (b *MenuBar) popupMiss(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.popupMiss").End()
 	if e == b.selectedPopup {
 		b.hidePopups()
 	}
 }
 
 func (b *MenuBar) selectTab(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.selectTab").End()
 	tabs := b.doc.GetElementsByGroup("tabs")
 	for i := range tabs {
 		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab")
@@ -202,6 +217,7 @@ func (b *MenuBar) selectTab(e *document.Element) {
 }
 
 func (b *MenuBar) hidePopups() {
+	defer tracing.NewRegion("MenuBar.hidePopups").End()
 	pops := b.doc.GetElementsByClass("popup")
 	for i := range pops {
 		pops[i].UI.Hide()

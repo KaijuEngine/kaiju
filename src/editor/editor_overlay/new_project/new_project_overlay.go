@@ -88,7 +88,10 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	return np, err
 }
 
-func (np *NewProject) Close() { np.doc.Destroy() }
+func (np *NewProject) Close() {
+	defer tracing.NewRegion("NewProject.Close").End()
+	np.doc.Destroy()
+}
 
 func (np *NewProject) openProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.openProject").End()

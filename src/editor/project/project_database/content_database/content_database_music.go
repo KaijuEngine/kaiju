@@ -62,6 +62,6 @@ func (Music) Import(src string, _ *project_file_system.FileSystem) (ProcessedImp
 }
 
 func (c Music) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Music.Import").End()
+	defer tracing.NewRegion("Music.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

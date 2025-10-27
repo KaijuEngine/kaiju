@@ -48,6 +48,7 @@ import (
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"time"
 )
@@ -90,6 +91,7 @@ type globalInterface struct {
 // interfaces that are currently presented to the developer. This primarily
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) FocusInterface() {
+	defer tracing.NewRegion("Editor.FocusInterface").End()
 	ed.globalInterfaces.menuBar.Focus()
 	ed.globalInterfaces.statusBar.Focus()
 	if ed.currentWorkspace != nil {
@@ -101,6 +103,7 @@ func (ed *Editor) FocusInterface() {
 // interfaces that are currently presented to the developer. This primarily
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) BlurInterface() {
+	defer tracing.NewRegion("Editor.BlurInterface").End()
 	ed.globalInterfaces.menuBar.Blur()
 	ed.globalInterfaces.statusBar.Blur()
 	if ed.currentWorkspace != nil {
@@ -109,11 +112,13 @@ func (ed *Editor) BlurInterface() {
 }
 
 func (ed *Editor) earlyLoadUI() {
+	defer tracing.NewRegion("Editor.earlyLoadUI").End()
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
 }
 
 func (ed *Editor) lateLoadUI() {
+	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
 	go ed.project.ReadSourceCode()

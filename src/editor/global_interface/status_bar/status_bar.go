@@ -82,6 +82,7 @@ func (b *StatusBar) Initialize(host *engine.Host, logging *editor_logging.Loggin
 
 func (b *StatusBar) Focus() { b.uiMan.EnableUpdate() }
 func (b *StatusBar) Blur() {
+	defer tracing.NewRegion("StatusBar.Blur").End()
 	if b.inPopup {
 		return
 	}
@@ -159,6 +160,7 @@ func (b *StatusBar) openLogWindow(*document.Element) {
 }
 
 func (b *StatusBar) closePopup(*document.Element) {
+	defer tracing.NewRegion("StatusBar.closePopup").End()
 	b.logPopup.UI.Hide()
 	b.outerInterface.FocusInterface()
 	b.inPopup = false

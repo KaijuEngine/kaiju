@@ -9,6 +9,7 @@ import (
 	"kaiju/engine/collision"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/stages"
@@ -45,6 +46,7 @@ type StageEntityEditorData struct {
 func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 
 func (m *StageManager) NewStage() {
+	defer tracing.NewRegion("StageManager.NewStage").End()
 	// TODO:  Show a popup to save the current stage if there are changes
 	m.stageId = uuid.NewString()
 }
@@ -57,6 +59,7 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 // AddEntity will create a new entity for the stage. This entity will have a
 // #StageEntityData automatically added to it as named data named "stage".
 func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
+	defer tracing.NewRegion("StageManager.AddEntity").End()
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
 	e.StageData.Description.Id = uuid.NewString()
@@ -87,12 +90,14 @@ func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
 
 // Clear will destroy all entities that are managed by this stage manager.
 func (m *StageManager) Clear() {
+	defer tracing.NewRegion("StageManager.Clear").End()
 	for i := range m.entities {
 		m.entities[i].Destroy()
 	}
 }
 
 func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("StageManager.SaveStage").End()
 	s := stages.Stage{Id: m.stageId}
 	rootCount := 0
 	for i := range m.entities {
@@ -154,6 +159,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 }
 
 func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("StageManager.LoadStage").End()
 	// TODO:  Show a popup to save the current stage if there are changes
 	cc, err := cache.Read(id)
 	if err != nil {
@@ -200,6 +206,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 }
 
 func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("StageManager.spawnLoadedEntity").End()
 	const rootFolder = project_file_system.ContentFolder
 	const meshFolder = project_file_system.ContentMeshFolder
 	const matFolder = project_file_system.ContentMaterialFolder

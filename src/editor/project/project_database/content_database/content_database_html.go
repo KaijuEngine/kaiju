@@ -63,6 +63,6 @@ func (Html) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 }
 
 func (c Html) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Html.Import").End()
+	defer tracing.NewRegion("Html.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

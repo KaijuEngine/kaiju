@@ -39,6 +39,7 @@ package codegen
 
 import (
 	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/platform/profiler/tracing"
 	"reflect"
 )
 
@@ -48,6 +49,7 @@ type RuntimeType struct {
 }
 
 func (g *GeneratedType) New() RuntimeType {
+	defer tracing.NewRegion("GeneratedType.New").End()
 	rt := RuntimeType{
 		Generator: g,
 		Value:     reflect.New(g.Type),

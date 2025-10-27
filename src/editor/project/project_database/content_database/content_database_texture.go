@@ -104,6 +104,6 @@ func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedI
 }
 
 func (c Texture) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Spv.Import").End()
+	defer tracing.NewRegion("Texture.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

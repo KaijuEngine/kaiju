@@ -45,6 +45,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"math"
 )
 
@@ -77,6 +78,7 @@ type EditorCamera struct {
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
 
 func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
+	defer tracing.NewRegion("EditorCamera.LookAtPoint").End()
 	switch e.mode {
 	case EditorCameraMode3d:
 		// Something is backwards about the lookat for the turntable camera...
@@ -87,6 +89,7 @@ func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
 }
 
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
+	defer tracing.NewRegion("EditorCamera.SetMode").End()
 	if e.mode == mode {
 		return
 	}
@@ -118,10 +121,12 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 }
 
 func (e *EditorCamera) OnWindowResize() {
+	defer tracing.NewRegion("EditorCamera.OnWindowResize").End()
 	klib.NotYetImplemented(309)
 }
 
 func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
+	defer tracing.NewRegion("EditorCamera.Update").End()
 	switch e.mode {
 	case EditorCameraMode3d:
 		return e.update3d(host, delta)
@@ -135,10 +140,12 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 }
 
 func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray {
+	defer tracing.NewRegion("EditorCamera.RayCast").End()
 	return e.camera.RayCast(mouse.Position())
 }
 
 func (e *EditorCamera) Focus(bounds collision.AABB) {
+	defer tracing.NewRegion("EditorCamera.Focus").End()
 	z := bounds.Extent.Length()
 	if z <= 0.01 {
 		z = 5
@@ -165,6 +172,7 @@ func (e *EditorCamera) Focus(bounds collision.AABB) {
 }
 
 func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
+	defer tracing.NewRegion("EditorCamera.pan3d").End()
 	if hitPoint, ok := tc.ForwardPlaneHit(mp, tc.LookAt()); ok {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 			e.lastHit = hitPoint
@@ -176,6 +184,7 @@ func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 }
 
 func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *engine.Host) {
+	defer tracing.NewRegion("EditorCamera.pan2d").End()
 	hitPoint := matrix.NewVec3(mp.X(), mp.Y(), 0)
 	if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 		e.lastHit = hitPoint
@@ -188,6 +197,7 @@ func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *e
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
+	defer tracing.NewRegion("EditorCamera.update3d").End()
 	tc := e.camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
@@ -241,6 +251,7 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 }
 
 func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
+	defer tracing.NewRegion("EditorCamera.update2d").End()
 	oc := e.camera.(*cameras.StandardCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard

@@ -50,6 +50,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -76,6 +77,7 @@ func (w *Workspace) Manager() *editor_stage_manager.StageManager { return &w.man
 func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
 
 func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.pfs = pfs
 	w.cdb = cdb
 	w.manager.Initialize(host)
@@ -97,6 +99,7 @@ func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs 
 }
 
 func (w *Workspace) Open() {
+	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
 	w.gridShader.Activate()
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
@@ -105,12 +108,14 @@ func (w *Workspace) Open() {
 }
 
 func (w *Workspace) Close() {
+	defer tracing.NewRegion("StageWorkspace.Close").End()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
 	w.gridShader.Deactivate()
 	w.CommonClose()
 }
 
 func (w *Workspace) update(deltaTime float64) {
+	defer tracing.NewRegion("StageWorkspace.update").End()
 	if !w.contentUI.update(w) {
 		return
 	}
@@ -124,6 +129,7 @@ func (w *Workspace) update(deltaTime float64) {
 }
 
 func (w *Workspace) createViewportGrid() {
+	defer tracing.NewRegion("StageWorkspace.createViewportGrid").End()
 	const gridCount = 100
 	const halfGridCount = gridCount / 2
 	material, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionGrid)
@@ -154,6 +160,7 @@ func (w *Workspace) createViewportGrid() {
 }
 
 func (w *Workspace) setupCamera() {
+	defer tracing.NewRegion("StageWorkspace.setupCamera").End()
 	w.camera.OnModeChange.Add(func() {
 		m := matrix.Mat4Identity()
 		switch w.camera.Mode() {

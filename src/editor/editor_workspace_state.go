@@ -37,6 +37,8 @@
 
 package editor
 
+import "kaiju/platform/profiler/tracing"
+
 type WorkspaceState = uint8
 
 const (
@@ -46,6 +48,7 @@ const (
 )
 
 func (ed *Editor) setWorkspaceState(state WorkspaceState) {
+	defer tracing.NewRegion("Editor.setWorkspaceState").End()
 	if ed.workspaceState == state {
 		return
 	}

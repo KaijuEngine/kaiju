@@ -158,6 +158,7 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 }
 
 func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
+	defer tracing.NewRegion("FileBrowser.onKeyboardType").End()
 	if keyState != hid.KeyStateDown || fb.uiMan.Group.HasRequests() {
 		return
 	}
@@ -187,6 +188,7 @@ func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
 }
 
 func (fb *FileBrowser) update(float64) {
+	defer tracing.NewRegion("FileBrowser.update").End()
 	if len(fb.entryListElm.Children) == 0 {
 		return
 	}
@@ -223,9 +225,13 @@ func (fb *FileBrowser) update(float64) {
 	}
 }
 
-func (fb *FileBrowser) Close() { fb.doc.Destroy() }
+func (fb *FileBrowser) Close() {
+	defer tracing.NewRegion("FileBrowser.Close").End()
+	fb.doc.Destroy()
+}
 
 func (fb *FileBrowser) currentFolder() string {
+	defer tracing.NewRegion("FileBrowser.currentFolder").End()
 	return fb.filePath.UI.ToInput().Text()
 }
 

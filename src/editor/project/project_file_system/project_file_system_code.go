@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -148,6 +149,7 @@ const srcLaunchJsonFileData = `{
 `
 
 func (pfs *FileSystem) createCodeProject() error {
+	defer tracing.NewRegion("FileSystem.ReadcreateCodeProjectModName").End()
 	if err := pfs.Mkdir(KaijuSrcFolder, os.ModePerm); err != nil {
 		return err
 	}
@@ -230,6 +232,7 @@ func (pfs *FileSystem) createCodeProject() error {
 }
 
 func (pfs *FileSystem) ReadModName() string {
+	defer tracing.NewRegion("FileSystem.ReadModName").End()
 	name := "game"
 	str, err := pfs.ReadFile("src/go.mod")
 	if err != nil {

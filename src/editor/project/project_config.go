@@ -40,6 +40,7 @@ package project
 import (
 	"encoding/json"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
 type Config struct {
@@ -48,6 +49,7 @@ type Config struct {
 }
 
 func (c *Config) save(fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("Config.save").End()
 	f, err := fs.Create(project_file_system.ProjectConfigFile)
 	if err != nil {
 		return err
@@ -56,6 +58,7 @@ func (c *Config) save(fs *project_file_system.FileSystem) error {
 }
 
 func (c *Config) load(fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("Config.load").End()
 	f, err := fs.Open(project_file_system.ProjectConfigFile)
 	if err != nil {
 		return err

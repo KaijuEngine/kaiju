@@ -50,7 +50,7 @@ import (
 type EditorGame struct{}
 
 func (EditorGame) PluginRegistry() []reflect.Type {
-	defer tracing.NewRegion("editor.PluginRegistry").End()
+	defer tracing.NewRegion("EditorGame.PluginRegistry").End()
 	return []reflect.Type{}
 }
 
@@ -59,7 +59,7 @@ func (EditorGame) ContentDatabase() (assets.Database, error) {
 }
 
 func (EditorGame) Launch(host *engine.Host) {
-	defer tracing.NewRegion("editor.Launch").End()
+	defer tracing.NewRegion("EditorGame.Launch").End()
 	host.SetFrameRateLimit(60)
 	ed := &Editor{host: host}
 	ed.logging.Initialize(host, host.LogStream)

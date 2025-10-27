@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
 )
@@ -60,12 +61,14 @@ func (ed *Editor) ContentWorkspaceSelected() {
 // level folder. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].
 func (ed *Editor) OpenVSCodeProject() {
+	defer tracing.NewRegion("Editor.OpenVSCodeProject").End()
 	exec.Command("code", ed.project.FileSystem().FullPath("")).Run()
 }
 
 // SaveCurrentStage will save the currently open stage file. This is an exposed
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
+	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
 	err := ed.workspaces.stage.Manager().SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem())
 	if err != nil {
 		slog.Error("failed to save the current stage", "error", err)

@@ -37,7 +37,10 @@
 
 package memento
 
-import "kaiju/klib"
+import (
+	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
+)
 
 type History struct {
 	undoStack []Memento
@@ -48,6 +51,7 @@ type History struct {
 func (h *History) Initialize(limit int) { h.limit = limit }
 
 func (h *History) Add(m Memento) {
+	defer tracing.NewRegion("History.Add").End()
 	for i := h.position; i < len(h.undoStack); i++ {
 		h.undoStack[i].Delete()
 	}
@@ -62,6 +66,7 @@ func (h *History) Add(m Memento) {
 }
 
 func (h *History) Undo() {
+	defer tracing.NewRegion("History.Undo").End()
 	if h.position == 0 {
 		return
 	}
@@ -71,6 +76,7 @@ func (h *History) Undo() {
 }
 
 func (h *History) Redo() {
+	defer tracing.NewRegion("History.Redo").End()
 	if h.position == len(h.undoStack) {
 		return
 	}
@@ -80,6 +86,7 @@ func (h *History) Redo() {
 }
 
 func (h *History) Clear() {
+	defer tracing.NewRegion("History.Clear").End()
 	for i := 0; i < len(h.undoStack); i++ {
 		h.undoStack[i].Exit()
 	}

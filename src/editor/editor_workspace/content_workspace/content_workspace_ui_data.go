@@ -3,6 +3,7 @@ package content_workspace
 import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 )
 
 type WorkspaceUIData struct {
@@ -11,6 +12,7 @@ type WorkspaceUIData struct {
 }
 
 func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string {
+	defer tracing.NewRegion("ContentWorkspaceUIData.SetupUIData").End()
 	for _, cat := range content_database.ContentCategories {
 		w.Filters = append(w.Filters, cat.TypeName())
 	}

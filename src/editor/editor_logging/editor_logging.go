@@ -40,6 +40,7 @@ package editor_logging
 import (
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
+	"kaiju/platform/profiler/tracing"
 	"strings"
 	"sync"
 	"time"
@@ -64,6 +65,7 @@ type Message struct {
 }
 
 func (m *Message) ToString() string {
+	defer tracing.NewRegion("Message.ToString").End()
 	endLen := len(m.Time) + 1 + len(m.Message)
 	for k, v := range m.Data {
 		endLen += 1 + len(k) + 1 + len(v)
@@ -83,6 +85,7 @@ func (m *Message) ToString() string {
 }
 
 func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream) {
+	defer tracing.NewRegion("Logging.Initialize").End()
 	wl := weak.Make(l)
 	l.infoEvtId = logStream.OnInfo.Add(func(msg string) {
 		ll := wl.Value()
@@ -116,6 +119,7 @@ func (l *Logging) Warnings() []Message { return l.filter("warn") }
 func (l *Logging) Errors() []Message   { return l.filter("error") }
 
 func (l *Logging) add(msg string, trace []string) {
+	defer tracing.NewRegion("Logging.add").End()
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	m := newVisibleMessage(msg, trace)
@@ -126,6 +130,7 @@ func (l *Logging) add(msg string, trace []string) {
 }
 
 func (l *Logging) filter(typeName string) []Message {
+	defer tracing.NewRegion("Logging.filter").End()
 	res := make([]Message, 0, len(l.all))
 	for i := range l.all {
 		if l.all[i].Category == typeName {
@@ -136,6 +141,7 @@ func (l *Logging) filter(typeName string) []Message {
 }
 
 func newVisibleMessage(msg string, trace []string) Message {
+	defer tracing.NewRegion("editor_logging.newVisibleMessage").End()
 	mapping := logging.ToMap(msg)
 	t, _ := time.Parse(time.RFC3339, mapping["time"])
 	message := mapping["msg"]

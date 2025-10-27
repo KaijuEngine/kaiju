@@ -42,6 +42,7 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/profiler/tracing"
 )
 
 type CommonWorkspace struct {
@@ -52,6 +53,7 @@ type CommonWorkspace struct {
 }
 
 func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) error {
+	defer tracing.NewRegion("CommonWorkspace.InitializeWithUI").End()
 	w.Host = host
 	w.UiMan.Init(host)
 	var err error
@@ -61,21 +63,25 @@ func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, w
 }
 
 func (w *CommonWorkspace) CommonOpen() {
+	defer tracing.NewRegion("CommonWorkspace.CommonOpen").End()
 	w.Doc.Activate()
 	w.UiMan.EnableUpdate()
 }
 
 func (w *CommonWorkspace) CommonClose() {
+	defer tracing.NewRegion("CommonWorkspace.CommonClose").End()
 	w.UiMan.DisableUpdate()
 	w.Doc.Deactivate()
 }
 
 func (w *CommonWorkspace) Focus() {
+	defer tracing.NewRegion("CommonWorkspace.Focus").End()
 	w.UiMan.EnableUpdate()
 	w.IsBlurred = false
 }
 
 func (w *CommonWorkspace) Blur() {
+	defer tracing.NewRegion("CommonWorkspace.Blur").End()
 	w.UiMan.DisableUpdate()
 	w.IsBlurred = true
 }

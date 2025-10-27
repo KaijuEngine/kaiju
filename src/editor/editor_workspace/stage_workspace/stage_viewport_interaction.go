@@ -3,9 +3,11 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
 	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 )
 
 func (w *Workspace) processViewportInteractions() {
+	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &w.Host.Window.Mouse
 	kb := &w.Host.Window.Keyboard
 	if m.Pressed(hid.MouseButtonLeft) {

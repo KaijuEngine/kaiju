@@ -5,12 +5,14 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 )
 
 func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mouse) {
+	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
 	// TODO:  Spawn the content in the viewport
 	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
 	if !ok {
@@ -37,6 +39,7 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 }
 
 func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -77,6 +80,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 }
 
 func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnMesh").End()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)

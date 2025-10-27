@@ -4,6 +4,7 @@ import (
 	"kaiju/engine/collision"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"slices"
 )
@@ -11,6 +12,7 @@ import (
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
 
 func (m *StageManager) IsSelected(e *StageEntity) bool {
+	defer tracing.NewRegion("StageManager.IsSelected").End()
 	for i := range m.selected {
 		if m.selected[i] == e {
 			return true
@@ -20,6 +22,7 @@ func (m *StageManager) IsSelected(e *StageEntity) bool {
 }
 
 func (m *StageManager) ClearSelection() {
+	defer tracing.NewRegion("StageManager.ClearSelection").End()
 	for i := range m.selected {
 		if sd, ok := m.selected[i].StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
 			sd.ClearFlag(rendering.ShaderDataStandardFlagOutline)
@@ -29,6 +32,7 @@ func (m *StageManager) ClearSelection() {
 }
 
 func (m *StageManager) SelectEntity(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.SelectEntity").End()
 	for i := range m.selected {
 		if m.selected[i] == e {
 			return
@@ -41,6 +45,7 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 }
 
 func (m *StageManager) DeselectEntity(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.DeselectEntity").End()
 	for i := range m.selected {
 		if m.selected[i] == e {
 			m.selected = slices.Delete(m.selected, i, i+1)
@@ -53,11 +58,13 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 }
 
 func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TrySelect").End()
 	m.ClearSelection()
 	return m.TryAppendSelect(ray)
 }
 
 func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
 	for _, e := range m.entities {
 		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
 			m.SelectEntity(e)
@@ -68,6 +75,7 @@ func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
 }
 
 func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TryToggleSelect").End()
 	for _, e := range m.entities {
 		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
 			if m.IsSelected(e) {
@@ -82,6 +90,7 @@ func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
 }
 
 func (m *StageManager) SelectionCenter() matrix.Vec3 {
+	defer tracing.NewRegion("StageManager.SelectionCenter").End()
 	center := matrix.Vec3Zero()
 	for _, e := range m.selected {
 		b := e.StageData.Bvh.Bounds(&e.Transform)
@@ -91,6 +100,7 @@ func (m *StageManager) SelectionCenter() matrix.Vec3 {
 }
 
 func (m *StageManager) SelectionPivotCenter() matrix.Vec3 {
+	defer tracing.NewRegion("StageManager.SelectionPivotCenter").End()
 	center := matrix.Vec3Zero()
 	for _, e := range m.selected {
 		center.AddAssign(e.Transform.WorldPosition())
@@ -99,6 +109,7 @@ func (m *StageManager) SelectionPivotCenter() matrix.Vec3 {
 }
 
 func (m *StageManager) SelectionBounds() collision.AABB {
+	defer tracing.NewRegion("StageManager.SelectionBounds").End()
 	low := matrix.Vec3Inf(1)
 	high := matrix.Vec3Inf(-1)
 	center := matrix.Vec3Zero()

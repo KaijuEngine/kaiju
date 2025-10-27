@@ -3,6 +3,7 @@ package project
 import (
 	"fmt"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 )
@@ -14,6 +15,7 @@ const ArchiveEncryptionKey = "%s"
 `
 
 func (p *Project) writeProjectTitle() {
+	defer tracing.NewRegion("Project.writeProjectTitle").End()
 	err := p.fileSystem.WriteFile(project_file_system.ProjectCodeGameTitle,
 		[]byte(fmt.Sprintf(nameSetCodeTitleFileContentFormat,
 			p.config.Name, p.config.ArchiveEncryptionKey)), os.ModePerm)

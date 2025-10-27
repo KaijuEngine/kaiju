@@ -100,6 +100,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 }
 
 func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error) {
+	defer tracing.NewRegion("content_database.Reimport").End()
 	cc, err := cache.Read(id)
 	if err != nil {
 		return ImportResult{}, err

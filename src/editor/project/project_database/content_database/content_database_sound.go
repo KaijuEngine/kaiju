@@ -62,6 +62,6 @@ func (Sound) Import(src string, _ *project_file_system.FileSystem) (ProcessedImp
 }
 
 func (c Sound) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Sound.Import").End()
+	defer tracing.NewRegion("Sound.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

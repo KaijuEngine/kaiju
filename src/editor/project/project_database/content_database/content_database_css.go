@@ -63,6 +63,6 @@ func (Css) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpor
 }
 
 func (c Css) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Css.Import").End()
+	defer tracing.NewRegion("Css.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

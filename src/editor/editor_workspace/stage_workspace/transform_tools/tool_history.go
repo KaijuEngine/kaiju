@@ -40,6 +40,7 @@ package transform_tools
 import (
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 )
 
 type toolHistory struct {
@@ -51,6 +52,7 @@ type toolHistory struct {
 }
 
 func (h *toolHistory) Redo() {
+	defer tracing.NewRegion("toolHistory.Redo").End()
 	for i, e := range h.entities {
 		switch h.state {
 		case ToolStateMove:
@@ -66,6 +68,7 @@ func (h *toolHistory) Redo() {
 }
 
 func (h *toolHistory) Undo() {
+	defer tracing.NewRegion("toolHistory.Undo").End()
 	for i, e := range h.entities {
 		switch h.state {
 		case ToolStateMove:

@@ -126,7 +126,7 @@ func fileNameNoExt(path string) string {
 }
 
 func pathToTextData(path string) (ProcessedImport, error) {
-	defer tracing.NewRegion("ImportResult.pathToTextData").End()
+	defer tracing.NewRegion("content_database.pathToTextData").End()
 	txt, err := filesystem.ReadTextFile(path)
 	return ProcessedImport{Variants: []ImportVariant{
 		{Name: fileNameNoExt(path), Data: []byte(txt)},
@@ -134,7 +134,7 @@ func pathToTextData(path string) (ProcessedImport, error) {
 }
 
 func pathToBinaryData(path string) (ProcessedImport, error) {
-	defer tracing.NewRegion("ImportResult.pathToBinaryData").End()
+	defer tracing.NewRegion("content_database.pathToBinaryData").End()
 	data, err := filesystem.ReadFile(path)
 	return ProcessedImport{Variants: []ImportVariant{
 		{Name: fileNameNoExt(path), Data: data},
@@ -142,6 +142,7 @@ func pathToBinaryData(path string) (ProcessedImport, error) {
 }
 
 func contentIdToSrcPath(id string, cache *Cache, fs *project_file_system.FileSystem) (string, error) {
+	defer tracing.NewRegion("content_database.contentIdToSrcPath").End()
 	cc, err := cache.Read(id)
 	if err != nil {
 		return "", err

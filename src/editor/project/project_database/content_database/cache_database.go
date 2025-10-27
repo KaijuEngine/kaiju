@@ -98,6 +98,7 @@ func (c *Cache) List() []CachedContent { return c.cache }
 // of being built, in which case the caller should wait until it's done
 // building and try again, or bind to the [OnBuildFinished] event.
 func (c *Cache) Read(id string) (CachedContent, error) {
+	defer tracing.NewRegion("Cache.Read").End()
 	if c.isBuilding.Load() {
 		return CachedContent{}, ReadDuringBuildError{}
 	}
@@ -111,6 +112,7 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 // ReadLinked will return all of the linked content for the given id. This will
 // also return the content for the id itself.
 func (c *Cache) ReadLinked(id string) ([]CachedContent, error) {
+	defer tracing.NewRegion("Cache.ReadLinked").End()
 	cc, err := c.Read(id)
 	if err != nil {
 		return []CachedContent{}, err
@@ -131,6 +133,7 @@ func (c *Cache) ReadLinked(id string) ([]CachedContent, error) {
 // is an OR comparison so that any content that has at least one of the tags
 // will be selected by the filter.
 func (c *Cache) TagFilter(tags []string) []CachedContent {
+	defer tracing.NewRegion("Cache.TagFilter").End()
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range tags {
@@ -146,7 +149,7 @@ func (c *Cache) TagFilter(tags []string) []CachedContent {
 // This is an OR comparison so that any content that has at least one of the
 // types will be selected by the filter.
 func (c *Cache) TypeFilter(types []string) []CachedContent {
-	defer tracing.NewRegion("CacheDatabase.TypeFilter").End()
+	defer tracing.NewRegion("Cache.TypeFilter").End()
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range types {
@@ -163,7 +166,7 @@ func (c *Cache) TypeFilter(types []string) []CachedContent {
 // is the developer-given name of the content. This is an exact match on part or
 // all of the name (case-insensitive), fuzzy search may be introduced later.
 func (c *Cache) Search(query string) []CachedContent {
-	defer tracing.NewRegion("CacheDatabase.Search").End()
+	defer tracing.NewRegion("Cache.Search").End()
 	out := []CachedContent{}
 	q := strings.ToLower(query)
 	for i := range c.cache {
@@ -181,7 +184,7 @@ func (c *Cache) Search(query string) []CachedContent {
 // but [Read] will not (due to it's mapping nature). You can use
 // [OnBuildFinished] to know when the build has completed.
 func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("CacheDatabase.Build").End()
+	defer tracing.NewRegion("Cache.Build").End()
 	c.isBuilding.Store(true)
 	if cap(c.cache) == 0 {
 		c.cache = make([]CachedContent, 0, 1024)
@@ -209,7 +212,7 @@ func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 // building the cache, importing new content to the project, or when the
 // developer changes settings for content that alters the configuration.
 func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("CacheDatabase.Index").End()
+	defer tracing.NewRegion("Cache.Index").End()
 	cfg, err := ReadConfig(path, pfs)
 	if err != nil {
 		return err
@@ -234,7 +237,7 @@ func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 // and resize the length. This once last item will have the index of the removed
 // entry and it's lookup will be updated.
 func (c *Cache) Remove(id string) {
-	defer tracing.NewRegion("CacheDatabase.Remove").End()
+	defer tracing.NewRegion("Cache.Remove").End()
 	if idx, ok := c.lookup[id]; ok {
 		lastId := c.cache[len(c.cache)-1].Id()
 		c.cache = klib.RemoveUnordered(c.cache, idx)

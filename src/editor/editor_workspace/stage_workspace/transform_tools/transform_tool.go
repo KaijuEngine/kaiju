@@ -46,6 +46,7 @@ import (
 	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -66,6 +67,7 @@ type TransformTool struct {
 }
 
 func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History) {
+	defer tracing.NewRegion("TransformTool.Initialize").End()
 	wt := matrix.NewTransform(stage.WorkspaceHost().WorkGroup())
 	t.stage = stage
 	t.wireTransform = &wt
@@ -88,6 +90,7 @@ func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, hist
 }
 
 func (t *TransformTool) Update() (busy bool) {
+	defer tracing.NewRegion("TransformTool.Update").End()
 	if t.state == ToolStateNone {
 		return false
 	}
@@ -107,6 +110,7 @@ func (t *TransformTool) Update() (busy bool) {
 }
 
 func (t *TransformTool) Enable(state ToolState) {
+	defer tracing.NewRegion("TransformTool.Enable").End()
 	if !t.stage.Manager().HasSelection() {
 		return
 	}
@@ -139,6 +143,7 @@ func (t *TransformTool) Enable(state ToolState) {
 }
 
 func (t *TransformTool) Disable() {
+	defer tracing.NewRegion("TransformTool.Disable").End()
 	t.resetChange()
 	t.state = ToolStateNone
 	t.axis = AxisStateNone
@@ -149,6 +154,7 @@ func (t *TransformTool) Disable() {
 }
 
 func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, to matrix.Vec3, color matrix.Color) (rendering.Drawing, error) {
+	defer tracing.NewRegion("TransformTool.createWire").End()
 	grid := rendering.NewMeshGrid(host.MeshCache(),
 		"_editor_wire_"+nameSuffix,
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
@@ -172,6 +178,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 }
 
 func (t *TransformTool) resetChange() {
+	defer tracing.NewRegion("TransformTool.resetChange").End()
 	all := t.stage.Manager().Selection()
 	for i := range t.resets {
 		switch t.state {
@@ -187,6 +194,7 @@ func (t *TransformTool) resetChange() {
 }
 
 func (t *TransformTool) updateResets() {
+	defer tracing.NewRegion("TransformTool.updateResets").End()
 	entities := t.stage.Manager().Selection()
 	t.resets = t.resets[:0]
 	t.unsnapped = t.unsnapped[:0]
@@ -206,6 +214,7 @@ func (t *TransformTool) updateResets() {
 }
 
 func (t *TransformTool) addHistory() {
+	defer tracing.NewRegion("TransformTool.addHistory").End()
 	all := t.stage.Manager().Selection()
 	to := make([]matrix.Vec3, len(all))
 	from := make([]matrix.Vec3, len(all))
@@ -232,12 +241,14 @@ func (t *TransformTool) addHistory() {
 }
 
 func (t *TransformTool) commitChange() {
+	defer tracing.NewRegion("TransformTool.commitChange").End()
 	t.addHistory()
 	t.resets = t.resets[:0]
 	t.Disable()
 }
 
 func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
+	defer tracing.NewRegion("TransformTool.checkKeyboard").End()
 	if kb.KeyDown(hid.KeyboardKeyX) {
 		t.resetChange()
 		t.axis.Toggle(AxisStateX)
@@ -258,6 +269,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 }
 
 func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) matrix.Vec3 {
+	defer tracing.NewRegion("TransformTool.findPlaneHitPoint").End()
 	nml := matrix.Vec3Forward()
 	var df, db, dl, dr, du, dd matrix.Float = -1.0, -1.0, -1.0, -1.0, -1.0, -1.0
 	if t.state != ToolStateMove || t.axis != AxisStateX {
@@ -312,6 +324,7 @@ func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) m
 }
 
 func (t *TransformTool) updateDrag(host *engine.Host) {
+	defer tracing.NewRegion("TransformTool.updateDrag").End()
 	m := &host.Window.Mouse
 	mp := m.Position()
 	var delta, point matrix.Vec3
@@ -387,6 +400,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 }
 
 func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	defer tracing.NewRegion("TransformTool.translate").End()
 	p := t.unsnapped[idx].Add(delta)
 	t.unsnapped[idx] = p
 	// TODO:  Fix arbitrary movement snapping
@@ -399,6 +413,7 @@ func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapSca
 }
 
 func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	defer tracing.NewRegion("TransformTool.rotate").End()
 	var axis matrix.Vec3
 	var angle float32
 	camera := t.stage.WorkspaceHost().Camera
@@ -445,6 +460,7 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 }
 
 func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+	defer tracing.NewRegion("TransformTool.scale").End()
 	scale := matrix.Vec3Zero()
 	target := delta.LargestAxisDelta()
 	switch t.axis {
@@ -468,6 +484,7 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 }
 
 func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
+	defer tracing.NewRegion("TransformTool.transform").End()
 	snapScale := float32(1)
 	// TODO:  Implement grid snapping for local settings
 	// snapConfig := editor_cache.GridSnapping

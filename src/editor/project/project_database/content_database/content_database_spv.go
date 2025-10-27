@@ -61,6 +61,6 @@ func (Spv) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpor
 }
 
 func (c Spv) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Spv.Import").End()
+	defer tracing.NewRegion("Spv.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

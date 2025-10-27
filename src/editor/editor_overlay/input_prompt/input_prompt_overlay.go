@@ -83,7 +83,10 @@ func Show(host *engine.Host, config Config) (*InputPrompt, error) {
 	return ip, err
 }
 
-func (ip *InputPrompt) Close() { ip.doc.Destroy() }
+func (ip *InputPrompt) Close() {
+	defer tracing.NewRegion("InputPrompt.Close").End()
+	ip.doc.Destroy()
+}
 
 func (ip *InputPrompt) confirm(e *document.Element) {
 	defer tracing.NewRegion("InputPrompt.confirm").End()

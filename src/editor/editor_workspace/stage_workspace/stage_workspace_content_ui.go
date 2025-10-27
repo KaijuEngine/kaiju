@@ -7,6 +7,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -29,6 +30,7 @@ type WorkspaceContentUI struct {
 }
 
 func (cui *WorkspaceContentUI) setup(w *Workspace, ids []string) {
+	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
@@ -39,6 +41,7 @@ func (cui *WorkspaceContentUI) setup(w *Workspace, ids []string) {
 }
 
 func (cui *WorkspaceContentUI) open() {
+	defer tracing.NewRegion("WorkspaceContentUI.open").End()
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
 	if cui.hideContentElm.UI.Entity().IsActive() {
@@ -47,6 +50,7 @@ func (cui *WorkspaceContentUI) open() {
 }
 
 func (cui *WorkspaceContentUI) update(w *Workspace) bool {
+	defer tracing.NewRegion("WorkspaceContentUI.update").End()
 	if cui.dragging != nil {
 		m := &w.Host.Window.Mouse
 		mp := m.ScreenPosition()
@@ -61,6 +65,7 @@ func (cui *WorkspaceContentUI) update(w *Workspace) bool {
 }
 
 func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
+	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
 		if cui.hideContentElm.UI.Entity().IsActive() {
 			cui.hideContent(nil)
@@ -71,6 +76,7 @@ func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
 }
 
 func (cui *WorkspaceContentUI) addContent(ids []string) {
+	defer tracing.NewRegion("WorkspaceContentUI.addContent").End()
 	if len(ids) == 0 {
 		return
 	}
@@ -96,6 +102,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 }
 
 func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {
+	defer tracing.NewRegion("WorkspaceContentUI.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	w := cui.workspace.Value()
 	if typeName == (content_database.Texture{}).TypeName() {
@@ -122,12 +129,14 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, t
 }
 
 func (cui *WorkspaceContentUI) inputFilter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.inputFilter").End()
 	cui.query = strings.ToLower(e.UI.ToInput().Text())
 	// TODO:  Regex out the filters like tag:..., type:..., etc.
 	cui.runFilter()
 }
 
 func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.tagFilter").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	tagElms := cui.workspace.Value().Doc.GetElementsByGroup("tag")[1:]
 	for i := range tagElms {
@@ -142,6 +151,7 @@ func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 }
 
 func (cui *WorkspaceContentUI) runFilter() {
+	defer tracing.NewRegion("WorkspaceContentUI.runFilter").End()
 	w := cui.workspace.Value()
 	entries := w.Doc.GetElementsByGroup("entry")
 	for i := range entries {
@@ -160,6 +170,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
 	isSelected := slices.Contains(e.ClassList(), "filterSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
@@ -186,18 +197,21 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 }
 
 func (cui *WorkspaceContentUI) hideContent(*document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.hideContent").End()
 	cui.hideContentElm.UI.Hide()
 	cui.showContentElm.UI.Show()
 	cui.contentArea.UI.Hide()
 }
 
 func (cui *WorkspaceContentUI) showContent(*document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.showContent").End()
 	cui.showContentElm.UI.Hide()
 	cui.hideContentElm.UI.Show()
 	cui.contentArea.UI.Show()
 }
 
 func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.entryDragStart").End()
 	cui.dragging = e
 	cui.dragPreview.UI.Show()
 	cui.dragPreview.UIPanel.SetBackground(e.Children[0].UIPanel.Background())
@@ -205,6 +219,7 @@ func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 }
 
 func (cui *WorkspaceContentUI) dropContent(w *Workspace, m *hid.Mouse) {
+	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
 	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
 		cc, err := w.cdb.Read(cui.dragContentId)
 		if err != nil {

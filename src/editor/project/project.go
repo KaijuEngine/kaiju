@@ -161,6 +161,7 @@ func (p *Project) SetName(name string) {
 // Any errors during the build process will be contained within an error slog.
 // Look for the fields "error", "log", and "errorlog" for more details.
 func (p *Project) Compile() {
+	defer tracing.NewRegion("Project.Compile").End()
 	slog.Info("compiling the project")
 	cmd := exec.Command("go", "build", "./src")
 	cmd.Dir = p.fileSystem.Name()
@@ -174,6 +175,7 @@ func (p *Project) Compile() {
 }
 
 func (p *Project) ReadSourceCode() {
+	defer tracing.NewRegion("Project.ReadSourceCode").End()
 	if p.readingCode {
 		return
 	}

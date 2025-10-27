@@ -63,6 +63,6 @@ func (Material) Import(src string, _ *project_file_system.FileSystem) (Processed
 }
 
 func (c Material) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
-	defer tracing.NewRegion("Material.Import").End()
+	defer tracing.NewRegion("Material.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
 }

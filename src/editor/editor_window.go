@@ -1,11 +1,13 @@
 package editor
 
 import (
+	"kaiju/platform/profiler/tracing"
 	"time"
 	"weak"
 )
 
 func (ed *Editor) setupWindowActivity() {
+	defer tracing.NewRegion("Editor.setupWindowActivity").End()
 	wed := weak.Make(ed)
 	ed.window.activateId = ed.host.Window.OnActivate.Add(func() {
 		sed := wed.Value()

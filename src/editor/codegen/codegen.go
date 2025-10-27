@@ -44,6 +44,7 @@ import (
 	"go/parser"
 	"go/token"
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -68,10 +69,12 @@ type structure struct {
 }
 
 func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
+	defer tracing.NewRegion("codegen.Walk").End()
 	return walkInternal(srcRoot, pkgPrefix, ".go")
 }
 
 func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, error) {
+	defer tracing.NewRegion("codegen.walkInternal").End()
 	gens := []GeneratedType{}
 	skips := []string{}
 	registrations := map[string]string{}
@@ -103,6 +106,7 @@ func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, err
 }
 
 func readAst(srcRoot *os.Root, file string, registrations *map[string]string, localRegs *map[string]string) (*ast.File, error) {
+	defer tracing.NewRegion("codegen.readAst").End()
 	fs := token.NewFileSet()
 	src, err := srcRoot.ReadFile(file)
 	if err != nil {
@@ -124,6 +128,7 @@ func readAst(srcRoot *os.Root, file string, registrations *map[string]string, lo
 }
 
 func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *map[string]string) ([]GeneratedType, error) {
+	defer tracing.NewRegion("codegen.create").End()
 	genTypes := []GeneratedType{}
 	localRegs := map[string]string{}
 	a, err := readAst(srcRoot, file, registrations, &localRegs)
@@ -210,6 +215,7 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 }
 
 func toType(name string) (reflect.Type, error) {
+	defer tracing.NewRegion("codegen.toType").End()
 	switch name {
 	case "bool":
 		return reflect.TypeOf(false), nil
@@ -271,6 +277,7 @@ func toType(name string) (reflect.Type, error) {
 }
 
 func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, ptrDepth *int) (reflect.Type, error) {
+	defer tracing.NewRegion("codegen.typeFromType").End()
 	switch t := typ.(type) {
 	case *ast.StarExpr:
 		*ptrDepth += 1
@@ -334,6 +341,7 @@ func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, p
 }
 
 func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedType) (GeneratedType, error) {
+	defer tracing.NewRegion("codegen.generateStructType").End()
 	g := GeneratedType{
 		Pkg:     pkg,
 		PkgPath: strings.ReplaceAll(pkgPath, "\\", "/"),
@@ -377,6 +385,7 @@ func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedTy
 }
 
 func allTypes(a *ast.File) []structure {
+	defer tracing.NewRegion("codegen.allTypes").End()
 	types := make([]structure, 0)
 	for _, d := range a.Decls {
 		if g, ok := d.(*ast.GenDecl); ok {
@@ -395,6 +404,7 @@ func allTypes(a *ast.File) []structure {
 }
 
 func hasInterfaceReceiver(f *ast.FuncDecl, name string) bool {
+	defer tracing.NewRegion("codegen.hasInterfaceReceiver").End()
 	if len(f.Recv.List) != 1 {
 		return false
 	}
@@ -414,6 +424,7 @@ func hasInterfaceReceiver(f *ast.FuncDecl, name string) bool {
 }
 
 func hasEntityArg(t ast.Expr) bool {
+	defer tracing.NewRegion("codegen.hasEntityArg").End()
 	if sx := t.(*ast.StarExpr); sx == nil {
 		return false
 	} else if sel := sx.X.(*ast.SelectorExpr); sel == nil {
@@ -427,6 +438,7 @@ func hasEntityArg(t ast.Expr) bool {
 }
 
 func hasHostArg(t ast.Expr) bool {
+	defer tracing.NewRegion("codegen.hasHostArg").End()
 	if sx := t.(*ast.StarExpr); sx == nil {
 		return false
 	} else if sel := sx.X.(*ast.SelectorExpr); sel == nil {
@@ -440,6 +452,7 @@ func hasHostArg(t ast.Expr) bool {
 }
 
 func satisfiesInterface(s *ast.TypeSpec, decl []ast.Decl) bool {
+	defer tracing.NewRegion("codegen.satisfiesInterface").End()
 	// TODO:  Use the reflect of the interface to validate
 	for _, d := range decl {
 		if f, ok := d.(*ast.FuncDecl); ok {

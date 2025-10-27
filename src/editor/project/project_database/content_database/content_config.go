@@ -115,6 +115,7 @@ func (c *ContentConfig) NameLower() string { return strings.ToLower(c.Name) }
 // return false. It will also return false if the tag is invalid. In both pass
 // and failed cases, it will return the cleaned tag value.
 func (c *ContentConfig) AddTag(tag string) (string, bool) {
+	defer tracing.NewRegion("ContentConfig.AddTag").End()
 	tag = strings.TrimSpace(tag)
 	if strings.TrimSpace(tag) == "" {
 		slog.Warn("the tag name supplied was empty, skipping")
@@ -131,6 +132,7 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 // RemoveTag will attempt to locate the tag (case insensitive) and remove it. If
 // it finds the tag and removes it, this will return true, otherwise false.
 func (c *ContentConfig) RemoveTag(tag string) bool {
+	defer tracing.NewRegion("ContentConfig.RemoveTag").End()
 	for i := range c.Tags {
 		if strings.EqualFold(c.Tags[i], tag) {
 			c.Tags = slices.Delete(c.Tags, i, i+1)
@@ -143,6 +145,7 @@ func (c *ContentConfig) RemoveTag(tag string) bool {
 // ToContentPath is an auxiliary function to simplify getting the matching
 // content path relative to the project file system.
 func ToContentPath(configPath string) string {
+	defer tracing.NewRegion("content_database.ToContentPath").End()
 	configPath = filepath.ToSlash(configPath)
 	if strings.HasPrefix(configPath, project_file_system.ContentConfigFolder) {
 		return strings.Replace(configPath, project_file_system.ContentConfigFolder,

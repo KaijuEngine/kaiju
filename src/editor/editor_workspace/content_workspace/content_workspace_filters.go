@@ -3,11 +3,13 @@ package content_workspace
 import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 	"slices"
 	"strings"
 )
 
 func ShouldShowContent(query, id string, typeFilters, tagFilters []string, cdb *content_database.Cache) bool {
+	defer tracing.NewRegion("content_workspace.ShouldShowContent").End()
 	cc, err := cdb.Read(id)
 	if err != nil {
 		return false
@@ -26,6 +28,7 @@ func ShouldShowContent(query, id string, typeFilters, tagFilters []string, cdb *
 }
 
 func filterThroughTags(cc *content_database.CachedContent, tagFilters []string) bool {
+	defer tracing.NewRegion("content_workspace.filterThroughTags").End()
 	for i := range cc.Config.Tags {
 		if klib.StringsContainsCaseInsensitive(tagFilters, cc.Config.Tags[i]) {
 			return true
@@ -35,6 +38,7 @@ func filterThroughTags(cc *content_database.CachedContent, tagFilters []string) 
 }
 
 func runQueryOnContent(cc *content_database.CachedContent, query string, tagFilters []string) bool {
+	defer tracing.NewRegion("content_workspace.runQueryOnContent").End()
 	// TODO:  Use filters like tag:..., type:..., etc.
 	if strings.Contains(cc.Config.NameLower(), query) {
 		return true

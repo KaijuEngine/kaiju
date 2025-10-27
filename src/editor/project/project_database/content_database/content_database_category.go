@@ -97,7 +97,7 @@ type ContentCategory interface {
 // matches the type supplied. If the content is found, true will be returned,
 // otherwise false.
 func CategoryFromTypeName(typeName string) (ContentCategory, bool) {
-	defer tracing.NewRegion("content_database.categoryFromTypeName").End()
+	defer tracing.NewRegion("content_database.CategoryFromTypeName").End()
 	for i := range ContentCategories {
 		if ContentCategories[i].TypeName() == typeName {
 			return ContentCategories[i], true
@@ -107,7 +107,7 @@ func CategoryFromTypeName(typeName string) (ContentCategory, bool) {
 }
 
 func selectCategoryForFile(path string) (ContentCategory, bool) {
-	defer tracing.NewRegion("content_database.selectCategory").End()
+	defer tracing.NewRegion("content_database.selectCategoryForFile").End()
 	ext := strings.ToLower(filepath.Ext(path))
 	for i := range ContentCategories {
 		cat := ContentCategories[i]
