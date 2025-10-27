@@ -38,15 +38,19 @@
 package editor_embedded_content
 
 import (
+	"io/fs"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"os"
 	"path/filepath"
 )
 
 const absoluteFilePrefix = ':'
 
-type EditorContent struct{}
+type EditorContent struct {
+	Pfs *project_file_system.FileSystem
+}
 
 func (EditorContent) Cache(key string, data []byte) { /* No caching planned*/ }
 func (EditorContent) CacheRemove(key string)        { /* No caching planned*/ }
@@ -57,30 +61,50 @@ func toEmbedPath(key string) string {
 	return filepath.ToSlash(filepath.Join("editor/editor_embedded_content/editor_content", key))
 }
 
-func (EditorContent) Read(key string) ([]byte, error) {
+func (e EditorContent) findFile(key string) string {
+	finalPath := ""
+	filepath.Walk(e.Pfs.FullPath(project_file_system.ContentFolder), func(path string, info fs.FileInfo, err error) error {
+		if finalPath != "" {
+			return nil
+		}
+		if info.Name() == key {
+			finalPath = path
+		}
+		return nil
+	})
+	return finalPath
+}
+
+func (e EditorContent) Read(key string) ([]byte, error) {
 	defer tracing.NewRegion("EditorContent.Read: " + key).End()
 	if key[0] == absoluteFilePrefix {
 		return filesystem.ReadFile(key[1:])
 	}
-	return project_file_system.CodeFS.ReadFile(toEmbedPath(key))
-}
-
-func (EditorContent) ReadText(key string) (string, error) {
-	defer tracing.NewRegion("EditorContent.ReadText: " + key).End()
-	data, err := project_file_system.CodeFS.ReadFile(toEmbedPath(key))
-	if key[0] == absoluteFilePrefix {
-		return filesystem.ReadTextFile(key[1:])
+	b, err := project_file_system.CodeFS.ReadFile(toEmbedPath(key))
+	if err != nil && e.Pfs != nil {
+		if path := e.findFile(key); path != "" {
+			return os.ReadFile(path)
+		}
 	}
-	return string(data), err
+	return b, err
 }
 
-func (EditorContent) Exists(key string) bool {
+func (e EditorContent) ReadText(key string) (string, error) {
+	defer tracing.NewRegion("EditorContent.ReadText: " + key).End()
+	b, err := e.Read(key)
+	return string(b), err
+}
+
+func (e EditorContent) Exists(key string) bool {
 	defer tracing.NewRegion("EditorContent.Exists: " + key).End()
 	if key[0] == absoluteFilePrefix {
 		return filesystem.FileExists(key[1:])
 	}
 	f, err := project_file_system.CodeFS.Open(toEmbedPath(key))
 	if err != nil {
+		if e.Pfs != nil {
+			return e.findFile(key) != ""
+		}
 		return false
 	}
 	f.Close()

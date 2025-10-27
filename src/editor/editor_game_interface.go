@@ -55,7 +55,7 @@ func (EditorGame) PluginRegistry() []reflect.Type {
 }
 
 func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return editor_embedded_content.EditorContent{}, nil
+	return &editor_embedded_content.EditorContent{}, nil
 }
 
 func (EditorGame) Launch(host *engine.Host) {

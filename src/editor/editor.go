@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
@@ -122,6 +123,7 @@ func (ed *Editor) lateLoadUI() {
 	slog.Info("compiling the project to get things ready")
 	go ed.project.Compile()
 	go ed.project.ReadSourceCode()
+	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, &ed.history,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
