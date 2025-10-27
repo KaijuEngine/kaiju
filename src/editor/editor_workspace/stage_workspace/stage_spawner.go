@@ -1,6 +1,8 @@
 package stage_workspace
 
 import (
+	"encoding/json"
+	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
@@ -27,11 +29,16 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 	if !ok {
 		hit = ray.Point(maxContentDropDistance)
 	}
+	e, eHitOk := w.manager.TryHitEntity(ray)
 	switch cat.(type) {
 	case content_database.Texture:
 		w.spawnTexture(cc, hit)
 	case content_database.Mesh:
 		w.spawnMesh(cc, hit)
+	case content_database.Material:
+		if eHitOk {
+			w.attachMaterial(cc, e)
+		}
 	default:
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -117,4 +124,31 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	}
 	w.Host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
+}
+
+func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
+	// rendering.Material
+	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
+	if !ok {
+		path := content_database.ToContentPath(cc.Path)
+		f, err := w.pfs.Open(path)
+		if err != nil {
+			slog.Error("error reading the mesh file", "path", path)
+			return
+		}
+		defer f.Close()
+		var matData rendering.MaterialData
+		if err = json.NewDecoder(f).Decode(&matData); err != nil {
+			slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
+			return
+		}
+		// TODO:  This assets should wind up pointing to the developers content
+		mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
+		if err != nil {
+			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
+			return
+		}
+		mat = w.Host.MaterialCache().AddMaterial(mat)
+	}
+	e.SetMaterial(mat.CreateInstance(mat.Textures), w.Host)
 }
