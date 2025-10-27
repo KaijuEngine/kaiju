@@ -191,6 +191,8 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 	}
 }
 
+func (s *Shader) ShaderDataName() string { return s.data.Name }
+
 func (s *Shader) AddSubShader(key string, shader *Shader) {
 	shader.pipelineInfo = s.pipelineInfo
 	shader.renderPass = s.renderPass
