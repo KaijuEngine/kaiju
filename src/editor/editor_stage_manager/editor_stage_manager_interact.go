@@ -57,6 +57,15 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	}
 }
 
+func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, bool) {
+	for _, e := range m.entities {
+		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
+			return e, true
+		}
+	}
+	return nil, false
+}
+
 func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TrySelect").End()
 	m.ClearSelection()
@@ -65,26 +74,22 @@ func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
 
 func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
-	for _, e := range m.entities {
-		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
-			m.SelectEntity(e)
-			return e, true
-		}
+	if e, ok := m.TryHitEntity(ray); ok {
+		m.SelectEntity(e)
+		return e, true
 	}
 	return nil, false
 }
 
 func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryToggleSelect").End()
-	for _, e := range m.entities {
-		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
-			if m.IsSelected(e) {
-				m.DeselectEntity(e)
-			} else {
-				m.SelectEntity(e)
-			}
-			return e, true
+	if e, ok := m.TryHitEntity(ray); ok {
+		if m.IsSelected(e) {
+			m.DeselectEntity(e)
+		} else {
+			m.SelectEntity(e)
 		}
+		return e, true
 	}
 	return nil, false
 }
