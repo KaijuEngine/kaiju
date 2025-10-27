@@ -80,6 +80,9 @@ func Show(host *engine.Host, config Config) (*InputPrompt, error) {
 		return ip, err
 	}
 	ip.input, _ = ip.doc.GetElementById("input")
+	box := ip.input.UI.ToInput()
+	box.Focus()
+	box.SelectAll()
 	return ip, err
 }
 
