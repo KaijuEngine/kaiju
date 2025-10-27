@@ -61,6 +61,7 @@ type Workspace struct {
 	common_workspace.CommonWorkspace
 	camera        editor_controls.EditorCamera
 	updateId      engine.UpdateId
+	gridTransform matrix.Transform
 	gridShader    *rendering.ShaderDataBasic
 	pageData      content_workspace.WorkspaceUIData
 	pfs           *project_file_system.FileSystem
@@ -123,7 +124,11 @@ func (w *Workspace) update(deltaTime float64) {
 		return
 	}
 	w.contentUI.processHotkeys(w.Host)
-	if !w.camera.Update(w.Host, deltaTime) {
+	if w.camera.Update(w.Host, deltaTime) {
+		camPos := w.Host.Camera.Position()
+		w.gridTransform.SetPosition(matrix.NewVec3(
+			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
+	} else {
 		w.processViewportInteractions()
 	}
 }
@@ -147,6 +152,7 @@ func (w *Workspace) createViewportGrid() {
 	}
 	grid := rendering.NewMeshGrid(w.Host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
+	w.gridTransform = matrix.NewTransform(w.Host.WorkGroup())
 	w.gridShader = &rendering.ShaderDataBasic{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
@@ -156,6 +162,7 @@ func (w *Workspace) createViewportGrid() {
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: w.gridShader,
+		Transform:  &w.gridTransform,
 	})
 }
 
