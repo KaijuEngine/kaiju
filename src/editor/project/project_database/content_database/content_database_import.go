@@ -75,6 +75,8 @@ type ProcessedImport struct {
 	// Variants holds all of the imported variants from this file. An example of
 	// this (in the future) might be different languages when importing a font.
 	Variants []ImportVariant
+
+	postProcessData any
 }
 
 // ImportVariant contains information about a variant of the imported content

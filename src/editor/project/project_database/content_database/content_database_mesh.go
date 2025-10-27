@@ -38,15 +38,16 @@
 package content_database
 
 import (
+	"encoding/json"
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
-	"kaiju/engine/collision"
-	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
 	"kaiju/rendering/loaders"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/rendering/loaders/load_result"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -89,33 +90,33 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	baseName := fileNameNoExt(src)
 	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
-	bvh := []*collision.BVH{}
-	t := concurrent.NewThreads()
-	t.Start()
+	postProcData := map[string]load_result.Mesh{}
 	for i := range kms {
 		kd, err := kms[i].Serialize()
 		if err != nil {
 			return p, err
 		}
-		p.Variants = append(p.Variants, ImportVariant{
+		v := ImportVariant{
 			Name: fmt.Sprintf("%s-%s", baseName, kms[i].Name),
 			Data: kd,
-		})
-		bvh = append(bvh, res.Meshes[i].GenerateBVH(&t))
+		}
+		p.Variants = append(p.Variants, v)
+		postProcData[v.Name] = res.Meshes[i]
 	}
-	t.Stop()
+	p.postProcessData = postProcData
 	for i := range res.Meshes {
 		t := res.Meshes[i].Textures
 		p.Dependencies = slices.Grow(p.Dependencies, len(p.Dependencies)+len(t))
-		for j := range t {
-			tp := t[j]
+		for k, v := range t {
+			tp := v
 			if _, err := os.Stat(tp); err != nil {
-				tp = filepath.Join(filepath.Dir(src), t[j])
+				tp = filepath.Join(filepath.Dir(src), v)
 			}
 			if _, err := os.Stat(tp); err != nil {
-				return p, MeshInvalidTextureError{src, t[j], tp}
+				return p, MeshInvalidTextureError{src, v, tp}
 			}
 			p.Dependencies = append(p.Dependencies, tp)
+			t[k] = tp
 		}
 	}
 	return p, nil
@@ -124,4 +125,89 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Reimport").End()
 	return reimportByNameMatching(c, id, cache, fs)
+}
+
+func (Mesh) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
+	meshes := proc.postProcessData.(map[string]load_result.Mesh)
+	cc, err := cache.Read(res.Id)
+	if err != nil {
+		return err
+	}
+	variant, ok := meshes[cc.Config.Name]
+	if !ok {
+		slog.Error("failed to locate the mesh in the post processing data", "name", cc.Config.Name)
+		return nil
+	}
+	matchTexture := func(srcPath string) rendering.MaterialTextureData {
+		for i := range res.Dependencies {
+			cc, err := cache.Read(res.Dependencies[i].Id)
+			if err != nil {
+				continue
+			}
+			if filepath.ToSlash(srcPath) == filepath.ToSlash(cc.Config.SrcPath) {
+				return rendering.MaterialTextureData{Texture: res.Dependencies[i].Id, Filter: "Linear"}
+			}
+		}
+		return rendering.MaterialTextureData{}
+	}
+	var mat rendering.MaterialData
+	if _, ok := variant.Textures["metallicRoughness"]; ok {
+		mat = rendering.MaterialData{
+			Name:           "pbr",
+			RenderPass:     "renderer/passes/simple_opaque.renderpass",
+			Shader:         "renderer/shaders/pbr.shader",
+			ShaderPipeline: "renderer/pipelines/simple.shaderpipeline",
+			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+		}
+
+		if t, ok := variant.Textures["baseColor"]; ok {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+			delete(variant.Textures, "baseColor")
+		}
+		if t, ok := variant.Textures["normal"]; ok {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+			delete(variant.Textures, "normal")
+		}
+		if t, ok := variant.Textures["metallicRoughness"]; ok {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+			delete(variant.Textures, "metallicRoughness")
+		}
+		if t, ok := variant.Textures["emissive"]; ok {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+			delete(variant.Textures, "emissive")
+		}
+		for _, t := range variant.Textures {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+		}
+	} else {
+		mat = rendering.MaterialData{
+			Name:           "standard",
+			RenderPass:     "renderer/passes/opaque.renderpass",
+			Shader:         "renderer/shaders/basic.shader",
+			ShaderPipeline: "renderer/pipelines/basic.shaderpipeline",
+			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+		}
+		for _, t := range variant.Textures {
+			mat.Textures = append(mat.Textures, matchTexture(t))
+		}
+	}
+	f, err := os.CreateTemp("", "*-kaiju-mat.material")
+	if err != nil {
+		return err
+	}
+	if err = json.NewEncoder(f).Encode(mat); err != nil {
+		return err
+	}
+	f.Close()
+	res, err = Import(f.Name(), fs, cache, linkedId)
+	if err != nil {
+		return err
+	}
+	ccMat, err := cache.Read(res.Id)
+	if err != nil {
+		return err
+	}
+	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
+	return WriteConfig(ccMat.Path, ccMat.Config, fs)
 }
