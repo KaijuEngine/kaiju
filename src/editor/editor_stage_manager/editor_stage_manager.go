@@ -29,16 +29,12 @@ type StageManager struct {
 	selected []*StageEntity
 }
 
-type StageEntity struct {
-	engine.Entity
-	StageData StageEntityEditorData
-}
-
 // StageEntityEditorData is the structure holding all the uniquely identifiable
 // and linking data about the entity on this stage. That will include things
 // like content linkage, data bindings, etc.
 type StageEntityEditorData struct {
 	Bvh         *collision.BVH
+	Mesh        *rendering.Mesh
 	ShaderData  rendering.DrawInstance
 	Description stages.EntityDescription
 }

@@ -58,9 +58,9 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		return
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	mesh := rendering.NewMeshPlane(w.Host.MeshCache())
 	e := w.manager.AddEntity(point)
-	e.StageData.Description.Mesh = mesh.Key()
+	e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
+	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -71,7 +71,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		draw := rendering.Drawing{
 			Renderer:   w.Host.Window.Renderer,
 			Material:   mat,
-			Mesh:       mesh,
+			Mesh:       e.StageData.Mesh,
 			ShaderData: e.StageData.ShaderData,
 			Transform:  &e.Transform,
 		}
@@ -97,12 +97,12 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 		slog.Error("failed to deserialize the mesh", "id", cc.Id(), "error", err)
 		return
 	}
-	mesh := w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	tex, _ := w.Host.TextureCache().Texture(assets.TextureSquare,
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	e := w.manager.AddEntity(point)
-	e.StageData.Description.Mesh = mesh.Key()
+	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
+	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
 	e.StageData.ShaderData = &rendering.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -111,7 +111,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	draw := rendering.Drawing{
 		Renderer:   w.Host.Window.Renderer,
 		Material:   mat,
-		Mesh:       mesh,
+		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
 	}
