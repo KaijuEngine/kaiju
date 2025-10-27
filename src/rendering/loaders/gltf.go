@@ -236,26 +236,8 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			meshDatas[*n.Mesh] = rmd
 		}
 		textures := gltfReadMeshTextures(m, &doc.glTF)
-		sortedTextures := make([]string, 0, len(textures))
-		if t, ok := textures["baseColor"]; ok {
-			sortedTextures = append(sortedTextures, t)
-			delete(textures, "baseColor")
-		}
-		if t, ok := textures["normal"]; ok {
-			sortedTextures = append(sortedTextures, t)
-			delete(textures, "normal")
-		}
-		if t, ok := textures["metallicRoughness"]; ok {
-			sortedTextures = append(sortedTextures, t)
-			delete(textures, "metallicRoughness")
-		}
-		if t, ok := textures["emissive"]; ok {
-			sortedTextures = append(sortedTextures, t)
-			delete(textures, "emissive")
-		}
-		sortedTextures = append(sortedTextures, klib.MapValues(textures)...)
 		key := fmt.Sprintf("%s/%s", doc.path, m.Name)
-		res.Add(n.Name, key, rmd.verts, rmd.indices, sortedTextures, &res.Nodes[i])
+		res.Add(n.Name, key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
 	}
 	res.Animations = gltfReadAnimations(doc)
 	return res, nil

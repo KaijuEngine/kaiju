@@ -70,7 +70,7 @@ type Mesh struct {
 	MeshName string
 	Verts    []rendering.Vertex
 	Indexes  []uint32
-	Textures []string
+	Textures map[string]string
 }
 
 type AnimBone struct {
@@ -112,7 +112,7 @@ type Result struct {
 
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
-func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures []string, node *Node) {
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures map[string]string, node *Node) {
 	if node != nil {
 		// TODO:  This breaks Sudoku, but seems like something that should be done...
 		//mat := node.Transform.CalcWorldMatrix()
@@ -160,14 +160,6 @@ func (r *Result) Extract(names ...string) Result {
 		}
 	}
 	return res
-}
-
-func (r *Result) Textures() []string {
-	out := []string{}
-	for i := range r.Meshes {
-		out = append(out, r.Meshes[i].Textures...)
-	}
-	return out
 }
 
 func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {

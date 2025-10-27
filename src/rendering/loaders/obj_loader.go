@@ -208,7 +208,7 @@ func OBJ(objData string) load_result.Result {
 			}
 		}
 		// TODO:  Read the .obj material file for textures
-		res.Add(builder.name, builder.name, verts, builder.vIndexes, []string{}, nil)
+		res.Add(builder.name, builder.name, verts, builder.vIndexes, map[string]string{}, nil)
 	}
 	return res
 }
