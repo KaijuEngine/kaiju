@@ -70,4 +70,6 @@ const (
 	MaterialDefinitionOutline             = "outline"
 	MaterialDefinitionLightDepth          = "light_depth"
 	MaterialDefinitionLightCubeDepth      = "light_cube_depth"
+
+	MaterialDefinitionEdTransformWire = "ed_transform_wire"
 )

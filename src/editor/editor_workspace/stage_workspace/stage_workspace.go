@@ -51,6 +51,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 )
@@ -62,7 +63,7 @@ type Workspace struct {
 	camera        editor_controls.EditorCamera
 	updateId      engine.UpdateId
 	gridTransform matrix.Transform
-	gridShader    *rendering.ShaderDataBasic
+	gridShader    *shader_data_registry.ShaderDataGrid
 	pageData      content_workspace.WorkspaceUIData
 	pfs           *project_file_system.FileSystem
 	cdb           *content_database.Cache
@@ -153,10 +154,9 @@ func (w *Workspace) createViewportGrid() {
 	grid := rendering.NewMeshGrid(w.Host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	w.gridTransform = matrix.NewTransform(w.Host.WorkGroup())
-	w.gridShader = &rendering.ShaderDataBasic{
-		ShaderDataBase: rendering.NewShaderDataBase(),
-		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
-	}
+	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	w.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
+	w.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	w.Host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   w.Host.Window.Renderer,
 		Material:   material,

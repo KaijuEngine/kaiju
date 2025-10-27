@@ -2,7 +2,7 @@ package editor_stage_manager
 
 import (
 	"kaiju/engine"
-	"kaiju/matrix"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 )
 
@@ -17,12 +17,7 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, host *engine.Host) {
 	for i := range mat.Textures {
 		e.StageData.Description.Textures[i] = mat.Textures[i].Key
 	}
-	// TODO:  Match up shader data to the type of material, so if it's PBR, then
-	// it should use the PBR structure.
-	e.StageData.ShaderData = &rendering.ShaderDataStandard{
-		ShaderDataBase: rendering.NewShaderDataBase(),
-		Color:          matrix.ColorWhite(),
-	}
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Material:   mat,

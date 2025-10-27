@@ -1,0 +1,1 @@
+{"Name":"ed_transform_wire","Shader":"renderer/shaders/ed_transform_wire.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/basic_lines.shaderpipeline","Textures":[]}

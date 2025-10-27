@@ -296,7 +296,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	vr.combinedDrawings.Clear(vr)
 	mesh := NewMeshQuad(vr.caches.MeshCache())
 	for i := range mats {
-		sd := &ShaderDataBasic{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
+		sd := &ShaderDataCombine{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 		m := matrix.Mat4Identity()
 		m.Scale(matrix.Vec3{1, 1, 1})
 		sd.SetModel(m)

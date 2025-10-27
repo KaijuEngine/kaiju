@@ -47,6 +47,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -158,15 +159,13 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 	grid := rendering.NewMeshGrid(host.MeshCache(),
 		"_editor_wire_"+nameSuffix,
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
-	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
 	if err != nil {
 		slog.Error("failed to load transform wire material", "error", err)
 		return rendering.Drawing{}, err
 	}
-	sd := &rendering.ShaderDataBasic{
-		ShaderDataBase: rendering.NewShaderDataBase(),
-		Color:          color,
-	}
+	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	sd.Deactivate()
 	return rendering.Drawing{
 		Renderer:   host.Window.Renderer,

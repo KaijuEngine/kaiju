@@ -9,7 +9,6 @@ layout(location = 2) in vec3 fragWorldPos;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	//outColor = fragColor;
 	float fadeScale = 3.0;
 	float yCheck = fragColor.y + 0.0001;
 	if (fragColor.z > yCheck || fragColor.x > yCheck) {
