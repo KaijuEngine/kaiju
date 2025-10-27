@@ -15,7 +15,6 @@ import (
 
 func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
-	// TODO:  Spawn the content in the viewport
 	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
 	if !ok {
 		slog.Error("failed to find the content category for type",
@@ -23,13 +22,13 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 		return
 	}
 	ray := w.Host.Camera.RayCast(m.Position())
-	// TODO:  Try to hit something else on the stage, otherwise fall back to the
-	// ground plane hit test
+	e, eHitOk := w.manager.TryHitEntity(ray)
+	// TODO:  Find the point on the entity that was hit, otherwise fall back
+	// to doing the ground plane/distance hit point
 	hit, ok := ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
 	if !ok {
 		hit = ray.Point(maxContentDropDistance)
 	}
-	e, eHitOk := w.manager.TryHitEntity(ray)
 	switch cat.(type) {
 	case content_database.Texture:
 		w.spawnTexture(cc, hit)
@@ -127,7 +126,6 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 }
 
 func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
-	// rendering.Material
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)
@@ -142,7 +140,6 @@ func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor
 			slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
 			return
 		}
-		// TODO:  This assets should wind up pointing to the developers content
 		mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
 		if err != nil {
 			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
