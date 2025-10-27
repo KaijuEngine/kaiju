@@ -63,6 +63,9 @@ func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) Material
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
+	defer tracing.NewRegion("MaterialCache.AddMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if found, ok := m.materials[material.Name]; !ok {
 		m.materials[material.Name] = material
 		return material
@@ -72,6 +75,9 @@ func (m *MaterialCache) AddMaterial(material *Material) *Material {
 }
 
 func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
+	defer tracing.NewRegion("MaterialCache.FindMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if material, ok := m.materials[key]; ok {
 		return material, true
 	} else {
