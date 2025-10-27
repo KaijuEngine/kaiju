@@ -98,6 +98,14 @@
 				height: 3em;
 				z-index: 10;
 			}
+			.typeThumb {
+				position: absolute;
+				width: 16px;
+				height: 16px;
+				top: 0;
+				left: 0;
+				z-index: 1;
+			}
 		</style>
 	</head>
 	<body>
@@ -121,6 +129,7 @@
 				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" ondragstart="entryDragStart">
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div>Name...</div>
+					<img class="typeThumb" src="editor/textures/icons/file.png" />
 				</span>
 			</div>
 		</div>

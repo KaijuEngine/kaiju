@@ -136,7 +136,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		project_file_system.ContentStageFolder, m.stageId)
 	cfg := content_database.ContentConfig{}
 	cfg.Name = "Testing"
-	cfg.Type = "Stage"
+	cfg.Type = content_database.Stage{}.TypeName()
 	f2, err := fs.Create(configPath)
 	if err != nil {
 		return err

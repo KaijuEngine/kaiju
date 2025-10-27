@@ -1,6 +1,7 @@
 package stage_workspace
 
 import (
+	"fmt"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
@@ -98,6 +99,12 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
 		cui.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		tex, err := w.Host.TextureCache().Texture(
+			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
+			rendering.TextureFilterLinear)
+		if err == nil {
+			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
+		}
 	}
 }
 
