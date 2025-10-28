@@ -106,6 +106,16 @@
 				left: 0;
 				z-index: 1;
 			}
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				z-index: 1;
+				background-color: #282828;
+				border: 2px solid white;
+				color: #AAA;
+				top: 0;
+				left: 0;
+			}
 		</style>
 	</head>
 	<body>
@@ -126,12 +136,13 @@
 				</div>
 			</div>
 			<div class="right">
-				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" ondragstart="entryDragStart">
+				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove">
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div>Name...</div>
 					<img class="typeThumb" src="editor/textures/icons/file.png" />
 				</span>
 			</div>
 		</div>
+		<span id="tooltip">Tooltip...</span>
 	</body>
 </html>

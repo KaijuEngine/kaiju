@@ -27,6 +27,7 @@ type WorkspaceContentUI struct {
 	hideContentElm *document.Element
 	showContentElm *document.Element
 	dragging       *document.Element
+	tooltip        *document.Element
 	dragContentId  string
 }
 
@@ -38,6 +39,7 @@ func (cui *WorkspaceContentUI) setup(w *Workspace, ids []string) {
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	cui.hideContentElm, _ = w.Doc.GetElementById("hideContent")
 	cui.showContentElm, _ = w.Doc.GetElementById("showContent")
+	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
 	cui.addContent(ids)
 }
 
@@ -84,7 +86,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w := cui.workspace.Value()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cdb.Read(ids[i])
+		cc, err := w.cache.Read(ids[i])
 		if err != nil {
 			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
 			continue
@@ -167,7 +169,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.cdb) {
+		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.cache) {
 			e.UI.Entity().Activate()
 		} else {
 			e.UI.Entity().Deactivate()
@@ -225,10 +227,50 @@ func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 	cui.dragContentId = e.Attribute("id")
 }
 
+func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
+	ui := cui.tooltip.UI
+	id := e.Attribute("id")
+	cc, err := cui.workspace.Value().cache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
+		return
+	}
+	ui.Show()
+	lbl := cui.tooltip.Children[0].UI.ToLabel()
+	if len(cc.Config.Tags) == 0 {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+	} else {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+	}
+}
+
+func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
+	ui := cui.tooltip.UI
+	if !ui.Entity().IsActive() {
+		ui.Show()
+	}
+	host := cui.workspace.Value().Host
+	// Running on the main thread so it's up to date with the mouse position on
+	// the next frame. Maybe there's no need for this...
+	host.RunOnMainThread(func() {
+		p := host.Window.Mouse.ScreenPosition()
+		// Offsetting the box so the mouse doesn't collide with it easily
+		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+	})
+}
+
+func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
+	cui.tooltip.UI.Hide()
+}
+
 func (cui *WorkspaceContentUI) dropContent(w *Workspace, m *hid.Mouse) {
 	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
 	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
-		cc, err := w.cdb.Read(cui.dragContentId)
+		cc, err := w.cache.Read(cui.dragContentId)
 		if err != nil {
 			slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
 			return
