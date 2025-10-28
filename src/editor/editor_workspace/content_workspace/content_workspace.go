@@ -437,6 +437,12 @@ func (w *Workspace) addTagToSelected(tag string) {
 		w.updateIndexForCachedContent(&cc)
 	}
 	w.clickEntry(w.selectedContent)
+	// Add the tag to the entry details
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].Children[0].UI.ToLabel().SetText(tag)
+	tagListEntry.Children[1].SetAttribute("data-tag", tag)
+	tagListEntry.UI.Show()
+	// Add the tag to the tag filters if it's not already
 	for i := range w.pageData.Tags {
 		if strings.EqualFold(tag, w.pageData.Tags[i]) {
 			return
