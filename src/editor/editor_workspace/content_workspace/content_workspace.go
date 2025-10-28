@@ -413,8 +413,11 @@ func (w *Workspace) entryMouseMove(e *document.Element) {
 	if !ui.Entity().IsActive() {
 		ui.Show()
 	}
+	// Running on the main thread so it's up to date with the mouse position on
+	// the next frame. Maybe there's no need for this...
 	w.Host.RunOnMainThread(func() {
 		p := w.Host.Window.Mouse.ScreenPosition()
+		// Offsetting the box so the mouse doesn't collide with it easily
 		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
 	})
 }
