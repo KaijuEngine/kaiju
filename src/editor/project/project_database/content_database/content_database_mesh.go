@@ -206,11 +206,14 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	if err != nil {
 		return err
 	}
-	res.Dependencies = append(res.Dependencies, matRes)
-	ccMat, err := cache.Read(matRes.Id)
+	res.Dependencies = append(res.Dependencies, matRes[0])
+	ccMat, err := cache.Read(matRes[0].Id)
 	if err != nil {
 		return err
 	}
 	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
-	return WriteConfig(ccMat.Path, ccMat.Config, fs)
+	if err := WriteConfig(ccMat.Path, ccMat.Config, fs); err != nil {
+		return err
+	}
+	return cache.Index(ccMat.Path, fs)
 }

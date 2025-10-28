@@ -144,17 +144,19 @@ func (w *Workspace) clickImport(*document.Element) {
 			index := []string{}
 			for i := range paths {
 				res, err := content_database.Import(paths[i], w.pfs, w.cache, "")
-				if err != nil {
-					slog.Error("failed to import content", "path", paths[i], "error", err)
-				} else {
-					var addDependencies func(target *content_database.ImportResult)
-					addDependencies = func(target *content_database.ImportResult) {
-						index = append(index, target.Id)
-						for i := range target.Dependencies {
-							addDependencies(&target.Dependencies[i])
+				for j := range res {
+					if err != nil {
+						slog.Error("failed to import content", "path", paths[i], "error", err)
+					} else {
+						var addDependencies func(target *content_database.ImportResult)
+						addDependencies = func(target *content_database.ImportResult) {
+							index = append(index, target.Id)
+							for k := range target.Dependencies {
+								addDependencies(&target.Dependencies[k])
+							}
 						}
+						addDependencies(&res[j])
 					}
-					addDependencies(&res)
 				}
 			}
 			w.addContent(index)
