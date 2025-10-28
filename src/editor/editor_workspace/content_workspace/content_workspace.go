@@ -65,6 +65,7 @@ type Workspace struct {
 	addTagbtn         *document.Element
 	selectedContent   *document.Element
 	rightBody         *document.Element
+	tooltip           *document.Element
 	pageData          WorkspaceUIData
 	info              struct {
 		nameInput        *document.Element
@@ -74,6 +75,7 @@ type Workspace struct {
 		newTagHint       *document.Element
 		tagHintTemplate  *document.Element
 	}
+	tooltipHidePending bool
 }
 
 func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
@@ -83,17 +85,20 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":    w.inputFilter,
-			"tagFilter":      w.tagFilter,
-			"clickImport":    w.clickImport,
-			"clickFilter":    w.clickFilter,
-			"clickEntry":     w.clickEntry,
-			"clickDeleteTag": w.clickDeleteTag,
-			"updateTagHint":  w.updateTagHint,
-			"submitNewTag":   w.submitNewTag,
-			"clickTagHint":   w.clickTagHint,
-			"submitName":     w.submitName,
-			"clickReimport":  w.clickReimport,
+			"inputFilter":     w.inputFilter,
+			"tagFilter":       w.tagFilter,
+			"clickImport":     w.clickImport,
+			"clickFilter":     w.clickFilter,
+			"clickEntry":      w.clickEntry,
+			"clickDeleteTag":  w.clickDeleteTag,
+			"updateTagHint":   w.updateTagHint,
+			"submitNewTag":    w.submitNewTag,
+			"clickTagHint":    w.clickTagHint,
+			"submitName":      w.submitName,
+			"clickReimport":   w.clickReimport,
+			"entryMouseEnter": w.entryMouseEnter,
+			"entryMouseMove":  w.entryMouseMove,
+			"entryMouseLeave": w.entryMouseLeave,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -105,6 +110,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
+	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.addContent(ids)
 }
 
@@ -116,6 +122,7 @@ func (w *Workspace) Open() {
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
+	// w.tooltip.UI.Hide()
 	if w.selectedContent == nil {
 		w.rightBody.UI.Hide()
 	}
@@ -385,6 +392,36 @@ func (w *Workspace) clickReimport(*document.Element) {
 	}
 	slog.Info("successfully re-imported the content")
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
+}
+
+func (w *Workspace) entryMouseEnter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
+	ui := w.tooltip.UI
+	id := e.Attribute("id")
+	cc, err := w.cCache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
+		return
+	}
+	ui.Show()
+	w.tooltip.Children[0].UI.ToLabel().SetText(cc.Config.Name)
+}
+
+func (w *Workspace) entryMouseMove(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
+	ui := w.tooltip.UI
+	if !ui.Entity().IsActive() {
+		ui.Show()
+	}
+	w.Host.RunOnMainThread(func() {
+		p := w.Host.Window.Mouse.ScreenPosition()
+		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+	})
+}
+
+func (w *Workspace) entryMouseLeave(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
+	w.tooltipHidePending = true
 }
 
 func (w *Workspace) addTagToSelected(tag string) {
