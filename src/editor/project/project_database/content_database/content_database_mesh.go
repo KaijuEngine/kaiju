@@ -51,6 +51,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 )
 
 func init() { addCategory(Mesh{}) }
@@ -96,8 +97,9 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
+		parts := strings.Split(kms[i].Name, "/")
 		v := ImportVariant{
-			Name: fmt.Sprintf("%s-%s", baseName, kms[i].Name),
+			Name: fmt.Sprintf("%s-%s", baseName, parts[len(parts)-1]),
 			Data: kd,
 		}
 		p.Variants = append(p.Variants, v)
