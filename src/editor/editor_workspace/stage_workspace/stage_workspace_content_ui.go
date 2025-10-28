@@ -47,6 +47,7 @@ func (cui *WorkspaceContentUI) open() {
 	defer tracing.NewRegion("WorkspaceContentUI.open").End()
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
+	cui.tooltip.UI.Hide()
 	if cui.hideContentElm.UI.Entity().IsActive() {
 		cui.showContentElm.UI.Hide()
 	}

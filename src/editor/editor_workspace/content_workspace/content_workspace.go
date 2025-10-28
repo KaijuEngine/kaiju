@@ -121,7 +121,7 @@ func (w *Workspace) Open() {
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
-	// w.tooltip.UI.Hide()
+	w.tooltip.UI.Hide()
 	if w.selectedContent == nil {
 		w.rightBody.UI.Hide()
 	}
