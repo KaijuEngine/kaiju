@@ -45,6 +45,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
@@ -105,7 +106,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Textures = []string{cc.Id()}
-	e.StageData.ShaderData = &rendering.ShaderDataStandard{
+	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}
@@ -147,7 +148,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
-	e.StageData.ShaderData = &rendering.ShaderDataStandard{
+	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}

@@ -42,7 +42,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaiju/registry/shader_data_registry"
 	"slices"
 )
 
@@ -61,8 +61,8 @@ func (m *StageManager) IsSelected(e *StageEntity) bool {
 func (m *StageManager) ClearSelection() {
 	defer tracing.NewRegion("StageManager.ClearSelection").End()
 	for i := range m.selected {
-		if sd, ok := m.selected[i].StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
-			sd.ClearFlag(rendering.ShaderDataStandardFlagOutline)
+		if sd, ok := m.selected[i].StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
+			sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		}
 	}
 	m.selected = klib.WipeSlice(m.selected)
@@ -75,8 +75,8 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 			return
 		}
 	}
-	if sd, ok := e.StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
-		sd.SetFlag(rendering.ShaderDataStandardFlagOutline)
+	if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
+		sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 	}
 	m.selected = append(m.selected, e)
 }
@@ -86,8 +86,8 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	for i := range m.selected {
 		if m.selected[i] == e {
 			m.selected = slices.Delete(m.selected, i, i+1)
-			if sd, ok := e.StageData.ShaderData.(*rendering.ShaderDataStandard); ok {
-				sd.ClearFlag(rendering.ShaderDataStandardFlagOutline)
+			if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
+				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 			}
 			return
 		}
