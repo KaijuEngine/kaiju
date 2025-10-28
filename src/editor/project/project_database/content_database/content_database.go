@@ -97,7 +97,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			}
 		}
 		cache.Index(res.ConfigPath(), fs)
-		if err = cat.PostImportProcessing(proc, res, fs, cache, linkedId); err != nil {
+		if err = cat.PostImportProcessing(proc, &res, fs, cache, linkedId); err != nil {
 			return res, err
 		}
 	}

@@ -129,7 +129,7 @@ func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 	return reimportByNameMatching(c, id, cache, fs)
 }
 
-func (Mesh) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
 	meshes := proc.postProcessData.(map[string]load_result.Mesh)
 	cc, err := cache.Read(res.Id)
@@ -202,11 +202,12 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *pro
 		return err
 	}
 	f.Close()
-	res, err = Import(f.Name(), fs, cache, linkedId)
+	matRes, err := Import(f.Name(), fs, cache, linkedId)
 	if err != nil {
 		return err
 	}
-	ccMat, err := cache.Read(res.Id)
+	res.Dependencies = append(res.Dependencies, matRes)
+	ccMat, err := cache.Read(matRes.Id)
 	if err != nil {
 		return err
 	}
