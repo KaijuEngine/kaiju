@@ -38,7 +38,7 @@
 		<div class="overlay">
 			<h1>{{.Title}}</h1>
 			<p>{{.Description}}</p>
-			<input id="input" type="text" placeholder="{{.Placeholder}}" value="{{.Value}}" />
+			<input id="input" type="text" placeholder="{{.Placeholder}}" value="{{.Value}}" onsubmit="confirm" />
 			<div class="btns">
 				<button class="confirm" onclick="confirm">{{.ConfirmText}}</button>
 				<button class="cancel" onclick="cancel">{{.CancelText}}</button>
