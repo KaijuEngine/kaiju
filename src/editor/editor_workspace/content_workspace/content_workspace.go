@@ -380,6 +380,7 @@ func (w *Workspace) submitName(e *document.Element) {
 		return
 	}
 	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
+	w.cache.Index(cc.Path, w.pfs)
 }
 
 func (w *Workspace) clickReimport(*document.Element) {
