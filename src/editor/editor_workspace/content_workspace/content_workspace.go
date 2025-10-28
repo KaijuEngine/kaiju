@@ -404,7 +404,13 @@ func (w *Workspace) entryMouseEnter(e *document.Element) {
 		return
 	}
 	ui.Show()
-	w.tooltip.Children[0].UI.ToLabel().SetText(cc.Config.Name)
+	lbl := w.tooltip.Children[0].UI.ToLabel()
+	if len(cc.Config.Tags) == 0 {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+	} else {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+	}
 }
 
 func (w *Workspace) entryMouseMove(e *document.Element) {
