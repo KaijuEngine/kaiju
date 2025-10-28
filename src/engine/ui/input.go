@@ -440,7 +440,7 @@ func (input *Input) pointerPosWithin() int {
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
-		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
+		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5) - horizontalPadding)
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
 		return host.FontCache().PointOffsetWithin(
 			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
