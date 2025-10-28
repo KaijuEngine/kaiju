@@ -55,15 +55,16 @@ import (
 )
 
 type FileBrowser struct {
-	doc           *document.Document
-	uiMan         ui.Manager
-	entryListElm  *document.Element
-	entryTemplate *document.Element
-	filePath      *document.Element
-	selected      []*document.Element
-	history       []string
-	historyIdx    int
-	config        Config
+	doc            *document.Document
+	uiMan          ui.Manager
+	entryListElm   *document.Element
+	entryTemplate  *document.Element
+	filePath       *document.Element
+	selected       []*document.Element
+	history        []string
+	historyIdx     int
+	config         Config
+	inInputOverlay bool
 }
 
 type Config struct {
@@ -189,6 +190,9 @@ func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
 
 func (fb *FileBrowser) update(float64) {
 	defer tracing.NewRegion("FileBrowser.update").End()
+	if fb.inInputOverlay {
+		return
+	}
 	if len(fb.entryListElm.Children) == 0 {
 		return
 	}
@@ -326,8 +330,13 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 			return
 		}
 		fb.execReload()
+		fb.uiMan.Host.RunAfterFrames(2, func() { fb.inInputOverlay = false })
 	}
-	cancel := func() { fb.uiMan.EnableUpdate() }
+	cancel := func() {
+		fb.uiMan.EnableUpdate()
+		fb.uiMan.Host.RunAfterFrames(2, func() { fb.inInputOverlay = false })
+	}
+	fb.inInputOverlay = true
 	input_prompt.Show(fb.uiMan.Host, input_prompt.Config{
 		Title:       "New Folder",
 		Description: "Input the name for the new folder",
