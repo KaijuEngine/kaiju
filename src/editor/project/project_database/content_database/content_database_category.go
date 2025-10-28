@@ -97,7 +97,7 @@ type ContentCategory interface {
 	// project. This is called for each variant that has been imported. This is
 	// useful to do things like creating/importing new materials based on
 	// imported mesh files, for example.
-	PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+	PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
 }
 
 // CategoryFromTypeName is an auxiliary function for getting the category that

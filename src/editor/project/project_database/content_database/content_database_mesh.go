@@ -51,6 +51,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 )
 
 func init() { addCategory(Mesh{}) }
@@ -96,8 +97,9 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
+		parts := strings.Split(kms[i].Name, "/")
 		v := ImportVariant{
-			Name: fmt.Sprintf("%s-%s", baseName, kms[i].Name),
+			Name: fmt.Sprintf("%s-%s", baseName, parts[len(parts)-1]),
 			Data: kd,
 		}
 		p.Variants = append(p.Variants, v)
@@ -127,7 +129,7 @@ func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 	return reimportByNameMatching(c, id, cache, fs)
 }
 
-func (Mesh) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
 	meshes := proc.postProcessData.(map[string]load_result.Mesh)
 	cc, err := cache.Read(res.Id)
@@ -200,14 +202,18 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *pro
 		return err
 	}
 	f.Close()
-	res, err = Import(f.Name(), fs, cache, linkedId)
+	matRes, err := Import(f.Name(), fs, cache, linkedId)
 	if err != nil {
 		return err
 	}
-	ccMat, err := cache.Read(res.Id)
+	res.Dependencies = append(res.Dependencies, matRes[0])
+	ccMat, err := cache.Read(matRes[0].Id)
 	if err != nil {
 		return err
 	}
 	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
-	return WriteConfig(ccMat.Path, ccMat.Config, fs)
+	if err := WriteConfig(ccMat.Path, ccMat.Config, fs); err != nil {
+		return err
+	}
+	return cache.Index(ccMat.Path, fs)
 }

@@ -66,6 +66,6 @@ func (c Music) Reimport(id string, cache *Cache, fs *project_file_system.FileSys
 	return reimportByNameMatching(c, id, cache, fs)
 }
 
-func (Music) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+func (Music) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	return nil
 }

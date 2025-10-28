@@ -66,7 +66,7 @@ type Workspace struct {
 	gridShader    *shader_data_registry.ShaderDataGrid
 	pageData      content_workspace.WorkspaceUIData
 	pfs           *project_file_system.FileSystem
-	cdb           *content_database.Cache
+	cache         *content_database.Cache
 	contentUI     WorkspaceContentUI
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
@@ -81,18 +81,21 @@ func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
 func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.pfs = pfs
-	w.cdb = cdb
+	w.cache = cdb
 	w.manager.Initialize(host)
 	w.manager.NewStage()
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":    w.contentUI.inputFilter,
-			"tagFilter":      w.contentUI.tagFilter,
-			"clickFilter":    w.contentUI.clickFilter,
-			"hideContent":    w.contentUI.hideContent,
-			"showContent":    w.contentUI.showContent,
-			"entryDragStart": w.contentUI.entryDragStart,
+			"inputFilter":     w.contentUI.inputFilter,
+			"tagFilter":       w.contentUI.tagFilter,
+			"clickFilter":     w.contentUI.clickFilter,
+			"hideContent":     w.contentUI.hideContent,
+			"showContent":     w.contentUI.showContent,
+			"entryDragStart":  w.contentUI.entryDragStart,
+			"entryMouseEnter": w.contentUI.entryMouseEnter,
+			"entryMouseMove":  w.contentUI.entryMouseMove,
+			"entryMouseLeave": w.contentUI.entryMouseLeave,
 		})
 	w.createViewportGrid()
 	w.setupCamera()

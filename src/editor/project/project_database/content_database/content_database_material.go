@@ -67,6 +67,6 @@ func (c Material) Reimport(id string, cache *Cache, fs *project_file_system.File
 	return reimportByNameMatching(c, id, cache, fs)
 }
 
-func (Material) PostImportProcessing(proc ProcessedImport, res ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+func (Material) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	return nil
 }

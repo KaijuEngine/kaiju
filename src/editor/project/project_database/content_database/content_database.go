@@ -41,39 +41,39 @@ import (
 	"encoding/json"
 	"kaiju/debug"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"os"
 )
 
-func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (ImportResult, error) {
+func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) ([]ImportResult, error) {
 	defer tracing.NewRegion("content_database.Import").End()
-	res := ImportResult{}
+	res := make([]ImportResult, 1)
 	cat, ok := selectCategoryForFile(path)
 	if !ok {
 		return res, CategoryNotFoundError{Path: path}
 	}
-	res.Category = cat
+	res[0].Category = cat
 	proc, err := cat.Import(path, fs)
 	if err != nil {
 		return res, err
 	}
 	useLinkedId := linkedId != "" || len(proc.Variants) > 1 ||
-		len(res.Dependencies) > 0
-	// TODO:  Instead of reusing `res`, we need to return a slice of results for
-	// each variant. This will also allow post-processing to add to the list.
+		len(res[0].Dependencies) > 0
+	res = klib.SliceSetLen(res, len(proc.Variants))
 	for i := range proc.Variants {
-		res.generateUniqueFileId(fs)
+		res[i].generateUniqueFileId(fs)
 		if useLinkedId && linkedId == "" {
-			linkedId = res.Id
+			linkedId = res[i].Id
 		}
-		f, err := fs.Create(res.ConfigPath())
+		f, err := fs.Create(res[i].ConfigPath())
 		if err != nil {
 			return res, err
 		}
 		defer f.Close()
 		defer func() {
 			if err != nil {
-				res.failureCleanup(fs)
+				res[i].failureCleanup(fs)
 			}
 		}()
 		cfg := ContentConfig{
@@ -86,18 +86,18 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
 			return res, err
 		}
-		if err = fs.WriteFile(res.ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
+		if err = fs.WriteFile(res[i].ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
 			return res, err
 		}
-		res.Dependencies = make([]ImportResult, len(proc.Dependencies))
+		res[i].Dependencies = make([]ImportResult, len(proc.Dependencies))
 		for i := range proc.Dependencies {
-			res.Dependencies[i], err = Import(proc.Dependencies[i], fs, cache, linkedId)
+			res[i].Dependencies, err = Import(proc.Dependencies[i], fs, cache, linkedId)
 			if err != nil {
 				break
 			}
 		}
-		cache.Index(res.ConfigPath(), fs)
-		if err = cat.PostImportProcessing(proc, res, fs, cache, linkedId); err != nil {
+		cache.Index(res[i].ConfigPath(), fs)
+		if err = cat.PostImportProcessing(proc, &res[i], fs, cache, linkedId); err != nil {
 			return res, err
 		}
 	}

@@ -184,6 +184,14 @@ func (input *Input) onLayoutUpdating() {
 	pl.SetOffset(horizontalPadding, 0)
 	pl.ScaleWidth(ps.Width())
 
+	if data.highlight.entity.IsActive() {
+		startX := input.charX(data.selectStart)
+		endX := input.charX(data.selectEnd)
+		width := endX - startX
+		data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
+		data.highlight.layout.SetOffset(startX+data.labelShift, 0)
+	}
+
 	// Cursor
 	data.cursor.layout.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
 }
@@ -432,7 +440,7 @@ func (input *Input) pointerPosWithin() int {
 		pos[matrix.Vx] -= data.label.layout.left
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
-		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
+		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5) - horizontalPadding)
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
 		return host.FontCache().PointOffsetWithin(
 			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())

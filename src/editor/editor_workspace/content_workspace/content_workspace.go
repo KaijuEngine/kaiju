@@ -56,7 +56,7 @@ import (
 type Workspace struct {
 	common_workspace.CommonWorkspace
 	pfs               *project_file_system.FileSystem
-	cCache            *content_database.Cache
+	cache             *content_database.Cache
 	typeFilters       []string
 	tagFilters        []string
 	query             string
@@ -65,6 +65,7 @@ type Workspace struct {
 	addTagbtn         *document.Element
 	selectedContent   *document.Element
 	rightBody         *document.Element
+	tooltip           *document.Element
 	pageData          WorkspaceUIData
 	info              struct {
 		nameInput        *document.Element
@@ -79,21 +80,24 @@ type Workspace struct {
 func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
 	w.pfs = pfs
-	w.cCache = cdb
+	w.cache = cdb
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":    w.inputFilter,
-			"tagFilter":      w.tagFilter,
-			"clickImport":    w.clickImport,
-			"clickFilter":    w.clickFilter,
-			"clickEntry":     w.clickEntry,
-			"clickDeleteTag": w.clickDeleteTag,
-			"updateTagHint":  w.updateTagHint,
-			"submitNewTag":   w.submitNewTag,
-			"clickTagHint":   w.clickTagHint,
-			"submitName":     w.submitName,
-			"clickReimport":  w.clickReimport,
+			"inputFilter":     w.inputFilter,
+			"tagFilter":       w.tagFilter,
+			"clickImport":     w.clickImport,
+			"clickFilter":     w.clickFilter,
+			"clickEntry":      w.clickEntry,
+			"clickDeleteTag":  w.clickDeleteTag,
+			"updateTagHint":   w.updateTagHint,
+			"submitNewTag":    w.submitNewTag,
+			"clickTagHint":    w.clickTagHint,
+			"submitName":      w.submitName,
+			"clickReimport":   w.clickReimport,
+			"entryMouseEnter": w.entryMouseEnter,
+			"entryMouseMove":  w.entryMouseMove,
+			"entryMouseLeave": w.entryMouseLeave,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -105,6 +109,7 @@ func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileS
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
+	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.addContent(ids)
 }
 
@@ -116,6 +121,7 @@ func (w *Workspace) Open() {
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
+	w.tooltip.UI.Hide()
 	if w.selectedContent == nil {
 		w.rightBody.UI.Hide()
 	}
@@ -137,18 +143,20 @@ func (w *Workspace) clickImport(*document.Element) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
 			for i := range paths {
-				res, err := content_database.Import(paths[i], w.pfs, w.cCache, "")
-				if err != nil {
-					slog.Error("failed to import content", "path", paths[i], "error", err)
-				} else {
-					var addDependencies func(target *content_database.ImportResult)
-					addDependencies = func(target *content_database.ImportResult) {
-						index = append(index, target.Id)
-						for i := range target.Dependencies {
-							addDependencies(&target.Dependencies[i])
+				res, err := content_database.Import(paths[i], w.pfs, w.cache, "")
+				for j := range res {
+					if err != nil {
+						slog.Error("failed to import content", "path", paths[i], "error", err)
+					} else {
+						var addDependencies func(target *content_database.ImportResult)
+						addDependencies = func(target *content_database.ImportResult) {
+							index = append(index, target.Id)
+							for k := range target.Dependencies {
+								addDependencies(&target.Dependencies[k])
+							}
 						}
+						addDependencies(&res[j])
 					}
-					addDependencies(&res)
 				}
 			}
 			w.addContent(index)
@@ -165,7 +173,7 @@ func (w *Workspace) addContent(ids []string) {
 	}
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cCache.Read(ids[i])
+		cc, err := w.cache.Read(ids[i])
 		if err != nil {
 			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
 			continue
@@ -269,7 +277,7 @@ func (w *Workspace) clickEntry(e *document.Element) {
 		return
 	}
 	id := e.Attribute("id")
-	cc, err := w.cCache.Read(id)
+	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
@@ -295,7 +303,7 @@ func (w *Workspace) clickEntry(e *document.Element) {
 func (w *Workspace) clickDeleteTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickDeleteTag").End()
 	id := w.selectedId()
-	cc, err := w.cCache.Read(id)
+	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
 		return
@@ -363,7 +371,7 @@ func (w *Workspace) submitName(e *document.Element) {
 		return
 	}
 	id := w.selectedId()
-	cc, err := w.cCache.Read(id)
+	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the content by id", "id", id, "error", err)
 		return
@@ -374,11 +382,12 @@ func (w *Workspace) submitName(e *document.Element) {
 		return
 	}
 	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
+	w.cache.Index(cc.Path, w.pfs)
 }
 
 func (w *Workspace) clickReimport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickReimport").End()
-	res, err := content_database.Reimport(w.selectedId(), w.pfs, w.cCache)
+	res, err := content_database.Reimport(w.selectedId(), w.pfs, w.cache)
 	if err != nil {
 		slog.Error("failed to re-import the content", "error", err)
 		return
@@ -387,10 +396,49 @@ func (w *Workspace) clickReimport(*document.Element) {
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
+func (w *Workspace) entryMouseEnter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
+	ui := w.tooltip.UI
+	id := e.Attribute("id")
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
+		return
+	}
+	ui.Show()
+	lbl := w.tooltip.Children[0].UI.ToLabel()
+	if len(cc.Config.Tags) == 0 {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+	} else {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+	}
+}
+
+func (w *Workspace) entryMouseMove(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
+	ui := w.tooltip.UI
+	if !ui.Entity().IsActive() {
+		ui.Show()
+	}
+	// Running on the main thread so it's up to date with the mouse position on
+	// the next frame. Maybe there's no need for this...
+	w.Host.RunOnMainThread(func() {
+		p := w.Host.Window.Mouse.ScreenPosition()
+		// Offsetting the box so the mouse doesn't collide with it easily
+		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+	})
+}
+
+func (w *Workspace) entryMouseLeave(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
+	w.tooltip.UI.Hide()
+}
+
 func (w *Workspace) addTagToSelected(tag string) {
 	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
 	id := w.selectedId()
-	cc, err := w.cCache.Read(id)
+	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
 		return
@@ -400,6 +448,12 @@ func (w *Workspace) addTagToSelected(tag string) {
 		w.updateIndexForCachedContent(&cc)
 	}
 	w.clickEntry(w.selectedContent)
+	// Add the tag to the entry details
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].Children[0].UI.ToLabel().SetText(tag)
+	tagListEntry.Children[1].SetAttribute("data-tag", tag)
+	tagListEntry.UI.Show()
+	// Add the tag to the tag filters if it's not already
 	for i := range w.pageData.Tags {
 		if strings.EqualFold(tag, w.pageData.Tags[i]) {
 			return
@@ -428,7 +482,7 @@ func (w *Workspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cCache) {
+		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
 			e.UI.Entity().Activate()
 		} else {
 			e.UI.Entity().Deactivate()
@@ -439,7 +493,7 @@ func (w *Workspace) runFilter() {
 func (w *Workspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
 	defer tracing.NewRegion("ContentWorkspace.updateIndexForCachedContent").End()
 	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
-	if err := w.cCache.Index(cc.Path, w.pfs); err != nil {
+	if err := w.cache.Index(cc.Path, w.pfs); err != nil {
 		slog.Error("failed to index the content after updating tags", "error", err)
 		return err
 	}

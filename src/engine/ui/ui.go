@@ -455,6 +455,8 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 		if windowing.HasDragData() {
 			ui.requestEvent(EventTypeDropExit)
 		}
+	} else if ui.hovering && contained {
+		ui.requestEvent(EventTypeMove)
 	}
 }
 
