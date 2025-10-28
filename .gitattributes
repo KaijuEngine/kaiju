@@ -1,0 +1,5 @@
+*.material linguist-language=JSON
+*.stage linguist-language=JSON
+*.shader linguist-language=JSON
+*.renderpass linguist-language=JSON
+*.shaderpipeline linguist-language=JSON
