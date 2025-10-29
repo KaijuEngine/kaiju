@@ -69,6 +69,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickShading":         b.clickShading,
 			"clickAnimation":       b.clickAnimation,
 			"clickUI":              b.clickUI,
+			"clickSettings":        b.clickSettings,
 			"clickNewStage":        b.clickNewStage,
 			"clickOpenStage":       b.clickOpenStage,
 			"clickSaveStage":       b.clickSaveStage,
@@ -134,6 +135,11 @@ func (b *MenuBar) clickAnimation(e *document.Element) {
 
 func (b *MenuBar) clickUI(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickUI").End()
+	b.selectTab(e)
+}
+
+func (b *MenuBar) clickSettings(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickSettings").End()
 	b.selectTab(e)
 }
 
