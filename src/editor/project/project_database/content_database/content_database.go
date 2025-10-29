@@ -59,7 +59,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		return res, err
 	}
 	useLinkedId := linkedId != "" || len(proc.Variants) > 1 ||
-		len(res[0].Dependencies) > 0
+		len(proc.Dependencies) > 0
 	res = klib.SliceSetLen(res, len(proc.Variants))
 	for i := range proc.Variants {
 		res[i].generateUniqueFileId(fs)
