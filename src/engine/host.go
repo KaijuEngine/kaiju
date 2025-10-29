@@ -38,6 +38,7 @@
 package engine
 
 import (
+	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision_system"
@@ -374,7 +375,8 @@ func (host *Host) NewEntity() *Entity {
 func (host *Host) Update(deltaTime float64) {
 	defer tracing.NewRegion("Host.Update").End()
 	host.frame++
-	host.frameTime += deltaTime
+	debug.Ensure(deltaTime >= 0)
+	host.frameTime += max(0.0, deltaTime)
 	host.Window.Poll()
 	for i := 0; i < len(host.frameRunner); i++ {
 		if host.frameRunner[i].frame <= host.frame {
