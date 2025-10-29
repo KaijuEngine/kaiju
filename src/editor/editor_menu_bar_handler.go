@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -65,6 +66,25 @@ func (ed *Editor) ContentWorkspaceSelected() {
 func (ed *Editor) OpenVSCodeProject() {
 	defer tracing.NewRegion("Editor.OpenVSCodeProject").End()
 	exec.Command("code", ed.project.FileSystem().FullPath("")).Run()
+}
+
+func (ed *Editor) CreateNewStage() {
+	if ed.history.HasPendingChanges() {
+		ed.BlurInterface()
+		confirm_prompt.Show(ed.host, confirm_prompt.Config{
+			Title:       "Discrad changes",
+			Description: "You have unsaved changes to your stage, would you like to discard them and create a new stage?",
+			ConfirmText: "Yes",
+			CancelText:  "No",
+			OnConfirm: func() {
+				ed.FocusInterface()
+				ed.workspaces.stage.Manager().NewStage()
+			},
+			OnCancel: func() { ed.FocusInterface() },
+		})
+	} else {
+		ed.workspaces.stage.Manager().NewStage()
+	}
 }
 
 // SaveCurrentStage will save the currently open stage file. This is an exposed

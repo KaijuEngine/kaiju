@@ -83,6 +83,7 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
+	m.Clear()
 	m.stageId = uuid.NewString()
 	m.isNew = true
 }

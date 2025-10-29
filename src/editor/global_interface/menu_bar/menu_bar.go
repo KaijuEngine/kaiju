@@ -140,6 +140,7 @@ func (b *MenuBar) clickUI(e *document.Element) {
 func (b *MenuBar) clickNewStage(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickNewStage").End()
 	b.hidePopups()
+	b.handler.CreateNewStage()
 }
 
 func (b *MenuBar) clickOpenStage(e *document.Element) {

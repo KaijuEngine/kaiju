@@ -41,5 +41,6 @@ type MenuBarHandler interface {
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
 	OpenVSCodeProject()
+	CreateNewStage()
 	SaveCurrentStage()
 }
