@@ -64,6 +64,7 @@ func (ed *Editor) onWindowActivate() {
 	if !time.Now().After(ed.window.lastActiveTime.Add(time.Second * 5)) {
 		return
 	}
+	// Loose goroutine
 	go ed.project.ReadSourceCode()
 }
 
