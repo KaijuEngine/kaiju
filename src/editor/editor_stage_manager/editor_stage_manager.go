@@ -221,6 +221,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
 		e := m.AddEntity(matrix.Vec3Zero())
 		e.StageData.Description = *desc
+		e.SetName(desc.Name)
 		if parent != nil {
 			e.SetParent(&parent.Entity)
 		}

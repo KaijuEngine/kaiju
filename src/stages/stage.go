@@ -63,6 +63,7 @@ type StageJson struct {
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDescription struct {
 	Id          string
+	Name        string
 	Mesh        string
 	Material    string
 	Textures    []string
@@ -75,6 +76,7 @@ type EntityDescription struct {
 
 type EntityDescriptionJson struct {
 	Id          string
+	Name        string
 	Mesh        int
 	Material    int                     `json:"Mat"`
 	Textures    []int                   `json:"Tex,omitempty"`
@@ -142,6 +144,7 @@ func (s *Stage) ToMinimized() StageJson {
 	var proc func(from *EntityDescription, to *EntityDescriptionJson)
 	proc = func(from *EntityDescription, to *EntityDescriptionJson) {
 		to.Id = from.Id
+		to.Name = from.Name
 		to.Position = from.Position
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
@@ -170,6 +173,7 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	var proc func(from *EntityDescriptionJson, to *EntityDescription)
 	proc = func(from *EntityDescriptionJson, to *EntityDescription) {
 		to.Id = from.Id
+		to.Name = from.Name
 		to.Position = from.Position
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
