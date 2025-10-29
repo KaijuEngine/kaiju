@@ -40,15 +40,15 @@ package build
 import "strings"
 
 const (
-	CompanyName    = "Marshmallow Bear"
-	CompanyDirName = "MarshmallowBear"
+	CompanyName    = "Kaiju Engine"
+	CompanyDirName = "KaijuEngine"
 )
 
 type GameTitle string
 
 const (
-	GameTitleEditor    = GameTitle("Kaiju Engine Editor")
-	GameTitleGenerator = GameTitle("Kaiju Generator")
+	GameTitleEditor    = GameTitle("Editor")
+	GameTitleGenerator = GameTitle("Generator")
 )
 
 func (t GameTitle) String() string           { return string(t) }

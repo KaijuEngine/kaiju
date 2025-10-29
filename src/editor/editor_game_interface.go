@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"reflect"
 )
 
@@ -62,6 +63,9 @@ func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("EditorGame.Launch").End()
 	host.SetFrameRateLimit(60)
 	ed := &Editor{host: host}
+	if err := ed.settings.Load(); err != nil {
+		slog.Error("failed to load the settings for the editor", "error", err)
+	}
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(128)
 	ed.earlyLoadUI()
