@@ -38,9 +38,11 @@
 package editor
 
 import (
+	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
+	"strings"
 )
 
 // StageWorkspaceSelected will inform the editor that the developer has
@@ -69,8 +71,40 @@ func (ed *Editor) OpenVSCodeProject() {
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
 	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
-	err := ed.workspaces.stage.Manager().SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem())
-	if err != nil {
+	sm := ed.workspaces.stage.Manager()
+	if sm.IsNew() {
+		ed.BlurInterface()
+		input_prompt.Show(ed.host, input_prompt.Config{
+			Title:       "Name stage",
+			Description: "What would you like to name your stage?",
+			Placeholder: "Stage name...",
+			Value:       "New Stage",
+			ConfirmText: "Save",
+			CancelText:  "Cancel",
+			OnConfirm: func(name string) {
+				name = strings.TrimSpace(name)
+				if name != "" {
+					sm.SetName(name)
+					ed.saveCurrentStageWithoutNameInput()
+					id := sm.StageId()
+					ed.workspaces.content.AddContent([]string{id})
+				} else {
+					slog.Error("name was blank for the stage, can't save")
+				}
+				ed.FocusInterface()
+			},
+			OnCancel: func() { ed.FocusInterface() },
+		})
+	} else {
+		ed.saveCurrentStageWithoutNameInput()
+	}
+}
+
+func (ed *Editor) saveCurrentStageWithoutNameInput() {
+	sm := ed.workspaces.stage.Manager()
+	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
+		ed.history.SetSavePosition()
+	} else {
 		slog.Error("failed to save the current stage", "error", err)
 	}
 }

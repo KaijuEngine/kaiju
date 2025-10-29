@@ -43,9 +43,10 @@ import (
 )
 
 type History struct {
-	undoStack []Memento
-	position  int
-	limit     int
+	undoStack     []Memento
+	position      int
+	limit         int
+	savedPosition int
 }
 
 func (h *History) Initialize(limit int) { h.limit = limit }
@@ -93,3 +94,6 @@ func (h *History) Clear() {
 	h.undoStack = klib.RemakeSlice(h.undoStack)
 	h.position = 0
 }
+
+func (h *History) SetSavePosition()        { h.savedPosition = h.position }
+func (h *History) HasPendingChanges() bool { return h.savedPosition == h.position }

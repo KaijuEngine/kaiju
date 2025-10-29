@@ -60,10 +60,12 @@ import (
 // StageManager represents the current stage in the editor. It contains all of
 // the entities on the stage.
 type StageManager struct {
-	stageId  string
-	host     *engine.Host
-	entities []*StageEntity
-	selected []*StageEntity
+	stageId   string
+	stageName string
+	host      *engine.Host
+	entities  []*StageEntity
+	selected  []*StageEntity
+	isNew     bool
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -80,9 +82,13 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
-	// TODO:  Show a popup to save the current stage if there are changes
 	m.stageId = uuid.NewString()
+	m.isNew = true
 }
+
+func (m *StageManager) IsNew() bool         { return m.isNew }
+func (m *StageManager) StageId() string     { return m.stageId }
+func (m *StageManager) SetName(name string) { m.stageName = name }
 
 // List will return all of the internally held entities for the stage
 func (m *StageManager) List() []*StageEntity { return m.entities }
@@ -172,7 +178,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 	configPath := filepath.Join(project_file_system.ContentConfigFolder,
 		project_file_system.ContentStageFolder, m.stageId)
 	cfg := content_database.ContentConfig{}
-	cfg.Name = "Testing"
+	cfg.Name = m.stageName
 	cfg.Type = content_database.Stage{}.TypeName()
 	f2, err := fs.Create(configPath)
 	if err != nil {
@@ -187,6 +193,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		// TODO:  Roll back
 		return err
 	}
+	m.isNew = true
 	slog.Info("Stage saved successfully")
 	return nil
 }
@@ -235,6 +242,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 			return err
 		}
 	}
+	m.isNew = false
 	return nil
 }
 

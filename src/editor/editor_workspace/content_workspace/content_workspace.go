@@ -113,7 +113,7 @@ func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEv
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
-	w.addContent(ids)
+	w.AddContent(ids)
 }
 
 func (w *Workspace) Open() {
@@ -162,14 +162,14 @@ func (w *Workspace) clickImport(*document.Element) {
 					}
 				}
 			}
-			w.addContent(index)
+			w.AddContent(index)
 		}, OnCancel: func() {
 			w.UiMan.EnableUpdate()
 		},
 	})
 }
 
-func (w *Workspace) addContent(ids []string) {
+func (w *Workspace) AddContent(ids []string) {
 	defer tracing.NewRegion("ContentWorkspace.addContent").End()
 	if len(ids) == 0 {
 		return
