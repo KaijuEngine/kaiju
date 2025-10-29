@@ -96,7 +96,7 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.createViewportGrid()
 	w.setupCamera()
 	w.contentUI.setup(w, w.ed.Events(), ids)
-	w.transformTool.Initialize(host, w, w.ed.History())
+	w.transformTool.Initialize(host, w, w.ed.History(), &w.ed.Settings().Snapping)
 }
 
 func (w *Workspace) Open() {

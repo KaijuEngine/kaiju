@@ -39,6 +39,7 @@ package transform_tools
 
 import (
 	"kaiju/editor/editor_controls"
+	"kaiju/editor/editor_settings"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -62,15 +63,17 @@ type TransformTool struct {
 	wireTransform  *matrix.Transform
 	resets         []matrix.Vec3
 	history        *memento.History
+	snapSettings   *editor_settings.SnapSettings
 	unsnapped      []matrix.Vec3
 	transformDirty int
 	firstHitUpdate bool
 }
 
-func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History) {
+func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings) {
 	defer tracing.NewRegion("TransformTool.Initialize").End()
 	wt := matrix.NewTransform(stage.WorkspaceHost().WorkGroup())
 	t.stage = stage
+	t.snapSettings = snapSettings
 	t.wireTransform = &wt
 	t.resets = make([]matrix.Vec3, 0, 32)
 	t.history = history
@@ -485,19 +488,20 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 	defer tracing.NewRegion("TransformTool.transform").End()
 	snapScale := float32(1)
-	// TODO:  Implement grid snapping for local settings
-	// snapConfig := editor_cache.GridSnapping
-	// snapConfig := false
-	if t.state == ToolStateRotate {
-		snapScale = 15
-		// TODO:  Implement rotation snapping for local settings
-		// snapConfig = editor_cache.RotationSnapping
-		// snapConfig = false
+	switch t.state {
+	case ToolStateMove:
+		if t.snapSettings.TranslateEnabled {
+			snapScale = t.snapSettings.TranslateIncrement
+		}
+	case ToolStateRotate:
+		if t.snapSettings.RotationEnabled {
+			snapScale = t.snapSettings.RotateIncrement
+		}
+	case ToolStateScale:
+		if t.snapSettings.ScaleEnabled {
+			snapScale = t.snapSettings.ScaleIncrement
+		}
 	}
-	// TODO:  Implement the snapping value in the local settings
-	// if s, ok := editor_cache.EditorConfigValue(snapConfig); ok {
-	// 	snapScale = float32(s.(float64))
-	// }
 	for i, e := range t.stage.Manager().Selection() {
 		et := &e.Transform
 		switch t.state {

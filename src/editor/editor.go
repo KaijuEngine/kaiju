@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
+	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace"
@@ -65,6 +66,7 @@ import (
 // internally.
 type Editor struct {
 	host             *engine.Host
+	settings         editor_settings.Settings
 	project          project.Project
 	workspaceState   WorkspaceState
 	workspaces       workspaces
