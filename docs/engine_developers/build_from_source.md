@@ -4,7 +4,7 @@ title: Build from source | Kaiju Engine
 
 # Build from source
 
-Below are instructions on how to build the engine from source. Please take care to ensure you're using the Kaiju Engine Go compiler. It is modified for speed (relating to games) and has some features enabled that are currently disabled in Go until the next release.
+Below are instructions on how to build the editor from source
 
 ## Prerequisites
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
@@ -16,17 +16,25 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
   - Mine is `C:\mingw64\bin`
 - Pull the repository
 - Go into src `cd src`
-- To build the exe in debug mode, run: `go build -tags="debug,editor" -o ../kaiju.exe ./`
-- To build the exe, run: `go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./`
+- To build the exe in debug mode, run:
+  - `go build -tags="debug,editor" -o ../kaiju.exe ./`
+- To build the exe, run:
+  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./`
 
 ## Linux development
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
 - Go into src `cd src`
-- To build the exe in debug mode, run: `go build -tags="debug,editor" -o ../kaiju ./`
-- To build the exe, run: `go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./`
+- To build the exe in debug mode, run:
+  - `go build -tags="debug,editor" -o ../kaiju ./`
+- To build the exe, run:
+  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./`
 
+## Building Soloud
+Currently the engine uses Soloud for playing music and sound effects. Below are instructions on how to build the library for the engine.
+
+### Soloud Windows
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
 cd soloud
@@ -37,7 +45,7 @@ cmake .. -G "MinGW Makefiles" .. -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_WASA
 cmake --build . --config Release
 ```
 
-**Linux**
+### Soloud Linux
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
 cd soloud
