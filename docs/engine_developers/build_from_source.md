@@ -15,13 +15,17 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 - Add the `bin` folder to your environment path
   - Mine is `C:\mingw64\bin`
 - Pull the repository
-- To build the exe, run `go run build/build.go`
+- Go into src `cd src`
+- To build the exe in debug mode, run: `go build -tags="debug,editor" -o ../kaiju.exe ./`
+- To build the exe, run: `go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./`
 
 ## Linux development
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
-- To build the exe, run `go run build/build.go`
+- Go into src `cd src`
+- To build the exe in debug mode, run: `go build -tags="debug,editor" -o ../kaiju ./`
+- To build the exe, run: `go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./`
 
 ## Issues with SoLoud audio library linking?
 If you are having trouble linking with the soloud library (`libs/libsoloud_*.a`), then you'll need to rebuild the library files to link against. It is likely that you're using a different compiler than the original (and it's a C++ library). Below are the instructions on how to build the library. Once built, copy the library `.a` file into the `libs/` folder and overwrite the existing ones.
