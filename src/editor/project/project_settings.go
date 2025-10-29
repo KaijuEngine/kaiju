@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* project_config.go                                                          */
+/* project_settings.go                                                        */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -43,13 +43,13 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
-type Config struct {
+type Settings struct {
 	Name                 string
 	ArchiveEncryptionKey string
 }
 
-func (c *Config) save(fs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("Config.save").End()
+func (c *Settings) save(fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("Settings.save").End()
 	f, err := fs.Create(project_file_system.ProjectConfigFile)
 	if err != nil {
 		return err
@@ -57,8 +57,8 @@ func (c *Config) save(fs *project_file_system.FileSystem) error {
 	return json.NewEncoder(f).Encode(*c)
 }
 
-func (c *Config) load(fs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("Config.load").End()
+func (c *Settings) load(fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("Settings.load").End()
 	f, err := fs.Open(project_file_system.ProjectConfigFile)
 	if err != nil {
 		return err

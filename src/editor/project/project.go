@@ -60,7 +60,7 @@ type Project struct {
 	OnNameChange  func(string)
 	fileSystem    project_file_system.FileSystem
 	cacheDatabase content_database.Cache
-	config        Config
+	settings      Settings
 	entityData    []codegen.GeneratedType
 	readingCode   bool
 }
@@ -98,7 +98,7 @@ func (p *Project) Initialize(path string) error {
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.config.load(&p.fileSystem); err != nil {
+	if err = p.settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
 	return nil
@@ -109,7 +109,7 @@ func (p *Project) Initialize(path string) error {
 // error saving the config.
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
-	return p.config.save(&p.fileSystem)
+	return p.settings.save(&p.fileSystem)
 }
 
 // Open constructs an existing project given a target folder. This function can
@@ -131,7 +131,7 @@ func (p *Project) Open(path string) error {
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.config.load(&p.fileSystem); err != nil {
+	if err = p.settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
 	return nil
@@ -139,20 +139,20 @@ func (p *Project) Open(path string) error {
 
 // Name will return the name that has been set for this project. If the name is
 // not set, either the project hasn't been setup/selected or it is an error.
-func (p *Project) Name() string { return p.config.Name }
+func (p *Project) Name() string { return p.settings.Name }
 
 // SetName will update the name of the project and save the project config file.
 // When the name is successfully set, the [OnNameChange] func will be called.
 func (p *Project) SetName(name string) {
 	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
-	if name == "" || p.config.Name == name {
+	if name == "" || p.settings.Name == name {
 		return
 	}
-	p.config.Name = name
-	p.config.save(&p.fileSystem)
+	p.settings.Name = name
+	p.settings.save(&p.fileSystem)
 	if p.OnNameChange != nil {
-		p.OnNameChange(p.config.Name)
+		p.OnNameChange(p.settings.Name)
 	}
 	p.writeProjectTitle()
 }
