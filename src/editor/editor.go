@@ -39,6 +39,7 @@ package editor
 
 import (
 	"kaiju/editor/editor_embedded_content"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
@@ -71,6 +72,7 @@ type Editor struct {
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
 	history          memento.History
+	events           editor_events.EditorEvents
 	window           struct {
 		activateId     events.Id
 		deactivateId   events.Id
