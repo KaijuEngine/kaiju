@@ -47,6 +47,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/stages"
@@ -200,7 +201,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 
 func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("StageManager.LoadStage").End()
-	// TODO:  Show a popup to save the current stage if there are changes
+	m.Clear()
 	cc, err := cache.Read(id)
 	if err != nil {
 		return err
@@ -220,7 +221,9 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
 		e := m.AddEntity(matrix.Vec3Zero())
 		e.StageData.Description = *desc
-		e.SetParent(&parent.Entity)
+		if parent != nil {
+			e.SetParent(&parent.Entity)
+		}
 		e.Transform.SetPosition(desc.Position)
 		e.Transform.SetRotation(desc.Rotation)
 		e.Transform.SetScale(desc.Scale)
@@ -310,6 +313,8 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		texs = append(texs, tex)
 	}
 	mat = mat.CreateInstance(texs)
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.Bvh = km.GenerateBVH(host.Threads())
 	host.RunOnMainThread(func() {
 		for i := range texs {
 			texs[i].DelayedCreate(host.Window.Renderer)

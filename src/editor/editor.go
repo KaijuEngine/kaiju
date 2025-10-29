@@ -127,8 +127,7 @@ func (ed *Editor) lateLoadUI() {
 	go ed.project.ReadSourceCode()
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
-	ed.workspaces.stage.Initialize(ed.host, &ed.events, &ed.history,
-		ed.project.FileSystem(), ed.project.CacheDatabase())
+	ed.workspaces.stage.Initialize(ed.host, ed)
 	ed.workspaces.content.Initialize(ed.host, &ed.events,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
 	ed.setWorkspaceState(WorkspaceStateStage)

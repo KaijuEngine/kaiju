@@ -39,14 +39,10 @@ package stage_workspace
 
 import (
 	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
-	"kaiju/editor/memento"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
@@ -61,17 +57,15 @@ const maxContentDropDistance = 10
 
 type Workspace struct {
 	common_workspace.CommonWorkspace
+	ed            StageWorkspaceEditorInterface
 	camera        editor_controls.EditorCamera
 	updateId      engine.UpdateId
 	gridTransform matrix.Transform
 	gridShader    *shader_data_registry.ShaderDataGrid
 	pageData      content_workspace.WorkspaceUIData
-	pfs           *project_file_system.FileSystem
-	cache         *content_database.Cache
 	contentUI     WorkspaceContentUI
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
-	edEvts        *editor_events.EditorEvents
 }
 
 func (w *Workspace) WorkspaceHost() *engine.Host { return w.Host }
@@ -80,19 +74,18 @@ func (w *Workspace) Manager() *editor_stage_manager.StageManager { return &w.man
 
 func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
 
-func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
-	w.pfs = pfs
-	w.cache = cdb
-	w.edEvts = edEvts
+	w.ed = ed
 	w.manager.Initialize(host)
 	w.manager.NewStage()
-	ids := w.pageData.SetupUIData(cdb)
+	ids := w.pageData.SetupUIData(w.ed.Cache())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
 			"inputFilter":     w.contentUI.inputFilter,
 			"tagFilter":       w.contentUI.tagFilter,
 			"clickFilter":     w.contentUI.clickFilter,
+			"dblClickEntry":   w.contentUI.dblClickEntry,
 			"hideContent":     w.contentUI.hideContent,
 			"showContent":     w.contentUI.showContent,
 			"entryDragStart":  w.contentUI.entryDragStart,
@@ -102,8 +95,8 @@ func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEv
 		})
 	w.createViewportGrid()
 	w.setupCamera()
-	w.contentUI.setup(w, edEvts, ids)
-	w.transformTool.Initialize(host, w, history)
+	w.contentUI.setup(w, w.ed.Events(), ids)
+	w.transformTool.Initialize(host, w, w.ed.History())
 }
 
 func (w *Workspace) Open() {

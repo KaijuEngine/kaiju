@@ -96,4 +96,4 @@ func (h *History) Clear() {
 }
 
 func (h *History) SetSavePosition()        { h.savedPosition = h.position }
-func (h *History) HasPendingChanges() bool { return h.savedPosition == h.position }
+func (h *History) HasPendingChanges() bool { return h.savedPosition != h.position }

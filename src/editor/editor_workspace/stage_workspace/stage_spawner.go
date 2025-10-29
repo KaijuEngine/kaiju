@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
@@ -51,14 +52,8 @@ import (
 	"log/slog"
 )
 
-func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mouse) {
+func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
-	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
-	if !ok {
-		slog.Error("failed to find the content category for type",
-			"id", cc.Id(), "type", cc.Config.Type)
-		return
-	}
 	ray := w.Host.Camera.RayCast(m.Position())
 	e, eHitOk := w.manager.TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
@@ -66,6 +61,12 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 	hit, ok := ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
 	if !ok {
 		hit = ray.Point(maxContentDropDistance)
+	}
+	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
+	if !ok {
+		slog.Error("failed to find the content category for type",
+			"id", cc.Id(), "type", cc.Config.Type)
+		return
 	}
 	switch cat.(type) {
 	case content_database.Texture:
@@ -82,6 +83,47 @@ func (w *Workspace) spawnContent(cc *content_database.CachedContent, m *hid.Mous
 	}
 }
 
+func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, point matrix.Vec3) {
+	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
+	if !ok {
+		slog.Error("failed to find the content category for type",
+			"id", cc.Id(), "type", cc.Config.Type)
+		return
+	}
+	switch cat.(type) {
+	case content_database.Texture:
+		w.spawnTexture(cc, point)
+	case content_database.Mesh:
+		w.spawnMesh(cc, point)
+	case content_database.Stage:
+		if w.ed.History().HasPendingChanges() {
+			w.ed.BlurInterface()
+			confirm_prompt.Show(w.Host, confirm_prompt.Config{
+				Title:       "Discrad changes",
+				Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
+				ConfirmText: "Yes",
+				CancelText:  "No",
+				OnConfirm: func() {
+					w.ed.FocusInterface()
+					w.loadStage(cc.Id())
+				},
+				OnCancel: func() { w.ed.FocusInterface() },
+			})
+		} else {
+			w.loadStage(cc.Id())
+		}
+	default:
+		slog.Error("double clicking this type of content is not supported",
+			"id", cc.Id(), "type", cc.Config.Type)
+	}
+}
+
+func (w *Workspace) loadStage(id string) {
+	if err := w.manager.LoadStage(id, w.Host, w.ed.Cache(), w.ed.ProjectFileSystem()); err != nil {
+		slog.Error("failed to load the stage", "id", id, "error", err)
+	}
+}
+
 func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
@@ -90,7 +132,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		return
 	}
 	path := content_database.ToContentPath(cc.Path)
-	data, err := w.pfs.ReadFile(path)
+	data, err := w.ed.ProjectFileSystem().ReadFile(path)
 	if err != nil {
 		slog.Error("error reading the image file", "path", path)
 		return
@@ -131,7 +173,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 		return
 	}
 	path := content_database.ToContentPath(cc.Path)
-	data, err := w.pfs.ReadFile(path)
+	data, err := w.ed.ProjectFileSystem().ReadFile(path)
 	if err != nil {
 		slog.Error("error reading the mesh file", "path", path)
 		return
@@ -167,7 +209,7 @@ func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)
-		f, err := w.pfs.Open(path)
+		f, err := w.ed.ProjectFileSystem().Open(path)
 		if err != nil {
 			slog.Error("error reading the mesh file", "path", path)
 			return

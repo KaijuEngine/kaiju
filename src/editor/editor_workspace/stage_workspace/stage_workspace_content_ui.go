@@ -125,7 +125,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w := cui.workspace.Value()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cache.Read(ids[i])
+		cc, err := w.ed.Cache().Read(ids[i])
 		if err != nil {
 			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
 			continue
@@ -157,7 +157,7 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, t
 		// Loose goroutine
 		go func() {
 			path := content_database.ToContentPath(configPath)
-			data, err := w.pfs.ReadFile(path)
+			data, err := w.ed.ProjectFileSystem().ReadFile(path)
 			if err != nil {
 				slog.Error("error reading the image file", "path", path)
 				return
@@ -208,7 +208,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.cache) {
+		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
 			e.UI.Entity().Activate()
 		} else {
 			e.UI.Entity().Deactivate()
@@ -244,6 +244,18 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	cui.runFilter()
 }
 
+func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
+	id := e.Attribute("id")
+	w := cui.workspace.Value()
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
+		return
+	}
+	w.spawnContentAtPosition(&cc, w.Host.Camera.LookAt())
+	cui.dragPreview.UI.Hide()
+}
+
 func (cui *WorkspaceContentUI) hideContent(*document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.hideContent").End()
 	cui.hideContentElm.UI.Hide()
@@ -270,7 +282,7 @@ func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
 	ui := cui.tooltip.UI
 	id := e.Attribute("id")
-	cc, err := cui.workspace.Value().cache.Read(id)
+	cc, err := cui.workspace.Value().ed.Cache().Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
@@ -309,12 +321,12 @@ func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 func (cui *WorkspaceContentUI) dropContent(w *Workspace, m *hid.Mouse) {
 	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
 	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
-		cc, err := w.cache.Read(cui.dragContentId)
+		cc, err := w.ed.Cache().Read(cui.dragContentId)
 		if err != nil {
 			slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
 			return
 		}
-		w.spawnContent(&cc, m)
+		w.spawnContentAtMouse(&cc, m)
 	}
 	cui.dragPreview.UI.Hide()
 	cui.dragging = nil
