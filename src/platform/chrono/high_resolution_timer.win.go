@@ -1,3 +1,5 @@
+//go:build windows
+
 /******************************************************************************/
 /* high_resolution_timer.win.go                                               */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build windows
-
 package chrono
 
 /*
@@ -44,15 +44,16 @@ package chrono
 #cgo nocallback get_freq
 #cgo noescape get_counter
 #cgo nocallback get_counter
+#include <stdint.h>
 #include <windows.h>
 
-long get_freq() {
+int64_t get_freq() {
 	LARGE_INTEGER freq;
 	QueryPerformanceFrequency(&freq);
 	return freq.QuadPart;
 }
 
-long get_counter() {
+int64_t get_counter() {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
 	return counter.QuadPart;
