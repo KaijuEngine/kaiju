@@ -51,6 +51,10 @@ type StageEntity struct {
 func (e *StageEntity) SetMaterial(mat *rendering.Material, host *engine.Host) {
 	e.StageData.ShaderData.Destroy()
 	e.StageData.Description.Textures = make([]string, len(mat.Textures))
+	e.StageData.Description.Material = mat.Id
+	if e.StageData.Description.Material == "" {
+		e.StageData.Description.Material = mat.Name
+	}
 	for i := range mat.Textures {
 		e.StageData.Description.Textures[i] = mat.Textures[i].Key
 	}

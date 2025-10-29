@@ -49,6 +49,7 @@ import (
 )
 
 type Material struct {
+	Id            string
 	Name          string
 	shaderInfo    ShaderDataCompiled
 	renderPass    *RenderPass

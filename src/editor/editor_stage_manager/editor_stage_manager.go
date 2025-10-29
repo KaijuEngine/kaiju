@@ -254,7 +254,6 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	defer tracing.NewRegion("StageManager.spawnLoadedEntity").End()
 	const rootFolder = project_file_system.ContentFolder
 	const meshFolder = project_file_system.ContentMeshFolder
-	const matFolder = project_file_system.ContentMaterialFolder
 	const texFolder = project_file_system.ContentTextureFolder
 	desc := &e.StageData.Description
 	meshId := desc.Mesh
@@ -274,18 +273,12 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	var mat *rendering.Material
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")
-		mat, err = host.MaterialCache().Material(assets.MaterialDefinitionBasic)
-		if err != nil {
-			slog.Error("failed to create the standard material", "error", err)
-			return err
-		}
-	} else {
-		// TODO:
-		//matData, err := w.pfs.ReadFile(filepath.Join(rootFolder, matFolder, materialId))
-		//if err != nil {
-		//	slog.Error("failed to load the material data", "id", meshId, "error", err)
-		//	return err
-		//}
+		materialId = assets.MaterialDefinitionBasic
+	}
+	mat, err = host.MaterialCache().Material(materialId)
+	if err != nil {
+		slog.Error("failed to create the standard material", "error", err)
+		return err
 	}
 	texs := make([]*rendering.Texture, 0, len(textureIds))
 	for i := range textureIds {

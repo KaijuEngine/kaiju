@@ -147,6 +147,8 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	e := w.manager.AddEntity(point)
 	e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
+	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
+	e.StageData.Description.Material = mat.Name
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -189,6 +191,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	e := w.manager.AddEntity(point)
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
+	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -225,6 +228,7 @@ func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor
 			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
 			return
 		}
+		mat.Id = cc.Id()
 		mat = w.Host.MaterialCache().AddMaterial(mat)
 	}
 	e.SetMaterial(mat.CreateInstance(mat.Textures), w.Host)
