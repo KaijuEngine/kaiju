@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"kaiju/editor/editor_controls"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
@@ -70,6 +71,7 @@ type Workspace struct {
 	contentUI     WorkspaceContentUI
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
+	edEvts        *editor_events.EditorEvents
 }
 
 func (w *Workspace) WorkspaceHost() *engine.Host { return w.Host }
@@ -78,10 +80,11 @@ func (w *Workspace) Manager() *editor_stage_manager.StageManager { return &w.man
 
 func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
 
-func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, history *memento.History, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.pfs = pfs
 	w.cache = cdb
+	w.edEvts = edEvts
 	w.manager.Initialize(host)
 	w.manager.NewStage()
 	ids := w.pageData.SetupUIData(cdb)
@@ -99,7 +102,7 @@ func (w *Workspace) Initialize(host *engine.Host, history *memento.History, pfs 
 		})
 	w.createViewportGrid()
 	w.setupCamera()
-	w.contentUI.setup(w, ids)
+	w.contentUI.setup(w, edEvts, ids)
 	w.transformTool.Initialize(host, w, history)
 }
 

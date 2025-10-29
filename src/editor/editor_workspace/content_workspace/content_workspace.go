@@ -39,6 +39,7 @@ package content_workspace
 
 import (
 	"fmt"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -57,6 +58,7 @@ type Workspace struct {
 	common_workspace.CommonWorkspace
 	pfs               *project_file_system.FileSystem
 	cache             *content_database.Cache
+	edEvts            *editor_events.EditorEvents
 	typeFilters       []string
 	tagFilters        []string
 	query             string
@@ -77,10 +79,11 @@ type Workspace struct {
 	}
 }
 
-func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
 	w.pfs = pfs
 	w.cache = cdb
+	w.edEvts = edEvts
 	ids := w.pageData.SetupUIData(cdb)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
@@ -195,6 +198,7 @@ func (w *Workspace) addContent(ids []string) {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
 	}
+	w.edEvts.OnContentAdded.Execute(ids)
 }
 
 func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName string) {

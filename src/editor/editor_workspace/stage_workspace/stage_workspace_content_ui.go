@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"fmt"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
@@ -68,7 +69,7 @@ type WorkspaceContentUI struct {
 	dragContentId  string
 }
 
-func (cui *WorkspaceContentUI) setup(w *Workspace, ids []string) {
+func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorEvents, ids []string) {
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
@@ -77,7 +78,7 @@ func (cui *WorkspaceContentUI) setup(w *Workspace, ids []string) {
 	cui.hideContentElm, _ = w.Doc.GetElementById("hideContent")
 	cui.showContentElm, _ = w.Doc.GetElementById("showContent")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
-	cui.addContent(ids)
+	edEvts.OnContentAdded.Add(cui.addContent)
 }
 
 func (cui *WorkspaceContentUI) open() {
