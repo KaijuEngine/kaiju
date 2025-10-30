@@ -24,16 +24,11 @@ Please review the ad-hoc [editor readme](https://github.com/KaijuEngine/kaiju/bl
 Please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) on how to get started and compile the engine
 
 ## Editor previews
-[complete-editor-refactor-progress.mp4](https://github.com/user-attachments/assets/00291482-1624-4cfb-b59f-c0395a5f1075)
 
-[wip-file-browser-overlay.mp4](https://github.com/user-attachments/assets/ba4f4049-ded5-4638-8bdd-c09daf7869ce)
-
-[updated-content-window.mp4](https://github.com/user-attachments/assets/1d1d773a-6a7e-4986-b984-e08fb303617c)
+[full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
 
 [content-tagging.mp4](https://github.com/user-attachments/assets/15122db6-efda-4458-bf69-f384def5aa31)
 
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
-
-[status-bar-update.mp4](https://github.com/user-attachments/assets/09ee5e96-6c47-47d5-9e66-6e92888562ce)
 
 [focus-and-transform-hotkeys](https://github.com/user-attachments/assets/95a9bcdc-55fe-4317-9200-412f84a494ce)
