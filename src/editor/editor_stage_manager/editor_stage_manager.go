@@ -53,20 +53,22 @@ import (
 	"kaiju/stages"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"weak"
 
 	"github.com/KaijuEngine/uuid"
 )
 
+const StageIdPrefix = "stage_"
+
 // StageManager represents the current stage in the editor. It contains all of
 // the entities on the stage.
 type StageManager struct {
-	stageId   string
-	stageName string
-	host      *engine.Host
-	entities  []*StageEntity
-	selected  []*StageEntity
-	isNew     bool
+	stageId  string
+	host     *engine.Host
+	entities []*StageEntity
+	selected []*StageEntity
+	isNew    bool
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -84,13 +86,20 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
 	m.Clear()
-	m.stageId = uuid.NewString()
 	m.isNew = true
 }
 
-func (m *StageManager) IsNew() bool         { return m.isNew }
-func (m *StageManager) StageId() string     { return m.stageId }
-func (m *StageManager) SetName(name string) { m.stageName = name }
+func (m *StageManager) IsNew() bool     { return m.isNew }
+func (m *StageManager) StageId() string { return m.stageId }
+
+func (m *StageManager) SetStageId(id string, cache *content_database.Cache) error {
+	newId := StageIdPrefix + id
+	if _, err := cache.Read(newId); err == nil {
+		return StageAlreadyExistsError{id}
+	}
+	m.stageId = newId
+	return nil
+}
 
 // List will return all of the internally held entities for the stage
 func (m *StageManager) List() []*StageEntity { return m.entities }
@@ -180,7 +189,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 	configPath := filepath.Join(project_file_system.ContentConfigFolder,
 		project_file_system.ContentStageFolder, m.stageId)
 	cfg := content_database.ContentConfig{}
-	cfg.Name = m.stageName
+	cfg.Name = strings.TrimPrefix(m.stageId, StageIdPrefix)
 	cfg.Type = content_database.Stage{}.TypeName()
 	f2, err := fs.Create(configPath)
 	if err != nil {

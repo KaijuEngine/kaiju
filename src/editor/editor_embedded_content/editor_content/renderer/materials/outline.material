@@ -1,1 +1,1 @@
-{"Name":"outline","Shader":"renderer/shaders/outline.shader","RenderPass":"renderer/passes/outline.renderpass","ShaderPipeline":"renderer/pipelines/outline.shaderpipeline","Textures":[]}
+{"Name":"outline","Shader":"outline.shader","RenderPass":"outline.renderpass","ShaderPipeline":"outline.shaderpipeline","Textures":[]}

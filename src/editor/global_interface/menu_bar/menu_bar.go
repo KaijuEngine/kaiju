@@ -75,6 +75,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickSaveStage":       b.clickSaveStage,
 			"clickOpenVSCode":      b.clickOpenVSCode,
 			"clickBuild":           b.clickBuild,
+			"clickBuildAndRun":     b.clickBuildAndRun,
 			"clickProjectSettings": b.clickProjectSettings,
 			"clickEditorSettings":  b.clickEditorSettings,
 			"clickAbout":           b.clickAbout,
@@ -171,6 +172,12 @@ func (b *MenuBar) clickBuild(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickBuild").End()
 	b.hidePopups()
 	b.handler.Build()
+}
+
+func (b *MenuBar) clickBuildAndRun(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickBuild").End()
+	b.hidePopups()
+	b.handler.BuildAndRun()
 }
 
 func (b *MenuBar) clickProjectSettings(e *document.Element) {

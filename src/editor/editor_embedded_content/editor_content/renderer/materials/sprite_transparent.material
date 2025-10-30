@@ -1,1 +1,1 @@
-{"Name":"sprite_transparent","Shader":"renderer/shaders/sprite_transparent.shader","RenderPass":"renderer/passes/transparent.renderpass","ShaderPipeline":"renderer/pipelines/basic_transparent.shaderpipeline","Textures":[]}
+{"Name":"sprite_transparent","Shader":"sprite_transparent.shader","RenderPass":"transparent.renderpass","ShaderPipeline":"basic_transparent.shaderpipeline","Textures":[]}

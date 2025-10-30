@@ -39,9 +39,9 @@ package assets
 
 // Textures
 const (
-	TextureSquare      = "textures/square.png"
-	TextureBlankSquare = "textures/blank_square.png"
-	TextureTriangle    = "textures/triangle.png"
+	TextureSquare      = "square.png"
+	TextureBlankSquare = "blank_square.png"
+	TextureTriangle    = "triangle.png"
 )
 
 // Material definitions

@@ -40,7 +40,13 @@ package stages
 import (
 	"kaiju/build"
 	"kaiju/debug"
+	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/registry/shader_data_registry"
+	"kaiju/rendering"
+	"kaiju/rendering/loaders/kaiju_mesh"
+	"log/slog"
 	"reflect"
 )
 
@@ -192,4 +198,98 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	for i := range ss.Entities {
 		proc(&ss.Entities[i], &s.Entities[i])
 	}
+}
+
+func (s *Stage) Launch(host *engine.Host) {
+	var proc func(se *EntityDescription, parent *engine.Entity)
+	proc = func(se *EntityDescription, parent *engine.Entity) {
+		e := host.NewEntity()
+		e.SetName(se.Name)
+		if parent != nil {
+			e.SetParent(parent)
+		}
+		e.Transform.SetPosition(se.Position)
+		e.Transform.SetRotation(se.Rotation)
+		e.Transform.SetScale(se.Scale)
+		// TODO:  Data binding should have been serialized
+		if se.Mesh != "" {
+			s.spawnLoadedEntity(e, host, se)
+		}
+		for i := range se.Children {
+			proc(&se.Children[i], e)
+		}
+		// TODO:  Call the init for bound data after all have been created
+	}
+	for i := range s.Entities {
+		proc(&s.Entities[i], nil)
+	}
+}
+
+func (s *Stage) spawnLoadedEntity(e *engine.Entity, host *engine.Host, se *EntityDescription) error {
+	ad := host.AssetDatabase()
+	meshId := se.Mesh
+	materialId := se.Material
+	textureIds := se.Textures
+	kmData, err := ad.Read(meshId)
+	if err != nil {
+		slog.Error("failed to load the mesh data", "id", meshId, "error", err)
+		return err
+	}
+	km, err := kaiju_mesh.Deserialize(kmData)
+	if err != nil {
+		slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
+		return err
+	}
+	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
+	var mat *rendering.Material
+	if materialId == "" {
+		slog.Warn("no material provided for SpawnMesh, will use fallback material")
+		materialId = assets.MaterialDefinitionBasic
+	}
+	mat, err = host.MaterialCache().Material(materialId)
+	if err != nil {
+		slog.Error("failed to create the standard material", "error", err)
+		return err
+	}
+	texs := make([]*rendering.Texture, 0, len(textureIds))
+	for i := range textureIds {
+		texData, err := ad.Read(textureIds[i])
+		if err != nil {
+			slog.Error("failed to read the texture file", "id", textureIds[i], "error", err)
+			return err
+		}
+		// TODO:  Should be reading the filter from the configuration file
+		tex, err := rendering.NewTextureFromMemory(textureIds[i],
+			texData, 0, 0, rendering.TextureFilterLinear)
+		if err != nil {
+			slog.Error("failed to create the texture from it's data", "id", textureIds[i], "error", err)
+			return err
+		}
+		texs = append(texs, tex)
+	}
+	// TODO:  This should be based on the rendering.MaterialData texture count
+	if len(textureIds) == 0 {
+		slog.Warn("missing textures for mesh, using a fallback one")
+		tex, err := host.TextureCache().Texture(assets.TextureSquare,
+			rendering.TextureFilterLinear)
+		if err != nil {
+			slog.Error("failed to create the default texture", "error", err)
+		}
+		texs = append(texs, tex)
+	}
+	mat = mat.CreateInstance(texs)
+	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
+	for i := range texs {
+		texs[i].DelayedCreate(host.Window.Renderer)
+	}
+	draw := rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Material:   mat,
+		Mesh:       mesh,
+		ShaderData: sd,
+		Transform:  &e.Transform,
+	}
+	host.Drawings.AddDrawing(draw)
+	e.OnDestroy.Add(func() { sd.Destroy() })
+	return nil
 }

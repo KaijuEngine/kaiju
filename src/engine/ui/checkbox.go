@@ -42,12 +42,12 @@ import (
 )
 
 const (
-	offIdleTexture  = "textures/checkbox-off-idle.png"
-	offDownTexture  = "textures/checkbox-off-down.png"
-	offHoverTexture = "textures/checkbox-off-hover.png"
-	onIdleTexture   = "textures/checkbox-on-idle.png"
-	onDownTexture   = "textures/checkbox-on-down.png"
-	onHoverTexture  = "textures/checkbox-on-hover.png"
+	offIdleTexture  = "checkbox-off-idle.png"
+	offDownTexture  = "checkbox-off-down.png"
+	offHoverTexture = "checkbox-off-hover.png"
+	onIdleTexture   = "checkbox-on-idle.png"
+	onDownTexture   = "checkbox-on-down.png"
+	onHoverTexture  = "checkbox-on-hover.png"
 )
 
 const (

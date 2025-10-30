@@ -1,1 +1,1 @@
-{"Name":"text","Shader":"renderer/shaders/text.shader","RenderPass":"renderer/passes/simple_opaque.renderpass","ShaderPipeline":"renderer/pipelines/ui.shaderpipeline","Textures":[]}
+{"Name":"text","Shader":"text.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"ui.shaderpipeline","Textures":[]}

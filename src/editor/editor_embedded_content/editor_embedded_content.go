@@ -44,6 +44,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const absoluteFilePrefix = ':'
@@ -58,7 +59,40 @@ func (EditorContent) CacheClear()                   { /* No caching planned*/ }
 func (EditorContent) Close()                        {}
 
 func toEmbedPath(key string) string {
-	return filepath.ToSlash(filepath.Join("editor/editor_embedded_content/editor_content", key))
+	const prefix = "editor/editor_embedded_content/editor_content"
+	if strings.HasPrefix(key, "editor/") {
+		return filepath.ToSlash(filepath.Join(prefix, key))
+	}
+	switch filepath.Ext(key) {
+	case ".bin":
+		return filepath.ToSlash(filepath.Join(prefix, "fonts", key))
+	case ".gltf":
+		return filepath.ToSlash(filepath.Join(prefix, "meshes", key))
+	case ".png":
+		target := filepath.ToSlash(filepath.Join(prefix, "textures", key))
+		if f, err := project_file_system.CodeFS.Open(target); err != nil {
+			target = filepath.ToSlash(filepath.Join(prefix, "fonts", key))
+		} else {
+			f.Close()
+		}
+		return target
+	case ".css":
+		fallthrough
+	case ".html":
+		return filepath.ToSlash(filepath.Join(prefix, "ui", key))
+	case ".material":
+		return filepath.ToSlash(filepath.Join(prefix, "renderer/materials", key))
+	case ".renderpass":
+		return filepath.ToSlash(filepath.Join(prefix, "renderer/passes", key))
+	case ".shaderpipeline":
+		return filepath.ToSlash(filepath.Join(prefix, "renderer/pipelines", key))
+	case ".shader":
+		return filepath.ToSlash(filepath.Join(prefix, "renderer/shaders", key))
+	case ".spv":
+		return filepath.ToSlash(filepath.Join(prefix, "renderer/spv", key))
+	default:
+		return key
+	}
 }
 
 func (e EditorContent) findFile(key string) string {

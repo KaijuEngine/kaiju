@@ -57,7 +57,13 @@ func (e *RuntimeLogHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 func newLogHandler(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
-	return &RuntimeLogHandler{
-		Handler: slog.NewTextHandler(w, opts),
+	if build.Editor {
+		return &RuntimeLogHandler{
+			Handler: slog.NewTextHandler(w, opts),
+		}
+	} else {
+		return &RuntimeLogHandler{
+			Handler: slog.NewJSONHandler(w, opts),
+		}
 	}
 }

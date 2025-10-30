@@ -1,1 +1,1 @@
-{"Name":"combine","Shader":"renderer/shaders/combine.shader","RenderPass":"renderer/passes/combine.renderpass","ShaderPipeline":"renderer/pipelines/combine.shaderpipeline","Textures":[]}
+{"Name":"combine","Shader":"combine.shader","RenderPass":"combine.renderpass","ShaderPipeline":"combine.shaderpipeline","Textures":[]}

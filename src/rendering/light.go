@@ -277,7 +277,7 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 func (l *Light) setupRenderPass(assets assets.Database) {
 	vr := l.renderer
 	rp := RenderPassData{}
-	if err := unmarshallJsonFile(assets, "renderer/passes/light_depth.renderpass", &rp); err != nil {
+	if err := unmarshallJsonFile(assets, "light_depth.renderpass", &rp); err != nil {
 		slog.Error("failed to load light_depth.renderpass")
 		return
 	}

@@ -6,7 +6,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type DebugContentDatabase struct{}
@@ -18,17 +17,10 @@ func (DebugContentDatabase) Close()                        {}
 
 func findDebugDatabaseFile(key string) string {
 	finalPath := ""
-	key = filepath.ToSlash(key)
-	for i := range replacePrefixes {
-		if strings.HasPrefix(key, replacePrefixes[i]) {
-			key = strings.Replace(key, replacePrefixes[i], "database/stock/", 1)
-			break
-		}
+	if filepath.Ext(key) != "" {
+		return "database/stock/" + key
 	}
-	if strings.HasPrefix(key, "database/stock/") {
-		return key
-	}
-	filepath.Walk("database", func(path string, info fs.FileInfo, err error) error {
+	filepath.Walk("database/content", func(path string, info fs.FileInfo, err error) error {
 		if finalPath != "" {
 			return nil
 		}
@@ -38,17 +30,6 @@ func findDebugDatabaseFile(key string) string {
 		return nil
 	})
 	return finalPath
-}
-
-var replacePrefixes = []string{
-	"fonts/",
-	"textures/",
-	"renderer/materials/",
-	"renderer/passes/",
-	"renderer/pipelines/",
-	"renderer/shaders/",
-	"renderer/spv/",
-	"ui/",
 }
 
 func (e DebugContentDatabase) Read(key string) ([]byte, error) {

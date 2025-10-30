@@ -95,7 +95,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		matStr, err := m.assetDatabase.ReadText(key)
 		if err != nil {
 			matStr, err = m.assetDatabase.ReadText(
-				filepath.Join("renderer/materials/", key+".material"))
+				filepath.Join(key + ".material"))
 		}
 		if err != nil {
 			slog.Error("failed to load the material", "material", key, "error", err)

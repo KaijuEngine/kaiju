@@ -383,7 +383,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 }
 
 func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
-	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
+	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
 		return false
 	}

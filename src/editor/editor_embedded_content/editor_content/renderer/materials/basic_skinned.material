@@ -1,1 +1,1 @@
-{"Name":"basic_skinned","Shader":"renderer/shaders/basic_skinned.shader","RenderPass":"renderer/passes/simple_opaque.renderpass","ShaderPipeline":"renderer/pipelines/simple.shaderpipeline","Textures":[{"Texture":"textures/square.png","Filter":"Linear"}]}
+{"Name":"basic_skinned","Shader":"basic_skinned.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[{"Texture":"square.png","Filter":"Linear"}]}

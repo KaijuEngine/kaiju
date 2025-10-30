@@ -128,7 +128,7 @@ func initialize(host *engine.Host) *Console {
 		data:     make(map[string]ConsoleData),
 	}
 	console.uiMan.Init(host)
-	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
+	consoleHTML, _ := host.AssetDatabase().ReadText("console.html")
 	console.doc = markup.DocumentFromHTMLString(&console.uiMan,
 		string(consoleHTML), "", nil, nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)

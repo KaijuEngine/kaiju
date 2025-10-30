@@ -40,10 +40,12 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/editor_stage_manager"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 // StageWorkspaceSelected will inform the editor that the developer has
@@ -61,10 +63,36 @@ func (ed *Editor) ContentWorkspaceSelected() {
 }
 
 func (ed *Editor) Build() {
+	if !ed.ensureMainStageExists() {
+		return
+	}
 	// Loose goroutine
 	go ed.project.Compile()
 	// Loose goroutine
 	go ed.project.Package()
+}
+
+func (ed *Editor) BuildAndRun() {
+	if !ed.ensureMainStageExists() {
+		return
+	}
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	// Loose goroutine
+	go func() {
+		ed.project.Compile()
+		wg.Done()
+	}()
+	// Loose goroutine
+	go func() {
+		ed.project.Package()
+		wg.Done()
+	}()
+	// Loose goroutine
+	go func() {
+		wg.Wait()
+		ed.project.Run()
+	}()
 }
 
 // OpenVSCodeProject will open Visual Studio Code directly to the project top-
@@ -109,16 +137,19 @@ func (ed *Editor) SaveCurrentStage() {
 			ConfirmText: "Save",
 			CancelText:  "Cancel",
 			OnConfirm: func(name string) {
+				ed.FocusInterface()
 				name = strings.TrimSpace(name)
 				if name != "" {
-					sm.SetName(name)
+					if err := sm.SetStageId(name, ed.Cache()); err != nil {
+						slog.Error("failed to save stage", "error", err)
+						return
+					}
 					ed.saveCurrentStageWithoutNameInput()
 					id := sm.StageId()
 					ed.workspaces.content.AddContent([]string{id})
 				} else {
 					slog.Error("name was blank for the stage, can't save")
 				}
-				ed.FocusInterface()
 			},
 			OnCancel: func() { ed.FocusInterface() },
 		})
@@ -134,4 +165,12 @@ func (ed *Editor) saveCurrentStageWithoutNameInput() {
 	} else {
 		slog.Error("failed to save the current stage", "error", err)
 	}
+}
+
+func (ed *Editor) ensureMainStageExists() bool {
+	if _, err := ed.Cache().Read(editor_stage_manager.StageIdPrefix + "main"); err != nil {
+		slog.Error("failed to build, no stage named 'main' found")
+		return false
+	}
+	return true
 }

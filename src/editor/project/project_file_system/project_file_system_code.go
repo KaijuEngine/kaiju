@@ -78,10 +78,13 @@ go %s
 const srcGameFileData = `package main
 
 import (
+	"encoding/json"
 	"kaiju/bootstrap"
 	"kaiju/build"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/stages"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -105,7 +108,21 @@ func (Game) ContentDatabase() (assets.Database, error) {
 }
 
 func (Game) Launch(host *engine.Host) {
-	// TODO:  Launch the game
+	stageData, err := host.AssetDatabase().Read("stage_main")
+	if err != nil {
+		slog.Error("failed to read the entry point stage 'main'", "error", err)
+		host.Close()
+		return
+	}
+	j := stages.StageJson{}
+	if err := json.Unmarshal(stageData, &j); err != nil {
+		slog.Error("failed to decode the entry point stage 'main'", "error", err)
+		host.Close()
+		return
+	}
+	s := stages.Stage{}
+	s.FromMinimized(j)
+	s.Launch(host)
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }
