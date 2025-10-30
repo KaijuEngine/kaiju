@@ -51,6 +51,7 @@ var (
 		ContentFolder,
 		ContentConfigFolder,
 		SrcFolder,
+		StockFolder,
 		SrcFontFolder,
 		SrcCharsetFolder,
 		SrcPluginFolder,
@@ -77,6 +78,7 @@ var (
 		ContentFolder,
 		ContentConfigFolder,
 		SrcFolder,
+		StockFolder,
 	}
 )
 
@@ -139,7 +141,10 @@ func (fs *FileSystem) SetupStructure() error {
 	if err := fs.WriteFile(ProjectConfigFile, []byte("{}"), os.ModePerm); err != nil {
 		return err
 	}
-	return fs.createCodeProject()
+	if err := fs.createCodeProject(); err != nil {
+		return err
+	}
+	return fs.copyStockContent()
 }
 
 // Used to review the loaded FileSystem to ensure that the primary folders

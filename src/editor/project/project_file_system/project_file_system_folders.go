@@ -42,7 +42,7 @@ const (
 	ContentFolder       = "database/content"
 	ContentConfigFolder = "database/config"
 	SrcFolder           = "database/src"
-	CacheFolder         = "database/cache"
+	StockFolder         = "database/stock"
 	ProjectConfigFile   = "database/project.json"
 )
 
@@ -68,10 +68,6 @@ const (
 	ContentUiFolder       = "ui"
 	ContentHtmlFolder     = "ui/html"
 	ContentCssFolder      = "ui/css"
-)
-
-const (
-	CacheBvhFolder = CacheFolder + "/bvh"
 )
 
 const (
