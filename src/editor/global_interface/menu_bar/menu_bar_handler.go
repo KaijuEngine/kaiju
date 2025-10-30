@@ -40,6 +40,7 @@ package menu_bar
 type MenuBarHandler interface {
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
+	Build()
 	OpenVSCodeProject()
 	CreateNewStage()
 	SaveCurrentStage()

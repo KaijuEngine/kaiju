@@ -77,6 +77,7 @@ const (
 const (
 	KaijuSrcFolder        = "kaiju"
 	ProjectCodeFolder     = "src"
+	ProjectBuildFolder    = "build"
 	ProjectVSCodeFolder   = ".vscode"
 	ProjectLaunchJsonFile = ".vscode/launch.json"
 	ProjectCodeMain       = "src/main.go"

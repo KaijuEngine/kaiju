@@ -156,6 +156,9 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.Mkdir(ProjectCodeFolder, os.ModePerm); err != nil {
 		return err
 	}
+	if err := pfs.Mkdir(ProjectBuildFolder, os.ModePerm); err != nil {
+		return err
+	}
 	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil {
 		return err
 	}

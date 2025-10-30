@@ -60,6 +60,13 @@ func (ed *Editor) ContentWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateContent)
 }
 
+func (ed *Editor) Build() {
+	// Loose goroutine
+	go ed.project.Compile()
+	// Loose goroutine
+	go ed.project.Package()
+}
+
 // OpenVSCodeProject will open Visual Studio Code directly to the project top-
 // level folder. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].

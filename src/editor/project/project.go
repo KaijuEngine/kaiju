@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/codegen"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/assets/content_archive"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
@@ -163,15 +164,41 @@ func (p *Project) SetName(name string) {
 func (p *Project) Compile() {
 	defer tracing.NewRegion("Project.Compile").End()
 	slog.Info("compiling the project")
-	cmd := exec.Command("go", "build", "./src")
+	cmd := exec.Command("go", "build",
+		"-o", project_file_system.ProjectBuildFolder+"/",
+		"./src")
 	cmd.Dir = p.fileSystem.Name()
 	var stderr, stdout bytes.Buffer
 	cmd.Stderr, cmd.Stdout = &stderr, &stdout
 	if err := cmd.Run(); err != nil {
-		slog.Error("project compilation failed!", "error", err, "log", stdout.String(), "errlog", stderr.String())
+		slog.Error("project executable failed to compile!", "error", err,
+			"log", stdout.String(), "errlog", stderr.String())
 	} else {
-		slog.Info("project successfully compiled")
+		slog.Info("project executable successfully compiled")
 	}
+}
+
+func (p *Project) Package() error {
+	outPath := filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
+	// TODO:  Needs to use a reference graph to determine all of the content
+	// needed rather than just dumping all content in here
+	list := p.cacheDatabase.List()
+	files := make([]content_archive.SourceContent, 0, len(list))
+	for i := range list {
+		relPath := content_database.ToContentPath(list[i].Path)
+		files = append(files, content_archive.SourceContent{
+			Key:      list[i].Id(),
+			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
+		})
+	}
+	err := content_archive.CreateArchiveFromFiles(outPath,
+		files, []byte(p.settings.ArchiveEncryptionKey))
+	if err != nil {
+		slog.Error("failed to package game content", "error", err)
+	} else {
+		slog.Info("successfully packaged game content", "path", outPath)
+	}
+	return err
 }
 
 func (p *Project) ReadSourceCode() {

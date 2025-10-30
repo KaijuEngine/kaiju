@@ -54,8 +54,8 @@ import (
 func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"
 
 type SourceContent struct {
-	RelativePath string
-	FullPath     string
+	Key      string
+	FullPath string
 }
 
 func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
@@ -73,8 +73,8 @@ func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
 			return nil
 		}
 		files = append(files, SourceContent{
-			RelativePath: relPath,
-			FullPath:     path,
+			Key:      relPath,
+			FullPath: path,
 		})
 		return nil
 	})
@@ -108,7 +108,7 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 			}
 		}
 		entries = append(entries, Asset{
-			Name: files[i].RelativePath,
+			Name: files[i].Key,
 			Data: obfData,
 			Size: uint32(len(origData)),
 			CRC:  crc,
