@@ -60,11 +60,8 @@ func (a *ArchiveDatabase) CacheClear()                   {}
 
 func (a *ArchiveDatabase) ReadText(key string) (string, error) {
 	defer tracing.NewRegion("ArchiveDatabase.ReadText: " + key).End()
-	if key[0] == absoluteFilePrefix {
-		return filesystem.ReadTextFile(key[1:])
-	}
-	b, err := a.archive.Read(key)
-	return string(b), err
+	data, err := a.Read(key)
+	return string(data), err
 }
 
 func (a *ArchiveDatabase) Read(key string) ([]byte, error) {

@@ -61,11 +61,8 @@ func (a *FileDatabase) CacheClear()                   { clear(a.cache) }
 
 func (a *FileDatabase) ReadText(key string) (string, error) {
 	defer tracing.NewRegion("FileDatabase.ReadText: " + key).End()
-	if data, ok := a.cache[key]; ok {
-		return string(data), nil
-	}
-	b, err := a.root.ReadFile(key)
-	return string(b), err
+	data, err := a.Read(key)
+	return string(data), err
 }
 
 func (a *FileDatabase) Read(key string) ([]byte, error) {

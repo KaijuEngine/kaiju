@@ -93,10 +93,14 @@ func (Game) PluginRegistry() []reflect.Type { return []reflect.Type{} }
 
 func (Game) ContentDatabase() (assets.Database, error) {
 	p, err := os.Executable()
+	pDir := filepath.Dir(p)
+	if build.Debug {
+		return assets.DebugContentDatabase{}, nil
+	}
 	if err != nil {
-		return assets.NewArchiveDatabase("kaiju.dat", []byte(build.ArchiveEncryptionKey))
+		return assets.NewArchiveDatabase("game.dat", []byte(build.ArchiveEncryptionKey))
 	} else {
-		return assets.NewArchiveDatabase(filepath.Join(filepath.Dir(p), "kaiju.dat"), []byte(build.ArchiveEncryptionKey))
+		return assets.NewArchiveDatabase(filepath.Join(pDir, "game.dat"), []byte(build.ArchiveEncryptionKey))
 	}
 }
 
