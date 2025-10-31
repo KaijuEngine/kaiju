@@ -172,6 +172,17 @@ func NewMeshQuad(cache *MeshCache) *Mesh {
 	return NewMeshQuadAnchored(QuadPivotCenter, cache)
 }
 
+func MeshQuadData() ([]Vertex, []uint32) {
+	verts := make([]Vertex, len(meshQuadCenter))
+	for i := range meshQuadCenter {
+		verts[i].Position = meshQuadCenter[i]
+		verts[i].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+		verts[i].UV0 = meshQuadUvs[i]
+		verts[i].Color = matrix.ColorWhite()
+	}
+	return verts, meshQuadIndexes[:]
+}
+
 func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshQuadAnchored").End()
 	switch anchor {
@@ -284,26 +295,30 @@ func NewMeshPlane(cache *MeshCache) *Mesh {
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
-		verts := make([]Vertex, 4)
-		verts[0].Position = matrix.Vec3{-0.5, 0.0, 0.5}
-		verts[0].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[0].UV0 = matrix.Vec2{0.0, 1.0}
-		verts[0].Color = matrix.ColorWhite()
-		verts[1].Position = matrix.Vec3{-0.5, 0.0, -0.5}
-		verts[1].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[1].UV0 = matrix.Vec2{0.0, 0.0}
-		verts[1].Color = matrix.ColorWhite()
-		verts[2].Position = matrix.Vec3{0.5, 0.0, -0.5}
-		verts[2].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[2].UV0 = matrix.Vec2{1.0, 0.0}
-		verts[2].Color = matrix.ColorWhite()
-		verts[3].Position = matrix.Vec3{0.5, 0.0, 0.5}
-		verts[3].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[3].UV0 = matrix.Vec2{1.0, 1.0}
-		verts[3].Color = matrix.ColorWhite()
-		indexes := []uint32{0, 2, 1, 0, 3, 2}
+		verts, indexes := MeshPlaneData()
 		return cache.Mesh(key, verts, indexes)
 	}
+}
+
+func MeshPlaneData() ([]Vertex, []uint32) {
+	verts := make([]Vertex, 4)
+	verts[0].Position = matrix.Vec3{-0.5, 0.0, 0.5}
+	verts[0].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 1.0}
+	verts[0].Color = matrix.ColorWhite()
+	verts[1].Position = matrix.Vec3{-0.5, 0.0, -0.5}
+	verts[1].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[1].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[1].Color = matrix.ColorWhite()
+	verts[2].Position = matrix.Vec3{0.5, 0.0, -0.5}
+	verts[2].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[2].UV0 = matrix.Vec2{1.0, 0.0}
+	verts[2].Color = matrix.ColorWhite()
+	verts[3].Position = matrix.Vec3{0.5, 0.0, 0.5}
+	verts[3].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[3].UV0 = matrix.Vec2{1.0, 1.0}
+	verts[3].Color = matrix.ColorWhite()
+	return verts, []uint32{0, 2, 1, 0, 3, 2}
 }
 
 func NewMeshCube(cache *MeshCache) *Mesh {

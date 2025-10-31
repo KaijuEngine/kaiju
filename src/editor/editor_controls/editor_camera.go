@@ -141,7 +141,11 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 
 func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray {
 	defer tracing.NewRegion("EditorCamera.RayCast").End()
-	return e.camera.RayCast(mouse.Position())
+	if e.mode == EditorCameraMode2d {
+		return e.camera.RayCast(mouse.ScreenPosition())
+	} else {
+		return e.camera.RayCast(mouse.Position())
+	}
 }
 
 func (e *EditorCamera) Focus(bounds collision.AABB) {

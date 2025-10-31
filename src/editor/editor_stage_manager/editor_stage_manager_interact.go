@@ -126,7 +126,7 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 
 func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, bool) {
 	for _, e := range m.entities {
-		if e.StageData.Bvh.RayIntersect(ray, matrix.FloatMax, &e.Transform) {
+		if e.StageData.Bvh.RayIntersect(ray, 1000, &e.Transform) {
 			return e, true
 		}
 	}
