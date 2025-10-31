@@ -44,6 +44,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"slices"
+	"unsafe"
 )
 
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
@@ -60,13 +61,12 @@ func (m *StageManager) IsSelected(e *StageEntity) bool {
 
 func (m *StageManager) ClearSelection() {
 	defer tracing.NewRegion("StageManager.ClearSelection").End()
-	for i := range m.selected {
-		if sd, ok := m.selected[i].StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
-			sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			m.OnEntityDeselected.Execute(m.selected[i])
-		}
-	}
+	cpy := slices.Clone(m.selected)
 	m.selected = klib.WipeSlice(m.selected)
+	for i := range cpy {
+		m.clearShaderDataFlag(cpy[i])
+		m.OnEntityDeselected.Execute(cpy[i])
+	}
 }
 
 func (m *StageManager) SelectEntity(e *StageEntity) {
@@ -76,9 +76,7 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 			return
 		}
 	}
-	if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
-		sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-	}
+	m.setShaderDataFlag(e)
 	m.selected = append(m.selected, e)
 	m.OnEntitySelected.Execute(e)
 }
@@ -109,10 +107,8 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	for i := range m.selected {
 		if m.selected[i] == e {
 			m.selected = slices.Delete(m.selected, i, i+1)
-			if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-				m.OnEntityDeselected.Execute(e)
-			}
+			m.clearShaderDataFlag(e)
+			m.OnEntityDeselected.Execute(e)
 			return
 		}
 	}
@@ -192,4 +188,32 @@ func (m *StageManager) SelectionBounds() collision.AABB {
 		Center: center,
 		Extent: high.Subtract(low).Scale(0.5),
 	}
+}
+
+func (m *StageManager) setShaderDataFlag(root *StageEntity) {
+	var procChildren func(e *StageEntity)
+	procChildren = func(e *StageEntity) {
+		if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
+			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+		}
+		for i := range e.Children {
+			procChildren((*StageEntity)(unsafe.Pointer(e.Children[i])))
+		}
+	}
+	procChildren(root)
+}
+
+func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
+	var procChildren func(e *StageEntity)
+	procChildren = func(e *StageEntity) {
+		if !m.IsSelected(e) {
+			if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
+				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+			}
+		}
+		for i := range e.Children {
+			procChildren((*StageEntity)(unsafe.Pointer(e.Children[i])))
+		}
+	}
+	procChildren(root)
 }
