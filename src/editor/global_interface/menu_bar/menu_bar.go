@@ -63,6 +63,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickLogo":            b.openMenuTarget,
 			"clickFile":            b.openMenuTarget,
 			"clickEdit":            b.openMenuTarget,
+			"clickEntity":          b.openMenuTarget,
 			"clickHelp":            b.openMenuTarget,
 			"clickStage":           b.clickStage,
 			"clickContent":         b.clickContent,
@@ -77,8 +78,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickBuild":           b.clickBuild,
 			"clickBuildAndRun":     b.clickBuildAndRun,
 			"clickRunCurrentStage": b.clickRunCurrentStage,
-			"clickProjectSettings": b.clickProjectSettings,
-			"clickEditorSettings":  b.clickEditorSettings,
+			"clickNewCamera":       b.clickNewCamera,
 			"clickAbout":           b.clickAbout,
 			"clickIssues":          b.clickIssues,
 			"clickRepository":      b.clickRepository,
@@ -189,14 +189,10 @@ func (b *MenuBar) clickRunCurrentStage(e *document.Element) {
 	b.handler.BuildAndRunCurrentStage()
 }
 
-func (b *MenuBar) clickProjectSettings(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickProjectSettings").End()
+func (b *MenuBar) clickNewCamera(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickNewCamera").End()
 	b.hidePopups()
-}
-
-func (b *MenuBar) clickEditorSettings(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickEditorSettings").End()
-	b.hidePopups()
+	b.handler.CreateNewCamera()
 }
 
 func (b *MenuBar) clickAbout(e *document.Element) {

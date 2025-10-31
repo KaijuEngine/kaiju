@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
+	"kaiju/engine_data_bindings"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -51,6 +52,15 @@ import (
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 )
+
+func (w *Workspace) CreateNewCamera() {
+	e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
+	// TODO:  This should be added using Project.EntityDataBinding
+	e.AddDataBinding(engine_data_bindings.NewCameraDataBinding())
+	// TODO:  Create the view frustom wire
+	//mesh := rendering.NewMeshFrustum(w.Host.MeshCache(), string(e.Id()),
+	//	w.Host.Camera.Projection().Invert())
+}
 
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()

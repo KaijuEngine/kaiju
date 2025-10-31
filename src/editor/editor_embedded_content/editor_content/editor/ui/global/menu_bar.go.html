@@ -57,6 +57,7 @@
 			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
 			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
 			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
+			<span class="menuEntry" data-target="entityPopup" onclick="clickEntity">Entity</span>
 			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
 			<span group="tabs" class="workspaceTab tabSelected" onclick="clickStage">Stage</span>
 			<span group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
@@ -79,8 +80,11 @@
 			<div class="popupEntry" onclick="clickRunCurrentStage">Run Current Stage</div>
 		</div>
 		<div id="editPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickProjectSettings">Project settings</div>
-			<div class="popupEntry" onclick="clickEditorSettings">Editor settings</div>
+			<div class="popupEntry" onclick="clickUndo">Undo</div>
+			<div class="popupEntry" onclick="clickRedo">Redo</div>
+		</div>
+		<div id="entityPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickNewCamera">New camera</div>
 		</div>
 		<div id="helpPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickIssues">Issues</div>

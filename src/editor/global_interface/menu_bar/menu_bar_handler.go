@@ -48,4 +48,5 @@ type MenuBarHandler interface {
 	OpenVSCodeProject()
 	CreateNewStage()
 	SaveCurrentStage()
+	CreateNewCamera()
 }

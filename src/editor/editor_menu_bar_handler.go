@@ -184,6 +184,10 @@ func (ed *Editor) SaveCurrentStage() {
 	}
 }
 
+func (ed *Editor) CreateNewCamera() {
+	ed.workspaces.stage.CreateNewCamera()
+}
+
 func (ed *Editor) saveCurrentStageWithoutNameInput() {
 	sm := ed.workspaces.stage.Manager()
 	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
