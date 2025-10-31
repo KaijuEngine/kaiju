@@ -111,6 +111,8 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 		x := t.WorldPosition().X() + float32(b.uiMan.Host.Window.Width())*0.5 -
 			e.UI.Layout().PixelSize().X()*0.5
 		pop.UI.Layout().SetInnerOffsetLeft(x)
+		b.handler.BlurInterface()
+		b.uiMan.Host.RunOnMainThread(b.Focus)
 	}
 }
 
@@ -251,4 +253,5 @@ func (b *MenuBar) hidePopups() {
 		pops[i].UI.Hide()
 	}
 	b.selectedPopup = nil
+	b.uiMan.Host.RunOnMainThread(b.handler.FocusInterface)
 }

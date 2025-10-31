@@ -38,6 +38,8 @@
 package menu_bar
 
 type MenuBarHandler interface {
+	BlurInterface()
+	FocusInterface()
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
 	Build()
