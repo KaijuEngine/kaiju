@@ -280,6 +280,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 		}
 	}
 	m.isNew = false
+	m.stageId = id
 	return nil
 }
 
