@@ -108,7 +108,12 @@ func (Game) ContentDatabase() (assets.Database, error) {
 }
 
 func (Game) Launch(host *engine.Host) {
-	stageData, err := host.AssetDatabase().Read("stage_main")
+	startStage := "stage_main"
+	if engine.LaunchParams.StartStage != "" {
+		startStage = "stage_" + strings.TrimPrefix(
+			engine.LaunchParams.StartStage, "stage_")
+	}
+	stageData, err := host.AssetDatabase().Read(startStage)
 	if err != nil {
 		slog.Error("failed to read the entry point stage 'main'", "error", err)
 		host.Close()

@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"fmt"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_stage_manager"
@@ -92,6 +93,32 @@ func (ed *Editor) BuildAndRun() {
 	go func() {
 		wg.Wait()
 		ed.project.Run()
+	}()
+}
+
+func (ed *Editor) BuildAndRunCurrentStage() {
+	stageId := ed.workspaces.stage.Manager().StageId()
+	if stageId == "" {
+		slog.Error("current stage has not yet been created, please save it to test")
+		return
+	}
+	ed.workspaces.stage.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	// Loose goroutine
+	go func() {
+		ed.project.CompileDebug()
+		wg.Done()
+	}()
+	// Loose goroutine
+	go func() {
+		ed.project.Package()
+		wg.Done()
+	}()
+	// Loose goroutine
+	go func() {
+		wg.Wait()
+		ed.project.Run(fmt.Sprintf("-startStage=%s", stageId))
 	}()
 }
 

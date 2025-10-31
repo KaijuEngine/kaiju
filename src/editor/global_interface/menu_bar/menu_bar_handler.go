@@ -42,6 +42,7 @@ type MenuBarHandler interface {
 	ContentWorkspaceSelected()
 	Build()
 	BuildAndRun()
+	BuildAndRunCurrentStage()
 	OpenVSCodeProject()
 	CreateNewStage()
 	SaveCurrentStage()
