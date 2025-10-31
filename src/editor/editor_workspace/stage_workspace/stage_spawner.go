@@ -39,7 +39,6 @@ package stage_workspace
 
 import (
 	"encoding/json"
-	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
@@ -56,10 +55,9 @@ import (
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
 	var mp matrix.Vec2
-	switch w.camera.Mode() {
-	case editor_controls.EditorCameraMode3d:
+	if w.isCamera3D() {
 		mp = m.Position()
-	case editor_controls.EditorCameraMode2d:
+	} else {
 		mp = m.ScreenPosition()
 	}
 	ray := w.Host.Camera.RayCast(mp)
@@ -68,10 +66,9 @@ func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *h
 	// to doing the ground plane/distance hit point
 	var hit matrix.Vec3
 	var ok bool
-	switch w.camera.Mode() {
-	case editor_controls.EditorCameraMode3d:
+	if w.isCamera3D() {
 		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
-	case editor_controls.EditorCameraMode2d:
+	} else {
 		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Forward())
 	}
 	if !ok {
@@ -160,7 +157,11 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	e := w.manager.AddEntity(cc.Config.Name, point)
-	e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
+	if w.isCamera3D() {
+		e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
+	} else {
+		e.StageData.Mesh = rendering.NewMeshQuad(w.Host.MeshCache())
+	}
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
 	e.StageData.Description.Material = mat.Name

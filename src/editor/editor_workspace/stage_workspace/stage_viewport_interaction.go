@@ -38,6 +38,7 @@
 package stage_workspace
 
 import (
+	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -71,4 +72,8 @@ func (w *Workspace) processViewportInteractions() {
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
 		w.transformTool.Enable(transform_tools.ToolStateScale)
 	}
+}
+
+func (w *Workspace) isCamera3D() bool {
+	return w.camera.Mode() == editor_controls.EditorCameraMode3d
 }
