@@ -233,3 +233,9 @@ func (hui *WorkspaceHierarchyUI) buildEntityClasses(e *document.Element, additio
 	}
 	return classes
 }
+
+func (hui *WorkspaceHierarchyUI) updateEntityName(id, name string) {
+	if e, ok := hui.workspace.Value().Doc.GetElementById(id); ok {
+		e.Children[0].InnerLabel().SetText(name)
+	}
+}

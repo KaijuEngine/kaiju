@@ -45,7 +45,14 @@ import (
 
 type StageEntity struct {
 	engine.Entity
-	StageData StageEntityEditorData
+	StageData    StageEntityEditorData
+	dataBindings []any
+}
+
+func (e *StageEntity) DataBindings() []any { return e.dataBindings }
+
+func (e *StageEntity) AddDataBinding(binding any) {
+	e.dataBindings = append(e.dataBindings, binding)
 }
 
 func (e *StageEntity) Depth() int {

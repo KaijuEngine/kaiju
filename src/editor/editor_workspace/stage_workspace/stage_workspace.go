@@ -65,6 +65,7 @@ type Workspace struct {
 	pageData      content_workspace.WorkspaceUIData
 	contentUI     WorkspaceContentUI
 	hierarchyUI   WorkspaceHierarchyUI
+	detailsUI     WorkspaceDetailsUI
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
 }
@@ -83,30 +84,34 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.pageData.SetupUIData(w.ed.Cache())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"toggleDimension": w.toggleDimension,
-			"inputFilter":     w.contentUI.inputFilter,
-			"tagFilter":       w.contentUI.tagFilter,
-			"clickFilter":     w.contentUI.clickFilter,
-			"dblClickEntry":   w.contentUI.dblClickEntry,
-			"hideContent":     w.contentUI.hideContent,
-			"showContent":     w.contentUI.showContent,
-			"entryDragStart":  w.contentUI.entryDragStart,
-			"entryMouseEnter": w.contentUI.entryMouseEnter,
-			"entryMouseMove":  w.contentUI.entryMouseMove,
-			"entryMouseLeave": w.contentUI.entryMouseLeave,
-			"hierarchySearch": w.hierarchyUI.hierarchySearch,
-			"hideHierarchy":   w.hierarchyUI.hideHierarchy,
-			"showHierarchy":   w.hierarchyUI.showHierarchy,
-			"selectEntity":    w.hierarchyUI.selectEntity,
-			"entityDragStart": w.hierarchyUI.entityDragStart,
-			"entityDrop":      w.hierarchyUI.entityDrop,
-			"entityDragEnter": w.hierarchyUI.entityDragEnter,
-			"entityDragExit":  w.hierarchyUI.entityDragExit,
+			"toggleDimension":   w.toggleDimension,
+			"inputFilter":       w.contentUI.inputFilter,
+			"tagFilter":         w.contentUI.tagFilter,
+			"clickFilter":       w.contentUI.clickFilter,
+			"dblClickEntry":     w.contentUI.dblClickEntry,
+			"hideContent":       w.contentUI.hideContent,
+			"showContent":       w.contentUI.showContent,
+			"entryDragStart":    w.contentUI.entryDragStart,
+			"entryMouseEnter":   w.contentUI.entryMouseEnter,
+			"entryMouseMove":    w.contentUI.entryMouseMove,
+			"entryMouseLeave":   w.contentUI.entryMouseLeave,
+			"hierarchySearch":   w.hierarchyUI.hierarchySearch,
+			"hideHierarchy":     w.hierarchyUI.hideHierarchy,
+			"showHierarchy":     w.hierarchyUI.showHierarchy,
+			"selectEntity":      w.hierarchyUI.selectEntity,
+			"entityDragStart":   w.hierarchyUI.entityDragStart,
+			"entityDrop":        w.hierarchyUI.entityDrop,
+			"entityDragEnter":   w.hierarchyUI.entityDragEnter,
+			"entityDragExit":    w.hierarchyUI.entityDragExit,
+			"hideDetails":       w.detailsUI.hideDetails,
+			"showDetails":       w.detailsUI.showDetails,
+			"submitDetailsName": w.detailsUI.submitDetailsName,
 		})
 	w.createViewportGrid()
 	w.setupCamera()
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
+	w.detailsUI.setup(w)
 	w.transformTool.Initialize(host, w, w.ed.History(), &w.ed.Settings().Snapping)
 }
 
@@ -117,6 +122,7 @@ func (w *Workspace) Open() {
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.contentUI.open()
 	w.hierarchyUI.open()
+	w.detailsUI.open()
 	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
@@ -140,6 +146,7 @@ func (w *Workspace) update(deltaTime float64) {
 	}
 	w.contentUI.processHotkeys(w.Host)
 	w.hierarchyUI.processHotkeys(w.Host)
+	w.detailsUI.processHotkeys(w.Host)
 	if w.camera.Update(w.Host, deltaTime) {
 		w.updateGridPosition()
 	} else {

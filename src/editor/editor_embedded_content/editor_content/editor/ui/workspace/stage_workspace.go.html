@@ -75,13 +75,7 @@
 				width: 5em;
 				height: 5em;
 			}
-			#hideContent, #showContent {
-				left: 0;
-			}
-			#hideHierarchy, #showHierarchy {
-				top: 6em;
-			}
-			#hideContent, #showContent, #hideHierarchy, #showHierarchy {
+			#hideContent, #showContent, #hideHierarchy, #showHierarchy, #hideDetails, #showDetails {
 				position: absolute;
 				background-color: #282828;
 				color: #AAA;
@@ -89,20 +83,18 @@
 				padding: 0 5px;
 				border: 2px solid #575757;
 			}
-			#hideHierarchy {
-				left: 14em;
-			}
-			#showHierarchy {
-				left: 0;
-			}
+			#hideHierarchy { left: 15em; }
+			#showHierarchy { left: 0; }
 			#hideHierarchy:hover { color: white; }
 			#showHierarchy:hover { color: white; }
-			#hideContent {
-				bottom: 11.3em;
-			}
-			#showContent {
-				bottom: 1.3em;
-			}
+			#hideHierarchy, #showHierarchy, #hideDetails, #showDetails { top: 6em; }
+			#hideDetails { right: 15em; }
+			#showDetails { right: 0; }
+			#hideDetails:hover { color: white; }
+			#showDetails:hover { color: white; }
+			#hideContent, #showContent { left: 0; }
+			#hideContent { bottom: 11.3em; }
+			#showContent { bottom: 1.3em; }
 			#hideContent:hover { color: white; }
 			#showContent:hover { color: white; }
 			#dragPreview {
@@ -132,7 +124,7 @@
 			#hierarchyArea {
 				top: 3em;
 				height: calc(100% - 16em);
-				width: 14em;
+				width: 15em;
 				background-color: #282828;
 				color: white;
 			}
@@ -188,10 +180,25 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
+			#detailsArea {
+				position: absolute;
+				right: 0;
+				top: 3em;
+				height: calc(100% - 16em);
+				width: 15em;
+				background-color: #282828;
+				color: white;
+			}
+			.smallInput {
+				width: 4.3em;
+				margin: 0 0 0 0.3em;
+			}
 		</style>
 	</head>
 	<body>
+		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">3D</span>
+		<!-- Hierarchy UI -->
 		<span id="hideHierarchy" onclick="hideHierarchy">&lt;</span>
 		<span id="showHierarchy" onclick="showHierarchy">&gt;</span>
 		<div id="hierarchyArea" ondrop="drop">
@@ -205,6 +212,27 @@
 			</div>
 		</div>
 		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
+		<!-- Details UI -->
+		<span id="hideDetails" onclick="hideDetails">&gt;</span>
+		<span id="showDetails" onclick="showDetails">&lt;</span>
+		<div id="detailsArea">
+			<div class="detailsBody">
+				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" />
+				<div>Position</div>
+				<input id="detailsPosX" class="smallInput" type="text" placeholder="X..." />
+				<input id="detailsPosY" class="smallInput" type="text" placeholder="Y..." />
+				<input id="detailsPosZ" class="smallInput" type="text" placeholder="Z..." />
+				<div>Rotation</div>
+				<input id="detailsRotX" class="smallInput" type="text" placeholder="X..." />
+				<input id="detailsRotY" class="smallInput" type="text" placeholder="Y..." />
+				<input id="detailsRotZ" class="smallInput" type="text" placeholder="Z..." />
+				<div>Scale</div>
+				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." />
+				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." />
+				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." />
+			</div>
+		</div>
+		<!-- Content UI -->
 		<span id="hideContent" onclick="hideContent">v</span>
 		<span id="showContent" onclick="showContent">^</span>
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
