@@ -52,6 +52,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 )
 
 // Project is the mediator/container for all information about the developer's
@@ -66,6 +67,7 @@ type Project struct {
 	settings      Settings
 	entityData    []codegen.GeneratedType
 	readingCode   bool
+	isCompiling   atomic.Bool
 }
 
 // IsValid will return if this project has been constructed by simply returning
@@ -180,6 +182,8 @@ func (p *Project) CompileRelease() {
 // details.
 func (p *Project) CompileWithTags(tags ...string) {
 	defer tracing.NewRegion("Project.CompileWithTags").End()
+	for !p.isCompiling.CompareAndSwap(false, true) {
+	}
 	args := []string{
 		"build",
 		"-o", project_file_system.ProjectBuildFolder + "/",
@@ -202,6 +206,7 @@ func (p *Project) CompileWithTags(tags ...string) {
 	} else {
 		slog.Info("project executable successfully compiled")
 	}
+	p.isCompiling.Store(false)
 }
 
 func (p *Project) Package() error {
