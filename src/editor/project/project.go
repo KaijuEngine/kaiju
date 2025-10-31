@@ -66,8 +66,19 @@ type Project struct {
 	cacheDatabase content_database.Cache
 	settings      Settings
 	entityData    []codegen.GeneratedType
+	entityDataMap map[string]*codegen.GeneratedType
 	readingCode   bool
 	isCompiling   atomic.Bool
+}
+
+// EntityData returns all of the generated/reflected entity data binding types
+func (p *Project) EntityData() []codegen.GeneratedType { return p.entityData }
+
+// EntityDataBinding will search through the generated/reflected entity data
+// binding types for the one with the matching registration key
+func (p *Project) EntityDataBinding(name string) (codegen.GeneratedType, bool) {
+	g, ok := p.entityDataMap[name]
+	return *g, ok
 }
 
 // IsValid will return if this project has been constructed by simply returning
@@ -326,6 +337,8 @@ func (p *Project) ReadSourceCode() {
 		return
 	}
 	p.readingCode = true
+	p.entityData = p.entityData[:0]
+	p.entityDataMap = make(map[string]*codegen.GeneratedType)
 	slog.Info("reading through project code to find bindable data")
 	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
 	if err != nil {
@@ -340,6 +353,9 @@ func (p *Project) ReadSourceCode() {
 	a, _ := codegen.Walk(kaijuRoot, "kaiju")
 	b, _ := codegen.Walk(srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
+	for i := range p.entityData {
+		p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
+	}
 	slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
 	p.readingCode = false
 }

@@ -58,7 +58,7 @@ import (
 )
 
 var (
-	registerRe = regexp.MustCompile(`engine\.RegisterEntityData\("(.*?)", &{0,}(.*?)\{\}\)`)
+	registerRe = regexp.MustCompile(`engine\.RegisterEntityData\(("{0,1}.*?"{0,1}), &{0,}(.*?)\{\}\)`)
 )
 
 type structure struct {
@@ -112,19 +112,28 @@ func readAst(srcRoot *os.Root, file string, registrations *map[string]string, lo
 	if err != nil {
 		return nil, err
 	}
+	ast, err := parser.ParseFile(fs, "", src, parser.ParseComments)
 	for _, r := range registerRe.FindAllStringSubmatch(string(src), -1) {
 		if len(r) <= 2 {
 			continue
 		}
 		key := r[1]
+		if key[0] == '"' {
+			key = strings.Trim(key, `"`)
+		} else {
+			key = findConstValueInAST(ast, key)
+		}
 		typeName := r[2]
+		if key == "" {
+			return nil, fmt.Errorf("the registration key for type name '%s' was empty", typeName)
+		}
 		if _, ok := (*registrations)[key]; ok {
 			return nil, fmt.Errorf("the key '%s' has already been registered", key)
 		}
 		(*registrations)[key] = typeName
 		(*localRegs)[typeName] = key
 	}
-	return parser.ParseFile(fs, "", src, parser.ParseComments)
+	return ast, err
 }
 
 func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *map[string]string) ([]GeneratedType, error) {
@@ -194,7 +203,9 @@ func create(srcRoot *os.Root, file, ext string, skips *[]string, registrations *
 		for i := 0; i < len(types); i++ {
 			g, err := generateStructType(a.Name.Name, pkgPath, types[i], genTypes)
 			if err != nil {
-				lastErr = err
+				if _, ok := localRegs[types[i].Name]; ok {
+					lastErr = err
+				}
 				continue
 			}
 			if k, ok := localRegs[g.Name]; ok {
@@ -477,4 +488,24 @@ func satisfiesInterface(s *ast.TypeSpec, decl []ast.Decl) bool {
 		}
 	}
 	return false
+}
+
+func findConstValueInAST(a *ast.File, name string) string {
+	for _, d := range a.Decls {
+		if g, ok := d.(*ast.GenDecl); ok {
+			if s, ok := g.Specs[0].(*ast.ValueSpec); ok {
+				if len(s.Names) == 0 || len(s.Values) == 0 {
+					continue
+				}
+				n := s.Names[0].Name
+				if n != name {
+					continue
+				}
+				if bl, ok := s.Values[0].(*ast.BasicLit); ok {
+					return strings.Trim(bl.Value, `"`)
+				}
+			}
+		}
+	}
+	return ""
 }
