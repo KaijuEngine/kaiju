@@ -126,7 +126,7 @@ func (ed *Editor) lateLoadUI() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	slog.Info("compiling the project to get things ready")
 	// Loose goroutine
-	go ed.project.Compile()
+	go ed.project.CompileDebug()
 	// Loose goroutine
 	go ed.project.ReadSourceCode()
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()

@@ -67,7 +67,7 @@ func (ed *Editor) Build() {
 		return
 	}
 	// Loose goroutine
-	go ed.project.Compile()
+	go ed.project.CompileDebug()
 	// Loose goroutine
 	go ed.project.Package()
 }
@@ -80,7 +80,7 @@ func (ed *Editor) BuildAndRun() {
 	wg.Add(2)
 	// Loose goroutine
 	go func() {
-		ed.project.Compile()
+		ed.project.CompileDebug()
 		wg.Done()
 	}()
 	// Loose goroutine

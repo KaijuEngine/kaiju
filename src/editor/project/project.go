@@ -160,15 +160,39 @@ func (p *Project) SetName(name string) {
 	p.writeProjectTitle()
 }
 
-// Compile will build all of the Go code for the project without launching it.
-// Any errors during the build process will be contained within an error slog.
-// Look for the fields "error", "log", and "errorlog" for more details.
-func (p *Project) Compile() {
-	defer tracing.NewRegion("Project.Compile").End()
-	slog.Info("compiling the project")
-	cmd := exec.Command("go", "build",
-		"-o", project_file_system.ProjectBuildFolder+"/",
-		"./src")
+// CompileDebug will build all of the Go code for the project without
+// launching it. The build will be compiled using the 'debug' tag.
+func (p *Project) CompileDebug() {
+	defer tracing.NewRegion("Project.CompileDebug").End()
+	p.CompileWithTags("debug")
+}
+
+// CompileRelease will build all of the Go code for the project without
+// launching it.
+func (p *Project) CompileRelease() {
+	defer tracing.NewRegion("Project.CompileRelease").End()
+	p.CompileWithTags()
+}
+
+// CompileWithTags will build all of the Go code for the project without
+// launching it. Any errors during the build process will be contained within an
+// error slog. Look for the fields "error", "log", and "errorlog" for more
+// details.
+func (p *Project) CompileWithTags(tags ...string) {
+	defer tracing.NewRegion("Project.CompileWithTags").End()
+	args := []string{
+		"build",
+		"-o", project_file_system.ProjectBuildFolder + "/",
+	}
+	if len(tags) > 0 {
+		tagList := strings.Join(tags, ",")
+		slog.Info("compiling the project with tags", "tags", tagList)
+		args = append(args, fmt.Sprintf("-tags=%s", tagList))
+	} else {
+		slog.Info("compiling the project")
+	}
+	args = append(args, "./src")
+	cmd := exec.Command("go", args...)
 	cmd.Dir = p.fileSystem.Name()
 	var stderr, stdout bytes.Buffer
 	cmd.Stderr, cmd.Stdout = &stderr, &stdout
@@ -219,7 +243,7 @@ func (p *Project) Package() error {
 	return err
 }
 
-func (p *Project) Run() {
+func (p *Project) Run(args ...string) {
 	defer tracing.NewRegion("Project.Run").End()
 	slog.Info("compiling the project")
 	files, err := p.fileSystem.ReadDir(project_file_system.ProjectBuildFolder)
@@ -240,7 +264,7 @@ func (p *Project) Run() {
 	}
 	target = filepath.Join(project_file_system.ProjectBuildFolder, target)
 	targetPath := p.fileSystem.FullPath(target)
-	cmd := exec.Command(targetPath)
+	cmd := exec.Command(targetPath, args...)
 	cmd.Dir = filepath.Dir(targetPath)
 	outPipe, err := cmd.StderrPipe()
 	if err != nil {
