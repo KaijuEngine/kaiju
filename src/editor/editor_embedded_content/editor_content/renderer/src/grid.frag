@@ -9,11 +9,14 @@ layout(location = 2) in vec3 fragWorldPos;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	float fadeScale = 3.0;
-	float yCheck = fragColor.y + 0.0001;
-	if (fragColor.z > yCheck || fragColor.x > yCheck) {
-		fadeScale = 20;
+	vec4 color = fragColor;
+	if (color.a + 0.00001 >= 1.0) {
+		float fadeScale = 3.0;
+		float yCheck = color.y + 0.0001;
+		if (color.z > yCheck || color.x > yCheck) {
+			fadeScale = 20;
+		}
+		color.a = fadeScale / length(cameraPosition.xyz - fragWorldPos.xyz);
 	}
-	float fade = fadeScale / length(cameraPosition.xyz - fragWorldPos.xyz);
-	outColor = vec4(fragColor.xyz, fade);
+	outColor = color;
 }

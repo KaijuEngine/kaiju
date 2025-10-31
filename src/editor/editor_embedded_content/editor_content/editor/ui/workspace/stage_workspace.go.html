@@ -174,9 +174,24 @@
 				height: 2em;
 				z-index: 10;
 			}
+			#dimensionToggle {
+				position: absolute;
+				font-size: 0.6em;
+				top: 2.5em;
+				left: 50%;
+				padding: 0.25em;
+				transform: translateX(-50%);
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+			}
+			#dimensionToggle:hover {
+				background-color: #AAA;
+			}
 		</style>
 	</head>
 	<body>
+		<span id="dimensionToggle" onclick="toggleDimension">3D</span>
 		<span id="hideHierarchy" onclick="hideHierarchy">&lt;</span>
 		<span id="showHierarchy" onclick="showHierarchy">&gt;</span>
 		<div id="hierarchyArea" ondrop="drop">

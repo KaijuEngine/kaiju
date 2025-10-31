@@ -83,6 +83,7 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.pageData.SetupUIData(w.ed.Cache())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
+			"toggleDimension": w.toggleDimension,
 			"inputFilter":     w.contentUI.inputFilter,
 			"tagFilter":       w.contentUI.tagFilter,
 			"clickFilter":     w.contentUI.clickFilter,
@@ -137,11 +138,21 @@ func (w *Workspace) update(deltaTime float64) {
 	w.contentUI.processHotkeys(w.Host)
 	w.hierarchyUI.processHotkeys(w.Host)
 	if w.camera.Update(w.Host, deltaTime) {
-		camPos := w.Host.Camera.Position()
-		w.gridTransform.SetPosition(matrix.NewVec3(
-			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
+		w.updateGridPosition()
 	} else {
 		w.processViewportInteractions()
+	}
+}
+
+func (w *Workspace) updateGridPosition() {
+	camPos := w.Host.Camera.Position()
+	switch w.camera.Mode() {
+	case editor_controls.EditorCameraMode2d:
+		w.gridTransform.SetPosition(matrix.NewVec3(
+			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), 0))
+	case editor_controls.EditorCameraMode3d:
+		w.gridTransform.SetPosition(matrix.NewVec3(
+			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}
 }
 
@@ -180,14 +191,28 @@ func (w *Workspace) createViewportGrid() {
 func (w *Workspace) setupCamera() {
 	defer tracing.NewRegion("StageWorkspace.setupCamera").End()
 	w.camera.OnModeChange.Add(func() {
-		m := matrix.Mat4Identity()
 		switch w.camera.Mode() {
 		case editor_controls.EditorCameraMode3d:
 			// Identity matrix is fine
+			w.gridShader.Color.SetA(1)
+			w.gridTransform.SetRotation(matrix.Vec3Zero())
 		case editor_controls.EditorCameraMode2d:
-			m.RotateX(90)
+			w.gridShader.Color.SetA(0)
+			w.gridTransform.SetRotation(matrix.NewVec3(90, 0, 0))
 		}
-		w.gridShader.SetModel(m)
+		w.updateGridPosition()
 	})
 	w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
+}
+
+func (w *Workspace) toggleDimension(e *document.Element) {
+	lbl := e.InnerLabel()
+	switch lbl.Text() {
+	case "3D":
+		lbl.SetText("2D")
+		w.camera.SetMode(editor_controls.EditorCameraMode2d, w.Host)
+	case "2D":
+		lbl.SetText("3D")
+		w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
+	}
 }
