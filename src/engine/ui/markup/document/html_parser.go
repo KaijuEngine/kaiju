@@ -641,6 +641,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 //   - classes: variadic string parameters representing the new class names
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
+	elm.UI.Layout().CledarStyles()
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
@@ -694,12 +695,20 @@ func (d *Document) SetElementId(elm *Element, id string) {
 	d.ApplyStyles()
 }
 
-func (d *Document) ChangeElemenParent(child, parent *Element) {
+func (d *Document) ChangeElementParent(child, parent *Element) {
+	if parent != nil && parent.Parent.Value() == child {
+		child.Children = klib.SlicesRemoveElement(child.Children, parent)
+		child.UI.ToPanel().RemoveChild(parent.UI)
+		d.ChangeElementParent(parent, child.Parent.Value())
+	}
 	current := child.Parent.Value()
 	if current != nil {
 		current.Children = klib.SlicesRemoveElement(current.Children, child)
+		child.Parent = weak.Make[Element](nil)
+		current.UI.ToPanel().RemoveChild(child.UI)
 	}
 	parent.Children = append(parent.Children, child)
+	child.Parent = weak.Make(parent)
 	parent.UIPanel.AddChild(child.UI)
 	d.ApplyStyles()
 }

@@ -468,8 +468,6 @@ func (p *Panel) AddChild(target *UI) {
 		FirstPanelOnEntity(target.entity.Parent).RemoveChild(target)
 	}
 	target.Entity().SetParent(&p.entity)
-	// No need to set the group on the target as it's set by the UI Manager
-	target.Layout().update()
 	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -485,9 +483,8 @@ func (p *Panel) InsertChild(target *UI, idx int) {
 func (p *Panel) RemoveChild(target *UI) {
 	target.Entity().SetParent(nil)
 	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-	target.Layout().update()
-	p.layout.update()
 	p.Base().SetDirty(DirtyTypeGenerated)
+	target.SetDirty(DirtyTypeGenerated)
 }
 
 func (p *Panel) Child(index int) *UI {

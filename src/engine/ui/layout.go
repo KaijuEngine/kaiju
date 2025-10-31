@@ -72,6 +72,19 @@ type Layout struct {
 	runningStylizer  bool
 }
 
+func (l *Layout) CledarStyles() {
+	l.offset = matrix.Vec2{}
+	l.rowLayoutOffset = matrix.Vec2{}
+	l.innerOffset = matrix.Vec4{}
+	l.localInnerOffset = matrix.Vec4{}
+	l.left = 0
+	l.top = 0
+	l.z = 0
+	l.border = matrix.Vec4{}
+	l.padding = matrix.Vec4{}
+	l.margin = matrix.Vec4{}
+}
+
 func (l *Layout) PixelSize() matrix.Vec2 {
 	return l.ui.Entity().Transform.WorldScale().AsVec2()
 }

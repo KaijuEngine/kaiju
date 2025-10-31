@@ -225,6 +225,9 @@ func (e *Entity) SetParent(newParent *Entity) {
 	if newParent == e.Parent {
 		return
 	}
+	if newParent != nil && newParent.Parent == e {
+		newParent.SetParent(e.Parent)
+	}
 	p := newParent
 	for p != nil {
 		if p.Parent == e {

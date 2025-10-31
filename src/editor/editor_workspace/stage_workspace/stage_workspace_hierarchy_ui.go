@@ -220,7 +220,10 @@ func (hui *WorkspaceHierarchyUI) entityChangedParent(e *editor_stage_manager.Sta
 	if !ok {
 		return
 	}
-	w.Doc.ChangeElemenParent(child, parent)
+	w.Doc.ChangeElementParent(child, parent)
+	if parent.Parent.Value() == hui.entityList {
+		w.Doc.SetElementClasses(parent, "hierarchyEntry")
+	}
 	w.Doc.SetElementClasses(child, "hierarchyEntry", "hierarchyEntryChild")
 }
 
