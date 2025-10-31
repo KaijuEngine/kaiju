@@ -38,7 +38,6 @@
 package editor
 
 import (
-	"fmt"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_stage_manager"
@@ -118,7 +117,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 	// Loose goroutine
 	go func() {
 		wg.Wait()
-		ed.project.Run(fmt.Sprintf("-startStage=%s", stageId))
+		ed.project.Run("-startStage", stageId)
 	}()
 }
 
