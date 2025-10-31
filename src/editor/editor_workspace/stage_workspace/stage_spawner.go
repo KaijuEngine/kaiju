@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
@@ -54,11 +55,25 @@ import (
 
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
-	ray := w.Host.Camera.RayCast(m.Position())
+	var mp matrix.Vec2
+	switch w.camera.Mode() {
+	case editor_controls.EditorCameraMode3d:
+		mp = m.Position()
+	case editor_controls.EditorCameraMode2d:
+		mp = m.ScreenPosition()
+	}
+	ray := w.Host.Camera.RayCast(mp)
 	e, eHitOk := w.manager.TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
 	// to doing the ground plane/distance hit point
-	hit, ok := ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
+	var hit matrix.Vec3
+	var ok bool
+	switch w.camera.Mode() {
+	case editor_controls.EditorCameraMode3d:
+		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
+	case editor_controls.EditorCameraMode2d:
+		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Forward())
+	}
 	if !ok {
 		hit = ray.Point(maxContentDropDistance)
 	}
