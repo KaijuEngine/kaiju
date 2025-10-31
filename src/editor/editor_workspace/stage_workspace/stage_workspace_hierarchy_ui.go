@@ -148,7 +148,8 @@ func (hui *WorkspaceHierarchyUI) entityDragEnter(e *document.Element) {
 	if dd.id == id {
 		return
 	}
-	hui.workspace.Value().Doc.SetElementClasses(e, "hierarchyEntry", "hierarchyEntryDragHover")
+	hui.workspace.Value().Doc.SetElementClasses(
+		e, hui.buildEntityClasses(e, "hierarchyEntryDragHover")...)
 }
 
 func (hui *WorkspaceHierarchyUI) entityDragExit(e *document.Element) {
@@ -163,15 +164,8 @@ func (hui *WorkspaceHierarchyUI) entityDragExit(e *document.Element) {
 }
 
 func (hui *WorkspaceHierarchyUI) clearElementDragEnterColor(e *document.Element) {
-	id := e.Attribute("id")
 	w := hui.workspace.Value()
-	if se, ok := w.manager.EntityById(id); ok {
-		if w.manager.IsSelected(se) {
-			hui.workspace.Value().Doc.SetElementClasses(e, "hierarchyEntry", "hierarchyEntrySelected")
-		} else {
-			w.Doc.SetElementClasses(e, "hierarchyEntry")
-		}
-	}
+	w.Doc.SetElementClasses(e, hui.buildEntityClasses(e)...)
 }
 
 func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEntity) {
@@ -185,11 +179,8 @@ func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEnt
 	entries := hui.workspace.Value().Doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
-			classes := []string{"hierarchyEntry", "hierarchyEntrySelected"}
-			if elm.Parent.Value() != hui.entityList {
-				classes = append(classes, "hierarchyEntryChild")
-			}
-			hui.workspace.Value().Doc.SetElementClasses(elm, classes...)
+			hui.workspace.Value().Doc.SetElementClasses(
+				elm, hui.buildEntityClasses(elm)...)
 			break
 		}
 	}
@@ -199,11 +190,8 @@ func (hui *WorkspaceHierarchyUI) entityDeselected(e *editor_stage_manager.StageE
 	entries := hui.workspace.Value().Doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
-			classes := []string{"hierarchyEntry"}
-			if elm.Parent.Value() != hui.entityList {
-				classes = append(classes, "hierarchyEntryChild")
-			}
-			hui.workspace.Value().Doc.SetElementClasses(elm, classes...)
+			hui.workspace.Value().Doc.SetElementClasses(
+				elm, hui.buildEntityClasses(elm)...)
 			break
 		}
 	}
@@ -232,4 +220,16 @@ func (hui *WorkspaceHierarchyUI) dragStopped() {
 		return
 	}
 	hui.hierarchyDragPreview.UI.Hide()
+}
+
+func (hui *WorkspaceHierarchyUI) buildEntityClasses(e *document.Element, additionalClasses ...string) []string {
+	classes := []string{"hierarchyEntry"}
+	if hui.workspace.Value().manager.IsSelectedById(e.Attribute("id")) {
+		classes = append(classes, "hierarchyEntrySelected")
+	}
+	classes = append(classes, additionalClasses...)
+	if e.Parent.Value() != hui.entityList {
+		classes = append(classes, "hierarchyEntryChild")
+	}
+	return classes
 }

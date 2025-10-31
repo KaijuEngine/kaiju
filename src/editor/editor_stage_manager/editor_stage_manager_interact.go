@@ -59,6 +59,16 @@ func (m *StageManager) IsSelected(e *StageEntity) bool {
 	return false
 }
 
+func (m *StageManager) IsSelectedById(id string) bool {
+	defer tracing.NewRegion("StageManager.IsSelected").End()
+	for i := range m.selected {
+		if m.selected[i].StageData.Description.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *StageManager) ClearSelection() {
 	defer tracing.NewRegion("StageManager.ClearSelection").End()
 	cpy := slices.Clone(m.selected)
