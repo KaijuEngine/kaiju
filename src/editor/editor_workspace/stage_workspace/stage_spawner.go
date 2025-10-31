@@ -144,7 +144,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		return
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	e := w.manager.AddEntity(point)
+	e := w.manager.AddEntity(cc.Config.Name, point)
 	e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
@@ -188,7 +188,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	tex, _ := w.Host.TextureCache().Texture(assets.TextureSquare,
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	e := w.manager.AddEntity(point)
+	e := w.manager.AddEntity(cc.Config.Name, point)
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id

@@ -76,14 +76,27 @@
 				height: 5em;
 			}
 			#hideContent, #showContent {
-				position: absolute;
 				left: 0;
+			}
+			#hideHierarchy, #showHierarchy {
+				top: 6em;
+			}
+			#hideContent, #showContent, #hideHierarchy, #showHierarchy {
+				position: absolute;
 				background-color: #282828;
 				color: #AAA;
 				z-index: 2;
 				padding: 0 5px;
 				border: 2px solid #575757;
 			}
+			#hideHierarchy {
+				left: 14em;
+			}
+			#showHierarchy {
+				left: 0;
+			}
+			#hideHierarchy:hover { color: white; }
+			#showHierarchy:hover { color: white; }
 			#hideContent {
 				bottom: 11.3em;
 			}
@@ -116,11 +129,69 @@
 				left: 0;
 				z-index: 2;
 			}
+			#hierarchyArea {
+				top: 3em;
+				height: calc(100% - 16em);
+				width: 14em;
+				background-color: #282828;
+				color: white;
+			}
+			.hierarchyEntry {
+				width: 100%;
+				min-height: 24px;
+				color: white;
+				background-color: #1f1f1f;
+				line-height: 24px;
+			}
+			.hierarchyEntry:hover {
+				background-color: #313232;
+			}
+			.hierarchyEntrySelected {
+				background-color: #575757;
+			}
+			.hierarchyEntryDragHover:hover {
+				background-color: #1d731c;
+			}
+			.arrow {
+				height: 24px;
+				text-align: center;
+			}
+			.searchInput {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 0.5em;
+			}
+			#searchInput {
+				width: 100%;
+				height: 100%;
+			}
+			.hierarchyEntryChild {
+				margin-left: 1em;
+			}
+			#hierarchyDragPreview {
+				position: absolute;
+				width: 2em;
+				height: 2em;
+				z-index: 10;
+			}
 		</style>
 	</head>
 	<body>
-		<span id="hideContent" onclick="hideContent">v Hide v</span>
-		<span id="showContent" onclick="showContent">^ Show ^</span>
+		<span id="hideHierarchy" onclick="hideHierarchy">&lt;</span>
+		<span id="showHierarchy" onclick="showHierarchy">&gt;</span>
+		<div id="hierarchyArea" ondrop="drop">
+			<div class="searchInput">
+				<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
+			</div>
+			<div id="entityList">
+				<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
+					<span>Name...</span>
+				</div>
+			</div>
+		</div>
+		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
+		<span id="hideContent" onclick="hideContent">v</span>
+		<span id="showContent" onclick="showContent">^</span>
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
 		<div id="contentArea" class="content">
 			<div class="left">

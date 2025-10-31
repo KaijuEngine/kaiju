@@ -64,6 +64,7 @@ type Workspace struct {
 	gridShader    *shader_data_registry.ShaderDataGrid
 	pageData      content_workspace.WorkspaceUIData
 	contentUI     WorkspaceContentUI
+	hierarchyUI   WorkspaceHierarchyUI
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
 }
@@ -79,7 +80,7 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.ed = ed
 	w.manager.Initialize(host)
 	w.manager.NewStage()
-	ids := w.pageData.SetupUIData(w.ed.Cache())
+	w.pageData.SetupUIData(w.ed.Cache())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
 			"inputFilter":     w.contentUI.inputFilter,
@@ -92,10 +93,19 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 			"entryMouseEnter": w.contentUI.entryMouseEnter,
 			"entryMouseMove":  w.contentUI.entryMouseMove,
 			"entryMouseLeave": w.contentUI.entryMouseLeave,
+			"hierarchySearch": w.hierarchyUI.hierarchySearch,
+			"hideHierarchy":   w.hierarchyUI.hideHierarchy,
+			"showHierarchy":   w.hierarchyUI.showHierarchy,
+			"selectEntity":    w.hierarchyUI.selectEntity,
+			"entityDragStart": w.hierarchyUI.entityDragStart,
+			"entityDrop":      w.hierarchyUI.entityDrop,
+			"entityDragEnter": w.hierarchyUI.entityDragEnter,
+			"entityDragExit":  w.hierarchyUI.entityDragExit,
 		})
 	w.createViewportGrid()
 	w.setupCamera()
-	w.contentUI.setup(w, w.ed.Events(), ids)
+	w.contentUI.setup(w, w.ed.Events())
+	w.hierarchyUI.setup(w)
 	w.transformTool.Initialize(host, w, w.ed.History(), &w.ed.Settings().Snapping)
 }
 
@@ -105,6 +115,7 @@ func (w *Workspace) Open() {
 	w.gridShader.Activate()
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.contentUI.open()
+	w.hierarchyUI.open()
 	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
@@ -124,6 +135,7 @@ func (w *Workspace) update(deltaTime float64) {
 		return
 	}
 	w.contentUI.processHotkeys(w.Host)
+	w.hierarchyUI.processHotkeys(w.Host)
 	if w.camera.Update(w.Host, deltaTime) {
 		camPos := w.Host.Camera.Position()
 		w.gridTransform.SetPosition(matrix.NewVec3(

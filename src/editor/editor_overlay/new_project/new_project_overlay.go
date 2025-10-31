@@ -130,6 +130,13 @@ func (np *NewProject) createProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.createProject").End()
 	name := np.nameInput.UI.ToInput().Text()
 	path := np.folder.UI.ToInput().Text()
+	if name == "" {
+		slog.Error("project name was not set")
+		return
+	}
+	if path == "" {
+		slog.Error("project path was not set")
+	}
 	np.Close()
 	if np.config.OnCreate == nil {
 		slog.Error("nothing bound to OnCreate, doing nothing")

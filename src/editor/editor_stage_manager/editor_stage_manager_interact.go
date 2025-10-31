@@ -63,6 +63,7 @@ func (m *StageManager) ClearSelection() {
 	for i := range m.selected {
 		if sd, ok := m.selected[i].StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
 			sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+			m.OnEntityDeselected.Execute(m.selected[i])
 		}
 	}
 	m.selected = klib.WipeSlice(m.selected)
@@ -79,6 +80,28 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 		sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 	}
 	m.selected = append(m.selected, e)
+	m.OnEntitySelected.Execute(e)
+}
+
+func (m *StageManager) SelectEntityById(id string) {
+	m.ClearSelection()
+	m.SelectAppendEntityById(id)
+}
+
+func (m *StageManager) SelectAppendEntityById(id string) {
+	if e, ok := m.EntityById(id); ok {
+		m.SelectEntity(e)
+	}
+}
+
+func (m *StageManager) SelectToggleEntityById(id string) {
+	if e, ok := m.EntityById(id); ok {
+		if m.IsSelected(e) {
+			m.DeselectEntity(e)
+		} else {
+			m.SelectEntity(e)
+		}
+	}
 }
 
 func (m *StageManager) DeselectEntity(e *StageEntity) {
@@ -88,6 +111,7 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 			m.selected = slices.Delete(m.selected, i, i+1)
 			if sd, ok := e.StageData.ShaderData.(*shader_data_registry.ShaderDataStandard); ok {
 				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+				m.OnEntityDeselected.Execute(e)
 			}
 			return
 		}

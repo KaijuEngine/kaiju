@@ -48,6 +48,16 @@ type StageEntity struct {
 	StageData StageEntityEditorData
 }
 
+func (e *StageEntity) Depth() int {
+	depth := 0
+	p := e.Parent
+	for p != nil {
+		depth++
+		p = p.Parent
+	}
+	return depth
+}
+
 func (e *StageEntity) SetMaterial(mat *rendering.Material, host *engine.Host) {
 	e.StageData.ShaderData.Destroy()
 	e.StageData.Description.Textures = make([]string, len(mat.Textures))

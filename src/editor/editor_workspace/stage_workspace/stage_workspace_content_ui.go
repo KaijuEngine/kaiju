@@ -69,7 +69,7 @@ type WorkspaceContentUI struct {
 	dragContentId  string
 }
 
-func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorEvents, ids []string) {
+func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorEvents) {
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
@@ -135,7 +135,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeat(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
-		cpys[i].SetAttribute("id", cc.Id())
+		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
@@ -147,6 +147,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
 	}
+	w.Doc.ApplyStyles()
 }
 
 func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {

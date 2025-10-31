@@ -44,6 +44,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/collision"
+	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -64,11 +65,15 @@ const StageIdPrefix = "stage_"
 // StageManager represents the current stage in the editor. It contains all of
 // the entities on the stage.
 type StageManager struct {
-	stageId  string
-	host     *engine.Host
-	entities []*StageEntity
-	selected []*StageEntity
-	isNew    bool
+	OnEntitySpawn         events.EventWithArg[*StageEntity]
+	OnEntitySelected      events.EventWithArg[*StageEntity]
+	OnEntityDeselected    events.EventWithArg[*StageEntity]
+	OnEntityChangedParent events.EventWithArg[*StageEntity]
+	stageId               string
+	host                  *engine.Host
+	entities              []*StageEntity
+	selected              []*StageEntity
+	isNew                 bool
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -108,10 +113,11 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 
 // AddEntity will create a new entity for the stage. This entity will have a
 // #StageEntityData automatically added to it as named data named "stage".
-func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
+func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
+	e.SetName(name)
 	e.StageData.Description.Id = uuid.NewString()
 	m.host.AddEntity(&e.Entity)
 	e.Transform.SetPosition(point)
@@ -135,7 +141,25 @@ func (m *StageManager) AddEntity(point matrix.Vec3) *StageEntity {
 			}
 		}
 	})
+	m.OnEntitySpawn.Execute(e)
 	return e
+}
+
+func (m *StageManager) EntityById(id string) (*StageEntity, bool) {
+	if id == "" {
+		return nil, false
+	}
+	for i := range m.entities {
+		if m.entities[i].StageData.Description.Id == id {
+			return m.entities[i], true
+		}
+	}
+	return nil, false
+}
+
+func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
+	child.SetParent(&parent.Entity)
+	m.OnEntityChangedParent.Execute(child)
 }
 
 // Clear will destroy all entities that are managed by this stage manager.
@@ -229,11 +253,10 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s.FromMinimized(ss)
 	var importTarget func(parent *StageEntity, desc *stages.EntityDescription) error
 	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
-		e := m.AddEntity(matrix.Vec3Zero())
+		e := m.AddEntity(desc.Name, matrix.Vec3Zero())
 		e.StageData.Description = *desc
-		e.SetName(desc.Name)
 		if parent != nil {
-			e.SetParent(&parent.Entity)
+			m.SetEntityParent(e, parent)
 		}
 		e.Transform.SetPosition(desc.Position)
 		e.Transform.SetRotation(desc.Rotation)

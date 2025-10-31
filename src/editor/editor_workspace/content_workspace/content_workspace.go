@@ -186,7 +186,7 @@ func (w *Workspace) AddContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeat(w.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
-		cpys[i].SetAttribute("id", cc.Id())
+		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
@@ -198,6 +198,7 @@ func (w *Workspace) AddContent(ids []string) {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
 	}
+	w.Doc.ApplyStyles()
 	w.edEvts.OnContentAdded.Execute(ids)
 }
 

@@ -46,6 +46,7 @@ import (
 	"kaiju/engine/ui/markup/elements"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -655,6 +656,9 @@ func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
 // Element.Clone followed by an Insert function instead
 func (d *Document) DuplicateElement(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
+	if elm.Attribute("id") != "" {
+		cpy.SetAttribute("id", "")
+	}
 	d.appendElement(cpy)
 	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
@@ -672,6 +676,32 @@ func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
 	}
 	d.stylizer.ApplyStyles(d.style, d)
 	return elms
+}
+
+func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
+	defer tracing.NewRegion("Document.SetElementIdWithoutApplyStyles").End()
+	currentId := elm.Attribute("id")
+	if currentId != "" {
+		delete(d.ids, currentId)
+	}
+	elm.SetAttribute("id", id)
+	d.ids[id] = elm
+}
+
+func (d *Document) SetElementId(elm *Element, id string) {
+	defer tracing.NewRegion("Document.SetElementId").End()
+	d.SetElementIdWithoutApplyStyles(elm, id)
+	d.ApplyStyles()
+}
+
+func (d *Document) ChangeElemenParent(child, parent *Element) {
+	current := child.Parent.Value()
+	if current != nil {
+		current.Children = klib.SlicesRemoveElement(current.Children, child)
+	}
+	parent.Children = append(parent.Children, child)
+	parent.UIPanel.AddChild(child.UI)
+	d.ApplyStyles()
 }
 
 func (d *Document) appendElement(elm *Element) {

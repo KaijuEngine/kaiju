@@ -461,6 +461,12 @@ func (p *Panel) panelRender() {
 }
 
 func (p *Panel) AddChild(target *UI) {
+	if target.entity.Parent == &p.entity {
+		return
+	}
+	if target.entity.Parent != nil {
+		FirstPanelOnEntity(target.entity.Parent).RemoveChild(target)
+	}
 	target.Entity().SetParent(&p.entity)
 	// No need to set the group on the target as it's set by the UI Manager
 	target.Layout().update()
