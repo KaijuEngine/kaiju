@@ -129,6 +129,9 @@ func (w *Workspace) Close() {
 
 func (w *Workspace) update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
+	if w.UiMan.IsUpdateDisabled() {
+		return
+	}
 	if !w.contentUI.update(w) {
 		return
 	}

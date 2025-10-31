@@ -202,6 +202,8 @@ func (man *Manager) Reserve(additionalElements int) {
 	man.Host.ReserveEntities(additionalElements)
 }
 
+func (man *Manager) IsUpdateDisabled() bool { return man.skipUpdate > 0 }
+
 func (man *Manager) DisableUpdate() {
 	man.Host.RunNextFrame(func() { man.skipUpdate++ })
 }
