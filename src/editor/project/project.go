@@ -250,7 +250,11 @@ func (p *Project) Package() error {
 
 func (p *Project) Run(args ...string) {
 	defer tracing.NewRegion("Project.Run").End()
-	slog.Info("compiling the project")
+	if len(args) > 0 {
+		slog.Info("compiling the project with args", "args", strings.Join(args, ","))
+	} else {
+		slog.Info("compiling the project")
+	}
 	files, err := p.fileSystem.ReadDir(project_file_system.ProjectBuildFolder)
 	if err != nil {
 		slog.Error("failed to run, could not locate the files in the project's build folder", "error", err)
@@ -270,7 +274,7 @@ func (p *Project) Run(args ...string) {
 	target = filepath.Join(project_file_system.ProjectBuildFolder, target)
 	targetPath := p.fileSystem.FullPath(target)
 	cmd := exec.Command(targetPath, args...)
-	cmd.Dir = filepath.Dir(targetPath)
+	cmd.Dir = p.fileSystem.Name()
 	outPipe, err := cmd.StderrPipe()
 	if err != nil {
 		slog.Warn("failed to grab the stdout pipe, no logs will be read")
