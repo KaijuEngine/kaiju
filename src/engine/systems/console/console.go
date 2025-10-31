@@ -111,9 +111,7 @@ type Console struct {
 func For(host *engine.Host) *Console {
 	c, ok := consoles[host]
 	if !ok {
-		host.CreatingEditorEntities()
 		c = initialize(host)
-		host.DoneCreatingEditorEntities()
 		consoles[host] = c
 		host.OnClose.Add(func() { delete(consoles, host) })
 	}

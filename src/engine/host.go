@@ -122,7 +122,6 @@ type Host struct {
 	OnClose           events.Event
 	CloseSignal       chan struct{}
 	frameRateLimit    *time.Ticker
-	inEditorEntity    int
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -213,24 +212,6 @@ func (host *Host) Threads() *concurrent.Threads { return &host.threads }
 
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
-
-// CreatingEditorEntities is used exclusively for the editor to know that the
-// entities that are being created are for the editor. This is used to logically
-// separate editor entities from game entities.
-//
-// This will increment so it can be called many times, however it is expected
-// that #Host.DoneCreatingEditorEntities is be called the same number of times.
-func (host *Host) CreatingEditorEntities() {
-	host.inEditorEntity++
-}
-
-// DoneCreatingEditorEntities is used to signal that the editor is done creating
-// entities. This should be called the same number of times as
-// #Host.CreatingEditorEntities. When the internal counter reaches 0, then any
-// entity created on the host will go to the standard entity pool.
-func (host *Host) DoneCreatingEditorEntities() {
-	host.inEditorEntity--
-}
 
 // CollisionManager returns the collision manager for this host
 func (host *Host) CollisionManager() *collision_system.Manager {

@@ -696,10 +696,17 @@ func (d *Document) SetElementId(elm *Element, id string) {
 }
 
 func (d *Document) ChangeElementParent(child, parent *Element) {
-	if parent != nil && parent.Parent.Value() == child {
-		child.Children = klib.SlicesRemoveElement(child.Children, parent)
-		child.UI.ToPanel().RemoveChild(parent.UI)
-		d.ChangeElementParent(parent, child.Parent.Value())
+	// Check to see if anywhere in newParent's hierarchy is this entity
+	// if so, then set it's direct descendant to take this entity's parent.
+	{
+		p := parent
+		for p != nil {
+			if p.Parent.Value() == child {
+				d.ChangeElementParent(p, child.Parent.Value())
+				break
+			}
+			p = p.Parent.Value()
+		}
 	}
 	current := child.Parent.Value()
 	if current != nil {

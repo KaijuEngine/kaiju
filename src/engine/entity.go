@@ -225,8 +225,17 @@ func (e *Entity) SetParent(newParent *Entity) {
 	if newParent == e.Parent {
 		return
 	}
-	if newParent != nil && newParent.Parent == e {
-		newParent.SetParent(e.Parent)
+	// Check to see if anywhere in newParent's hierarchy is this entity
+	// if so, then set it's direct descendant to take this entity's parent.
+	{
+		np := newParent
+		for np != nil {
+			if np.Parent == e {
+				np.SetParent(e.Parent)
+				break
+			}
+			np = np.Parent
+		}
 	}
 	p := newParent
 	for p != nil {
