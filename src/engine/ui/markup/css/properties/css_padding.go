@@ -46,6 +46,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/matrix"
 	"kaiju/platform/windowing"
+	"slices"
 )
 
 func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorComponent, window *windowing.Window) (matrix.Vec4, error) {
@@ -67,8 +68,44 @@ func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorC
 	return current, nil
 }
 
+func (Padding) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	switch len(values) {
+	case 1:
+		for i := range 3 {
+			values = append(values, values[i])
+		}
+	case 2:
+		values = append(values, values[0])
+		values = append(values, values[1])
+	case 3:
+		values = append(values, values[1])
+	}
+	for i := 1; i < len(rules); i++ {
+		removeRule := false
+		switch rules[i].Property {
+		case "padding-top":
+			values[0] = rules[i].Values[0]
+			removeRule = true
+		case "padding-right":
+			values[1] = rules[i].Values[0]
+			removeRule = true
+		case "padding-bottom":
+			values[2] = rules[i].Values[0]
+			removeRule = true
+		case "padding-left":
+			values[3] = rules[i].Values[0]
+			removeRule = true
+		}
+		if removeRule {
+			rules = slices.Delete(rules, i, i+1)
+			i--
+		}
+	}
+	return values, rules
+}
+
 // length|initial|inherit
-func (p Padding) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+func (Padding) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	var err error
 	if len(values) == 1 {
 		// all

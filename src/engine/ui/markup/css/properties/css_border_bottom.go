@@ -45,8 +45,12 @@ import (
 	"kaiju/engine/ui/markup/document"
 )
 
+func (BorderBottom) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, rules, "border")
+}
+
 // border-width border-style border-color|initial|inherit
-func (p BorderBottom) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+func (BorderBottom) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}

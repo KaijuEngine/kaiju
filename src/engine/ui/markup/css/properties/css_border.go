@@ -45,6 +45,7 @@ import (
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/windowing"
+	"slices"
 	"strings"
 )
 
@@ -90,8 +91,44 @@ func borderStyleFromStr(str string, lrtb int, elm *document.Element) (ui.BorderS
 	}
 }
 
+func (Border) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	switch len(values) {
+	case 1:
+		for i := range 3 {
+			values = append(values, values[i])
+		}
+	case 2:
+		values = append(values, values[0])
+		values = append(values, values[1])
+	case 3:
+		values = append(values, values[1])
+	}
+	for i := 1; i < len(rules); i++ {
+		removeRule := false
+		switch rules[i].Property {
+		case "border-top":
+			values[0] = rules[i].Values[0]
+			removeRule = true
+		case "border-right":
+			values[1] = rules[i].Values[0]
+			removeRule = true
+		case "border-bottom":
+			values[2] = rules[i].Values[0]
+			removeRule = true
+		case "border-left":
+			values[3] = rules[i].Values[0]
+			removeRule = true
+		}
+		if removeRule {
+			rules = slices.Delete(rules, i, i+1)
+			i--
+		}
+	}
+	return values, rules
+}
+
 // border-width border-style border-color|initial|inherit
-func (p Border) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}
