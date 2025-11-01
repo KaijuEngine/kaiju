@@ -86,7 +86,7 @@ func (g *entityDataEntry) fieldBool(fieldIdx int) bool {
 
 func readEntityDataBindingType(g codegen.GeneratedType, e *editor_stage_manager.StageEntity) *entityDataEntry {
 	v := g.New().Value
-	de := &entityDataEntry{}
+	de := &entityDataEntry{Name: g.Name}
 	for i := range g.Fields {
 		if g.Fields[i].IsExported() {
 			ef := entityDataField{

@@ -54,7 +54,6 @@
 			input {
 				width: 100%;
 				height: 2em;
-				margin: 0.5em 0;
 			}
 			.entry {
 				width: 5em;
@@ -193,11 +192,14 @@
 			}
 			.smallInput {
 				width: 4.3em;
+				height: 1.2em;
+				font-size: 0.8em;
 				margin-left: 0.3em;
 			}
 			.dataTable {
 				width: 100%;
 				padding: 5px;
+				font-size: 0.8em;
 			}
 			.entityDataListEntry {
 				width: 100%;
@@ -208,18 +210,22 @@
 			}
 			.dataInput {
 				width: 100%;
-				height: 20px;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-bottom: 0.2em;
 			}
 			.dataCheck {
-				width: 20px;
-				height: 20px;
+				width: 0.8em;
+				height: 0.8em;
 				margin-left: 5px;
+				margin-bottom: 0.2em;
 			}
 			.dataBindingBlock {
 				background-color: #282828;
 				color: white;
-				border-bottom: 2px solid #575757;
+				border: 2px solid #AAA;
 			}
+			.center { text-align: center; }
 		</style>
 	</head>
 	<body>
@@ -260,7 +266,7 @@
 				<div class="dataTable">
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">
-							<span>Name...</span>
+							<div class="center">Data name...</div>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
 								<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
