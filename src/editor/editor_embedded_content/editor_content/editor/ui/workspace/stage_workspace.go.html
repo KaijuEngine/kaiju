@@ -127,6 +127,7 @@
 				width: 15em;
 				background-color: #282828;
 				color: white;
+				overflow-y: scroll;
 			}
 			.hierarchyEntry {
 				width: 100%;
@@ -188,10 +189,36 @@
 				width: 15em;
 				background-color: #282828;
 				color: white;
+				overflow-y: scroll;
 			}
 			.smallInput {
 				width: 4.3em;
 				margin-left: 0.3em;
+			}
+			.dataTable {
+				width: 100%;
+				padding: 5px;
+			}
+			.entityDataListEntry {
+				width: 100%;
+				background-color: #282828;
+			}
+			.entityDataListEntry:hover {
+				background-color: #353535;
+			}
+			.dataInput {
+				width: 100%;
+				height: 20px;
+			}
+			.dataCheck {
+				width: 20px;
+				height: 20px;
+				margin-left: 5px;
+			}
+			.dataBindingBlock {
+				background-color: #282828;
+				color: white;
+				border-bottom: 2px solid #575757;
 			}
 		</style>
 	</head>
@@ -230,6 +257,23 @@
 				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
 				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div class="dataTable">
+					<div id="boundEntityDataList">
+						<div id="boundEntityDataTemplate" class="dataBindingBlock">
+							<span>Name...</span>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
+								<input class="dataCheck" type="checkbox" onchange="changeData" />
+							</div>
+						</div>
+					</div>
+					<div>Add data</div>
+					<input type="text" placeholder="Find entity data..." onchange="searchEntityData" />
+					<div id="entityDataList">
+						<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
+					</div>
+				</div>
 			</div>
 		</div>
 		<!-- Content UI -->

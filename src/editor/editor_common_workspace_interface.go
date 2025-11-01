@@ -4,6 +4,7 @@ import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/memento"
+	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 )
@@ -14,6 +15,10 @@ func (ed *Editor) Events() *editor_events.EditorEvents {
 
 func (ed *Editor) History() *memento.History {
 	return &ed.history
+}
+
+func (ed *Editor) Project() *project.Project {
+	return &ed.project
 }
 
 func (ed *Editor) ProjectFileSystem() *project_file_system.FileSystem {

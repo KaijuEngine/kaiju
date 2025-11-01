@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
+	"kaiju/engine/systems/events"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
@@ -61,14 +62,15 @@ import (
 type Project struct {
 	// OnNameChange will fire whenever [SetName] is called, it will pass the
 	// name that was set as the argument.
-	OnNameChange  func(string)
-	fileSystem    project_file_system.FileSystem
-	cacheDatabase content_database.Cache
-	settings      Settings
-	entityData    []codegen.GeneratedType
-	entityDataMap map[string]*codegen.GeneratedType
-	readingCode   bool
-	isCompiling   atomic.Bool
+	OnNameChange        func(string)
+	OnEntityDataUpdated events.EventWithArg[[]codegen.GeneratedType]
+	fileSystem          project_file_system.FileSystem
+	cacheDatabase       content_database.Cache
+	settings            Settings
+	entityData          []codegen.GeneratedType
+	entityDataMap       map[string]*codegen.GeneratedType
+	readingCode         bool
+	isCompiling         atomic.Bool
 }
 
 // EntityData returns all of the generated/reflected entity data binding types
@@ -358,6 +360,7 @@ func (p *Project) ReadSourceCode() {
 	}
 	slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
 	p.readingCode = false
+	p.OnEntityDataUpdated.Execute(p.entityData)
 }
 
 func (p *Project) reconstruct() {
