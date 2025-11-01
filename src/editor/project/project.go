@@ -48,6 +48,7 @@ import (
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/systems/events"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -231,10 +232,14 @@ func (p *Project) Package() error {
 	files := make([]content_archive.SourceContent, 0, len(list))
 	for i := range list {
 		relPath := content_database.ToContentPath(list[i].Path)
-		files = append(files, content_archive.SourceContent{
+		sc := content_archive.SourceContent{
 			Key:      list[i].Id(),
 			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
-		})
+		}
+		if list[i].Config.Type == (content_database.Stage{}).TypeName() {
+			sc.CustomSerializer = stages.ArchiveSerializer
+		}
+		files = append(files, sc)
 	}
 	stock, err := p.fileSystem.ReadDir(project_file_system.StockFolder)
 	if err != nil {

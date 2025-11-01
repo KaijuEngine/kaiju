@@ -39,8 +39,11 @@ package engine
 
 import (
 	"errors"
+	"kaiju/build"
 	"kaiju/engine/runtime/encoding/gob"
 )
+
+var DebugEntityDataRegistry = map[string]EntityData{}
 
 type EntityData interface {
 	Init(entity *Entity, host *Host)
@@ -54,5 +57,8 @@ func RegisterEntityData(name string, value EntityData) error {
 		}
 	}()
 	gob.RegisterName(name, value)
+	if build.Debug {
+		DebugEntityDataRegistry[name] = value
+	}
 	return err
 }

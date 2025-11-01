@@ -116,18 +116,27 @@ func (Game) Launch(host *engine.Host) {
 	}
 	stageData, err := host.AssetDatabase().Read(startStage)
 	if err != nil {
-		slog.Error("failed to read the entry point stage 'main'", "error", err)
-		host.Close()
-		return
-	}
-	j := stages.StageJson{}
-	if err := json.Unmarshal(stageData, &j); err != nil {
-		slog.Error("failed to decode the entry point stage 'main'", "error", err)
+		slog.Error("failed to read the entry point stage", "stage", startStage, "error", err)
 		host.Close()
 		return
 	}
 	s := stages.Stage{}
-	s.FromMinimized(j)
+	if build.Debug {
+		j := stages.StageJson{}
+		if err := json.Unmarshal(stageData, &j); err != nil {
+			slog.Error("failed to decode the entry point stage 'main'", "error", err)
+			host.Close()
+			return
+		}
+		s.FromMinimized(j)
+	} else {
+		s, err := stages.ArchiveDeserializer(stageData)
+		if err != nil {
+			slog.Error("failed to deserialize the entry point stage", "stage", startStage, "error", err)
+			host.Close()
+			return
+		}
+	}
 	s.Launch(host)
 }
 

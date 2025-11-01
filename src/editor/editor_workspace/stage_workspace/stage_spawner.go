@@ -43,7 +43,6 @@ import (
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
-	"kaiju/engine_data_bindings"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -54,9 +53,9 @@ import (
 )
 
 func (w *Workspace) CreateNewCamera() {
-	e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
+	// e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
 	// TODO:  This should be added using Project.EntityDataBinding
-	e.AddDataBinding(engine_data_bindings.NewCameraDataBinding())
+	// e.AddDataBinding(engine_data_bindings.NewCameraDataBinding())
 	// TODO:  Create the view frustom wire
 	//mesh := rendering.NewMeshFrustum(w.Host.MeshCache(), string(e.Id()),
 	//	w.Host.Camera.Projection().Invert())
@@ -141,7 +140,7 @@ func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, p
 }
 
 func (w *Workspace) loadStage(id string) {
-	if err := w.manager.LoadStage(id, w.Host, w.ed.Cache(), w.ed.ProjectFileSystem()); err != nil {
+	if err := w.manager.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
 		slog.Error("failed to load the stage", "id", id, "error", err)
 	}
 }

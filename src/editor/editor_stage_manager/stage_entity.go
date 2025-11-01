@@ -46,12 +46,12 @@ import (
 type StageEntity struct {
 	engine.Entity
 	StageData    StageEntityEditorData
-	dataBindings []any
+	dataBindings []*EntityDataEntry
 }
 
-func (e *StageEntity) DataBindings() []any { return e.dataBindings }
+func (e *StageEntity) DataBindings() []*EntityDataEntry { return e.dataBindings }
 
-func (e *StageEntity) AddDataBinding(binding any) {
+func (e *StageEntity) AddDataBinding(binding *EntityDataEntry) {
 	e.dataBindings = append(e.dataBindings, binding)
 }
 

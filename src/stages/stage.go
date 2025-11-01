@@ -38,6 +38,9 @@
 package stages
 
 import (
+	"bytes"
+	"encoding/gob"
+	"encoding/json"
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine"
@@ -68,16 +71,17 @@ type StageJson struct {
 
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDescription struct {
-	Id          string
-	Name        string
-	Mesh        string
-	Material    string
-	Textures    []string
-	Position    matrix.Vec3
-	Rotation    matrix.Vec3
-	Scale       matrix.Vec3
-	DataBinding []EntityDataBinding
-	Children    []EntityDescription
+	Id             string
+	Name           string
+	Mesh           string
+	Material       string
+	Textures       []string
+	Position       matrix.Vec3
+	Rotation       matrix.Vec3
+	Scale          matrix.Vec3
+	DataBinding    []EntityDataBinding
+	Children       []EntityDescription
+	RawDataBinding []any
 }
 
 type EntityDescriptionJson struct {
@@ -97,8 +101,8 @@ type EntityDescriptionJson struct {
 
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDataBinding struct {
-	Name   string
-	Fields map[string]any `json:",omitempty"`
+	RegistraionKey string
+	Fields         map[string]any `json:",omitempty"`
 }
 
 // //////////////////////////////////////////////////////////////////////////////
@@ -200,7 +204,37 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	}
 }
 
+func ArchiveSerializer(rawData []byte) ([]byte, error) {
+	var ss StageJson
+	if err := json.Unmarshal(rawData, &ss); err != nil {
+		return rawData, err
+	}
+	s := Stage{}
+	s.FromMinimized(ss)
+	var removeUnpackedDataBindings func(desc *EntityDescription)
+	removeUnpackedDataBindings = func(desc *EntityDescription) {
+		desc.DataBinding = desc.DataBinding[0:]
+		for i := range desc.Children {
+			removeUnpackedDataBindings(&desc.Children[i])
+		}
+	}
+	for i := range s.Entities {
+		removeUnpackedDataBindings(&s.Entities[i])
+	}
+	stream := bytes.NewBuffer(rawData)
+	stream.Reset()
+	err := gob.NewEncoder(stream).Encode(s)
+	return stream.Bytes(), err
+}
+
+func ArchiveDeserializer(rawData []byte) (Stage, error) {
+	s := Stage{}
+	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
+	return s, err
+}
+
 func (s *Stage) Launch(host *engine.Host) {
+	entityBindings := []func(){}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
 		e := host.NewEntity()
@@ -212,6 +246,28 @@ func (s *Stage) Launch(host *engine.Host) {
 		e.Transform.SetRotation(se.Rotation)
 		e.Transform.SetScale(se.Scale)
 		// TODO:  Data binding should have been serialized
+		if build.Debug {
+			for i := range se.DataBinding {
+				b, ok := engine.DebugEntityDataRegistry[se.DataBinding[i].RegistraionKey]
+				if ok {
+					for k, v := range se.DataBinding[i].Fields {
+						f := reflect.ValueOf(b).FieldByName(k)
+						f.Set(reflect.ValueOf(v))
+					}
+					entityBindings = append(entityBindings, func() {
+						b.Init(e, host)
+					})
+				} else {
+					slog.Error("failed to locate the registered key", "key", se.DataBinding[i].RegistraionKey)
+				}
+			}
+		} else {
+			for i := range se.RawDataBinding {
+				entityBindings = append(entityBindings, func() {
+					se.RawDataBinding[i].(engine.EntityData).Init(e, host)
+				})
+			}
+		}
 		if se.Mesh != "" {
 			s.spawnLoadedEntity(e, host, se)
 		}
@@ -222,6 +278,9 @@ func (s *Stage) Launch(host *engine.Host) {
 	}
 	for i := range s.Entities {
 		proc(&s.Entities[i], nil)
+	}
+	for i := range entityBindings {
+		entityBindings[i]()
 	}
 }
 
