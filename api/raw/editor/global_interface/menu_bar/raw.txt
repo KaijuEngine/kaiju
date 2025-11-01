@@ -1,0 +1,29 @@
+package menu_bar // import "."
+
+
+TYPES
+
+type MenuBar struct {
+	// Has unexported fields.
+}
+
+func (b *MenuBar) Blur()
+
+func (b *MenuBar) Focus()
+
+func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error
+
+type MenuBarHandler interface {
+	BlurInterface()
+	FocusInterface()
+	StageWorkspaceSelected()
+	ContentWorkspaceSelected()
+	Build()
+	BuildAndRun()
+	BuildAndRunCurrentStage()
+	OpenVSCodeProject()
+	CreateNewStage()
+	SaveCurrentStage()
+	CreateNewCamera()
+}
+

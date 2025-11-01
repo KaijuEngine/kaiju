@@ -1,0 +1,53 @@
+package audio // import "."
+
+
+TYPES
+
+type Audio struct {
+	// Has unexported fields.
+}
+
+func New() (*Audio, error)
+
+func (a *Audio) IsMusicMuted() bool
+
+func (a *Audio) IsSoundMuted() bool
+
+func (a *Audio) LoadClip(soundPath string) *AudioClip
+
+func (a *Audio) MusicVolume() float32
+
+func (a *Audio) MuteMusic()
+
+func (a *Audio) MuteSounds()
+
+func (a *Audio) Play(clip *AudioClip) bool
+
+func (a *Audio) PlayMusic(key string) (*AudioClip, uint32)
+
+func (a *Audio) PlaySound(key string) (*AudioClip, uint32)
+
+func (a *Audio) SetMusicVolume(volume float32)
+
+func (a *Audio) SetSoundVolume(volume float32)
+
+func (a *Audio) SoundVolume() float32
+
+func (a *Audio) Stop(clip *AudioClip)
+
+func (a *Audio) UnloadClip(clip *AudioClip)
+
+func (a *Audio) UnmuteMusic()
+
+func (a *Audio) UnmuteSounds()
+
+type AudioClip struct {
+	// Has unexported fields.
+}
+
+func NewClip(path string) *AudioClip
+
+type SoloudHandle = *C.Soloud
+
+type SoloudWav = *C.Wav
+
