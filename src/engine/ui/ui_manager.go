@@ -159,7 +159,7 @@ func (man *Manager) Init(host *engine.Host) {
 		if h == nil {
 			return
 		}
-		h.Updater.RemoveUpdate(&c.updateId)
+		h.UIUpdater.RemoveUpdate(&c.updateId)
 		h.UILateUpdater.RemoveUpdate(&c.groupUpdateId)
 		w := c.win.Value()
 		if w == nil {
