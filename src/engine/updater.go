@@ -41,6 +41,7 @@ import (
 	"kaiju/klib"
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
+	"sync/atomic"
 )
 
 type UpdateId int
@@ -61,7 +62,7 @@ type Updater struct {
 	threads    *concurrent.Threads
 	backAdd    []engineUpdate
 	backRemove []UpdateId
-	nextId     UpdateId
+	nextId     atomic.Int32
 	lastDelta  float64
 }
 
@@ -72,12 +73,7 @@ func (u *Updater) IsConcurrent() bool {
 
 // NewUpdater creates a new #Updater struct and returns it
 func NewUpdater() Updater {
-	return Updater{
-		updates:    make(map[UpdateId]engineUpdate),
-		backAdd:    make([]engineUpdate, 0),
-		backRemove: make([]UpdateId, 0),
-		nextId:     1,
-	}
+	return Updater{updates: make(map[UpdateId]engineUpdate)}
 }
 
 // NewConcurrentUpdater creates a new concurrent #Updater struct and returns it
@@ -95,12 +91,11 @@ func NewConcurrentUpdater(threads *concurrent.Threads, workGroup *concurrent.Wor
 // The update function is added to a back-buffer so it will not begin updating
 // until the next call to #Updater.Update.
 func (u *Updater) AddUpdate(update func(float64)) UpdateId {
-	id := u.nextId
+	id := UpdateId(u.nextId.Add(1))
 	u.backAdd = append(u.backAdd, engineUpdate{
 		id:     id,
 		update: update,
 	})
-	u.nextId++
 	return id
 }
 
