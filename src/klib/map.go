@@ -66,3 +66,13 @@ func MapValues[T comparable, U any](m map[T]U) []U {
 	}
 	return values
 }
+
+func MapJoin[T comparable, U any](a, b map[T]U) map[T]U {
+	if len(b) < len(a) {
+		a, b = b, a
+	}
+	for k, v := range b {
+		a[k] = v
+	}
+	return a
+}

@@ -22,6 +22,19 @@ type WorkspaceHierarchyUI struct {
 	hierarchyDragPreview *document.Element
 }
 
+func (hui *WorkspaceHierarchyUI) setupFuncs() map[string]func(*document.Element) {
+	return map[string]func(*document.Element){
+		"hierarchySearch": hui.hierarchySearch,
+		"hideHierarchy":   hui.hideHierarchy,
+		"showHierarchy":   hui.showHierarchy,
+		"selectEntity":    hui.selectEntity,
+		"entityDragStart": hui.entityDragStart,
+		"entityDrop":      hui.entityDrop,
+		"entityDragEnter": hui.entityDragEnter,
+		"entityDragExit":  hui.entityDragExit,
+	}
+}
+
 func (hui *WorkspaceHierarchyUI) setup(w *Workspace) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.setup").End()
 	hui.hierarchyArea, _ = w.Doc.GetElementById("hierarchyArea")

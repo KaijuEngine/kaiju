@@ -46,6 +46,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -82,31 +83,23 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.manager.Initialize(host)
 	w.manager.NewStage()
 	w.pageData.SetupUIData(w.ed.Cache())
+	funcs := map[string]func(*document.Element){
+		"toggleDimension": w.toggleDimension,
+		"inputFilter":     w.contentUI.inputFilter,
+		"tagFilter":       w.contentUI.tagFilter,
+		"clickFilter":     w.contentUI.clickFilter,
+		"dblClickEntry":   w.contentUI.dblClickEntry,
+		"hideContent":     w.contentUI.hideContent,
+		"showContent":     w.contentUI.showContent,
+		"entryDragStart":  w.contentUI.entryDragStart,
+		"entryMouseEnter": w.contentUI.entryMouseEnter,
+		"entryMouseMove":  w.contentUI.entryMouseMove,
+		"entryMouseLeave": w.contentUI.entryMouseLeave,
+	}
+	funcs = klib.MapJoin(funcs, w.hierarchyUI.setupFuncs())
+	funcs = klib.MapJoin(funcs, w.detailsUI.setupFuncs())
 	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/stage_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"toggleDimension":   w.toggleDimension,
-			"inputFilter":       w.contentUI.inputFilter,
-			"tagFilter":         w.contentUI.tagFilter,
-			"clickFilter":       w.contentUI.clickFilter,
-			"dblClickEntry":     w.contentUI.dblClickEntry,
-			"hideContent":       w.contentUI.hideContent,
-			"showContent":       w.contentUI.showContent,
-			"entryDragStart":    w.contentUI.entryDragStart,
-			"entryMouseEnter":   w.contentUI.entryMouseEnter,
-			"entryMouseMove":    w.contentUI.entryMouseMove,
-			"entryMouseLeave":   w.contentUI.entryMouseLeave,
-			"hierarchySearch":   w.hierarchyUI.hierarchySearch,
-			"hideHierarchy":     w.hierarchyUI.hideHierarchy,
-			"showHierarchy":     w.hierarchyUI.showHierarchy,
-			"selectEntity":      w.hierarchyUI.selectEntity,
-			"entityDragStart":   w.hierarchyUI.entityDragStart,
-			"entityDrop":        w.hierarchyUI.entityDrop,
-			"entityDragEnter":   w.hierarchyUI.entityDragEnter,
-			"entityDragExit":    w.hierarchyUI.entityDragExit,
-			"hideDetails":       w.detailsUI.hideDetails,
-			"showDetails":       w.detailsUI.showDetails,
-			"submitDetailsName": w.detailsUI.submitDetailsName,
-		})
+		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs)
 	w.createViewportGrid()
 	w.setupCamera()
 	w.contentUI.setup(w, w.ed.Events())
