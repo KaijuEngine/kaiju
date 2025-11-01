@@ -60,6 +60,7 @@ type CSSProperty interface {
 	Key() string
 	Process(panel *ui.Panel, elm *Element, values []rules.PropertyValue, host *engine.Host) error
 	Sort() int
+	Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule)
 }
 
 type ElementLayoutStylizer struct {
@@ -110,14 +111,7 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 	}
 	_, rule.SelfDestruct = selfDestructingRules[rule.Property]
 	rule.Sort = LinkedPropertyMap[rule.Property].Sort()
-	insertIdx := len(s.styleRules)
-	for i := range s.styleRules {
-		if s.styleRules[i].Sort >= rule.Sort {
-			insertIdx = i
-			break
-		}
-	}
-	s.styleRules = slices.Insert(s.styleRules, insertIdx, rule)
+	s.styleRules = append(s.styleRules, rule)
 	switch rule.Invocation {
 	case rules.RuleInvokeHover:
 		if s.hoverEvtId == 0 {
@@ -192,6 +186,17 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 		}
 	}
 	all := append(a, b...)
+	// Look ahead to see if any upcoming properties can be merged
+	for i := 0; i < len(all); i++ {
+		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
+			subRules := all[i:]
+			all[i].Values, subRules = p.Preprocess(all[i].Values, subRules)
+			for j := range subRules {
+				all[i+j] = subRules[j]
+			}
+			all = all[:i+len(subRules)]
+		}
+	}
 	slices.SortFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
 	for i := range all {
 		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
