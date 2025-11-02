@@ -142,6 +142,10 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 }
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
+	if len(dui.workspace.Value().manager.Selection()) > 1 {
+		// TODO:  Support multiple objects being selected here
+		return
+	}
 	dui.detailsArea.Children[0].UI.Show()
 	dui.detailsName.UI.ToInput().SetText(e.Name())
 	p := e.Transform.Position()
