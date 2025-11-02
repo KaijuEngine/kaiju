@@ -3,6 +3,7 @@ package stage_workspace
 import (
 	"fmt"
 	"kaiju/editor/codegen"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
@@ -266,12 +267,12 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	}
 	sel := w.manager.Selection()
 	// TODO:  Multi-select stuff
-	de := &editor_stage_manager.EntityDataEntry{}
-	de.ReadEntityDataBindingType(g, sel[0])
+	de := &entity_data_binding.EntityDataEntry{}
+	sel[0].AddDataBinding(de.ReadEntityDataBindingType(g))
 	dui.createDataBindingEntry(de)
 }
 
-func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *editor_stage_manager.EntityDataEntry) {
+func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
 	w := dui.workspace.Value()
 	bindIdx := len(dui.boundEntityDataTemplate.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(dui.boundEntityDataTemplate)
@@ -326,7 +327,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 		return
 	}
 	outer := sel[0].DataBindings()[pIdx]
-	v := outer.BoundData.(reflect.Value).Elem().Field(idx)
+	v := reflect.ValueOf(outer.BoundData).Elem().Field(idx)
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(toInt(e.UI.ToInput().Text()))

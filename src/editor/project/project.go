@@ -48,7 +48,6 @@ import (
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/systems/events"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -237,7 +236,7 @@ func (p *Project) Package() error {
 			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
 		}
 		if list[i].Config.Type == (content_database.Stage{}).TypeName() {
-			sc.CustomSerializer = stages.ArchiveSerializer
+			sc.CustomSerializer = p.stageArchiveSerializer
 		}
 		files = append(files, sc)
 	}

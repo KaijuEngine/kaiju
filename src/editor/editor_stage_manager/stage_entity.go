@@ -38,6 +38,7 @@
 package editor_stage_manager
 
 import (
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/engine"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -46,12 +47,12 @@ import (
 type StageEntity struct {
 	engine.Entity
 	StageData    StageEntityEditorData
-	dataBindings []*EntityDataEntry
+	dataBindings []*entity_data_binding.EntityDataEntry
 }
 
-func (e *StageEntity) DataBindings() []*EntityDataEntry { return e.dataBindings }
+func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
 
-func (e *StageEntity) AddDataBinding(binding *EntityDataEntry) {
+func (e *StageEntity) AddDataBinding(binding *entity_data_binding.EntityDataEntry) {
 	e.dataBindings = append(e.dataBindings, binding)
 }
 

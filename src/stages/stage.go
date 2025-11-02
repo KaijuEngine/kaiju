@@ -39,12 +39,12 @@ package stages
 
 import (
 	"bytes"
-	"encoding/gob"
-	"encoding/json"
 	"kaiju/build"
 	"kaiju/debug"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/matrix"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -114,7 +114,7 @@ func debugEnsureStructsMatch() {
 			"the Stage field has been modified but the matching StageSerialized was not updated")
 		ea := reflect.TypeFor[EntityDescription]()
 		eb := reflect.TypeFor[EntityDescriptionJson]()
-		debug.Assert(ea.NumField() == eb.NumField(),
+		debug.Assert((ea.NumField()-1) == eb.NumField(), // -1 due to raw data field
 			"the EntityDescription field has been modified but the matching EntityDescriptionSerialized was not updated")
 	}
 }
@@ -204,29 +204,6 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	}
 }
 
-func ArchiveSerializer(rawData []byte) ([]byte, error) {
-	var ss StageJson
-	if err := json.Unmarshal(rawData, &ss); err != nil {
-		return rawData, err
-	}
-	s := Stage{}
-	s.FromMinimized(ss)
-	var removeUnpackedDataBindings func(desc *EntityDescription)
-	removeUnpackedDataBindings = func(desc *EntityDescription) {
-		desc.DataBinding = desc.DataBinding[0:]
-		for i := range desc.Children {
-			removeUnpackedDataBindings(&desc.Children[i])
-		}
-	}
-	for i := range s.Entities {
-		removeUnpackedDataBindings(&s.Entities[i])
-	}
-	stream := bytes.NewBuffer(rawData)
-	stream.Reset()
-	err := gob.NewEncoder(stream).Encode(s)
-	return stream.Bytes(), err
-}
-
 func ArchiveDeserializer(rawData []byte) (Stage, error) {
 	s := Stage{}
 	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
@@ -250,10 +227,13 @@ func (s *Stage) Launch(host *engine.Host) {
 			for i := range se.DataBinding {
 				b, ok := engine.DebugEntityDataRegistry[se.DataBinding[i].RegistraionKey]
 				if ok {
+					bi := reflect.ValueOf(b).Interface()
+					nb := reflect.New(reflect.TypeOf(bi)).Elem()
 					for k, v := range se.DataBinding[i].Fields {
-						f := reflect.ValueOf(b).FieldByName(k)
-						f.Set(reflect.ValueOf(v))
+						f := nb.FieldByName(k)
+						entity_data_binding.ReflectEntityDataBindingValueFromJson(v, f)
 					}
+					reflect.ValueOf(&b).Elem().Set(nb)
 					entityBindings = append(entityBindings, func() {
 						b.Init(e, host)
 					})

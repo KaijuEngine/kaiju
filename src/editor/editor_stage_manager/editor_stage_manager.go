@@ -39,6 +39,7 @@ package editor_stage_manager
 
 import (
 	"encoding/json"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -74,7 +75,6 @@ type StageManager struct {
 	host                  *engine.Host
 	entities              []*StageEntity
 	selected              []*StageEntity
-	isNew                 bool
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -92,10 +92,9 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
 	m.Clear()
-	m.isNew = true
 }
 
-func (m *StageManager) IsNew() bool     { return m.isNew }
+func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
 
 func (m *StageManager) SetStageId(id string, cache *content_database.Cache) error {
@@ -186,13 +185,15 @@ func (m *StageManager) toStage() stages.Stage {
 		desc.Position = parent.Transform.Position()
 		desc.Rotation = parent.Transform.Rotation()
 		desc.Scale = parent.Transform.Scale()
+		desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
+		desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
 		for _, d := range parent.dataBindings {
 			db := stages.EntityDataBinding{
 				RegistraionKey: d.Gen.RegisterKey,
 				Fields:         make(map[string]any),
 			}
 			for i := range d.Fields {
-				db.Fields[d.Fields[i].Name] = d.Fields[i].Value
+				db.Fields[d.Fields[i].Name] = d.FieldValue(i)
 			}
 			desc.DataBinding = append(desc.DataBinding, db)
 			desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
@@ -245,7 +246,6 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		// TODO:  Roll back
 		return err
 	}
-	m.isNew = true
 	slog.Info("Stage saved successfully")
 	return nil
 }
@@ -291,11 +291,12 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 					"key", db.RegistraionKey)
 				continue
 			}
-			b := &EntityDataEntry{}
-			b.ReadEntityDataBindingType(g, e)
+			b := &entity_data_binding.EntityDataEntry{}
+			b.ReadEntityDataBindingType(g)
 			for k, v := range db.Fields {
 				b.SetFieldByName(k, v)
 			}
+			e.AddDataBinding(b)
 		}
 		for i := range desc.Children {
 			if err := importTarget(e, &desc.Children[i]); err != nil {
@@ -309,7 +310,6 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 			return err
 		}
 	}
-	m.isNew = false
 	m.stageId = id
 	return nil
 }

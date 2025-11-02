@@ -1,4 +1,4 @@
-package editor_stage_manager
+package entity_data_binding
 
 import (
 	"kaiju/editor/codegen"
@@ -39,18 +39,38 @@ func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
 func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
 
 func (de *EntityDataEntry) SetFieldByName(name string, value any) {
-	v := de.BoundData.(reflect.Value).Elem().FieldByName(name)
-	ak := v.Kind()
-	bk := reflect.TypeOf(value).Kind()
-	if ak == bk {
-		v.Set(reflect.ValueOf(value))
-	} else {
-		slog.Warn("the type for the field has changed",
-			"key", de.Gen.RegisterKey, "was", bk.String(), "is", ak.String())
+	f := reflect.ValueOf(de.BoundData).Elem().FieldByName(name)
+	ReflectEntityDataBindingValueFromJson(value, f)
+}
+
+func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
+	switch f.Kind() {
+	case reflect.Float32: // JSON reads float64 only
+		reflectTo[float64, float32](v, f)
+	case reflect.Int: // JSON reads int64 only
+		reflectTo[int64, int](v, f)
+	case reflect.Uint:
+		reflectTo[int64, uint](v, f)
+	case reflect.Int8:
+		reflectTo[int64, int8](v, f)
+	case reflect.Int16:
+		reflectTo[int64, int16](v, f)
+	case reflect.Int32:
+		reflectTo[int64, int32](v, f)
+	case reflect.Uint8:
+		reflectTo[int64, uint8](v, f)
+	case reflect.Uint16:
+		reflectTo[int64, uint16](v, f)
+	case reflect.Uint32:
+		reflectTo[int64, uint32](v, f)
+	case reflect.Uint64:
+		reflectTo[int64, uint64](v, f)
+	default:
+		f.Set(reflect.ValueOf(v))
 	}
 }
 
-func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType, e *StageEntity) {
+func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *EntityDataEntry {
 	v := g.New().Value
 	de.Name = g.Name
 	de.Gen = g
@@ -76,8 +96,8 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType, e 
 			fv.Set(reflect.ValueOf(ef.Value))
 		}
 	}
-	de.BoundData = v
-	e.AddDataBinding(de)
+	de.BoundData = v.Interface()
+	return de
 }
 
 func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
@@ -85,7 +105,7 @@ func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 	if !f.IsNumber() {
 		return "0"
 	}
-	v := g.BoundData.(reflect.Value).Elem().Field(fieldIdx)
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	switch f.Value.(type) {
 	case int:
 		return strconv.FormatInt(v.Int(), 10)
@@ -116,13 +136,24 @@ func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 }
 
 func (g *EntityDataEntry) FieldString(fieldIdx int) string {
-	v := g.BoundData.(reflect.Value).Elem().Field(fieldIdx)
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.String()
 }
 
 func (g *EntityDataEntry) FieldBool(fieldIdx int) bool {
-	v := g.BoundData.(reflect.Value).Elem().Field(fieldIdx)
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.Bool()
+}
+
+func (g *EntityDataEntry) FieldValue(fieldIdx int) any {
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
+	return v.Interface()
+}
+
+func reflectTo[F, T any](v any, f reflect.Value) {
+	if vv, ok := v.(F); ok {
+		f.Set(reflect.ValueOf(vv).Convert(reflect.TypeFor[T]()))
+	}
 }
 
 func tagDefault(f *EntityDataField, value string) {

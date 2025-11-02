@@ -96,15 +96,25 @@ type Game struct{}
 func (Game) PluginRegistry() []reflect.Type { return []reflect.Type{} }
 
 func (Game) ContentDatabase() (assets.Database, error) {
-	p, err := os.Executable()
-	pDir := filepath.Dir(p)
 	if build.Debug {
 		return assets.DebugContentDatabase{}, nil
 	}
-	if err != nil {
-		return assets.NewArchiveDatabase("game.dat", []byte(build.ArchiveEncryptionKey))
+	p, err := os.Executable()
+	if err == nil {
+		pDir := filepath.Dir(p)
+		dat := filepath.Join(pDir, "game.dat")
+		if _, err := os.Stat(dat); err != nil {
+			if _, err := os.Stat(filepath.Join(pDir, "../kaiju")); err == nil {
+				if _, err := os.Stat(filepath.Join(pDir, "../src/go.mod")); err == nil {
+					if _, err := os.Stat(filepath.Join(pDir, "../build/game.dat")); err == nil {
+						dat = filepath.Join(pDir, "../build/game.dat")
+					}
+				}
+			}
+		}
+		return assets.NewArchiveDatabase(dat, []byte(build.ArchiveEncryptionKey))
 	} else {
-		return assets.NewArchiveDatabase(filepath.Join(pDir, "game.dat"), []byte(build.ArchiveEncryptionKey))
+		return assets.NewArchiveDatabase("game.dat", []byte(build.ArchiveEncryptionKey))
 	}
 }
 
@@ -130,8 +140,7 @@ func (Game) Launch(host *engine.Host) {
 		}
 		s.FromMinimized(j)
 	} else {
-		s, err := stages.ArchiveDeserializer(stageData)
-		if err != nil {
+		if s, err = stages.ArchiveDeserializer(stageData); err != nil {
 			slog.Error("failed to deserialize the entry point stage", "stage", startStage, "error", err)
 			host.Close()
 			return
