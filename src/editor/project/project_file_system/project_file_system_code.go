@@ -77,10 +77,21 @@ const srcModFileData = `module game
 go %s
 `
 
+const srcGameHostFileData = `package game_host
+
+type GameHost struct {
+	// Developer should fill in structure and NewGameHost as needed
+}
+
+func NewGameHost() *GameHost {
+	return &GameHost{}
+}`
+
 const srcGameFileData = `package main
 
 import (
 	"encoding/json"
+	"game/game_host"
 	"kaiju/bootstrap"
 	"kaiju/build"
 	"kaiju/engine"
@@ -148,6 +159,7 @@ func (Game) Launch(host *engine.Host) {
 			return
 		}
 	}
+	host.SetGame(game_host.NewGameHost())
 	s.Launch(host)
 }
 
@@ -203,6 +215,9 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.Mkdir(ProjectCodeFolder, os.ModePerm); err != nil {
 		return err
 	}
+	if err := pfs.Mkdir(ProjectCodeGameHostFolder, os.ModePerm); err != nil {
+		return err
+	}
 	if err := pfs.Mkdir(ProjectBuildFolder, os.ModePerm); err != nil {
 		return err
 	}
@@ -219,6 +234,9 @@ func (pfs *FileSystem) createCodeProject() error {
 		return err
 	}
 	if err := pfs.WriteFile(ProjectLaunchJsonFile, []byte(srcLaunchJsonFileData), os.ModePerm); err != nil {
+		return err
+	}
+	if err := pfs.WriteFile(ProjectCodeGameHost, []byte(srcGameHostFileData), os.ModePerm); err != nil {
 		return err
 	}
 	if err := pfs.WriteFile(ProjectCodeGame, []byte(srcGameFileData), os.ModePerm); err != nil {

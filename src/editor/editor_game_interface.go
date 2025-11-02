@@ -66,6 +66,7 @@ func (EditorGame) Launch(host *engine.Host) {
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
 	}
+	host.SetGame(ed)
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(128)
 	ed.earlyLoadUI()

@@ -71,15 +71,17 @@ const (
 )
 
 const (
-	KaijuSrcFolder        = "kaiju"
-	ProjectCodeFolder     = "src"
-	ProjectBuildFolder    = "build"
-	ProjectVSCodeFolder   = ".vscode"
-	ProjectLaunchJsonFile = ".vscode/launch.json"
-	ProjectCodeMain       = "src/main.go"
-	ProjectCodeGame       = "src/game.go"
-	ProjectModFile        = "src/go.mod"
-	ProjectWorkFile       = "go.work"
-	ProjectCodeGameTitle  = "kaiju/build/title.go"
-	EntityDataBindingInit = "src/entity_data_binding_init.go"
+	KaijuSrcFolder            = "kaiju"
+	ProjectCodeFolder         = "src"
+	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
+	ProjectBuildFolder        = "build"
+	ProjectVSCodeFolder       = ".vscode"
+	ProjectLaunchJsonFile     = ".vscode/launch.json"
+	ProjectCodeMain           = ProjectCodeFolder + "/main.go"
+	ProjectCodeGame           = ProjectCodeFolder + "/game.go"
+	ProjectModFile            = ProjectCodeFolder + "/go.mod"
+	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
+	ProjectWorkFile           = "go.work"
+	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
+	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
 )
