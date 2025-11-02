@@ -288,6 +288,7 @@ func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 	dui.entityDataList.UI.Show()
+	dui.entityDataListTemplate.UI.Hide()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	for _, c := range dui.entityDataList.Children[1:] {
 		name := strings.ToLower(c.InnerLabel().Text())
