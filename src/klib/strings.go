@@ -39,7 +39,13 @@ package klib
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
+)
+
+var (
+	snakeCaseMatchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	snakeCaseMatchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
 )
 
 func ReplaceStringRecursive(s string, old string, new string) string {
@@ -58,4 +64,10 @@ func FormatFloatToNDecimals[T float32 | float64](f T, decimals int) string {
 func StripFloatStringZeros(fString string) string {
 	fString = strings.TrimRight(fString, "0")
 	return strings.TrimSuffix(fString, ".")
+}
+
+func ToSnakeCase(str string) string {
+	snake := snakeCaseMatchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = snakeCaseMatchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
 }

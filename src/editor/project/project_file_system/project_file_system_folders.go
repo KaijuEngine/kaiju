@@ -73,6 +73,7 @@ const (
 const (
 	KaijuSrcFolder            = "kaiju"
 	ProjectCodeFolder         = "src"
+	ProjectFileTemplates      = KaijuSrcFolder + "/file_templates"
 	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
 	ProjectBuildFolder        = "build"
 	ProjectVSCodeFolder       = ".vscode"

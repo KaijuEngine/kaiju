@@ -38,6 +38,7 @@
 package menu_bar
 
 import (
+	"kaiju/editor/editor_overlay/create_entity_data"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -60,31 +61,32 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		nil, map[string]func(*document.Element){
-			"clickLogo":            b.openMenuTarget,
-			"clickFile":            b.openMenuTarget,
-			"clickEdit":            b.openMenuTarget,
-			"clickEntity":          b.openMenuTarget,
-			"clickHelp":            b.openMenuTarget,
-			"clickStage":           b.clickStage,
-			"clickContent":         b.clickContent,
-			"clickShading":         b.clickShading,
-			"clickAnimation":       b.clickAnimation,
-			"clickUI":              b.clickUI,
-			"clickSettings":        b.clickSettings,
-			"clickNewStage":        b.clickNewStage,
-			"clickOpenStage":       b.clickOpenStage,
-			"clickSaveStage":       b.clickSaveStage,
-			"clickOpenVSCode":      b.clickOpenVSCode,
-			"clickBuild":           b.clickBuild,
-			"clickBuildAndRun":     b.clickBuildAndRun,
-			"clickRunCurrentStage": b.clickRunCurrentStage,
-			"clickNewCamera":       b.clickNewCamera,
-			"clickAbout":           b.clickAbout,
-			"clickIssues":          b.clickIssues,
-			"clickRepository":      b.clickRepository,
-			"clickJoinMailingList": b.clickJoinMailingList,
-			"clickMailArchives":    b.clickMailArchives,
-			"popupMiss":            b.popupMiss,
+			"clickLogo":             b.openMenuTarget,
+			"clickFile":             b.openMenuTarget,
+			"clickEdit":             b.openMenuTarget,
+			"clickEntity":           b.openMenuTarget,
+			"clickHelp":             b.openMenuTarget,
+			"clickStage":            b.clickStage,
+			"clickContent":          b.clickContent,
+			"clickShading":          b.clickShading,
+			"clickAnimation":        b.clickAnimation,
+			"clickUI":               b.clickUI,
+			"clickSettings":         b.clickSettings,
+			"clickNewStage":         b.clickNewStage,
+			"clickOpenStage":        b.clickOpenStage,
+			"clickSaveStage":        b.clickSaveStage,
+			"clickCreateEntityData": b.clickCreateEntityData,
+			"clickOpenVSCode":       b.clickOpenVSCode,
+			"clickBuild":            b.clickBuild,
+			"clickBuildAndRun":      b.clickBuildAndRun,
+			"clickRunCurrentStage":  b.clickRunCurrentStage,
+			"clickNewCamera":        b.clickNewCamera,
+			"clickAbout":            b.clickAbout,
+			"clickIssues":           b.clickIssues,
+			"clickRepository":       b.clickRepository,
+			"clickJoinMailingList":  b.clickJoinMailingList,
+			"clickMailArchives":     b.clickMailArchives,
+			"popupMiss":             b.popupMiss,
 		})
 	return err
 }
@@ -163,6 +165,16 @@ func (b *MenuBar) clickSaveStage(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSaveStage").End()
 	b.hidePopups()
 	b.handler.SaveCurrentStage()
+}
+
+func (b *MenuBar) clickCreateEntityData(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateEntityData").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	create_entity_data.Show(b.uiMan.Host, b.handler.ProjectFileSystem(), create_entity_data.Config{
+		OnCreate: b.handler.FocusInterface,
+		OnCancel: b.handler.FocusInterface,
+	})
 }
 
 func (b *MenuBar) clickOpenVSCode(e *document.Element) {

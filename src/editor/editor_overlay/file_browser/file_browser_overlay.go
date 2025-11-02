@@ -38,6 +38,7 @@
 package file_browser
 
 import (
+	"fmt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
@@ -50,6 +51,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"unicode"
 )
@@ -68,13 +70,14 @@ type FileBrowser struct {
 }
 
 type Config struct {
-	Title       string
-	ExtFilter   []string
-	OnConfirm   func(paths []string)
-	OnCancel    func()
-	OnlyFiles   bool
-	OnlyFolders bool
-	MultiSelect bool
+	Title        string
+	StartingPath string
+	ExtFilter    []string
+	OnConfirm    func(paths []string)
+	OnCancel     func()
+	OnlyFiles    bool
+	OnlyFolders  bool
+	MultiSelect  bool
 }
 
 type FileBrowserData struct {
@@ -91,6 +94,17 @@ type QuickAccessFolder struct {
 
 func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	defer tracing.NewRegion("file_browser.Show").End()
+	startPath := config.StartingPath
+	if startPath == "" {
+		switch runtime.GOOS {
+		case "windows":
+			startPath = "C:\\"
+		case "linux":
+		default:
+			slog.Error("unknown platform")
+			return nil, fmt.Errorf("unknown platform: %s", runtime.GOOS)
+		}
+	}
 	fb := &FileBrowser{
 		historyIdx: -1,
 		config:     config,
@@ -115,7 +129,7 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	}
 	data := FileBrowserData{
 		Title:              title,
-		CurrentPath:        "C:\\",
+		CurrentPath:        startPath,
 		QuickAccessFolders: []QuickAccessFolder{},
 		OnlyFolders:        fb.config.OnlyFolders,
 	}
