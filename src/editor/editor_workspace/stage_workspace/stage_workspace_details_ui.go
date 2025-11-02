@@ -1,12 +1,12 @@
 package stage_workspace
 
 import (
-	"fmt"
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -110,15 +110,15 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 	p := e.Transform.Position()
 	r := e.Transform.Rotation()
 	s := e.Transform.Scale()
-	dui.detailsPosX.UI.ToInput().SetText(fmt.Sprintf("%.3g", p.X()))
-	dui.detailsPosY.UI.ToInput().SetText(fmt.Sprintf("%.3g", p.Y()))
-	dui.detailsPosZ.UI.ToInput().SetText(fmt.Sprintf("%.3g", p.Z()))
-	dui.detailsRotX.UI.ToInput().SetText(fmt.Sprintf("%.3g", r.X()))
-	dui.detailsRotY.UI.ToInput().SetText(fmt.Sprintf("%.3g", r.Y()))
-	dui.detailsRotZ.UI.ToInput().SetText(fmt.Sprintf("%.3g", r.Z()))
-	dui.detailsScaleX.UI.ToInput().SetText(fmt.Sprintf("%.3g", s.X()))
-	dui.detailsScaleY.UI.ToInput().SetText(fmt.Sprintf("%.3g", s.Y()))
-	dui.detailsScaleZ.UI.ToInput().SetText(fmt.Sprintf("%.3g", s.Z()))
+	dui.detailsPosX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.X(), 3))
+	dui.detailsPosY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.Y(), 3))
+	dui.detailsPosZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.Z(), 3))
+	dui.detailsRotX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.X(), 3))
+	dui.detailsRotY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.Y(), 3))
+	dui.detailsRotZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.Z(), 3))
+	dui.detailsScaleX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.X(), 3))
+	dui.detailsScaleY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.Y(), 3))
+	dui.detailsScaleZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.Z(), 3))
 	w := dui.workspace.Value()
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
 		w.Doc.RemoveElement(dui.boundEntityDataList.Children[i])

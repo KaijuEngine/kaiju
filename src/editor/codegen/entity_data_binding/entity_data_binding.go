@@ -102,9 +102,9 @@ func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 	case uint64:
 		return strconv.FormatUint(v.Uint(), 10)
 	case float32:
-		return strconv.FormatFloat(v.Float(), 'f', 5, 32)
+		return klib.StripFloatStringZeros(strconv.FormatFloat(v.Float(), 'f', 5, 32))
 	case float64:
-		return strconv.FormatFloat(v.Float(), 'f', 5, 64)
+		return klib.StripFloatStringZeros(strconv.FormatFloat(v.Float(), 'f', 5, 64))
 	}
 	return "0"
 }
