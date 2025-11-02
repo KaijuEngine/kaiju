@@ -284,7 +284,7 @@ func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
 func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 	dui.entityDataList.UI.Show()
 	q := strings.ToLower(e.UI.ToInput().Text())
-	for _, c := range dui.entityDataList.Children {
+	for _, c := range dui.entityDataList.Children[1:] {
 		name := strings.ToLower(c.InnerLabel().Text())
 		if strings.Contains(name, q) {
 			c.UI.Show()
@@ -307,6 +307,7 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	de := &entity_data_binding.EntityDataEntry{}
 	sel[0].AddDataBinding(de.ReadEntityDataBindingType(g))
 	dui.createDataBindingEntry(de)
+	dui.entityDataList.UI.Hide()
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
