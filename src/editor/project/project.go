@@ -197,6 +197,11 @@ func (p *Project) CompileWithTags(tags ...string) {
 	defer tracing.NewRegion("Project.CompileWithTags").End()
 	for !p.isCompiling.CompareAndSwap(false, true) {
 	}
+	if err := p.fileSystem.WriteDataBindingRegistryInit(p.entityData); err == nil {
+		slog.Info("successfully created data binding init registry")
+	} else {
+		slog.Error("failed to create the data binding init registry", "error", err)
+	}
 	args := []string{
 		"build",
 		"-o", project_file_system.ProjectBuildFolder + "/",
@@ -224,11 +229,6 @@ func (p *Project) CompileWithTags(tags ...string) {
 
 func (p *Project) Package() error {
 	defer tracing.NewRegion("Project.Package").End()
-	if err := p.fileSystem.WriteDataBindingRegistryInit(p.entityData); err == nil {
-		slog.Info("successfully created data binding init registry")
-	} else {
-		slog.Error("failed to create the data binding init registry", "error", err)
-	}
 	outPath := filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
 	// TODO:  Needs to use a reference graph to determine all of the content
 	// needed rather than just dumping all content in here
