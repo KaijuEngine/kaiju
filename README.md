@@ -27,6 +27,8 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
 
+[working-code-binding.mp4](https://github.com/user-attachments/assets/b7edcbfb-0c78-482f-8eb1-f40910fbaabf)
+
 [content-tagging.mp4](https://github.com/user-attachments/assets/15122db6-efda-4458-bf69-f384def5aa31)
 
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
