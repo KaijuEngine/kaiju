@@ -39,6 +39,8 @@ package editor_stage_manager
 
 import (
 	"encoding/json"
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine"
@@ -73,7 +75,6 @@ type StageManager struct {
 	host                  *engine.Host
 	entities              []*StageEntity
 	selected              []*StageEntity
-	isNew                 bool
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -91,10 +92,9 @@ func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
 	m.Clear()
-	m.isNew = true
 }
 
-func (m *StageManager) IsNew() bool     { return m.isNew }
+func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
 
 func (m *StageManager) SetStageId(id string, cache *content_database.Cache) error {
@@ -170,8 +170,7 @@ func (m *StageManager) Clear() {
 	}
 }
 
-func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("StageManager.SaveStage").End()
+func (m *StageManager) toStage() stages.Stage {
 	s := stages.Stage{Id: m.stageId}
 	rootCount := 0
 	for i := range m.entities {
@@ -186,6 +185,19 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		desc.Position = parent.Transform.Position()
 		desc.Rotation = parent.Transform.Rotation()
 		desc.Scale = parent.Transform.Scale()
+		desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
+		desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
+		for _, d := range parent.dataBindings {
+			db := stages.EntityDataBinding{
+				RegistraionKey: d.Gen.RegisterKey,
+				Fields:         make(map[string]any),
+			}
+			for i := range d.Fields {
+				db.Fields[d.Fields[i].Name] = d.FieldValue(i)
+			}
+			desc.DataBinding = append(desc.DataBinding, db)
+			desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
+		}
 		for i := range m.entities {
 			if m.entities[i].Parent == &parent.Entity {
 				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
@@ -199,6 +211,12 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 			s.Entities = append(s.Entities, m.entities[i].StageData.Description)
 		}
 	}
+	return s
+}
+
+func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("StageManager.SaveStage").End()
+	s := m.toStage()
 	// TODO:  Run through the stage importer?
 	f, err := fs.Create(filepath.Join(project_file_system.ContentFolder,
 		project_file_system.ContentStageFolder, m.stageId))
@@ -228,13 +246,13 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		// TODO:  Roll back
 		return err
 	}
-	m.isNew = true
 	slog.Info("Stage saved successfully")
 	return nil
 }
 
-func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_database.Cache, proj *project.Project) error {
 	defer tracing.NewRegion("StageManager.LoadStage").End()
+	fs := proj.FileSystem()
 	m.Clear()
 	cc, err := cache.Read(id)
 	if err != nil {
@@ -265,8 +283,21 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 		if desc.Mesh != "" {
 			m.spawnLoadedEntity(e, host, fs)
 		}
-		// TODO:  Setup any of the data bindings
-
+		for i := range desc.DataBinding {
+			db := &desc.DataBinding[i]
+			g, ok := proj.EntityDataBinding(db.RegistraionKey)
+			if !ok {
+				slog.Error("failed to locate the data binding for entity",
+					"key", db.RegistraionKey)
+				continue
+			}
+			b := &entity_data_binding.EntityDataEntry{}
+			b.ReadEntityDataBindingType(g)
+			for k, v := range db.Fields {
+				b.SetFieldByName(k, v)
+			}
+			e.AddDataBinding(b)
+		}
 		for i := range desc.Children {
 			if err := importTarget(e, &desc.Children[i]); err != nil {
 				return err
@@ -279,7 +310,6 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 			return err
 		}
 	}
-	m.isNew = false
 	m.stageId = id
 	return nil
 }

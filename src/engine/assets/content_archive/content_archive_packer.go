@@ -54,8 +54,9 @@ import (
 func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"
 
 type SourceContent struct {
-	Key      string
-	FullPath string
+	Key              string
+	FullPath         string
+	CustomSerializer func(rawData []byte) ([]byte, error)
 }
 
 func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
@@ -94,13 +95,16 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 	}
 	entries := make([]Asset, 0, len(files))
 	for i := range files {
-		origData, err := os.ReadFile(files[i].FullPath)
+		srcData, err := os.ReadFile(files[i].FullPath)
+		if files[i].CustomSerializer != nil {
+			srcData, err = files[i].CustomSerializer(srcData)
+		}
 		if err != nil {
 			return err
 		}
-		crc := crc32.ChecksumIEEE(origData)
-		obfData := make([]byte, len(origData))
-		copy(obfData, origData)
+		crc := crc32.ChecksumIEEE(srcData)
+		obfData := make([]byte, len(srcData))
+		copy(obfData, srcData)
 		keyLen := len(key)
 		if keyLen > 0 {
 			for i, b := range obfData {
@@ -110,7 +114,7 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 		entries = append(entries, Asset{
 			Name: files[i].Key,
 			Data: obfData,
-			Size: uint32(len(origData)),
+			Size: uint32(len(srcData)),
 			CRC:  crc,
 		})
 	}

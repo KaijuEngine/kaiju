@@ -3,6 +3,7 @@ package stage_workspace
 import (
 	"fmt"
 	"kaiju/editor/codegen"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
@@ -125,7 +126,7 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 	// TODO:  Multi-select stuff
 	db := e.DataBindings()
 	for _, a := range db {
-		dui.createDataBindingEntry(a.(*entityDataEntry))
+		dui.createDataBindingEntry(a)
 	}
 }
 
@@ -266,10 +267,12 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	}
 	sel := w.manager.Selection()
 	// TODO:  Multi-select stuff
-	dui.createDataBindingEntry(readEntityDataBindingType(g, sel[0]))
+	de := &entity_data_binding.EntityDataEntry{}
+	sel[0].AddDataBinding(de.ReadEntityDataBindingType(g))
+	dui.createDataBindingEntry(de)
 }
 
-func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entityDataEntry) {
+func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
 	w := dui.workspace.Value()
 	bindIdx := len(dui.boundEntityDataTemplate.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(dui.boundEntityDataTemplate)
@@ -285,7 +288,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entityDataEntry) {
 	for i := range g.Fields {
 		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
 		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
-		typeName := g.Fields[i].Type
 		nameSpan := fields[i].Children[0]
 		for _, c := range fields[i].Children[1:] {
 			c.UI.Hide()
@@ -293,19 +295,19 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entityDataEntry) {
 		textInput := fields[i].Children[1]
 		checkInput := fields[i].Children[2]
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
-		if isInput(typeName) {
+		if g.Fields[i].IsInput() {
 			textInput.UI.Show()
 			u := textInput.UI.ToInput()
 			u.SetPlaceholder(g.Fields[i].Name + "...")
-			if isNumber(typeName) {
-				u.SetTextWithoutEvent(g.fieldNumberAsString(i))
+			if g.Fields[i].IsNumber() {
+				u.SetTextWithoutEvent(g.FieldNumberAsString(i))
 			} else {
-				u.SetTextWithoutEvent(g.fieldString(i))
+				u.SetTextWithoutEvent(g.FieldString(i))
 			}
 			w.Doc.RemoveElement(checkInput)
-		} else if isCheckbox(typeName) {
+		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
-			checkInput.UI.ToCheckbox().SetChecked(g.fieldBool(i))
+			checkInput.UI.ToCheckbox().SetChecked(g.FieldBool(i))
 			w.Doc.RemoveElement(textInput)
 		}
 	}
@@ -324,8 +326,8 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	if len(sel) == 0 {
 		return
 	}
-	outer := sel[0].DataBindings()[pIdx].(*entityDataEntry)
-	v := outer.entityData.(reflect.Value).Elem().Field(idx)
+	outer := sel[0].DataBindings()[pIdx]
+	v := reflect.ValueOf(outer.BoundData).Elem().Field(idx)
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(toInt(e.UI.ToInput().Text()))
@@ -373,4 +375,34 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 			cpys[i].InnerLabel().SetText(a.RegisterKey)
 		}
 	}
+}
+
+func toInt(str string) int64 {
+	if str == "" {
+		return 0
+	}
+	if i, err := strconv.ParseInt(str, 10, 64); err == nil {
+		return i
+	}
+	return 0
+}
+
+func toUint(str string) uint64 {
+	if str == "" {
+		return 0
+	}
+	if i, err := strconv.ParseUint(str, 10, 64); err == nil {
+		return i
+	}
+	return 0
+}
+
+func toFloat(str string) float64 {
+	if str == "" {
+		return 0
+	}
+	if f, err := strconv.ParseFloat(str, 64); err == nil {
+		return f
+	}
+	return 0
 }

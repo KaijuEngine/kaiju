@@ -38,10 +38,13 @@
 package stages
 
 import (
+	"bytes"
 	"kaiju/build"
 	"kaiju/debug"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/matrix"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -68,16 +71,17 @@ type StageJson struct {
 
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDescription struct {
-	Id          string
-	Name        string
-	Mesh        string
-	Material    string
-	Textures    []string
-	Position    matrix.Vec3
-	Rotation    matrix.Vec3
-	Scale       matrix.Vec3
-	DataBinding []EntityDataBinding
-	Children    []EntityDescription
+	Id             string
+	Name           string
+	Mesh           string
+	Material       string
+	Textures       []string
+	Position       matrix.Vec3
+	Rotation       matrix.Vec3
+	Scale          matrix.Vec3
+	DataBinding    []EntityDataBinding
+	Children       []EntityDescription
+	RawDataBinding []any
 }
 
 type EntityDescriptionJson struct {
@@ -97,8 +101,8 @@ type EntityDescriptionJson struct {
 
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDataBinding struct {
-	Name   string
-	Fields map[string]any `json:",omitempty"`
+	RegistraionKey string
+	Fields         map[string]any `json:",omitempty"`
 }
 
 // //////////////////////////////////////////////////////////////////////////////
@@ -110,7 +114,7 @@ func debugEnsureStructsMatch() {
 			"the Stage field has been modified but the matching StageSerialized was not updated")
 		ea := reflect.TypeFor[EntityDescription]()
 		eb := reflect.TypeFor[EntityDescriptionJson]()
-		debug.Assert(ea.NumField() == eb.NumField(),
+		debug.Assert((ea.NumField()-1) == eb.NumField(), // -1 due to raw data field
 			"the EntityDescription field has been modified but the matching EntityDescriptionSerialized was not updated")
 	}
 }
@@ -200,7 +204,14 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	}
 }
 
+func ArchiveDeserializer(rawData []byte) (Stage, error) {
+	s := Stage{}
+	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
+	return s, err
+}
+
 func (s *Stage) Launch(host *engine.Host) {
+	entityBindings := []func(){}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
 		e := host.NewEntity()
@@ -212,6 +223,31 @@ func (s *Stage) Launch(host *engine.Host) {
 		e.Transform.SetRotation(se.Rotation)
 		e.Transform.SetScale(se.Scale)
 		// TODO:  Data binding should have been serialized
+		if build.Debug {
+			for i := range se.DataBinding {
+				b, ok := engine.DebugEntityDataRegistry[se.DataBinding[i].RegistraionKey]
+				if ok {
+					bi := reflect.ValueOf(b).Interface()
+					nb := reflect.New(reflect.TypeOf(bi)).Elem()
+					for k, v := range se.DataBinding[i].Fields {
+						f := nb.FieldByName(k)
+						entity_data_binding.ReflectEntityDataBindingValueFromJson(v, f)
+					}
+					reflect.ValueOf(&b).Elem().Set(nb)
+					entityBindings = append(entityBindings, func() {
+						b.Init(e, host)
+					})
+				} else {
+					slog.Error("failed to locate the registered key", "key", se.DataBinding[i].RegistraionKey)
+				}
+			}
+		} else {
+			for i := range se.RawDataBinding {
+				entityBindings = append(entityBindings, func() {
+					se.RawDataBinding[i].(engine.EntityData).Init(e, host)
+				})
+			}
+		}
 		if se.Mesh != "" {
 			s.spawnLoadedEntity(e, host, se)
 		}
@@ -222,6 +258,9 @@ func (s *Stage) Launch(host *engine.Host) {
 	}
 	for i := range s.Entities {
 		proc(&s.Entities[i], nil)
+	}
+	for i := range entityBindings {
+		entityBindings[i]()
 	}
 }
 
