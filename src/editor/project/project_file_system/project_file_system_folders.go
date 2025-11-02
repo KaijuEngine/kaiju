@@ -81,4 +81,5 @@ const (
 	ProjectModFile        = "src/go.mod"
 	ProjectWorkFile       = "go.work"
 	ProjectCodeGameTitle  = "kaiju/build/title.go"
+	EntityDataBindingInit = "src/entity_data_binding_init.go"
 )

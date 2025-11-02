@@ -41,6 +41,7 @@ import (
 	"errors"
 	"kaiju/build"
 	"kaiju/engine/runtime/encoding/gob"
+	"reflect"
 )
 
 var DebugEntityDataRegistry = map[string]EntityData{}
@@ -61,4 +62,37 @@ func RegisterEntityData(name string, value EntityData) error {
 		DebugEntityDataRegistry[name] = value
 	}
 	return err
+}
+
+func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
+	switch f.Kind() {
+	case reflect.Float32: // JSON reads float64 only
+		reflectTo[float64, float32](v, f)
+	case reflect.Int: // JSON reads int64 only
+		reflectTo[int64, int](v, f)
+	case reflect.Uint:
+		reflectTo[int64, uint](v, f)
+	case reflect.Int8:
+		reflectTo[int64, int8](v, f)
+	case reflect.Int16:
+		reflectTo[int64, int16](v, f)
+	case reflect.Int32:
+		reflectTo[int64, int32](v, f)
+	case reflect.Uint8:
+		reflectTo[int64, uint8](v, f)
+	case reflect.Uint16:
+		reflectTo[int64, uint16](v, f)
+	case reflect.Uint32:
+		reflectTo[int64, uint32](v, f)
+	case reflect.Uint64:
+		reflectTo[int64, uint64](v, f)
+	default:
+		f.Set(reflect.ValueOf(v))
+	}
+}
+
+func reflectTo[F, T any](v any, f reflect.Value) {
+	if vv, ok := v.(F); ok {
+		f.Set(reflect.ValueOf(vv).Convert(reflect.TypeFor[T]()))
+	}
 }

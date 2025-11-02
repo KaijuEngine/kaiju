@@ -42,6 +42,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"kaiju/editor/codegen"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
@@ -291,4 +293,24 @@ func (pfs *FileSystem) ReadModName() string {
 		name = s[1]
 	}
 	return name
+}
+
+func (pfs *FileSystem) WriteDataBindingRegistryInit(g []codegen.GeneratedType) error {
+	paths := make([]string, 0, len(g))
+	for i := range g {
+		paths = klib.AppendUnique(paths, g[i].PkgPath)
+	}
+	f, err := pfs.Create(EntityDataBindingInit)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	f.WriteString("package main\n\nimport (\n")
+	for i := range paths {
+		f.WriteString("\t_ \"")
+		f.WriteString(paths[i])
+		f.WriteString("\"\n")
+	}
+	f.WriteString(")")
+	return nil
 }

@@ -2,6 +2,7 @@ package entity_data_binding
 
 import (
 	"kaiju/editor/codegen"
+	"kaiju/engine"
 	"kaiju/klib"
 	"log/slog"
 	"reflect"
@@ -40,34 +41,7 @@ func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
 
 func (de *EntityDataEntry) SetFieldByName(name string, value any) {
 	f := reflect.ValueOf(de.BoundData).Elem().FieldByName(name)
-	ReflectEntityDataBindingValueFromJson(value, f)
-}
-
-func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
-	switch f.Kind() {
-	case reflect.Float32: // JSON reads float64 only
-		reflectTo[float64, float32](v, f)
-	case reflect.Int: // JSON reads int64 only
-		reflectTo[int64, int](v, f)
-	case reflect.Uint:
-		reflectTo[int64, uint](v, f)
-	case reflect.Int8:
-		reflectTo[int64, int8](v, f)
-	case reflect.Int16:
-		reflectTo[int64, int16](v, f)
-	case reflect.Int32:
-		reflectTo[int64, int32](v, f)
-	case reflect.Uint8:
-		reflectTo[int64, uint8](v, f)
-	case reflect.Uint16:
-		reflectTo[int64, uint16](v, f)
-	case reflect.Uint32:
-		reflectTo[int64, uint32](v, f)
-	case reflect.Uint64:
-		reflectTo[int64, uint64](v, f)
-	default:
-		f.Set(reflect.ValueOf(v))
-	}
+	engine.ReflectEntityDataBindingValueFromJson(value, f)
 }
 
 func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *EntityDataEntry {
@@ -148,12 +122,6 @@ func (g *EntityDataEntry) FieldBool(fieldIdx int) bool {
 func (g *EntityDataEntry) FieldValue(fieldIdx int) any {
 	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.Interface()
-}
-
-func reflectTo[F, T any](v any, f reflect.Value) {
-	if vv, ok := v.(F); ok {
-		f.Set(reflect.ValueOf(vv).Convert(reflect.TypeFor[T]()))
-	}
 }
 
 func tagDefault(f *EntityDataField, value string) {

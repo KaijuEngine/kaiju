@@ -41,7 +41,6 @@ import (
 	"bytes"
 	"kaiju/build"
 	"kaiju/debug"
-	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/runtime/encoding/gob"
@@ -231,7 +230,7 @@ func (s *Stage) Launch(host *engine.Host) {
 					nb := reflect.New(reflect.TypeOf(bi)).Elem()
 					for k, v := range se.DataBinding[i].Fields {
 						f := nb.FieldByName(k)
-						entity_data_binding.ReflectEntityDataBindingValueFromJson(v, f)
+						engine.ReflectEntityDataBindingValueFromJson(v, f)
 					}
 					reflect.ValueOf(&b).Elem().Set(nb)
 					entityBindings = append(entityBindings, func() {
