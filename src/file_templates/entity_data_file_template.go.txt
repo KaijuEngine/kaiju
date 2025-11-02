@@ -1,0 +1,15 @@
+package {{.FolderName}}
+
+import "kaiju/engine"
+
+func init() {
+	engine.RegisterEntityData("{{.FolderName}}.{{.StructName}}", {{.StructName}}{})
+}
+
+type {{.StructName}} struct {
+    // Setup your POD
+}
+
+func (d {{.StructName}}) Init(entity *engine.Entity, host *engine.Host) {
+    // host.Updater.AddUpdate = create update, host.Game() = *game_host.GameHost
+}
