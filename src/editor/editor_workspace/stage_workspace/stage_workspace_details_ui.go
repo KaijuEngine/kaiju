@@ -165,6 +165,11 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 	for _, a := range db {
 		dui.createDataBindingEntry(a)
 	}
+	// Lazy hiding of children
+	if !dui.hideDetailsElm.UI.Entity().IsActive() {
+		dui.showDetails(nil)
+		dui.hideDetails(nil)
+	}
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
