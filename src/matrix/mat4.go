@@ -117,6 +117,14 @@ func Mat4Zero() Mat4 {
 	return Mat4{}
 }
 
+func (m *Mat4) Mat3() Mat3 {
+	return Mat3{
+		m[x0y0], m[x1y0], m[x2y0],
+		m[x0y1], m[x1y1], m[x2y1],
+		m[x0y2], m[x1y2], m[x2y2],
+	}
+}
+
 func (m *Mat4) Reset() {
 	m[x0y0] = 1
 	m[x1y0] = 0
