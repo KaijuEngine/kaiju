@@ -87,6 +87,10 @@ func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32,
 	return c
 }
 
+// Frustum will return the camera's view frustum which is updated any time the
+// view or project of the camera changes.
+func (c *StandardCamera) Frustum() collision.Frustum { return c.frustum }
+
 // SetPosition sets the position of the camera.
 func (c *StandardCamera) SetPosition(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetPosition").End()
@@ -270,8 +274,8 @@ func (c *StandardCamera) View() matrix.Mat4 { return c.view }
 // Projection will return the projection matrix of the camera.
 func (c *StandardCamera) Projection() matrix.Mat4 { return c.projection }
 
-// ProjectionInverse will return the inverse projection matrix of the camera.
-func (c *StandardCamera) ProjectionInverse() matrix.Mat4 { return c.iProjection }
+// InverseProjection will return the inverse projection matrix of the camera.
+func (c *StandardCamera) InverseProjection() matrix.Mat4 { return c.iProjection }
 
 // LookAt will return the look at position of the camera.
 func (c *StandardCamera) LookAt() matrix.Vec3 { return c.lookAt }
@@ -325,6 +329,7 @@ func (c *StandardCamera) internalUpdateProjection() {
 	}
 	c.iProjection = c.projection
 	c.iProjection.Inverse()
+	c.updateFrustum()
 }
 
 func (c *StandardCamera) internalUpdateView() {

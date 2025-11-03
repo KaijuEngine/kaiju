@@ -76,14 +76,13 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 	}
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
-	// cam.SetPositionAndLookAt(target.Transform.Position(), target.Transform.Forward())
 	cam.SetProperties(
 		data.FieldValueByName("FOV").(float32),
 		data.FieldValueByName("NearPlane").(float32),
 		data.FieldValueByName("FarPlane").(float32),
 		w, h,
 	)
-	frustum := rendering.NewMeshFrustum(host.MeshCache(), uuid.NewString(), cam.ProjectionInverse())
+	frustum := rendering.NewMeshFrustum(host.MeshCache(), uuid.NewString(), cam.InverseProjection())
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
 	if err != nil {
 		slog.Error("failed to load transform wire material", "error", err)
