@@ -327,13 +327,17 @@ func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) m
 
 func (t *TransformTool) updateDrag(host *engine.Host) {
 	defer tracing.NewRegion("TransformTool.updateDrag").End()
+	sel := t.stage.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
 	m := &host.Window.Mouse
 	mp := m.Position()
 	var delta, point matrix.Vec3
 	switch t.stage.Camera().Mode() {
 	case editor_controls.EditorCameraMode3d:
 		r := host.Camera.RayCast(mp)
-		center := t.stage.Manager().SelectionPivotCenter()
+		center := sel[0].Transform.Position()
 		delta = matrix.Vec3Zero()
 		point = matrix.Vec3Zero()
 		switch t.state {
