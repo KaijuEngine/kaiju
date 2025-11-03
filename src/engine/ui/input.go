@@ -84,6 +84,7 @@ type inputData struct {
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	isActive                          bool
+	prevFocusInput                    *Input
 	nextFocusInput                    *Input
 	labelShift                        float32
 }
@@ -100,6 +101,7 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
+	next.InputData().prevFocusInput = input
 	input.InputData().nextFocusInput = next
 }
 
@@ -554,12 +556,25 @@ func (input *Input) activated() {
 	}
 }
 
-func (input *Input) focusNext() {
-	data := input.InputData()
-	if data.isActive && data.nextFocusInput != nil {
-		input.RemoveFocus()
-		data.nextFocusInput.Focus()
+func (input *Input) changeFocusToAnother(target *Input) {
+	if target == nil || !target.entity.IsActive() {
+		return
 	}
+	data := input.InputData()
+	if !data.isActive {
+		return
+	}
+	input.RemoveFocus()
+	target.Focus()
+	target.SelectAll()
+}
+
+func (input *Input) focusNext() {
+	input.changeFocusToAnother(input.InputData().nextFocusInput)
+}
+
+func (input *Input) focusPrevious() {
+	input.changeFocusToAnother(input.InputData().prevFocusInput)
 }
 
 func (input *Input) Text() string {
@@ -682,13 +697,14 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 				if !kb.HasCtrl() {
 					input.InsertText(string(c))
 				} else {
-					if c == 'c' {
+					switch c {
+					case 'c':
 						input.copyToClipboard()
-					} else if c == 'x' {
+					case 'x':
 						input.cutToClipboard()
-					} else if c == 'v' {
+					case 'v':
 						input.pasteFromClipboard()
-					} else if c == 'a' {
+					case 'a':
 						input.SelectAll()
 					}
 				}
@@ -712,12 +728,11 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.submit()
 				case hid.KeyboardKeyTab:
 					// Delay a frame so we don't hit a loop of going to next
-					host.RunAfterFrames(1, func() {
-						next := input.InputData().nextFocusInput
-						if next != nil {
-							next.Focus()
-						}
-					})
+					if host.Window.Keyboard.HasShift() {
+						host.RunAfterFrames(1, input.focusPrevious)
+					} else {
+						host.RunAfterFrames(1, input.focusNext)
+					}
 				}
 			}
 			(*UI)(input).requestEvent(EventTypeKeyDown)

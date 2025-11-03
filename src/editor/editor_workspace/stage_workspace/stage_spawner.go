@@ -39,10 +39,12 @@ package stage_workspace
 
 import (
 	"encoding/json"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
+	"kaiju/engine_data_bindings"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -53,12 +55,15 @@ import (
 )
 
 func (w *Workspace) CreateNewCamera() {
-	// e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
-	// TODO:  This should be added using Project.EntityDataBinding
-	// e.AddDataBinding(engine_data_bindings.NewCameraDataBinding())
-	// TODO:  Create the view frustom wire
-	//mesh := rendering.NewMeshFrustum(w.Host.MeshCache(), string(e.Id()),
-	//	w.Host.Camera.Projection().Invert())
+	e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
+	key := engine_data_bindings.CameraDataBindingKey
+	g, ok := w.ed.Project().EntityDataBinding(key)
+	if !ok {
+		slog.Error("failed to locate the entity binding data", "key", key)
+		return
+	}
+	de := &entity_data_binding.EntityDataEntry{}
+	e.AddDataBinding(de.ReadEntityDataBindingType(g))
 }
 
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
