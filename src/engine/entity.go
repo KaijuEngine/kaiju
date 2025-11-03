@@ -205,6 +205,19 @@ func (e *Entity) innerDestroy() {
 	}
 }
 
+// HasParent will loop through each parent and determine if any of them is the
+// parent Entity supplied. If so, then it will return true, false otherwise.
+func (e *Entity) HasParent(parent *Entity) bool {
+	p := e.Parent
+	for p != nil {
+		if p == parent {
+			return true
+		}
+		p = p.Parent
+	}
+	return false
+}
+
 // SetParent will set the parent of the entity. If the entity already has a
 // parent, it will be removed from the parent's children list. If the new parent
 // is nil, the entity will be removed from the hierarchy and will become the
