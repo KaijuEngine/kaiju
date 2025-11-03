@@ -40,6 +40,7 @@ package framework
 import (
 	"kaiju/engine"
 	"kaiju/matrix"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 )
 
@@ -59,7 +60,7 @@ func createDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 		Renderer: host.Window.Renderer,
 		Material: mat,
 		Mesh:     mesh,
-		ShaderData: &rendering.ShaderDataUnlit{
+		ShaderData: &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 			UVs:            matrix.NewVec4(0, 0, 1, 1),
@@ -87,7 +88,7 @@ func CreateDrawingFromMeshBasicLit(host *engine.Host, mesh *rendering.Mesh, text
 		Renderer: host.Window.Renderer,
 		Material: mat,
 		Mesh:     mesh,
-		ShaderData: &rendering.ShaderDataBasicLit{
+		ShaderData: &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		},
@@ -106,7 +107,7 @@ func CreateDrawingFromMeshBasicLitDynamic(host *engine.Host, mesh *rendering.Mes
 		Renderer: host.Window.Renderer,
 		Material: mat,
 		Mesh:     mesh,
-		ShaderData: &rendering.ShaderDataBasicLit{
+		ShaderData: &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		},

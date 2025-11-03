@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 	"time"
@@ -58,7 +59,7 @@ func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 		slog.Error("failed to load the grid material for drawing raycast", "error", err)
 		return
 	}
-	sd := &rendering.ShaderDataBasic{
+	sd := &shader_data_registry.ShaderDataEdTransformWire{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 	}
