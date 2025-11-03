@@ -66,9 +66,9 @@ func (ed *Editor) Build() {
 	if !ed.ensureMainStageExists() {
 		return
 	}
-	// Loose goroutine
+	// goroutine
 	go ed.project.CompileDebug()
-	// Loose goroutine
+	// goroutine
 	go ed.project.Package()
 }
 
@@ -78,17 +78,17 @@ func (ed *Editor) BuildAndRun() {
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	// Loose goroutine
+	// goroutine
 	go func() {
 		ed.project.CompileDebug()
 		wg.Done()
 	}()
-	// Loose goroutine
+	// goroutine
 	go func() {
 		ed.project.Package()
 		wg.Done()
 	}()
-	// Loose goroutine
+	// goroutine
 	go func() {
 		wg.Wait()
 		ed.project.Run()
@@ -104,17 +104,17 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 	ed.workspaces.stage.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	// Loose goroutine
+	// goroutine
 	go func() {
 		ed.project.CompileDebug()
 		wg.Done()
 	}()
-	// Loose goroutine
+	// goroutine
 	go func() {
 		ed.project.Package()
 		wg.Done()
 	}()
-	// Loose goroutine
+	// goroutine
 	go func() {
 		wg.Wait()
 		ed.project.Run("-startStage", stageId)

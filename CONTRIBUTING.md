@@ -89,9 +89,9 @@ the go implementation of the code.
 ### Goroutines
 You can write goroutines (for the editor), but for the engine runtime, make use
 of the threads structure that is attached to the host. When firing off a
-goroutine in the editor code, put a comment above it with the word `goroutine`
-included in the comment. This will make it easy to search through all the
-goroutines in the code (until I find a better way of doing this).
+goroutine in the editor code, put a comment above it `// goroutine`. This will
+make it easy to search through all the goroutines in the code (until I find a
+better way of doing this).
 
 ### In any other case
 Generally, if you would like a guide at how the code should be formatted and

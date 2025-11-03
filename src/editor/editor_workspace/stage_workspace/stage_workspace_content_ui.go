@@ -155,7 +155,7 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, t
 	img := e.Children[0].UI.ToPanel()
 	w := cui.workspace.Value()
 	if typeName == (content_database.Texture{}).TypeName() {
-		// Loose goroutine
+		// goroutine
 		go func() {
 			path := content_database.ToContentPath(configPath)
 			data, err := w.ed.ProjectFileSystem().ReadFile(path)

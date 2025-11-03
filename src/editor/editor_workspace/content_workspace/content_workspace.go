@@ -206,7 +206,7 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	if typeName == (content_database.Texture{}).TypeName() {
-		// Loose goroutine
+		// goroutine
 		go func() {
 			path := content_database.ToContentPath(configPath)
 			data, err := w.pfs.ReadFile(path)

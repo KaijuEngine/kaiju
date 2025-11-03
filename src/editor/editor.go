@@ -126,9 +126,9 @@ func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
-	// Loose goroutine
+	// goroutine
 	go ed.project.CompileDebug()
-	// Loose goroutine
+	// goroutine
 	go ed.project.ReadSourceCode()
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
