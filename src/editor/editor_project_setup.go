@@ -54,8 +54,9 @@ func (ed *Editor) setProjectName(name string) {
 func (ed *Editor) newProjectOverlay() {
 	defer tracing.NewRegion("Editor.newProjectOverlay").End()
 	new_project.Show(ed.host, new_project.Config{
-		OnCreate: ed.createProject,
-		OnOpen:   ed.openProject,
+		OnCreate:       ed.createProject,
+		OnOpen:         ed.openProject,
+		RecentProjects: ed.settings.RecentProjects,
 	})
 }
 
@@ -76,7 +77,7 @@ func (ed *Editor) createProject(name, path string) {
 		return
 	}
 	ed.setProjectName(name)
-	ed.lateLoadUI()
+	ed.postProjectLoad()
 	ed.FocusInterface()
 }
 
@@ -88,6 +89,6 @@ func (ed *Editor) openProject(path string) {
 		return
 	}
 	ed.setProjectName(ed.project.Name())
-	ed.lateLoadUI()
+	ed.postProjectLoad()
 	ed.FocusInterface()
 }

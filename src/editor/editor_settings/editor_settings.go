@@ -39,28 +39,44 @@ package editor_settings
 
 import (
 	"encoding/json"
+	"kaiju/klib"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
-const settingsFileName = "settings.json"
+const (
+	settingsFileName       = "settings.json"
+	maxRecentProjectsCount = 5
+)
 
 type Settings struct {
-	Snapping SnapSettings
+	RecentProjects []string
+	Snapping       SnapSettings
 }
 
 type SnapSettings struct {
-	TranslateEnabled   bool
-	RotationEnabled    bool
-	ScaleEnabled       bool
 	TranslateIncrement float32
 	RotateIncrement    float32
 	ScaleIncrement     float32
+	TranslateEnabled   bool
+	RotationEnabled    bool
+	ScaleEnabled       bool
 }
 
-func (c *Settings) Save() error {
+func (s *Settings) AddRecentProject(path string) {
+	s.RecentProjects = klib.SlicesRemoveElement(s.RecentProjects, path)
+	s.RecentProjects = slices.Insert(s.RecentProjects, 0, path)
+	if len(s.RecentProjects) > maxRecentProjectsCount {
+		s.RecentProjects = s.RecentProjects[:maxRecentProjectsCount]
+	}
+	// goroutine
+	go s.Save()
+}
+
+func (s *Settings) Save() error {
 	defer tracing.NewRegion("Settings.Save").End()
 	appData, err := filesystem.GameDirectory()
 	if err != nil {
@@ -70,13 +86,13 @@ func (c *Settings) Save() error {
 	if err != nil {
 		return WriteError{err, false}
 	}
-	if err := json.NewEncoder(f).Encode(*c); err != nil {
+	if err := json.NewEncoder(f).Encode(*s); err != nil {
 		return WriteError{err, true}
 	}
 	return nil
 }
 
-func (c *Settings) Load() error {
+func (s *Settings) Load() error {
 	defer tracing.NewRegion("Settings.Load").End()
 	appData, err := filesystem.GameDirectory()
 	if err != nil {
@@ -86,13 +102,13 @@ func (c *Settings) Load() error {
 	if _, err := os.Stat(path); err != nil {
 		// If the settings file doesn't exist, then create it. It is returning
 		// here as there is no need to continue with the load if we're saving
-		return c.Save()
+		return s.Save()
 	}
 	f, err := os.Open(path)
 	if err != nil {
 		return ReadError{err, false}
 	}
-	if err := json.NewDecoder(f).Decode(c); err != nil {
+	if err := json.NewDecoder(f).Decode(s); err != nil {
 		return ReadError{err, true}
 	}
 	return nil

@@ -122,8 +122,9 @@ func (ed *Editor) earlyLoadUI() {
 	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
 }
 
-func (ed *Editor) lateLoadUI() {
+func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
+	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
 	// Loose goroutine
 	go ed.project.CompileDebug()

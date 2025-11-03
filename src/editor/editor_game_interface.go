@@ -63,10 +63,10 @@ func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("EditorGame.Launch").End()
 	host.SetFrameRateLimit(60)
 	ed := &Editor{host: host}
+	host.SetGame(ed)
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
 	}
-	host.SetGame(ed)
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(128)
 	ed.earlyLoadUI()
