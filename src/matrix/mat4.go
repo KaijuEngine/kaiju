@@ -517,7 +517,7 @@ func (m Mat4) TransformPoint(point Vec3) Vec3 {
 	pt0 := Vec4{point.X(), point.Y(), point.Z(), 1.0}
 	res := Mat4MultiplyVec4(m, pt0)
 	v3 := Vec3{res.X(), res.Y(), res.Z()}
-	v3.Shrink(res.W())
+	v3.ShrinkAssign(res.W())
 	return v3
 }
 
