@@ -270,6 +270,9 @@ func (c *StandardCamera) View() matrix.Mat4 { return c.view }
 // Projection will return the projection matrix of the camera.
 func (c *StandardCamera) Projection() matrix.Mat4 { return c.projection }
 
+// ProjectionInverse will return the inverse projection matrix of the camera.
+func (c *StandardCamera) ProjectionInverse() matrix.Mat4 { return c.iProjection }
+
 // LookAt will return the look at position of the camera.
 func (c *StandardCamera) LookAt() matrix.Vec3 { return c.lookAt }
 
@@ -291,7 +294,7 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.view = matrix.Mat4Identity()
 	c.projection = matrix.Mat4Identity()
 	c.up = matrix.Vec3Up()
-	c.lookAt = matrix.Vec3Forward()
+	c.lookAt = position.Add(matrix.Vec3Forward())
 }
 
 func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32) {

@@ -161,6 +161,11 @@ func (g *EntityDataEntry) FieldValue(fieldIdx int) any {
 	return v.Interface()
 }
 
+func (g *EntityDataEntry) FieldValueByName(name string) any {
+	v := reflect.ValueOf(g.BoundData).Elem().FieldByName(name)
+	return v.Interface()
+}
+
 func tagDefault(f *EntityDataField, value string) {
 	f.Value = klib.StringToTypeValue(f.Type, value)
 }

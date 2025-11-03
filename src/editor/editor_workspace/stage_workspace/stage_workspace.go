@@ -40,6 +40,7 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_stage_manager"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
@@ -52,6 +53,7 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
+	"weak"
 )
 
 const maxContentDropDistance = 10
@@ -106,6 +108,14 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
 	w.transformTool.Initialize(host, w, w.ed.History(), &w.ed.Settings().Snapping)
+	// Data binding visualizers
+	weakHost := weak.Make(host)
+	w.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
+		data_binding_renderer.Show(weakHost, e)
+	})
+	w.manager.OnEntityDeselected.Add(func(e *editor_stage_manager.StageEntity) {
+		data_binding_renderer.Hide(weakHost, e)
+	})
 }
 
 func (w *Workspace) Open() {

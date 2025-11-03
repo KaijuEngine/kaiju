@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* mesh_cache.go                                                              */
+/* camera_data_binding_renderer.go                                            */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,84 +35,77 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package rendering
+package data_binding_renderer
 
 import (
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/engine"
 	"kaiju/engine/assets"
-	"kaiju/klib"
+	"kaiju/engine/cameras"
+	"kaiju/engine_data_bindings"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
-	"sync"
+	"kaiju/registry/shader_data_registry"
+	"kaiju/rendering"
+	"log/slog"
+
+	"github.com/KaijuEngine/uuid"
 )
 
-type MeshCache struct {
-	renderer      Renderer
-	assetDatabase assets.Database
-	meshes        map[string]*Mesh
-	pendingMeshes []*Mesh
-	mutex         sync.Mutex
+func init() {
+	AddRenderer(engine_data_bindings.CameraDataBindingKey, &CameraDataBindingRenderer{
+		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
+	})
 }
 
-func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
-	return MeshCache{
-		renderer:      renderer,
-		assetDatabase: assetDatabase,
-		meshes:        make(map[string]*Mesh),
-		pendingMeshes: make([]*Mesh, 0),
-		mutex:         sync.Mutex{},
+type CameraDataBindingRenderer struct {
+	Frustums map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing
+}
+
+type cameraDataBindingDrawing struct {
+	key string
+	sd  rendering.DrawInstance
+}
+
+func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraDataBindingRenderer.Show").End()
+	if _, ok := c.Frustums[target]; ok {
+		slog.Error("there is an internal error in state for the editor's CameraDataBindingRenderer, show was called before any hide happened. Double selected the same target?")
+		c.Hide(host, target, data)
 	}
-}
-
-// Try to add the mesh to the cache, if it already exists,
-// return the existing mesh
-func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
-	if found, ok := m.meshes[mesh.key]; !ok {
-		m.pendingMeshes = append(m.pendingMeshes, mesh)
-		m.meshes[mesh.key] = mesh
-		return mesh
-	} else {
-		return found
+	w, h := float32(host.Window.Width()), float32(host.Window.Height())
+	cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
+	// cam.SetPositionAndLookAt(target.Transform.Position(), target.Transform.Forward())
+	cam.SetProperties(
+		data.FieldValueByName("FOV").(float32),
+		data.FieldValueByName("NearPlane").(float32),
+		data.FieldValueByName("FarPlane").(float32),
+		w, h,
+	)
+	frustum := rendering.NewMeshFrustum(host.MeshCache(), uuid.NewString(), cam.ProjectionInverse())
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
+	if err != nil {
+		slog.Error("failed to load transform wire material", "error", err)
+		return
 	}
+	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = matrix.ColorWhite()
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Renderer:   host.Window.Renderer,
+		Material:   material,
+		Mesh:       frustum,
+		ShaderData: sd,
+		Transform:  &target.Transform,
+	})
+	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
 }
 
-func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
-	if mesh, ok := m.meshes[key]; ok {
-		return mesh, true
-	} else {
-		return nil, false
+func (c *CameraDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraDataBindingRenderer.Hide").End()
+	if d, ok := c.Frustums[target]; ok {
+		d.sd.Destroy()
+		host.MeshCache().RemoveMesh(d.key)
+		delete(c.Frustums, target)
 	}
-}
-
-func (m *MeshCache) RemoveMesh(key string) {
-	m.mutex.Lock()
-	delete(m.meshes, key)
-	m.mutex.Unlock()
-}
-
-func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
-	defer tracing.NewRegion("MeshCache.Mesh").End()
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	if mesh, ok := m.meshes[key]; ok {
-		return mesh
-	} else {
-		mesh := NewMesh(key, verts, indexes)
-		m.pendingMeshes = append(m.pendingMeshes, mesh)
-		m.meshes[key] = mesh
-		return mesh
-	}
-}
-
-func (m *MeshCache) CreatePending() {
-	defer tracing.NewRegion("MeshCache.CreatePending").End()
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	for _, mesh := range m.pendingMeshes {
-		mesh.DelayedCreate(m.renderer)
-	}
-	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
-}
-
-func (m *MeshCache) Destroy() {
-	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
-	m.meshes = make(map[string]*Mesh)
 }

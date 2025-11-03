@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* mesh_cache.go                                                              */
+/* editor_data_binding_renderer.go                                            */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,84 +35,63 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package rendering
+package data_binding_renderer
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/engine"
 	"kaiju/platform/profiler/tracing"
-	"sync"
+	"weak"
 )
 
-type MeshCache struct {
-	renderer      Renderer
-	assetDatabase assets.Database
-	meshes        map[string]*Mesh
-	pendingMeshes []*Mesh
-	mutex         sync.Mutex
+var renderers = map[string]DataBindingRenderer{}
+
+type DataBindingRenderer interface {
+	Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Hide(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 }
 
-func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
-	return MeshCache{
-		renderer:      renderer,
-		assetDatabase: assetDatabase,
-		meshes:        make(map[string]*Mesh),
-		pendingMeshes: make([]*Mesh, 0),
-		mutex:         sync.Mutex{},
+func AddRenderer(key string, r DataBindingRenderer) {
+	defer tracing.NewRegion("data_binding_renderer.AddRenderer").End()
+	renderers[key] = r
+}
+
+func Show(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("data_binding_renderer.Show").End()
+	h := host.Value()
+	if h == nil {
+		return
+	}
+	binds := target.DataBindings()
+	for i := range binds {
+		if r, ok := renderers[binds[i].Gen.RegisterKey]; ok {
+			r.Show(h, target, binds[i])
+		}
 	}
 }
 
-// Try to add the mesh to the cache, if it already exists,
-// return the existing mesh
-func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
-	if found, ok := m.meshes[mesh.key]; !ok {
-		m.pendingMeshes = append(m.pendingMeshes, mesh)
-		m.meshes[mesh.key] = mesh
-		return mesh
-	} else {
-		return found
+func ShowSpecific(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("data_binding_renderer.ShowSpecific").End()
+	h := host.Value()
+	if h == nil {
+		return
+	}
+	if r, ok := renderers[data.Gen.RegisterKey]; ok {
+		r.Show(h, target, data)
 	}
 }
 
-func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
-	if mesh, ok := m.meshes[key]; ok {
-		return mesh, true
-	} else {
-		return nil, false
+func Hide(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("data_binding_renderer.Hide").End()
+	h := host.Value()
+	if h == nil {
+		return
 	}
-}
-
-func (m *MeshCache) RemoveMesh(key string) {
-	m.mutex.Lock()
-	delete(m.meshes, key)
-	m.mutex.Unlock()
-}
-
-func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
-	defer tracing.NewRegion("MeshCache.Mesh").End()
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	if mesh, ok := m.meshes[key]; ok {
-		return mesh
-	} else {
-		mesh := NewMesh(key, verts, indexes)
-		m.pendingMeshes = append(m.pendingMeshes, mesh)
-		m.meshes[key] = mesh
-		return mesh
+	binds := target.DataBindings()
+	for i := range binds {
+		if r, ok := renderers[binds[i].Gen.RegisterKey]; ok {
+			r.Hide(h, target, binds[i])
+		}
 	}
-}
-
-func (m *MeshCache) CreatePending() {
-	defer tracing.NewRegion("MeshCache.CreatePending").End()
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	for _, mesh := range m.pendingMeshes {
-		mesh.DelayedCreate(m.renderer)
-	}
-	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
-}
-
-func (m *MeshCache) Destroy() {
-	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
-	m.meshes = make(map[string]*Mesh)
 }

@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
@@ -314,9 +315,11 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	}
 	sel := w.manager.Selection()
 	// TODO:  Multi-select stuff
+	target := sel[0]
 	de := &entity_data_binding.EntityDataEntry{}
-	sel[0].AddDataBinding(de.ReadEntityDataBindingType(g))
+	target.AddDataBinding(de.ReadEntityDataBindingType(g))
 	dui.createDataBindingEntry(de)
+	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
 	dui.entityDataList.UI.Hide()
 }
 

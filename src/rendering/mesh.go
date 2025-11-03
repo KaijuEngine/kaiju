@@ -593,10 +593,9 @@ func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4)
 			verts[i].Position = inverseProjection.TransformPoint(verts[i].Position)
 		}
 		indexes := []uint32{
-			0, 1, 2, 3, 0,
-			4, 5, 6, 7, 4,
-			0, 1, 5, 6,
-			2, 3, 7,
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7,
 		}
 		return cache.Mesh(key, verts, indexes)
 	}

@@ -559,7 +559,7 @@ func (m Mat4) ToQuaternion() Quaternion {
 	}
 }
 
-func (m Mat4) Invert() Mat4 {
+func (m Mat4) Inverted() Mat4 {
 	res := Mat4{}
 	res[x0y0] = m[x0y0]
 	res[x1y0] = m[x0y1]
