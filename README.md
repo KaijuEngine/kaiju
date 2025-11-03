@@ -16,6 +16,8 @@ I love C, and because I love C and found out that Ken Thompson played a part in 
 What's more, it's a language that other developers can easily learn and jump right into extending the engine/editor. No need for developers to re-figure out some bespoke macros or crazy templating non-sense. It's flat, easy, straight forward, and the foot-gun is hidden behind some walls, but there if you want it. Furthermore, developers can write their games in Go directly, no need for some alternative language that is different than the engine code (but we'll include Lua for modding).
 
 ## ⚠️ WORK IN PROGRESS ⚠️
+Though the engine is production ready, the editor **_is not_**, feel free to join and contribute to it's development.
+
 For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3) or check my [Twitter/X](https://twitter.com/ShieldCrush).
 
 Please review the ad-hoc [editor readme](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md)
