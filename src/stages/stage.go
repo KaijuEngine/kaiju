@@ -164,7 +164,7 @@ func (s *Stage) ToMinimized() StageJson {
 		for i := range from.Textures {
 			to.Textures[i] = texMap[from.Textures[i]]
 		}
-		to.Children = make([]EntityDescriptionJson, len(to.Children))
+		to.Children = make([]EntityDescriptionJson, len(from.Children))
 		for i := range from.Children {
 			proc(&from.Children[i], &to.Children[i])
 		}

@@ -111,14 +111,21 @@ func (m *StageManager) List() []*StageEntity { return m.entities }
 
 func (m *StageManager) Selection() []*StageEntity { return m.selected }
 
-// AddEntity will create a new entity for the stage. This entity will have a
-// #StageEntityData automatically added to it as named data named "stage".
+// AddEntity will generate a new entity for the stage with a new random Id. It
+// will internally just call #AddEntityWithId
 func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
+	return m.AddEntityWithId(uuid.NewString(), name, point)
+}
+
+// AddEntityWithId will create an entity for the stage with a specified Id
+// rather than generating one. This entity will have a #StageEntityData
+// automatically added to it as named data named "stage".
+func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
 	e.SetName(name)
-	e.StageData.Description.Id = uuid.NewString()
+	e.StageData.Description.Id = id
 	m.host.AddEntity(&e.Entity)
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
@@ -182,11 +189,13 @@ func (m *StageManager) toStage() stages.Stage {
 	var readEntity func(parent *StageEntity)
 	readEntity = func(parent *StageEntity) {
 		desc := &parent.StageData.Description
+		desc.Name = parent.Name()
 		desc.Position = parent.Transform.Position()
 		desc.Rotation = parent.Transform.Rotation()
 		desc.Scale = parent.Transform.Scale()
 		desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
 		desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
+		desc.Children = make([]stages.EntityDescription, 0)
 		for _, d := range parent.dataBindings {
 			db := stages.EntityDataBinding{
 				RegistraionKey: d.Gen.RegisterKey,
@@ -200,8 +209,8 @@ func (m *StageManager) toStage() stages.Stage {
 		}
 		for i := range m.entities {
 			if m.entities[i].Parent == &parent.Entity {
-				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
 				readEntity(m.entities[i])
+				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
 			}
 		}
 	}
@@ -271,7 +280,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s.FromMinimized(ss)
 	var importTarget func(parent *StageEntity, desc *stages.EntityDescription) error
 	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
-		e := m.AddEntity(desc.Name, matrix.Vec3Zero())
+		e := m.AddEntityWithId(desc.Id, desc.Name, matrix.Vec3Zero())
 		e.StageData.Description = *desc
 		if parent != nil {
 			m.SetEntityParent(e, parent)
