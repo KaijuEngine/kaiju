@@ -304,7 +304,7 @@ type rowBuilder struct {
 func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	eSize := e.Layout().PixelSize()
 	h := eSize.Height()
-	w := eSize.Width()
+	w := eSize.Width() + e.layout.margin.Horizontal()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
 		return false
 	}
