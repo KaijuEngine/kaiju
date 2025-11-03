@@ -223,6 +223,9 @@ func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEnti
 	cpy := w.Doc.DuplicateElement(hui.entityTemplate)
 	w.Doc.SetElementId(cpy, e.StageData.Description.Id)
 	cpy.Children[0].Children[0].UI.ToLabel().SetText(e.Name())
+	e.OnDestroy.Add(func() {
+		hui.workspace.Value().Doc.RemoveElement(cpy)
+	})
 }
 
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
