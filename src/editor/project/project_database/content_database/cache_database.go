@@ -241,11 +241,13 @@ func (c *Cache) Remove(id string) {
 	if idx, ok := c.lookup[id]; ok {
 		lastId := c.cache[len(c.cache)-1].Id()
 		c.cache = klib.RemoveUnordered(c.cache, idx)
-		c.lookup[lastId] = idx
-		if build.Debug {
-			debug.Assert(c.cache[c.lookup[lastId]].Id() == lastId,
-				"the behavior of klib.RemoveUnordered must have changed!")
-		}
 		delete(c.lookup, id)
+		if len(c.cache) > 0 {
+			c.lookup[lastId] = idx
+			if build.Debug {
+				debug.Assert(c.cache[idx].Id() == lastId,
+					"the behavior of klib.RemoveUnordered must have changed!")
+			}
+		}
 	}
 }
