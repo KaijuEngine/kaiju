@@ -316,8 +316,7 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	sel := w.manager.Selection()
 	// TODO:  Multi-select stuff
 	target := sel[0]
-	de := &entity_data_binding.EntityDataEntry{}
-	target.AddDataBinding(de.ReadEntityDataBindingType(g))
+	de := w.attachEntityData(target, g)
 	dui.createDataBindingEntry(de)
 	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
 	dui.entityDataList.UI.Hide()

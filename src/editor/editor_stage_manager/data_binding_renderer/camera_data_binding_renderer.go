@@ -68,6 +68,39 @@ type cameraDataBindingDrawing struct {
 	sd  rendering.DrawInstance
 }
 
+func (c *CameraDataBindingRenderer) Attached(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionEdGizmo)
+	if err != nil {
+		slog.Error("failed to find the basic material", "error", err)
+		return
+	}
+	tex, err := host.TextureCache().Texture(
+		"editor/textures/icons/camera.png", rendering.TextureFilterLinear)
+	if err != nil {
+		slog.Error("failed to load the camera icon", "error", err)
+		return
+	}
+	mat = mat.CreateInstance([]*rendering.Texture{tex})
+	mesh := rendering.NewMeshQuad(host.MeshCache())
+	sd := &shader_data_registry.ShaderDataUnlit{
+		ShaderDataBase: rendering.NewShaderDataBase(),
+		Color:          matrix.ColorWhite(),
+		UVs:            matrix.NewVec4(0, 0, 1, 1),
+	}
+	host.RunOnMainThread(func() {
+		tex.DelayedCreate(host.Window.Renderer)
+		draw := rendering.Drawing{
+			Renderer:   host.Window.Renderer,
+			Material:   mat,
+			Mesh:       mesh,
+			ShaderData: sd,
+			Transform:  &target.Transform,
+		}
+		host.Drawings.AddDrawing(draw)
+	})
+	target.OnDestroy.Add(func() { sd.Destroy() })
+}
+
 func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("CameraDataBindingRenderer.Show").End()
 	if _, ok := c.Frustums[target]; ok {

@@ -39,9 +39,11 @@ package stage_workspace
 
 import (
 	"encoding/json"
+	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/engine_data_bindings"
@@ -52,7 +54,15 @@ import (
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
+	"weak"
 )
+
+func (w *Workspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
+	de := &entity_data_binding.EntityDataEntry{}
+	e.AddDataBinding(de.ReadEntityDataBindingType(g))
+	data_binding_renderer.Attached(de, weak.Make(w.Host), e)
+	return de
+}
 
 func (w *Workspace) CreateNewCamera() {
 	e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
@@ -62,8 +72,7 @@ func (w *Workspace) CreateNewCamera() {
 		slog.Error("failed to locate the entity binding data", "key", key)
 		return
 	}
-	de := &entity_data_binding.EntityDataEntry{}
-	e.AddDataBinding(de.ReadEntityDataBindingType(g))
+	w.attachEntityData(e, g)
 }
 
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {

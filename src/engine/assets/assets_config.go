@@ -72,4 +72,5 @@ const (
 	MaterialDefinitionLightCubeDepth      = "light_cube_depth"
 
 	MaterialDefinitionEdTransformWire = "ed_transform_wire"
+	MaterialDefinitionEdGizmo         = "ed_gizmo"
 )
