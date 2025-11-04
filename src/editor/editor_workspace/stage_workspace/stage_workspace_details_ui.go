@@ -372,12 +372,14 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	if err != nil {
 		return
 	}
-	sel := dui.workspace.Value().manager.Selection()
+	w := dui.workspace.Value()
+	sel := w.manager.Selection()
 	if len(sel) == 0 {
 		return
 	}
-	outer := sel[0].DataBindings()[pIdx]
-	v := reflect.ValueOf(outer.BoundData).Elem().Field(idx)
+	entity := sel[0]
+	target := entity.DataBindings()[pIdx]
+	v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(toInt(e.UI.ToInput().Text()))
@@ -390,6 +392,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	case reflect.Bool:
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
 	}
+	data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {

@@ -132,6 +132,20 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
 }
 
+func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	if t, ok := c.Frustums[target]; ok {
+		w, h := float32(host.Window.Width()), float32(host.Window.Height())
+		cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
+		cam.SetProperties(
+			data.FieldValueByName("FOV").(float32),
+			data.FieldValueByName("NearPlane").(float32),
+			data.FieldValueByName("FarPlane").(float32),
+			w, h,
+		)
+		t.sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
+	}
+}
+
 func (c *CameraDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("CameraDataBindingRenderer.Hide").End()
 	if d, ok := c.Frustums[target]; ok {
