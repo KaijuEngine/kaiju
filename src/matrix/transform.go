@@ -99,10 +99,22 @@ func (t *Transform) IsDirty() bool      { return t.frameDirty }
 func (t *Transform) Position() Vec3     { return t.position }
 func (t *Transform) Rotation() Vec3     { return t.rotation }
 func (t *Transform) Scale() Vec3        { return t.scale }
-func (t *Transform) Right() Vec3        { return t.localMatrix.Right().Normal() }
-func (t *Transform) Up() Vec3           { return t.localMatrix.Up().Normal() }
-func (t *Transform) Forward() Vec3      { return t.localMatrix.Forward().Normal() }
 func (t *Transform) Parent() *Transform { return t.parent }
+
+func (t *Transform) Right() Vec3 {
+	t.UpdateMatrix()
+	return t.localMatrix.Right().Normal()
+}
+
+func (t *Transform) Up() Vec3 {
+	t.UpdateMatrix()
+	return t.localMatrix.Up().Normal()
+}
+
+func (t *Transform) Forward() Vec3 {
+	t.UpdateMatrix()
+	return t.localMatrix.Forward().Normal()
+}
 
 func (t *Transform) removeChild(child *Transform) {
 	for i, c := range t.children {
