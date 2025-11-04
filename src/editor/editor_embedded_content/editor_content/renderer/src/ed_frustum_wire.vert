@@ -12,7 +12,7 @@ vec3 transformPoint(vec3 point) {
 	vec4 pt0 = vec4(point.xyz, 1.0);
 	vec4 res = frustumProjection * pt0;
 	vec3 v3 = res.xyz;
-	return v3 / res.w;
+	return v3 / -res.w;
 }
 
 void main() {
