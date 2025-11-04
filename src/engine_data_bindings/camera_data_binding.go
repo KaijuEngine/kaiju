@@ -49,10 +49,10 @@ func init() {
 }
 
 type CameraDataBinding struct {
-	FOV       float32 `clamp:"60,45,120"` //default,min,max
-	NearPlane float32 `default:"0.01"`
-	FarPlane  float32 `default:"500.0"`
-	IsPrimary bool
+	FOV             float32 `clamp:"60,45,120"` //default,min,max
+	NearPlane       float32 `default:"0.01"`
+	FarPlane        float32 `default:"500.0"`
+	InitWithControl bool
 	// TODO:  Work out the orthographic camera stuff
 }
 
@@ -65,10 +65,10 @@ type CameraModule struct {
 
 func NewCameraDataBinding() CameraDataBinding {
 	return CameraDataBinding{
-		FOV:       60,
-		NearPlane: 0.01,
-		FarPlane:  500,
-		IsPrimary: false,
+		FOV:             60,
+		NearPlane:       0.01,
+		FarPlane:        500,
+		InitWithControl: false,
 	}
 }
 
@@ -82,7 +82,7 @@ func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host) {
 	cm.camera = cameras.NewStandardCamera(w, h, w, h, e.Transform.Position())
 	cm.updateId = host.Updater.AddUpdate(cm.update)
 	cm.entity.OnDestroy.Add(func() { host.Updater.RemoveUpdate(&cm.updateId) })
-	if c.IsPrimary {
+	if c.InitWithControl {
 		cm.SetAsActive()
 	}
 }
