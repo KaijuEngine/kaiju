@@ -40,6 +40,7 @@ package content_workspace
 import (
 	"fmt"
 	"kaiju/editor/editor_events"
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -98,6 +99,7 @@ func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEv
 			"clickTagHint":    w.clickTagHint,
 			"submitName":      w.submitName,
 			"clickReimport":   w.clickReimport,
+			"clickDelete":     w.clickDelete,
 			"entryMouseEnter": w.entryMouseEnter,
 			"entryMouseMove":  w.entryMouseMove,
 			"entryMouseLeave": w.entryMouseLeave,
@@ -399,6 +401,50 @@ func (w *Workspace) clickReimport(*document.Element) {
 	}
 	slog.Info("successfully re-imported the content")
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
+}
+
+func (w *Workspace) clickDelete(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickDelete").End()
+	w.UiMan.DisableUpdate()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       "Delete content",
+		Description: "Are you sure you wish to delete the selected content?",
+		ConfirmText: "Yes",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			w.UiMan.EnableUpdate()
+			w.completeDeleteOfSelectedContent()
+		},
+		OnCancel: w.UiMan.EnableUpdate,
+	})
+}
+
+func (w *Workspace) completeDeleteOfSelectedContent() {
+	id := w.selectedId()
+	if id == "" {
+		slog.Warn("clickDelete called with no selected content")
+		return
+	}
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+		return
+	}
+	if err := w.pfs.Remove(cc.Path); err != nil {
+		slog.Error("failed to delete config file", "path", cc.Path, "error", err)
+	}
+	contentPath := content_database.ToContentPath(cc.Path)
+	if err := w.pfs.Remove(contentPath); err != nil {
+		slog.Error("failed to delete content file", "path", contentPath, "error", err)
+	}
+	w.cache.Remove(id)
+	w.edEvts.OnContentRemoved.Execute([]string{id})
+	if w.selectedContent != nil {
+		w.Doc.RemoveElement(w.selectedContent)
+		w.selectedContent = nil
+	}
+	w.rightBody.UI.Hide()
+	w.tooltip.UI.Hide()
 }
 
 func (w *Workspace) entryMouseEnter(e *document.Element) {

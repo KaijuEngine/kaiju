@@ -79,6 +79,7 @@ func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorE
 	cui.showContentElm, _ = w.Doc.GetElementById("showContent")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
 	edEvts.OnContentAdded.Add(cui.addContent)
+	edEvts.OnContentRemoved.Add(cui.removeContent)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -148,6 +149,22 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
+}
+
+func (cui *WorkspaceContentUI) removeContent(ids []string) {
+	defer tracing.NewRegion("WorkspaceContentUI.removeContent").End()
+	w := cui.workspace.Value()
+	if w == nil {
+		slog.Warn("WorkspaceContentUI.removeContent called but workspace is nil")
+		return
+	}
+	for _, id := range ids {
+		if el, ok := w.Doc.GetElementById(id); ok {
+			w.Doc.RemoveElement(el)
+		} else {
+			slog.Error("failed to find element to remove", "id", id)
+		}
+	}
 }
 
 func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {
