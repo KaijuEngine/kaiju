@@ -44,19 +44,21 @@ import (
 )
 
 func init() {
-	register("ed_transform_wire", func() rendering.DrawInstance {
-		return &ShaderDataEdTransformWire{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
+	register("ed_frustum_wire", func() rendering.DrawInstance {
+		return &ShaderDataEdFrustumWire{
+			ShaderDataBase:    rendering.NewShaderDataBase(),
+			Color:             matrix.ColorWhite(),
+			FrustumProjection: matrix.Mat4Identity(),
 		}
 	})
 }
 
-type ShaderDataEdTransformWire struct {
+type ShaderDataEdFrustumWire struct {
 	rendering.ShaderDataBase
-	Color matrix.Color
+	Color             matrix.Color
+	FrustumProjection matrix.Mat4
 }
 
-func (t ShaderDataEdTransformWire) Size() int {
-	return int(unsafe.Sizeof(ShaderDataEdTransformWire{}) - rendering.ShaderBaseDataStart)
+func (t ShaderDataEdFrustumWire) Size() int {
+	return int(unsafe.Sizeof(ShaderDataEdFrustumWire{}) - rendering.ShaderBaseDataStart)
 }

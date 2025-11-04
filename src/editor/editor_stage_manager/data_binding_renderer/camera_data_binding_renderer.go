@@ -49,8 +49,6 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
-
-	"github.com/KaijuEngine/uuid"
 )
 
 func init() {
@@ -115,14 +113,15 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 		data.FieldValueByName("FarPlane").(float32),
 		w, h,
 	)
-	frustum := rendering.NewMeshFrustum(host.MeshCache(), uuid.NewString(), cam.InverseProjection())
-	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
+	frustum := rendering.NewMeshFrustumBox(host.MeshCache(), cam.InverseProjection())
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdFrustumWire)
 	if err != nil {
 		slog.Error("failed to load transform wire material", "error", err)
 		return
 	}
 	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
-	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = matrix.ColorWhite()
+	sd.(*shader_data_registry.ShaderDataEdFrustumWire).Color = matrix.ColorWhite()
+	sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
 	host.Drawings.AddDrawing(rendering.Drawing{
 		Renderer:   host.Window.Renderer,
 		Material:   material,

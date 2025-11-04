@@ -582,6 +582,25 @@ func meshCube(vertColor matrix.Color) []Vertex {
 	return verts
 }
 
+func NewMeshFrustumBox(cache *MeshCache, inverseProjection matrix.Mat4) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshFrustum").End()
+	const key = "frustum_box"
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	} else {
+		verts := meshCube(matrix.ColorWhite())
+		for i := 0; i < 8; i++ {
+			verts[i].Position.ScaleAssign(2.0)
+		}
+		indexes := []uint32{
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7,
+		}
+		return cache.Mesh(key, verts, indexes)
+	}
+}
+
 func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshFrustum").End()
 	if mesh, ok := cache.FindMesh(key); ok {
