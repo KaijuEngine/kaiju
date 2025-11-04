@@ -87,7 +87,9 @@ func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
 	case reflect.Uint64:
 		reflectTo[int64, uint64](v, f)
 	default:
-		f.Set(reflect.ValueOf(v))
+		if f.IsValid() {
+			f.Set(reflect.ValueOf(v))
+		}
 	}
 }
 
