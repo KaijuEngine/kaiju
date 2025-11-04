@@ -708,6 +708,13 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 						input.SelectAll()
 					}
 				}
+				// Normally the key down event will cause the group go go to the
+				// event request start state, however, if that's not bound, it
+				// wont and will cause type-through (hotkey triggers) in other
+				// parts of the code that rely on Group.HasRequests
+				if input.events[EventTypeKeyDown].IsEmpty() {
+					input.man.Value().Group.triggerRequestStartState()
+				}
 			} else {
 				switch keyId {
 				case hid.KeyboardKeyBackspace:

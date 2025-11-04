@@ -71,7 +71,15 @@ type Group struct {
 }
 
 func (group *Group) HasRequests() bool {
-	return group.hadRequests != requestStateNone || group.focus != nil
+	return group.hadRequests != requestStateNone
+}
+
+func (group *Group) triggerRequestStartState() {
+	if group.hadRequests != requestStateStarted {
+		group.lock.Lock()
+		group.hadRequests = requestStateStarted
+		group.lock.Unlock()
+	}
 }
 
 func (group *Group) requestEvent(ui *UI, eType EventType) {
@@ -81,9 +89,7 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 	}
 	if group.hadRequests != requestStateStarted {
 		if eType != EventTypeMiss {
-			group.lock.Lock()
-			group.hadRequests = requestStateStarted
-			group.lock.Unlock()
+			group.triggerRequestStartState()
 		}
 	}
 	if ui.events[eType].IsEmpty() {
