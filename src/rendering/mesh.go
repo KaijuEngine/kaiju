@@ -91,34 +91,7 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		pendingVerts:   verts,
 		pendingIndexes: indexes,
 	}
-	//m.generateMeshBVH(verts, indexes)
 	return m
-}
-
-func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
-	defer tracing.NewRegion("Mesh.generateMeshBVH").End()
-	idxLen := len(indexes)
-	if idxLen == 0 || idxLen%3 != 0 {
-		// We're doing some special stuff here, probably lines or grids
-		return
-	}
-	tris := make([]collision.HitObject, len(indexes)/3)
-	construct := func(from, to int) {
-		for i := from; i < to; i += 3 {
-			for i := 0; i < len(indexes); i += 3 {
-				points := [3]matrix.Vec3{
-					verts[indexes[i]].Position,
-					verts[indexes[i+1]].Position,
-					verts[indexes[i+2]].Position,
-				}
-				tris[i/3] = collision.DetailedTriangleFromPoints(points)
-			}
-		}
-	}
-	for i := range len(tris) {
-		construct(i*3, (i+3)*3)
-	}
-	m.bvh = collision.NewBVH(tris)
 }
 
 func (m *Mesh) SetKey(key string) {

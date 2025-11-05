@@ -75,6 +75,7 @@ type StageManager struct {
 	host                  *engine.Host
 	entities              []*StageEntity
 	selected              []*StageEntity
+	worldBVH              *collision.BVH
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -175,6 +176,11 @@ func (m *StageManager) Clear() {
 	for i := range m.entities {
 		m.entities[i].Destroy()
 	}
+	m.worldBVH = nil
+}
+
+func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
+	collision.AddSubBVH(&m.worldBVH, bvh, transform)
 }
 
 func (m *StageManager) toStage() stages.Stage {
@@ -381,7 +387,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
-	e.StageData.Bvh = km.GenerateBVH(host.Threads())
+	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
 	host.RunOnMainThread(func() {
 		for i := range texs {
 			texs[i].DelayedCreate(host.Window.Renderer)

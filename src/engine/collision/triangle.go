@@ -65,7 +65,7 @@ func (t DetailedTriangle) Bounds() AABB {
 	}
 }
 
-func (t DetailedTriangle) RayIntersect(ray Ray, length float32, transform *matrix.Transform) bool {
+func (t DetailedTriangle) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
 	p0, p1, p2 := t.Points[0], t.Points[1], t.Points[2]
 	if transform != nil {
 		mat := transform.Matrix()

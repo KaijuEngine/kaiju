@@ -378,3 +378,23 @@ func (box *AABB) InFrustum(frustum Frustum) bool {
 	//	return false;
 	return true
 }
+
+func (box AABB) SurfaceArea() matrix.Float {
+	size := box.Extent.Scale(2)
+	return size.X()*size.Y() + size.X()*size.Z() + size.Y()*size.Z()
+}
+
+func (box AABB) Corners() [8]matrix.Vec3 {
+	min := box.Min()
+	max := box.Max()
+	return [8]matrix.Vec3{
+		min,
+		{min.X(), min.Y(), max.Z()},
+		{min.X(), max.Y(), min.Z()},
+		{min.X(), max.Y(), max.Z()},
+		{max.X(), min.Y(), min.Z()},
+		{max.X(), min.Y(), max.Z()},
+		{max.X(), max.Y(), min.Z()},
+		max,
+	}
+}

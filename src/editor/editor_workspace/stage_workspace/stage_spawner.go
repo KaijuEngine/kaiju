@@ -197,7 +197,8 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
 	e.StageData.Description.Material = mat.Name
-	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
+	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
+	w.manager.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -241,7 +242,8 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
-	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads())
+	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
+	w.manager.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),

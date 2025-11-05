@@ -54,6 +54,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"sync"
 )
 
 type TransformTool struct {
@@ -69,6 +70,7 @@ type TransformTool struct {
 	unsnapped      []matrix.Vec3
 	transformDirty int
 	firstHitUpdate bool
+	bvhRefitMutex  sync.Mutex
 }
 
 func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings) {
@@ -232,6 +234,20 @@ func (t *TransformTool) addHistory() {
 		case ToolStateScale:
 			to[i] = e.Transform.Scale()
 		}
+	}
+	{
+		// TODO:  Use the following when the BVH.Refit function is fixed. Just
+		// so there aren't any issues right now, I'm going to use a refit on
+		// the first selected entity as it'll go to the root and refit all.
+		// goroutine - Update all the BVHs
+		go func() {
+			t.bvhRefitMutex.Lock()
+			defer t.bvhRefitMutex.Unlock()
+			//	for _, e := range t.stage.Manager().Selection() {
+			//		e.StageData.Bvh.Refit()
+			//	}
+			t.stage.Manager().Selection()[0].StageData.Bvh.Refit()
+		}()
 	}
 	t.history.Add(&toolHistory{
 		stage:    t.stage,

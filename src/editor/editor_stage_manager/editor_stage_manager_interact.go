@@ -125,10 +125,8 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 }
 
 func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, bool) {
-	for _, e := range m.entities {
-		if e.StageData.Bvh.RayIntersect(ray, 1000, &e.Transform) {
-			return e, true
-		}
+	if target, ok := m.worldBVH.RayIntersect(ray, 1000); ok {
+		return target.(*StageEntity), ok
 	}
 	return nil, false
 }
@@ -165,7 +163,7 @@ func (m *StageManager) SelectionCenter() matrix.Vec3 {
 	defer tracing.NewRegion("StageManager.SelectionCenter").End()
 	center := matrix.Vec3Zero()
 	for _, e := range m.selected {
-		b := e.StageData.Bvh.Bounds(&e.Transform)
+		b := e.StageData.Bvh.Bounds()
 		center.AddAssign(b.Center)
 	}
 	return center
@@ -187,7 +185,7 @@ func (m *StageManager) SelectionBounds() collision.AABB {
 	center := matrix.Vec3Zero()
 	for _, e := range m.selected {
 		p := e.Transform.Position()
-		b := e.StageData.Bvh.Bounds(&e.Transform)
+		b := e.StageData.Bvh.Bounds()
 		center.AddAssign(b.Center)
 		ex := matrix.Vec3Max(matrix.Vec3Zero(), b.Extent)
 		low = matrix.Vec3Min(low, p.Subtract(ex))

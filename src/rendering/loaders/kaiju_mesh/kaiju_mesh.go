@@ -99,7 +99,7 @@ func Deserialize(data []byte) (KaijuMesh, error) {
 	return km, err
 }
 
-func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
+func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *collision.BVH {
 	tris := make([]collision.HitObject, len(k.Indexes)/3)
 	group := sync.WaitGroup{}
 	construct := func(from, to int) {
@@ -120,5 +120,5 @@ func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
 		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
 	}
 	group.Wait()
-	return collision.NewBVH(tris)
+	return collision.NewBVH(tris, transform, data)
 }
