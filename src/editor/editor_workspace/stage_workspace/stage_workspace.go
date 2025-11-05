@@ -87,17 +87,8 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	w.pageData.SetupUIData(w.ed.Cache())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
-		"inputFilter":     w.contentUI.inputFilter,
-		"tagFilter":       w.contentUI.tagFilter,
-		"clickFilter":     w.contentUI.clickFilter,
-		"dblClickEntry":   w.contentUI.dblClickEntry,
-		"hideContent":     w.contentUI.hideContent,
-		"showContent":     w.contentUI.showContent,
-		"entryDragStart":  w.contentUI.entryDragStart,
-		"entryMouseEnter": w.contentUI.entryMouseEnter,
-		"entryMouseMove":  w.contentUI.entryMouseMove,
-		"entryMouseLeave": w.contentUI.entryMouseLeave,
 	}
+	funcs = klib.MapJoin(funcs, w.contentUI.setupFuncs())
 	funcs = klib.MapJoin(funcs, w.hierarchyUI.setupFuncs())
 	funcs = klib.MapJoin(funcs, w.detailsUI.setupFuncs())
 	w.CommonWorkspace.InitializeWithUI(host,

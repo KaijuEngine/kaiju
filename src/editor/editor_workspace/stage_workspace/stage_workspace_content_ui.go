@@ -69,6 +69,21 @@ type WorkspaceContentUI struct {
 	dragContentId  string
 }
 
+func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
+	return map[string]func(*document.Element){
+		"inputFilter":     cui.inputFilter,
+		"tagFilter":       cui.tagFilter,
+		"clickFilter":     cui.clickFilter,
+		"dblClickEntry":   cui.dblClickEntry,
+		"hideContent":     cui.hideContent,
+		"showContent":     cui.showContent,
+		"entryDragStart":  cui.entryDragStart,
+		"entryMouseEnter": cui.entryMouseEnter,
+		"entryMouseMove":  cui.entryMouseMove,
+		"entryMouseLeave": cui.entryMouseLeave,
+	}
+}
+
 func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorEvents) {
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
