@@ -401,3 +401,7 @@ func (t *Transform) ScaleWithoutChildren(scale Vec3) {
 		t.children[i].SetScale(arr[i].scale)
 	}
 }
+
+func (t *Transform) AddPosition(add Vec3) { t.SetPosition(t.position.Add(add)) }
+func (t *Transform) AddRotation(add Vec3) { t.SetRotation(t.rotation.Add(add)) }
+func (t *Transform) AddScale(add Vec3)    { t.SetScale(t.scale.Add(add)) }
