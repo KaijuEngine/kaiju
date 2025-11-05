@@ -115,8 +115,9 @@ func (dui *WorkspaceDetailsUI) setup(w *Workspace) {
 	dui.entityDataList, _ = w.Doc.GetElementById("entityDataList")
 	dui.entityDataListTemplate, _ = w.Doc.GetElementById("entityDataListTemplate")
 	dui.boundEntityDataTemplate, _ = w.Doc.GetElementById("boundEntityDataTemplate")
-	w.manager.OnEntitySelected.Add(dui.entitySelected)
-	w.manager.OnEntityDeselected.Add(dui.entityDeselected)
+	man := w.stageView.Manager()
+	man.OnEntitySelected.Add(dui.entitySelected)
+	man.OnEntityDeselected.Add(dui.entityDeselected)
 	w.ed.Project().OnEntityDataUpdated.Add(dui.reloadDataList)
 }
 
@@ -143,7 +144,7 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 }
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
-	if len(dui.workspace.Value().manager.Selection()) > 1 {
+	if len(dui.workspace.Value().stageView.Manager().Selection()) > 1 {
 		// TODO:  Support multiple objects being selected here
 		return
 	}
@@ -182,7 +183,7 @@ func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEnt
 }
 
 func (dui *WorkspaceDetailsUI) hideIfNothingSelected() {
-	if len(dui.workspace.Value().manager.Selection()) == 0 {
+	if len(dui.workspace.Value().stageView.Manager().Selection()) == 0 {
 		dui.detailsArea.Children[0].UI.Hide()
 	}
 }
@@ -204,7 +205,7 @@ func (dui *WorkspaceDetailsUI) showDetails(*document.Element) {
 func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
 	txt := e.UI.ToInput().Text()
 	w := dui.workspace.Value()
-	for _, e := range w.manager.Selection() {
+	for _, e := range w.stageView.Manager().Selection() {
 		e.SetName(txt)
 		w.hierarchyUI.updateEntityName(e.StageData.Description.Id, txt)
 	}
@@ -212,7 +213,7 @@ func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Position()
 		p.SetX(float32(v))
 		s.Transform.SetPosition(p)
@@ -221,7 +222,7 @@ func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setPosY(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Position()
 		p.SetY(float32(v))
 		s.Transform.SetPosition(p)
@@ -230,7 +231,7 @@ func (dui *WorkspaceDetailsUI) setPosY(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setPosZ(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Position()
 		p.SetZ(float32(v))
 		s.Transform.SetPosition(p)
@@ -239,7 +240,7 @@ func (dui *WorkspaceDetailsUI) setPosZ(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setRotX(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Rotation()
 		p.SetX(float32(v))
 		s.Transform.SetRotation(p)
@@ -248,7 +249,7 @@ func (dui *WorkspaceDetailsUI) setRotX(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setRotY(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Rotation()
 		p.SetY(float32(v))
 		s.Transform.SetRotation(p)
@@ -257,7 +258,7 @@ func (dui *WorkspaceDetailsUI) setRotY(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setRotZ(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Rotation()
 		p.SetZ(float32(v))
 		s.Transform.SetRotation(p)
@@ -266,7 +267,7 @@ func (dui *WorkspaceDetailsUI) setRotZ(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setScaleX(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Scale()
 		p.SetX(float32(v))
 		s.Transform.SetScale(p)
@@ -275,7 +276,7 @@ func (dui *WorkspaceDetailsUI) setScaleX(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setScaleY(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Scale()
 		p.SetY(float32(v))
 		s.Transform.SetScale(p)
@@ -284,7 +285,7 @@ func (dui *WorkspaceDetailsUI) setScaleY(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().manager.Selection() {
+	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
 		p := s.Transform.Scale()
 		p.SetZ(float32(v))
 		s.Transform.SetScale(p)
@@ -313,7 +314,7 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 		slog.Error("failed to locate the entity binding data", "key", key)
 		return
 	}
-	sel := w.manager.Selection()
+	sel := w.stageView.Manager().Selection()
 	// TODO:  Multi-select stuff
 	target := sel[0]
 	de := w.attachEntityData(target, g)
@@ -373,7 +374,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 		return
 	}
 	w := dui.workspace.Value()
-	sel := w.manager.Selection()
+	sel := w.stageView.Manager().Selection()
 	if len(sel) == 0 {
 		return
 	}

@@ -40,6 +40,7 @@ package editor
 import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
@@ -68,4 +69,8 @@ func (ed *Editor) Cache() *content_database.Cache {
 
 func (ed *Editor) Settings() *editor_settings.Settings {
 	return &ed.settings
+}
+
+func (ed *Editor) StageView() *editor_stage_view.StageView {
+	return &ed.stageView
 }

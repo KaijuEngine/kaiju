@@ -96,12 +96,12 @@ func (ed *Editor) BuildAndRun() {
 }
 
 func (ed *Editor) BuildAndRunCurrentStage() {
-	stageId := ed.workspaces.stage.Manager().StageId()
+	stageId := ed.stageView.Manager().StageId()
 	if stageId == "" {
 		slog.Error("current stage has not yet been created, please save it to test")
 		return
 	}
-	ed.workspaces.stage.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
+	ed.stageView.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	// goroutine
@@ -139,12 +139,12 @@ func (ed *Editor) CreateNewStage() {
 			CancelText:  "No",
 			OnConfirm: func() {
 				ed.FocusInterface()
-				ed.workspaces.stage.Manager().NewStage()
+				ed.stageView.Manager().NewStage()
 			},
 			OnCancel: func() { ed.FocusInterface() },
 		})
 	} else {
-		ed.workspaces.stage.Manager().NewStage()
+		ed.stageView.Manager().NewStage()
 	}
 }
 
@@ -152,7 +152,7 @@ func (ed *Editor) CreateNewStage() {
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
 	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
-	sm := ed.workspaces.stage.Manager()
+	sm := ed.stageView.Manager()
 	if sm.IsNew() {
 		ed.BlurInterface()
 		input_prompt.Show(ed.host, input_prompt.Config{
@@ -189,7 +189,7 @@ func (ed *Editor) CreateNewCamera() {
 }
 
 func (ed *Editor) saveCurrentStageWithoutNameInput() {
-	sm := ed.workspaces.stage.Manager()
+	sm := ed.stageView.Manager()
 	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
 		ed.history.SetSavePosition()
 	} else {

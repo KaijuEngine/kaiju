@@ -39,51 +39,33 @@ package stage_workspace
 
 import (
 	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
-	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
 	"kaiju/engine"
-	"kaiju/engine/assets"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
-	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"log/slog"
-	"weak"
 )
 
 const maxContentDropDistance = 10
 
 type Workspace struct {
 	common_workspace.CommonWorkspace
-	ed            StageWorkspaceEditorInterface
-	camera        editor_controls.EditorCamera
-	updateId      engine.UpdateId
-	gridTransform matrix.Transform
-	gridShader    *shader_data_registry.ShaderDataGrid
-	pageData      content_workspace.WorkspaceUIData
-	contentUI     WorkspaceContentUI
-	hierarchyUI   WorkspaceHierarchyUI
-	detailsUI     WorkspaceDetailsUI
-	manager       editor_stage_manager.StageManager
-	transformTool transform_tools.TransformTool
+	ed          StageWorkspaceEditorInterface
+	stageView   *editor_stage_view.StageView
+	pageData    content_workspace.WorkspaceUIData
+	contentUI   WorkspaceContentUI
+	hierarchyUI WorkspaceHierarchyUI
+	detailsUI   WorkspaceDetailsUI
+	updateId    engine.UpdateId
 }
-
-func (w *Workspace) WorkspaceHost() *engine.Host { return w.Host }
-
-func (w *Workspace) Manager() *editor_stage_manager.StageManager { return &w.manager }
-
-func (w *Workspace) Camera() *editor_controls.EditorCamera { return &w.camera }
 
 func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
-	w.manager.Initialize(host)
-	w.manager.NewStage()
+	w.stageView = ed.StageView()
+	w.stageView.Initialize(host, ed.History(), &ed.Settings().Snapping)
 	w.pageData.SetupUIData(w.ed.Cache())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
@@ -93,26 +75,16 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 	funcs = klib.MapJoin(funcs, w.detailsUI.setupFuncs())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs)
-	w.createViewportGrid()
-	w.setupCamera()
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
-	w.transformTool.Initialize(host, w, w.ed.History(), &w.ed.Settings().Snapping)
-	// Data binding visualizers
-	weakHost := weak.Make(host)
-	w.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
-		data_binding_renderer.Show(weakHost, e)
-	})
-	w.manager.OnEntityDeselected.Add(func(e *editor_stage_manager.StageEntity) {
-		data_binding_renderer.Hide(weakHost, e)
-	})
+
 }
 
 func (w *Workspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
-	w.gridShader.Activate()
+	w.stageView.Open()
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.contentUI.open()
 	w.hierarchyUI.open()
@@ -122,8 +94,8 @@ func (w *Workspace) Open() {
 
 func (w *Workspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
+	w.stageView.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
-	w.gridShader.Deactivate()
 	w.CommonClose()
 }
 
@@ -141,82 +113,18 @@ func (w *Workspace) update(deltaTime float64) {
 	w.contentUI.processHotkeys(w.Host)
 	w.hierarchyUI.processHotkeys(w.Host)
 	w.detailsUI.processHotkeys(w.Host)
-	if w.camera.Update(w.Host, deltaTime) {
-		w.updateGridPosition()
-	} else {
-		w.processViewportInteractions()
-	}
-}
-
-func (w *Workspace) updateGridPosition() {
-	camPos := w.Host.Camera.Position()
-	switch w.camera.Mode() {
-	case editor_controls.EditorCameraMode2d:
-		w.gridTransform.SetPosition(matrix.NewVec3(
-			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), 0))
-	case editor_controls.EditorCameraMode3d:
-		w.gridTransform.SetPosition(matrix.NewVec3(
-			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
-	}
-}
-
-func (w *Workspace) createViewportGrid() {
-	defer tracing.NewRegion("StageWorkspace.createViewportGrid").End()
-	const gridCount = 100
-	const halfGridCount = gridCount / 2
-	material, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionGrid)
-	if err != nil {
-		slog.Error("failed to load the grid material", "error", err)
-		return
-	}
-	points := make([]matrix.Vec3, 0, gridCount*4)
-	for i := -halfGridCount; i <= halfGridCount; i++ {
-		fi := float32(i)
-		points = append(points, matrix.Vec3{fi, 0, -halfGridCount})
-		points = append(points, matrix.Vec3{fi, 0, halfGridCount})
-		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
-		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
-	}
-	grid := rendering.NewMeshGrid(w.Host.MeshCache(), "viewport_grid",
-		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	w.gridTransform = matrix.NewTransform(w.Host.WorkGroup())
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
-	w.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
-	w.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
-	w.Host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   w.Host.Window.Renderer,
-		Material:   material,
-		Mesh:       grid,
-		ShaderData: w.gridShader,
-		Transform:  &w.gridTransform,
-	})
-}
-
-func (w *Workspace) setupCamera() {
-	defer tracing.NewRegion("StageWorkspace.setupCamera").End()
-	w.camera.OnModeChange.Add(func() {
-		switch w.camera.Mode() {
-		case editor_controls.EditorCameraMode3d:
-			// Identity matrix is fine
-			w.gridShader.Color.SetA(1)
-			w.gridTransform.SetRotation(matrix.Vec3Zero())
-		case editor_controls.EditorCameraMode2d:
-			w.gridShader.Color.SetA(0)
-			w.gridTransform.SetRotation(matrix.NewVec3(90, 0, 0))
-		}
-		w.updateGridPosition()
-	})
-	w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
+	w.stageView.Update(deltaTime)
 }
 
 func (w *Workspace) toggleDimension(e *document.Element) {
+	defer tracing.NewRegion("StageWorkspace.toggleDimension").End()
 	lbl := e.InnerLabel()
 	switch lbl.Text() {
 	case "3D":
 		lbl.SetText("2D")
-		w.camera.SetMode(editor_controls.EditorCameraMode2d, w.Host)
+		w.stageView.SetCameraMode(editor_controls.EditorCameraMode2d)
 	case "2D":
 		lbl.SetText("3D")
-		w.camera.SetMode(editor_controls.EditorCameraMode3d, w.Host)
+		w.stageView.SetCameraMode(editor_controls.EditorCameraMode3d)
 	}
 }

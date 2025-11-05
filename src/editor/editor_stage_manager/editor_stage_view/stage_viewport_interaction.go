@@ -35,45 +35,45 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package stage_workspace
+package editor_stage_view
 
 import (
 	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_workspace/stage_workspace/transform_tools"
+	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 )
 
-func (w *Workspace) processViewportInteractions() {
+func (v *StageView) processViewportInteractions() {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
-	m := &w.Host.Window.Mouse
-	kb := &w.Host.Window.Keyboard
-	if w.transformTool.Update() {
+	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
+	if v.transformTool.Update() {
 		return
 	}
 	if m.Pressed(hid.MouseButtonLeft) {
-		ray := w.camera.RayCast(m)
+		ray := v.camera.RayCast(m)
 		if kb.HasShift() {
-			w.manager.TryAppendSelect(ray)
+			v.manager.TryAppendSelect(ray)
 		} else if kb.HasCtrl() {
-			w.manager.TryToggleSelect(ray)
+			v.manager.TryToggleSelect(ray)
 		} else {
-			w.manager.TrySelect(ray)
+			v.manager.TrySelect(ray)
 		}
 	}
 	if kb.KeyDown(hid.KeyboardKeyF) {
-		if w.manager.HasSelection() {
-			w.camera.Focus(w.manager.SelectionBounds())
+		if v.manager.HasSelection() {
+			v.camera.Focus(v.manager.SelectionBounds())
 		}
 	} else if kb.KeyDown(hid.KeyboardKeyG) {
-		w.transformTool.Enable(transform_tools.ToolStateMove)
+		v.transformTool.Enable(transform_tools.ToolStateMove)
 	} else if kb.KeyDown(hid.KeyboardKeyR) {
-		w.transformTool.Enable(transform_tools.ToolStateRotate)
+		v.transformTool.Enable(transform_tools.ToolStateRotate)
 	} else if kb.KeyDown(hid.KeyboardKeyS) {
-		w.transformTool.Enable(transform_tools.ToolStateScale)
+		v.transformTool.Enable(transform_tools.ToolStateScale)
 	}
 }
 
-func (w *Workspace) isCamera3D() bool {
-	return w.camera.Mode() == editor_controls.EditorCameraMode3d
+func (v *StageView) isCamera3D() bool {
+	return v.camera.Mode() == editor_controls.EditorCameraMode3d
 }

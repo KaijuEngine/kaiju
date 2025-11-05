@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace"
@@ -75,6 +76,7 @@ type Editor struct {
 	logging          editor_logging.Logging
 	history          memento.History
 	events           editor_events.EditorEvents
+	stageView        editor_stage_view.StageView
 	window           struct {
 		activateId     events.Id
 		deactivateId   events.Id

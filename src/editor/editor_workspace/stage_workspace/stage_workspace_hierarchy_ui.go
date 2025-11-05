@@ -81,10 +81,11 @@ func (hui *WorkspaceHierarchyUI) setup(w *Workspace) {
 	hui.showHierarchyElm, _ = w.Doc.GetElementById("showHierarchy")
 	hui.hierarchyDragPreview, _ = w.Doc.GetElementById("hierarchyDragPreview")
 	hui.workspace = weak.Make(w)
-	w.manager.OnEntitySpawn.Add(hui.entityCreated)
-	w.manager.OnEntitySelected.Add(hui.entitySelected)
-	w.manager.OnEntityDeselected.Add(hui.entityDeselected)
-	w.manager.OnEntityChangedParent.Add(hui.entityChangedParent)
+	man := w.stageView.Manager()
+	man.OnEntitySpawn.Add(hui.entityCreated)
+	man.OnEntitySelected.Add(hui.entitySelected)
+	man.OnEntityDeselected.Add(hui.entityDeselected)
+	man.OnEntityChangedParent.Add(hui.entityChangedParent)
 }
 
 func (hui *WorkspaceHierarchyUI) open() {
@@ -135,12 +136,13 @@ func (hui *WorkspaceHierarchyUI) selectEntity(e *document.Element) {
 	id := e.Attribute("id")
 	w := hui.workspace.Value()
 	kb := &w.Host.Window.Keyboard
+	man := w.stageView.Manager()
 	if kb.HasCtrl() {
-		w.manager.SelectToggleEntityById(id)
+		man.SelectToggleEntityById(id)
 	} else if kb.HasShift() {
-		w.manager.SelectAppendEntityById(id)
+		man.SelectAppendEntityById(id)
 	} else {
-		w.manager.SelectEntityById(id)
+		man.SelectEntityById(id)
 	}
 }
 
@@ -177,15 +179,16 @@ func (hui *WorkspaceHierarchyUI) entityDrop(e *document.Element) {
 		return
 	}
 	w := hui.workspace.Value()
-	child, ok := w.manager.EntityById(dd.id)
+	man := w.stageView.Manager()
+	child, ok := man.EntityById(dd.id)
 	if !ok {
 		return
 	}
-	parent, ok := w.manager.EntityById(id)
+	parent, ok := man.EntityById(id)
 	if !ok {
 		return
 	}
-	w.manager.SetEntityParent(child, parent)
+	man.SetEntityParent(child, parent)
 	hui.clearElementDragEnterColor(e)
 }
 
@@ -277,7 +280,7 @@ func (hui *WorkspaceHierarchyUI) dragStopped() {
 
 func (hui *WorkspaceHierarchyUI) buildEntityClasses(e *document.Element, additionalClasses ...string) []string {
 	classes := []string{"hierarchyEntry"}
-	if hui.workspace.Value().manager.IsSelectedById(e.Attribute("id")) {
+	if hui.workspace.Value().stageView.Manager().IsSelectedById(e.Attribute("id")) {
 		classes = append(classes, "hierarchyEntrySelected")
 	}
 	classes = append(classes, additionalClasses...)

@@ -40,6 +40,7 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
@@ -55,4 +56,5 @@ type StageWorkspaceEditorInterface interface {
 	FocusInterface()
 	BlurInterface()
 	Settings() *editor_settings.Settings
+	StageView() *editor_stage_view.StageView
 }

@@ -60,12 +60,12 @@ import (
 func (w *Workspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	de := &entity_data_binding.EntityDataEntry{}
 	e.AddDataBinding(de.ReadEntityDataBindingType(g))
-	data_binding_renderer.Attached(de, weak.Make(w.Host), &w.manager, e)
+	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
 	return de
 }
 
 func (w *Workspace) CreateNewCamera() {
-	e := w.manager.AddEntity("Camera", w.camera.LookAtPoint())
+	e := w.stageView.Manager().AddEntity("Camera", w.stageView.LookAtPoint())
 	key := engine_data_bindings.CameraDataBindingKey
 	g, ok := w.ed.Project().EntityDataBinding(key)
 	if !ok {
@@ -78,18 +78,18 @@ func (w *Workspace) CreateNewCamera() {
 func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
 	var mp matrix.Vec2
-	if w.isCamera3D() {
+	if w.stageView.IsView3D() {
 		mp = m.Position()
 	} else {
 		mp = m.ScreenPosition()
 	}
 	ray := w.Host.Camera.RayCast(mp)
-	e, eHitOk := w.manager.TryHitEntity(ray)
+	e, eHitOk := w.stageView.Manager().TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
 	// to doing the ground plane/distance hit point
 	var hit matrix.Vec3
 	var ok bool
-	if w.isCamera3D() {
+	if w.stageView.IsView3D() {
 		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
 	} else {
 		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Forward())
@@ -154,12 +154,13 @@ func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, p
 }
 
 func (w *Workspace) loadStage(id string) {
-	if err := w.manager.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
+	man := w.stageView.Manager()
+	if err := man.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
 		slog.Error("failed to load the stage", "id", id, "error", err)
 	} else {
-		for _, e := range w.manager.List() {
+		for _, e := range man.List() {
 			for _, b := range e.DataBindings() {
-				data_binding_renderer.Attached(b, weak.Make(w.Host), &w.manager, e)
+				data_binding_renderer.Attached(b, weak.Make(w.Host), man, e)
 			}
 		}
 	}
@@ -185,9 +186,10 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 		return
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	e := w.manager.AddEntity(cc.Config.Name, point)
+	man := w.stageView.Manager()
+	e := man.AddEntity(cc.Config.Name, point)
 	var km kaiju_mesh.KaijuMesh
-	if w.isCamera3D() {
+	if w.stageView.IsView3D() {
 		e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
 		km.Verts, km.Indexes = rendering.MeshPlaneData()
 	} else {
@@ -198,7 +200,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
 	e.StageData.Description.Material = mat.Name
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
-	w.manager.AddBVH(e.StageData.Bvh, &e.Transform)
+	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
@@ -238,12 +240,13 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	tex, _ := w.Host.TextureCache().Texture(assets.TextureSquare,
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	e := w.manager.AddEntity(cc.Config.Name, point)
+	man := w.stageView.Manager()
+	e := man.AddEntity(cc.Config.Name, point)
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
-	w.manager.AddBVH(e.StageData.Bvh, &e.Transform)
+	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
