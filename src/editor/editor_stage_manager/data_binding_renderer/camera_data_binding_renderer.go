@@ -98,9 +98,9 @@ func (c *CameraDataBindingRenderer) Attached(host *engine.Host, manager *editor_
 		}
 		host.Drawings.AddDrawing(draw)
 	})
-	bvh := collision.NewBVH([]collision.HitObject{
-		collision.AABBFromTransform(&target.Transform),
-	}, &target.Transform, target)
+	box := collision.AABBFromTransform(&target.Transform)
+	box.Extent.ScaleAssign(0.5)
+	bvh := collision.NewBVH([]collision.HitObject{box}, &target.Transform, target)
 	manager.AddBVH(bvh, &target.Transform)
 	wManager := weak.Make(manager)
 	target.OnDestroy.Add(func() {
