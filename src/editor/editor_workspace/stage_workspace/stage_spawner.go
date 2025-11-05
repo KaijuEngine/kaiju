@@ -156,6 +156,12 @@ func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, p
 func (w *Workspace) loadStage(id string) {
 	if err := w.manager.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
 		slog.Error("failed to load the stage", "id", id, "error", err)
+	} else {
+		for _, e := range w.manager.List() {
+			for _, b := range e.DataBindings() {
+				data_binding_renderer.Attached(b, weak.Make(w.Host), e)
+			}
+		}
 	}
 }
 
