@@ -48,6 +48,9 @@ func (w *Workspace) processViewportInteractions() {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &w.Host.Window.Mouse
 	kb := &w.Host.Window.Keyboard
+	if w.transformTool.Update() {
+		return
+	}
 	if m.Pressed(hid.MouseButtonLeft) {
 		ray := w.camera.RayCast(m)
 		if kb.HasShift() {
@@ -57,9 +60,6 @@ func (w *Workspace) processViewportInteractions() {
 		} else {
 			w.manager.TrySelect(ray)
 		}
-	}
-	if w.transformTool.Update() {
-		return
 	}
 	if kb.KeyDown(hid.KeyboardKeyF) {
 		if w.manager.HasSelection() {
