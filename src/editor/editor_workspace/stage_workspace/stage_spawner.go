@@ -60,7 +60,7 @@ import (
 func (w *Workspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	de := &entity_data_binding.EntityDataEntry{}
 	e.AddDataBinding(de.ReadEntityDataBindingType(g))
-	data_binding_renderer.Attached(de, weak.Make(w.Host), e)
+	data_binding_renderer.Attached(de, weak.Make(w.Host), &w.manager, e)
 	return de
 }
 
@@ -159,7 +159,7 @@ func (w *Workspace) loadStage(id string) {
 	} else {
 		for _, e := range w.manager.List() {
 			for _, b := range e.DataBindings() {
-				data_binding_renderer.Attached(b, weak.Make(w.Host), e)
+				data_binding_renderer.Attached(b, weak.Make(w.Host), &w.manager, e)
 			}
 		}
 	}

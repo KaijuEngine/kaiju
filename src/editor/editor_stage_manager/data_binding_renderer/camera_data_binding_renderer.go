@@ -43,12 +43,14 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/engine_data_bindings"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
+	"weak"
 )
 
 func init() {
@@ -66,7 +68,7 @@ type cameraDataBindingDrawing struct {
 	sd  rendering.DrawInstance
 }
 
-func (c *CameraDataBindingRenderer) Attached(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+func (c *CameraDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionEdGizmo)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -96,7 +98,18 @@ func (c *CameraDataBindingRenderer) Attached(host *engine.Host, target *editor_s
 		}
 		host.Drawings.AddDrawing(draw)
 	})
-	target.OnDestroy.Add(func() { sd.Destroy() })
+	bvh := collision.NewBVH([]collision.HitObject{
+		collision.AABBFromTransform(&target.Transform),
+	}, &target.Transform, target)
+	manager.AddBVH(bvh, &target.Transform)
+	wManager := weak.Make(manager)
+	target.OnDestroy.Add(func() {
+		m := wManager.Value()
+		if m != nil {
+			m.RemoveBVH(bvh)
+		}
+		sd.Destroy()
+	})
 }
 
 func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {

@@ -183,6 +183,10 @@ func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
 	collision.AddSubBVH(&m.worldBVH, bvh, transform)
 }
 
+func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
+	collision.RemoveSubBVH(&m.worldBVH, bvh)
+}
+
 func (m *StageManager) toStage() stages.Stage {
 	s := stages.Stage{Id: m.stageId}
 	rootCount := 0
