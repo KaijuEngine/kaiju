@@ -133,6 +133,7 @@ func (b *MenuBar) clickContent(e *document.Element) {
 func (b *MenuBar) clickShading(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickShading").End()
 	b.selectTab(e)
+	b.handler.ShadingWorkspaceSelected()
 }
 
 func (b *MenuBar) clickAnimation(e *document.Element) {
@@ -143,11 +144,13 @@ func (b *MenuBar) clickAnimation(e *document.Element) {
 func (b *MenuBar) clickUI(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickUI").End()
 	b.selectTab(e)
+	b.handler.UIWorkspaceSelected()
 }
 
 func (b *MenuBar) clickSettings(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSettings").End()
 	b.selectTab(e)
+	b.handler.SettingsWorkspaceSelected()
 }
 
 func (b *MenuBar) clickNewStage(e *document.Element) {

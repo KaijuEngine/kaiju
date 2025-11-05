@@ -55,7 +55,7 @@ import (
 )
 
 type WorkspaceDetailsUI struct {
-	workspace               weak.Pointer[Workspace]
+	workspace               weak.Pointer[StageWorkspace]
 	detailsArea             *document.Element
 	hideDetailsElm          *document.Element
 	showDetailsElm          *document.Element
@@ -95,7 +95,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 	}
 }
 
-func (dui *WorkspaceDetailsUI) setup(w *Workspace) {
+func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setup").End()
 	dui.workspace = weak.Make(w)
 	dui.detailsArea, _ = w.Doc.GetElementById("detailsArea")

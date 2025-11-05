@@ -50,7 +50,7 @@ import (
 )
 
 type WorkspaceHierarchyUI struct {
-	workspace            weak.Pointer[Workspace]
+	workspace            weak.Pointer[StageWorkspace]
 	hierarchyArea        *document.Element
 	entityTemplate       *document.Element
 	entityList           *document.Element
@@ -72,7 +72,7 @@ func (hui *WorkspaceHierarchyUI) setupFuncs() map[string]func(*document.Element)
 	}
 }
 
-func (hui *WorkspaceHierarchyUI) setup(w *Workspace) {
+func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.setup").End()
 	hui.hierarchyArea, _ = w.Doc.GetElementById("hierarchyArea")
 	hui.entityList, _ = w.Doc.GetElementById("entityList")

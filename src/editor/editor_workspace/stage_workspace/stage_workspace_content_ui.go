@@ -55,7 +55,7 @@ import (
 )
 
 type WorkspaceContentUI struct {
-	workspace      weak.Pointer[Workspace]
+	workspace      weak.Pointer[StageWorkspace]
 	typeFilters    []string
 	tagFilters     []string
 	query          string
@@ -84,7 +84,7 @@ func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 	}
 }
 
-func (cui *WorkspaceContentUI) setup(w *Workspace, edEvts *editor_events.EditorEvents) {
+func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.EditorEvents) {
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
@@ -107,7 +107,7 @@ func (cui *WorkspaceContentUI) open() {
 	}
 }
 
-func (cui *WorkspaceContentUI) update(w *Workspace) bool {
+func (cui *WorkspaceContentUI) update(w *StageWorkspace) bool {
 	defer tracing.NewRegion("WorkspaceContentUI.update").End()
 	if cui.dragging != nil {
 		m := &w.Host.Window.Mouse
@@ -351,7 +351,7 @@ func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	cui.tooltip.UI.Hide()
 }
 
-func (cui *WorkspaceContentUI) dropContent(w *Workspace, m *hid.Mouse) {
+func (cui *WorkspaceContentUI) dropContent(w *StageWorkspace, m *hid.Mouse) {
 	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
 	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
 		cc, err := w.ed.Cache().Read(cui.dragContentId)

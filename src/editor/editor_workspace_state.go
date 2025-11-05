@@ -45,6 +45,9 @@ const (
 	WorkspaceStateNone = WorkspaceState(iota)
 	WorkspaceStateStage
 	WorkspaceStateContent
+	WorkspaceStateShading
+	WorkspaceStateUI
+	WorkspaceStateSettings
 )
 
 func (ed *Editor) setWorkspaceState(state WorkspaceState) {
@@ -61,6 +64,12 @@ func (ed *Editor) setWorkspaceState(state WorkspaceState) {
 		ed.currentWorkspace = &ed.workspaces.stage
 	case WorkspaceStateContent:
 		ed.currentWorkspace = &ed.workspaces.content
+	case WorkspaceStateShading:
+		ed.currentWorkspace = &ed.workspaces.shading
+	case WorkspaceStateUI:
+		ed.currentWorkspace = &ed.workspaces.ui
+	case WorkspaceStateSettings:
+		ed.currentWorkspace = &ed.workspaces.settings
 	}
 	ed.currentWorkspace.Open()
 }

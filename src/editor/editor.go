@@ -45,7 +45,10 @@ import (
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
+	"kaiju/editor/editor_workspace/settings_workspace"
+	"kaiju/editor/editor_workspace/shading_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace"
+	"kaiju/editor/editor_workspace/ui_workspace"
 	"kaiju/editor/global_interface/menu_bar"
 	"kaiju/editor/global_interface/status_bar"
 	"kaiju/editor/memento"
@@ -85,8 +88,11 @@ type Editor struct {
 }
 
 type workspaces struct {
-	stage   stage_workspace.Workspace
-	content content_workspace.Workspace
+	stage    stage_workspace.StageWorkspace
+	content  content_workspace.ContentWorkspace
+	shading  shading_workspace.ShadingWorkspace
+	ui       ui_workspace.UIWorkspace
+	settings settings_workspace.SettingsWorkspace
 }
 
 type globalInterface struct {
@@ -137,5 +143,8 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.stage.Initialize(ed.host, ed)
 	ed.workspaces.content.Initialize(ed.host, &ed.events,
 		ed.project.FileSystem(), ed.project.CacheDatabase())
+	ed.workspaces.shading.Initialize(ed.host)
+	ed.workspaces.ui.Initialize(ed.host)
+	ed.workspaces.settings.Initialize(ed.host)
 	ed.setWorkspaceState(WorkspaceStateStage)
 }

@@ -55,7 +55,7 @@ import (
 	"strings"
 )
 
-type Workspace struct {
+type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
 	pfs               *project_file_system.FileSystem
 	cache             *content_database.Cache
@@ -80,7 +80,7 @@ type Workspace struct {
 	}
 }
 
-func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *ContentWorkspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
 	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
 	w.pfs = pfs
 	w.cache = cdb
@@ -118,7 +118,7 @@ func (w *Workspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEv
 	w.AddContent(ids)
 }
 
-func (w *Workspace) Open() {
+func (w *ContentWorkspace) Open() {
 	defer tracing.NewRegion("ContentWorkspace.Open").End()
 	w.CommonOpen()
 	w.entryTemplate.UI.Hide()
@@ -133,12 +133,12 @@ func (w *Workspace) Open() {
 	w.Doc.Clean()
 }
 
-func (w *Workspace) Close() {
+func (w *ContentWorkspace) Close() {
 	defer tracing.NewRegion("ContentWorkspace.Close").End()
 	w.CommonClose()
 }
 
-func (w *Workspace) clickImport(*document.Element) {
+func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
 	file_browser.Show(w.Host, file_browser.Config{
@@ -171,7 +171,7 @@ func (w *Workspace) clickImport(*document.Element) {
 	})
 }
 
-func (w *Workspace) AddContent(ids []string) {
+func (w *ContentWorkspace) AddContent(ids []string) {
 	defer tracing.NewRegion("ContentWorkspace.addContent").End()
 	if len(ids) == 0 {
 		return
@@ -204,7 +204,7 @@ func (w *Workspace) AddContent(ids []string) {
 	w.edEvts.OnContentAdded.Execute(ids)
 }
 
-func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
 	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	if typeName == (content_database.Texture{}).TypeName() {
@@ -230,14 +230,14 @@ func (w *Workspace) loadEntryImage(e *document.Element, configPath, typeName str
 	}
 }
 
-func (w *Workspace) inputFilter(e *document.Element) {
+func (w *ContentWorkspace) inputFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.inputFilter").End()
 	w.query = strings.ToLower(e.UI.ToInput().Text())
 	// TODO:  Regex out the filters like tag:..., type:..., etc.
 	w.runFilter()
 }
 
-func (w *Workspace) tagFilter(e *document.Element) {
+func (w *ContentWorkspace) tagFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.tagFilter").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	tagElms := w.Doc.GetElementsByGroup("tag")[1:]
@@ -252,7 +252,7 @@ func (w *Workspace) tagFilter(e *document.Element) {
 	}
 }
 
-func (w *Workspace) clickFilter(e *document.Element) {
+func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
 	isSelected := slices.Contains(e.ClassList(), "filterSelected")
 	isSelected = !isSelected
@@ -278,7 +278,7 @@ func (w *Workspace) clickFilter(e *document.Element) {
 	w.runFilter()
 }
 
-func (w *Workspace) clickEntry(e *document.Element) {
+func (w *ContentWorkspace) clickEntry(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickEntry").End()
 	if w.selectedContent == e {
 		return
@@ -307,7 +307,7 @@ func (w *Workspace) clickEntry(e *document.Element) {
 	}
 }
 
-func (w *Workspace) clickDeleteTag(e *document.Element) {
+func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickDeleteTag").End()
 	id := w.selectedId()
 	cc, err := w.cache.Read(id)
@@ -324,7 +324,7 @@ func (w *Workspace) clickDeleteTag(e *document.Element) {
 	w.Doc.RemoveElement(e.Parent.Value())
 }
 
-func (w *Workspace) updateTagHint(e *document.Element) {
+func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.updateTagHint").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	for i := len(w.info.newTagHint.Children) - 1; i >= 1; i-- {
@@ -352,7 +352,7 @@ func (w *Workspace) updateTagHint(e *document.Element) {
 	w.info.newTagHint.UI.Show()
 }
 
-func (w *Workspace) submitNewTag(e *document.Element) {
+func (w *ContentWorkspace) submitNewTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.submitNewTag").End()
 	input := e.UI.ToInput()
 	txt := input.Text()
@@ -363,14 +363,14 @@ func (w *Workspace) submitNewTag(e *document.Element) {
 	input.SetTextWithoutEvent("")
 }
 
-func (w *Workspace) clickTagHint(e *document.Element) {
+func (w *ContentWorkspace) clickTagHint(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickTagHint").End()
 	w.addTagToSelected(e.Children[0].UI.ToLabel().Text())
 	w.info.newTagHint.UI.Hide()
 	w.info.newTagInput.UI.ToInput().SetTextWithoutEvent("")
 }
 
-func (w *Workspace) submitName(e *document.Element) {
+func (w *ContentWorkspace) submitName(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.submitName").End()
 	name := strings.TrimSpace(e.UI.ToInput().Text())
 	if name == "" {
@@ -392,7 +392,7 @@ func (w *Workspace) submitName(e *document.Element) {
 	w.cache.Index(cc.Path, w.pfs)
 }
 
-func (w *Workspace) clickReimport(*document.Element) {
+func (w *ContentWorkspace) clickReimport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickReimport").End()
 	res, err := content_database.Reimport(w.selectedId(), w.pfs, w.cache)
 	if err != nil {
@@ -403,7 +403,7 @@ func (w *Workspace) clickReimport(*document.Element) {
 	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
-func (w *Workspace) clickDelete(*document.Element) {
+func (w *ContentWorkspace) clickDelete(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickDelete").End()
 	w.UiMan.DisableUpdate()
 	confirm_prompt.Show(w.Host, confirm_prompt.Config{
@@ -419,7 +419,7 @@ func (w *Workspace) clickDelete(*document.Element) {
 	})
 }
 
-func (w *Workspace) completeDeleteOfSelectedContent() {
+func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 	id := w.selectedId()
 	if id == "" {
 		slog.Warn("clickDelete called with no selected content")
@@ -447,7 +447,7 @@ func (w *Workspace) completeDeleteOfSelectedContent() {
 	w.tooltip.UI.Hide()
 }
 
-func (w *Workspace) entryMouseEnter(e *document.Element) {
+func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
 	ui := w.tooltip.UI
 	id := e.Attribute("id")
@@ -466,7 +466,7 @@ func (w *Workspace) entryMouseEnter(e *document.Element) {
 	}
 }
 
-func (w *Workspace) entryMouseMove(e *document.Element) {
+func (w *ContentWorkspace) entryMouseMove(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
 	ui := w.tooltip.UI
 	if !ui.Entity().IsActive() {
@@ -481,12 +481,12 @@ func (w *Workspace) entryMouseMove(e *document.Element) {
 	})
 }
 
-func (w *Workspace) entryMouseLeave(e *document.Element) {
+func (w *ContentWorkspace) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
 	w.tooltip.UI.Hide()
 }
 
-func (w *Workspace) addTagToSelected(tag string) {
+func (w *ContentWorkspace) addTagToSelected(tag string) {
 	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
 	id := w.selectedId()
 	cc, err := w.cache.Read(id)
@@ -516,7 +516,7 @@ func (w *Workspace) addTagToSelected(tag string) {
 	elm.SetAttribute("data-tag", tag)
 }
 
-func (w *Workspace) selectedId() string {
+func (w *ContentWorkspace) selectedId() string {
 	defer tracing.NewRegion("ContentWorkspace.selectedId").End()
 	if w.selectedContent != nil {
 		return w.selectedContent.Attribute("id")
@@ -524,7 +524,7 @@ func (w *Workspace) selectedId() string {
 	return ""
 }
 
-func (w *Workspace) runFilter() {
+func (w *ContentWorkspace) runFilter() {
 	defer tracing.NewRegion("ContentWorkspace.runFilter").End()
 	entries := w.Doc.GetElementsByGroup("entry")
 	for i := range entries {
@@ -541,7 +541,7 @@ func (w *Workspace) runFilter() {
 	}
 }
 
-func (w *Workspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
+func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
 	defer tracing.NewRegion("ContentWorkspace.updateIndexForCachedContent").End()
 	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
 	if err := w.cache.Index(cc.Path, w.pfs); err != nil {

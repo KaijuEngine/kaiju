@@ -50,7 +50,7 @@ import (
 
 const maxContentDropDistance = 10
 
-type Workspace struct {
+type StageWorkspace struct {
 	common_workspace.CommonWorkspace
 	ed          StageWorkspaceEditorInterface
 	stageView   *editor_stage_view.StageView
@@ -61,7 +61,7 @@ type Workspace struct {
 	updateId    engine.UpdateId
 }
 
-func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
+func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
@@ -81,7 +81,7 @@ func (w *Workspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterfa
 
 }
 
-func (w *Workspace) Open() {
+func (w *StageWorkspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
 	w.stageView.Open()
@@ -92,14 +92,14 @@ func (w *Workspace) Open() {
 	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
-func (w *Workspace) Close() {
+func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
 	w.stageView.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
 	w.CommonClose()
 }
 
-func (w *Workspace) update(deltaTime float64) {
+func (w *StageWorkspace) update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return
@@ -116,7 +116,7 @@ func (w *Workspace) update(deltaTime float64) {
 	w.stageView.Update(deltaTime)
 }
 
-func (w *Workspace) toggleDimension(e *document.Element) {
+func (w *StageWorkspace) toggleDimension(e *document.Element) {
 	defer tracing.NewRegion("StageWorkspace.toggleDimension").End()
 	lbl := e.InnerLabel()
 	switch lbl.Text() {

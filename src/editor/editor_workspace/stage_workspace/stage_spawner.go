@@ -57,14 +57,14 @@ import (
 	"weak"
 )
 
-func (w *Workspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
+func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	de := &entity_data_binding.EntityDataEntry{}
 	e.AddDataBinding(de.ReadEntityDataBindingType(g))
 	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
 	return de
 }
 
-func (w *Workspace) CreateNewCamera() {
+func (w *StageWorkspace) CreateNewCamera() {
 	e := w.stageView.Manager().AddEntity("Camera", w.stageView.LookAtPoint())
 	key := engine_data_bindings.CameraDataBindingKey
 	g, ok := w.ed.Project().EntityDataBinding(key)
@@ -75,7 +75,7 @@ func (w *Workspace) CreateNewCamera() {
 	w.attachEntityData(e, g)
 }
 
-func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
+func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
 	var mp matrix.Vec2
 	if w.stageView.IsView3D() {
@@ -118,7 +118,7 @@ func (w *Workspace) spawnContentAtMouse(cc *content_database.CachedContent, m *h
 	}
 }
 
-func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, point matrix.Vec3) {
+func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedContent, point matrix.Vec3) {
 	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
 	if !ok {
 		slog.Error("failed to find the content category for type",
@@ -153,7 +153,7 @@ func (w *Workspace) spawnContentAtPosition(cc *content_database.CachedContent, p
 	}
 }
 
-func (w *Workspace) loadStage(id string) {
+func (w *StageWorkspace) loadStage(id string) {
 	man := w.stageView.Manager()
 	if err := man.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
 		slog.Error("failed to load the stage", "id", id, "error", err)
@@ -166,7 +166,7 @@ func (w *Workspace) loadStage(id string) {
 	}
 }
 
-func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
+func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
@@ -219,7 +219,7 @@ func (w *Workspace) spawnTexture(cc *content_database.CachedContent, point matri
 	})
 }
 
-func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
+func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnMesh").End()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
@@ -262,7 +262,7 @@ func (w *Workspace) spawnMesh(cc *content_database.CachedContent, point matrix.V
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 }
 
-func (w *Workspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
+func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)

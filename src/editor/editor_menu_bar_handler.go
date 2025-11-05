@@ -62,6 +62,27 @@ func (ed *Editor) ContentWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateContent)
 }
 
+// ShadingWorkspaceSelected will inform the editor that the developer has
+// changed to the shading workspace. This is an exposed function to meet the
+// interface needs of [menu_bar.MenuBarHandler].
+func (ed *Editor) ShadingWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateShading)
+}
+
+// UIWorkspaceSelected will inform the editor that the developer has changed to
+// the ui workspace. This is an exposed function to meet the interface needs of
+// [menu_bar.MenuBarHandler].
+func (ed *Editor) UIWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateUI)
+}
+
+// SettingsWorkspaceSelected will inform the editor that the developer has
+// changed to the settings workspace. This is an exposed function to meet the
+// interface needs of [menu_bar.MenuBarHandler].
+func (ed *Editor) SettingsWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateSettings)
+}
+
 func (ed *Editor) Build() {
 	if !ed.ensureMainStageExists() {
 		return

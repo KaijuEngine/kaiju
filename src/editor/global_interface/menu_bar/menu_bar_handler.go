@@ -45,6 +45,9 @@ type MenuBarHandler interface {
 	ProjectFileSystem() *project_file_system.FileSystem
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
+	ShadingWorkspaceSelected()
+	UIWorkspaceSelected()
+	SettingsWorkspaceSelected()
 	Build()
 	BuildAndRun()
 	BuildAndRunCurrentStage()
