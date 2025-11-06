@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* ui_workspace.go                                                            */
+/* ollama_reflect.go                                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,30 +35,67 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package ui_workspace
+package ollama
 
 import (
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
+	"fmt"
+	"kaiju/debug"
 	"kaiju/platform/profiler/tracing"
+	"reflect"
 )
 
-type UIWorkspace struct {
-	common_workspace.CommonWorkspace
+var tools = map[string]ToolFunc{}
+
+type ToolFunc struct {
+	tool Tool
+	fn   any
 }
 
-func (w *UIWorkspace) Initialize(host *engine.Host) {
-	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/ui_workspace.go.html", nil, map[string]func(*document.Element){})
-}
-
-func (w *UIWorkspace) Open() {
-	defer tracing.NewRegion("UIWorkspace.Open").End()
-	w.CommonOpen()
-}
-
-func (w *UIWorkspace) Close() {
-	defer tracing.NewRegion("UIWorkspace.Close").End()
-	w.CommonClose()
+func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string) error {
+	fnT := reflect.ValueOf(fn).Type()
+	defer tracing.NewRegion("ollama.reflectToOllama").End()
+	if fnT.Kind() != reflect.Func {
+		return fmt.Errorf("the type '%s' is not a func", name)
+	}
+	if _, ok := tools[name]; ok {
+		return fmt.Errorf("a function named '%s' has already been registered", name)
+	}
+	debug.Assert(len(argDescPair)/2 == fnT.NumIn(), "arg map name/description count missmatch")
+	tool := Tool{Type: "function"}
+	tool.Function.Name = name
+	tool.Function.Description = description
+	params := FunctionParameters{Type: "object", Properties: map[string]FunctionParameterProperty{}}
+	required := []string{}
+	for i := 0; i < fnT.NumIn(); i++ {
+		arg := fnT.In(i)
+		var jsonType string
+		switch arg.Kind() {
+		case reflect.String:
+			jsonType = "string"
+		case reflect.Bool:
+			jsonType = "boolean"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			jsonType = "integer"
+		case reflect.Float32, reflect.Float64:
+			jsonType = "number"
+		case reflect.Slice, reflect.Array:
+			jsonType = "array"
+		case reflect.Struct:
+			jsonType = "object"
+		default:
+			jsonType = "string"
+		}
+		name := argDescPair[i*2]
+		desc := argDescPair[i*2+1]
+		params.Properties[name] = FunctionParameterProperty{
+			Type:        jsonType,
+			Description: desc,
+		}
+		required = append(required, name)
+	}
+	params.Required = required
+	tool.Function.Parameters = params
+	tools[name] = ToolFunc{tool, fn}
+	return nil
 }
