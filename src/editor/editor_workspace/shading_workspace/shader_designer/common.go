@@ -8,18 +8,7 @@ import (
 type FileExtension = string
 
 const (
-	shaderSrcFolder  = "content/renderer/src"
-	shaderSpvFolder  = "content/renderer/spv"
-	shaderFolder     = "content/renderer/shaders"
-	renderPassFolder = "content/renderer/passes"
-	pipelineFolder   = "content/renderer/pipelines"
-	materialFolder   = "content/renderer/materials"
-
-	fileExtensionShader         FileExtension = ".shader"
-	fileExtensionRenderPass     FileExtension = ".renderpass"
-	fileExtensionShaderPipeline FileExtension = ".shaderpipeline"
-	fileExtensionMaterial       FileExtension = ".material"
-	fileExtensionPng            FileExtension = ".png"
+	shaderSrcFolder = "content/renderer/src"
 )
 
 func showTooltip(options map[string]string, e *document.Element) {

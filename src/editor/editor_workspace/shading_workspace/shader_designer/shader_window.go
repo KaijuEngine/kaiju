@@ -18,60 +18,45 @@ import (
 	"github.com/KaijuEngine/uuid"
 )
 
-func collectFileOptions() map[string][]ui.SelectOption {
-	vert := []string{}
-	frag := []string{}
-	geom := []string{}
-	tesc := []string{}
-	tese := []string{}
-	if dir, err := os.ReadDir(shaderSrcFolder); err == nil {
+func collectFileOptions(pfs *project_file_system.FileSystem) map[string][]ui.SelectOption {
+	vert := []ui.SelectOption{}
+	frag := []ui.SelectOption{}
+	geom := []ui.SelectOption{}
+	tesc := []ui.SelectOption{}
+	tese := []ui.SelectOption{}
+	if dir, err := pfs.ReadDir(project_file_system.SrcShaderFolder); err == nil {
 		for i := range dir {
 			f := dir[i]
 			if f.IsDir() {
 				continue
 			}
+			op := ui.SelectOption{f.Name(), filepath.ToSlash(filepath.Join(project_file_system.SrcShaderFolder, f.Name()))}
 			switch filepath.Ext(f.Name()) {
 			case ".vert":
-				vert = append(vert, filepath.ToSlash(filepath.Join(shaderSrcFolder, f.Name())))
+				vert = append(vert, op)
 			case ".frag":
-				frag = append(frag, filepath.ToSlash(filepath.Join(shaderSrcFolder, f.Name())))
+				frag = append(frag, op)
 			case ".geom":
-				geom = append(geom, filepath.ToSlash(filepath.Join(shaderSrcFolder, f.Name())))
+				geom = append(geom, op)
 			case ".tesc":
-				tesc = append(tesc, filepath.ToSlash(filepath.Join(shaderSrcFolder, f.Name())))
+				tesc = append(tesc, op)
 			case ".tese":
-				tese = append(tese, filepath.ToSlash(filepath.Join(shaderSrcFolder, f.Name())))
+				tese = append(tese, op)
 			}
 		}
 	}
-	out := map[string][]ui.SelectOption{
-		"Vertex":                 make([]ui.SelectOption, len(vert)),
-		"Fragment":               make([]ui.SelectOption, len(frag)),
-		"Geometry":               make([]ui.SelectOption, len(geom)),
-		"TessellationControl":    make([]ui.SelectOption, len(tesc)),
-		"TessellationEvaluation": make([]ui.SelectOption, len(tese)),
+	sort.Slice(vert, func(i, j int) bool { return vert[i].Name < vert[j].Name })
+	sort.Slice(frag, func(i, j int) bool { return frag[i].Name < frag[j].Name })
+	sort.Slice(geom, func(i, j int) bool { return geom[i].Name < geom[j].Name })
+	sort.Slice(tesc, func(i, j int) bool { return tesc[i].Name < tesc[j].Name })
+	sort.Slice(tese, func(i, j int) bool { return tese[i].Name < tese[j].Name })
+	return map[string][]ui.SelectOption{
+		"Vertex":                 vert,
+		"Fragment":               frag,
+		"Geometry":               geom,
+		"TessellationControl":    tesc,
+		"TessellationEvaluation": tese,
 	}
-	vert = sort.StringSlice(vert)
-	frag = sort.StringSlice(frag)
-	geom = sort.StringSlice(geom)
-	tesc = sort.StringSlice(tesc)
-	tese = sort.StringSlice(tese)
-	for i := range vert {
-		out["Vertex"][i] = ui.SelectOption{vert[i], vert[i]}
-	}
-	for i := range frag {
-		out["Fragment"][i] = ui.SelectOption{frag[i], frag[i]}
-	}
-	for i := range geom {
-		out["Geometry"][i] = ui.SelectOption{geom[i], geom[i]}
-	}
-	for i := range tesc {
-		out["TessellationControl"][i] = ui.SelectOption{tesc[i], tesc[i]}
-	}
-	for i := range tese {
-		out["TessellationEvaluation"][i] = ui.SelectOption{tese[i], tese[i]}
-	}
-	return out
 }
 
 func (win *ShaderDesigner) reloadShaderDoc() {
@@ -81,7 +66,7 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.shaderDoc.Destroy()
 	}
-	data := reflectUIStructure(&win.shader.ShaderData, "", collectFileOptions())
+	data := reflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.pfs))
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -118,13 +103,15 @@ func (win *ShaderDesigner) shaderValueChanged(e *document.Element) {
 	setObjectValueFromUI(&win.shader, e)
 }
 
-func compileShaderFile(s *rendering.ShaderData, src, flags string) error {
+func compileShaderFile(pfs *project_file_system.FileSystem, s *rendering.ShaderData, src, flags string) error {
 	if src == "" {
 		return nil
 	}
+	path := pfs.FullPath(src)
 	flags = strings.TrimSpace(flags)
-	out := s.CompileVariantName(src, flags)
-	args := []string{src, "-o", out}
+	// TODO:  This CompileVariantName is outdated and needs to be updated
+	out := s.CompileVariantName(path, flags)
+	args := []string{path, "-o", out}
 	if flags != "" {
 		args = append(args, flags)
 	}
@@ -143,7 +130,7 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 		win.shader.id = uuid.NewString()
 	}
 	var err error
-	if win.shader.ShaderData, err = importShaderLayout(win.shader.ShaderData); err != nil {
+	if win.shader.ShaderData, err = importShaderLayout(win.pfs, win.shader.ShaderData); err != nil {
 		slog.Error("failed to read the shader layout", "error", err)
 		return
 	}
@@ -152,23 +139,23 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	if s.EnableDebug {
 		addFlags = " -g"
 	}
-	if err := compileShaderFile(&s.ShaderData, s.Vertex, s.VertexFlags+addFlags); err != nil {
+	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Vertex, s.VertexFlags+addFlags); err != nil {
 		slog.Error("failed to compile the vertex shader", "error", err)
 		return
 	}
-	if err := compileShaderFile(&s.ShaderData, s.Fragment, s.FragmentFlags+addFlags); err != nil {
+	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Fragment, s.FragmentFlags+addFlags); err != nil {
 		slog.Error("failed to compile the fragment shader", "error", err)
 		return
 	}
-	if err := compileShaderFile(&s.ShaderData, s.Geometry, s.GeometryFlags+addFlags); err != nil {
+	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Geometry, s.GeometryFlags+addFlags); err != nil {
 		slog.Error("failed to compile the geometry shader", "error", err)
 		return
 	}
-	if err := compileShaderFile(&s.ShaderData, s.TessellationControl, s.TessellationControlFlags+addFlags); err != nil {
+	if err := compileShaderFile(win.pfs, &s.ShaderData, s.TessellationControl, s.TessellationControlFlags+addFlags); err != nil {
 		slog.Error("failed to compile the tessellation control shader", "error", err)
 		return
 	}
-	if err := compileShaderFile(&s.ShaderData, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
+	if err := compileShaderFile(win.pfs, &s.ShaderData, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
 		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
 		return
 	}
