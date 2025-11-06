@@ -85,7 +85,7 @@ func (s *Select) Init(text string, options []string) {
 		label := man.Add()
 		lbl := label.ToLabel()
 		lbl.Init(data.text)
-		lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
+		// lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
 		lbl.SetFontSize(14)
@@ -146,7 +146,8 @@ func (s *Select) AddOption(name string) {
 	label := man.Add()
 	lbl := label.ToLabel()
 	lbl.Init(name)
-	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
+	p.layout.ScaleHeight(lbl.Measure().Y())
+	// lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
 	lbl.SetFontSize(14)
@@ -260,10 +261,13 @@ func (s *Select) update(deltaTime float64) {
 		layout := &data.list.layout
 		pos := s.entity.Transform.WorldPosition()
 		selectSize := s.layout.PixelSize()
-		height := layout.PixelSize().Y()
-		y := pos.Y() - (height * 0.5) - (selectSize.Y() * 0.5)
+		ps := layout.PixelSize()
+		win := s.man.Value().Host.Window
+		x := pos.X() - ps.Width()*0.5 + matrix.Float(win.Width())*0.5
+		y := pos.Y() - (selectSize.Y() * 0.5) -
+			matrix.Float(win.Height())*0.5
 		// TODO:  If it's off the screen on the bottom, make it show up above select
-		layout.SetOffset(pos.X(), y)
+		layout.SetOffset(x, -y)
 		// TODO:  For some reason it's not cleaning on the first frame
 	}
 }
