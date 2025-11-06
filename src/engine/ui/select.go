@@ -50,10 +50,15 @@ type selectData struct {
 	label    *Label
 	list     *Panel
 	triangle *UI
-	options  []string
+	options  []SelectOption
 	selected int
 	isOpen   bool
 	text     string
+}
+
+type SelectOption struct {
+	Name  string
+	Value string
 }
 
 func (s *selectData) innerPanelData() *panelData { return &s.panelData }
@@ -67,7 +72,7 @@ func (s *Select) SelectData() *selectData {
 	return s.elmData.(*selectData)
 }
 
-func (s *Select) Init(text string, options []string) {
+func (s *Select) Init(text string, options []SelectOption) {
 	s.elmType = ElementTypeSelect
 	data := &selectData{}
 	data.text = text
@@ -131,9 +136,9 @@ func (s *Select) Init(text string, options []string) {
 	s.collapse()
 }
 
-func (s *Select) AddOption(name string) {
+func (s *Select) AddOption(name, value string) {
 	data := s.SelectData()
-	data.options = append(data.options, name)
+	data.options = append(data.options, SelectOption{name, value})
 	// Create panel to hold the label
 	man := s.man.Value()
 	panel := man.Add()
@@ -169,7 +174,7 @@ func (s *Select) AddOption(name string) {
 func (s *Select) PickOptionByLabel(label string) {
 	data := s.SelectData()
 	for i := range data.options {
-		if data.options[i] == label {
+		if data.options[i].Value == label || data.options[i].Name == label {
 			s.PickOption(i)
 			break
 		}
@@ -187,11 +192,19 @@ func (s *Select) PickOption(index int) {
 		if index >= 0 {
 			s.Base().ExecuteEvent(EventTypeChange)
 			s.Base().ExecuteEvent(EventTypeSubmit)
-			data.label.SetText(data.options[index])
+			data.label.SetText(data.options[index].Name)
 		} else {
 			data.label.SetText(data.text)
 		}
 	}
+}
+
+func (s *Select) Name() string {
+	data := s.SelectData()
+	if data.selected < 0 {
+		return ""
+	}
+	return data.options[data.selected].Name
 }
 
 func (s *Select) Value() string {
@@ -199,7 +212,7 @@ func (s *Select) Value() string {
 	if data.selected < 0 {
 		return ""
 	}
-	return data.options[data.selected]
+	return data.options[data.selected].Value
 }
 
 func (s *Select) SetColor(newColor matrix.Color) {

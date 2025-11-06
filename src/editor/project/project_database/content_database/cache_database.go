@@ -109,6 +109,17 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 	}
 }
 
+func (c *Cache) ListByType(typeName string) []CachedContent {
+	defer tracing.NewRegion("Cache.ListByType").End()
+	out := []CachedContent{}
+	for i := range c.cache {
+		if c.cache[i].Config.Type == typeName {
+			out = append(out, c.cache[i])
+		}
+	}
+	return out
+}
+
 // ReadLinked will return all of the linked content for the given id. This will
 // also return the content for the id itself.
 func (c *Cache) ReadLinked(id string) ([]CachedContent, error) {

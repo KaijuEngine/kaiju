@@ -316,7 +316,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			panel.SetOverflow(ui.OverflowVisible)
 		} else if e.IsSelect() {
 			sel := panel.Base().ToSelect()
-			sel.Init("", []string{})
+			sel.Init("", []ui.SelectOption{})
 			selectStartValue := ""
 			if a := e.Attribute("value"); a != "" {
 				selectStartValue = a
@@ -329,11 +329,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						childText = child.Children[0].Data
 					}
 					val := child.Attribute("value")
-					if val != "" {
-						sel.AddOption(val)
-					} else {
-						sel.AddOption(childText)
-					}
+					sel.AddOption(childText, val)
 					if val == selectStartValue {
 						sel.PickOption(i)
 					} else if val == "" && childText == selectStartValue {
