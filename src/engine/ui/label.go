@@ -210,7 +210,7 @@ func (label *Label) renderText() {
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
 		xOffset := float32(0)
 		if label.LabelData().justify == rendering.FontJustifyCenter {
-			xOffset = -pl.margin.Left()
+			xOffset = -pl.padding.Left() - pl.border.Left()
 		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshes(
