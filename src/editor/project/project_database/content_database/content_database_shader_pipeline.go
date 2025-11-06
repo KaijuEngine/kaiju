@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* project_file_system_folders.go                                             */
+/* content_database_shader_pipeline.go                                        */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,57 +35,38 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package project_file_system
+package content_database
 
-const (
-	DatabaseFolder      = "database"
-	ContentFolder       = "database/content"
-	ContentConfigFolder = "database/config"
-	SrcFolder           = "database/src"
-	StockFolder         = "database/stock"
-	ProjectConfigFile   = "database/project.json"
+import (
+	"kaiju/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
-const (
-	SrcFontFolder    = SrcFolder + "/font"
-	SrcCharsetFolder = SrcFolder + "/font/charset"
-	SrcPluginFolder  = SrcFolder + "/plugin"
-	SrcRenderFolder  = SrcFolder + "/render"
-	SrcShaderFolder  = SrcFolder + "/render/shader"
-)
+func init() { addCategory(ShaderPipeline{}) }
 
-const (
-	ContentAudioFolder          = "audio"
-	ContentMusicFolder          = "audio/music"
-	ContentSoundFolder          = "audio/sound"
-	ContentFontFolder           = "font"
-	ContentMeshFolder           = "mesh"
-	ContentRenderFolder         = "render"
-	ContentMaterialFolder       = "render/material"
-	ContentRenderPassFolder     = "render/renderpass"
-	ContentShaderFolder         = "render/shader"
-	ContentShaderPipelineFolder = "render/pipeline"
-	ContentSpvFolder            = "render/spv"
-	ContentStageFolder          = "stage"
-	ContentTextureFolder        = "texture"
-	ContentUiFolder             = "ui"
-	ContentHtmlFolder           = "ui/html"
-	ContentCssFolder            = "ui/css"
-)
+// ShaderPipeline is a [ContentCategory] represented by a file with a ".ShaderPipeline"
+// extension. A ShaderPipeline is a conglomeration of a specific render pass, a
+// specific ShaderPipeline pipeline, and a set of specific ShaderPipelines.
+type ShaderPipeline struct{}
+type ShaderPipelineConfig struct{}
 
-const (
-	KaijuSrcFolder            = "kaiju"
-	ProjectCodeFolder         = "src"
-	ProjectFileTemplates      = KaijuSrcFolder + "/file_templates"
-	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
-	ProjectBuildFolder        = "build"
-	ProjectVSCodeFolder       = ".vscode"
-	ProjectLaunchJsonFile     = ".vscode/launch.json"
-	ProjectCodeMain           = ProjectCodeFolder + "/main.go"
-	ProjectCodeGame           = ProjectCodeFolder + "/game.go"
-	ProjectModFile            = ProjectCodeFolder + "/go.mod"
-	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
-	ProjectWorkFile           = "go.work"
-	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
-	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
-)
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
+
+func (ShaderPipeline) Path() string       { return project_file_system.ContentShaderPipelineFolder }
+func (ShaderPipeline) TypeName() string   { return "ShaderPipeline" }
+func (ShaderPipeline) ExtNames() []string { return []string{".shaderpipeline"} }
+
+func (ShaderPipeline) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("ShaderPipeline.Import").End()
+	return pathToTextData(src)
+}
+
+func (c ShaderPipeline) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("ShaderPipeline.Reimport").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}
+
+func (ShaderPipeline) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}

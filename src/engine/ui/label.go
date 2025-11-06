@@ -210,7 +210,7 @@ func (label *Label) renderText() {
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
 		xOffset := float32(0)
 		if label.LabelData().justify == rendering.FontJustifyCenter {
-			xOffset = -pl.padding.Left() - pl.border.Left() - pl.margin.Left()
+			xOffset = -pl.padding.Left() - pl.border.Left()
 		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshes(
@@ -218,7 +218,6 @@ func (label *Label) renderText() {
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight)
-		transparentDrawings := make([]rendering.Drawing, 0, len(ld.runeDrawings))
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
@@ -228,7 +227,6 @@ func (label *Label) renderText() {
 				transparent := ld.runeDrawings[i]
 				transparent.Material = host.FontCache().TransparentMaterial(
 					ld.runeDrawings[i].Material)
-				transparentDrawings = append(transparentDrawings, transparent)
 			}
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {

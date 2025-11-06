@@ -1,0 +1,181 @@
+{{define "bitmask"}}
+<div class="inputItemFlags">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputFlags lightDarkBG">
+		{{range .List}}
+			<div class="checkboxListEntry">
+				<input name="{{.Value}}" data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas .Value)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheckLabel">{{$.PascalToTitle .Value}}</span>
+			</div>
+		{{end}}
+	</div>
+</div>
+{{end}}
+
+{{define "bool"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="inputCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "enum"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
+	{{range .List}}
+		<option value="{{.Value}}">{{$.PascalToTitle .Name}}</option>
+	{{end}}
+	</select>
+</div>
+{{end}}
+
+{{define "any"}}
+<div class="inputItem">
+	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "section"}}
+	{{range $_, $f := .Fields}}
+		{{if eq $f.Type "struct"}}
+			<h2>{{.Name}}</h2>
+			{{range $i, $s := $f.Sections}}
+				{{template "section" $s}}
+			{{end}}
+		{{else if eq $f.Type "slice"}}
+			<h3>{{.Name}}</h3>
+			{{range $i, $s := $f.Sections}}
+				<div class="inputItem">
+					<span class="inputLabel">Array Index: [{{$i}}]</span>
+					<div class="input"><img data-path="{{$f.FullPath}}" data-index="{{$i}}" class="deleteButton" src="minus.png"  onclick="removeFromSlice" /></div>
+				</div>
+				{{template "section" $s}}
+			{{end}}
+			<div class="inputItem">
+				<img data-path="{{$f.FullPath}}" class="addButton" src="plus.png"  onclick="addToSlice" />
+			</div>
+		{{else if eq $f.Type "bool"}}
+			{{template "bool" $f}}
+		{{else if eq $f.Type "enum"}}
+			{{template "enum" $f}}
+		{{else if eq $f.Type "bitmask"}}
+			{{template "bitmask" $f}}
+		{{else}}
+			{{template "any" $f}}
+		{{end}}
+	{{end}}
+{{end}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			h2 {
+				display: block;
+				margin-top: 1em;
+				margin-bottom: 0.2em;
+			}
+			h3 {
+				display: block;
+				margin-top: 1em;
+				margin-bottom: 0.2em;
+				font-weight: bold;
+			}
+			.topFields {
+				width: 100%;
+				height: calc(80% - 20px);
+				overflow-y: scroll;
+			}
+			.bottomTooltip {
+				width: 100%;
+				height: calc(20% - 31px);
+				margin-top: 10px;
+				overflow-y: scroll;
+			}
+			.inputItem {
+				width: 100%;
+				height: 18px;
+				margin-top: 5px;
+			}
+			.inputItemFlags {
+				width: 100%;
+				height: 70px;
+				margin-top: 5px;
+			}
+			.addButton {
+				width: 18px;
+				height: 18px;
+				background-color: #0A0;
+			}
+			.addButton:hover {
+				background-color: #0F0;
+			}
+			.deleteButton {
+				width: 18px;
+				height: 18px;
+				background-color: #A00;
+			}
+			.deleteButton:hover {
+				background-color: #F00;
+			}
+			.inputButtonWide {
+				width: 100%;
+				font-size: 16px;
+				margin-top: 10px;
+				font-weight: bold;
+			}
+			.inputLabel {
+				width: 30%;
+				height: 100%;
+			}
+			.input {
+				width: 69%;
+				height: 100%;
+			}
+			.inputFlags {
+				width: 69%;
+				height: 100%;
+				overflow-y: auto;
+			}
+			.inputCheck {
+				width: 20px;
+				height: 20px;
+			}
+			.inputCheckLabel {
+				margin-left: 5px;
+			}
+			h3 {
+				margin-top: 15px;
+			}
+			.checkboxListEntry {
+				width: 100%;
+			}
+            .rightPanel {
+				position: absolute;
+				top: 3em;
+				height: calc(100% - 5em);
+				width: 25em;
+				background-color: #282828;
+				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.rightPanel { right: 0; }
+			.lightDarkBG {
+				background-color: #313232;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="rightPanel">
+			<div class="topFields">
+				<h1>{{.Name}}</h1>
+				{{template "section" .}}
+				<button class="inputButtonWide" onclick="saveData">Save</button>
+			</div>
+			<div id="ToolTip" class="bottomTooltip">tooltip</div>
+		</div>
+	</body>
+</html>
