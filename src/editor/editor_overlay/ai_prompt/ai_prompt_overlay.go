@@ -50,6 +50,8 @@ func Show(host *engine.Host, onClose func()) (*AIPrompt, error) {
 			o.Close()
 		}
 	})
+	p, _ := o.doc.GetElementById("aiPrompt")
+	p.UI.ToInput().Focus()
 	return o, err
 }
 
