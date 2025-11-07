@@ -57,16 +57,11 @@ import (
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/ollama"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"time"
 )
-
-//go:embed docs.md
-var docs string
 
 // Editor is the entry point structure for the entire editor. It acts as the
 // delegate to the various systems and holds the primary members that make up
@@ -108,15 +103,6 @@ type workspaces struct {
 type globalInterface struct {
 	menuBar   menu_bar.MenuBar
 	statusBar status_bar.StatusBar
-}
-
-func init() {
-	ollama.ReflectFuncToOllama(func() string { return docs },
-		"docs", "Get the documentation text for the engine to know how to use it.")
-	ollama.ReflectFuncToOllama(func() string {
-		klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/issues")
-		return "issue tracker opened for developer"
-	}, "issue", "Open the web browser to show the GitHub issues")
 }
 
 // FocusInterface is responsible for enabling the input on the various
