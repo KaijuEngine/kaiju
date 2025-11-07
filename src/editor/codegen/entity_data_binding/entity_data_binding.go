@@ -74,13 +74,41 @@ type EntityDataField struct {
 func (f *EntityDataField) IsNumber() bool   { return isNumber(f.Type) }
 func (f *EntityDataField) IsInput() bool    { return isInput(f.Type) }
 func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
+
 func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
 
+// SetFieldByName sets the struct field identified by `name` to `value`.
+// It reflects into the bound data instance (de.BoundData), finds the
+// exported field, and uses engine.ReflectEntityDataBindingValueFromJson
+// to convert the JSON‑compatible value to the field's concrete type.
+// The underlying bound struct is mutated. Panics if the field does not
+// exist or cannot be set.
 func (de *EntityDataEntry) SetFieldByName(name string, value any) {
 	f := reflect.ValueOf(de.BoundData).Elem().FieldByName(name)
 	engine.ReflectEntityDataBindingValueFromJson(value, f)
 }
 
+// ReadEntityDataBindingType populates the EntityDataEntry with information
+// from the provided GeneratedType. It sets the entry's name, generated
+// type reference, and creates a slice of EntityDataField values for each
+// exported struct field. Tag values are parsed (e.g., "default", "clamp")
+// and applied to the corresponding field. The underlying bound data
+// instance is created and stored in de.BoundData, and each field's value
+// is written back to the new instance. The method returns the updated
+// *EntityDataEntry.
+//
+// Parameters:
+//
+//	g - a codegen.GeneratedType describing the struct to bind.
+//
+// Side effects:
+//   - de.Name, de.Gen, de.Fields, and de.BoundData are modified.
+//   - The newly created struct instance is populated with default or
+//     clamped values based on struct tags.
+//
+// Returns:
+//
+//	The same *EntityDataEntry pointer for chaining.
 func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *EntityDataEntry {
 	v := g.New().Value
 	de.Name = g.Name
@@ -111,6 +139,12 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *E
 	return de
 }
 
+// FieldNumberAsString returns the numeric value of the field at the given
+// index as a string. If the field is not a numeric type, "0" is returned.
+// The function reflects into the bound data struct, extracts the value,
+// and formats it according to its concrete type (int, uint, float, etc.).
+// For floating‑point numbers the string is trimmed of trailing zeros.
+// No side effects; the bound data is only read.
 func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 	f := g.Fields[fieldIdx]
 	if !f.IsNumber() {
@@ -146,21 +180,47 @@ func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 	return "0"
 }
 
+// FieldString returns the string representation of the field at the given
+// index. It reflects into the bound data struct, retrieves the field value,
+// and calls its String method (or the underlying reflect.String conversion).
+// Parameters:
+//
+//	fieldIdx - zero‑based index of the field within the EntityDataEntry.
+//
+// Returns:
+//
+//	The field's value as a string. If the field's type does not implement
+//	String, the zero‑value string is returned.
+//
+// Side effects:
+//
+//	The function only reads data; it does not modify the bound struct.
 func (g *EntityDataEntry) FieldString(fieldIdx int) string {
 	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.String()
 }
 
+// FieldBool returns the boolean value of the field at the given index.
+// It reflects into the bound data struct, retrieves the field, and
+// returns its bool representation. No side‑effects; the bound data is
+// only read.
 func (g *EntityDataEntry) FieldBool(fieldIdx int) bool {
 	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.Bool()
 }
 
+// FieldValue returns the underlying value of the field at the given index.
+// It reflects into the bound data struct and returns the field as an
+// interface{}. No modifications are made to the struct.
 func (g *EntityDataEntry) FieldValue(fieldIdx int) any {
 	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
 	return v.Interface()
 }
 
+// FieldValueByName returns the value of the struct field identified by
+// name. It reflects into the bound data instance, looks up the field by
+// its name, and returns the field's value as an interface{}. The bound
+// data is read‑only; no modifications are performed.
 func (g *EntityDataEntry) FieldValueByName(name string) any {
 	v := reflect.ValueOf(g.BoundData).Elem().FieldByName(name)
 	return v.Interface()
