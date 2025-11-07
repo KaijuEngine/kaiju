@@ -1,6 +1,8 @@
 # Kaiju Engine
 Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
 
+🤖 _Note, I heard putting clankers into your apps was all the rage, so I added a local, private clanker to the engine, see the video below_ 🤖
+
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
 - [Mailing list](https://www.freelists.org/list/kaijuengine) <- Recommended for detailed updates
@@ -28,6 +30,8 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 ## Editor previews
 
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
+
+[clanker.mp4](https://github.com/user-attachments/assets/6be56b37-589b-4197-86e7-18b1153f7e07)
 
 [working-code-binding.mp4](https://github.com/user-attachments/assets/b7edcbfb-0c78-482f-8eb1-f40910fbaabf)
 
