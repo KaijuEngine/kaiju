@@ -44,10 +44,14 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
-var tools = map[string]ToolFunc{}
+var (
+	tools  = map[string]ToolFunc{}
+	enumRe = regexp.MustCompile(`\s+\[('.*?'){1,}\]`)
+)
 
 type ToolFunc struct {
 	tool   Tool
@@ -102,11 +106,21 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 		default:
 			jsonType = "string"
 		}
-		name := argDescPair[i*2]
-		desc := argDescPair[i*2+1]
+		name := strings.TrimSpace(argDescPair[i*2])
+		desc := strings.TrimSpace(argDescPair[i*2+1])
+		enum := []string{}
+		enumMatch := enumRe.FindAllStringSubmatch(desc, 1)
+		if len(enumMatch) > 0 && len(enumMatch[0]) > 1 {
+			enum = strings.Split(enumMatch[0][1], ",")
+			for i := range enum {
+				enum[i] = strings.Trim(strings.TrimSpace(enum[i]), "'")
+			}
+			desc = strings.ReplaceAll(desc, enumMatch[0][0], "")
+		}
 		params.Properties[name] = FunctionParameterProperty{
 			Type:        jsonType,
 			Description: desc,
+			Enum:        enum,
 		}
 		tf.argIdx[i] = name
 		required = append(required, name)
