@@ -43,9 +43,9 @@ import (
 )
 
 func OpenWebsite(url string) {
-	cmd := "open"
 	if runtime.GOOS == "windows" {
-		cmd = "explorer"
+		exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Run()
+	} else {
+		exec.Command("open", url).Run()
 	}
-	exec.Command(cmd, url).Run()
 }
