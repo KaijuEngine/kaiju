@@ -40,8 +40,11 @@ package ollama
 import (
 	"fmt"
 	"kaiju/debug"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"reflect"
+	"strings"
 )
 
 var tools = map[string]ToolFunc{}
@@ -54,15 +57,24 @@ type ToolFunc struct {
 
 func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string) error {
 	defer tracing.NewRegion("ollama.reflectToOllama").End()
+	var err error
+	defer func() {
+		if err != nil {
+			slog.Error("there was an error registering your function", "name", name, "error", err)
+		}
+	}()
 	fnT := reflect.ValueOf(fn).Type()
 	if fnT.Kind() != reflect.Func {
-		return fmt.Errorf("the type '%s' is not a func", name)
+		err = fmt.Errorf("the type '%s' is not a func", name)
+		return err
 	}
 	if fnT.NumOut() == 0 || fnT.Out(0).Kind() != reflect.String {
-		return fmt.Errorf("the function expects to have a string return")
+		err = fmt.Errorf("the function expects to have a string return")
+		return err
 	}
 	if _, ok := tools[name]; ok {
-		return fmt.Errorf("a function named '%s' has already been registered", name)
+		err = fmt.Errorf("a function named '%s' has already been registered", name)
+		return err
 	}
 	debug.Assert(len(argDescPair)/2 == fnT.NumIn(), "arg map name/description count missmatch")
 	tf := ToolFunc{Tool{Type: "function"}, fn, make(map[int]string)}
@@ -122,7 +134,14 @@ func callToolFunc(call ToolCall) (string, error) {
 	}
 	for i := range fnType.NumIn() {
 		paramType := fnType.In(i)
-		v := call.Function.Arguments[tool.argIdx[i]]
+		v, ok := call.Function.Arguments[tool.argIdx[i]]
+		if !ok {
+			for j := range tool.argIdx {
+				delete(call.Function.Arguments, tool.argIdx[j])
+			}
+			return "", fmt.Errorf("invalid parameter name supplied: '%s'",
+				strings.Join(klib.MapKeys(call.Function.Arguments), "', '"))
+		}
 		val := reflect.ValueOf(v)
 		if val.Type().AssignableTo(paramType) {
 			args[i] = val

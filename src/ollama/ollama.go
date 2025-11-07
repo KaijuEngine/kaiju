@@ -41,8 +41,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os/exec"
@@ -98,6 +98,7 @@ type APIResponse struct {
 	PromptEvalDuration int64     `json:"prompt_eval_duration"`
 	EvalCount          int64     `json:"eval_count"`
 	EvalDuration       int64     `json:"eval_duration"`
+	Error              string    `json:"error"`
 }
 
 type Message struct {
@@ -157,23 +158,30 @@ func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 		res, err = callInternal(hostAddr, req)
 		if err == nil {
 			for len(res.Message.ToolCalls) > 0 {
+				toolRetries := max(1, req.RetryCount)
 				req.Messages = append(req.Messages, res.Message)
 				for i := range res.Message.ToolCalls {
-					str, err := callToolFunc(res.Message.ToolCalls[i])
-					if err != nil {
-						str = err.Error()
+					str, tmpErr := callToolFunc(res.Message.ToolCalls[i])
+					if tmpErr != nil {
+						str = tmpErr.Error()
 					}
 					req.Messages = append(req.Messages, Message{
 						Role:    "tool",
 						Content: str,
 					})
 				}
-				res, err = callInternal(hostAddr, req)
+				for toolRetries >= 0 {
+					res, err = callInternal(hostAddr, req)
+					toolRetries--
+					if err == nil {
+						toolRetries = -1
+					}
+				}
 				if err != nil {
-					return res, err
+					err = errors.New("internal tool call errror within ollama")
 				}
 			}
-			return res, nil
+			return res, err
 		}
 		retries--
 	}
@@ -288,13 +296,12 @@ func callInternal(hostAddr string, request APIRequest) (APIResponse, error) {
 		return APIResponse{}, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return APIResponse{}, err
 	}
-	var result APIResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		return APIResponse{}, err
+	if result.Error != "" {
+		return result, errors.New(result.Error)
 	}
 	return result, nil
 }

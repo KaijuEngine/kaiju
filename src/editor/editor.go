@@ -38,9 +38,11 @@
 package editor
 
 import (
+	_ "embed"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
+	"kaiju/editor/editor_overlay/ai_prompt"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace"
@@ -55,10 +57,16 @@ import (
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
+	"kaiju/klib"
+	"kaiju/ollama"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"time"
 )
+
+//go:embed docs.md
+var docs string
 
 // Editor is the entry point structure for the entire editor. It acts as the
 // delegate to the various systems and holds the primary members that make up
@@ -85,6 +93,8 @@ type Editor struct {
 		deactivateId   events.Id
 		lastActiveTime time.Time
 	}
+	updateId engine.UpdateId
+	blurred  bool
 }
 
 type workspaces struct {
@@ -100,6 +110,15 @@ type globalInterface struct {
 	statusBar status_bar.StatusBar
 }
 
+func init() {
+	ollama.ReflectFuncToOllama(func() string { return docs },
+		"docs", "Get the documentation text for the engine to know how to use it.")
+	ollama.ReflectFuncToOllama(func() string {
+		klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/issues")
+		return "issue tracker opened for developer"
+	}, "issue", "Open the web browser to show the GitHub issues")
+}
+
 // FocusInterface is responsible for enabling the input on the various
 // interfaces that are currently presented to the developer. This primarily
 // includes the menu bar, status bar, and whichever workspace is active.
@@ -110,6 +129,7 @@ func (ed *Editor) FocusInterface() {
 	if ed.currentWorkspace != nil {
 		ed.currentWorkspace.Focus()
 	}
+	ed.blurred = false
 }
 
 // FocusInterface is responsible for disabling the input on the various
@@ -122,6 +142,7 @@ func (ed *Editor) BlurInterface() {
 	if ed.currentWorkspace != nil {
 		ed.currentWorkspace.Blur()
 	}
+	ed.blurred = true
 }
 
 func (ed *Editor) earlyLoadUI() {
@@ -147,4 +168,18 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host)
 	ed.workspaces.settings.Initialize(ed.host)
 	ed.setWorkspaceState(WorkspaceStateStage)
+	ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+}
+
+func (ed *Editor) update(deltaTime float64) {
+	if ed.blurred {
+		return
+	}
+	if ed.host.Window.Keyboard.KeyDown(hid.KeyboardKeyF1) {
+		ed.blurred = true
+		ed.BlurInterface()
+		ai_prompt.Show(ed.host, func() {
+			ed.FocusInterface()
+		})
+	}
 }

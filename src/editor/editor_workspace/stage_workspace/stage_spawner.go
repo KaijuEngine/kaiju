@@ -39,6 +39,7 @@ package stage_workspace
 
 import (
 	"encoding/json"
+	"fmt"
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
@@ -47,7 +48,9 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/engine_data_bindings"
+	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/ollama"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -55,7 +58,45 @@ import (
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"weak"
+
+	_ "embed"
 )
+
+func (w *StageWorkspace) initAIActions() {
+	a := OllamaStageWorkspaceAction{weak.Make(w)}
+	ollama.ReflectFuncToOllama(a.createCamera,
+		"CreateCamera", "Creates a new camera at the given position with the given look at point.",
+		"posX", "The X position to spawn",
+		"posY", "The Y position to spawn",
+		"posZ", "The Z position to spawn",
+		"lookAtX", "The X position to look at",
+		"lookAtY", "The Y position to look at",
+		"lookAtZ", "The Z position to look at",
+	)
+}
+
+type OllamaStageWorkspaceAction struct {
+	w weak.Pointer[StageWorkspace]
+}
+
+func (a OllamaStageWorkspaceAction) createCamera(posX, posY, posZ, lookAtX, lookAtY, lookAtZ float32) string {
+	w := a.w.Value()
+	cam, ok := w.CreateNewCamera()
+	if !ok {
+		return "failed to create the camera for some reason"
+	}
+	cam.Transform.SetPosition(matrix.NewVec3(posX, posY, posZ))
+	cam.Transform.LookAt(matrix.NewVec3(lookAtX, lookAtY, lookAtZ))
+	return fmt.Sprintf("camera created at <%s, %s, %s> looking at <%s, %s, %s>",
+		klib.FormatFloatToNDecimals(posX, 3),
+		klib.FormatFloatToNDecimals(posY, 3),
+		klib.FormatFloatToNDecimals(posZ, 3),
+		klib.FormatFloatToNDecimals(lookAtX, 3),
+		klib.FormatFloatToNDecimals(lookAtY, 3),
+		klib.FormatFloatToNDecimals(lookAtZ, 3))
+}
+
+// Create 5 cameras in a circle, in the air, around center stage. These cameras should be looking at center stage.
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	de := &entity_data_binding.EntityDataEntry{}
@@ -64,15 +105,16 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 	return de
 }
 
-func (w *StageWorkspace) CreateNewCamera() {
+func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	e := w.stageView.Manager().AddEntity("Camera", w.stageView.LookAtPoint())
 	key := engine_data_bindings.CameraDataBindingKey
 	g, ok := w.ed.Project().EntityDataBinding(key)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", key)
-		return
+		return nil, false
 	}
 	w.attachEntityData(e, g)
+	return e, true
 }
 
 func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {

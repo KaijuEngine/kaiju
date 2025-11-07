@@ -1,0 +1,101 @@
+package ai_prompt
+
+import (
+	"kaiju/engine"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/ollama"
+	"kaiju/platform/hid"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
+	"strings"
+)
+
+const systemPrompt = `You are a helpful assistant for the Kaiju game engine with access to tools. When calling a tool, respond ONLY with valid JSON in this exact format:
+{
+  "tool_name": "your_tool_name",
+  "arguments": {
+    "param1": value1,
+    "param2": value2
+  }
+}
+Do not add extra text, explanations, or incomplete objects. Ensure all keys have values and the JSON is closed properly.
+Game developers will be asking you to do tasks and you will try your best to do so.
+If asked by the developer about more information about this game engine (Kaiju engine) or how to use it, consult the "docs" tool.
+Before assuming you know the answer, first call the appropriate tool to ensure you have all the information.
+You are to always call a tool, never respond without calling a tool first. If you can't run a tool first, reply that you don't have a tool for that action.`
+
+type AIPrompt struct {
+	doc     *document.Document
+	uiMan   ui.Manager
+	keyKb   hid.KeyCallbackId
+	onClose func()
+}
+
+func Show(host *engine.Host, onClose func()) (*AIPrompt, error) {
+	defer tracing.NewRegion("ai_prompt.Show").End()
+	o := &AIPrompt{onClose: onClose}
+	o.uiMan.Init(host)
+	var err error
+	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/ai_prompt.go.html",
+		nil, map[string]func(*document.Element){
+			"submitPrompt": o.submitPrompt,
+		})
+	if err != nil {
+		return o, err
+	}
+	o.keyKb = host.Window.Keyboard.AddKeyCallback(func(keyId int, keyState hid.KeyState) {
+		if keyId == hid.KeyboardKeyEscape {
+			o.Close()
+		}
+	})
+	return o, err
+}
+
+func (o *AIPrompt) Close() {
+	defer tracing.NewRegion("ConfirmPrompt.Close").End()
+	o.uiMan.Host.Window.CursorStandard()
+	o.doc.Destroy()
+	o.uiMan.Host.Window.Keyboard.RemoveKeyCallback(o.keyKb)
+	if o.onClose == nil {
+		slog.Warn("onClose was not set on the AIPrompt")
+		return
+	}
+	o.onClose()
+}
+
+func (o *AIPrompt) submitPrompt(e *document.Element) {
+	defer tracing.NewRegion("ConfirmPrompt.confirm").End()
+	p := strings.TrimSpace(e.UI.ToInput().Text())
+	o.Close()
+	if p == "" {
+		return
+	}
+	go func() {
+		res, err := ollama.Chat("http://127.0.0.1:11434", ollama.APIRequest{
+			Model:  "gpt-oss:latest",
+			System: systemPrompt,
+			Messages: []ollama.Message{
+				{
+					Role:    "system",
+					Content: systemPrompt,
+				},
+				{
+					Role:    "user",
+					Content: p,
+				},
+			},
+			Think: true,
+			Options: ollama.APIRequestOptions{
+				NumCtx:      65536,
+				Temperature: 1.0,
+			},
+		})
+		if err != nil {
+			slog.Error("ai prompt failed", "prompt", p, "error", err)
+			return
+		}
+		slog.Info(res.Message.Content)
+	}()
+}

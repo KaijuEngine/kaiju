@@ -185,7 +185,12 @@ func (m *StageManager) SelectionBounds() collision.AABB {
 	center := matrix.Vec3Zero()
 	for _, e := range m.selected {
 		p := e.Transform.Position()
-		b := e.StageData.Bvh.Bounds()
+		var b collision.AABB
+		if e.StageData.Bvh != nil {
+			b = e.StageData.Bvh.Bounds()
+		} else {
+			b = collision.AABBFromTransform(&e.Transform)
+		}
 		center.AddAssign(b.Center)
 		ex := matrix.Vec3Max(matrix.Vec3Zero(), b.Extent)
 		low = matrix.Vec3Min(low, p.Subtract(ex))

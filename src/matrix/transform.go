@@ -359,7 +359,7 @@ func (t *Transform) ContainsPoint(point Vec3) bool {
 
 func (t *Transform) LookAt(point Vec3) {
 	eye := t.WorldPosition()
-	rot := Mat4LookAt(eye, point, Vec3Up())
+	rot := Mat4LookAt(point, eye, Vec3Up())
 	q := QuaternionFromMat4(rot)
 	r := q.ToEuler()
 	t.SetWorldRotation(r)
