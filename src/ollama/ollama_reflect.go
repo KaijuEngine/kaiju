@@ -47,23 +47,27 @@ import (
 var tools = map[string]ToolFunc{}
 
 type ToolFunc struct {
-	tool Tool
-	fn   any
+	tool   Tool
+	fn     any
+	argIdx map[int]string
 }
 
 func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string) error {
-	fnT := reflect.ValueOf(fn).Type()
 	defer tracing.NewRegion("ollama.reflectToOllama").End()
+	fnT := reflect.ValueOf(fn).Type()
 	if fnT.Kind() != reflect.Func {
 		return fmt.Errorf("the type '%s' is not a func", name)
+	}
+	if fnT.NumOut() == 0 || fnT.Out(0).Kind() != reflect.String {
+		return fmt.Errorf("the function expects to have a string return")
 	}
 	if _, ok := tools[name]; ok {
 		return fmt.Errorf("a function named '%s' has already been registered", name)
 	}
 	debug.Assert(len(argDescPair)/2 == fnT.NumIn(), "arg map name/description count missmatch")
-	tool := Tool{Type: "function"}
-	tool.Function.Name = name
-	tool.Function.Description = description
+	tf := ToolFunc{Tool{Type: "function"}, fn, make(map[int]string)}
+	tf.tool.Function.Name = name
+	tf.tool.Function.Description = description
 	params := FunctionParameters{Type: "object", Properties: map[string]FunctionParameterProperty{}}
 	required := []string{}
 	for i := 0; i < fnT.NumIn(); i++ {
@@ -92,10 +96,74 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 			Type:        jsonType,
 			Description: desc,
 		}
+		tf.argIdx[i] = name
 		required = append(required, name)
 	}
 	params.Required = required
-	tool.Function.Parameters = params
-	tools[name] = ToolFunc{tool, fn}
+	tf.tool.Function.Parameters = params
+	tools[name] = tf
 	return nil
+}
+
+func callToolFunc(call ToolCall) (string, error) {
+	tool, ok := tools[call.Function.Name]
+	if !ok {
+		return "", fmt.Errorf("no tool named '%s' found", call.Function.Name)
+	}
+	fnVal := reflect.ValueOf(tool.fn)
+	fnType := fnVal.Type()
+	if fnType.Kind() != reflect.Func {
+		return "", fmt.Errorf("stored value for '%s' is not a function", call.Function.Name)
+	}
+	args := make([]reflect.Value, fnType.NumIn())
+	if fnType.NumIn() != len(call.Function.Arguments) {
+		return "", fmt.Errorf("not enough arguments, expected %d, got %d",
+			fnType.NumIn(), len(call.Function.Arguments))
+	}
+	for i := range fnType.NumIn() {
+		paramType := fnType.In(i)
+		v := call.Function.Arguments[tool.argIdx[i]]
+		val := reflect.ValueOf(v)
+		if val.Type().AssignableTo(paramType) {
+			args[i] = val
+			continue
+		}
+		// Handle JSON number (float64) conversion to target numeric type
+		if val.Kind() == reflect.Float64 {
+			switch paramType.Kind() {
+			case reflect.Int:
+				args[i] = reflect.ValueOf(int(val.Float()))
+			case reflect.Int8:
+				args[i] = reflect.ValueOf(int8(val.Float()))
+			case reflect.Int16:
+				args[i] = reflect.ValueOf(int16(val.Float()))
+			case reflect.Int32:
+				args[i] = reflect.ValueOf(int32(val.Float()))
+			case reflect.Int64:
+				args[i] = reflect.ValueOf(int64(val.Float()))
+			case reflect.Uint:
+				args[i] = reflect.ValueOf(uint(val.Float()))
+			case reflect.Uint8:
+				args[i] = reflect.ValueOf(uint8(val.Float()))
+			case reflect.Uint16:
+				args[i] = reflect.ValueOf(uint16(val.Float()))
+			case reflect.Uint32:
+				args[i] = reflect.ValueOf(uint32(val.Float()))
+			case reflect.Uint64:
+				args[i] = reflect.ValueOf(uint64(val.Float()))
+			case reflect.Float32:
+				args[i] = reflect.ValueOf(float32(val.Float()))
+			case reflect.Float64:
+				args[i] = val
+			default:
+				// Unsupported conversion
+				return "", fmt.Errorf("cannot convert float64 to %s for parameter %d of function '%s'", paramType.Kind(), i, call.Function.Name)
+			}
+			continue
+		}
+		// If we reach here, no suitable conversion found
+		return "", fmt.Errorf("could not find suitable argument for parameter %d of function '%s'", i, call.Function.Name)
+	}
+	out := fnVal.Call(args)
+	return out[0].String(), nil
 }

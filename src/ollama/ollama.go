@@ -146,13 +146,33 @@ type ToolCallFunction struct {
 	Arguments map[string]any `json:"arguments"`
 }
 
-func Invoke(hostAddr string, req APIRequest) (APIResponse, error) {
+func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 	var res APIResponse
 	var err error
 	retries := max(1, req.RetryCount)
+	for _, v := range tools {
+		req.Tools = append(req.Tools, v.tool)
+	}
 	for retries > 0 {
 		res, err = callInternal(hostAddr, req)
 		if err == nil {
+			for len(res.Message.ToolCalls) > 0 {
+				req.Messages = append(req.Messages, res.Message)
+				for i := range res.Message.ToolCalls {
+					str, err := callToolFunc(res.Message.ToolCalls[i])
+					if err != nil {
+						str = err.Error()
+					}
+					req.Messages = append(req.Messages, Message{
+						Role:    "tool",
+						Content: str,
+					})
+				}
+				res, err = callInternal(hostAddr, req)
+				if err != nil {
+					return res, err
+				}
+			}
 			return res, nil
 		}
 		retries--
@@ -203,9 +223,9 @@ func Stream(hostAddr string, request APIRequest, reader func(think, msg string) 
 	return err
 }
 
-func Stdin(ollamaHost string, request APIRequest, reader func(think, msg string) error) error {
-	cmd := exec.Command("ollama", "run", request.Model, request.Prompt)
-	cmd.Stdin = bytes.NewBufferString(request.Prompt)
+func Stdin(hostAddr string, req APIRequest, reader func(think, msg string) error) error {
+	cmd := exec.Command("ollama", "run", req.Model, req.Prompt)
+	cmd.Stdin = bytes.NewBufferString(req.Prompt)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("error getting stdout pipe: %v", err)
@@ -238,16 +258,16 @@ func Stdin(ollamaHost string, request APIRequest, reader func(think, msg string)
 	return nil
 }
 
-func UnloadModel(ollamaHost, modelName string) error {
+func UnloadModel(hostAddr, modelName string) error {
 	request := APIRequest{
 		Model:     modelName,
 		KeepAlive: 0,
 	}
-	_, err := callInternal(ollamaHost, request)
+	_, err := callInternal(hostAddr, request)
 	return err
 }
 
-func callInternal(ollamaHost string, request APIRequest) (APIResponse, error) {
+func callInternal(hostAddr string, request APIRequest) (APIResponse, error) {
 	requestData, err := json.Marshal(request)
 	if err != nil {
 		return APIResponse{}, err
@@ -256,7 +276,7 @@ func callInternal(ollamaHost string, request APIRequest) (APIResponse, error) {
 	if len(request.Messages) > 0 {
 		endpoint = "chat"
 	}
-	req, err := http.NewRequest("POST", ollamaHost+"/api/"+endpoint, bytes.NewBuffer(requestData))
+	req, err := http.NewRequest("POST", hostAddr+"/api/"+endpoint, bytes.NewBuffer(requestData))
 	if err != nil {
 		return APIResponse{}, err
 	}
@@ -277,10 +297,4 @@ func callInternal(ollamaHost string, request APIRequest) (APIResponse, error) {
 		return APIResponse{}, err
 	}
 	return result, nil
-}
-
-func ApproximateTokenCount(prompt string) int {
-	return len([]rune(prompt))/4 + 1
-	//fields := strings.Fields(prompt)
-	//return len([]rune(strings.Join(fields, "")))/4 + 1
 }
