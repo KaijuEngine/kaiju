@@ -63,8 +63,14 @@ func (h *toolHistory) Redo() {
 			e.Transform.SetScale(h.to[i])
 		}
 	}
-	// TODO:  Re-implement once the global stage BVH has been setup
-	// h.stage.BVHEntityUpdates(h.stage.Manager().Selection()...)
+	// TODO:  Use the following when the BVH.Refit function is fixed. Just
+	// so there aren't any issues right now, I'm going to use a refit on
+	// the first selected entity as it'll go to the root and refit all.
+	// goroutine - Update all the BVHs
+	//	for _, e := range t.stage.Manager().Selection() {
+	//		e.StageData.Bvh.Refit()
+	//	}
+	h.entities[0].StageData.Bvh.Refit()
 }
 
 func (h *toolHistory) Undo() {
@@ -79,8 +85,14 @@ func (h *toolHistory) Undo() {
 			e.Transform.SetScale(h.from[i])
 		}
 	}
-	// TODO:  Re-implement once the global stage BVH has been setup
-	// h.stage.BVHEntityUpdates(h.stage.Manager().Selection()...)
+	// TODO:  Use the following when the BVH.Refit function is fixed. Just
+	// so there aren't any issues right now, I'm going to use a refit on
+	// the first selected entity as it'll go to the root and refit all.
+	// goroutine - Update all the BVHs
+	//	for _, e := range t.stage.Manager().Selection() {
+	//		e.StageData.Bvh.Refit()
+	//	}
+	h.entities[0].StageData.Bvh.Refit()
 }
 
 func (h *toolHistory) Delete() {}
