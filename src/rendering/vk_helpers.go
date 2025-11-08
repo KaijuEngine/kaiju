@@ -37,16 +37,19 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
-func (vr *Vulkan) formatCanTile(format vk.Format, tiling vk.ImageTiling) bool {
+func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.ImageTiling) bool {
 	var formatProps vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
-	if tiling == vk.ImageTilingOptimal {
-		return (uint32(formatProps.OptimalTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) != 0
+	if tiling == vulkan_const.ImageTilingOptimal {
+		return (uint32(formatProps.OptimalTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
 
-	} else if tiling == vk.ImageTilingLinear {
-		return (uint32(formatProps.LinearTilingFeatures) & uint32(vk.FormatFeatureSampledImageFilterLinearBit)) != 0
+	} else if tiling == vulkan_const.ImageTilingLinear {
+		return (uint32(formatProps.LinearTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
 	} else {
 		return false
 	}

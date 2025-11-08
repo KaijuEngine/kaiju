@@ -45,6 +45,7 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 type TextureCleanup struct {
@@ -52,11 +53,11 @@ type TextureCleanup struct {
 	renderer Renderer
 }
 
-func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.SampleCountFlagBits, format vk.Format, tiling vk.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
-	textureId.Layout = vk.ImageLayoutUndefined
+func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vulkan_const.SampleCountFlagBits, format vulkan_const.Format, tiling vulkan_const.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
+	textureId.Layout = vulkan_const.ImageLayoutUndefined
 	imageInfo := vk.ImageCreateInfo{}
-	imageInfo.SType = vk.StructureTypeImageCreateInfo
-	imageInfo.ImageType = vk.ImageType2d
+	imageInfo.SType = vulkan_const.StructureTypeImageCreateInfo
+	imageInfo.ImageType = vulkan_const.ImageType2d
 	imageInfo.Extent.Width = width
 	imageInfo.Extent.Height = height
 	imageInfo.Extent.Depth = 1
@@ -64,12 +65,12 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	imageInfo.ArrayLayers = uint32(layerCount)
 	imageInfo.Format = format
 	imageInfo.Tiling = tiling
-	imageInfo.InitialLayout = vk.ImageLayoutUndefined
+	imageInfo.InitialLayout = vulkan_const.ImageLayoutUndefined
 	imageInfo.Usage = usage
 	imageInfo.Samples = numSamples
-	imageInfo.SharingMode = vk.SharingModeExclusive
+	imageInfo.SharingMode = vulkan_const.SharingModeExclusive
 	var image vk.Image
-	if vk.CreateImage(vr.device, &imageInfo, nil, &image) != vk.Success {
+	if vk.CreateImage(vr.device, &imageInfo, nil, &image) != vulkan_const.Success {
 		slog.Error("Failed to create image")
 		return false
 	} else {
@@ -79,7 +80,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	var memRequirements vk.MemoryRequirements
 	vk.GetImageMemoryRequirements(vr.device, textureId.Image, &memRequirements)
 	aInfo := vk.MemoryAllocateInfo{}
-	aInfo.SType = vk.StructureTypeMemoryAllocateInfo
+	aInfo.SType = vulkan_const.StructureTypeMemoryAllocateInfo
 	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
@@ -88,7 +89,7 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var tidMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &aInfo, nil, &tidMemory) != vk.Success {
+	if vk.AllocateMemory(vr.device, &aInfo, nil, &tidMemory) != vulkan_const.Success {
 		slog.Error("Failed to allocate image memory")
 		return false
 	} else {
@@ -109,75 +110,75 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vk.Sam
 func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	defer tracing.NewRegion("Vulkan.CreateTexture").End()
 	width, height := max(data.Width, texture.Width), max(data.Height, texture.Height)
-	format := vk.FormatR8g8b8a8Srgb
+	format := vulkan_const.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
 		if data.Format == TextureColorFormatRgbaSrgb {
-			format = vk.FormatR8g8b8a8Srgb
+			format = vulkan_const.FormatR8g8b8a8Srgb
 		} else if data.Format == TextureColorFormatRgbaUnorm {
-			format = vk.FormatR8g8b8a8Unorm
+			format = vulkan_const.FormatR8g8b8a8Unorm
 		}
 	case TextureInputTypeRgb8:
 		if data.Format == TextureColorFormatRgbSrgb {
-			format = vk.FormatR8g8b8Srgb
+			format = vulkan_const.FormatR8g8b8Srgb
 		} else if data.Format == TextureColorFormatRgbUnorm {
-			format = vk.FormatR8g8b8Unorm
+			format = vulkan_const.FormatR8g8b8Unorm
 		}
 	case TextureInputTypeCompressedRgbaAstc4x4:
 		//format = VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK
-		format = vk.FormatAstc4x4SrgbBlock
+		format = vulkan_const.FormatAstc4x4SrgbBlock
 		//format = VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc5x4:
 		//format = VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK
-		format = vk.FormatAstc5x4SrgbBlock
+		format = vulkan_const.FormatAstc5x4SrgbBlock
 		//format = VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc5x5:
 		//format = VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK
-		format = vk.FormatAstc5x5SrgbBlock
+		format = vulkan_const.FormatAstc5x5SrgbBlock
 		//format = VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc6x5:
 		//format = VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK
-		format = vk.FormatAstc6x5SrgbBlock
+		format = vulkan_const.FormatAstc6x5SrgbBlock
 		//format = VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc6x6:
 		//format = VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK
-		format = vk.FormatAstc6x6SrgbBlock
+		format = vulkan_const.FormatAstc6x6SrgbBlock
 		//format = VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc8x5:
 		//format = VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK
-		format = vk.FormatAstc8x5SrgbBlock
+		format = vulkan_const.FormatAstc8x5SrgbBlock
 		//format = VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc8x6:
 		//format = VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK
-		format = vk.FormatAstc8x6SrgbBlock
+		format = vulkan_const.FormatAstc8x6SrgbBlock
 		//format = VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc8x8:
 		//format = VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK
-		format = vk.FormatAstc8x8SrgbBlock
+		format = vulkan_const.FormatAstc8x8SrgbBlock
 		//format = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc10x5:
 		//format = VK_FORMAT_ASTC_10x5SFLOAT_BLOCK;
-		format = vk.FormatAstc10x5SrgbBlock
+		format = vulkan_const.FormatAstc10x5SrgbBlock
 		//format = VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc10x6:
 		//format = VK_FORMAT_ASTC_10x6SFLOAT_BLOCK;
-		format = vk.FormatAstc10x6SrgbBlock
+		format = vulkan_const.FormatAstc10x6SrgbBlock
 		//format = VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc10x8:
 		//format = VK_FORMAT_ASTC_10x8SFLOAT_BLOCK;
-		format = vk.FormatAstc10x8SrgbBlock
+		format = vulkan_const.FormatAstc10x8SrgbBlock
 		//format = VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc10x10:
 		//format = VK_FORMAT_ASTC_10x1SFLOAT_BLOCK;
-		format = vk.FormatAstc10x10SrgbBlock
+		format = vulkan_const.FormatAstc10x10SrgbBlock
 		//format = VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc12x10:
 		//format = VK_FORMAT_ASTC_12x1SFLOAT_BLOCK;
-		format = vk.FormatAstc12x10SrgbBlock
+		format = vulkan_const.FormatAstc12x10SrgbBlock
 		//format = VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
 	case TextureInputTypeCompressedRgbaAstc12x12:
 		//format = VK_FORMAT_ASTC_12x1SFLOAT_BLOCK;
-		format = vk.FormatAstc12x12SrgbBlock
+		format = vulkan_const.FormatAstc12x12SrgbBlock
 		//format = VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
 	case TextureInputTypeLuminance:
 		panic("Luminance textures are not supported")
@@ -200,17 +201,17 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	//		break;
 	//}
 
-	filter := vk.FilterLinear
+	filter := vulkan_const.FilterLinear
 	switch texture.Filter {
 	case TextureFilterLinear:
-		filter = vk.FilterLinear
+		filter = vulkan_const.FilterLinear
 	case TextureFilterNearest:
-		filter = vk.FilterNearest
+		filter = vulkan_const.FilterNearest
 	}
 
-	tile := vk.ImageTilingOptimal
-	use := vk.ImageUsageTransferSrcBit | vk.ImageUsageTransferDstBit | vk.ImageUsageSampledBit
-	props := vk.MemoryPropertyDeviceLocalBit
+	tile := vulkan_const.ImageTilingOptimal
+	use := vulkan_const.ImageUsageTransferSrcBit | vulkan_const.ImageUsageTransferDstBit | vulkan_const.ImageUsageSampledBit
+	props := vulkan_const.MemoryPropertyDeviceLocalBit
 	mip := texture.MipLevels
 	if mip <= 0 {
 		w, h := float32(width), float32(height)
@@ -222,8 +223,8 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
 	vr.CreateBuffer(vk.DeviceSize(memLen),
-		vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
+		vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit),
+		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
 		&stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(memLen), 0, &stageData)
@@ -232,7 +233,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	// TODO:  Provide the desired sample as part of texture data?
 	layerCount := 1
 	vr.CreateImage(uint32(width), uint32(height), uint32(mip),
-		vk.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
+		vulkan_const.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
 		vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
 	texture.RenderId.MipLevels = uint32(mip)
 	texture.RenderId.Format = format
@@ -240,7 +241,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	texture.RenderId.Height = height
 	texture.RenderId.LayerCount = layerCount
 	vr.transitionImageLayout(&texture.RenderId,
-		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
+		vulkan_const.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
 		texture.RenderId.Access, nil)
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
 		uint32(width), uint32(height))
@@ -251,7 +252,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	vr.generateMipmaps(&texture.RenderId, format,
 		uint32(width), uint32(height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit))
+		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit))
 	vr.createTextureSampler(&texture.RenderId.Sampler, uint32(mip), filter)
 	runtime.AddCleanup(texture, func(state TextureCleanup) {
 		v := state.renderer.(*Vulkan)
@@ -272,13 +273,13 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, requests []GPUImageWriteR
 		layoutStateUnchanged = layoutState(iota)
 		layoutStateChanged
 		layoutStateFailed
-		layout = vk.ImageLayoutTransferDstOptimal
-		flags  = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+		layout = vulkan_const.ImageLayoutTransferDstOptimal
+		flags  = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	)
 	id := &texture.RenderId
 	initLayout := id.Layout
 	state := layoutStateUnchanged
-	if initLayout != vk.ImageLayoutTransferDstOptimal {
+	if initLayout != vulkan_const.ImageLayoutTransferDstOptimal {
 		if vr.transitionImageLayout(id, layout, flags, id.Access, nil) {
 			state = layoutStateChanged
 		} else {
@@ -291,8 +292,8 @@ func (vr *Vulkan) TextureWritePixels(texture *Texture, requests []GPUImageWriteR
 		}
 	}
 	if state == layoutStateChanged {
-		vr.transitionImageLayout(id, vk.ImageLayoutShaderReadOnlyOptimal,
-			vk.ImageAspectFlags(vk.ImageAspectColorBit), id.Access, nil)
+		vr.transitionImageLayout(id, vulkan_const.ImageLayoutShaderReadOnlyOptimal,
+			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
 	}
 }
 

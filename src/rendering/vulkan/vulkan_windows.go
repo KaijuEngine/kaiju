@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 /******************************************************************************/
 /* vulkan_windows.go                                                          */
 /******************************************************************************/
@@ -35,9 +38,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build windows
-// +build windows
-
 package vulkan
 
 /*
@@ -49,15 +49,18 @@ package vulkan
 */
 import "C"
 
-import "unsafe"
+import (
+	"kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
-func Win32SurfaceCreateInfoKHRHelper(hwnd, hInstance unsafe.Pointer, instance Instance, surface *Surface) Result {
+func Win32SurfaceCreateInfoKHRHelper(hwnd, hInstance unsafe.Pointer, instance Instance, surface *Surface) vulkan_const.Result {
 	cinstance := *(*C.VkInstance)(unsafe.Pointer(&instance))
 	createInfo := C.VkWin32SurfaceCreateInfoKHR{}
-	createInfo.sType = C.VkStructureType(StructureTypeWin32SurfaceCreateInfo)
+	createInfo.sType = C.VkStructureType(vulkan_const.StructureTypeWin32SurfaceCreateInfo)
 	createInfo.hwnd = C.HWND(hwnd)
 	createInfo.hinstance = C.HINSTANCE(hInstance)
 	cSurface := (*C.VkSurfaceKHR)(unsafe.Pointer(surface))
 	__ret := C.callVkCreateWin32SurfaceKHR(cinstance, &createInfo, nil, cSurface)
-	return (Result)(__ret)
+	return (vulkan_const.Result)(__ret)
 }

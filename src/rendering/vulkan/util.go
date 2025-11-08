@@ -40,6 +40,7 @@ package vulkan
 import (
 	"bytes"
 	"fmt"
+	"kaiju/rendering/vulkan_const"
 	"unsafe"
 )
 
@@ -54,7 +55,7 @@ var (
 )
 
 func (b Bool32) B() bool {
-	return b == True
+	return b == vulkan_const.True
 }
 
 type Version uint32

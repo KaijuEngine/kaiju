@@ -43,6 +43,7 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {
@@ -53,7 +54,7 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 	}
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
+	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
 		slog.Error("Failed to create the staging buffer for the verts")
 		return false
 	} else {
@@ -61,7 +62,7 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 		vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
 		vk.Memcopy(data, vertBuff)
 		vk.UnmapMemory(vr.device, stagingBufferMemory)
-		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
+		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
 			slog.Error("Failed to create from staging buffer for the verts")
 			return false
 		} else {
@@ -83,7 +84,7 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	}
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
+	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
 		slog.Error("Failed to create the staging index buffer")
 		return false
 	}
@@ -91,7 +92,7 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
 	vk.Memcopy(data, indexBuff)
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageTransferSrcBit|vk.BufferUsageTransferDstBit|vk.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
+	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
 		slog.Error("Failed to create the index buffer")
 		return false
 	}

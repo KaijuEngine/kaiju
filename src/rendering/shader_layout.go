@@ -45,7 +45,7 @@ import (
 	"strings"
 	"unsafe"
 
-	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 const (
@@ -63,15 +63,15 @@ const (
 var (
 	arrStringReg = regexp.MustCompile(`\[(\d+)\]`)
 	defTypes     = map[string]shaderFieldType{
-		"float":  {uint32(floatSize), vk.FormatR32Sfloat, 1},
-		"vec2":   {uint32(floatSize) * 2, vk.FormatR32g32Sfloat, 1},
-		"vec3":   {uint32(floatSize) * 3, vk.FormatR32g32b32Sfloat, 1},
-		"vec4":   {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 1},
-		"mat4":   {uint32(vec4Size), vk.FormatR32g32b32a32Sfloat, 4},
-		"int":    {uint32(int32Size), vk.FormatR32Sint, 1},
-		"int32":  {uint32(int32Size), vk.FormatR32Sint, 1},
-		"uint":   {uint32(uint32Size), vk.FormatR32Uint, 1},
-		"uint32": {uint32(uint32Size), vk.FormatR32Uint, 1},
+		"float":  {uint32(floatSize), vulkan_const.FormatR32Sfloat, 1},
+		"vec2":   {uint32(floatSize) * 2, vulkan_const.FormatR32g32Sfloat, 1},
+		"vec3":   {uint32(floatSize) * 3, vulkan_const.FormatR32g32b32Sfloat, 1},
+		"vec4":   {uint32(vec4Size), vulkan_const.FormatR32g32b32a32Sfloat, 1},
+		"mat4":   {uint32(vec4Size), vulkan_const.FormatR32g32b32a32Sfloat, 4},
+		"int":    {uint32(int32Size), vulkan_const.FormatR32Sint, 1},
+		"int32":  {uint32(int32Size), vulkan_const.FormatR32Sint, 1},
+		"uint":   {uint32(uint32Size), vulkan_const.FormatR32Uint, 1},
+		"uint32": {uint32(uint32Size), vulkan_const.FormatR32Uint, 1},
 	}
 )
 
@@ -99,7 +99,7 @@ type ShaderLayoutGroup struct {
 
 type shaderFieldType struct {
 	size   uint32
-	format vk.Format
+	format vulkan_const.Format
 	repeat int
 }
 
@@ -163,56 +163,56 @@ func (l *ShaderLayout) Capacity() int {
 	return l.Stride()
 }
 
-func (l *ShaderLayout) DescriptorType() vk.DescriptorType {
+func (l *ShaderLayout) DescriptorType() vulkan_const.DescriptorType {
 	if l.Binding >= 0 && l.Set >= 0 && l.Source == "uniform" {
-		return vk.DescriptorTypeUniformBuffer
+		return vulkan_const.DescriptorTypeUniformBuffer
 	}
 	switch l.Type {
 	case "subpassInput":
-		return vk.DescriptorTypeInputAttachment
+		return vulkan_const.DescriptorTypeInputAttachment
 	case "sampler2D", "samplerCube":
-		return vk.DescriptorTypeCombinedImageSampler
+		return vulkan_const.DescriptorTypeCombinedImageSampler
 	default:
 		slog.Error("unknown descriptor type", slog.String("DescriptorType", l.Type))
-		return vk.DescriptorTypeUniformBuffer
+		return vulkan_const.DescriptorTypeUniformBuffer
 	}
 }
 
-func (g *ShaderLayoutGroup) DescriptorFlag() vk.ShaderStageFlagBits {
-	flags := vk.ShaderStageFlagBits(0)
+func (g *ShaderLayoutGroup) DescriptorFlag() vulkan_const.ShaderStageFlagBits {
+	flags := vulkan_const.ShaderStageFlagBits(0)
 	switch g.Type {
 	case "Vertex":
-		flags |= vk.ShaderStageVertexBit
+		flags |= vulkan_const.ShaderStageVertexBit
 	case "TessellationControl":
-		flags |= vk.ShaderStageTessellationControlBit
+		flags |= vulkan_const.ShaderStageTessellationControlBit
 	case "TessellationEvaluation":
-		flags |= vk.ShaderStageTessellationEvaluationBit
+		flags |= vulkan_const.ShaderStageTessellationEvaluationBit
 	case "Geometry":
-		flags |= vk.ShaderStageGeometryBit
+		flags |= vulkan_const.ShaderStageGeometryBit
 	case "Fragment":
-		flags |= vk.ShaderStageFragmentBit
+		flags |= vulkan_const.ShaderStageFragmentBit
 	case "Compute":
-		flags |= vk.ShaderStageComputeBit
+		flags |= vulkan_const.ShaderStageComputeBit
 	case "AllGraphics":
-		flags |= vk.ShaderStageAllGraphics
+		flags |= vulkan_const.ShaderStageAllGraphics
 	case "All":
-		flags |= vk.ShaderStageAll
+		flags |= vulkan_const.ShaderStageAll
 	case "Raygen":
-		flags |= vk.ShaderStageRaygenBitNvx
+		flags |= vulkan_const.ShaderStageRaygenBitNvx
 	case "AnyHit":
-		flags |= vk.ShaderStageAnyHitBitNvx
+		flags |= vulkan_const.ShaderStageAnyHitBitNvx
 	case "ClosestHit":
-		flags |= vk.ShaderStageClosestHitBitNvx
+		flags |= vulkan_const.ShaderStageClosestHitBitNvx
 	case "Miss":
-		flags |= vk.ShaderStageMissBitNvx
+		flags |= vulkan_const.ShaderStageMissBitNvx
 	case "Intersection":
-		flags |= vk.ShaderStageIntersectionBitNvx
+		flags |= vulkan_const.ShaderStageIntersectionBitNvx
 	case "Callable":
-		flags |= vk.ShaderStageCallableBitNvx
+		flags |= vulkan_const.ShaderStageCallableBitNvx
 	case "Task":
-		flags |= vk.ShaderStageTaskBitNv
+		flags |= vulkan_const.ShaderStageTaskBitNv
 	case "Mesh":
-		flags |= vk.ShaderStageMeshBitNv
+		flags |= vulkan_const.ShaderStageMeshBitNv
 	default:
 		slog.Error("unknown shader stage flag", slog.String("flag", g.Type))
 	}

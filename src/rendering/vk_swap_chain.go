@@ -43,6 +43,7 @@ import (
 	"math"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.SurfaceFormat {
@@ -50,11 +51,11 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	var fallbackFormat *vk.SurfaceFormat = nil
 	for i := uint32(0); i < formatCount; i++ {
 		surfFormat := &formats[i]
-		if surfFormat.Format == vk.FormatR8g8b8a8Srgb {
+		if surfFormat.Format == vulkan_const.FormatR8g8b8a8Srgb {
 			fallbackFormat = surfFormat
-		} else if surfFormat.Format == vk.FormatB8g8r8a8Unorm {
+		} else if surfFormat.Format == vulkan_const.FormatB8g8r8a8Unorm {
 			fallbackFormat = surfFormat
-		} else if surfFormat.Format == vk.FormatR8g8b8a8Unorm {
+		} else if surfFormat.Format == vulkan_const.FormatR8g8b8a8Unorm {
 			targetFormat = surfFormat
 		}
 	}
@@ -68,11 +69,11 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	return *targetFormat
 }
 
-func chooseSwapPresentMode(modes []vk.PresentMode, count uint32) vk.PresentMode {
-	var targetPresentMode *vk.PresentMode = nil
+func chooseSwapPresentMode(modes []vulkan_const.PresentMode, count uint32) vulkan_const.PresentMode {
+	var targetPresentMode *vulkan_const.PresentMode = nil
 	for i := uint32(0); i < count && targetPresentMode == nil; i++ {
 		pm := &modes[i]
-		if *pm == vk.PresentModeMailbox {
+		if *pm == vulkan_const.PresentModeMailbox {
 			targetPresentMode = pm
 		}
 	}
@@ -105,7 +106,7 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 	}
 	vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, nil)
 	if details.presentModeCount > 0 {
-		details.presentModes = make([]vk.PresentMode, details.presentModeCount)
+		details.presentModes = make([]vulkan_const.PresentMode, details.presentModeCount)
 		vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, &details.presentModes[0])
 	}
 	return details
@@ -125,33 +126,33 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 		imgCount = scs.capabilities.MaxImageCount
 	}
 	info := vk.SwapchainCreateInfo{}
-	info.SType = vk.StructureTypeSwapchainCreateInfo
+	info.SType = vulkan_const.StructureTypeSwapchainCreateInfo
 	info.Surface = vr.surface
 	info.MinImageCount = min(uint32(maxFramesInFlight), imgCount)
 	info.ImageFormat = surfaceFormat.Format
 	info.ImageColorSpace = vkColorSpace(surfaceFormat)
 	info.ImageExtent = extent
 	info.ImageArrayLayers = 1
-	info.ImageUsage = vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit | vk.ImageUsageTransferDstBit)
+	info.ImageUsage = vk.ImageUsageFlags(vulkan_const.ImageUsageColorAttachmentBit | vulkan_const.ImageUsageTransferDstBit)
 	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
 	queueFamilyIndices := []uint32{uint32(indices.graphicsFamily), uint32(indices.presentFamily)}
 	if indices.graphicsFamily != indices.presentFamily {
-		info.ImageSharingMode = vk.SharingModeConcurrent
+		info.ImageSharingMode = vulkan_const.SharingModeConcurrent
 		info.QueueFamilyIndexCount = 2
 		info.PQueueFamilyIndices = &queueFamilyIndices[0]
 	} else {
-		info.ImageSharingMode = vk.SharingModeExclusive
+		info.ImageSharingMode = vulkan_const.SharingModeExclusive
 		info.QueueFamilyIndexCount = 0 // Optional
 		info.PQueueFamilyIndices = nil // Optional
 	}
 	info.PreTransform = preTransform(scs)
 	info.CompositeAlpha = compositeAlpha
 	info.PresentMode = presentMode
-	info.Clipped = vk.True
+	info.Clipped = vulkan_const.True
 	info.OldSwapchain = vk.Swapchain(vk.NullHandle)
 	//free_swap_chain_support_details(scs);
 	var swapChain vk.Swapchain
-	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vk.Success {
+	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vulkan_const.Success {
 		slog.Error("Failed to create swap chain")
 		return false
 	} else {

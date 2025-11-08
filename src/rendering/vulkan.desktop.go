@@ -39,10 +39,10 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import "kaiju/rendering/vulkan_const"
 
-func preTransform(scs vkSwapChainSupportDetails) vk.SurfaceTransformFlagBits {
+func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
 	return scs.capabilities.CurrentTransform
 }
 
-const compositeAlpha = vk.CompositeAlphaOpaqueBit
+const compositeAlpha = vulkan_const.CompositeAlphaOpaqueBit

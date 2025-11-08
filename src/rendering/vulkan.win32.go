@@ -39,12 +39,15 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
 func (vr *Vulkan) createSurface(window RenderingContainer) bool {
 	var surface vk.Surface
 	result := vk.Win32SurfaceCreateInfoKHRHelper(
 		window.PlatformWindow(), window.PlatformInstance(), vr.instance, &surface)
 	vr.surface = surface
-	return result == vk.Success
+	return result == vulkan_const.Success
 }

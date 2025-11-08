@@ -41,7 +41,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/matrix"
-	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 	"weak"
@@ -54,8 +54,8 @@ const (
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
 	lightDirectionalScaleOut = 50.0
-	lightShadowmapFilter     = vk.FilterLinear
-	lightDepthFormat         = vk.FormatD16Unorm
+	lightShadowmapFilter     = vulkan_const.FilterLinear
+	lightDepthFormat         = vulkan_const.FormatD16Unorm
 	//lightDepthFormat       = vk.FormatD32Sfloat
 )
 

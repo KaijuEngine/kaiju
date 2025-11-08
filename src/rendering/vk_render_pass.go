@@ -48,6 +48,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 type RenderPass struct {
@@ -117,7 +118,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 	for i := range c.SampledImages {
 		t := &r.textures[c.SampledImages[i]].RenderId
 		if t.Sampler == vk.NullSampler {
-			vr.createTextureSampler(&t.Sampler, t.MipLevels, vk.FilterLinear)
+			vr.createTextureSampler(&t.Sampler, t.MipLevels, vulkan_const.FilterLinear)
 		}
 	}
 	sp.sampledImages = append(sp.sampledImages, c.SampledImages...)
@@ -154,7 +155,7 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 	}
 	if r.subpassIdx == 0 {
 		renderPassInfo := vk.RenderPassBeginInfo{
-			SType:       vk.StructureTypeRenderPassBeginInfo,
+			SType:       vulkan_const.StructureTypeRenderPassBeginInfo,
 			RenderPass:  r.Handle,
 			Framebuffer: r.Buffer,
 			RenderArea: vk.Rect2D{
@@ -167,12 +168,12 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 			renderPassInfo.PClearValues = &clearColors[0]
 		}
 		r.cmd[r.frame].Begin()
-		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vk.SubpassContentsSecondaryCommandBuffers)
+		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vulkan_const.SubpassContentsSecondaryCommandBuffers)
 		r.cmdSecondary[r.frame].Begin(viewport, scissor)
 	} else {
 		sp := &r.subpasses[r.subpassIdx-1]
 		sp.cmd[r.frame].Reset()
-		vk.CmdNextSubpass(r.cmd[r.frame].buffer, vk.SubpassContentsSecondaryCommandBuffers)
+		vk.CmdNextSubpass(r.cmd[r.frame].buffer, vulkan_const.SubpassContentsSecondaryCommandBuffers)
 		sp.cmd[r.frame].Begin(viewport, scissor)
 	}
 	r.currentIdx = r.subpassIdx
@@ -198,7 +199,7 @@ func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
 	var fallback *Texture
 	for i := range r.construction.AttachmentDescriptions {
 		a := &r.construction.AttachmentDescriptions[i]
-		if (a.Image.Usage & vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit)) != 0 {
+		if (a.Image.Usage & vk.ImageUsageFlags(vulkan_const.ImageUsageColorAttachmentBit)) != 0 {
 			if fallback == nil {
 				// First image is likely the better image to fall back to
 				fallback = &r.textures[i]
@@ -242,10 +243,10 @@ func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string)
 	return nil, false
 }
 
-func isDepthFormat(format vk.Format) bool {
+func isDepthFormat(format vulkan_const.Format) bool {
 	switch format {
-	case vk.FormatD16Unorm, vk.FormatD32Sfloat, vk.FormatD16UnormS8Uint,
-		vk.FormatD24UnormS8Uint, vk.FormatD32SfloatS8Uint:
+	case vulkan_const.FormatD16Unorm, vulkan_const.FormatD32Sfloat, vulkan_const.FormatD16UnormS8Uint,
+		vulkan_const.FormatD24UnormS8Uint, vulkan_const.FormatD32SfloatS8Uint:
 		return true
 	}
 	return false
@@ -422,7 +423,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlags
 	}
 	info := vk.RenderPassCreateInfo{}
-	info.SType = vk.StructureTypeRenderPassCreateInfo
+	info.SType = vulkan_const.StructureTypeRenderPassCreateInfo
 	info.AttachmentCount = uint32(len(attachments))
 	info.PAttachments = &attachments[0]
 	info.SubpassCount = uint32(len(subpasses))
@@ -432,7 +433,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		info.PDependencies = &selfDependencies[0]
 	}
 	var handle vk.RenderPass
-	if vk.CreateRenderPass(vr.device, &info, nil, &handle) != vk.Success {
+	if vk.CreateRenderPass(vr.device, &info, nil, &handle) != vulkan_const.Success {
 		return errors.New("failed to create the render pass")
 	}
 	p.Handle = handle

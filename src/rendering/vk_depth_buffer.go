@@ -41,16 +41,17 @@ import (
 	"log/slog"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
-func (vr *Vulkan) findSupportedFormat(candidates []vk.Format, tiling vk.ImageTiling, features vk.FormatFeatureFlags) vk.Format {
+func (vr *Vulkan) findSupportedFormat(candidates []vulkan_const.Format, tiling vulkan_const.ImageTiling, features vk.FormatFeatureFlags) vulkan_const.Format {
 	for i := 0; i < len(candidates); i++ {
 		var props vk.FormatProperties
 		format := candidates[i]
 		vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &props)
-		if tiling == vk.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
+		if tiling == vulkan_const.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
 			return format
-		} else if tiling == vk.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
+		} else if tiling == vulkan_const.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
 			return format
 		}
 	}
@@ -59,37 +60,37 @@ func (vr *Vulkan) findSupportedFormat(candidates []vk.Format, tiling vk.ImageTil
 	return candidates[0]
 }
 
-func depthFormatCandidates() []vk.Format {
-	return []vk.Format{vk.FormatX8D24UnormPack32,
-		vk.FormatD24UnormS8Uint, vk.FormatD32Sfloat,
-		vk.FormatD32SfloatS8Uint, vk.FormatD16Unorm,
-		vk.FormatD16UnormS8Uint,
+func depthFormatCandidates() []vulkan_const.Format {
+	return []vulkan_const.Format{vulkan_const.FormatX8D24UnormPack32,
+		vulkan_const.FormatD24UnormS8Uint, vulkan_const.FormatD32Sfloat,
+		vulkan_const.FormatD32SfloatS8Uint, vulkan_const.FormatD16Unorm,
+		vulkan_const.FormatD16UnormS8Uint,
 	}
 }
 
-func depthStencilFormatCandidates() []vk.Format {
-	return []vk.Format{vk.FormatD24UnormS8Uint,
-		vk.FormatD32SfloatS8Uint, vk.FormatD16UnormS8Uint,
+func depthStencilFormatCandidates() []vulkan_const.Format {
+	return []vulkan_const.Format{vulkan_const.FormatD24UnormS8Uint,
+		vulkan_const.FormatD32SfloatS8Uint, vulkan_const.FormatD16UnormS8Uint,
 	}
 }
 
-func (vr *Vulkan) findDepthFormat() vk.Format {
+func (vr *Vulkan) findDepthFormat() vulkan_const.Format {
 	// TODO:  Pass in vk.ImageTiling
 	candidates := depthFormatCandidates()
-	return vr.findSupportedFormat(candidates, vk.ImageTilingOptimal, vk.FormatFeatureFlags(vk.FormatFeatureDepthStencilAttachmentBit))
+	return vr.findSupportedFormat(candidates, vulkan_const.ImageTilingOptimal, vk.FormatFeatureFlags(vulkan_const.FormatFeatureDepthStencilAttachmentBit))
 }
 
-func (vr *Vulkan) findDepthStencilFormat() vk.Format {
+func (vr *Vulkan) findDepthStencilFormat() vulkan_const.Format {
 	// TODO:  Pass in vk.ImageTiling
 	candidates := depthStencilFormatCandidates()
-	return vr.findSupportedFormat(candidates, vk.ImageTilingOptimal, vk.FormatFeatureFlags(vk.FormatFeatureDepthStencilAttachmentBit))
+	return vr.findSupportedFormat(candidates, vulkan_const.ImageTilingOptimal, vk.FormatFeatureFlags(vulkan_const.FormatFeatureDepthStencilAttachmentBit))
 }
 
 func (vr *Vulkan) createDepthResources() bool {
 	depthFormat := vr.findDepthFormat()
 	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height,
-		1, vr.msaaSamples, depthFormat, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageDepthStencilAttachmentBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.depth, 1)
-	return vr.createImageView(&vr.depth, vk.ImageAspectFlags(vk.ImageAspectDepthBit))
+		1, vr.msaaSamples, depthFormat, vulkan_const.ImageTilingOptimal,
+		vk.ImageUsageFlags(vulkan_const.ImageUsageDepthStencilAttachmentBit),
+		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), &vr.depth, 1)
+	return vr.createImageView(&vr.depth, vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit))
 }

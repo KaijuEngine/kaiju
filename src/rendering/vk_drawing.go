@@ -46,13 +46,14 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
 	defer tracing.NewRegion("Vulkan.mapAndCopy").End()
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, sb.memories[vr.currentFrame], 0, mapLen, 0, &data)
-	if r != vk.Success {
+	if r != vulkan_const.Success {
 		slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
 		return false
 	} else if data == nil {
@@ -112,7 +113,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			const maxDescriptorWrites = 4
 			descriptorWrites := [maxDescriptorWrites]vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
-					0, vk.DescriptorTypeUniformBuffer),
+					0, vulkan_const.DescriptorTypeUniformBuffer),
 				prepareSetWriteImage(set, group.imageInfos, 1, false),
 			}
 			count := 2
@@ -140,14 +141,14 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				descriptorWrites[count] = prepareSetWriteBuffer(set,
 					[]vk.DescriptorBufferInfo{namedInfos[k]},
 					uint32(group.namedBuffers[k].bindingId),
-					vk.DescriptorTypeUniformBuffer)
+					vulkan_const.DescriptorTypeUniformBuffer)
 				count++
 			}
 			vk.UpdateDescriptorSets(vr.device, uint32(count), &descriptorWrites[0], 0, nil)
 		} else {
 			descriptorWrites := []vk.WriteDescriptorSet{
 				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
-					0, vk.DescriptorTypeUniformBuffer),
+					0, vulkan_const.DescriptorTypeUniformBuffer),
 			}
 			count := uint32(len(descriptorWrites))
 			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
@@ -159,7 +160,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 
 func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
-	vk.CmdBindPipeline(cmd, vk.PipelineBindPointGraphics, pipeline)
+	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, pipeline)
 	for i := range groups {
 		group := &groups[i]
 		if !group.IsReady() || group.VisibleCount() == 0 {
@@ -169,7 +170,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 			group.InstanceDriverData.descriptorSets[vr.currentFrame],
 		}
 		dynOffsets := [...]uint32{0}
-		vk.CmdBindDescriptorSets(cmd, vk.PipelineBindPointGraphics,
+		vk.CmdBindDescriptorSets(cmd, vulkan_const.PipelineBindPointGraphics,
 			layout, 0, 1, &descriptorSets[0], 0, &dynOffsets[0])
 		meshId := group.Mesh.MeshId
 		vbOffsets := [...]vk.DeviceSize{0}
@@ -184,7 +185,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 			vk.CmdBindVertexBuffers(cmd, uint32(group.namedBuffers[k].bindingId),
 				1, &namedBuffers[0], &ibOffsets[0])
 		}
-		vk.CmdBindIndexBuffer(cmd, meshId.indexBuffer, 0, vk.IndexTypeUint32)
+		vk.CmdBindIndexBuffer(cmd, meshId.indexBuffer, 0, vulkan_const.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd, meshId.indexCount,
 			uint32(group.VisibleCount()), 0, 0, 0)
 	}
@@ -219,7 +220,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		s := &renderPass.subpasses[i]
 		renderPass.beginNextSubpass(vr.currentFrame, vr.swapChainExtent, renderPass.construction.ImageClears)
 		cmd := &s.cmd[vr.currentFrame]
-		vk.CmdBindPipeline(cmd.buffer, vk.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
+		vk.CmdBindPipeline(cmd.buffer, vulkan_const.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
 		descriptorWrites := [10]vk.WriteDescriptorSet{}
 		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
@@ -236,13 +237,13 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		vk.UpdateDescriptorSets(vr.device, uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
 		ds := [...]vk.DescriptorSet{s.descriptorSets[vr.currentFrame]}
 		dsOffsets := [...]uint32{0}
-		vk.CmdBindDescriptorSets(cmd.buffer, vk.PipelineBindPointGraphics,
+		vk.CmdBindDescriptorSets(cmd.buffer, vulkan_const.PipelineBindPointGraphics,
 			s.shader.RenderId.pipelineLayout, 0, uint32(len(ds)), &ds[0], 0, &dsOffsets[0])
 		mid := &s.renderQuad.MeshId
 		vb := [...]vk.Buffer{mid.vertexBuffer}
 		vbOffsets := [...]vk.DeviceSize{0}
 		vk.CmdBindVertexBuffers(cmd.buffer, 0, 1, &vb[0], &vbOffsets[0])
-		vk.CmdBindIndexBuffer(cmd.buffer, mid.indexBuffer, 0, vk.IndexTypeUint32)
+		vk.CmdBindIndexBuffer(cmd.buffer, mid.indexBuffer, 0, vulkan_const.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd.buffer, mid.indexCount, 1, 0, 0, 0)
 		renderPass.ExecuteSecondaryCommands()
 	}
@@ -322,9 +323,9 @@ func (vr *Vulkan) combineTargets() *TextureId {
 	for i := range draws[0].instanceGroups {
 		mi := draws[0].instanceGroups[i].MaterialInstance
 		for j := range mi.Textures {
-			vr.transitionImageLayout(&mi.Textures[j].RenderId, vk.ImageLayoutShaderReadOnlyOptimal,
-				vk.ImageAspectFlags(vk.ImageAspectColorBit),
-				vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+			vr.transitionImageLayout(&mi.Textures[j].RenderId, vulkan_const.ImageLayoutShaderReadOnlyOptimal,
+				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+				vk.AccessFlags(vulkan_const.AccessTransferReadBit), cmd)
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
@@ -340,9 +341,9 @@ func (vr *Vulkan) cleanupCombined(cmd *CommandRecorder) {
 		mi := groups[i].MaterialInstance
 		for j := range mi.Textures {
 			if mi.Textures[j].RenderId.Access != 0 {
-				vr.transitionImageLayout(&mi.Textures[j].RenderId, vk.ImageLayoutColorAttachmentOptimal,
-					vk.ImageAspectFlags(vk.ImageAspectColorBit),
-					vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
+				vr.transitionImageLayout(&mi.Textures[j].RenderId, vulkan_const.ImageLayoutColorAttachmentOptimal,
+					vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+					vk.AccessFlags(vulkan_const.AccessColorAttachmentReadBit|vulkan_const.AccessColorAttachmentWriteBit), cmd)
 			}
 		}
 	}
@@ -362,8 +363,8 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
-		vk.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
+		vulkan_const.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+		vk.AccessFlags(vulkan_const.AccessTransferWriteBit), cmd)
 	area := matrix.Vec4{0, 0, 1, 1}
 	region := vk.ImageBlit{}
 	region.SrcOffsets[1].X = int32(vr.swapChainExtent.Width)
@@ -374,20 +375,20 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	region.DstOffsets[1].X = int32(float32(vr.swapChainExtent.Width) * area[2])
 	region.DstOffsets[1].Y = int32(float32(vr.swapChainExtent.Height) * area[3])
 	region.DstOffsets[1].Z = 1
-	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.DstSubresource.LayerCount = 1
-	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vk.ImageAspectColorBit)
+	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
-	vr.transitionImageLayout(img, vk.ImageLayoutTransferSrcOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferReadBit), cmd)
+	vr.transitionImageLayout(img, vulkan_const.ImageLayoutTransferSrcOptimal,
+		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), vk.AccessFlags(vulkan_const.AccessTransferReadBit), cmd)
 	vk.CmdBlitImage(cmd.buffer, img.Image, img.Layout,
-		vr.swapImages[idxSF].Image, vk.ImageLayoutTransferDstOptimal,
-		1, &region, vk.FilterNearest)
-	vr.transitionImageLayout(img, vk.ImageLayoutColorAttachmentOptimal,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit),
-		vk.AccessFlags(vk.AccessColorAttachmentReadBit|vk.AccessColorAttachmentWriteBit), cmd)
-	vr.transitionImageLayout(&vr.swapImages[idxSF], vk.ImageLayoutPresentSrc,
-		vk.ImageAspectFlags(vk.ImageAspectColorBit), vk.AccessFlags(vk.AccessTransferWriteBit), cmd)
+		vr.swapImages[idxSF].Image, vulkan_const.ImageLayoutTransferDstOptimal,
+		1, &region, vulkan_const.FilterNearest)
+	vr.transitionImageLayout(img, vulkan_const.ImageLayoutColorAttachmentOptimal,
+		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+		vk.AccessFlags(vulkan_const.AccessColorAttachmentReadBit|vulkan_const.AccessColorAttachmentWriteBit), cmd)
+	vr.transitionImageLayout(&vr.swapImages[idxSF], vulkan_const.ImageLayoutPresentSrc,
+		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), vk.AccessFlags(vulkan_const.AccessTransferWriteBit), cmd)
 	vr.cleanupCombined(cmd)
 }
 
@@ -420,8 +421,8 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 			group.instanceBuffer.size = iSize
 			for i := 0; i < maxFramesInFlight; i++ {
 				vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
-					vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit),
-					vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit),
+					vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit),
+					vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
 					&group.instanceBuffer.buffers[i], &group.instanceBuffer.memories[i])
 			}
 			for i := range material.shaderInfo.LayoutGroups {
@@ -436,8 +437,8 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 						buff.bindingId = b.Binding
 						for j := 0; j < maxFramesInFlight; j++ {
 							vr.CreateBuffer(buff.size*vk.DeviceSize(count),
-								vk.BufferUsageFlags(vk.BufferUsageVertexBufferBit|vk.BufferUsageTransferDstBit|vk.BufferUsageUniformBufferBit),
-								vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
+								vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageUniformBufferBit),
+								vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
 						}
 						group.namedBuffers[n] = buff
 					}

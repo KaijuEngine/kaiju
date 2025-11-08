@@ -42,6 +42,7 @@ import (
 
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure DescriptorSetLayoutStructure) (vk.DescriptorSetLayout, error) {
@@ -57,14 +58,14 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	}
 
 	info := vk.DescriptorSetLayoutCreateInfo{
-		SType:        vk.StructureTypeDescriptorSetLayoutCreateInfo,
+		SType:        vulkan_const.StructureTypeDescriptorSetLayoutCreateInfo,
 		BindingCount: uint32(structureCount),
 	}
 	if structureCount > 0 {
 		info.PBindings = &bindings[0]
 	}
 	var layout vk.DescriptorSetLayout
-	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vk.Success {
+	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vulkan_const.Success {
 		return layout, errors.New("failed to create descriptor set layout")
 	} else {
 		vr.dbg.add(vk.TypeToUintPtr(layout))
@@ -80,9 +81,9 @@ func bufferInfo(buffer vk.Buffer, bufferSize vk.DeviceSize) vk.DescriptorBufferI
 	return bufferInfo
 }
 
-func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBufferInfo, bindingIndex uint32, descriptorType vk.DescriptorType) vk.WriteDescriptorSet {
+func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBufferInfo, bindingIndex uint32, descriptorType vulkan_const.DescriptorType) vk.WriteDescriptorSet {
 	write := vk.WriteDescriptorSet{}
-	write.SType = vk.StructureTypeWriteDescriptorSet
+	write.SType = vulkan_const.StructureTypeWriteDescriptorSet
 	write.DstSet = set
 	write.DstBinding = bindingIndex
 	write.DstArrayElement = 0
@@ -94,7 +95,7 @@ func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBuff
 
 func imageInfo(view vk.ImageView, sampler vk.Sampler) vk.DescriptorImageInfo {
 	imageInfo := vk.DescriptorImageInfo{}
-	imageInfo.ImageLayout = vk.ImageLayoutShaderReadOnlyOptimal
+	imageInfo.ImageLayout = vulkan_const.ImageLayoutShaderReadOnlyOptimal
 	imageInfo.ImageView = view
 	imageInfo.Sampler = sampler
 	return imageInfo
@@ -102,14 +103,14 @@ func imageInfo(view vk.ImageView, sampler vk.Sampler) vk.DescriptorImageInfo {
 
 func prepareSetWriteImage(set vk.DescriptorSet, imageInfos []vk.DescriptorImageInfo, bindingIndex uint32, asAttachment bool) vk.WriteDescriptorSet {
 	write := vk.WriteDescriptorSet{}
-	write.SType = vk.StructureTypeWriteDescriptorSet
+	write.SType = vulkan_const.StructureTypeWriteDescriptorSet
 	write.DstSet = set
 	write.DstBinding = bindingIndex
 	write.DstArrayElement = 0
 	if asAttachment {
-		write.DescriptorType = vk.DescriptorTypeInputAttachment
+		write.DescriptorType = vulkan_const.DescriptorTypeInputAttachment
 	} else {
-		write.DescriptorType = vk.DescriptorTypeCombinedImageSampler
+		write.DescriptorType = vulkan_const.DescriptorTypeCombinedImageSampler
 	}
 	write.DescriptorCount = uint32(len(imageInfos))
 	write.PImageInfo = &imageInfos[0]

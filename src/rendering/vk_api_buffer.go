@@ -41,6 +41,7 @@ import (
 	"log/slog"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags, buffer *vk.Buffer, bufferMemory *vk.DeviceMemory) bool {
@@ -48,12 +49,12 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 		panic("Buffer size is 0")
 	}
 	bufferInfo := vk.BufferCreateInfo{}
-	bufferInfo.SType = vk.StructureTypeBufferCreateInfo
+	bufferInfo.SType = vulkan_const.StructureTypeBufferCreateInfo
 	bufferInfo.Size = vr.padUniformBufferSize(size)
 	bufferInfo.Usage = usage
-	bufferInfo.SharingMode = vk.SharingModeExclusive
+	bufferInfo.SharingMode = vulkan_const.SharingModeExclusive
 	var localBuffer vk.Buffer
-	if vk.CreateBuffer(vr.device, &bufferInfo, nil, &localBuffer) != vk.Success {
+	if vk.CreateBuffer(vr.device, &bufferInfo, nil, &localBuffer) != vulkan_const.Success {
 		slog.Error("Failed to create vertex buffer")
 		return false
 	} else {
@@ -63,7 +64,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	var memRequirements vk.MemoryRequirements
 	vk.GetBufferMemoryRequirements(vr.device, *buffer, &memRequirements)
 	aInfo := vk.MemoryAllocateInfo{}
-	aInfo.SType = vk.StructureTypeMemoryAllocateInfo
+	aInfo.SType = vulkan_const.StructureTypeMemoryAllocateInfo
 	aInfo.AllocationSize = memRequirements.Size
 	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
 	if memType == -1 {
@@ -72,7 +73,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var localBufferMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &aInfo, nil, &localBufferMemory) != vk.Success {
+	if vk.AllocateMemory(vr.device, &aInfo, nil, &localBufferMemory) != vulkan_const.Success {
 		slog.Error("Failed to allocate vertex buffer memory")
 		return false
 	} else {

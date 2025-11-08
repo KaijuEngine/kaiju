@@ -37,7 +37,10 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
 const (
 	invalidQueueFamily = -1
@@ -57,7 +60,7 @@ func findQueueFamilies(device vk.PhysicalDevice, surface vk.Surface) vkQueueFami
 	queueFamilies := make([]vk.QueueFamilyProperties, count)
 	vk.GetPhysicalDeviceQueueFamilyProperties(device, &count, &queueFamilies[0])
 	for i := 0; i < int(count) && !queueFamilyIndicesValid(indices); i++ {
-		if (uint32(queueFamilies[i].QueueFlags) & uint32(vk.QueueGraphicsBit)) != 0 {
+		if (uint32(queueFamilies[i].QueueFlags) & uint32(vulkan_const.QueueGraphicsBit)) != 0 {
 			indices.graphicsFamily = i
 		}
 		presentSupport := vk.Bool32(0)
