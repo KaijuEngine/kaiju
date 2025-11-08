@@ -51,23 +51,46 @@ type History struct {
 	lockAdditions bool
 }
 
-func (h *History) Initialize(limit int)  { h.limit = limit }
-func (h *History) LockAdditions()        { h.lockAdditions = true }
-func (h *History) UnlockAdditions()      { h.lockAdditions = false }
+// Initialize sets the max number of undo entries that the history will retain.
+func (h *History) Initialize(limit int) { h.limit = limit }
+
+// LockAdditions prevents new mementos from being added to the history.
+func (h *History) LockAdditions() { h.lockAdditions = true }
+
+// UnlockAdditions re-enables adding new mementos after a lock.
+func (h *History) UnlockAdditions() { h.lockAdditions = false }
+
+// IsInTransaction reports whether a history transaction is currently active.
 func (h *History) IsInTransaction() bool { return h.transaction != nil }
 
+// BeginTransaction starts a new transaction. Subsequent Add calls will be
+// queued in the transaction until it is committed or cancelled. If committed
+// all of the undos will be joined together into a single undo/redo operation.
+// You should start a transaction when calling common methods that would create
+// their own internal history.
+//
+// For example, when you delete selected entities, the clear function is called
+// on the selection (to update UI, visuals, and other things). This clear call
+// will generate history, thus creating 2 history entries (clear and delete). By
+// starting a transaction, both of those will be within the same undo/redo call.
 func (h *History) BeginTransaction() {
 	h.transaction = &HistoryTransaction{}
 }
 
+// CommitTransaction finalizes the current transaction, adding all queued
+// mementos to the history as a single atomic operation.
 func (h *History) CommitTransaction() {
 	t := h.transaction
 	h.transaction = nil
 	h.Add(t)
 }
 
+// CancelTransaction aborts the current transaction, discarding any queued
+// mementos.
 func (h *History) CancelTransaction() { h.transaction = nil }
 
+// Add inserts a new memento into the history. If a transaction is active, the
+// memento is queued instead of being added immediately.
 func (h *History) Add(m Memento) {
 	defer tracing.NewRegion("History.Add").End()
 	if h.IsInTransaction() {
@@ -90,6 +113,7 @@ func (h *History) Add(m Memento) {
 	}
 }
 
+// Undo reverts the most recent memento, moving the current position back.
 func (h *History) Undo() {
 	defer tracing.NewRegion("History.Undo").End()
 	h.LockAdditions()
@@ -102,6 +126,7 @@ func (h *History) Undo() {
 	m.Undo()
 }
 
+// Redo reapplies the next memento in the stack, moving the position forward.
 func (h *History) Redo() {
 	defer tracing.NewRegion("History.Redo").End()
 	h.LockAdditions()
@@ -114,6 +139,7 @@ func (h *History) Redo() {
 	h.position++
 }
 
+// Clear removes all mementos from the history and resets the position.
 func (h *History) Clear() {
 	defer tracing.NewRegion("History.Clear").End()
 	h.LockAdditions()
@@ -125,5 +151,9 @@ func (h *History) Clear() {
 	h.position = 0
 }
 
-func (h *History) SetSavePosition()        { h.savedPosition = h.position }
+// SetSavePosition records the current position as the saved state.
+func (h *History) SetSavePosition() { h.savedPosition = h.position }
+
+// HasPendingChanges reports whether the history has changes since the last
+// saved position.
 func (h *History) HasPendingChanges() bool { return h.savedPosition != h.position }
