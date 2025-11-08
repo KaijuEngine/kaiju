@@ -67,10 +67,8 @@ cmake .. -G "MinGW Makefiles" .. -DCMAKE_TOOLCHAIN_FILE=%NDK_HOME%/build/cmake/a
 cmake --build . --config Release
 ```
 
-## Building content
-The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
-```bash
-go run ./generators/project_template/main.go
+## Compiling Android
+To compile for android, you can go to the engine root folder and run:
+```sh
+go run src/generators/engine_builds/engine_builds_android/main.go
 ```
-
-This will generate the project template zip file. This zip file is extracted into the folder that you select when creating a new project. It has a copy of the source code and content. Also be sure that whenever you pull new changes in content from the repository, you run this command again to update the project template. This will also require you to re-extract the project template into your project folder.
