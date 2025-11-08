@@ -47,13 +47,17 @@ type History struct {
 	position      int
 	limit         int
 	savedPosition int
+	inAction      bool
 }
 
 func (h *History) Initialize(limit int) { h.limit = limit }
 
 func (h *History) Add(m Memento) {
 	defer tracing.NewRegion("History.Add").End()
-	for i := h.position; i < len(h.undoStack); i++ {
+	if h.inAction {
+		return
+	}
+	for i := len(h.undoStack) - 1; i >= h.position; i-- {
 		h.undoStack[i].Delete()
 	}
 	h.undoStack = h.undoStack[:h.position]
@@ -68,31 +72,37 @@ func (h *History) Add(m Memento) {
 
 func (h *History) Undo() {
 	defer tracing.NewRegion("History.Undo").End()
+	h.inAction = true
 	if h.position == 0 {
 		return
 	}
 	h.position--
 	m := h.undoStack[h.position]
 	m.Undo()
+	h.inAction = false
 }
 
 func (h *History) Redo() {
 	defer tracing.NewRegion("History.Redo").End()
+	h.inAction = true
 	if h.position == len(h.undoStack) {
 		return
 	}
 	m := h.undoStack[h.position]
 	m.Redo()
 	h.position++
+	h.inAction = false
 }
 
 func (h *History) Clear() {
 	defer tracing.NewRegion("History.Clear").End()
+	h.inAction = true
 	for i := 0; i < len(h.undoStack); i++ {
 		h.undoStack[i].Exit()
 	}
 	h.undoStack = klib.RemakeSlice(h.undoStack)
 	h.position = 0
+	h.inAction = false
 }
 
 func (h *History) SetSavePosition()        { h.savedPosition = h.position }
