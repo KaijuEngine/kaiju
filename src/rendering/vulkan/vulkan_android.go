@@ -1,3 +1,6 @@
+//go:build android
+// +build android
+
 /******************************************************************************/
 /* vulkan_android.go                                                          */
 /******************************************************************************/
@@ -35,14 +38,11 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build android
-// +build android
-
 package vulkan
 
 /*
 #cgo android LDFLAGS: -Wl,--no-warn-mismatch
-#cgo android CFLAGS: -DVK_USE_PLATFORM_ANDROID_KHR -D_NDK_MATH_NO_SOFTFP=1 -mfpu=vfp
+#cgo android CFLAGS: -DVK_USE_PLATFORM_ANDROID_KHR -D_NDK_MATH_NO_SOFTFP=1
 
 #include <android/native_window.h>
 

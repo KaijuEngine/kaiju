@@ -1,5 +1,7 @@
+//go:build android
+
 /******************************************************************************/
-/* input.x11.go                                                               */
+/* window.android.vk.go                                                       */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,18 +37,8 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build linux && !android
+package windowing
 
-package ui
-
-func (input *Input) internalCopyToClipboard() {
-	// TODO:  Fill out this clipboard code
-}
-
-func (input *Input) internalCutToClipboard() {
-	// TODO:  Fill out this clipboard code
-}
-
-func (input *Input) internalPasteFromClipboard() {
-	// TODO:  Fill out this clipboard code
+func getInstanceExtensions() []string {
+	return []string{"VK_KHR_surface\x00", "VK_KHR_android_surface\x00"}
 }

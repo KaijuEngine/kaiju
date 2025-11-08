@@ -818,3 +818,22 @@ func (input *Input) forceLabelAndPlaceholderRerender() {
 	id.label.LabelData().renderRequired = true
 	id.placeholder.LabelData().renderRequired = true
 }
+
+func (input *Input) internalCopyToClipboard() {
+	data := input.InputData()
+	l := data.label
+	if data.selectEnd != data.selectStart {
+		str := l.LabelData().text[data.selectStart:data.selectEnd]
+		input.Base().Host().Window.CopyToClipboard(str)
+	}
+}
+
+func (input *Input) internalCutToClipboard() {
+	input.internalCopyToClipboard()
+	input.deleteSelection(false)
+}
+
+func (input *Input) internalPasteFromClipboard() {
+	text := input.man.Value().Host.Window.ClipboardContents()
+	input.InsertText(text)
+}
