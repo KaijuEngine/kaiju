@@ -161,7 +161,19 @@ func (ed *Editor) update(deltaTime float64) {
 	if ed.blurred {
 		return
 	}
-	if ed.host.Window.Keyboard.KeyDown(hid.KeyboardKeyF1) {
+	kb := &ed.host.Window.Keyboard
+	if kb.HasCtrl() {
+		if kb.KeyDown(hid.KeyboardKeyZ) {
+			if !kb.HasShift() {
+				ed.history.Undo()
+			} else {
+				ed.history.Redo()
+			}
+		} else if kb.KeyDown(hid.KeyboardKeyY) {
+			ed.history.Redo()
+		}
+	}
+	if kb.KeyDown(hid.KeyboardKeyF1) {
 		ed.blurred = true
 		ed.BlurInterface()
 		ai_prompt.Show(ed.host, func() {
