@@ -94,8 +94,8 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 	} else {
 		matStr, err := m.assetDatabase.ReadText(key)
 		if err != nil {
-			matStr, err = m.assetDatabase.ReadText(
-				filepath.Join(key + ".material"))
+			key = filepath.Join(key + ".material")
+			matStr, err = m.assetDatabase.ReadText(key)
 		}
 		if err != nil {
 			slog.Error("failed to load the material", "material", key, "error", err)
@@ -111,6 +111,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
+		material.Id = key
 		m.materials[materialData.Name] = material
 		return material, nil
 	}

@@ -66,7 +66,13 @@ func (e *StageEntity) Depth() int {
 	return depth
 }
 
-func (e *StageEntity) SetMaterial(mat *rendering.Material, host *engine.Host) {
+func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager) {
+	manager.history.Add(&attachMaterialHistory{
+		m:         manager,
+		e:         e,
+		fromMatId: e.StageData.Description.Material,
+		toMatId:   mat.Id,
+	})
 	e.StageData.ShaderData.Destroy()
 	e.StageData.Description.Textures = make([]string, len(mat.Textures))
 	e.StageData.Description.Material = mat.Id
@@ -78,11 +84,11 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, host *engine.Host) {
 	}
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
-		Renderer:   host.Window.Renderer,
+		Renderer:   manager.host.Window.Renderer,
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
 	}
-	host.Drawings.AddDrawing(draw)
+	manager.host.Drawings.AddDrawing(draw)
 }

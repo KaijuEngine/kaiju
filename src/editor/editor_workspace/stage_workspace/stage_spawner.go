@@ -327,5 +327,5 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 		mat.Id = cc.Id()
 		mat = w.Host.MaterialCache().AddMaterial(mat)
 	}
-	e.SetMaterial(mat.CreateInstance(mat.Textures), w.Host)
+	e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
 }
