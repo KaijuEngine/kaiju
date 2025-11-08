@@ -39,7 +39,8 @@ package audio
 
 /*
 #cgo windows LDFLAGS: -L../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
-#cgo linux LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
+#cgo android LDFLAGS: -L../../libs -lsoloud_android -lstdc++
+#cgo linux,!android LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
 #include <stdlib.h>
 #include "soloud_c.h"
 */

@@ -56,6 +56,17 @@ cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON 
 cmake --build . --config Release
 ```
 
+### Soloud Android (on Windows)
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud
+cd contrib
+mkdir build
+cd build
+cmake .. -G "MinGW Makefiles" .. -DCMAKE_TOOLCHAIN_FILE=%NDK_HOME%/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release -DSOLLOUD_OPENSLES=1 -DSOLLOUD_STATIC=1 -DSOLLOUD_BUILD_DEMOS=0 -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_C_API=ON
+cmake --build . --config Release
+```
+
 ## Building content
 The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
 ```bash
