@@ -94,6 +94,36 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 func (b *MenuBar) Focus() { b.uiMan.EnableUpdate() }
 func (b *MenuBar) Blur()  { b.uiMan.DisableUpdate() }
 
+func (b *MenuBar) SetWorkspaceStage() {
+	t, _ := b.doc.GetElementById("tabStage")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceContent() {
+	t, _ := b.doc.GetElementById("tabContent")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceShading() {
+	t, _ := b.doc.GetElementById("tabShading")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceAnimation() {
+	t, _ := b.doc.GetElementById("tabAnimation")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceUI() {
+	t, _ := b.doc.GetElementById("tabUI")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceSettings() {
+	t, _ := b.doc.GetElementById("tabSettings")
+	b.selectTab(t)
+}
+
 func (b *MenuBar) openMenuTarget(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.openMenuTarget").End()
 	target := e.Attribute("data-target")

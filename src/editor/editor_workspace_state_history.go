@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_workspace_state.go                                                  */
+/* editor_workspace_state_history.go                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -39,49 +39,21 @@ package editor
 
 import "kaiju/platform/profiler/tracing"
 
-type WorkspaceState = uint8
-
-const (
-	WorkspaceStateNone = WorkspaceState(iota)
-	WorkspaceStateStage
-	WorkspaceStateContent
-	WorkspaceStateShading
-	WorkspaceStateUI
-	WorkspaceStateSettings
-)
-
-func (ed *Editor) setWorkspaceState(state WorkspaceState) {
-	defer tracing.NewRegion("Editor.setWorkspaceState").End()
-	if ed.workspaceState == state {
-		return
-	}
-	if ed.workspaceState != WorkspaceStateNone {
-		ed.history.Add(&workspaceStateHistory{
-			ed:   ed,
-			from: ed.workspaceState,
-			to:   state,
-		})
-	}
-	if ed.currentWorkspace != nil {
-		ed.currentWorkspace.Close()
-	}
-	ed.workspaceState = state
-	switch ed.workspaceState {
-	case WorkspaceStateStage:
-		ed.currentWorkspace = &ed.workspaces.stage
-		ed.globalInterfaces.menuBar.SetWorkspaceStage()
-	case WorkspaceStateContent:
-		ed.currentWorkspace = &ed.workspaces.content
-		ed.globalInterfaces.menuBar.SetWorkspaceContent()
-	case WorkspaceStateShading:
-		ed.currentWorkspace = &ed.workspaces.shading
-		ed.globalInterfaces.menuBar.SetWorkspaceShading()
-	case WorkspaceStateUI:
-		ed.currentWorkspace = &ed.workspaces.ui
-		ed.globalInterfaces.menuBar.SetWorkspaceUI()
-	case WorkspaceStateSettings:
-		ed.currentWorkspace = &ed.workspaces.settings
-		ed.globalInterfaces.menuBar.SetWorkspaceSettings()
-	}
-	ed.currentWorkspace.Open()
+type workspaceStateHistory struct {
+	ed   *Editor
+	from WorkspaceState
+	to   WorkspaceState
 }
+
+func (h *workspaceStateHistory) Redo() {
+	defer tracing.NewRegion("workspaceStateHistory.Redo").End()
+	h.ed.setWorkspaceState(h.to)
+}
+
+func (h *workspaceStateHistory) Undo() {
+	defer tracing.NewRegion("workspaceStateHistory.Undo").End()
+	h.ed.setWorkspaceState(h.from)
+}
+
+func (h *workspaceStateHistory) Delete() {}
+func (h *workspaceStateHistory) Exit()   {}
