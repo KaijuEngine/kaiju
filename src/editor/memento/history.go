@@ -44,17 +44,37 @@ import (
 
 type History struct {
 	undoStack     []Memento
+	transaction   *HistoryTransaction
 	position      int
 	limit         int
 	savedPosition int
-	inAction      bool
+	lockAdditions bool
 }
 
-func (h *History) Initialize(limit int) { h.limit = limit }
+func (h *History) Initialize(limit int)  { h.limit = limit }
+func (h *History) LockAdditions()        { h.lockAdditions = true }
+func (h *History) UnlockAdditions()      { h.lockAdditions = false }
+func (h *History) IsInTransaction() bool { return h.transaction != nil }
+
+func (h *History) BeginTransaction() {
+	h.transaction = &HistoryTransaction{}
+}
+
+func (h *History) CommitTransaction() {
+	t := h.transaction
+	h.transaction = nil
+	h.Add(t)
+}
+
+func (h *History) CancelTransaction() { h.transaction = nil }
 
 func (h *History) Add(m Memento) {
 	defer tracing.NewRegion("History.Add").End()
-	if h.inAction {
+	if h.IsInTransaction() {
+		h.transaction.stack = append(h.transaction.stack, m)
+		return
+	}
+	if h.lockAdditions {
 		return
 	}
 	for i := len(h.undoStack) - 1; i >= h.position; i-- {
@@ -72,37 +92,37 @@ func (h *History) Add(m Memento) {
 
 func (h *History) Undo() {
 	defer tracing.NewRegion("History.Undo").End()
-	h.inAction = true
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	if h.position == 0 {
 		return
 	}
 	h.position--
 	m := h.undoStack[h.position]
 	m.Undo()
-	h.inAction = false
 }
 
 func (h *History) Redo() {
 	defer tracing.NewRegion("History.Redo").End()
-	h.inAction = true
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	if h.position == len(h.undoStack) {
 		return
 	}
 	m := h.undoStack[h.position]
 	m.Redo()
 	h.position++
-	h.inAction = false
 }
 
 func (h *History) Clear() {
 	defer tracing.NewRegion("History.Clear").End()
-	h.inAction = true
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	for i := 0; i < len(h.undoStack); i++ {
 		h.undoStack[i].Exit()
 	}
 	h.undoStack = klib.RemakeSlice(h.undoStack)
 	h.position = 0
-	h.inAction = false
 }
 
 func (h *History) SetSavePosition()        { h.savedPosition = h.position }
