@@ -40,6 +40,7 @@ package editor_stage_manager
 import (
 	"encoding/json"
 	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -73,6 +74,7 @@ type StageManager struct {
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
 	stageId               string
 	host                  *engine.Host
+	history               *memento.History
 	entities              []*StageEntity
 	selected              []*StageEntity
 	worldBVH              *collision.BVH
@@ -88,7 +90,10 @@ type StageEntityEditorData struct {
 	Description stages.EntityDescription
 }
 
-func (m *StageManager) Initialize(host *engine.Host) { m.host = host }
+func (m *StageManager) Initialize(host *engine.Host, history *memento.History) {
+	m.host = host
+	m.history = history
+}
 
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()

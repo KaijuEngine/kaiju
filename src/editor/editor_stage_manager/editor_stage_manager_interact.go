@@ -71,8 +71,15 @@ func (m *StageManager) IsSelectedById(id string) bool {
 
 func (m *StageManager) ClearSelection() {
 	defer tracing.NewRegion("StageManager.ClearSelection").End()
+	if len(m.selected) == 0 {
+		return
+	}
 	cpy := slices.Clone(m.selected)
 	m.selected = klib.WipeSlice(m.selected)
+	m.history.Add(&selectHistory{
+		manager: m,
+		from:    cpy,
+	})
 	for i := range cpy {
 		m.clearShaderDataFlag(cpy[i])
 		m.OnEntityDeselected.Execute(cpy[i])
@@ -86,9 +93,14 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 			return
 		}
 	}
-	m.setShaderDataFlag(e)
+	history := &selectHistory{
+		manager: m,
+		from:    slices.Clone(m.selected),
+	}
 	m.selected = append(m.selected, e)
-	m.OnEntitySelected.Execute(e)
+	history.to = slices.Clone(m.selected)
+	m.history.Add(history)
+	m.selectEntityInternal(e)
 }
 
 func (m *StageManager) SelectEntityById(id string) {
@@ -116,9 +128,13 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	defer tracing.NewRegion("StageManager.DeselectEntity").End()
 	for i := range m.selected {
 		if m.selected[i] == e {
+			history := &selectHistory{
+				manager: m,
+				from:    slices.Clone(m.selected),
+			}
 			m.selected = slices.Delete(m.selected, i, i+1)
-			m.clearShaderDataFlag(e)
-			m.OnEntityDeselected.Execute(e)
+			history.to = slices.Clone(m.selected)
+			m.deselectEntityInternal(e)
 			return
 		}
 	}
@@ -229,4 +245,14 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 		}
 	}
 	procChildren(root)
+}
+
+func (m *StageManager) selectEntityInternal(e *StageEntity) {
+	m.setShaderDataFlag(e)
+	m.OnEntitySelected.Execute(e)
+}
+
+func (m *StageManager) deselectEntityInternal(e *StageEntity) {
+	m.clearShaderDataFlag(e)
+	m.OnEntityDeselected.Execute(e)
 }

@@ -75,7 +75,7 @@ func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
 func (v *StageView) Initialize(host *engine.Host, history *memento.History, snapSettings *editor_settings.SnapSettings) {
 	defer tracing.NewRegion("StageView.Initialize").End()
-	v.manager.Initialize(host)
+	v.manager.Initialize(host, history)
 	v.manager.NewStage()
 	v.host = host
 	v.transformTool.Initialize(host, v, history, snapSettings)
