@@ -100,7 +100,8 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 	m.selected = append(m.selected, e)
 	history.to = slices.Clone(m.selected)
 	m.history.Add(history)
-	m.selectEntityInternal(e)
+	m.setShaderDataFlag(e)
+	m.OnEntitySelected.Execute(e)
 }
 
 func (m *StageManager) SelectEntityById(id string) {
@@ -134,7 +135,8 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 			}
 			m.selected = slices.Delete(m.selected, i, i+1)
 			history.to = slices.Clone(m.selected)
-			m.deselectEntityInternal(e)
+			m.clearShaderDataFlag(e)
+			m.OnEntityDeselected.Execute(e)
 			return
 		}
 	}
@@ -245,14 +247,4 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 		}
 	}
 	procChildren(root)
-}
-
-func (m *StageManager) selectEntityInternal(e *StageEntity) {
-	m.setShaderDataFlag(e)
-	m.OnEntitySelected.Execute(e)
-}
-
-func (m *StageManager) deselectEntityInternal(e *StageEntity) {
-	m.clearShaderDataFlag(e)
-	m.OnEntityDeselected.Execute(e)
 }
