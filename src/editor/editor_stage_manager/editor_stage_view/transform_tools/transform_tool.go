@@ -40,13 +40,11 @@ package transform_tools
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
-	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -183,7 +181,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 
 func (t *TransformTool) resetChange() {
 	defer tracing.NewRegion("TransformTool.resetChange").End()
-	all := t.hierarchyRespectiveSelection()
+	all := t.stage.Manager().HierarchyRespectiveSelection()
 	for i := range t.resets {
 		switch t.state {
 		case ToolStateMove:
@@ -199,7 +197,7 @@ func (t *TransformTool) resetChange() {
 
 func (t *TransformTool) updateResets() {
 	defer tracing.NewRegion("TransformTool.updateResets").End()
-	entities := t.hierarchyRespectiveSelection()
+	entities := t.stage.Manager().HierarchyRespectiveSelection()
 	t.resets = t.resets[:0]
 	t.unsnapped = t.unsnapped[:0]
 	t.resets = slices.Grow(t.resets, len(entities))
@@ -219,7 +217,7 @@ func (t *TransformTool) updateResets() {
 
 func (t *TransformTool) addHistory() {
 	defer tracing.NewRegion("TransformTool.addHistory").End()
-	all := t.hierarchyRespectiveSelection()
+	all := t.stage.Manager().HierarchyRespectiveSelection()
 	to := make([]matrix.Vec3, len(all))
 	from := make([]matrix.Vec3, len(all))
 	for i, e := range all {
@@ -245,7 +243,7 @@ func (t *TransformTool) addHistory() {
 	}
 	t.history.Add(&toolHistory{
 		stage:    t.stage,
-		entities: slices.Clone(t.hierarchyRespectiveSelection()),
+		entities: slices.Clone(t.stage.Manager().HierarchyRespectiveSelection()),
 		from:     from,
 		to:       to,
 		state:    t.state,
@@ -337,28 +335,9 @@ func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) m
 	return hit
 }
 
-func (t *TransformTool) hierarchyRespectiveSelection() []*editor_stage_manager.StageEntity {
-	sel := slices.Clone(t.stage.Manager().Selection())
-	for i := 0; i < len(sel); i++ {
-		for j := i + 1; j < len(sel); j++ {
-			if sel[j].HasParent(&sel[i].Entity) {
-				sel = klib.RemoveUnordered(sel, j)
-				j--
-				continue
-			}
-			if sel[i].HasParent(&sel[j].Entity) {
-				sel = klib.RemoveUnordered(sel, i)
-				i--
-				break
-			}
-		}
-	}
-	return sel
-}
-
 func (t *TransformTool) updateDrag(host *engine.Host) {
 	defer tracing.NewRegion("TransformTool.updateDrag").End()
-	sel := t.hierarchyRespectiveSelection()
+	sel := t.stage.Manager().HierarchyRespectiveSelection()
 	if len(sel) == 0 {
 		return
 	}
@@ -537,7 +516,7 @@ func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 			snapScale = t.snapSettings.ScaleIncrement
 		}
 	}
-	for i, e := range t.hierarchyRespectiveSelection() {
+	for i, e := range t.stage.Manager().HierarchyRespectiveSelection() {
 		et := &e.Transform
 		switch t.state {
 		case ToolStateMove:

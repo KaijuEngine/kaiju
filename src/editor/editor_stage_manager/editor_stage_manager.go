@@ -172,17 +172,39 @@ func (m *StageManager) DestroySelected() {
 	if len(m.selected) == 0 {
 		return
 	}
-	sel := slices.Clone(m.selected)
 	m.history.BeginTransaction()
 	defer m.history.CommitTransaction()
-	m.ClearSelection()
-	for _, e := range sel {
-		m.OnEntityDestroy.Execute(e)
+	sel := []*StageEntity{}
+	for _, e := range m.selected {
+		sel = klib.AppendUnique(sel, explodeEntityHierarchy(e)...)
 	}
-	m.history.Add(&objectDeleteHistory{
+	m.ClearSelection()
+	h := &objectDeleteHistory{
 		m:        m,
 		entities: sel,
-	})
+	}
+	m.history.Add(h)
+	// Being lazy (smart?), just calling Redo here to do the action
+	h.Redo()
+}
+
+func (m *StageManager) HierarchyRespectiveSelection() []*StageEntity {
+	sel := slices.Clone(m.Selection())
+	for i := 0; i < len(sel); i++ {
+		for j := i + 1; j < len(sel); j++ {
+			if sel[j].HasParent(&sel[i].Entity) {
+				sel = klib.RemoveUnordered(sel, j)
+				j--
+				continue
+			}
+			if sel[i].HasParent(&sel[j].Entity) {
+				sel = klib.RemoveUnordered(sel, i)
+				i--
+				break
+			}
+		}
+	}
+	return sel
 }
 
 func (m *StageManager) EntityById(id string) (*StageEntity, bool) {
@@ -200,8 +222,19 @@ func (m *StageManager) EntityById(id string) (*StageEntity, bool) {
 
 func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 	defer tracing.NewRegion("StageManager.SetEntityParent").End()
-	child.SetParent(&parent.Entity)
+	lastParent := EntityToStageEntity(child.Parent)
+	if parent != nil {
+		child.SetParent(&parent.Entity)
+	} else {
+		child.SetParent(nil)
+	}
 	m.OnEntityChangedParent.Execute(child)
+	m.history.Add(&changeParentHistory{
+		m:          m,
+		e:          child,
+		prevParent: lastParent,
+		nextParent: parent,
+	})
 }
 
 // Clear will destroy all entities that are managed by this stage manager.
@@ -444,4 +477,17 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 	})
 	return nil
+}
+
+func explodeEntityHierarchy(e *StageEntity) []*StageEntity {
+	all := []*StageEntity{}
+	var explode func(p *StageEntity)
+	explode = func(p *StageEntity) {
+		all = append(all, p)
+		for _, c := range p.Children {
+			explode(EntityToStageEntity(c))
+		}
+	}
+	explode(e)
+	return all
 }

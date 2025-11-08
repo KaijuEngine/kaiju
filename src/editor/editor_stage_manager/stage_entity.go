@@ -42,12 +42,18 @@ import (
 	"kaiju/engine"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
+	"unsafe"
 )
 
 type StageEntity struct {
 	engine.Entity
 	StageData    StageEntityEditorData
 	dataBindings []*entity_data_binding.EntityDataEntry
+	isDeleted    bool
+}
+
+func EntityToStageEntity(e *engine.Entity) *StageEntity {
+	return (*StageEntity)(unsafe.Pointer(e))
 }
 
 func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }

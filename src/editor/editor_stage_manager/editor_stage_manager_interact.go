@@ -44,7 +44,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"slices"
-	"unsafe"
 )
 
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
@@ -228,7 +227,7 @@ func (m *StageManager) setShaderDataFlag(root *StageEntity) {
 			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		}
 		for i := range e.Children {
-			procChildren((*StageEntity)(unsafe.Pointer(e.Children[i])))
+			procChildren(EntityToStageEntity(e.Children[i]))
 		}
 	}
 	procChildren(root)
@@ -243,7 +242,7 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 			}
 		}
 		for i := range e.Children {
-			procChildren((*StageEntity)(unsafe.Pointer(e.Children[i])))
+			procChildren(EntityToStageEntity(e.Children[i]))
 		}
 	}
 	procChildren(root)

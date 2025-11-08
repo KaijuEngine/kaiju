@@ -45,7 +45,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
 	"strings"
-	"unsafe"
 	"weak"
 )
 
@@ -231,8 +230,9 @@ func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEnti
 
 func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEntity) {
 	w := hui.workspace.Value()
-	elm, _ := w.Doc.GetElementById(e.StageData.Description.Id)
-	hui.workspace.Value().Doc.RemoveElement(elm)
+	if elm, ok := w.Doc.GetElementById(e.StageData.Description.Id); ok {
+		hui.workspace.Value().Doc.RemoveElement(elm)
+	}
 }
 
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
@@ -263,16 +263,24 @@ func (hui *WorkspaceHierarchyUI) entityChangedParent(e *editor_stage_manager.Sta
 	if !ok {
 		return
 	}
-	p := (*editor_stage_manager.StageEntity)(unsafe.Pointer(e.Parent))
-	parent, ok := w.Doc.GetElementById(p.StageData.Description.Id)
-	if !ok {
-		return
+	p := editor_stage_manager.EntityToStageEntity(e.Parent)
+	var parent *document.Element
+	if p != nil {
+		if parent, ok = w.Doc.GetElementById(p.StageData.Description.Id); !ok {
+			return
+		}
+	} else {
+		parent = hui.entityList
 	}
 	w.Doc.ChangeElementParent(child, parent)
 	if parent.Parent.Value() == hui.entityList {
 		w.Doc.SetElementClasses(parent, "hierarchyEntry")
 	}
-	w.Doc.SetElementClasses(child, "hierarchyEntry", "hierarchyEntryChild")
+	if parent == hui.entityList {
+		w.Doc.SetElementClasses(child, "hierarchyEntry")
+	} else {
+		w.Doc.SetElementClasses(child, "hierarchyEntry", "hierarchyEntryChild")
+	}
 }
 
 func (hui *WorkspaceHierarchyUI) dragStopped() {
