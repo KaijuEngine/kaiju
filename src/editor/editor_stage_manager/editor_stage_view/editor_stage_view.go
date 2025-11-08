@@ -47,6 +47,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -107,6 +108,9 @@ func (v *StageView) Update(deltaTime float64) {
 		v.updateGridPosition()
 	} else {
 		v.processViewportInteractions()
+	}
+	if v.host.Window.Keyboard.KeyDown(hid.KeyboardKeyDelete) {
+		v.manager.DestroySelected()
 	}
 }
 

@@ -57,6 +57,7 @@ import (
 	"kaiju/stages"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 	"weak"
 
@@ -69,6 +70,7 @@ const StageIdPrefix = "stage_"
 // the entities on the stage.
 type StageManager struct {
 	OnEntitySpawn         events.EventWithArg[*StageEntity]
+	OnEntityDestroy       events.EventWithArg[*StageEntity]
 	OnEntitySelected      events.EventWithArg[*StageEntity]
 	OnEntityDeselected    events.EventWithArg[*StageEntity]
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
@@ -104,6 +106,7 @@ func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
 
 func (m *StageManager) SetStageId(id string, cache *content_database.Cache) error {
+	defer tracing.NewRegion("StageManager.SetStageId").End()
 	newId := StageIdPrefix + id
 	if _, err := cache.Read(newId); err == nil {
 		return StageAlreadyExistsError{id}
@@ -121,13 +124,19 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 // will internally just call #AddEntityWithId
 func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
-	return m.AddEntityWithId(uuid.NewString(), name, point)
+	e := m.AddEntityWithId(uuid.NewString(), name, point)
+	m.history.Add(&objectSpawnHistory{
+		m: m,
+		e: e,
+	})
+	return e
 }
 
 // AddEntityWithId will create an entity for the stage with a specified Id
 // rather than generating one. This entity will have a #StageEntityData
 // automatically added to it as named data named "stage".
 func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
+	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
 	e.SetName(name)
@@ -158,7 +167,26 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 	return e
 }
 
+func (m *StageManager) DestroySelected() {
+	defer tracing.NewRegion("StageManager.DestroySelected").End()
+	if len(m.selected) == 0 {
+		return
+	}
+	sel := slices.Clone(m.selected)
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
+	m.ClearSelection()
+	for _, e := range sel {
+		m.OnEntityDestroy.Execute(e)
+	}
+	m.history.Add(&objectDeleteHistory{
+		m:        m,
+		entities: sel,
+	})
+}
+
 func (m *StageManager) EntityById(id string) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.EntityById").End()
 	if id == "" {
 		return nil, false
 	}
@@ -171,6 +199,7 @@ func (m *StageManager) EntityById(id string) (*StageEntity, bool) {
 }
 
 func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
+	defer tracing.NewRegion("StageManager.SetEntityParent").End()
 	child.SetParent(&parent.Entity)
 	m.OnEntityChangedParent.Execute(child)
 }
@@ -185,14 +214,17 @@ func (m *StageManager) Clear() {
 }
 
 func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
+	defer tracing.NewRegion("StageManager.AddBVH").End()
 	collision.AddSubBVH(&m.worldBVH, bvh, transform)
 }
 
 func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
+	defer tracing.NewRegion("StageManager.RemoveBVH").End()
 	collision.RemoveSubBVH(&m.worldBVH, bvh)
 }
 
 func (m *StageManager) toStage() stages.Stage {
+	defer tracing.NewRegion("StageManager.toStage").End()
 	s := stages.Stage{Id: m.stageId}
 	rootCount := 0
 	for i := range m.entities {

@@ -283,10 +283,8 @@ func (host *Host) ClearEntities() {
 }
 
 // RemoveEntity removes an entity from the host. This will remove the entity
-// from the standard entity pool. This will determine if the entity is in the
-// editor entity pool and remove it from there if so, otherwise it will be
-// removed from the standard entity pool. Entities are not ordered, so they are
-// removed in O(n) time. Do not assume the entities are ordered at any time.
+// from the standard entity pool. Entities are not ordered, do not assume the
+// entities are ordered at any time.
 func (host *Host) RemoveEntity(entity *Entity) {
 	for i, e := range host.entities {
 		if e == entity {

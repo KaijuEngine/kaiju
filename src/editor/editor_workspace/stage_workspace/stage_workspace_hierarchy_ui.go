@@ -83,6 +83,7 @@ func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 	hui.workspace = weak.Make(w)
 	man := w.stageView.Manager()
 	man.OnEntitySpawn.Add(hui.entityCreated)
+	man.OnEntityDestroy.Add(hui.entityDestroyed)
 	man.OnEntitySelected.Add(hui.entitySelected)
 	man.OnEntityDeselected.Add(hui.entityDeselected)
 	man.OnEntityChangedParent.Add(hui.entityChangedParent)
@@ -226,9 +227,12 @@ func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEnti
 	cpy := w.Doc.DuplicateElement(hui.entityTemplate)
 	w.Doc.SetElementId(cpy, e.StageData.Description.Id)
 	cpy.Children[0].Children[0].UI.ToLabel().SetText(e.Name())
-	e.OnDestroy.Add(func() {
-		hui.workspace.Value().Doc.RemoveElement(cpy)
-	})
+}
+
+func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEntity) {
+	w := hui.workspace.Value()
+	elm, _ := w.Doc.GetElementById(e.StageData.Description.Id)
+	hui.workspace.Value().Doc.RemoveElement(elm)
 }
 
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
