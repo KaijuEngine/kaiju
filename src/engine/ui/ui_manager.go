@@ -50,19 +50,20 @@ import (
 )
 
 type Manager struct {
-	Host          *engine.Host
-	Group         Group
-	pools         pooling.PoolGroup[UI]
-	hovered       [][]*UI
-	updateId      engine.UpdateId
-	skipUpdate    int
-	resizeEvtId   events.Id
-	windowResized bool
+	Host            *engine.Host
+	Group           Group
+	pools           pooling.PoolGroup[UI]
+	hovered         [][]*UI
+	updateId        engine.UpdateId
+	skipUpdate      int
+	resizeEvtId     events.Id
+	windowResized   bool
+	windowMinimized bool
 }
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
-	if man.skipUpdate > 0 && !man.windowResized {
+	if man.windowMinimized || (man.skipUpdate > 0 && !man.windowResized) {
 		return
 	}
 	// There is no update without a host, this is safe
@@ -141,8 +142,9 @@ func (man *Manager) Init(host *engine.Host) {
 	man.Group.Attach(man.Host)
 	man.Group.SetThreaded()
 	man.resizeEvtId = host.Window.OnResize.Add(func() {
-		if wMan.Value() != nil {
-			wMan.Value().windowResized = true
+		if m := wMan.Value(); m != nil {
+			m.windowResized = true
+			m.windowMinimized = m.Host.Window.IsMinimized()
 		}
 	})
 	type manCleanup struct {

@@ -144,6 +144,11 @@ func FindWindowAtPoint(x, y int) (*Window, bool) {
 	return nil, false
 }
 
+func (w *Window) IsMinimized() bool {
+	// TODO:  Is this accurate for X11?
+	return w.width == 0 || w.height == 0
+}
+
 func (w *Window) ToScreenPosition(x, y int) (int, int) {
 	leftBorder := (w.right - w.left - w.width) / 2
 	topBorder := (w.bottom - w.top - w.height) - leftBorder // Borders are same?
