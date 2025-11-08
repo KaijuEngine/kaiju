@@ -51,6 +51,17 @@
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"
 			}
+		}, {
+			"name": "Debug Build Android",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/engine_builds/engine_builds_android",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1",
+				// "GOEXPERIMENT": "greenteagc"
+			}
 		}
 	]
 }

@@ -29,3 +29,4 @@ interpreter/kaiju-*
 
 # Go pprof files
 *.prof
+kaiju_android
