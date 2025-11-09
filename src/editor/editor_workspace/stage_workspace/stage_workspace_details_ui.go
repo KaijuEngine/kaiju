@@ -211,85 +211,112 @@ func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
 	}
 }
 
-func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
-	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Position()
-		p.SetX(float32(v))
-		s.Transform.SetPosition(p)
+func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v float32) {
+	man := dui.workspace.Value().stageView.Manager()
+	sel := man.HierarchyRespectiveSelection()
+	typ := transformHistoryTypePosition
+	switch kind {
+	case transformPos:
+		typ = transformHistoryTypePosition
+	case transformRot:
+		typ = transformHistoryTypeRotation
+	case transformScale:
+		typ = transformHistoryTypeScale
 	}
+	tformHistory := &detailTransformHistory{
+		transformType: typ,
+		entities:      slices.Clone(sel),
+	}
+	for _, s := range sel {
+		var cur matrix.Vec3
+		switch kind {
+		case transformPos:
+			cur = s.Transform.Position()
+		case transformRot:
+			cur = s.Transform.Rotation()
+		case transformScale:
+			cur = s.Transform.Scale()
+		}
+		tformHistory.prevValues = append(tformHistory.prevValues, cur)
+		switch axis {
+		case 0:
+			cur.SetX(v)
+		case 1:
+			cur.SetY(v)
+		case 2:
+			cur.SetZ(v)
+		}
+		switch kind {
+		case transformPos:
+			s.Transform.SetPosition(cur)
+		case transformRot:
+			s.Transform.SetRotation(cur)
+		case transformScale:
+			s.Transform.SetScale(cur)
+		}
+		tformHistory.nextValues = append(tformHistory.nextValues, cur)
+	}
+	history := dui.workspace.Value().ed.History()
+	if last, ok := history.Last(); ok {
+		if t, ok := last.(*detailTransformHistory); ok {
+			tformHistory.prevValues = t.prevValues
+		}
+	}
+	history.AddOrReplaceLast(tformHistory)
+}
+
+func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setPosX").End()
+	v := toFloat(e.UI.ToInput().Text())
+	dui.applyTransform(transformPos, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosY(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setPosY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Position()
-		p.SetY(float32(v))
-		s.Transform.SetPosition(p)
-	}
+	dui.applyTransform(transformPos, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosZ(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setPosZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Position()
-		p.SetZ(float32(v))
-		s.Transform.SetPosition(p)
-	}
+	dui.applyTransform(transformPos, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotX(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setRotX").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Rotation()
-		p.SetX(float32(v))
-		s.Transform.SetRotation(p)
-	}
+	dui.applyTransform(transformRot, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotY(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setRotY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Rotation()
-		p.SetY(float32(v))
-		s.Transform.SetRotation(p)
-	}
+	dui.applyTransform(transformRot, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotZ(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setRotZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Rotation()
-		p.SetZ(float32(v))
-		s.Transform.SetRotation(p)
-	}
+	dui.applyTransform(transformRot, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleX(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setScaleX").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Scale()
-		p.SetX(float32(v))
-		s.Transform.SetScale(p)
-	}
+	dui.applyTransform(transformScale, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleY(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setScaleY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Scale()
-		p.SetY(float32(v))
-		s.Transform.SetScale(p)
-	}
+	dui.applyTransform(transformScale, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
+defer tracing.NewRegion("WorkspaceDetailsUI.setScaleZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	for _, s := range dui.workspace.Value().stageView.Manager().Selection() {
-		p := s.Transform.Scale()
-		p.SetZ(float32(v))
-		s.Transform.SetScale(p)
-	}
+	dui.applyTransform(transformScale, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
