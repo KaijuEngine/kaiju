@@ -278,6 +278,7 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 }
 
 func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.dblClickEntry").End()
 	id := e.Attribute("id")
 	w := cui.workspace.Value()
 	cc, err := w.ed.Cache().Read(id)
