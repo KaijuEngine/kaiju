@@ -218,12 +218,19 @@ func (dui *WorkspaceDetailsUI) showDetails(*document.Element) {
 
 func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.submitDetailsName").End()
-	txt := e.UI.ToInput().Text()
+	newName := e.UI.ToInput().Text()
 	w := dui.workspace.Value()
-	for _, e := range w.stageView.Manager().Selection() {
-		e.SetName(txt)
-		w.hierarchyUI.updateEntityName(e.StageData.Description.Id, txt)
+	h := &detailSetNameHistory{
+		w:        dui,
+		nextName: newName,
 	}
+	for _, e := range w.stageView.Manager().Selection() {
+		h.entities = append(h.entities, e)
+		h.prevName = append(h.prevName, e.Name())
+		e.SetName(newName)
+		w.hierarchyUI.updateEntityName(e.StageData.Description.Id, newName)
+	}
+	w.ed.History().Add(h)
 }
 
 func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v float32) {
