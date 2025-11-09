@@ -238,6 +238,10 @@ func (win *ShaderDesigner) ShowMaterialWindow(id string, data rendering.Material
 	win.ChangeWindowState(StateMaterial)
 }
 
+func (win *ShaderDesigner) Close() {
+	win.ChangeWindowState(StateNone)
+}
+
 func (win *ShaderDesigner) resetDataValues() {
 	win.shader = ShaderDesignerShader{}
 	win.material = ShaderDesignerMaterial{}

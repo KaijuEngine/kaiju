@@ -103,6 +103,7 @@ func (w *ShadingWorkspace) Close() {
 	defer tracing.NewRegion("ShadingWorkspace.Close").End()
 	w.CommonClose()
 	w.stageView.Close()
+	w.designer.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
 }
 
