@@ -45,13 +45,23 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"weak"
+)
+
+type transformKind int
+
+const (
+	transformPos transformKind = iota
+	transformRot
+	transformScale
 )
 
 type WorkspaceDetailsUI struct {
@@ -76,6 +86,7 @@ type WorkspaceDetailsUI struct {
 }
 
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.setupFuncs").End()
 	return map[string]func(*document.Element){
 		"hideDetails":       dui.hideDetails,
 		"showDetails":       dui.showDetails,
@@ -144,24 +155,25 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 }
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entitySelected").End()
 	if len(dui.workspace.Value().stageView.Manager().Selection()) > 1 {
 		// TODO:  Support multiple objects being selected here
 		return
 	}
 	dui.detailsArea.Children[0].UI.Show()
-	dui.detailsName.UI.ToInput().SetText(e.Name())
+	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
 	p := e.Transform.Position()
 	r := e.Transform.Rotation()
 	s := e.Transform.Scale()
-	dui.detailsPosX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.X(), 3))
-	dui.detailsPosY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.Y(), 3))
-	dui.detailsPosZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(p.Z(), 3))
-	dui.detailsRotX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.X(), 3))
-	dui.detailsRotY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.Y(), 3))
-	dui.detailsRotZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(r.Z(), 3))
-	dui.detailsScaleX.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.X(), 3))
-	dui.detailsScaleY.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.Y(), 3))
-	dui.detailsScaleZ.UI.ToInput().SetText(klib.FormatFloatToNDecimals(s.Z(), 3))
+	dui.detailsPosX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.X(), 3))
+	dui.detailsPosY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Y(), 3))
+	dui.detailsPosZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Z(), 3))
+	dui.detailsRotX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.X(), 3))
+	dui.detailsRotY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Y(), 3))
+	dui.detailsRotZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Z(), 3))
+	dui.detailsScaleX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.X(), 3))
+	dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Y(), 3))
+	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
 	w := dui.workspace.Value()
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
 		w.Doc.RemoveElement(dui.boundEntityDataList.Children[i])
@@ -179,10 +191,12 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entityDeselected").End()
 	dui.hideIfNothingSelected()
 }
 
 func (dui *WorkspaceDetailsUI) hideIfNothingSelected() {
+	defer tracing.NewRegion("WorkspaceDetailsUI.hideIfNothingSelected").End()
 	if len(dui.workspace.Value().stageView.Manager().Selection()) == 0 {
 		dui.detailsArea.Children[0].UI.Hide()
 	}
@@ -203,6 +217,7 @@ func (dui *WorkspaceDetailsUI) showDetails(*document.Element) {
 }
 
 func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.submitDetailsName").End()
 	txt := e.UI.ToInput().Text()
 	w := dui.workspace.Value()
 	for _, e := range w.stageView.Manager().Selection() {
@@ -266,60 +281,61 @@ func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v fl
 }
 
 func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setPosX").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setPosX").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformPos, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosY(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setPosY").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setPosY").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformPos, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosZ(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setPosZ").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setPosZ").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformPos, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotX(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setRotX").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setRotX").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformRot, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotY(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setRotY").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setRotY").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformRot, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotZ(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setRotZ").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setRotZ").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformRot, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleX(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setScaleX").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleX").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformScale, 0, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleY(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setScaleY").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleY").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformScale, 1, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
-defer tracing.NewRegion("WorkspaceDetailsUI.setScaleZ").End()
+	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleZ").End()
 	v := toFloat(e.UI.ToInput().Text())
 	dui.applyTransform(transformScale, 2, float32(v))
 }
 
 func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.searchEntityData").End()
 	dui.entityDataList.UI.Show()
 	dui.entityDataListTemplate.UI.Hide()
 	q := strings.ToLower(e.UI.ToInput().Text())
@@ -334,6 +350,7 @@ func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 }
 
 func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.addEntityData").End()
 	key := e.InnerLabel().Text()
 	w := dui.workspace.Value()
 	g, ok := w.ed.Project().EntityDataBinding(key)
@@ -351,6 +368,7 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
 	w := dui.workspace.Value()
 	bindIdx := len(dui.boundEntityDataTemplate.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(dui.boundEntityDataTemplate)
@@ -392,6 +410,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 }
 
 func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.changeData").End()
 	idx, err := strconv.Atoi(e.Parent.Value().Attribute("data-fieldidx"))
 	if err != nil {
 		return
@@ -424,6 +443,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.reloadDataList").End()
 	missing := []int{}
 	removed := []*document.Element{}
 	w := dui.workspace.Value()
@@ -459,6 +479,7 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 }
 
 func toInt(str string) int64 {
+	defer tracing.NewRegion("toInt").End()
 	if str == "" {
 		return 0
 	}
@@ -469,6 +490,7 @@ func toInt(str string) int64 {
 }
 
 func toUint(str string) uint64 {
+	defer tracing.NewRegion("toUint").End()
 	if str == "" {
 		return 0
 	}
@@ -479,6 +501,7 @@ func toUint(str string) uint64 {
 }
 
 func toFloat(str string) float64 {
+	defer tracing.NewRegion("toFloat").End()
 	if str == "" {
 		return 0
 	}

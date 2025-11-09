@@ -303,7 +303,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			case "text":
 				input := panel.Base().ToInput()
 				input.Init(e.Attribute("placeholder"))
-				input.SetText(e.Attribute("value"))
+				input.SetTextWithoutEvent(e.Attribute("value"))
 				if d.firstInput == nil {
 					d.firstInput = input
 				}
