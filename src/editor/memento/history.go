@@ -40,6 +40,7 @@ package memento
 import (
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"reflect"
 )
 
 type History struct {
@@ -111,6 +112,39 @@ func (h *History) Add(m Memento) {
 		h.undoStack[0].Exit()
 		h.undoStack = h.undoStack[1:]
 	}
+}
+
+func (h *History) Last() (Memento, bool) {
+	if h.position == 0 {
+		return nil, false
+	}
+	return h.undoStack[h.position-1], true
+}
+
+// AddOrReplaceLast inserts a new memento into the history. If the most recent
+// memento (the one at h.position‑1) has the same concrete type as the supplied
+// memento, it is replaced instead of creating a new entry. This is useful for
+// collapsing consecutive operations of the same kind (e.g. repeated brush
+// strokes) into a single undo step.
+func (h *History) AddOrReplaceLast(m Memento) {
+	defer tracing.NewRegion("History.AddOrReplaceLast").End()
+	if h.IsInTransaction() {
+		h.transaction.stack = append(h.transaction.stack, m)
+		return
+	}
+	if h.lockAdditions {
+		return
+	}
+	if h.position > 0 {
+		lastIdx := h.position - 1
+		last := h.undoStack[lastIdx]
+		if reflect.TypeOf(last) == reflect.TypeOf(m) {
+			last.Delete()
+			h.undoStack[lastIdx] = m
+			return
+		}
+	}
+	h.Add(m)
 }
 
 // Undo reverts the most recent memento, moving the current position back.
