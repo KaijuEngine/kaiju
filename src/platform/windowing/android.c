@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* host_container.go                                                          */
+/* android.c                                                                  */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,100 +35,92 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package host_container
+#if defined(__android__)
 
-import (
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/logging"
-	"kaiju/klib"
-	"kaiju/platform/chrono"
-	"kaiju/platform/profiler/tracing"
-	"log/slog"
-	"runtime"
-	"strconv"
-	"strings"
-	"weak"
-)
+#include <jni.h>
+#include <stdlib.h>
+#include <android/window.h>
+#include <android/choreographer.h>
+#include <android_native_app_glue.h>
 
-type Container struct {
-	Host         *engine.Host
-	runFunctions []func()
-	PrepLock     chan struct{}
+#include "log.h"
+
+static inline bool local_wait_for_engine(struct android_app* state) {
+    struct android_poll_source* source;
+    while (state->userData == NULL) {
+        while (ALooper_pollOnce(0, NULL, NULL, (void**)&source) >= 0) {
+            // Process this event.
+            if (source != NULL) {
+                source->process(state, source);
+            }
+            // Check if we are exiting.
+            if (state->destroyRequested != 0) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
-func (c *Container) RunFunction(f func()) {
-	c.runFunctions = append(c.runFunctions, f)
+static int32_t local_input_handle(struct android_app* app, AInputEvent* event) {
+	return 0;
 }
 
-func (c *Container) Run(width, height, x, y int, platformState any) error {
-	runtime.LockOSThread()
-	if err := c.Host.Initialize(width, height, x, y, platformState); err != nil {
-		slog.Error("Failed to initialize the host", "error", err)
-		c.Host.Close()
-		return err
+static void local_handle_cmd(struct android_app* app, int32_t cmd) {
+	switch (cmd) {
+		case APP_CMD_SAVE_STATE:
+			break;
+		case APP_CMD_INIT_WINDOW:
+			break;
+		case APP_CMD_TERM_WINDOW:
+			break;
+		case APP_CMD_PAUSE:
+		case APP_CMD_STOP:
+			break;
+		case APP_CMD_GAINED_FOCUS:
+			break;
+		case APP_CMD_WINDOW_RESIZED:
+			break;
+		case APP_CMD_LOST_FOCUS:
+			break;
+		case APP_CMD_CONFIG_CHANGED:
+			break;
+		case APP_CMD_DESTROY:
+			break;
 	}
-	if err := c.Host.InitializeRenderer(); err != nil {
-		slog.Error("Failed to initialize the renderer", "error", err)
-		c.Host.Close()
-		return err
-	}
-	if err := c.Host.InitializeAudio(); err != nil {
-		slog.Error("Failed to initialize audio", "error", err)
-		//return err
-	}
-	clock := chrono.HighResolutionTimer{}
-	clock.Start()
-	// Do one clean update and render before opening the prep lock
-	c.Host.Update(0)
-	c.Host.Render()
-	c.PrepLock <- struct{}{}
-	traceRegionName := strings.Builder{}
-	for !c.Host.Closing {
-		traceRegionName.Reset()
-		traceRegionName.WriteString("Frame: ")
-		traceRegionName.WriteString(strconv.FormatUint(c.Host.Frame(), 10))
-		r := tracing.NewRegion(traceRegionName.String())
-		c.Host.WaitForFrameRate()
-		deltaTime := clock.Stop()
-		clock.Start()
-		c.Host.Update(deltaTime)
-		if !c.Host.Closing {
-			c.Host.Render()
-		}
-		r.End()
-	}
-	c.Host.Teardown()
-	runtime.UnlockOSThread()
-	return nil
 }
 
-func New(name string, logStream *logging.LogStream, adb assets.Database) *Container {
-	defer tracing.NewRegion("host_container.New").End()
-	host := engine.NewHost(name, logStream, adb)
-	c := &Container{
-		Host:         host,
-		runFunctions: []func(){},
-		PrepLock:     make(chan struct{}),
+void window_main(void* androidApp) {
+	struct android_app* state = androidApp;
+	log_info("Entering native application");
+	state->userData = NULL;
+	state->onAppCmd = local_handle_cmd;
+	if (state->savedState != NULL) {
+		log_info("Engine loading from save state");
+		// TODO:  Load from saved state
 	}
-	cw := weak.Make(c)
-	c.Host.Updater.AddUpdate(func(deltaTime float64) {
-		defer tracing.NewRegion("engine.Host.runFunctions").End()
-		cc := cw.Value()
-		if cc == nil {
-			return
-		}
-		if len(cc.runFunctions) > 0 {
-			for _, f := range cc.runFunctions {
-				f()
-			}
-			cc.runFunctions = klib.WipeSlice(cc.runFunctions)
-		}
-	})
-	return c
+	// Read all pending events.
+    if (!local_wait_for_engine(state)) {
+	    log_info("Kill requested before host constructed!");
+        return;
+    }
+	state->onInputEvent = local_input_handle;
+	//ANativeActivity_setWindowFlags(state->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
+	//Engine* eng = (Engine*)state->userData;
+	//engine_frame(eng); // Catch frame up to just before rendering
+	log_info("Presenting splash screen");
+	//ALooper_acquire(ALooper_forThread());
+    struct android_poll_source* source;
+	log_info("Beginning device event loop");
+    while (!state->destroyRequested) {
+        int result = ALooper_pollOnce(-1, NULL, NULL, (void**)&source);
+        if (result == ALOOPER_POLL_ERROR) {
+            log_err("ALooper_pollOnce returned an error");
+        }
+        if (source != NULL) {
+            source->process(state, source);
+        }
+    }
 }
 
-func (c *Container) Close() {
-	defer tracing.NewRegion("Container.Close").End()
-	c.Host.Close()
-}
+#endif

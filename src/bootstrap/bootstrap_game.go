@@ -55,14 +55,15 @@ import (
 
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool
 
-func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
+func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformState any) {
 	adb, err := game.ContentDatabase()
 	if err != nil {
 		slog.Error("failed to start the game, could not access the content database")
 		return
 	}
 	container := host_container.New(build.Title.String(), logStream, adb)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight,
+		-1, -1, platformState)
 	<-container.PrepLock
 	initExternalGameService()
 	container.RunFunction(func() {
@@ -85,8 +86,8 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
 	terminateExternalGameService()
 }
 
-func bootstrapInternal(logStream *logging.LogStream, game GameInterface) {
-	bootstrapLoop(logStream, game)
+func bootstrapInternal(logStream *logging.LogStream, game GameInterface, platformState any) {
+	bootstrapLoop(logStream, game, platformState)
 	if build.Debug {
 		runtime.GC()
 		for !containerCleanedUp {

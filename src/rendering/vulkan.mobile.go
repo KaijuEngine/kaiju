@@ -39,18 +39,21 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
-func preTransform(scs vkSwapChainSupportDetails) vk.SurfaceTransformFlagBits {
-	return vk.SurfaceTransformIdentityBit
+func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+	return vulkan_const.SurfaceTransformIdentityBit
 }
 
-const vkGeometryShaderValid = vk.True
-const compositeAlpha = vk.CompositeAlphaInheritBit
+const vkGeometryShaderValid = vulkan_const.True
+const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
 const vkInstanceFlags = 1
 
-func vkColorSpace(_ vk.SurfaceFormat) vk.ColorSpace {
-	return vk.ColorSpaceSrgbNonlinear
+func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
+	return vulkan_const.ColorSpaceSrgbNonlinear
 }
 
 func vkInstanceExtensions() []string {

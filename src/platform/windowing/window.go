@@ -94,7 +94,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets assets.Database) (*Window, error) {
+func New(windowName string, width, height, x, y int, assets assets.Database, platformState any) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
@@ -115,7 +115,7 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	w.createWindow(windowName+"\x00\x00", x, y)
+	w.createWindow(windowName+"\x00\x00", x, y, platformState)
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window " + windowName)
 	}
@@ -131,6 +131,10 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	w.Renderer, err = selectRenderer(w, windowName, assets)
 	w.x, w.y = w.position()
 	return w, err
+}
+
+func NewBinding(ptr unsafe.Pointer, assets assets.Database) {
+
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {

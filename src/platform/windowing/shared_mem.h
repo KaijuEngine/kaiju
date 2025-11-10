@@ -75,7 +75,6 @@ typedef struct {
 		int y;
 		bool active;
 	} lockCursor;
-
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
 } SharedMem;
 

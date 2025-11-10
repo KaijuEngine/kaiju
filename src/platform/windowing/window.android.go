@@ -43,11 +43,19 @@ import (
 	"unsafe"
 )
 
+/*
+#cgo noescape window_main
+#include "windowing.h"
+*/
+import "C"
+
 func scaleScrollDelta(delta float32) float32 {
 	return 0
 }
 
-func (w *Window) createWindow(windowName string, x, y int) {
+func (w *Window) createWindow(_ string, _, _ int, platformState any) {
+	w.handle = platformState.(unsafe.Pointer)
+	C.window_main(w.handle)
 }
 
 func (w *Window) showWindow() {

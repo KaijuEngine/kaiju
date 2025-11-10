@@ -29,4 +29,8 @@ interpreter/kaiju-*
 
 # Go pprof files
 *.prof
-kaiju_android
+
+# Android files
+project_templates/
+project_templates/android/app/src/main/jni_libs
+kaiju_android.so
