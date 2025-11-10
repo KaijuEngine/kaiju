@@ -39,15 +39,20 @@
 
 #include <jni.h>
 #include <stdlib.h>
+#include <android/log.h>
 #include <android/window.h>
 #include <android/choreographer.h>
 #include <android_native_app_glue.h>
 
-#include "log.h"
+#define log_verbose(...) (void)__android_log_print(ANDROID_LOG_VERBOSE, "KaijuEngineWindow" __VA_OPT__(,) __VA_ARGS__)
+#define log_info(...) (void)__android_log_print(ANDROID_LOG_INFO, "KaijuEngineWindow" __VA_OPT__(,) __VA_ARGS__)
+#define log_warn(...) (void)__android_log_print(ANDROID_LOG_WARN, "KaijuEngineWindow" __VA_OPT__(,) __VA_ARGS__)
+#define log_err(...) (void)__android_log_print(ANDROID_LOG_ERROR, "KaijuEngineWindow" __VA_OPT__(,) __VA_ARGS__)
+#define debug(...) (void)__android_log_print(ANDROID_LOG_INFO, "KaijuEngineWindow" __VA_OPT__(,) __VA_ARGS__)
 
-static inline bool local_wait_for_engine(struct android_app* state) {
+static inline bool local_wait_for_window_init(struct android_app* state) {
     struct android_poll_source* source;
-    while (state->userData == NULL) {
+    while (state->userData == state) {
         while (ALooper_pollOnce(0, NULL, NULL, (void**)&source) >= 0) {
             // Process this event.
             if (source != NULL) {
@@ -71,6 +76,18 @@ static void local_handle_cmd(struct android_app* app, int32_t cmd) {
 		case APP_CMD_SAVE_STATE:
 			break;
 		case APP_CMD_INIT_WINDOW:
+			log_info("Window initialize requested");
+			if (app->window != NULL) {
+				log_info("Application window found, checking for dummy data");
+				if (app->userData == app) {
+					log_info("Application dummy data found, clearing it");
+					app->userData = NULL;
+					if (app->savedState != NULL) {
+						// TODO:  Need to do this later
+						log_info("Saved state was found, loading state");
+					}
+				}
+			}
 			break;
 		case APP_CMD_TERM_WINDOW:
 			break;
@@ -93,33 +110,41 @@ static void local_handle_cmd(struct android_app* app, int32_t cmd) {
 void window_main(void* androidApp) {
 	struct android_app* state = androidApp;
 	log_info("Entering native application");
-	state->userData = NULL;
+	state->userData = state;
 	state->onAppCmd = local_handle_cmd;
 	if (state->savedState != NULL) {
 		log_info("Engine loading from save state");
 		// TODO:  Load from saved state
 	}
 	// Read all pending events.
-    if (!local_wait_for_engine(state)) {
-	    log_info("Kill requested before host constructed!");
+    if (!local_wait_for_window_init(state)) {
+	    log_info("Kill requested before construction!");
         return;
     }
 	state->onInputEvent = local_input_handle;
 	//ANativeActivity_setWindowFlags(state->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
-	//Engine* eng = (Engine*)state->userData;
-	//engine_frame(eng); // Catch frame up to just before rendering
-	log_info("Presenting splash screen");
 	//ALooper_acquire(ALooper_forThread());
+}
+
+void* pull_android_window(void* androidApp) {
+	struct android_app* state = androidApp;
+	log_info("Returning the android window: %p", state->window);
+	return state->window;
+}
+
+void window_poll(void* androidApp) {
+	struct android_app* state = androidApp;
     struct android_poll_source* source;
-	log_info("Beginning device event loop");
-    while (!state->destroyRequested) {
-        int result = ALooper_pollOnce(-1, NULL, NULL, (void**)&source);
+	int result;
+	while ((result = ALooper_pollOnce(0, NULL, NULL, (void**)&source)) != ALOOPER_POLL_TIMEOUT) {
         if (result == ALOOPER_POLL_ERROR) {
             log_err("ALooper_pollOnce returned an error");
+            break;
         }
         if (source != NULL) {
             source->process(state, source);
         }
+        source = NULL;
     }
 }
 

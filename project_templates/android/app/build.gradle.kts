@@ -6,6 +6,12 @@ android {
     namespace = "com.kaijuengine.kaijuengine"
     compileSdk = 34
 
+    sourceSets {
+        named("main") {
+            jniLibs.srcDir("src/main/jniLibs")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.kaijuengine.kaijuengine"
         minSdk = 28
@@ -27,6 +33,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            packaging {
+                jniLibs.excludes.add("**/libVkLayer_khronos_validation.so")
+            }
+        }
+        debug {
+            packaging {
+                jniLibs.excludes.remove("**/libVkLayer_khronos_validation.so")
+            }
         }
     }
     compileOptions {

@@ -11,6 +11,11 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("kaijuengine")
 
+add_library(app-glue STATIC
+        ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+target_include_directories(app-glue PUBLIC
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -28,9 +33,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
         native-lib.cpp)
 
-add_library(kaiju_android SHARED IMPORTED)
-set_target_properties(kaiju_android PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/../jni_libs/arm64-v8a/libkaiju_android.so
+target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
+        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}
 )
 
 # Specifies libraries CMake should link to your target library. You
@@ -39,5 +43,6 @@ set_target_properties(kaiju_android PROPERTIES
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         kaiju_android
+        app-glue
         android
         log)

@@ -44,10 +44,32 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
+const (
+	vkGeometryShaderValid = vulkan_const.True
+	compositeAlpha        = vulkan_const.CompositeAlphaInheritBit
+	vkInstanceFlags       = 0
+)
+
 func (vr *Vulkan) createSurface(window RenderingContainer) bool {
 	// TODO:  Fill in the nil args
 	var surface vk.Surface
-	result := vk.CreateAndroidSurface(vr.instance, nil, nil, &surface)
+	result := vk.CreateAndroidSurfaceHelper(window.PlatformInstance(), vr.instance, &surface)
 	vr.surface = surface
 	return result == vulkan_const.Success
+}
+
+func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+	return vulkan_const.SurfaceTransformIdentityBit
+}
+
+func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
+	return vulkan_const.ColorSpaceSrgbNonlinear
+}
+
+func vkInstanceExtensions() []string {
+	return []string{}
+}
+
+func vkDeviceExtensions() []string {
+	return []string{}
 }

@@ -38,5 +38,7 @@
 #if defined(__android__)
 
 void window_main(void* androidApp);
+void* pull_android_window(void* androidApp);
+void window_poll(void* androidApp);
 
 #endif

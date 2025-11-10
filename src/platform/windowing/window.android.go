@@ -40,11 +40,14 @@
 package windowing
 
 import (
+	"kaiju/platform/profiler/tracing"
 	"unsafe"
 )
 
 /*
 #cgo noescape window_main
+#cgo noescape window_poll
+#cgo noescape pull_android_window
 #include "windowing.h"
 */
 import "C"
@@ -56,6 +59,7 @@ func scaleScrollDelta(delta float32) float32 {
 func (w *Window) createWindow(_ string, _, _ int, platformState any) {
 	w.handle = platformState.(unsafe.Pointer)
 	C.window_main(w.handle)
+	w.instance = unsafe.Pointer(C.pull_android_window(w.handle))
 }
 
 func (w *Window) showWindow() {
@@ -68,9 +72,13 @@ func (w *Window) pollController() {
 }
 
 func (w *Window) pollEvents() {
+	defer tracing.NewRegion("Window.pollEvents").End()
+	C.window_poll(w.handle)
 }
 
 func (w *Window) poll() {
+	w.pollController()
+	w.pollEvents()
 }
 
 func (w *Window) cursorStandard() {
@@ -107,8 +115,8 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	return 0, 0, nil
 }
 
-func (w *Window) cHandle() unsafe.Pointer   { return nil }
-func (w *Window) cInstance() unsafe.Pointer { return nil }
+func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
+func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) focus() {
 }

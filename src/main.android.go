@@ -41,10 +41,14 @@ package main
 
 import (
 	"C"
+	"kaiju/engine/systems/logging"
 	"unsafe"
 )
 
 //export AndroidMain
-func AndroidMain(platformState unsafe.Pointer) { _main(platformState) }
+func AndroidMain(platformState unsafe.Pointer) {
+	logging.ExtPlatformLogInfo("Launching Kaiju Engine!")
+	_main(platformState)
+}
 
 func main() {}

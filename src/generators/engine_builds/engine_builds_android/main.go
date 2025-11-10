@@ -63,12 +63,12 @@ func main() {
 	if plat == "" {
 		panic("build platform not yet specified")
 	}
-	outPath := filepath.Join("../project_templates/android/app/src/main/jni_libs/", arch)
+	outPath := filepath.Join("../project_templates/android/app/src/main/jniLibs/", arch)
 	args := []string{
 		"build",
 		"-buildmode=c-shared",
-		"-o", filepath.Join(outPath, "/libkaiju_android.so"),
 		"-tags=debug,editor",
+		"-o", filepath.Join(outPath, "/libkaiju_android.so"),
 		".",
 	}
 	cmd := exec.Command("go", args...)

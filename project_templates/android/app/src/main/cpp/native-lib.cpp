@@ -1,10 +1,7 @@
-#include <jni.h>
-#include <string>
+#include <android_native_app_glue.h>
 #include "libkaiju_android.h"
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_kaijuengine_kaijuengine_MainActivity_stringFromJNI(JNIEnv* env, jobject /* this */) {
-	AndroidMain(nullptr);
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
+void android_main(struct android_app* state) {
+    app_dummy();
+    AndroidMain(state);
 }

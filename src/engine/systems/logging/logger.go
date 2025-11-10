@@ -67,14 +67,17 @@ func (l *LogStream) writeLine(line string) {
 	}
 	level := line[levelOffset:]
 	if strings.HasPrefix(level, "WARN") {
+		ExtPlatformLogWarn(line)
 		if !l.OnWarn.IsEmpty() {
 			l.OnWarn.Execute(line, klib.TraceStrings(line, 7))
 		}
 	} else if strings.HasPrefix(level, "ERROR") {
+		ExtPlatformLogError(line)
 		if !l.OnError.IsEmpty() {
 			l.OnError.Execute(line, klib.TraceStrings(line, 7))
 		}
 	} else {
+		ExtPlatformLogInfo(line)
 		l.OnInfo.Execute(line)
 	}
 	if build.Debug {

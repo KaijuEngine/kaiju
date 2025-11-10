@@ -102,6 +102,16 @@ func CreateAndroidSurface(instance Instance, pCreateInfo *AndroidSurfaceCreateIn
 	return __v
 }
 
+func CreateAndroidSurfaceHelper(window unsafe.Pointer, instance Instance, surface *Surface) vulkan_const.Result {
+	cinstance := *(*C.VkInstance)(unsafe.Pointer(&instance))
+	createInfo := C.VkAndroidSurfaceCreateInfoKHR{}
+	createInfo.sType = C.VkStructureType(vulkan_const.StructureTypeAndroidSurfaceCreateInfo)
+	createInfo.window = (*C.ANativeWindow)(window)
+	cSurface := (*C.VkSurfaceKHR)(unsafe.Pointer(surface))
+	__ret := C.callVkCreateAndroidSurfaceKHR(cinstance, &createInfo, nil, cSurface)
+	return (vulkan_const.Result)(__ret)
+}
+
 // allocAndroidSurfaceCreateInfoMemory allocates memory for type C.VkAndroidSurfaceCreateInfoKHR in C.
 // The caller is responsible for freeing the this memory via C.free.
 func allocAndroidSurfaceCreateInfoMemory(n int) unsafe.Pointer {

@@ -1,36 +1,20 @@
 package com.kaijuengine.kaijuengine;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.NativeActivity;
 
 import android.os.Bundle;
-import android.widget.TextView;
+import android.view.View;
 
-import com.kaijuengine.kaijuengine.databinding.ActivityMainBinding;
-
-public class MainActivity extends AppCompatActivity {
-
-    // Used to load the 'kaijuengine' library on application startup.
+public class MainActivity extends NativeActivity {
     static {
         System.loadLibrary("kaijuengine");
+        System.loadLibrary("kaiju_android");
     }
-
-    private ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        int SDK_INT = android.os.Build.VERSION.SDK_INT;
+        View decorView = getWindow().getDecorView();
         super.onCreate(savedInstanceState);
-
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        // Example of a call to a native method
-        TextView tv = binding.sampleText;
-        tv.setText(stringFromJNI());
     }
-
-    /**
-     * A native method that is implemented by the 'kaijuengine' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
 }
