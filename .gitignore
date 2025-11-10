@@ -31,6 +31,6 @@ interpreter/kaiju-*
 *.prof
 
 # Android files
-project_templates/
+project_templates/android/app/src/main/cpp/libkaiju_android.h
 project_templates/android/app/src/main/jni_libs
 kaiju_android.so
