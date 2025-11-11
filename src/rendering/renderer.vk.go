@@ -127,7 +127,9 @@ func (vr *Vulkan) WaitForRender() {
 func (vr *Vulkan) createGlobalUniformBuffers() {
 	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
 	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
-		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
+		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit),
+			vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
+			&vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
 	}
 }
 
@@ -331,6 +333,13 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 	}
+	// Destroy the previous global uniform buffers
+	for i := 0; i < maxFramesInFlight; i++ {
+		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
+		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
@@ -340,6 +349,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	vr.createGlobalUniformBuffers()
 	vr.createSyncObjects()
 	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
 	for _, v := range vr.renderPassCache {
