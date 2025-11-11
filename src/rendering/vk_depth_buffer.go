@@ -87,6 +87,7 @@ func (vr *Vulkan) findDepthStencilFormat() vulkan_const.Format {
 }
 
 func (vr *Vulkan) createDepthResources() bool {
+	slog.Info("creating vulkan depth resources")
 	depthFormat := vr.findDepthFormat()
 	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height,
 		1, vr.msaaSamples, depthFormat, vulkan_const.ImageTilingOptimal,

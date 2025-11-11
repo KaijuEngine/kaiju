@@ -125,6 +125,7 @@ func (vr *Vulkan) WaitForRender() {
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
+	slog.Info("creating vulkan global uniform buffers")
 	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
 	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
 		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit),
@@ -134,6 +135,7 @@ func (vr *Vulkan) createGlobalUniformBuffers() {
 }
 
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
+	slog.Info("creating vulkan descriptor pool")
 	poolSizes := make([]vk.DescriptorPoolSize, 4)
 	poolSizes[0].Type = vulkan_const.DescriptorTypeUniformBuffer
 	poolSizes[0].DescriptorCount = counts * vr.swapImageCount
@@ -231,6 +233,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 }
 
 func (vr *Vulkan) createColorResources() bool {
+	slog.Info("creating vulkan color resources")
 	colorFormat := vr.swapImages[0].Format
 	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height, 1,
 		vr.msaaSamples, colorFormat, vulkan_const.ImageTilingOptimal,
@@ -249,7 +252,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 		combinedDrawings: NewDrawings(),
 		renderPassCache:  make(map[string]*RenderPass),
 	}
-
+	slog.Info("creating vulkan application info")
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vulkan_const.StructureTypeApplicationInfo
 	appInfo.PApplicationName = (*vk.Char)(unsafe.Pointer(&([]byte(applicationName + "\x00"))[0]))
@@ -366,6 +369,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
+	slog.Info("creating vulkan sync objects")
 	sInfo := vk.SemaphoreCreateInfo{}
 	sInfo.SType = vulkan_const.StructureTypeSemaphoreCreateInfo
 	fInfo := vk.FenceCreateInfo{}
@@ -404,6 +408,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 }
 
 func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
+	slog.Info("creating vulkan swap chain render pass")
 	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
 		return false
