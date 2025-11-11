@@ -117,11 +117,11 @@ func init() {
 func (vr *Vulkan) WaitForRender() {
 	defer tracing.NewRegion("Vulkan.WaitForRender").End()
 	vk.DeviceWaitIdle(vr.device)
-	fences := [2]vk.Fence{}
+	fences := [maxFramesInFlight]vk.Fence{}
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
 	}
-	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vulkan_const.True, math.MaxUint64)
+	vk.WaitForFences(vr.device, uint32(vr.swapImageCount), &fences[0], vulkan_const.True, math.MaxUint64)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
