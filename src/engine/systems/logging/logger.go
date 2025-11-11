@@ -44,6 +44,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -58,6 +59,7 @@ func (l *LogStream) writeLine(line string) {
 		return
 	}
 	if !strings.HasPrefix(line, "time=") {
+		ExtPlatformLogInfo(line)
 		println(line)
 		return
 	}
@@ -80,7 +82,7 @@ func (l *LogStream) writeLine(line string) {
 		ExtPlatformLogInfo(line)
 		l.OnInfo.Execute(line)
 	}
-	if build.Debug {
+	if build.Debug && runtime.GOOS != "android" {
 		os.Stdout.WriteString(line + "\n")
 	}
 }
