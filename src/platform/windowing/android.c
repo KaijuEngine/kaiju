@@ -329,7 +329,7 @@ static void local_handle_cmd(struct android_app* app, int32_t cmd) {
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
 			if (sm->windowWidth != w && sm->windowHeight != h) {
-				log_info("Window resized from <%d, %d> to <%d, %d>",
+				log_info("Window is resizing from <%d, %d> to <%d, %d>",
 					sm->windowWidth, sm->windowHeight, w, h);
 				sm->windowWidth = w;
 				sm->windowHeight = h;
