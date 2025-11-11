@@ -63,11 +63,7 @@ func (l *LogStream) writeLine(line string) {
 		println(line)
 		return
 	}
-	levelOffset := 21
-	if strings.HasPrefix(line, "time=") {
-		levelOffset = 41
-	}
-	level := line[levelOffset:]
+	level := line[strings.Index(line, "level=")+len("level="):]
 	if strings.HasPrefix(level, "WARN") {
 		ExtPlatformLogWarn(line)
 		if !l.OnWarn.IsEmpty() {

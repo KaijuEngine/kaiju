@@ -3,6 +3,10 @@
 package logging
 
 /*
+#cgo noescape log_verbose
+#cgo noescape log_info
+#cgo noescape log_warn
+#cgo noescape log_error
 #include <stdlib.h>
 #include <android/log.h>
 
