@@ -48,9 +48,15 @@ import (
 #cgo noescape window_main
 #cgo noescape window_poll
 #cgo noescape pull_android_window
+#include <stdint.h>
 #include "windowing.h"
 */
 import "C"
+
+//export goProcessEvents
+func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
+	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
+}
 
 func scaleScrollDelta(delta float32) float32 {
 	return 0
@@ -58,12 +64,13 @@ func scaleScrollDelta(delta float32) float32 {
 
 func (w *Window) createWindow(_ string, _, _ int, platformState any) {
 	w.handle = platformState.(unsafe.Pointer)
-	C.window_main(w.handle)
+	w.lookupId = nextLookupId.Add(1)
+	windowLookup.Store(w.lookupId, w)
+	C.window_main(w.handle, C.uint64_t(w.lookupId))
 	w.instance = unsafe.Pointer(C.pull_android_window(w.handle))
 }
 
-func (w *Window) showWindow() {
-}
+func (w *Window) showWindow() {}
 
 func destroyWindow(handle unsafe.Pointer) {
 }

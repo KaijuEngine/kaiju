@@ -499,6 +499,40 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 	}
 }
 
+func (w *Window) processTouchStateEvent(evt *TouchStateWindowEvent) {
+	defer tracing.NewRegion("Window.processTouchStateEvent").End()
+	switch evt.actionState {
+	case touchActionStateUp:
+		w.Touch.SetUp(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateMove:
+		w.Touch.SetMoved(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateCancel:
+		w.Touch.Cancel()
+	}
+}
+
+func (w *Window) processStylusStateEvent(evt *StylusStateWindowEvent) {
+	defer tracing.NewRegion("Window.processStylusStateEvent").End()
+	switch evt.actionState {
+	case stylusActionStateHoverEnter:
+		w.Stylus.SetActionState(hid.StylusActionHoverEnter)
+	case stylusActionStateHoverMove:
+		w.Stylus.SetActionState(hid.StylusActionHoverMove)
+	case stylusActionStateHoverExit:
+		w.Stylus.SetActionState(hid.StylusActionHoverExit)
+	case stylusActionStateDown:
+		w.Stylus.SetActionState(hid.StylusActionDown)
+	case stylusActionStateMove:
+		w.Stylus.SetActionState(hid.StylusActionMove)
+	case stylusActionStateUp:
+		w.Stylus.SetActionState(hid.StylusActionUp)
+	case stylusActionStateNone:
+	default:
+		w.Stylus.SetActionState(hid.StylusActionNone)
+	}
+	w.Stylus.Set(evt.x, evt.y, evt.pressure, evt.distance, float32(w.height))
+}
+
 func (w *Window) removeFromActiveWindows() {
 	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
 	for i := range activeWindows {
@@ -568,6 +602,10 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
 		case windowEventTypeControllerState:
 			win.processControllerStateEvent(asControllerStateWindowEvent(body))
+		case windowEventTypeTouchState:
+			win.processTouchStateEvent(asTouchStateWindowEvent(body))
+		case windowEventTypeStylusState:
+			win.processStylusStateEvent(asStylusStateWindowEvent(body))
 		case windowEventTypeFatal:
 			events = body
 			win.fatalFromNativeAPI = true

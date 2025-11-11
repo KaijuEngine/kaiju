@@ -76,6 +76,13 @@ typedef struct {
 		bool active;
 	} lockCursor;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
+#if defined(__android__)
+	const ASensor* accelerometer;
+	ASensorManager* sensorManager;
+	ASensorEventQueue* sensorQueue;
+#else
+	size_t _0[3]; // Keep structure size consistant between platforms
+#endif
 } SharedMem;
 
 static inline void shared_mem_flush_events(SharedMem* mem) {

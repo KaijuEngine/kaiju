@@ -53,8 +53,9 @@ typedef enum {
 	WINDOW_EVENT_TYPE_MOUSE_BUTTON = 7,
 	WINDOW_EVENT_TYPE_KEYBOARD_BUTTON = 8,
 	WINDOW_EVENT_TYPE_CONTROLLER_STATE = 9,
-	WINDOW_EVENT_TYPE_STYLUS_STATE = 10,
-	WINDOW_EVENT_TYPE_FATAL = 11,
+	WINDOW_EVENT_TYPE_TOUCH_STATE = 10,
+	WINDOW_EVENT_TYPE_STYLUS_STATE = 11,
+	WINDOW_EVENT_TYPE_FATAL = 12,
 } WindowEventType;
 
 typedef enum {
@@ -74,6 +75,22 @@ typedef enum {
 	WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_DISCONNECTED = 1,
 	WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED = 2,
 } WindowEventControllerConnectionType;
+
+typedef enum {
+	TOUCH_ACTION_STATE_TYPE_UP = 1,
+	TOUCH_ACTION_STATE_TYPE_MOVE = 2,
+	TOUCH_ACTION_STATE_TYPE_CANCEL = 3,
+} TouchActionStateType;
+
+typedef enum {
+	STYLUS_ACTION_STATE_TYPE_NONE = 1,
+	STYLUS_ACTION_STATE_TYPE_HOVER_ENTER = 2,
+	STYLUS_ACTION_STATE_TYPE_HOVER_MOVE = 3,
+	STYLUS_ACTION_STATE_TYPE_HOVER_EXIT = 4,
+	STYLUS_ACTION_STATE_TYPE_DOWN = 5,
+	STYLUS_ACTION_STATE_TYPE_MOVE = 6,
+	STYLUS_ACTION_STATE_TYPE_UP = 7,
+} StylusActionStateType;
 
 typedef struct {
 	alignas(8) void* hwnd;
@@ -141,8 +158,18 @@ typedef struct {
 	alignas(4) float x;
 	alignas(4) float y;
 	alignas(4) float pressure;
+	alignas(4) int index;
+	alignas(4) int actionState;
+	char _1[4];
+} TouchStateWindowEvent;
+
+typedef struct {
+	alignas(4) float x;
+	alignas(4) float y;
+	alignas(4) float pressure;
 	alignas(4) float distance;
 	alignas(4) int actionState;
+	char _1[4];
 } StylusStateWindowEvent;
 
 typedef struct {
@@ -157,6 +184,7 @@ typedef struct {
 		MouseButtonWindowEvent mouseButton;
 		KeyboardButtonWindowEvent keyboardButton;
 		ControllerStateWindowEvent controllerState;
+		TouchStateWindowEvent touchState;
 		StylusStateWindowEvent stylusState;
 	};
 } WindowEvent;

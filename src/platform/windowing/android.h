@@ -37,7 +37,9 @@
 
 #if defined(__android__)
 
-void window_main(void* androidApp);
+#define MAX_TOUCH_POINTERS_AVAILABLE	10
+
+void window_main(void* androidApp, uint64_t goWindow);
 void* pull_android_window(void* androidApp);
 void window_poll(void* androidApp);
 

@@ -39,30 +39,16 @@ package hid
 
 type StylusActionState = int
 
-// TODO:  This is android specific stuff
 const (
-	AMotionEventActionIdle = 99
-	AMotionEventActionHeld = 100
-
-	AMotionEventActionHoverEnter = 1 + iota
-	AMotionEventActionHoverMove
-	AMotionEventActionHoverExit
-	AMotionEventActionHover
-	AMotionEventActionDown
-	AMotionEventActionMove
-	AMotionEventActionUp
-)
-
-const (
-	StylusActionNone       StylusActionState = AMotionEventActionIdle
-	StylusActionHoverEnter StylusActionState = AMotionEventActionHoverEnter
-	StylusActionHoverMove  StylusActionState = AMotionEventActionHoverMove
-	StylusActionHoverExit  StylusActionState = AMotionEventActionHoverExit
-	StylusActionDown       StylusActionState = AMotionEventActionDown
-	StylusActionMove       StylusActionState = AMotionEventActionMove
-	StylusActionUp         StylusActionState = AMotionEventActionUp
-	StylusActionHeld       StylusActionState = AMotionEventActionHeld
-	StylusActionHover      StylusActionState = AMotionEventActionHover
+	StylusActionNone StylusActionState = iota
+	StylusActionHoverEnter
+	StylusActionHoverMove
+	StylusActionHoverExit
+	StylusActionDown
+	StylusActionMove
+	StylusActionUp
+	StylusActionHeld
+	StylusActionHover
 )
 
 type Stylus struct {
@@ -104,15 +90,12 @@ func (s *Stylus) SetActionState(state StylusActionState) {
 	s.actionState = state
 }
 
-func (s *Stylus) SetDistance(distance float32) {
-	s.Distance = distance
-}
-
-func (s *Stylus) Set(x, y, windowHeight, pressure float32) {
+func (s *Stylus) Set(x, y, pressure, distance, windowHeight float32) {
 	s.X = x
 	s.Y = y
 	s.IY = windowHeight - y
 	s.Pressure = pressure
+	s.Distance = distance
 }
 
 func (s *Stylus) EndUpdate() {

@@ -136,6 +136,8 @@ func (t *Touch) SetUp(id int64, x, y, windowHeight float32) {
 func (t *Touch) SetMoved(id int64, x, y, windowHeight float32) {
 	if p := t.point(id); p != nil {
 		p.setPosition(x, y, windowHeight)
+	} else {
+		t.SetDown(id, x, y, windowHeight)
 	}
 }
 
