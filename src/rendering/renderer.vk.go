@@ -322,6 +322,15 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
 	}
+	// Destroy the previous swap sync objects
+	for i := 0; i < int(vr.swapImageCount); i++ {
+		vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
+		vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
+		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
@@ -331,6 +340,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	vr.createSyncObjects()
 	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
 	for _, v := range vr.renderPassCache {
 		passes = append(passes, v)
