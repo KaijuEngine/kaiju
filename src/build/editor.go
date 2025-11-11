@@ -39,5 +39,4 @@
 
 package build
 
-const Editor = true
 const Title = GameTitleEditor
