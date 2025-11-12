@@ -117,21 +117,25 @@ func init() {
 func (vr *Vulkan) WaitForRender() {
 	defer tracing.NewRegion("Vulkan.WaitForRender").End()
 	vk.DeviceWaitIdle(vr.device)
-	fences := [2]vk.Fence{}
+	fences := [maxFramesInFlight]vk.Fence{}
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
 	}
-	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vulkan_const.True, math.MaxUint64)
+	vk.WaitForFences(vr.device, uint32(vr.swapImageCount), &fences[0], vulkan_const.True, math.MaxUint64)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
+	slog.Info("creating vulkan global uniform buffers")
 	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
 	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
-		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
+		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit),
+			vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
+			&vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
 	}
 }
 
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
+	slog.Info("creating vulkan descriptor pool")
 	poolSizes := make([]vk.DescriptorPoolSize, 4)
 	poolSizes[0].Type = vulkan_const.DescriptorTypeUniformBuffer
 	poolSizes[0].DescriptorCount = counts * vr.swapImageCount
@@ -229,6 +233,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 }
 
 func (vr *Vulkan) createColorResources() bool {
+	slog.Info("creating vulkan color resources")
 	colorFormat := vr.swapImages[0].Format
 	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height, 1,
 		vr.msaaSamples, colorFormat, vulkan_const.ImageTilingOptimal,
@@ -247,7 +252,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 		combinedDrawings: NewDrawings(),
 		renderPassCache:  make(map[string]*RenderPass),
 	}
-
+	slog.Info("creating vulkan application info")
 	appInfo := vk.ApplicationInfo{}
 	appInfo.SType = vulkan_const.StructureTypeApplicationInfo
 	appInfo.PApplicationName = (*vk.Char)(unsafe.Pointer(&([]byte(applicationName + "\x00"))[0]))
@@ -322,6 +327,22 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
 	}
+	// Destroy the previous swap sync objects
+	for i := 0; i < int(vr.swapImageCount); i++ {
+		vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
+		vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
+		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+	}
+	// Destroy the previous global uniform buffers
+	for i := 0; i < maxFramesInFlight; i++ {
+		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
+		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
@@ -331,6 +352,8 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	vr.createGlobalUniformBuffers()
+	vr.createSyncObjects()
 	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
 	for _, v := range vr.renderPassCache {
 		passes = append(passes, v)
@@ -346,6 +369,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
+	slog.Info("creating vulkan sync objects")
 	sInfo := vk.SemaphoreCreateInfo{}
 	sInfo.SType = vulkan_const.StructureTypeSemaphoreCreateInfo
 	fInfo := vk.FenceCreateInfo{}
@@ -384,6 +408,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 }
 
 func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
+	slog.Info("creating vulkan swap chain render pass")
 	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
 		return false

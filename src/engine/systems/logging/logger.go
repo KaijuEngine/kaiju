@@ -44,6 +44,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -58,26 +59,26 @@ func (l *LogStream) writeLine(line string) {
 		return
 	}
 	if !strings.HasPrefix(line, "time=") {
+		ExtPlatformLogInfo(line)
 		println(line)
 		return
 	}
-	levelOffset := 21
-	if strings.HasPrefix(line, "time=") {
-		levelOffset = 41
-	}
-	level := line[levelOffset:]
+	level := line[strings.Index(line, "level=")+len("level="):]
 	if strings.HasPrefix(level, "WARN") {
+		ExtPlatformLogWarn(line)
 		if !l.OnWarn.IsEmpty() {
 			l.OnWarn.Execute(line, klib.TraceStrings(line, 7))
 		}
 	} else if strings.HasPrefix(level, "ERROR") {
+		ExtPlatformLogError(line)
 		if !l.OnError.IsEmpty() {
 			l.OnError.Execute(line, klib.TraceStrings(line, 7))
 		}
 	} else {
+		ExtPlatformLogInfo(line)
 		l.OnInfo.Execute(line)
 	}
-	if build.Debug {
+	if build.Debug && runtime.GOOS != "android" {
 		os.Stdout.WriteString(line + "\n")
 	}
 }

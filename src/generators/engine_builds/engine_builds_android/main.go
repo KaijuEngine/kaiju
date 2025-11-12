@@ -41,6 +41,7 @@ import (
 	"bufio"
 	"bytes"
 	"kaiju/klib"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,6 +49,8 @@ import (
 )
 
 func main() {
+	// TODO:  Pull the architecture
+	arch := "arm64-v8a"
 	ndk := os.Getenv("NDK_HOME")
 	// TODO:  Try to locate where NDK_HOME is, the usual folders per-paltform
 	if ndk == "" {
@@ -60,7 +63,15 @@ func main() {
 	if plat == "" {
 		panic("build platform not yet specified")
 	}
-	cmd := exec.Command("go", "build", "-tags=debug,editor", "-o", "../kaiju_android", ".")
+	outPath := filepath.Join("editor/project_templates/android/app/src/main/jniLibs/", arch)
+	args := []string{
+		"build",
+		"-buildmode=c-shared",
+		"-tags=debug,editor",
+		"-o", filepath.Join(outPath, "/libkaiju_android.so"),
+		".",
+	}
+	cmd := exec.Command("go", args...)
 	env := os.Environ()
 	env = append(env,
 		"CC="+filepath.Join(ndk, "toolchains/llvm/prebuilt", plat, "bin/aarch64-linux-android21-clang"),
@@ -70,6 +81,8 @@ func main() {
 		"GOOS=android",
 		"CGO_ENABLED=1",
 		"GOARCH=arm64",
+		"CGO_CFLAGS=-D__android__=1 -I"+ndk+"/sources/android/native_app_glue",
+		"CGO_LDFLAGS=-landroid",
 	)
 	cmd.Env = env
 	if _, err := os.Stat("src"); err == nil {
@@ -87,7 +100,15 @@ func main() {
 	}
 	if err := cmd.Wait(); err != nil {
 		println(string(stderr.String()))
-		panic(err)
+		log.Fatal(err)
+	}
+	const hFile = "libkaiju_android.h"
+	outPath = filepath.Join(cmd.Dir, outPath)
+	h := filepath.Join(outPath, hFile)
+	if _, err := os.Stat(h); err == nil {
+		if err := os.Rename(h, filepath.Join(outPath, "../../cpp", hFile)); err != nil {
+			log.Fatal(err)
+		}
 	}
 	println("Android compile successful")
 }

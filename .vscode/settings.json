@@ -22,6 +22,7 @@
 		"CGO_LDFLAGS": "-lgdi32 -lXInput"
 	},
 	"files.associations": {
+		"*.h": "c",
 		"stdint.h": "c",
 		"wchar.h": "c",
 		"windowing.h": "c",
@@ -43,7 +44,28 @@
 		"cursorfont.h": "c",
 		"xcursor.h": "c",
 		"vulkan_core.h": "c",
-		"mic.win32.h": "c"
+		"mic.win32.h": "c",
+		"atomic": "c",
+		"bit": "c",
+		"charconv": "c",
+		"compare": "c",
+		"cstddef": "c",
+		"format": "c",
+		"iterator": "c",
+		"limits": "c",
+		"memory": "c",
+		"system_error": "c",
+		"type_traits": "c",
+		"vector": "c",
+		"xiosbase": "c",
+		"xlocale": "c",
+		"xlocbuf": "c",
+		"xlocmon": "c",
+		"xloctime": "c",
+		"xmemory": "c",
+		"xstring": "c",
+		"xutility": "c",
+		"iosfwd": "c"
 	},
 	"cSpell.words": [
 		"AABB",

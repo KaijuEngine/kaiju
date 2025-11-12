@@ -94,7 +94,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets assets.Database) (*Window, error) {
+func New(windowName string, width, height, x, y int, assets assets.Database, platformState any) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
@@ -115,7 +115,7 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	w.createWindow(windowName+"\x00\x00", x, y)
+	w.createWindow(windowName+"\x00\x00", x, y, platformState)
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window " + windowName)
 	}
@@ -131,6 +131,10 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	w.Renderer, err = selectRenderer(w, windowName, assets)
 	w.x, w.y = w.position()
 	return w, err
+}
+
+func NewBinding(ptr unsafe.Pointer, assets assets.Database) {
+
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -495,6 +499,40 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 	}
 }
 
+func (w *Window) processTouchStateEvent(evt *TouchStateWindowEvent) {
+	defer tracing.NewRegion("Window.processTouchStateEvent").End()
+	switch evt.actionState {
+	case touchActionStateUp:
+		w.Touch.SetUp(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateMove:
+		w.Touch.SetMoved(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateCancel:
+		w.Touch.Cancel()
+	}
+}
+
+func (w *Window) processStylusStateEvent(evt *StylusStateWindowEvent) {
+	defer tracing.NewRegion("Window.processStylusStateEvent").End()
+	switch evt.actionState {
+	case stylusActionStateHoverEnter:
+		w.Stylus.SetActionState(hid.StylusActionHoverEnter)
+	case stylusActionStateHoverMove:
+		w.Stylus.SetActionState(hid.StylusActionHoverMove)
+	case stylusActionStateHoverExit:
+		w.Stylus.SetActionState(hid.StylusActionHoverExit)
+	case stylusActionStateDown:
+		w.Stylus.SetActionState(hid.StylusActionDown)
+	case stylusActionStateMove:
+		w.Stylus.SetActionState(hid.StylusActionMove)
+	case stylusActionStateUp:
+		w.Stylus.SetActionState(hid.StylusActionUp)
+	case stylusActionStateNone:
+	default:
+		w.Stylus.SetActionState(hid.StylusActionNone)
+	}
+	w.Stylus.Set(evt.x, evt.y, evt.pressure, evt.distance, float32(w.height))
+}
+
 func (w *Window) removeFromActiveWindows() {
 	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
 	for i := range activeWindows {
@@ -564,6 +602,10 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
 		case windowEventTypeControllerState:
 			win.processControllerStateEvent(asControllerStateWindowEvent(body))
+		case windowEventTypeTouchState:
+			win.processTouchStateEvent(asTouchStateWindowEvent(body))
+		case windowEventTypeStylusState:
+			win.processStylusStateEvent(asStylusStateWindowEvent(body))
 		case windowEventTypeFatal:
 			events = body
 			win.fatalFromNativeAPI = true

@@ -171,14 +171,15 @@ func (host *Host) SetGame(game any) { host.game = game }
 // Initializes the various systems and caches that are mediated through the
 // host. This includes the window, the shader cache, the texture cache, the mesh
 // cache, and the font cache, and the camera systems.
-func (host *Host) Initialize(width, height, x, y int) error {
+func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	if width <= 0 {
 		width = DefaultWindowWidth
 	}
 	if height <= 0 {
 		height = DefaultWindowHeight
 	}
-	win, err := windowing.New(host.name, width, height, x, y, host.assetDatabase)
+	win, err := windowing.New(host.name, width, height,
+		x, y, host.assetDatabase, platformState)
 	if err != nil {
 		return err
 	}

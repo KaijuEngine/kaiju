@@ -1,3 +1,5 @@
+//go:build !android
+
 /******************************************************************************/
 /* main.go                                                                    */
 /******************************************************************************/
@@ -37,35 +39,4 @@
 
 package main
 
-import (
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
-)
-
-func main() {
-	engine.LoadLaunchParams()
-	game := getGame()
-	if engine.LaunchParams.Generate != "" {
-		switch engine.LaunchParams.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
-		return
-	}
-	if engine.LaunchParams.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
-	}
-	if engine.LaunchParams.RecordPGO {
-		profiler.StartPGOProfiler()
-	}
-	bootstrap.Main(game)
-	if engine.LaunchParams.RecordPGO {
-		profiler.StopPGOProfiler()
-	}
-	profiler.CleanupProfiler()
-}
+func main() { _main(nil) }

@@ -87,7 +87,7 @@ func scaleScrollDelta(delta float32) float32 {
 	return delta
 }
 
-func (w *Window) createWindow(windowName string, x, y int) {
+func (w *Window) createWindow(windowName string, x, y int, _ any) {
 	title := C.CString(windowName)
 	defer C.free(unsafe.Pointer(title))
 	w.lookupId = nextLookupId.Add(1)

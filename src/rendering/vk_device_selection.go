@@ -87,8 +87,8 @@ func getMaxUsableSampleCount(device vk.PhysicalDevice) vulkan_const.SampleCountF
 }
 
 func (vr *Vulkan) createLogicalDevice() bool {
+	slog.Info("creating vulkan logical device")
 	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
-
 	qFamCount := 1
 	var uniqueQueueFamilies [2]int
 	uniqueQueueFamilies[0] = indices.graphicsFamily
@@ -194,6 +194,7 @@ func isPhysicalDeviceBetterType(a vulkan_const.PhysicalDeviceType, b vulkan_cons
 }
 
 func (vr *Vulkan) selectPhysicalDevice() bool {
+	slog.Info("creating vulkan physical device")
 	var deviceCount uint32
 	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, nil)
 	if deviceCount == 0 {

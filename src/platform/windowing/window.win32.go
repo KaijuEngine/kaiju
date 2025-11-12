@@ -95,7 +95,7 @@ func scaleScrollDelta(delta float32) float32 {
 	return v
 }
 
-func (w *Window) createWindow(windowName string, x, y int) {
+func (w *Window) createWindow(windowName string, x, y int, _ any) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	w.lookupId = nextLookupId.Add(1)

@@ -58,6 +58,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/engine_builds/engine_builds_android",
 			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=debug,generator",
 			"env": {
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"

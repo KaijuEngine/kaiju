@@ -51,11 +51,12 @@ func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.
 	var fallbackFormat *vk.SurfaceFormat = nil
 	for i := uint32(0); i < formatCount; i++ {
 		surfFormat := &formats[i]
-		if surfFormat.Format == vulkan_const.FormatR8g8b8a8Srgb {
+		switch surfFormat.Format {
+		case vulkan_const.FormatR8g8b8a8Srgb:
 			fallbackFormat = surfFormat
-		} else if surfFormat.Format == vulkan_const.FormatB8g8r8a8Unorm {
+		case vulkan_const.FormatB8g8r8a8Unorm:
 			fallbackFormat = surfFormat
-		} else if surfFormat.Format == vulkan_const.FormatR8g8b8a8Unorm {
+		case vulkan_const.FormatR8g8b8a8Unorm:
 			targetFormat = surfFormat
 		}
 	}
@@ -113,6 +114,7 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 }
 
 func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
+	slog.Info("creating vulkan swap chain")
 	scs := vr.querySwapChainSupport(vr.physicalDevice)
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)

@@ -61,9 +61,9 @@ func (c *Container) RunFunction(f func()) {
 	c.runFunctions = append(c.runFunctions, f)
 }
 
-func (c *Container) Run(width, height, x, y int) error {
+func (c *Container) Run(width, height, x, y int, platformState any) error {
 	runtime.LockOSThread()
-	if err := c.Host.Initialize(width, height, x, y); err != nil {
+	if err := c.Host.Initialize(width, height, x, y, platformState); err != nil {
 		slog.Error("Failed to initialize the host", "error", err)
 		c.Host.Close()
 		return err

@@ -43,6 +43,8 @@ type WindowEventType = uint8
 type WindowEventActivityType = uint32
 type WindowEventButtonType = uint32
 type WindowEventControllerConnectionType = uint32
+type TouchActionState = int32
+type StylusActionState = int32
 
 const (
 	sharedMemWindowActivity  = 0xF9
@@ -72,7 +74,9 @@ const (
 	windowEventTypeMouseButton     = WindowEventType(7)
 	windowEventTypeKeyboardButton  = WindowEventType(8)
 	windowEventTypeControllerState = WindowEventType(9)
-	windowEventTypeFatal           = WindowEventType(10)
+	windowEventTypeTouchState      = WindowEventType(10)
+	windowEventTypeStylusState     = WindowEventType(11)
+	windowEventTypeFatal           = WindowEventType(12)
 )
 
 const (
@@ -91,6 +95,22 @@ const (
 const (
 	windowEventControllerConnectionTypeDisconnected = WindowEventControllerConnectionType(1)
 	windowEventControllerConnectionTypeConnected    = WindowEventControllerConnectionType(2)
+)
+
+const (
+	touchActionStateUp     = TouchActionState(1)
+	touchActionStateMove   = TouchActionState(2)
+	touchActionStateCancel = TouchActionState(3)
+)
+
+const (
+	stylusActionStateNone       = StylusActionState(1)
+	stylusActionStateHoverEnter = StylusActionState(2)
+	stylusActionStateHoverMove  = StylusActionState(3)
+	stylusActionStateHoverExit  = StylusActionState(4)
+	stylusActionStateDown       = StylusActionState(5)
+	stylusActionStateMove       = StylusActionState(6)
+	stylusActionStateUp         = StylusActionState(7)
 )
 
 type SetHandleEvent struct {
@@ -155,6 +175,22 @@ type ControllerStateWindowEvent struct {
 	_              [6]byte
 }
 
+type TouchStateWindowEvent struct {
+	x           float32
+	y           float32
+	pressure    float32
+	index       int32
+	actionState TouchActionState
+}
+
+type StylusStateWindowEvent struct {
+	x           float32
+	y           float32
+	pressure    float32
+	distance    float32
+	actionState StylusActionState
+}
+
 const evtUnionSize = max(
 	unsafe.Sizeof(SetHandleEvent{}),
 	unsafe.Sizeof(WindowActivityEvent{}),
@@ -206,4 +242,12 @@ func asKeyboardButtonWindowEvent(data unsafe.Pointer) *KeyboardButtonWindowEvent
 
 func asControllerStateWindowEvent(data unsafe.Pointer) *ControllerStateWindowEvent {
 	return (*ControllerStateWindowEvent)(data)
+}
+
+func asTouchStateWindowEvent(data unsafe.Pointer) *TouchStateWindowEvent {
+	return (*TouchStateWindowEvent)(data)
+}
+
+func asStylusStateWindowEvent(data unsafe.Pointer) *StylusStateWindowEvent {
+	return (*StylusStateWindowEvent)(data)
 }

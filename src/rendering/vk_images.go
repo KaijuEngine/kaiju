@@ -153,6 +153,7 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 
 func (vr *Vulkan) createImageViews() bool {
 	defer tracing.NewRegion("Vulkan.createImageViews").End()
+	slog.Info("creating vulkan image views")
 	vr.swapChainImageViewCount = vr.swapImageCount
 	success := true
 	for i := uint32(0); i < vr.swapChainImageViewCount && success; i++ {
