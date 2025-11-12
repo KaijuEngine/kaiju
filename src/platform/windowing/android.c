@@ -440,4 +440,34 @@ void window_poll(void* androidApp) {
 	shared_mem_flush_events(local_shared_memory(state));
 }
 
+void window_size_mm(void* androidApp, int* widthMM, int* heightMM) {
+	struct android_app* state = androidApp;
+	JNIEnv* env = NULL;
+	const ANativeActivity* activity = state->activity;
+	(*activity->vm)->AttachCurrentThread(activity->vm, &env, NULL);
+	jclass activityClass = (*env)->GetObjectClass(env, state->activity->clazz);
+	jmethodID width_mm = (*env)->GetMethodID(env, activityClass, "width_mm", "()F");
+	jmethodID height_mm = (*env)->GetMethodID(env, activityClass, "height_mm", "()F");
+	jfloat wmm = (*env)->CallFloatMethod(env, state->activity->clazz, width_mm);
+	jfloat hmm = (*env)->CallFloatMethod(env, state->activity->clazz, height_mm);
+	*widthMM = (int)wmm;
+	*heightMM = (int)hmm;
+	(*env)->DeleteLocalRef(env, activityClass);
+	(*activity->vm)->DetachCurrentThread(activity->vm);
+}
+
+void window_open_website(void* androidApp, const char* url) {
+	struct android_app* state = androidApp;
+	JNIEnv* env = NULL;
+	const ANativeActivity* activity = state->activity;
+	(*activity->vm)->AttachCurrentThread(activity->vm, &env, NULL);
+	jclass activityClass = (*env)->GetObjectClass(env, state->activity->clazz);
+	jobject urlStr = (*env)->NewStringUTF(env, (jstring)url);
+	jmethodID open_web_url = (*env)->GetMethodID(env, activityClass, "open_web_url", "(Ljava/lang/String;)V");
+	(*env)->CallVoidMethod(env, state->activity->clazz, open_web_url, urlStr);
+	(*env)->DeleteLocalRef(env, urlStr);
+	(*env)->DeleteLocalRef(env, activityClass);
+	(*activity->vm)->DetachCurrentThread(activity->vm);
+}
+
 #endif

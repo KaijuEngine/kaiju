@@ -42,5 +42,7 @@
 void window_main(void* androidApp, uint64_t goWindow);
 void* pull_android_window(void* androidApp);
 void window_poll(void* androidApp);
+void window_size_mm(void* androidApp, int* widthMM, int* heightMM);
+void window_open_website(void* androidApp, const char* url);
 
 #endif

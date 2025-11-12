@@ -54,7 +54,8 @@ const (
 type Stylus struct {
 	X           float32
 	Y           float32
-	IY          float32
+	SX          float32
+	SY          float32
 	Pressure    float32
 	Distance    float32
 	actionState StylusActionState
@@ -92,8 +93,9 @@ func (s *Stylus) SetActionState(state StylusActionState) {
 
 func (s *Stylus) Set(x, y, pressure, distance, windowHeight float32) {
 	s.X = x
-	s.Y = y
-	s.IY = windowHeight - y
+	s.Y = windowHeight - y
+	s.SX = x
+	s.SY = y
 	s.Pressure = pressure
 	s.Distance = distance
 }
