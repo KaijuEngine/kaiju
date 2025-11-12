@@ -63,7 +63,7 @@ func main() {
 	if plat == "" {
 		panic("build platform not yet specified")
 	}
-	outPath := filepath.Join("../project_templates/android/app/src/main/jniLibs/", arch)
+	outPath := filepath.Join("editor/project_templates/android/app/src/main/jniLibs/", arch)
 	args := []string{
 		"build",
 		"-buildmode=c-shared",
