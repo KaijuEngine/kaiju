@@ -157,6 +157,7 @@ func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error 
 }
 
 func (p *Project) buildAPK(javaHome string, tags []string) error {
+
 	gradle := filepath.Join(project_file_system.ProjectBuildAndroidFolder, "/gradlew")
 	if runtime.GOOS == "windows" {
 		gradle += ".bat"
@@ -171,7 +172,11 @@ func (p *Project) buildAPK(javaHome string, tags []string) error {
 	cmd.Dir = filepath.Dir(gradle)
 	cmd.Env = os.Environ()
 	if os.Getenv("JAVA_HOME") == "" {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
+		if javaHome == "" {
+			return errors.New("the JAVA_HOME folder path hasn't yet been setup in the editor settings")
+		} else {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
+		}
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
