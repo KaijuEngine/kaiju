@@ -80,6 +80,8 @@ type Window struct {
 	left, top, right, bottom int // Full window including title and borders
 	resetDragDataInFrames    int
 	cursorChangeCount        int
+	cachedScreenSizeMMWidth  int
+	cacheScreenSizeMMHeight  int
 	windowSync               chan struct{}
 	syncRequest              bool
 	isClosed                 bool
@@ -231,7 +233,11 @@ func (w *Window) SizeMM() (int, int, error) {
 }
 
 func (w *Window) ScreenSizeMM() (int, int, error) {
-	return w.screenSizeMM()
+	var err error
+	if w.cachedScreenSizeMMWidth == 0 {
+		w.cachedScreenSizeMMWidth, w.cacheScreenSizeMMHeight, err = w.screenSizeMM()
+	}
+	return w.cachedScreenSizeMMWidth, w.cacheScreenSizeMMHeight, err
 }
 
 func (w *Window) IsPhoneSize() bool {
@@ -398,6 +404,7 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.top = int(evt.top)
 	w.right = int(evt.right)
 	w.bottom = int(evt.bottom)
+	w.cachedScreenSizeMMWidth, w.cacheScreenSizeMMHeight = 0, 0
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
