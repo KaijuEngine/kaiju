@@ -72,6 +72,7 @@ package windowing
 */
 import "C"
 import (
+	"errors"
 	"kaiju/klib"
 	"unsafe"
 
@@ -216,4 +217,8 @@ func (w Window) disableRawMouse() {
 
 func (w Window) enableRawMouse() {
 	klib.NotYetImplemented(234)
+}
+
+func (w *Window) readApplicationAsset(path string) ([]byte, error) {
+	return []byte{}, errors.New("linux doesn't support application assets")
 }

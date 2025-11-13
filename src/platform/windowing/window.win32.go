@@ -243,3 +243,7 @@ func (w Window) setTitle(newTitle string) {
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	C.window_set_title(w.handle, title)
 }
+
+func (w *Window) readApplicationAsset(path string) ([]byte, error) {
+	return []byte{}, errors.New("windows doesn't support application assets")
+}

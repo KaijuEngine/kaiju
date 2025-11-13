@@ -39,6 +39,7 @@
 
 
 #include <jni.h>
+#include <memory.h>
 #include <stdlib.h>
 #include <android/log.h>
 #include <android/sensor.h>
@@ -468,6 +469,38 @@ void window_open_website(void* androidApp, const char* url) {
 	(*env)->DeleteLocalRef(env, urlStr);
 	(*env)->DeleteLocalRef(env, activityClass);
 	(*activity->vm)->DetachCurrentThread(activity->vm);
+}
+
+bool window_asset_exists(void* androidApp, const char* path) {
+	struct android_app* state = androidApp;
+	AAsset* f = AAssetManager_open(state->activity->assetManager, path, AASSET_MODE_BUFFER);
+	bool exists = f != NULL;
+	AAsset_close(f);
+	return exists;
+}
+
+int64_t window_asset_length(void* androidApp, const char* path) {
+	struct android_app* state = androidApp;
+	AAsset* f = AAssetManager_open(state->activity->assetManager, path, AASSET_MODE_BUFFER);
+	if (f == NULL) {
+		return 0;
+	}
+	off64_t len = AAsset_getLength64(f);
+	AAsset_close(f);
+	return (int64_t)len;
+}
+
+int64_t window_asset_read(void* androidApp, const char* path, void* outData) {
+	struct android_app* state = androidApp;
+	AAsset* f = AAssetManager_open(state->activity->assetManager, path, AASSET_MODE_BUFFER);
+	if (f == NULL) {
+		return 0;
+	}
+	off64_t len = AAsset_getLength64(f);
+	const void* buff = AAsset_getBuffer(f);
+	memcpy(outData, buff, len);
+	AAsset_close(f);
+	return (int64_t)len;
 }
 
 #endif

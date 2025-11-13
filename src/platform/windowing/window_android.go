@@ -1,7 +1,7 @@
 //go:build android
 
 /******************************************************************************/
-/* window.win32.go                                                            */
+/* window_android.go                                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -40,6 +40,7 @@
 package windowing
 
 import (
+	"fmt"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"unsafe"
@@ -54,6 +55,12 @@ import (
 #cgo noescape window_size_mm
 #cgo nocallback window_size_mm
 #cgo noescape window_open_website
+#cgo nocallback window_asset_exists
+#cgo noescape window_asset_exists
+#cgo nocallback window_asset_length
+#cgo noescape window_asset_length
+#cgo nocallback window_asset_read
+#cgo noescape window_asset_read
 #include <stdint.h>
 #include <stdlib.h>
 #include "windowing.h"
@@ -121,10 +128,28 @@ func (w *Window) screenSizeMM() (int, int, error) {
 	return wmm, hmm, nil
 }
 
-func (w Window) openWebsite(url string) {
+func (w *Window) openWebsite(url string) {
 	cURL := C.CString(url)
 	defer C.free(unsafe.Pointer(cURL))
 	C.window_open_website(w.handle, cURL)
+}
+
+func (w *Window) readApplicationAsset(path string) ([]byte, error) {
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+	if !C.window_asset_exists(w.handle, cPath) {
+		return []byte{}, fmt.Errorf("application asset file '%s' doesn't exist", path)
+	}
+	assetLen := int64(C.window_asset_length(w.handle, cPath))
+	if assetLen <= 0 {
+		return []byte{}, fmt.Errorf("failed to read the asset length for '%s'", path)
+	}
+	buff := make([]byte, assetLen)
+	outLen := int64(C.window_asset_read(w.handle, cPath, unsafe.Pointer(&buff[0])))
+	if outLen == 0 {
+		return []byte{}, fmt.Errorf("failed to read the data in asset '%s'", path)
+	}
+	return buff, nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }

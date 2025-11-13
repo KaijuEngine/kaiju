@@ -1,7 +1,7 @@
-//go:build linux || darwin
+//go:build linux && !android
 
 /******************************************************************************/
-/* directory.nix.go                                                           */
+/* directory_linux.go                                                         */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */

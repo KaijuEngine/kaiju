@@ -391,6 +391,13 @@ func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
 func (w *Window) SetTitle(name string) { w.setTitle(name) }
 
+// ReadApplicationAsset will read an asset bound to the application. This is
+// typically only useful on mobile platforms like Android. Platforms like Linux,
+// Windows, and Mac will return an error, use #ReadFile instead
+func (w *Window) ReadApplicationAsset(path string) ([]byte, error) {
+	return w.readApplicationAsset(path)
+}
+
 func (w *Window) requestSync() {
 	w.syncRequest = true
 }

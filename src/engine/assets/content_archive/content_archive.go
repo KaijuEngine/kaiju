@@ -43,8 +43,8 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
-	"os"
 	"unsafe"
 )
 
@@ -66,7 +66,7 @@ type Archive struct {
 
 func OpenArchiveFile(path string, key []byte) (*Archive, error) {
 	defer tracing.NewRegion("content_archive.OpenArchiveFile").End()
-	data, err := os.ReadFile(path)
+	data, err := filesystem.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

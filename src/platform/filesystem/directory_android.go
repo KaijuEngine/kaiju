@@ -1,5 +1,7 @@
+//go:build android
+
 /******************************************************************************/
-/* android.h                                                                  */
+/* directory_android.go                                                       */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,20 +37,55 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-#if defined(__android__)
+package filesystem
 
-#include <stdint.h>
-#include <stdbool.h>
+import (
+	"errors"
+	"kaiju/klib"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"unsafe"
+)
 
-#define MAX_TOUCH_POINTERS_AVAILABLE	10
+func knownPaths() map[string]string {
+	return map[string]string{
+		"Root": "/",
+		"Home": "/home",
+	}
+}
 
-void window_main(void* androidApp, uint64_t goWindow);
-void* pull_android_window(void* androidApp);
-void window_poll(void* androidApp);
-void window_size_mm(void* androidApp, int* widthMM, int* heightMM);
-void window_open_website(void* androidApp, const char* url);
-bool window_asset_exists(void* androidApp, const char* path);
-int64_t window_asset_length(void* androidApp, const char* path);
-int64_t window_asset_read(void* androidApp, const char* path, void* outData);
+func imageDirectory() (string, error) {
+	userFolder, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(userFolder, "Pictures"), nil
+}
 
-#endif
+func gameDirectory() (string, error) {
+	klib.NotYetImplemented(318)
+	return "", errors.New("not yet implemented")
+	//appdata, err := os.UserConfigDir()
+	//if err != nil {
+	//	return "", err
+	//}
+	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+}
+
+func openFileBrowserCommand(path string) *exec.Cmd {
+	klib.NotYetImplemented(-1)
+	return nil
+}
+
+func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
+	klib.NotYetImplemented(-1)
+	return nil
+}
+
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
+	klib.NotYetImplemented(-1)
+	return nil
+}
