@@ -230,9 +230,13 @@ func (p *Project) CompileWithTags(tags ...string) {
 	p.isCompiling.Store(false)
 }
 
+func (p *Project) packagePath() string {
+	return filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
+}
+
 func (p *Project) Package() error {
 	defer tracing.NewRegion("Project.Package").End()
-	outPath := filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
+	outPath := p.packagePath()
 	// TODO:  Needs to use a reference graph to determine all of the content
 	// needed rather than just dumping all content in here
 	list := p.cacheDatabase.List()

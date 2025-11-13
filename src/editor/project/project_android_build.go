@@ -45,6 +45,7 @@ import (
 	"io"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/filesystem"
+	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -55,13 +56,19 @@ import (
 )
 
 func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
+	defer tracing.NewRegion("Project.BuildAndroid").End()
+	if err := p.Package(); err != nil {
+		return err
+	}
 	if err := p.copyAndroidProjectTemplate(); err != nil {
 		return err
 	}
 	if err := p.buildKaijuAndroidLibrary(ndkHome, tags); err != nil {
 		return err
 	}
-	slog.Info("successfully compiled Android Go library, now building android APK")
+	if err := p.copyAndroidContentToAssets(); err != nil {
+		return err
+	}
 	if err := p.buildAPK(javaHome, tags); err != nil {
 		return err
 	}
@@ -70,6 +77,7 @@ func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
 }
 
 func (p *Project) copyAndroidProjectTemplate() error {
+	defer tracing.NewRegion("Project.copyAndroidProjectTemplate").End()
 	if !p.fileSystem.Exists(project_file_system.ProjectBuildAndroidFolder) {
 		slog.Info("the Android project was not found, creating it",
 			"folder", project_file_system.ProjectBuildAndroidFolder)
@@ -86,6 +94,7 @@ func (p *Project) copyAndroidProjectTemplate() error {
 }
 
 func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error {
+	defer tracing.NewRegion("Project.buildKaijuAndroidLibrary").End()
 	if ndkHome == "" {
 		return errors.New("the NDK folder path hasn't yet been setup in the editor settings")
 	}
@@ -156,8 +165,27 @@ func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error 
 	return nil
 }
 
-func (p *Project) buildAPK(javaHome string, tags []string) error {
+func (p *Project) copyAndroidContentToAssets() error {
+	defer tracing.NewRegion("Project.copyAndroidContentToAssets").End()
+	slog.Info("copying content to android assets")
+	from := p.packagePath()
+	toDir := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"app/src/main/assets")
+	if s, err := os.Stat(toDir); err != nil {
+		if err := os.Mkdir(toDir, os.ModePerm); err != nil {
+			return err
+		}
+	} else if !s.IsDir() {
+		return fmt.Errorf("the asset path is not a folder: %s", toDir)
+	}
+	to := filepath.Join(toDir, filepath.Base(from))
+	return filesystem.CopyFile(from, to)
+}
 
+func (p *Project) buildAPK(javaHome string, tags []string) error {
+	defer tracing.NewRegion("Project.buildAPK").End()
+	slog.Info("building android APK")
 	gradle := filepath.Join(project_file_system.ProjectBuildAndroidFolder, "/gradlew")
 	if runtime.GOOS == "windows" {
 		gradle += ".bat"
