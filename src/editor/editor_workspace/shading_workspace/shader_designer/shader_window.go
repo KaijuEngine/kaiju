@@ -40,6 +40,7 @@ package shader_designer
 import (
 	"encoding/json"
 	"errors"
+	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -103,7 +104,7 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.shaderDoc.Destroy()
 	}
-	data := reflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.pfs))
+	data := common_workspace.ReflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.pfs))
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -137,7 +138,7 @@ func showShaderTooltip(e *document.Element) {
 }
 
 func (win *ShaderDesigner) shaderValueChanged(e *document.Element) {
-	setObjectValueFromUI(&win.shader, e)
+	common_workspace.SetObjectValueFromUI(&win.shader, e)
 }
 
 func compileShaderFile(pfs *project_file_system.FileSystem, s *rendering.ShaderData, src, flags string) error {

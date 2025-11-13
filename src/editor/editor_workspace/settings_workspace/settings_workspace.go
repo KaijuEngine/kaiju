@@ -38,27 +38,78 @@
 package settings_workspace
 
 import (
+	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_workspace/common_workspace"
+	"kaiju/editor/project"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
 )
 
 type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
+	projectSettingsBox *document.Element
+	editorSettingsBox  *document.Element
+	editor             SettingsWorkspaceEditorInterface
+	editorSettings     *editor_settings.Settings
+	projectSettings    *project.Settings
 }
 
-func (w *SettingsWorkspace) Initialize(host *engine.Host) {
+type settingsWorkspaceData struct {
+	Editor  common_workspace.DataUISection
+	Project common_workspace.DataUISection
+}
+
+func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspaceEditorInterface) {
+	w.editor = editor
+	w.editorSettings = editor.Settings()
+	w.projectSettings = editor.Project().Settings()
+	listings := map[string][]ui.SelectOption{}
+	data := settingsWorkspaceData{
+		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
+		Project: common_workspace.ReflectUIStructure(w.projectSettings, "", listings),
+	}
 	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/settings_workspace.go.html", nil, map[string]func(*document.Element){})
+		"editor/ui/workspace/settings_workspace.go.html", data, map[string]func(*document.Element){
+			"showProjectSettings": w.showProjectSettings,
+			"showEditorSettings":  w.showEditorSettings,
+			"valueChanged":        w.valueChanged,
+		})
+	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
+	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
 }
 
 func (w *SettingsWorkspace) Open() {
 	defer tracing.NewRegion("SettingsWorkspace.Open").End()
 	w.CommonOpen()
+	w.projectSettingsBox.UI.Show()
+	w.editorSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) Close() {
 	defer tracing.NewRegion("SettingsWorkspace.Close").End()
 	w.CommonClose()
+	w.editor.Settings().Save()
+	w.projectSettings.Save(w.editor.ProjectFileSystem())
+}
+
+func (w *SettingsWorkspace) showProjectSettings(*document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
+	w.projectSettingsBox.UI.Show()
+	w.editorSettingsBox.UI.Hide()
+}
+
+func (w *SettingsWorkspace) showEditorSettings(*document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
+	w.projectSettingsBox.UI.Hide()
+	w.editorSettingsBox.UI.Show()
+}
+
+func (w *SettingsWorkspace) valueChanged(e *document.Element) {
+	if w.editorSettingsBox.UI.Entity().IsActive() {
+		common_workspace.SetObjectValueFromUI(w.editorSettings, e)
+	} else if w.projectSettingsBox.UI.Entity().IsActive() {
+		common_workspace.SetObjectValueFromUI(w.projectSettings, e)
+	}
 }

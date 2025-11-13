@@ -46,6 +46,7 @@ type FileExtension = string
 
 const (
 	shaderSrcFolder = "content/renderer/src"
+	dataInputHTML   = "editor/ui/workspace/shading_workspace_data_input.go.html"
 )
 
 func showTooltip(options map[string]string, e *document.Element) {

@@ -48,7 +48,7 @@ type Settings struct {
 	ArchiveEncryptionKey string
 }
 
-func (c *Settings) save(fs *project_file_system.FileSystem) error {
+func (c *Settings) Save(fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("Settings.save").End()
 	f, err := fs.Create(project_file_system.ProjectConfigFile)
 	if err != nil {

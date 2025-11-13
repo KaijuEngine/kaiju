@@ -53,7 +53,7 @@ const (
 )
 
 type Settings struct {
-	RecentProjects []string
+	RecentProjects []string `visible:"false"`
 	Snapping       SnapSettings
 }
 
@@ -61,9 +61,6 @@ type SnapSettings struct {
 	TranslateIncrement float32
 	RotateIncrement    float32
 	ScaleIncrement     float32
-	TranslateEnabled   bool
-	RotationEnabled    bool
-	ScaleEnabled       bool
 }
 
 func (s *Settings) AddRecentProject(path string) {

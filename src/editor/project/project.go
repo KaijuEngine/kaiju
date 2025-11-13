@@ -73,6 +73,8 @@ type Project struct {
 	isCompiling         atomic.Bool
 }
 
+func (p *Project) Settings() *Settings { return &p.settings }
+
 // EntityData returns all of the generated/reflected entity data binding types
 func (p *Project) EntityData() []codegen.GeneratedType { return p.entityData }
 
@@ -127,7 +129,7 @@ func (p *Project) Initialize(path string) error {
 // error saving the config.
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
-	return p.settings.save(&p.fileSystem)
+	return p.settings.Save(&p.fileSystem)
 }
 
 // Open constructs an existing project given a target folder. This function can
@@ -168,7 +170,7 @@ func (p *Project) SetName(name string) {
 		return
 	}
 	p.settings.Name = name
-	p.settings.save(&p.fileSystem)
+	p.settings.Save(&p.fileSystem)
 	if p.OnNameChange != nil {
 		p.OnNameChange(p.settings.Name)
 	}

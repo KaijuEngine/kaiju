@@ -39,6 +39,7 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -57,7 +58,7 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.pipelineDoc.Destroy()
 	}
-	data := reflectUIStructure(&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
+	data := common_workspace.ReflectUIStructure(&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
 	data.Name = "Shader Pipeline Editor"
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -93,17 +94,17 @@ func showPipelineTooltip(e *document.Element) {
 }
 
 func (win *ShaderDesigner) pipelineAddToSlice(e *document.Element) {
-	reflectAddToSlice(&win.pipeline, e)
+	common_workspace.ReflectAddToSlice(&win.pipeline, e)
 	win.reloadPipelineDoc()
 }
 
 func (win *ShaderDesigner) pipelineRemoveFromSlice(e *document.Element) {
-	reflectRemoveFromSlice(&win.pipeline, e)
+	common_workspace.ReflectRemoveFromSlice(&win.pipeline, e)
 	win.reloadPipelineDoc()
 }
 
 func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
-	setObjectValueFromUI(&win.pipeline, e)
+	common_workspace.SetObjectValueFromUI(&win.pipeline, e)
 }
 
 func (win *ShaderDesigner) pipelineSave(e *document.Element) {

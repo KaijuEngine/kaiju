@@ -35,7 +35,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package shader_designer
+package common_workspace
 
 import (
 	"fmt"
@@ -49,10 +49,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-)
-
-const (
-	dataInputHTML = "editor/ui/workspace/shading_workspace_data_input.go.html"
 )
 
 type DataUISection struct {
@@ -91,7 +87,7 @@ func (f DataUISectionField) ValueListHas(val string) bool {
 	return slices.Contains(f.Value.([]string), val)
 }
 
-func reflectObjectValueFromUI(obj any, e *document.Element) reflect.Value {
+func ReflectObjectValueFromUI(obj any, e *document.Element) reflect.Value {
 	path := e.Attribute("data-path")
 	parts := strings.Split(path, ".")
 	v := reflect.ValueOf(obj).Elem()
@@ -105,8 +101,8 @@ func reflectObjectValueFromUI(obj any, e *document.Element) reflect.Value {
 	return v
 }
 
-func setObjectValueFromUI(obj any, e *document.Element) {
-	v := reflectObjectValueFromUI(obj, e)
+func SetObjectValueFromUI(obj any, e *document.Element) {
+	v := ReflectObjectValueFromUI(obj, e)
 	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.String {
 		// TODO:  Ensure switch e.UI.Type() == ui.ElementTypeCheckbox
 		add := e.UI.ToCheckbox().IsChecked()
@@ -148,7 +144,7 @@ func setObjectValueFromUI(obj any, e *document.Element) {
 	}
 }
 
-func reflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.SelectOption) DataUISection {
+func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.SelectOption) DataUISection {
 	section := DataUISection{}
 	v := reflect.ValueOf(obj).Elem()
 	vt := v.Type()
@@ -203,12 +199,12 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 				childCount := f.Len()
 				for j := range childCount {
 					myPath := fmt.Sprintf("%s.%d", p, j)
-					s := reflectUIStructure(f.Index(j).Addr().Interface(), myPath, fallbackOptions)
+					s := ReflectUIStructure(f.Index(j).Addr().Interface(), myPath, fallbackOptions)
 					field.Sections = append(field.Sections, s)
 				}
 			} else {
 				field.Type = "struct"
-				s := reflectUIStructure(f.Addr().Interface(), p, fallbackOptions)
+				s := ReflectUIStructure(f.Addr().Interface(), p, fallbackOptions)
 				field.Sections = append(field.Sections, s)
 			}
 		}
@@ -217,13 +213,13 @@ func reflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 	return section
 }
 
-func reflectAddToSlice(obj any, e *document.Element) {
-	v := reflectObjectValueFromUI(obj, e)
+func ReflectAddToSlice(obj any, e *document.Element) {
+	v := ReflectObjectValueFromUI(obj, e)
 	v.Set(reflect.Append(v, reflect.Zero(v.Type().Elem())))
 }
 
-func reflectRemoveFromSlice(obj any, e *document.Element) {
-	v := reflectObjectValueFromUI(obj, e)
+func ReflectRemoveFromSlice(obj any, e *document.Element) {
+	v := ReflectObjectValueFromUI(obj, e)
 	index, _ := strconv.Atoi(e.Attribute("data-index"))
 	v.Set(reflect.AppendSlice(v.Slice(0, index), v.Slice(index+1, v.Len())))
 }

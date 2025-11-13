@@ -502,17 +502,13 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 	defer tracing.NewRegion("TransformTool.transform").End()
 	snapScale := float32(1)
-	switch t.state {
-	case ToolStateMove:
-		if t.snapSettings.TranslateEnabled {
+	if snap {
+		switch t.state {
+		case ToolStateMove:
 			snapScale = t.snapSettings.TranslateIncrement
-		}
-	case ToolStateRotate:
-		if t.snapSettings.RotationEnabled {
+		case ToolStateRotate:
 			snapScale = t.snapSettings.RotateIncrement
-		}
-	case ToolStateScale:
-		if t.snapSettings.ScaleEnabled {
+		case ToolStateScale:
 			snapScale = t.snapSettings.ScaleIncrement
 		}
 	}

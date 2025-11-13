@@ -39,6 +39,7 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -57,7 +58,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.renderPassDoc.Destroy()
 	}
-	data := reflectUIStructure(&win.renderPass.RenderPassData, "", map[string][]ui.SelectOption{})
+	data := common_workspace.ReflectUIStructure(&win.renderPass.RenderPassData, "", map[string][]ui.SelectOption{})
 	data.Name = "Render Pass Editor"
 	win.renderPassDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -77,7 +78,7 @@ func (win *ShaderDesigner) reloadRenderPassDoc() {
 }
 
 func (win *ShaderDesigner) renderPassValueChanged(e *document.Element) {
-	setObjectValueFromUI(&win.renderPass, e)
+	common_workspace.SetObjectValueFromUI(&win.renderPass, e)
 }
 
 func (win *ShaderDesigner) renderPassNameChanged(e *document.Element) {
@@ -85,12 +86,12 @@ func (win *ShaderDesigner) renderPassNameChanged(e *document.Element) {
 }
 
 func (win *ShaderDesigner) renderPassAddToSlice(e *document.Element) {
-	reflectAddToSlice(&win.renderPass, e)
+	common_workspace.ReflectAddToSlice(&win.renderPass, e)
 	win.reloadRenderPassDoc()
 }
 
 func (win *ShaderDesigner) renderPassRemoveFromSlice(e *document.Element) {
-	reflectRemoveFromSlice(&win.renderPass, e)
+	common_workspace.ReflectRemoveFromSlice(&win.renderPass, e)
 	win.reloadRenderPassDoc()
 }
 

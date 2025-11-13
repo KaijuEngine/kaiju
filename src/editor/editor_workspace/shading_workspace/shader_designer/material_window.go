@@ -39,6 +39,7 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
@@ -106,7 +107,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["RenderPass"] = collectRenderPassOptions(win.pfs, win.cache)
 	listings["ShaderPipeline"] = collectShaderPipelinesOptions(win.pfs, win.cache)
 	listings["Texture"] = collectTextureOptions(win.pfs, win.cache)
-	data := reflectUIStructure(&win.material.MaterialData, "", listings)
+	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -127,17 +128,17 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 func showMaterialTooltip(e *document.Element) { showTooltip(materialTooltips, e) }
 
 func (win *ShaderDesigner) materialAddToSlice(e *document.Element) {
-	reflectAddToSlice(&win.material, e)
+	common_workspace.ReflectAddToSlice(&win.material, e)
 	win.reloadMaterialDoc()
 }
 
 func (win *ShaderDesigner) materialRemoveFromSlice(e *document.Element) {
-	reflectRemoveFromSlice(&win.material, e)
+	common_workspace.ReflectRemoveFromSlice(&win.material, e)
 	win.reloadMaterialDoc()
 }
 
 func (win *ShaderDesigner) materialValueChanged(e *document.Element) {
-	setObjectValueFromUI(&win.material, e)
+	common_workspace.SetObjectValueFromUI(&win.material, e)
 }
 
 func loadMaterialData(path string) (rendering.MaterialData, bool) {
