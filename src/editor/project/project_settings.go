@@ -46,6 +46,7 @@ import (
 type Settings struct {
 	Name                 string
 	ArchiveEncryptionKey string
+	EditorVersion        float64 `visible:"false"`
 }
 
 func (c *Settings) Save(fs *project_file_system.FileSystem) error {

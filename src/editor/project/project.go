@@ -102,7 +102,7 @@ func (p *Project) CacheDatabase() *content_database.Cache {
 // Initialize constructs a new project that is bound to the given path. This
 // function can fail if the project path already exists and is not empty, or if
 // the supplied path is to that of a file and not a folder.
-func (p *Project) Initialize(path string) error {
+func (p *Project) Initialize(path string, editorVersion float64) error {
 	defer tracing.NewRegion("Project.Initialize").End()
 	if err := ensurePathIsNewOrEmpty(path); err != nil {
 		return err
@@ -121,6 +121,7 @@ func (p *Project) Initialize(path string) error {
 	if err = p.settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
+	p.settings.EditorVersion = editorVersion
 	return nil
 }
 

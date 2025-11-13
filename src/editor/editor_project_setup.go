@@ -70,7 +70,7 @@ func (ed *Editor) retryNewProjectOverlay(err error) {
 
 func (ed *Editor) createProject(name, path string) {
 	defer tracing.NewRegion("Editor.createProject").End()
-	err := ed.project.Initialize(path)
+	err := ed.project.Initialize(path, EditorVersion)
 	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
 		ed.retryNewProjectOverlay(err)
@@ -87,6 +87,12 @@ func (ed *Editor) openProject(path string) {
 		slog.Error("failed to open the project", "error", err)
 		ed.retryNewProjectOverlay(err)
 		return
+	}
+	projectVersion := ed.project.Settings().EditorVersion
+	if projectVersion != EditorVersion {
+		slog.Warn("this project was created with a previous version of the editor and needs to be upgraded",
+			"projectVersion", projectVersion, "editorVersion", EditorVersion)
+		// TODO:  Show popup to upgrade project
 	}
 	ed.setProjectName(ed.project.Name())
 	ed.postProjectLoad()
