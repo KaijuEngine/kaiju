@@ -37,11 +37,17 @@
 
 package menu_bar
 
-import "kaiju/editor/project/project_file_system"
+import (
+	"kaiju/editor/editor_settings"
+	"kaiju/editor/project"
+	"kaiju/editor/project/project_file_system"
+)
 
 type MenuBarHandler interface {
 	BlurInterface()
 	FocusInterface()
+	Settings() *editor_settings.Settings
+	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()

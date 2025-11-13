@@ -70,7 +70,7 @@ func toEmbedPath(key string) string {
 		return filepath.ToSlash(filepath.Join(prefix, "meshes", key))
 	case ".png":
 		target := filepath.ToSlash(filepath.Join(prefix, "textures", key))
-		if f, err := project_file_system.CodeFS.Open(target); err != nil {
+		if f, err := project_file_system.EngineFS.Open(target); err != nil {
 			target = filepath.ToSlash(filepath.Join(prefix, "fonts", key))
 		} else {
 			f.Close()
@@ -114,7 +114,7 @@ func (e EditorContent) Read(key string) ([]byte, error) {
 	if key[0] == absoluteFilePrefix {
 		return filesystem.ReadFile(key[1:])
 	}
-	b, err := project_file_system.CodeFS.ReadFile(toEmbedPath(key))
+	b, err := project_file_system.EngineFS.ReadFile(toEmbedPath(key))
 	if err != nil && e.Pfs != nil {
 		if path := e.findFile(key); path != "" {
 			return os.ReadFile(path)
@@ -134,7 +134,7 @@ func (e EditorContent) Exists(key string) bool {
 	if key[0] == absoluteFilePrefix {
 		return filesystem.FileExists(key[1:])
 	}
-	f, err := project_file_system.CodeFS.Open(toEmbedPath(key))
+	f, err := project_file_system.EngineFS.Open(toEmbedPath(key))
 	if err != nil {
 		if e.Pfs != nil {
 			return e.findFile(key) != ""

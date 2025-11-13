@@ -79,6 +79,7 @@ const (
 	ProjectFileTemplates      = KaijuSrcFolder + "/file_templates"
 	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
 	ProjectBuildFolder        = "build"
+	ProjectBuildAndroidFolder = ProjectBuildFolder + "/android"
 	ProjectVSCodeFolder       = ".vscode"
 	ProjectLaunchJsonFile     = ".vscode/launch.json"
 	ProjectCodeMain           = ProjectCodeFolder + "/main.go"

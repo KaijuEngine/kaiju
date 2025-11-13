@@ -44,7 +44,9 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"strings"
 )
 
 const (
@@ -55,12 +57,18 @@ const (
 type Settings struct {
 	RecentProjects []string `visible:"false"`
 	Snapping       SnapSettings
+	BuildTools     BuildToolSettings
 }
 
 type SnapSettings struct {
 	TranslateIncrement float32
 	RotateIncrement    float32
 	ScaleIncrement     float32
+}
+
+type BuildToolSettings struct {
+	AndroidNDK string
+	JavaHome   string
 }
 
 func (s *Settings) AddRecentProject(path string) {
@@ -108,5 +116,71 @@ func (s *Settings) Load() error {
 	if err := json.NewDecoder(f).Decode(s); err != nil {
 		return ReadError{err, true}
 	}
+	if s.BuildTools.AndroidNDK == "" {
+		s.tryFindAndroidNDKPath()
+	}
+	if s.BuildTools.JavaHome == "" {
+		s.tryFindJavaHomePath()
+	}
 	return nil
+}
+
+func (s *Settings) tryFindAndroidNDKPath() {
+	appdata, err := os.UserConfigDir()
+	if err != nil {
+		return
+	}
+	var ndk string
+	switch runtime.GOOS {
+	case "windows":
+		ndk = filepath.Join(appdata, "../Local/Android/Sdk/ndk")
+	default:
+		ndk = filepath.Join(appdata, "Android/Sdk/ndk")
+	}
+	if _, err := os.Stat(ndk); err != nil {
+		return
+	}
+	dir, err := os.ReadDir(ndk)
+	if err != nil {
+		return
+	}
+	slices.SortFunc(dir, func(a, b os.DirEntry) int {
+		return strings.Compare(a.Name(), b.Name())
+	})
+	last := dir[len(dir)-1]
+	s.BuildTools.AndroidNDK = filepath.Join(ndk, last.Name())
+}
+
+func (s *Settings) tryFindJavaHomePath() {
+	if env := os.Getenv("JAVA_HOME"); env != "" {
+		if info, err := os.Stat(env); err == nil && info.IsDir() {
+			s.BuildTools.JavaHome = env
+			return
+		}
+	}
+	var candidates []string
+	switch runtime.GOOS {
+	case "windows":
+		candidates = []string{
+			`C:\Program Files\Android\Android Studio\jbr`,
+			`C:\Program Files\Java`,
+		}
+	case "darwin":
+		candidates = []string{
+			"/Applications/Android Studio.app/Contents/jbr",
+			"/Library/Java/JavaVirtualMachines",
+		}
+	default:
+		candidates = []string{
+			"/usr/lib/jvm",
+			"/usr/java",
+		}
+	}
+	for _, base := range candidates {
+		if info, err := os.Stat(base); err != nil || !info.IsDir() {
+			continue
+		}
+		s.BuildTools.JavaHome = base
+		return
+	}
 }

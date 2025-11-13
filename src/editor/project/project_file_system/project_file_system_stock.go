@@ -46,7 +46,7 @@ import (
 
 func (pfs *FileSystem) copyStockContent() error {
 	const root = "editor/editor_embedded_content/editor_content"
-	top, err := CodeFS.ReadDir(root)
+	top, err := EngineFS.ReadDir(root)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (pfs *FileSystem) copyStockContent() error {
 		if strings.HasSuffix(path, "renderer/src") {
 			return nil
 		}
-		entries, err := CodeFS.ReadDir(path)
+		entries, err := EngineFS.ReadDir(path)
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func (pfs *FileSystem) copyStockContent() error {
 	}
 	for i := range all {
 		outPath := filepath.Join(StockFolder, filepath.Base(all[i]))
-		data, err := CodeFS.ReadFile(all[i])
+		data, err := EngineFS.ReadFile(all[i])
 		if err != nil {
 			return err
 		}

@@ -38,10 +38,7 @@
 package project_file_system
 
 import (
-	"embed"
 	"fmt"
-	"io"
-	"io/fs"
 	"kaiju/editor/codegen"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
@@ -49,14 +46,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"strings"
 )
 
-var (
-	CodeFS    embed.FS
-	modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
-)
+var modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
 
 var skipFiles = []string{
 	"main.ed.go",
@@ -242,61 +235,17 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.WriteFile(ProjectCodeGame, []byte(srcGameFileData), os.ModePerm); err != nil {
 		return err
 	}
-	main, err := CodeFS.ReadFile("main.go")
-	if err != nil {
-		return err
-	}
-	if err := pfs.WriteFile(ProjectCodeMain, main, os.ModePerm); err != nil {
-		return err
-	}
-	var copyFolder func(path string) error
-	copyFolder = func(path string) error {
-		if strings.EqualFold(path, "editor") {
-			return nil
-		}
-		folder := filepath.Join("kaiju", path)
-		if path != "." {
-			if err := pfs.Mkdir(folder, os.ModePerm); err != nil {
-				return err
-			}
-		}
-		var dir []fs.DirEntry
-		if dir, err = CodeFS.ReadDir(path); err != nil {
+	mains := []string{"main.go", "main.std.go", "main.android.go"}
+	for i := range mains {
+		main, err := EngineFS.ReadFile(mains[i])
+		if err != nil {
 			return err
 		}
-		for i := range dir {
-			name := dir[i].Name()
-			if filepath.Ext(name) == ".exe" {
-				continue
-			}
-			entryPath := filepath.ToSlash(filepath.Join(path, name))
-			if dir[i].IsDir() {
-				if copyFolder(entryPath); err != nil {
-					return err
-				} else {
-					continue
-				}
-			}
-			if slices.Contains(skipFiles, entryPath) {
-				continue
-			}
-			f, err := CodeFS.Open(entryPath)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			t, err := pfs.Create(filepath.Join(folder, dir[i].Name()))
-			if err != nil {
-				return err
-			}
-			defer t.Close()
-			if _, err := io.Copy(t, f); err != nil {
-				return err
-			}
+		if err := pfs.WriteFile(filepath.Join(ProjectCodeFolder, mains[i]), main, os.ModePerm); err != nil {
+			return err
 		}
-		return nil
 	}
-	return copyFolder(".")
+	return EngineFS.CopyFolder(pfs, ".", "kaiju", []string{".exe"})
 }
 
 func (pfs *FileSystem) ReadModName() string {

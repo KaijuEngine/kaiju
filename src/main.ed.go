@@ -1,3 +1,5 @@
+//go:build editor
+
 /******************************************************************************/
 /* main.ed.go                                                                 */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build editor
-
 package main
 
 import (
@@ -58,7 +58,7 @@ import (
 var src embed.FS
 
 func init() {
-	project_file_system.CodeFS = src
+	project_file_system.EngineFS.FS = src
 }
 
 func getGame() bootstrap.GameInterface { return editor.EditorGame{} }

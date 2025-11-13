@@ -80,6 +80,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickBuild":            b.clickBuild,
 			"clickBuildAndRun":      b.clickBuildAndRun,
 			"clickRunCurrentStage":  b.clickRunCurrentStage,
+			"clickBuildAndroid":     b.clickBuildAndroid,
 			"clickNewCamera":        b.clickNewCamera,
 			"clickAbout":            b.clickAbout,
 			"clickIssues":           b.clickIssues,
@@ -183,24 +184,24 @@ func (b *MenuBar) clickSettings(e *document.Element) {
 	b.handler.SettingsWorkspaceSelected()
 }
 
-func (b *MenuBar) clickNewStage(e *document.Element) {
+func (b *MenuBar) clickNewStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickNewStage").End()
 	b.hidePopups()
 	b.handler.CreateNewStage()
 }
 
-func (b *MenuBar) clickOpenStage(e *document.Element) {
+func (b *MenuBar) clickOpenStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickOpenStage").End()
 	b.hidePopups()
 }
 
-func (b *MenuBar) clickSaveStage(e *document.Element) {
+func (b *MenuBar) clickSaveStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSaveStage").End()
 	b.hidePopups()
 	b.handler.SaveCurrentStage()
 }
 
-func (b *MenuBar) clickCreateEntityData(e *document.Element) {
+func (b *MenuBar) clickCreateEntityData(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickCreateEntityData").End()
 	b.hidePopups()
 	b.handler.BlurInterface()
@@ -210,28 +211,36 @@ func (b *MenuBar) clickCreateEntityData(e *document.Element) {
 	})
 }
 
-func (b *MenuBar) clickOpenVSCode(e *document.Element) {
+func (b *MenuBar) clickOpenVSCode(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickOpenVSCode").End()
 	b.hidePopups()
 	b.handler.OpenVSCodeProject()
 }
 
-func (b *MenuBar) clickBuild(e *document.Element) {
+func (b *MenuBar) clickBuild(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickBuild").End()
 	b.hidePopups()
 	b.handler.Build()
 }
 
-func (b *MenuBar) clickBuildAndRun(e *document.Element) {
+func (b *MenuBar) clickBuildAndRun(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickBuildAndRun").End()
 	b.hidePopups()
 	b.handler.BuildAndRun()
 }
 
-func (b *MenuBar) clickRunCurrentStage(e *document.Element) {
+func (b *MenuBar) clickRunCurrentStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickRunCurrentStage").End()
 	b.hidePopups()
 	b.handler.BuildAndRunCurrentStage()
+}
+
+func (b *MenuBar) clickBuildAndroid(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickBuildAndroid").End()
+	b.hidePopups()
+	bts := b.handler.Settings().BuildTools
+	// goroutine
+	go b.handler.Project().BuildAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickNewCamera(*document.Element) {
@@ -240,30 +249,30 @@ func (b *MenuBar) clickNewCamera(*document.Element) {
 	b.handler.CreateNewCamera()
 }
 
-func (b *MenuBar) clickAbout(e *document.Element) {
+func (b *MenuBar) clickAbout(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickAbout").End()
 	b.hidePopups()
 }
 
-func (b *MenuBar) clickIssues(e *document.Element) {
+func (b *MenuBar) clickIssues(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickIssues").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju/issues")
 }
 
-func (b *MenuBar) clickRepository(e *document.Element) {
+func (b *MenuBar) clickRepository(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickRepository").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://github.com/KaijuEngine/kaiju")
 }
 
-func (b *MenuBar) clickJoinMailingList(e *document.Element) {
+func (b *MenuBar) clickJoinMailingList(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickJoinMailingList").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://www.freelists.org/list/kaijuengine")
 }
 
-func (b *MenuBar) clickMailArchives(e *document.Element) {
+func (b *MenuBar) clickMailArchives(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickMailArchives").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://www.freelists.org/archive/kaijuengine/")
