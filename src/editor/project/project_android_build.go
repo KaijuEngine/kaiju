@@ -40,6 +40,7 @@ package project
 import (
 	"bufio"
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -50,10 +51,22 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
 )
+
+func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error {
+	if err := p.BuildAndroid(ndkHome, javaHome, tags); err != nil {
+		return err
+	}
+	if err := p.deployAndroidAPK(ndkHome, tags); err != nil {
+		return err
+	}
+	slog.Info("application has been deployed on the target Android device")
+	return nil
+}
 
 func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
 	defer tracing.NewRegion("Project.BuildAndroid").End()
@@ -249,4 +262,110 @@ func (p *Project) buildAPK(javaHome string, tags []string) error {
 	}
 	filesystem.OpenFileBrowserToFolder(outFolder)
 	return nil
+}
+
+func (p *Project) deployAndroidAPK(ndkHome string, tags []string) error {
+	adb := filepath.Join(ndkHome, "../../platform-tools/adb")
+	if runtime.GOOS == "windows" {
+		adb += ".exe"
+	}
+	outFolder := filepath.Join(p.fileSystem.FullPath(
+		project_file_system.ProjectBuildAndroidFolder),
+		"app/build/outputs/apk")
+	if slices.Contains(tags, "debug") {
+		outFolder = filepath.Join(outFolder, "debug")
+	} else {
+		outFolder = filepath.Join(outFolder, "release")
+	}
+	apkPath := ""
+	entries, err := os.ReadDir(outFolder)
+	if err != nil {
+		slog.Error("failed to read APK output folder", "folder", outFolder, "error", err)
+		return err
+	}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".apk") {
+			apkPath = filepath.Join(outFolder, e.Name())
+			break
+		}
+	}
+	if apkPath == "" {
+		return errors.New("no APK file found in " + outFolder)
+	}
+	manifestPath := filepath.Join(p.fileSystem.FullPath(
+		project_file_system.ProjectBuildAndroidFolder),
+		"app/src/main/AndroidManifest.xml")
+	packageName, err := extractAndroidPackageName(manifestPath)
+	if err != nil {
+		slog.Error("failed to extract package name from manifest", "manifest", manifestPath, "error", err)
+		return err
+	}
+	installCmd := exec.Command(adb, "install", "-r", apkPath)
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
+	slog.Info("installing APK via ADB", "apk", apkPath)
+	if err = installCmd.Run(); err != nil {
+		slog.Error("ADB install failed", "error", err)
+		return err
+	}
+	launchCmd := exec.Command(adb, "shell", "monkey", "-p", packageName,
+		"-c", "android.intent.category.LAUNCHER", "1")
+	launchCmd.Stdout = os.Stdout
+	launchCmd.Stderr = os.Stderr
+	slog.Info("launching app via ADB", "package", packageName)
+	if err = launchCmd.Run(); err != nil {
+		slog.Error("ADB launch failed", "error", err)
+		return err
+	}
+	return nil
+}
+
+func extractAndroidPackageName(manifestPath string) (string, error) {
+	type manifest struct {
+		XMLName xml.Name `xml:"manifest"`
+		Package string   `xml:"package,attr"`
+	}
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return "", err
+	}
+	var m manifest
+	if err = xml.Unmarshal(data, &m); err == nil && m.Package != "" {
+		return m.Package, nil
+	}
+	gradlePath := filepath.Join(filepath.Dir(filepath.Dir(manifestPath)), "build.gradle")
+	if _, err := os.Stat(gradlePath); err == nil {
+		if id, err := parseAndroidAppIdFromGradle(gradlePath); err == nil && id != "" {
+			return id, nil
+		}
+	}
+	type activity struct {
+		Name string `xml:"name,attr"`
+	}
+	type app struct {
+		Activities []activity `xml:"application>activity"`
+	}
+	var a app
+	if err = xml.Unmarshal(data, &a); err == nil && len(a.Activities) > 0 {
+		if fullName := a.Activities[0].Name; fullName != "" {
+			if idx := strings.LastIndex(fullName, "."); idx > 0 {
+				return fullName[:idx], nil
+			}
+		}
+	}
+	return "", errors.New("package name not found in manifest, Gradle, or activity")
+}
+
+func parseAndroidAppIdFromGradle(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	// matches: applicationId "com.example.app"
+	re := regexp.MustCompile(`applicationId\s+["']([^"']+)["']`)
+	matches := re.FindStringSubmatch(string(content))
+	if len(matches) == 2 {
+		return matches[1], nil
+	}
+	return "", errors.New("applicationId not found in Gradle file")
 }

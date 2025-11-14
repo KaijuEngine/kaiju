@@ -81,6 +81,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickBuildAndRun":      b.clickBuildAndRun,
 			"clickRunCurrentStage":  b.clickRunCurrentStage,
 			"clickBuildAndroid":     b.clickBuildAndroid,
+			"clickBuildRunAndroid":  b.clickBuildRunAndroid,
 			"clickNewCamera":        b.clickNewCamera,
 			"clickAbout":            b.clickAbout,
 			"clickIssues":           b.clickIssues,
@@ -241,6 +242,14 @@ func (b *MenuBar) clickBuildAndroid(*document.Element) {
 	bts := b.handler.Settings().BuildTools
 	// goroutine
 	go b.handler.Project().BuildAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+}
+
+func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickBuildRunAndroid").End()
+	b.hidePopups()
+	bts := b.handler.Settings().BuildTools
+	// goroutine
+	go b.handler.Project().BuildRunAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickNewCamera(*document.Element) {
