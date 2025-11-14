@@ -40,6 +40,7 @@ package project_file_system
 import (
 	"errors"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,6 +145,16 @@ func (fs *FileSystem) SetupStructure() error {
 	if err := fs.WriteFile(ProjectConfigFile, []byte("{}"), os.ModePerm); err != nil {
 		return err
 	}
+	if err := fs.createCodeProject(); err != nil {
+		return err
+	}
+	return fs.copyStockContent()
+}
+
+func (fs *FileSystem) TryUpgrade() error {
+	defer tracing.NewRegion("FileSystem.TryUpgrade").End()
+	slog.Info("deleting all previous Kaiju engine source code")
+	fs.RemoveAll(KaijuSrcFolder)
 	if err := fs.createCodeProject(); err != nil {
 		return err
 	}

@@ -38,10 +38,12 @@
 package project_file_system
 
 import (
+	"errors"
 	"fmt"
 	"kaiju/editor/codegen"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -94,6 +96,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -215,21 +218,23 @@ const srcLaunchJsonFileData = `{
 
 func (pfs *FileSystem) createCodeProject() error {
 	defer tracing.NewRegion("FileSystem.ReadcreateCodeProjectModName").End()
-	if err := pfs.Mkdir(KaijuSrcFolder, os.ModePerm); err != nil {
+	slog.Info("creating project code structure")
+	if err := pfs.Mkdir(KaijuSrcFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	if err := pfs.Mkdir(ProjectCodeFolder, os.ModePerm); err != nil {
+	if err := pfs.Mkdir(ProjectCodeFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	if err := pfs.Mkdir(ProjectCodeGameHostFolder, os.ModePerm); err != nil {
+	if err := pfs.Mkdir(ProjectCodeGameHostFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	if err := pfs.Mkdir(ProjectBuildFolder, os.ModePerm); err != nil {
+	if err := pfs.Mkdir(ProjectBuildFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil {
+	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
+	slog.Info("creating workspace management files")
 	goVersion := strings.TrimPrefix(runtime.Version(), "go")
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
@@ -242,8 +247,13 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.WriteFile(ProjectLaunchJsonFile, []byte(srcLaunchJsonFileData), os.ModePerm); err != nil {
 		return err
 	}
-	if err := pfs.WriteFile(ProjectCodeGameHost, []byte(srcGameHostFileData), os.ModePerm); err != nil {
-		return err
+	slog.Info("creating game bootstrap code files")
+	if !pfs.Exists(ProjectCodeGameHost) {
+		if err := pfs.WriteFile(ProjectCodeGameHost, []byte(srcGameHostFileData), os.ModePerm); err != nil {
+			return err
+		}
+	} else {
+		slog.Info("the project game host file is already created, skipping it's creation")
 	}
 	if err := pfs.WriteFile(ProjectCodeGame, []byte(srcGameFileData), os.ModePerm); err != nil {
 		return err
@@ -258,6 +268,7 @@ func (pfs *FileSystem) createCodeProject() error {
 			return err
 		}
 	}
+	slog.Info("copying over all of the Kiaju engine source code")
 	return EngineFS.CopyFolder(pfs, ".", "kaiju", []string{".exe"})
 }
 

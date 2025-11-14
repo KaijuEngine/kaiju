@@ -38,7 +38,9 @@
 package editor
 
 import (
+	"errors"
 	"fmt"
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/new_project"
 	"kaiju/editor/project"
 	"kaiju/klib"
@@ -62,9 +64,10 @@ func (ed *Editor) newProjectOverlay() {
 
 func (ed *Editor) retryNewProjectOverlay(err error) {
 	new_project.Show(ed.host, new_project.Config{
-		OnCreate: ed.createProject,
-		OnOpen:   ed.openProject,
-		Error:    err.Error(),
+		OnCreate:       ed.createProject,
+		OnOpen:         ed.openProject,
+		RecentProjects: ed.settings.RecentProjects,
+		Error:          err.Error(),
 	})
 }
 
@@ -89,12 +92,31 @@ func (ed *Editor) openProject(path string) {
 		return
 	}
 	projectVersion := ed.project.Settings().EditorVersion
-	if projectVersion != EditorVersion {
-		slog.Warn("this project was created with a previous version of the editor and needs to be upgraded",
-			"projectVersion", projectVersion, "editorVersion", EditorVersion)
-		// TODO:  Show popup to upgrade project
+	finishLoad := func() {
+		ed.setProjectName(ed.project.Name())
+		ed.postProjectLoad()
+		ed.FocusInterface()
 	}
-	ed.setProjectName(ed.project.Name())
-	ed.postProjectLoad()
-	ed.FocusInterface()
+	if projectVersion != EditorVersion {
+		confirm_prompt.Show(ed.host, confirm_prompt.Config{
+			Title:       "Upgrade project",
+			Description: "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding.",
+			ConfirmText: "Yes",
+			CancelText:  "Cancel",
+			OnConfirm: func() {
+				if err := ed.project.TryUpgrade(); err != nil {
+					ed.retryNewProjectOverlay(err)
+				} else {
+					ed.project.Settings().EditorVersion = EditorVersion
+					ed.project.Settings().Save(ed.ProjectFileSystem())
+					finishLoad()
+				}
+			},
+			OnCancel: func() {
+				ed.retryNewProjectOverlay(errors.New("Project upgrade refused, unable to open project"))
+			},
+		})
+	} else {
+		finishLoad()
+	}
 }

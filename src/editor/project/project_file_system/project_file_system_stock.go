@@ -38,6 +38,8 @@
 package project_file_system
 
 import (
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -45,6 +47,8 @@ import (
 )
 
 func (pfs *FileSystem) copyStockContent() error {
+	defer tracing.NewRegion("FileSystem.copyStockContent").End()
+	slog.Info("copying stock content to the project database")
 	const root = "editor/editor_embedded_content/editor_content"
 	top, err := EngineFS.ReadDir(root)
 	if err != nil {

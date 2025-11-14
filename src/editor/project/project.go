@@ -379,6 +379,14 @@ func (p *Project) ReadSourceCode() {
 	p.OnEntityDataUpdated.Execute(p.entityData)
 }
 
+func (p *Project) TryUpgrade() error {
+	if err := p.fileSystem.TryUpgrade(); err != nil {
+		return err
+	}
+	p.writeProjectTitle()
+	return nil
+}
+
 func (p *Project) reconstruct() {
 	defer tracing.NewRegion("Project.reconstruct").End()
 	*p = Project{}
