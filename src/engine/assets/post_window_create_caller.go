@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* archive_database.go                                                        */
+/* post_window_create_caller.go                                               */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -37,74 +37,6 @@
 
 package assets
 
-import (
-	"kaiju/engine/assets/content_archive"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
-	"runtime"
-)
-
-const absoluteFilePrefix = ':'
-
-type ArchiveDatabase struct {
-	archive     *content_archive.Archive
-	archivePath string
-	key         []byte
+type PostWindowCreateHandle interface {
+	ReadApplicationAsset(path string) ([]byte, error)
 }
-
-func NewArchiveDatabase(archive string, key []byte) (Database, error) {
-	defer tracing.NewRegion("ArchiveDatabase.NewArchiveDatabase").End()
-	switch runtime.GOOS {
-	case "android":
-		return &ArchiveDatabase{archivePath: archive, key: key}, nil
-	default:
-		ar, err := content_archive.OpenArchiveFile(archive, key)
-		return &ArchiveDatabase{archive: ar}, err
-	}
-}
-
-func (a *ArchiveDatabase) PostWindowCreate(windowHandle PostWindowCreateHandle) error {
-	defer tracing.NewRegion("ArchiveDatabase.PostWindowCreate").End()
-	switch runtime.GOOS {
-	case "android":
-		data, err := windowHandle.ReadApplicationAsset(a.archivePath)
-		if err != nil {
-			return err
-		}
-		a.archive, err = content_archive.OpenArchiveFromBytes(data, a.key)
-		a.archivePath = ""
-		a.key = []byte{}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a *ArchiveDatabase) Cache(key string, data []byte) {}
-func (a *ArchiveDatabase) CacheRemove(key string)        {}
-func (a *ArchiveDatabase) CacheClear()                   {}
-
-func (a *ArchiveDatabase) ReadText(key string) (string, error) {
-	defer tracing.NewRegion("ArchiveDatabase.ReadText: " + key).End()
-	data, err := a.Read(key)
-	return string(data), err
-}
-
-func (a *ArchiveDatabase) Read(key string) ([]byte, error) {
-	defer tracing.NewRegion("ArchiveDatabase.Read: " + key).End()
-	if key[0] == absoluteFilePrefix {
-		return filesystem.ReadFile(key[1:])
-	}
-	return a.archive.Read(key)
-}
-
-func (a *ArchiveDatabase) Exists(key string) bool {
-	defer tracing.NewRegion("ArchiveDatabase.Exists: " + key).End()
-	if key[0] == absoluteFilePrefix {
-		return filesystem.FileExists(key[1:])
-	}
-	return a.archive.Exists(key)
-}
-
-func (a *ArchiveDatabase) Close() {}

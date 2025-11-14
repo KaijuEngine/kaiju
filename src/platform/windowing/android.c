@@ -281,9 +281,9 @@ static void local_handle_cmd(struct android_app* app, int32_t cmd) {
 		{
 			log_info("Window initialize requested");
 			if (app->window != NULL) {
-				log_info("Application window found, checking for dummy data");
+				log_info("Application window found, checking for shared data");
 				if (app->userData == NULL) {
-					log_info("Application dummy data found, clearing it");
+					log_info("Shared data was not found, creating it");
 					SharedMem* sm = calloc(1, sizeof(SharedMem));
 					app->userData = sm;
 					if (app->savedState != NULL) {

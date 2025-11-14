@@ -96,7 +96,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets assets.Database, platformState any) (*Window, error) {
+func New(windowName string, width, height, x, y int, adb assets.Database, platformState any) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
@@ -129,8 +129,9 @@ func New(windowName string, width, height, x, y int, assets assets.Database, pla
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to present the window " + windowName)
 	}
+	adb.PostWindowCreate(w)
 	var err error
-	w.Renderer, err = selectRenderer(w, windowName, assets)
+	w.Renderer, err = selectRenderer(w, windowName, adb)
 	w.x, w.y = w.position()
 	return w, err
 }

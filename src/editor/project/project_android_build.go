@@ -180,7 +180,7 @@ func (p *Project) copyAndroidContentToAssets() error {
 		return fmt.Errorf("the asset path is not a folder: %s", toDir)
 	}
 	to := filepath.Join(toDir, filepath.Base(from))
-	return filesystem.CopyFile(from, to)
+	return filesystem.CopyFileOverwrite(from, to)
 }
 
 func (p *Project) buildAPK(javaHome string, tags []string) error {

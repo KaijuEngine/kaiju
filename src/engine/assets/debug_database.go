@@ -91,3 +91,5 @@ func (e DebugContentDatabase) Exists(key string) bool {
 	_, err := os.Stat(findDebugDatabaseFile(key))
 	return err == nil
 }
+
+func (DebugContentDatabase) PostWindowCreate(PostWindowCreateHandle) error { return nil }

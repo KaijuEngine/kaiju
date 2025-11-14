@@ -40,6 +40,7 @@ package editor_embedded_content
 import (
 	"io/fs"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/assets"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"os"
@@ -144,3 +145,5 @@ func (e EditorContent) Exists(key string) bool {
 	f.Close()
 	return true
 }
+
+func (a *EditorContent) PostWindowCreate(assets.PostWindowCreateHandle) error { return nil }
