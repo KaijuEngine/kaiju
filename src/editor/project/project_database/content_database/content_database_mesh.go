@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders"
@@ -117,7 +118,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			if _, err := os.Stat(tp); err != nil {
 				return p, MeshInvalidTextureError{src, v, tp}
 			}
-			p.Dependencies = append(p.Dependencies, tp)
+			p.Dependencies = klib.AppendUnique(p.Dependencies, tp)
 			t[k] = tp
 		}
 	}
