@@ -58,6 +58,7 @@ type Settings struct {
 	RecentProjects []string `visible:"false"`
 	Snapping       SnapSettings
 	BuildTools     BuildToolSettings
+	RefreshRate    int32 `clamp:"60,0,320"`
 }
 
 type SnapSettings struct {
@@ -107,6 +108,7 @@ func (s *Settings) Load() error {
 	if _, err := os.Stat(path); err != nil {
 		// If the settings file doesn't exist, then create it. It is returning
 		// here as there is no need to continue with the load if we're saving
+		s.RefreshRate = 60
 		return s.Save()
 	}
 	f, err := os.Open(path)

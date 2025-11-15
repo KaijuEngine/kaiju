@@ -97,8 +97,8 @@ func (w *SettingsWorkspace) Open() {
 func (w *SettingsWorkspace) Close() {
 	defer tracing.NewRegion("SettingsWorkspace.Close").End()
 	w.CommonClose()
-	w.editor.Settings().Save()
 	w.projectSettings.Save(w.editor.ProjectFileSystem())
+	w.editor.UpdateSettings()
 }
 
 func (w *SettingsWorkspace) resetLeftEntrySelection() {

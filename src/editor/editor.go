@@ -57,6 +57,7 @@ import (
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
+	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -135,6 +136,14 @@ func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
+}
+
+func (ed *Editor) UpdateSettings() {
+	if err := ed.settings.Save(); err != nil {
+		slog.Error("failed to save the editor settings", "error", err)
+		return
+	}
+	ed.host.SetFrameRateLimit(int64(klib.Clamp(ed.settings.RefreshRate, 0, 320)))
 }
 
 func (ed *Editor) postProjectLoad() {

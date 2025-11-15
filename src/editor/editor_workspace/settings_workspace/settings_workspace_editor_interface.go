@@ -49,4 +49,5 @@ type SettingsWorkspaceEditorInterface interface {
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
 	Settings() *editor_settings.Settings
+	UpdateSettings()
 }
