@@ -533,8 +533,10 @@ func (h *Host) WaitForFrameRate() {
 func (h *Host) SetFrameRateLimit(fps int64) {
 	defer tracing.NewRegion("Host.SetFrameRateLimit").End()
 	if fps == 0 {
-		h.frameRateLimit.Stop()
-		h.frameRateLimit = nil
+		if h.frameRateLimit != nil {
+			h.frameRateLimit.Stop()
+			h.frameRateLimit = nil
+		}
 	} else {
 		h.frameRateLimit = time.NewTicker(time.Second / time.Duration(fps))
 	}
