@@ -53,7 +53,6 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	if !ok {
 		return res, CategoryNotFoundError{Path: path}
 	}
-	res[0].Category = cat
 	proc, err := cat.Import(path, fs)
 	if err != nil {
 		return res, err
@@ -62,6 +61,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		len(proc.Dependencies) > 0
 	res = klib.SliceSetLen(res, len(proc.Variants))
 	for i := range proc.Variants {
+		res[i].Category = cat
 		res[i].generateUniqueFileId(fs)
 		if useLinkedId && linkedId == "" {
 			linkedId = res[i].Id
