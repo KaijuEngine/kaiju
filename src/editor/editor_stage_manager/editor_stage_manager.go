@@ -248,7 +248,8 @@ func (m *StageManager) Clear() {
 
 func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
 	defer tracing.NewRegion("StageManager.AddBVH").End()
-	collision.AddSubBVH(&m.worldBVH, bvh, transform)
+	cpy := collision.CloneBVH(bvh)
+	collision.AddSubBVH(&m.worldBVH, cpy, transform)
 }
 
 func (m *StageManager) RemoveBVH(bvh *collision.BVH) {

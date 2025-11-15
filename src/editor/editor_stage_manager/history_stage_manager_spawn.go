@@ -38,6 +38,7 @@
 package editor_stage_manager
 
 import (
+	"kaiju/engine/collision"
 	"kaiju/platform/profiler/tracing"
 )
 
@@ -52,6 +53,9 @@ func (h *objectSpawnHistory) Redo() {
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Activate()
 	}
+	if h.e.StageData.Bvh != nil {
+		h.m.AddBVH(h.e.StageData.Bvh, &h.e.Transform)
+	}
 	h.m.OnEntitySpawn.Execute(h.e)
 }
 
@@ -60,6 +64,9 @@ func (h *objectSpawnHistory) Undo() {
 	h.m.host.RemoveEntity(&h.e.Entity)
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Deactivate()
+	}
+	if h.e.StageData.Bvh != nil {
+		collision.RemoveAllLeavesMatchingTransform(&h.m.worldBVH, &h.e.Transform)
 	}
 	h.m.OnEntityDestroy.Execute(h.e)
 }

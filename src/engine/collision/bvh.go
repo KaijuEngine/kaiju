@@ -81,17 +81,6 @@ func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Tran
 	return item.HitCheck.RayIntersectTest(ray, length, item.Transform)
 }
 
-func computeBounds(entries []HitObject) AABB {
-	if len(entries) == 0 {
-		return AABB{}
-	}
-	b := entries[0].Bounds()
-	for i := 1; i < len(entries); i++ {
-		b = AABBUnion(b, entries[i].Bounds())
-	}
-	return b
-}
-
 func NewBVH(entries []HitObject, transform *matrix.Transform, data any) *BVH {
 	if len(entries) == 0 {
 		return nil
@@ -120,6 +109,33 @@ func NewBVH(entries []HitObject, transform *matrix.Transform, data any) *BVH {
 	left.Parent = bvh
 	right.Parent = bvh
 	return bvh
+}
+
+func CloneBVH(bvh *BVH) *BVH {
+	if bvh == nil {
+		return nil
+	}
+	newItem := bvh.Item
+	if sub, ok := bvh.Item.Data.(*BVH); ok {
+		newItem.Data = CloneBVH(sub)
+	}
+	clone := &BVH{
+		bounds: bvh.bounds,
+		Item:   newItem,
+	}
+	if bvh.Left != nil {
+		clone.Left = CloneBVH(bvh.Left)
+		if clone.Left != nil {
+			clone.Left.Parent = clone
+		}
+	}
+	if bvh.Right != nil {
+		clone.Right = CloneBVH(bvh.Right)
+		if clone.Right != nil {
+			clone.Right.Parent = clone
+		}
+	}
+	return clone
 }
 
 func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
@@ -246,6 +262,46 @@ func RemoveSubBVH(world **BVH, sub *BVH) {
 	removeLeaf(world, leaf)
 }
 
+func RemoveAllLeavesMatchingTransform(world **BVH, transform *matrix.Transform) {
+	if world == nil || *world == nil {
+		return
+	}
+	for {
+		leaf := findLeafWithTransform(*world, transform)
+		if leaf == nil {
+			break
+		}
+		removeLeaf(world, leaf)
+	}
+}
+
+func computeBounds(entries []HitObject) AABB {
+	if len(entries) == 0 {
+		return AABB{}
+	}
+	b := entries[0].Bounds()
+	for i := 1; i < len(entries); i++ {
+		b = AABBUnion(b, entries[i].Bounds())
+	}
+	return b
+}
+
+func findLeafWithTransform(b *BVH, target *matrix.Transform) *BVH {
+	if b == nil {
+		return nil
+	}
+	if b.IsLeaf() {
+		if b.Item.Transform == target {
+			return b
+		}
+		return nil
+	}
+	if left := findLeafWithTransform(b.Left, target); left != nil {
+		return left
+	}
+	return findLeafWithTransform(b.Right, target)
+}
+
 func findBestSibling(tree *BVH, newBounds AABB) *BVH {
 	current := tree
 	for !current.IsLeaf() {
@@ -265,7 +321,7 @@ func findLeafWithData(b *BVH, target HitObject) *BVH {
 		return nil
 	}
 	if b.IsLeaf() {
-		if b.Item.HitCheck == target {
+		if b.Item.HitCheck == target || b == target {
 			return b
 		}
 		return nil

@@ -38,6 +38,7 @@
 package editor_stage_manager
 
 import (
+	"kaiju/engine/collision"
 	"kaiju/platform/profiler/tracing"
 )
 
@@ -56,6 +57,9 @@ func (h *objectDeleteHistory) Redo() {
 		}
 		h.m.OnEntityDestroy.Execute(e)
 		e.isDeleted = true
+		if e.StageData.Bvh != nil {
+			collision.RemoveAllLeavesMatchingTransform(&h.m.worldBVH, &e.Transform)
+		}
 	}
 }
 
@@ -68,6 +72,9 @@ func (h *objectDeleteHistory) Undo() {
 		}
 		h.m.OnEntitySpawn.Execute(e)
 		e.isDeleted = false
+		if e.StageData.Bvh != nil {
+			h.m.AddBVH(e.StageData.Bvh, &e.Transform)
+		}
 	}
 	for _, e := range h.entities {
 		if e.Parent != nil {
