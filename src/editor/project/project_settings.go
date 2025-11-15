@@ -47,6 +47,12 @@ type Settings struct {
 	Name                 string
 	ArchiveEncryptionKey string
 	EditorVersion        float64 `visible:"false"`
+	Android              AndroidSettings
+}
+
+type AndroidSettings struct {
+	RootProjectName string
+	ApplicationId   string
 }
 
 func (c *Settings) Save(fs *project_file_system.FileSystem) error {

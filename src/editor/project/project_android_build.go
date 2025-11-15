@@ -103,7 +103,7 @@ func (p *Project) copyAndroidProjectTemplate() error {
 		}
 		slog.Info("project template copy complete")
 	}
-	return nil
+	return p.updateAndroidProjectStrings()
 }
 
 func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error {
@@ -368,4 +368,166 @@ func parseAndroidAppIdFromGradle(path string) (string, error) {
 		return matches[1], nil
 	}
 	return "", errors.New("applicationId not found in Gradle file")
+}
+
+func (p *Project) updateAndroidProjectStrings() error {
+	if err := p.updateAndroidSettingsGradleKTS(); err != nil {
+		return err
+	}
+	if err := p.updateAndroidAppBuildGradleKTS(); err != nil {
+		return err
+	}
+	if err := p.updateAndroidAppSrcMainAndroidManifestXML(); err != nil {
+		return err
+	}
+	if err := p.updateAndroidAppSrcMainResValuesStringsXML(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Project) updateAndroidSettingsGradleKTS() error {
+	// Set rootProject.name to p.settings.Android.RootProjectName in settings.gradle.kts
+	settingsPath := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"settings.gradle.kts",
+	)
+	stat, err := os.Stat(settingsPath)
+	if err != nil {
+		slog.Error("the settings.gradle.kts doesn't exist", "path", settingsPath, "error", err)
+		return err
+	}
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
+		slog.Error("failed to read settings.gradle.kts", "path", settingsPath, "error", err)
+		// If the file cannot be read we simply return – the rest of the TODOs can be
+		// handled later.
+		return err
+	}
+	newRootName := fmt.Sprintf(`rootProject.name = "%s"`, p.settings.Android.RootProjectName)
+	re := regexp.MustCompile(`(?m)^(\s*)rootProject\.name\s*=.*$`)
+	if re.Match(data) {
+		data = re.ReplaceAllFunc(data, func(m []byte) []byte {
+			submatches := re.FindSubmatch(m)
+			return []byte(fmt.Sprintf(`%s%s`, submatches[1], newRootName))
+		})
+	} else {
+		// If the line is not present, prepend it to the file
+		data = append([]byte(newRootName+"\n"), data...)
+	}
+	if err = os.WriteFile(settingsPath, data, stat.Mode().Perm()); err != nil {
+		slog.Error("failed to write updated settings.gradle.kts", "path", settingsPath, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (p *Project) updateAndroidAppBuildGradleKTS() error {
+	// Set namespace to p.settings.Android.ApplicationId in app/build.gradle.kts
+	// Set applicationId to p.settings.Android.ApplicationId in app/build.gradle.kts
+	gradlePath := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"app/build.gradle.kts",
+	)
+	stat, err := os.Stat(gradlePath)
+	if err != nil {
+		slog.Error("build.gradle.kts not found", "path", gradlePath, "error", err)
+		return err
+	}
+	data, err := os.ReadFile(gradlePath)
+	if err != nil {
+		slog.Error("failed to read build.gradle.kts", "path", gradlePath, "error", err)
+		return err
+	}
+	appID := p.settings.Android.ApplicationId
+	// Update the namespace
+	nsRe := regexp.MustCompile(`(?m)^(\s*)namespace\s*=.*$`)
+	newNS := fmt.Sprintf(`namespace = "%s"`, appID)
+	if nsRe.Match(data) {
+		data = nsRe.ReplaceAllFunc(data, func(m []byte) []byte {
+			submatches := nsRe.FindSubmatch(m)
+			return []byte(fmt.Sprintf(`%s%s`, submatches[1], newNS))
+		})
+	} else {
+		data = append([]byte(newNS+"\n"), data...)
+	}
+	// Update the applicationId
+	appIdRe := regexp.MustCompile(`(?m)^(\s*)applicationId\s*=.*$`)
+	newAppId := fmt.Sprintf(`applicationId = "%s"`, appID)
+	if appIdRe.Match(data) {
+		data = appIdRe.ReplaceAllFunc(data, func(m []byte) []byte {
+			submatches := appIdRe.FindSubmatch(m)
+			return []byte(fmt.Sprintf(`%s%s`, submatches[1], newAppId))
+		})
+	} else {
+		slog.Error("failed to find the applicationId in build.gradle.kts", "path", gradlePath)
+		return nil
+	}
+	if err = os.WriteFile(gradlePath, data, stat.Mode().Perm()); err != nil {
+		slog.Error("failed to write updated build.gradle.kts", "path", gradlePath, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
+	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/AndroidManifest.xml
+	manifestPath := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"app/src/main/AndroidManifest.xml",
+	)
+	stat, err := os.Stat(manifestPath)
+	if err != nil {
+		slog.Error("the AndroidManifest.xml doesn't exist", "path", manifestPath, "error", err)
+		return err
+	}
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		slog.Error("failed to read AndroidManifest.xml", "path", manifestPath, "error", err)
+		return err
+	}
+	re := regexp.MustCompile(`android:name\s*=\s*"[^"]*.MainActivity"`)
+	newName := fmt.Sprintf(`android:name="%s.MainActivity"`, p.settings.Android.ApplicationId)
+	if re.Match(data) {
+		data = re.ReplaceAll(data, []byte(newName))
+	} else {
+		slog.Error("android:name attribute not found and no <activity> tag to insert into", "path", manifestPath)
+		return errors.New("android:name attribute not found in AndroidManifest.xml")
+	}
+	if err = os.WriteFile(manifestPath, data, stat.Mode().Perm()); err != nil {
+		slog.Error("failed to write updated AndroidManifest.xml", "path", manifestPath, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (p *Project) updateAndroidAppSrcMainResValuesStringsXML() error {
+	// Set app_name to p.settings.Android.RootProjectName in app/src/main/res/values/strings.xml
+	stringsPath := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"app/src/main/res/values/strings.xml",
+	)
+	stat, err := os.Stat(stringsPath)
+	if err != nil {
+		slog.Error("the strings.xml doesn't exist", "path", stringsPath, "error", err)
+		return err
+	}
+	data, err := os.ReadFile(stringsPath)
+	if err != nil {
+		slog.Error("failed to read strings.xml", "path", stringsPath, "error", err)
+		return err
+	}
+	re := regexp.MustCompile(`(?s)<string\s+name\s*=\s*"app_name"\s*>.*?</string>`)
+	newEntry := fmt.Sprintf(`<string name="app_name">%s</string>`, p.settings.Android.RootProjectName)
+	if re.Match(data) {
+		data = re.ReplaceAll(data, []byte(newEntry))
+	} else {
+		slog.Error(`failed to find the "app_name" in strings.xml`, "path", stringsPath)
+		return nil
+	}
+	if err = os.WriteFile(stringsPath, data, stat.Mode().Perm()); err != nil {
+		slog.Error("failed to write updated strings.xml", "path", stringsPath, "error", err)
+		return err
+	}
+	return nil
 }

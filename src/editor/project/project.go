@@ -175,6 +175,7 @@ func (p *Project) SetName(name string) {
 	if p.OnNameChange != nil {
 		p.OnNameChange(p.settings.Name)
 	}
+	p.settings.Android.RootProjectName = p.settings.Name
 	p.writeProjectTitle()
 }
 
