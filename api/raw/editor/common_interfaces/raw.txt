@@ -1,0 +1,10 @@
+package common_interfaces // import "."
+
+
+TYPES
+
+type Focusable interface {
+	FocusInterface()
+	BlurInterface()
+}
+
