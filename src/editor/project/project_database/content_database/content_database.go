@@ -60,6 +60,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	useLinkedId := linkedId != "" || len(proc.Variants) > 1 ||
 		len(proc.Dependencies) > 0
 	res = klib.SliceSetLen(res, len(proc.Variants))
+	dependencyMap := map[string][]ImportResult{}
 	for i := range proc.Variants {
 		res[i].Category = cat
 		res[i].generateUniqueFileId(fs)
@@ -91,9 +92,14 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		}
 		res[i].Dependencies = make([]ImportResult, len(proc.Dependencies))
 		for i := range proc.Dependencies {
-			res[i].Dependencies, err = Import(proc.Dependencies[i], fs, cache, linkedId)
-			if err != nil {
-				break
+			if d, ok := dependencyMap[proc.Dependencies[i]]; ok {
+				res[i].Dependencies = d
+			} else {
+				res[i].Dependencies, err = Import(proc.Dependencies[i], fs, cache, linkedId)
+				dependencyMap[proc.Dependencies[i]] = res[i].Dependencies
+				if err != nil {
+					break
+				}
 			}
 		}
 		cache.Index(res[i].ConfigPath(), fs)
