@@ -65,29 +65,29 @@ func StringToTypeValue(typeName, v string) any {
 	case "int16":
 		return int16(ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int16(0))))))
 	case "int32":
-		return int32(ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int32(0))))))
+		return int32(ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int32(0))*8))))
 	case "int64":
-		return ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int64(0)))))
+		return ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int64(0))*8)))
 	case "uint":
-		return uint(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint(0))))))
+		return uint(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint(0))*8))))
 	case "uint8":
-		return uint8(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint8(0))))))
+		return uint8(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint8(0))*8))))
 	case "uint16":
-		return uint16(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint16(0))))))
+		return uint16(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint16(0))*8))))
 	case "uint32":
-		return uint32(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint32(0))))))
+		return uint32(ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint32(0))*8))))
 	case "uint64":
 		return ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint64(0)))))
 	case "float32":
-		return float32(ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float32(0))))))
+		return float32(ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float32(0))*8))))
 	case "float64":
-		return ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float64(0)))))
+		return ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float64(0))*8)))
 	case "uintptr":
-		return ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint64(0)))))
+		return ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint64(0))*8)))
 	case "complex64":
-		return complex64(ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex64(0))))))
+		return complex64(ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex64(0))*8))))
 	case "complex128":
-		return ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex128(0)))))
+		return ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex128(0))*8)))
 	}
 	return nil
 }
