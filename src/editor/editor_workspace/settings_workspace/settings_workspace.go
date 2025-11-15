@@ -85,6 +85,13 @@ func (w *SettingsWorkspace) Open() {
 	w.CommonOpen()
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
+	w.resetLeftEntrySelection()
+	for _, e := range w.Doc.GetElementsByClass("leftEntry") {
+		if e.InnerLabel().Text() == "Project Settings" {
+			w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
+			break
+		}
+	}
 }
 
 func (w *SettingsWorkspace) Close() {
@@ -94,14 +101,24 @@ func (w *SettingsWorkspace) Close() {
 	w.projectSettings.Save(w.editor.ProjectFileSystem())
 }
 
-func (w *SettingsWorkspace) showProjectSettings(*document.Element) {
+func (w *SettingsWorkspace) resetLeftEntrySelection() {
+	for _, elm := range w.Doc.GetElementsByClass("leftEntry") {
+		w.Doc.SetElementClassesWithoutApply(elm, "leftEntry")
+	}
+}
+
+func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
 }
 
-func (w *SettingsWorkspace) showEditorSettings(*document.Element) {
+func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
 }
