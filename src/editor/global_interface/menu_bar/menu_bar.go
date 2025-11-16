@@ -312,5 +312,6 @@ func (b *MenuBar) hidePopups() {
 		pops[i].UI.Hide()
 	}
 	b.selectedPopup = nil
+	b.handler.FocusInterface()
 	b.uiMan.Host.RunOnMainThread(b.handler.FocusInterface)
 }
