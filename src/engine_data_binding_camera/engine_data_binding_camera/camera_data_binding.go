@@ -35,7 +35,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine_data_bindings
+package engine_data_binding_camera
 
 import (
 	"kaiju/engine"

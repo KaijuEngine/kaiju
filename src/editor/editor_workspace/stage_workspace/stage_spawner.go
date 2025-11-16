@@ -47,7 +47,7 @@ import (
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
-	"kaiju/engine_data_bindings"
+	"kaiju/engine_data_binding_camera/engine_data_binding_camera"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/ollama"
@@ -107,7 +107,7 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	e := w.stageView.Manager().AddEntity("Camera", w.stageView.LookAtPoint())
-	key := engine_data_bindings.CameraDataBindingKey
+	key := engine_data_binding_camera.CameraDataBindingKey
 	g, ok := w.ed.Project().EntityDataBinding(key)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", key)

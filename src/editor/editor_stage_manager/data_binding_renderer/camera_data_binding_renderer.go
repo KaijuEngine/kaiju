@@ -44,7 +44,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
-	"kaiju/engine_data_bindings"
+	"kaiju/engine_data_binding_camera/engine_data_binding_camera"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -54,7 +54,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_data_bindings.CameraDataBindingKey, &CameraDataBindingRenderer{
+	AddRenderer(engine_data_binding_camera.CameraDataBindingKey, &CameraDataBindingRenderer{
 		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
 	})
 }
