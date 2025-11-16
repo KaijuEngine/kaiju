@@ -41,6 +41,7 @@ import (
 	"errors"
 	"kaiju/build"
 	"kaiju/engine/runtime/encoding/gob"
+	"log/slog"
 	"reflect"
 )
 
@@ -66,6 +67,22 @@ func RegisterEntityData(name string, value EntityData) error {
 
 func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
 	switch f.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		elemType := f.Type().Elem()
+		if elemType.Kind() == reflect.Float32 {
+			ivs, ok := v.([]interface{})
+			if ok && len(ivs) == f.Len() {
+				for i := 0; i < f.Len(); i++ {
+					if num, ok := ivs[i].(float64); ok {
+						f.Index(i).SetFloat(num)
+					} else {
+						slog.Error("invalid float in array of floats", "index", i)
+					}
+				}
+			}
+		}
 	case reflect.Float32: // JSON reads float64 only
 		reflectTo[float64, float32](v, f)
 	case reflect.Int: // JSON reads int64 only
