@@ -234,6 +234,9 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
+	if err := pfs.WriteFile(filepath.Join(ProjectBuildFolder, ".gitignore"), []byte("*\n"), os.ModePerm); err != nil {
+		return err
+	}
 	slog.Info("creating workspace management files")
 	goVersion := strings.TrimPrefix(runtime.Version(), "go")
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
