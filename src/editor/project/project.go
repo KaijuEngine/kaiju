@@ -141,12 +141,17 @@ func (p *Project) Close() error {
 func (p *Project) Open(path string) error {
 	defer tracing.NewRegion("Project.Open").End()
 	p.reconstruct()
+	if s, err := os.Stat(path); err != nil {
+		return ProjectOpenError{Path: path, IsMissing: true}
+	} else if !s.IsDir() {
+		return ProjectOpenError{Path: path, IsFile: true}
+	}
 	var err error
 	if p.fileSystem, err = project_file_system.New(path); err != nil {
 		return err
 	}
 	if err = p.fileSystem.EnsureDatabaseExists(); err != nil {
-		return ProjectOpenError{path}
+		return ProjectOpenError{Path: path}
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
 		slog.Error("failed to read the cache database", "error", err)

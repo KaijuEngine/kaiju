@@ -48,9 +48,17 @@ func (e ConfigLoadError) Error() string {
 }
 
 type ProjectOpenError struct {
-	Path string
+	Path      string
+	IsFile    bool
+	IsMissing bool
 }
 
 func (e ProjectOpenError) Error() string {
-	return fmt.Sprintf("the path specified is not a Kaiju project: %s", e.Path)
+	if e.IsFile {
+		return fmt.Sprintf("the path specified is a file, not a folder: %s", e.Path)
+	} else if e.IsMissing {
+		return fmt.Sprintf("the path specified is missing: %s", e.Path)
+	} else {
+		return fmt.Sprintf("the path specified is not a Kaiju project: %s", e.Path)
+	}
 }

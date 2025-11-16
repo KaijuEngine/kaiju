@@ -88,6 +88,11 @@ func (ed *Editor) openProject(path string) {
 	defer tracing.NewRegion("Editor.openProject").End()
 	if err := ed.project.Open(path); err != nil {
 		slog.Error("failed to open the project", "error", err)
+		lastCount := len(ed.settings.RecentProjects)
+		ed.settings.RecentProjects = klib.SlicesRemoveElement(ed.settings.RecentProjects, path)
+		if len(ed.settings.RecentProjects) != lastCount {
+			ed.settings.Save()
+		}
 		ed.retryNewProjectOverlay(err)
 		return
 	}
