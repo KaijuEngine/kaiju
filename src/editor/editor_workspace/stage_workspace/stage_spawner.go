@@ -48,6 +48,7 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
 	"kaiju/engine_data_binding_camera/engine_data_binding_camera"
+	"kaiju/engine_data_binding_camera/engine_data_binding_light"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/ollama"
@@ -80,6 +81,7 @@ type OllamaStageWorkspaceAction struct {
 }
 
 func (a OllamaStageWorkspaceAction) createCamera(posX, posY, posZ, lookAtX, lookAtY, lookAtZ float32) string {
+	defer tracing.NewRegion("StageWorkspace.createCamera").End()
 	w := a.w.Value()
 	cam, ok := w.CreateNewCamera()
 	if !ok {
@@ -99,6 +101,7 @@ func (a OllamaStageWorkspaceAction) createCamera(posX, posY, posZ, lookAtX, look
 // Create 5 cameras in a circle, in the air, around center stage. These cameras should be looking at center stage.
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
+	defer tracing.NewRegion("StageWorkspace.attachEntityData").End()
 	de := &entity_data_binding.EntityDataEntry{}
 	e.AddDataBinding(de.ReadEntityDataBindingType(g))
 	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
@@ -106,11 +109,21 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 }
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
-	e := w.stageView.Manager().AddEntity("Camera", w.stageView.LookAtPoint())
-	key := engine_data_binding_camera.CameraDataBindingKey
-	g, ok := w.ed.Project().EntityDataBinding(key)
+	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
+	return w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
+}
+
+func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool) {
+	defer tracing.NewRegion("StageWorkspace.CreateNewLight").End()
+	return w.createDataBoundEntity("Light", engine_data_binding_light.BindingKey)
+}
+
+func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
+	defer tracing.NewRegion("StageWorkspace.createDataBoundEntity").End()
+	e := w.stageView.Manager().AddEntity(name, w.stageView.LookAtPoint())
+	g, ok := w.ed.Project().EntityDataBinding(bindKey)
 	if !ok {
-		slog.Error("failed to locate the entity binding data", "key", key)
+		slog.Error("failed to locate the entity binding data", "key", bindKey)
 		return nil, false
 	}
 	w.attachEntityData(e, g)
@@ -161,6 +174,7 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 }
 
 func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnContentAtPosition").End()
 	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
 	if !ok {
 		slog.Error("failed to find the content category for type",
@@ -196,6 +210,7 @@ func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedConte
 }
 
 func (w *StageWorkspace) loadStage(id string) {
+	defer tracing.NewRegion("StageWorkspace.loadStage").End()
 	man := w.stageView.Manager()
 	if err := man.LoadStage(id, w.Host, w.ed.Cache(), w.ed.Project()); err != nil {
 		slog.Error("failed to load the stage", "id", id, "error", err)
@@ -305,6 +320,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 }
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("StageWorkspace.attachMaterial").End()
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)

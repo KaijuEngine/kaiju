@@ -54,7 +54,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_data_binding_camera.CameraDataBindingKey, &CameraDataBindingRenderer{
+	AddRenderer(engine_data_binding_camera.BindingKey, &CameraDataBindingRenderer{
 		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
 	})
 }

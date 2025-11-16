@@ -83,6 +83,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickBuildAndroid":     b.clickBuildAndroid,
 			"clickBuildRunAndroid":  b.clickBuildRunAndroid,
 			"clickNewCamera":        b.clickNewCamera,
+			"clickNewLight":         b.clickNewLight,
 			"clickAbout":            b.clickAbout,
 			"clickIssues":           b.clickIssues,
 			"clickRepository":       b.clickRepository,
@@ -256,6 +257,12 @@ func (b *MenuBar) clickNewCamera(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickNewCamera").End()
 	b.hidePopups()
 	b.handler.CreateNewCamera()
+}
+
+func (b *MenuBar) clickNewLight(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickNewLight").End()
+	b.hidePopups()
+	b.handler.CreateNewLight()
 }
 
 func (b *MenuBar) clickAbout(*document.Element) {

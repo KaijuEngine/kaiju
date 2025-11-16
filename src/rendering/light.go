@@ -321,7 +321,47 @@ func (l *Light) SetIntensity(intensity float32) {
 	l.reset = true
 }
 
-func (l *Light) SetAmbient(ambient matrix.Color) {
-	l.ambient = l.ambient
+func (l *Light) SetConstant(constant float32) {
+	l.constant = constant
+	l.reset = true
+}
+
+func (l *Light) SetLinear(linear float32) {
+	l.linear = linear
+	l.reset = true
+}
+
+func (l *Light) SetQuadratic(quadratic float32) {
+	l.quadratic = quadratic
+	l.reset = true
+}
+
+func (l *Light) SetCutoff(cutoff float32) {
+	l.cutoff = cutoff
+	l.reset = true
+}
+
+func (l *Light) SetOuterCutoff(outerCutoff float32) {
+	l.outerCutoff = outerCutoff
+	l.reset = true
+}
+
+func (l *Light) SetAmbient(ambient matrix.Vec3) {
+	l.ambient = ambient
+	l.reset = true
+}
+
+func (l *Light) SetDiffuse(diffuse matrix.Vec3) {
+	l.diffuse = diffuse
+	l.reset = true
+}
+
+func (l *Light) SetSpecular(specular matrix.Vec3) {
+	l.specular = specular
+	l.reset = true
+}
+
+func (l *Light) SetCastsShadows(castsShadows bool) {
+	l.castsShadows = castsShadows
 	l.reset = true
 }

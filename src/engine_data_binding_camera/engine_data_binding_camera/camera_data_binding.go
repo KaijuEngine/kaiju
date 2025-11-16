@@ -42,10 +42,10 @@ import (
 	"kaiju/engine/cameras"
 )
 
-const CameraDataBindingKey = "kaiju.CameraDataBinding"
+const BindingKey = "kaiju.CameraDataBinding"
 
 func init() {
-	engine.RegisterEntityData(CameraDataBindingKey, CameraDataBinding{})
+	engine.RegisterEntityData(BindingKey, CameraDataBinding{})
 }
 
 type CameraDataBinding struct {
