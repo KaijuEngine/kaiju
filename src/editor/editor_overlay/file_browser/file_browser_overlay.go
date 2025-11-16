@@ -240,6 +240,8 @@ func (fb *FileBrowser) update(float64) {
 		fb.back(nil)
 	} else if kb.KeyDown(hid.KeyboardKeyRight) {
 		fb.forward(nil)
+	} else if kb.KeyUp(hid.KeyboardKeyEscape) {
+		fb.cancel(nil)
 	}
 }
 
