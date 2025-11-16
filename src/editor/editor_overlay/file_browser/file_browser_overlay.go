@@ -210,7 +210,7 @@ func (fb *FileBrowser) update(float64) {
 	if len(fb.entryListElm.Children) == 0 {
 		return
 	}
-	if fb.uiMan.Group.HasRequests() {
+	if fb.uiMan.Group.HasRequests() || fb.uiMan.Group.IsFocusedOnInput() {
 		return
 	}
 	kb := &fb.uiMan.Host.Window.Keyboard
