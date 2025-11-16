@@ -209,6 +209,9 @@ func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 		if info.IsDir() {
 			return err
 		}
+		if filepath.Base(info.Name()) == ".gitignore" {
+			return err
+		}
 		p := filepath.Join(project_file_system.ContentConfigFolder, strings.TrimPrefix(path, root))
 		return c.Index(p, pfs)
 	})

@@ -230,11 +230,10 @@ func (pfs *FileSystem) createCodeProject() error {
 	}
 	if err := pfs.Mkdir(ProjectBuildFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
-	}
-	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
+	} else if err := pfs.WriteFile(filepath.Join(ProjectBuildFolder, ".gitignore"), []byte("*\n"), os.ModePerm); err != nil {
 		return err
 	}
-	if err := pfs.WriteFile(filepath.Join(ProjectBuildFolder, ".gitignore"), []byte("*\n"), os.ModePerm); err != nil {
+	if err := pfs.Mkdir(ProjectVSCodeFolder, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 	slog.Info("creating workspace management files")

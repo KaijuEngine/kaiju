@@ -46,19 +46,25 @@ import (
 	"strings"
 )
 
+const gitignoreAnythingWithExtension = `*.*
+!*.gitignore
+`
+
 var (
-	baseStructure = []string{
-		DatabaseFolder,
-		ContentFolder,
-		ContentConfigFolder,
-		SrcFolder,
-		StockFolder,
+	srcFolders = []string{
 		SrcFontFolder,
 		SrcCharsetFolder,
 		SrcPluginFolder,
 		SrcRenderFolder,
 		SrcShaderFolder,
 	}
+	baseStructure = append([]string{
+		DatabaseFolder,
+		ContentFolder,
+		ContentConfigFolder,
+		SrcFolder,
+		StockFolder,
+	}, srcFolders...)
 	contentStructure = []string{
 		ContentAudioFolder,
 		ContentMusicFolder,
@@ -134,11 +140,20 @@ func (fs *FileSystem) SetupStructure() error {
 			return err
 		}
 	}
-	for i := range contentStructure {
-		if err := fs.Mkdir(filepath.Join("database/content", contentStructure[i]), os.ModePerm); err != nil {
+	for i := range srcFolders {
+		if err := fs.WriteFile(filepath.Join(srcFolders[i], ".gitignore"), []byte("# Nothing to ignore yet\n"), os.ModePerm); err != nil {
 			return err
 		}
-		if err := fs.Mkdir(filepath.Join("database/config", contentStructure[i]), os.ModePerm); err != nil {
+	}
+	for i := range contentStructure {
+		if err := fs.Mkdir(filepath.Join(ContentFolder, contentStructure[i]), os.ModePerm); err != nil {
+			return err
+		} else if err := fs.WriteFile(filepath.Join(ContentFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
+			return err
+		}
+		if err := fs.Mkdir(filepath.Join(ContentConfigFolder, contentStructure[i]), os.ModePerm); err != nil {
+			return err
+		} else if err := fs.WriteFile(filepath.Join(ContentConfigFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
 			return err
 		}
 	}
