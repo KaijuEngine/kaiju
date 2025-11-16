@@ -39,7 +39,6 @@ package editor_settings
 
 import (
 	"encoding/json"
-	"kaiju/klib"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"os"
@@ -73,7 +72,11 @@ type BuildToolSettings struct {
 }
 
 func (s *Settings) AddRecentProject(path string) {
-	s.RecentProjects = klib.SlicesRemoveElement(s.RecentProjects, path)
+	for i := len(s.RecentProjects) - 1; i >= 0; i-- {
+		if strings.EqualFold(s.RecentProjects[i], path) {
+			s.RecentProjects = slices.Delete(s.RecentProjects, i, i+1)
+		}
+	}
 	s.RecentProjects = slices.Insert(s.RecentProjects, 0, path)
 	if len(s.RecentProjects) > maxRecentProjectsCount {
 		s.RecentProjects = s.RecentProjects[:maxRecentProjectsCount]
