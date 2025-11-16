@@ -90,13 +90,15 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if err = fs.WriteFile(res[i].ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
 			return res, err
 		}
-		res[i].Dependencies = make([]ImportResult, len(proc.Dependencies))
-		for i := range proc.Dependencies {
-			if d, ok := dependencyMap[proc.Dependencies[i]]; ok {
-				res[i].Dependencies = d
+		res[i].Dependencies = make([]ImportResult, 0, len(proc.Dependencies))
+		for j := range proc.Dependencies {
+			if d, ok := dependencyMap[proc.Dependencies[j]]; ok {
+				res[i].Dependencies = append(res[i].Dependencies, d...)
 			} else {
-				res[i].Dependencies, err = Import(proc.Dependencies[i], fs, cache, linkedId)
-				dependencyMap[proc.Dependencies[i]] = res[i].Dependencies
+				var deps []ImportResult
+				deps, err = Import(proc.Dependencies[j], fs, cache, linkedId)
+				res[i].Dependencies = append(res[i].Dependencies, deps...)
+				dependencyMap[proc.Dependencies[j]] = res[i].Dependencies
 				if err != nil {
 					break
 				}
