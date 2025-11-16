@@ -200,11 +200,20 @@ func (input *Input) onLayoutUpdating() {
 
 func (input *Input) showCursor() {
 	data := input.InputData()
+	input.showCursorAtOffset(data.cursorOffset)
+}
+
+func (input *Input) showCursorAtOffset(newPos int) {
+	data := input.InputData()
 	if data.isActive && !data.cursor.entity.IsActive() {
 		data.cursor.entity.SetActive(true)
 	}
 	data.cursorBlink = cursorBlinkRate
-	input.updateCursorPosition()
+	if data.cursorOffset != newPos {
+		input.moveCursor(newPos)
+	} else {
+		input.updateCursorPosition()
+	}
 }
 
 func (input *Input) hideCursor() {
@@ -318,10 +327,8 @@ func (input *Input) setText(text string, skipEvent bool) {
 	data.selectStart = 0
 	data.selectEnd = 0
 	input.updatePlaceholderVisibility()
-	// TODO:  The global set text sets the cursor position after this call,
-	// something to consider with order of operations
 	if !skipEvent {
-		(*UI)(input).ExecuteEvent(EventTypeChange)
+		input.change()
 	}
 	input.hideHighlight()
 }
@@ -498,17 +505,25 @@ func (input *Input) update(deltaTime float64) {
 	}
 }
 
+func (input *Input) cursorWindow() (float32, float32) {
+	data := input.InputData()
+	bounds := input.layout.PixelSize()
+	return horizontalPadding - data.labelShift,
+		-data.labelShift + (bounds.X() - horizontalPadding)
+}
+
 func (input *Input) updateCursorPosition() {
 	data := input.InputData()
 	x := input.charX(data.cursorOffset)
-	bounds := input.layout.PixelSize()
-	if x > bounds.X()-5 {
-		data.labelShift = -(x - bounds.X() + 5)
-		x = bounds.X() - 5
+	left, right := input.cursorWindow()
+	if x < left {
+		data.labelShift = min(data.labelShift+left-x, 0)
 		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
-	} else {
-		data.labelShift = 0
+	} else if x > right {
+		data.labelShift += right - x
+		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
 	}
+	x = x + data.labelShift
 	data.cursor.layout.SetOffset(x, cursorY)
 }
 
@@ -531,8 +546,7 @@ func (input *Input) onDown() {
 	input.Focus()
 	input.resetSelect()
 	offset := input.pointerPosWithin()
-	input.showCursor()
-	input.moveCursor(offset)
+	input.showCursorAtOffset(offset)
 }
 
 func (input *Input) onClick() {
@@ -585,7 +599,6 @@ func (input *Input) SetText(text string) {
 	if input.Text() != text {
 		input.moveCursor(0)
 		input.setText(text, false)
-		input.moveCursor(utf8.RuneCountInString(text))
 	}
 }
 
