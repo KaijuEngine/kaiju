@@ -214,7 +214,11 @@ func (fs *FileSystem) FullPath(name string) string {
 // it will return the path as a relative path to the system, otherwise it will
 // return the path supplied.
 func (fs *FileSystem) NormalizePath(path string) string {
-	return strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(fs.Name()))
+	newPath := strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(fs.Name()))
+	if newPath != path {
+		newPath = strings.TrimPrefix(newPath, "/")
+	}
+	return newPath
 }
 
 // FileExists will return true if the file exists in the rooted file system

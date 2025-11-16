@@ -148,7 +148,7 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			if err != nil {
 				continue
 			}
-			if filepath.ToSlash(srcPath) == filepath.ToSlash(cc.Config.SrcPath) {
+			if fs.NormalizePath(srcPath) == filepath.ToSlash(cc.Config.SrcPath) {
 				return rendering.MaterialTextureData{Texture: res.Dependencies[i].Id, Filter: "Linear"}
 			}
 		}
