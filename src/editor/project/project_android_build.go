@@ -76,6 +76,9 @@ func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
 	if err := p.copyAndroidProjectTemplate(); err != nil {
 		return err
 	}
+	if err := p.cleanKaijuAndroidLibrary(javaHome); err != nil {
+		return err
+	}
 	if err := p.buildKaijuAndroidLibrary(ndkHome, tags); err != nil {
 		return err
 	}
@@ -104,6 +107,57 @@ func (p *Project) copyAndroidProjectTemplate() error {
 		slog.Info("project template copy complete")
 	}
 	return p.updateAndroidProjectStrings()
+}
+
+func (p *Project) cleanKaijuAndroidLibrary(javaHome string) error {
+	defer tracing.NewRegion("Project.cleanKaijuAndroidLibrary").End()
+	gradle := filepath.Join(project_file_system.ProjectBuildAndroidFolder, "/gradlew")
+	if runtime.GOOS == "windows" {
+		gradle += ".bat"
+	}
+	gradle = p.fileSystem.FullPath(gradle)
+	cmd := exec.Command(gradle, "clean")
+	cmd.Dir = filepath.Dir(gradle)
+	cmd.Env = os.Environ()
+	if os.Getenv("JAVA_HOME") == "" {
+		if javaHome == "" {
+			return errors.New("the JAVA_HOME folder path hasn't yet been setup in the editor settings")
+		}
+		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
+	}
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		slog.Error("failed to get stdout pipe for Gradle clean", "error", err)
+		return err
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		slog.Error("failed to get stderr pipe for Gradle clean", "error", err)
+		return err
+	}
+	if err = cmd.Start(); err != nil {
+		slog.Error("failed to start Gradle clean", "error", err)
+		return err
+	}
+	scanAndLog := func(pipe io.Reader, level string) {
+		scanner := bufio.NewScanner(pipe)
+		for scanner.Scan() {
+			text := scanner.Text()
+			if level == "info" {
+				slog.Info(text)
+			} else {
+				slog.Error(text)
+			}
+		}
+	}
+	go scanAndLog(stdoutPipe, "info")
+	go scanAndLog(stderrPipe, "error")
+	if err = cmd.Wait(); err != nil {
+		slog.Error("Gradle clean failed", "error", err)
+		return err
+	}
+	slog.Info("Gradle clean completed successfully")
+	return nil
 }
 
 func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error {
