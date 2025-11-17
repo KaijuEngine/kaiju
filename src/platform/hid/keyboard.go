@@ -127,6 +127,11 @@ const (
 	KeyboardNumKey7
 	KeyboardNumKey8
 	KeyboardNumKey9
+	KeyboardNumKeyDivide
+	KeyboardNumKeyMultiply
+	KeyboardNumKeyAdd
+	KeyboardNumKeySubtract
+	KeyboardNumKeyPeriod
 	KeyboardKeyF1
 	KeyboardKeyF2
 	KeyboardKeyF3
@@ -378,6 +383,16 @@ func (k *Keyboard) KeyToRune(key KeyboardKey) rune {
 		c = "8"
 	case KeyboardNumKey9:
 		c = "9"
+	case KeyboardNumKeyMultiply:
+		c = "*"
+	case KeyboardNumKeyAdd:
+		c = "+"
+	case KeyboardNumKeySubtract:
+		c = "-"
+	case KeyboardNumKeyPeriod:
+		c = "."
+	case KeyboardNumKeyDivide:
+		c = "/"
 	default:
 		c = ""
 	}
