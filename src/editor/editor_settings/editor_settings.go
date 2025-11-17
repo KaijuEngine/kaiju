@@ -55,9 +55,9 @@ const (
 
 type Settings struct {
 	RecentProjects []string `visible:"false"`
+	RefreshRate    int32    `clamp:"60,0,320"`
 	Snapping       SnapSettings
 	BuildTools     BuildToolSettings
-	RefreshRate    int32 `clamp:"60,0,320"`
 }
 
 type SnapSettings struct {
