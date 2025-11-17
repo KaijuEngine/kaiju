@@ -380,6 +380,9 @@ func (p *Project) updateAndroidProjectStrings() error {
 	if err := p.updateAndroidAppSrcMainAndroidManifestXML(); err != nil {
 		return err
 	}
+	if err := p.updateAndroidAppSrcMainJavaComKaijuengineKaijuengine(); err != nil {
+		return err
+	}
 	if err := p.updateAndroidAppSrcMainResValuesStringsXML(); err != nil {
 		return err
 	}
@@ -496,6 +499,37 @@ func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
 	}
 	if err = os.WriteFile(manifestPath, data, stat.Mode().Perm()); err != nil {
 		slog.Error("failed to write updated AndroidManifest.xml", "path", manifestPath, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (p *Project) updateAndroidAppSrcMainJavaComKaijuengineKaijuengine() error {
+	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java
+	manifestPath := filepath.Join(
+		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
+		"app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java",
+	)
+	stat, err := os.Stat(manifestPath)
+	if err != nil {
+		slog.Error("the MainActivity.java doesn't exist", "path", manifestPath, "error", err)
+		return err
+	}
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		slog.Error("failed to read MainActivity.java", "path", manifestPath, "error", err)
+		return err
+	}
+	re := regexp.MustCompile(`package ([\w\.]+);`)
+	newName := fmt.Sprintf(`package %s;`, p.settings.Android.ApplicationId)
+	if re.Match(data) {
+		data = re.ReplaceAll(data, []byte(newName))
+	} else {
+		slog.Error("package line not found", "path", manifestPath)
+		return errors.New("package line not found in MainActivity.java")
+	}
+	if err = os.WriteFile(manifestPath, data, stat.Mode().Perm()); err != nil {
+		slog.Error("failed to write updated MainActivity.java", "path", manifestPath, "error", err)
 		return err
 	}
 	return nil
