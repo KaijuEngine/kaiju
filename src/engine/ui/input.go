@@ -446,7 +446,7 @@ func (input *Input) pointerPosWithin() int {
 	} else {
 		host := input.man.Value().Host
 		pos := (*UI)(input).cursorPos(&host.Window.Cursor)
-		pos[matrix.Vx] -= data.label.layout.left
+		pos[matrix.Vx] -= data.labelShift
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
 		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5) - horizontalPadding)
