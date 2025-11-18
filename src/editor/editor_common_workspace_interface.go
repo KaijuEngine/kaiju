@@ -45,6 +45,7 @@ import (
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/klib"
 )
 
 func (ed *Editor) Events() *editor_events.EditorEvents {
@@ -73,4 +74,10 @@ func (ed *Editor) Settings() *editor_settings.Settings {
 
 func (ed *Editor) StageView() *editor_stage_view.StageView {
 	return &ed.stageView
+}
+
+func (ed *Editor) ShowReferences(id string) {
+	klib.NotYetImplemented(425)
+	//refs := ed.project.FindReferences(id)
+	// TODO:  Show overlay of references.
 }

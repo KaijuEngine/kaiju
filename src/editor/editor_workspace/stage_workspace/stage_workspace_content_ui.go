@@ -40,6 +40,7 @@ package stage_workspace
 import (
 	"fmt"
 	"kaiju/editor/editor_events"
+	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
@@ -71,16 +72,17 @@ type WorkspaceContentUI struct {
 
 func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 	return map[string]func(*document.Element){
-		"inputFilter":     cui.inputFilter,
-		"tagFilter":       cui.tagFilter,
-		"clickFilter":     cui.clickFilter,
-		"dblClickEntry":   cui.dblClickEntry,
-		"hideContent":     cui.hideContent,
-		"showContent":     cui.showContent,
-		"entryDragStart":  cui.entryDragStart,
-		"entryMouseEnter": cui.entryMouseEnter,
-		"entryMouseMove":  cui.entryMouseMove,
-		"entryMouseLeave": cui.entryMouseLeave,
+		"inputFilter":       cui.inputFilter,
+		"tagFilter":         cui.tagFilter,
+		"clickFilter":       cui.clickFilter,
+		"dblClickEntry":     cui.dblClickEntry,
+		"hideContent":       cui.hideContent,
+		"showContent":       cui.showContent,
+		"entryDragStart":    cui.entryDragStart,
+		"entryMouseEnter":   cui.entryMouseEnter,
+		"entryMouseMove":    cui.entryMouseMove,
+		"entryMouseLeave":   cui.entryMouseLeave,
+		"rightClickContent": cui.rightClickContent,
 	}
 }
 
@@ -365,4 +367,17 @@ func (cui *WorkspaceContentUI) dropContent(w *StageWorkspace, m *hid.Mouse) {
 	cui.dragPreview.UI.Hide()
 	cui.dragging = nil
 	cui.dragContentId = ""
+}
+
+func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.rightClickContent").End()
+	id := e.Attribute("id")
+	w := cui.workspace.Value()
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: "Find references",
+			Call:  func() { w.ed.ShowReferences(id) },
+		},
+	}
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
 }
