@@ -52,6 +52,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 )
@@ -221,6 +222,9 @@ func (p *Project) CompileWithTags(tags ...string) {
 		args = append(args, fmt.Sprintf("-tags=%s", tagList))
 	} else {
 		slog.Info("compiling the project")
+	}
+	if !slices.Contains(tags, "debug") {
+		args = append(args, `-ldflags="-s -w"`)
 	}
 	args = append(args, "./src")
 	cmd := exec.Command("go", args...)
