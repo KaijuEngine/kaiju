@@ -74,9 +74,9 @@ func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
-func (v *StageView) Initialize(host *engine.Host, history *memento.History, snapSettings *editor_settings.SnapSettings) {
+func (v *StageView) Initialize(host *engine.Host, history *memento.History, snapSettings *editor_settings.SnapSettings, editorUI editor_stage_manager.EditorUserInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
-	v.manager.Initialize(host, history)
+	v.manager.Initialize(host, history, editorUI)
 	v.manager.NewStage()
 	v.host = host
 	v.transformTool.Initialize(host, v, history, snapSettings)

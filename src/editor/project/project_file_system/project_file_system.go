@@ -81,6 +81,7 @@ var (
 		ContentShaderPipelineFolder,
 		ContentSpvFolder,
 		ContentStageFolder,
+		ContentTemplateFolder,
 		ContentTextureFolder,
 	}
 	coreRequiredFolders = []string{

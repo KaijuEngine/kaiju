@@ -39,7 +39,10 @@ package editor_stage_manager
 
 import (
 	"encoding/json"
+	"errors"
 	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_events"
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
@@ -56,6 +59,7 @@ import (
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/stages"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -76,6 +80,7 @@ type StageManager struct {
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
 	stageId               string
 	host                  *engine.Host
+	editorUI              EditorUserInterface
 	history               *memento.History
 	entities              []*StageEntity
 	selected              []*StageEntity
@@ -92,9 +97,10 @@ type StageEntityEditorData struct {
 	Description stages.EntityDescription
 }
 
-func (m *StageManager) Initialize(host *engine.Host, history *memento.History) {
+func (m *StageManager) Initialize(host *engine.Host, history *memento.History, editorUI EditorUserInterface) {
 	m.host = host
 	m.history = history
+	m.editorUI = editorUI
 }
 
 func (m *StageManager) NewStage() {
@@ -257,6 +263,41 @@ func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
 	collision.RemoveSubBVH(&m.worldBVH, bvh)
 }
 
+// entityToTemplate is a wrapper around [entityToDescription] so that the
+// function name is clear when called
+func (m *StageManager) entityToTemplate(target *StageEntity) stages.EntityDescription {
+	return m.entityToDescription(target)
+}
+
+func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDescription {
+	desc := &parent.StageData.Description
+	desc.Name = parent.Name()
+	desc.Position = parent.Transform.Position()
+	desc.Rotation = parent.Transform.Rotation()
+	desc.Scale = parent.Transform.Scale()
+	desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
+	desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
+	desc.Children = make([]stages.EntityDescription, 0)
+	for _, d := range parent.dataBindings {
+		db := stages.EntityDataBinding{
+			RegistraionKey: d.Gen.RegisterKey,
+			Fields:         make(map[string]any),
+		}
+		for i := range d.Fields {
+			db.Fields[d.Fields[i].Name] = d.FieldValue(i)
+		}
+		desc.DataBinding = append(desc.DataBinding, db)
+		desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
+	}
+	for i := range m.entities {
+		if m.entities[i].Parent == &parent.Entity {
+			m.entityToDescription(m.entities[i])
+			desc.Children = append(desc.Children, m.entities[i].StageData.Description)
+		}
+	}
+	return parent.StageData.Description
+}
+
 func (m *StageManager) toStage() stages.Stage {
 	defer tracing.NewRegion("StageManager.toStage").End()
 	s := stages.Stage{Id: m.stageId}
@@ -267,37 +308,9 @@ func (m *StageManager) toStage() stages.Stage {
 		}
 	}
 	s.Entities = make([]stages.EntityDescription, 0, rootCount)
-	var readEntity func(parent *StageEntity)
-	readEntity = func(parent *StageEntity) {
-		desc := &parent.StageData.Description
-		desc.Name = parent.Name()
-		desc.Position = parent.Transform.Position()
-		desc.Rotation = parent.Transform.Rotation()
-		desc.Scale = parent.Transform.Scale()
-		desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
-		desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
-		desc.Children = make([]stages.EntityDescription, 0)
-		for _, d := range parent.dataBindings {
-			db := stages.EntityDataBinding{
-				RegistraionKey: d.Gen.RegisterKey,
-				Fields:         make(map[string]any),
-			}
-			for i := range d.Fields {
-				db.Fields[d.Fields[i].Name] = d.FieldValue(i)
-			}
-			desc.DataBinding = append(desc.DataBinding, db)
-			desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
-		}
-		for i := range m.entities {
-			if m.entities[i].Parent == &parent.Entity {
-				readEntity(m.entities[i])
-				desc.Children = append(desc.Children, m.entities[i].StageData.Description)
-			}
-		}
-	}
 	for i := range m.entities {
 		if m.entities[i].IsRoot() {
-			readEntity(m.entities[i])
+			m.entityToDescription(m.entities[i])
 			s.Entities = append(s.Entities, m.entities[i].StageData.Description)
 		}
 	}
@@ -359,48 +372,152 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	}
 	s := stages.Stage{}
 	s.FromMinimized(ss)
-	var importTarget func(parent *StageEntity, desc *stages.EntityDescription) error
-	importTarget = func(parent *StageEntity, desc *stages.EntityDescription) error {
-		e := m.AddEntityWithId(desc.Id, desc.Name, matrix.Vec3Zero())
-		e.StageData.Description = *desc
-		if parent != nil {
-			m.SetEntityParent(e, parent)
-		}
-		e.Transform.SetPosition(desc.Position)
-		e.Transform.SetRotation(desc.Rotation)
-		e.Transform.SetScale(desc.Scale)
-		// TODO:  Setup all the other data for the entity
-		if desc.Mesh != "" {
-			m.spawnLoadedEntity(e, host, fs)
-		}
-		for i := range desc.DataBinding {
-			db := &desc.DataBinding[i]
-			g, ok := proj.EntityDataBinding(db.RegistraionKey)
-			if !ok {
-				slog.Error("failed to locate the data binding for entity",
-					"key", db.RegistraionKey)
-				continue
-			}
-			b := &entity_data_binding.EntityDataEntry{}
-			b.ReadEntityDataBindingType(g)
-			for k, v := range db.Fields {
-				b.SetFieldByName(k, v)
-			}
-			e.AddDataBinding(b)
-		}
-		for i := range desc.Children {
-			if err := importTarget(e, &desc.Children[i]); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	for i := range s.Entities {
-		if err := importTarget(nil, &s.Entities[i]); err != nil {
+		if err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
 			return err
 		}
 	}
 	m.stageId = id
+	return nil
+}
+
+func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEvents, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+	sel := m.Selection()
+	switch len(sel) {
+	case 0:
+		const err = "can't create a template with nothing selected"
+		slog.Error(err)
+		return errors.New(err)
+	case 1:
+		// This is expected
+	default:
+		const err = "can't create a template with multiple entities selected"
+		slog.Error(err)
+		return errors.New(err)
+	}
+	target := sel[0]
+	var tpl stages.EntityDescription
+	var commit = func() error {
+		f, err := os.CreateTemp("", "*.template")
+		if err != nil {
+			slog.Error("failed to create the entity template file", "error", err)
+			return err
+		}
+		defer os.Remove(f.Name())
+		defer f.Close()
+		if err = json.NewEncoder(f).Encode(tpl); err != nil {
+			slog.Error("failed to encode the entity template file", "error", err)
+			return err
+		}
+		res, err := content_database.Import(f.Name(), fs, cache, "")
+		if err != nil || len(res) != 1 {
+			slog.Error("failed to import the template as content", "error", err)
+			return err
+		}
+		id := res[0].Id
+		target.StageData.Description.TemplateId = id
+		defer edEvts.OnContentAdded.Execute([]string{id})
+		name := target.Name()
+		if strings.TrimSpace(name) == "" {
+			return nil
+		}
+		c, err := cache.Read(id)
+		if err != nil {
+			slog.Warn("failed to read the cache for the template that was just created", "error", err)
+			return nil
+		}
+		c.Config.Name = name
+		if err := content_database.WriteConfig(c.Path, c.Config, fs); err != nil {
+			slog.Warn("failed to update the name for the template", "error", err)
+			return nil
+		}
+		if err = cache.Index(c.Path, fs); err != nil {
+			slog.Warn("failed to update the name for the template", "error", err)
+			return nil
+		}
+		return nil
+	}
+	if target.StageData.Description.TemplateId != "" {
+		m.editorUI.BlurInterface()
+		confirm_prompt.Show(m.host, confirm_prompt.Config{
+			Title:       "Overwrite template",
+			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages.",
+			ConfirmText: "Yes",
+			CancelText:  "Cancel",
+			OnConfirm: func() {
+				m.editorUI.FocusInterface()
+				commit()
+			},
+			OnCancel: m.editorUI.FocusInterface,
+		})
+	} else {
+		tpl = m.entityToTemplate(target)
+		return commit()
+	}
+	return nil
+}
+
+func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) error {
+	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
+	if err != nil {
+		slog.Error("failed to load the template file", "path", cc.Path, "error", err)
+		return err
+	}
+	defer f.Close()
+	var desc stages.EntityDescription
+	if err = json.NewDecoder(f).Decode(&desc); err != nil {
+		slog.Error("failed to decode the entity template file", "path", cc.Path, "error", err)
+		return err
+	}
+	desc.Position = point
+	var generateId func(d *stages.EntityDescription)
+	generateId = func(d *stages.EntityDescription) {
+		d.Id = uuid.NewString()
+		for i := range d.Children {
+			generateId(&d.Children[i])
+		}
+	}
+	generateId(&desc)
+	if err = m.importEntityByDescription(host, proj, nil, &desc); err != nil {
+		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (m *StageManager) importEntityByDescription(host *engine.Host, proj *project.Project, parent *StageEntity, desc *stages.EntityDescription) error {
+	e := m.AddEntityWithId(desc.Id, desc.Name, matrix.Vec3Zero())
+	e.StageData.Description = *desc
+	if parent != nil {
+		m.SetEntityParent(e, parent)
+	}
+	e.Transform.SetPosition(desc.Position)
+	e.Transform.SetRotation(desc.Rotation)
+	e.Transform.SetScale(desc.Scale)
+	// TODO:  Setup all the other data for the entity
+	if desc.Mesh != "" {
+		m.spawnLoadedEntity(e, host, proj.FileSystem())
+	}
+	for i := range desc.DataBinding {
+		db := &desc.DataBinding[i]
+		g, ok := proj.EntityDataBinding(db.RegistraionKey)
+		if !ok {
+			slog.Error("failed to locate the data binding for entity",
+				"key", db.RegistraionKey)
+			continue
+		}
+		b := &entity_data_binding.EntityDataEntry{}
+		b.ReadEntityDataBindingType(g)
+		for k, v := range db.Fields {
+			b.SetFieldByName(k, v)
+		}
+		e.AddDataBinding(b)
+	}
+	for i := range desc.Children {
+		if err := m.importEntityByDescription(host, proj, e, &desc.Children[i]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -424,6 +541,8 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		return err
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
+	e.StageData.Bvh = km.GenerateBVH(m.host.Threads(), &e.Transform, e)
+	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	var mat *rendering.Material
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")

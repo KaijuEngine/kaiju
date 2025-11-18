@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* project_file_system_folders.go                                             */
+/* content_databse_template.go                                                */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,74 +35,37 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package project_file_system
+package content_database
 
-import "path/filepath"
-
-const (
-	DatabaseFolder      = "database"
-	ContentFolder       = "database/content"
-	ContentConfigFolder = "database/config"
-	SrcFolder           = "database/src"
-	StockFolder         = "database/stock"
-	ProjectConfigFile   = "database/project.json"
+import (
+	"kaiju/editor/project/project_file_system"
+	"kaiju/platform/profiler/tracing"
 )
 
-const (
-	SrcFontFolder    = SrcFolder + "/font"
-	SrcCharsetFolder = SrcFolder + "/font/charset"
-	SrcPluginFolder  = SrcFolder + "/plugin"
-	SrcRenderFolder  = SrcFolder + "/render"
-	SrcShaderFolder  = SrcFolder + "/render/shader"
-)
+func init() { addCategory(Template{}) }
 
-const (
-	ContentAudioFolder          = "audio"
-	ContentMusicFolder          = "audio/music"
-	ContentSoundFolder          = "audio/sound"
-	ContentFontFolder           = "font"
-	ContentMeshFolder           = "mesh"
-	ContentRenderFolder         = "render"
-	ContentMaterialFolder       = "render/material"
-	ContentRenderPassFolder     = "render/renderpass"
-	ContentShaderFolder         = "render/shader"
-	ContentShaderPipelineFolder = "render/pipeline"
-	ContentSpvFolder            = "render/spv"
-	ContentStageFolder          = "stage"
-	ContentTemplateFolder       = "template"
-	ContentTextureFolder        = "texture"
-	ContentUiFolder             = "ui"
-	ContentHtmlFolder           = "ui/html"
-	ContentCssFolder            = "ui/css"
-)
+// Template is a [ContentCategory] represented by a file with a ".template" extension.
+// This expects to be a singular text file with the extension ".template" and
+// containing the definitions that make up a Kaiju Template.
+type Template struct{}
 
-const (
-	KaijuSrcFolder            = "kaiju"
-	ProjectCodeFolder         = "src"
-	ProjectFileTemplates      = KaijuSrcFolder + "/file_templates"
-	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
-	ProjectBuildFolder        = "build"
-	ProjectBuildAndroidFolder = ProjectBuildFolder + "/android"
-	ProjectVSCodeFolder       = ".vscode"
-	ProjectLaunchJsonFile     = ".vscode/launch.json"
-	ProjectCodeMain           = ProjectCodeFolder + "/main.go"
-	ProjectCodeGame           = ProjectCodeFolder + "/game.go"
-	ProjectModFile            = ProjectCodeFolder + "/go.mod"
-	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
-	ProjectWorkFile           = "go.work"
-	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
-	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
-)
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
 
-// ContentFolderPath returns the full filesystem path to a child entry inside
-// the project's content folder. It joins the base `ContentFolder` constant with
-// the supplied relative `child` path using the OS‑specific separator.
-//
-// Parameters:
-//   child - a relative path (file or sub‑directory) within the content folder.
-//
-// Returns:
-//   A string containing the absolute path to the specified child.
-func ContentFolderPath(child string) string {
-	return filepath.Join(ContentFolder, child)
+func (Template) Path() string       { return project_file_system.ContentTemplateFolder }
+func (Template) TypeName() string   { return "Template" }
+func (Template) ExtNames() []string { return []string{".template"} }
+
+func (Template) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Template.Import").End()
+	return pathToTextData(src)
+}
+
+func (c Template) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Template.Import").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}
+
+func (Template) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
 }

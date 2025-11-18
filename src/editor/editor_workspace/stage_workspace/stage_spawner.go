@@ -163,6 +163,8 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		w.spawnTexture(cc, hit)
 	case content_database.Mesh:
 		w.spawnMesh(cc, hit)
+	case content_database.Template:
+		w.stageView.Manager().SpawnTemplate(w.Host, w.ed.Project(), cc, hit)
 	case content_database.Material:
 		if eHitOk {
 			w.attachMaterial(cc, e)

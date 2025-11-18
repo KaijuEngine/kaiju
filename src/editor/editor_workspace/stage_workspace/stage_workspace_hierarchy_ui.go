@@ -112,12 +112,16 @@ func (hui *WorkspaceHierarchyUI) hierarchySearch(e *document.Element) {
 
 func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
-	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyH) {
+	kb := &host.Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyH) {
 		if hui.hideHierarchyElm.UI.Entity().IsActive() {
 			hui.hideHierarchy(nil)
 		} else {
 			hui.showHierarchy(nil)
 		}
+	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyT) {
+		w := hui.workspace.Value()
+		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Cache(), w.ed.ProjectFileSystem())
 	}
 }
 

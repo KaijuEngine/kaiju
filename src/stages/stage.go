@@ -71,6 +71,7 @@ type StageJson struct {
 // //////////////////////////////////////////////////////////////////////////////
 type EntityDescription struct {
 	Id             string
+	TemplateId     string
 	Name           string
 	Mesh           string
 	Material       string
