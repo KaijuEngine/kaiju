@@ -271,7 +271,10 @@ func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
 // entityToTemplate is a wrapper around [entityToDescription] so that the
 // function name is clear when called
 func (m *StageManager) entityToTemplate(target *StageEntity) stages.EntityDescription {
-	return m.entityToDescription(target)
+	desc := m.entityToDescription(target)
+	// We don't store the template id in the template itself
+	desc.TemplateId = ""
+	return desc
 }
 
 func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDescription {
@@ -378,12 +381,37 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s := stages.Stage{}
 	s.FromMinimized(ss)
 	for i := range s.Entities {
+		if s.Entities[i].TemplateId != "" {
+			s.Entities[i], err = m.readTemplate(proj, s.Entities[i].TemplateId)
+			if err != nil {
+				return err
+			}
+		}
 		if err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
 			return err
 		}
 	}
 	m.stageId = id
 	return nil
+}
+
+func (m *StageManager) readTemplate(proj *project.Project, id string) (stages.EntityDescription, error) {
+	cache := proj.CacheDatabase()
+	cc, err := cache.Read(id)
+	if err != nil {
+		return stages.EntityDescription{}, err
+	}
+	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
+	if err != nil {
+		return stages.EntityDescription{}, err
+	}
+	defer f.Close()
+	var desc stages.EntityDescription
+	if err = json.NewDecoder(f).Decode(&desc); err != nil {
+		return stages.EntityDescription{}, err
+	}
+	desc.TemplateId = id
+	return desc, nil
 }
 
 func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEvents, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
@@ -401,8 +429,37 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 		return errors.New(err)
 	}
 	target := sel[0]
-	var tpl stages.EntityDescription
-	var commit = func() error {
+	if target.StageData.Description.TemplateId != "" {
+		m.editorUI.BlurInterface()
+		confirm_prompt.Show(m.host, confirm_prompt.Config{
+			Title:       "Overwrite template",
+			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages.",
+			ConfirmText: "Yes",
+			CancelText:  "Cancel",
+			OnConfirm: func() {
+				m.editorUI.FocusInterface()
+				// Update the existing template
+				id := target.StageData.Description.TemplateId
+				cc, err := cache.Read(id)
+				if err != nil {
+					slog.Error("failed to read the cache for the existing template id", "id", id, "error", err)
+					return
+				}
+				f, err := fs.Create(content_database.ToContentPath(cc.Path))
+				if err != nil {
+					slog.Error("failed to open the content file for writing", "id", id, "error", err)
+					return
+				}
+				defer f.Close()
+				if err = json.NewEncoder(f).Encode(m.entityToTemplate(target)); err != nil {
+					slog.Error("failed to encode the template to it's file", "id", id, "error", err)
+					return
+				}
+			},
+			OnCancel: m.editorUI.FocusInterface,
+		})
+	} else {
+		tpl := m.entityToTemplate(target)
 		f, err := os.CreateTemp("", "*.template")
 		if err != nil {
 			slog.Error("failed to create the entity template file", "error", err)
@@ -440,24 +497,6 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 			slog.Warn("failed to update the name for the template", "error", err)
 			return nil
 		}
-		return nil
-	}
-	if target.StageData.Description.TemplateId != "" {
-		m.editorUI.BlurInterface()
-		confirm_prompt.Show(m.host, confirm_prompt.Config{
-			Title:       "Overwrite template",
-			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages.",
-			ConfirmText: "Yes",
-			CancelText:  "Cancel",
-			OnConfirm: func() {
-				m.editorUI.FocusInterface()
-				commit()
-			},
-			OnCancel: m.editorUI.FocusInterface,
-		})
-	} else {
-		tpl = m.entityToTemplate(target)
-		return commit()
 	}
 	return nil
 }
@@ -475,6 +514,7 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		return err
 	}
 	desc.Position = point
+	desc.TemplateId = cc.Id()
 	var generateId func(d *stages.EntityDescription)
 	generateId = func(d *stages.EntityDescription) {
 		d.Id = uuid.NewString()
