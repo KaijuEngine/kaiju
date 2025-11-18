@@ -234,6 +234,11 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 	} else {
 		child.SetParent(nil)
 	}
+	if parent.StageData.Bvh != nil {
+		parent.StageData.Bvh.Refit()
+	} else if child.StageData.Bvh != nil {
+		child.StageData.Bvh.Refit()
+	}
 	m.OnEntityChangedParent.Execute(child)
 	m.history.Add(&changeParentHistory{
 		m:          m,
@@ -541,8 +546,6 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		return err
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
-	e.StageData.Bvh = km.GenerateBVH(m.host.Threads(), &e.Transform, e)
-	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	var mat *rendering.Material
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")
@@ -582,6 +585,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
+	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	host.RunOnMainThread(func() {
 		for i := range texs {
 			texs[i].DelayedCreate(host.Window.Renderer)
