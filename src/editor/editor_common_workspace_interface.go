@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/klib"
+	"log/slog"
 )
 
 func (ed *Editor) Events() *editor_events.EditorEvents {
@@ -77,7 +78,12 @@ func (ed *Editor) StageView() *editor_stage_view.StageView {
 }
 
 func (ed *Editor) ShowReferences(id string) {
-	klib.NotYetImplemented(425)
-	//refs := ed.project.FindReferences(id)
+	refs, err := ed.project.FindReferences(id)
+	if err != nil {
+		slog.Error("failed to read the references for the content", "id", id, "error", err)
+		return
+	}
+	println(len(refs))
 	// TODO:  Show overlay of references.
+	klib.NotYetImplemented(427)
 }
