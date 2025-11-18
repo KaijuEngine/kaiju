@@ -46,15 +46,11 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
-	"regexp"
-	"strconv"
-	"strings"
 	"weak"
 )
 
 type StatusBar struct {
 	doc              *document.Document
-	msg              *document.Element
 	log              *document.Element
 	logPopup         *document.Element
 	logEntryTemplate *document.Element
@@ -91,7 +87,6 @@ func (b *StatusBar) Blur() {
 
 func (b *StatusBar) setupUIReferences() {
 	defer tracing.NewRegion("StatusBar.setupUIReferences").End()
-	b.msg, _ = b.doc.GetElementById("msg")
 	b.log, _ = b.doc.GetElementById("log")
 	b.logPopup, _ = b.doc.GetElementById("logPopup")
 	b.logEntryTemplate, _ = b.doc.GetElementById("logEntryTemplate")
@@ -125,25 +120,6 @@ func (b *StatusBar) setLog(msg string) {
 	} else {
 		lbl.SetText(msg)
 	}
-}
-
-func (b *StatusBar) SetMessage(status string) {
-	defer tracing.NewRegion("StatusBar.SetMessage").End()
-	lbl := b.msg.Children[0].UI.ToLabel()
-	t := lbl.Text()
-	if strings.HasSuffix(t, status) {
-		count := 1
-		if strings.HasPrefix(t, "(") {
-			re := regexp.MustCompile(`\((\d+)\)\s`)
-			res := re.FindAllStringSubmatch(t, -1)
-			if len(res) > 0 && len(res[0]) > 1 {
-				count, _ = strconv.Atoi(res[0][1])
-				count++
-			}
-		}
-		status = "(" + strconv.Itoa(count) + ") " + status
-	}
-	lbl.SetText(status)
 }
 
 func (b *StatusBar) openLogWindow(*document.Element) {
