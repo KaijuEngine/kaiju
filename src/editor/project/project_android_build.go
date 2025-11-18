@@ -70,22 +70,23 @@ func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error
 
 func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
 	defer tracing.NewRegion("Project.BuildAndroid").End()
+	sdkHome := filepath.Join(ndkHome, "../../")
 	if err := p.Package(); err != nil {
 		return err
 	}
 	if err := p.copyAndroidProjectTemplate(); err != nil {
 		return err
 	}
-	if err := p.cleanKaijuAndroidLibrary(javaHome); err != nil {
+	if err := p.cleanKaijuAndroidLibrary(sdkHome, javaHome); err != nil {
 		return err
 	}
-	if err := p.buildKaijuAndroidLibrary(ndkHome, tags); err != nil {
+	if err := p.buildKaijuAndroidLibrary(sdkHome, ndkHome, tags); err != nil {
 		return err
 	}
 	if err := p.copyAndroidContentToAssets(); err != nil {
 		return err
 	}
-	if err := p.buildAPK(javaHome, tags); err != nil {
+	if err := p.buildAPK(sdkHome, javaHome, tags); err != nil {
 		return err
 	}
 	slog.Info("completed full Android build")
@@ -109,7 +110,7 @@ func (p *Project) copyAndroidProjectTemplate() error {
 	return p.updateAndroidProjectStrings()
 }
 
-func (p *Project) cleanKaijuAndroidLibrary(javaHome string) error {
+func (p *Project) cleanKaijuAndroidLibrary(sdkHome, javaHome string) error {
 	defer tracing.NewRegion("Project.cleanKaijuAndroidLibrary").End()
 	gradle := filepath.Join(project_file_system.ProjectBuildAndroidFolder, "/gradlew")
 	if runtime.GOOS == "windows" {
@@ -124,6 +125,12 @@ func (p *Project) cleanKaijuAndroidLibrary(javaHome string) error {
 			return errors.New("the JAVA_HOME folder path hasn't yet been setup in the editor settings")
 		}
 		cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
+	}
+	if os.Getenv("ANDROID_HOME") == "" {
+		if sdkHome == "" {
+			return errors.New("the ANDROID_HOME folder path hasn't yet been setup in the editor settings")
+		}
+		cmd.Env = append(cmd.Env, fmt.Sprintf("ANDROID_HOME=%s", sdkHome))
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -160,7 +167,7 @@ func (p *Project) cleanKaijuAndroidLibrary(javaHome string) error {
 	return nil
 }
 
-func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error {
+func (p *Project) buildKaijuAndroidLibrary(sdkHome, ndkHome string, tags []string) error {
 	defer tracing.NewRegion("Project.buildKaijuAndroidLibrary").End()
 	if ndkHome == "" {
 		return errors.New("the NDK folder path hasn't yet been setup in the editor settings")
@@ -194,6 +201,7 @@ func (p *Project) buildKaijuAndroidLibrary(ndkHome string, tags []string) error 
 		"CXX="+filepath.Join(ndkHome, "toolchains/llvm/prebuilt", plat, "bin/aarch64-linux-android21-clang++"),
 		"AR="+filepath.Join(ndkHome, "toolchains/llvm/prebuilt", plat, "bin/llvm-ar"),
 		"RANLIB="+filepath.Join(ndkHome, "toolchains/llvm/prebuilt", plat, "bin/llvm-ranlib"),
+		"ANDROID_HOME="+sdkHome,
 		"GOOS=android",
 		"CGO_ENABLED=1",
 		"GOARCH=arm64",
@@ -250,7 +258,7 @@ func (p *Project) copyAndroidContentToAssets() error {
 	return filesystem.CopyFileOverwrite(from, to)
 }
 
-func (p *Project) buildAPK(javaHome string, tags []string) error {
+func (p *Project) buildAPK(sdkHome, javaHome string, tags []string) error {
 	defer tracing.NewRegion("Project.buildAPK").End()
 	slog.Info("building android APK")
 	gradle := filepath.Join(project_file_system.ProjectBuildAndroidFolder, "/gradlew")
@@ -272,6 +280,12 @@ func (p *Project) buildAPK(javaHome string, tags []string) error {
 		} else {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("JAVA_HOME=%s", javaHome))
 		}
+	}
+	if os.Getenv("ANDROID_HOME") == "" {
+		if sdkHome == "" {
+			return errors.New("the ANDROID_HOME folder path hasn't yet been setup in the editor settings")
+		}
+		cmd.Env = append(cmd.Env, fmt.Sprintf("ANDROID_HOME=%s", sdkHome))
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -480,6 +494,10 @@ func (p *Project) updateAndroidSettingsGradleKTS() error {
 }
 
 func (p *Project) updateAndroidAppBuildGradleKTS() error {
+	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+		slog.Warn("the ApplicationId was not set in the project settings")
+		return nil
+	}
 	// Set namespace to p.settings.Android.ApplicationId in app/build.gradle.kts
 	// Set applicationId to p.settings.Android.ApplicationId in app/build.gradle.kts
 	gradlePath := filepath.Join(
@@ -528,6 +546,10 @@ func (p *Project) updateAndroidAppBuildGradleKTS() error {
 }
 
 func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
+	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+		slog.Warn("the ApplicationId was not set in the project settings")
+		return nil
+	}
 	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/AndroidManifest.xml
 	manifestPath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
@@ -559,6 +581,10 @@ func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
 }
 
 func (p *Project) updateAndroidAppSrcMainJavaComKaijuengineKaijuengine() error {
+	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+		slog.Warn("the ApplicationId was not set in the project settings")
+		return nil
+	}
 	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java
 	manifestPath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
