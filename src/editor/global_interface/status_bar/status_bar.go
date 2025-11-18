@@ -106,11 +106,13 @@ func (b *StatusBar) bindToSlog() {
 		if bar == nil {
 			return
 		}
-		bar.doc.SetElementClasses(bar.log, msg.Category+"Status")
-		bar.setLog(msg.Message)
-		elm := b.doc.DuplicateElement(b.logEntryTemplate)
-		elm.Children[0].UI.ToLabel().SetText(msg.ToString())
-		b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
+		b.uiMan.Host.RunOnMainThread(func() {
+			bar.doc.SetElementClasses(bar.log, msg.Category+"Status")
+			bar.setLog(msg.Message)
+			elm := b.doc.DuplicateElement(b.logEntryTemplate)
+			elm.Children[0].UI.ToLabel().SetText(msg.ToString())
+			b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
+		})
 	}
 }
 
