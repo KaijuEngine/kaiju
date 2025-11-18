@@ -121,7 +121,7 @@ func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
 		}
 	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyT) {
 		w := hui.workspace.Value()
-		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Cache(), w.ed.ProjectFileSystem())
+		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Project())
 	}
 }
 

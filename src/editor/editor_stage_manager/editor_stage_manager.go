@@ -161,6 +161,9 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Destroy()
 		}
+		if e.StageData.Bvh != nil {
+			collision.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
+		}
 		se := we.Value()
 		for i := range sm.entities {
 			if sm.entities[i] == se {
@@ -382,12 +385,12 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s.FromMinimized(ss)
 	for i := range s.Entities {
 		if s.Entities[i].TemplateId != "" {
-			s.Entities[i], err = m.readTemplate(proj, s.Entities[i].TemplateId)
+			s.Entities[i], err = m.readTemplate(cache, proj.FileSystem(), s.Entities[i].TemplateId)
 			if err != nil {
 				return err
 			}
 		}
-		if err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
+		if _, err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
 			return err
 		}
 	}
@@ -395,26 +398,8 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	return nil
 }
 
-func (m *StageManager) readTemplate(proj *project.Project, id string) (stages.EntityDescription, error) {
-	cache := proj.CacheDatabase()
-	cc, err := cache.Read(id)
-	if err != nil {
-		return stages.EntityDescription{}, err
-	}
-	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
-	if err != nil {
-		return stages.EntityDescription{}, err
-	}
-	defer f.Close()
-	var desc stages.EntityDescription
-	if err = json.NewDecoder(f).Decode(&desc); err != nil {
-		return stages.EntityDescription{}, err
-	}
-	desc.TemplateId = id
-	return desc, nil
-}
-
-func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEvents, cache *content_database.Cache, fs *project_file_system.FileSystem) error {
+func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEvents, proj *project.Project) error {
+	defer tracing.NewRegion("StageManager.CreateTemplateFromSelected").End()
 	sel := m.Selection()
 	switch len(sel) {
 	case 0:
@@ -428,12 +413,14 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 		slog.Error(err)
 		return errors.New(err)
 	}
+	cache := proj.CacheDatabase()
+	fs := proj.FileSystem()
 	target := sel[0]
 	if target.StageData.Description.TemplateId != "" {
 		m.editorUI.BlurInterface()
 		confirm_prompt.Show(m.host, confirm_prompt.Config{
 			Title:       "Overwrite template",
-			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages.",
+			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages. If this stage has other instances of this template, they will all be updated and you won't be able to undo beyond this point. Would you like to continue?",
 			ConfirmText: "Yes",
 			CancelText:  "Cancel",
 			OnConfirm: func() {
@@ -455,6 +442,7 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 					slog.Error("failed to encode the template to it's file", "id", id, "error", err)
 					return
 				}
+				m.updateExistingTemplateInstances(target, m.host, proj, id)
 			},
 			OnCancel: m.editorUI.FocusInterface,
 		})
@@ -502,6 +490,7 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 }
 
 func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) error {
+	defer tracing.NewRegion("StageManager.SpawnTemplate").End()
 	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
 	if err != nil {
 		slog.Error("failed to load the template file", "path", cc.Path, "error", err)
@@ -523,14 +512,34 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		}
 	}
 	generateId(&desc)
-	if err = m.importEntityByDescription(host, proj, nil, &desc); err != nil {
+	if _, err = m.importEntityByDescription(host, proj, nil, &desc); err != nil {
 		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
 		return err
 	}
 	return nil
 }
 
-func (m *StageManager) importEntityByDescription(host *engine.Host, proj *project.Project, parent *StageEntity, desc *stages.EntityDescription) error {
+func (m *StageManager) readTemplate(cache *content_database.Cache, fs *project_file_system.FileSystem, id string) (stages.EntityDescription, error) {
+	defer tracing.NewRegion("StageManager.readTemplate").End()
+	cc, err := cache.Read(id)
+	if err != nil {
+		return stages.EntityDescription{}, err
+	}
+	f, err := fs.Open(content_database.ToContentPath(cc.Path))
+	if err != nil {
+		return stages.EntityDescription{}, err
+	}
+	defer f.Close()
+	var desc stages.EntityDescription
+	if err = json.NewDecoder(f).Decode(&desc); err != nil {
+		return stages.EntityDescription{}, err
+	}
+	desc.TemplateId = id
+	return desc, nil
+}
+
+func (m *StageManager) importEntityByDescription(host *engine.Host, proj *project.Project, parent *StageEntity, desc *stages.EntityDescription) (*StageEntity, error) {
+	defer tracing.NewRegion("StageManager.importEntityByDescription").End()
 	e := m.AddEntityWithId(desc.Id, desc.Name, matrix.Vec3Zero())
 	e.StageData.Description = *desc
 	if parent != nil {
@@ -559,11 +568,11 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 		e.AddDataBinding(b)
 	}
 	for i := range desc.Children {
-		if err := m.importEntityByDescription(host, proj, e, &desc.Children[i]); err != nil {
-			return err
+		if _, err := m.importEntityByDescription(host, proj, e, &desc.Children[i]); err != nil {
+			return e, err
 		}
 	}
-	return nil
+	return e, nil
 }
 
 func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *project_file_system.FileSystem) error {
@@ -643,7 +652,49 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	return nil
 }
 
+func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *engine.Host, proj *project.Project, templateId string) error {
+	defer tracing.NewRegion("StageManager.updateExistingTemplateInstances").End()
+	if templateId == "" {
+		return nil
+	}
+	tpl, err := m.readTemplate(proj.CacheDatabase(), proj.FileSystem(), templateId)
+	if err != nil {
+		slog.Error("failed to read the template file", "error", err)
+		return err
+	}
+	m.ClearSelection()
+	var generateId func(d *stages.EntityDescription)
+	generateId = func(d *stages.EntityDescription) {
+		d.Id = uuid.NewString()
+		for i := range d.Children {
+			generateId(&d.Children[i])
+		}
+	}
+	for i := range m.entities {
+		if m.entities[i].StageData.Description.TemplateId != templateId {
+			continue
+		}
+		if m.entities[i] == skip {
+			continue
+		}
+		cpy := tpl
+		generateId(&cpy)
+		t := m.entities[i].Transform
+		m.OnEntityDestroy.Execute(m.entities[i])
+		m.entities[i].Destroy()
+		e, err := m.importEntityByDescription(host, proj, nil, &cpy)
+		if err != nil {
+			return err
+		}
+		e.Transform.Copy(t)
+	}
+	m.worldBVH.Refit()
+	m.history.Clear()
+	return nil
+}
+
 func explodeEntityHierarchy(e *StageEntity) []*StageEntity {
+	defer tracing.NewRegion("editor_stage_manager.explodeEntityHierarchy").End()
 	all := []*StageEntity{}
 	var explode func(p *StageEntity)
 	explode = func(p *StageEntity) {
