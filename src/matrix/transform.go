@@ -251,17 +251,15 @@ func (t *Transform) CalcWorldMatrix() Mat4 {
 }
 
 func (t *Transform) Copy(other Transform) {
+	var p, r, s Vec3
 	if t.parent == nil {
-		t.position, t.rotation, t.scale = other.WorldTransform()
-		t.isDirty = true
+		p, r, s = other.WorldTransform()
 	} else {
-		t.position = other.position
-		t.rotation = other.rotation
-		t.scale = other.scale
-		t.localMatrix = other.localMatrix
-		t.worldMatrix = other.worldMatrix
-		t.isDirty = other.isDirty
+		p, r, s = other.position, other.rotation, other.scale
 	}
+	t.SetPosition(p)
+	t.SetRotation(r)
+	t.SetScale(s)
 }
 
 func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3) {
