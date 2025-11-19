@@ -95,6 +95,7 @@ func (hui *WorkspaceHierarchyUI) open() {
 	hui.showHierarchyElm.UI.Hide()
 	hui.hideHierarchyElm.UI.Show()
 	hui.hierarchyArea.UI.Show()
+	hui.hierarchyDragPreview.UI.Hide()
 }
 
 func (hui *WorkspaceHierarchyUI) hierarchySearch(e *document.Element) {
