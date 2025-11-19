@@ -56,18 +56,19 @@
 	</head>
 	<body>
 		<div class="overlay" onmiss="clickMiss">
-			{{if not .}}
-			<h3>No references</h3>
-			{{end}}
 			<div id="entryList">
-				<div class="title">References</div>
-				{{range .}}
-					<div class="entry">
-						<span>{{.Name}} ({{.Source}})</span>
-						{{range .SubReference}}
-							{{template "reference" .}}
-						{{end}}
-					</div>
+				{{if not .}}
+					<div class="title">No references</div>
+				{{else}}
+					<div class="title">References</div>
+					{{range .}}
+						<div class="entry">
+							<span>{{.Name}} ({{.Source}})</span>
+							{{range .SubReference}}
+								{{template "reference" .}}
+							{{end}}
+						</div>
+					{{end}}
 				{{end}}
 			</div>
 		</div>
