@@ -50,8 +50,8 @@ import (
 
 type ContentReference struct {
 	Id           string
+	Name         string
 	Source       string
-	FieldName    string
 	SubReference []ContentReference
 }
 
@@ -156,6 +156,9 @@ func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, 
 			continue
 		}
 		entryName := entries[i].Name()
+		if entryName == id {
+			continue
+		}
 		name := filepath.Join(dir, entryName)
 		data, err := p.fileSystem.ReadFile(name)
 		if err != nil {
@@ -167,6 +170,9 @@ func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, 
 			if err != nil {
 				return refs, err
 			}
+			if cc, err := p.cacheDatabase.Read(entryName); err == nil {
+				r.Name = cc.Config.Name
+			}
 			refs = append(refs, r)
 		}
 	}
@@ -177,11 +183,13 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 	refs := []ContentReference{}
 	sub := ContentReference{
 		Id:     e.Id,
+		Name:   e.Name,
 		Source: "entity",
 	}
 	if e.Material == id {
 		sub.SubReference = append(sub.SubReference, ContentReference{
 			Id:     id,
+			Name:   "<self>",
 			Source: content_database.Material{}.TypeName(),
 		})
 	}
@@ -189,6 +197,7 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 		if e.Textures[i] == id {
 			sub.SubReference = append(sub.SubReference, ContentReference{
 				Id:     id,
+				Name:   "<self>",
 				Source: content_database.Texture{}.TypeName(),
 			})
 		}
@@ -196,12 +205,14 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 	if e.Mesh == id {
 		sub.SubReference = append(sub.SubReference, ContentReference{
 			Id:     id,
+			Name:   "<self>",
 			Source: content_database.Mesh{}.TypeName(),
 		})
 	}
 	if e.TemplateId == id {
 		sub.SubReference = append(sub.SubReference, ContentReference{
 			Id:     id,
+			Name:   "<self>",
 			Source: content_database.Template{}.TypeName(),
 		})
 	}
@@ -209,9 +220,9 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 		for k, v := range e.DataBinding[i].Fields {
 			if s, ok := v.(string); ok && s == id {
 				sub.SubReference = append(sub.SubReference, ContentReference{
-					Id:        id,
-					FieldName: k,
-					Source:    "databind",
+					Id:     id,
+					Name:   k,
+					Source: "databind",
 				})
 			}
 		}

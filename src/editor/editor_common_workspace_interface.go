@@ -39,13 +39,13 @@ package editor
 
 import (
 	"kaiju/editor/editor_events"
+	"kaiju/editor/editor_overlay/reference_viewer"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
 	"log/slog"
 )
 
@@ -83,7 +83,5 @@ func (ed *Editor) ShowReferences(id string) {
 		slog.Error("failed to read the references for the content", "id", id, "error", err)
 		return
 	}
-	println(len(refs))
-	// TODO:  Show overlay of references.
-	klib.NotYetImplemented(427)
+	reference_viewer.Show(ed.host, refs)
 }
