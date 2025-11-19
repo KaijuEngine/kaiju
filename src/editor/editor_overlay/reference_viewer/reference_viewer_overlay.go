@@ -40,19 +40,27 @@ package reference_viewer
 import (
 	"kaiju/editor/project"
 	"kaiju/engine"
+	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
 )
 
+var existing *ReferenceViewer
+
 type ReferenceViewer struct {
-	doc   *document.Document
-	uiMan ui.Manager
+	doc     *document.Document
+	uiMan   ui.Manager
+	OnClose events.Event
 }
 
 func Show(host *engine.Host, references []project.ContentReference) (*ReferenceViewer, error) {
 	defer tracing.NewRegion("reference_viewer.Show").End()
+	// Only allow one context menu open at a time
+	if existing != nil {
+		existing.closeInternal(true)
+	}
 	o := &ReferenceViewer{}
 	o.uiMan.Init(host)
 	var err error
@@ -63,12 +71,21 @@ func Show(host *engine.Host, references []project.ContentReference) (*ReferenceV
 	if err != nil {
 		return o, err
 	}
+	existing = o
 	return o, nil
 }
 
 func (o *ReferenceViewer) Close() {
 	defer tracing.NewRegion("ReferenceViewer.Close").End()
+	o.closeInternal(false)
+}
+
+func (o *ReferenceViewer) closeInternal(beingReplaced bool) {
+	if !beingReplaced {
+		o.OnClose.Execute()
+	}
 	o.doc.Destroy()
+	existing = nil
 }
 
 func (o *ReferenceViewer) clickMiss(*document.Element) {
