@@ -39,8 +39,8 @@ package content_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/confirm_prompt"
+	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -59,7 +59,7 @@ type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
 	pfs               *project_file_system.FileSystem
 	cache             *content_database.Cache
-	edEvts            *editor_events.EditorEvents
+	editor            ContentWorkspaceEditorInterface
 	typeFilters       []string
 	tagFilters        []string
 	query             string
@@ -80,29 +80,30 @@ type ContentWorkspace struct {
 	}
 }
 
-func (w *ContentWorkspace) Initialize(host *engine.Host, edEvts *editor_events.EditorEvents, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
+func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspaceEditorInterface) {
 	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
-	w.pfs = pfs
-	w.cache = cdb
-	w.edEvts = edEvts
-	ids := w.pageData.SetupUIData(cdb)
+	w.pfs = editor.ProjectFileSystem()
+	w.cache = editor.Cache()
+	w.editor = editor
+	ids := w.pageData.SetupUIData(w.cache)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":     w.inputFilter,
-			"tagFilter":       w.tagFilter,
-			"clickImport":     w.clickImport,
-			"clickFilter":     w.clickFilter,
-			"clickEntry":      w.clickEntry,
-			"clickDeleteTag":  w.clickDeleteTag,
-			"updateTagHint":   w.updateTagHint,
-			"submitNewTag":    w.submitNewTag,
-			"clickTagHint":    w.clickTagHint,
-			"submitName":      w.submitName,
-			"clickReimport":   w.clickReimport,
-			"clickDelete":     w.clickDelete,
-			"entryMouseEnter": w.entryMouseEnter,
-			"entryMouseMove":  w.entryMouseMove,
-			"entryMouseLeave": w.entryMouseLeave,
+			"inputFilter":       w.inputFilter,
+			"tagFilter":         w.tagFilter,
+			"clickImport":       w.clickImport,
+			"clickFilter":       w.clickFilter,
+			"clickEntry":        w.clickEntry,
+			"clickDeleteTag":    w.clickDeleteTag,
+			"updateTagHint":     w.updateTagHint,
+			"submitNewTag":      w.submitNewTag,
+			"clickTagHint":      w.clickTagHint,
+			"submitName":        w.submitName,
+			"clickReimport":     w.clickReimport,
+			"clickDelete":       w.clickDelete,
+			"entryMouseEnter":   w.entryMouseEnter,
+			"entryMouseMove":    w.entryMouseMove,
+			"entryMouseLeave":   w.entryMouseLeave,
+			"rightClickContent": w.rightClickContent,
 		})
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -201,7 +202,7 @@ func (w *ContentWorkspace) AddContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
-	w.edEvts.OnContentAdded.Execute(ids)
+	w.editor.Events().OnContentAdded.Execute(ids)
 }
 
 func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
@@ -438,7 +439,7 @@ func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 		slog.Error("failed to delete content file", "path", contentPath, "error", err)
 	}
 	w.cache.Remove(id)
-	w.edEvts.OnContentRemoved.Execute([]string{id})
+	w.editor.Events().OnContentRemoved.Execute([]string{id})
 	if w.selectedContent != nil {
 		w.Doc.RemoveElement(w.selectedContent)
 		w.selectedContent = nil
@@ -484,6 +485,22 @@ func (w *ContentWorkspace) entryMouseMove(e *document.Element) {
 func (w *ContentWorkspace) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
 	w.tooltip.UI.Hide()
+}
+
+func (w *ContentWorkspace) rightClickContent(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.rightClickContent").End()
+	id := e.Attribute("id")
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: "Copy ID to clipboard",
+			Call:  func() { w.Host.Window.CopyToClipboard(id) },
+		},
+		{
+			Label: "Find references",
+			Call:  func() { w.editor.ShowReferences(id) },
+		},
+	}
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {

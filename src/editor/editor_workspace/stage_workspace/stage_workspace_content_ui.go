@@ -375,6 +375,10 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 	w := cui.workspace.Value()
 	options := []context_menu.ContextMenuOption{
 		{
+			Label: "Copy ID to clipboard",
+			Call:  func() { w.Host.Window.CopyToClipboard(id) },
+		},
+		{
 			Label: "Find references",
 			Call:  func() { w.ed.ShowReferences(id) },
 		},

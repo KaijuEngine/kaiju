@@ -157,8 +157,7 @@ func (ed *Editor) postProjectLoad() {
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, ed)
-	ed.workspaces.content.Initialize(ed.host, &ed.events,
-		ed.project.FileSystem(), ed.project.CacheDatabase())
+	ed.workspaces.content.Initialize(ed.host, ed)
 	ed.workspaces.shading.Initialize(ed.host, ed)
 	ed.workspaces.ui.Initialize(ed.host)
 	ed.workspaces.settings.Initialize(ed.host, ed)
