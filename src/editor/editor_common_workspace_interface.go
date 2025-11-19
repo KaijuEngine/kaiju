@@ -83,5 +83,7 @@ func (ed *Editor) ShowReferences(id string) {
 		slog.Error("failed to read the references for the content", "id", id, "error", err)
 		return
 	}
-	reference_viewer.Show(ed.host, refs)
+	ed.BlurInterface()
+	o, _ := reference_viewer.Show(ed.host, refs)
+	o.OnClose.Add(ed.FocusInterface)
 }
