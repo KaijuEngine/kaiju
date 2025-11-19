@@ -41,23 +41,23 @@
 				margin-bottom: 5px;
 			}
 			.folderInput { width: calc(100% - 7em); }
-            #error { color: #C7655D; }
+			#error { color: #C7655D; }
 		</style>
 	</head>
 	<body>
 		<div class="overlay">
 			<h1>Create entity data</h1>
 			<p>Create a POD entity data structure to bind to entities.</p>
-            <div id="error">Error message...</div>
-            <div>
-                <div class="inputPanel">
-                    <input id="nameInput" class="fullWidth" type="text" placeholder="Struct name..." />
-                </div>
-                <div class="inputPanel">
-                    <input id="folder" class="folderInput" type="text" placeholder="Folder..." />
-                    <button onclick="browse">Browse...</button>
-                </div>
-            </div>
+			<div id="error">Error message...</div>
+			<div>
+				<div class="inputPanel">
+					<input id="nameInput" class="fullWidth" type="text" placeholder="Struct name..." />
+				</div>
+				<div class="inputPanel">
+					<input id="folder" class="folderInput" type="text" placeholder="Folder..." />
+					<button onclick="browse">Browse...</button>
+				</div>
+			</div>
 			<div class="btns">
 				<button class="confirm" onclick="confirm">Create</button>
 				<button class="cancel" onclick="cancel">Cancel</button>
