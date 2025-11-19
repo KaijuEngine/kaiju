@@ -45,6 +45,6 @@ type PointShadowCollection = Collection[rendering.PointShadow]
 
 func NewPointShadowCollection(capacity int) PointShadowCollection {
 	return PointShadowCollection{
-		Cache: make([]rendering.PointShadow, capacity),
+		Cache: make([]rendering.PointShadow, 0, capacity),
 	}
 }
