@@ -138,8 +138,6 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		entities:      make([]*Entity, 0),
 		frameTime:     0,
 		Closing:       false,
-		UIUpdater:     NewUpdater(),
-		UILateUpdater: NewUpdater(),
 		Updater:       NewUpdater(),
 		LateUpdater:   NewUpdater(),
 		assetDatabase: assetDb,
@@ -152,6 +150,8 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		threads:       concurrent.NewThreads(),
 		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
 	}
+	host.UIUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
+	host.UILateUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
 	return host
 }
 
