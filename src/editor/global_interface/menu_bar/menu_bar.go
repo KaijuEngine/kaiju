@@ -91,6 +91,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickMailArchives":     b.clickMailArchives,
 			"popupMiss":             b.popupMiss,
 		})
+	b.doc.Clean()
 	return err
 }
 
