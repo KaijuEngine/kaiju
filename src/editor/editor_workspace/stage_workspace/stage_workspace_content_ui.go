@@ -150,7 +150,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		}
 		ccAll = append(ccAll, cc)
 	}
-	cpys := w.Doc.DuplicateElementRepeat(cui.entryTemplate, len(ccAll))
+	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())

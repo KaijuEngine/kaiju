@@ -677,6 +677,12 @@ func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
 // calling [ApplyStyles] on each duplicated element and instead call it at the
 // end, after all copies are created.
 func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
+	elms := d.DuplicateElementRepeatWithoutApplyStyles(elm, count)
+	d.stylizer.ApplyStyles(d.style, d)
+	return elms
+}
+
+func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count int) []*Element {
 	elms := make([]*Element, count)
 	for i := range count {
 		elms[i] = elm.Clone(elm.Parent.Value())
