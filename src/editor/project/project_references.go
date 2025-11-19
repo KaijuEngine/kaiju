@@ -116,7 +116,7 @@ func (p *Project) findReferencesTemplates(id string, onFound func(ref ContentRef
 		func(name string, src []byte) (ContentReference, error) {
 			ref := ContentReference{
 				Id:     name,
-				Source: content_database.Stage{}.TypeName(),
+				Source: content_database.Template{}.TypeName(),
 			}
 			var desc stages.EntityDescription
 			if err := json.Unmarshal(src, &desc); err != nil {
