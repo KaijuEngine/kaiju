@@ -38,12 +38,16 @@
 package project
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"io/fs"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/stages"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -58,28 +62,31 @@ type ContentReference struct {
 func (p *Project) FindReferences(id string) ([]ContentReference, error) {
 	defer tracing.NewRegion("Project.FindReferences").End()
 	refs := []ContentReference{}
-	var add []ContentReference
-	var err error
-	if add, err = p.findReferencesStages(id); err != nil {
-		return refs, err
-	}
-	refs = append(refs, add...)
-	if add, err = p.findReferencesTemplates(id); err != nil {
-		return refs, err
-	}
-	refs = append(refs, add...)
-	if add, err = p.findReferencesMaterial(id); err != nil {
-		return refs, err
-	}
-	refs = append(refs, add...)
-	if add, err = p.findReferencesShader(id); err != nil {
-		return refs, err
-	}
-	refs = append(refs, add...)
-	return refs, nil
+	err := p.FindReferencesWithCallback(id, func(ref ContentReference) {
+		refs = append(refs, ref)
+	})
+	return refs, err
 }
 
-func (p *Project) findReferencesStages(id string) ([]ContentReference, error) {
+func (p *Project) FindReferencesWithCallback(id string, onFound func(ref ContentReference)) error {
+	defer tracing.NewRegion("Project.FindReferencesWithCallback").End()
+	var err error
+	funcs := []func(id string, onFound func(ref ContentReference)) error{
+		p.findReferencesStages,
+		p.findReferencesTemplates,
+		p.findReferencesMaterial,
+		p.findReferencesShader,
+		p.findReferencesCode,
+	}
+	for i := range funcs {
+		if err = funcs[i](id, onFound); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Project) findReferencesStages(id string, onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findReferencesStages").End()
 	return p.findRefsOnFolderAndDo(id, project_file_system.ContentStageFolder,
 		func(name string, src []byte) (ContentReference, error) {
@@ -100,10 +107,10 @@ func (p *Project) findReferencesStages(id string) ([]ContentReference, error) {
 				}
 			}
 			return ref, nil
-		})
+		}, onFound)
 }
 
-func (p *Project) findReferencesTemplates(id string) ([]ContentReference, error) {
+func (p *Project) findReferencesTemplates(id string, onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findReferencesTemplates").End()
 	return p.findRefsOnFolderAndDo(id, project_file_system.ContentTemplateFolder,
 		func(name string, src []byte) (ContentReference, error) {
@@ -117,10 +124,10 @@ func (p *Project) findReferencesTemplates(id string) ([]ContentReference, error)
 			}
 			ref.SubReference = p.findEntityRefs(&desc, id)
 			return ref, nil
-		})
+		}, onFound)
 }
 
-func (p *Project) findReferencesMaterial(id string) ([]ContentReference, error) {
+func (p *Project) findReferencesMaterial(id string, onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findReferencesMaterial").End()
 	return p.findRefsOnFolderAndDo(id, project_file_system.ContentMaterialFolder,
 		func(name string, src []byte) (ContentReference, error) {
@@ -128,10 +135,10 @@ func (p *Project) findReferencesMaterial(id string) ([]ContentReference, error) 
 				Id:     name,
 				Source: content_database.Material{}.TypeName(),
 			}, nil
-		})
+		}, onFound)
 }
 
-func (p *Project) findReferencesShader(id string) ([]ContentReference, error) {
+func (p *Project) findReferencesShader(id string, onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findReferencesShader").End()
 	return p.findRefsOnFolderAndDo(id, project_file_system.ContentShaderFolder,
 		func(name string, src []byte) (ContentReference, error) {
@@ -139,18 +146,57 @@ func (p *Project) findReferencesShader(id string) ([]ContentReference, error) {
 				Id:     name,
 				Source: content_database.Shader{}.TypeName(),
 			}, nil
-		})
+		}, onFound)
 }
 
-func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, src []byte) (ContentReference, error)) ([]ContentReference, error) {
+func (p *Project) findReferencesCode(id string, onFound func(ref ContentReference)) error {
+	defer tracing.NewRegion("Project.findReferencesCode").End()
+	paths := []string{
+		p.fileSystem.FullPath(project_file_system.KaijuSrcFolder),
+		p.fileSystem.FullPath(project_file_system.ProjectCodeFolder),
+	}
+	var wErr error
+	buffer := bytes.NewBuffer([]byte{})
+	for i := range paths {
+		wErr = filepath.Walk(paths[i], func(path string, info fs.FileInfo, err error) error {
+			if info.IsDir() {
+				return err
+			}
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			buffer.Reset()
+			if _, err = io.Copy(buffer, f); err != nil {
+				return err
+			}
+			if strings.Contains(buffer.String(), id) {
+				nml := p.fileSystem.NormalizePath(path)
+				onFound(ContentReference{
+					Id:     nml,
+					Name:   filepath.Base(nml),
+					Source: nml,
+				})
+			}
+			return err
+		})
+		if wErr != nil {
+			return wErr
+		}
+	}
+	return nil
+}
+
+func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, src []byte) (ContentReference, error), onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findRefsOnFolderAndDo").End()
-	refs := []ContentReference{}
 	dir := project_file_system.ContentFolderPath(folder)
 	entries, err := p.fileSystem.ReadDir(dir)
 	if err != nil {
 		slog.Error("failed to read the target content", "error", err)
-		return refs, err
+		return err
 	}
+	buffer := bytes.NewBuffer([]byte{})
 	for i := range entries {
 		if entries[i].Name()[0] == '.' {
 			continue
@@ -160,23 +206,30 @@ func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, 
 			continue
 		}
 		name := filepath.Join(dir, entryName)
-		data, err := p.fileSystem.ReadFile(name)
+		f, err := p.fileSystem.Open(name)
 		if err != nil {
-			slog.Error("failed to read the target content file", "file", name, "error", err)
-			return refs, err
+			slog.Error("failed to open the target content file", "file", name, "error", err)
+			return err
 		}
+		defer f.Close()
+		buffer.Reset()
+		if _, err := io.Copy(buffer, f); err != nil {
+			slog.Error("failed to read the target content file", "file", name, "error", err)
+			return err
+		}
+		data := buffer.Bytes()
 		if strings.Contains(string(data), id) {
 			r, err := do(entryName, data)
 			if err != nil {
-				return refs, err
+				return err
 			}
 			if cc, err := p.cacheDatabase.Read(entryName); err == nil {
 				r.Name = cc.Config.Name
 			}
-			refs = append(refs, r)
+			onFound(r)
 		}
 	}
-	return refs, nil
+	return nil
 }
 
 func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []ContentReference {

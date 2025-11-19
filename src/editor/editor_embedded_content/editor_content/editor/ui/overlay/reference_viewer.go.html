@@ -1,12 +1,3 @@
-{{define "reference"}}
-<div class="entry entryChild">
-	<span>{{.Name}} ({{.Source}})</span>
-	{{range .SubReference}}
-		{{template "reference" .}}
-	{{end}}
-</div>
-{{end}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -39,9 +30,6 @@
 				background-color: #121212;
 				overflow-y: scroll;
 			}
-			/* #entryList:nth-child(odd) {
-				background-color: #282828;
-			} */
 			.entry:hover {
 				background-color: #575757;
 			}
@@ -52,24 +40,21 @@
 				font-size: 1.2em;
 				text-align: center;
 			}
+			.note {
+				font-size: 0.7em;
+				text-align: center;
+				color: #AAA;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="overlay" onmiss="clickMiss">
 			<div id="entryList">
-				{{if not .}}
-					<div class="title">No references</div>
-				{{else}}
-					<div class="title">References</div>
-					{{range .}}
-						<div class="entry">
-							<span>{{.Name}} ({{.Source}})</span>
-							{{range .SubReference}}
-								{{template "reference" .}}
-							{{end}}
-						</div>
-					{{end}}
-				{{end}}
+				<div class="title">References</div>
+				<div class="note">Searching...</div>
+				<div id="entryTemplate" class="entry">
+					<span>Name... (source)</span>
+				</div>
 			</div>
 		</div>
 	</body>

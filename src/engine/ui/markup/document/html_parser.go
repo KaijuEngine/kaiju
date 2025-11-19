@@ -661,6 +661,17 @@ func (d *Document) DuplicateElement(elm *Element) *Element {
 	return cpy
 }
 
+func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
+	cpy := elm.Clone(elm.Parent.Value())
+	if elm.Attribute("id") != "" {
+		cpy.SetAttribute("id", "")
+	}
+	d.appendElement(cpy)
+	d.ChangeElementParentWithoutApply(cpy, parent)
+	d.stylizer.ApplyStyles(d.style, d)
+	return cpy
+}
+
 // DuplicateElementRepeat is the same as [DuplicateElement], but will duplicate
 // the element a specified number of times. This is an optimization to avoid
 // calling [ApplyStyles] on each duplicated element and instead call it at the
@@ -692,13 +703,18 @@ func (d *Document) SetElementId(elm *Element, id string) {
 }
 
 func (d *Document) ChangeElementParent(child, parent *Element) {
+	d.ChangeElementParentWithoutApply(child, parent)
+	d.ApplyStyles()
+}
+
+func (d *Document) ChangeElementParentWithoutApply(child, parent *Element) {
 	// Check to see if anywhere in newParent's hierarchy is this entity
 	// if so, then set it's direct descendant to take this entity's parent.
 	{
 		p := parent
 		for p != nil {
 			if p.Parent.Value() == child {
-				d.ChangeElementParent(p, child.Parent.Value())
+				d.ChangeElementParentWithoutApply(p, child.Parent.Value())
 				break
 			}
 			p = p.Parent.Value()
@@ -713,7 +729,6 @@ func (d *Document) ChangeElementParent(child, parent *Element) {
 	parent.Children = append(parent.Children, child)
 	child.Parent = weak.Make(parent)
 	parent.UIPanel.AddChild(child.UI)
-	d.ApplyStyles()
 }
 
 func (d *Document) appendElement(elm *Element) {
