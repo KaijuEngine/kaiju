@@ -113,7 +113,6 @@ func (label *Label) Init(text string) {
 		label.activateDrawings()
 		label.Base().SetDirty(DirtyTypeLayout)
 		label.LabelData().renderRequired = true
-		label.Base().Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
 		label.deactivateDrawings()

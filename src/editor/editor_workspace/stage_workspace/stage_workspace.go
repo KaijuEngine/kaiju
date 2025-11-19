@@ -89,7 +89,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
-	w.Host.RunOnMainThread(w.Doc.Clean)
+	w.Doc.MarkDirty()
 }
 
 func (w *StageWorkspace) Close() {

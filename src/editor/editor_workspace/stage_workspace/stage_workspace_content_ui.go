@@ -249,7 +249,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 			e.UI.Entity().Deactivate()
 		}
 	}
-	w.Host.RunOnMainThread(w.Doc.Clean)
+	w.Doc.MarkDirty()
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {

@@ -473,6 +473,12 @@ func (d *Document) Destroy() {
 	//}
 }
 
+func (d *Document) MarkDirty() {
+	for i := range d.Elements {
+		d.Elements[i].UI.SetDirty(ui.DirtyTypeGenerated)
+	}
+}
+
 func (d *Document) Clean() {
 	if len(d.Elements) > 0 {
 		d.Elements[0].UI.Clean()

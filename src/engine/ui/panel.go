@@ -151,7 +151,6 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	panel.entity.OnActivate.Add(func() {
 		panel.shaderData.Activate()
 		base.SetDirty(DirtyTypeLayout)
-		base.Clean()
 	})
 	panel.entity.OnDeactivate.Add(func() { panel.shaderData.Deactivate() })
 }
