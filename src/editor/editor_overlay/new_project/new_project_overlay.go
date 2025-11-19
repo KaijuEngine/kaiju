@@ -165,7 +165,9 @@ func (np *NewProject) createProject(e *document.Element) {
 
 func (np *NewProject) openRecentProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.openRecentProject").End()
-	np.openProjectFolder(e.Attribute("data-path"))
+	np.uiMan.Host.RunOnMainThread(func() {
+		np.openProjectFolder(e.Attribute("data-path"))
+	})
 }
 
 func (np *NewProject) openProjectFolder(path string) {
