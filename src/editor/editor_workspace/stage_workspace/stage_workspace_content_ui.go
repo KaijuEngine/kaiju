@@ -351,6 +351,7 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 
 func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
+	cui.tooltip.UI.Layout().SetOffset(-1000, -1000)
 	cui.tooltip.UI.Hide()
 }
 
