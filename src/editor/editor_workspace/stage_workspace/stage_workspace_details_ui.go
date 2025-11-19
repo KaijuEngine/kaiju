@@ -481,11 +481,13 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 		w.Doc.RemoveElement(removed[i])
 	}
 	if len(missing) > 0 {
-		cpys := w.Doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
-		for i := range missing {
-			a := &all[missing[i]]
-			cpys[i].InnerLabel().SetText(a.RegisterKey)
-		}
+		w.Host.RunOnMainThread(func() {
+			cpys := w.Doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
+			for i := range missing {
+				a := &all[missing[i]]
+				cpys[i].InnerLabel().SetText(a.RegisterKey)
+			}
+		})
 	}
 }
 

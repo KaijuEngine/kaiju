@@ -115,10 +115,12 @@ func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Tr
 		}
 		group.Done()
 	}
-	group.Add(len(tris))
-	for i := range len(tris) {
-		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
+	work := make([]func(int), len(tris))
+	group.Add(len(work))
+	for i := range work {
+		work[i] = func(int) { construct(i*3, (i+3)*3) }
 	}
+	threads.AddWork(work)
 	group.Wait()
 	return collision.NewBVH(tris, transform, data)
 }

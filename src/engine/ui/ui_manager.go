@@ -83,16 +83,18 @@ func (man *Manager) update(deltaTime float64) {
 	// First we update all the root UI elements, this will stabilize the tree
 	wg.Add(len(roots))
 	threads := man.Host.Threads()
+	work := make([]func(int), len(roots))
 	for i := range roots {
-		threads.AddWork(func(int) {
+		work[i] = func(int) {
 			roots[i].cleanIfNeeded()
 			wg.Done()
-		})
+		}
 	}
+	threads.AddWork(work)
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
 	all := append(children, roots...)
-	wg.Add(len(all))
+	//wg.Add(len(all))
 	tCount := threads.ThreadCount()
 	if len(man.hovered) != tCount {
 		man.hovered = make([][]*UI, tCount)
@@ -101,17 +103,19 @@ func (man *Manager) update(deltaTime float64) {
 			man.hovered[i] = klib.WipeSlice(man.hovered[i])
 		}
 	}
+	work = make([]func(int), len(all))
 	for i := range all {
-		threads.AddWork(func(threadId int) {
+		work[i] = func(threadId int) {
 			e := all[i]
 			e.updateFromManager(deltaTime)
 			if e.isActive() && e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
-			wg.Done()
-		})
+			//wg.Done()
+		}
 	}
-	wg.Wait()
+	threads.AddWork(work)
+	//wg.Wait()
 	man.windowResized = false
 }
 
