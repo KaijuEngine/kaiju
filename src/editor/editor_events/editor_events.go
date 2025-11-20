@@ -40,6 +40,9 @@ package editor_events
 import "kaiju/engine/systems/events"
 
 type EditorEvents struct {
+	// OnContentAdded sends the id of the content that was renamed
+	OnContentRenamed events.EventWithArg[string]
+
 	// OnContentAdded sends list of content ids that have been added
 	OnContentAdded events.EventWithArg[[]string]
 

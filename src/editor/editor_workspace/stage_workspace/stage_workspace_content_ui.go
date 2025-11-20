@@ -97,6 +97,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
+	edEvts.OnContentRenamed.Add(cui.renameContent)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -181,6 +182,24 @@ func (cui *WorkspaceContentUI) removeContent(ids []string) {
 		} else {
 			slog.Error("failed to find element to remove", "id", id)
 		}
+	}
+}
+
+func (cui *WorkspaceContentUI) renameContent(id string) {
+	w := cui.workspace.Value()
+	if w == nil {
+		slog.Warn("WorkspaceContentUI.removeContent called but workspace is nil")
+		return
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		slog.Warn("failed to find the matching stage content", "id", id, "error", err)
+		return
+	}
+	if e, ok := w.Doc.GetElementById(id); ok {
+		e.Children[1].Children[0].UI.ToLabel().SetText(cc.Config.Name)
+	} else {
+		slog.Error("failed to find element to remove", "id", id)
 	}
 }
 

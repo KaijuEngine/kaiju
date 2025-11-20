@@ -391,6 +391,7 @@ func (w *ContentWorkspace) submitName(e *document.Element) {
 	}
 	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
 	w.cache.Index(cc.Path, w.pfs)
+	w.editor.Events().OnContentRenamed.Execute(id)
 }
 
 func (w *ContentWorkspace) clickReimport(*document.Element) {
