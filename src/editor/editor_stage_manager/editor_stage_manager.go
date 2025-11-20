@@ -106,6 +106,7 @@ func (m *StageManager) Initialize(host *engine.Host, history *memento.History, e
 func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
 	m.Clear()
+	m.history.Clear()
 }
 
 func (m *StageManager) IsNew() bool     { return m.stageId == "" }
@@ -255,6 +256,7 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 func (m *StageManager) Clear() {
 	defer tracing.NewRegion("StageManager.Clear").End()
 	for i := range m.entities {
+		m.OnEntityDestroy.Execute(m.entities[i])
 		m.entities[i].Destroy()
 	}
 	m.worldBVH = nil
