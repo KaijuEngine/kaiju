@@ -516,12 +516,14 @@ func (input *Input) updateCursorPosition() {
 	data := input.InputData()
 	x := input.charX(data.cursorOffset)
 	left, right := input.cursorWindow()
-	if x < left {
-		data.labelShift = min(data.labelShift+left-x, 0)
-		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
-	} else if x > right {
-		data.labelShift += right - x
-		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
+	if right > left {
+		if x < left {
+			data.labelShift = min(data.labelShift+left-x, 0)
+			data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
+		} else if x > right {
+			data.labelShift += right - x
+			data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
+		}
 	}
 	x = x + data.labelShift
 	data.cursor.layout.SetOffset(x, cursorY)
