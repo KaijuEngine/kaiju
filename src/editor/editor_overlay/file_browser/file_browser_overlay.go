@@ -346,6 +346,13 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 			return
 		}
 		fb.execReload()
+		fb.clearSelection()
+		for _, c := range fb.entryListElm.Children {
+			if name == c.Children[2].Children[0].UI.ToLabel().Text() {
+				fb.selectEntry(c)
+				break
+			}
+		}
 		fb.uiMan.Host.RunAfterFrames(2, func() { fb.inInputOverlay = false })
 	}
 	cancel := func() {
