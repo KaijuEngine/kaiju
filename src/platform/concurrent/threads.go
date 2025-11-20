@@ -46,7 +46,7 @@ import (
 
 type Threads struct {
 	queue    *list.List
-	mu       sync.Mutex
+	mutex    sync.Mutex
 	cond     *sync.Cond
 	shutdown bool
 	count    int
@@ -55,7 +55,7 @@ type Threads struct {
 func (t *Threads) Initialize() {
 	defer tracing.NewRegion("Threads.Initialize").End()
 	t.queue = list.New()
-	t.cond = sync.NewCond(&t.mu)
+	t.cond = sync.NewCond(&t.mutex)
 }
 
 func (t *Threads) ThreadCount() int { return t.count }
@@ -70,44 +70,43 @@ func (t *Threads) Start() {
 
 func (t *Threads) Stop() {
 	defer tracing.NewRegion("Threads.Stop").End()
-	t.mu.Lock()
+	t.mutex.Lock()
 	t.shutdown = true
-	t.mu.Unlock()
+	t.mutex.Unlock()
 	t.cond.Broadcast()
 }
 
 func (t *Threads) AddWork(work []func(threadId int)) {
 	defer tracing.NewRegion("Threads.AddWork").End()
-	t.mu.Lock()
+	t.mutex.Lock()
 	for _, w := range work {
 		t.queue.PushBack(w)
 	}
-	t.mu.Unlock()
+	t.mutex.Unlock()
 	t.cond.Broadcast()
 }
 
 func (t *Threads) work(id int) {
 	for {
-		t.mu.Lock()
+		t.mutex.Lock()
 		if t.shutdown {
-			t.mu.Unlock()
+			t.mutex.Unlock()
 			return
 		}
 		for t.queue != nil && t.queue.Len() == 0 {
 			t.cond.Wait()
 			if t.shutdown {
-				t.mu.Unlock()
+				t.mutex.Unlock()
 				return
 			}
 		}
 		if t.queue == nil {
-			t.mu.Unlock()
+			t.mutex.Unlock()
 			return
 		}
-		// Not shutdown and queue has work.
 		elem := t.queue.Front()
 		t.queue.Remove(elem)
-		t.mu.Unlock()
+		t.mutex.Unlock()
 		action := elem.Value.(func(int))
 		if action != nil {
 			action(id)
