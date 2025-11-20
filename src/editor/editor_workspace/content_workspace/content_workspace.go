@@ -116,7 +116,8 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
-	w.AddContent(ids)
+	w.editor.Events().OnContentAdded.Add(w.addContent)
+	w.editor.Events().OnContentAdded.Execute(ids)
 }
 
 func (w *ContentWorkspace) Open() {
@@ -165,14 +166,14 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 					}
 				}
 			}
-			w.AddContent(index)
+			w.editor.Events().OnContentAdded.Execute(index)
 		}, OnCancel: func() {
 			w.UiMan.EnableUpdate()
 		},
 	})
 }
 
-func (w *ContentWorkspace) AddContent(ids []string) {
+func (w *ContentWorkspace) addContent(ids []string) {
 	defer tracing.NewRegion("ContentWorkspace.addContent").End()
 	if len(ids) == 0 {
 		return
@@ -202,7 +203,6 @@ func (w *ContentWorkspace) AddContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
-	w.editor.Events().OnContentAdded.Execute(ids)
 }
 
 func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {

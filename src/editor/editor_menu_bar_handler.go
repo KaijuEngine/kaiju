@@ -193,7 +193,7 @@ func (ed *Editor) SaveCurrentStage() {
 					}
 					ed.saveCurrentStageWithoutNameInput()
 					id := sm.StageId()
-					ed.workspaces.content.AddContent([]string{id})
+					ed.events.OnContentAdded.Execute([]string{id})
 				} else {
 					slog.Error("name was blank for the stage, can't save")
 				}
