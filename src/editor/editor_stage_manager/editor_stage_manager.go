@@ -107,6 +107,7 @@ func (m *StageManager) NewStage() {
 	defer tracing.NewRegion("StageManager.NewStage").End()
 	m.Clear()
 	m.history.Clear()
+	m.stageId = ""
 }
 
 func (m *StageManager) IsNew() bool     { return m.stageId == "" }
@@ -123,7 +124,16 @@ func (m *StageManager) SetStageId(id string, cache *content_database.Cache) erro
 }
 
 // List will return all of the internally held entities for the stage
-func (m *StageManager) List() []*StageEntity { return m.entities }
+func (m *StageManager) List() []*StageEntity {
+	out := make([]*StageEntity, 0, len(m.entities))
+	for _, e := range m.entities {
+		if e.isDeleted {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
 
 func (m *StageManager) Selection() []*StageEntity { return m.selected }
 
@@ -304,10 +314,13 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 		desc.DataBinding = append(desc.DataBinding, db)
 		desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
 	}
-	for i := range m.entities {
-		if m.entities[i].Parent == &parent.Entity {
-			m.entityToDescription(m.entities[i])
-			desc.Children = append(desc.Children, m.entities[i].StageData.Description)
+	for _, e := range m.entities {
+		if e.isDeleted {
+			continue
+		}
+		if e.Parent == &parent.Entity {
+			m.entityToDescription(e)
+			desc.Children = append(desc.Children, e.StageData.Description)
 		}
 	}
 	return parent.StageData.Description
@@ -318,15 +331,21 @@ func (m *StageManager) toStage() stages.Stage {
 	s := stages.Stage{Id: m.stageId}
 	rootCount := 0
 	for i := range m.entities {
+		if m.entities[i].isDeleted {
+			continue
+		}
 		if m.entities[i].IsRoot() {
 			rootCount++
 		}
 	}
 	s.Entities = make([]stages.EntityDescription, 0, rootCount)
-	for i := range m.entities {
-		if m.entities[i].IsRoot() {
-			m.entityToDescription(m.entities[i])
-			s.Entities = append(s.Entities, m.entities[i].StageData.Description)
+	for _, e := range m.entities {
+		if e.isDeleted {
+			continue
+		}
+		if e.IsRoot() {
+			m.entityToDescription(e)
+			s.Entities = append(s.Entities, e.StageData.Description)
 		}
 	}
 	return s
