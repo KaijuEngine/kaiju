@@ -58,4 +58,5 @@ type StageWorkspaceEditorInterface interface {
 	Settings() *editor_settings.Settings
 	StageView() *editor_stage_view.StageView
 	ShowReferences(id string)
+	ContentWorkspaceSelected()
 }

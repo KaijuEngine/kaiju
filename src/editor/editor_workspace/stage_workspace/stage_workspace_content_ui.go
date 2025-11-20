@@ -402,6 +402,13 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 			Label: "Find references",
 			Call:  func() { w.ed.ShowReferences(id) },
 		},
+		{
+			Label: "Open in content workspace",
+			Call: func() {
+				w.ed.ContentWorkspaceSelected()
+				w.ed.Events().OnFocusContent.Execute(id)
+			},
+		},
 	}
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
 }

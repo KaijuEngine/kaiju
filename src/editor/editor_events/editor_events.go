@@ -48,4 +48,10 @@ type EditorEvents struct {
 
 	// OnContentRemoved sends list of content ids that have been removed
 	OnContentRemoved events.EventWithArg[[]string]
+
+	// OnFocusContent is raised when a content should be focused wherever we
+	// are in the UI. This was created for the stage right-click context menu
+	// to be able to focus content in the content workspace, but it could be
+	// used in other ways as needed.
+	OnFocusContent events.EventWithArg[string]
 }

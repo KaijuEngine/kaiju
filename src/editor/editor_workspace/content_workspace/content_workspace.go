@@ -116,8 +116,10 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
-	w.editor.Events().OnContentAdded.Add(w.addContent)
-	w.editor.Events().OnContentAdded.Execute(ids)
+	edEvts := w.editor.Events()
+	edEvts.OnContentAdded.Add(w.addContent)
+	edEvts.OnFocusContent.Add(w.focusContent)
+	edEvts.OnContentAdded.Execute(ids)
 }
 
 func (w *ContentWorkspace) Open() {
@@ -203,6 +205,19 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
+}
+
+func (w *ContentWorkspace) focusContent(id string) {
+	defer tracing.NewRegion("ContentWorkspace.focusContent").End()
+	if !w.Doc.IsActive() {
+		return
+	}
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		slog.Warn("could not locate the content in the content workspace", "id", id)
+		return
+	}
+	w.clickEntry(elm)
 }
 
 func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
@@ -306,6 +321,7 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
 		cpys[i].UI.Show()
 	}
+	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
 }
 
 func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
