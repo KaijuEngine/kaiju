@@ -147,9 +147,9 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		UICamera:      cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
-		threads:       concurrent.NewThreads(),
 		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
 	}
+	host.threads.Initialize()
 	host.UIUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
 	host.UILateUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
 	return host

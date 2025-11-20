@@ -60,13 +60,15 @@ func (w *WorkGroup) Execute(name string, threads *Threads) {
 	if target, ok := w.work.Load(name); ok {
 		list := target.([]func())
 		wg := sync.WaitGroup{}
-		wg.Add(len(list))
+		calls := make([]func(int), len(list))
+		wg.Add(len(calls))
 		for i := range list {
-			threads.AddWork(func(int) {
+			calls[i] = func(int) {
 				list[i]()
 				wg.Done()
-			})
+			}
 		}
+		threads.AddWork(calls)
 		wg.Wait()
 		list = klib.WipeSlice(list[:0])
 		w.work.Store(name, list)
