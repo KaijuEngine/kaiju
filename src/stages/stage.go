@@ -208,9 +208,15 @@ func (s *Stage) FromMinimized(ss StageJson) {
 }
 
 func ArchiveDeserializer(rawData []byte) (Stage, error) {
-	s := Stage{}
+	var s Stage
 	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
 	return s, err
+}
+
+func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, error) {
+	var desc EntityDescription
+	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&desc)
+	return desc, err
 }
 
 func (s *Stage) Launch(host *engine.Host) {
@@ -252,7 +258,8 @@ func (s *Stage) Launch(host *engine.Host) {
 			}
 		}
 		if se.Mesh != "" {
-			s.spawnLoadedEntity(e, host, se)
+			// TODO:  Handle error?
+			SetupEntityFromDescription(e, host, se)
 		}
 		for i := range se.Children {
 			proc(&se.Children[i], e)
@@ -267,7 +274,7 @@ func (s *Stage) Launch(host *engine.Host) {
 	}
 }
 
-func (s *Stage) spawnLoadedEntity(e *engine.Entity, host *engine.Host, se *EntityDescription) error {
+func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityDescription) (*engine.Entity, error) {
 	ad := host.AssetDatabase()
 	meshId := se.Mesh
 	materialId := se.Material
@@ -275,12 +282,12 @@ func (s *Stage) spawnLoadedEntity(e *engine.Entity, host *engine.Host, se *Entit
 	kmData, err := ad.Read(meshId)
 	if err != nil {
 		slog.Error("failed to load the mesh data", "id", meshId, "error", err)
-		return err
+		return nil, err
 	}
 	km, err := kaiju_mesh.Deserialize(kmData)
 	if err != nil {
 		slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
-		return err
+		return nil, err
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
 	var mat *rendering.Material
@@ -291,21 +298,21 @@ func (s *Stage) spawnLoadedEntity(e *engine.Entity, host *engine.Host, se *Entit
 	mat, err = host.MaterialCache().Material(materialId)
 	if err != nil {
 		slog.Error("failed to create the standard material", "error", err)
-		return err
+		return nil, err
 	}
 	texs := make([]*rendering.Texture, 0, len(textureIds))
 	for i := range textureIds {
 		texData, err := ad.Read(textureIds[i])
 		if err != nil {
 			slog.Error("failed to read the texture file", "id", textureIds[i], "error", err)
-			return err
+			return nil, err
 		}
 		// TODO:  Should be reading the filter from the configuration file
 		tex, err := rendering.NewTextureFromMemory(textureIds[i],
 			texData, 0, 0, rendering.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the texture from it's data", "id", textureIds[i], "error", err)
-			return err
+			return nil, err
 		}
 		texs = append(texs, tex)
 	}
@@ -333,5 +340,5 @@ func (s *Stage) spawnLoadedEntity(e *engine.Entity, host *engine.Host, se *Entit
 	}
 	host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { sd.Destroy() })
-	return nil
+	return e, nil
 }

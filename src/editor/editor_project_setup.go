@@ -49,7 +49,9 @@ import (
 )
 
 func (ed *Editor) setProjectName(name string) {
-	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
+	ed.host.RunOnMainThread(func() {
+		ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
+	})
 	ed.project.SetName(name)
 }
 

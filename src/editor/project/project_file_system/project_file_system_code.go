@@ -91,12 +91,12 @@ import (
 	"kaiju/build"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/klib"
 	"kaiju/stages"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 )
 
@@ -105,7 +105,7 @@ type Game struct{}
 func (Game) PluginRegistry() []reflect.Type { return []reflect.Type{} }
 
 func (Game) ContentDatabase() (assets.Database, error) {
-	if isMobile() {
+	if klib.IsMobile() {
 		return assets.NewArchiveDatabase("game.dat", []byte(build.ArchiveEncryptionKey))
 	}
 	if build.Debug {
@@ -143,7 +143,7 @@ func (Game) Launch(host *engine.Host) {
 		return
 	}
 	s := stages.Stage{}
-	if build.Debug && !isMobile() {
+	if build.Debug && !klib.IsMobile() {
 		j := stages.StageJson{}
 		if err := json.Unmarshal(stageData, &j); err != nil {
 			slog.Error("failed to decode the entry point stage 'main'", "error", err)
@@ -160,16 +160,6 @@ func (Game) Launch(host *engine.Host) {
 	}
 	host.SetGame(game_host.NewGameHost())
 	s.Launch(host)
-}
-
-func isMobile() bool {
-	switch runtime.GOOS {
-	case "android":
-		fallthrough
-	case "ios":
-		return true
-	}
-	return false
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }
