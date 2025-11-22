@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<style>
-			.content {
+			#contentArea {
 				position: absolute;
 				bottom: 1.3em;
 				width: 100%;
@@ -287,7 +287,7 @@
 		<span id="hideContent" onclick="hideContent">v</span>
 		<span id="showContent" onclick="showContent">^</span>
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
-		<div id="contentArea" class="content">
+		<div id="contentArea">
 			<div class="left">
 				<input type="text" placeholder="Content search..." onsubmit="inputFilter" />
 				{{range .Filters}}

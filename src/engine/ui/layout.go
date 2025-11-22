@@ -60,8 +60,6 @@ type Layout struct {
 	rowLayoutOffset  matrix.Vec2
 	innerOffset      matrix.Vec4
 	localInnerOffset matrix.Vec4
-	left             float32
-	top              float32
 	z                float32
 	ui               *UI
 	border           matrix.Vec4
@@ -77,8 +75,6 @@ func (l *Layout) CledarStyles() {
 	l.rowLayoutOffset = matrix.Vec2{}
 	l.innerOffset = matrix.Vec4{}
 	l.localInnerOffset = matrix.Vec4{}
-	l.left = 0
-	l.top = 0
 	l.z = 0
 	l.border = matrix.Vec4{}
 	l.padding = matrix.Vec4{}
@@ -290,6 +286,8 @@ func (l *Layout) SetZ(z float32) {
 func (l *Layout) SetPositioning(pos Positioning) {
 	if l.positioning != pos {
 		l.positioning = pos
+		l.SetInnerOffset(0, 0, 0, 0)
+		l.SetRowLayoutOffset(matrix.Vec2Zero())
 		l.ui.SetDirty(DirtyTypeLayout)
 	}
 }
