@@ -249,9 +249,9 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 		child.SetParent(nil)
 	}
 	if parent.StageData.Bvh != nil {
-		parent.StageData.Bvh.Refit()
+		m.RefitBVH(parent)
 	} else if child.StageData.Bvh != nil {
-		child.StageData.Bvh.Refit()
+		m.RefitBVH(child)
 	}
 	m.OnEntityChangedParent.Execute(child)
 	m.history.Add(&changeParentHistory{
@@ -280,9 +280,14 @@ func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
 	collision.AddSubBVH(&m.worldBVH, cpy, transform)
 }
 
-func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
+//func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
+//	defer tracing.NewRegion("StageManager.RemoveBVH").End()
+//	collision.RemoveSubBVH(&m.worldBVH, bvh)
+//}
+
+func (m *StageManager) RemoveEntityBVH(e *StageEntity) {
 	defer tracing.NewRegion("StageManager.RemoveBVH").End()
-	collision.RemoveSubBVH(&m.worldBVH, bvh)
+	collision.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
 }
 
 // entityToTemplate is a wrapper around [entityToDescription] so that the
@@ -714,6 +719,14 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 	m.worldBVH.Refit()
 	m.history.Clear()
 	return nil
+}
+
+func (m *StageManager) RefitBVH(entity *StageEntity) {
+	// TODO:  It's getting a little late, but I may need to track all of the
+	// nodes that were related to each other when they were created and only
+	// update the matching ones here. For now I'm just going to update the whole
+	// tree before it gets too late.
+	m.RefitWorldBVH()
 }
 
 func explodeEntityHierarchy(e *StageEntity) []*StageEntity {

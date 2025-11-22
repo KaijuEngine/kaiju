@@ -183,15 +183,7 @@ func (b *BVH) Refit() {
 	if b == nil {
 		return
 	}
-	// TODO:  It's getting a little late, but I may need to track all of the
-	// nodes that were related to each other when they were created and only
-	// update the matching ones here. For now I'm just going to update the whole
-	// tree before it gets too late.
-	p := b
-	for p.Parent != nil {
-		p = p.Parent
-	}
-	p.refitChildren()
+	b.refitChildren()
 }
 
 func (b *BVH) refitChildren() {

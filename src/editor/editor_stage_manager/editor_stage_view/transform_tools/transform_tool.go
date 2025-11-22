@@ -239,7 +239,8 @@ func (t *TransformTool) addHistory() {
 		//	for _, e := range t.stage.Manager().Selection() {
 		//		e.StageData.Bvh.Refit()
 		//	}
-		t.stage.Manager().Selection()[0].StageData.Bvh.Refit()
+		man := t.stage.Manager()
+		man.RefitBVH(man.Selection()[0])
 	}
 	t.history.Add(&toolHistory{
 		stage:    t.stage,

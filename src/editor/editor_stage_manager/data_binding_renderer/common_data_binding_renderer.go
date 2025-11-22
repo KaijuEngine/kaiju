@@ -81,13 +81,13 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 	})
 	box := collision.AABBFromTransform(&target.Transform)
 	box.Extent.ScaleAssign(0.5)
-	bvh := collision.NewBVH([]collision.HitObject{box}, &target.Transform, target)
-	manager.AddBVH(bvh, &target.Transform)
+	target.StageData.Bvh = collision.NewBVH([]collision.HitObject{box}, &target.Transform, target)
+	manager.AddBVH(target.StageData.Bvh, &target.Transform)
 	wManager := weak.Make(manager)
 	target.OnDestroy.Add(func() {
 		m := wManager.Value()
 		if m != nil {
-			m.RemoveBVH(bvh)
+			m.RemoveEntityBVH(target)
 		}
 		sd.Destroy()
 	})

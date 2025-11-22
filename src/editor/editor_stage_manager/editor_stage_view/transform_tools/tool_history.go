@@ -70,7 +70,7 @@ func (h *toolHistory) Redo() {
 	//	for _, e := range t.stage.Manager().Selection() {
 	//		e.StageData.Bvh.Refit()
 	//	}
-	h.entities[0].StageData.Bvh.Refit()
+	h.stage.Manager().RefitBVH(h.entities[0])
 }
 
 func (h *toolHistory) Undo() {
@@ -92,7 +92,7 @@ func (h *toolHistory) Undo() {
 	//	for _, e := range t.stage.Manager().Selection() {
 	//		e.StageData.Bvh.Refit()
 	//	}
-	h.entities[0].StageData.Bvh.Refit()
+	h.stage.Manager().RefitBVH(h.entities[0])
 }
 
 func (h *toolHistory) Delete() {}
