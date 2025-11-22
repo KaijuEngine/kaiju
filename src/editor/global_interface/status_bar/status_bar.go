@@ -46,7 +46,6 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
-	"log/slog"
 	"weak"
 )
 
@@ -118,9 +117,6 @@ func (b *StatusBar) bindToSlog() {
 				}
 			}
 		})
-	}
-	for i := range 83 {
-		slog.Info("something", "i", i)
 	}
 }
 
