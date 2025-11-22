@@ -82,8 +82,11 @@ func (p *Project) EntityData() []codegen.GeneratedType { return p.entityData }
 // EntityDataBinding will search through the generated/reflected entity data
 // binding types for the one with the matching registration key
 func (p *Project) EntityDataBinding(name string) (codegen.GeneratedType, bool) {
-	g, ok := p.entityDataMap[name]
-	return *g, ok
+	if g, ok := p.entityDataMap[name]; !ok {
+		return codegen.GeneratedType{}, ok
+	} else {
+		return *g, ok
+	}
 }
 
 // IsValid will return if this project has been constructed by simply returning
