@@ -46,8 +46,11 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"weak"
 )
+
+const maxLogEntries = 100
 
 type StatusBar struct {
 	doc              *document.Document
@@ -107,7 +110,17 @@ func (b *StatusBar) bindToSlog() {
 			elm := b.doc.DuplicateElement(b.logEntryTemplate)
 			elm.Children[0].UI.ToLabel().SetText(msg.ToString())
 			b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
+			parent := elm.Parent.Value()
+			if len(parent.Children) > maxLogEntries {
+				// +1 because template is 0
+				for i := 1; i <= len(parent.Children)-maxLogEntries; i++ {
+					b.doc.RemoveElement(parent.Children[i])
+				}
+			}
 		})
+	}
+	for i := range 83 {
+		slog.Info("something", "i", i)
 	}
 }
 
