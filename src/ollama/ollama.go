@@ -188,7 +188,8 @@ func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 	return res, err
 }
 
-func Stream(hostAddr string, request APIRequest, reader func(think, msg string) error) error {
+func Stream(hostAddr string, request APIRequest, reader func(res APIResponse) error) error {
+	request.Stream = true
 	requestData, err := json.Marshal(request)
 	if err != nil {
 		return err
@@ -220,11 +221,7 @@ func Stream(hostAddr string, request APIRequest, reader func(think, msg string) 
 			log.Println("Failed to parse Ollama response:", err)
 			continue
 		}
-		str := result.Response
-		if endpoint == "chat" {
-			str = result.Message.Content
-		}
-		if err = reader(result.Thinking, str); err != nil || result.Done {
+		if err = reader(result); err != nil || result.Done {
 			break
 		}
 	}
