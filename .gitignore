@@ -22,6 +22,7 @@ go.work
 go.sum
 
 bin/
+logs/
 docs/api
 external/bin
 interpreter/kaiju-*

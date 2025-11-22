@@ -51,5 +51,6 @@ func Main(game GameInterface, platformState any) {
 		}
 	}
 	logStream := logging.Initialize(ops)
+	defer logStream.Close()
 	bootstrapInternal(logStream, game, platformState)
 }
