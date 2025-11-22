@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* camera_data_binding_renderer.go                                            */
+/* light_data_binding_renderer.go                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -41,87 +41,54 @@ import (
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine_data_binding_camera/engine_data_binding_camera"
-	"kaiju/matrix"
+	"kaiju/engine_data_binding_camera/engine_data_binding_light"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 )
 
 func init() {
-	AddRenderer(engine_data_binding_camera.BindingKey, &CameraDataBindingRenderer{
-		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
+	AddRenderer(engine_data_binding_light.BindingKey, &LightDataBindingRenderer{
+		LightLines: make(map[*editor_stage_manager.StageEntity]lightDataBindingDrawing),
 	})
 }
 
-type CameraDataBindingRenderer struct {
-	Frustums map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing
+type LightDataBindingRenderer struct {
+	LightLines map[*editor_stage_manager.StageEntity]lightDataBindingDrawing
 }
 
-type cameraDataBindingDrawing struct {
+type lightDataBindingDrawing struct {
 	key string
 	sd  rendering.DrawInstance
 }
 
-func (c *CameraDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	commonAttached(host, manager, target, "camera.png")
+func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	commonAttached(host, manager, target, "light.png")
 }
 
-func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraDataBindingRenderer.Show").End()
-	if _, ok := c.Frustums[target]; ok {
-		slog.Error("there is an internal error in state for the editor's CameraDataBindingRenderer, show was called before any hide happened. Double selected the same target?")
+func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightDataBindingRenderer.Show").End()
+	if _, ok := c.LightLines[target]; ok {
+		slog.Error("there is an internal error in state for the editor's LightDataBindingRenderer, show was called before any hide happened. Double selected the same target?")
 		c.Hide(host, target, data)
 	}
-	w, h := float32(host.Window.Width()), float32(host.Window.Height())
-	cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
-	cam.SetProperties(
-		data.FieldValueByName("FOV").(float32),
-		data.FieldValueByName("NearPlane").(float32),
-		data.FieldValueByName("FarPlane").(float32),
-		w, h,
-	)
-	frustum := rendering.NewMeshFrustumBox(host.MeshCache(), cam.InverseProjection())
-	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdFrustumWire)
-	if err != nil {
-		slog.Error("failed to load transform wire material", "error", err)
+	// TODO:  Create the light lines
+	// c.LightLines[target] = lightDataBindingDrawing{frustum.Key(), sd}
+}
+
+func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	_, ok := c.LightLines[target]
+	if !ok {
 		return
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
-	sd.(*shader_data_registry.ShaderDataEdFrustumWire).Color = matrix.ColorWhite()
-	sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
-	host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Material:   material,
-		Mesh:       frustum,
-		ShaderData: sd,
-		Transform:  &target.Transform,
-	})
-	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
+	// TODO:  Update any of the light line transformations
 }
 
-func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	if t, ok := c.Frustums[target]; ok {
-		w, h := float32(host.Window.Width()), float32(host.Window.Height())
-		cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
-		cam.SetProperties(
-			data.FieldValueByName("FOV").(float32),
-			data.FieldValueByName("NearPlane").(float32),
-			data.FieldValueByName("FarPlane").(float32),
-			w, h,
-		)
-		t.sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
-	}
-}
-
-func (c *CameraDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraDataBindingRenderer.Hide").End()
-	if d, ok := c.Frustums[target]; ok {
+func (c *LightDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightDataBindingRenderer.Hide").End()
+	if d, ok := c.LightLines[target]; ok {
 		d.sd.Destroy()
 		host.MeshCache().RemoveMesh(d.key)
-		delete(c.Frustums, target)
+		delete(c.LightLines, target)
 	}
 }
