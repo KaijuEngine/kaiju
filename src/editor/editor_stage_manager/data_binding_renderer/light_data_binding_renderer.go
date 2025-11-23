@@ -41,7 +41,7 @@ import (
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
-	"kaiju/engine_data_binding_camera/engine_data_binding_light"
+	"kaiju/engine_data_bindings/engine_data_binding_light"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"

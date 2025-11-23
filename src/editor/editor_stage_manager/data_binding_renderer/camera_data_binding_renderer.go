@@ -43,7 +43,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
-	"kaiju/engine_data_binding_camera/engine_data_binding_camera"
+	"kaiju/engine_data_bindings/engine_data_binding_camera"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
