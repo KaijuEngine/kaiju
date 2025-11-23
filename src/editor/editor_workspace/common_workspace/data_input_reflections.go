@@ -39,9 +39,9 @@ package common_workspace
 
 import (
 	"fmt"
+	"kaiju/editor/codegen/reflect_helpers"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
 	"kaiju/rendering"
 	"reflect"
 	"regexp"
@@ -133,7 +133,7 @@ func SetObjectValueFromUI(obj any, e *document.Element) {
 		var val reflect.Value
 		switch e.UI.Type() {
 		case ui.ElementTypeInput:
-			res := klib.StringToTypeValue(v.Type().String(), e.UI.ToInput().Text())
+			res := reflect_helpers.StringToTypeValue(v.Type().String(), e.UI.ToInput().Text())
 			val = reflect.ValueOf(res)
 		case ui.ElementTypeSelect:
 			val = reflect.ValueOf(e.UI.ToSelect().Value())

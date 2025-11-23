@@ -270,8 +270,20 @@
 							<div class="center">Data name...</div>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
-								<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
-								<input class="dataCheck" type="checkbox" onchange="changeData" />
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeData" />
+								</div>
 							</div>
 						</div>
 					</div>

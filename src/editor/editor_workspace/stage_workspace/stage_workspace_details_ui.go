@@ -401,10 +401,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		}
 		textInput := fields[i].Children[1]
 		checkInput := fields[i].Children[2]
+		vec3Input := fields[i].Children[3]
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		if g.Fields[i].IsInput() {
 			textInput.UI.Show()
-			u := textInput.UI.ToInput()
+			u := textInput.Children[0].UI.ToInput()
 			u.SetPlaceholder(g.Fields[i].Name + "...")
 			if g.Fields[i].IsNumber() {
 				u.SetTextWithoutEvent(g.FieldNumberAsString(i))
@@ -414,19 +415,27 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			w.Doc.RemoveElement(checkInput)
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
-			checkInput.UI.ToCheckbox().SetChecked(g.FieldBool(i))
+			checkInput.Children[0].UI.ToCheckbox().SetChecked(g.FieldBool(i))
 			w.Doc.RemoveElement(textInput)
+		} else if g.Fields[i].IsVec3() {
+			vec3Input.UI.Show()
+			for j := range 3 {
+				c := vec3Input.Children[j].UI.ToInput()
+				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+				vec3Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			}
 		}
 	}
 }
 
 func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.changeData").End()
-	idx, err := strconv.Atoi(e.Parent.Value().Attribute("data-fieldidx"))
+	root := e.Parent.Value().Parent.Value()
+	idx, err := strconv.Atoi(root.Attribute("data-fieldidx"))
 	if err != nil {
 		return
 	}
-	pIdx, err := strconv.Atoi(e.Parent.Value().Attribute("data-bindidx"))
+	pIdx, err := strconv.Atoi(root.Attribute("data-bindidx"))
 	if err != nil {
 		return
 	}
@@ -438,6 +447,14 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	entity := sel[0]
 	target := entity.DataBindings()[pIdx]
 	v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+	ii := e.Attribute("data-inneridx")
+	if ii != "" {
+		if iidx, err := strconv.Atoi(ii); err != nil {
+			return
+		} else {
+			v = v.Index(iidx)
+		}
+	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(toInt(e.UI.ToInput().Text()))

@@ -39,6 +39,7 @@ package entity_data_binding
 
 import (
 	"kaiju/editor/codegen"
+	"kaiju/editor/codegen/reflect_helpers"
 	"kaiju/engine"
 	"kaiju/klib"
 	"log/slog"
@@ -73,6 +74,7 @@ type EntityDataField struct {
 
 func (f *EntityDataField) IsNumber() bool   { return isNumber(f.Type) }
 func (f *EntityDataField) IsInput() bool    { return isInput(f.Type) }
+func (f *EntityDataField) IsVec3() bool     { return isVec3(f.Type) }
 func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
 
 func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
@@ -200,6 +202,16 @@ func (g *EntityDataEntry) FieldString(fieldIdx int) string {
 	return v.String()
 }
 
+func (g *EntityDataEntry) FieldVectorComponent(fieldIdx, componentIdx int) float32 {
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
+	return float32(v.Index(componentIdx).Float())
+}
+
+func (g *EntityDataEntry) FieldVectorComponentAsString(fieldIdx, componentIdx int) string {
+	v := g.FieldVectorComponent(fieldIdx, componentIdx)
+	return klib.StripFloatStringZeros(strconv.FormatFloat(float64(v), 'f', 5, 32))
+}
+
 // FieldBool returns the boolean value of the field at the given index.
 // It reflects into the bound data struct, retrieves the field, and
 // returns its bool representation. No side‑effects; the bound data is
@@ -227,7 +239,7 @@ func (g *EntityDataEntry) FieldValueByName(name string) any {
 }
 
 func tagDefault(f *EntityDataField, value string) {
-	f.Value = klib.StringToTypeValue(f.Type, value)
+	f.Value = reflect_helpers.StringToTypeValue(f.Type, value)
 }
 
 func tagClamp(f *EntityDataField, value string) {
@@ -242,7 +254,7 @@ func tagClamp(f *EntityDataField, value string) {
 	if len(parts) == 3 {
 		values := make([]any, len(parts))
 		for i := range parts {
-			values[i] = klib.StringToTypeValue(f.Type, parts[i])
+			values[i] = reflect_helpers.StringToTypeValue(f.Type, parts[i])
 		}
 		f.Value = values[0]
 		f.Min = values[1]
@@ -259,6 +271,10 @@ func isNumber(typeName string) bool {
 	default:
 		return false
 	}
+}
+
+func isVec3(typeName string) bool {
+	return typeName == "Vec3"
 }
 
 func isInput(typeName string) bool {
