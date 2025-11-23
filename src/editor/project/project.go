@@ -371,7 +371,7 @@ func (p *Project) ReadSourceCode() {
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
 	slog.Info("reading through project code to find bindable data")
-	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
+	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_data_bindings"))
 	if err != nil {
 		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
 		return
@@ -381,7 +381,7 @@ func (p *Project) ReadSourceCode() {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuRoot, "kaiju")
+	a, _ := codegen.Walk(kaijuBindings, "kaiju/engine_data_bindings")
 	b, _ := codegen.Walk(srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
 	for i := range p.entityData {
