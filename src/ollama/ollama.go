@@ -49,6 +49,8 @@ import (
 	"time"
 )
 
+const maxToolCalls = 25
+
 type Base64EncodedImage = string
 
 type APIRequest struct {
@@ -161,9 +163,11 @@ func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 				toolRetries := max(1, req.RetryCount)
 				req.Messages = append(req.Messages, res.Message)
 				for i := range res.Message.ToolCalls {
-					str, tmpErr := callToolFunc(res.Message.ToolCalls[i])
-					if tmpErr != nil {
-						str = tmpErr.Error()
+					str, toolErr := callToolFunc(res.Message.ToolCalls[i])
+					if toolErr != nil {
+						str = "Tool call error:\n\n" + toolErr.Error()
+					} else {
+						str = "Tool call success:\n\n" + str
 					}
 					req.Messages = append(req.Messages, Message{
 						Role:    "tool",
@@ -188,44 +192,77 @@ func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 	return res, err
 }
 
-func Stream(hostAddr string, request APIRequest, reader func(res APIResponse) error) error {
+func Stream(hostAddr string, request APIRequest, reader func(APIResponse) error, onToolCall func(ToolCall) error) error {
 	request.Stream = true
-	requestData, err := json.Marshal(request)
-	if err != nil {
-		return err
+	for _, v := range tools {
+		request.Tools = append(request.Tools, v.tool)
 	}
-	endpoint := "generate"
-	if len(request.Messages) > 0 {
-		endpoint = "chat"
-	}
-	req, err := http.NewRequest("POST", hostAddr+"/api/"+endpoint, bytes.NewBuffer(requestData))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	client.Timeout = time.Second * time.Duration(request.KeepAlive)
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			continue
+	done := false
+	for !done {
+		requestData, err := json.Marshal(request)
+		if err != nil {
+			return err
 		}
-		var result APIResponse
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			log.Println("Failed to parse Ollama response:", err)
-			continue
+		endpoint := "generate"
+		if len(request.Messages) > 0 {
+			endpoint = "chat"
 		}
-		if err = reader(result); err != nil || result.Done {
-			break
+		req, err := http.NewRequest("POST", hostAddr+"/api/"+endpoint, bytes.NewBuffer(requestData))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		client.Timeout = time.Second * time.Duration(request.KeepAlive)
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		scanner := bufio.NewScanner(resp.Body)
+		toolCalls := 0
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			var result APIResponse
+			if err := json.Unmarshal([]byte(line), &result); err != nil {
+				log.Println("Failed to parse Ollama response:", err)
+				continue
+			}
+			if len(result.Message.ToolCalls) > 0 {
+				for i := range result.Message.ToolCalls {
+					if onToolCall != nil {
+						onToolCall(result.Message.ToolCalls[i])
+					}
+					str, toolErr := callToolFunc(result.Message.ToolCalls[i])
+					if toolErr != nil {
+						str = fmt.Sprintf("Tool call %s ERROR: %v", result.Message.ToolCalls[i].Function.Name, toolErr)
+					} else {
+						str = fmt.Sprintf("Tool call %s SUCCESS: %s", result.Message.ToolCalls[i].Function.Name, str)
+					}
+					request.Messages = append(request.Messages, Message{
+						Role:    "tool",
+						Content: str,
+					})
+					toolCalls++
+					if toolCalls > maxToolCalls {
+						return fmt.Errorf("too many tool calls")
+					}
+				}
+			} else {
+				toolCalls = 0
+				if err = reader(result); err != nil {
+					return err
+				} else if result.Done {
+					done = true
+					break
+				}
+			}
 		}
 	}
-	return err
+	return nil
 }
 
 func Stdin(hostAddr string, req APIRequest, reader func(think, msg string) error) error {

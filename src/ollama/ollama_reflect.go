@@ -72,8 +72,8 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 		err = fmt.Errorf("the type '%s' is not a func", name)
 		return err
 	}
-	if fnT.NumOut() == 0 || fnT.Out(0).Kind() != reflect.String {
-		err = fmt.Errorf("the function expects to have a string return")
+	if fnT.NumOut() != 2 || fnT.Out(0).Kind() != reflect.String || !fnT.Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+		err = fmt.Errorf("the function expects to have a string and error return")
 		return err
 	}
 	if _, ok := tools[name]; ok {
@@ -198,5 +198,10 @@ func callToolFunc(call ToolCall) (string, error) {
 		return "", fmt.Errorf("could not find suitable argument for parameter %d of function '%s'", i, call.Function.Name)
 	}
 	out := fnVal.Call(args)
-	return out[0].String(), nil
+	msg := out[0].String()
+	var err error
+	if i := out[1].Interface(); i != nil {
+		err = i.(error)
+	}
+	return msg, err
 }
