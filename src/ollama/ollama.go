@@ -46,6 +46,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -164,14 +165,9 @@ func Chat(hostAddr string, req APIRequest) (APIResponse, error) {
 				req.Messages = append(req.Messages, res.Message)
 				for i := range res.Message.ToolCalls {
 					str, toolErr := callToolFunc(res.Message.ToolCalls[i])
-					if toolErr != nil {
-						str = "Tool call error:\n\n" + toolErr.Error()
-					} else {
-						str = "Tool call success:\n\n" + str
-					}
 					req.Messages = append(req.Messages, Message{
 						Role:    "tool",
-						Content: str,
+						Content: toToolPayload(res.Message.ToolCalls[i], str, toolErr),
 					})
 				}
 				for toolRetries >= 0 {
@@ -237,14 +233,9 @@ func Stream(hostAddr string, request APIRequest, reader func(APIResponse) error,
 						onToolCall(result.Message.ToolCalls[i])
 					}
 					str, toolErr := callToolFunc(result.Message.ToolCalls[i])
-					if toolErr != nil {
-						str = fmt.Sprintf("Tool call %s ERROR: %v", result.Message.ToolCalls[i].Function.Name, toolErr)
-					} else {
-						str = fmt.Sprintf("Tool call %s SUCCESS: %s", result.Message.ToolCalls[i].Function.Name, str)
-					}
 					request.Messages = append(request.Messages, Message{
 						Role:    "tool",
-						Content: str,
+						Content: toToolPayload(result.Message.ToolCalls[i], str, toolErr),
 					})
 					toolCalls++
 					if toolCalls > maxToolCalls {
@@ -338,4 +329,17 @@ func callInternal(hostAddr string, request APIRequest) (APIResponse, error) {
 		return result, errors.New(result.Error)
 	}
 	return result, nil
+}
+
+func toToolPayload(call ToolCall, str string, err error) string {
+	if err != nil {
+		return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
+	} else {
+		str = strings.TrimSpace(str)
+		if str != "" {
+			return fmt.Sprintf(`{"tool":"%s","success":true,"content":"%s"}`, call.Function.Name, str)
+		} else {
+			return fmt.Sprintf(`{"tool":"%s","success":false}`, call.Function.Name)
+		}
+	}
 }
