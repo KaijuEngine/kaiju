@@ -65,7 +65,16 @@ type structure struct {
 	Doc                string
 	Name               string
 	Spec               *ast.StructType
+	PrimSpec           ast.Expr
 	satisfiesInterface bool
+}
+
+func (s *structure) IsValid() bool {
+	return s.Spec != nil || s.PrimSpec != nil
+}
+
+func (s *structure) IsPrimitiveType() bool {
+	return s.Spec == nil && s.PrimSpec != nil
 }
 
 func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
@@ -360,38 +369,47 @@ func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedTy
 		Fields:  make([]reflect.StructField, 0),
 	}
 	offset := uintptr(0)
-	for _, f := range s.Spec.Fields.List {
-		tag := ""
-		if f.Tag != nil {
-			tag = strings.Trim(f.Tag.Value, "`")
+	if !s.IsPrimitiveType() {
+		for _, f := range s.Spec.Fields.List {
+			tag := ""
+			if f.Tag != nil {
+				tag = strings.Trim(f.Tag.Value, "`")
+			}
+			ptrDepth := 0
+			typ, err := typeFromType(pkg, pkgPath, f.Type, genTypes, &ptrDepth)
+			if err != nil {
+				return g, err
+			}
+			for i := 0; i < ptrDepth; i++ {
+				typ = reflect.PointerTo(typ)
+			}
+			n := f.Names[0].Name
+			pkg := g.Pkg
+			if !unicode.IsLower([]rune(n)[0]) {
+				pkg = ""
+			}
+			gf := reflect.StructField{
+				Name:      n,
+				PkgPath:   pkg,
+				Tag:       reflect.StructTag(tag),
+				Offset:    offset,   // TODO:
+				Index:     []int{0}, // TODO:
+				Anonymous: false,
+				Type:      typ,
+			}
+			offset += typ.Size()
+			g.Fields = append(g.Fields, gf)
+			// In Go, how can I make a generated
 		}
+		g.Type = reflect.StructOf(g.Fields)
+	} else {
 		ptrDepth := 0
-		typ, err := typeFromType(pkg, pkgPath, f.Type, genTypes, &ptrDepth)
+		typ, err := typeFromType(pkg, pkgPath, s.PrimSpec, genTypes, &ptrDepth)
 		if err != nil {
 			return g, err
 		}
-		for i := 0; i < ptrDepth; i++ {
-			typ = reflect.PointerTo(typ)
-		}
-		n := f.Names[0].Name
-		pkg := g.Pkg
-		if !unicode.IsLower([]rune(n)[0]) {
-			pkg = ""
-		}
-		gf := reflect.StructField{
-			Name:      n,
-			PkgPath:   pkg,
-			Tag:       reflect.StructTag(tag),
-			Offset:    offset,   // TODO:
-			Index:     []int{0}, // TODO:
-			Anonymous: false,
-			Type:      typ,
-		}
-		offset += typ.Size()
-		g.Fields = append(g.Fields, gf)
-		// In Go, how can I make a generated
+		g.Type = typ
 	}
-	g.Type = reflect.StructOf(g.Fields)
 	return g, nil
 }
 
@@ -405,9 +423,15 @@ func allTypes(a *ast.File) []structure {
 				if g.Doc != nil {
 					doc = strings.TrimSpace(g.Doc.Text())
 				}
+				st, _ := s.Type.(*ast.StructType)
+				ps, _ := s.Type.(*ast.Ident)
 				types = append(types, structure{
-					doc, s.Name.Name, s.Type.(*ast.StructType),
-					satisfiesInterface(s, a.Decls)})
+					Doc:                doc,
+					Name:               s.Name.Name,
+					Spec:               st,
+					PrimSpec:           ps,
+					satisfiesInterface: satisfiesInterface(s, a.Decls),
+				})
 			}
 		}
 	}
