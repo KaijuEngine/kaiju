@@ -294,9 +294,9 @@ func (fb *FileBrowser) openFolder(folder string) {
 		} else {
 			entry.Children[0].UI.Hide()
 		}
-		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), entries[i].Name()))
+		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), filtered[i].Name()))
 		name := entry.FindElementByTag("span")
-		name.Children[0].UI.ToLabel().SetText(entries[i].Name())
+		name.Children[0].UI.ToLabel().SetText(filtered[i].Name())
 	}
 	fb.entryListElm.UI.ToPanel().ResetScroll()
 }
