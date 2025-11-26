@@ -167,6 +167,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
+	cui.refreshFilterOnContentChange()
 }
 
 func (cui *WorkspaceContentUI) removeContent(ids []string) {
@@ -411,4 +412,10 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 		},
 	}
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
+}
+
+func (cui *WorkspaceContentUI) refreshFilterOnContentChange() {
+	if cui.query != "" || len(cui.typeFilters) > 0 || len(cui.tagFilters) > 0 {
+		cui.runFilter()
+	}
 }
