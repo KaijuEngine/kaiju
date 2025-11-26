@@ -414,7 +414,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			for k, v := range fg.EnumValues {
 				sel.AddOption(k, fmt.Sprintf("%v", v))
 			}
-			sel.PickOption(int(g.FieldInteger(i)))
+			sel.PickOptionByLabel(g.FieldNumberAsString(i))
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
 			u := textInput.Children[0].UI.ToInput()
