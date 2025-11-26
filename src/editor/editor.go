@@ -57,7 +57,9 @@ import (
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
+	"kaiju/engine/ui"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -139,11 +141,15 @@ func (ed *Editor) earlyLoadUI() {
 }
 
 func (ed *Editor) UpdateSettings() {
+	ed.host.SetFrameRateLimit(int64(klib.Clamp(ed.settings.RefreshRate, 0, 320)))
+	if matrix.Approx(ed.settings.UIScrollSpeed, 0) {
+		ed.settings.UIScrollSpeed = 1
+	}
+	ui.UIScrollSpeed = ed.settings.UIScrollSpeed
 	if err := ed.settings.Save(); err != nil {
 		slog.Error("failed to save the editor settings", "error", err)
 		return
 	}
-	ed.host.SetFrameRateLimit(int64(klib.Clamp(ed.settings.RefreshRate, 0, 320)))
 }
 
 func (ed *Editor) postProjectLoad() {

@@ -56,6 +56,7 @@ const (
 type Settings struct {
 	RecentProjects []string `visible:"false"`
 	RefreshRate    int32    `clamp:"60,0,320"`
+	UIScrollSpeed  float32  `default:"20" label:"UI Scroll Speed"`
 	Snapping       SnapSettings
 	BuildTools     BuildToolSettings
 }

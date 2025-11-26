@@ -84,10 +84,7 @@ const (
 	OverflowHidden
 )
 
-type childScrollEvent struct {
-	down   events.Id
-	scroll events.Id
-}
+var UIScrollSpeed float32 = 20
 
 type requestScroll struct {
 	to        float32
@@ -96,7 +93,6 @@ type requestScroll struct {
 
 type panelData struct {
 	scroll, offset, maxScroll matrix.Vec2
-	scrollSpeed               float32
 	scrollDirection           PanelScrollDirection
 	scrollEvent               events.Id
 	borderStyle               [4]BorderStyle
@@ -131,7 +127,6 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	}
 	pd = panel.elmData.innerPanelData()
 	pd.scrollEvent = 0
-	pd.scrollSpeed = 20.0
 	pd.scrollDirection = PanelScrollDirectionNone
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
@@ -250,7 +245,7 @@ func (p *Panel) onScroll() {
 		delta[matrix.Vy] *= -1.0
 	} else {
 		pd.offset = pd.scroll
-		delta.ScaleAssign(pd.scrollSpeed)
+		delta.ScaleAssign(UIScrollSpeed)
 	}
 	// If the panel can only scroll horizontally, use the Y scroll if there is no X
 	if pd.scrollDirection == PanelScrollDirectionHorizontal {
@@ -488,10 +483,6 @@ func (p *Panel) RemoveChild(target *UI) {
 
 func (p *Panel) Child(index int) *UI {
 	return FirstOnEntity(p.entity.Children[index])
-}
-
-func (p *Panel) SetSpeed(speed float32) {
-	p.PanelData().scrollSpeed = speed
 }
 
 func (p *Panel) recreateDrawing() {
