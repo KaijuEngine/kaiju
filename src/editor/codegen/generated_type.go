@@ -44,8 +44,12 @@ type GeneratedType struct {
 	PkgPath            string
 	Name               string
 	Fields             []reflect.StructField
+	FieldGens          []GeneratedType
 	Type               reflect.Type
+	EnumValues         map[string]any
 	RegisterKey        string
 	registered         bool
 	satisfiesInterface bool
 }
+
+func (g *GeneratedType) IsValid() bool { return g.Name != "" }

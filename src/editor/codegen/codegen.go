@@ -297,7 +297,16 @@ func toType(name string) (reflect.Type, error) {
 	}
 }
 
-func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, ptrDepth *int) (reflect.Type, error) {
+func genTypeByName(name string, genTypes []GeneratedType) (GeneratedType, bool) {
+	for i := range genTypes {
+		if genTypes[i].Name == name {
+			return genTypes[i], true
+		}
+	}
+	return GeneratedType{}, false
+}
+
+func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, ptrDepth *int) (reflect.Type, GeneratedType, error) {
 	defer tracing.NewRegion("codegen.typeFromType").End()
 	switch t := typ.(type) {
 	case *ast.StarExpr:
@@ -307,22 +316,23 @@ func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, p
 		structName := t.Name
 		for i := range genTypes {
 			if genTypes[i].Name == structName {
-				return genTypes[i].Type, nil
+				return genTypes[i].Type, genTypes[i], nil
 			}
 		}
-		return toType(t.Name)
+		typ, err := toType(t.Name)
+		return typ, GeneratedType{}, err
 	case *ast.SelectorExpr:
 		structPkg := t.X.(*ast.Ident).Name
 		structName := t.Sel.Name
 		if t, ok := registry[structPkg+"."+structName]; ok {
-			return t, nil
+			return t, GeneratedType{}, nil
 		}
 		for i := range genTypes {
 			if genTypes[i].Pkg == structPkg && genTypes[i].Name == structName {
-				return genTypes[i].Type, nil
+				return genTypes[i].Type, GeneratedType{}, nil
 			}
 		}
-		return nil, errors.New("failed to locate the struct type named " + structPkg + "." + structName)
+		return nil, GeneratedType{}, errors.New("failed to locate the struct type named " + structPkg + "." + structName)
 	case *ast.StructType:
 		g, err := generateStructType(pkg, pkgPath, structure{
 			Doc:  "",
@@ -330,44 +340,45 @@ func typeFromType(pkg, pkgPath string, typ ast.Expr, genTypes []GeneratedType, p
 			Spec: t,
 		}, genTypes)
 		if err != nil {
-			return nil, err
+			return nil, GeneratedType{}, err
 		}
-		return g.Type, nil
+		return g.Type, GeneratedType{}, nil
 	case *ast.ArrayType:
-		typ, err := typeFromType(pkg, pkgPath, t.Elt, genTypes, ptrDepth)
+		typ, g, err := typeFromType(pkg, pkgPath, t.Elt, genTypes, ptrDepth)
 		if err != nil {
-			return nil, err
+			return nil, g, err
 		}
 		if t.Len == nil {
-			return reflect.SliceOf(typ), nil
+			return reflect.SliceOf(typ), g, nil
 		} else {
 			count, err := strconv.Atoi(t.Len.(*ast.BasicLit).Value)
 			if err != nil {
-				return nil, err
+				return nil, g, err
 			}
-			return reflect.ArrayOf(count, typ), nil
+			return reflect.ArrayOf(count, typ), g, nil
 		}
 	case *ast.MapType:
-		kType, err := typeFromType(pkg, pkgPath, t.Key, genTypes, ptrDepth)
+		kType, g, err := typeFromType(pkg, pkgPath, t.Key, genTypes, ptrDepth)
 		if err != nil {
-			return nil, err
+			return nil, g, err
 		}
-		vType, err := typeFromType(pkg, pkgPath, t.Value, genTypes, ptrDepth)
+		vType, g, err := typeFromType(pkg, pkgPath, t.Value, genTypes, ptrDepth)
 		if err != nil {
-			return nil, err
+			return nil, g, err
 		}
-		return reflect.MapOf(kType, vType), nil
+		return reflect.MapOf(kType, vType), g, nil
 	}
-	return nil, errors.New("failed to correctly identify the type")
+	return nil, GeneratedType{}, errors.New("failed to correctly identify the type")
 }
 
 func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedType) (GeneratedType, error) {
 	defer tracing.NewRegion("codegen.generateStructType").End()
 	g := GeneratedType{
-		Pkg:     pkg,
-		PkgPath: strings.ReplaceAll(pkgPath, "\\", "/"),
-		Name:    s.Name,
-		Fields:  make([]reflect.StructField, 0),
+		Pkg:        pkg,
+		PkgPath:    strings.ReplaceAll(pkgPath, "\\", "/"),
+		Name:       s.Name,
+		Fields:     make([]reflect.StructField, 0),
+		EnumValues: s.EnumValues,
 	}
 	offset := uintptr(0)
 	if !s.IsPrimitiveType() {
@@ -377,7 +388,7 @@ func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedTy
 				tag = strings.Trim(f.Tag.Value, "`")
 			}
 			ptrDepth := 0
-			typ, err := typeFromType(pkg, pkgPath, f.Type, genTypes, &ptrDepth)
+			typ, fGen, err := typeFromType(pkg, pkgPath, f.Type, genTypes, &ptrDepth)
 			if err != nil {
 				return g, err
 			}
@@ -400,12 +411,13 @@ func generateStructType(pkg, pkgPath string, s structure, genTypes []GeneratedTy
 			}
 			offset += typ.Size()
 			g.Fields = append(g.Fields, gf)
+			g.FieldGens = append(g.FieldGens, fGen)
 			// In Go, how can I make a generated
 		}
 		g.Type = reflect.StructOf(g.Fields)
 	} else {
 		ptrDepth := 0
-		typ, err := typeFromType(pkg, pkgPath, s.PrimSpec, genTypes, &ptrDepth)
+		typ, _, err := typeFromType(pkg, pkgPath, s.PrimSpec, genTypes, &ptrDepth)
 		if err != nil {
 			return g, err
 		}

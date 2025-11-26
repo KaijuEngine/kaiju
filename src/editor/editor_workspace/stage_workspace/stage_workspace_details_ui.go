@@ -38,11 +38,13 @@
 package stage_workspace
 
 import (
+	"fmt"
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -402,8 +404,18 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		textInput := fields[i].Children[1]
 		checkInput := fields[i].Children[2]
 		vec3Input := fields[i].Children[3]
+		selectInput := fields[i].Children[4]
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
-		if g.Fields[i].IsInput() {
+		fg := &g.Gen.FieldGens[i]
+		if fg.IsValid() && len(fg.EnumValues) > 0 {
+			selectInput.UI.Show()
+			sel := selectInput.Children[0].UI.ToSelect()
+			sel.ClearOptions()
+			for k, v := range fg.EnumValues {
+				sel.AddOption(k, fmt.Sprintf("%v", v))
+			}
+			sel.PickOption(int(g.FieldInteger(i)))
+		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
 			u := textInput.Children[0].UI.ToInput()
 			u.SetPlaceholder(g.Fields[i].Name + "...")
@@ -455,15 +467,22 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 			v = v.Index(iidx)
 		}
 	}
+	inputText := ""
+	switch e.UI.Type() {
+	case ui.ElementTypeInput:
+		inputText = e.UI.ToInput().Text()
+	case ui.ElementTypeSelect:
+		inputText = e.UI.ToSelect().Value()
+	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v.SetInt(toInt(e.UI.ToInput().Text()))
+		v.SetInt(toInt(inputText))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v.SetUint(toUint(e.UI.ToInput().Text()))
+		v.SetUint(toUint(inputText))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(toFloat(e.UI.ToInput().Text()))
+		v.SetFloat(toFloat(inputText))
 	case reflect.String:
-		v.SetString(e.UI.ToInput().Text())
+		v.SetString(inputText)
 	case reflect.Bool:
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
 	}

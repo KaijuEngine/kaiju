@@ -182,6 +182,60 @@ func (g *EntityDataEntry) FieldNumberAsString(fieldIdx int) string {
 	return "0"
 }
 
+func (g *EntityDataEntry) FieldNumber(fieldIdx int) float64 {
+	f := g.Fields[fieldIdx]
+	if !f.IsNumber() {
+		return 0
+	}
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
+	switch f.Value.(type) {
+	case int, int8, int16, int32, int64:
+		return float64(v.Int())
+	case uint, uint8, uint16, uint32, uint64:
+		return float64(v.Uint())
+	case float32, float64:
+		return v.Float()
+	default:
+		return 0
+	}
+}
+
+func (g *EntityDataEntry) FieldInteger(fieldIdx int) int64 {
+	f := g.Fields[fieldIdx]
+	if !f.IsNumber() {
+		return 0
+	}
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
+	switch f.Value.(type) {
+	case int, int8, int16, int32, int64:
+		return v.Int()
+	case uint, uint8, uint16, uint32, uint64:
+		return int64(v.Uint())
+	case float32, float64:
+		return int64(v.Float())
+	default:
+		return 0
+	}
+}
+
+func (g *EntityDataEntry) FieldUnsignedInteger(fieldIdx int) uint64 {
+	f := g.Fields[fieldIdx]
+	if !f.IsNumber() {
+		return 0
+	}
+	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
+	switch f.Value.(type) {
+	case int, int8, int16, int32, int64:
+		return uint64(v.Int())
+	case uint, uint8, uint16, uint32, uint64:
+		return v.Uint()
+	case float32, float64:
+		return uint64(v.Float())
+	default:
+		return 0
+	}
+}
+
 // FieldString returns the string representation of the field at the given
 // index. It reflects into the bound data struct, retrieves the field value,
 // and calls its String method (or the underlying reflect.String conversion).
