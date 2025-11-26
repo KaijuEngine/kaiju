@@ -612,23 +612,32 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	meshId := desc.Mesh
 	materialId := desc.Material
 	textureIds := desc.Textures
-	kmData, err := fs.ReadFile(filepath.Join(rootFolder, meshFolder, meshId))
-	if err != nil {
-		slog.Error("failed to load the mesh data", "id", meshId, "error", err)
-		return err
-	}
-	km, err := kaiju_mesh.Deserialize(kmData)
-	if err != nil {
-		slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
-		return err
+	var km kaiju_mesh.KaijuMesh
+	// TODO:  This is a hack, the quad/plane may need to be added to the stock
+	// folder. They are special here because the're used for textures in 3D/2D.
+	switch meshId {
+	case "quad":
+		km.Verts, km.Indexes = rendering.MeshQuadData()
+	case "plane":
+		km.Verts, km.Indexes = rendering.MeshPlaneData()
+	default:
+		kmData, err := fs.ReadFile(filepath.Join(rootFolder, meshFolder, meshId))
+		if err != nil {
+			slog.Error("failed to load the mesh data", "id", meshId, "error", err)
+			return err
+		}
+		km, err = kaiju_mesh.Deserialize(kmData)
+		if err != nil {
+			slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
+			return err
+		}
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
-	var mat *rendering.Material
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")
 		materialId = assets.MaterialDefinitionBasic
 	}
-	mat, err = host.MaterialCache().Material(materialId)
+	mat, err := host.MaterialCache().Material(materialId)
 	if err != nil {
 		slog.Error("failed to create the standard material", "error", err)
 		return err
