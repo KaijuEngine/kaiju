@@ -565,6 +565,7 @@ func (input *Input) deactivated() {
 
 func (input *Input) activated() {
 	data := input.InputData()
+	input.hideCursor()
 	if len(data.label.LabelData().text) == 0 {
 		data.placeholder.Show()
 	} else {
