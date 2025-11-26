@@ -68,7 +68,7 @@ type SnapSettings struct {
 }
 
 type BuildToolSettings struct {
-	AndroidNDK string
+	AndroidNDK string `label:"Android NDK"`
 	JavaHome   string
 }
 

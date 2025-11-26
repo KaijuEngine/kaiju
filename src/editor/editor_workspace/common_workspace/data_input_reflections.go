@@ -64,9 +64,13 @@ type DataUISectionField struct {
 	Sections []DataUISection
 	RootPath string
 	TipKey   string
+	Label    string
 }
 
 func (f DataUISectionField) DisplayName() string {
+	if f.Label != "" {
+		return f.Label
+	}
 	return f.PascalToTitle(f.Name)
 }
 
@@ -162,6 +166,7 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 			Value:    f.Interface(),
 			RootPath: path,
 			TipKey:   tag.Get("tip"),
+			Label:    tag.Get("label"),
 		}
 		if d := tag.Get("default"); d != "" {
 			field.Value = d
