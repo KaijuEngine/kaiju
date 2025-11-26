@@ -66,6 +66,7 @@ type structure struct {
 	Name               string
 	Spec               *ast.StructType
 	PrimSpec           ast.Expr
+	EnumValues         map[string]any
 	satisfiesInterface bool
 }
 
@@ -424,18 +425,26 @@ func allTypes(a *ast.File) []structure {
 					doc = strings.TrimSpace(g.Doc.Text())
 				}
 				st, _ := s.Type.(*ast.StructType)
-				ps, _ := s.Type.(*ast.Ident)
-				types = append(types, structure{
+				ps, isPrim := s.Type.(*ast.Ident)
+				target := structure{
 					Doc:                doc,
 					Name:               s.Name.Name,
 					Spec:               st,
 					PrimSpec:           ps,
 					satisfiesInterface: satisfiesInterface(s, a.Decls),
-				})
+				}
+				if isPrim {
+					target.EnumValues = locateAllEnumValues(a, s)
+				}
+				types = append(types, target)
 			}
 		}
 	}
 	return types
+}
+
+func locateAllEnumValues(a *ast.File, t *ast.TypeSpec) map[string]any {
+	return map[string]any{}
 }
 
 func hasInterfaceReceiver(f *ast.FuncDecl, name string) bool {
