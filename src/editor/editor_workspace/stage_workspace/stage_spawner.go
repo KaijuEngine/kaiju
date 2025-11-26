@@ -113,6 +113,12 @@ func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, b
 	return w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
 }
 
+func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, bool) {
+	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
+	e := w.stageView.Manager().AddEntity("Entity", w.stageView.LookAtPoint())
+	return e, true
+}
+
 func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewLight").End()
 	return w.createDataBoundEntity("Light", engine_data_binding_light.BindingKey)

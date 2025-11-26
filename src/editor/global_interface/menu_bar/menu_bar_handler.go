@@ -61,5 +61,6 @@ type MenuBarHandler interface {
 	CreateNewStage()
 	SaveCurrentStage()
 	CreateNewCamera()
+	CreateNewEntity()
 	CreateNewLight()
 }
