@@ -574,6 +574,11 @@ func (d *Document) AddChildElement(parent *Element, elm *Element) {
 // 5. Removes the element from document's indexed elements
 // 6. Applies all document styles to reflect changes
 func (d *Document) RemoveElement(elm *Element) {
+	d.RemoveElementWithoutApplyStyles(elm)
+	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 	for i := len(elm.Children) - 1; i >= 0; i-- {
 		d.RemoveElement(elm.Children[i])
 	}
@@ -589,7 +594,6 @@ func (d *Document) RemoveElement(elm *Element) {
 		}
 	}
 	d.removeIndexedElement(elm)
-	d.stylizer.ApplyStyles(d.style, d)
 }
 
 // SetElementClassesWithoutApply updates the class list of the given element

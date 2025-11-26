@@ -66,11 +66,12 @@ type ContentWorkspace struct {
 	entryTemplate     *document.Element
 	tagFilterTemplate *document.Element
 	addTagbtn         *document.Element
-	selectedContent   *document.Element
+	selectedContent   []*document.Element
 	rightBody         *document.Element
 	tooltip           *document.Element
 	pageData          WorkspaceUIData
 	info              struct {
+		multiSelectNote  *document.Element
 		nameInput        *document.Element
 		tagList          *document.Element
 		entryTagTemplate *document.Element
@@ -110,6 +111,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
 	w.addTagbtn, _ = w.Doc.GetElementById("addTagbtn")
 	w.rightBody, _ = w.Doc.GetElementById("rightBody")
+	w.info.multiSelectNote, _ = w.Doc.GetElementById("multiSelectNote")
 	w.info.nameInput, _ = w.Doc.GetElementById("entryName")
 	w.info.tagList, _ = w.Doc.GetElementById("entryTags")
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
@@ -194,7 +196,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		cc := &ccAll[i]
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
-		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
+		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
 		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
 		tex, err := w.Host.TextureCache().Texture(
@@ -294,10 +296,31 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	w.runFilter()
 }
 
+func (w *ContentWorkspace) clearSelection() {
+	for i := range w.selectedContent {
+		w.Doc.SetElementClassesWithoutApply(w.selectedContent[i], "entry")
+	}
+	w.Doc.ApplyStyles()
+	w.selectedContent = klib.WipeSlice(w.selectedContent)
+}
+
+func (w *ContentWorkspace) removeSelected(e *document.Element) {
+	w.Doc.SetElementClasses(e, "entry")
+	w.selectedContent = klib.SlicesRemoveElement(w.selectedContent, e)
+}
+
 func (w *ContentWorkspace) clickEntry(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickEntry").End()
-	if w.selectedContent == e {
+	if len(w.selectedContent) == 1 && w.selectedContent[0] == e {
 		return
+	}
+	kb := &w.Host.Window.Keyboard
+	if kb.HasCtrl() && slices.Contains(w.selectedContent, e) {
+		w.removeSelected(e)
+		return
+	}
+	if !kb.HasShift() && !kb.HasCtrl() {
+		w.clearSelection()
 	}
 	id := e.Attribute("id")
 	cc, err := w.cache.Read(id)
@@ -305,37 +328,44 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	if w.selectedContent != nil {
-		w.Doc.SetElementClasses(w.selectedContent, "entry")
-	}
-	w.selectedContent = e
+	w.selectedContent = append(w.selectedContent, e)
 	w.rightBody.UI.Show()
-	w.Doc.SetElementClasses(w.selectedContent, "entry", "entrySelected")
+	w.Doc.SetElementClasses(e, "entry", "entrySelected")
 	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.tagList.Children[i])
 	}
 	w.info.nameInput.UI.ToInput().SetText(cc.Config.Name)
 	cpys := w.Doc.DuplicateElementRepeat(w.info.entryTagTemplate, len(cc.Config.Tags))
 	for i := range cpys {
-		cpys[i].Children[0].Children[0].UI.ToLabel().SetText(cc.Config.Tags[i])
+		cpys[i].Children[0].InnerLabel().SetText(cc.Config.Tags[i])
 		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
 		cpys[i].UI.Show()
 	}
 	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
+	if len(w.selectedContent) > 1 {
+		w.info.multiSelectNote.UI.Show()
+	} else {
+		w.info.multiSelectNote.UI.Hide()
+	}
 }
 
 func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickDeleteTag").End()
-	id := w.selectedId()
-	cc, err := w.cache.Read(id)
-	if err != nil {
-		slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
-		return
-	}
+	ids := w.selectedIds()
+	found := false
 	tag := e.Attribute("data-tag")
-	if cc.Config.RemoveTag(tag) {
-		w.updateIndexForCachedContent(&cc)
-	} else {
+	for _, id := range ids {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
+			continue
+		}
+		if cc.Config.RemoveTag(tag) {
+			w.updateIndexForCachedContent(&cc)
+		}
+		found = true
+	}
+	if !found {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
 	w.Doc.RemoveElement(e.Parent.Value())
@@ -363,7 +393,7 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 	}
 	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
 	for i := range cpys {
-		cpys[i].Children[0].UI.ToLabel().SetText(options[i])
+		cpys[i].InnerLabel().SetText(options[i])
 		cpys[i].UI.Show()
 	}
 	w.info.newTagHint.UI.Show()
@@ -382,7 +412,7 @@ func (w *ContentWorkspace) submitNewTag(e *document.Element) {
 
 func (w *ContentWorkspace) clickTagHint(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickTagHint").End()
-	w.addTagToSelected(e.Children[0].UI.ToLabel().Text())
+	w.addTagToSelected(e.InnerLabel().Text())
 	w.info.newTagHint.UI.Hide()
 	w.info.newTagInput.UI.ToInput().SetTextWithoutEvent("")
 }
@@ -394,31 +424,37 @@ func (w *ContentWorkspace) submitName(e *document.Element) {
 		slog.Warn("The name for the content can't be left blank, ignoring change")
 		return
 	}
-	id := w.selectedId()
-	cc, err := w.cache.Read(id)
-	if err != nil {
-		slog.Error("failed to find the content by id", "id", id, "error", err)
-		return
+	ids := w.selectedIds()
+	for _, id := range ids {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the content by id", "id", id, "error", err)
+			continue
+		}
+		cc.Config.Name = name
+		if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
+			slog.Error("failed to update the content config file", "id", id, "error", err)
+			continue
+		}
+		for i := range w.selectedContent {
+			w.selectedContent[i].Children[1].InnerLabel().SetText(name)
+		}
+		w.cache.Index(cc.Path, w.pfs)
+		w.editor.Events().OnContentRenamed.Execute(id)
 	}
-	cc.Config.Name = name
-	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
-		slog.Error("failed to update the content config file", "id", id, "error", err)
-		return
-	}
-	w.selectedContent.Children[1].Children[0].UI.ToLabel().SetText(name)
-	w.cache.Index(cc.Path, w.pfs)
-	w.editor.Events().OnContentRenamed.Execute(id)
 }
 
 func (w *ContentWorkspace) clickReimport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickReimport").End()
-	res, err := content_database.Reimport(w.selectedId(), w.pfs, w.cache)
-	if err != nil {
-		slog.Error("failed to re-import the content", "error", err)
-		return
+	for i, id := range w.selectedIds() {
+		res, err := content_database.Reimport(id, w.pfs, w.cache)
+		if err != nil {
+			slog.Error("failed to re-import the content", "error", err)
+			continue
+		}
+		slog.Info("successfully re-import the content", "id", id)
+		w.loadEntryImage(w.selectedContent[i], res.ConfigPath(), res.Category.TypeName())
 	}
-	slog.Info("successfully re-imported the content")
-	w.loadEntryImage(w.selectedContent, res.ConfigPath(), res.Category.TypeName())
 }
 
 func (w *ContentWorkspace) clickDelete(*document.Element) {
@@ -438,31 +474,34 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 }
 
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
-	id := w.selectedId()
-	if id == "" {
-		slog.Warn("clickDelete called with no selected content")
-		return
+	ids := w.selectedIds()
+	for _, id := range ids {
+		if id == "" {
+			slog.Warn("clickDelete contained a blank id")
+			continue
+		}
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+			continue
+		}
+		if err := w.pfs.Remove(cc.Path); err != nil {
+			slog.Error("failed to delete config file", "path", cc.Path, "error", err)
+		}
+		contentPath := content_database.ToContentPath(cc.Path)
+		if err := w.pfs.Remove(contentPath); err != nil {
+			slog.Error("failed to delete content file", "path", contentPath, "error", err)
+		}
+		w.cache.Remove(id)
+		w.editor.Events().OnContentRemoved.Execute([]string{id})
+		w.rightBody.UI.Hide()
+		w.tooltip.UI.Hide()
 	}
-	cc, err := w.cache.Read(id)
-	if err != nil {
-		slog.Error("failed to read cached content for deletion", "id", id, "error", err)
-		return
+	for i := range w.selectedContent {
+		w.Doc.RemoveElementWithoutApplyStyles(w.selectedContent[i])
 	}
-	if err := w.pfs.Remove(cc.Path); err != nil {
-		slog.Error("failed to delete config file", "path", cc.Path, "error", err)
-	}
-	contentPath := content_database.ToContentPath(cc.Path)
-	if err := w.pfs.Remove(contentPath); err != nil {
-		slog.Error("failed to delete content file", "path", contentPath, "error", err)
-	}
-	w.cache.Remove(id)
-	w.editor.Events().OnContentRemoved.Execute([]string{id})
-	if w.selectedContent != nil {
-		w.Doc.RemoveElement(w.selectedContent)
-		w.selectedContent = nil
-	}
-	w.rightBody.UI.Hide()
-	w.tooltip.UI.Hide()
+	w.Doc.ApplyStyles()
+	w.selectedContent = klib.WipeSlice(w.selectedContent)
 }
 
 func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
@@ -475,7 +514,7 @@ func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 		return
 	}
 	ui.Show()
-	lbl := w.tooltip.Children[0].UI.ToLabel()
+	lbl := w.tooltip.InnerLabel()
 	if len(cc.Config.Tags) == 0 {
 		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
@@ -522,20 +561,20 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
 	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
-	id := w.selectedId()
-	cc, err := w.cache.Read(id)
-	if err != nil {
-		slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
-		return
+	for _, id := range w.selectedIds() {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+			return
+		}
+		var ok bool
+		if tag, ok = cc.Config.AddTag(tag); ok {
+			w.updateIndexForCachedContent(&cc)
+		}
 	}
-	var ok bool
-	if tag, ok = cc.Config.AddTag(tag); ok {
-		w.updateIndexForCachedContent(&cc)
-	}
-	w.clickEntry(w.selectedContent)
 	// Add the tag to the entry details
 	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
-	tagListEntry.Children[0].Children[0].UI.ToLabel().SetText(tag)
+	tagListEntry.Children[0].InnerLabel().SetText(tag)
 	tagListEntry.Children[1].SetAttribute("data-tag", tag)
 	tagListEntry.UI.Show()
 	// Add the tag to the tag filters if it's not already
@@ -546,16 +585,17 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 	}
 	w.pageData.Tags = append(w.pageData.Tags, tag)
 	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.Children[0].UI.ToLabel().SetText(tag)
+	elm.InnerLabel().SetText(tag)
 	elm.SetAttribute("data-tag", tag)
 }
 
-func (w *ContentWorkspace) selectedId() string {
+func (w *ContentWorkspace) selectedIds() []string {
 	defer tracing.NewRegion("ContentWorkspace.selectedId").End()
-	if w.selectedContent != nil {
-		return w.selectedContent.Attribute("id")
+	ids := make([]string, len(w.selectedContent))
+	for i := range w.selectedContent {
+		ids[i] = w.selectedContent[i].Attribute("id")
 	}
-	return ""
+	return ids
 }
 
 func (w *ContentWorkspace) runFilter() {
