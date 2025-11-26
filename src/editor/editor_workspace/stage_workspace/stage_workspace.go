@@ -45,6 +45,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 )
 
@@ -100,7 +101,19 @@ func (w *StageWorkspace) Close() {
 }
 
 func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey {
-	return []common_workspace.HotKey{}
+	return []common_workspace.HotKey{
+		{
+			Keys: []hid.KeyboardKey{hid.KeyboardKeyF2},
+			Call: w.focusRename,
+		},
+	}
+}
+
+func (w *StageWorkspace) focusRename() {
+	if len(w.stageView.Manager().Selection()) == 0 {
+		return
+	}
+	w.detailsUI.focusRename()
 }
 
 func (w *StageWorkspace) update(deltaTime float64) {

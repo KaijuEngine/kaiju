@@ -508,6 +508,12 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 	}
 }
 
+func (dui *WorkspaceDetailsUI) focusRename() {
+	input := dui.detailsName.UI.ToInput()
+	input.Focus()
+	input.SelectAll()
+}
+
 func toInt(str string) int64 {
 	defer tracing.NewRegion("toInt").End()
 	if str == "" {
