@@ -612,11 +612,12 @@ func (w *ContentWorkspace) runFilter() {
 			continue
 		}
 		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
-			e.UI.Entity().Activate()
+			e.UI.Show()
 		} else {
-			e.UI.Entity().Deactivate()
+			e.UI.Hide()
 		}
 	}
+	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
 func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {

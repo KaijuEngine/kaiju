@@ -263,12 +263,12 @@ func (cui *WorkspaceContentUI) runFilter() {
 			continue
 		}
 		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
-			e.UI.Entity().Activate()
+			e.UI.Show()
 		} else {
-			e.UI.Entity().Deactivate()
+			e.UI.Hide()
 		}
 	}
-	w.Doc.MarkDirty()
+	cui.workspace.Value().Host.RunOnMainThread(w.Doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
