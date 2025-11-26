@@ -375,24 +375,42 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 func (fb *FileBrowser) clearSelection() {
 	defer tracing.NewRegion("FileBrowser.clearSelection").End()
 	for i := range fb.selected {
-		fb.doc.SetElementClasses(fb.selected[i], "entry")
+		fb.doc.SetElementClassesWithoutApply(fb.selected[i], "entry")
 	}
+	fb.doc.ApplyStyles()
 	fb.selected = klib.WipeSlice(fb.selected)
 }
 
 func (fb *FileBrowser) selectEntry(e *document.Element) {
 	defer tracing.NewRegion("FileBrowser.selectEntry").End()
 	kb := &fb.uiMan.Host.Window.Keyboard
-	if !fb.config.MultiSelect || (!kb.HasCtrl() && !kb.HasShift()) {
+	if fb.config.MultiSelect && kb.HasShift() && len(fb.selected) > 0 {
+		from := fb.entryListElm.IndexOfChild(e)
+		idx := fb.entryListElm.IndexOfChild(fb.selected[len(fb.selected)-1])
+		if from == idx {
+			return
+		}
+		if idx < from {
+			from, idx = idx, from
+		}
 		fb.clearSelection()
-	} else if slices.Contains(fb.selected, e) {
+		for i := from; i <= idx; i++ {
+			target := fb.entryListElm.Children[i]
+			fb.doc.SetElementClassesWithoutApply(target, "entry", "selected")
+			fb.selected = append(fb.selected, target)
+		}
+	} else if kb.HasCtrl() && slices.Contains(fb.selected, e) {
 		idx := slices.Index(fb.selected, e)
 		fb.selected = klib.RemoveUnordered(fb.selected, idx)
-		fb.doc.SetElementClasses(e, "entry")
-		return
+		fb.doc.SetElementClassesWithoutApply(e, "entry")
+	} else {
+		if !fb.config.MultiSelect || !kb.HasCtrl() {
+			fb.clearSelection()
+		}
+		fb.doc.SetElementClassesWithoutApply(e, "entry", "selected")
+		fb.selected = append(fb.selected, e)
 	}
-	fb.doc.SetElementClasses(e, "entry", "selected")
-	fb.selected = append(fb.selected, e)
+	fb.doc.ApplyStyles()
 }
 
 func (fb *FileBrowser) openEntry(e *document.Element) {
