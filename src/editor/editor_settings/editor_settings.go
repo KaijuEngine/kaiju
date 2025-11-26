@@ -113,6 +113,7 @@ func (s *Settings) Load() error {
 		// If the settings file doesn't exist, then create it. It is returning
 		// here as there is no need to continue with the load if we're saving
 		s.RefreshRate = 60
+		s.UIScrollSpeed = 20
 		return s.Save()
 	}
 	f, err := os.Open(path)
