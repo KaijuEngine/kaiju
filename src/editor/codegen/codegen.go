@@ -443,10 +443,6 @@ func allTypes(a *ast.File) []structure {
 	return types
 }
 
-func locateAllEnumValues(a *ast.File, t *ast.TypeSpec) map[string]any {
-	return map[string]any{}
-}
-
 func hasInterfaceReceiver(f *ast.FuncDecl, name string) bool {
 	defer tracing.NewRegion("codegen.hasInterfaceReceiver").End()
 	if len(f.Recv.List) != 1 {
