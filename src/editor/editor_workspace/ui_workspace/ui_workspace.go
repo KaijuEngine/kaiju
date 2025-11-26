@@ -62,3 +62,7 @@ func (w *UIWorkspace) Close() {
 	defer tracing.NewRegion("UIWorkspace.Close").End()
 	w.CommonClose()
 }
+
+func (w *UIWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}

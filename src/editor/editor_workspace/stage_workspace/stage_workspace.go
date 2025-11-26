@@ -99,6 +99,10 @@ func (w *StageWorkspace) Close() {
 	w.CommonClose()
 }
 
+func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}
+
 func (w *StageWorkspace) update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {

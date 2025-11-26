@@ -198,24 +198,24 @@ func (ed *Editor) update(deltaTime float64) {
 }
 
 func processWorkspaceHotkeys(ed *Editor, kb *hid.Keyboard) {
-	//for _, hk := range ed.currentWorkspace.HotKeys() {
-	//	if hk.Ctrl && !kb.HasCtrl() {
-	//		continue
-	//	}
-	//	if hk.Shift && !kb.HasShift() {
-	//		continue
-	//	}
-	//	if hk.Alt && !kb.HasAlt() {
-	//		continue
-	//	}
-	//	down := false
-	//	valid := true
-	//	for i := 0; i < len(hk.Keys) && valid; i++ {
-	//		valid = kb.KeyHeld(hk.Keys[i])
-	//		down = down || kb.KeyDown(hk.Keys[i])
-	//	}
-	//	if valid && down {
-	//		hk.Call()
-	//	}
-	//}
+	for _, hk := range ed.currentWorkspace.Hotkeys() {
+		if hk.Ctrl && !kb.HasCtrl() {
+			continue
+		}
+		if hk.Shift && !kb.HasShift() {
+			continue
+		}
+		if hk.Alt && !kb.HasAlt() {
+			continue
+		}
+		down := false
+		valid := true
+		for i := 0; i < len(hk.Keys) && valid; i++ {
+			valid = kb.KeyHeld(hk.Keys[i])
+			down = down || kb.KeyDown(hk.Keys[i])
+		}
+		if valid && down {
+			hk.Call()
+		}
+	}
 }

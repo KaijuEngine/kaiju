@@ -144,6 +144,10 @@ func (w *ContentWorkspace) Close() {
 	w.CommonClose()
 }
 
+func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}
+
 func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()

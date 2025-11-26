@@ -101,6 +101,10 @@ func (w *SettingsWorkspace) Close() {
 	w.editor.UpdateSettings()
 }
 
+func (w *SettingsWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}
+
 func (w *SettingsWorkspace) resetLeftEntrySelection() {
 	for _, elm := range w.Doc.GetElementsByClass("leftEntry") {
 		w.Doc.SetElementClassesWithoutApply(elm, "leftEntry")

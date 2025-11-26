@@ -37,20 +37,12 @@
 
 package editor_workspace
 
-import "kaiju/platform/hid"
-
-type HotKey struct {
-	Keys  []hid.KeyboardKey
-	Ctrl  bool
-	Shift bool
-	Alt   bool
-	Call  func()
-}
+import "kaiju/editor/editor_workspace/common_workspace"
 
 type Workspace interface {
 	Open()
 	Close()
 	Focus()
 	Blur()
-	//HotKeys() []HotKey
+	Hotkeys() []common_workspace.HotKey
 }

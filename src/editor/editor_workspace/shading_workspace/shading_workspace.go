@@ -107,6 +107,10 @@ func (w *ShadingWorkspace) Close() {
 	w.Host.Updater.RemoveUpdate(&w.updateId)
 }
 
+func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}
+
 func (w *ShadingWorkspace) update(deltaTime float64) {
 	defer tracing.NewRegion("ShadingWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
