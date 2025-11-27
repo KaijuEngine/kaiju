@@ -293,7 +293,10 @@ func (g *EntityDataEntry) FieldValueByName(name string) any {
 }
 
 func tagDefault(f *EntityDataField, value string) {
-	f.Value = reflect_helpers.StringToTypeValue(f.Type, value)
+	v := reflect.New(reflect.TypeOf(f.Value))
+	if v.Elem().Equal(reflect.ValueOf(f.Value)) {
+		f.Value = reflect_helpers.StringToTypeValue(f.Type, value)
+	}
 }
 
 func tagClamp(f *EntityDataField, value string) {
