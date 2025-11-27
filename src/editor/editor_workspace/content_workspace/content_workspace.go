@@ -567,6 +567,15 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			Call:  w.requestCreateTableOfContents,
 		},
 	}
+	cc, err := w.cache.Read(id)
+	if err == nil && cc.Config.Type == (content_database.TableOfContents{}).TypeName() {
+		options = append(options, context_menu.ContextMenuOption{
+			Label: "Add to table of contents",
+			Call: func() {
+				w.addSelectedToTableOfContents(id)
+			},
+		})
+	}
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
 }
 
@@ -725,4 +734,43 @@ func (w *ContentWorkspace) createTableOfContents(name string) {
 		return
 	}
 	w.cache.Index(content_database.ToContentPath(cc.Path), w.pfs)
+}
+
+func (w *ContentWorkspace) addSelectedToTableOfContents(id string) {
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the table of contents in cache", "id", id, "error", err)
+		return
+	}
+	path := content_database.ToContentPath(cc.Path)
+	data, err := w.pfs.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to read the table of contents file", "path", path, "error", err)
+		return
+	}
+	toc, err := table_of_contents.Deserialize(data)
+	if err != nil {
+		slog.Error("failed to deserialize the table of contents file", "path", path, "error", err)
+		return
+	}
+	for i := range w.selectedContent {
+		sid := w.selectedContent[i].Attribute("id")
+		if _, ok := toc.SelectById(sid); ok {
+			slog.Warn("the content is already in the table of contents", "id", sid)
+			continue
+		}
+		icc, err := w.cache.Read(sid)
+		if err != nil {
+			slog.Error("failed to add the content to the table of contents", "id", id, "error", err)
+			continue
+		}
+		entry := table_of_contents.TableEntry{
+			Id:   sid,
+			Name: icc.Config.Name,
+		}
+		for !toc.Add(entry) {
+			entry.Name += "_1"
+		}
+		slog.Info("added content to table of contents", "id", sid, "name", entry.Name)
+	}
 }
