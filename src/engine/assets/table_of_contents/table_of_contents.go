@@ -37,7 +37,12 @@
 
 package table_of_contents
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/gob"
+	"encoding/json"
+	"kaiju/build"
+)
 
 type TableOfContents struct {
 	Entries map[string]TableEntry
@@ -56,7 +61,13 @@ func New() TableOfContents {
 
 func Deserialize(data []byte) (TableOfContents, error) {
 	var toc TableOfContents
-	err := json.Unmarshal(data, &toc)
+	var err error
+	if build.Editor {
+		err = json.Unmarshal(data, &toc)
+	} else {
+		r := bytes.NewReader(data)
+		err = gob.NewDecoder(r).Decode(&toc)
+	}
 	return toc, err
 }
 
