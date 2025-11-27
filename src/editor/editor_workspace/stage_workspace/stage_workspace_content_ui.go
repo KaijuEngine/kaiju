@@ -411,7 +411,8 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 			},
 		},
 	}
-	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
+	w.ed.BlurInterface()
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
 }
 
 func (cui *WorkspaceContentUI) refreshFilterOnContentChange() {

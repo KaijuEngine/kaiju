@@ -180,7 +180,7 @@ func (w *ContentWorkspace) createTableOfContents(name string) {
 		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
 		return
 	}
-	w.cache.Index(content_database.ToContentPath(cc.Path), w.pfs)
+	w.cache.Index(cc.Path, w.pfs)
 }
 
 func (w *ContentWorkspace) loadTableOfContents(id string) (table_of_contents.TableOfContents, bool) {
@@ -228,6 +228,7 @@ func (w *ContentWorkspace) addSelectedToTableOfContents(id string) {
 		}
 		slog.Info("added content to table of contents", "id", sid, "name", entry.Name)
 	}
+	w.saveTableOfContents(id, toc)
 }
 
 func (w *ContentWorkspace) showTableOfContents(id string) {
@@ -240,28 +241,32 @@ func (w *ContentWorkspace) showTableOfContents(id string) {
 	table_of_contents_overlay.Show(w.Host, table_of_contents_overlay.Config{
 		TOC: toc,
 		OnChanged: func(newToc table_of_contents.TableOfContents) {
-			cc, err := w.cache.Read(id)
-			if err != nil {
-				slog.Error("failed to read the cached content for table of contents", "id", id, "error", err)
-				return
-			}
-			path := content_database.ToContentPath(cc.Path)
-			data, err := newToc.Serialize()
-			if err != nil {
-				slog.Error("failed to serialize the table of contents to file", "id", id, "error", err)
-				return
-			}
-			if s, err := os.Stat(w.pfs.FullPath(path)); err == nil {
-				if err = w.pfs.WriteFile(path, data, s.Mode()); err != nil {
-					slog.Error("failed to write the table of contents file", "id", id, "error", err)
-					return
-				}
-			} else {
-				slog.Error("failed to locate the table of contents file in the database", "id", id)
-				return
-			}
-			slog.Info("updated the table of contents file", "id", id)
+			w.saveTableOfContents(id, newToc)
 		},
 		OnClose: w.editor.FocusInterface,
 	})
+}
+
+func (w *ContentWorkspace) saveTableOfContents(id string, toc table_of_contents.TableOfContents) {
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("failed to read the cached content for table of contents", "id", id, "error", err)
+		return
+	}
+	path := content_database.ToContentPath(cc.Path)
+	data, err := toc.Serialize()
+	if err != nil {
+		slog.Error("failed to serialize the table of contents to file", "id", id, "error", err)
+		return
+	}
+	if s, err := os.Stat(w.pfs.FullPath(path)); err == nil {
+		if err = w.pfs.WriteFile(path, data, s.Mode()); err != nil {
+			slog.Error("failed to write the table of contents file", "id", id, "error", err)
+			return
+		}
+	} else {
+		slog.Error("failed to locate the table of contents file in the database", "id", id)
+		return
+	}
+	slog.Info("updated the table of contents file", "id", id)
 }

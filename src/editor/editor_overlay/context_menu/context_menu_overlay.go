@@ -54,6 +54,7 @@ type ContextMenu struct {
 	doc     *document.Document
 	uiMan   ui.Manager
 	options []ContextMenuOption
+	onClose func()
 }
 
 type ContextMenuOption struct {
@@ -61,13 +62,16 @@ type ContextMenuOption struct {
 	Call  func()
 }
 
-func Show(host *engine.Host, options []ContextMenuOption, screenPos matrix.Vec2) (*ContextMenu, error) {
+func Show(host *engine.Host, options []ContextMenuOption, screenPos matrix.Vec2, onClose func()) (*ContextMenu, error) {
 	defer tracing.NewRegion("context_menu.Show").End()
 	// Only allow one context menu open at a time
 	if existing != nil {
 		existing.Close()
 	}
-	o := &ContextMenu{options: options}
+	o := &ContextMenu{
+		options: options,
+		onClose: onClose,
+	}
 	o.uiMan.Init(host)
 	var err error
 	data := make([]string, len(options))
@@ -104,6 +108,9 @@ func (o *ContextMenu) Close() {
 	defer tracing.NewRegion("ConfirmPrompt.Close").End()
 	o.doc.Destroy()
 	existing = nil
+	if o.onClose != nil {
+		o.onClose()
+	}
 }
 
 func (o *ContextMenu) clickMiss(*document.Element) {
@@ -114,6 +121,10 @@ func (o *ContextMenu) clickMiss(*document.Element) {
 func (o *ContextMenu) clickOption(e *document.Element) {
 	defer tracing.NewRegion("ConfirmPrompt.clickOption").End()
 	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if o.onClose != nil {
+		o.onClose() // This needs to be called before the option Call
+		o.onClose = nil
+	}
 	defer o.Close()
 	if err != nil {
 		slog.Error("failed to parse the index of the context option", "error", err)

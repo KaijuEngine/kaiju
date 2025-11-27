@@ -578,7 +578,8 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			Call:  func() { w.showTableOfContents(id) },
 		})
 	}
-	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
+	w.editor.BlurInterface()
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {

@@ -74,6 +74,8 @@ var (
 		ContentUiFolder,
 		ContentHtmlFolder,
 		ContentCssFolder,
+		ContentTableFolder,
+		ContentTableOfContentsFolder,
 		ContentRenderFolder,
 		ContentMaterialFolder,
 		ContentShaderFolder,

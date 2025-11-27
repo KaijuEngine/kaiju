@@ -47,16 +47,15 @@ import (
 
 func init() { addCategory(TableOfContents{}) }
 
-// TableOfContents is a [ContentCategory] represented by a file with a ".toc" extension.
-// It is a HTML (hyper-text markup language) file as they are known to web
-// browsers. This expects to be a singular text file with the extension ".toc"
-// and containing HTML parsable markup code.
+// TableOfContents is a [ContentCategory] represented by a file with a ".toc"
+// extension. It is a collection of content under a single id that uses a
+// human-readableunique string key to locate entries (ids).
 type TableOfContents struct{}
 
 // See the documentation for the interface [ContentCategory] to learn more about
 // the following functions
 
-func (TableOfContents) Path() string       { return project_file_system.ContentHtmlFolder }
+func (TableOfContents) Path() string       { return project_file_system.ContentTableOfContentsFolder }
 func (TableOfContents) TypeName() string   { return "TableOfContents" }
 func (TableOfContents) ExtNames() []string { return []string{".toc"} }
 
