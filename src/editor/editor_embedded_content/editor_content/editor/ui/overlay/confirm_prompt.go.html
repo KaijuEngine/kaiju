@@ -35,7 +35,9 @@
 			<h1>{{.Title}}</h1>
 			<p>{{.Description}}</p>
 			<div class="btns">
+				{{if .OnConfirm}}
 				<button class="confirm" onclick="confirm">{{.ConfirmText}}</button>
+				{{end}}
 				<button class="cancel" onclick="cancel">{{.CancelText}}</button>
 			</div>
 		</div>
