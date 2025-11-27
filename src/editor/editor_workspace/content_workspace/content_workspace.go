@@ -572,7 +572,9 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 		options = append(options, context_menu.ContextMenuOption{
 			Label: "Add to table of contents",
 			Call: func() {
-				w.addSelectedToTableOfContents(id)
+				if w.checkNoDuplicateNamesForTableOfContents() {
+					w.addSelectedToTableOfContents(id)
+				}
 			},
 		})
 	}
@@ -660,10 +662,53 @@ func (w *ContentWorkspace) requestCreateTableOfContents() {
 		CancelText:  "Cancel",
 		OnConfirm: func(name string) {
 			w.editor.FocusInterface()
-			w.createTableOfContents(name)
+			if w.checkNoDuplicateNamesForTableOfContents() {
+				w.createTableOfContents(name)
+			}
 		},
 		OnCancel: w.editor.FocusInterface,
 	})
+}
+
+func (w *ContentWorkspace) checkNoDuplicateNamesForTableOfContents() bool {
+	dupes := duplicateNames(w.selectedNames())
+	if len(dupes) == 0 {
+		return true
+	}
+	w.editor.BlurInterface()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       "Duplicate names",
+		Description: fmt.Sprintf("The action can not be completed because there is content with duplicate names, please fix these before doing this table of contents operation: %s", strings.Join(dupes, ", ")),
+		CancelText:  "Close",
+		OnCancel:    w.editor.FocusInterface,
+	})
+	return false
+}
+
+func (w *ContentWorkspace) selectedNames() []string {
+	names := make([]string, 0, len(w.selectedContent))
+	for i := range w.selectedContent {
+		id := w.selectedContent[i].Attribute("id")
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Warn("failed to find cached data for id", "id", id, "error", err)
+			continue
+		}
+		names = append(names, cc.Config.Name)
+	}
+	return names
+}
+
+func duplicateNames(names []string) []string {
+	dupes := []string{}
+	for i := 0; i < len(names); i++ {
+		for j := i + 1; j < len(names); j++ {
+			if names[i] == names[j] {
+				dupes = klib.AppendUnique(dupes, names[i])
+			}
+		}
+	}
+	return dupes
 }
 
 func (w *ContentWorkspace) createTableOfContents(name string) {
