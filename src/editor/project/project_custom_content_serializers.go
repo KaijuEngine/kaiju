@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_workspace_editor_interface.go                                      */
+/* project_custom_content_serializers.go                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,19 +35,57 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_workspace
+package project
 
 import (
-	"kaiju/editor/editor_events"
+	"bytes"
+	"encoding/json"
+	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/stages"
+	"log/slog"
 )
 
-type ContentWorkspaceEditorInterface interface {
-	Events() *editor_events.EditorEvents
-	ProjectFileSystem() *project_file_system.FileSystem
-	Cache() *content_database.Cache
-	ShowReferences(id string)
-	FocusInterface()
-	BlurInterface()
+func (p *Project) initializeCustomSerializers() {
+	p.contentSerializers[(content_database.Stage{}).TypeName()] = p.stageArchiveSerializer
+	toc := content_database.TableOfContents{}
+	p.contentSerializers[toc.TypeName()] = toc.ArchiveSerializer
+}
+
+func (p *Project) stageArchiveSerializer(rawData []byte) ([]byte, error) {
+	var ss stages.StageJson
+	if err := json.Unmarshal(rawData, &ss); err != nil {
+		return rawData, err
+	}
+	s := stages.Stage{}
+	s.FromMinimized(ss)
+	var removeUnpackedDataBindings func(desc *stages.EntityDescription)
+	removeUnpackedDataBindings = func(desc *stages.EntityDescription) {
+		for i := range desc.DataBinding {
+			g, ok := p.EntityDataBinding(desc.DataBinding[i].RegistraionKey)
+			if ok {
+				de := entity_data_binding.EntityDataEntry{}
+				de.ReadEntityDataBindingType(g)
+				for k, v := range desc.DataBinding[i].Fields {
+					de.SetFieldByName(k, v)
+				}
+				desc.RawDataBinding = append(desc.RawDataBinding, de.BoundData)
+			} else {
+				slog.Warn("failed to locate the data binding for registration key",
+					"key", desc.DataBinding[i].RegistraionKey)
+			}
+		}
+		desc.DataBinding = desc.DataBinding[0:]
+		for i := range desc.Children {
+			removeUnpackedDataBindings(&desc.Children[i])
+		}
+	}
+	for i := range s.Entities {
+		removeUnpackedDataBindings(&s.Entities[i])
+	}
+	stream := bytes.NewBuffer(rawData)
+	stream.Reset()
+	err := gob.NewEncoder(stream).Encode(s)
+	return stream.Bytes(), err
 }

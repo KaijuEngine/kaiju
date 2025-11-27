@@ -42,15 +42,18 @@ import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
+	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine"
+	"kaiju/engine/assets/table_of_contents"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"os"
 	"slices"
 	"strings"
 )
@@ -559,6 +562,10 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			Label: "Find references",
 			Call:  func() { w.editor.ShowReferences(id) },
 		},
+		{
+			Label: "Create table of contents",
+			Call:  w.requestCreateTableOfContents,
+		},
 	}
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition())
 }
@@ -628,4 +635,94 @@ func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.Cach
 		return err
 	}
 	return nil
+}
+
+func (w *ContentWorkspace) requestCreateTableOfContents() {
+	if len(w.selectedContent) == 0 {
+		slog.Warn("nothing selected to create a table of contents for")
+		return
+	}
+	w.editor.BlurInterface()
+	input_prompt.Show(w.Host, input_prompt.Config{
+		Title:       "Table of Contents Name",
+		Description: "Give a friendly name to your table of contents",
+		Placeholder: "Table of contents name...",
+		ConfirmText: "Create",
+		CancelText:  "Cancel",
+		OnConfirm: func(name string) {
+			w.editor.FocusInterface()
+			w.createTableOfContents(name)
+		},
+		OnCancel: w.editor.FocusInterface,
+	})
+}
+
+func (w *ContentWorkspace) createTableOfContents(name string) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		slog.Warn("blank name supplied for creating a table of contents, skipping creation")
+		return
+	}
+	if len(w.selectedContent) == 0 {
+		slog.Warn("nothing selected to create a table of contents for")
+		return
+	}
+	toc := table_of_contents.New()
+	for i := range w.selectedContent {
+		id := w.selectedContent[i].Attribute("id")
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Warn("failed to find cached data for id", "id", id, "error", err)
+			continue
+		}
+		entry := table_of_contents.TableEntry{
+			Id:   id,
+			Name: cc.Config.Name,
+		}
+		for !toc.Add(entry) {
+			entry.Name += "_1"
+		}
+	}
+	data, err := toc.Serialize()
+	if err != nil {
+		slog.Error("failed to serialize the table of contents", "error", err)
+		return
+	}
+	f, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-*.toc", name))
+	if err != nil {
+		slog.Error("failed to create temp content file for table of contents", "error", err)
+		return
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	if _, err = f.Write(data); err != nil {
+		slog.Error("failed to write the temp content file for table of contents", "file", f.Name(), "error", err)
+		return
+	}
+	res, err := content_database.Import(f.Name(), w.pfs, w.cache, "")
+	if err != nil {
+		slog.Error("failed to import the temp content file for table of contents", "file", f.Name(), "error", err)
+		return
+	}
+	ids := make([]string, len(res))
+	for i := range res {
+		ids[i] = res[i].Id
+	}
+	defer w.editor.Events().OnContentAdded.Execute(ids)
+	if len(res) != 1 {
+		slog.Warn("table of contents created but name has not been set due to unexpected result count from import")
+		return
+	}
+	cc, err := w.cache.Read(res[0].Id)
+	if err != nil {
+		slog.Warn("failed to find the cache for the table of contents that was just imported, name is unset")
+		return
+	}
+	cc.Config.Name = name
+	cc.Config.SrcPath = ""
+	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
+		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
+		return
+	}
+	w.cache.Index(content_database.ToContentPath(cc.Path), w.pfs)
 }

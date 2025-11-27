@@ -70,6 +70,7 @@ type Project struct {
 	settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
+	contentSerializers  map[string]func([]byte) ([]byte, error)
 	readingCode         bool
 	isCompiling         atomic.Bool
 }
@@ -108,6 +109,7 @@ func (p *Project) CacheDatabase() *content_database.Cache {
 // the supplied path is to that of a file and not a folder.
 func (p *Project) Initialize(path string, editorVersion float64) error {
 	defer tracing.NewRegion("Project.Initialize").End()
+	p.initializeCustomSerializers()
 	if err := ensurePathIsNewOrEmpty(path); err != nil {
 		return err
 	}
@@ -260,8 +262,8 @@ func (p *Project) Package() error {
 			Key:      list[i].Id(),
 			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
 		}
-		if list[i].Config.Type == (content_database.Stage{}).TypeName() {
-			sc.CustomSerializer = p.stageArchiveSerializer
+		if s, ok := p.contentSerializers[list[i].Config.Type]; ok {
+			sc.CustomSerializer = s
 		}
 		files = append(files, sc)
 	}

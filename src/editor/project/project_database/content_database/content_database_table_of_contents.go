@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* project_archive_serializers.go                                             */
+/* content_database_table_of_contents.go                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,50 +35,53 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package project
+package content_database
 
 import (
 	"bytes"
-	"encoding/json"
-	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/assets/table_of_contents"
 	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/stages"
-	"log/slog"
+	"kaiju/platform/profiler/tracing"
 )
 
-func (p *Project) stageArchiveSerializer(rawData []byte) ([]byte, error) {
-	var ss stages.StageJson
-	if err := json.Unmarshal(rawData, &ss); err != nil {
+func init() { addCategory(TableOfContents{}) }
+
+// TableOfContents is a [ContentCategory] represented by a file with a ".toc" extension.
+// It is a HTML (hyper-text markup language) file as they are known to web
+// browsers. This expects to be a singular text file with the extension ".toc"
+// and containing HTML parsable markup code.
+type TableOfContents struct{}
+
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
+
+func (TableOfContents) Path() string       { return project_file_system.ContentHtmlFolder }
+func (TableOfContents) TypeName() string   { return "TableOfContents" }
+func (TableOfContents) ExtNames() []string { return []string{".toc"} }
+
+func (TableOfContents) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("TableOfContents.Import").End()
+	return pathToTextData(src)
+}
+
+func (c TableOfContents) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("TableOfContents.Reimport").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}
+
+func (TableOfContents) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
+}
+
+func (TableOfContents) ArchiveSerializer(rawData []byte) ([]byte, error) {
+	toc, err := table_of_contents.Deserialize(rawData)
+	if err != nil {
 		return rawData, err
 	}
-	s := stages.Stage{}
-	s.FromMinimized(ss)
-	var removeUnpackedDataBindings func(desc *stages.EntityDescription)
-	removeUnpackedDataBindings = func(desc *stages.EntityDescription) {
-		for i := range desc.DataBinding {
-			g, ok := p.EntityDataBinding(desc.DataBinding[i].RegistraionKey)
-			if ok {
-				de := entity_data_binding.EntityDataEntry{}
-				de.ReadEntityDataBindingType(g)
-				for k, v := range desc.DataBinding[i].Fields {
-					de.SetFieldByName(k, v)
-				}
-				desc.RawDataBinding = append(desc.RawDataBinding, de.BoundData)
-			} else {
-				slog.Warn("failed to locate the data binding for registration key",
-					"key", desc.DataBinding[i].RegistraionKey)
-			}
-		}
-		desc.DataBinding = desc.DataBinding[0:]
-		for i := range desc.Children {
-			removeUnpackedDataBindings(&desc.Children[i])
-		}
+	buff := bytes.NewBuffer([]byte{})
+	if err = gob.NewEncoder(buff).Encode(toc); err != nil {
+		return rawData, err
 	}
-	for i := range s.Entities {
-		removeUnpackedDataBindings(&s.Entities[i])
-	}
-	stream := bytes.NewBuffer(rawData)
-	stream.Reset()
-	err := gob.NewEncoder(stream).Encode(s)
-	return stream.Bytes(), err
+	return buff.Bytes(), nil
 }

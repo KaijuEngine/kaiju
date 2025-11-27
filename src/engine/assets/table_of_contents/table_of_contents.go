@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_workspace_editor_interface.go                                      */
+/* table_of_contents.go                                                       */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,19 +35,53 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_workspace
+package table_of_contents
 
-import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-)
+import "encoding/json"
 
-type ContentWorkspaceEditorInterface interface {
-	Events() *editor_events.EditorEvents
-	ProjectFileSystem() *project_file_system.FileSystem
-	Cache() *content_database.Cache
-	ShowReferences(id string)
-	FocusInterface()
-	BlurInterface()
+type TableOfContents struct {
+	Entries map[string]TableEntry
+}
+
+type TableEntry struct {
+	Id   string
+	Name string
+}
+
+func New() TableOfContents {
+	return TableOfContents{
+		Entries: make(map[string]TableEntry),
+	}
+}
+
+func Deserialize(data []byte) (TableOfContents, error) {
+	var toc TableOfContents
+	err := json.Unmarshal(data, &toc)
+	return toc, err
+}
+
+func (t TableOfContents) Serialize() ([]byte, error) { return json.Marshal(t) }
+
+func (t TableEntry) IsValid() bool { return t.Id != "" && t.Name != "" }
+
+func (t *TableOfContents) Add(entry TableEntry) bool {
+	if _, ok := t.Entries[entry.Name]; ok {
+		return false
+	}
+	t.Entries[entry.Name] = entry
+	return true
+}
+
+func (t TableOfContents) SelectByName(name string) (TableEntry, bool) {
+	e, ok := t.Entries[name]
+	return e, ok
+}
+
+func (t TableOfContents) SelectById(id string) (TableEntry, bool) {
+	for _, v := range t.Entries {
+		if v.Id == id {
+			return v, true
+		}
+	}
+	return TableEntry{}, false
 }
