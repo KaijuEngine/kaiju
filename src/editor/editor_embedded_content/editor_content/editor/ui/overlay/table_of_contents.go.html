@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 97; }
+			.overlay {
+				position: absolute;
+				width: 80%;
+				height: 80%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				color: white;
+				background-color: #121212;
+				border: 5px solid #575757;
+				border-radius: 5px;
+			}
+			.entry {
+				width: 100%;
+				background-color: #121212;
+				height: 2em;
+			}
+			#entryList {
+				margin-top: 5px;
+				width: 100%;
+				height: calc(100% - 20px);
+				background-color: #121212;
+				overflow-y: scroll;
+			}
+			.entry:hover {
+				background-color: #575757;
+			}
+			.entryField {
+				width: 50%;
+			}
+			.removeBtn {
+				position: absolute;
+				right: 0;
+				width: 2em;
+				height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="overlay" onmiss="clickMiss">
+			<div id="entryList">
+				<div>
+					<div class="entryField">Key</div>
+					<div class="entryField">Id</div>
+				</div>
+				{{range $k, $v := .Entries}}
+				<div class="entry">
+					<div class="entryField">{{$k}}</div>
+					<div class="entryField">{{$v.Id}}</div>
+					<button id="{{$k}}" class="removeBtn" onclick="clickRemove">X</button>
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>

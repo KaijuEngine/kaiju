@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* table_of_contents.go                                                       */
+/* table_of_contents_overlay.go                                               */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,57 +35,67 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package table_of_contents
+package table_of_contents_overlay
 
-import "encoding/json"
+import (
+	"kaiju/engine"
+	"kaiju/engine/assets/table_of_contents"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/profiler/tracing"
+)
 
-type TableOfContents struct {
-	Entries map[string]TableEntry
+type TableOfContentsOverlay struct {
+	doc     *document.Document
+	uiMan   ui.Manager
+	config  Config
+	changed bool
 }
 
-type TableEntry struct {
-	Id   string
-	Name string
+type Config struct {
+	TOC       table_of_contents.TableOfContents
+	OnChanged func(toc table_of_contents.TableOfContents)
+	OnClose   func()
 }
 
-func New() TableOfContents {
-	return TableOfContents{
-		Entries: make(map[string]TableEntry),
+func Show(host *engine.Host, config Config) (*TableOfContentsOverlay, error) {
+	defer tracing.NewRegion("table_of_contents_overlay.Show").End()
+	o := &TableOfContentsOverlay{
+		config: config,
 	}
-}
-
-func Deserialize(data []byte) (TableOfContents, error) {
-	var toc TableOfContents
-	err := json.Unmarshal(data, &toc)
-	return toc, err
-}
-
-func (t TableOfContents) Serialize() ([]byte, error) { return json.Marshal(t) }
-
-func (t TableEntry) IsValid() bool { return t.Id != "" && t.Name != "" }
-
-func (t *TableOfContents) Add(entry TableEntry) bool {
-	if _, ok := t.Entries[entry.Name]; ok {
-		return false
+	o.uiMan.Init(host)
+	var err error
+	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/table_of_contents.go.html",
+		config.TOC, map[string]func(*document.Element){
+			"clickRemove": o.clickRemove,
+			"clickMiss":   o.clickMiss,
+		})
+	if err != nil {
+		return o, err
 	}
-	t.Entries[entry.Name] = entry
-	return true
+	return o, err
 }
 
-func (t *TableOfContents) Remove(key string) {
-	delete(t.Entries, key)
+func (o *TableOfContentsOverlay) Close() {
+	defer tracing.NewRegion("TableOfContentsOverlay.Close").End()
+	o.doc.Destroy()
 }
 
-func (t TableOfContents) SelectByName(name string) (TableEntry, bool) {
-	e, ok := t.Entries[name]
-	return e, ok
+func (o *TableOfContentsOverlay) clickRemove(e *document.Element) {
+	defer tracing.NewRegion("TableOfContentsOverlay.clickRemove").End()
+	o.config.TOC.Remove(e.Attribute("id"))
+	o.changed = true
+	o.doc.RemoveElement(e.Parent.Value())
 }
 
-func (t TableOfContents) SelectById(id string) (TableEntry, bool) {
-	for _, v := range t.Entries {
-		if v.Id == id {
-			return v, true
-		}
+func (o *TableOfContentsOverlay) clickMiss(*document.Element) {
+	defer tracing.NewRegion("TableOfContentsOverlay.clickMiss").End()
+	o.Close()
+	if o.changed && o.config.OnChanged != nil {
+		o.config.OnChanged(o.config.TOC)
 	}
-	return TableEntry{}, false
+	if o.config.OnClose != nil {
+		o.config.OnClose()
+	}
 }
