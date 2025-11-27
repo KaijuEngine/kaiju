@@ -48,6 +48,7 @@ import (
 )
 
 func (p *Project) initializeCustomSerializers() {
+	p.contentSerializers = make(map[string]func([]byte) ([]byte, error))
 	p.contentSerializers[(content_database.Stage{}).TypeName()] = p.stageArchiveSerializer
 	toc := content_database.TableOfContents{}
 	p.contentSerializers[toc.TypeName()] = toc.ArchiveSerializer
