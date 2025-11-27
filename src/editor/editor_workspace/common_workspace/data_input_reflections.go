@@ -169,7 +169,10 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 			Label:    tag.Get("label"),
 		}
 		if d := tag.Get("default"); d != "" {
-			field.Value = d
+			v := reflect.New(reflect.TypeOf(field.Value))
+			if v.Elem().Equal(reflect.ValueOf(field.Value)) {
+				field.Value = d
+			}
 		}
 		if field.TipKey == "" {
 			field.TipKey = field.Name
