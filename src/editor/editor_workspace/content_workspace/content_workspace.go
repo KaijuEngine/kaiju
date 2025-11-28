@@ -308,6 +308,11 @@ func (w *ContentWorkspace) clearSelection() {
 	w.selectedContent = klib.WipeSlice(w.selectedContent)
 }
 
+func (w *ContentWorkspace) appendSelected(e *document.Element) {
+	w.selectedContent = append(w.selectedContent, e)
+	w.Doc.SetElementClasses(e, "entry", "entrySelected")
+}
+
 func (w *ContentWorkspace) removeSelected(e *document.Element) {
 	w.Doc.SetElementClasses(e, "entry")
 	w.selectedContent = klib.SlicesRemoveElement(w.selectedContent, e)
@@ -319,22 +324,46 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 		return
 	}
 	kb := &w.Host.Window.Keyboard
-	if kb.HasCtrl() && slices.Contains(w.selectedContent, e) {
+	if kb.HasShift() && len(w.selectedContent) > 0 {
+		list := w.selectedContent[0].Parent.Value()
+		from := list.IndexOfChild(e)
+		idx := list.IndexOfChild(w.selectedContent[len(w.selectedContent)-1])
+		if from == idx {
+			return
+		}
+		if idx < from {
+			from, idx = idx, from
+		}
+		for i := from; i <= idx; i++ {
+			t := list.Children[i]
+			if slices.Contains(w.selectedContent, t) {
+				continue
+			}
+			w.appendSelected(t)
+		}
+	} else if kb.HasCtrl() && slices.Contains(w.selectedContent, e) {
 		w.removeSelected(e)
+	} else {
+		if !kb.HasCtrl() {
+			w.clearSelection()
+		}
+		w.appendSelected(e)
+	}
+	w.showRightPanel()
+	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
+}
+
+func (w *ContentWorkspace) showRightPanel() {
+	if len(w.selectedContent) == 0 {
 		return
 	}
-	if !kb.HasShift() && !kb.HasCtrl() {
-		w.clearSelection()
-	}
-	id := e.Attribute("id")
+	id := w.selectedContent[0].Attribute("id")
 	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	w.selectedContent = append(w.selectedContent, e)
 	w.rightBody.UI.Show()
-	w.Doc.SetElementClasses(e, "entry", "entrySelected")
 	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.tagList.Children[i])
 	}
@@ -345,7 +374,6 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
 		cpys[i].UI.Show()
 	}
-	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
 	if len(w.selectedContent) > 1 {
 		w.info.multiSelectNote.UI.Show()
 	} else {
