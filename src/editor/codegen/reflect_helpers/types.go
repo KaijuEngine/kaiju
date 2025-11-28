@@ -46,6 +46,8 @@ import (
 	"unsafe"
 )
 
+func bitSize[T klib.Number]() int { return int(unsafe.Sizeof(T(0))) * 8 }
+
 func StringToTypeValue(typeName, v string) any {
 	switch typeName {
 	case "string":
@@ -61,55 +63,72 @@ func StringToTypeValue(typeName, v string) any {
 			return true
 		}
 	case "int":
-		return int(klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int(0))))))
+		v = klib.CleanNumString(v)
+		return int(klib.ShouldReturn(strconv.ParseInt(v, 0, bitSize[int]())))
 	case "int8":
-		return int8(klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int8(0))))))
+		v = klib.CleanNumString(v)
+		return int8(klib.ShouldReturn(strconv.ParseInt(v, 0, bitSize[int8]())))
 	case "int16":
-		return int16(klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int16(0))))))
+		v = klib.CleanNumString(v)
+		return int16(klib.ShouldReturn(strconv.ParseInt(v, 0, bitSize[int16]())))
 	case "int32":
-		return int32(klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int32(0))*8))))
+		v = klib.CleanNumString(v)
+		return int32(klib.ShouldReturn(strconv.ParseInt(v, 0, bitSize[int32]())))
 	case "int64":
-		return klib.ShouldReturn(strconv.ParseInt(v, 0, int(unsafe.Sizeof(int64(0))*8)))
+		v = klib.CleanNumString(v)
+		return klib.ShouldReturn(strconv.ParseInt(v, 0, bitSize[int64]()))
 	case "uint":
-		return uint(klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint(0))*8))))
+		v = klib.CleanNumString(v)
+		return uint(klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint]())))
 	case "uint8":
-		return uint8(klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint8(0))*8))))
+		v = klib.CleanNumString(v)
+		return uint8(klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint8]())))
 	case "uint16":
-		return uint16(klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint16(0))*8))))
+		v = klib.CleanNumString(v)
+		return uint16(klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint16]())))
 	case "uint32":
-		return uint32(klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint32(0))*8))))
+		v = klib.CleanNumString(v)
+		return uint32(klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint32]())))
 	case "uint64":
-		return klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint64(0)))))
+		v = klib.CleanNumString(v)
+		return klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint64]()))
 	case "float32":
-		return float32(klib.ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float32(0))*8))))
+		v = klib.CleanNumString(v)
+		return float32(klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float32]())))
 	case "float64":
-		return klib.ShouldReturn(strconv.ParseFloat(v, int(unsafe.Sizeof(float64(0))*8)))
+		v = klib.CleanNumString(v)
+		return klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float64]()))
 	case "uintptr":
-		return klib.ShouldReturn(strconv.ParseUint(v, 0, int(unsafe.Sizeof(uint64(0))*8)))
+		v = klib.CleanNumString(v)
+		return klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uintptr]()))
 	case "complex64":
-		return complex64(klib.ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex64(0))*8))))
+		v = klib.CleanNumString(v)
+		return complex64(klib.ShouldReturn(strconv.ParseComplex(v, bitSize[complex64]())))
 	case "complex128":
-		return klib.ShouldReturn(strconv.ParseComplex(v, int(unsafe.Sizeof(complex128(0))*8)))
+		v = klib.CleanNumString(v)
+		return klib.ShouldReturn(strconv.ParseComplex(v, bitSize[complex128]()))
 	case "Vec2":
 		out := matrix.Vec2{}
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(parts[i], int(unsafe.Sizeof(float32(0))*8))))
+			p := klib.CleanNumString(parts[i])
+			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
 		}
 		return out
 	case "Vec3":
 		out := matrix.Vec3{}
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
-			p := strings.TrimSpace(parts[i])
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, int(unsafe.Sizeof(float32(0))*8))))
+			p := klib.CleanNumString(parts[i])
+			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
 		}
 		return out
 	case "Vec4":
 		out := matrix.Vec4{}
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(parts[i], int(unsafe.Sizeof(float32(0))*8))))
+			p := klib.CleanNumString(parts[i])
+			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
 		}
 		return out
 	}

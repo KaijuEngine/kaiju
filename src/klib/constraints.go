@@ -64,7 +64,7 @@ type Ordered interface {
 }
 
 type Number interface {
-	Integer | Float
+	Integer | Float | Complex
 }
 
 func Clamp[T cmp.Ordered](current, minimum, maximum T) T {
