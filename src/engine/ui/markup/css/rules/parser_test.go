@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* numbers.go                                                                 */
+/* parser_test.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,108 +35,69 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package helpers
+package rules
 
-import (
-	"fmt"
-	"kaiju/rendering"
-	"strconv"
-	"strings"
-)
+import "testing"
 
-type WindowDimensions interface {
-	DotsPerMillimeter() float64
-}
+const testCSSNarrowTag = `.entry span { display: none; }`
+const testCSSNarrowClass = `.entry .wide { display: none; }`
 
-var arithmeticMap = map[string]func(int, int) int{
-	"+": func(a, b int) int { return a + b },
-	"-": func(a, b int) int { return a - b },
-	"*": func(a, b int) int { return a * b },
-	"/": func(a, b int) int { return a / b },
-}
+type dummyWindow struct{}
 
-func ChangeNToChildCount(args []string, count int) {
-	for i := range args {
-		if args[i] == "n" {
-			args[i] = strconv.Itoa(count)
-		}
+func (dummyWindow) DotsPerMillimeter() float64 { return 1 }
+
+func TestParseNarrowTag(t *testing.T) {
+	s := StyleSheet{}
+	s.Parse(testCSSNarrowTag, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
+	}
+	g := s.Groups[0]
+	if len(g.Selectors) != 1 {
+		t.FailNow()
+	}
+	sel := g.Selectors[0]
+	if len(sel.Parts) != 2 {
+		t.FailNow()
+	}
+	if sel.Parts[0].Name != "entry" {
+		t.FailNow()
+	}
+	if sel.Parts[0].SelectType != ReadingClass {
+		t.FailNow()
+	}
+	if sel.Parts[1].Name != "span" {
+		t.FailNow()
+	}
+	if sel.Parts[1].SelectType != ReadingTag {
+		t.FailNow()
 	}
 }
 
-func ArithmeticString(args []string) (int, error) {
-	if len(args) == 1 {
-		return strconv.Atoi(args[0])
-	} else if len(args) == 2 {
-		// Expected to be something like -5
-		return strconv.Atoi(args[0] + args[1])
-	} else {
-		do := arithmeticMap["+"]
-		value := 0
-		negate := false
-		for i := range args {
-			if args[i] == "-" {
-				negate = true
-				continue
-			} else if v, err := strconv.Atoi(args[i]); err == nil {
-				if negate {
-					v = -v
-				}
-				value = do(value, v)
-			} else if f, ok := arithmeticMap[args[i]]; ok {
-				do = f
-			} else {
-				return 0, fmt.Errorf("invalid arithmetic operator: %s", args[i])
-			}
-		}
-		return value, nil
+func TestParseNarrowClass(t *testing.T) {
+	s := StyleSheet{}
+	s.Parse(testCSSNarrowClass, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
 	}
-}
-
-func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32) float32 {
-	dpmm := window.DotsPerMillimeter()
-	var suffix string
-	if str[len(str)-1] == '%' {
-		suffix = "%"
-		str = str[:len(str)-1]
-	} else if len(str) > 2 {
-		validSuffixes := []string{"px", "em", "ex", "cm", "mm", "in", "pt", "pc"}
-		valid := false
-		for i := range validSuffixes {
-			valid = valid || strings.HasSuffix(str, validSuffixes[i])
-		}
-		if valid {
-			suffix = str[len(str)-2:]
-			str = str[:len(str)-2]
-		}
+	g := s.Groups[0]
+	if len(g.Selectors) != 1 {
+		t.FailNow()
 	}
-	var size float32
-	fmt.Sscanf(str, "%f", &size)
-	switch suffix {
-	case "%":
-		size = size / 100
-	case "px":
-		// Read value is the size
-	case "ex":
-		// Relative to the font size of a lowercase letter like a, c, m, or o
-		fallthrough
-	case "em":
-		size = size * fontSize
-	case "cm":
-		size = float32(dpmm) * float32(size*10)
-	case "mm":
-		size = float32(dpmm) * float32(size)
-	case "in":
-		size = float32(dpmm) * float32(size*25.4)
-	case "pt":
-		size = float32(dpmm) * float32(size*25.4/72)
-	case "pc":
-		size = float32(dpmm) * float32(size*25.4/6)
-	default:
-		size = 0
+	sel := g.Selectors[0]
+	if len(sel.Parts) != 2 {
+		t.FailNow()
 	}
-	return size
-}
-
-func NumFromLength(str string, window WindowDimensions) float32 {
-	return NumFromLengthWithFont(str, window, rendering.DefaultFontEMSize)
+	if sel.Parts[0].Name != "entry" {
+		t.FailNow()
+	}
+	if sel.Parts[0].SelectType != ReadingClass {
+		t.FailNow()
+	}
+	if sel.Parts[1].Name != "wide" {
+		t.FailNow()
+	}
+	if sel.Parts[1].SelectType != ReadingClass {
+		t.FailNow()
+	}
 }

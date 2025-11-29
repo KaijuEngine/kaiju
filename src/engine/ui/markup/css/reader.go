@@ -99,13 +99,9 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			elms = append(elms, elm)
 		}
 	case rules.ReadingClass:
-		for _, elm := range doc.GetElementsByClass(parts[0].Name) {
-			elms = append(elms, elm)
-		}
+		elms = append(elms, doc.GetElementsByClass(parts[0].Name)...)
 	case rules.ReadingTag:
-		for _, elm := range doc.GetElementsByTagName(parts[0].Name) {
-			elms = append(elms, elm)
-		}
+		elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
 	}
 	targets := make([]*document.Element, 0)
 	lastTargets := []*document.Element{}
@@ -120,12 +116,22 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 					}
 				}
 			} else {
-				tagged := doc.GetElementsByTagName(part.Name)
-				lastTargets = lastTargets[:0]
-				for _, t := range tagged {
-					if t.Parent.Value() == elm {
-						targets = append(targets, t)
-						lastTargets = append(lastTargets, t)
+				if part.Name == "wide" {
+					println("test")
+				}
+				switch part.SelectType {
+				case rules.ReadingClass:
+					if elm.HasClass(part.Name) {
+						targets = append(targets, elm)
+					}
+				case rules.ReadingTag:
+					tagged := doc.GetElementsByTagName(part.Name)
+					lastTargets = lastTargets[:0]
+					for _, t := range tagged {
+						if t.Parent.Value() == elm {
+							targets = append(targets, t)
+							lastTargets = append(lastTargets, t)
+						}
 					}
 				}
 			}

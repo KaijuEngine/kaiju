@@ -40,7 +40,6 @@ package rules
 import (
 	"bytes"
 	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/platform/windowing"
 	"strings"
 
 	"github.com/tdewolff/parse/v2"
@@ -102,6 +101,8 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			})
 		case css.RightParenthesisToken:
 			s.state = ReadingPseudo
+		case css.WhitespaceToken:
+			s.state = ReadingTag
 		case css.DelimToken:
 			switch string(val.Data) {
 			case "#":
@@ -123,7 +124,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	s.Groups[idx].Selectors = append(s.Groups[idx].Selectors, sel)
 }
 
-func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window *windowing.Window) {
+func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window helpers.WindowDimensions) {
 	r := Rule{
 		Property: prop,
 		Values:   make([]PropertyValue, 0),
@@ -174,7 +175,7 @@ func NewStyleSheet() StyleSheet {
 	}
 }
 
-func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
+func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), false)
 	exit := false
 	s.addGroup()
@@ -213,7 +214,7 @@ func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
 	s.removeLastGroup()
 }
 
-func (s *StyleSheet) ParseInline(cssStr string, window *windowing.Window) *SelectorGroup {
+func (s *StyleSheet) ParseInline(cssStr string, window helpers.WindowDimensions) *SelectorGroup {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), true)
 	exit := false
 	s.addGroup()
