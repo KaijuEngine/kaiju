@@ -116,9 +116,6 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 					}
 				}
 			} else {
-				if part.Name == "wide" {
-					println("test")
-				}
 				switch part.SelectType {
 				case rules.ReadingClass:
 					if elm.HasClass(part.Name) {

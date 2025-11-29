@@ -70,7 +70,7 @@ type Layout struct {
 	runningStylizer  bool
 }
 
-func (l *Layout) CledarStyles() {
+func (l *Layout) ClearStyles() {
 	l.offset = matrix.Vec2{}
 	l.rowLayoutOffset = matrix.Vec2{}
 	l.innerOffset = matrix.Vec4{}

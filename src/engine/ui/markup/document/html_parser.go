@@ -647,7 +647,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 //   - classes: variadic string parameters representing the new class names
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
-	elm.UI.Layout().CledarStyles()
+	elm.UI.Layout().ClearStyles()
 	d.stylizer.ApplyStyles(d.style, d)
 }
 

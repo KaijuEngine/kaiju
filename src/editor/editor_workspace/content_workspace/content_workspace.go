@@ -70,6 +70,7 @@ type ContentWorkspace struct {
 	rightBody         *document.Element
 	tooltip           *document.Element
 	pageData          WorkspaceUIData
+	isListMode        bool
 	info              struct {
 		multiSelectNote  *document.Element
 		nameInput        *document.Element
@@ -122,6 +123,8 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentAdded.Execute(ids)
+
+	w.isListMode = true
 }
 
 func (w *ContentWorkspace) Open() {
@@ -308,13 +311,29 @@ func (w *ContentWorkspace) clearSelection() {
 	w.selectedContent = klib.WipeSlice(w.selectedContent)
 }
 
+func (w *ContentWorkspace) selectedEntryClasses() []string {
+	if w.isListMode {
+		return []string{"entry", "wide", "selected"}
+	} else {
+		return []string{"entry", "selected"}
+	}
+}
+
+func (w *ContentWorkspace) unselectedEntryClasses() []string {
+	if w.isListMode {
+		return []string{"entry", "wide"}
+	} else {
+		return []string{"entry"}
+	}
+}
+
 func (w *ContentWorkspace) appendSelected(e *document.Element) {
 	w.selectedContent = append(w.selectedContent, e)
-	w.Doc.SetElementClasses(e, "entry", "entrySelected")
+	w.Doc.SetElementClasses(e, w.selectedEntryClasses()...)
 }
 
 func (w *ContentWorkspace) removeSelected(e *document.Element) {
-	w.Doc.SetElementClasses(e, "entry")
+	w.Doc.SetElementClasses(e, w.unselectedEntryClasses()...)
 	w.selectedContent = klib.SlicesRemoveElement(w.selectedContent, e)
 }
 
