@@ -63,6 +63,7 @@ type ContentWorkspace struct {
 	typeFilters       []string
 	tagFilters        []string
 	query             string
+	contentList       *document.Element
 	entryTemplate     *document.Element
 	tagFilterTemplate *document.Element
 	addTagbtn         *document.Element
@@ -107,6 +108,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"entryMouseLeave":   w.entryMouseLeave,
 			"rightClickContent": w.rightClickContent,
 		})
+	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
@@ -123,8 +125,6 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentAdded.Execute(ids)
-
-	w.isListMode = true
 }
 
 func (w *ContentWorkspace) Open() {
@@ -149,6 +149,17 @@ func (w *ContentWorkspace) Close() {
 
 func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
+}
+
+func (w *ContentWorkspace) setToListMode() {
+	w.isListMode = true
+	for _, c := range w.contentList.Children {
+		w.Doc.SetElementClassesWithoutApply(c, append(c.ClassList(), "wide")...)
+		for _, cc := range c.Children {
+			w.Doc.SetElementClassesWithoutApply(cc, append(cc.ClassList(), "wide")...)
+		}
+	}
+	w.Doc.ApplyStyles()
 }
 
 func (w *ContentWorkspace) clickImport(*document.Element) {
@@ -305,7 +316,8 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 
 func (w *ContentWorkspace) clearSelection() {
 	for i := range w.selectedContent {
-		w.Doc.SetElementClassesWithoutApply(w.selectedContent[i], "entry")
+		w.Doc.SetElementClassesWithoutApply(w.selectedContent[i],
+			w.unselectedEntryClasses()...)
 	}
 	w.Doc.ApplyStyles()
 	w.selectedContent = klib.WipeSlice(w.selectedContent)

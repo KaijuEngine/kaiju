@@ -69,22 +69,35 @@
 			.entry {
 				width: 10em;
 				height: 12em;
-				background-color: #282828;
-				color: #AAA;
 				margin-right: 5px;
 				margin-bottom: 5px;
+				background-color: #282828;
+				color: #AAA;
 			}
-			.entrySelected {
+			.entry .wide {
+				width: 100%;
+				height: 2em;
+				margin-right: 0;
+				margin-bottom: 0;
+			}
+			.entryLabel .wide {
+				width: 100%;
+				padding-left: 20px;
+			}
+			.entry:hover {
 				background-color: #575757;
 				color: white;
 			}
-			.entry:hover {
+			.entry .selected {
 				background-color: #575757;
 				color: white;
 			}
 			.preview {
 				width: 10em;
 				height: 10em;
+			}
+			.preview .wide {
+				display: none;
 			}
 			.entryTag {
 				margin-bottom: 0.25em;
@@ -159,10 +172,10 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="center">
+			<div id="contentList" class="center">
 				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
 					<img class="preview" src="editor/textures/icons/file.png" />
-					<div>Name...</div>
+					<div class="entryLabel">Name...</div>
 					<img class="typeThumb" src="editor/textures/icons/file.png" />
 				</span>
 			</div>

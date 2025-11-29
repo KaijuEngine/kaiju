@@ -49,11 +49,21 @@ import (
 
 type CSSMap map[*ui.UI][]rules.Rule
 
-func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
-	if _, ok := m[elm]; !ok {
-		m[elm] = make([]rules.Rule, 0)
+func (m CSSMap) add(elm *ui.UI, rules []rules.Rule) {
+	if c, ok := m[elm]; !ok {
+		m[elm] = slices.Clone(rules)
+	} else {
+		for i := len(c) - 1; i >= 0; i-- {
+			for j := range rules {
+				if c[i].Property == rules[j].Property && c[i].Invocation == rules[j].Invocation {
+					c = klib.RemoveUnordered(c, i)
+					break
+				}
+			}
+		}
+		c = append(c, rules...)
+		m[elm] = c
 	}
-	m[elm] = append(m[elm], rule...)
 }
 
 func applyToElement(inRules []rules.Rule, elm *document.Element) {
@@ -108,26 +118,26 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 	for _, elm := range elms {
 		lastTargets = append(lastTargets, elm)
 		for _, part := range parts[1:] {
-			if p, ok := pseudos.PseudoMap[part.Name]; ok {
-				for i := range lastTargets {
-					if selects, err := p.Process(lastTargets[i], part); err == nil {
-						targets = klib.AppendUnique(targets, selects...)
-						applyRules = p.AlterRules(applyRules)
+			switch part.SelectType {
+			case rules.ReadingClass:
+				if elm.HasClass(part.Name) {
+					targets = klib.AppendUnique(targets, elm)
+				}
+			case rules.ReadingTag:
+				tagged := doc.GetElementsByTagName(part.Name)
+				lastTargets = lastTargets[:0]
+				for _, t := range tagged {
+					if t.Parent.Value() == elm {
+						targets = klib.AppendUnique(targets, t)
+						lastTargets = append(lastTargets, t)
 					}
 				}
-			} else {
-				switch part.SelectType {
-				case rules.ReadingClass:
-					if elm.HasClass(part.Name) {
-						targets = append(targets, elm)
-					}
-				case rules.ReadingTag:
-					tagged := doc.GetElementsByTagName(part.Name)
-					lastTargets = lastTargets[:0]
-					for _, t := range tagged {
-						if t.Parent.Value() == elm {
-							targets = append(targets, t)
-							lastTargets = append(lastTargets, t)
+			case rules.ReadingPseudo:
+				if p, ok := pseudos.PseudoMap[part.Name]; ok {
+					for i := range lastTargets {
+						if selects, err := p.Process(lastTargets[i], part); err == nil {
+							targets = klib.AppendUnique(targets, selects...)
+							applyRules = p.AlterRules(applyRules)
 						}
 					}
 				}
