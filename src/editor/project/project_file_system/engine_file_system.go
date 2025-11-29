@@ -38,7 +38,6 @@
 package project_file_system
 
 import (
-	"embed"
 	"io"
 	"io/fs"
 	"os"
@@ -47,7 +46,13 @@ import (
 	"strings"
 )
 
-type EngineFileSystem struct{ embed.FS }
+type EngineFileSystemInterface interface {
+	fs.FS
+	ReadDir(name string) ([]fs.DirEntry, error)
+	ReadFile(name string) ([]byte, error)
+}
+
+type EngineFileSystem struct{ EngineFileSystemInterface }
 
 var EngineFS EngineFileSystem
 

@@ -38,7 +38,6 @@
 package editor
 
 import (
-	_ "embed"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"

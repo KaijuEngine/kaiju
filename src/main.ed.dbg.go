@@ -1,7 +1,7 @@
-//go:build editor && !rawsrc
+//go:build editor && rawsrc
 
 /******************************************************************************/
-/* main.ed.go                                                                 */
+/* main.ed.dbg.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -40,25 +40,28 @@
 package main
 
 import (
-	"embed"
+	"io/fs"
 	"kaiju/bootstrap"
 	"kaiju/editor"
 	"kaiju/editor/project/project_file_system"
+	"os"
+	"path/filepath"
 )
 
-// We embed the entire src folder into the application when building the editor.
-// This allows us to generate a project with the exact code that matches the
-// current editor when creating a project. All of the source code will be
-// exported to the project folder within the "kaiju" subfolder. Developers can
-// feel free to modify this code for any special needs, but beware that when
-// upgrading the engine, it can stomp changes. For this reason, developers
-// should take care to markup their changes and resolve them in version control.
+type srcRoot struct{ *os.Root }
 
-//go:embed *
-var src embed.FS
+func (r srcRoot) Open(name string) (fs.File, error) { return r.Root.FS().Open(name) }
+func (r srcRoot) ReadDir(name string) ([]os.DirEntry, error) {
+	return os.ReadDir(filepath.Join(r.Root.Name(), name))
+}
 
 func init() {
-	project_file_system.EngineFS.EngineFileSystemInterface = src
+	// TODO:  A different working directory could be set, "src" wouldn't work
+	fs, err := os.OpenRoot("src")
+	if err != nil {
+		panic(err)
+	}
+	project_file_system.EngineFS.EngineFileSystemInterface = srcRoot{fs}
 }
 
 func getGame() bootstrap.GameInterface { return editor.EditorGame{} }

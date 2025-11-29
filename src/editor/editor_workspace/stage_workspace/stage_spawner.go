@@ -59,8 +59,6 @@ import (
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"weak"
-
-	_ "embed"
 )
 
 func (w *StageWorkspace) initAIActions() {
