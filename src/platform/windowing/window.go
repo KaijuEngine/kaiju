@@ -583,6 +583,7 @@ func (w *Window) becameActive() {
 	if idx >= 0 {
 		klib.SliceMove(activeWindows, idx, 0)
 	}
+	w.enableRawMouse()
 	w.OnActivate.Execute()
 }
 
