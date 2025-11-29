@@ -94,6 +94,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"inputFilter":       w.inputFilter,
 			"tagFilter":         w.tagFilter,
 			"clickImport":       w.clickImport,
+			"toggleListView":    w.toggleListView,
 			"clickFilter":       w.clickFilter,
 			"clickEntry":        w.clickEntry,
 			"clickDeleteTag":    w.clickDeleteTag,
@@ -151,17 +152,6 @@ func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
-func (w *ContentWorkspace) setToListMode() {
-	w.isListMode = true
-	for _, c := range w.contentList.Children {
-		w.Doc.SetElementClassesWithoutApply(c, append(c.ClassList(), "wide")...)
-		for _, cc := range c.Children {
-			w.Doc.SetElementClassesWithoutApply(cc, append(cc.ClassList(), "wide")...)
-		}
-	}
-	w.Doc.ApplyStyles()
-}
-
 func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
@@ -193,6 +183,18 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 			w.UiMan.EnableUpdate()
 		},
 	})
+}
+
+func (w *ContentWorkspace) toggleListView(e *document.Element) {
+	if w.isListMode {
+		w.disableListMode()
+		w.Doc.SetElementClassesWithoutApply(e, "leftBtn")
+	} else {
+		w.enableListMode()
+		w.Doc.SetElementClassesWithoutApply(e, "leftBtn", "filterSelected")
+	}
+	w.Doc.ApplyStyles()
+	w.contentList.UIPanel.SetScrollY(0)
 }
 
 func (w *ContentWorkspace) addContent(ids []string) {
@@ -706,4 +708,25 @@ func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.Cach
 		return err
 	}
 	return nil
+}
+
+func (w *ContentWorkspace) enableListMode() {
+	w.isListMode = true
+	for _, c := range w.contentList.Children[1:] {
+		w.Doc.SetElementClassesWithoutApply(c, append(c.ClassList(), "wide")...)
+		for _, cc := range c.Children {
+			w.Doc.SetElementClassesWithoutApply(cc, append(cc.ClassList(), "wide")...)
+		}
+	}
+}
+
+func (w *ContentWorkspace) disableListMode() {
+	w.isListMode = false
+	for _, c := range w.contentList.Children[1:] {
+		w.Doc.SetElementClassesWithoutApply(c, klib.SlicesRemoveElement(c.ClassList(), "wide")...)
+		for _, cc := range c.Children {
+			cc.UI.Show()
+			w.Doc.SetElementClassesWithoutApply(cc, klib.SlicesRemoveElement(cc.ClassList(), "wide")...)
+		}
+	}
 }
