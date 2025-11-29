@@ -1,0 +1,17 @@
+package ui_workspace // import "."
+
+
+TYPES
+
+type UIWorkspace struct {
+	common_workspace.CommonWorkspace
+}
+
+func (w *UIWorkspace) Close()
+
+func (w *UIWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *UIWorkspace) Initialize(host *engine.Host)
+
+func (w *UIWorkspace) Open()
+

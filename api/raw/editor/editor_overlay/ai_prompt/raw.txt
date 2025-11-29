@@ -1,0 +1,13 @@
+package ai_prompt // import "."
+
+
+TYPES
+
+type AIPrompt struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, onClose func()) (*AIPrompt, error)
+
+func (o *AIPrompt) Close()
+
