@@ -91,23 +91,24 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	ids := w.pageData.SetupUIData(w.cache)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":       w.inputFilter,
-			"tagFilter":         w.tagFilter,
-			"clickImport":       w.clickImport,
-			"toggleListView":    w.toggleListView,
-			"clickFilter":       w.clickFilter,
-			"clickEntry":        w.clickEntry,
-			"clickDeleteTag":    w.clickDeleteTag,
-			"updateTagHint":     w.updateTagHint,
-			"submitNewTag":      w.submitNewTag,
-			"clickTagHint":      w.clickTagHint,
-			"submitName":        w.submitName,
-			"clickReimport":     w.clickReimport,
-			"clickDelete":       w.clickDelete,
-			"entryMouseEnter":   w.entryMouseEnter,
-			"entryMouseMove":    w.entryMouseMove,
-			"entryMouseLeave":   w.entryMouseLeave,
-			"rightClickContent": w.rightClickContent,
+			"inputFilter":         w.inputFilter,
+			"tagFilter":           w.tagFilter,
+			"clickImport":         w.clickImport,
+			"toggleListView":      w.toggleListView,
+			"clickFilter":         w.clickFilter,
+			"clickEntry":          w.clickEntry,
+			"clickDeleteTag":      w.clickDeleteTag,
+			"updateTagHint":       w.updateTagHint,
+			"submitNewTag":        w.submitNewTag,
+			"clickTagHint":        w.clickTagHint,
+			"submitName":          w.submitName,
+			"clickReimport":       w.clickReimport,
+			"clickDelete":         w.clickDelete,
+			"entryMouseEnter":     w.entryMouseEnter,
+			"entryMouseMove":      w.entryMouseMove,
+			"entryMouseLeave":     w.entryMouseLeave,
+			"rightClickContent":   w.rightClickContent,
+			"clickClearSelection": w.clickClearSelection,
 		})
 	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
@@ -323,6 +324,7 @@ func (w *ContentWorkspace) clearSelection() {
 	}
 	w.Doc.ApplyStyles()
 	w.selectedContent = klib.WipeSlice(w.selectedContent)
+	w.hideRightPanel()
 }
 
 func (w *ContentWorkspace) selectedEntryClasses() []string {
@@ -384,6 +386,10 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 	}
 	w.showRightPanel()
 	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
+}
+
+func (w *ContentWorkspace) hideRightPanel() {
+	w.rightBody.UI.Hide()
 }
 
 func (w *ContentWorkspace) showRightPanel() {
@@ -641,6 +647,11 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 	}
 	w.editor.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)
+}
+
+func (w *ContentWorkspace) clickClearSelection(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.clearSelection()
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
