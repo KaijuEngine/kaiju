@@ -79,6 +79,10 @@ const (
 )
 
 const (
+	scrollBarWidth = 8
+)
+
+const (
 	OverflowScroll = iota
 	OverflowVisible
 	OverflowHidden
@@ -92,6 +96,9 @@ type requestScroll struct {
 }
 
 type panelData struct {
+	scrollBarX, scrollBarY    *Panel
+	scrollBarStart            float32
+	scrollBarDrag             matrix.Vec2
 	scroll, offset, maxScroll matrix.Vec2
 	scrollDirection           PanelScrollDirection
 	scrollEvent               events.Id
@@ -274,6 +281,11 @@ func (p *Panel) update(deltaTime float64) {
 	base.eventUpdates()
 	base.Update(deltaTime)
 	pd := p.PanelData()
+	if !base.Host().Window.Cursor.Released() {
+		pd.scrollBarDrag = matrix.Vec2Zero()
+		pd.scrollBarStart = -1
+	}
+	p.updateScrollBars()
 	if !pd.frozen {
 		if p.isDown && pd.dragging {
 			if pd.allowDragScroll {
@@ -660,6 +672,115 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 		}
 	} else if pd.scrollEvent == 0 {
 		pd.scrollEvent = p.Base().AddEvent(EventTypeScroll, p.onScroll)
+	}
+	if pd.scrollBarX == nil {
+		pd.scrollBarX = p.createScrollBar()
+		p.AddChild((*UI)(pd.scrollBarX))
+	}
+	if pd.scrollBarY == nil {
+		pd.scrollBarY = p.createScrollBar()
+		p.AddChild((*UI)(pd.scrollBarY))
+	}
+}
+
+func (p *Panel) createScrollBar() *Panel {
+	man := p.man.Value()
+	scrollBarTex, _ := man.Host.TextureCache().Texture(
+		assets.TextureSquare, rendering.TextureFilterLinear)
+	sb := man.Add().ToPanel()
+	sb.Init(scrollBarTex, ElementTypePanel)
+	sb.DontFitContent()
+	sb.SetColor(matrix.ColorGray())
+	sb.layout.SetPositioning(PositioningAbsolute)
+	sb.layout.Scale(scrollBarWidth, scrollBarWidth)
+	sb.layout.SetZ(10)
+	sb.Base().AddEvent(EventTypeEnter, func() {
+		sb.EnforceColor(matrix.NewColor(0.575, 0.575, 0.575, 1.0))
+	})
+	sb.Base().AddEvent(EventTypeExit, func() {
+		sb.UnEnforceColor()
+	})
+	sb.Base().AddEvent(EventTypeDown, func() {
+		pd := p.PanelData()
+		cp := p.Base().Host().Window.Cursor.Position()
+		switch sb {
+		case pd.scrollBarX:
+			pd.scrollBarStart = sb.layout.offset.X()
+			pd.scrollBarDrag.SetX(cp.X())
+		case pd.scrollBarY:
+			pd.scrollBarStart = sb.layout.offset.Y()
+			pd.scrollBarDrag.SetY(cp.Y())
+		}
+	})
+	return sb
+}
+
+func (p *Panel) updateScrollBars() {
+	pd := p.PanelData()
+	if pd.scrollBarX == nil && pd.scrollBarY == nil {
+		return
+	}
+	ps := p.layout.PixelSize()
+	panelW, panelH := ps.X(), ps.Y()
+	if pd.scrollBarX != nil {
+		y := panelH - scrollBarWidth
+		pd.scrollBarX.layout.SetOffsetY(y)
+		maxX := pd.maxScroll.X()
+		if pd.scrollBarDrag.X() > 0 {
+			mx := p.Base().Host().Window.Cursor.Position().X()
+			mouseDelta := pd.scrollBarDrag.Y() - mx
+			startOffset := pd.scrollBarStart
+			newOffset := startOffset + mouseDelta
+			maxX := pd.maxScroll.X()
+			barW := panelW * (panelW / (panelW + maxX))
+			if barW < 1 {
+				barW = 1
+			}
+			newOffset = matrix.Clamp(newOffset, 0, panelW-barW)
+			scrollX := -(newOffset / (panelW - barW)) * maxX
+			pd.scroll.SetX(matrix.Clamp(scrollX, 0, pd.maxScroll.X()))
+		}
+		if maxX > 0 {
+			barW := panelW * (panelW / (panelW + maxX))
+			if barW < 1 {
+				barW = 1
+			}
+			offsetX := (pd.scroll.X() / maxX) * (panelW - barW)
+			pd.scrollBarX.layout.Scale(barW, 12)
+			pd.scrollBarX.layout.SetOffsetX(offsetX)
+		} else {
+			pd.scrollBarX.Base().Hide()
+		}
+	}
+	if pd.scrollBarY != nil {
+		x := panelW - scrollBarWidth
+		pd.scrollBarY.layout.SetOffsetX(x)
+		maxY := pd.maxScroll.Y()
+		if pd.scrollBarDrag.Y() > 0 {
+			my := p.Base().Host().Window.Cursor.Position().Y()
+			mouseDelta := pd.scrollBarDrag.Y() - my
+			startOffset := pd.scrollBarStart
+			newOffset := startOffset + mouseDelta
+			maxY := pd.maxScroll.Y()
+			barH := panelH * (panelH / (panelH + maxY))
+			if barH < 1 {
+				barH = 1
+			}
+			newOffset = matrix.Clamp(newOffset, 0, panelH-barH)
+			scrollY := -(newOffset / (panelH - barH)) * maxY
+			pd.scroll.SetY(matrix.Clamp(scrollY, -pd.maxScroll.Y(), 0))
+		}
+		if maxY > 0 {
+			barH := panelH * (panelH / (panelH + maxY))
+			if barH < 1 {
+				barH = 1
+			}
+			offsetY := (-pd.scroll.Y() / maxY) * (panelH - barH)
+			pd.scrollBarY.layout.Scale(12, barH)
+			pd.scrollBarY.layout.SetOffsetY(offsetY)
+		} else {
+			pd.scrollBarY.Base().Hide()
+		}
 	}
 }
 
