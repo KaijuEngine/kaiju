@@ -571,6 +571,8 @@ func (input *Input) activated() {
 	} else {
 		data.placeholder.Hide()
 	}
+	input.resetSelect()
+	input.hideHighlight()
 }
 
 func (input *Input) changeFocusToAnother(target *Input) {
