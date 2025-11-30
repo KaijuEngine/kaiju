@@ -179,22 +179,30 @@ func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
 		pos4.Y()*viewport.W() + viewport.Y(), z}
 }
 
-func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) Vec3 {
+func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) (Vec3, bool) {
 	clip := Mat4MultiplyVec4(projection, Mat4MultiplyVec4(view, pos.AsVec4()))
-	clip.ScaleAssign(1.0 / clip.W())
-	screenX := (clip.X() + 1) * (viewport.Width() * 0.5)
-	screenY := (1 - clip.Y()) * (viewport.Height() * 0.5)
-	return Vec3{screenX, screenY, 0}
+	if clip.W() <= 0.0001 {
+		return Vec3{}, false
+	}
+	invW := 1.0 / clip.W()
+	ndcX := clip.X() * invW
+	ndcY := clip.Y() * invW
+	ndcZ := clip.Z() * invW
+	screenX := (ndcX+1.0)*0.5*viewport.Z() + viewport.X()
+	screenY := (ndcY+1.0)*0.5*viewport.W() + viewport.Y()
+	return Vec3{screenX, screenY, ndcZ}, true
 }
 
-func (m Mat4) Mat4UnProject(pos Vec3, viewport Vec4) Vec3 {
+func (m Mat4) Mat4UnProject(p Vec3, invViewProj Mat4, viewport Vec4) Vec3 {
 	var v Vec4
-	v.SetX(2.0*(pos.X()-viewport.X())/viewport.Z() - 1.0)
-	v.SetY(2.0*(pos.Y()-viewport.Y())/viewport.W() - 1.0)
-	v.SetZ(2.0*pos.Z() - 1.0)
+	v.SetX((p.X()-viewport.X())/viewport.Z()*2.0 - 1.0)
+	v.SetY(-(p.Y()-viewport.Y())/viewport.W()*2.0 + 1.0)
+	v.SetZ(p.Z())
 	v.SetW(1.0)
-	v = Mat4MultiplyVec4(m, v)
-	v.Scale(1.0 / v.W())
+	v = Mat4MultiplyVec4(invViewProj, v)
+	if v.W() != 0 {
+		v.Scale(1.0 / v.W())
+	}
 	return Vec3{v.X(), v.Y(), v.Z()}
 }
 

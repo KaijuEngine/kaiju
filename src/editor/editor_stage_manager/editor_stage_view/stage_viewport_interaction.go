@@ -51,6 +51,7 @@ func (v *StageView) processViewportInteractions() {
 	if v.transformTool.Update() {
 		return
 	}
+	v.selectTool.Update()
 	if m.Pressed(hid.MouseButtonLeft) {
 		ray := v.camera.RayCast(m)
 		if kb.HasShift() {

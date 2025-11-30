@@ -289,6 +289,10 @@ func (c *StandardCamera) FarPlane() float32 { return c.farPlane }
 // IsOrthographic will return if this camera is set to be an orthographic camera
 func (c *StandardCamera) IsOrthographic() bool { return c.isOrthographic }
 
+func (c *StandardCamera) Viewport() matrix.Vec4 {
+	return matrix.NewVec4(0, 0, c.viewWidth, c.viewHeight)
+}
+
 func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.initializeValues").End()
 	c.fieldOfView = 60.0

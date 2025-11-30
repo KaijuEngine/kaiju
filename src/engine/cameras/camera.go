@@ -69,4 +69,6 @@ type Camera interface {
 	NearPlane() float32
 	FarPlane() float32
 	IsOrthographic() bool
+	Viewport() matrix.Vec4
+	Frustum() collision.Frustum
 }

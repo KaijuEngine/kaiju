@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
+	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaiju/editor/memento"
 	"kaiju/engine"
@@ -62,6 +63,7 @@ type StageView struct {
 	gridShader    *shader_data_registry.ShaderDataGrid
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
+	selectTool    select_tool.SelectTool
 }
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
@@ -80,6 +82,7 @@ func (v *StageView) Initialize(host *engine.Host, history *memento.History, snap
 	v.manager.NewStage()
 	v.host = host
 	v.transformTool.Initialize(host, v, history, snapSettings)
+	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
 	v.setupCamera()
 	// Data binding visualizers

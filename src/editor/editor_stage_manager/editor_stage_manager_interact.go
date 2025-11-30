@@ -154,6 +154,30 @@ func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
 	return m.TryAppendSelect(ray)
 }
 
+func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
+	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
+	m.ClearSelection()
+	f := m.host.Camera.Frustum()
+	v, p := m.host.Camera.View(), m.host.Camera.Projection()
+	viewport := m.host.Camera.Viewport()
+	for _, e := range m.entities {
+		if e.StageData.Bvh == nil {
+			continue
+		}
+		b := e.StageData.Bvh.Bounds()
+		if !b.InFrustum(f) {
+			continue
+		}
+		ss, ok := matrix.Mat4ToScreenSpace(e.Transform.Position(), v, p, viewport)
+		if !ok {
+			continue
+		}
+		if screenBox.AreaContains(ss.X(), ss.Y()) {
+			m.SelectEntity(e)
+		}
+	}
+}
+
 func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
 	if e, ok := m.TryHitEntity(ray); ok {
