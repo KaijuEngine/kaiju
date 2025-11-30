@@ -281,7 +281,7 @@ func (p *Panel) update(deltaTime float64) {
 	base.eventUpdates()
 	base.Update(deltaTime)
 	pd := p.PanelData()
-	if !base.Host().Window.Cursor.Released() {
+	if base.Host().Window.Cursor.Released() {
 		pd.scrollBarDrag = matrix.Vec2Zero()
 		pd.scrollBarStart = -1
 	}
@@ -726,7 +726,7 @@ func (p *Panel) updateScrollBars() {
 		y := panelH - scrollBarWidth
 		pd.scrollBarX.layout.SetOffsetY(y)
 		maxX := pd.maxScroll.X()
-		if pd.scrollBarDrag.X() > 0 {
+		if !matrix.Approx(pd.scrollBarDrag.X(), 0) {
 			mx := p.Base().Host().Window.Cursor.Position().X()
 			mouseDelta := pd.scrollBarDrag.Y() - mx
 			startOffset := pd.scrollBarStart
@@ -756,7 +756,7 @@ func (p *Panel) updateScrollBars() {
 		x := panelW - scrollBarWidth
 		pd.scrollBarY.layout.SetOffsetX(x)
 		maxY := pd.maxScroll.Y()
-		if pd.scrollBarDrag.Y() > 0 {
+		if !matrix.Approx(pd.scrollBarDrag.Y(), 0) {
 			my := p.Base().Host().Window.Cursor.Position().Y()
 			mouseDelta := pd.scrollBarDrag.Y() - my
 			startOffset := pd.scrollBarStart
