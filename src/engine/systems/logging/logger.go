@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"kaiju/build"
 	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
@@ -123,16 +124,19 @@ func setupLogHistory(l *LogStream) error {
 	return nil
 }
 
-func selectLogsFolder() (string, error) {
-	cwd, err := os.Getwd()
+func LogFolderPath() (string, error) {
+	appData, err := filesystem.GameDirectory()
 	if err != nil {
 		return "", err
 	}
-	root := cwd
-	if filepath.Base(cwd) == "src" {
-		root = filepath.Dir(cwd)
+	return filepath.Join(appData, "logs"), nil
+}
+
+func selectLogsFolder() (string, error) {
+	dir, err := LogFolderPath()
+	if err != nil {
+		return "", err
 	}
-	dir := filepath.Join(root, "logs")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}

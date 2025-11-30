@@ -40,11 +40,14 @@ package menu_bar
 import (
 	"kaiju/editor/editor_overlay/create_entity_data"
 	"kaiju/engine"
+	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 )
 
 type MenuBar struct {
@@ -86,6 +89,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickNewEntity":        b.clickNewEntity,
 			"clickNewLight":         b.clickNewLight,
 			"clickAbout":            b.clickAbout,
+			"clickLogs":             b.clickLogs,
 			"clickIssues":           b.clickIssues,
 			"clickRepository":       b.clickRepository,
 			"clickJoinMailingList":  b.clickJoinMailingList,
@@ -276,6 +280,19 @@ func (b *MenuBar) clickNewLight(*document.Element) {
 func (b *MenuBar) clickAbout(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickAbout").End()
 	b.hidePopups()
+}
+
+func (b *MenuBar) clickLogs(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickIssues").End()
+	b.hidePopups()
+	if dir, err := logging.LogFolderPath(); err == nil {
+		if err = filesystem.OpenFileBrowserToFolder(dir); err != nil {
+			slog.Error("failed to open the file browser to the folder",
+				"folder", dir, "error", err)
+		}
+	} else {
+		slog.Error("failed to locate the log folder path", "error", err)
+	}
 }
 
 func (b *MenuBar) clickIssues(*document.Element) {
