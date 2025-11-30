@@ -76,6 +76,7 @@ func (p *Project) FindReferencesWithCallback(id string, onFound func(ref Content
 		p.findReferencesTemplates,
 		p.findReferencesMaterial,
 		p.findReferencesShader,
+		p.findReferencesTableOfContents,
 		p.findReferencesCode,
 	}
 	for i := range funcs {
@@ -145,6 +146,17 @@ func (p *Project) findReferencesShader(id string, onFound func(ref ContentRefere
 			return ContentReference{
 				Id:     name,
 				Source: content_database.Shader{}.TypeName(),
+			}, nil
+		}, onFound)
+}
+
+func (p *Project) findReferencesTableOfContents(id string, onFound func(ref ContentReference)) error {
+	defer tracing.NewRegion("Project.findReferencesTableOfContents").End()
+	return p.findRefsOnFolderAndDo(id, project_file_system.ContentTableOfContentsFolder,
+		func(name string, src []byte) (ContentReference, error) {
+			return ContentReference{
+				Id:     name,
+				Source: content_database.TableOfContents{}.TypeName(),
 			}, nil
 		}, onFound)
 }
