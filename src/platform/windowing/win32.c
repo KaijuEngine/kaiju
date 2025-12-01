@@ -148,6 +148,7 @@ static inline bool obtainControllerStates(SharedMem* sm) {
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
+		case WM_QUIT:
 		case WM_DESTROY:
 		{
 			if (sm != NULL) {
@@ -243,26 +244,10 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
-	}
-	return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
-void process_message(SharedMem* sm, MSG *msg) {
-	switch (msg->message) {
-		case WM_QUIT:
-		case WM_DESTROY:
-		{
-			shared_mem_add_event(sm, (WindowEvent) {
-				.type = WINDOW_EVENT_TYPE_ACTIVITY,
-				.windowActivity = { WINDOW_EVENT_ACTIVITY_TYPE_CLOSE }
-			});
-			shared_mem_flush_events(sm);
-			break;
-		}
 		case WM_MOUSEMOVE:
 		{
 			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
-			readMousePosition(msg->lParam, &evt.mouseMove.x, &evt.mouseMove.y);
+			readMousePosition(lParam, &evt.mouseMove.x, &evt.mouseMove.y);
 			sm->mouseX = evt.mouseMove.x;
 			sm->mouseY = evt.mouseMove.y;
 			shared_mem_add_event(sm, evt);
@@ -271,7 +256,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 					|| evt.mouseMove.x <= sm->clientRect.right
 					|| evt.mouseMove.y <= sm->clientRect.bottom;
 				if (mouseEnteredWindow) {
-					window_enable_raw_mouse(msg->hwnd);
+					window_enable_raw_mouse(hwnd);
 				}
 			}
 			if (sm->lockCursor.active) {
@@ -288,9 +273,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
-			SetCapture(msg->hwnd);
+			SetCapture(hwnd);
 			break;
 		}
 		case WM_LBUTTONUP:
@@ -302,7 +287,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
 			break;
@@ -316,9 +301,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
-			SetCapture(msg->hwnd);
+			SetCapture(hwnd);
 			break;
 		}
 		case WM_MBUTTONUP:
@@ -330,7 +315,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
 			break;
@@ -344,9 +329,9 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
-			SetCapture(msg->hwnd);
+			SetCapture(hwnd);
 			break;
 		}
 		case WM_RBUTTONUP:
@@ -358,7 +343,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 					.action = WINDOW_EVENT_BUTTON_TYPE_UP,
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
 			shared_mem_add_event(sm, evt);
 			ReleaseCapture();
 			break;
@@ -367,15 +352,15 @@ void process_message(SharedMem* sm, MSG *msg) {
 		case WM_XBUTTONUP:
 		{
 			WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_BUTTON };
-			if (msg->wParam & 0x0010000) {
+			if (wParam & 0x0010000) {
 				evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
-			} else if (msg->wParam & 0x0020000) {
+			} else if (wParam & 0x0020000) {
 				evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
 			}
-			readMousePosition(msg->lParam, &evt.mouseButton.x, &evt.mouseButton.y);
-			if (msg->message == WM_XBUTTONDOWN) {
+			readMousePosition(lParam, &evt.mouseButton.x, &evt.mouseButton.y);
+			if (uMsg == WM_XBUTTONDOWN) {
 				evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
-				SetCapture(msg->hwnd);
+				SetCapture(hwnd);
 			} else {
 				evt.mouseButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
 				ReleaseCapture();
@@ -388,10 +373,10 @@ void process_message(SharedMem* sm, MSG *msg) {
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaY = GET_WHEEL_DELTA_WPARAM(msg->wParam),
+					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam),
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
+			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
 			shared_mem_add_event(sm, evt);
 			break;
 		}
@@ -400,10 +385,10 @@ void process_message(SharedMem* sm, MSG *msg) {
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaX = GET_WHEEL_DELTA_WPARAM(msg->wParam),
+					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam),
 				}
 			};
-			readMousePosition(msg->lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
+			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
 			shared_mem_add_event(sm, evt);
 			break;
 		}
@@ -413,32 +398,32 @@ void process_message(SharedMem* sm, MSG *msg) {
 		case WM_SYSKEYUP:
 		{
 			WindowEvent evt = { WINDOW_EVENT_TYPE_KEYBOARD_BUTTON };
-			if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
+			if (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN) {
 				evt.keyboardButton.action = WINDOW_EVENT_BUTTON_TYPE_DOWN;
 			} else {
 				evt.keyboardButton.action = WINDOW_EVENT_BUTTON_TYPE_UP;
 			}
-			switch (msg->wParam) {
+			switch (wParam) {
 				case VK_SHIFT:
-					UINT scancode = (msg->lParam & 0x00FF0000) >> 16;
+					UINT scancode = (lParam & 0x00FF0000) >> 16;
 					evt.keyboardButton.buttonId = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
 					break;
 				case VK_CONTROL:
-					if (msg->lParam & 0x01000000) {
+					if (lParam & 0x01000000) {
 						evt.keyboardButton.buttonId = VK_RCONTROL;
 					} else {
 						evt.keyboardButton.buttonId = VK_LCONTROL;
 					}
 					break;
 				case VK_MENU:
-					if (msg->lParam & 0x01000000) {
+					if (lParam & 0x01000000) {
 						evt.keyboardButton.buttonId = VK_RMENU;
 					} else {
 						evt.keyboardButton.buttonId = VK_LMENU;
 					}
 					break;
 				default:
-					evt.keyboardButton.buttonId = msg->wParam;
+					evt.keyboardButton.buttonId = wParam;
 					break;
 			}
 			shared_mem_add_event(sm, evt);
@@ -447,7 +432,7 @@ void process_message(SharedMem* sm, MSG *msg) {
 		case UWM_SET_CURSOR:
 		{
 			HCURSOR c = NULL;
-			switch (msg->wParam) {
+			switch (wParam) {
 				case CURSOR_ARROW:
 					c = LoadCursor(NULL, IDC_ARROW);
 					break;
@@ -499,11 +484,12 @@ void process_message(SharedMem* sm, MSG *msg) {
 			}
 			if (c != NULL) {
 				SetCursor(c);
-				SetClassLongPtr(msg->hwnd, GCLP_HCURSOR, (LONG_PTR)c);
+				SetClassLongPtr(hwnd, GCLP_HCURSOR, (LONG_PTR)c);
 			}
 			break;
 		}
 	}
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 void window_main(const wchar_t* windowTitle,
@@ -729,7 +715,7 @@ void window_poll(void* hwnd) {
 			}
 		} else {
 			DispatchMessage(&msg);
-			process_message(sm, &msg);
+			//process_message(sm, &msg);
 		}
 	}
 	shared_mem_flush_events(sm);
@@ -907,7 +893,7 @@ void window_enable_raw_mouse(void* hwnd) {
 	rid.usUsagePage = 0x01;  // Generic desktop controls
 	rid.usUsage = 0x02;      // Mouse
 	// Suppress legacy messages; receive input even if window inactive
-	rid.dwFlags = RIDEV_NOLEGACY | RIDEV_INPUTSINK;
+	// rid.dwFlags = RIDEV_NOLEGACY;
 	rid.hwndTarget = hwnd;
 	if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
 		sm->rawInputFailed = true;
@@ -916,14 +902,14 @@ void window_enable_raw_mouse(void* hwnd) {
 }
 
 void window_disable_raw_mouse(void* hwnd) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	RAWINPUTDEVICE rid = {0};
-	rid.usUsagePage = 0x01;
-	rid.usUsage = 0x02;
-	rid.dwFlags = RIDEV_REMOVE;
-	rid.hwndTarget = NULL;  // Must be NULL for removal
-	RegisterRawInputDevices(&rid, 1, sizeof(rid));
-	sm->rawInputRequested = false;
+	//SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	//RAWINPUTDEVICE rid = {0};
+	//rid.usUsagePage = 0x01;
+	//rid.usUsage = 0x02;
+	//rid.dwFlags = RIDEV_REMOVE;
+	//rid.hwndTarget = NULL;  // Must be NULL for removal
+	//RegisterRawInputDevices(&rid, 1, sizeof(rid));
+	//sm->rawInputRequested = false;
 }
 
 void window_set_title(void* hwnd, const wchar_t* windowTitle) {
