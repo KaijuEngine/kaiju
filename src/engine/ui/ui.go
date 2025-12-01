@@ -196,6 +196,10 @@ func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.setDirtyInternal").End()
+	if ui.IsType(ElementTypeLabel) {
+		// TODO:  This isn't needed in some cases
+		ui.ToLabel().LabelData().renderRequired = true
+	}
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
