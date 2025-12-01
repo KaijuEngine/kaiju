@@ -108,3 +108,7 @@ const (
 func ContentFolderPath(child string) string {
 	return filepath.Join(ContentFolder, child)
 }
+
+func HtmlPath(id string) string {
+	return filepath.Join(ContentFolder, ContentHtmlFolder, id)
+}

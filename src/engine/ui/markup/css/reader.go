@@ -132,7 +132,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 						lastTargets = append(lastTargets, t)
 					}
 				}
-			case rules.ReadingPseudo:
+			case rules.ReadingPseudo, rules.ReadingPseudoFunction:
 				if p, ok := pseudos.PseudoMap[part.Name]; ok {
 					for i := range lastTargets {
 						if selects, err := p.Process(lastTargets[i], part); err == nil {

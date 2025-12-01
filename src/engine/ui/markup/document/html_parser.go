@@ -463,8 +463,20 @@ func (d *Document) Deactivate() {
 }
 
 func (d *Document) Destroy() {
-	for i := range d.Elements {
-		d.Elements[i].UI.Entity().Destroy()
+	for _, e := range d.TopElements {
+		if e.Parent.Value() != nil {
+			for i, c := range e.Parent.Value().Children {
+				if c == e {
+					parent := e.Parent.Value()
+					parent.Children = slices.Delete(parent.Children, i, i+1)
+					parent.UI.SetDirty(ui.DirtyTypeLayout)
+					break
+				}
+			}
+		}
+	}
+	for _, e := range d.Elements {
+		e.UI.Entity().Destroy()
 	}
 	clear(d.funcMap)
 	*d = Document{}

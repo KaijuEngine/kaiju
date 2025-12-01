@@ -72,6 +72,9 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		Parts: make([]SelectorPart, 0),
 	}
 	for _, val := range cssParser.Values() {
+		if string(val.Data) == "nth-child" {
+			println("tes")
+		}
 		switch val.TokenType {
 		case css.IdentToken:
 			fallthrough
@@ -97,7 +100,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			s.state = ReadingPseudoFunction
 			sel.Parts = append(sel.Parts, SelectorPart{
 				Name:       strings.TrimSuffix(string(val.Data), "("),
-				SelectType: ReadingId,
+				SelectType: ReadingPseudoFunction,
 			})
 		case css.RightParenthesisToken:
 			s.state = ReadingPseudo

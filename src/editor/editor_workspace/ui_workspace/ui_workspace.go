@@ -45,13 +45,16 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -66,18 +69,22 @@ type UIWorkspace struct {
 	editBtn     *document.Element
 	previewArea *document.Element
 	previewHelp *document.Element
+	ratioX      *document.Element
+	ratioY      *document.Element
 	updateId    engine.UpdateId
 	html        string
 	styles      []string
 	bindingData any
 	lastMod     time.Time
 	lastTime    float64
+	ratio       matrix.Vec2
 }
 
 func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterface) {
 	w.ed = ed
+	w.ratio = matrix.NewVec2(16, 9)
 	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/ui_workspace.go.html", nil, map[string]func(*document.Element){
+		"editor/ui/workspace/ui_workspace.go.html", w.ratio, map[string]func(*document.Element){
 			"clickEdit":         w.clickEdit,
 			"clickLoadData":     w.clickLoadData,
 			"changeWidthRatio":  w.changeWidthRatio,
@@ -86,13 +93,17 @@ func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterfac
 	w.editBtn, _ = w.Doc.GetElementById("editBtn")
 	w.previewArea, _ = w.Doc.GetElementById("previewArea")
 	w.previewHelp, _ = w.Doc.GetElementById("previewHelp")
+	w.ratioX, _ = w.Doc.GetElementById("ratioX")
+	w.ratioY, _ = w.Doc.GetElementById("ratioY")
 	w.previewMan.Init(host)
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
+	w.previewArea.UIPanel.DontFitContent()
 }
 
 func (w *UIWorkspace) Open() {
 	defer tracing.NewRegion("UIWorkspace.Open").End()
 	w.CommonOpen()
+	w.applyRatio()
 }
 
 func (w *UIWorkspace) Close() {
@@ -105,12 +116,11 @@ func (w *UIWorkspace) Hotkeys() []common_workspace.HotKey {
 }
 
 func (w *UIWorkspace) clickEdit(e *document.Element) {
-	id := e.Attribute("data-id")
-	if id == "" {
+	if w.html == "" {
 		return
 	}
 	path := project_file_system.ContentFolderPath(filepath.Join(
-		project_file_system.ContentHtmlFolder, id))
+		project_file_system.ContentHtmlFolder, w.html))
 	pfs := w.ed.ProjectFileSystem()
 	exec.Command("code", pfs.FullPath(""), pfs.FullPath(path)).Run()
 }
@@ -134,12 +144,45 @@ func (w *UIWorkspace) clickLoadData(e *document.Element) {
 	})
 }
 
-func (w *UIWorkspace) changeWidthRatio(e *document.Element) {
+func (w *UIWorkspace) changeWidthRatio(*document.Element)  { w.readRatio() }
+func (w *UIWorkspace) changeHeightRatio(*document.Element) { w.readRatio() }
 
+func (w *UIWorkspace) readRatio() {
+	if r, err := strconv.ParseFloat(w.ratioX.UI.ToInput().Text(), 64); err == nil {
+		w.ratio.SetX(float32(r))
+		w.applyRatio()
+	}
+	if r, err := strconv.ParseFloat(w.ratioY.UI.ToInput().Text(), 64); err == nil {
+		w.ratio.SetY(float32(r))
+		w.applyRatio()
+	}
 }
 
-func (w *UIWorkspace) changeHeightRatio(e *document.Element) {
-
+func (w *UIWorkspace) applyRatio() {
+	ww := matrix.Float(w.Host.Window.Width())
+	wh := matrix.Float(w.Host.Window.Height())
+	top := float32(24)
+	bottom := helpers.NumFromLength("3.3em", w.Host.Window)
+	drawArea := matrix.NewVec4(0, top, ww, wh-top-bottom)
+	drawW := drawArea.Z()
+	drawH := drawArea.W()
+	if w.ratio.X() <= 0 && w.ratio.Y() <= 0 {
+		w.previewArea.UI.Layout().Scale(drawW, drawH)
+		return
+	}
+	r := w.ratio
+	if w.ratio.X() <= 0 {
+		r.SetX(r.Y())
+	}
+	if w.ratio.Y() <= 0 {
+		r.SetX(r.X())
+	}
+	scaleW := drawW / r.X()
+	scaleH := drawH / r.Y()
+	scale := matrix.Min(scaleW, scaleH)
+	targetWidth := r.X() * scale
+	targetHeight := r.Y() * scale
+	w.previewArea.UI.Layout().Scale(targetWidth, targetHeight)
 }
 
 func (w *UIWorkspace) update(deltaTime float64) {
@@ -156,7 +199,8 @@ func (w *UIWorkspace) update(deltaTime float64) {
 }
 
 func (w *UIWorkspace) filesChanged() bool {
-	hs, hErr := os.Stat(w.html)
+	pfs := w.ed.ProjectFileSystem()
+	hs, hErr := pfs.Stat(filepath.Join(project_file_system.HtmlPath(w.html)))
 	if hErr != nil {
 		return false
 	}
@@ -184,13 +228,16 @@ func (w *UIWorkspace) pullStyles() {
 }
 
 func (w *UIWorkspace) OpenHtml(html string) {
+	if html == "" {
+		return
+	}
 	w.previewHelp.UI.Hide()
 	w.html = html
+	if w.previewDoc != nil {
+		w.previewDoc.Destroy()
+		w.previewDoc = nil
+	}
 	w.Host.RunOnMainThread(func() {
-		if w.previewDoc != nil {
-			w.previewDoc.Destroy()
-			w.previewDoc = nil
-		}
 		if doc, err := markup.DocumentFromHTMLAssetRooted(&w.previewMan,
 			w.html, w.bindingData, nil, w.previewArea); err == nil {
 			w.previewDoc = doc

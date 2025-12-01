@@ -3,10 +3,12 @@
 	<head>
 		<style>
 			#previewArea {
-				width: 100%;
-				top: 2em;
+				width: revert;
 				background-color: black;
-				height: calc(100% - 5.3em);
+				overflow: hidden;
+				left: 50%;
+				top: calc(50% - 12px);
+				transform: translate(-50% -50%);
 			}
 			#previewHelp {
 				background-color: black;
@@ -20,6 +22,11 @@
 				bottom: 1.3em;
 				background-color: #121212;
 				color: white;
+			}
+			input {
+				margin-left: 1em;
+				width: 10em;
+				height: 100%;
 			}
 		</style>
 	</head>
@@ -44,8 +51,8 @@
 		<div class="menu">
 			<button id="editBtn" data-id="" onclick="clickEdit">Edit HTML</button>
 			<button onclick="clickLoadData">Load mock data</button>
-			<input type="number" placeholder="Width ratio..." onsubmit="changeWidthRatio" />
-			<input type="number" placeholder="Width height..." onsubmit="changeHeightRatio" />
+			<input id="ratioX" type="number" placeholder="Width ratio..." value="{{.X}}" onsubmit="changeWidthRatio" />
+			<input id="ratioY" type="number" placeholder="Width height..." value="{{.Y}}" onsubmit="changeHeightRatio" />
 		</div>
 	</body>
 </html>
