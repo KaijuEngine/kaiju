@@ -902,14 +902,14 @@ void window_enable_raw_mouse(void* hwnd) {
 }
 
 void window_disable_raw_mouse(void* hwnd) {
-	//SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	//RAWINPUTDEVICE rid = {0};
-	//rid.usUsagePage = 0x01;
-	//rid.usUsage = 0x02;
-	//rid.dwFlags = RIDEV_REMOVE;
-	//rid.hwndTarget = NULL;  // Must be NULL for removal
-	//RegisterRawInputDevices(&rid, 1, sizeof(rid));
-	//sm->rawInputRequested = false;
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	RAWINPUTDEVICE rid = {0};
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = RIDEV_REMOVE;
+	rid.hwndTarget = NULL;  // Must be NULL for removal
+	RegisterRawInputDevices(&rid, 1, sizeof(rid));
+	sm->rawInputRequested = false;
 }
 
 void window_set_title(void* hwnd, const wchar_t* windowTitle) {
