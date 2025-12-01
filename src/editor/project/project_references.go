@@ -77,6 +77,8 @@ func (p *Project) FindReferencesWithCallback(id string, onFound func(ref Content
 		p.findReferencesMaterial,
 		p.findReferencesShader,
 		p.findReferencesTableOfContents,
+		p.findReferencesHtml,
+		p.findReferencesCss,
 		p.findReferencesCode,
 	}
 	for i := range funcs {
@@ -157,6 +159,28 @@ func (p *Project) findReferencesTableOfContents(id string, onFound func(ref Cont
 			return ContentReference{
 				Id:     name,
 				Source: content_database.TableOfContents{}.TypeName(),
+			}, nil
+		}, onFound)
+}
+
+func (p *Project) findReferencesHtml(id string, onFound func(ref ContentReference)) error {
+	defer tracing.NewRegion("Project.findReferencesHtml").End()
+	return p.findRefsOnFolderAndDo(id, project_file_system.ContentHtmlFolder,
+		func(name string, src []byte) (ContentReference, error) {
+			return ContentReference{
+				Id:     name,
+				Source: content_database.Html{}.TypeName(),
+			}, nil
+		}, onFound)
+}
+
+func (p *Project) findReferencesCss(id string, onFound func(ref ContentReference)) error {
+	defer tracing.NewRegion("Project.findReferencesCss").End()
+	return p.findRefsOnFolderAndDo(id, project_file_system.ContentCssFolder,
+		func(name string, src []byte) (ContentReference, error) {
+			return ContentReference{
+				Id:     name,
+				Source: content_database.Css{}.TypeName(),
 			}, nil
 		}, onFound)
 }

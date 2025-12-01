@@ -41,11 +41,15 @@ import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_stage_manager"
+	"kaiju/editor/project/project_database/content_database"
+	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 )
 
 // StageWorkspaceSelected will inform the editor that the developer has
@@ -220,6 +224,36 @@ func (ed *Editor) CreateNewEntity() {
 
 func (ed *Editor) CreateNewLight() {
 	ed.workspaces.stage.CreateNewLight()
+}
+
+func (ed *Editor) CreateHtmlUiFile(name string) {
+	tplPath := filepath.Join(project_file_system.ProjectFileTemplates,
+		"html_file_template.html.txt")
+	data, err := ed.project.FileSystem().ReadFile(tplPath)
+	if err != nil {
+		slog.Error("failed to read the html template file", "file", tplPath, "error", err)
+		return
+	}
+	t, err := template.New("Html").Parse(string(data))
+	if err != nil {
+		slog.Error("failed to parse the html template file", "file", tplPath, "error", err)
+		return
+	}
+	sb := strings.Builder{}
+	if err = t.Execute(&sb, name); err != nil {
+		slog.Error("failed to execute the html template", "file", tplPath, "error", err)
+		return
+	}
+	pfs := ed.ProjectFileSystem()
+	cache := ed.Cache()
+	ids := content_database.ImportRaw(name, []byte(sb.String()), content_database.Html{}, pfs, cache)
+	if len(ids) > 0 {
+		ed.events.OnContentAdded.Execute(ids)
+		cc, err := cache.Read(ids[0])
+		if err != nil {
+			exec.Command("code", pfs.FullPath(""), pfs.FullPath(cc.ContentPath())).Run()
+		}
+	}
 }
 
 func (ed *Editor) saveCurrentStageWithoutNameInput() {

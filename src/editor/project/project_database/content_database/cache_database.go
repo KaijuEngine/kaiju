@@ -75,6 +75,8 @@ type CachedContent struct {
 	Config ContentConfig
 }
 
+func (cc CachedContent) ContentPath() string { return ToContentPath(cc.Path) }
+
 // New will return a new instance of the cache database with it's members
 // pre-sized to an arbitrary amount to speed up initial loading
 func New() Cache {

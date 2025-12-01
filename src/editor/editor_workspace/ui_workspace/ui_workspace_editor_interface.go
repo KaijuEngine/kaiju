@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_workspace_editor_interface.go                                      */
+/* ui_workspace_editor_interface.go                                           */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,20 +35,16 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_workspace
+package ui_workspace
 
 import (
-	"kaiju/editor/editor_events"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 )
 
-type ContentWorkspaceEditorInterface interface {
-	Events() *editor_events.EditorEvents
+type UIWorkspaceEditorInterface interface {
 	ProjectFileSystem() *project_file_system.FileSystem
 	Cache() *content_database.Cache
-	ShowReferences(id string)
 	FocusInterface()
 	BlurInterface()
-	ViewHtmlUi(id string)
 }

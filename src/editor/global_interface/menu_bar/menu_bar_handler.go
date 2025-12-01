@@ -63,4 +63,5 @@ type MenuBarHandler interface {
 	CreateNewCamera()
 	CreateNewEntity()
 	CreateNewLight()
+	CreateHtmlUiFile(name string)
 }

@@ -39,6 +39,7 @@ package menu_bar
 
 import (
 	"kaiju/editor/editor_overlay/create_entity_data"
+	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
@@ -67,7 +68,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickLogo":             b.openMenuTarget,
 			"clickFile":             b.openMenuTarget,
 			"clickEdit":             b.openMenuTarget,
-			"clickEntity":           b.openMenuTarget,
+			"clickCreate":           b.openMenuTarget,
 			"clickHelp":             b.openMenuTarget,
 			"clickStage":            b.clickStage,
 			"clickContent":          b.clickContent,
@@ -78,13 +79,14 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickNewStage":         b.clickNewStage,
 			"clickOpenStage":        b.clickOpenStage,
 			"clickSaveStage":        b.clickSaveStage,
-			"clickCreateEntityData": b.clickCreateEntityData,
 			"clickOpenVSCode":       b.clickOpenVSCode,
 			"clickBuild":            b.clickBuild,
 			"clickBuildAndRun":      b.clickBuildAndRun,
 			"clickRunCurrentStage":  b.clickRunCurrentStage,
 			"clickBuildAndroid":     b.clickBuildAndroid,
 			"clickBuildRunAndroid":  b.clickBuildRunAndroid,
+			"clickCreateEntityData": b.clickCreateEntityData,
+			"clickCreateHtmlUi":     b.clickCreateHtmlUi,
 			"clickNewCamera":        b.clickNewCamera,
 			"clickNewEntity":        b.clickNewEntity,
 			"clickNewLight":         b.clickNewLight,
@@ -216,6 +218,24 @@ func (b *MenuBar) clickCreateEntityData(*document.Element) {
 	create_entity_data.Show(b.uiMan.Host, b.handler.ProjectFileSystem(), create_entity_data.Config{
 		OnCreate: b.handler.FocusInterface,
 		OnCancel: b.handler.FocusInterface,
+	})
+}
+
+func (b *MenuBar) clickCreateHtmlUi(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateHtmlUi").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	input_prompt.Show(b.uiMan.Host, input_prompt.Config{
+		Title:       "Name your HTML file",
+		Description: "Give a friendly name to your html file",
+		Placeholder: "Name...",
+		ConfirmText: "Create",
+		CancelText:  "Cancel",
+		OnCancel:    b.handler.FocusInterface,
+		OnConfirm: func(name string) {
+			b.handler.FocusInterface()
+			b.handler.CreateHtmlUiFile(name)
+		},
 	})
 }
 

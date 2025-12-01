@@ -1,8 +1,51 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<style>
+			#previewArea {
+				width: 100%;
+				top: 2em;
+				background-color: black;
+				height: calc(100% - 5.3em);
+			}
+			#previewHelp {
+				background-color: black;
+				color: white;
+				padding: 1em;
+			}
+			.menu {
+				position: absolute;
+				width: 100%;
+				height: 2em;
+				bottom: 1.3em;
+				background-color: #121212;
+				color: white;
+			}
+		</style>
 	</head>
 	<body>
-		<h1>Hello, UI!</h1>
+		<div id="previewArea">
+			<div id="previewHelp">
+				<h1>Select a file</h1>
+				<p>
+					- Open the content workspace, select a HTML file to preview,
+					then right-click on it and select "View in UI workspace".
+				</p>
+				<p>
+					- You can also click the "Edit HTML" button at the bottom of
+					this workspace to open the HTML file in a text editor.
+				</p>
+				<p>
+					- As you edit the file, this UI preview will dynamically
+					update to reflect your changes.
+				</p>
+			</div>
+		</div>
+		<div class="menu">
+			<button id="editBtn" data-id="" onclick="clickEdit">Edit HTML</button>
+			<button onclick="clickLoadData">Load mock data</button>
+			<input type="number" placeholder="Width ratio..." onsubmit="changeWidthRatio" />
+			<input type="number" placeholder="Width height..." onsubmit="changeHeightRatio" />
+		</div>
 	</body>
 </html>

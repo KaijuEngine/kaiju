@@ -300,7 +300,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						slider.SetValue(float32(f))
 					}
 				}
-			case "text":
+			case "text", "number":
 				input := panel.Base().ToInput()
 				input.Init(e.Attribute("placeholder"))
 				input.SetTextWithoutEvent(e.Attribute("value"))

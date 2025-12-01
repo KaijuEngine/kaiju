@@ -144,43 +144,10 @@ func (w *ContentWorkspace) createTableOfContents(name string) {
 		slog.Error("failed to serialize the table of contents", "error", err)
 		return
 	}
-	f, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-*.toc", name))
-	if err != nil {
-		slog.Error("failed to create temp content file for table of contents", "error", err)
-		return
+	ids := content_database.ImportRaw(name, data, content_database.TableOfContents{}, w.pfs, w.cache)
+	if len(ids) > 0 {
+		w.editor.Events().OnContentAdded.Execute(ids)
 	}
-	defer os.Remove(f.Name())
-	defer f.Close()
-	if _, err = f.Write(data); err != nil {
-		slog.Error("failed to write the temp content file for table of contents", "file", f.Name(), "error", err)
-		return
-	}
-	res, err := content_database.Import(f.Name(), w.pfs, w.cache, "")
-	if err != nil {
-		slog.Error("failed to import the temp content file for table of contents", "file", f.Name(), "error", err)
-		return
-	}
-	ids := make([]string, len(res))
-	for i := range res {
-		ids[i] = res[i].Id
-	}
-	defer w.editor.Events().OnContentAdded.Execute(ids)
-	if len(res) != 1 {
-		slog.Warn("table of contents created but name has not been set due to unexpected result count from import")
-		return
-	}
-	cc, err := w.cache.Read(res[0].Id)
-	if err != nil {
-		slog.Warn("failed to find the cache for the table of contents that was just imported, name is unset")
-		return
-	}
-	cc.Config.Name = name
-	cc.Config.SrcPath = ""
-	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
-		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
-		return
-	}
-	w.cache.Index(cc.Path, w.pfs)
 }
 
 func (w *ContentWorkspace) loadTableOfContents(id string) (table_of_contents.TableOfContents, bool) {

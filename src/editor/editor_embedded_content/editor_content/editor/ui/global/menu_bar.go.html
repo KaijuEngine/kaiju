@@ -57,7 +57,7 @@
 			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
 			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
 			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
-			<span class="menuEntry" data-target="entityPopup" onclick="clickEntity">Entity</span>
+			<span class="menuEntry" data-target="createPopup" onclick="clickCreate">Create</span>
 			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
 			<span id="tabStage" group="tabs" class="workspaceTab tabSelected" onclick="clickStage">Stage</span>
 			<span id="tabContent" group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
@@ -74,7 +74,6 @@
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
 			<div class="popupEntry" onclick="clickOpenStage">Open stage</div>
 			<div class="popupEntry" onclick="clickSaveStage">Save stage</div>
-			<div class="popupEntry" onclick="clickCreateEntityData">Create Entity Data</div>
 			<div class="popupEntry" onclick="clickOpenVSCode">Open VSCode</div>
 			<div class="popupEntry" onclick="clickBuild">Build Game</div>
 			<div class="popupEntry" onclick="clickBuildAndRun">Build and Run Game</div>
@@ -86,7 +85,9 @@
 			<div class="popupEntry" onclick="clickUndo">Undo</div>
 			<div class="popupEntry" onclick="clickRedo">Redo</div>
 		</div>
-		<div id="entityPopup" class="popup" onmiss="popupMiss">
+		<div id="createPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickCreateEntityData">Create Entity Data</div>
+			<div class="popupEntry" onclick="clickCreateHtmlUi">Create HTML UI</div>
 			<div class="popupEntry" onclick="clickNewCamera">New camera</div>
 			<div class="popupEntry" onclick="clickNewEntity">New entity</div>
 			<div class="popupEntry" onclick="clickNewLight">New light</div>

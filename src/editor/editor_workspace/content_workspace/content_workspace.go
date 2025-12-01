@@ -51,6 +51,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"os/exec"
 	"slices"
 	"strings"
 	"weak"
@@ -639,19 +640,36 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			Call:  w.requestCreateTableOfContents,
 		},
 	}
-	cc, err := w.cache.Read(id)
-	if err == nil && cc.Config.Type == (content_database.TableOfContents{}).TypeName() {
-		options = append(options, context_menu.ContextMenuOption{
-			Label: "Add to table of contents",
-			Call: func() {
-				if w.checkNoDuplicateNamesForTableOfContents() {
-					w.addSelectedToTableOfContents(id)
-				}
-			},
-		}, context_menu.ContextMenuOption{
-			Label: "View",
-			Call:  func() { w.showTableOfContents(id) },
-		})
+	if cc, err := w.cache.Read(id); err == nil {
+		isEditableText := cc.Config.Type == (content_database.Html{}).TypeName() ||
+			cc.Config.Type == (content_database.Css{}).TypeName()
+		if cc.Config.Type == (content_database.TableOfContents{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Add to table of contents",
+				Call: func() {
+					if w.checkNoDuplicateNamesForTableOfContents() {
+						w.addSelectedToTableOfContents(id)
+					}
+				},
+			}, context_menu.ContextMenuOption{
+				Label: "View",
+				Call:  func() { w.showTableOfContents(id) },
+			})
+		} else if cc.Config.Type == (content_database.Html{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "View in UI workspace",
+				Call:  func() { w.editor.ViewHtmlUi(id) },
+			})
+		}
+		if isEditableText {
+			pfs := w.editor.ProjectFileSystem()
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Edit in text editor",
+				Call: func() {
+					exec.Command("code", pfs.FullPath(""), pfs.FullPath(cc.ContentPath())).Run()
+				},
+			})
+		}
 	}
 	w.editor.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)

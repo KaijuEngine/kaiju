@@ -39,12 +39,55 @@ package content_database
 
 import (
 	"encoding/json"
+	"fmt"
 	"kaiju/debug"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 )
+
+func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string {
+	defer tracing.NewRegion("content_database.ImportRaw").End()
+	f, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-*.%s", name, cat.ExtNames()[0]))
+	if err != nil {
+		slog.Error("failed to create temp content file", "name", name, "error", err)
+		return []string{}
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	if _, err = f.Write(data); err != nil {
+		slog.Error("failed to write the temp content file", "file", f.Name(), "error", err)
+		return []string{}
+	}
+	res, err := Import(f.Name(), fs, cache, "")
+	if err != nil {
+		slog.Error("failed to import the temp content file", "file", f.Name(), "error", err)
+		return []string{}
+	}
+	ids := make([]string, len(res))
+	for i := range res {
+		ids[i] = res[i].Id
+	}
+	if len(res) != 1 {
+		slog.Warn("table of contents created but name has not been set due to unexpected result count from import")
+		return ids
+	}
+	cc, err := cache.Read(res[0].Id)
+	if err != nil {
+		slog.Warn("failed to find the cache for the table of contents that was just imported, name is unset")
+		return ids
+	}
+	cc.Config.Name = name
+	cc.Config.SrcPath = ""
+	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
+		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
+		return ids
+	}
+	cache.Index(cc.Path, fs)
+	return ids
+}
 
 func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) ([]ImportResult, error) {
 	defer tracing.NewRegion("content_database.Import").End()

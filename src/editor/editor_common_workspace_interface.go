@@ -81,3 +81,8 @@ func (ed *Editor) ShowReferences(id string) {
 	o, _ := reference_viewer.Show(ed.host, &ed.project, id)
 	o.OnClose.Add(ed.FocusInterface)
 }
+
+func (ed *Editor) ViewHtmlUi(id string) {
+	ed.setWorkspaceState(WorkspaceStateUI)
+	ed.workspaces.ui.OpenHtml(id)
+}
