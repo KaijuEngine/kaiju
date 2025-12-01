@@ -79,7 +79,7 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorIn
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
-	w.initAIActions()
+	w.initLLMActions()
 }
 
 func (w *StageWorkspace) Open() {

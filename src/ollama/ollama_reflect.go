@@ -38,9 +38,8 @@
 package ollama
 
 import (
+	"encoding/json"
 	"fmt"
-	"kaiju/debug"
-	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
@@ -55,11 +54,72 @@ var (
 
 type ToolFunc struct {
 	tool   Tool
-	fn     any
+	action LLMAction
 	argIdx map[int]string
 }
 
-func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string) error {
+type LLMAction interface {
+	Execute() (any, error)
+}
+
+type LLMActionResultBase struct {
+	Success bool   `json:"success" llmskip:"true"`
+	Error   string `json:"error" llmskip:"true"`
+}
+
+type FieldInfo struct {
+	Type     reflect.Type
+	JSON     string
+	Desc     string
+	Enum     []string
+	Optional bool
+}
+
+func (a *LLMActionResultBase) SetSuccess()                { a.Success = true }
+func (a *LLMActionResultBase) SetErrorMessage(msg string) { a.Error = msg }
+
+func extractJSONDescTags(a any) ([]FieldInfo, error) {
+	t := reflect.TypeOf(a)
+	if t == nil {
+		return nil, fmt.Errorf("nil value provided")
+	}
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("expected struct or pointer to struct, got %s", t.Kind())
+	}
+	var out []FieldInfo
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.PkgPath != "" {
+			continue
+		}
+		if _, ok := f.Tag.Lookup("llmskip"); ok {
+			continue
+		}
+		jsonTag := f.Tag.Get("json")
+		if jsonTag == "" {
+			continue
+		}
+		if idx := strings.Index(jsonTag, ","); idx != -1 {
+			jsonTag = jsonTag[:idx]
+		}
+		jsonTag = strings.TrimSpace(jsonTag)
+		descTag := f.Tag.Get("desc")
+		descTag = strings.TrimSpace(descTag)
+		out = append(out, FieldInfo{
+			Type:     f.Type,
+			JSON:     jsonTag,
+			Desc:     descTag,
+			Enum:     strings.Split(f.Tag.Get("enum"), ","),
+			Optional: f.Tag.Get("optional") != "",
+		})
+	}
+	return out, nil
+}
+
+func ReflectFuncToOllama(a LLMAction, name, description string) error {
 	defer tracing.NewRegion("ollama.reflectToOllama").End()
 	var err error
 	defer func() {
@@ -67,29 +127,42 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 			slog.Error("there was an error registering your function", "name", name, "error", err)
 		}
 	}()
-	fnT := reflect.ValueOf(fn).Type()
-	if fnT.Kind() != reflect.Func {
-		err = fmt.Errorf("the type '%s' is not a func", name)
-		return err
-	}
-	if fnT.NumOut() != 2 || fnT.Out(0).Kind() != reflect.String || !fnT.Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
-		err = fmt.Errorf("the function expects to have a string and error return")
-		return err
-	}
 	if _, ok := tools[name]; ok {
 		err = fmt.Errorf("a function named '%s' has already been registered", name)
 		return err
 	}
-	debug.Assert(len(argDescPair)/2 == fnT.NumIn(), "arg map name/description count missmatch")
-	tf := ToolFunc{Tool{Type: "function"}, fn, make(map[int]string)}
-	tf.tool.Function.Name = name
-	tf.tool.Function.Description = description
-	params := FunctionParameters{Type: "object", Properties: map[string]FunctionParameterProperty{}}
+	info, err := extractJSONDescTags(a)
+	if err != nil {
+		return err
+	}
+	var act LLMAction
+	if reflect.TypeOf(a).Kind() == reflect.Pointer {
+		act = a
+	} else {
+		origVal := reflect.ValueOf(a)
+		copyPtr := reflect.New(origVal.Type())
+		copyPtr.Elem().Set(origVal)
+		act = copyPtr.Interface().(LLMAction)
+	}
+	tf := ToolFunc{
+		tool: Tool{
+			Type: "function",
+			Function: Function{
+				Name:        name,
+				Description: description,
+			},
+		},
+		action: act,
+		argIdx: make(map[int]string),
+	}
+	params := FunctionParameters{
+		Type:       "object",
+		Properties: map[string]FunctionParameterProperty{},
+	}
 	required := []string{}
-	for i := 0; i < fnT.NumIn(); i++ {
-		arg := fnT.In(i)
+	for i := range info {
 		var jsonType string
-		switch arg.Kind() {
+		switch info[i].Type.Kind() {
 		case reflect.String:
 			jsonType = "string"
 		case reflect.Bool:
@@ -106,24 +179,20 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 		default:
 			jsonType = "string"
 		}
-		name := strings.TrimSpace(argDescPair[i*2])
-		desc := strings.TrimSpace(argDescPair[i*2+1])
-		enum := []string{}
-		enumMatch := enumRe.FindAllStringSubmatch(desc, 1)
-		if len(enumMatch) > 0 && len(enumMatch[0]) > 1 {
-			enum = strings.Split(enumMatch[0][1], ",")
-			for i := range enum {
-				enum[i] = strings.Trim(strings.TrimSpace(enum[i]), "'")
-			}
-			desc = strings.ReplaceAll(desc, enumMatch[0][0], "")
-		}
-		params.Properties[name] = FunctionParameterProperty{
+		name := info[i].JSON
+		prop := FunctionParameterProperty{
 			Type:        jsonType,
-			Description: desc,
-			Enum:        enum,
+			Description: info[i].Desc,
+			Enum:        info[i].Enum,
 		}
+		if len(info[i].Enum) > 0 {
+			prop.Description += fmt.Sprintf("(enum ['%s'])", strings.Join(info[i].Enum, "','"))
+		}
+		params.Properties[name] = prop
 		tf.argIdx[i] = name
-		required = append(required, name)
+		if !info[i].Optional {
+			required = append(required, name)
+		}
 	}
 	params.Required = required
 	tf.tool.Function.Parameters = params
@@ -131,77 +200,17 @@ func ReflectFuncToOllama(fn any, name, description string, argDescPair ...string
 	return nil
 }
 
-func callToolFunc(call ToolCall) (string, error) {
+func callToolFunc(call ToolCall) (any, error) {
 	tool, ok := tools[call.Function.Name]
 	if !ok {
-		return "", fmt.Errorf("no tool named '%s' found", call.Function.Name)
+		return nil, fmt.Errorf("no tool named '%s' found", call.Function.Name)
 	}
-	fnVal := reflect.ValueOf(tool.fn)
-	fnType := fnVal.Type()
-	if fnType.Kind() != reflect.Func {
-		return "", fmt.Errorf("stored value for '%s' is not a function", call.Function.Name)
+	j, err := json.Marshal(call.Function.Arguments)
+	if err != nil {
+		return nil, err
 	}
-	args := make([]reflect.Value, fnType.NumIn())
-	if fnType.NumIn() != len(call.Function.Arguments) {
-		return "", fmt.Errorf("not enough arguments, expected %d, got %d",
-			fnType.NumIn(), len(call.Function.Arguments))
+	if err = json.Unmarshal(j, tool.action); err != nil {
+		return nil, err
 	}
-	for i := range fnType.NumIn() {
-		paramType := fnType.In(i)
-		v, ok := call.Function.Arguments[tool.argIdx[i]]
-		if !ok {
-			for j := range tool.argIdx {
-				delete(call.Function.Arguments, tool.argIdx[j])
-			}
-			return "", fmt.Errorf("invalid parameter name supplied: '%s'",
-				strings.Join(klib.MapKeys(call.Function.Arguments), "', '"))
-		}
-		val := reflect.ValueOf(v)
-		if val.Type().AssignableTo(paramType) {
-			args[i] = val
-			continue
-		}
-		// Handle JSON number (float64) conversion to target numeric type
-		if val.Kind() == reflect.Float64 {
-			switch paramType.Kind() {
-			case reflect.Int:
-				args[i] = reflect.ValueOf(int(val.Float()))
-			case reflect.Int8:
-				args[i] = reflect.ValueOf(int8(val.Float()))
-			case reflect.Int16:
-				args[i] = reflect.ValueOf(int16(val.Float()))
-			case reflect.Int32:
-				args[i] = reflect.ValueOf(int32(val.Float()))
-			case reflect.Int64:
-				args[i] = reflect.ValueOf(int64(val.Float()))
-			case reflect.Uint:
-				args[i] = reflect.ValueOf(uint(val.Float()))
-			case reflect.Uint8:
-				args[i] = reflect.ValueOf(uint8(val.Float()))
-			case reflect.Uint16:
-				args[i] = reflect.ValueOf(uint16(val.Float()))
-			case reflect.Uint32:
-				args[i] = reflect.ValueOf(uint32(val.Float()))
-			case reflect.Uint64:
-				args[i] = reflect.ValueOf(uint64(val.Float()))
-			case reflect.Float32:
-				args[i] = reflect.ValueOf(float32(val.Float()))
-			case reflect.Float64:
-				args[i] = val
-			default:
-				// Unsupported conversion
-				return "", fmt.Errorf("cannot convert float64 to %s for parameter %d of function '%s'", paramType.Kind(), i, call.Function.Name)
-			}
-			continue
-		}
-		// If we reach here, no suitable conversion found
-		return "", fmt.Errorf("could not find suitable argument for parameter %d of function '%s'", i, call.Function.Name)
-	}
-	out := fnVal.Call(args)
-	msg := out[0].String()
-	var err error
-	if i := out[1].Interface(); i != nil {
-		err = i.(error)
-	}
-	return msg, err
+	return tool.action.Execute()
 }

@@ -46,7 +46,6 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -331,15 +330,26 @@ func callInternal(hostAddr string, request APIRequest) (APIResponse, error) {
 	return result, nil
 }
 
-func toToolPayload(call ToolCall, str string, err error) string {
+func toToolPayload(call ToolCall, res any, err error) string {
 	if err != nil {
 		return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
+	} else if res == nil {
+		return fmt.Sprintf(`{"tool":"%s","success":true}`, call.Function.Name)
 	} else {
-		str = strings.TrimSpace(str)
-		if str != "" {
-			return fmt.Sprintf(`{"tool":"%s","success":true,"content":"%s"}`, call.Function.Name, str)
-		} else {
-			return fmt.Sprintf(`{"tool":"%s","success":false}`, call.Function.Name)
+		j, err := json.Marshal(res)
+		if err != nil {
+			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
 		}
+		var tmp map[string]any
+		if err = json.Unmarshal(j, &tmp); err != nil {
+			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
+		}
+		if _, ok := tmp["success"]; !ok {
+			tmp["success"] = true
+		}
+		if j, err = json.Marshal(tmp); err != nil {
+			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
+		}
+		return string(j)
 	}
 }
