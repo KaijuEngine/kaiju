@@ -150,6 +150,7 @@ func (w *ContentWorkspace) Open() {
 		w.rightBody.UI.Hide()
 	}
 	w.Doc.Clean()
+	w.runFilter()
 }
 
 func (w *ContentWorkspace) Close() {
