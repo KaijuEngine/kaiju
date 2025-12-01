@@ -101,7 +101,7 @@ func (slider *Slider) onLayoutUpdating() {
 	ps := (*Slider)(pp)
 	wh = pp.Base().layout.ContentSize()
 	fl.Scale(wh.Height()/2, wh.Height())
-	ps.SetValue(ps.Value())
+	ps.SetValueWithoutEvent(ps.Value())
 }
 
 func (slider *Slider) update(deltaTime float64) {
@@ -130,12 +130,16 @@ func (slider Slider) Value() float32 {
 	return slider.SliderData().value
 }
 
-func (slider *Slider) SetValue(value float32) {
+func (slider *Slider) SetValueWithoutEvent(value float32) {
 	ld := slider.SliderData()
 	ld.value = matrix.Clamp(value, 0, 1)
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
 	x := matrix.Clamp((w * ld.value), 0, w-ld.fgPanel.entity.Transform.WorldScale().X())
 	ld.fgPanel.layout.SetInnerOffsetLeft(x)
+}
+
+func (slider *Slider) SetValue(value float32) {
+	slider.SetValueWithoutEvent(value)
 	(*UI)(slider).changed()
 }
 

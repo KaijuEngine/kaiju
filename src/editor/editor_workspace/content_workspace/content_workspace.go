@@ -53,6 +53,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"weak"
 )
 
 type ContentWorkspace struct {
@@ -72,6 +73,7 @@ type ContentWorkspace struct {
 	tooltip           *document.Element
 	pageData          WorkspaceUIData
 	isListMode        bool
+	audio             ContentAudioView
 	info              struct {
 		multiSelectNote  *document.Element
 		nameInput        *document.Element
@@ -88,6 +90,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.pfs = editor.ProjectFileSystem()
 	w.cache = editor.Cache()
 	w.editor = editor
+	w.audio.workspace = weak.Make(w)
 	ids := w.pageData.SetupUIData(w.cache)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
@@ -109,6 +112,8 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"entryMouseLeave":     w.entryMouseLeave,
 			"rightClickContent":   w.rightClickContent,
 			"clickClearSelection": w.clickClearSelection,
+			"clickPlayAudio":      w.clickPlayAudio,
+			"changeAudioPosition": w.changeAudioPosition,
 		})
 	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
@@ -123,10 +128,12 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
+	w.audio.audioPlayer, _ = w.Doc.GetElementById("audioPlayer")
 	edEvts := w.editor.Events()
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentAdded.Execute(ids)
+	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
 
 func (w *ContentWorkspace) Open() {
@@ -418,6 +425,7 @@ func (w *ContentWorkspace) showRightPanel() {
 	} else {
 		w.info.multiSelectNote.UI.Hide()
 	}
+	w.audio.setAudioPanelVisibility(w.selectedContent[0])
 }
 
 func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
@@ -652,6 +660,16 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 func (w *ContentWorkspace) clickClearSelection(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
 	w.clearSelection()
+}
+
+func (w *ContentWorkspace) clickPlayAudio(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.audio.playAudioId(w.selectedIds()[0])
+}
+
+func (w *ContentWorkspace) changeAudioPosition(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.audio.setAudioPosition(e.UI.ToSlider().Value())
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
