@@ -52,7 +52,8 @@ import (
 	"reflect"
 )
 
-// //////////////////////////////////////////////////////////////////////////////
+const EntryPointAssetKey = "entryPointStage"
+
 type Stage struct {
 	Id       string
 	Entities []EntityDescription
@@ -66,9 +67,6 @@ type StageJson struct {
 	Entities  []EntityDescriptionJson `json:",omitempty"`
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-// //////////////////////////////////////////////////////////////////////////////
 type EntityDescription struct {
 	Id             string
 	TemplateId     string
@@ -98,15 +96,11 @@ type EntityDescriptionJson struct {
 	Children    []EntityDescriptionJson `json:"Kids,omitempty"`
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-// //////////////////////////////////////////////////////////////////////////////
 type EntityDataBinding struct {
 	RegistraionKey string
 	Fields         map[string]any `json:",omitempty"`
 }
 
-// //////////////////////////////////////////////////////////////////////////////
 func debugEnsureStructsMatch() {
 	if build.Debug {
 		ra := reflect.TypeFor[Stage]()
@@ -279,12 +273,23 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 	meshId := se.Mesh
 	materialId := se.Material
 	textureIds := se.Textures
-	kmData, err := ad.Read(meshId)
-	if err != nil {
-		slog.Error("failed to load the mesh data", "id", meshId, "error", err)
-		return nil, err
+	var km kaiju_mesh.KaijuMesh
+	var err error
+	// TODO:  Should these just be in the content database (no switch)?
+	switch meshId {
+	case "quad":
+		km.Verts, km.Indexes = rendering.MeshQuadData()
+	case "plane":
+		km.Verts, km.Indexes = rendering.MeshPlaneData()
+	default:
+		var kmData []byte
+		kmData, err = ad.Read(meshId)
+		if err != nil {
+			slog.Error("failed to load the mesh data", "id", meshId, "error", err)
+			return nil, err
+		}
+		km, err = kaiju_mesh.Deserialize(kmData)
 	}
-	km, err := kaiju_mesh.Deserialize(kmData)
 	if err != nil {
 		slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
 		return nil, err

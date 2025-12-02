@@ -97,7 +97,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 )
 
 type Game struct{}
@@ -131,10 +130,15 @@ func (Game) ContentDatabase() (assets.Database, error) {
 }
 
 func (Game) Launch(host *engine.Host) {
-	startStage := "stage_main"
-	if engine.LaunchParams.StartStage != "" {
-		startStage = "stage_" + strings.TrimPrefix(
-			engine.LaunchParams.StartStage, "stage_")
+	startStage := engine.LaunchParams.StartStage
+	if startStage == "" {
+		var err error
+		startStage, err = host.AssetDatabase().ReadText(stages.EntryPointAssetKey)
+		if err != nil {
+			slog.Error("failed to read the entry point stage id from the asset database", "key", stages.EntryPointAssetKey, "error", err)
+			host.Close()
+			return
+		}
 	}
 	stageData, err := host.AssetDatabase().Read(startStage)
 	if err != nil {

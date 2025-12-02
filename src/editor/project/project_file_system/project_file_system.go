@@ -64,6 +64,7 @@ var (
 		ContentConfigFolder,
 		SrcFolder,
 		StockFolder,
+		DebugFolder,
 	}, srcFolders...)
 	contentStructure = []string{
 		ContentAudioFolder,

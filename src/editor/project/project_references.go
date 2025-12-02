@@ -226,7 +226,7 @@ func (p *Project) findReferencesCode(id string, onFound func(ref ContentReferenc
 
 func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, src []byte) (ContentReference, error), onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.findRefsOnFolderAndDo").End()
-	dir := project_file_system.ContentFolderPath(folder)
+	dir := filepath.Join(project_file_system.ContentFolder, folder)
 	entries, err := p.fileSystem.ReadDir(dir)
 	if err != nil {
 		slog.Error("failed to read the target content", "error", err)

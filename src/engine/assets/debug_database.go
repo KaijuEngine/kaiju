@@ -52,20 +52,27 @@ func (DebugContentDatabase) CacheRemove(key string)        { /* No caching plann
 func (DebugContentDatabase) CacheClear()                   { /* No caching planned*/ }
 func (DebugContentDatabase) Close()                        {}
 
+var cachedKeys = map[string]string{}
+
 func findDebugDatabaseFile(key string) string {
-	finalPath := ""
-	if filepath.Ext(key) != "" {
-		return "database/stock/" + key
+	if path, ok := cachedKeys[key]; ok {
+		return path
 	}
-	filepath.Walk("database/content", func(path string, info fs.FileInfo, err error) error {
-		if finalPath != "" {
-			return nil
-		}
-		if info.Name() == key {
-			finalPath = path
-		}
-		return nil
-	})
+	finalPath := ""
+	paths := []string{"database/stock", "database/content", "database/debug"}
+	for i := 0; i < len(paths) && finalPath == ""; i++ {
+		filepath.Walk(paths[i], func(path string, info fs.FileInfo, err error) error {
+			name := info.Name()
+			cachedKeys[name] = path
+			if finalPath != "" {
+				return err
+			}
+			if name == key {
+				finalPath = path
+			}
+			return err
+		})
+	}
 	return finalPath
 }
 

@@ -54,7 +54,6 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -124,10 +123,9 @@ func (w *UIWorkspace) clickEdit(e *document.Element) {
 	if w.html == "" {
 		return
 	}
-	path := project_file_system.ContentFolderPath(filepath.Join(
-		project_file_system.ContentHtmlFolder, w.html))
+	path := project_file_system.HtmlPath(w.html)
 	pfs := w.ed.ProjectFileSystem()
-	exec.Command("code", pfs.FullPath(""), pfs.FullPath(path)).Run()
+	exec.Command("code", pfs.FullPath(""), pfs.FullPath(path.String())).Run()
 }
 
 func (w *UIWorkspace) clickLoadData(e *document.Element) {
@@ -205,7 +203,7 @@ func (w *UIWorkspace) update(deltaTime float64) {
 func (w *UIWorkspace) processFilesChanges() {
 	pfs := w.ed.ProjectFileSystem()
 	htmlChanged := false
-	if s, err := pfs.Stat(project_file_system.HtmlPath(w.html)); err == nil && s.ModTime().After(w.lastMod) {
+	if s, err := pfs.Stat(project_file_system.HtmlPath(w.html).String()); err == nil && s.ModTime().After(w.lastMod) {
 		htmlChanged = true
 	}
 	for f := 0; f < len(w.styles) && !htmlChanged; f++ {

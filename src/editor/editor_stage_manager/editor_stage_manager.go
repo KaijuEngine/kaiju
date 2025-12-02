@@ -68,8 +68,6 @@ import (
 	"github.com/KaijuEngine/uuid"
 )
 
-const StageIdPrefix = "stage_"
-
 // StageManager represents the current stage in the editor. It contains all of
 // the entities on the stage.
 type StageManager struct {
@@ -79,6 +77,7 @@ type StageManager struct {
 	OnEntityDeselected    events.EventWithArg[*StageEntity]
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
 	stageId               string
+	stageName             string
 	host                  *engine.Host
 	editorUI              EditorUserInterface
 	history               *memento.History
@@ -113,13 +112,14 @@ func (m *StageManager) NewStage() {
 func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
 
-func (m *StageManager) SetStageId(id string, cache *content_database.Cache) error {
+func (m *StageManager) SetStageId(name string, cache *content_database.Cache) error {
 	defer tracing.NewRegion("StageManager.SetStageId").End()
-	newId := StageIdPrefix + id
+	newId := uuid.NewString()
 	if _, err := cache.Read(newId); err == nil {
-		return StageAlreadyExistsError{id}
+		return StageAlreadyExistsError{newId}
 	}
 	m.stageId = newId
+	m.stageName = name
 	return nil
 }
 
@@ -370,12 +370,11 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		return err
 	}
 	// TODO:  Run through the stage importer?
-	configPath := filepath.Join(project_file_system.ContentConfigFolder,
-		project_file_system.ContentStageFolder, m.stageId)
+	configPath := project_file_system.StagePath(m.stageId).ToConfigPath()
 	cfg := content_database.ContentConfig{}
-	cfg.Name = strings.TrimPrefix(m.stageId, StageIdPrefix)
+	cfg.Name = m.stageName
 	cfg.Type = content_database.Stage{}.TypeName()
-	f2, err := fs.Create(configPath)
+	f2, err := fs.Create(configPath.String())
 	if err != nil {
 		return err
 	}
@@ -384,7 +383,7 @@ func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file
 		// TODO:  Roll back
 		return err
 	}
-	if err := cache.Index(configPath, fs); err != nil {
+	if err := cache.Index(configPath.String(), fs); err != nil {
 		// TODO:  Roll back
 		return err
 	}
@@ -423,6 +422,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 		}
 	}
 	m.stageId = id
+	m.stageName = cc.Config.Name
 	return nil
 }
 

@@ -38,6 +38,7 @@
 package content_archive
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
@@ -46,6 +47,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"unsafe"
@@ -56,6 +58,7 @@ func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"
 type SourceContent struct {
 	Key              string
 	FullPath         string
+	RawData          []byte
 	CustomSerializer func(rawData []byte) ([]byte, error)
 }
 
@@ -94,8 +97,23 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 		return fmt.Errorf("no assets were provided to archive")
 	}
 	entries := make([]Asset, 0, len(files))
+	buff := bytes.NewBuffer([]byte{})
+	obfData := make([]byte, 0)
 	for i := range files {
-		srcData, err := os.ReadFile(files[i].FullPath)
+		var err error
+		buff.Reset()
+		if len(files[i].RawData) > 0 {
+			_, err = buff.ReadFrom(bytes.NewReader(files[i].RawData))
+		} else {
+			var f *os.File
+			if f, err = os.Open(files[i].FullPath); err == nil {
+				_, err = buff.ReadFrom(f)
+			}
+		}
+		if err != nil {
+			return err
+		}
+		srcData := buff.Bytes()
 		if files[i].CustomSerializer != nil {
 			srcData, err = files[i].CustomSerializer(srcData)
 		}
@@ -103,7 +121,8 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 			return err
 		}
 		crc := crc32.ChecksumIEEE(srcData)
-		obfData := make([]byte, len(srcData))
+		obfData = obfData[:0]
+		obfData = slices.Grow(obfData, len(srcData))
 		copy(obfData, srcData)
 		keyLen := len(key)
 		if keyLen > 0 {

@@ -37,7 +37,13 @@
 
 package project_file_system
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
+
+type ContentPath string
+type ConfigPath string
 
 const (
 	DatabaseFolder      = "database"
@@ -45,6 +51,7 @@ const (
 	ContentConfigFolder = "database/config"
 	SrcFolder           = "database/src"
 	StockFolder         = "database/stock"
+	DebugFolder         = "database/debug"
 	ProjectConfigFile   = "database/project.json"
 )
 
@@ -96,19 +103,25 @@ const (
 	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
 )
 
-// ContentFolderPath returns the full filesystem path to a child entry inside
-// the project's content folder. It joins the base `ContentFolder` constant with
-// the supplied relative `child` path using the OS‑specific separator.
-//
-// Parameters:
-//   child - a relative path (file or sub‑directory) within the content folder.
-//
-// Returns:
-//   A string containing the absolute path to the specified child.
-func ContentFolderPath(child string) string {
-	return filepath.Join(ContentFolder, child)
+func AsContentPath(path string) ContentPath {
+	return ContentPath(filepath.ToSlash(path))
 }
 
-func HtmlPath(id string) string {
-	return filepath.Join(ContentFolder, ContentHtmlFolder, id)
+func HtmlPath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentHtmlFolder, id))
+}
+
+func StagePath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentStageFolder, id))
+}
+
+func (p ContentPath) String() string { return string(p) }
+func (p ConfigPath) String() string  { return string(p) }
+
+func (p ContentPath) ToConfigPath() ConfigPath {
+	return ConfigPath(strings.Replace(string(p), ContentFolder, ContentConfigFolder, 1))
+}
+
+func (p ConfigPath) ToContentPath() ContentPath {
+	return ContentPath(strings.Replace(string(p), ContentConfigFolder, ContentFolder, 1))
 }

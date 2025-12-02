@@ -48,6 +48,7 @@ type Settings struct {
 	ArchiveEncryptionKey string
 	EditorVersion        float64 `visible:"false"`
 	Android              AndroidSettings
+	EntryPointStage      string
 }
 
 type AndroidSettings struct {

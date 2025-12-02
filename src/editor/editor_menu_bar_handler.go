@@ -40,7 +40,6 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
@@ -189,18 +188,7 @@ func (ed *Editor) SaveCurrentStage() {
 			CancelText:  "Cancel",
 			OnConfirm: func(name string) {
 				ed.FocusInterface()
-				name = strings.TrimSpace(name)
-				if name != "" {
-					if err := sm.SetStageId(name, ed.Cache()); err != nil {
-						slog.Error("failed to save stage", "error", err)
-						return
-					}
-					ed.saveCurrentStageWithoutNameInput()
-					id := sm.StageId()
-					ed.events.OnContentAdded.Execute([]string{id})
-				} else {
-					slog.Error("name was blank for the stage, can't save")
-				}
+				ed.saveNewStage(strings.TrimSpace(name))
 			},
 			OnCancel: func() { ed.FocusInterface() },
 		})
@@ -266,9 +254,31 @@ func (ed *Editor) saveCurrentStageWithoutNameInput() {
 }
 
 func (ed *Editor) ensureMainStageExists() bool {
-	if _, err := ed.Cache().Read(editor_stage_manager.StageIdPrefix + "main"); err != nil {
-		slog.Error("failed to build, no stage named 'main' found")
+	if ed.project.Settings().EntryPointStage == "" {
+		slog.Error("failed to build, 'main stage' not set in project settings")
 		return false
 	}
 	return true
+}
+
+func (ed *Editor) saveNewStage(name string) {
+	if name == "" {
+		slog.Error("name was blank for the stage, can't save")
+		return
+	}
+	sm := ed.stageView.Manager()
+	if err := sm.SetStageId(name, ed.Cache()); err != nil {
+		slog.Error("failed to save stage", "error", err)
+		return
+	}
+	ed.saveCurrentStageWithoutNameInput()
+	id := sm.StageId()
+	ed.events.OnContentAdded.Execute([]string{id})
+	// If the entry point stage hasn't yet been created in the
+	// settings, assume that this stage will be the one.
+	ps := ed.project.Settings()
+	if ps.EntryPointStage == "" {
+		ps.EntryPointStage = id
+		ps.Save(ed.project.FileSystem())
+	}
 }

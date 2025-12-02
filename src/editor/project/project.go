@@ -48,6 +48,7 @@ import (
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/systems/events"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -282,12 +283,23 @@ func (p *Project) Package() error {
 			FullPath: p.fileSystem.FullPath(filepath.Join(project_file_system.StockFolder, name)),
 		})
 	}
+	files = append(files, content_archive.SourceContent{
+		Key:     stages.EntryPointAssetKey,
+		RawData: []byte(p.settings.EntryPointStage),
+	})
 	err = content_archive.CreateArchiveFromFiles(outPath,
 		files, []byte(p.settings.ArchiveEncryptionKey))
 	if err != nil {
 		slog.Error("failed to package game content", "error", err)
 	} else {
 		slog.Info("successfully packaged game content", "path", outPath)
+	}
+	// Find any explicitly set keys and add them to the debug folder
+	for i := range files {
+		if len(files[i].RawData) > 0 {
+			path := filepath.Join(project_file_system.DebugFolder, files[i].Key)
+			p.fileSystem.WriteFile(path, files[i].RawData, os.ModePerm)
+		}
 	}
 	return err
 }
