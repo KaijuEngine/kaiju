@@ -51,6 +51,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -73,6 +74,7 @@ type UIWorkspace struct {
 	ratioY      *document.Element
 	updateId    engine.UpdateId
 	html        string
+	data        string
 	styles      []string
 	bindingData any
 	lastMod     time.Time
@@ -104,6 +106,9 @@ func (w *UIWorkspace) Open() {
 	defer tracing.NewRegion("UIWorkspace.Open").End()
 	w.CommonOpen()
 	w.applyRatio()
+	if w.html != "" {
+		w.previewHelp.UI.Hide()
+	}
 }
 
 func (w *UIWorkspace) Close() {
@@ -138,6 +143,7 @@ func (w *UIWorkspace) clickLoadData(e *document.Element) {
 		OnlyFiles:    true,
 		OnConfirm: func(paths []string) {
 			w.ed.FocusInterface()
+			w.data = paths[0]
 			w.bindingData = loadBindingData(paths[0])
 			w.OpenHtml(w.html)
 		},
@@ -191,28 +197,30 @@ func (w *UIWorkspace) update(deltaTime float64) {
 	}
 	w.lastTime -= deltaTime
 	if w.lastTime <= 0 {
-		if w.filesChanged() {
-			w.OpenHtml(w.html)
-		}
+		w.processFilesChanges()
 		w.lastTime = updateInterval
 	}
 }
 
-func (w *UIWorkspace) filesChanged() bool {
+func (w *UIWorkspace) processFilesChanges() {
 	pfs := w.ed.ProjectFileSystem()
-	hs, hErr := pfs.Stat(filepath.Join(project_file_system.HtmlPath(w.html)))
-	if hErr != nil {
-		return false
+	htmlChanged := false
+	if s, err := pfs.Stat(project_file_system.HtmlPath(w.html)); err == nil && s.ModTime().After(w.lastMod) {
+		htmlChanged = true
 	}
-	if hs.ModTime().After(w.lastMod) {
-		return true
-	}
-	for f := range w.styles {
+	for f := 0; f < len(w.styles) && !htmlChanged; f++ {
 		if s, e := os.Stat(w.styles[f]); e == nil && s.ModTime().After(w.lastMod) {
-			return true
+			htmlChanged = true
 		}
 	}
-	return false
+	if s, err := os.Stat(w.data); err == nil && s.ModTime().After(w.lastMod) {
+		w.bindingData = loadBindingData(w.data)
+		htmlChanged = true
+	}
+	if htmlChanged {
+		w.OpenHtml(w.html)
+		w.lastMod = time.Now()
+	}
 }
 
 func (w *UIWorkspace) pullStyles() {
@@ -248,7 +256,8 @@ func (w *UIWorkspace) OpenHtml(html string) {
 }
 
 func loadBindingData(bindingFile string) any {
-	if _, err := os.Stat(bindingFile); os.IsNotExist(err) {
+	if _, err := os.Stat(bindingFile); err != nil {
+		slog.Error("failed to load the data file", "file", bindingFile, "error", err)
 		return nil
 	}
 	bindingData, err := filesystem.ReadTextFile(bindingFile)
