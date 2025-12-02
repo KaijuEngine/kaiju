@@ -47,6 +47,8 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
+const uiFile = "editor/ui/workspace/settings_workspace.go.html"
+
 type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
 	projectSettingsBox *document.Element
@@ -54,6 +56,7 @@ type SettingsWorkspace struct {
 	editor             SettingsWorkspaceEditorInterface
 	editorSettings     *editor_settings.Settings
 	projectSettings    *project.Settings
+	reloadRequested    bool
 }
 
 type settingsWorkspaceData struct {
@@ -65,23 +68,16 @@ func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspa
 	w.editor = editor
 	w.editorSettings = editor.Settings()
 	w.projectSettings = editor.Project().Settings()
-	listings := map[string][]ui.SelectOption{}
-	data := settingsWorkspaceData{
-		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
-		Project: common_workspace.ReflectUIStructure(w.projectSettings, "", listings),
-	}
-	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/settings_workspace.go.html", data, map[string]func(*document.Element){
-			"showProjectSettings": w.showProjectSettings,
-			"showEditorSettings":  w.showEditorSettings,
-			"valueChanged":        w.valueChanged,
-		})
-	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
-	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
+	w.CommonWorkspace.InitializeWithUI(host, uiFile, w.uiData(), w.funcMap())
+	w.reloadedUI()
 }
 
 func (w *SettingsWorkspace) Open() {
 	defer tracing.NewRegion("SettingsWorkspace.Open").End()
+	if w.reloadRequested {
+		w.ReloadUI(uiFile, w.uiData(), w.funcMap())
+		w.reloadedUI()
+	}
 	w.CommonOpen()
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
@@ -104,6 +100,8 @@ func (w *SettingsWorkspace) Close() {
 func (w *SettingsWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
+
+func (w *SettingsWorkspace) RequestReload() { w.reloadRequested = true }
 
 func (w *SettingsWorkspace) resetLeftEntrySelection() {
 	for _, elm := range w.Doc.GetElementsByClass("leftEntry") {
@@ -133,4 +131,36 @@ func (w *SettingsWorkspace) valueChanged(e *document.Element) {
 	} else if w.projectSettingsBox.UI.Entity().IsActive() {
 		common_workspace.SetObjectValueFromUI(w.projectSettings, e)
 	}
+}
+
+func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
+	listings := map[string][]ui.SelectOption{}
+	return settingsWorkspaceData{
+		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
+		Project: common_workspace.ReflectUIStructure(w.projectSettings, "", listings),
+	}
+}
+
+func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
+	return map[string]func(*document.Element){
+		"showProjectSettings": w.showProjectSettings,
+		"showEditorSettings":  w.showEditorSettings,
+		"valueChanged":        w.valueChanged,
+	}
+}
+
+func (w *SettingsWorkspace) reloadedUI() {
+	w.reloadRequested = false
+	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
+	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
+}
+
+func isUnderParentId(e *document.Element, id string) bool {
+	p := e
+	for p != nil {
+		if p.Attribute("id") == id {
+			return true
+		}
+	}
+	return false
 }

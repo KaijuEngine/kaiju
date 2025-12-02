@@ -280,5 +280,6 @@ func (ed *Editor) saveNewStage(name string) {
 	if ps.EntryPointStage == "" {
 		ps.EntryPointStage = id
 		ps.Save(ed.project.FileSystem())
+		ed.workspaces.settings.RequestReload()
 	}
 }

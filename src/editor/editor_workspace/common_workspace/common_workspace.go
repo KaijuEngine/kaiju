@@ -56,9 +56,19 @@ func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, w
 	defer tracing.NewRegion("CommonWorkspace.InitializeWithUI").End()
 	w.Host = host
 	w.UiMan.Init(host)
+	return w.ReloadUI(htmlPath, withData, funcMap)
+}
+
+func (w *CommonWorkspace) ReloadUI(htmlPath string, withData any, funcMap map[string]func(*document.Element)) error {
+	if w.Doc != nil {
+		w.Doc.Destroy()
+		w.Doc = nil
+	}
 	var err error
 	w.Doc, err = markup.DocumentFromHTMLAsset(&w.UiMan, htmlPath, withData, funcMap)
-	w.Doc.Deactivate()
+	if err == nil {
+		w.Doc.Deactivate()
+	}
 	return err
 }
 
