@@ -71,7 +71,8 @@ type Group struct {
 }
 
 func (group *Group) HasRequests() bool {
-	return group.hadRequests != requestStateNone
+	return group.hadRequests != requestStateNone ||
+		group.IsFocusedOnInput()
 }
 
 func (group *Group) triggerRequestStartState() {
