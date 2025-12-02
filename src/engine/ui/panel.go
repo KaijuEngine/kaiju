@@ -453,6 +453,12 @@ func (p *Panel) panelPostLayoutUpdate() {
 	ws := p.entity.Transform.WorldScale()
 	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, bounds.Y()-ws.Y()))
 	if !matrix.Vec2Roughly(last, pd.maxScroll) {
+		if pd.scrollBarX != nil {
+			pd.scrollBarY.Base().Show()
+		}
+		if pd.scrollBarY != nil {
+			pd.scrollBarY.Base().Show()
+		}
 		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
@@ -719,6 +725,9 @@ func (p *Panel) updateScrollBars() {
 	pd := p.PanelData()
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
+	}
+	if p.entity.Name() == "entryList" {
+		println("...")
 	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
