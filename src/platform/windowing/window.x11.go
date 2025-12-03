@@ -210,10 +210,5 @@ func (w *Window) addBorder() {
 	klib.NotYetImplemented(234)
 }
 
-func (w Window) disableRawMouse() {
-	klib.NotYetImplemented(234)
-}
-
-func (w Window) enableRawMouse() {
-	klib.NotYetImplemented(234)
-}
+func (w Window) disableRawMouse() { /* Don't think this is needed for X11 */ }
+func (w Window) enableRawMouse()  { /* Don't think this is needed for X11 */ }
