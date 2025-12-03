@@ -55,6 +55,13 @@ func knownPaths() map[string]string {
 	}
 	if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
 		out["UserHome"] = userHome
+		common := []string{"Desktop", "Documents", "Downloads", "Music", "Pictures", "Videos"}
+		for i := range common {
+			p := filepath.Join(userHome, common[i])
+			if s, err := os.Stat(p); err == nil && s.IsDir() {
+				out[common[i]] = p
+			}
+		}
 	}
 	return out
 }
