@@ -49,10 +49,14 @@ import (
 )
 
 func knownPaths() map[string]string {
-	return map[string]string{
+	out := map[string]string{
 		"Root": "/",
 		"Home": "/home",
 	}
+	if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
+		out["UserHome"] = userHome
+	}
+	return out
 }
 
 func imageDirectory() (string, error) {
