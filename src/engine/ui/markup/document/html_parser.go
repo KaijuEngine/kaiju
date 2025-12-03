@@ -128,7 +128,7 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 	}
 	runtime.AddCleanup(d, func(dc documentCleanup) {
 		h := dc.host.Value()
-		if h != nil {
+		if h != nil && h.Window != nil {
 			h.Window.OnResize.Remove(dc.eid)
 		}
 	}, documentCleanup{d.host, d.onWindowResizeId})
