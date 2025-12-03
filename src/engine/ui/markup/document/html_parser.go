@@ -41,6 +41,7 @@ import (
 	"html/template"
 	"kaiju/debug"
 	"kaiju/engine"
+	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/elements"
@@ -49,6 +50,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -88,16 +90,17 @@ var funcMap = template.FuncMap{
 //}{}
 
 type Document struct {
-	host          weak.Pointer[engine.Host]
-	Elements      []*Element
-	TopElements   []*Element
-	HeadElements  []*Element
-	groups        map[string][]*Element
-	ids           map[string]*Element
-	classElements map[string][]*Element
-	tagElements   map[string][]*Element
-	style         rules.StyleSheet
-	stylizer      Stylizer
+	host             weak.Pointer[engine.Host]
+	Elements         []*Element
+	TopElements      []*Element
+	HeadElements     []*Element
+	onWindowResizeId events.Id
+	groups           map[string][]*Element
+	ids              map[string]*Element
+	classElements    map[string][]*Element
+	tagElements      map[string][]*Element
+	style            rules.StyleSheet
+	stylizer         Stylizer
 	// TODO:  Should this be here?
 	firstInput *ui.Input
 	lastInput  *ui.Input
@@ -112,6 +115,23 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 	d.stylizer = stylizer
 	d.host = weak.Make(host)
 	d.stylizer.ApplyStyles(d.style, d)
+	wd := weak.Make(d)
+	d.onWindowResizeId = host.Window.OnResize.Add(func() {
+		sd := wd.Value()
+		if sd != nil {
+			sd.ApplyStyles()
+		}
+	})
+	type documentCleanup struct {
+		host weak.Pointer[engine.Host]
+		eid  events.Id
+	}
+	runtime.AddCleanup(d, func(dc documentCleanup) {
+		h := dc.host.Value()
+		if h != nil {
+			h.Window.OnResize.Remove(dc.eid)
+		}
+	}, documentCleanup{d.host, d.onWindowResizeId})
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {

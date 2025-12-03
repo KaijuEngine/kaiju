@@ -63,9 +63,22 @@ type Selector struct {
 	Parts []SelectorPart
 }
 
+type MediaQuery struct {
+	Key   string
+	Value string
+}
+
 type SelectorGroup struct {
-	Selectors []Selector
-	Rules     []Rule
+	Selectors  []Selector
+	Rules      []Rule
+	MediaQuery MediaQuery
+}
+
+func (m *MediaQuery) IsValid() bool { return m.Key != "" }
+
+func (m *MediaQuery) Clear() {
+	m.Key = ""
+	m.Value = ""
 }
 
 func (s *SelectorGroup) AddRule(r Rule) {

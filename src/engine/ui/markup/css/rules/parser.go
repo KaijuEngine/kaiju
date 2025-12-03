@@ -53,10 +53,22 @@ type StyleSheet struct {
 }
 
 func (s *StyleSheet) addGroup() {
-	s.Groups = append(s.Groups, SelectorGroup{
+	g := SelectorGroup{
 		Selectors: make([]Selector, 0),
 		Rules:     make([]Rule, 0),
-	})
+	}
+	if len(s.Groups) > 0 {
+		g.MediaQuery = s.Groups[len(s.Groups)-1].MediaQuery
+	}
+	s.Groups = append(s.Groups, g)
+}
+
+func (s *StyleSheet) setGroupMediaQuery(mediaQuery MediaQuery) {
+	s.Groups[len(s.Groups)-1].MediaQuery = mediaQuery
+}
+
+func (s *StyleSheet) clearGroupMediaQuery() {
+	s.Groups[len(s.Groups)-1].MediaQuery.Clear()
 }
 
 func (s *StyleSheet) removeLastGroup() {
@@ -72,9 +84,6 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		Parts: make([]SelectorPart, 0),
 	}
 	for _, val := range cssParser.Values() {
-		if string(val.Data) == "nth-child" {
-			println("tes")
-		}
 		switch val.TokenType {
 		case css.IdentToken:
 			fallthrough
@@ -190,15 +199,36 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 		case css.CommentGrammar:
 			// Do nothing
 		case css.BeginAtRuleGrammar:
+			q := MediaQuery{}
+			for _, val := range cssParser.Values() {
+				if val.TokenType == css.WhitespaceToken {
+					continue
+				}
+				v := string(val.Data)
+				switch v {
+				case "(", ":", ")":
+				default:
+					if q.Key == "" {
+						q.Key = v
+					} else {
+						q.Value = v
+					}
+				}
+			}
+			s.setGroupMediaQuery(q)
 		case css.AtRuleGrammar:
-		case css.EndAtRuleGrammar:
 		case css.QualifiedRuleGrammar:
+			s.addGroup()
 			if s.state < ReadingProperty {
 				s.readSelector(cssParser)
 			}
 		case css.BeginRulesetGrammar:
 			s.readSelector(cssParser)
 			s.state = ReadingProperty
+		case css.EndAtRuleGrammar:
+			s.state = ReadingTag
+			s.addGroup()
+			s.clearGroupMediaQuery()
 		case css.EndRulesetGrammar:
 			s.state = ReadingTag
 			s.addGroup()

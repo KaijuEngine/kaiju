@@ -39,6 +39,7 @@ package css
 
 import (
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/pseudos"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
@@ -180,6 +181,18 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
+		if group.MediaQuery.IsValid() {
+			switch group.MediaQuery.Key {
+			case "screen":
+			case "max-width":
+				v := helpers.NumFromLength(group.MediaQuery.Value, z.Window)
+				if int(v) <= z.Window.Width() {
+					continue
+				}
+			default:
+				continue
+			}
+		}
 		for _, sel := range group.Selectors {
 			if len(sel.Parts) == 1 {
 				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)
