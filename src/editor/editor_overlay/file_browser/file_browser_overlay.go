@@ -217,6 +217,9 @@ func (fb *FileBrowser) update(float64) {
 	if kb.KeyDown(hid.KeyboardKeyUp) || kb.KeyDown(hid.KeyboardKeyDown) {
 		// We start at 1 because of the template being 0
 		idx := 1
+		if len(fb.entryListElm.Children) <= 1 {
+			return
+		}
 		if len(fb.selected) > 0 {
 			last := fb.selected[len(fb.selected)-1]
 			if kb.KeyDown(hid.KeyboardKeyUp) {
