@@ -43,7 +43,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os/exec"
 	"time"
@@ -223,7 +223,7 @@ func Stream(hostAddr string, request APIRequest, reader func(APIResponse) error,
 			}
 			var result APIResponse
 			if err := json.Unmarshal([]byte(line), &result); err != nil {
-				log.Println("Failed to parse Ollama response:", err)
+				slog.Error("Failed to parse Ollama response", "error", err)
 				continue
 			}
 			if len(result.Message.ToolCalls) > 0 {

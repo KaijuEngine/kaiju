@@ -726,9 +726,6 @@ func (p *Panel) updateScrollBars() {
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
 	}
-	if p.entity.Name() == "entryList" {
-		println("...")
-	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
 	if pd.scrollBarX != nil {
