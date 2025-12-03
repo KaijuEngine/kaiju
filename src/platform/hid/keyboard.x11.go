@@ -1,3 +1,5 @@
+//go:build linux && !android
+
 /******************************************************************************/
 /* keyboard.x11.go                                                            */
 /******************************************************************************/
@@ -34,8 +36,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build linux && !android
 
 package hid
 
@@ -105,13 +105,13 @@ func ToKeyboardKey(nativeKey int) KeyboardKey {
 		return KeyboardKeyY
 	case 0x007A:
 		return KeyboardKeyZ
-	case 0x08FB:
+	case 0xFF51:
 		return KeyboardKeyLeft
-	case 0x08FC:
+	case 0xFF52:
 		return KeyboardKeyUp
-	case 0x08FD:
+	case 0xFF53:
 		return KeyboardKeyRight
-	case 0x08FE:
+	case 0xFF54:
 		return KeyboardKeyDown
 	case 0xFF1B:
 		return KeyboardKeyEscape
