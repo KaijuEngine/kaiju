@@ -1,3 +1,40 @@
+/******************************************************************************/
+/* content_config.go                                                          */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package content_database
 
 import (
@@ -34,6 +71,24 @@ type ContentConfig struct {
 	// ContentCategory.TypeName() and can not be changed by the developer.
 	Type string
 
+	// SrcPath is the path to the file that was used to import this content. If
+	// the path is within the project folder, then a relative path will be used.
+	// If the path is outside of the project folder, an absolute path will be
+	// used. This path is not guarenteed to exist, as the developer may have
+	// moved or deleted the file.
+	SrcPath string
+
+	// SrcName is the name given to this content when it was imported by the
+	// source file. This name is not allowed to be changed, it is mainly used
+	// for re-importing content.
+	SrcName string
+
+	// LinkedId will contain a unique identifier across all content that was
+	// linked to a single file import. This field will be empty if there is no
+	// other linked content to this one. All content that is linked together
+	// will have the same LinkedId.
+	LinkedId string `json:",omitempty"`
+
 	// Documentation for each of the fields below can be read by going to the
 	// definition of the type directly. As more categories of content are added
 	// in the future, they should be added to the list below. Feel free to keep
@@ -60,6 +115,7 @@ func (c *ContentConfig) NameLower() string { return strings.ToLower(c.Name) }
 // return false. It will also return false if the tag is invalid. In both pass
 // and failed cases, it will return the cleaned tag value.
 func (c *ContentConfig) AddTag(tag string) (string, bool) {
+	defer tracing.NewRegion("ContentConfig.AddTag").End()
 	tag = strings.TrimSpace(tag)
 	if strings.TrimSpace(tag) == "" {
 		slog.Warn("the tag name supplied was empty, skipping")
@@ -76,6 +132,7 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 // RemoveTag will attempt to locate the tag (case insensitive) and remove it. If
 // it finds the tag and removes it, this will return true, otherwise false.
 func (c *ContentConfig) RemoveTag(tag string) bool {
+	defer tracing.NewRegion("ContentConfig.RemoveTag").End()
 	for i := range c.Tags {
 		if strings.EqualFold(c.Tags[i], tag) {
 			c.Tags = slices.Delete(c.Tags, i, i+1)
@@ -88,6 +145,7 @@ func (c *ContentConfig) RemoveTag(tag string) bool {
 // ToContentPath is an auxiliary function to simplify getting the matching
 // content path relative to the project file system.
 func ToContentPath(configPath string) string {
+	defer tracing.NewRegion("content_database.ToContentPath").End()
 	configPath = filepath.ToSlash(configPath)
 	if strings.HasPrefix(configPath, project_file_system.ContentConfigFolder) {
 		return strings.Replace(configPath, project_file_system.ContentConfigFolder,

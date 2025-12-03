@@ -1,6 +1,46 @@
+/******************************************************************************/
+/* content_workspace.go                                                       */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package content_workspace
 
 import (
+	"fmt"
+	"kaiju/editor/editor_overlay/confirm_prompt"
+	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -8,26 +48,35 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
-	"path/filepath"
+	"os/exec"
 	"slices"
 	"strings"
+	"weak"
 )
 
-type Workspace struct {
+type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
 	pfs               *project_file_system.FileSystem
-	cCache            *content_database.Cache
+	cache             *content_database.Cache
+	editor            ContentWorkspaceEditorInterface
 	typeFilters       []string
 	tagFilters        []string
 	query             string
+	contentList       *document.Element
 	entryTemplate     *document.Element
 	tagFilterTemplate *document.Element
 	addTagbtn         *document.Element
-	selectedContent   *document.Element
+	selectedContent   []*document.Element
+	rightBody         *document.Element
+	tooltip           *document.Element
 	pageData          WorkspaceUIData
+	isListMode        bool
+	audio             ContentAudioView
 	info              struct {
+		multiSelectNote  *document.Element
 		nameInput        *document.Element
 		tagList          *document.Element
 		entryTagTemplate *document.Element
@@ -37,62 +86,84 @@ type Workspace struct {
 	}
 }
 
-type WorkspaceUIData struct {
-	Filters []string
-	Tags    []string
-}
-
-func (w *Workspace) Initialize(host *engine.Host, pfs *project_file_system.FileSystem, cdb *content_database.Cache) {
-	w.pfs = pfs
-	w.cCache = cdb
-	for _, cat := range content_database.ContentCategories {
-		w.pageData.Filters = append(w.pageData.Filters, cat.TypeName())
-	}
-	list := w.cCache.List()
-	ids := make([]string, 0, len(list))
-	for i := range list {
-		ids = append(ids, list[i].Id())
-		for j := range list[i].Config.Tags {
-			w.pageData.Tags = klib.AppendUnique(w.pageData.Tags, list[i].Config.Tags[j])
-		}
-	}
+func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspaceEditorInterface) {
+	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
+	w.pfs = editor.ProjectFileSystem()
+	w.cache = editor.Cache()
+	w.editor = editor
+	w.audio.workspace = weak.Make(w)
+	ids := w.pageData.SetupUIData(w.cache)
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
-			"inputFilter":    w.inputFilter,
-			"tagFilter":      w.tagFilter,
-			"clickImport":    w.clickImport,
-			"clickFilter":    w.clickFilter,
-			"clickEntry":     w.clickEntry,
-			"clickDeleteTag": w.clickDeleteTag,
-			"updateTagHint":  w.updateTagHint,
-			"submitNewTag":   w.submitNewTag,
-			"clickTagHint":   w.clickTagHint,
+			"inputFilter":         w.inputFilter,
+			"tagFilter":           w.tagFilter,
+			"clickImport":         w.clickImport,
+			"toggleListView":      w.toggleListView,
+			"clickFilter":         w.clickFilter,
+			"clickEntry":          w.clickEntry,
+			"clickDeleteTag":      w.clickDeleteTag,
+			"updateTagHint":       w.updateTagHint,
+			"submitNewTag":        w.submitNewTag,
+			"clickTagHint":        w.clickTagHint,
+			"submitName":          w.submitName,
+			"clickReimport":       w.clickReimport,
+			"clickDelete":         w.clickDelete,
+			"entryMouseEnter":     w.entryMouseEnter,
+			"entryMouseMove":      w.entryMouseMove,
+			"entryMouseLeave":     w.entryMouseLeave,
+			"rightClickContent":   w.rightClickContent,
+			"clickClearSelection": w.clickClearSelection,
+			"clickPlayAudio":      w.clickPlayAudio,
+			"changeAudioPosition": w.changeAudioPosition,
 		})
+	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
 	w.addTagbtn, _ = w.Doc.GetElementById("addTagbtn")
+	w.rightBody, _ = w.Doc.GetElementById("rightBody")
+	w.info.multiSelectNote, _ = w.Doc.GetElementById("multiSelectNote")
 	w.info.nameInput, _ = w.Doc.GetElementById("entryName")
 	w.info.tagList, _ = w.Doc.GetElementById("entryTags")
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
-	w.addContent(ids)
+	w.tooltip, _ = w.Doc.GetElementById("tooltip")
+	w.audio.audioPlayer, _ = w.Doc.GetElementById("audioPlayer")
+	edEvts := w.editor.Events()
+	edEvts.OnContentAdded.Add(w.addContent)
+	edEvts.OnFocusContent.Add(w.focusContent)
+	edEvts.OnContentAdded.Execute(ids)
+	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
 
-func (w *Workspace) Open() {
+func (w *ContentWorkspace) Open() {
+	defer tracing.NewRegion("ContentWorkspace.Open").End()
 	w.CommonOpen()
 	w.entryTemplate.UI.Hide()
 	w.tagFilterTemplate.UI.Hide()
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
+	w.tooltip.UI.Hide()
+	if w.selectedContent == nil {
+		w.rightBody.UI.Hide()
+	}
 	w.Doc.Clean()
+	w.runFilter()
 }
 
-func (w *Workspace) Close() { w.CommonClose() }
+func (w *ContentWorkspace) Close() {
+	defer tracing.NewRegion("ContentWorkspace.Close").End()
+	w.CommonClose()
+}
 
-func (w *Workspace) clickImport(*document.Element) {
+func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
+	return []common_workspace.HotKey{}
+}
+
+func (w *ContentWorkspace) clickImport(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
 	file_browser.Show(w.Host, file_browser.Config{
 		ExtFilter:   content_database.ImportableTypes,
@@ -101,78 +172,121 @@ func (w *Workspace) clickImport(*document.Element) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
 			for i := range paths {
-				res, err := content_database.Import(paths[i], w.pfs, w.cCache)
-				if err != nil {
-					slog.Error("failed to import content", "path", paths[i], "error", err)
-				} else {
-					var addDependencies func(target *content_database.ImportResult)
-					addDependencies = func(target *content_database.ImportResult) {
-						index = append(index, target.Id)
-						for i := range res.Dependencies {
-							addDependencies(&target.Dependencies[i])
+				res, err := content_database.Import(paths[i], w.pfs, w.cache, "")
+				for j := range res {
+					if err != nil {
+						slog.Error("failed to import content", "path", paths[i], "error", err)
+					} else {
+						var addDependencies func(target *content_database.ImportResult)
+						addDependencies = func(target *content_database.ImportResult) {
+							index = append(index, target.Id)
+							for k := range target.Dependencies {
+								addDependencies(&target.Dependencies[k])
+							}
 						}
+						addDependencies(&res[j])
 					}
-					addDependencies(&res)
 				}
 			}
-			w.addContent(index)
+			w.editor.Events().OnContentAdded.Execute(index)
 		}, OnCancel: func() {
 			w.UiMan.EnableUpdate()
 		},
 	})
 }
 
-func (w *Workspace) addContent(ids []string) {
+func (w *ContentWorkspace) toggleListView(e *document.Element) {
+	if w.isListMode {
+		w.disableListMode()
+		w.Doc.SetElementClassesWithoutApply(e, "leftBtn")
+	} else {
+		w.enableListMode()
+		w.Doc.SetElementClassesWithoutApply(e, "leftBtn", "filterSelected")
+	}
+	w.Doc.ApplyStyles()
+	w.contentList.UIPanel.SetScrollY(0)
+}
+
+func (w *ContentWorkspace) addContent(ids []string) {
+	defer tracing.NewRegion("ContentWorkspace.addContent").End()
 	if len(ids) == 0 {
 		return
 	}
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cCache.Read(ids[i])
+		cc, err := w.cache.Read(ids[i])
 		if err != nil {
 			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
 			continue
 		}
 		ccAll = append(ccAll, cc)
 	}
-	cpys := w.Doc.DuplicateElementRepeat(w.entryTemplate, len(ccAll))
+	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
-		cpys[i].SetAttribute("id", cc.Id())
+		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
-		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
+		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
-		img := cpys[i].Children[0].UI.ToPanel()
-		if cc.Config.Type == (content_database.Texture{}).TypeName() {
-			// Loose goroutine
-			go func() {
-				path := content_database.ToContentPath(cc.Path)
-				key := filepath.Base(path)
-				data, err := w.pfs.ReadFile(path)
-				if err != nil {
-					slog.Error("error reading the image file", "path", path)
-					return
-				}
-				td := rendering.ReadRawTextureData(data, rendering.TextureFileFormatPng)
-				tex, err := w.Host.TextureCache().InsertTexture(key, td.Mem,
-					td.Width, td.Height, rendering.TextureFilterLinear)
-				if err != nil {
-					slog.Error("failed to insert the texture to the cache", "error", err)
-					return
-				}
-				img.SetBackground(tex)
-			}()
+		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		tex, err := w.Host.TextureCache().Texture(
+			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
+			rendering.TextureFilterLinear)
+		if err == nil {
+			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *ContentWorkspace) focusContent(id string) {
+	defer tracing.NewRegion("ContentWorkspace.focusContent").End()
+	if !w.Doc.IsActive() {
+		return
+	}
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		slog.Warn("could not locate the content in the content workspace", "id", id)
+		return
+	}
+	w.clickEntry(elm)
+}
+
+func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
+	img := e.Children[0].UI.ToPanel()
+	if typeName == (content_database.Texture{}).TypeName() {
+		// goroutine
+		go func() {
+			path := content_database.ToContentPath(configPath)
+			data, err := w.pfs.ReadFile(path)
+			if err != nil {
+				slog.Error("error reading the image file", "path", path)
+				return
+			}
+			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
+				data, 0, 0, rendering.TextureFilterLinear)
+			if err != nil {
+				slog.Error("failed to insert the texture to the cache", "error", err)
+				return
+			}
+			w.Host.RunOnMainThread(func() {
+				tex.DelayedCreate(w.Host.Window.Renderer)
+				img.SetBackground(tex)
+			})
+		}()
 	}
 }
 
-func (w *Workspace) inputFilter(e *document.Element) {
+func (w *ContentWorkspace) inputFilter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.inputFilter").End()
 	w.query = strings.ToLower(e.UI.ToInput().Text())
 	// TODO:  Regex out the filters like tag:..., type:..., etc.
 	w.runFilter()
 }
 
-func (w *Workspace) tagFilter(e *document.Element) {
+func (w *ContentWorkspace) tagFilter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.tagFilter").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	tagElms := w.Doc.GetElementsByGroup("tag")[1:]
 	for i := range tagElms {
@@ -186,7 +300,8 @@ func (w *Workspace) tagFilter(e *document.Element) {
 	}
 }
 
-func (w *Workspace) clickFilter(e *document.Element) {
+func (w *ContentWorkspace) clickFilter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
 	isSelected := slices.Contains(e.ClassList(), "filterSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
@@ -211,47 +326,134 @@ func (w *Workspace) clickFilter(e *document.Element) {
 	w.runFilter()
 }
 
-func (w *Workspace) clickEntry(e *document.Element) {
-	id := e.Attribute("id")
-	cc, err := w.cCache.Read(id)
+func (w *ContentWorkspace) clearSelection() {
+	for i := range w.selectedContent {
+		w.Doc.SetElementClassesWithoutApply(w.selectedContent[i],
+			w.unselectedEntryClasses()...)
+	}
+	w.Doc.ApplyStyles()
+	w.selectedContent = klib.WipeSlice(w.selectedContent)
+	w.hideRightPanel()
+}
+
+func (w *ContentWorkspace) selectedEntryClasses() []string {
+	if w.isListMode {
+		return []string{"entry", "wide", "selected"}
+	} else {
+		return []string{"entry", "selected"}
+	}
+}
+
+func (w *ContentWorkspace) unselectedEntryClasses() []string {
+	if w.isListMode {
+		return []string{"entry", "wide"}
+	} else {
+		return []string{"entry"}
+	}
+}
+
+func (w *ContentWorkspace) appendSelected(e *document.Element) {
+	w.selectedContent = append(w.selectedContent, e)
+	w.Doc.SetElementClasses(e, w.selectedEntryClasses()...)
+}
+
+func (w *ContentWorkspace) removeSelected(e *document.Element) {
+	w.Doc.SetElementClasses(e, w.unselectedEntryClasses()...)
+	w.selectedContent = klib.SlicesRemoveElement(w.selectedContent, e)
+}
+
+func (w *ContentWorkspace) clickEntry(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickEntry").End()
+	if len(w.selectedContent) == 1 && w.selectedContent[0] == e {
+		return
+	}
+	kb := &w.Host.Window.Keyboard
+	if kb.HasShift() && len(w.selectedContent) > 0 {
+		list := w.selectedContent[0].Parent.Value()
+		from := list.IndexOfChild(e)
+		idx := list.IndexOfChild(w.selectedContent[len(w.selectedContent)-1])
+		if from == idx {
+			return
+		}
+		if idx < from {
+			from, idx = idx, from
+		}
+		for i := from; i <= idx; i++ {
+			t := list.Children[i]
+			if slices.Contains(w.selectedContent, t) {
+				continue
+			}
+			w.appendSelected(t)
+		}
+	} else if kb.HasCtrl() && slices.Contains(w.selectedContent, e) {
+		w.removeSelected(e)
+	} else {
+		if !kb.HasCtrl() {
+			w.clearSelection()
+		}
+		w.appendSelected(e)
+	}
+	w.showRightPanel()
+	e.Parent.Value().UI.ToPanel().ScrollToChild(e.UI)
+}
+
+func (w *ContentWorkspace) hideRightPanel() {
+	w.rightBody.UI.Hide()
+}
+
+func (w *ContentWorkspace) showRightPanel() {
+	if len(w.selectedContent) == 0 {
+		return
+	}
+	id := w.selectedContent[0].Attribute("id")
+	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	if w.selectedContent != nil {
-		w.Doc.SetElementClasses(w.selectedContent, "entry")
-	}
-	w.selectedContent = e
-	w.Doc.SetElementClasses(w.selectedContent, "entry", "entrySelected")
+	w.rightBody.UI.Show()
 	for i := len(w.info.tagList.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.tagList.Children[i])
 	}
 	w.info.nameInput.UI.ToInput().SetText(cc.Config.Name)
 	cpys := w.Doc.DuplicateElementRepeat(w.info.entryTagTemplate, len(cc.Config.Tags))
 	for i := range cpys {
-		cpys[i].Children[0].Children[0].UI.ToLabel().SetText(cc.Config.Tags[i])
+		cpys[i].Children[0].InnerLabel().SetText(cc.Config.Tags[i])
 		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
 		cpys[i].UI.Show()
 	}
+	if len(w.selectedContent) > 1 {
+		w.info.multiSelectNote.UI.Show()
+	} else {
+		w.info.multiSelectNote.UI.Hide()
+	}
+	w.audio.setAudioPanelVisibility(w.selectedContent[0])
 }
 
-func (w *Workspace) clickDeleteTag(e *document.Element) {
-	id := w.selectedId()
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
-		return
-	}
+func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickDeleteTag").End()
+	ids := w.selectedIds()
+	found := false
 	tag := e.Attribute("data-tag")
-	if cc.Config.RemoveTag(tag) {
-		w.updateIndexForCachedContent(&cc)
-	} else {
+	for _, id := range ids {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to delete tag from content", "id", id, "error", err)
+			continue
+		}
+		if cc.Config.RemoveTag(tag) {
+			w.updateIndexForCachedContent(&cc)
+		}
+		found = true
+	}
+	if !found {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
 	w.Doc.RemoveElement(e.Parent.Value())
 }
 
-func (w *Workspace) updateTagHint(e *document.Element) {
+func (w *ContentWorkspace) updateTagHint(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.updateTagHint").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
 	for i := len(w.info.newTagHint.Children) - 1; i >= 1; i-- {
 		w.Doc.RemoveElement(w.info.newTagHint.Children[i])
@@ -272,13 +474,14 @@ func (w *Workspace) updateTagHint(e *document.Element) {
 	}
 	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
 	for i := range cpys {
-		cpys[i].Children[0].UI.ToLabel().SetText(options[i])
+		cpys[i].InnerLabel().SetText(options[i])
 		cpys[i].UI.Show()
 	}
 	w.info.newTagHint.UI.Show()
 }
 
-func (w *Workspace) submitNewTag(e *document.Element) {
+func (w *ContentWorkspace) submitNewTag(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.submitNewTag").End()
 	input := e.UI.ToInput()
 	txt := input.Text()
 	if strings.TrimSpace(txt) == "" {
@@ -288,24 +491,225 @@ func (w *Workspace) submitNewTag(e *document.Element) {
 	input.SetTextWithoutEvent("")
 }
 
-func (w *Workspace) clickTagHint(e *document.Element) {
-	w.addTagToSelected(e.Children[0].UI.ToLabel().Text())
+func (w *ContentWorkspace) clickTagHint(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickTagHint").End()
+	w.addTagToSelected(e.InnerLabel().Text())
 	w.info.newTagHint.UI.Hide()
 	w.info.newTagInput.UI.ToInput().SetTextWithoutEvent("")
 }
 
-func (w *Workspace) addTagToSelected(tag string) {
-	id := w.selectedId()
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+func (w *ContentWorkspace) submitName(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.submitName").End()
+	name := strings.TrimSpace(e.UI.ToInput().Text())
+	if name == "" {
+		slog.Warn("The name for the content can't be left blank, ignoring change")
 		return
 	}
-	var ok bool
-	if tag, ok = cc.Config.AddTag(tag); ok {
-		w.updateIndexForCachedContent(&cc)
+	ids := w.selectedIds()
+	for _, id := range ids {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the content by id", "id", id, "error", err)
+			continue
+		}
+		cc.Config.Name = name
+		if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
+			slog.Error("failed to update the content config file", "id", id, "error", err)
+			continue
+		}
+		for i := range w.selectedContent {
+			w.selectedContent[i].Children[1].InnerLabel().SetText(name)
+		}
+		w.cache.Index(cc.Path, w.pfs)
+		w.editor.Events().OnContentRenamed.Execute(id)
 	}
-	w.clickEntry(w.selectedContent)
+}
+
+func (w *ContentWorkspace) clickReimport(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickReimport").End()
+	for i, id := range w.selectedIds() {
+		res, err := content_database.Reimport(id, w.pfs, w.cache)
+		if err != nil {
+			slog.Error("failed to re-import the content", "error", err)
+			continue
+		}
+		slog.Info("successfully re-import the content", "id", id)
+		w.loadEntryImage(w.selectedContent[i], res.ConfigPath(), res.Category.TypeName())
+	}
+}
+
+func (w *ContentWorkspace) clickDelete(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickDelete").End()
+	w.UiMan.DisableUpdate()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       "Delete content",
+		Description: "Are you sure you wish to delete the selected content?",
+		ConfirmText: "Yes",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			w.UiMan.EnableUpdate()
+			w.completeDeleteOfSelectedContent()
+		},
+		OnCancel: w.UiMan.EnableUpdate,
+	})
+}
+
+func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
+	ids := w.selectedIds()
+	for _, id := range ids {
+		if id == "" {
+			slog.Warn("clickDelete contained a blank id")
+			continue
+		}
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+			continue
+		}
+		if err := w.pfs.Remove(cc.Path); err != nil {
+			slog.Error("failed to delete config file", "path", cc.Path, "error", err)
+		}
+		contentPath := content_database.ToContentPath(cc.Path)
+		if err := w.pfs.Remove(contentPath); err != nil {
+			slog.Error("failed to delete content file", "path", contentPath, "error", err)
+		}
+		w.cache.Remove(id)
+		w.editor.Events().OnContentRemoved.Execute([]string{id})
+		w.rightBody.UI.Hide()
+		w.tooltip.UI.Hide()
+	}
+	for i := range w.selectedContent {
+		w.Doc.RemoveElementWithoutApplyStyles(w.selectedContent[i])
+	}
+	w.Doc.ApplyStyles()
+	w.selectedContent = klib.WipeSlice(w.selectedContent)
+}
+
+func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
+	ui := w.tooltip.UI
+	id := e.Attribute("id")
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
+		return
+	}
+	ui.Show()
+	lbl := w.tooltip.InnerLabel()
+	if len(cc.Config.Tags) == 0 {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+	} else {
+		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+	}
+}
+
+func (w *ContentWorkspace) entryMouseMove(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
+	ui := w.tooltip.UI
+	if !ui.Entity().IsActive() {
+		ui.Show()
+	}
+	// Running on the main thread so it's up to date with the mouse position on
+	// the next frame. Maybe there's no need for this...
+	w.Host.RunOnMainThread(func() {
+		p := w.Host.Window.Mouse.ScreenPosition()
+		// Offsetting the box so the mouse doesn't collide with it easily
+		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+	})
+}
+
+func (w *ContentWorkspace) entryMouseLeave(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
+	w.tooltip.UI.Hide()
+}
+
+func (w *ContentWorkspace) rightClickContent(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.rightClickContent").End()
+	id := e.Attribute("id")
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: "Copy ID to clipboard",
+			Call:  func() { w.Host.Window.CopyToClipboard(id) },
+		},
+		{
+			Label: "Find references",
+			Call:  func() { w.editor.ShowReferences(id) },
+		},
+		{
+			Label: "Create table of contents",
+			Call:  w.requestCreateTableOfContents,
+		},
+	}
+	if cc, err := w.cache.Read(id); err == nil {
+		isEditableText := cc.Config.Type == (content_database.Html{}).TypeName() ||
+			cc.Config.Type == (content_database.Css{}).TypeName()
+		if cc.Config.Type == (content_database.TableOfContents{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Add to table of contents",
+				Call: func() {
+					if w.checkNoDuplicateNamesForTableOfContents() {
+						w.addSelectedToTableOfContents(id)
+					}
+				},
+			}, context_menu.ContextMenuOption{
+				Label: "View",
+				Call:  func() { w.showTableOfContents(id) },
+			})
+		} else if cc.Config.Type == (content_database.Html{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "View in UI workspace",
+				Call:  func() { w.editor.ViewHtmlUi(id) },
+			})
+		}
+		if isEditableText {
+			pfs := w.editor.ProjectFileSystem()
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Edit in text editor",
+				Call: func() {
+					exec.Command("code", pfs.FullPath(""), pfs.FullPath(cc.ContentPath())).Run()
+				},
+			})
+		}
+	}
+	w.editor.BlurInterface()
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)
+}
+
+func (w *ContentWorkspace) clickClearSelection(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.clearSelection()
+}
+
+func (w *ContentWorkspace) clickPlayAudio(*document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.audio.playAudioId(w.selectedIds()[0])
+}
+
+func (w *ContentWorkspace) changeAudioPosition(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
+	w.audio.setAudioPosition(e.UI.ToSlider().Value())
+}
+
+func (w *ContentWorkspace) addTagToSelected(tag string) {
+	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
+	for _, id := range w.selectedIds() {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+			return
+		}
+		var ok bool
+		if tag, ok = cc.Config.AddTag(tag); ok {
+			w.updateIndexForCachedContent(&cc)
+		}
+	}
+	// Add the tag to the entry details
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].InnerLabel().SetText(tag)
+	tagListEntry.Children[1].SetAttribute("data-tag", tag)
+	tagListEntry.UI.Show()
+	// Add the tag to the tag filters if it's not already
 	for i := range w.pageData.Tags {
 		if strings.EqualFold(tag, w.pageData.Tags[i]) {
 			return
@@ -313,18 +717,21 @@ func (w *Workspace) addTagToSelected(tag string) {
 	}
 	w.pageData.Tags = append(w.pageData.Tags, tag)
 	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.Children[0].UI.ToLabel().SetText(tag)
+	elm.InnerLabel().SetText(tag)
 	elm.SetAttribute("data-tag", tag)
 }
 
-func (w *Workspace) selectedId() string {
-	if w.selectedContent != nil {
-		return w.selectedContent.Attribute("id")
+func (w *ContentWorkspace) selectedIds() []string {
+	defer tracing.NewRegion("ContentWorkspace.selectedId").End()
+	ids := make([]string, len(w.selectedContent))
+	for i := range w.selectedContent {
+		ids[i] = w.selectedContent[i].Attribute("id")
 	}
-	return ""
+	return ids
 }
 
-func (w *Workspace) runFilter() {
+func (w *ContentWorkspace) runFilter() {
+	defer tracing.NewRegion("ContentWorkspace.runFilter").End()
 	entries := w.Doc.GetElementsByGroup("entry")
 	for i := range entries {
 		e := entries[i]
@@ -332,59 +739,42 @@ func (w *Workspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		show := len(w.typeFilters) == 0 && len(w.tagFilters) == 0
-		if !show && len(w.typeFilters) > 0 {
-			show = slices.Contains(w.typeFilters, e.Attribute("data-type"))
-		}
-		if !show || len(w.tagFilters) > 0 {
-			show = w.filterThroughTags(id)
-		}
-		if !show && w.query != "" {
-			show = w.runQueryOnContent(id)
-		}
-		if show {
-			e.UI.Entity().Activate()
+		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
+			e.UI.Show()
 		} else {
-			e.UI.Entity().Deactivate()
+			e.UI.Hide()
 		}
 	}
+	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
-func (w *Workspace) filterThroughTags(id string) bool {
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		return false
-	}
-	for i := range cc.Config.Tags {
-		if klib.StringsContainsCaseInsensitive(w.tagFilters, cc.Config.Tags[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-func (w *Workspace) runQueryOnContent(id string) bool {
-	cc, err := w.cCache.Read(id)
-	if err != nil {
-		return false
-	}
-	// TODO:  Use filters like tag:..., type:..., etc.
-	if strings.Contains(cc.Config.NameLower(), w.query) {
-		return true
-	}
-	for i := range cc.Config.Tags {
-		if slices.Contains(w.tagFilters, cc.Config.Tags[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-func (w *Workspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
+func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
+	defer tracing.NewRegion("ContentWorkspace.updateIndexForCachedContent").End()
 	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
-	if err := w.cCache.Index(cc.Path, w.pfs); err != nil {
+	if err := w.cache.Index(cc.Path, w.pfs); err != nil {
 		slog.Error("failed to index the content after updating tags", "error", err)
 		return err
 	}
 	return nil
+}
+
+func (w *ContentWorkspace) enableListMode() {
+	w.isListMode = true
+	for _, c := range w.contentList.Children[1:] {
+		w.Doc.SetElementClassesWithoutApply(c, append(c.ClassList(), "wide")...)
+		for _, cc := range c.Children {
+			w.Doc.SetElementClassesWithoutApply(cc, append(cc.ClassList(), "wide")...)
+		}
+	}
+}
+
+func (w *ContentWorkspace) disableListMode() {
+	w.isListMode = false
+	for _, c := range w.contentList.Children[1:] {
+		w.Doc.SetElementClassesWithoutApply(c, klib.SlicesRemoveElement(c.ClassList(), "wide")...)
+		for _, cc := range c.Children {
+			cc.UI.Show()
+			w.Doc.SetElementClassesWithoutApply(cc, klib.SlicesRemoveElement(cc.ClassList(), "wide")...)
+		}
+	}
 }

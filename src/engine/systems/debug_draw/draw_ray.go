@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 	"time"
@@ -51,14 +52,14 @@ import (
 func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 	// TODO:  Return the handle to delete this thing
 	grid := rendering.NewMeshGrid(host.MeshCache(),
-		"raycast_"+uuid.New().String(),
+		"raycast_"+uuid.NewString(),
 		[]matrix.Vec3{from, to}, matrix.ColorWhite())
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionGrid)
 	if err != nil {
 		slog.Error("failed to load the grid material for drawing raycast", "error", err)
 		return
 	}
-	sd := &rendering.ShaderDataBasic{
+	sd := &shader_data_registry.ShaderDataEdTransformWire{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 	}

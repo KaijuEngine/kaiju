@@ -39,6 +39,7 @@ package klib
 
 import (
 	"log"
+	"log/slog"
 	"math"
 )
 
@@ -72,7 +73,7 @@ func Should(err error) bool {
 
 func ShouldReturn[T any](ret T, err error) T {
 	if err != nil {
-		log.Printf("Error: %v", err)
+		slog.Error("there was an error when none was expected", "error", err)
 	}
 	return ret
 }

@@ -1,7 +1,329 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<style>
+			#contentArea {
+				position: absolute;
+				bottom: 1.3em;
+				width: 100%;
+				height: 10em;
+			}
+			.left {
+				padding: 0 5px;
+				width: 15em;
+				height: 100%;
+				background-color: #282828;
+				overflow-y: scroll;
+			}
+			.right {
+				width: calc(100% - 15em);
+				height: 100%;
+				background-color: #121212;
+				overflow-y: scroll;
+				padding: 10px;
+			}
+			.leftBtn {
+				padding: 1px;
+				background-color: #282828;
+				border: 2px solid #575757;
+				border-radius: 5px;
+				color: #AAA;
+				width: 100%;
+				font-size: 1em;
+				vertical-align: middle;
+				text-align: center;
+			}
+			.leftBtn:hover {
+				color: white;
+				background-color: #353535;
+			}
+			.leftBtn:active {
+				background-color: #121212;
+			}
+			.leftBtn img {
+				width: 1em;
+				height: 1em;
+				background-color: #1D731C;
+				margin-right: 5px;
+			}
+			.filterSelected {
+				background-color: #575757;
+				color: white;
+			}
+			input {
+				width: 100%;
+				height: 2em;
+			}
+			.entry {
+				width: 5em;
+				height: 6em;
+				background-color: #282828;
+				color: #AAA;
+				margin-right: 5px;
+				font-size: 0.7em;
+			}
+			.entrySelected {
+				background-color: #575757;
+				color: white;
+			}
+			.entry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.preview {
+				width: 5em;
+				height: 5em;
+			}
+			#hideContent, #showContent, #hideHierarchy, #showHierarchy, #hideDetails, #showDetails {
+				position: absolute;
+				background-color: #282828;
+				color: #AAA;
+				z-index: 2;
+				padding: 0 5px;
+				border: 2px solid #575757;
+			}
+			#hideHierarchy { left: 15em; }
+			#showHierarchy { left: 0; }
+			#hideHierarchy:hover { color: white; }
+			#showHierarchy:hover { color: white; }
+			#hideHierarchy, #showHierarchy, #hideDetails, #showDetails { top: 6em; }
+			#hideDetails { right: 15em; }
+			#showDetails { right: 0; }
+			#hideDetails:hover { color: white; }
+			#showDetails:hover { color: white; }
+			#hideContent, #showContent { left: 0; }
+			#hideContent { bottom: 11.3em; }
+			#showContent { bottom: 1.3em; }
+			#hideContent:hover { color: white; }
+			#showContent:hover { color: white; }
+			#dragPreview {
+				position: absolute;
+				width: 3em;
+				height: 3em;
+				z-index: 10;
+			}
+			.typeThumb {
+				position: absolute;
+				width: 16px;
+				height: 16px;
+				top: 0;
+				left: 0;
+				z-index: 1;
+			}
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid white;
+				color: #AAA;
+				top: 0;
+				left: 0;
+				z-index: 2;
+			}
+			#hierarchyArea {
+				top: 3em;
+				height: calc(100% - 16em);
+				width: 15em;
+				background-color: #282828;
+				color: white;
+				overflow-y: scroll;
+			}
+			.hierarchyEntry {
+				width: 100%;
+				min-height: 24px;
+				color: white;
+				background-color: #1f1f1f;
+				line-height: 24px;
+			}
+			.hierarchyEntry:hover {
+				background-color: #313232;
+			}
+			.hierarchyEntrySelected {
+				background-color: #575757;
+			}
+			.hierarchyEntryDragHover:hover {
+				background-color: #1d731c;
+			}
+			.arrow {
+				height: 24px;
+				text-align: center;
+			}
+			.searchInput {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 0.5em;
+			}
+			#searchInput {
+				width: 100%;
+				height: 100%;
+			}
+			.hierarchyEntryChild {
+				margin-left: 1em;
+			}
+			#hierarchyDragPreview {
+				position: absolute;
+				width: 2em;
+				height: 2em;
+				z-index: 10;
+			}
+			#dimensionToggle {
+				position: absolute;
+				font-size: 0.6em;
+				top: 2.5em;
+				left: 50%;
+				padding: 0.25em;
+				transform: translateX(-50%);
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+			}
+			#dimensionToggle:hover {
+				background-color: #AAA;
+			}
+			#detailsArea {
+				position: absolute;
+				right: 0;
+				top: 3em;
+				height: calc(100% - 16em);
+				width: 15em;
+				background-color: #282828;
+				color: white;
+				overflow-y: scroll;
+			}
+			.smallInput {
+				width: 4.3em;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-left: 0.3em;
+			}
+			.dataTable {
+				width: 100%;
+				padding: 5px;
+				font-size: 0.8em;
+			}
+			.entityDataListEntry {
+				width: 100%;
+				background-color: #282828;
+			}
+			.entityDataListEntry:hover {
+				background-color: #353535;
+			}
+			.dataInput {
+				width: 100%;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-bottom: 0.2em;
+			}
+			.dataCheck {
+				width: 0.8em;
+				height: 0.8em;
+				margin-left: 5px;
+				margin-bottom: 0.2em;
+			}
+			.dataBindingBlock {
+				background-color: #282828;
+				color: white;
+				border: 2px solid #AAA;
+				margin-bottom: 0.2em;
+			}
+			.center { text-align: center; }
+		</style>
 	</head>
 	<body>
+		<!-- Floating UI -->
+		<span id="dimensionToggle" onclick="toggleDimension">3D</span>
+		<!-- Hierarchy UI -->
+		<span id="hideHierarchy" onclick="hideHierarchy">&lt;</span>
+		<span id="showHierarchy" onclick="showHierarchy">&gt;</span>
+		<div id="hierarchyArea" ondrop="drop">
+			<div class="searchInput">
+				<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
+			</div>
+			<div id="entityList">
+				<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
+					<span>Name...</span>
+				</div>
+			</div>
+		</div>
+		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
+		<!-- Details UI -->
+		<span id="hideDetails" onclick="hideDetails">&gt;</span>
+		<span id="showDetails" onclick="showDetails">&lt;</span>
+		<div id="detailsArea">
+			<div class="detailsBody">
+				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" />
+				<div>Position</div>
+				<input id="detailsPosX" class="smallInput" type="text" placeholder="X..." onchange="setPosX" />
+				<input id="detailsPosY" class="smallInput" type="text" placeholder="Y..." onchange="setPosY" />
+				<input id="detailsPosZ" class="smallInput" type="text" placeholder="Z..." onchange="setPosZ" />
+				<div>Rotation</div>
+				<input id="detailsRotX" class="smallInput" type="text" placeholder="X..." onchange="setRotX" />
+				<input id="detailsRotY" class="smallInput" type="text" placeholder="Y..." onchange="setRotY" />
+				<input id="detailsRotZ" class="smallInput" type="text" placeholder="Z..." onchange="setRotZ" />
+				<div>Scale</div>
+				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
+				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
+				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div class="dataTable">
+					<div id="boundEntityDataList">
+						<div id="boundEntityDataTemplate" class="dataBindingBlock">
+							<div class="center">Data name...</div>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeData" />
+								</div>
+								<!-- Select input -->
+								<div>
+									<select class="dataInput" onchange="changeData"></select>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>Add data</div>
+					<input type="text" placeholder="Find entity data..." onchange="searchEntityData" />
+					<div id="entityDataList">
+						<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Content UI -->
+		<span id="hideContent" onclick="hideContent">v</span>
+		<span id="showContent" onclick="showContent">^</span>
+		<img id="dragPreview" src="editor/textures/icons/file.png" />
+		<div id="contentArea">
+			<div class="left">
+				<input type="text" placeholder="Content search..." onsubmit="inputFilter" />
+				{{range .Filters}}
+				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				{{end}}
+				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
+				<div id="tagFilterList">
+					{{range .Tags}}
+					<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="right">
+				<span id="entryTemplate" data-type="" group="entry" class="entry" ondblclick="dblClickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
+					<img class="preview" src="editor/textures/icons/file.png" />
+					<div>Name...</div>
+					<img class="typeThumb" src="editor/textures/icons/file.png" />
+				</span>
+			</div>
+		</div>
+		<span id="tooltip">Tooltip...</span>
 	</body>
 </html>

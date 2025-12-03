@@ -91,34 +91,7 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		pendingVerts:   verts,
 		pendingIndexes: indexes,
 	}
-	//m.generateMeshBVH(verts, indexes)
 	return m
-}
-
-func (m *Mesh) generateMeshBVH(verts []Vertex, indexes []uint32) {
-	defer tracing.NewRegion("Mesh.generateMeshBVH").End()
-	idxLen := len(indexes)
-	if idxLen == 0 || idxLen%3 != 0 {
-		// We're doing some special stuff here, probably lines or grids
-		return
-	}
-	tris := make([]collision.DetailedTriangle, len(indexes)/3)
-	construct := func(from, to int) {
-		for i := from; i < to; i += 3 {
-			for i := 0; i < len(indexes); i += 3 {
-				points := [3]matrix.Vec3{
-					verts[indexes[i]].Position,
-					verts[indexes[i+1]].Position,
-					verts[indexes[i+2]].Position,
-				}
-				tris[i/3] = collision.DetailedTriangleFromPoints(points)
-			}
-		}
-	}
-	for i := range len(tris) {
-		construct(i*3, (i+3)*3)
-	}
-	m.bvh = collision.BVHBottomUp(tris)
 }
 
 func (m *Mesh) SetKey(key string) {
@@ -170,6 +143,17 @@ func newMeshQuad(key string, points [4]matrix.Vec3, cache *MeshCache) *Mesh {
 func NewMeshQuad(cache *MeshCache) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshQuad").End()
 	return NewMeshQuadAnchored(QuadPivotCenter, cache)
+}
+
+func MeshQuadData() ([]Vertex, []uint32) {
+	verts := make([]Vertex, len(meshQuadCenter))
+	for i := range meshQuadCenter {
+		verts[i].Position = meshQuadCenter[i]
+		verts[i].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+		verts[i].UV0 = meshQuadUvs[i]
+		verts[i].Color = matrix.ColorWhite()
+	}
+	return verts, meshQuadIndexes[:]
 }
 
 func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh {
@@ -284,26 +268,30 @@ func NewMeshPlane(cache *MeshCache) *Mesh {
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	} else {
-		verts := make([]Vertex, 4)
-		verts[0].Position = matrix.Vec3{-0.5, 0.0, 0.5}
-		verts[0].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[0].UV0 = matrix.Vec2{0.0, 1.0}
-		verts[0].Color = matrix.ColorWhite()
-		verts[1].Position = matrix.Vec3{-0.5, 0.0, -0.5}
-		verts[1].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[1].UV0 = matrix.Vec2{0.0, 0.0}
-		verts[1].Color = matrix.ColorWhite()
-		verts[2].Position = matrix.Vec3{0.5, 0.0, -0.5}
-		verts[2].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[2].UV0 = matrix.Vec2{1.0, 0.0}
-		verts[2].Color = matrix.ColorWhite()
-		verts[3].Position = matrix.Vec3{0.5, 0.0, 0.5}
-		verts[3].Normal = matrix.Vec3{0.0, 1.0, 0.0}
-		verts[3].UV0 = matrix.Vec2{1.0, 1.0}
-		verts[3].Color = matrix.ColorWhite()
-		indexes := []uint32{0, 2, 1, 0, 3, 2}
+		verts, indexes := MeshPlaneData()
 		return cache.Mesh(key, verts, indexes)
 	}
+}
+
+func MeshPlaneData() ([]Vertex, []uint32) {
+	verts := make([]Vertex, 4)
+	verts[0].Position = matrix.Vec3{-0.5, 0.0, 0.5}
+	verts[0].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 1.0}
+	verts[0].Color = matrix.ColorWhite()
+	verts[1].Position = matrix.Vec3{-0.5, 0.0, -0.5}
+	verts[1].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[1].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[1].Color = matrix.ColorWhite()
+	verts[2].Position = matrix.Vec3{0.5, 0.0, -0.5}
+	verts[2].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[2].UV0 = matrix.Vec2{1.0, 0.0}
+	verts[2].Color = matrix.ColorWhite()
+	verts[3].Position = matrix.Vec3{0.5, 0.0, 0.5}
+	verts[3].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+	verts[3].UV0 = matrix.Vec2{1.0, 1.0}
+	verts[3].Color = matrix.ColorWhite()
+	return verts, []uint32{0, 2, 1, 0, 3, 2}
 }
 
 func NewMeshCube(cache *MeshCache) *Mesh {
@@ -567,6 +555,25 @@ func meshCube(vertColor matrix.Color) []Vertex {
 	return verts
 }
 
+func NewMeshFrustumBox(cache *MeshCache, inverseProjection matrix.Mat4) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshFrustum").End()
+	const key = "frustum_box"
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	} else {
+		verts := meshCube(matrix.ColorWhite())
+		for i := 0; i < 8; i++ {
+			verts[i].Position.ScaleAssign(2.0)
+		}
+		indexes := []uint32{
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7,
+		}
+		return cache.Mesh(key, verts, indexes)
+	}
+}
+
 func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshFrustum").End()
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -578,10 +585,9 @@ func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4)
 			verts[i].Position = inverseProjection.TransformPoint(verts[i].Position)
 		}
 		indexes := []uint32{
-			0, 1, 2, 3, 0,
-			4, 5, 6, 7, 4,
-			0, 1, 5, 6,
-			2, 3, 7,
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7,
 		}
 		return cache.Mesh(key, verts, indexes)
 	}

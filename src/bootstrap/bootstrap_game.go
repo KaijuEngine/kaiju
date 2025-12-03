@@ -55,16 +55,13 @@ import (
 
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool
 
-func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
+func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformState any) {
 	adb, err := game.ContentDatabase()
 	if err != nil {
 		slog.Error("failed to start the game, could not access the content database")
 		return
 	}
 	container := host_container.New(build.Title.String(), logStream, adb)
-	go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
-	<-container.PrepLock
-	initExternalGameService()
 	container.RunFunction(func() {
 		container.Host.Window.EnableRawMouseInput()
 		initExternalGameServiceRuntime(container.Host)
@@ -75,18 +72,33 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface) {
 		}
 		game.Launch(container.Host)
 		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
+		if build.Debug {
+			runtime.AddCleanup(container, func(s struct{}) { containerCleanedUp = true }, struct{}{})
+			runtime.AddCleanup(container.Host, func(s struct{}) { hostCleanedUp = true }, struct{}{})
+			runtime.AddCleanup(container.Host.Window, func(s struct{}) { windowCleanedUp = true }, struct{}{})
+		}
 	})
-	if build.Debug {
-		runtime.AddCleanup(container, func(s struct{}) { containerCleanedUp = true }, struct{}{})
-		runtime.AddCleanup(container.Host, func(s struct{}) { hostCleanedUp = true }, struct{}{})
-		runtime.AddCleanup(container.Host.Window, func(s struct{}) { windowCleanedUp = true }, struct{}{})
+	if runtime.GOOS == "android" {
+		go func() {
+			<-container.PrepLock    // Flush the prep lock
+			<-container.Host.Done() // Flush done lock
+		}()
+		// ALooper controls this thread and needs to be bound to this thread,
+		// so the container needs to run on this thread.
+		container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight,
+			-1, -1, platformState)
+	} else {
+		go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight,
+			-1, -1, platformState)
+		<-container.PrepLock
+		initExternalGameService()
+		<-container.Host.Done()
 	}
-	<-container.Host.Done()
 	terminateExternalGameService()
 }
 
-func bootstrapInternal(logStream *logging.LogStream, game GameInterface) {
-	bootstrapLoop(logStream, game)
+func bootstrapInternal(logStream *logging.LogStream, game GameInterface, platformState any) {
+	bootstrapLoop(logStream, game, platformState)
 	if build.Debug {
 		runtime.GC()
 		for !containerCleanedUp {

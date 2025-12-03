@@ -42,10 +42,15 @@ import (
 	"runtime"
 )
 
+var OpenWebsiteAndroidFunc func(url string)
+
 func OpenWebsite(url string) {
-	cmd := "open"
-	if runtime.GOOS == "windows" {
-		cmd = "explorer"
+	switch runtime.GOOS {
+	case "windows":
+		exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Run()
+	case "android":
+		OpenWebsiteAndroidFunc(url)
+	default:
+		exec.Command("open", url).Run()
 	}
-	exec.Command(cmd, url).Run()
 }

@@ -106,7 +106,13 @@ func ReadTextFile(path string) (string, error) {
 
 // CopyFile copies the file from the source path to the destination path. If the
 // destination file already exists, an error will be returned.
-func CopyFile(src, dst string) error {
+func CopyFile(src, dst string) error { return copyFileInternal(src, dst, false) }
+
+// CopyFileOverwrite copies the file from the source path to the destination
+// path. If the destination file already exists, it will be truncated.
+func CopyFileOverwrite(src, dst string) error { return copyFileInternal(src, dst, true) }
+
+func copyFileInternal(src, dst string, overwrite bool) error {
 	if strings.HasSuffix(src, ".go") {
 		return CopyGoSourceFile(src, dst)
 	} else {
@@ -115,9 +121,11 @@ func CopyFile(src, dst string) error {
 			return err
 		}
 		defer sf.Close()
-		_, err = os.Stat(dst)
-		if err == nil {
-			return os.ErrExist
+		if !overwrite {
+			_, err = os.Stat(dst)
+			if err == nil {
+				return os.ErrExist
+			}
 		}
 		df, err := os.Create(dst)
 		if err != nil {

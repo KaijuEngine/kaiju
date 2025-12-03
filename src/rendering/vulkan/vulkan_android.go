@@ -1,3 +1,6 @@
+//go:build android
+// +build android
+
 /******************************************************************************/
 /* vulkan_android.go                                                          */
 /******************************************************************************/
@@ -35,14 +38,11 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build android
-// +build android
-
 package vulkan
 
 /*
 #cgo android LDFLAGS: -Wl,--no-warn-mismatch
-#cgo android CFLAGS: -DVK_USE_PLATFORM_ANDROID_KHR -D_NDK_MATH_NO_SOFTFP=1 -mfpu=vfp
+#cgo android CFLAGS: -DVK_USE_PLATFORM_ANDROID_KHR -D_NDK_MATH_NO_SOFTFP=1
 
 #include <android/native_window.h>
 
@@ -52,7 +52,10 @@ package vulkan
 #include "vk_bridge.h"
 */
 import "C"
-import "unsafe"
+import (
+	"kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
 const (
 	// UsePlatformAndroid as defined in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html
@@ -66,17 +69,17 @@ const (
 )
 
 // CreateWindowSurface creates a Vulkan surface (VK_KHR_android_surface) for ANativeWindow from Android NDK.
-func CreateWindowSurface(instance Instance, nativeWindow uintptr, pAllocator *AllocationCallbacks, pSurface *Surface) Result {
+func CreateWindowSurface(instance Instance, nativeWindow uintptr, pAllocator *AllocationCallbacks, pSurface *Surface) vulkan_const.Result {
 	cinstance, _ := *(*C.VkInstance)(unsafe.Pointer(&instance)), cgoAllocsUnknown
 	cpAllocator, _ := (*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)), cgoAllocsUnknown
 	cpSurface, _ := (*C.VkSurfaceKHR)(unsafe.Pointer(pSurface)), cgoAllocsUnknown
 	pCreateInfo := &AndroidSurfaceCreateInfo{
-		SType:  StructureTypeAndroidSurfaceCreateInfo,
+		SType:  vulkan_const.StructureTypeAndroidSurfaceCreateInfo,
 		Window: (*ANativeWindow)(unsafe.Pointer(nativeWindow)),
 	}
 	cpCreateInfo, _ := pCreateInfo.PassRef()
 	__ret := C.callVkCreateAndroidSurfaceKHR(cinstance, cpCreateInfo, cpAllocator, cpSurface)
-	__v := (Result)(__ret)
+	__v := (vulkan_const.Result)(__ret)
 	return __v
 }
 
@@ -89,14 +92,24 @@ func GetRequiredInstanceExtensions() []string {
 }
 
 // CreateAndroidSurface function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#vkCreateAndroidSurfaceKHR
-func CreateAndroidSurface(instance Instance, pCreateInfo *AndroidSurfaceCreateInfo, pAllocator *AllocationCallbacks, pSurface *Surface) Result {
+func CreateAndroidSurface(instance Instance, pCreateInfo *AndroidSurfaceCreateInfo, pAllocator *AllocationCallbacks, pSurface *Surface) vulkan_const.Result {
 	cinstance, _ := *(*C.VkInstance)(unsafe.Pointer(&instance)), cgoAllocsUnknown
 	cpCreateInfo, _ := pCreateInfo.PassRef()
 	cpAllocator, _ := (*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)), cgoAllocsUnknown
 	cpSurface, _ := (*C.VkSurfaceKHR)(unsafe.Pointer(pSurface)), cgoAllocsUnknown
 	__ret := C.callVkCreateAndroidSurfaceKHR(cinstance, cpCreateInfo, cpAllocator, cpSurface)
-	__v := (Result)(__ret)
+	__v := (vulkan_const.Result)(__ret)
 	return __v
+}
+
+func CreateAndroidSurfaceHelper(window unsafe.Pointer, instance Instance, surface *Surface) vulkan_const.Result {
+	cinstance := *(*C.VkInstance)(unsafe.Pointer(&instance))
+	createInfo := C.VkAndroidSurfaceCreateInfoKHR{}
+	createInfo.sType = C.VkStructureType(vulkan_const.StructureTypeAndroidSurfaceCreateInfo)
+	createInfo.window = (*C.ANativeWindow)(window)
+	cSurface := (*C.VkSurfaceKHR)(unsafe.Pointer(surface))
+	__ret := C.callVkCreateAndroidSurfaceKHR(cinstance, &createInfo, nil, cSurface)
+	return (vulkan_const.Result)(__ret)
 }
 
 // allocAndroidSurfaceCreateInfoMemory allocates memory for type C.VkAndroidSurfaceCreateInfoKHR in C.
@@ -187,7 +200,7 @@ func (x *AndroidSurfaceCreateInfo) Deref() {
 	if x.refeca5c35c == nil {
 		return
 	}
-	x.SType = (StructureType)(x.refeca5c35c.sType)
+	x.SType = (vulkan_const.StructureType)(x.refeca5c35c.sType)
 	x.PNext = (unsafe.Pointer)(unsafe.Pointer(x.refeca5c35c.pNext))
 	x.Flags = (AndroidSurfaceCreateFlags)(x.refeca5c35c.flags)
 	x.Window = (*ANativeWindow)(unsafe.Pointer(x.refeca5c35c.window))
@@ -201,7 +214,7 @@ type AndroidSurfaceCreateFlags uint32
 
 // AndroidSurfaceCreateInfo as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#vkAndroidSurfaceCreateInfoKHR
 type AndroidSurfaceCreateInfo struct {
-	SType          StructureType
+	SType          vulkan_const.StructureType
 	PNext          unsafe.Pointer
 	Flags          AndroidSurfaceCreateFlags
 	Window         *ANativeWindow

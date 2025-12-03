@@ -1,0 +1,125 @@
+/******************************************************************************/
+/* reference_viewer_overlay.go                                                */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
+package reference_viewer
+
+import (
+	"fmt"
+	"kaiju/editor/project"
+	"kaiju/engine"
+	"kaiju/engine/systems/events"
+	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup"
+	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/profiler/tracing"
+	"log/slog"
+)
+
+var existing *ReferenceViewer
+
+type ReferenceViewer struct {
+	doc           *document.Document
+	entryTemplate *document.Element
+	uiMan         ui.Manager
+	OnClose       events.Event
+}
+
+func Show(host *engine.Host, project *project.Project, id string) (*ReferenceViewer, error) {
+	defer tracing.NewRegion("reference_viewer.Show").End()
+	// Only allow one context menu open at a time
+	if existing != nil {
+		existing.closeInternal(true)
+	}
+	o := &ReferenceViewer{}
+	o.uiMan.Init(host)
+	var err error
+	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/reference_viewer.go.html",
+		nil, map[string]func(*document.Element){
+			"clickMiss": o.clickMiss,
+		})
+	if err != nil {
+		return o, err
+	}
+	o.entryTemplate, _ = o.doc.GetElementById("entryTemplate")
+	o.entryTemplate.UI.Hide()
+	existing = o
+	go func() {
+		if err := project.FindReferencesWithCallback(id, o.onFound); err != nil {
+			slog.Error("failed to find all references for content", "error", err)
+		}
+		if o == existing {
+			o.doc.GetElementsByClass("note")[0].UI.Hide()
+		}
+	}()
+	return o, nil
+}
+
+func (o *ReferenceViewer) onFound(newRef project.ContentReference) {
+	o.uiMan.Host.RunOnMainThread(func() {
+		var nest func(parent *document.Element, ref project.ContentReference, first bool)
+		nest = func(parent *document.Element, ref project.ContentReference, first bool) {
+			e := o.doc.DuplicateElementToParent(o.entryTemplate, parent)
+			e.Children[0].InnerLabel().SetText(fmt.Sprintf("%s (%s)", ref.Name, ref.Source))
+			if !first {
+				o.doc.SetElementClassesWithoutApply(e, "entry", "entryChild")
+			}
+			for i := range ref.SubReference {
+				nest(e, ref.SubReference[i], false)
+			}
+		}
+		nest(o.entryTemplate.Parent.Value(), newRef, true)
+		o.doc.ApplyStyles()
+	})
+}
+
+func (o *ReferenceViewer) Close() {
+	defer tracing.NewRegion("ReferenceViewer.Close").End()
+	o.closeInternal(false)
+}
+
+func (o *ReferenceViewer) closeInternal(beingReplaced bool) {
+	if !beingReplaced {
+		o.OnClose.Execute()
+	}
+	o.doc.Destroy()
+	existing = nil
+}
+
+func (o *ReferenceViewer) clickMiss(*document.Element) {
+	defer tracing.NewRegion("ReferenceViewer.clickMiss").End()
+	o.Close()
+}

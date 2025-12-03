@@ -78,6 +78,7 @@ func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("onmouseover", elm, elm.UI.Event(ui.EventTypeEnter), funcMap)
 	tryMap("onmouseenter", elm, elm.UI.Event(ui.EventTypeEnter), funcMap)
 	tryMap("onmouseleave", elm, elm.UI.Event(ui.EventTypeExit), funcMap)
+	tryMap("onmousemove", elm, elm.UI.Event(ui.EventTypeMove), funcMap)
 	tryMap("onmouseexit", elm, elm.UI.Event(ui.EventTypeExit), funcMap)
 	tryMap("onmousedown", elm, elm.UI.Event(ui.EventTypeDown), funcMap)
 	tryMap("onmouseup", elm, elm.UI.Event(ui.EventTypeUp), funcMap)

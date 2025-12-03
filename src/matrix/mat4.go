@@ -117,6 +117,14 @@ func Mat4Zero() Mat4 {
 	return Mat4{}
 }
 
+func (m *Mat4) Mat3() Mat3 {
+	return Mat3{
+		m[x0y0], m[x1y0], m[x2y0],
+		m[x0y1], m[x1y1], m[x2y1],
+		m[x0y2], m[x1y2], m[x2y2],
+	}
+}
+
 func (m *Mat4) Reset() {
 	m[x0y0] = 1
 	m[x1y0] = 0
@@ -171,22 +179,30 @@ func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
 		pos4.Y()*viewport.W() + viewport.Y(), z}
 }
 
-func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) Vec3 {
+func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) (Vec3, bool) {
 	clip := Mat4MultiplyVec4(projection, Mat4MultiplyVec4(view, pos.AsVec4()))
-	clip.ScaleAssign(1.0 / clip.W())
-	screenX := (clip.X() + 1) * (viewport.Width() * 0.5)
-	screenY := (1 - clip.Y()) * (viewport.Height() * 0.5)
-	return Vec3{screenX, screenY, 0}
+	if clip.W() <= 0.0001 {
+		return Vec3{}, false
+	}
+	invW := 1.0 / clip.W()
+	ndcX := clip.X() * invW
+	ndcY := clip.Y() * invW
+	ndcZ := clip.Z() * invW
+	screenX := (ndcX+1.0)*0.5*viewport.Z() + viewport.X()
+	screenY := (ndcY+1.0)*0.5*viewport.W() + viewport.Y()
+	return Vec3{screenX, screenY, ndcZ}, true
 }
 
-func (m Mat4) Mat4UnProject(pos Vec3, viewport Vec4) Vec3 {
+func (m Mat4) Mat4UnProject(p Vec3, invViewProj Mat4, viewport Vec4) Vec3 {
 	var v Vec4
-	v.SetX(2.0*(pos.X()-viewport.X())/viewport.Z() - 1.0)
-	v.SetY(2.0*(pos.Y()-viewport.Y())/viewport.W() - 1.0)
-	v.SetZ(2.0*pos.Z() - 1.0)
+	v.SetX((p.X()-viewport.X())/viewport.Z()*2.0 - 1.0)
+	v.SetY(-(p.Y()-viewport.Y())/viewport.W()*2.0 + 1.0)
+	v.SetZ(p.Z())
 	v.SetW(1.0)
-	v = Mat4MultiplyVec4(m, v)
-	v.Scale(1.0 / v.W())
+	v = Mat4MultiplyVec4(invViewProj, v)
+	if v.W() != 0 {
+		v.Scale(1.0 / v.W())
+	}
 	return Vec3{v.X(), v.Y(), v.Z()}
 }
 
@@ -509,7 +525,7 @@ func (m Mat4) TransformPoint(point Vec3) Vec3 {
 	pt0 := Vec4{point.X(), point.Y(), point.Z(), 1.0}
 	res := Mat4MultiplyVec4(m, pt0)
 	v3 := Vec3{res.X(), res.Y(), res.Z()}
-	v3.Shrink(res.W())
+	v3.ShrinkAssign(res.W())
 	return v3
 }
 
@@ -551,7 +567,7 @@ func (m Mat4) ToQuaternion() Quaternion {
 	}
 }
 
-func (m Mat4) Invert() Mat4 {
+func (m Mat4) Inverted() Mat4 {
 	res := Mat4{}
 	res[x0y0] = m[x0y0]
 	res[x1y0] = m[x0y1]

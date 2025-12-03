@@ -4,7 +4,7 @@ title: Build from source | Kaiju Engine
 
 # Build from source
 
-Below are instructions on how to build the engine from source. Please take care to ensure you're using the Kaiju Engine Go compiler. It is modified for speed (relating to games) and has some features enabled that are currently disabled in Go until the next release.
+Below are instructions on how to build the editor from source
 
 ## Prerequisites
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
@@ -15,18 +15,26 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 - Add the `bin` folder to your environment path
   - Mine is `C:\mingw64\bin`
 - Pull the repository
-- To build the exe, run `go run build/build.go`
+- Go into src `cd src`
+- To build the exe in debug mode, run:
+  - `go build -tags="debug,editor" -o ../kaiju.exe ./`
+- To build the exe, run:
+  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./`
 
 ## Linux development
 - Ensure you've got `gcc` installed
 - Ensure you've got the X11 libs installed (xlib)
 - Pull the repository
-- To build the exe, run `go run build/build.go`
+- Go into src `cd src`
+- To build the exe in debug mode, run:
+  - `go build -tags="debug,editor" -o ../kaiju ./`
+- To build the exe, run:
+  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./`
 
-## Issues with SoLoud audio library linking?
-If you are having trouble linking with the soloud library (`libs/libsoloud_*.a`), then you'll need to rebuild the library files to link against. It is likely that you're using a different compiler than the original (and it's a C++ library). Below are the instructions on how to build the library. Once built, copy the library `.a` file into the `libs/` folder and overwrite the existing ones.
+## Building Soloud
+Currently the engine uses Soloud for playing music and sound effects. Below are instructions on how to build the library for the engine.
 
-**Windows**
+### Soloud Windows
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
 cd soloud
@@ -37,7 +45,7 @@ cmake .. -G "MinGW Makefiles" .. -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_WASA
 cmake --build . --config Release
 ```
 
-**Linux**
+### Soloud Linux
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
 cd soloud
@@ -48,10 +56,19 @@ cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON 
 cmake --build . --config Release
 ```
 
-## Building content
-The source code is not deployed with the project template files generated. So you will want to generate these files before you begin playing around with creating projects. To do this, go into the src folder and run the command below.
-```bash
-go run ./generators/project_template/main.go
+### Soloud Android (on Windows)
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud
+cd contrib
+mkdir build
+cd build
+cmake .. -G "MinGW Makefiles" .. -DCMAKE_TOOLCHAIN_FILE=%NDK_HOME%/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release -DSOLLOUD_STATIC=1 -DSOLLOUD_BUILD_DEMOS=OFF -DSOLOUD_BACKEND_OPENSLES=ON -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_C_API=ON -DSOLOUD_BACKEND_NULL=OFF -DSOLOUD_BACKEND_MINIAUDIO=OFF -DSOLOUD_BACKEND_WAVEOUT=OFF -DSOLOUD_BACKEND_XAUDIO2=OFF -DSOLOUD_BACKEND_WINMM=OFF -DSOLOUD_BACKEND_WASAPI=OFF -DSOLOUD_BACKEND_ALSA=OFF -DSOLOUD_BACKEND_COREAUDIO=OFF -DSOLOUD_BACKEND_OPENAL=OFF -DSOLOUD_WAV=ON -DSOLOUD_OGG=ON -DSOLOUD_MP3=ON -DSOLOUD_FLAC=OFF -DSOLOUD_OPUS=OFF -DSOLOUD_SPEECH=OFF -DSOLOUD_SFXR=OFF -DSOLOUD_AY=OFF -DSOLOUD_SID=OFF -DSOLOUD_VIC=OFF -DSOLOUD_TEDSID=OFF -DSOLOUD_MONOTONE=OFF -DSOLOUD_VIC=OFF -DSOLOUD_BASSBOOST=OFF -DSOLOUD_BIQUAD=OFF -DSOLOUD_DCREMOVAL=OFF -DSOLOUD_ECHO=OFF -DSOLOUD_FFT=OFF -DSOLOUD_FREEVERB=OFF -DSOLOUD_LOFI=OFF -DSOLOUD_WAVESHAPER=OFF
+cmake --build . --config Release
 ```
 
-This will generate the project template zip file. This zip file is extracted into the folder that you select when creating a new project. It has a copy of the source code and content. Also be sure that whenever you pull new changes in content from the repository, you run this command again to update the project template. This will also require you to re-extract the project template into your project folder.
+## Compiling Android
+To compile for android, you can go to the engine root folder and run:
+```sh
+go run src/generators/engine_builds/engine_builds_android/main.go
+```

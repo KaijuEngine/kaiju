@@ -45,6 +45,6 @@ type LightCollection = Collection[rendering.Light]
 
 func NewLightCollection(capacity int) LightCollection {
 	return LightCollection{
-		Cache: make([]rendering.Light, capacity),
+		Cache: make([]rendering.Light, 0, capacity),
 	}
 }

@@ -1,3 +1,5 @@
+//go:build windows
+
 /******************************************************************************/
 /* keyboard.win32.go                                                          */
 /******************************************************************************/
@@ -34,8 +36,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build windows
 
 package hid
 
@@ -125,9 +125,6 @@ func ToKeyboardKey(nativeKey int) KeyboardKey {
 		return KeyboardKeyBackQuote
 	case 0x2E:
 		return KeyboardKeyDelete
-	// TODO:  Figure out id for num-pad return
-	//case 0x0D:
-	//	return KeyboardKeyReturn
 	case 0x0D:
 		return KeyboardKeyEnter
 	case 0xBC:
@@ -190,6 +187,16 @@ func ToKeyboardKey(nativeKey int) KeyboardKey {
 		return KeyboardNumKey8
 	case 0x69:
 		return KeyboardNumKey9
+	case 0x6A:
+		return KeyboardNumKeyMultiply
+	case 0x6B:
+		return KeyboardNumKeyAdd
+	case 0x6D:
+		return KeyboardNumKeySubtract
+	case 0x6E:
+		return KeyboardNumKeyPeriod
+	case 0x6F:
+		return KeyboardNumKeyDivide
 	case 0x70:
 		return KeyboardKeyF1
 	case 0x71:

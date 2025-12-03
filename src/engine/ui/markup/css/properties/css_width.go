@@ -72,13 +72,9 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 			}
 			pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 			s := pLayout.PixelSize().X()
-			pPad := pLayout.Padding()
-			s -= pPad.X() + pPad.Z()
-			// Subtracting local padding because it's added in final scale
-			p := l.Padding()
-			b := pLayout.Border()
-			w := s*width - p.X() - p.Z() - b.X() - b.Z()
-			l.ScaleWidth(w)
+			s -= pLayout.Padding().Horizontal()
+			s -= pLayout.Border().Horizontal()
+			l.ScaleWidth(s * width)
 		} else if values[0].IsFunction() {
 			if values[0].Str == "calc" {
 				val := values[0]

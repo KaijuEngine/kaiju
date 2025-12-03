@@ -84,6 +84,7 @@ type inputData struct {
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	isActive                          bool
+	prevFocusInput                    *Input
 	nextFocusInput                    *Input
 	labelShift                        float32
 }
@@ -100,6 +101,7 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
+	next.InputData().prevFocusInput = input
 	input.InputData().nextFocusInput = next
 }
 
@@ -184,17 +186,34 @@ func (input *Input) onLayoutUpdating() {
 	pl.SetOffset(horizontalPadding, 0)
 	pl.ScaleWidth(ps.Width())
 
+	if data.highlight.entity.IsActive() {
+		startX := input.charX(data.selectStart)
+		endX := input.charX(data.selectEnd)
+		width := endX - startX
+		data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
+		data.highlight.layout.SetOffset(startX+data.labelShift, 0)
+	}
+
 	// Cursor
 	data.cursor.layout.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
 }
 
 func (input *Input) showCursor() {
 	data := input.InputData()
+	input.showCursorAtOffset(data.cursorOffset)
+}
+
+func (input *Input) showCursorAtOffset(newPos int) {
+	data := input.InputData()
 	if data.isActive && !data.cursor.entity.IsActive() {
 		data.cursor.entity.SetActive(true)
 	}
 	data.cursorBlink = cursorBlinkRate
-	input.updateCursorPosition()
+	if data.cursorOffset != newPos {
+		input.moveCursor(newPos)
+	} else {
+		input.updateCursorPosition()
+	}
 }
 
 func (input *Input) hideCursor() {
@@ -308,10 +327,8 @@ func (input *Input) setText(text string, skipEvent bool) {
 	data.selectStart = 0
 	data.selectEnd = 0
 	input.updatePlaceholderVisibility()
-	// TODO:  The global set text sets the cursor position after this call,
-	// something to consider with order of operations
 	if !skipEvent {
-		(*UI)(input).ExecuteEvent(EventTypeChange)
+		input.change()
 	}
 	input.hideHighlight()
 }
@@ -429,10 +446,10 @@ func (input *Input) pointerPosWithin() int {
 	} else {
 		host := input.man.Value().Host
 		pos := (*UI)(input).cursorPos(&host.Window.Cursor)
-		pos[matrix.Vx] -= data.label.layout.left
+		pos[matrix.Vx] -= data.labelShift
 		wp := input.entity.Transform.WorldPosition()
 		ws := input.entity.Transform.WorldScale()
-		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
+		pos.SetX(pos.X() - (wp.X() - ws.X()*0.5) - horizontalPadding)
 		pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
 		return host.FontCache().PointOffsetWithin(
 			ld.fontFace, ld.text, pos, ld.fontSize, data.label.MaxWidth())
@@ -488,17 +505,27 @@ func (input *Input) update(deltaTime float64) {
 	}
 }
 
+func (input *Input) cursorWindow() (float32, float32) {
+	data := input.InputData()
+	bounds := input.layout.PixelSize()
+	return horizontalPadding - data.labelShift,
+		-data.labelShift + (bounds.X() - horizontalPadding)
+}
+
 func (input *Input) updateCursorPosition() {
 	data := input.InputData()
 	x := input.charX(data.cursorOffset)
-	bounds := input.layout.PixelSize()
-	if x > bounds.X()-5 {
-		data.labelShift = -(x - bounds.X() + 5)
-		x = bounds.X() - 5
-		data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
-	} else {
-		data.labelShift = 0
+	left, right := input.cursorWindow()
+	if right > left {
+		if x < left {
+			data.labelShift = min(data.labelShift+left-x, 0)
+			data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
+		} else if x > right {
+			data.labelShift += right - x
+			data.label.layout.SetOffset(data.labelShift+horizontalPadding, 0)
+		}
 	}
+	x = x + data.labelShift
 	data.cursor.layout.SetOffset(x, cursorY)
 }
 
@@ -521,8 +548,7 @@ func (input *Input) onDown() {
 	input.Focus()
 	input.resetSelect()
 	offset := input.pointerPosWithin()
-	input.showCursor()
-	input.moveCursor(offset)
+	input.showCursorAtOffset(offset)
 }
 
 func (input *Input) onClick() {
@@ -539,19 +565,35 @@ func (input *Input) deactivated() {
 
 func (input *Input) activated() {
 	data := input.InputData()
+	input.hideCursor()
 	if len(data.label.LabelData().text) == 0 {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
 	}
+	input.resetSelect()
+	input.hideHighlight()
+}
+
+func (input *Input) changeFocusToAnother(target *Input) {
+	if target == nil || !target.entity.IsActive() {
+		return
+	}
+	data := input.InputData()
+	if !data.isActive {
+		return
+	}
+	input.RemoveFocus()
+	target.Focus()
+	target.SelectAll()
 }
 
 func (input *Input) focusNext() {
-	data := input.InputData()
-	if data.isActive && data.nextFocusInput != nil {
-		input.RemoveFocus()
-		data.nextFocusInput.Focus()
-	}
+	input.changeFocusToAnother(input.InputData().nextFocusInput)
+}
+
+func (input *Input) focusPrevious() {
+	input.changeFocusToAnother(input.InputData().prevFocusInput)
 }
 
 func (input *Input) Text() string {
@@ -562,7 +604,6 @@ func (input *Input) SetText(text string) {
 	if input.Text() != text {
 		input.moveCursor(0)
 		input.setText(text, false)
-		input.moveCursor(utf8.RuneCountInString(text))
 	}
 }
 
@@ -674,15 +715,23 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 				if !kb.HasCtrl() {
 					input.InsertText(string(c))
 				} else {
-					if c == 'c' {
+					switch c {
+					case 'c':
 						input.copyToClipboard()
-					} else if c == 'x' {
+					case 'x':
 						input.cutToClipboard()
-					} else if c == 'v' {
+					case 'v':
 						input.pasteFromClipboard()
-					} else if c == 'a' {
+					case 'a':
 						input.SelectAll()
 					}
+				}
+				// Normally the key down event will cause the group go go to the
+				// event request start state, however, if that's not bound, it
+				// wont and will cause type-through (hotkey triggers) in other
+				// parts of the code that rely on Group.HasRequests
+				if input.events[EventTypeKeyDown].IsEmpty() {
+					input.man.Value().Group.triggerRequestStartState()
 				}
 			} else {
 				switch keyId {
@@ -704,12 +753,11 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					input.submit()
 				case hid.KeyboardKeyTab:
 					// Delay a frame so we don't hit a loop of going to next
-					host.RunAfterFrames(1, func() {
-						next := input.InputData().nextFocusInput
-						if next != nil {
-							next.Focus()
-						}
-					})
+					if host.Window.Keyboard.HasShift() {
+						host.RunAfterFrames(1, input.focusPrevious)
+					} else {
+						host.RunAfterFrames(1, input.focusNext)
+					}
 				}
 			}
 			(*UI)(input).requestEvent(EventTypeKeyDown)
@@ -787,4 +835,23 @@ func (input *Input) forceLabelAndPlaceholderRerender() {
 	id := input.InputData()
 	id.label.LabelData().renderRequired = true
 	id.placeholder.LabelData().renderRequired = true
+}
+
+func (input *Input) internalCopyToClipboard() {
+	data := input.InputData()
+	l := data.label
+	if data.selectEnd != data.selectStart {
+		str := l.LabelData().text[data.selectStart:data.selectEnd]
+		input.Base().Host().Window.CopyToClipboard(str)
+	}
+}
+
+func (input *Input) internalCutToClipboard() {
+	input.internalCopyToClipboard()
+	input.deleteSelection(false)
+}
+
+func (input *Input) internalPasteFromClipboard() {
+	text := input.man.Value().Host.Window.ClipboardContents()
+	input.InsertText(text)
 }

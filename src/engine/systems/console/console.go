@@ -102,7 +102,7 @@ type Console struct {
 	commands   map[string]consoleCommand
 	history    history
 	historyIdx int
-	updateId   int
+	updateId   engine.UpdateId
 	isActive   bool
 	input      *ui.Input
 	data       map[string]ConsoleData
@@ -111,9 +111,7 @@ type Console struct {
 func For(host *engine.Host) *Console {
 	c, ok := consoles[host]
 	if !ok {
-		host.CreatingEditorEntities()
 		c = initialize(host)
-		host.DoneCreatingEditorEntities()
 		consoles[host] = c
 		host.OnClose.Add(func() { delete(consoles, host) })
 	}
@@ -128,12 +126,12 @@ func initialize(host *engine.Host) *Console {
 		data:     make(map[string]ConsoleData),
 	}
 	console.uiMan.Init(host)
-	consoleHTML, _ := host.AssetDatabase().ReadText("ui/console.html")
+	consoleHTML, _ := host.AssetDatabase().ReadText("console.html")
 	console.doc = markup.DocumentFromHTMLString(&console.uiMan,
 		string(consoleHTML), "", nil, nil, nil)
 	console.updateId = host.Updater.AddUpdate(console.update)
 	console.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
-		host.Updater.RemoveUpdate(console.updateId)
+		host.Updater.RemoveUpdate(&console.updateId)
 	})
 	inputElm, _ := console.doc.GetElementById("consoleInput")
 	input := inputElm.UI.ToInput()

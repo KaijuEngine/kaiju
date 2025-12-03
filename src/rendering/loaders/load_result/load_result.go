@@ -38,12 +38,9 @@
 package load_result
 
 import (
-	"kaiju/engine/collision"
 	"kaiju/matrix"
-	"kaiju/platform/concurrent"
 	"kaiju/rendering"
 	"log/slog"
-	"sync"
 )
 
 type AnimationPathType = int
@@ -70,7 +67,7 @@ type Mesh struct {
 	MeshName string
 	Verts    []rendering.Vertex
 	Indexes  []uint32
-	Textures []string
+	Textures map[string]string
 }
 
 type AnimBone struct {
@@ -112,7 +109,7 @@ type Result struct {
 
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
 
-func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures []string, node *Node) {
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures map[string]string, node *Node) {
 	if node != nil {
 		// TODO:  This breaks Sudoku, but seems like something that should be done...
 		//mat := node.Transform.CalcWorldMatrix()
@@ -162,14 +159,6 @@ func (r *Result) Extract(names ...string) Result {
 	return res
 }
 
-func (r *Result) Textures() []string {
-	out := []string{}
-	for i := range r.Meshes {
-		out = append(out, r.Meshes[i].Textures...)
-	}
-	return out
-}
-
 func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 	rad := matrix.Float(0)
 	// TODO:  Take scale into consideration
@@ -178,28 +167,4 @@ func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
 		rad = max(rad, pt.Length())
 	}
 	return rad
-}
-
-func (m *Mesh) GenerateBVH(threads *concurrent.Threads) *collision.BVH {
-	tris := make([]collision.DetailedTriangle, len(m.Indexes)/3)
-	group := sync.WaitGroup{}
-	construct := func(from, to int) {
-		for i := from; i < to; i += 3 {
-			for i := 0; i < len(m.Indexes); i += 3 {
-				points := [3]matrix.Vec3{
-					m.Verts[m.Indexes[i]].Position,
-					m.Verts[m.Indexes[i+1]].Position,
-					m.Verts[m.Indexes[i+2]].Position,
-				}
-				tris[i/3] = collision.DetailedTriangleFromPoints(points)
-			}
-		}
-		group.Done()
-	}
-	group.Add(len(tris))
-	for i := range len(tris) {
-		threads.AddWork(func(int) { construct(i*3, (i+3)*3) })
-	}
-	group.Wait()
-	return collision.BVHBottomUp(tris)
 }

@@ -52,6 +52,7 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 type vkQueueFamilyIndices struct {
@@ -62,7 +63,7 @@ type vkQueueFamilyIndices struct {
 type vkSwapChainSupportDetails struct {
 	capabilities     vk.SurfaceCapabilities
 	formats          []vk.SurfaceFormat
-	presentModes     []vk.PresentMode
+	presentModes     []vulkan_const.PresentMode
 	formatCount      uint32
 	presentModeCount uint32
 }
@@ -94,9 +95,9 @@ type Vulkan struct {
 	swapImageCount             uint32
 	swapChainImageViewCount    uint32
 	swapChainFrameBufferCount  uint32
-	acquireImageResult         vk.Result
+	acquireImageResult         vulkan_const.Result
 	currentFrame               int
-	msaaSamples                vk.SampleCountFlagBits
+	msaaSamples                vulkan_const.SampleCountFlagBits
 	combinedDrawings           Drawings
 	preRuns                    []func()
 	dbg                        debugVulkan
@@ -116,39 +117,43 @@ func init() {
 func (vr *Vulkan) WaitForRender() {
 	defer tracing.NewRegion("Vulkan.WaitForRender").End()
 	vk.DeviceWaitIdle(vr.device)
-	fences := [2]vk.Fence{}
+	fences := [maxFramesInFlight]vk.Fence{}
 	for i := range fences {
 		fences[i] = vr.renderFences[i]
 	}
-	vk.WaitForFences(vr.device, uint32(len(fences)), &fences[0], vk.True, math.MaxUint64)
+	vk.WaitForFences(vr.device, uint32(vr.swapImageCount), &fences[0], vulkan_const.True, math.MaxUint64)
 }
 
 func (vr *Vulkan) createGlobalUniformBuffers() {
+	slog.Info("creating vulkan global uniform buffers")
 	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
 	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
-		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vk.BufferUsageUniformBufferBit), vk.MemoryPropertyFlags(vk.MemoryPropertyHostVisibleBit|vk.MemoryPropertyHostCoherentBit), &vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
+		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit),
+			vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
+			&vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
 	}
 }
 
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
+	slog.Info("creating vulkan descriptor pool")
 	poolSizes := make([]vk.DescriptorPoolSize, 4)
-	poolSizes[0].Type = vk.DescriptorTypeUniformBuffer
+	poolSizes[0].Type = vulkan_const.DescriptorTypeUniformBuffer
 	poolSizes[0].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[1].Type = vk.DescriptorTypeCombinedImageSampler
+	poolSizes[1].Type = vulkan_const.DescriptorTypeCombinedImageSampler
 	poolSizes[1].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[2].Type = vk.DescriptorTypeCombinedImageSampler
+	poolSizes[2].Type = vulkan_const.DescriptorTypeCombinedImageSampler
 	poolSizes[2].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[3].Type = vk.DescriptorTypeInputAttachment
+	poolSizes[3].Type = vulkan_const.DescriptorTypeInputAttachment
 	poolSizes[3].DescriptorCount = counts * vr.swapImageCount
 
 	poolInfo := vk.DescriptorPoolCreateInfo{}
-	poolInfo.SType = vk.StructureTypeDescriptorPoolCreateInfo
+	poolInfo.SType = vulkan_const.StructureTypeDescriptorPoolCreateInfo
 	poolInfo.PoolSizeCount = uint32(len(poolSizes))
 	poolInfo.PPoolSizes = &poolSizes[0]
-	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vk.DescriptorPoolCreateFreeDescriptorSetBit)
+	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vulkan_const.DescriptorPoolCreateFreeDescriptorSetBit)
 	poolInfo.MaxSets = counts * vr.swapImageCount
 	var descriptorPool vk.DescriptorPool
-	if vk.CreateDescriptorPool(vr.device, &poolInfo, nil, &descriptorPool) != vk.Success {
+	if vk.CreateDescriptorPool(vr.device, &poolInfo, nil, &descriptorPool) != vulkan_const.Success {
 		slog.Error("Failed to create descriptor pool")
 		return false
 	} else {
@@ -164,14 +169,14 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 		layouts[i] = layout
 	}
 	aInfo := vk.DescriptorSetAllocateInfo{}
-	aInfo.SType = vk.StructureTypeDescriptorSetAllocateInfo
+	aInfo.SType = vulkan_const.StructureTypeDescriptorSetAllocateInfo
 	aInfo.DescriptorPool = vr.descriptorPools[poolIdx]
 	aInfo.DescriptorSetCount = vr.swapImageCount
 	aInfo.PSetLayouts = &layouts[0]
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
 	res := vk.AllocateDescriptorSets(vr.device, &aInfo, &sets[0])
-	if res != vk.Success {
-		if res == vk.ErrorOutOfPoolMemory {
+	if res != vulkan_const.Success {
+		if res == vulkan_const.ErrorOutOfPoolMemory {
 			if poolIdx < len(vr.descriptorPools)-1 {
 				return vr.createDescriptorSet(layout, poolIdx+1)
 			} else {
@@ -219,7 +224,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 	var data unsafe.Pointer
 	r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
 		0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
-	if r != vk.Success {
+	if r != vulkan_const.Success {
 		slog.Error("Failed to map uniform buffer memory", slog.Int("code", int(r)))
 		return
 	}
@@ -228,12 +233,13 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 }
 
 func (vr *Vulkan) createColorResources() bool {
+	slog.Info("creating vulkan color resources")
 	colorFormat := vr.swapImages[0].Format
 	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height, 1,
-		vr.msaaSamples, colorFormat, vk.ImageTilingOptimal,
-		vk.ImageUsageFlags(vk.ImageUsageTransientAttachmentBit|vk.ImageUsageColorAttachmentBit),
-		vk.MemoryPropertyFlags(vk.MemoryPropertyDeviceLocalBit), &vr.color, 1)
-	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vk.ImageAspectColorBit))
+		vr.msaaSamples, colorFormat, vulkan_const.ImageTilingOptimal,
+		vk.ImageUsageFlags(vulkan_const.ImageUsageTransientAttachmentBit|vulkan_const.ImageUsageColorAttachmentBit),
+		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), &vr.color, 1)
+	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit))
 }
 
 func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error) {
@@ -241,19 +247,19 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 		instance:         vk.NullInstance,
 		physicalDevice:   vk.NullPhysicalDevice,
 		device:           vk.NullDevice,
-		msaaSamples:      vk.SampleCountFlagBits(vk.SampleCount1Bit),
+		msaaSamples:      vulkan_const.SampleCountFlagBits(vulkan_const.SampleCount1Bit),
 		dbg:              debugVulkanNew(),
 		combinedDrawings: NewDrawings(),
 		renderPassCache:  make(map[string]*RenderPass),
 	}
-
+	slog.Info("creating vulkan application info")
 	appInfo := vk.ApplicationInfo{}
-	appInfo.SType = vk.StructureTypeApplicationInfo
+	appInfo.SType = vulkan_const.StructureTypeApplicationInfo
 	appInfo.PApplicationName = (*vk.Char)(unsafe.Pointer(&([]byte(applicationName + "\x00"))[0]))
 	appInfo.ApplicationVersion = vk.MakeVersion(1, 0, 0)
 	appInfo.PEngineName = (*vk.Char)(unsafe.Pointer(&([]byte("Kaiju\x00"))[0]))
 	appInfo.EngineVersion = vk.MakeVersion(1, 0, 0)
-	appInfo.ApiVersion = vk.ApiVersion11
+	appInfo.ApiVersion = vulkan_const.ApiVersion11
 	if !vr.createVulkanInstance(window, appInfo) {
 		return nil, errors.New("failed to create Vulkan instance")
 	}
@@ -321,6 +327,22 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	if vr.hasSwapChain {
 		vr.swapChainCleanup()
 	}
+	// Destroy the previous swap sync objects
+	for i := 0; i < int(vr.swapImageCount); i++ {
+		vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
+		vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
+		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+	}
+	// Destroy the previous global uniform buffers
+	for i := 0; i < maxFramesInFlight; i++ {
+		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
+		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
@@ -330,6 +352,8 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
+	vr.createGlobalUniformBuffers()
+	vr.createSyncObjects()
 	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
 	for _, v := range vr.renderPassCache {
 		passes = append(passes, v)
@@ -345,19 +369,20 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
+	slog.Info("creating vulkan sync objects")
 	sInfo := vk.SemaphoreCreateInfo{}
-	sInfo.SType = vk.StructureTypeSemaphoreCreateInfo
+	sInfo.SType = vulkan_const.StructureTypeSemaphoreCreateInfo
 	fInfo := vk.FenceCreateInfo{}
-	fInfo.SType = vk.StructureTypeFenceCreateInfo
-	fInfo.Flags = vk.FenceCreateFlags(vk.FenceCreateSignaledBit)
+	fInfo.SType = vulkan_const.StructureTypeFenceCreateInfo
+	fInfo.Flags = vk.FenceCreateFlags(vulkan_const.FenceCreateSignaledBit)
 	success := true
 	for i := 0; i < int(vr.swapImageCount) && success; i++ {
 		var imgSemaphore vk.Semaphore
 		var rdrSemaphore vk.Semaphore
 		var fence vk.Fence
-		if vk.CreateSemaphore(vr.device, &sInfo, nil, &imgSemaphore) != vk.Success ||
-			vk.CreateSemaphore(vr.device, &sInfo, nil, &rdrSemaphore) != vk.Success ||
-			vk.CreateFence(vr.device, &fInfo, nil, &fence) != vk.Success {
+		if vk.CreateSemaphore(vr.device, &sInfo, nil, &imgSemaphore) != vulkan_const.Success ||
+			vk.CreateSemaphore(vr.device, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success ||
+			vk.CreateFence(vr.device, &fInfo, nil, &fence) != vulkan_const.Success {
 			success = false
 			slog.Error("Failed to create semaphores")
 		} else {
@@ -383,7 +408,8 @@ func (vr *Vulkan) createSyncObjects() bool {
 }
 
 func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
-	rpSpec, err := assets.ReadText("renderer/passes/swapchain.renderpass")
+	slog.Info("creating vulkan swap chain render pass")
+	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
 		return false
 	}
@@ -410,16 +436,16 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 	}
 	fences := [...]vk.Fence{vr.renderFences[vr.currentFrame]}
 	inlTrace := tracing.NewRegion("Vulkan.ReadyFrame(WaitForFences)")
-	vk.WaitForFences(vr.device, 1, &fences[0], vk.True, math.MaxUint64)
+	vk.WaitForFences(vr.device, 1, &fences[0], vulkan_const.True, math.MaxUint64)
 	inlTrace.End()
 	inlTrace = tracing.NewRegion("Vulkan.ReadyFrame(AcquireNextImage)")
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain,
 		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
 		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
-	if vr.acquireImageResult == vk.ErrorOutOfDate {
+	if vr.acquireImageResult == vulkan_const.ErrorOutOfDate {
 		vr.remakeSwapChain(window)
 		return false
-	} else if vr.acquireImageResult != vk.Success {
+	} else if vr.acquireImageResult != vulkan_const.Success {
 		slog.Error("Failed to present swap chain image")
 		vr.hasSwapChain = false
 		return false
@@ -451,10 +477,10 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 	}
 	vr.writtenCommands = vr.writtenCommands[:0]
 	waitSemaphores := [...]vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
-	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)}
+	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
 	signalSemaphores := [...]vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
 	submitInfo := vk.SubmitInfo{
-		SType:                vk.StructureTypeSubmitInfo,
+		SType:                vulkan_const.StructureTypeSubmitInfo,
 		WaitSemaphoreCount:   1,
 		CommandBufferCount:   uint32(len(all)),
 		PCommandBuffers:      &all[0],
@@ -464,22 +490,22 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 		PSignalSemaphores:    &signalSemaphores[0],
 	}
 	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
-	if eCode != vk.Success {
+	if eCode != vulkan_const.Success {
 		slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
 		return false
 	}
 	qSubmit.End()
 	qPresent := tracing.NewRegion("Vulkan.QueuePresent")
 	dependency := vk.SubpassDependency{}
-	dependency.SrcSubpass = vk.SubpassExternal
+	dependency.SrcSubpass = vulkan_const.SubpassExternal
 	dependency.DstSubpass = 0
-	dependency.SrcStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
+	dependency.SrcStageMask = vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)
 	dependency.SrcAccessMask = 0
-	dependency.DstStageMask = vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)
-	dependency.DstAccessMask = vk.AccessFlags(vk.AccessColorAttachmentWriteBit)
+	dependency.DstStageMask = vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)
+	dependency.DstAccessMask = vk.AccessFlags(vulkan_const.AccessColorAttachmentWriteBit)
 	swapChains := []vk.Swapchain{vr.swapChain}
 	presentInfo := vk.PresentInfo{}
-	presentInfo.SType = vk.StructureTypePresentInfo
+	presentInfo.SType = vulkan_const.StructureTypePresentInfo
 	presentInfo.WaitSemaphoreCount = 1
 	presentInfo.PWaitSemaphores = &signalSemaphores[0]
 	presentInfo.SwapchainCount = 1
@@ -488,9 +514,9 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 	presentInfo.PResults = nil // Optional
 	vk.QueuePresent(vr.presentQueue, &presentInfo)
 	qPresent.End()
-	if vr.acquireImageResult == vk.ErrorOutOfDate || vr.acquireImageResult == vk.Suboptimal {
+	if vr.acquireImageResult == vulkan_const.ErrorOutOfDate || vr.acquireImageResult == vulkan_const.Suboptimal {
 		vr.remakeSwapChain(window)
-	} else if vr.acquireImageResult != vk.Success {
+	} else if vr.acquireImageResult != vulkan_const.Success {
 		slog.Error("Failed to present swap chain image")
 		return false
 	}
@@ -586,7 +612,7 @@ func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 
 func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
 	framebufferInfo := vk.FramebufferCreateInfo{}
-	framebufferInfo.SType = vk.StructureTypeFramebufferCreateInfo
+	framebufferInfo.SType = vulkan_const.StructureTypeFramebufferCreateInfo
 	framebufferInfo.RenderPass = renderPass.Handle
 	framebufferInfo.AttachmentCount = uint32(len(attachments))
 	framebufferInfo.PAttachments = &attachments[0]
@@ -594,7 +620,7 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.Ima
 	framebufferInfo.Height = height
 	framebufferInfo.Layers = 1
 	var fb vk.Framebuffer
-	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vk.Success {
+	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vulkan_const.Success {
 		slog.Error("Failed to create framebuffer")
 		return vk.NullFramebuffer, false
 	} else {

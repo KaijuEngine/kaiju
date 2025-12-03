@@ -39,301 +39,317 @@ package collision
 
 import (
 	"kaiju/matrix"
-	"log/slog"
+	"sort"
 )
 
 type HitObject interface {
 	Bounds() AABB
-	RayIntersect(ray Ray, length float32) bool
+	RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool
 }
 
 type BVH struct {
-	bounds    AABB
-	Left      *BVH
-	Right     *BVH
-	Parent    *BVH
+	bounds AABB
+	Left   *BVH
+	Right  *BVH
+	Parent *BVH
+	Item   BVHItem
+}
+
+type BVHItem struct {
 	Transform *matrix.Transform
-	Data      HitObject
+	HitCheck  HitObject
+	Data      any
 }
 
-func NewBVH() *BVH { return &BVH{} }
+func (item BVHItem) IsValid() bool { return item.HitCheck != nil }
 
-func (b *BVH) duplicateInternal() *BVH {
-	dupe := &BVH{}
-	*dupe = *b
-	return dupe
+func (item BVHItem) Bounds() AABB {
+	bounds := item.HitCheck.Bounds()
+	if item.Transform == nil {
+		return bounds
+	}
+	mat := item.Transform.WorldMatrix()
+	min := mat.TransformPoint(bounds.Min())
+	max := mat.TransformPoint(bounds.Max())
+	return AABB{
+		Center: min.Add(max).Shrink(2.0),
+		Extent: max.Subtract(min).Shrink(2.0),
+	}
 }
 
-func (b *BVH) Duplicate() *BVH {
-	root := b
-	nodeMap := make(map[*BVH]*BVH)
-	stack := []*BVH{root}
-	for len(stack) > 0 {
-		node := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if _, exists := nodeMap[node]; !exists {
-			nodeMap[node] = node.duplicateInternal()
-		}
-		if node.Left != nil {
-			stack = append(stack, node.Left)
-		}
-		if node.Right != nil {
-			stack = append(stack, node.Right)
-		}
-	}
-	for node, newNode := range nodeMap {
-		if node.Left != nil {
-			newNode.Left = nodeMap[node.Left]
-		}
-		if node.Right != nil {
-			newNode.Right = nodeMap[node.Right]
-		}
-		if node.Parent != nil {
-			newNode.Parent = nodeMap[node.Parent]
-		}
-	}
-	return nodeMap[root]
+func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) bool {
+	return item.HitCheck.RayIntersectTest(ray, length, item.Transform)
 }
 
-func (b *BVH) Root() *BVH {
-	r := b
-	for r.Parent != nil {
-		r = r.Parent
+func NewBVH(entries []HitObject, transform *matrix.Transform, data any) *BVH {
+	if len(entries) == 0 {
+		return nil
 	}
-	return r
+	if len(entries) == 1 {
+		bvh := &BVH{
+			Item: BVHItem{transform, entries[0], data},
+		}
+		bvh.bounds = bvh.Item.Bounds()
+		return bvh
+	}
+	bounds := computeBounds(entries)
+	axis := bounds.LongestAxis()
+	// TODO:  Sort only needs to happen at the start?
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Bounds().Center[axis] < entries[j].Bounds().Center[axis]
+	})
+	mid := len(entries) / 2
+	left := NewBVH(entries[:mid], transform, data)
+	right := NewBVH(entries[mid:], transform, data)
+	bvh := &BVH{
+		bounds: AABBUnion(left.bounds, right.bounds),
+		Left:   left,
+		Right:  right,
+	}
+	left.Parent = bvh
+	right.Parent = bvh
+	return bvh
+}
+
+func CloneBVH(bvh *BVH) *BVH {
+	if bvh == nil {
+		return nil
+	}
+	newItem := bvh.Item
+	if sub, ok := bvh.Item.Data.(*BVH); ok {
+		newItem.Data = CloneBVH(sub)
+	}
+	clone := &BVH{
+		bounds: bvh.bounds,
+		Item:   newItem,
+	}
+	if bvh.Left != nil {
+		clone.Left = CloneBVH(bvh.Left)
+		if clone.Left != nil {
+			clone.Left.Parent = clone
+		}
+	}
+	if bvh.Right != nil {
+		clone.Right = CloneBVH(bvh.Right)
+		if clone.Right != nil {
+			clone.Right.Parent = clone
+		}
+	}
+	return clone
+}
+
+func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
+	_, ok := b.RayIntersect(ray, length)
+	return ok
+}
+
+func (b *BVH) RayIntersect(ray Ray, length float32) (any, bool) {
+	if b == nil {
+		return nil, false
+	}
+	bounds := b.Bounds()
+	_, hit := bounds.RayHit(ray)
+	if !hit {
+		return nil, false
+	}
+	if b.Item.IsValid() {
+		if b.Item.RayIntersect(ray, length, b.Item.Transform) {
+			if sub, ok := b.Item.Data.(*BVH); ok {
+				return sub.RayIntersect(ray, length)
+			}
+			return b.Item.Data, true
+		}
+		return b.Item.Data, false
+	} else {
+		var res any
+		var ok bool
+		res, ok = b.Left.RayIntersect(ray, length)
+		if !ok {
+			res, ok = b.Right.RayIntersect(ray, length)
+		}
+		return res, ok
+	}
 }
 
 func (b *BVH) Bounds() AABB {
-	if b.Transform == nil {
-		return b.bounds
-	} else {
-		mat := b.Transform.WorldMatrix()
-		min := mat.TransformPoint(b.bounds.Min())
-		max := mat.TransformPoint(b.bounds.Max())
-		return AABB{
-			Center: min.Add(max).Shrink(2.0),
-			Extent: max.Subtract(min).Shrink(2.0),
-		}
-	}
+	return b.bounds
 }
 
-// IsLeaf returns whether or not the BVH is a leaf node
 func (b *BVH) IsLeaf() bool {
 	return b.Left == nil && b.Right == nil
 }
 
-// IsRoot returns whether or not the BVH is the root node
-func (b *BVH) IsRoot() bool {
-	return b.Parent == nil
-}
-
-// IsLeft returns whether or not the BVH is the left child of its parent
-func (b *BVH) IsLeft() bool { return b.Parent != nil || b.Parent.Left == b }
-
-// IsRight returns whether or not the BVH is the right child of its parent
-func (b *BVH) IsRight() bool { return b.Parent != nil || b.Parent.Right == b }
-
-// BVHBottomUp constructs a BVH from a list of triangles
-func BVHBottomUp(triangles []DetailedTriangle) *BVH {
-	// TODO:  Get all the current nodes and re-calculate
-	nodes := make([]*BVH, 0, len(triangles))
-	for i := range triangles {
-		nodes = append(nodes, &BVH{
-			bounds: triangles[i].Bounds(),
-			Data:   &triangles[i],
-		})
-	}
-	for len(nodes) > 1 {
-		var x, y int
-		nearest(nodes, &x, &y)
-		if y < x {
-			x, y = y, x
-		}
-		a := nodes[x]
-		b := nodes[y]
-		node := &BVH{
-			bounds: AABBUnion(a.Bounds(), b.Bounds()),
-			Left:   a,
-			Right:  b,
-		}
-		a.Parent = node
-		b.Parent = node
-		nodes[x] = node
-		nodes[y] = nodes[len(nodes)-1]
-		nodes = nodes[:len(nodes)-1]
-	}
-	return nodes[0]
-}
-
-func (into *BVH) Insert(other *BVH) {
-	if !into.IsRoot() {
-		slog.Error("Insert should only be called on the root node, use BVHInsert instead")
-		return
-	}
-	BVHInsert(into, other)
-}
-
-// BVHInsert inserts a new BVH into an existing BVH, returning the new root
-func BVHInsert(into, other *BVH) *BVH {
-	ib := into.Bounds()
-	ob := other.Bounds()
-	if !ib.ContainsAABB(ob) {
-		// The root node is a special case, it is expected to hold everything
-		// though we could return a new root, it is better to just expand the
-		// root node to hold everything
-		if into.IsRoot() {
-			into.bounds = AABBUnion(ib, ob)
-			into.bounds.Extent.ScaleAssign(1.001)
-			return BVHInsert(into, other)
-		} else {
-			bvh := &BVH{
-				bounds: AABBUnion(ib, ob),
-				Left:   into,
-				Right:  other,
-			}
-			into.Parent = bvh
-			other.Parent = bvh
-			return bvh
-		}
-	} else {
-		if into.Left == nil {
-			into.Left = other
-			other.Parent = into
-			return into
-		}
-		lb := into.Left.Bounds()
-		if lb.ContainsAABB(ob) {
-			if left := BVHInsert(into.Left, other); left != into.Left {
-				slog.Error(
-					"BVHInsert: Left child was replaced but should not have been",
-					slog.String("Left Center", lb.Center.String()),
-					slog.String("Left Extent", lb.Extent.String()),
-					slog.String("Insert Center", ob.Center.String()),
-					slog.String("Insert Extent", ob.Extent.String()),
-				)
-			}
-			return into
-		}
-		if into.Right == nil {
-			into.Right = other
-			other.Parent = into
-			return into
-		}
-		rb := into.Right.Bounds()
-		if rb.ContainsAABB(ob) {
-			if right := BVHInsert(into.Right, other); right != into.Right {
-				slog.Error(
-					"BVHInsert: Right child was replaced but should not have been",
-					slog.String("Right Center", rb.Center.String()),
-					slog.String("Right Extent", rb.Extent.String()),
-					slog.String("Insert Center", ob.Center.String()),
-					slog.String("Insert Extent", ob.Extent.String()),
-				)
-			}
-			return into
-		}
-		if lb.ClosestDistance(ob) <= rb.ClosestDistance(ob) {
-			into.Left = BVHInsert(into.Left, other)
-		} else {
-			into.Right = BVHInsert(into.Right, other)
-		}
-		return into
-	}
-}
-
-// RemoveNode removes a node from the BVH and adjusts the tree accordingly. If
-// the node is the root, nothing is done.
-func (b *BVH) RemoveNode() {
-	if b.Parent == nil {
-		return
-	}
-	parent := b.Parent
-	promote := parent.Left
-	if promote == b {
-		promote = parent.Right
-	}
-	if parent.IsRoot() {
-		if promote != nil {
-			*parent = *promote
-			parent.Parent = nil
-			if parent.Left != nil {
-				parent.Left.Parent = parent
-			}
-			if parent.Right != nil {
-				parent.Right.Parent = parent
-			}
-		} else {
-			parent.Left = nil
-		}
-	} else {
-		if parent.IsLeft() {
-			parent.Parent.Left = promote
-		} else {
-			parent.Parent.Right = promote
-		}
-	}
-}
-
-// RayHit returns the point of intersection and whether or not the ray hit
-// the BVH. The point of intersection is the closest point of intersection
-// along the ray.
-func (b *BVH) RayHit(ray Ray, rayLen matrix.Float) (matrix.Vec3, bool) {
-	min := matrix.Float(100000.0)
-	ls := LineSegmentFromRay(ray, rayLen)
-	mat := matrix.Mat4Identity()
-	if b.Transform != nil {
-		mat = b.Transform.WorldMatrix()
-	}
-	return nodeRay(b, ray, ls, &min, &mat)
-}
-
-func nearest(nodes []*BVH, x, y *int) {
-	nearest := matrix.Float(100000.0)
-	for i := 0; i < len(nodes); i++ {
-		a := nodes[i]
-		for j := i + 1; j < len(nodes); j++ {
-			b := nodes[j]
-			d := a.Bounds().ClosestDistance(b.Bounds())
-			if d < nearest {
-				*x = i
-				*y = j
-				nearest = d
-				if d < 1.0 {
-					return
-				}
-			}
-		}
-	}
-}
-
-func nodeRay(b *BVH, r Ray, ls Segment, min *matrix.Float, mat *matrix.Mat4) (matrix.Vec3, bool) {
+func (b *BVH) Refit() {
 	if b == nil {
-		return matrix.Vec3{}, false
+		return
 	}
-	bounds := b.bounds
-	if b.Transform != nil {
-		*mat = b.Transform.WorldMatrix()
+	b.refitChildren()
+}
+
+func (b *BVH) refitChildren() {
+	if b.IsLeaf() {
+		b.bounds = b.Item.Bounds()
+	} else {
+		b.Left.refitChildren()
+		b.Right.refitChildren()
+		b.bounds = AABBUnion(b.Left.bounds, b.Right.bounds)
 	}
-	bounds.Center = mat.TransformPoint(bounds.Center)
-	if _, ok := bounds.RayHit(r); ok {
-		if b.IsLeaf() {
-			t := b.Data.(*DetailedTriangle)
-			hit, _ := r.PlaneHit(t.Centroid, t.Normal)
-			d := r.Origin.Distance(hit)
-			p0 := mat.TransformPoint(t.Points[0])
-			p1 := mat.TransformPoint(t.Points[1])
-			p2 := mat.TransformPoint(t.Points[2])
-			if d < *min && ls.TriangleHit(p0, p1, p2) {
-				*min = d
-				return hit, true
-			}
+}
+
+func AddSubBVH(world **BVH, sub *BVH, transform *matrix.Transform) {
+	InsertBVH(world, sub, transform, sub)
+}
+
+func InsertBVH(root **BVH, hitCheck HitObject, transform *matrix.Transform, data any) {
+	if *root == nil {
+		if sub, ok := hitCheck.(*BVH); ok {
+			*root = sub
 		} else {
-			outHit, success := nodeRay(b.Left, r, ls, min, mat)
-			if !success {
-				outHit, success = nodeRay(b.Right, r, ls, min, mat)
-			}
-			return outHit, success
+			*root = &BVH{Item: BVHItem{transform, hitCheck, data}}
+			(*root).bounds = (*root).Item.HitCheck.Bounds()
+		}
+		return
+	}
+	var newNode *BVH
+	if sub, ok := hitCheck.(*BVH); ok {
+		newNode = sub
+	} else {
+		newNode = &BVH{Item: BVHItem{transform, hitCheck, data}}
+		newNode.bounds = newNode.Item.Bounds()
+	}
+	sibling := findBestSibling(*root, newNode.bounds)
+	oldParent := sibling.Parent
+	newParent := &BVH{
+		bounds: AABBUnion(sibling.bounds, newNode.bounds),
+		Left:   sibling,
+		Right:  newNode,
+		Parent: oldParent,
+	}
+	sibling.Parent = newParent
+	newNode.Parent = newParent
+	if oldParent != nil {
+		if oldParent.Left == sibling {
+			oldParent.Left = newParent
+		} else {
+			oldParent.Right = newParent
+		}
+		current := oldParent
+		for current != nil {
+			current.bounds = AABBUnion(current.Left.bounds, current.Right.bounds)
+			current = current.Parent
+		}
+	} else {
+		*root = newParent
+	}
+}
+
+func RemoveSubBVH(world **BVH, sub *BVH) {
+	if *world == nil {
+		return
+	}
+	leaf := findLeafWithData(*world, sub)
+	if leaf == nil {
+		return
+	}
+	removeLeaf(world, leaf)
+}
+
+func RemoveAllLeavesMatchingTransform(world **BVH, transform *matrix.Transform) {
+	if world == nil || *world == nil {
+		return
+	}
+	for {
+		leaf := findLeafWithTransform(*world, transform)
+		if leaf == nil {
+			break
+		}
+		removeLeaf(world, leaf)
+	}
+}
+
+func computeBounds(entries []HitObject) AABB {
+	if len(entries) == 0 {
+		return AABB{}
+	}
+	b := entries[0].Bounds()
+	for i := 1; i < len(entries); i++ {
+		b = AABBUnion(b, entries[i].Bounds())
+	}
+	return b
+}
+
+func findLeafWithTransform(b *BVH, target *matrix.Transform) *BVH {
+	if b == nil {
+		return nil
+	}
+	if b.IsLeaf() {
+		if b.Item.Transform == target {
+			return b
+		}
+		return nil
+	}
+	if left := findLeafWithTransform(b.Left, target); left != nil {
+		return left
+	}
+	return findLeafWithTransform(b.Right, target)
+}
+
+func findBestSibling(tree *BVH, newBounds AABB) *BVH {
+	current := tree
+	for !current.IsLeaf() {
+		leftIncrease := AABBUnion(current.Left.bounds, newBounds).SurfaceArea() - current.Left.bounds.SurfaceArea()
+		rightIncrease := AABBUnion(current.Right.bounds, newBounds).SurfaceArea() - current.Right.bounds.SurfaceArea()
+		if leftIncrease < rightIncrease {
+			current = current.Left
+		} else {
+			current = current.Right
 		}
 	}
-	return matrix.Vec3{}, false
+	return current
+}
+
+func findLeafWithData(b *BVH, target HitObject) *BVH {
+	if b == nil {
+		return nil
+	}
+	if b.IsLeaf() {
+		if b.Item.HitCheck == target || b == target {
+			return b
+		}
+		return nil
+	}
+	if left := findLeafWithData(b.Left, target); left != nil {
+		return left
+	}
+	return findLeafWithData(b.Right, target)
+}
+
+func removeLeaf(root **BVH, leaf *BVH) {
+	if leaf.Parent == nil {
+		*root = nil
+		return
+	}
+	parent := leaf.Parent
+	var sibling *BVH
+	if parent.Left == leaf {
+		sibling = parent.Right
+	} else {
+		sibling = parent.Left
+	}
+	grandParent := parent.Parent
+	sibling.Parent = grandParent
+	if grandParent != nil {
+		if grandParent.Left == parent {
+			grandParent.Left = sibling
+		} else {
+			grandParent.Right = sibling
+		}
+		current := grandParent
+		for current != nil {
+			current.bounds = AABBUnion(current.Left.bounds, current.Right.bounds)
+			current = current.Parent
+		}
+	} else {
+		*root = sibling
+	}
 }

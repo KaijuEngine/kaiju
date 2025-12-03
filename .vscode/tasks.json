@@ -3,6 +3,17 @@
 	"tasks": [
 		{
 			"type": "go",
+			"label": "Generate tag files",
+			"command": "test",
+			"args": ["${workspaceFolder}/src/build/tag_generator"],
+			"options": {
+				"cwd": "${workspaceFolder}/src"
+			},
+			"problemMatcher": ["$go"],
+			"group": "build",
+			"detail": "Generate build tab booleans listed in tag_generator.go"
+		}, {
+			"type": "go",
 			"label": "go: build workspace",
 			"command": "build",
 			"args": [

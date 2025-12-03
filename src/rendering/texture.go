@@ -47,6 +47,8 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"strings"
+
+	"github.com/KaijuEngine/uuid"
 )
 
 /*
@@ -121,6 +123,10 @@ const (
 	CubeMapSides = 6
 )
 
+const (
+	GenerateUniqueTextureKey = ""
+)
+
 type GPUImageWriteRequest struct {
 	Region matrix.Vec4i
 	Pixels []byte
@@ -164,42 +170,48 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 	res.InputType = inputType
 	switch inputType {
 	case TextureFileFormatAstc:
-		if mem[4] == 4 {
+		switch mem[4] {
+		case 4:
 			res.InternalFormat = TextureInputTypeCompressedRgbaAstc4x4
-		} else if mem[4] == 5 {
-			if mem[5] == 4 {
+		case 5:
+			switch mem[5] {
+			case 4:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x4
-			} else if mem[5] == 5 {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x5
 			}
-		} else if mem[4] == 6 {
-			if mem[5] == 5 {
+		case 6:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x6
 			}
-		} else if mem[4] == 8 {
-			if mem[5] == 5 {
+		case 8:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x6
-			} else if mem[5] == 8 {
+			case 8:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x8
 			}
-		} else if mem[4] == 10 {
-			if mem[5] == 5 {
+		case 10:
+			switch mem[5] {
+			case 5:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x5
-			} else if mem[5] == 6 {
+			case 6:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x6
-			} else if mem[5] == 8 {
+			case 8:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x8
-			} else if mem[5] == 10 {
+			case 10:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x10
 			}
-		} else if mem[4] == 12 {
-			if mem[5] == 10 {
+		case 12:
+			switch mem[5] {
+			case 10:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x10
-			} else if mem[5] == 12 {
+			case 12:
 				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x12
 			}
 		}
@@ -265,6 +277,8 @@ func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, 
 		inputType = TextureFileFormatAstc
 	} else if strings.HasSuffix(key, ".png") {
 		inputType = TextureFileFormatPng
+	} else if len(imgBuff) > 4 && imgBuff[0] == '\x89' && imgBuff[1] == 'P' && imgBuff[2] == 'N' && imgBuff[3] == 'G' {
+		inputType = TextureFileFormatPng
 	}
 	data := ReadRawTextureData(imgBuff, inputType)
 	if data.Width == 0 {
@@ -283,11 +297,12 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(renderer Renderer, assetDb assets.Database, textureKey string, filter TextureFilter) (*Texture, error) {
+func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
-	tex := &Texture{Key: textureKey, Filter: filter}
-	if assetDb.Exists(textureKey) {
-		if imgBuff, err := assetDb.Read(textureKey); err != nil {
+	key = selectKey(key)
+	tex := &Texture{Key: key, Filter: filter}
+	if assetDb.Exists(key) {
+		if imgBuff, err := assetDb.Read(key); err != nil {
 			return nil, err
 		} else if len(imgBuff) == 0 {
 			return nil, errors.New("no data in texture")
@@ -302,16 +317,24 @@ func NewTexture(renderer Renderer, assetDb assets.Database, textureKey string, f
 
 func (t *Texture) DelayedCreate(renderer Renderer) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
+	if t.RenderId.IsValid() {
+		return
+	}
 	renderer.CreateTexture(t, t.pendingData)
 	t.pendingData = nil
 }
 
 func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
+	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
-	tex.Width = width
-	tex.Height = height
+	if tex.Width == 0 {
+		tex.Width = width
+	}
+	if tex.Height == 0 {
+		tex.Height = height
+	}
 	return tex, nil
 }
 
@@ -329,10 +352,11 @@ func (t Texture) Size() matrix.Vec2 {
 	return matrix.Vec2{float32(t.Width), float32(t.Height)}
 }
 
-func TexturePixelsFromAsset(assetDb assets.Database, textureKey string) (TextureData, error) {
+func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error) {
 	defer tracing.NewRegion("rendering.TexturePixelsFromAsset").End()
-	if assetDb.Exists(textureKey) {
-		if imgBuff, err := assetDb.Read(textureKey); err != nil {
+	key = selectKey(key)
+	if assetDb.Exists(key) {
+		if imgBuff, err := assetDb.Read(key); err != nil {
 			return TextureData{}, err
 		} else if len(imgBuff) == 0 {
 			return TextureData{}, errors.New("no data in texture")
@@ -342,4 +366,11 @@ func TexturePixelsFromAsset(assetDb assets.Database, textureKey string) (Texture
 	} else {
 		return TextureData{}, errors.New("texture does not exist")
 	}
+}
+
+func selectKey(req string) string {
+	if req == GenerateUniqueTextureKey {
+		return uuid.NewString()
+	}
+	return req
 }

@@ -46,8 +46,12 @@ import (
 	"kaiju/matrix"
 )
 
+func (PaddingLeft) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, rules, "padding")
+}
+
 // length|initial|inherit
-func (p PaddingLeft) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+func (PaddingLeft) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("PaddingLeft: Expecting exactly one value")
 	}

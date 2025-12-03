@@ -205,6 +205,19 @@ func (e *Entity) innerDestroy() {
 	}
 }
 
+// HasParent will loop through each parent and determine if any of them is the
+// parent Entity supplied. If so, then it will return true, false otherwise.
+func (e *Entity) HasParent(parent *Entity) bool {
+	p := e.Parent
+	for p != nil {
+		if p == parent {
+			return true
+		}
+		p = p.Parent
+	}
+	return false
+}
+
 // SetParent will set the parent of the entity. If the entity already has a
 // parent, it will be removed from the parent's children list. If the new parent
 // is nil, the entity will be removed from the hierarchy and will become the
@@ -224,6 +237,18 @@ func (e *Entity) SetParent(newParent *Entity) {
 	}
 	if newParent == e.Parent {
 		return
+	}
+	// Check to see if anywhere in newParent's hierarchy is this entity
+	// if so, then set it's direct descendant to take this entity's parent.
+	{
+		np := newParent
+		for np != nil {
+			if np.Parent == e {
+				np.SetParent(e.Parent)
+				break
+			}
+			np = np.Parent
+		}
 	}
 	p := newParent
 	for p != nil {
@@ -294,9 +319,9 @@ func (e *Entity) Root() *Entity {
 // Named data is stored in a map of slices, so you can add multiple pieces of
 // data to the same key. It is recommended to compile the data into a single
 // structure so the slice length is 1, but sometimes that's not reasonable.
-func (e *Entity) AddNamedData(key string, data interface{}) {
+func (e *Entity) AddNamedData(key string, data any) {
 	if _, ok := e.namedData[key]; !ok {
-		e.namedData[key] = make([]interface{}, 0)
+		e.namedData[key] = make([]any, 0)
 	}
 	e.namedData[key] = append(e.namedData[key], data)
 }
@@ -305,7 +330,7 @@ func (e *Entity) AddNamedData(key string, data interface{}) {
 // map. If the key does not exist, this function will do nothing.
 //
 // *This will remove the entire slice and all of it's data*
-func (e *Entity) RemoveNamedData(key string, data interface{}) {
+func (e *Entity) RemoveNamedData(key string, data any) {
 	if _, ok := e.namedData[key]; ok {
 		for i := range e.namedData[key] {
 			if e.namedData[key][i] == data {
@@ -324,7 +349,7 @@ func (e *Entity) RemoveNamedDataByName(key string) {
 
 // NamedData will return the data associated with the specified key. If the key
 // does not exist, nil will be returned.
-func (e *Entity) NamedData(key string) []interface{} {
+func (e *Entity) NamedData(key string) []any {
 	if _, ok := e.namedData[key]; ok {
 		return e.namedData[key]
 	}

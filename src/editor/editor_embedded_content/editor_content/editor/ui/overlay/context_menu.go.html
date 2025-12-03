@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 120; }
+			.overlay {
+				position: absolute;
+				width: 200px;
+				background-color: #121212;
+				border: 2px solid #AAA;
+			}
+			.contextOption {
+				color: #AAA;
+				background-color: #121212;
+				width: 100%;
+			}
+			.contextOption:hover { color: white; background-color: #575757; }
+		</style>
+	</head>
+	<body>
+		<div id="window" class="overlay" onmiss="clickMiss">
+			{{range $i, $v := .}}
+			<div class="contextOption" data-idx="{{$i}}" onclick="clickOption">{{$v}}</div>
+			{{end}}
+		</div>
+	</body>
+</html>

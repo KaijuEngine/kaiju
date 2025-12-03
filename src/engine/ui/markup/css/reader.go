@@ -39,6 +39,7 @@ package css
 
 import (
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/pseudos"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
@@ -49,11 +50,21 @@ import (
 
 type CSSMap map[*ui.UI][]rules.Rule
 
-func (m CSSMap) add(elm *ui.UI, rule []rules.Rule) {
-	if _, ok := m[elm]; !ok {
-		m[elm] = make([]rules.Rule, 0)
+func (m CSSMap) add(elm *ui.UI, rules []rules.Rule) {
+	if c, ok := m[elm]; !ok {
+		m[elm] = slices.Clone(rules)
+	} else {
+		for i := len(c) - 1; i >= 0; i-- {
+			for j := range rules {
+				if c[i].Property == rules[j].Property && c[i].Invocation == rules[j].Invocation {
+					c = klib.RemoveUnordered(c, i)
+					break
+				}
+			}
+		}
+		c = append(c, rules...)
+		m[elm] = c
 	}
-	m[elm] = append(m[elm], rule...)
 }
 
 func applyToElement(inRules []rules.Rule, elm *document.Element) {
@@ -99,33 +110,36 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			elms = append(elms, elm)
 		}
 	case rules.ReadingClass:
-		for _, elm := range doc.GetElementsByClass(parts[0].Name) {
-			elms = append(elms, elm)
-		}
+		elms = append(elms, doc.GetElementsByClass(parts[0].Name)...)
 	case rules.ReadingTag:
-		for _, elm := range doc.GetElementsByTagName(parts[0].Name) {
-			elms = append(elms, elm)
-		}
+		elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
 	}
 	targets := make([]*document.Element, 0)
 	lastTargets := []*document.Element{}
 	for _, elm := range elms {
 		lastTargets = append(lastTargets, elm)
 		for _, part := range parts[1:] {
-			if p, ok := pseudos.PseudoMap[part.Name]; ok {
-				for i := range lastTargets {
-					if selects, err := p.Process(lastTargets[i], part); err == nil {
-						targets = klib.AppendUnique(targets, selects...)
-						applyRules = p.AlterRules(applyRules)
-					}
+			switch part.SelectType {
+			case rules.ReadingClass:
+				if elm.HasClass(part.Name) {
+					targets = klib.AppendUnique(targets, elm)
 				}
-			} else {
+			case rules.ReadingTag:
 				tagged := doc.GetElementsByTagName(part.Name)
 				lastTargets = lastTargets[:0]
 				for _, t := range tagged {
 					if t.Parent.Value() == elm {
-						targets = append(targets, t)
+						targets = klib.AppendUnique(targets, t)
 						lastTargets = append(lastTargets, t)
+					}
+				}
+			case rules.ReadingPseudo, rules.ReadingPseudoFunction:
+				if p, ok := pseudos.PseudoMap[part.Name]; ok {
+					for i := range lastTargets {
+						if selects, err := p.Process(lastTargets[i], part); err == nil {
+							targets = klib.AppendUnique(targets, selects...)
+							applyRules = p.AlterRules(applyRules)
+						}
 					}
 				}
 			}
@@ -167,6 +181,18 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
+		if group.MediaQuery.IsValid() {
+			switch group.MediaQuery.Key {
+			case "screen":
+			case "max-width":
+				v := helpers.NumFromLength(group.MediaQuery.Value, z.Window)
+				if int(v) <= z.Window.Width() {
+					continue
+				}
+			default:
+				continue
+			}
+		}
 		for _, sel := range group.Selectors {
 			if len(sel.Parts) == 1 {
 				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)

@@ -365,15 +365,18 @@ package vulkan
 #include <stdlib.h>
 */
 import "C"
-import "unsafe"
+import (
+	"kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
 // CreateInstance function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateInstance.html
-func CreateInstance(pCreateInfo *InstanceCreateInfo, pAllocator *AllocationCallbacks, pInstance *Instance) Result {
+func CreateInstance(pCreateInfo *InstanceCreateInfo, pAllocator *AllocationCallbacks, pInstance *Instance) vulkan_const.Result {
 	res := C.callVkCreateInstance(
 		(*C.VkInstanceCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkInstance)(unsafe.Pointer(pInstance)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyInstance function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyInstance.html
@@ -384,12 +387,12 @@ func DestroyInstance(instance Instance, pAllocator *AllocationCallbacks) {
 }
 
 // EnumeratePhysicalDevices function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEnumeratePhysicalDevices.html
-func EnumeratePhysicalDevices(instance Instance, pPhysicalDeviceCount *uint32, pPhysicalDevices *PhysicalDevice) Result {
+func EnumeratePhysicalDevices(instance Instance, pPhysicalDeviceCount *uint32, pPhysicalDevices *PhysicalDevice) vulkan_const.Result {
 	res := C.callVkEnumeratePhysicalDevices(
 		*(*C.VkInstance)(unsafe.Pointer(&instance)),
 		(*C.uint32_t)(unsafe.Pointer(pPhysicalDeviceCount)),
 		(*C.VkPhysicalDevice)(unsafe.Pointer(pPhysicalDevices)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceFeatures function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPhysicalDeviceFeatures.html
@@ -400,7 +403,7 @@ func GetPhysicalDeviceFeatures(physicalDevice PhysicalDevice, pFeatures *Physica
 }
 
 // GetPhysicalDeviceFormatProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPhysicalDeviceFormatProperties.html
-func GetPhysicalDeviceFormatProperties(physicalDevice PhysicalDevice, format Format, pFormatProperties *FormatProperties) {
+func GetPhysicalDeviceFormatProperties(physicalDevice PhysicalDevice, format vulkan_const.Format, pFormatProperties *FormatProperties) {
 	C.callVkGetPhysicalDeviceFormatProperties(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(C.VkFormat)(format),
@@ -408,7 +411,7 @@ func GetPhysicalDeviceFormatProperties(physicalDevice PhysicalDevice, format For
 }
 
 // GetPhysicalDeviceImageFormatProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPhysicalDeviceImageFormatProperties.html
-func GetPhysicalDeviceImageFormatProperties(physicalDevice PhysicalDevice, format Format, kind ImageType, tiling ImageTiling, usage ImageUsageFlags, flags ImageCreateFlags, pImageFormatProperties *ImageFormatProperties) Result {
+func GetPhysicalDeviceImageFormatProperties(physicalDevice PhysicalDevice, format vulkan_const.Format, kind vulkan_const.ImageType, tiling vulkan_const.ImageTiling, usage ImageUsageFlags, flags ImageCreateFlags, pImageFormatProperties *ImageFormatProperties) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceImageFormatProperties(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(C.VkFormat)(format),
@@ -417,7 +420,7 @@ func GetPhysicalDeviceImageFormatProperties(physicalDevice PhysicalDevice, forma
 		(C.VkImageUsageFlags)(usage),
 		(C.VkImageCreateFlags)(flags),
 		(*C.VkImageFormatProperties)(unsafe.Pointer(pImageFormatProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPhysicalDeviceProperties.html
@@ -443,13 +446,13 @@ func GetPhysicalDeviceMemoryProperties(physicalDevice PhysicalDevice, pMemoryPro
 }
 
 // CreateDevice function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateDevice.html
-func CreateDevice(physicalDevice PhysicalDevice, pCreateInfo *DeviceCreateInfo, pAllocator *AllocationCallbacks, pDevice *Device) Result {
+func CreateDevice(physicalDevice PhysicalDevice, pCreateInfo *DeviceCreateInfo, pAllocator *AllocationCallbacks, pDevice *Device) vulkan_const.Result {
 	res := C.callVkCreateDevice(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(*C.VkDeviceCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDevice)(unsafe.Pointer(pDevice)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyDevice function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyDevice.html
@@ -467,39 +470,39 @@ func cStr(str *string) *C.char {
 }
 
 // EnumerateInstanceExtensionProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEnumerateInstanceExtensionProperties.html
-func EnumerateInstanceExtensionProperties(pLayerName *string, pPropertyCount *uint32, pProperties *ExtensionProperties) Result {
+func EnumerateInstanceExtensionProperties(pLayerName *string, pPropertyCount *uint32, pProperties *ExtensionProperties) vulkan_const.Result {
 	res := C.callVkEnumerateInstanceExtensionProperties(
 		cStr(pLayerName),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkExtensionProperties)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // EnumerateDeviceExtensionProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEnumerateDeviceExtensionProperties.html
-func EnumerateDeviceExtensionProperties(physicalDevice PhysicalDevice, pLayerName *string, pPropertyCount *uint32, pProperties *ExtensionProperties) Result {
+func EnumerateDeviceExtensionProperties(physicalDevice PhysicalDevice, pLayerName *string, pPropertyCount *uint32, pProperties *ExtensionProperties) vulkan_const.Result {
 	res := C.callVkEnumerateDeviceExtensionProperties(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		cStr(pLayerName),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkExtensionProperties)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // EnumerateInstanceLayerProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEnumerateInstanceLayerProperties.html
-func EnumerateInstanceLayerProperties(pPropertyCount *uint32, pProperties *LayerProperties) Result {
+func EnumerateInstanceLayerProperties(pPropertyCount *uint32, pProperties *LayerProperties) vulkan_const.Result {
 	res := C.callVkEnumerateInstanceLayerProperties(
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkLayerProperties)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // EnumerateDeviceLayerProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEnumerateDeviceLayerProperties.html
-func EnumerateDeviceLayerProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *LayerProperties) Result {
+func EnumerateDeviceLayerProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *LayerProperties) vulkan_const.Result {
 	res := C.callVkEnumerateDeviceLayerProperties(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkLayerProperties)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetDeviceQueue function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetDeviceQueue.html
@@ -512,35 +515,35 @@ func GetDeviceQueue(device Device, queueFamilyIndex uint32, queueIndex uint32, p
 }
 
 // QueueSubmit function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkQueueSubmit.html
-func QueueSubmit(queue Queue, submitCount uint32, pSubmits *SubmitInfo, fence Fence) Result {
+func QueueSubmit(queue Queue, submitCount uint32, pSubmits *SubmitInfo, fence Fence) vulkan_const.Result {
 	res := C.callVkQueueSubmit(
 		*(*C.VkQueue)(unsafe.Pointer(&queue)),
 		(C.uint32_t)(submitCount),
 		(*C.VkSubmitInfo)(unsafe.Pointer(pSubmits)),
 		*(*C.VkFence)(unsafe.Pointer(&fence)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // QueueWaitIdle function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkQueueWaitIdle.html
-func QueueWaitIdle(queue Queue) Result {
+func QueueWaitIdle(queue Queue) vulkan_const.Result {
 	res := C.callVkQueueWaitIdle(*(*C.VkQueue)(unsafe.Pointer(&queue)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DeviceWaitIdle function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDeviceWaitIdle.html
-func DeviceWaitIdle(device Device) Result {
+func DeviceWaitIdle(device Device) vulkan_const.Result {
 	res := C.callVkDeviceWaitIdle(*(*C.VkDevice)(unsafe.Pointer(&device)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // AllocateMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkAllocateMemory.html
-func AllocateMemory(device Device, pAllocateInfo *MemoryAllocateInfo, pAllocator *AllocationCallbacks, pMemory *DeviceMemory) Result {
+func AllocateMemory(device Device, pAllocateInfo *MemoryAllocateInfo, pAllocator *AllocationCallbacks, pMemory *DeviceMemory) vulkan_const.Result {
 	res := C.callVkAllocateMemory(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkMemoryAllocateInfo)(unsafe.Pointer(pAllocateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDeviceMemory)(unsafe.Pointer(pMemory)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // FreeMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkFreeMemory.html
@@ -552,7 +555,7 @@ func FreeMemory(device Device, memory DeviceMemory, pAllocator *AllocationCallba
 }
 
 // MapMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkMapMemory.html
-func MapMemory(device Device, memory DeviceMemory, offset DeviceSize, size DeviceSize, flags MemoryMapFlags, ppData *unsafe.Pointer) Result {
+func MapMemory(device Device, memory DeviceMemory, offset DeviceSize, size DeviceSize, flags MemoryMapFlags, ppData *unsafe.Pointer) vulkan_const.Result {
 	res := C.callVkMapMemory(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkDeviceMemory)(unsafe.Pointer(&memory)),
@@ -560,7 +563,7 @@ func MapMemory(device Device, memory DeviceMemory, offset DeviceSize, size Devic
 		(C.VkDeviceSize)(size),
 		(C.VkMemoryMapFlags)(flags),
 		ppData)
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // UnmapMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkUnmapMemory.html
@@ -571,21 +574,21 @@ func UnmapMemory(device Device, memory DeviceMemory) {
 }
 
 // FlushMappedMemoryRanges function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkFlushMappedMemoryRanges.html
-func FlushMappedMemoryRanges(device Device, memoryRangeCount uint32, pMemoryRanges *MappedMemoryRange) Result {
+func FlushMappedMemoryRanges(device Device, memoryRangeCount uint32, pMemoryRanges *MappedMemoryRange) vulkan_const.Result {
 	res := C.callVkFlushMappedMemoryRanges(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(C.uint32_t)(memoryRangeCount),
 		(*C.VkMappedMemoryRange)(unsafe.Pointer(pMemoryRanges)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // InvalidateMappedMemoryRanges function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkInvalidateMappedMemoryRanges.html
-func InvalidateMappedMemoryRanges(device Device, memoryRangeCount uint32, pMemoryRanges *MappedMemoryRange) Result {
+func InvalidateMappedMemoryRanges(device Device, memoryRangeCount uint32, pMemoryRanges *MappedMemoryRange) vulkan_const.Result {
 	res := C.callVkInvalidateMappedMemoryRanges(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(C.uint32_t)(memoryRangeCount),
 		(*C.VkMappedMemoryRange)(unsafe.Pointer(pMemoryRanges)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetDeviceMemoryCommitment function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetDeviceMemoryCommitment.html
@@ -597,23 +600,23 @@ func GetDeviceMemoryCommitment(device Device, memory DeviceMemory, pCommittedMem
 }
 
 // BindBufferMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkBindBufferMemory.html
-func BindBufferMemory(device Device, buffer Buffer, memory DeviceMemory, memoryOffset DeviceSize) Result {
+func BindBufferMemory(device Device, buffer Buffer, memory DeviceMemory, memoryOffset DeviceSize) vulkan_const.Result {
 	res := C.callVkBindBufferMemory(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkBuffer)(unsafe.Pointer(&buffer)),
 		*(*C.VkDeviceMemory)(unsafe.Pointer(&memory)),
 		(C.VkDeviceSize)(memoryOffset))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // BindImageMemory function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkBindImageMemory.html
-func BindImageMemory(device Device, image Image, memory DeviceMemory, memoryOffset DeviceSize) Result {
+func BindImageMemory(device Device, image Image, memory DeviceMemory, memoryOffset DeviceSize) vulkan_const.Result {
 	res := C.callVkBindImageMemory(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkImage)(unsafe.Pointer(&image)),
 		*(*C.VkDeviceMemory)(unsafe.Pointer(&memory)),
 		(C.VkDeviceSize)(memoryOffset))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetBufferMemoryRequirements function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetBufferMemoryRequirements.html
@@ -642,7 +645,7 @@ func GetImageSparseMemoryRequirements(device Device, image Image, pSparseMemoryR
 }
 
 // GetPhysicalDeviceSparseImageFormatProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPhysicalDeviceSparseImageFormatProperties.html
-func GetPhysicalDeviceSparseImageFormatProperties(physicalDevice PhysicalDevice, format Format, kind ImageType, samples SampleCountFlagBits, usage ImageUsageFlags, tiling ImageTiling, pPropertyCount *uint32, pProperties *SparseImageFormatProperties) {
+func GetPhysicalDeviceSparseImageFormatProperties(physicalDevice PhysicalDevice, format vulkan_const.Format, kind vulkan_const.ImageType, samples vulkan_const.SampleCountFlagBits, usage ImageUsageFlags, tiling vulkan_const.ImageTiling, pPropertyCount *uint32, pProperties *SparseImageFormatProperties) {
 	C.callVkGetPhysicalDeviceSparseImageFormatProperties(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(C.VkFormat)(format),
@@ -655,23 +658,23 @@ func GetPhysicalDeviceSparseImageFormatProperties(physicalDevice PhysicalDevice,
 }
 
 // QueueBindSparse function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkQueueBindSparse.html
-func QueueBindSparse(queue Queue, bindInfoCount uint32, pBindInfo *BindSparseInfo, fence Fence) Result {
+func QueueBindSparse(queue Queue, bindInfoCount uint32, pBindInfo *BindSparseInfo, fence Fence) vulkan_const.Result {
 	res := C.callVkQueueBindSparse(
 		*(*C.VkQueue)(unsafe.Pointer(&queue)),
 		(C.uint32_t)(bindInfoCount),
 		(*C.VkBindSparseInfo)(unsafe.Pointer(pBindInfo)),
 		*(*C.VkFence)(unsafe.Pointer(&fence)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateFence function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateFence.html
-func CreateFence(device Device, pCreateInfo *FenceCreateInfo, pAllocator *AllocationCallbacks, pFence *Fence) Result {
+func CreateFence(device Device, pCreateInfo *FenceCreateInfo, pAllocator *AllocationCallbacks, pFence *Fence) vulkan_const.Result {
 	res := C.callVkCreateFence(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkFenceCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkFence)(unsafe.Pointer(pFence)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyFence function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyFence.html
@@ -683,41 +686,41 @@ func DestroyFence(device Device, fence Fence, pAllocator *AllocationCallbacks) {
 }
 
 // ResetFences function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkResetFences.html
-func ResetFences(device Device, fenceCount uint32, pFences *Fence) Result {
+func ResetFences(device Device, fenceCount uint32, pFences *Fence) vulkan_const.Result {
 	res := C.callVkResetFences(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(C.uint32_t)(fenceCount),
 		(*C.VkFence)(unsafe.Pointer(pFences)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetFenceStatus function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetFenceStatus.html
-func GetFenceStatus(device Device, fence Fence) Result {
+func GetFenceStatus(device Device, fence Fence) vulkan_const.Result {
 	res := C.callVkGetFenceStatus(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkFence)(unsafe.Pointer(&fence)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // WaitForFences function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkWaitForFences.html
-func WaitForFences(device Device, fenceCount uint32, pFences *Fence, waitAll Bool32, timeout uint64) Result {
+func WaitForFences(device Device, fenceCount uint32, pFences *Fence, waitAll Bool32, timeout uint64) vulkan_const.Result {
 	res := C.callVkWaitForFences(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(C.uint32_t)(fenceCount),
 		(*C.VkFence)(unsafe.Pointer(pFences)),
 		(C.VkBool32)(waitAll),
 		(C.uint64_t)(timeout))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateSemaphore function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateSemaphore.html
-func CreateSemaphore(device Device, pCreateInfo *SemaphoreCreateInfo, pAllocator *AllocationCallbacks, pSemaphore *Semaphore) Result {
+func CreateSemaphore(device Device, pCreateInfo *SemaphoreCreateInfo, pAllocator *AllocationCallbacks, pSemaphore *Semaphore) vulkan_const.Result {
 	res := C.callVkCreateSemaphore(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkSemaphoreCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkSemaphore)(unsafe.Pointer(pSemaphore)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroySemaphore function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroySemaphore.html
@@ -729,13 +732,13 @@ func DestroySemaphore(device Device, semaphore Semaphore, pAllocator *Allocation
 }
 
 // CreateEvent function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateEvent.html
-func CreateEvent(device Device, pCreateInfo *EventCreateInfo, pAllocator *AllocationCallbacks, pEvent *Event) Result {
+func CreateEvent(device Device, pCreateInfo *EventCreateInfo, pAllocator *AllocationCallbacks, pEvent *Event) vulkan_const.Result {
 	res := C.callVkCreateEvent(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkEventCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkEvent)(unsafe.Pointer(pEvent)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyEvent function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyEvent.html
@@ -747,37 +750,37 @@ func DestroyEvent(device Device, event Event, pAllocator *AllocationCallbacks) {
 }
 
 // GetEventStatus function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetEventStatus.html
-func GetEventStatus(device Device, event Event) Result {
+func GetEventStatus(device Device, event Event) vulkan_const.Result {
 	res := C.callVkGetEventStatus(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkEvent)(unsafe.Pointer(&event)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // SetEvent function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkSetEvent.html
-func SetEvent(device Device, event Event) Result {
+func SetEvent(device Device, event Event) vulkan_const.Result {
 	res := C.callVkSetEvent(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkEvent)(unsafe.Pointer(&event)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // ResetEvent function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkResetEvent.html
-func ResetEvent(device Device, event Event) Result {
+func ResetEvent(device Device, event Event) vulkan_const.Result {
 	res := C.callVkResetEvent(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkEvent)(unsafe.Pointer(&event)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateQueryPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateQueryPool.html
-func CreateQueryPool(device Device, pCreateInfo *QueryPoolCreateInfo, pAllocator *AllocationCallbacks, pQueryPool *QueryPool) Result {
+func CreateQueryPool(device Device, pCreateInfo *QueryPoolCreateInfo, pAllocator *AllocationCallbacks, pQueryPool *QueryPool) vulkan_const.Result {
 	res := C.callVkCreateQueryPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkQueryPoolCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkQueryPool)(unsafe.Pointer(pQueryPool)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyQueryPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyQueryPool.html
@@ -789,7 +792,7 @@ func DestroyQueryPool(device Device, queryPool QueryPool, pAllocator *Allocation
 }
 
 // GetQueryPoolResults function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetQueryPoolResults.html
-func GetQueryPoolResults(device Device, queryPool QueryPool, firstQuery uint32, queryCount uint32, dataSize uint, pData unsafe.Pointer, stride DeviceSize, flags QueryResultFlags) Result {
+func GetQueryPoolResults(device Device, queryPool QueryPool, firstQuery uint32, queryCount uint32, dataSize uint, pData unsafe.Pointer, stride DeviceSize, flags QueryResultFlags) vulkan_const.Result {
 	res := C.callVkGetQueryPoolResults(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkQueryPool)(unsafe.Pointer(&queryPool)),
@@ -799,17 +802,17 @@ func GetQueryPoolResults(device Device, queryPool QueryPool, firstQuery uint32, 
 		pData,
 		(C.VkDeviceSize)(stride),
 		(C.VkQueryResultFlags)(flags))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateBuffer.html
-func CreateBuffer(device Device, pCreateInfo *BufferCreateInfo, pAllocator *AllocationCallbacks, pBuffer *Buffer) Result {
+func CreateBuffer(device Device, pCreateInfo *BufferCreateInfo, pAllocator *AllocationCallbacks, pBuffer *Buffer) vulkan_const.Result {
 	res := C.callVkCreateBuffer(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkBufferCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkBuffer)(unsafe.Pointer(pBuffer)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyBuffer.html
@@ -821,13 +824,13 @@ func DestroyBuffer(device Device, buffer Buffer, pAllocator *AllocationCallbacks
 }
 
 // CreateBufferView function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateBufferView.html
-func CreateBufferView(device Device, pCreateInfo *BufferViewCreateInfo, pAllocator *AllocationCallbacks, pView *BufferView) Result {
+func CreateBufferView(device Device, pCreateInfo *BufferViewCreateInfo, pAllocator *AllocationCallbacks, pView *BufferView) vulkan_const.Result {
 	res := C.callVkCreateBufferView(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkBufferViewCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkBufferView)(unsafe.Pointer(pView)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyBufferView function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyBufferView.html
@@ -839,13 +842,13 @@ func DestroyBufferView(device Device, bufferView BufferView, pAllocator *Allocat
 }
 
 // CreateImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateImage.html
-func CreateImage(device Device, pCreateInfo *ImageCreateInfo, pAllocator *AllocationCallbacks, pImage *Image) Result {
+func CreateImage(device Device, pCreateInfo *ImageCreateInfo, pAllocator *AllocationCallbacks, pImage *Image) vulkan_const.Result {
 	res := C.callVkCreateImage(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkImageCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkImage)(unsafe.Pointer(pImage)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyImage.html
@@ -866,13 +869,13 @@ func GetImageSubresourceLayout(device Device, image Image, pSubresource *ImageSu
 }
 
 // CreateImageView function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateImageView.html
-func CreateImageView(device Device, pCreateInfo *ImageViewCreateInfo, pAllocator *AllocationCallbacks, pView *ImageView) Result {
+func CreateImageView(device Device, pCreateInfo *ImageViewCreateInfo, pAllocator *AllocationCallbacks, pView *ImageView) vulkan_const.Result {
 	res := C.callVkCreateImageView(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkImageViewCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkImageView)(unsafe.Pointer(pView)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyImageView function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyImageView.html
@@ -884,13 +887,13 @@ func DestroyImageView(device Device, imageView ImageView, pAllocator *Allocation
 }
 
 // CreateShaderModule function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateShaderModule.html
-func CreateShaderModule(device Device, pCreateInfo *ShaderModuleCreateInfo, pAllocator *AllocationCallbacks, pShaderModule *ShaderModule) Result {
+func CreateShaderModule(device Device, pCreateInfo *ShaderModuleCreateInfo, pAllocator *AllocationCallbacks, pShaderModule *ShaderModule) vulkan_const.Result {
 	res := C.callVkCreateShaderModule(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkShaderModuleCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkShaderModule)(unsafe.Pointer(pShaderModule)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyShaderModule function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyShaderModule.html
@@ -902,13 +905,13 @@ func DestroyShaderModule(device Device, shaderModule ShaderModule, pAllocator *A
 }
 
 // CreatePipelineCache function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreatePipelineCache.html
-func CreatePipelineCache(device Device, pCreateInfo *PipelineCacheCreateInfo, pAllocator *AllocationCallbacks, pPipelineCache *PipelineCache) Result {
+func CreatePipelineCache(device Device, pCreateInfo *PipelineCacheCreateInfo, pAllocator *AllocationCallbacks, pPipelineCache *PipelineCache) vulkan_const.Result {
 	res := C.callVkCreatePipelineCache(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkPipelineCacheCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkPipelineCache)(unsafe.Pointer(pPipelineCache)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyPipelineCache function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyPipelineCache.html
@@ -920,27 +923,27 @@ func DestroyPipelineCache(device Device, pipelineCache PipelineCache, pAllocator
 }
 
 // GetPipelineCacheData function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPipelineCacheData.html
-func GetPipelineCacheData(device Device, pipelineCache PipelineCache, pDataSize *uint, pData unsafe.Pointer) Result {
+func GetPipelineCacheData(device Device, pipelineCache PipelineCache, pDataSize *uint, pData unsafe.Pointer) vulkan_const.Result {
 	res := C.callVkGetPipelineCacheData(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkPipelineCache)(unsafe.Pointer(&pipelineCache)),
 		(*C.size_t)(unsafe.Pointer(pDataSize)),
 		pData)
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // MergePipelineCaches function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkMergePipelineCaches.html
-func MergePipelineCaches(device Device, dstCache PipelineCache, srcCacheCount uint32, pSrcCaches *PipelineCache) Result {
+func MergePipelineCaches(device Device, dstCache PipelineCache, srcCacheCount uint32, pSrcCaches *PipelineCache) vulkan_const.Result {
 	res := C.callVkMergePipelineCaches(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkPipelineCache)(unsafe.Pointer(&dstCache)),
 		(C.uint32_t)(srcCacheCount),
 		(*C.VkPipelineCache)(unsafe.Pointer(pSrcCaches)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateGraphicsPipelines function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateGraphicsPipelines.html
-func CreateGraphicsPipelines(device Device, pipelineCache PipelineCache, createInfoCount uint32, pCreateInfos *GraphicsPipelineCreateInfo, pAllocator *AllocationCallbacks, pPipelines *Pipeline) Result {
+func CreateGraphicsPipelines(device Device, pipelineCache PipelineCache, createInfoCount uint32, pCreateInfos *GraphicsPipelineCreateInfo, pAllocator *AllocationCallbacks, pPipelines *Pipeline) vulkan_const.Result {
 	res := C.callVkCreateGraphicsPipelines(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkPipelineCache)(unsafe.Pointer(&pipelineCache)),
@@ -948,11 +951,11 @@ func CreateGraphicsPipelines(device Device, pipelineCache PipelineCache, createI
 		(*C.VkGraphicsPipelineCreateInfo)(unsafe.Pointer(pCreateInfos)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkPipeline)(unsafe.Pointer(pPipelines)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateComputePipelines function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateComputePipelines.html
-func CreateComputePipelines(device Device, pipelineCache PipelineCache, createInfoCount uint32, pCreateInfos *ComputePipelineCreateInfo, pAllocator *AllocationCallbacks, pPipelines *Pipeline) Result {
+func CreateComputePipelines(device Device, pipelineCache PipelineCache, createInfoCount uint32, pCreateInfos *ComputePipelineCreateInfo, pAllocator *AllocationCallbacks, pPipelines *Pipeline) vulkan_const.Result {
 	res := C.callVkCreateComputePipelines(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkPipelineCache)(unsafe.Pointer(&pipelineCache)),
@@ -960,7 +963,7 @@ func CreateComputePipelines(device Device, pipelineCache PipelineCache, createIn
 		(*C.VkComputePipelineCreateInfo)(unsafe.Pointer(pCreateInfos)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkPipeline)(unsafe.Pointer(pPipelines)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyPipeline function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyPipeline.html
@@ -972,13 +975,13 @@ func DestroyPipeline(device Device, pipeline Pipeline, pAllocator *AllocationCal
 }
 
 // CreatePipelineLayout function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreatePipelineLayout.html
-func CreatePipelineLayout(device Device, pCreateInfo *PipelineLayoutCreateInfo, pAllocator *AllocationCallbacks, pPipelineLayout *PipelineLayout) Result {
+func CreatePipelineLayout(device Device, pCreateInfo *PipelineLayoutCreateInfo, pAllocator *AllocationCallbacks, pPipelineLayout *PipelineLayout) vulkan_const.Result {
 	res := C.callVkCreatePipelineLayout(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkPipelineLayoutCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkPipelineLayout)(unsafe.Pointer(pPipelineLayout)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyPipelineLayout function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyPipelineLayout.html
@@ -990,13 +993,13 @@ func DestroyPipelineLayout(device Device, pipelineLayout PipelineLayout, pAlloca
 }
 
 // CreateSampler function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateSampler.html
-func CreateSampler(device Device, pCreateInfo *SamplerCreateInfo, pAllocator *AllocationCallbacks, pSampler *Sampler) Result {
+func CreateSampler(device Device, pCreateInfo *SamplerCreateInfo, pAllocator *AllocationCallbacks, pSampler *Sampler) vulkan_const.Result {
 	res := C.callVkCreateSampler(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkSamplerCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkSampler)(unsafe.Pointer(pSampler)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroySampler function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroySampler.html
@@ -1008,13 +1011,13 @@ func DestroySampler(device Device, sampler Sampler, pAllocator *AllocationCallba
 }
 
 // CreateDescriptorSetLayout function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateDescriptorSetLayout.html
-func CreateDescriptorSetLayout(device Device, pCreateInfo *DescriptorSetLayoutCreateInfo, pAllocator *AllocationCallbacks, pSetLayout *DescriptorSetLayout) Result {
+func CreateDescriptorSetLayout(device Device, pCreateInfo *DescriptorSetLayoutCreateInfo, pAllocator *AllocationCallbacks, pSetLayout *DescriptorSetLayout) vulkan_const.Result {
 	res := C.callVkCreateDescriptorSetLayout(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkDescriptorSetLayoutCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDescriptorSetLayout)(unsafe.Pointer(pSetLayout)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyDescriptorSetLayout function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyDescriptorSetLayout.html
@@ -1026,13 +1029,13 @@ func DestroyDescriptorSetLayout(device Device, descriptorSetLayout DescriptorSet
 }
 
 // CreateDescriptorPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateDescriptorPool.html
-func CreateDescriptorPool(device Device, pCreateInfo *DescriptorPoolCreateInfo, pAllocator *AllocationCallbacks, pDescriptorPool *DescriptorPool) Result {
+func CreateDescriptorPool(device Device, pCreateInfo *DescriptorPoolCreateInfo, pAllocator *AllocationCallbacks, pDescriptorPool *DescriptorPool) vulkan_const.Result {
 	res := C.callVkCreateDescriptorPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkDescriptorPoolCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDescriptorPool)(unsafe.Pointer(pDescriptorPool)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyDescriptorPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyDescriptorPool.html
@@ -1044,31 +1047,31 @@ func DestroyDescriptorPool(device Device, descriptorPool DescriptorPool, pAlloca
 }
 
 // ResetDescriptorPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkResetDescriptorPool.html
-func ResetDescriptorPool(device Device, descriptorPool DescriptorPool, flags DescriptorPoolResetFlags) Result {
+func ResetDescriptorPool(device Device, descriptorPool DescriptorPool, flags DescriptorPoolResetFlags) vulkan_const.Result {
 	res := C.callVkResetDescriptorPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkDescriptorPool)(unsafe.Pointer(&descriptorPool)),
 		(C.VkDescriptorPoolResetFlags)(flags))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // AllocateDescriptorSets function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkAllocateDescriptorSets.html
-func AllocateDescriptorSets(device Device, pAllocateInfo *DescriptorSetAllocateInfo, pDescriptorSets *DescriptorSet) Result {
+func AllocateDescriptorSets(device Device, pAllocateInfo *DescriptorSetAllocateInfo, pDescriptorSets *DescriptorSet) vulkan_const.Result {
 	res := C.callVkAllocateDescriptorSets(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkDescriptorSetAllocateInfo)(unsafe.Pointer(pAllocateInfo)),
 		(*C.VkDescriptorSet)(unsafe.Pointer(pDescriptorSets)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // FreeDescriptorSets function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkFreeDescriptorSets.html
-func FreeDescriptorSets(device Device, descriptorPool DescriptorPool, descriptorSetCount uint32, pDescriptorSets *DescriptorSet) Result {
+func FreeDescriptorSets(device Device, descriptorPool DescriptorPool, descriptorSetCount uint32, pDescriptorSets *DescriptorSet) vulkan_const.Result {
 	res := C.callVkFreeDescriptorSets(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkDescriptorPool)(unsafe.Pointer(&descriptorPool)),
 		(C.uint32_t)(descriptorSetCount),
 		(*C.VkDescriptorSet)(unsafe.Pointer(pDescriptorSets)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // UpdateDescriptorSets function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkUpdateDescriptorSets.html
@@ -1082,13 +1085,13 @@ func UpdateDescriptorSets(device Device, descriptorWriteCount uint32, pDescripto
 }
 
 // CreateFramebuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateFramebuffer.html
-func CreateFramebuffer(device Device, pCreateInfo *FramebufferCreateInfo, pAllocator *AllocationCallbacks, pFramebuffer *Framebuffer) Result {
+func CreateFramebuffer(device Device, pCreateInfo *FramebufferCreateInfo, pAllocator *AllocationCallbacks, pFramebuffer *Framebuffer) vulkan_const.Result {
 	res := C.callVkCreateFramebuffer(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkFramebufferCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkFramebuffer)(unsafe.Pointer(pFramebuffer)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyFramebuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyFramebuffer.html
@@ -1100,13 +1103,13 @@ func DestroyFramebuffer(device Device, framebuffer Framebuffer, pAllocator *Allo
 }
 
 // CreateRenderPass function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateRenderPass.html
-func CreateRenderPass(device Device, pCreateInfo *RenderPassCreateInfo, pAllocator *AllocationCallbacks, pRenderPass *RenderPass) Result {
+func CreateRenderPass(device Device, pCreateInfo *RenderPassCreateInfo, pAllocator *AllocationCallbacks, pRenderPass *RenderPass) vulkan_const.Result {
 	res := C.callVkCreateRenderPass(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkRenderPassCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkRenderPass)(unsafe.Pointer(pRenderPass)))
-	return (Result)(res)
+	return (vulkan_const.Result)(res)
 }
 
 // DestroyRenderPass function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyRenderPass.html
@@ -1126,13 +1129,13 @@ func GetRenderAreaGranularity(device Device, renderPass RenderPass, pGranularity
 }
 
 // CreateCommandPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateCommandPool.html
-func CreateCommandPool(device Device, pCreateInfo *CommandPoolCreateInfo, pAllocator *AllocationCallbacks, pCommandPool *CommandPool) Result {
+func CreateCommandPool(device Device, pCreateInfo *CommandPoolCreateInfo, pAllocator *AllocationCallbacks, pCommandPool *CommandPool) vulkan_const.Result {
 	res := C.callVkCreateCommandPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkCommandPoolCreateInfo)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkCommandPool)(unsafe.Pointer(pCommandPool)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyCommandPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyCommandPool.html
@@ -1152,21 +1155,21 @@ func DestroyCommandPools(device Device, commandPool *CommandPool, count int, pAl
 }
 
 // ResetCommandPool function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkResetCommandPool.html
-func ResetCommandPool(device Device, commandPool CommandPool, flags CommandPoolResetFlags) Result {
+func ResetCommandPool(device Device, commandPool CommandPool, flags CommandPoolResetFlags) vulkan_const.Result {
 	res := C.callVkResetCommandPool(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkCommandPool)(unsafe.Pointer(&commandPool)),
 		(C.VkCommandPoolResetFlags)(flags))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // AllocateCommandBuffers function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkAllocateCommandBuffers.html
-func AllocateCommandBuffers(device Device, pAllocateInfo *CommandBufferAllocateInfo, pCommandBuffers *CommandBuffer) Result {
+func AllocateCommandBuffers(device Device, pAllocateInfo *CommandBufferAllocateInfo, pCommandBuffers *CommandBuffer) vulkan_const.Result {
 	res := C.callVkAllocateCommandBuffers(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkCommandBufferAllocateInfo)(unsafe.Pointer(pAllocateInfo)),
 		(*C.VkCommandBuffer)(unsafe.Pointer(pCommandBuffers)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // FreeCommandBuffers function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkFreeCommandBuffers.html
@@ -1179,30 +1182,30 @@ func FreeCommandBuffers(device Device, commandPool CommandPool, commandBufferCou
 }
 
 // BeginCommandBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkBeginCommandBuffer.html
-func BeginCommandBuffer(commandBuffer CommandBuffer, pBeginInfo *CommandBufferBeginInfo) Result {
+func BeginCommandBuffer(commandBuffer CommandBuffer, pBeginInfo *CommandBufferBeginInfo) vulkan_const.Result {
 	res := C.callVkBeginCommandBuffer(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(*C.VkCommandBufferBeginInfo)(unsafe.Pointer(pBeginInfo)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // EndCommandBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkEndCommandBuffer.html
-func EndCommandBuffer(commandBuffer CommandBuffer) Result {
+func EndCommandBuffer(commandBuffer CommandBuffer) vulkan_const.Result {
 	res := C.callVkEndCommandBuffer(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // ResetCommandBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkResetCommandBuffer.html
-func ResetCommandBuffer(commandBuffer CommandBuffer, flags CommandBufferResetFlags) Result {
+func ResetCommandBuffer(commandBuffer CommandBuffer, flags CommandBufferResetFlags) vulkan_const.Result {
 	res := C.callVkResetCommandBuffer(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(C.VkCommandBufferResetFlags)(flags))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CmdBindPipeline function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBindPipeline.html
-func CmdBindPipeline(commandBuffer CommandBuffer, pipelineBindPoint PipelineBindPoint, pipeline Pipeline) {
+func CmdBindPipeline(commandBuffer CommandBuffer, pipelineBindPoint vulkan_const.PipelineBindPoint, pipeline Pipeline) {
 	C.callVkCmdBindPipeline(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(C.VkPipelineBindPoint)(pipelineBindPoint),
@@ -1283,7 +1286,7 @@ func CmdSetStencilReference(commandBuffer CommandBuffer, faceMask StencilFaceFla
 }
 
 // CmdBindDescriptorSets function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBindDescriptorSets.html
-func CmdBindDescriptorSets(commandBuffer CommandBuffer, pipelineBindPoint PipelineBindPoint, layout PipelineLayout, firstSet uint32, descriptorSetCount uint32, pDescriptorSets *DescriptorSet, dynamicOffsetCount uint32, pDynamicOffsets *uint32) {
+func CmdBindDescriptorSets(commandBuffer CommandBuffer, pipelineBindPoint vulkan_const.PipelineBindPoint, layout PipelineLayout, firstSet uint32, descriptorSetCount uint32, pDescriptorSets *DescriptorSet, dynamicOffsetCount uint32, pDynamicOffsets *uint32) {
 	C.callVkCmdBindDescriptorSets(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(C.VkPipelineBindPoint)(pipelineBindPoint),
@@ -1296,7 +1299,7 @@ func CmdBindDescriptorSets(commandBuffer CommandBuffer, pipelineBindPoint Pipeli
 }
 
 // CmdBindIndexBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBindIndexBuffer.html
-func CmdBindIndexBuffer(commandBuffer CommandBuffer, buffer Buffer, offset DeviceSize, indexType IndexType) {
+func CmdBindIndexBuffer(commandBuffer CommandBuffer, buffer Buffer, offset DeviceSize, indexType vulkan_const.IndexType) {
 	C.callVkCmdBindIndexBuffer(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkBuffer)(unsafe.Pointer(&buffer)),
@@ -1383,7 +1386,7 @@ func CmdCopyBuffer(commandBuffer CommandBuffer, srcBuffer Buffer, dstBuffer Buff
 }
 
 // CmdCopyImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdCopyImage.html
-func CmdCopyImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout ImageLayout, dstImage Image, dstImageLayout ImageLayout, regionCount uint32, pRegions *ImageCopy) {
+func CmdCopyImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout vulkan_const.ImageLayout, dstImage Image, dstImageLayout vulkan_const.ImageLayout, regionCount uint32, pRegions *ImageCopy) {
 	C.callVkCmdCopyImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&srcImage)),
@@ -1395,7 +1398,7 @@ func CmdCopyImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout Im
 }
 
 // CmdBlitImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBlitImage.html
-func CmdBlitImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout ImageLayout, dstImage Image, dstImageLayout ImageLayout, regionCount uint32, pRegions *ImageBlit, filter Filter) {
+func CmdBlitImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout vulkan_const.ImageLayout, dstImage Image, dstImageLayout vulkan_const.ImageLayout, regionCount uint32, pRegions *ImageBlit, filter vulkan_const.Filter) {
 	C.callVkCmdBlitImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&srcImage)),
@@ -1408,7 +1411,7 @@ func CmdBlitImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout Im
 }
 
 // CmdCopyBufferToImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdCopyBufferToImage.html
-func CmdCopyBufferToImage(commandBuffer CommandBuffer, srcBuffer Buffer, dstImage Image, dstImageLayout ImageLayout, regionCount uint32, pRegions *BufferImageCopy) {
+func CmdCopyBufferToImage(commandBuffer CommandBuffer, srcBuffer Buffer, dstImage Image, dstImageLayout vulkan_const.ImageLayout, regionCount uint32, pRegions *BufferImageCopy) {
 	C.callVkCmdCopyBufferToImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkBuffer)(unsafe.Pointer(&srcBuffer)),
@@ -1419,7 +1422,7 @@ func CmdCopyBufferToImage(commandBuffer CommandBuffer, srcBuffer Buffer, dstImag
 }
 
 // CmdCopyImageToBuffer function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdCopyImageToBuffer.html
-func CmdCopyImageToBuffer(commandBuffer CommandBuffer, srcImage Image, srcImageLayout ImageLayout, dstBuffer Buffer, regionCount uint32, pRegions *BufferImageCopy) {
+func CmdCopyImageToBuffer(commandBuffer CommandBuffer, srcImage Image, srcImageLayout vulkan_const.ImageLayout, dstBuffer Buffer, regionCount uint32, pRegions *BufferImageCopy) {
 	C.callVkCmdCopyImageToBuffer(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&srcImage)),
@@ -1450,7 +1453,7 @@ func CmdFillBuffer(commandBuffer CommandBuffer, dstBuffer Buffer, dstOffset Devi
 }
 
 // CmdClearColorImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdClearColorImage.html
-func CmdClearColorImage(commandBuffer CommandBuffer, image Image, imageLayout ImageLayout, pColor *ClearColorValue, rangeCount uint32, pRanges *ImageSubresourceRange) {
+func CmdClearColorImage(commandBuffer CommandBuffer, image Image, imageLayout vulkan_const.ImageLayout, pColor *ClearColorValue, rangeCount uint32, pRanges *ImageSubresourceRange) {
 	C.callVkCmdClearColorImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&image)),
@@ -1461,7 +1464,7 @@ func CmdClearColorImage(commandBuffer CommandBuffer, image Image, imageLayout Im
 }
 
 // CmdClearDepthStencilImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdClearDepthStencilImage.html
-func CmdClearDepthStencilImage(commandBuffer CommandBuffer, image Image, imageLayout ImageLayout, pDepthStencil *ClearDepthStencilValue, rangeCount uint32, pRanges *ImageSubresourceRange) {
+func CmdClearDepthStencilImage(commandBuffer CommandBuffer, image Image, imageLayout vulkan_const.ImageLayout, pDepthStencil *ClearDepthStencilValue, rangeCount uint32, pRanges *ImageSubresourceRange) {
 	C.callVkCmdClearDepthStencilImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&image)),
@@ -1482,7 +1485,7 @@ func CmdClearAttachments(commandBuffer CommandBuffer, attachmentCount uint32, pA
 }
 
 // CmdResolveImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdResolveImage.html
-func CmdResolveImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout ImageLayout, dstImage Image, dstImageLayout ImageLayout, regionCount uint32, pRegions *ImageResolve) {
+func CmdResolveImage(commandBuffer CommandBuffer, srcImage Image, srcImageLayout vulkan_const.ImageLayout, dstImage Image, dstImageLayout vulkan_const.ImageLayout, regionCount uint32, pRegions *ImageResolve) {
 	C.callVkCmdResolveImage(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		*(*C.VkImage)(unsafe.Pointer(&srcImage)),
@@ -1567,7 +1570,7 @@ func CmdResetQueryPool(commandBuffer CommandBuffer, queryPool QueryPool, firstQu
 }
 
 // CmdWriteTimestamp function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdWriteTimestamp.html
-func CmdWriteTimestamp(commandBuffer CommandBuffer, pipelineStage PipelineStageFlagBits, queryPool QueryPool, query uint32) {
+func CmdWriteTimestamp(commandBuffer CommandBuffer, pipelineStage vulkan_const.PipelineStageFlagBits, queryPool QueryPool, query uint32) {
 	C.callVkCmdWriteTimestamp(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(C.VkPipelineStageFlagBits)(pipelineStage),
@@ -1600,7 +1603,7 @@ func CmdPushConstants(commandBuffer CommandBuffer, layout PipelineLayout, stageF
 }
 
 // CmdBeginRenderPass function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBeginRenderPass.html
-func CmdBeginRenderPass(commandBuffer CommandBuffer, pRenderPassBegin *RenderPassBeginInfo, contents SubpassContents) {
+func CmdBeginRenderPass(commandBuffer CommandBuffer, pRenderPassBegin *RenderPassBeginInfo, contents vulkan_const.SubpassContents) {
 	C.callVkCmdBeginRenderPass(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(*C.VkRenderPassBeginInfo)(unsafe.Pointer(pRenderPassBegin)),
@@ -1608,7 +1611,7 @@ func CmdBeginRenderPass(commandBuffer CommandBuffer, pRenderPassBegin *RenderPas
 }
 
 // CmdNextSubpass function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdNextSubpass.html
-func CmdNextSubpass(commandBuffer CommandBuffer, contents SubpassContents) {
+func CmdNextSubpass(commandBuffer CommandBuffer, contents vulkan_const.SubpassContents) {
 	C.callVkCmdNextSubpass(
 		*(*C.VkCommandBuffer)(unsafe.Pointer(&commandBuffer)),
 		(C.VkSubpassContents)(contents))
@@ -1637,52 +1640,52 @@ func DestroySurface(instance Instance, surface Surface, pAllocator *AllocationCa
 }
 
 // GetPhysicalDeviceSurfaceSupport function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceSurfaceSupportKHR
-func GetPhysicalDeviceSurfaceSupport(physicalDevice PhysicalDevice, queueFamilyIndex uint32, surface Surface, pSupported *Bool32) Result {
+func GetPhysicalDeviceSurfaceSupport(physicalDevice PhysicalDevice, queueFamilyIndex uint32, surface Surface, pSupported *Bool32) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceSurfaceSupportKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(C.uint32_t)(queueFamilyIndex),
 		*(*C.VkSurfaceKHR)(unsafe.Pointer(&surface)),
 		(*C.VkBool32)(unsafe.Pointer(pSupported)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceSurfaceCapabilities function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceSurfaceCapabilitiesKHR
-func GetPhysicalDeviceSurfaceCapabilities(physicalDevice PhysicalDevice, surface Surface, pSurfaceCapabilities *SurfaceCapabilities) Result {
+func GetPhysicalDeviceSurfaceCapabilities(physicalDevice PhysicalDevice, surface Surface, pSurfaceCapabilities *SurfaceCapabilities) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceSurfaceCapabilitiesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkSurfaceKHR)(unsafe.Pointer(&surface)),
 		(*C.VkSurfaceCapabilitiesKHR)(unsafe.Pointer(pSurfaceCapabilities)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceSurfaceFormats function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceSurfaceFormatsKHR
-func GetPhysicalDeviceSurfaceFormats(physicalDevice PhysicalDevice, surface Surface, pSurfaceFormatCount *uint32, pSurfaceFormats *SurfaceFormat) Result {
+func GetPhysicalDeviceSurfaceFormats(physicalDevice PhysicalDevice, surface Surface, pSurfaceFormatCount *uint32, pSurfaceFormats *SurfaceFormat) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceSurfaceFormatsKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkSurfaceKHR)(unsafe.Pointer(&surface)),
 		(*C.uint32_t)(unsafe.Pointer(pSurfaceFormatCount)),
 		(*C.VkSurfaceFormatKHR)(unsafe.Pointer(pSurfaceFormats)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceSurfacePresentModes function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceSurfacePresentModesKHR
-func GetPhysicalDeviceSurfacePresentModes(physicalDevice PhysicalDevice, surface Surface, pPresentModeCount *uint32, pPresentModes *PresentMode) Result {
+func GetPhysicalDeviceSurfacePresentModes(physicalDevice PhysicalDevice, surface Surface, pPresentModeCount *uint32, pPresentModes *vulkan_const.PresentMode) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceSurfacePresentModesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkSurfaceKHR)(unsafe.Pointer(&surface)),
 		(*C.uint32_t)(unsafe.Pointer(pPresentModeCount)),
 		(*C.VkPresentModeKHR)(unsafe.Pointer(pPresentModes)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateSwapchain function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkCreateSwapchainKHR
-func CreateSwapchain(device Device, pCreateInfo *SwapchainCreateInfo, pAllocator *AllocationCallbacks, pSwapchain *Swapchain) Result {
+func CreateSwapchain(device Device, pCreateInfo *SwapchainCreateInfo, pAllocator *AllocationCallbacks, pSwapchain *Swapchain) vulkan_const.Result {
 	res := C.callVkCreateSwapchainKHR(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(*C.VkSwapchainCreateInfoKHR)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkSwapchainKHR)(unsafe.Pointer(pSwapchain)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroySwapchain function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkDestroySwapchainKHR
@@ -1694,17 +1697,17 @@ func DestroySwapchain(device Device, swapchain Swapchain, pAllocator *Allocation
 }
 
 // GetSwapchainImages function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetSwapchainImagesKHR
-func GetSwapchainImages(device Device, swapchain Swapchain, pSwapchainImageCount *uint32, pSwapchainImages *Image) Result {
+func GetSwapchainImages(device Device, swapchain Swapchain, pSwapchainImageCount *uint32, pSwapchainImages *Image) vulkan_const.Result {
 	res := C.callVkGetSwapchainImagesKHR(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkSwapchainKHR)(unsafe.Pointer(&swapchain)),
 		(*C.uint32_t)(unsafe.Pointer(pSwapchainImageCount)),
 		(*C.VkImage)(unsafe.Pointer(pSwapchainImages)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // AcquireNextImage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkAcquireNextImageKHR
-func AcquireNextImage(device Device, swapchain Swapchain, timeout uint64, semaphore Semaphore, fence Fence, pImageIndex *uint32) Result {
+func AcquireNextImage(device Device, swapchain Swapchain, timeout uint64, semaphore Semaphore, fence Fence, pImageIndex *uint32) vulkan_const.Result {
 	res := C.callVkAcquireNextImageKHR(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkSwapchainKHR)(unsafe.Pointer(&swapchain)),
@@ -1712,105 +1715,105 @@ func AcquireNextImage(device Device, swapchain Swapchain, timeout uint64, semaph
 		*(*C.VkSemaphore)(unsafe.Pointer(&semaphore)),
 		*(*C.VkFence)(unsafe.Pointer(&fence)),
 		(*C.uint32_t)(unsafe.Pointer(pImageIndex)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // QueuePresent function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkQueuePresentKHR
-func QueuePresent(queue Queue, pPresentInfo *PresentInfo) Result {
+func QueuePresent(queue Queue, pPresentInfo *PresentInfo) vulkan_const.Result {
 	res := C.callVkQueuePresentKHR(
 		*(*C.VkQueue)(unsafe.Pointer(&queue)),
 		(*C.VkPresentInfoKHR)(unsafe.Pointer(pPresentInfo)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceDisplayProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceDisplayPropertiesKHR
-func GetPhysicalDeviceDisplayProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *DisplayProperties) Result {
+func GetPhysicalDeviceDisplayProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *DisplayProperties) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceDisplayPropertiesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkDisplayPropertiesKHR)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPhysicalDeviceDisplayPlaneProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetPhysicalDeviceDisplayPlanePropertiesKHR
-func GetPhysicalDeviceDisplayPlaneProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *DisplayPlaneProperties) Result {
+func GetPhysicalDeviceDisplayPlaneProperties(physicalDevice PhysicalDevice, pPropertyCount *uint32, pProperties *DisplayPlaneProperties) vulkan_const.Result {
 	res := C.callVkGetPhysicalDeviceDisplayPlanePropertiesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkDisplayPlanePropertiesKHR)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetDisplayPlaneSupportedDisplays function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetDisplayPlaneSupportedDisplaysKHR
-func GetDisplayPlaneSupportedDisplays(physicalDevice PhysicalDevice, planeIndex uint32, pDisplayCount *uint32, pDisplays *Display) Result {
+func GetDisplayPlaneSupportedDisplays(physicalDevice PhysicalDevice, planeIndex uint32, pDisplayCount *uint32, pDisplays *Display) vulkan_const.Result {
 	res := C.callVkGetDisplayPlaneSupportedDisplaysKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		(C.uint32_t)(planeIndex),
 		(*C.uint32_t)(unsafe.Pointer(pDisplayCount)),
 		(*C.VkDisplayKHR)(unsafe.Pointer(pDisplays)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetDisplayModeProperties function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetDisplayModePropertiesKHR
-func GetDisplayModeProperties(physicalDevice PhysicalDevice, display Display, pPropertyCount *uint32, pProperties *DisplayModeProperties) Result {
+func GetDisplayModeProperties(physicalDevice PhysicalDevice, display Display, pPropertyCount *uint32, pProperties *DisplayModeProperties) vulkan_const.Result {
 	res := C.callVkGetDisplayModePropertiesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkDisplayKHR)(unsafe.Pointer(&display)),
 		(*C.uint32_t)(unsafe.Pointer(pPropertyCount)),
 		(*C.VkDisplayModePropertiesKHR)(unsafe.Pointer(pProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateDisplayMode function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkCreateDisplayModeKHR
-func CreateDisplayMode(physicalDevice PhysicalDevice, display Display, pCreateInfo *DisplayModeCreateInfo, pAllocator *AllocationCallbacks, pMode *DisplayMode) Result {
+func CreateDisplayMode(physicalDevice PhysicalDevice, display Display, pCreateInfo *DisplayModeCreateInfo, pAllocator *AllocationCallbacks, pMode *DisplayMode) vulkan_const.Result {
 	res := C.callVkCreateDisplayModeKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkDisplayKHR)(unsafe.Pointer(&display)),
 		(*C.VkDisplayModeCreateInfoKHR)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDisplayModeKHR)(unsafe.Pointer(pMode)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetDisplayPlaneCapabilities function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkGetDisplayPlaneCapabilitiesKHR
-func GetDisplayPlaneCapabilities(physicalDevice PhysicalDevice, mode DisplayMode, planeIndex uint32, pCapabilities *DisplayPlaneCapabilities) Result {
+func GetDisplayPlaneCapabilities(physicalDevice PhysicalDevice, mode DisplayMode, planeIndex uint32, pCapabilities *DisplayPlaneCapabilities) vulkan_const.Result {
 	res := C.callVkGetDisplayPlaneCapabilitiesKHR(
 		*(*C.VkPhysicalDevice)(unsafe.Pointer(&physicalDevice)),
 		*(*C.VkDisplayModeKHR)(unsafe.Pointer(&mode)),
 		(C.uint32_t)(planeIndex),
 		(*C.VkDisplayPlaneCapabilitiesKHR)(unsafe.Pointer(pCapabilities)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateDisplayPlaneSurface function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkCreateDisplayPlaneSurfaceKHR
-func CreateDisplayPlaneSurface(instance Instance, pCreateInfo *DisplaySurfaceCreateInfo, pAllocator *AllocationCallbacks, pSurface *Surface) Result {
+func CreateDisplayPlaneSurface(instance Instance, pCreateInfo *DisplaySurfaceCreateInfo, pAllocator *AllocationCallbacks, pSurface *Surface) vulkan_const.Result {
 	res := C.callVkCreateDisplayPlaneSurfaceKHR(
 		*(*C.VkInstance)(unsafe.Pointer(&instance)),
 		(*C.VkDisplaySurfaceCreateInfoKHR)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkSurfaceKHR)(unsafe.Pointer(pSurface)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateSharedSwapchains function as declared in https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/xhtml/vkspec.html#VkCreateSharedSwapchainsKHR
-func CreateSharedSwapchains(device Device, swapchainCount uint32, pCreateInfos *SwapchainCreateInfo, pAllocator *AllocationCallbacks, pSwapchains *Swapchain) Result {
+func CreateSharedSwapchains(device Device, swapchainCount uint32, pCreateInfos *SwapchainCreateInfo, pAllocator *AllocationCallbacks, pSwapchains *Swapchain) vulkan_const.Result {
 	res := C.callVkCreateSharedSwapchainsKHR(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		(C.uint32_t)(swapchainCount),
 		(*C.VkSwapchainCreateInfoKHR)(unsafe.Pointer(pCreateInfos)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkSwapchainKHR)(unsafe.Pointer(pSwapchains)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // CreateDebugReportCallback function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateDebugReportCallbackEXT.html
-func CreateDebugReportCallback(instance Instance, pCreateInfo *DebugReportCallbackCreateInfo, pAllocator *AllocationCallbacks, pCallback *DebugReportCallback) Result {
+func CreateDebugReportCallback(instance Instance, pCreateInfo *DebugReportCallbackCreateInfo, pAllocator *AllocationCallbacks, pCallback *DebugReportCallback) vulkan_const.Result {
 	res := C.callVkCreateDebugReportCallbackEXT(
 		*(*C.VkInstance)(unsafe.Pointer(&instance)),
 		(*C.VkDebugReportCallbackCreateInfoEXT)(unsafe.Pointer(pCreateInfo)),
 		(*C.VkAllocationCallbacks)(unsafe.Pointer(pAllocator)),
 		(*C.VkDebugReportCallbackEXT)(unsafe.Pointer(pCallback)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // DestroyDebugReportCallback function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDestroyDebugReportCallbackEXT.html
@@ -1822,7 +1825,7 @@ func DestroyDebugReportCallback(instance Instance, callback DebugReportCallback,
 }
 
 // DebugReportMessage function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkDebugReportMessageEXT.html
-func DebugReportMessage(instance Instance, flags DebugReportFlags, objectType DebugReportObjectType, object uint64, location uint, messageCode int32, pLayerPrefix *string, pMessage *string) {
+func DebugReportMessage(instance Instance, flags DebugReportFlags, objectType vulkan_const.DebugReportObjectType, object uint64, location uint, messageCode int32, pLayerPrefix *string, pMessage *string) {
 	C.callVkDebugReportMessageEXT(
 		*(*C.VkInstance)(unsafe.Pointer(&instance)),
 		(C.VkDebugReportFlagsEXT)(flags),
@@ -1835,20 +1838,20 @@ func DebugReportMessage(instance Instance, flags DebugReportFlags, objectType De
 }
 
 // GetRefreshCycleDurationGOOGLE function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetRefreshCycleDurationGOOGLE.html
-func GetRefreshCycleDurationGOOGLE(device Device, swapchain Swapchain, pDisplayTimingProperties *RefreshCycleDurationGOOGLE) Result {
+func GetRefreshCycleDurationGOOGLE(device Device, swapchain Swapchain, pDisplayTimingProperties *RefreshCycleDurationGOOGLE) vulkan_const.Result {
 	res := C.callVkGetRefreshCycleDurationGOOGLE(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkSwapchainKHR)(unsafe.Pointer(&swapchain)),
 		(*C.VkRefreshCycleDurationGOOGLE)(unsafe.Pointer(pDisplayTimingProperties)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }
 
 // GetPastPresentationTimingGOOGLE function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkGetPastPresentationTimingGOOGLE.html
-func GetPastPresentationTimingGOOGLE(device Device, swapchain Swapchain, pPresentationTimingCount *uint32, pPresentationTimings *PastPresentationTimingGOOGLE) Result {
+func GetPastPresentationTimingGOOGLE(device Device, swapchain Swapchain, pPresentationTimingCount *uint32, pPresentationTimings *PastPresentationTimingGOOGLE) vulkan_const.Result {
 	res := C.callVkGetPastPresentationTimingGOOGLE(
 		*(*C.VkDevice)(unsafe.Pointer(&device)),
 		*(*C.VkSwapchainKHR)(unsafe.Pointer(&swapchain)),
 		(*C.uint32_t)(unsafe.Pointer(pPresentationTimingCount)),
 		(*C.VkPastPresentationTimingGOOGLE)(unsafe.Pointer(pPresentationTimings)))
-	return Result(res)
+	return vulkan_const.Result(res)
 }

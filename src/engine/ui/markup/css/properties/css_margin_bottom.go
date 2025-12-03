@@ -45,8 +45,12 @@ import (
 	"kaiju/engine/ui/markup/document"
 )
 
+func (MarginBottom) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, rules, "margin")
+}
+
 // length|auto|initial|inherit
-func (p MarginBottom) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+func (MarginBottom) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("MarginBottom requires exactly 1 value")
 	} else {

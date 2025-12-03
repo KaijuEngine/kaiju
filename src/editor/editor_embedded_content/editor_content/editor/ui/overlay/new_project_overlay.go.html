@@ -14,6 +14,7 @@
 				top: 50%;
 				transform: translate(-50% -50%);
 				padding: 22px;
+				z-index: 20;
 			}
 			.inputPanel {
 				width: 100%;
@@ -38,13 +39,35 @@
 			.error {
 				color: #C7655D;
 			}
+			.recentProjects {
+				background-color: #383838;
+				margin-bottom: 0.3em;
+				padding: 0.3em;
+			}
+			.recentProjectEntry {
+				background-color: #282828;
+				color: #AAA;
+				margin-bottom: 0.2em;
+			}
+			.recentProjectEntry:hover {
+				background-color: #585858;
+				color: white;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="panel">
-			<h1>New Project</h1>
-			{{if .}}
-			<div class="error">{{.}}</div>
+			<h1>Kaiju Engine</h1>
+			{{if .RecentProjects}}
+			<div class="recentProjects">
+				<h3>Recent projects</h3>
+				{{range .RecentProjects}}
+				<div class="recentProjectEntry" data-path="{{.Path}}" onclick="openRecentProject">{{.Label}}</div>
+				{{end}}
+			</div>
+			{{end}}
+			{{if .Error}}
+			<div class="error">{{.Error}}</div>
 			{{end}}
 			<div class="openProject">
 				<span>Start by opening an existing project: </span>

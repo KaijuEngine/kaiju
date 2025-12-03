@@ -41,10 +41,13 @@ import (
 	"kaiju/klib"
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
+	"sync/atomic"
 )
 
+type UpdateId int
+
 type engineUpdate struct {
-	id     int
+	id     UpdateId
 	update func(float64)
 }
 
@@ -54,15 +57,13 @@ type engineUpdate struct {
 //
 // *Note that update functions are unordered, so don't rely on the order*
 type Updater struct {
-	updates    map[int]engineUpdate
+	updates    map[UpdateId]engineUpdate
 	workGroup  *concurrent.WorkGroup
 	threads    *concurrent.Threads
 	backAdd    []engineUpdate
-	backRemove []int
-	nextId     int
+	backRemove []UpdateId
+	nextId     atomic.Int32
 	lastDelta  float64
-	pending    chan int
-	complete   chan int
 }
 
 // IsConcurrent will return if this updater is a concurrent updater
@@ -72,14 +73,7 @@ func (u *Updater) IsConcurrent() bool {
 
 // NewUpdater creates a new #Updater struct and returns it
 func NewUpdater() Updater {
-	return Updater{
-		updates:    make(map[int]engineUpdate),
-		backAdd:    make([]engineUpdate, 0),
-		backRemove: make([]int, 0),
-		nextId:     1,
-		pending:    make(chan int, 100),
-		complete:   make(chan int, 100),
-	}
+	return Updater{updates: make(map[UpdateId]engineUpdate)}
 }
 
 // NewConcurrentUpdater creates a new concurrent #Updater struct and returns it
@@ -96,13 +90,12 @@ func NewConcurrentUpdater(threads *concurrent.Threads, workGroup *concurrent.Wor
 //
 // The update function is added to a back-buffer so it will not begin updating
 // until the next call to #Updater.Update.
-func (u *Updater) AddUpdate(update func(float64)) int {
-	id := u.nextId
+func (u *Updater) AddUpdate(update func(float64)) UpdateId {
+	id := UpdateId(u.nextId.Add(1))
 	u.backAdd = append(u.backAdd, engineUpdate{
 		id:     id,
 		update: update,
 	})
-	u.nextId++
 	return id
 }
 
@@ -112,10 +105,11 @@ func (u *Updater) AddUpdate(update func(float64)) int {
 //
 // The update function is removed from a back-buffer so it will not be removed
 // until the next call to #Updater.Update.
-func (u *Updater) RemoveUpdate(id int) {
-	if id > 0 {
-		u.backRemove = append(u.backRemove, id)
+func (u *Updater) RemoveUpdate(id *UpdateId) {
+	if *id > 0 {
+		u.backRemove = append(u.backRemove, *id)
 	}
+	id.reset()
 }
 
 // Update calls all of the update functions that have been added to the updater.
@@ -137,11 +131,9 @@ func (u *Updater) Update(deltaTime float64) {
 // longer needed. It will close the pending and complete channels and clear the
 // updates map.
 func (u *Updater) Destroy() {
-	close(u.pending)
-	close(u.complete)
 	clear(u.updates)
 	u.backAdd = make([]engineUpdate, 0)
-	u.backRemove = make([]int, 0)
+	u.backRemove = make([]UpdateId, 0)
 }
 
 func (u *Updater) inlineUpdate(deltaTime float64) {
@@ -173,3 +165,5 @@ func (u *Updater) removeInternal() {
 	}
 	u.backRemove = klib.WipeSlice(u.backRemove)
 }
+
+func (u *UpdateId) reset() { *u = 0 }

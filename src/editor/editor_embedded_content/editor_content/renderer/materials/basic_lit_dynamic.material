@@ -1,1 +1,1 @@
-{"Name":"basic_lit_dynamic","Shader":"renderer/shaders/basic_lit_dynamic.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/basic.shaderpipeline","Textures":[{"Texture":"textures/square.png","Filter":"Linear"}]}
+{"Name":"basic_lit_dynamic","Shader":"basic_lit_dynamic.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[{"Texture":"square.png","Filter":"Linear"}]}

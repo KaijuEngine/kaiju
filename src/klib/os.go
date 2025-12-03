@@ -50,10 +50,6 @@ func ExeExtension() string {
 	return ""
 }
 
-func ToUnixPath(path string) string {
-	return ReplaceStringRecursive(path, "\\", "/")
-}
-
 func ReadRootFile(fs *os.Root, filePath string) ([]byte, error) {
 	if f, err := fs.OpenFile(filePath, os.O_RDONLY, os.ModePerm); err != nil {
 		return []byte{}, err
@@ -72,4 +68,14 @@ func WriteRootFile(fs *os.Root, filePath string, data []byte) error {
 		f.Close()
 		return err
 	}
+}
+
+func IsMobile() bool {
+	switch runtime.GOOS {
+	case "android":
+		fallthrough
+	case "ios":
+		return true
+	}
+	return false
 }

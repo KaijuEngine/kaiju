@@ -39,12 +39,15 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
-const vkGeometryShaderValid = vk.True
+const vkGeometryShaderValid = vulkan_const.True
 const vkInstanceFlags = 0
 
-func vkColorSpace(sf vk.SurfaceFormat) vk.ColorSpace {
+func vkColorSpace(sf vk.SurfaceFormat) vulkan_const.ColorSpace {
 	return sf.ColorSpace
 }
 

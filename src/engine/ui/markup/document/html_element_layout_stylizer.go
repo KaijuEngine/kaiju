@@ -59,6 +59,8 @@ var (
 type CSSProperty interface {
 	Key() string
 	Process(panel *ui.Panel, elm *Element, values []rules.PropertyValue, host *engine.Host) error
+	Sort() int
+	Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule)
 }
 
 type ElementLayoutStylizer struct {
@@ -89,6 +91,13 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	e.UI.RemoveEvent(ui.EventTypeExit, s.activeEvt.exitId)
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
 	e.UI.RemoveEvent(ui.EventTypeUp, s.activeEvt.upId)
+	if !e.UI.IsType(ui.ElementTypeLabel) {
+		l := e.UI.Layout()
+		e.UI.ToPanel().FitContent()
+		l.SetInnerOffset(0, 0, 0, 0)
+		l.SetLocalInnerOffset(0, 0, 0, 0)
+		l.SetMargin(0, 0, 0, 0)
+	}
 	entity := e.UI.Entity()
 	entity.OnActivate.Remove(s.activateEvtId)
 	entity.OnDeactivate.Remove(s.deactivateEvtId)
@@ -108,6 +117,7 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 		return
 	}
 	_, rule.SelfDestruct = selfDestructingRules[rule.Property]
+	rule.Sort = LinkedPropertyMap[rule.Property].Sort()
 	s.styleRules = append(s.styleRules, rule)
 	switch rule.Invocation {
 	case rules.RuleInvokeHover:
@@ -183,12 +193,30 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 		}
 	}
 	all := append(a, b...)
+	// Look ahead to see if any upcoming properties can be merged
+	for i := 0; i < len(all); i++ {
+		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
+			subRules := all[i:]
+			all[i].Values, subRules = p.Preprocess(all[i].Values, subRules)
+			for j := range subRules {
+				all[i+j] = subRules[j]
+			}
+			all = all[:i+len(subRules)]
+		}
+	}
+	slices.SortFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
 	for i := range all {
+		if len(all[i].Values) == 1 && all[i].Values[0].Str == "revert" {
+			continue
+		}
 		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
 			if err := p.Process(layout.Ui().ToPanel(), elm, all[i].Values, host); err != nil {
 				problems = append(problems, err)
 			}
 		}
+	}
+	if elm.UI.Entity().Name() == "openProjectBtn" {
+		println("...")
 	}
 	return problems
 }

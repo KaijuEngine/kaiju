@@ -1,0 +1,194 @@
+{{define "bitmask"}}
+<div class="inputItemFlags">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputFlags lightDarkBG">
+		{{range .List}}
+			<div class="checkboxListEntry">
+				<input name="{{.Value}}" data-path="{{$.FullPath}}" class="inputCheck" type="checkbox" {{if ($.ValueListHas .Value)}}checked="checked"{{end}} onchange="valueChanged" />
+				<span class="inputCheckLabel">{{$.PascalToTitle .Value}}</span>
+			</div>
+		{{end}}
+	</div>
+</div>
+{{end}}
+
+{{define "bool"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="inputCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "enum"}}
+<div class="inputItem">
+	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
+	{{range .List}}
+		<option value="{{.Value}}">{{$.PascalToTitle .Name}}</option>
+	{{end}}
+	</select>
+</div>
+{{end}}
+
+{{define "any"}}
+<div class="inputItem">
+	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
+</div>
+{{end}}
+
+{{define "section"}}
+	{{range $_, $f := .Fields}}
+		{{if eq $f.Type "struct"}}
+			<h2>{{.Name}}</h2>
+			{{range $i, $s := $f.Sections}}
+				{{template "section" $s}}
+			{{end}}
+		{{else if eq $f.Type "slice"}}
+			<h3>{{.Name}}</h3>
+			{{range $i, $s := $f.Sections}}
+				<div class="inputItem">
+					<span class="inputLabel">Array Index: [{{$i}}]</span>
+					<div class="input"><img data-path="{{$f.FullPath}}" data-index="{{$i}}" class="deleteButton" src="minus.png"  onclick="removeFromSlice" /></div>
+				</div>
+				{{template "section" $s}}
+			{{end}}
+			<div class="inputItem">
+				<img data-path="{{$f.FullPath}}" class="addButton" src="plus.png"  onclick="addToSlice" />
+			</div>
+		{{else if eq $f.Type "bool"}}
+			{{template "bool" $f}}
+		{{else if eq $f.Type "enum"}}
+			{{template "enum" $f}}
+		{{else if eq $f.Type "bitmask"}}
+			{{template "bitmask" $f}}
+		{{else}}
+			{{template "any" $f}}
+		{{end}}
+	{{end}}
+{{end}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.content {
+				top: 2em;
+				width: 100%;
+				height: calc(100% - 2em);
+				background-color: #121212;
+			}
+			.leftPanel, .rightPanel {
+				height: 100%;
+				overflow-y: scroll;
+				background-color: #282828;
+			}
+			.leftPanel {
+				width: 10em;
+				margin-right: 0.25em;
+				color: #AAA;
+			}
+			.rightPanel {
+				color: white;
+				width: calc(100% - 10.25em);
+			}
+			.settingsBox {
+				width: 100%;
+			}
+			.leftEntry {
+				color: #AAA;
+				background-color: #282828;
+			}
+			.leftEntry:hover {
+				color: white;
+				background-color: #353535;
+			}
+			.leftEntrySelected {
+				color: white;
+				background-color: #353535;
+			}
+			/*** Data fields styles ***/
+			h2 {
+				display: block;
+				margin-top: 1em;
+				margin-bottom: 0.2em;
+			}
+			h3 {
+				display: block;
+				margin-top: 1em;
+				margin-bottom: 0.2em;
+				font-weight: bold;
+			}
+			.inputItem {
+				width: 100%;
+				height: 18px;
+				margin-top: 5px;
+			}
+			.inputItemFlags {
+				width: 100%;
+				height: 70px;
+				margin-top: 5px;
+			}
+			.addButton {
+				width: 18px;
+				height: 18px;
+				background-color: #0A0;
+			}
+			.addButton:hover {
+				background-color: #0F0;
+			}
+			.deleteButton {
+				width: 18px;
+				height: 18px;
+				background-color: #A00;
+			}
+			.deleteButton:hover {
+				background-color: #F00;
+			}
+			.inputLabel {
+				width: 30%;
+				height: 100%;
+			}
+			.input {
+				width: 69%;
+				height: 100%;
+			}
+			.inputFlags {
+				width: 69%;
+				height: 100%;
+				overflow-y: auto;
+			}
+			.inputCheck {
+				width: 20px;
+				height: 20px;
+			}
+			.inputCheckLabel {
+				margin-left: 5px;
+			}
+			.checkboxListEntry {
+				width: 100%;
+			}
+			.lightDarkBG {
+				background-color: #313232;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="content">
+			<div class="leftPanel">
+				<div class="leftEntry" onclick="showProjectSettings">Project Settings</div>
+				<div class="leftEntry" onclick="showEditorSettings">Editor Settings</div>
+			</div>
+			<div class="rightPanel">
+				<div id="projectSettingsBox" class="settingsBox">
+					<h1>Project Settings</h1>
+					{{template "section" .Project}}
+				</div>
+				<div id="editorSettingsBox" class="settingsBox">
+					<h1>Editor Settings</h1>
+					{{template "section" .Editor}}
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

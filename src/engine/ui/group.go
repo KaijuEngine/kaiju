@@ -63,7 +63,7 @@ type groupRequest struct {
 type Group struct {
 	requests     []groupRequest
 	focus        *UI
-	updateId     int
+	updateId     engine.UpdateId
 	lock         sync.Mutex
 	hadRequests  requestState
 	isThreaded   bool
@@ -71,7 +71,16 @@ type Group struct {
 }
 
 func (group *Group) HasRequests() bool {
-	return group.hadRequests != requestStateNone || group.focus != nil
+	return group.hadRequests != requestStateNone ||
+		group.IsFocusedOnInput()
+}
+
+func (group *Group) triggerRequestStartState() {
+	if group.hadRequests != requestStateStarted {
+		group.lock.Lock()
+		group.hadRequests = requestStateStarted
+		group.lock.Unlock()
+	}
 }
 
 func (group *Group) requestEvent(ui *UI, eType EventType) {
@@ -81,9 +90,7 @@ func (group *Group) requestEvent(ui *UI, eType EventType) {
 	}
 	if group.hadRequests != requestStateStarted {
 		if eType != EventTypeMiss {
-			group.lock.Lock()
-			group.hadRequests = requestStateStarted
-			group.lock.Unlock()
+			group.triggerRequestStartState()
 		}
 	}
 	if ui.events[eType].IsEmpty() {
@@ -117,6 +124,13 @@ func (group *Group) setFocus(ui *UI) {
 	}
 }
 
+func (group *Group) IsFocusedOnInput() bool {
+	if group.focus == nil || !group.focus.isActive() {
+		return false
+	}
+	return group.focus.IsType(ElementTypeInput)
+}
+
 func (group *Group) Attach(host *engine.Host) {
 	wGroup := weak.Make(group)
 	group.updateId = host.UILateUpdater.AddUpdate(func(dt float64) {
@@ -127,8 +141,7 @@ func (group *Group) Attach(host *engine.Host) {
 }
 
 func (group *Group) Detach(host *engine.Host) {
-	host.UILateUpdater.RemoveUpdate(group.updateId)
-	group.updateId = 0
+	host.UILateUpdater.RemoveUpdate(&group.updateId)
 }
 
 func sortElements(a *UI, b *UI) bool { return a.IsInFrontOf(b) }

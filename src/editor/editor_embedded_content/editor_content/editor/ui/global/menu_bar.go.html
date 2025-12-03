@@ -57,12 +57,14 @@
 			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
 			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
 			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
+			<span class="menuEntry" data-target="createPopup" onclick="clickCreate">Create</span>
 			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
-			<span group="tabs" class="workspaceTab tabSelected" onclick="clickStage">Stage</span>
-			<span group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
-			<span group="tabs" class="workspaceTab" onclick="clickAnimation">Animation</span>
-			<span group="tabs" class="workspaceTab" onclick="clickUI">UI</span>
-			<span group="tabs" class="workspaceTab" onclick="clickLog">Log</span>
+			<span id="tabStage" group="tabs" class="workspaceTab tabSelected" onclick="clickStage">Stage</span>
+			<span id="tabContent" group="tabs" class="workspaceTab" onclick="clickContent">Content</span>
+			<span id="tabShading" group="tabs" class="workspaceTab" onclick="clickShading">Shading</span>
+			<span id="tabAnimation" group="tabs" class="workspaceTab" onclick="clickAnimation">Animation</span>
+			<span id="tabUI" group="tabs" class="workspaceTab" onclick="clickUI">UI</span>
+			<span id="tabSettings" group="tabs" class="workspaceTab" onclick="clickSettings">Settings</span>
 		</div>
 		<div id="logoPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickAbout">About Kaiju Engine</div>
@@ -72,12 +74,26 @@
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
 			<div class="popupEntry" onclick="clickOpenStage">Open stage</div>
 			<div class="popupEntry" onclick="clickSaveStage">Save stage</div>
+			<div class="popupEntry" onclick="clickOpenVSCode">Open VSCode</div>
+			<div class="popupEntry" onclick="clickBuild">Build Game</div>
+			<div class="popupEntry" onclick="clickBuildAndRun">Build and Run Game</div>
+			<div class="popupEntry" onclick="clickRunCurrentStage">Run Current Stage</div>
+			<div class="popupEntry" onclick="clickBuildAndroid">Build Android</div>
+			<div class="popupEntry" onclick="clickBuildRunAndroid">BuildRun Android</div>
 		</div>
 		<div id="editPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickProjectSettings">Project settings</div>
-			<div class="popupEntry" onclick="clickEditorSettings">Editor settings</div>
+			<div class="popupEntry" onclick="clickUndo">Undo</div>
+			<div class="popupEntry" onclick="clickRedo">Redo</div>
+		</div>
+		<div id="createPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickCreateEntityData">Create Entity Data</div>
+			<div class="popupEntry" onclick="clickCreateHtmlUi">Create HTML UI</div>
+			<div class="popupEntry" onclick="clickNewCamera">New camera</div>
+			<div class="popupEntry" onclick="clickNewEntity">New entity</div>
+			<div class="popupEntry" onclick="clickNewLight">New light</div>
 		</div>
 		<div id="helpPopup" class="popup" onmiss="popupMiss">
+			<div class="popupEntry" onclick="clickLogs">Logs</div>
 			<div class="popupEntry" onclick="clickIssues">Issues</div>
 			<div class="popupEntry" onclick="clickRepository">Repository</div>
 			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>

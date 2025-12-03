@@ -68,7 +68,8 @@ type TouchPointer struct {
 	Pressure float32
 	X        float32
 	Y        float32
-	IY       float32
+	SX       float32
+	SY       float32
 	State    TouchAction
 	Id       int64
 }
@@ -114,8 +115,9 @@ func (t *Touch) point(id int64) *TouchPointer {
 
 func (p *TouchPointer) setPosition(x, y, windowHeight float32) {
 	p.X = x
-	p.Y = y
-	p.IY = windowHeight - y
+	p.Y = windowHeight - y
+	p.SX = x
+	p.SY = y
 }
 
 func (t *Touch) SetDown(id int64, x, y, windowHeight float32) {
@@ -136,6 +138,8 @@ func (t *Touch) SetUp(id int64, x, y, windowHeight float32) {
 func (t *Touch) SetMoved(id int64, x, y, windowHeight float32) {
 	if p := t.point(id); p != nil {
 		p.setPosition(x, y, windowHeight)
+	} else {
+		t.SetDown(id, x, y, windowHeight)
 	}
 }
 

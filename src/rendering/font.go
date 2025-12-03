@@ -98,42 +98,42 @@ func (f FontFace) IsItalic() bool {
 func (f FontFace) string() string { return string(f) }
 
 const (
-	FontCondensedBold                = FontFace("fonts/OpenSans_Condensed-Bold")
-	FontCondensedBoldItalic          = FontFace("fonts/OpenSans_Condensed-BoldItalic")
-	FontCondensedExtraBold           = FontFace("fonts/OpenSans_Condensed-ExtraBold")
-	FontCondensedExtraBoldItalic     = FontFace("fonts/OpenSans_Condensed-ExtraBoldItalic")
-	FontCondensedItalic              = FontFace("fonts/OpenSans_Condensed-Italic")
-	FontCondensedLight               = FontFace("fonts/OpenSans_Condensed-Light")
-	FontCondensedLightItalic         = FontFace("fonts/OpenSans_Condensed-LightItalic")
-	FontCondensedMedium              = FontFace("fonts/OpenSans_Condensed-Medium")
-	FontCondensedMediumItalic        = FontFace("fonts/OpenSans_Condensed-MediumItalic")
-	FontCondensedRegular             = FontFace("fonts/OpenSans_Condensed-Regular")
-	FontCondensedSemiBold            = FontFace("fonts/OpenSans_Condensed-SemiBold")
-	FontCondensedSemiBoldItalic      = FontFace("fonts/OpenSans_Condensed-SemiBoldItalic")
-	FontSemiCondensedBold            = FontFace("fonts/OpenSans_SemiCondensed-Bold")
-	FontSemiCondensedBoldItalic      = FontFace("fonts/OpenSans_SemiCondensed-BoldItalic")
-	FontSemiCondensedExtraBold       = FontFace("fonts/OpenSans_SemiCondensed-ExtraBold")
-	FontSemiCondensedExtraBoldItalic = FontFace("fonts/OpenSans_SemiCondensed-ExtraBoldItalic")
-	FontSemiCondensedItalic          = FontFace("fonts/OpenSans_SemiCondensed-Italic")
-	FontSemiCondensedLight           = FontFace("fonts/OpenSans_SemiCondensed-Light")
-	FontSemiCondensedLightItalic     = FontFace("fonts/OpenSans_SemiCondensed-LightItalic")
-	FontSemiCondensedMedium          = FontFace("fonts/OpenSans_SemiCondensed-Medium")
-	FontSemiCondensedMediumItalic    = FontFace("fonts/OpenSans_SemiCondensed-MediumItalic")
-	FontSemiCondensedRegular         = FontFace("fonts/OpenSans_SemiCondensed-Regular")
-	FontSemiCondensedSemiBold        = FontFace("fonts/OpenSans_SemiCondensed-SemiBold")
-	FontSemiCondensedSemiBoldItalic  = FontFace("fonts/OpenSans_SemiCondensed-SemiBoldItalic")
-	FontBold                         = FontFace("fonts/OpenSans-Bold")
-	FontBoldItalic                   = FontFace("fonts/OpenSans-BoldItalic")
-	FontExtraBold                    = FontFace("fonts/OpenSans-ExtraBold")
-	FontExtraBoldItalic              = FontFace("fonts/OpenSans-ExtraBoldItalic")
-	FontItalic                       = FontFace("fonts/OpenSans-Italic")
-	FontLight                        = FontFace("fonts/OpenSans-Light")
-	FontLightItalic                  = FontFace("fonts/OpenSans-LightItalic")
-	FontMedium                       = FontFace("fonts/OpenSans-Medium")
-	FontMediumItalic                 = FontFace("fonts/OpenSans-MediumItalic")
-	FontRegular                      = FontFace("fonts/OpenSans-Regular")
-	FontSemiBold                     = FontFace("fonts/OpenSans-SemiBold")
-	FontSemiBoldItalic               = FontFace("fonts/OpenSans-SemiBoldItalic")
+	FontCondensedBold                = FontFace("OpenSans_Condensed-Bold")
+	FontCondensedBoldItalic          = FontFace("OpenSans_Condensed-BoldItalic")
+	FontCondensedExtraBold           = FontFace("OpenSans_Condensed-ExtraBold")
+	FontCondensedExtraBoldItalic     = FontFace("OpenSans_Condensed-ExtraBoldItalic")
+	FontCondensedItalic              = FontFace("OpenSans_Condensed-Italic")
+	FontCondensedLight               = FontFace("OpenSans_Condensed-Light")
+	FontCondensedLightItalic         = FontFace("OpenSans_Condensed-LightItalic")
+	FontCondensedMedium              = FontFace("OpenSans_Condensed-Medium")
+	FontCondensedMediumItalic        = FontFace("OpenSans_Condensed-MediumItalic")
+	FontCondensedRegular             = FontFace("OpenSans_Condensed-Regular")
+	FontCondensedSemiBold            = FontFace("OpenSans_Condensed-SemiBold")
+	FontCondensedSemiBoldItalic      = FontFace("OpenSans_Condensed-SemiBoldItalic")
+	FontSemiCondensedBold            = FontFace("OpenSans_SemiCondensed-Bold")
+	FontSemiCondensedBoldItalic      = FontFace("OpenSans_SemiCondensed-BoldItalic")
+	FontSemiCondensedExtraBold       = FontFace("OpenSans_SemiCondensed-ExtraBold")
+	FontSemiCondensedExtraBoldItalic = FontFace("OpenSans_SemiCondensed-ExtraBoldItalic")
+	FontSemiCondensedItalic          = FontFace("OpenSans_SemiCondensed-Italic")
+	FontSemiCondensedLight           = FontFace("OpenSans_SemiCondensed-Light")
+	FontSemiCondensedLightItalic     = FontFace("OpenSans_SemiCondensed-LightItalic")
+	FontSemiCondensedMedium          = FontFace("OpenSans_SemiCondensed-Medium")
+	FontSemiCondensedMediumItalic    = FontFace("OpenSans_SemiCondensed-MediumItalic")
+	FontSemiCondensedRegular         = FontFace("OpenSans_SemiCondensed-Regular")
+	FontSemiCondensedSemiBold        = FontFace("OpenSans_SemiCondensed-SemiBold")
+	FontSemiCondensedSemiBoldItalic  = FontFace("OpenSans_SemiCondensed-SemiBoldItalic")
+	FontBold                         = FontFace("OpenSans-Bold")
+	FontBoldItalic                   = FontFace("OpenSans-BoldItalic")
+	FontExtraBold                    = FontFace("OpenSans-ExtraBold")
+	FontExtraBoldItalic              = FontFace("OpenSans-ExtraBoldItalic")
+	FontItalic                       = FontFace("OpenSans-Italic")
+	FontLight                        = FontFace("OpenSans-Light")
+	FontLightItalic                  = FontFace("OpenSans-LightItalic")
+	FontMedium                       = FontFace("OpenSans-Medium")
+	FontMediumItalic                 = FontFace("OpenSans-MediumItalic")
+	FontRegular                      = FontFace("OpenSans-Regular")
+	FontSemiBold                     = FontFace("OpenSans-SemiBold")
+	FontSemiBoldItalic               = FontFace("OpenSans-SemiBoldItalic")
 
 	DefaultFontEMSize = 14.0
 )
@@ -528,16 +528,10 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					continue
 				}
 				ch := findBinChar(fontFace, c)
-
-				// TODO:  Can probably use bounds directly
-				//float xpos = cx + ch.bearingX * scale;
-				//float ypos = cy - (ch.height - ch.bearingY) * scale;
-				xpos := cx + (ch.planeBounds[0] * scale * inverseWidth)
-				ypos := cy + (ch.planeBounds[1] * scale * inverseHeight)
-
-				xpos += xOffset
-				ypos += yOffset
-
+				xPos := cx + (ch.planeBounds[0] * scale * inverseWidth)
+				yPos := cy + (ch.planeBounds[1] * scale * inverseHeight)
+				xPos += xOffset
+				yPos += yOffset
 				w := ch.Width() * scale * inverseWidth
 				h := ch.Height() * scale * inverseHeight
 				// TODO:  Figure out the distance field size
@@ -555,20 +549,24 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				var m *Mesh
 				model := matrix.Mat4Identity()
 				if clm == nil {
+					zPos := z
+					if slices.Contains(overlappingLetters, c) {
+						zPos += 0.0001
+					}
 					var verts [4]Vertex
-					verts[0].Position = matrix.Vec3{xpos, ypos, z}
+					verts[0].Position = matrix.Vec3{xPos, yPos, zPos}
 					verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[0].UV0 = matrix.Vec2{0.0, 1.0}
 					verts[0].Color = matrix.ColorWhite()
-					verts[1].Position = matrix.Vec3{xpos, ypos + h, z}
+					verts[1].Position = matrix.Vec3{xPos, yPos + h, zPos}
 					verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[1].UV0 = matrix.Vec2{0.0, 0.0}
 					verts[1].Color = matrix.ColorWhite()
-					verts[2].Position = matrix.Vec3{xpos + w, ypos + h, z}
+					verts[2].Position = matrix.Vec3{xPos + w, yPos + h, zPos}
 					verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[2].UV0 = matrix.Vec2{1.0, 0.0}
 					verts[2].Color = matrix.ColorWhite()
-					verts[3].Position = matrix.Vec3{xpos + w, ypos, z}
+					verts[3].Position = matrix.Vec3{xPos + w, yPos, zPos}
 					verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
@@ -585,7 +583,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
 					model.Scale(matrix.Vec3{scale * inverseWidth, scale * inverseHeight, 1.0})
-					model.Translate(matrix.Vec3{xpos, (ypos + h), z})
+					model.Translate(matrix.Vec3{xPos, (yPos + h), z})
 					uvs = clm.uvs
 					m = clm.mesh
 				}
@@ -605,11 +603,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					ShaderData: shaderData,
 					Transform:  nil,
 				}
-				if slices.Contains(overlappingLetters, c) {
-					fontMeshes = append([]Drawing{drawing}, fontMeshes...)
-				} else {
-					fontMeshes = append(fontMeshes, drawing)
-				}
+				fontMeshes = append(fontMeshes, drawing)
 				cx += ch.advance * scale * inverseWidth
 				ay := fontFace.metrics.LineHeight * scale * inverseHeight
 				height = matrix.Max(height, ay)

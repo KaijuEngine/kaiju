@@ -85,8 +85,8 @@ func (c *Collection[T]) FindById(id EntryId) *Entry[T] {
 
 func (c *Collection[T]) FindClosest(point matrix.Vec3, writeTo []T) {
 	const moveDistanceToRecalculate = 1
-	defer tracing.NewRegion("ShadowCollection.FindClosest").End()
-	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for ShadowCollection.FindClosest")
+	defer tracing.NewRegion("Collection[T].FindClosest").End()
+	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for Collection[T].FindClosest")
 	if matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
 		for i := range c.entries {
 			e := &c.entries[i]
@@ -107,6 +107,8 @@ func (c *Collection[T]) Clear() {
 }
 
 func (c *Collection[T]) UpdateCache(point matrix.Vec3) []T {
-	c.FindClosest(point, c.Cache)
+	if len(c.Cache) > 0 {
+		c.FindClosest(point, c.Cache)
+	}
 	return c.Cache
 }

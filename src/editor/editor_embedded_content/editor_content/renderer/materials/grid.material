@@ -1,1 +1,1 @@
-{"Name":"grid","Shader":"renderer/shaders/grid.shader","RenderPass":"renderer/passes/opaque.renderpass","ShaderPipeline":"renderer/pipelines/basic_lines.shaderpipeline","Textures":[]}
+{"Name":"grid","Shader":"grid.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"basic_lines.shaderpipeline","Textures":[]}

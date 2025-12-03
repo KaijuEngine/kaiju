@@ -39,8 +39,9 @@ package assets
 
 // Textures
 const (
-	TextureSquare   = "textures/square.png"
-	TextureTriangle = "textures/triangle.png"
+	TextureSquare      = "square.png"
+	TextureBlankSquare = "blank_square.png"
+	TextureTriangle    = "triangle.png"
 )
 
 // Material definitions
@@ -69,4 +70,8 @@ const (
 	MaterialDefinitionOutline             = "outline"
 	MaterialDefinitionLightDepth          = "light_depth"
 	MaterialDefinitionLightCubeDepth      = "light_cube_depth"
+
+	MaterialDefinitionEdTransformWire = "ed_transform_wire"
+	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire"
+	MaterialDefinitionEdGizmo         = "ed_gizmo"
 )

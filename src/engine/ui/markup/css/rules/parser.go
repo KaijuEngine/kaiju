@@ -40,7 +40,6 @@ package rules
 import (
 	"bytes"
 	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/platform/windowing"
 	"strings"
 
 	"github.com/tdewolff/parse/v2"
@@ -54,10 +53,22 @@ type StyleSheet struct {
 }
 
 func (s *StyleSheet) addGroup() {
-	s.Groups = append(s.Groups, SelectorGroup{
+	g := SelectorGroup{
 		Selectors: make([]Selector, 0),
 		Rules:     make([]Rule, 0),
-	})
+	}
+	if len(s.Groups) > 0 {
+		g.MediaQuery = s.Groups[len(s.Groups)-1].MediaQuery
+	}
+	s.Groups = append(s.Groups, g)
+}
+
+func (s *StyleSheet) setGroupMediaQuery(mediaQuery MediaQuery) {
+	s.Groups[len(s.Groups)-1].MediaQuery = mediaQuery
+}
+
+func (s *StyleSheet) clearGroupMediaQuery() {
+	s.Groups[len(s.Groups)-1].MediaQuery.Clear()
 }
 
 func (s *StyleSheet) removeLastGroup() {
@@ -98,10 +109,12 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			s.state = ReadingPseudoFunction
 			sel.Parts = append(sel.Parts, SelectorPart{
 				Name:       strings.TrimSuffix(string(val.Data), "("),
-				SelectType: ReadingId,
+				SelectType: ReadingPseudoFunction,
 			})
 		case css.RightParenthesisToken:
 			s.state = ReadingPseudo
+		case css.WhitespaceToken:
+			s.state = ReadingTag
 		case css.DelimToken:
 			switch string(val.Data) {
 			case "#":
@@ -123,7 +136,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	s.Groups[idx].Selectors = append(s.Groups[idx].Selectors, sel)
 }
 
-func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window *windowing.Window) {
+func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window helpers.WindowDimensions) {
 	r := Rule{
 		Property: prop,
 		Values:   make([]PropertyValue, 0),
@@ -174,7 +187,7 @@ func NewStyleSheet() StyleSheet {
 	}
 }
 
-func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
+func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), false)
 	exit := false
 	s.addGroup()
@@ -186,15 +199,36 @@ func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
 		case css.CommentGrammar:
 			// Do nothing
 		case css.BeginAtRuleGrammar:
+			q := MediaQuery{}
+			for _, val := range cssParser.Values() {
+				if val.TokenType == css.WhitespaceToken {
+					continue
+				}
+				v := string(val.Data)
+				switch v {
+				case "(", ":", ")":
+				default:
+					if q.Key == "" {
+						q.Key = v
+					} else {
+						q.Value = v
+					}
+				}
+			}
+			s.setGroupMediaQuery(q)
 		case css.AtRuleGrammar:
-		case css.EndAtRuleGrammar:
 		case css.QualifiedRuleGrammar:
+			s.addGroup()
 			if s.state < ReadingProperty {
 				s.readSelector(cssParser)
 			}
 		case css.BeginRulesetGrammar:
 			s.readSelector(cssParser)
 			s.state = ReadingProperty
+		case css.EndAtRuleGrammar:
+			s.state = ReadingTag
+			s.addGroup()
+			s.clearGroupMediaQuery()
 		case css.EndRulesetGrammar:
 			s.state = ReadingTag
 			s.addGroup()
@@ -213,7 +247,7 @@ func (s *StyleSheet) Parse(cssStr string, window *windowing.Window) {
 	s.removeLastGroup()
 }
 
-func (s *StyleSheet) ParseInline(cssStr string, window *windowing.Window) *SelectorGroup {
+func (s *StyleSheet) ParseInline(cssStr string, window helpers.WindowDimensions) *SelectorGroup {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), true)
 	exit := false
 	s.addGroup()

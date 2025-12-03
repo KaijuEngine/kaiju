@@ -196,6 +196,10 @@ func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.setDirtyInternal").End()
+	if ui.IsType(ElementTypeLabel) {
+		// TODO:  This isn't needed in some cases
+		ui.ToLabel().LabelData().renderRequired = true
+	}
 	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
 		ui.dirtyType = dirtyType
 		for i := 0; i < len(ui.entity.Children); i++ {
@@ -324,10 +328,10 @@ func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 	}
 }
 
-func (ui *UI) requestEvent(evtType EventType) {
+func (ui *UI) requestEvent(evtType EventType) bool {
 	defer tracing.NewRegion("UI.requestEvent").End()
 	if ui.events[evtType].IsEmpty() {
-		return
+		return false
 	}
 	man := ui.man.Value()
 	if man != nil {
@@ -335,6 +339,7 @@ func (ui *UI) requestEvent(evtType EventType) {
 	} else {
 		ui.ExecuteEvent(evtType)
 	}
+	return true
 }
 
 func (ui *UI) eventUpdates() {
@@ -445,16 +450,30 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	}
 	if !ui.hovering && contained {
 		ui.hovering = true
-		ui.requestEvent(EventTypeEnter)
+		// This is to resolve the parent not getting it's exit call when the
+		// cursor enters a child element, effectively taking focus from the
+		// parent
+		if ui.requestEvent(EventTypeEnter) && ui.entity.Parent != nil {
+			FirstOnEntity(ui.entity.Parent).requestEvent(EventTypeExit)
+		}
 		if windowing.HasDragData() {
-			ui.requestEvent(EventTypeDropEnter)
+			if ui.requestEvent(EventTypeDropEnter) && ui.entity.Parent != nil {
+				FirstOnEntity(ui.entity.Parent).requestEvent(EventTypeDropExit)
+			}
 		}
 	} else if ui.hovering && !contained {
 		ui.hovering = false
 		ui.requestEvent(EventTypeExit)
+		// This is to resolve the parent not getting enter call when the
+		// cursor exits a child element puttin focus back on the parent
+		if !ui.events[EventTypeEnter].IsEmpty() && ui.entity.Parent != nil {
+			FirstOnEntity(ui.entity.Parent).hovering = false
+		}
 		if windowing.HasDragData() {
 			ui.requestEvent(EventTypeDropExit)
 		}
+	} else if ui.hovering && contained {
+		ui.requestEvent(EventTypeMove)
 	}
 }
 

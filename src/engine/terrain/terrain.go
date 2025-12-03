@@ -50,7 +50,7 @@ import (
 const (
 	textureCount       = 6
 	meshKey            = "terrain"
-	meshPath           = "meshes/heightmap.gltf"
+	meshPath           = "heightmap.gltf"
 	defaultHeightScale = 100
 )
 

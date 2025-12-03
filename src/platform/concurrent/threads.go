@@ -37,54 +37,79 @@
 
 package concurrent
 
-import "runtime"
-
-// TODO:  This is a stub and will need some work later
+import (
+	"container/list"
+	"kaiju/platform/profiler/tracing"
+	"runtime"
+	"sync"
+)
 
 type Threads struct {
-	pipe    chan func(threadId int)
-	exitSig []chan struct{}
+	queue    *list.List
+	mutex    sync.Mutex
+	cond     *sync.Cond
+	shutdown bool
+	count    int
 }
 
-func NewThreads() Threads {
-	t := Threads{
-		pipe: make(chan func(threadId int), 1000),
-	}
-	return t
+func (t *Threads) Initialize() {
+	defer tracing.NewRegion("Threads.Initialize").End()
+	t.queue = list.New()
+	t.cond = sync.NewCond(&t.mutex)
 }
 
-func (t *Threads) ThreadCount() int { return len(t.exitSig) }
+func (t *Threads) ThreadCount() int { return t.count }
 
 func (t *Threads) Start() {
-	t.exitSig = make([]chan struct{}, runtime.NumCPU())
-	for i := range len(t.exitSig) {
-		t.exitSig[i] = make(chan struct{})
+	defer tracing.NewRegion("Threads.Start").End()
+	t.count = runtime.NumCPU()
+	for i := 0; i < t.count; i++ {
 		go t.work(i)
 	}
 }
 
 func (t *Threads) Stop() {
-	for i := range t.exitSig {
-		t.exitSig[i] <- struct{}{}
-		close(t.exitSig[i])
-	}
-	close(t.pipe)
+	defer tracing.NewRegion("Threads.Stop").End()
+	t.mutex.Lock()
+	t.shutdown = true
+	t.mutex.Unlock()
+	t.cond.Broadcast()
 }
 
-func (t *Threads) AddWork(work ...func(threadId int)) {
-	for i := range work {
-		t.pipe <- work[i]
+func (t *Threads) AddWork(work []func(threadId int)) {
+	defer tracing.NewRegion("Threads.AddWork").End()
+	t.mutex.Lock()
+	for _, w := range work {
+		t.queue.PushBack(w)
 	}
+	t.mutex.Unlock()
+	t.cond.Broadcast()
 }
 
-func (t *Threads) work(sigIdx int) {
-	for len(t.exitSig) > 0 {
-		select {
-		case <-t.exitSig[sigIdx]:
-		case action := <-t.pipe:
-			if action != nil {
-				action(sigIdx)
+func (t *Threads) work(id int) {
+	for {
+		t.mutex.Lock()
+		if t.shutdown {
+			t.mutex.Unlock()
+			return
+		}
+		for t.queue != nil && t.queue.Len() == 0 {
+			t.cond.Wait()
+			if t.shutdown {
+				t.mutex.Unlock()
+				return
 			}
+		}
+		if t.queue == nil {
+			t.mutex.Unlock()
+			return
+		}
+		elem := t.queue.Front()
+		t.queue.Remove(elem)
+		t.mutex.Unlock()
+		action := elem.Value.(func(int))
+		if action != nil {
+			action(id)
 		}
 	}
 }

@@ -60,8 +60,6 @@ type Layout struct {
 	rowLayoutOffset  matrix.Vec2
 	innerOffset      matrix.Vec4
 	localInnerOffset matrix.Vec4
-	left             float32
-	top              float32
 	z                float32
 	ui               *UI
 	border           matrix.Vec4
@@ -70,6 +68,17 @@ type Layout struct {
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
+}
+
+func (l *Layout) ClearStyles() {
+	l.offset = matrix.Vec2{}
+	l.rowLayoutOffset = matrix.Vec2{}
+	l.innerOffset = matrix.Vec4{}
+	l.localInnerOffset = matrix.Vec4{}
+	l.z = 0
+	l.border = matrix.Vec4{}
+	l.padding = matrix.Vec4{}
+	l.margin = matrix.Vec4{}
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -277,6 +286,8 @@ func (l *Layout) SetZ(z float32) {
 func (l *Layout) SetPositioning(pos Positioning) {
 	if l.positioning != pos {
 		l.positioning = pos
+		l.SetInnerOffset(0, 0, 0, 0)
+		l.SetRowLayoutOffset(matrix.Vec2Zero())
 		l.ui.SetDirty(DirtyTypeLayout)
 	}
 }

@@ -40,57 +40,58 @@ package vulkan
 import (
 	"errors"
 	"fmt"
+	"kaiju/rendering/vulkan_const"
 )
 
-func Error(result Result) error {
+func Error(result vulkan_const.Result) error {
 	switch result {
-	case Success:
+	case vulkan_const.Success:
 		return nil
-	case NotReady:
+	case vulkan_const.NotReady:
 		return warnNotReady
-	case Timeout:
+	case vulkan_const.Timeout:
 		return warnTimeout
-	case EventSet:
+	case vulkan_const.EventSet:
 		return warnEventSet
-	case EventReset:
+	case vulkan_const.EventReset:
 		return warnEventReset
-	case Incomplete:
+	case vulkan_const.Incomplete:
 		return warnIncomplete
-	case ErrorOutOfHostMemory:
+	case vulkan_const.ErrorOutOfHostMemory:
 		return errOutOfHostMemory
-	case ErrorOutOfDeviceMemory:
+	case vulkan_const.ErrorOutOfDeviceMemory:
 		return errOutOfDeviceMemory
-	case ErrorInitializationFailed:
+	case vulkan_const.ErrorInitializationFailed:
 		return errInitializationFailed
-	case ErrorDeviceLost:
+	case vulkan_const.ErrorDeviceLost:
 		return errDeviceLost
-	case ErrorMemoryMapFailed:
+	case vulkan_const.ErrorMemoryMapFailed:
 		return errMemoryMapFailed
-	case ErrorLayerNotPresent:
+	case vulkan_const.ErrorLayerNotPresent:
 		return errLayerNotPresent
-	case ErrorExtensionNotPresent:
+	case vulkan_const.ErrorExtensionNotPresent:
 		return errExtensionNotPresent
-	case ErrorFeatureNotPresent:
+	case vulkan_const.ErrorFeatureNotPresent:
 		return errFeatureNotPresent
-	case ErrorIncompatibleDriver:
+	case vulkan_const.ErrorIncompatibleDriver:
 		return errIncompatibleDriver
-	case ErrorTooManyObjects:
+	case vulkan_const.ErrorTooManyObjects:
 		return errTooManyObjects
-	case ErrorFormatNotSupported:
+	case vulkan_const.ErrorFormatNotSupported:
 		return errFormatNotSupported
-	case ErrorSurfaceLost:
+	case vulkan_const.ErrorSurfaceLost:
 		return errSurfaceLostKHR
-	case ErrorNativeWindowInUse:
+	case vulkan_const.ErrorNativeWindowInUse:
 		return errNativeWindowInUseKHR
-	case Suboptimal:
+	case vulkan_const.Suboptimal:
 		return warnSuboptimalKHR
-	case ErrorOutOfDate:
+	case vulkan_const.ErrorOutOfDate:
 		return errOutOfDateKHR
-	case ErrorIncompatibleDisplay:
+	case vulkan_const.ErrorIncompatibleDisplay:
 		return errIncompatibleDisplayKHR
-	case ErrorValidationFailed:
+	case vulkan_const.ErrorValidationFailed:
 		return errValidationFailedEXT
-	case ErrorInvalidShaderNv:
+	case vulkan_const.ErrorInvalidShaderNv:
 		return errInvalidShaderNV
 	default:
 		return fmt.Errorf("vulkan error: unknown %v", result)

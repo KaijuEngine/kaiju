@@ -1,1 +1,1 @@
-{"Name":"ui","Shader":"renderer/shaders/ui.shader","RenderPass":"renderer/passes/ui_opaque.renderpass","ShaderPipeline":"renderer/pipelines/basic.shaderpipeline","Textures":[]}
+{"Name":"ui","Shader":"ui.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"ui.shaderpipeline","Textures":[]}

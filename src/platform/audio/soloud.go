@@ -40,9 +40,9 @@ package audio
 import (
 	"errors"
 	"fmt"
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	"math"
-	"path/filepath"
 	"runtime"
 )
 
@@ -86,22 +86,14 @@ func New() (*Audio, error) {
 	return audio, nil
 }
 
-func NewClip(path string) *AudioClip {
-	// TODO:  This should use the asset database to load the wav rather than
-	// the file path to the audio file
-	clip := &AudioClip{
-		key: path,
-		wav: wavCreate(),
-	}
-	wavLoad(path, clip.wav)
-	type ClipFreeState struct {
-		audio *Audio
-		wav   SoloudWav
-	}
-	runtime.AddCleanup(clip, func(wav SoloudWav) {
-		wavDestroy(wav)
-	}, clip.wav)
-	return clip
+func (a *Audio) MusicById(id string) (*AudioClip, bool) {
+	c, ok := a.bgm[id]
+	return c, ok
+}
+
+func (a *Audio) SoundById(id string) (*AudioClip, bool) {
+	c, ok := a.sfx[id]
+	return c, ok
 }
 
 func (a *Audio) SoundVolume() float32 {
@@ -146,26 +138,50 @@ func (a *Audio) UnmuteMusic() {
 	a.SetMusicVolume(a.bgmUnmutedVolume)
 }
 
-func (a *Audio) LoadClip(soundPath string) *AudioClip {
-	clip := NewClip(soundPath)
-	if filepath.Ext(soundPath) == ".wav" {
-		clip.isSFX = true
-		a.sfx[clip.key] = clip
-		wavSetVolume(clip.wav, a.sfxVolume)
-	} else {
-		a.bgm[clip.key] = clip
-		wavSetVolume(clip.wav, a.bgmVolume)
+func (a *Audio) LoadMusic(adb assets.Database, key string) (*AudioClip, error) {
+	if c, ok := a.bgm[key]; ok {
+		return c, nil
 	}
-	return clip
+	data, err := adb.Read(key)
+	if err != nil {
+		return nil, err
+	}
+	clip := newClip(a, key, data)
+	a.bgm[clip.key] = clip
+	wavSetVolume(clip.wav, a.bgmVolume)
+	return clip, nil
 }
 
-func (a *Audio) Play(clip *AudioClip) bool {
-	return play(a.soloud, clip.wav) == 0
+func (a *Audio) LoadSound(adb assets.Database, key string) (*AudioClip, error) {
+	if c, ok := a.sfx[key]; ok {
+		return c, nil
+	}
+	data, err := adb.Read(key)
+	if err != nil {
+		return nil, err
+	}
+	clip := newClip(a, key, data)
+	clip.isSFX = true
+	a.sfx[clip.key] = clip
+	wavSetVolume(clip.wav, a.sfxVolume)
+	return clip, nil
+}
+
+func (a *Audio) Play(clip *AudioClip) VoiceHandle {
+	return play(a.soloud, clip.wav)
 }
 
 func (a *Audio) Stop(clip *AudioClip) {
 	stopAudioSource(a.soloud, clip.wav)
 	clip.handles = clip.handles[:0]
+}
+
+func (a *Audio) IsValidVoiceHandle(handle VoiceHandle) bool {
+	return isValidVoiceHandle(a.soloud, handle)
+}
+
+func (a *Audio) Seek(handle VoiceHandle, seconds float64) bool {
+	return seek(a.soloud, handle, seconds) != 0
 }
 
 func (a *Audio) PlaySound(key string) (*AudioClip, uint32) {
@@ -200,4 +216,26 @@ func (a *Audio) SetMusicVolume(volume float32) {
 			setVolume(a.soloud, v.handles[i], volume)
 		}
 	}
+}
+
+func (c *AudioClip) Length() float64 {
+	return clipLength(c.wav)
+}
+
+func newClip(a *Audio, key string, data []byte) *AudioClip {
+	// TODO:  This should use the asset database to load the wav rather than
+	// the file path to the audio file
+	clip := &AudioClip{
+		key: key,
+		wav: wavCreate(),
+	}
+	wavLoadMem(clip.wav, data)
+	type ClipFreeState struct {
+		audio *Audio // Hold the audio pointer so the system isn't cleaned up before wav
+		wav   SoloudWav
+	}
+	runtime.AddCleanup(clip, func(s ClipFreeState) {
+		wavDestroy(s.wav)
+	}, ClipFreeState{a, clip.wav})
+	return clip
 }

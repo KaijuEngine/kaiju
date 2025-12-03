@@ -41,9 +41,11 @@ import (
 	"log/slog"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createSwapChainFrameBuffer() bool {
+	slog.Info("creating vulkan swap chain frame buffer")
 	count := vr.swapChainImageViewCount
 	vr.swapChainFrameBufferCount = count
 	vr.swapChainFrameBuffers = make([]vk.Framebuffer, count)
@@ -61,10 +63,11 @@ func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 }
 
 func (vr *Vulkan) createVulkanInstance(window RenderingContainer, appInfo vk.ApplicationInfo) bool {
+	slog.Info("creating vulkan instance")
 	windowExtensions := window.GetInstanceExtensions()
 	added := make([]string, 0, 3)
 	if useValidationLayers {
-		added = append(added, vk.ExtDebugReportExtensionName+"\x00")
+		added = append(added, vulkan_const.ExtDebugReportExtensionName+"\x00")
 	}
 	//	const char* added[] = {
 	//#ifdef ANDROID
@@ -78,9 +81,8 @@ func (vr *Vulkan) createVulkanInstance(window RenderingContainer, appInfo vk.App
 	extensions = append(extensions, windowExtensions...)
 	extensions = append(extensions, added...)
 	extensions = append(extensions, vkInstanceExtensions()...)
-
 	createInfo := vk.InstanceCreateInfo{
-		SType:            vk.StructureTypeInstanceCreateInfo,
+		SType:            vulkan_const.StructureTypeInstanceCreateInfo,
 		PApplicationInfo: &appInfo,
 		Flags:            vkInstanceFlags,
 	}
@@ -90,15 +92,16 @@ func (vr *Vulkan) createVulkanInstance(window RenderingContainer, appInfo vk.App
 	validationLayers := validationLayers()
 	if len(validationLayers) > 0 {
 		if !checkValidationLayerSupport(validationLayers) {
-			slog.Error("Expected to have validation layers for debugging, but didn't find them")
-			return false
+			slog.Warn("Expected to have validation layers for debugging, but didn't find them")
+		} else {
+			slog.Info("enabling the validation layers")
+			createInfo.SetEnabledLayerNames(validationLayers)
 		}
-		createInfo.SetEnabledLayerNames(validationLayers)
 	}
 
 	var instance vk.Instance
 	result := vk.CreateInstance(&createInfo, nil, &instance)
-	if result != vk.Success {
+	if result != vulkan_const.Success {
 		slog.Error("Failed to get the VK instance", slog.Int("code", int(result)))
 		return false
 	} else {

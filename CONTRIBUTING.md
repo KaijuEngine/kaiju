@@ -86,6 +86,13 @@ in Go code. Since you are creating a fallback method in Go anyway, you must
 create a benchmark to prove that your assembly implementation is superior to
 the go implementation of the code.
 
+### Goroutines
+You can write goroutines (for the editor), but for the engine runtime, make use
+of the threads structure that is attached to the host. When firing off a
+goroutine in the editor code, put a comment above it `// goroutine`. This will
+make it easy to search through all the goroutines in the code (until I find a
+better way of doing this).
+
 ### In any other case
 Generally, if you would like a guide at how the code should be formatted and
 what standards you should hold yourself to, review the existing code in the

@@ -39,11 +39,12 @@ package rendering
 
 import (
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 type DescriptorSetLayoutStructureType struct {
-	Type           vk.DescriptorType
-	Flags          vk.ShaderStageFlagBits
+	Type           vulkan_const.DescriptorType
+	Flags          vulkan_const.ShaderStageFlagBits
 	Count, Binding uint32
 }
 
@@ -83,11 +84,11 @@ type TextureId struct {
 	Memory     vk.DeviceMemory
 	View       vk.ImageView
 	Sampler    vk.Sampler
-	Format     vk.Format
+	Format     vulkan_const.Format
 	MipLevels  uint32
-	Layout     vk.ImageLayout
+	Layout     vulkan_const.ImageLayout
 	Access     vk.AccessFlags
-	Samples    vk.SampleCountFlagBits
+	Samples    vulkan_const.SampleCountFlagBits
 	Width      int
 	Height     int
 	LayerCount int

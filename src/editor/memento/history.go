@@ -37,23 +37,71 @@
 
 package memento
 
-import "kaiju/klib"
+import (
+	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
+	"reflect"
+)
 
 type History struct {
-	undoStack []Memento
-	position  int
-	limit     int
+	undoStack     []Memento
+	transaction   *HistoryTransaction
+	position      int
+	limit         int
+	savedPosition int
+	lockAdditions bool
 }
 
-func NewHistory(limit int) History {
-	return History{
-		undoStack: make([]Memento, 0),
-		limit:     limit,
-	}
+// Initialize sets the max number of undo entries that the history will retain.
+func (h *History) Initialize(limit int) { h.limit = limit }
+
+// LockAdditions prevents new mementos from being added to the history.
+func (h *History) LockAdditions() { h.lockAdditions = true }
+
+// UnlockAdditions re-enables adding new mementos after a lock.
+func (h *History) UnlockAdditions() { h.lockAdditions = false }
+
+// IsInTransaction reports whether a history transaction is currently active.
+func (h *History) IsInTransaction() bool { return h.transaction != nil }
+
+// BeginTransaction starts a new transaction. Subsequent Add calls will be
+// queued in the transaction until it is committed or cancelled. If committed
+// all of the undos will be joined together into a single undo/redo operation.
+// You should start a transaction when calling common methods that would create
+// their own internal history.
+//
+// For example, when you delete selected entities, the clear function is called
+// on the selection (to update UI, visuals, and other things). This clear call
+// will generate history, thus creating 2 history entries (clear and delete). By
+// starting a transaction, both of those will be within the same undo/redo call.
+func (h *History) BeginTransaction() {
+	h.transaction = &HistoryTransaction{}
 }
 
+// CommitTransaction finalizes the current transaction, adding all queued
+// mementos to the history as a single atomic operation.
+func (h *History) CommitTransaction() {
+	t := h.transaction
+	h.transaction = nil
+	h.Add(t)
+}
+
+// CancelTransaction aborts the current transaction, discarding any queued
+// mementos.
+func (h *History) CancelTransaction() { h.transaction = nil }
+
+// Add inserts a new memento into the history. If a transaction is active, the
+// memento is queued instead of being added immediately.
 func (h *History) Add(m Memento) {
-	for i := h.position; i < len(h.undoStack); i++ {
+	defer tracing.NewRegion("History.Add").End()
+	if h.IsInTransaction() {
+		h.transaction.stack = append(h.transaction.stack, m)
+		return
+	}
+	if h.lockAdditions {
+		return
+	}
+	for i := len(h.undoStack) - 1; i >= h.position; i-- {
 		h.undoStack[i].Delete()
 	}
 	h.undoStack = h.undoStack[:h.position]
@@ -66,7 +114,44 @@ func (h *History) Add(m Memento) {
 	}
 }
 
+func (h *History) Last() (Memento, bool) {
+	if h.position == 0 {
+		return nil, false
+	}
+	return h.undoStack[h.position-1], true
+}
+
+// AddOrReplaceLast inserts a new memento into the history. If the most recent
+// memento (the one at h.position‑1) has the same concrete type as the supplied
+// memento, it is replaced instead of creating a new entry. This is useful for
+// collapsing consecutive operations of the same kind (e.g. repeated brush
+// strokes) into a single undo step.
+func (h *History) AddOrReplaceLast(m Memento) {
+	defer tracing.NewRegion("History.AddOrReplaceLast").End()
+	if h.IsInTransaction() {
+		h.transaction.stack = append(h.transaction.stack, m)
+		return
+	}
+	if h.lockAdditions {
+		return
+	}
+	if h.position > 0 {
+		lastIdx := h.position - 1
+		last := h.undoStack[lastIdx]
+		if reflect.TypeOf(last) == reflect.TypeOf(m) {
+			last.Delete()
+			h.undoStack[lastIdx] = m
+			return
+		}
+	}
+	h.Add(m)
+}
+
+// Undo reverts the most recent memento, moving the current position back.
 func (h *History) Undo() {
+	defer tracing.NewRegion("History.Undo").End()
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	if h.position == 0 {
 		return
 	}
@@ -75,7 +160,11 @@ func (h *History) Undo() {
 	m.Undo()
 }
 
+// Redo reapplies the next memento in the stack, moving the position forward.
 func (h *History) Redo() {
+	defer tracing.NewRegion("History.Redo").End()
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	if h.position == len(h.undoStack) {
 		return
 	}
@@ -84,10 +173,21 @@ func (h *History) Redo() {
 	h.position++
 }
 
+// Clear removes all mementos from the history and resets the position.
 func (h *History) Clear() {
+	defer tracing.NewRegion("History.Clear").End()
+	h.LockAdditions()
+	defer h.UnlockAdditions()
 	for i := 0; i < len(h.undoStack); i++ {
 		h.undoStack[i].Exit()
 	}
 	h.undoStack = klib.RemakeSlice(h.undoStack)
 	h.position = 0
 }
+
+// SetSavePosition records the current position as the saved state.
+func (h *History) SetSavePosition() { h.savedPosition = h.position }
+
+// HasPendingChanges reports whether the history has changes since the last
+// saved position.
+func (h *History) HasPendingChanges() bool { return h.savedPosition != h.position }

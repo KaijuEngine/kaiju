@@ -79,15 +79,16 @@ const (
 )
 
 const (
+	scrollBarWidth = 8
+)
+
+const (
 	OverflowScroll = iota
 	OverflowVisible
 	OverflowHidden
 )
 
-type childScrollEvent struct {
-	down   events.Id
-	scroll events.Id
-}
+var UIScrollSpeed float32 = 20
 
 type requestScroll struct {
 	to        float32
@@ -95,8 +96,10 @@ type requestScroll struct {
 }
 
 type panelData struct {
+	scrollBarX, scrollBarY    *Panel
+	scrollBarStart            float32
+	scrollBarDrag             matrix.Vec2
 	scroll, offset, maxScroll matrix.Vec2
-	scrollSpeed               float32
 	scrollDirection           PanelScrollDirection
 	scrollEvent               events.Id
 	borderStyle               [4]BorderStyle
@@ -131,7 +134,6 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	}
 	pd = panel.elmData.innerPanelData()
 	pd.scrollEvent = 0
-	pd.scrollSpeed = 20.0
 	pd.scrollDirection = PanelScrollDirectionNone
 	pd.fitContent = ContentFitBoth
 	pd.enforcedColorStack = make([]matrix.Color, 0)
@@ -151,7 +153,6 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	panel.entity.OnActivate.Add(func() {
 		panel.shaderData.Activate()
 		base.SetDirty(DirtyTypeLayout)
-		base.Clean()
 	})
 	panel.entity.OnDeactivate.Add(func() { panel.shaderData.Deactivate() })
 }
@@ -251,7 +252,7 @@ func (p *Panel) onScroll() {
 		delta[matrix.Vy] *= -1.0
 	} else {
 		pd.offset = pd.scroll
-		delta.ScaleAssign(pd.scrollSpeed)
+		delta.ScaleAssign(UIScrollSpeed)
 	}
 	// If the panel can only scroll horizontally, use the Y scroll if there is no X
 	if pd.scrollDirection == PanelScrollDirectionHorizontal {
@@ -280,6 +281,11 @@ func (p *Panel) update(deltaTime float64) {
 	base.eventUpdates()
 	base.Update(deltaTime)
 	pd := p.PanelData()
+	if base.Host().Window.Cursor.Released() {
+		pd.scrollBarDrag = matrix.Vec2Zero()
+		pd.scrollBarStart = -1
+	}
+	p.updateScrollBars()
 	if !pd.frozen {
 		if p.isDown && pd.dragging {
 			if pd.allowDragScroll {
@@ -304,7 +310,7 @@ type rowBuilder struct {
 func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	eSize := e.Layout().PixelSize()
 	h := eSize.Height()
-	w := eSize.Width()
+	w := eSize.Width() + e.layout.margin.Horizontal()
 	if len(rb.elements) > 0 && rb.x+w > areaWidth {
 		return false
 	}
@@ -447,6 +453,12 @@ func (p *Panel) panelPostLayoutUpdate() {
 	ws := p.entity.Transform.WorldScale()
 	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, bounds.Y()-ws.Y()))
 	if !matrix.Vec2Roughly(last, pd.maxScroll) {
+		if pd.scrollBarX != nil {
+			pd.scrollBarY.Base().Show()
+		}
+		if pd.scrollBarY != nil {
+			pd.scrollBarY.Base().Show()
+		}
 		p.Base().SetDirty(DirtyTypeGenerated)
 	}
 }
@@ -461,9 +473,13 @@ func (p *Panel) panelRender() {
 }
 
 func (p *Panel) AddChild(target *UI) {
+	if target.entity.Parent == &p.entity {
+		return
+	}
+	if target.entity.Parent != nil {
+		FirstPanelOnEntity(target.entity.Parent).RemoveChild(target)
+	}
 	target.Entity().SetParent(&p.entity)
-	// No need to set the group on the target as it's set by the UI Manager
-	target.Layout().update()
 	p.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -479,17 +495,12 @@ func (p *Panel) InsertChild(target *UI, idx int) {
 func (p *Panel) RemoveChild(target *UI) {
 	target.Entity().SetParent(nil)
 	target.setScissor(matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax})
-	target.Layout().update()
-	p.layout.update()
 	p.Base().SetDirty(DirtyTypeGenerated)
+	target.SetDirty(DirtyTypeGenerated)
 }
 
 func (p *Panel) Child(index int) *UI {
 	return FirstOnEntity(p.entity.Children[index])
-}
-
-func (p *Panel) SetSpeed(speed float32) {
-	p.PanelData().scrollSpeed = speed
 }
 
 func (p *Panel) recreateDrawing() {
@@ -540,6 +551,19 @@ func (p *Panel) SetScrollY(value float32) {
 	pd.requestScrollY.to = value
 	pd.requestScrollY.requested = true
 	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) ScrollToChild(child *UI) {
+	pps := p.Base().Layout().PixelSize()
+	cps := child.layout.PixelSize()
+	ct := child.entity.Transform
+	top := pps.Y()*0.5 - cps.Y()*0.5 - ct.Position().Y()
+	bottom := -(pps.Y()*0.5 - cps.Y()*0.5) - ct.Position().Y()
+	if top < 0 {
+		p.SetScrollY(p.ScrollY() + top)
+	} else if bottom >= 0 {
+		p.SetScrollY(p.ScrollY() + bottom)
+	}
 }
 
 func (p *Panel) ResetScroll() {
@@ -654,6 +678,115 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 		}
 	} else if pd.scrollEvent == 0 {
 		pd.scrollEvent = p.Base().AddEvent(EventTypeScroll, p.onScroll)
+	}
+	if pd.scrollBarX == nil {
+		pd.scrollBarX = p.createScrollBar()
+		p.AddChild((*UI)(pd.scrollBarX))
+	}
+	if pd.scrollBarY == nil {
+		pd.scrollBarY = p.createScrollBar()
+		p.AddChild((*UI)(pd.scrollBarY))
+	}
+}
+
+func (p *Panel) createScrollBar() *Panel {
+	man := p.man.Value()
+	scrollBarTex, _ := man.Host.TextureCache().Texture(
+		assets.TextureSquare, rendering.TextureFilterLinear)
+	sb := man.Add().ToPanel()
+	sb.Init(scrollBarTex, ElementTypePanel)
+	sb.DontFitContent()
+	sb.SetColor(matrix.ColorGray())
+	sb.layout.SetPositioning(PositioningAbsolute)
+	sb.layout.Scale(scrollBarWidth, scrollBarWidth)
+	sb.layout.SetZ(10)
+	sb.Base().AddEvent(EventTypeEnter, func() {
+		sb.EnforceColor(matrix.NewColor(0.575, 0.575, 0.575, 1.0))
+	})
+	sb.Base().AddEvent(EventTypeExit, func() {
+		sb.UnEnforceColor()
+	})
+	sb.Base().AddEvent(EventTypeDown, func() {
+		pd := p.PanelData()
+		cp := p.Base().Host().Window.Cursor.Position()
+		switch sb {
+		case pd.scrollBarX:
+			pd.scrollBarStart = sb.layout.offset.X()
+			pd.scrollBarDrag.SetX(cp.X())
+		case pd.scrollBarY:
+			pd.scrollBarStart = sb.layout.offset.Y()
+			pd.scrollBarDrag.SetY(cp.Y())
+		}
+	})
+	return sb
+}
+
+func (p *Panel) updateScrollBars() {
+	pd := p.PanelData()
+	if pd.scrollBarX == nil && pd.scrollBarY == nil {
+		return
+	}
+	ps := p.layout.PixelSize()
+	panelW, panelH := ps.X(), ps.Y()
+	if pd.scrollBarX != nil {
+		y := panelH - scrollBarWidth
+		pd.scrollBarX.layout.SetOffsetY(y)
+		maxX := pd.maxScroll.X()
+		if !matrix.Approx(pd.scrollBarDrag.X(), 0) {
+			mx := p.Base().Host().Window.Cursor.Position().X()
+			mouseDelta := pd.scrollBarDrag.Y() - mx
+			startOffset := pd.scrollBarStart
+			newOffset := startOffset + mouseDelta
+			maxX := pd.maxScroll.X()
+			barW := panelW * (panelW / (panelW + maxX))
+			if barW < 1 {
+				barW = 1
+			}
+			newOffset = matrix.Clamp(newOffset, 0, panelW-barW)
+			scrollX := -(newOffset / (panelW - barW)) * maxX
+			pd.scroll.SetX(matrix.Clamp(scrollX, 0, pd.maxScroll.X()))
+		}
+		if maxX > 0 {
+			barW := panelW * (panelW / (panelW + maxX))
+			if barW < 1 {
+				barW = 1
+			}
+			offsetX := (pd.scroll.X() / maxX) * (panelW - barW)
+			pd.scrollBarX.layout.Scale(barW, 12)
+			pd.scrollBarX.layout.SetOffsetX(offsetX)
+		} else {
+			pd.scrollBarX.Base().Hide()
+		}
+	}
+	if pd.scrollBarY != nil {
+		x := panelW - scrollBarWidth
+		pd.scrollBarY.layout.SetOffsetX(x)
+		maxY := pd.maxScroll.Y()
+		if !matrix.Approx(pd.scrollBarDrag.Y(), 0) {
+			my := p.Base().Host().Window.Cursor.Position().Y()
+			mouseDelta := pd.scrollBarDrag.Y() - my
+			startOffset := pd.scrollBarStart
+			newOffset := startOffset + mouseDelta
+			maxY := pd.maxScroll.Y()
+			barH := panelH * (panelH / (panelH + maxY))
+			if barH < 1 {
+				barH = 1
+			}
+			newOffset = matrix.Clamp(newOffset, 0, panelH-barH)
+			scrollY := -(newOffset / (panelH - barH)) * maxY
+			pd.scroll.SetY(matrix.Clamp(scrollY, -pd.maxScroll.Y(), 0))
+		}
+		if maxY > 0 {
+			barH := panelH * (panelH / (panelH + maxY))
+			if barH < 1 {
+				barH = 1
+			}
+			offsetY := (-pd.scroll.Y() / maxY) * (panelH - barH)
+			pd.scrollBarY.layout.Scale(12, barH)
+			pd.scrollBarY.layout.SetOffsetY(offsetY)
+		} else {
+			pd.scrollBarY.Base().Hide()
+		}
 	}
 }
 

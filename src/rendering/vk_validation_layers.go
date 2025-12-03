@@ -47,6 +47,9 @@ import (
 func checkValidationLayerSupport(validationLayers []string) bool {
 	var layerCount uint32
 	vk.EnumerateInstanceLayerProperties(&layerCount, nil)
+	if layerCount == 0 {
+		return false
+	}
 	availableLayers := make([]vk.LayerProperties, layerCount)
 	vk.EnumerateInstanceLayerProperties(&layerCount, &availableLayers[0])
 	available := true

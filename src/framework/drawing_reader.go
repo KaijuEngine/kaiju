@@ -43,6 +43,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/load_result"
 )
@@ -138,7 +139,7 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsUnlit").End()
 	return createDrawings(host, res, unlitMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataUnlit{
+		return &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 			UVs:            matrix.NewVec4(0, 0, 1, 1),
@@ -149,7 +150,7 @@ func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawin
 func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsUnlitTransparent").End()
 	return createDrawings(host, res, unlitTransparentMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataUnlit{
+		return &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 			UVs:            matrix.NewVec4(0, 0, 1, 1),
@@ -160,7 +161,7 @@ func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (
 func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsBasic").End()
 	return createDrawings(host, res, basicMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataBasic{
+		return &shader_data_registry.ShaderDataStandard{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
@@ -170,7 +171,7 @@ func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawin
 func CreateDrawingsBasicLit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
 	draws, err := createDrawings(host, res, basicLitMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataBasicLit{
+		return &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
@@ -184,7 +185,7 @@ func CreateDrawingsBasicLit(host *engine.Host, res load_result.Result) (ModelDra
 func CreateDrawingsBasicLitStatic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
 	draws, err := createDrawings(host, res, basicLitStaticMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataBasicLit{
+		return &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
@@ -198,7 +199,7 @@ func CreateDrawingsBasicLitStatic(host *engine.Host, res load_result.Result) (Mo
 func CreateDrawingsBasicLitDynamic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
 	draws, err := createDrawings(host, res, basicLitDynamicMaterialKey, 1, func() rendering.DrawInstance {
-		return &rendering.ShaderDataBasicLit{
+		return &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
@@ -212,7 +213,7 @@ func CreateDrawingsBasicLitDynamic(host *engine.Host, res load_result.Result) (M
 func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsPBR").End()
 	drawings, err := createDrawings(host, res, pbrMaterialKey, 4, func() rendering.DrawInstance {
-		return &rendering.ShaderDataPBR{
+		return &shader_data_registry.ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
 			Metallic:       0,

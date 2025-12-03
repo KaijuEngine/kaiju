@@ -95,7 +95,7 @@ func scaleScrollDelta(delta float32) float32 {
 	return v
 }
 
-func (w *Window) createWindow(windowName string, x, y int) {
+func (w *Window) createWindow(windowName string, x, y int, _ any) {
 	windowTitle := utf16.Encode([]rune(windowName))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	w.lookupId = nextLookupId.Add(1)
@@ -242,4 +242,8 @@ func (w Window) setTitle(newTitle string) {
 	windowTitle := utf16.Encode(append([]rune(newTitle), []rune("\x00\x00")...))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	C.window_set_title(w.handle, title)
+}
+
+func (w *Window) readApplicationAsset(path string) ([]byte, error) {
+	return []byte{}, errors.New("windows doesn't support application assets")
 }

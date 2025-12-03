@@ -43,6 +43,7 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
@@ -58,36 +59,36 @@ func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
 	return found
 }
 
-func getMaxUsableSampleCount(device vk.PhysicalDevice) vk.SampleCountFlagBits {
+func getMaxUsableSampleCount(device vk.PhysicalDevice) vulkan_const.SampleCountFlagBits {
 	physicalDeviceProperties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(device, &physicalDeviceProperties)
 
 	counts := vk.SampleCountFlags(physicalDeviceProperties.Limits.FramebufferColorSampleCounts & physicalDeviceProperties.Limits.FramebufferDepthSampleCounts)
 
-	if (counts & vk.SampleCountFlags(vk.SampleCount64Bit)) != 0 {
-		return vk.SampleCount64Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount64Bit)) != 0 {
+		return vulkan_const.SampleCount64Bit
 	}
-	if (counts & vk.SampleCountFlags(vk.SampleCount32Bit)) != 0 {
-		return vk.SampleCount32Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount32Bit)) != 0 {
+		return vulkan_const.SampleCount32Bit
 	}
-	if (counts & vk.SampleCountFlags(vk.SampleCount16Bit)) != 0 {
-		return vk.SampleCount16Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount16Bit)) != 0 {
+		return vulkan_const.SampleCount16Bit
 	}
-	if (counts & vk.SampleCountFlags(vk.SampleCount8Bit)) != 0 {
-		return vk.SampleCount8Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount8Bit)) != 0 {
+		return vulkan_const.SampleCount8Bit
 	}
-	if (counts & vk.SampleCountFlags(vk.SampleCount4Bit)) != 0 {
-		return vk.SampleCount4Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount4Bit)) != 0 {
+		return vulkan_const.SampleCount4Bit
 	}
-	if (counts & vk.SampleCountFlags(vk.SampleCount2Bit)) != 0 {
-		return vk.SampleCount2Bit
+	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount2Bit)) != 0 {
+		return vulkan_const.SampleCount2Bit
 	}
-	return vk.SampleCount1Bit
+	return vulkan_const.SampleCount1Bit
 }
 
 func (vr *Vulkan) createLogicalDevice() bool {
+	slog.Info("creating vulkan logical device")
 	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
-
 	qFamCount := 1
 	var uniqueQueueFamilies [2]int
 	uniqueQueueFamilies[0] = indices.graphicsFamily
@@ -99,29 +100,29 @@ func (vr *Vulkan) createLogicalDevice() bool {
 	var queueCreateInfos [2]vk.DeviceQueueCreateInfo
 	defaultPriority := float32(1.0)
 	for i := 0; i < qFamCount; i++ {
-		queueCreateInfos[i].SType = vk.StructureTypeDeviceQueueCreateInfo
+		queueCreateInfos[i].SType = vulkan_const.StructureTypeDeviceQueueCreateInfo
 		queueCreateInfos[i].QueueFamilyIndex = uint32(indices.graphicsFamily)
 		queueCreateInfos[i].QueueCount = 1
 		queueCreateInfos[i].PQueuePriorities = &defaultPriority
 	}
 
 	deviceFeatures := vk.PhysicalDeviceFeatures{}
-	deviceFeatures.SamplerAnisotropy = vk.True
-	deviceFeatures.SampleRateShading = vk.True
-	deviceFeatures.ShaderClipDistance = vk.True
+	deviceFeatures.SamplerAnisotropy = vulkan_const.True
+	deviceFeatures.SampleRateShading = vulkan_const.True
+	deviceFeatures.ShaderClipDistance = vulkan_const.True
 	deviceFeatures.GeometryShader = vkGeometryShaderValid
-	deviceFeatures.TessellationShader = vk.True
-	deviceFeatures.IndependentBlend = vk.True
+	deviceFeatures.TessellationShader = vulkan_const.True
+	deviceFeatures.IndependentBlend = vulkan_const.True
 	//deviceFeatures.TextureCompressionASTC_LDR = vk.True;
 
 	drawFeatures := vk.PhysicalDeviceShaderDrawParameterFeatures{}
-	drawFeatures.SType = vk.StructureTypePhysicalDeviceShaderDrawParameterFeatures
-	drawFeatures.ShaderDrawParameters = vk.True
+	drawFeatures.SType = vulkan_const.StructureTypePhysicalDeviceShaderDrawParameterFeatures
+	drawFeatures.ShaderDrawParameters = vulkan_const.True
 
 	extensions := requiredDeviceExtensions()
 	validationLayers := validationLayers()
 	createInfo := &vk.DeviceCreateInfo{
-		SType:                vk.StructureTypeDeviceCreateInfo,
+		SType:                vulkan_const.StructureTypeDeviceCreateInfo,
 		PQueueCreateInfos:    &queueCreateInfos[:qFamCount][0],
 		QueueCreateInfoCount: uint32(qFamCount),
 		PEnabledFeatures:     &deviceFeatures,
@@ -132,7 +133,7 @@ func (vr *Vulkan) createLogicalDevice() bool {
 	defer createInfo.Free()
 
 	var device vk.Device
-	if vk.CreateDevice(vr.physicalDevice, createInfo, nil, &device) != vk.Success {
+	if vk.CreateDevice(vr.physicalDevice, createInfo, nil, &device) != vulkan_const.Success {
 		slog.Error("Failed to create logical device")
 		return false
 	} else {
@@ -168,17 +169,17 @@ func (vr *Vulkan) isPhysicalDeviceSuitable(device vk.PhysicalDevice) bool {
 	return queueFamilyIndicesValid(indices) && hasExtensions && swapChainAdequate && supportedFeatures.SamplerAnisotropy != 0
 }
 
-func isPhysicalDeviceBetterType(a vk.PhysicalDeviceType, b vk.PhysicalDeviceType) bool {
+func isPhysicalDeviceBetterType(a vulkan_const.PhysicalDeviceType, b vulkan_const.PhysicalDeviceType) bool {
 	type score struct {
-		deviceType vk.PhysicalDeviceType
+		deviceType vulkan_const.PhysicalDeviceType
 		score      int
 	}
 	scores := []score{
-		{vk.PhysicalDeviceTypeCpu, 1},
-		{vk.PhysicalDeviceTypeOther, 1},
-		{vk.PhysicalDeviceTypeVirtualGpu, 1},
-		{vk.PhysicalDeviceTypeIntegratedGpu, 2},
-		{vk.PhysicalDeviceTypeDiscreteGpu, 3},
+		{vulkan_const.PhysicalDeviceTypeCpu, 1},
+		{vulkan_const.PhysicalDeviceTypeOther, 1},
+		{vulkan_const.PhysicalDeviceTypeVirtualGpu, 1},
+		{vulkan_const.PhysicalDeviceTypeIntegratedGpu, 2},
+		{vulkan_const.PhysicalDeviceTypeDiscreteGpu, 3},
 	}
 	aScore, bScore := 0, 0
 	for i := 0; i < len(scores); i++ {
@@ -193,6 +194,7 @@ func isPhysicalDeviceBetterType(a vk.PhysicalDeviceType, b vk.PhysicalDeviceType
 }
 
 func (vr *Vulkan) selectPhysicalDevice() bool {
+	slog.Info("creating vulkan physical device")
 	var deviceCount uint32
 	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, nil)
 	if deviceCount == 0 {

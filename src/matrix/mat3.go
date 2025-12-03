@@ -63,13 +63,7 @@ func Mat3Zero() Mat3 {
 	return Mat3{}
 }
 
-func Mat3FromMat4(m Mat4) Mat3 {
-	return Mat3{
-		m[0], m[1], m[2],
-		m[4], m[5], m[6],
-		m[8], m[9], m[10],
-	}
-}
+func Mat3FromMat4(m Mat4) Mat3 { return m.Mat3() }
 
 func (m Mat3) ToMat4() Mat4 {
 	return Mat4{

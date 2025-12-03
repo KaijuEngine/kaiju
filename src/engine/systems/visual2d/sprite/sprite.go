@@ -70,7 +70,7 @@ type Sprite struct {
 	spriteSheet     SpriteSheet
 	drawings        []rendering.Drawing
 	clipIdx         int
-	updateId        int
+	updateId        engine.UpdateId
 	baseScale       matrix.Vec3
 	paused          bool
 	autoScaleZ      bool

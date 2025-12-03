@@ -42,6 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"reflect"
 )
 
@@ -50,19 +51,24 @@ import (
 type EditorGame struct{}
 
 func (EditorGame) PluginRegistry() []reflect.Type {
-	defer tracing.NewRegion("editor.PluginRegistry").End()
+	defer tracing.NewRegion("EditorGame.PluginRegistry").End()
 	return []reflect.Type{}
 }
 
 func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return editor_embedded_content.EditorContent{}, nil
+	return &editor_embedded_content.EditorContent{}, nil
 }
 
 func (EditorGame) Launch(host *engine.Host) {
-	defer tracing.NewRegion("editor.Launch").End()
-	host.SetFrameRateLimit(60)
+	defer tracing.NewRegion("EditorGame.Launch").End()
 	ed := &Editor{host: host}
+	host.SetGame(ed)
+	if err := ed.settings.Load(); err != nil {
+		slog.Error("failed to load the settings for the editor", "error", err)
+	}
+	ed.UpdateSettings()
 	ed.logging.Initialize(host, host.LogStream)
+	ed.history.Initialize(128)
 	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {

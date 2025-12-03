@@ -22,6 +22,7 @@ go.work
 go.sum
 
 bin/
+logs/
 docs/api
 external/bin
 interpreter/kaiju-*
@@ -29,3 +30,8 @@ interpreter/kaiju-*
 
 # Go pprof files
 *.prof
+
+# Android files
+src/editor/project_templates/android/.idea
+src/editor/project_templates/android/app/src/main/cpp/libkaiju_android.h
+kaiju_android.so

@@ -56,7 +56,7 @@ type NetworkUDP struct {
 	conn           *net.UDPConn
 	pendingPackets []PendingNetworkPacketUDP
 	pendingMutex   sync.RWMutex
-	updateId       int
+	updateId       engine.UpdateId
 	isReading      bool
 }
 
@@ -68,8 +68,7 @@ func (n *NetworkUDP) Close(updater *engine.Updater) {
 		n.conn.Close()
 		n.conn = nil
 	}
-	updater.RemoveUpdate(n.updateId)
-	n.updateId = 0
+	updater.RemoveUpdate(&n.updateId)
 }
 
 func (n *NetworkUDP) removePendingPacket(id int64) {

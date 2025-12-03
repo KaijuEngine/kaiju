@@ -82,6 +82,12 @@ func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 	}
 }
 
+func (m *MeshCache) RemoveMesh(key string) {
+	m.mutex.Lock()
+	delete(m.meshes, key)
+	m.mutex.Unlock()
+}
+
 func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	defer tracing.NewRegion("MeshCache.Mesh").End()
 	m.mutex.Lock()

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			span {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				background-color: black;
+				color: white;
+				font-size: 2em;
+			}
+		</style>
+	</head>
+	<body>
+		<span>Hello, {{.}}!</span>
+	</body>
+</html>

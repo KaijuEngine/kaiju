@@ -45,6 +45,7 @@ import (
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 )
 
 type ShaderCleanup struct {
@@ -69,8 +70,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 		slog.Error("Failed to load vertex module", "module", shader.data.Vertex)
 		return err
 	}
-	vertStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
-	vertStage.Stage = vk.ShaderStageVertexBit
+	vertStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+	vertStage.Stage = vulkan_const.ShaderStageVertexBit
 	vertStage.Module = vert
 	vertStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.vertModule = vert
@@ -86,8 +87,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 		slog.Error("Failed to load fragment module", "module", shader.data.Fragment)
 		return err
 	}
-	fragStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
-	fragStage.Stage = vk.ShaderStageFragmentBit
+	fragStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+	fragStage.Stage = vulkan_const.ShaderStageFragmentBit
 	fragStage.Module = frag
 	fragStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	shader.RenderId.fragModule = frag
@@ -104,8 +105,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 			slog.Error("Failed to load geometry module", "module", shader.data.Geometry)
 			return err
 		}
-		geomStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
-		geomStage.Stage = vk.ShaderStageGeometryBit
+		geomStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+		geomStage.Stage = vulkan_const.ShaderStageGeometryBit
 		geomStage.Module = geom
 		geomStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 	}
@@ -122,8 +123,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 			slog.Error("Failed to load tessellation control module", "module", shader.data.TessellationControl)
 			return err
 		}
-		tescStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
-		tescStage.Stage = vk.ShaderStageTessellationControlBit
+		tescStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+		tescStage.Stage = vulkan_const.ShaderStageTessellationControlBit
 		tescStage.Module = tesc
 		tescStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.tescModule = tesc
@@ -141,8 +142,8 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 			slog.Error("Failed to load tessellation evaluation module", "module", shader.data.TessellationEvaluation)
 			return err
 		}
-		teseStage.SType = vk.StructureTypePipelineShaderStageCreateInfo
-		teseStage.Stage = vk.ShaderStageTessellationEvaluationBit
+		teseStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+		teseStage.Stage = vulkan_const.ShaderStageTessellationEvaluationBit
 		teseStage.Module = tese
 		teseStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
 		shader.RenderId.teseModule = tese
@@ -185,11 +186,11 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	defer tracing.NewRegion("Vulkan.createSpvModule").End()
 	info := vk.ShaderModuleCreateInfo{}
-	info.SType = vk.StructureTypeShaderModuleCreateInfo
+	info.SType = vulkan_const.StructureTypeShaderModuleCreateInfo
 	info.CodeSize = uint(len(mem))
 	info.PCode = (*uint32)(unsafe.Pointer(&mem[0]))
 	var outModule vk.ShaderModule
-	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vk.Success {
+	if vk.CreateShaderModule(vr.device, &info, nil, &outModule) != vulkan_const.Success {
 		slog.Error("Failed to create shader module", slog.String("module", string(mem)))
 		return outModule, false
 	} else {

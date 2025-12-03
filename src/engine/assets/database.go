@@ -38,6 +38,7 @@
 package assets
 
 type Database interface {
+	PostWindowCreate(windowHandle PostWindowCreateHandle) error
 	Cache(key string, data []byte)
 	CacheRemove(key string)
 	CacheClear()

@@ -165,7 +165,7 @@ func New(htmlFile string) (*host_container.Container, error) {
 	}
 	c := host_container.New("HTML Preview", nil, adb)
 	c.Host.SetFrameRateLimit(60)
-	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1)
+	go c.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight, -1, -1, nil)
 	<-c.PrepLock
 	go startPreview(c, htmlFile)
 	return c, nil

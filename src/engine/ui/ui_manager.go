@@ -50,19 +50,20 @@ import (
 )
 
 type Manager struct {
-	Host          *engine.Host
-	Group         Group
-	pools         pooling.PoolGroup[UI]
-	hovered       [][]*UI
-	updateId      int
-	skipUpdate    int
-	resizeEvtId   events.Id
-	windowResized bool
+	Host            *engine.Host
+	Group           Group
+	pools           pooling.PoolGroup[UI]
+	hovered         [][]*UI
+	updateId        engine.UpdateId
+	skipUpdate      int
+	resizeEvtId     events.Id
+	windowResized   bool
+	windowMinimized bool
 }
 
 func (man *Manager) update(deltaTime float64) {
 	defer tracing.NewRegion("ui.Manager.update").End()
-	if man.skipUpdate > 0 && !man.windowResized {
+	if man.windowMinimized || (man.skipUpdate > 0 && !man.windowResized) {
 		return
 	}
 	// There is no update without a host, this is safe
@@ -82,16 +83,18 @@ func (man *Manager) update(deltaTime float64) {
 	// First we update all the root UI elements, this will stabilize the tree
 	wg.Add(len(roots))
 	threads := man.Host.Threads()
+	work := make([]func(int), len(roots))
 	for i := range roots {
-		threads.AddWork(func(int) {
+		work[i] = func(int) {
 			roots[i].cleanIfNeeded()
 			wg.Done()
-		})
+		}
 	}
+	threads.AddWork(work)
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
 	all := append(children, roots...)
-	wg.Add(len(all))
+	//wg.Add(len(all))
 	tCount := threads.ThreadCount()
 	if len(man.hovered) != tCount {
 		man.hovered = make([][]*UI, tCount)
@@ -100,17 +103,19 @@ func (man *Manager) update(deltaTime float64) {
 			man.hovered[i] = klib.WipeSlice(man.hovered[i])
 		}
 	}
+	work = make([]func(int), len(all))
 	for i := range all {
-		threads.AddWork(func(threadId int) {
+		work[i] = func(threadId int) {
 			e := all[i]
 			e.updateFromManager(deltaTime)
 			if e.isActive() && e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
-			wg.Done()
-		})
+			//wg.Done()
+		}
 	}
-	wg.Wait()
+	threads.AddWork(work)
+	//wg.Wait()
 	man.windowResized = false
 }
 
@@ -141,16 +146,17 @@ func (man *Manager) Init(host *engine.Host) {
 	man.Group.Attach(man.Host)
 	man.Group.SetThreaded()
 	man.resizeEvtId = host.Window.OnResize.Add(func() {
-		if wMan.Value() != nil {
-			wMan.Value().windowResized = true
+		if m := wMan.Value(); m != nil {
+			m.windowResized = true
+			m.windowMinimized = m.Host.Window.IsMinimized()
 		}
 	})
 	type manCleanup struct {
 		host          weak.Pointer[engine.Host]
 		win           weak.Pointer[windowing.Window]
-		updateId      int
+		updateId      engine.UpdateId
 		resizeId      events.Id
-		groupUpdateId int
+		groupUpdateId engine.UpdateId
 	}
 	clean := manCleanup{weak.Make(host), weak.Make(host.Window),
 		man.updateId, man.resizeEvtId, man.Group.updateId}
@@ -159,8 +165,8 @@ func (man *Manager) Init(host *engine.Host) {
 		if h == nil {
 			return
 		}
-		h.Updater.RemoveUpdate(c.updateId)
-		h.UILateUpdater.RemoveUpdate(c.groupUpdateId)
+		h.UIUpdater.RemoveUpdate(&c.updateId)
+		h.UILateUpdater.RemoveUpdate(&c.groupUpdateId)
 		w := c.win.Value()
 		if w == nil {
 			return
@@ -201,6 +207,8 @@ func (man *Manager) Reserve(additionalElements int) {
 	man.pools.Reserve(additionalElements)
 	man.Host.ReserveEntities(additionalElements)
 }
+
+func (man *Manager) IsUpdateDisabled() bool { return man.skipUpdate > 0 }
 
 func (man *Manager) DisableUpdate() {
 	man.Host.RunNextFrame(func() { man.skipUpdate++ })

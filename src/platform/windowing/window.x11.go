@@ -72,6 +72,7 @@ package windowing
 */
 import "C"
 import (
+	"errors"
 	"kaiju/klib"
 	"unsafe"
 
@@ -87,7 +88,7 @@ func scaleScrollDelta(delta float32) float32 {
 	return delta
 }
 
-func (w *Window) createWindow(windowName string, x, y int) {
+func (w *Window) createWindow(windowName string, x, y int, _ any) {
 	title := C.CString(windowName)
 	defer C.free(unsafe.Pointer(title))
 	w.lookupId = nextLookupId.Add(1)
@@ -212,3 +213,7 @@ func (w *Window) addBorder() {
 
 func (w Window) disableRawMouse() { /* Don't think this is needed for X11 */ }
 func (w Window) enableRawMouse()  { /* Don't think this is needed for X11 */ }
+
+func (w *Window) readApplicationAsset(path string) ([]byte, error) {
+	return []byte{}, errors.New("linux doesn't support application assets")
+}

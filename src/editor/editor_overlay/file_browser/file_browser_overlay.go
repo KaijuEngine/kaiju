@@ -1,6 +1,44 @@
+/******************************************************************************/
+/* file_browser_overlay.go                                                    */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package file_browser
 
 import (
+	"fmt"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
@@ -8,33 +46,38 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/filesystem"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"unicode"
 )
 
 type FileBrowser struct {
-	doc           *document.Document
-	uiMan         ui.Manager
-	entryListElm  *document.Element
-	entryTemplate *document.Element
-	filePath      *document.Element
-	selected      []*document.Element
-	history       []string
-	historyIdx    int
-	config        Config
+	doc            *document.Document
+	uiMan          ui.Manager
+	entryListElm   *document.Element
+	entryTemplate  *document.Element
+	filePath       *document.Element
+	selected       []*document.Element
+	history        []string
+	historyIdx     int
+	config         Config
+	inInputOverlay bool
 }
 
 type Config struct {
-	Title       string
-	ExtFilter   []string
-	OnConfirm   func(paths []string)
-	OnCancel    func()
-	OnlyFiles   bool
-	OnlyFolders bool
-	MultiSelect bool
+	Title        string
+	StartingPath string
+	ExtFilter    []string
+	OnConfirm    func(paths []string)
+	OnCancel     func()
+	OnlyFiles    bool
+	OnlyFolders  bool
+	MultiSelect  bool
 }
 
 type FileBrowserData struct {
@@ -51,6 +94,17 @@ type QuickAccessFolder struct {
 
 func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	defer tracing.NewRegion("file_browser.Show").End()
+	startPath := config.StartingPath
+	if startPath == "" {
+		switch runtime.GOOS {
+		case "windows":
+			startPath = "C:\\"
+		case "linux":
+		default:
+			slog.Error("unknown platform")
+			return nil, fmt.Errorf("unknown platform: %s", runtime.GOOS)
+		}
+	}
 	fb := &FileBrowser{
 		historyIdx: -1,
 		config:     config,
@@ -75,7 +129,7 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	}
 	data := FileBrowserData{
 		Title:              title,
-		CurrentPath:        "C:\\",
+		CurrentPath:        startPath,
 		QuickAccessFolders: []QuickAccessFolder{},
 		OnlyFolders:        fb.config.OnlyFolders,
 	}
@@ -109,12 +163,95 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 	fb.filePath, _ = fb.doc.GetElementById("filePath")
 	fb.entryTemplate.UI.Hide()
 	fb.openFolder(data.CurrentPath)
+	updateId := host.Updater.AddUpdate(fb.update)
+	keyCallbackId := host.Window.Keyboard.AddKeyCallback(fb.onKeyboardType)
+	fb.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
+		fb.uiMan.Host.Updater.RemoveUpdate(&updateId)
+		fb.uiMan.Host.Window.Keyboard.RemoveKeyCallback(keyCallbackId)
+	})
 	return fb, nil
 }
 
-func (fb *FileBrowser) Close() { fb.doc.Destroy() }
+func (fb *FileBrowser) onKeyboardType(keyId int, keyState hid.KeyState) {
+	defer tracing.NewRegion("FileBrowser.onKeyboardType").End()
+	if keyState != hid.KeyStateDown || fb.uiMan.Group.HasRequests() {
+		return
+	}
+	r := fb.uiMan.Host.Window.Keyboard.KeyToRune(keyId)
+	if r == 0 {
+		return
+	}
+	from := 0
+	if len(fb.selected) > 0 {
+		from = fb.entryListElm.IndexOfChild(fb.selected[len(fb.selected)-1]) + 1
+	}
+	locate := func(start int) bool {
+		for _, c := range fb.entryListElm.Children[start:] {
+			name := c.Children[2].Children[0].UI.ToLabel().Text()
+			if unicode.ToLower([]rune(name)[0]) == unicode.ToLower(r) {
+				fb.selectEntry(c)
+				fb.entryListElm.UIPanel.ScrollToChild(c.UI)
+				return true
+			}
+		}
+		return false
+	}
+	fb.clearSelection()
+	if !locate(from) && from > 0 {
+		locate(0)
+	}
+}
+
+func (fb *FileBrowser) update(float64) {
+	defer tracing.NewRegion("FileBrowser.update").End()
+	if fb.inInputOverlay {
+		return
+	}
+	if len(fb.entryListElm.Children) == 0 {
+		return
+	}
+	if fb.uiMan.Group.HasRequests() || fb.uiMan.Group.IsFocusedOnInput() {
+		return
+	}
+	kb := &fb.uiMan.Host.Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyUp) || kb.KeyDown(hid.KeyboardKeyDown) {
+		// We start at 1 because of the template being 0
+		idx := 1
+		if len(fb.selected) > 0 {
+			last := fb.selected[len(fb.selected)-1]
+			if kb.KeyDown(hid.KeyboardKeyUp) {
+				idx = max(1, fb.entryListElm.IndexOfChild(last)-1)
+			} else if kb.KeyDown(hid.KeyboardKeyDown) {
+				idx = min(len(fb.entryListElm.Children)-1,
+					fb.entryListElm.IndexOfChild(last)+1)
+			}
+		}
+		fb.clearSelection()
+		fb.selectEntry(fb.entryListElm.Children[idx])
+		p := fb.entryListElm.UI.ToPanel()
+		p.ScrollToChild(fb.entryListElm.Children[idx].UI)
+	} else if kb.KeyDown(hid.KeyboardKeyEnter) || kb.KeyDown(hid.KeyboardKeyReturn) {
+		if len(fb.selected) == 1 {
+			fb.openEntry(fb.selected[0])
+		} else {
+			fb.confirmSelection(nil)
+		}
+	} else if kb.KeyDown(hid.KeyboardKeyLeft) || kb.KeyDown(hid.KeyboardKeyBackspace) {
+		fb.back(nil)
+	} else if kb.KeyDown(hid.KeyboardKeyRight) {
+		fb.forward(nil)
+	} else if kb.KeyUp(hid.KeyboardKeyEscape) {
+		fb.cancel(nil)
+	}
+}
+
+func (fb *FileBrowser) Close() {
+	defer tracing.NewRegion("FileBrowser.Close").End()
+	fb.doc.Destroy()
+}
 
 func (fb *FileBrowser) currentFolder() string {
+	defer tracing.NewRegion("FileBrowser.currentFolder").End()
 	return fb.filePath.UI.ToInput().Text()
 }
 
@@ -157,9 +294,9 @@ func (fb *FileBrowser) openFolder(folder string) {
 		} else {
 			entry.Children[0].UI.Hide()
 		}
-		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), entries[i].Name()))
+		entry.SetAttribute("data-path", filepath.Join(fb.currentFolder(), filtered[i].Name()))
 		name := entry.FindElementByTag("span")
-		name.Children[0].UI.ToLabel().SetText(entries[i].Name())
+		name.Children[0].UI.ToLabel().SetText(filtered[i].Name())
 	}
 	fb.entryListElm.UI.ToPanel().ResetScroll()
 }
@@ -209,8 +346,20 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 			return
 		}
 		fb.execReload()
+		fb.clearSelection()
+		for _, c := range fb.entryListElm.Children {
+			if name == c.Children[2].Children[0].UI.ToLabel().Text() {
+				fb.selectEntry(c)
+				break
+			}
+		}
+		fb.uiMan.Host.RunAfterFrames(2, func() { fb.inInputOverlay = false })
 	}
-	cancel := func() { fb.uiMan.EnableUpdate() }
+	cancel := func() {
+		fb.uiMan.EnableUpdate()
+		fb.uiMan.Host.RunAfterFrames(2, func() { fb.inInputOverlay = false })
+	}
+	fb.inInputOverlay = true
 	input_prompt.Show(fb.uiMan.Host, input_prompt.Config{
 		Title:       "New Folder",
 		Description: "Input the name for the new folder",
@@ -226,24 +375,42 @@ func (fb *FileBrowser) newFolder(*document.Element) {
 func (fb *FileBrowser) clearSelection() {
 	defer tracing.NewRegion("FileBrowser.clearSelection").End()
 	for i := range fb.selected {
-		fb.doc.SetElementClasses(fb.selected[i], "entry")
+		fb.doc.SetElementClassesWithoutApply(fb.selected[i], "entry")
 	}
+	fb.doc.ApplyStyles()
 	fb.selected = klib.WipeSlice(fb.selected)
 }
 
 func (fb *FileBrowser) selectEntry(e *document.Element) {
 	defer tracing.NewRegion("FileBrowser.selectEntry").End()
 	kb := &fb.uiMan.Host.Window.Keyboard
-	if !fb.config.MultiSelect || (!kb.HasCtrl() && !kb.HasShift()) {
+	if fb.config.MultiSelect && kb.HasShift() && len(fb.selected) > 0 {
+		from := fb.entryListElm.IndexOfChild(e)
+		idx := fb.entryListElm.IndexOfChild(fb.selected[len(fb.selected)-1])
+		if from == idx {
+			return
+		}
+		if idx < from {
+			from, idx = idx, from
+		}
 		fb.clearSelection()
-	} else if slices.Contains(fb.selected, e) {
+		for i := from; i <= idx; i++ {
+			target := fb.entryListElm.Children[i]
+			fb.doc.SetElementClassesWithoutApply(target, "entry", "selected")
+			fb.selected = append(fb.selected, target)
+		}
+	} else if kb.HasCtrl() && slices.Contains(fb.selected, e) {
 		idx := slices.Index(fb.selected, e)
 		fb.selected = klib.RemoveUnordered(fb.selected, idx)
-		fb.doc.SetElementClasses(e, "entry")
-		return
+		fb.doc.SetElementClassesWithoutApply(e, "entry")
+	} else {
+		if !fb.config.MultiSelect || !kb.HasCtrl() {
+			fb.clearSelection()
+		}
+		fb.doc.SetElementClassesWithoutApply(e, "entry", "selected")
+		fb.selected = append(fb.selected, e)
 	}
-	fb.doc.SetElementClasses(e, "entry", "selected")
-	fb.selected = append(fb.selected, e)
+	fb.doc.ApplyStyles()
 }
 
 func (fb *FileBrowser) openEntry(e *document.Element) {

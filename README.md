@@ -1,9 +1,20 @@
 # Kaiju Engine
 Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
 
+- 📄 2D / 🧊 3D Game Engine
+- 🪟 Windows
+- 🐧 Linux
+- 🤖 Android (NEW, support now functional)
+- 🍎 Mac (support is currently WIP)
+- 🤖👉⌨️ Local AI (LLM) interop
+- ⚠️🚧🏗️👷‍♂️ Work in progress, under heavy development
+- 🚚 Faster builds than other game engines
+- 🔥 Better performance than other game engines (9x faster than Unity out of the box)
+- 💾 Less memory than other engines
+
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
-- [Mailing list](https://www.freelists.org/list/kaijuengine)
+- [Mailing list](https://www.freelists.org/list/kaijuengine) <- Recommended for detailed updates
 - [Discord server](https://discord.gg/8rFPEu8U52)
 - [Brent Farris on X/Twitter](https://twitter.com/ShieldCrush)
 
@@ -16,6 +27,8 @@ I love C, and because I love C and found out that Ken Thompson played a part in 
 What's more, it's a language that other developers can easily learn and jump right into extending the engine/editor. No need for developers to re-figure out some bespoke macros or crazy templating non-sense. It's flat, easy, straight forward, and the foot-gun is hidden behind some walls, but there if you want it. Furthermore, developers can write their games in Go directly, no need for some alternative language that is different than the engine code (but we'll include Lua for modding).
 
 ## ⚠️ WORK IN PROGRESS ⚠️
+Though the engine is production ready, the editor **_is not_**, feel free to join and contribute to it's development.
+
 For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3) or check my [Twitter/X](https://twitter.com/ShieldCrush).
 
 Please review the ad-hoc [editor readme](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md)
@@ -24,12 +37,15 @@ Please review the ad-hoc [editor readme](https://github.com/KaijuEngine/kaiju/bl
 Please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) on how to get started and compile the engine
 
 ## Editor previews
-[complete-editor-refactor-progress.mp4](https://github.com/user-attachments/assets/00291482-1624-4cfb-b59f-c0395a5f1075)
 
-[wip-file-browser-overlay.mp4](https://github.com/user-attachments/assets/ba4f4049-ded5-4638-8bdd-c09daf7869ce)
+[full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
 
-[updated-content-window.mp4](https://github.com/user-attachments/assets/1d1d773a-6a7e-4986-b984-e08fb303617c)
+[clanker.mp4](https://github.com/user-attachments/assets/6be56b37-589b-4197-86e7-18b1153f7e07)
+
+[working-code-binding.mp4](https://github.com/user-attachments/assets/b7edcbfb-0c78-482f-8eb1-f40910fbaabf)
 
 [content-tagging.mp4](https://github.com/user-attachments/assets/15122db6-efda-4458-bf69-f384def5aa31)
 
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
+
+[focus-and-transform-hotkeys](https://github.com/user-attachments/assets/95a9bcdc-55fe-4317-9200-412f84a494ce)

@@ -84,52 +84,13 @@ type ShaderDataBase struct {
 	model       matrix.Mat4
 }
 
-type ShaderDataUnlit struct {
-	ShaderDataBase
-	Color matrix.Color
-	UVs   matrix.Vec4
-}
-
-func (t ShaderDataUnlit) Size() int {
-	return int(unsafe.Sizeof(ShaderDataUnlit{}) - ShaderBaseDataStart)
-}
-
-type ShaderDataBasic struct {
+type ShaderDataCombine struct {
 	ShaderDataBase
 	Color matrix.Color
 }
 
-func (t ShaderDataBasic) Size() int {
-	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
-}
-
-type ShaderDataBasicLit struct {
-	ShaderDataBase
-	Color  matrix.Color
-	Light0 float32
-	Light1 float32
-	Light2 float32
-	Light3 float32
-}
-
-func (t ShaderDataBasicLit) Size() int {
-	return int(unsafe.Sizeof(ShaderDataBasicLit{}) - ShaderBaseDataStart)
-}
-
-type ShaderDataPBR struct {
-	ShaderDataBase
-	VertColors matrix.Color
-	Metallic   float32
-	Roughness  float32
-	Emissive   float32
-	Light0     float32
-	Light1     float32
-	Light2     float32
-	Light3     float32
-}
-
-func (t ShaderDataPBR) Size() int {
-	return int(unsafe.Sizeof(ShaderDataPBR{}) - ShaderBaseDataStart)
+func (t ShaderDataCombine) Size() int {
+	return int(unsafe.Sizeof(ShaderDataCombine{}) - ShaderBaseDataStart)
 }
 
 func NewShaderDataBase() ShaderDataBase {

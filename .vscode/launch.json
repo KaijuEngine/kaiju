@@ -5,53 +5,31 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch Windows Editor",
+			"name": "Editor",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=debug,editor",
+			"buildFlags": "-tags=debug,editor,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
-			"name": "Launch Windows Runtime",
+			"name": "Trace Editor",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
+			"args": ["-trace"],
+			"buildFlags": "-tags=debug,editor,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
-			"name": "Launch X11 Editor",
-			"type": "go",
-			"request": "launch",
-			"mode": "auto",
-			"program": "${workspaceFolder}/src",
-			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor,vulkanValidation",
-			"env": {
-				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
-			}
-		}, {
-			"name": "Launch X11 Runtime",
-			"type": "go",
-			"request": "launch",
-			"mode": "auto",
-			"program": "${workspaceFolder}/src",
-			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
-			}
-		},
-		{
 			"name": "Documentation Generator",
 			"type": "go",
 			"request": "launch",
@@ -62,26 +40,25 @@
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"
 			}
-		},
-		{
-			"name": "Project Template Generator",
-			"type": "go",
-			"request": "launch",
-			"mode": "auto",
-			"program": "${workspaceFolder}/src/generators/project_template",
-			"cwd": "${workspaceFolder}",
-			"env": {
-				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
-			}
-		},
-		{
+		}, {
 			"name": "Copy Headers",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/copy_header",
 			"cwd": "${workspaceFolder}",
+			"env": {
+				"CGO_ENABLED": "1",
+				// "GOEXPERIMENT": "greenteagc"
+			}
+		}, {
+			"name": "Debug Build Android",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/engine_builds/engine_builds_android",
+			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=debug,generator",
 			"env": {
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"

@@ -41,13 +41,16 @@ import (
 	"html/template"
 	"kaiju/debug"
 	"kaiju/engine"
+	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/elements"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -87,16 +90,17 @@ var funcMap = template.FuncMap{
 //}{}
 
 type Document struct {
-	host          weak.Pointer[engine.Host]
-	Elements      []*Element
-	TopElements   []*Element
-	HeadElements  []*Element
-	groups        map[string][]*Element
-	ids           map[string]*Element
-	classElements map[string][]*Element
-	tagElements   map[string][]*Element
-	style         rules.StyleSheet
-	stylizer      Stylizer
+	host             weak.Pointer[engine.Host]
+	Elements         []*Element
+	TopElements      []*Element
+	HeadElements     []*Element
+	onWindowResizeId events.Id
+	groups           map[string][]*Element
+	ids              map[string]*Element
+	classElements    map[string][]*Element
+	tagElements      map[string][]*Element
+	style            rules.StyleSheet
+	stylizer         Stylizer
 	// TODO:  Should this be here?
 	firstInput *ui.Input
 	lastInput  *ui.Input
@@ -111,6 +115,23 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 	d.stylizer = stylizer
 	d.host = weak.Make(host)
 	d.stylizer.ApplyStyles(d.style, d)
+	wd := weak.Make(d)
+	d.onWindowResizeId = host.Window.OnResize.Add(func() {
+		sd := wd.Value()
+		if sd != nil {
+			sd.ApplyStyles()
+		}
+	})
+	type documentCleanup struct {
+		host weak.Pointer[engine.Host]
+		eid  events.Id
+	}
+	runtime.AddCleanup(d, func(dc documentCleanup) {
+		h := dc.host.Value()
+		if h != nil && h.Window != nil {
+			h.Window.OnResize.Remove(dc.eid)
+		}
+	}, documentCleanup{d.host, d.onWindowResizeId})
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
@@ -299,10 +320,10 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						slider.SetValue(float32(f))
 					}
 				}
-			case "text":
+			case "text", "number":
 				input := panel.Base().ToInput()
 				input.Init(e.Attribute("placeholder"))
-				input.SetText(e.Attribute("value"))
+				input.SetTextWithoutEvent(e.Attribute("value"))
 				if d.firstInput == nil {
 					d.firstInput = input
 				}
@@ -315,7 +336,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			panel.SetOverflow(ui.OverflowVisible)
 		} else if e.IsSelect() {
 			sel := panel.Base().ToSelect()
-			sel.Init("", []string{})
+			sel.Init("", []ui.SelectOption{})
 			selectStartValue := ""
 			if a := e.Attribute("value"); a != "" {
 				selectStartValue = a
@@ -328,11 +349,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						childText = child.Children[0].Data
 					}
 					val := child.Attribute("value")
-					if val != "" {
-						sel.AddOption(val)
-					} else {
-						sel.AddOption(childText)
-					}
+					sel.AddOption(childText, val)
 					if val == selectStartValue {
 						sel.PickOption(i)
 					} else if val == "" && childText == selectStartValue {
@@ -466,14 +483,32 @@ func (d *Document) Deactivate() {
 }
 
 func (d *Document) Destroy() {
-	for i := range d.Elements {
-		d.Elements[i].UI.Entity().Destroy()
+	for _, e := range d.TopElements {
+		if e.Parent.Value() != nil {
+			for i, c := range e.Parent.Value().Children {
+				if c == e {
+					parent := e.Parent.Value()
+					parent.Children = slices.Delete(parent.Children, i, i+1)
+					parent.UI.SetDirty(ui.DirtyTypeLayout)
+					break
+				}
+			}
+		}
+	}
+	for _, e := range d.Elements {
+		e.UI.Entity().Destroy()
 	}
 	clear(d.funcMap)
 	*d = Document{}
 	//if build.Debug {
 	//	Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
 	//}
+}
+
+func (d *Document) MarkDirty() {
+	for i := range d.Elements {
+		d.Elements[i].UI.SetDirty(ui.DirtyTypeGenerated)
+	}
 }
 
 func (d *Document) Clean() {
@@ -571,6 +606,11 @@ func (d *Document) AddChildElement(parent *Element, elm *Element) {
 // 5. Removes the element from document's indexed elements
 // 6. Applies all document styles to reflect changes
 func (d *Document) RemoveElement(elm *Element) {
+	d.RemoveElementWithoutApplyStyles(elm)
+	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 	for i := len(elm.Children) - 1; i >= 0; i-- {
 		d.RemoveElement(elm.Children[i])
 	}
@@ -586,7 +626,6 @@ func (d *Document) RemoveElement(elm *Element) {
 		}
 	}
 	d.removeIndexedElement(elm)
-	d.stylizer.ApplyStyles(d.style, d)
 }
 
 // SetElementClassesWithoutApply updates the class list of the given element
@@ -640,6 +679,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 //   - classes: variadic string parameters representing the new class names
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
+	elm.UI.Layout().ClearStyles()
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
@@ -655,7 +695,21 @@ func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
 // Element.Clone followed by an Insert function instead
 func (d *Document) DuplicateElement(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
+	if elm.Attribute("id") != "" {
+		cpy.SetAttribute("id", "")
+	}
 	d.appendElement(cpy)
+	d.stylizer.ApplyStyles(d.style, d)
+	return cpy
+}
+
+func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
+	cpy := elm.Clone(elm.Parent.Value())
+	if elm.Attribute("id") != "" {
+		cpy.SetAttribute("id", "")
+	}
+	d.appendElement(cpy)
+	d.ChangeElementParentWithoutApply(cpy, parent)
 	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
 }
@@ -665,6 +719,12 @@ func (d *Document) DuplicateElement(elm *Element) *Element {
 // calling [ApplyStyles] on each duplicated element and instead call it at the
 // end, after all copies are created.
 func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
+	elms := d.DuplicateElementRepeatWithoutApplyStyles(elm, count)
+	d.stylizer.ApplyStyles(d.style, d)
+	return elms
+}
+
+func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count int) []*Element {
 	elms := make([]*Element, count)
 	for i := range count {
 		elms[i] = elm.Clone(elm.Parent.Value())
@@ -672,6 +732,51 @@ func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
 	}
 	d.stylizer.ApplyStyles(d.style, d)
 	return elms
+}
+
+func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
+	defer tracing.NewRegion("Document.SetElementIdWithoutApplyStyles").End()
+	currentId := elm.Attribute("id")
+	if currentId != "" {
+		delete(d.ids, currentId)
+	}
+	elm.SetAttribute("id", id)
+	d.ids[id] = elm
+}
+
+func (d *Document) SetElementId(elm *Element, id string) {
+	defer tracing.NewRegion("Document.SetElementId").End()
+	d.SetElementIdWithoutApplyStyles(elm, id)
+	d.ApplyStyles()
+}
+
+func (d *Document) ChangeElementParent(child, parent *Element) {
+	d.ChangeElementParentWithoutApply(child, parent)
+	d.ApplyStyles()
+}
+
+func (d *Document) ChangeElementParentWithoutApply(child, parent *Element) {
+	// Check to see if anywhere in newParent's hierarchy is this entity
+	// if so, then set it's direct descendant to take this entity's parent.
+	{
+		p := parent
+		for p != nil {
+			if p.Parent.Value() == child {
+				d.ChangeElementParentWithoutApply(p, child.Parent.Value())
+				break
+			}
+			p = p.Parent.Value()
+		}
+	}
+	current := child.Parent.Value()
+	if current != nil {
+		current.Children = klib.SlicesRemoveElement(current.Children, child)
+		child.Parent = weak.Make[Element](nil)
+		current.UI.ToPanel().RemoveChild(child.UI)
+	}
+	parent.Children = append(parent.Children, child)
+	child.Parent = weak.Make(parent)
+	parent.UIPanel.AddChild(child.UI)
 }
 
 func (d *Document) appendElement(elm *Element) {

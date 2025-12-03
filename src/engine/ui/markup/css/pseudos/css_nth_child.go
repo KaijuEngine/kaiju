@@ -54,9 +54,10 @@ func nth(args []string, count int) (int, int, error) {
 		start := 0
 		skip := 0
 		var err error
-		if args[0] == "even" {
+		switch args[0] {
+		case "even":
 			args[0] = "2"
-		} else if args[0] == "odd" {
+		case "odd":
 			start = 1
 			args[0] = "2"
 		}

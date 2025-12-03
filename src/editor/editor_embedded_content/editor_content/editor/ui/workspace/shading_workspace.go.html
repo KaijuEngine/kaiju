@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.leftPanel {
+				position: absolute;
+				top: 3em;
+				height: calc(100% - 5em);
+				width: 15em;
+				background-color: #282828;
+				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.leftPanel { left: 0; }
+			input {
+				width: 100%;
+				height: 2em;
+			}
+			.filterLabel {
+				padding: 10px;
+				background-color: #282828;
+				border: 2px solid #575757;
+				color: #AAA;
+			}
+			.filterLabel:hover {
+				background-color: #313232;
+				color: white;
+			}
+			.filterLabelSelected {
+				background-color: #575757;
+				color: white;
+			}
+			#renderSpecList {
+				width: 100%;
+			}
+			.renderSpecListEntry {
+				background-color: #313232;
+				color: #AAA;
+			}
+			.renderSpecListEntry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.smallClickable {
+				font-size: 0.8em;
+				padding: 3px;
+				border: 2px solid #575757;
+				background-color: #282828;
+				color: #AAA;
+			}
+			.smallClickable:hover {
+				background-color: #313232;
+				color: white;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="leftPanel">
+			<input type="text" placeholder="Search..." />
+			<div>
+				<span class="smallClickable" onclick="clickNewRenderPass">New renderpass</span>
+				<span class="smallClickable" onclick="clickNewPipeline">New pipeline</span>
+				<span class="smallClickable" onclick="clickNewShader">New shader</span>
+				<span class="smallClickable" onclick="clickNewMaterial">New material</span>
+			</div>
+			<div>
+				<span class="filterLabel filterLabelSelected" onclick="toggleFilterSpec">All</span>
+				<span class="filterLabel" onclick="toggleFilterSpec">R</span>
+				<span class="filterLabel" onclick="toggleFilterSpec">P</span>
+				<span class="filterLabel" onclick="toggleFilterSpec">S</span>
+				<span class="filterLabel" onclick="toggleFilterSpec">M</span>
+			</div>
+			<div id="renderSpecList">
+				<div id="renderSpecListTemplate" class="renderSpecListEntry" data-ext="" onclick="selectSpec">Name...</div>
+				{{range .Files}}
+				<div id="{{.Id}}" class="renderSpecListEntry" data-ext="{{.Ext}}" onclick="selectSpec">{{.Name}}</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>

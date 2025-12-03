@@ -37,7 +37,9 @@
 
 package collision
 
-import "kaiju/matrix"
+import (
+	"kaiju/matrix"
+)
 
 type OOBB struct {
 	Center      matrix.Vec3
@@ -50,6 +52,18 @@ func OBBFromAABB(aabb AABB) OOBB {
 		Center:      aabb.Center,
 		Extent:      aabb.Extent,
 		Orientation: matrix.Mat3Identity(),
+	}
+}
+
+func OBBFromTransform(baseAABB AABB, transform *matrix.Transform) OOBB {
+	worldMat := transform.WorldMatrix()
+	center := worldMat.TransformPoint(baseAABB.Center)
+	orientation := worldMat.Mat3()
+	extent := baseAABB.Extent.Multiply(transform.WorldScale())
+	return OOBB{
+		Center:      center,
+		Extent:      extent,
+		Orientation: orientation,
 	}
 }
 
@@ -86,6 +100,49 @@ func (o OOBB) Intersect(other OOBB) bool {
 		}
 	}
 	return true
+}
+
+func (o OOBB) RayIntersect(ray Ray, length float32) bool {
+	localRayOrigin := o.Orientation.Transpose().MultiplyVec3(ray.Origin.Subtract(o.Center))
+	localRayDir := o.Orientation.Transpose().MultiplyVec3(ray.Direction)
+	localRay := Ray{
+		Origin:    localRayOrigin,
+		Direction: localRayDir,
+	}
+	localAABB := AABB{
+		Center: matrix.Vec3Zero(),
+		Extent: o.Extent,
+	}
+	_, hit := localAABB.RayHit(localRay)
+	return hit
+}
+
+func (o OOBB) Bounds() AABB {
+	corners := o.Corners()
+	min := matrix.Vec3Largest()
+	max := matrix.NewVec3(-min.X(), -min.Y(), -min.Z())
+	for _, c := range corners {
+		min = matrix.Vec3Min(min, c)
+		max = matrix.Vec3Max(max, c)
+	}
+	return AABBFromMinMax(min, max)
+}
+
+func (o OOBB) Corners() [8]matrix.Vec3 {
+	var corners [8]matrix.Vec3
+	signs := [8][3]float32{
+		{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1},
+		{-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1},
+	}
+	for i := 0; i < 8; i++ {
+		local := matrix.Vec3{
+			signs[i][0] * o.Extent.X(),
+			signs[i][1] * o.Extent.Y(),
+			signs[i][2] * o.Extent.Z(),
+		}
+		corners[i] = o.Orientation.MultiplyVec3(local).Add(o.Center)
+	}
+	return corners
 }
 
 func intervalsOverlap(min1, max1, min2, max2 float32) bool {

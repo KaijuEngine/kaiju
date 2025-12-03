@@ -43,9 +43,8 @@ import (
 )
 
 var (
-	dragData     DragDataTarget
-	OnDragStop   events.Event
-	dragDataUsed bool
+	dragData   DragDataTarget
+	OnDragStop events.Event
 )
 
 type DragDataTarget interface {
@@ -54,19 +53,12 @@ type DragDataTarget interface {
 
 func HasDragData() bool        { return dragData != nil }
 func DragData() DragDataTarget { return dragData }
-func IsDragDataUsed() bool     { return dragDataUsed }
-
-func UseDragData() DragDataTarget {
-	dragDataUsed = true
-	return dragData
-}
 
 func SetDragData(data DragDataTarget) {
 	if dragData != nil {
 		OnDragStop.Execute()
 	}
 	dragData = data
-	dragDataUsed = false
 	OnDragStop.Clear()
 }
 

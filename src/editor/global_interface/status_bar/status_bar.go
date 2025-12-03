@@ -1,3 +1,40 @@
+/******************************************************************************/
+/* status_bar.go                                                              */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package status_bar
 
 import (
@@ -9,15 +46,13 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
-	"regexp"
-	"strconv"
-	"strings"
 	"weak"
 )
 
+const maxLogEntries = 100
+
 type StatusBar struct {
 	doc              *document.Document
-	msg              *document.Element
 	log              *document.Element
 	logPopup         *document.Element
 	logEntryTemplate *document.Element
@@ -39,12 +74,13 @@ func (b *StatusBar) Initialize(host *engine.Host, logging *editor_logging.Loggin
 			"closePopup":    b.closePopup,
 		})
 	b.setupUIReferences()
-	b.bindToSlog(host)
+	b.bindToSlog()
 	return err
 }
 
 func (b *StatusBar) Focus() { b.uiMan.EnableUpdate() }
 func (b *StatusBar) Blur() {
+	defer tracing.NewRegion("StatusBar.Blur").End()
 	if b.inPopup {
 		return
 	}
@@ -53,14 +89,13 @@ func (b *StatusBar) Blur() {
 
 func (b *StatusBar) setupUIReferences() {
 	defer tracing.NewRegion("StatusBar.setupUIReferences").End()
-	b.msg, _ = b.doc.GetElementById("msg")
 	b.log, _ = b.doc.GetElementById("log")
 	b.logPopup, _ = b.doc.GetElementById("logPopup")
 	b.logEntryTemplate, _ = b.doc.GetElementById("logEntryTemplate")
 	b.logPopup.UI.Hide()
 }
 
-func (b *StatusBar) bindToSlog(host *engine.Host) {
+func (b *StatusBar) bindToSlog() {
 	defer tracing.NewRegion("StatusBar.bindToSlog").End()
 	wb := weak.Make(b)
 	b.logging.OnNewLog = func(msg editor_logging.Message) {
@@ -68,11 +103,20 @@ func (b *StatusBar) bindToSlog(host *engine.Host) {
 		if bar == nil {
 			return
 		}
-		bar.doc.SetElementClasses(bar.log, msg.Category+"Status")
-		bar.setLog(msg.Message)
-		elm := b.doc.DuplicateElement(b.logEntryTemplate)
-		elm.Children[0].UI.ToLabel().SetText(msg.Time + ": " + msg.Message)
-		b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
+		b.uiMan.Host.RunOnMainThread(func() {
+			bar.doc.SetElementClasses(bar.log, msg.Category+"Status")
+			bar.setLog(msg.Message)
+			elm := b.doc.DuplicateElement(b.logEntryTemplate)
+			elm.Children[0].UI.ToLabel().SetText(msg.ToString())
+			b.doc.SetElementClassesWithoutApply(elm, "logLine", msg.Category)
+			parent := elm.Parent.Value()
+			if len(parent.Children) > maxLogEntries {
+				// +1 because template is 0
+				for i := 1; i <= len(parent.Children)-maxLogEntries; i++ {
+					b.doc.RemoveElement(parent.Children[i])
+				}
+			}
+		})
 	}
 }
 
@@ -85,25 +129,6 @@ func (b *StatusBar) setLog(msg string) {
 	} else {
 		lbl.SetText(msg)
 	}
-}
-
-func (b *StatusBar) SetMessage(status string) {
-	defer tracing.NewRegion("StatusBar.SetMessage").End()
-	lbl := b.msg.Children[0].UI.ToLabel()
-	t := lbl.Text()
-	if strings.HasSuffix(t, status) {
-		count := 1
-		if strings.HasPrefix(t, "(") {
-			re := regexp.MustCompile(`\((\d+)\)\s`)
-			res := re.FindAllStringSubmatch(t, -1)
-			if len(res) > 0 && len(res[0]) > 1 {
-				count, _ = strconv.Atoi(res[0][1])
-				count++
-			}
-		}
-		status = "(" + strconv.Itoa(count) + ") " + status
-	}
-	lbl.SetText(status)
 }
 
 func (b *StatusBar) openLogWindow(*document.Element) {
@@ -122,6 +147,7 @@ func (b *StatusBar) openLogWindow(*document.Element) {
 }
 
 func (b *StatusBar) closePopup(*document.Element) {
+	defer tracing.NewRegion("StatusBar.closePopup").End()
 	b.logPopup.UI.Hide()
 	b.outerInterface.FocusInterface()
 	b.inPopup = false

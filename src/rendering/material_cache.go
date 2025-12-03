@@ -63,6 +63,9 @@ func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) Material
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
+	defer tracing.NewRegion("MaterialCache.AddMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if found, ok := m.materials[material.Name]; !ok {
 		m.materials[material.Name] = material
 		return material
@@ -72,6 +75,9 @@ func (m *MaterialCache) AddMaterial(material *Material) *Material {
 }
 
 func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
+	defer tracing.NewRegion("MaterialCache.FindMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if material, ok := m.materials[key]; ok {
 		return material, true
 	} else {
@@ -86,8 +92,11 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 	if material, ok := m.materials[key]; ok {
 		return material, nil
 	} else {
-		matStr, err := m.assetDatabase.ReadText(
-			filepath.Join("renderer/materials/", key+".material"))
+		matStr, err := m.assetDatabase.ReadText(key)
+		if err != nil {
+			key = filepath.Join(key + ".material")
+			matStr, err = m.assetDatabase.ReadText(key)
+		}
 		if err != nil {
 			slog.Error("failed to load the material", "material", key, "error", err)
 			return nil, err
@@ -102,6 +111,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
+		material.Id = key
 		m.materials[materialData.Name] = material
 		return material, nil
 	}

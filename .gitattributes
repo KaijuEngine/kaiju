@@ -1,0 +1,5 @@
+*.material linguist-detectable=false
+*.stage linguist-detectable=false
+*.shader linguist-detectable=false
+*.renderpass linguist-detectable=false
+*.shaderpipeline linguist-detectable=false

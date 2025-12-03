@@ -72,12 +72,16 @@ type Window struct {
 	Renderer                 rendering.Renderer
 	OnResize                 events.Event
 	OnMove                   events.Event
+	OnActivate               events.Event
+	OnDeactivate             events.Event
 	title                    string
 	x, y                     int
 	width, height            int
 	left, top, right, bottom int // Full window including title and borders
 	resetDragDataInFrames    int
 	cursorChangeCount        int
+	cachedScreenSizeWidthMM  int
+	cacheScreenSizeHeightMM  int
 	windowSync               chan struct{}
 	syncRequest              bool
 	isClosed                 bool
@@ -92,7 +96,7 @@ type FileSearch struct {
 	Extension string
 }
 
-func New(windowName string, width, height, x, y int, assets assets.Database) (*Window, error) {
+func New(windowName string, width, height, x, y int, adb assets.Database, platformState any) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
@@ -113,7 +117,7 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
-	w.createWindow(windowName+"\x00\x00", x, y)
+	w.createWindow(windowName+"\x00\x00", x, y, platformState)
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window " + windowName)
 	}
@@ -125,10 +129,15 @@ func New(windowName string, width, height, x, y int, assets assets.Database) (*W
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to present the window " + windowName)
 	}
+	adb.PostWindowCreate(w)
 	var err error
-	w.Renderer, err = selectRenderer(w, windowName, assets)
+	w.Renderer, err = selectRenderer(w, windowName, adb)
 	w.x, w.y = w.position()
 	return w, err
+}
+
+func NewBinding(ptr unsafe.Pointer, assets assets.Database) {
+
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -140,6 +149,11 @@ func FindWindowAtPoint(x, y int) (*Window, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (w *Window) IsMinimized() bool {
+	// TODO:  Is this accurate for X11?
+	return w.width == 0 || w.height == 0
 }
 
 func (w *Window) ToScreenPosition(x, y int) (int, int) {
@@ -220,7 +234,11 @@ func (w *Window) SizeMM() (int, int, error) {
 }
 
 func (w *Window) ScreenSizeMM() (int, int, error) {
-	return w.screenSizeMM()
+	var err error
+	if w.cachedScreenSizeWidthMM == 0 {
+		w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM, err = w.screenSizeMM()
+	}
+	return w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM, err
 }
 
 func (w *Window) IsPhoneSize() bool {
@@ -374,6 +392,13 @@ func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
 func (w *Window) SetTitle(name string) { w.setTitle(name) }
 
+// ReadApplicationAsset will read an asset bound to the application. This is
+// typically only useful on mobile platforms like Android. Platforms like Linux,
+// Windows, and Mac will return an error, use #ReadFile instead
+func (w *Window) ReadApplicationAsset(path string) ([]byte, error) {
+	return w.readApplicationAsset(path)
+}
+
 func (w *Window) requestSync() {
 	w.syncRequest = true
 }
@@ -387,6 +412,7 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.top = int(evt.top)
 	w.right = int(evt.right)
 	w.bottom = int(evt.bottom)
+	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
@@ -488,6 +514,40 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 	}
 }
 
+func (w *Window) processTouchStateEvent(evt *TouchStateWindowEvent) {
+	defer tracing.NewRegion("Window.processTouchStateEvent").End()
+	switch evt.actionState {
+	case touchActionStateUp:
+		w.Touch.SetUp(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateMove:
+		w.Touch.SetMoved(int64(evt.index), evt.x, evt.y, float32(w.height))
+	case touchActionStateCancel:
+		w.Touch.Cancel()
+	}
+}
+
+func (w *Window) processStylusStateEvent(evt *StylusStateWindowEvent) {
+	defer tracing.NewRegion("Window.processStylusStateEvent").End()
+	switch evt.actionState {
+	case stylusActionStateHoverEnter:
+		w.Stylus.SetActionState(hid.StylusActionHoverEnter)
+	case stylusActionStateHoverMove:
+		w.Stylus.SetActionState(hid.StylusActionHoverMove)
+	case stylusActionStateHoverExit:
+		w.Stylus.SetActionState(hid.StylusActionHoverExit)
+	case stylusActionStateDown:
+		w.Stylus.SetActionState(hid.StylusActionDown)
+	case stylusActionStateMove:
+		w.Stylus.SetActionState(hid.StylusActionMove)
+	case stylusActionStateUp:
+		w.Stylus.SetActionState(hid.StylusActionUp)
+	case stylusActionStateNone:
+	default:
+		w.Stylus.SetActionState(hid.StylusActionNone)
+	}
+	w.Stylus.Set(evt.x, evt.y, evt.pressure, evt.distance, float32(w.height))
+}
+
 func (w *Window) removeFromActiveWindows() {
 	defer tracing.NewRegion("Window.removeFromActiveWindows").End()
 	for i := range activeWindows {
@@ -501,11 +561,13 @@ func (w *Window) removeFromActiveWindows() {
 
 func (w *Window) becameInactive() {
 	defer tracing.NewRegion("Window.becameInactive").End()
+	w.disableRawMouse()
 	w.Keyboard.Reset()
 	w.Mouse.Reset()
 	w.Touch.Reset()
 	w.Stylus.Reset()
 	w.Controller.Reset()
+	w.OnDeactivate.Execute()
 }
 
 func (w *Window) becameActive() {
@@ -521,6 +583,8 @@ func (w *Window) becameActive() {
 	if idx >= 0 {
 		klib.SliceMove(activeWindows, idx, 0)
 	}
+	w.enableRawMouse()
+	w.OnActivate.Execute()
 }
 
 func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount uint32) {
@@ -554,6 +618,10 @@ func goProcessEventsCommon(goWindow uint64, events unsafe.Pointer, eventCount ui
 			win.processKeyboardButtonEvent(asKeyboardButtonWindowEvent(body))
 		case windowEventTypeControllerState:
 			win.processControllerStateEvent(asControllerStateWindowEvent(body))
+		case windowEventTypeTouchState:
+			win.processTouchStateEvent(asTouchStateWindowEvent(body))
+		case windowEventTypeStylusState:
+			win.processStylusStateEvent(asStylusStateWindowEvent(body))
 		case windowEventTypeFatal:
 			events = body
 			win.fatalFromNativeAPI = true

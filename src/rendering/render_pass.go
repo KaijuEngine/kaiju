@@ -40,6 +40,7 @@ package rendering
 import (
 	"encoding/json"
 	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"math"
 	"strconv"
@@ -140,14 +141,14 @@ type RenderPassSubpassDataCompiled struct {
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
-	Format         vk.Format
-	Samples        vk.SampleCountFlagBits
-	LoadOp         vk.AttachmentLoadOp
-	StoreOp        vk.AttachmentStoreOp
-	StencilLoadOp  vk.AttachmentLoadOp
-	StencilStoreOp vk.AttachmentStoreOp
-	InitialLayout  vk.ImageLayout
-	FinalLayout    vk.ImageLayout
+	Format         vulkan_const.Format
+	Samples        vulkan_const.SampleCountFlagBits
+	LoadOp         vulkan_const.AttachmentLoadOp
+	StoreOp        vulkan_const.AttachmentStoreOp
+	StencilLoadOp  vulkan_const.AttachmentLoadOp
+	StencilStoreOp vulkan_const.AttachmentStoreOp
+	InitialLayout  vulkan_const.ImageLayout
+	FinalLayout    vulkan_const.ImageLayout
 	Image          RenderPassAttachmentImageCompiled
 }
 
@@ -164,8 +165,8 @@ type RenderPassAttachmentImageCompiled struct {
 	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         vk.ImageTiling
-	Filter         vk.Filter
+	Tiling         vulkan_const.ImageTiling
+	Filter         vulkan_const.Filter
 	Usage          vk.ImageUsageFlags
 	MemoryProperty vk.MemoryPropertyFlags
 	Aspect         vk.ImageAspectFlags
@@ -173,7 +174,7 @@ type RenderPassAttachmentImageCompiled struct {
 }
 
 type RenderPassSubpassDescriptionCompiled struct {
-	PipelineBindPoint         vk.PipelineBindPoint
+	PipelineBindPoint         vulkan_const.PipelineBindPoint
 	ColorAttachmentReferences []RenderPassAttachmentReferenceCompiled
 	InputAttachmentReferences []RenderPassAttachmentReferenceCompiled
 	ResolveAttachments        []RenderPassAttachmentReferenceCompiled
@@ -183,7 +184,7 @@ type RenderPassSubpassDescriptionCompiled struct {
 
 type RenderPassAttachmentReferenceCompiled struct {
 	Attachment uint32
-	Layout     vk.ImageLayout
+	Layout     vulkan_const.ImageLayout
 }
 
 type RenderPassSubpassDependencyCompiled struct {
@@ -313,11 +314,11 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	return c
 }
 
-func (ai *RenderPassAttachmentImage) TilingToVK() vk.ImageTiling {
+func (ai *RenderPassAttachmentImage) TilingToVK() vulkan_const.ImageTiling {
 	return imageTilingToVK(ai.Tiling)
 }
 
-func (ai *RenderPassAttachmentImage) FilterToVK() vk.Filter {
+func (ai *RenderPassAttachmentImage) FilterToVK() vulkan_const.Filter {
 	return filterToVK(ai.Filter)
 }
 
@@ -337,43 +338,43 @@ func (ai *RenderPassAttachmentImage) AccessToVK() vk.AccessFlags {
 	return accessFlagsToVK(ai.Access)
 }
 
-func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vk.Format {
+func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vulkan_const.Format {
 	return formatToVK(ad.Format, vr)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vk.SampleCountFlagBits {
+func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vulkan_const.SampleCountFlagBits {
 	return sampleCountToVK(ad.Samples, vr)
 }
 
-func (ad *RenderPassAttachmentDescription) LoadOpToVK() vk.AttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) LoadOpToVK() vulkan_const.AttachmentLoadOp {
 	return attachmentLoadOpToVK(ad.LoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StoreOpToVK() vk.AttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StoreOpToVK() vulkan_const.AttachmentStoreOp {
 	return attachmentStoreOpToVK(ad.StoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() vk.AttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() vulkan_const.AttachmentLoadOp {
 	return attachmentLoadOpToVK(ad.StencilLoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() vk.AttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() vulkan_const.AttachmentStoreOp {
 	return attachmentStoreOpToVK(ad.StencilStoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() vk.ImageLayout {
+func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() vulkan_const.ImageLayout {
 	return imageLayoutToVK(ad.InitialLayout)
 }
 
-func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vk.ImageLayout {
+func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vulkan_const.ImageLayout {
 	return imageLayoutToVK(ad.FinalLayout)
 }
 
-func (ad *RenderPassAttachmentReference) LayoutToVK() vk.ImageLayout {
+func (ad *RenderPassAttachmentReference) LayoutToVK() vulkan_const.ImageLayout {
 	return imageLayoutToVK(ad.Layout)
 }
 
-func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vk.PipelineBindPoint {
+func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vulkan_const.PipelineBindPoint {
 	return pipelineBindPointToVK(ad.PipelineBindPoint)
 }
 

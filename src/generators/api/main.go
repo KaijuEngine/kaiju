@@ -159,13 +159,13 @@ func writeMarkdown(md io.StringWriter, dir, text string) {
 	if len(text) == 0 {
 		return
 	}
-	e := utf8.RuneCountInString(text)
+	e := len(text)
 	if !strings.HasPrefix(text, "package") {
 		return
 	}
 	end := strings.Index(text, "\n")
 	if end < 0 {
-		end = utf8.RuneCountInString(text)
+		end = len(text)
 	}
 	writePackage(md, dir, text[:end])
 	positions := make(map[string]startEnd)

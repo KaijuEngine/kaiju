@@ -1,24 +1,71 @@
+/******************************************************************************/
+/* project_file_system.go                                                     */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package project_file_system
 
 import (
 	"errors"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
+const gitignoreAnythingWithExtension = `*.*
+!*.gitignore
+`
+
 var (
-	baseStructure = []string{
-		DatabaseFolder,
-		ContentFolder,
-		ContentConfigFolder,
-		SrcFolder,
+	srcFolders = []string{
 		SrcFontFolder,
 		SrcCharsetFolder,
 		SrcPluginFolder,
 		SrcRenderFolder,
 		SrcShaderFolder,
 	}
+	baseStructure = append([]string{
+		DatabaseFolder,
+		ContentFolder,
+		ContentConfigFolder,
+		SrcFolder,
+		StockFolder,
+		DebugFolder,
+	}, srcFolders...)
 	contentStructure = []string{
 		ContentAudioFolder,
 		ContentMusicFolder,
@@ -28,9 +75,16 @@ var (
 		ContentUiFolder,
 		ContentHtmlFolder,
 		ContentCssFolder,
+		ContentTableFolder,
+		ContentTableOfContentsFolder,
 		ContentRenderFolder,
 		ContentMaterialFolder,
+		ContentShaderFolder,
+		ContentRenderPassFolder,
+		ContentShaderPipelineFolder,
 		ContentSpvFolder,
+		ContentStageFolder,
+		ContentTemplateFolder,
 		ContentTextureFolder,
 	}
 	coreRequiredFolders = []string{
@@ -38,6 +92,7 @@ var (
 		ContentFolder,
 		ContentConfigFolder,
 		SrcFolder,
+		StockFolder,
 	}
 )
 
@@ -89,16 +144,40 @@ func (fs *FileSystem) SetupStructure() error {
 			return err
 		}
 	}
-	for i := range contentStructure {
-		if err := fs.Mkdir(filepath.Join("database/content", contentStructure[i]), os.ModePerm); err != nil {
-			return err
-		}
-		if err := fs.Mkdir(filepath.Join("database/config", contentStructure[i]), os.ModePerm); err != nil {
+	for i := range srcFolders {
+		if err := fs.WriteFile(filepath.Join(srcFolders[i], ".gitignore"), []byte("# Nothing to ignore yet\n"), os.ModePerm); err != nil {
 			return err
 		}
 	}
-	fs.createCodeProject()
-	return nil
+	for i := range contentStructure {
+		if err := fs.Mkdir(filepath.Join(ContentFolder, contentStructure[i]), os.ModePerm); err != nil {
+			return err
+		} else if err := fs.WriteFile(filepath.Join(ContentFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
+			return err
+		}
+		if err := fs.Mkdir(filepath.Join(ContentConfigFolder, contentStructure[i]), os.ModePerm); err != nil {
+			return err
+		} else if err := fs.WriteFile(filepath.Join(ContentConfigFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
+			return err
+		}
+	}
+	if err := fs.WriteFile(ProjectConfigFile, []byte("{}"), os.ModePerm); err != nil {
+		return err
+	}
+	if err := fs.createCodeProject(); err != nil {
+		return err
+	}
+	return fs.copyStockContent()
+}
+
+func (fs *FileSystem) TryUpgrade() error {
+	defer tracing.NewRegion("FileSystem.TryUpgrade").End()
+	slog.Info("deleting all previous Kaiju engine source code")
+	fs.RemoveAll(KaijuSrcFolder)
+	if err := fs.createCodeProject(); err != nil {
+		return err
+	}
+	return fs.copyStockContent()
 }
 
 // Used to review the loaded FileSystem to ensure that the primary folders
@@ -132,6 +211,18 @@ func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error) {
 // with the supplied name joined onto it.
 func (fs *FileSystem) FullPath(name string) string {
 	return filepath.Clean(filepath.Join(fs.Name(), name))
+}
+
+// NormalizePath will attempt to determine if the input path is a location held
+// within the project file system. If it is a path within this file systme, then
+// it will return the path as a relative path to the system, otherwise it will
+// return the path supplied.
+func (fs *FileSystem) NormalizePath(path string) string {
+	newPath := strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(fs.Name()))
+	if newPath != path {
+		newPath = strings.TrimPrefix(newPath, "/")
+	}
+	return newPath
 }
 
 // FileExists will return true if the file exists in the rooted file system

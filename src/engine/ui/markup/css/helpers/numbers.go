@@ -39,11 +39,14 @@ package helpers
 
 import (
 	"fmt"
-	"kaiju/platform/windowing"
 	"kaiju/rendering"
 	"strconv"
 	"strings"
 )
+
+type WindowDimensions interface {
+	DotsPerMillimeter() float64
+}
 
 var arithmeticMap = map[string]func(int, int) int{
 	"+": func(a, b int) int { return a + b },
@@ -89,7 +92,7 @@ func ArithmeticString(args []string) (int, error) {
 	}
 }
 
-func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float32) float32 {
+func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32) float32 {
 	dpmm := window.DotsPerMillimeter()
 	var suffix string
 	if str[len(str)-1] == '%' {
@@ -134,6 +137,6 @@ func NumFromLengthWithFont(str string, window *windowing.Window, fontSize float3
 	return size
 }
 
-func NumFromLength(str string, window *windowing.Window) float32 {
+func NumFromLength(str string, window WindowDimensions) float32 {
 	return NumFromLengthWithFont(str, window, rendering.DefaultFontEMSize)
 }

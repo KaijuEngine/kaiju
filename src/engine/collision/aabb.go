@@ -65,6 +65,13 @@ func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	}
 }
 
+func AABBFromTransform(transform *matrix.Transform) AABB {
+	return AABB{
+		Center: transform.Position(),
+		Extent: transform.Scale(),
+	}
+}
+
 // Union returns the union of two AABBs
 func AABBUnion(a, b AABB) AABB {
 	min := matrix.Vec3Min(a.Min(), b.Min())
@@ -377,4 +384,44 @@ func (box *AABB) InFrustum(frustum Frustum) bool {
 	//if (out == 8)
 	//	return false;
 	return true
+}
+
+func (box AABB) SurfaceArea() matrix.Float {
+	size := box.Extent.Scale(2)
+	return size.X()*size.Y() + size.X()*size.Z() + size.Y()*size.Z()
+}
+
+func (box AABB) Corners() [8]matrix.Vec3 {
+	min := box.Min()
+	max := box.Max()
+	return [8]matrix.Vec3{
+		min,
+		{min.X(), min.Y(), max.Z()},
+		{min.X(), max.Y(), min.Z()},
+		{min.X(), max.Y(), max.Z()},
+		{max.X(), min.Y(), min.Z()},
+		{max.X(), min.Y(), max.Z()},
+		{max.X(), max.Y(), min.Z()},
+		max,
+	}
+}
+
+// //////////////////////////////////////////////////////////////////////////////
+// Satisfying BVH HitObject interface
+// //////////////////////////////////////////////////////////////////////////////
+func (box AABB) Bounds() AABB { return box }
+
+func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
+	mat := transform.WorldMatrix()
+	min := mat.TransformPoint(box.Min())
+	max := mat.TransformPoint(box.Max())
+	tBox := AABB{
+		Center: min.Add(max).Shrink(2.0),
+		Extent: max.Subtract(min).Shrink(2.0),
+	}
+	pt, ok := tBox.RayHit(ray)
+	if ray.Origin.Distance(pt) > length {
+		return false
+	}
+	return ok
 }

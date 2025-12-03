@@ -1,12 +1,53 @@
+/******************************************************************************/
+/* kaiju_mesh.go                                                              */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package kaiju_mesh
 
 import (
 	"bytes"
 	"encoding/gob"
 	"kaiju/debug"
+	"kaiju/engine/collision"
+	"kaiju/matrix"
+	"kaiju/platform/concurrent"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/load_result"
 	"slices"
+	"sync"
 )
 
 // KaijuMesh is a base primitive representing a single mesh. This is the
@@ -56,4 +97,30 @@ func Deserialize(data []byte) (KaijuMesh, error) {
 	var km KaijuMesh
 	err := dec.Decode(&km)
 	return km, err
+}
+
+func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *collision.BVH {
+	tris := make([]collision.HitObject, len(k.Indexes)/3)
+	group := sync.WaitGroup{}
+	construct := func(from, to int) {
+		for i := from; i < to; i += 3 {
+			for i := 0; i < len(k.Indexes); i += 3 {
+				points := [3]matrix.Vec3{
+					k.Verts[k.Indexes[i]].Position,
+					k.Verts[k.Indexes[i+1]].Position,
+					k.Verts[k.Indexes[i+2]].Position,
+				}
+				tris[i/3] = collision.DetailedTriangleFromPoints(points)
+			}
+		}
+		group.Done()
+	}
+	work := make([]func(int), len(tris))
+	group.Add(len(work))
+	for i := range work {
+		work[i] = func(int) { construct(i*3, (i+3)*3) }
+	}
+	threads.AddWork(work)
+	group.Wait()
+	return collision.NewBVH(tris, transform, data)
 }

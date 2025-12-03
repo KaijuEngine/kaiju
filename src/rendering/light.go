@@ -41,7 +41,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/matrix"
-	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 	"weak"
@@ -54,8 +54,8 @@ const (
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
 	lightDirectionalScaleOut = 50.0
-	lightShadowmapFilter     = vk.FilterLinear
-	lightDepthFormat         = vk.FormatD16Unorm
+	lightShadowmapFilter     = vulkan_const.FilterLinear
+	lightDepthFormat         = vulkan_const.FormatD16Unorm
 	//lightDepthFormat       = vk.FormatD32Sfloat
 )
 
@@ -128,7 +128,7 @@ type LightShadowShaderData struct {
 }
 
 func (t LightShadowShaderData) Size() int {
-	return int(unsafe.Sizeof(ShaderDataBasic{}) - ShaderBaseDataStart)
+	return int(unsafe.Sizeof(LightShadowShaderData{}) - ShaderBaseDataStart)
 }
 
 func SetupLightMaterials(materialCache *MaterialCache) error {
@@ -277,7 +277,7 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 func (l *Light) setupRenderPass(assets assets.Database) {
 	vr := l.renderer
 	rp := RenderPassData{}
-	if err := unmarshallJsonFile(assets, "renderer/passes/light_depth.renderpass", &rp); err != nil {
+	if err := unmarshallJsonFile(assets, "light_depth.renderpass", &rp); err != nil {
 		slog.Error("failed to load light_depth.renderpass")
 		return
 	}
@@ -321,7 +321,47 @@ func (l *Light) SetIntensity(intensity float32) {
 	l.reset = true
 }
 
-func (l *Light) SetAmbient(ambient matrix.Color) {
-	l.ambient = l.ambient
+func (l *Light) SetConstant(constant float32) {
+	l.constant = constant
+	l.reset = true
+}
+
+func (l *Light) SetLinear(linear float32) {
+	l.linear = linear
+	l.reset = true
+}
+
+func (l *Light) SetQuadratic(quadratic float32) {
+	l.quadratic = quadratic
+	l.reset = true
+}
+
+func (l *Light) SetCutoff(cutoff float32) {
+	l.cutoff = cutoff
+	l.reset = true
+}
+
+func (l *Light) SetOuterCutoff(outerCutoff float32) {
+	l.outerCutoff = outerCutoff
+	l.reset = true
+}
+
+func (l *Light) SetAmbient(ambient matrix.Vec3) {
+	l.ambient = ambient
+	l.reset = true
+}
+
+func (l *Light) SetDiffuse(diffuse matrix.Vec3) {
+	l.diffuse = diffuse
+	l.reset = true
+}
+
+func (l *Light) SetSpecular(specular matrix.Vec3) {
+	l.specular = specular
+	l.reset = true
+}
+
+func (l *Light) SetCastsShadows(castsShadows bool) {
+	l.castsShadows = castsShadows
 	l.reset = true
 }

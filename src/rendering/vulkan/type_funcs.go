@@ -35,8 +35,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build !android
-
 package vulkan
 
 import "unsafe"

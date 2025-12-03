@@ -5,7 +5,7 @@
 			.content {
 				margin-top: 2em;
 				width: 100%;
-				height: calc(100% - 2em);
+				height: calc(100% - 3.3em);
 			}
 			.left {
 				padding: 0 5px;
@@ -19,7 +19,6 @@
 				height: 100%;
 				background-color: #121212;
 				padding: 10px;
-				text-align: center;
 				overflow-y: scroll;
 			}
 			.right {
@@ -28,7 +27,7 @@
 				background-color: #282828;
 				overflow-y: scroll;
 			}
-			.rightBody {
+			#rightBody {
 				width: 100%;
 				height: 100%;
 				color: white;
@@ -70,28 +69,41 @@
 			.entry {
 				width: 10em;
 				height: 12em;
-				background-color: #282828;
-				color: #AAA;
 				margin-right: 5px;
 				margin-bottom: 5px;
+				background-color: #282828;
+				color: #AAA;
 			}
-			.entrySelected {
-				background-color: #575757;
-				color: white;
+			.entry .wide {
+				width: 100%;
+				height: 2em;
+				margin-right: 0;
+				margin-bottom: 0;
+			}
+			.entryLabel .wide {
+				width: 100%;
+				padding-left: 20px;
 			}
 			.entry:hover {
 				background-color: #575757;
 				color: white;
 			}
-			.entry img {
+			.entry .selected {
+				background-color: #575757;
+				color: white;
+			}
+			.preview {
 				width: 10em;
 				height: 10em;
+			}
+			.preview .wide {
+				display: none;
 			}
 			.entryTag {
 				margin-bottom: 0.25em;
 			}
 			.entryTag span {
-				width: calc(100% - 2em);
+				width: calc(100% - 2.5em);
 				margin-left: 5px;
 			}
 			.entryTag button {
@@ -118,6 +130,27 @@
 			}
 			.tagHint { color: #AAA; background-color: #121212; }
 			.tagHint:hover { color: white; background-color: #575757; }
+			.typeThumb {
+				position: absolute;
+				width: 16px;
+				height: 16px;
+				top: 0;
+				left: 0;
+				z-index: 1;
+			}
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid white;
+				color: #AAA;
+				top: 0;
+				left: 0;
+				z-index: 2;
+			}
+			#multiSelectNote {
+				text-align: center;
+			}
 		</style>
 	</head>
 	<body>
@@ -128,6 +161,7 @@
 					<img src="editor/textures/icons/plus.png" />
 					<span>Import content...</span>
 				</div>
+				<div class="leftBtn" onclick="toggleListView">List view</div>
 				{{range .Filters}}
 				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
 				{{end}}
@@ -139,19 +173,21 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="center">
-				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry">
+			<div id="contentList" class="center" onclick="clickClearSelection">
+				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
 					<img class="preview" src="editor/textures/icons/file.png" />
-					<div>Name...</div>
+					<div class="entryLabel">Name...</div>
+					<img class="typeThumb" src="editor/textures/icons/file.png" />
 				</span>
 			</div>
 			<div class="right">
-				<div class="rightBody">
-					<input id="entryName" type="text" placeholder="Name..." />
+				<div id="rightBody">
+					<div id="multiSelectNote">Multiple content selected!</div>
+					<input id="entryName" type="text" placeholder="Name..." onsubmit="submitName" />
 					<div class="centerText">Tags</div>
 					<div id="entryTags">
 						<div id="entryTagTemplate" class="entryTag">
-							<span>hats</span>
+							<span>Tag...</span>
 							<button data-tag="" onclick="clickDeleteTag">X</button>
 						</div>
 					</div>
@@ -159,8 +195,17 @@
 					<div id="newTagHint">
 						<div id="tagHintTemplate" class="tagHint" onclick="clickTagHint">Hint tag name...</div>
 					</div>
+					<div id="audioPlayer">
+						<p>Audio player:</p>
+						<button onclick="clickPlayAudio">Play</button>
+						<span>000:00:00 - 000:00:00</span>
+						<input type="slider" onchange="changeAudioPosition" />
+					</div>
+					<button onclick="clickReimport">Reimport</button>
+					<button onclick="clickDelete">Delete</button>
 				</div>
 			</div>
 		</div>
+		<span id="tooltip">Tooltip...</span>
 	</body>
 </html>

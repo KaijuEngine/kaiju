@@ -113,7 +113,6 @@ func (label *Label) Init(text string) {
 		label.activateDrawings()
 		label.Base().SetDirty(DirtyTypeLayout)
 		label.LabelData().renderRequired = true
-		label.Base().Clean()
 	})
 	label.entity.OnDeactivate.Add(func() {
 		label.deactivateDrawings()
@@ -218,7 +217,6 @@ func (label *Label) renderText() {
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight)
-		transparentDrawings := make([]rendering.Drawing, 0, len(ld.runeDrawings))
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
@@ -228,7 +226,6 @@ func (label *Label) renderText() {
 				transparent := ld.runeDrawings[i]
 				transparent.Material = host.FontCache().TransparentMaterial(
 					ld.runeDrawings[i].Material)
-				transparentDrawings = append(transparentDrawings, transparent)
 			}
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {

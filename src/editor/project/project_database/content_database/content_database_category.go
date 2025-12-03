@@ -1,3 +1,40 @@
+/******************************************************************************/
+/* content_database_category.go                                               */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright, blessing, biblical verse, notice and                  */
+/* this permission notice shall be included in all copies or                  */
+/* substantial portions of the Software.                                      */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package content_database
 
 import (
@@ -48,10 +85,36 @@ type ContentCategory interface {
 	// some processing of the file to extract the relevant information which is
 	// contained within (i.e. glTF files).
 	Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// Reimport will mostly do the same thing as import, however it will also
+	// determine if the content can be re-imported. In some cases, like model
+	// files, there are multiple pices of content that match up in specific
+	// ways. This function will return an error if the re-import isn't possible.
+	Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// PostImportProcessing allows for any optional post-processing to be done
+	// now that the file and all of the dependencies have been imported into the
+	// project. This is called for each variant that has been imported. This is
+	// useful to do things like creating/importing new materials based on
+	// imported mesh files, for example.
+	PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
 }
 
-func selectCategory(path string) (ContentCategory, bool) {
-	defer tracing.NewRegion("content_database.selectCategory").End()
+// CategoryFromTypeName is an auxiliary function for getting the category that
+// matches the type supplied. If the content is found, true will be returned,
+// otherwise false.
+func CategoryFromTypeName(typeName string) (ContentCategory, bool) {
+	defer tracing.NewRegion("content_database.CategoryFromTypeName").End()
+	for i := range ContentCategories {
+		if ContentCategories[i].TypeName() == typeName {
+			return ContentCategories[i], true
+		}
+	}
+	return nil, false
+}
+
+func selectCategoryForFile(path string) (ContentCategory, bool) {
+	defer tracing.NewRegion("content_database.selectCategoryForFile").End()
 	ext := strings.ToLower(filepath.Ext(path))
 	for i := range ContentCategories {
 		cat := ContentCategories[i]
