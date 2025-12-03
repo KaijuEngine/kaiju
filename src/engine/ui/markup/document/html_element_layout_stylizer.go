@@ -91,6 +91,13 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	e.UI.RemoveEvent(ui.EventTypeExit, s.activeEvt.exitId)
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
 	e.UI.RemoveEvent(ui.EventTypeUp, s.activeEvt.upId)
+	if !e.UI.IsType(ui.ElementTypeLabel) {
+		l := e.UI.Layout()
+		e.UI.ToPanel().FitContent()
+		l.SetInnerOffset(0, 0, 0, 0)
+		l.SetLocalInnerOffset(0, 0, 0, 0)
+		l.SetMargin(0, 0, 0, 0)
+	}
 	entity := e.UI.Entity()
 	entity.OnActivate.Remove(s.activateEvtId)
 	entity.OnDeactivate.Remove(s.deactivateEvtId)
@@ -207,6 +214,9 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 				problems = append(problems, err)
 			}
 		}
+	}
+	if elm.UI.Entity().Name() == "openProjectBtn" {
+		println("...")
 	}
 	return problems
 }
