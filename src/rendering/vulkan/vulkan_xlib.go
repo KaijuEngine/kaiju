@@ -1,3 +1,5 @@
+//go:build linux && !android
+
 /******************************************************************************/
 /* vulkan_xlib.go                                                             */
 /******************************************************************************/
@@ -35,8 +37,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build linux && !android
-
 package vulkan
 
 /*
@@ -47,15 +47,18 @@ package vulkan
 #include "vulkan/vulkan_xlib.h"
 */
 import "C"
-import "unsafe"
+import (
+	"kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
-func XlibSurfaceCreateInfoKHRHelper(window, display unsafe.Pointer, instance Instance, surface *Surface) Result {
+func XlibSurfaceCreateInfoKHRHelper(window, display unsafe.Pointer, instance Instance, surface *Surface) vulkan_const.Result {
 	cinstance := *(*C.VkInstance)(unsafe.Pointer(&instance))
 	createInfo := C.VkXlibSurfaceCreateInfoKHR{}
-	createInfo.sType = C.VkStructureType(StructureTypeXlibSurfaceCreateInfo)
+	createInfo.sType = C.VkStructureType(vulkan_const.StructureTypeXlibSurfaceCreateInfo)
 	createInfo.dpy = (*C.Display)(display)
 	createInfo.window = *(*C.Window)(window)
 	cSurface := (*C.VkSurfaceKHR)(unsafe.Pointer(surface))
 	__ret := C.callVkCreateXlibSurfaceKHR(cinstance, &createInfo, nil, cSurface)
-	return (Result)(__ret)
+	return (vulkan_const.Result)(__ret)
 }
