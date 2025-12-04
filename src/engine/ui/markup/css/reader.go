@@ -76,11 +76,11 @@ func applyToElement(inRules []rules.Rule, elm *document.Element) {
 }
 
 func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule) {
-	for i := range doc.Elements {
+	for _, e := range doc.Elements {
 		// TODO:  Make sure this is applying in order from parent to child
 		// Since this array is intrinsically ordered, it should be fine
-		if rules, ok := cssMap[doc.Elements[i].UI]; ok {
-			applyToElement(rules, doc.Elements[i])
+		if rules, ok := cssMap[e.UI]; ok {
+			applyToElement(rules, e)
 		}
 	}
 }

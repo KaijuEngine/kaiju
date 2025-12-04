@@ -92,8 +92,8 @@ func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 func (hui *WorkspaceHierarchyUI) open() {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.open").End()
 	hui.entityTemplate.UI.Hide()
-	hui.showHierarchyElm.UI.Hide()
 	hui.hideHierarchyElm.UI.Show()
+	hui.showHierarchyElm.UI.Hide()
 	hui.hierarchyArea.UI.Show()
 	hui.hierarchyDragPreview.UI.Hide()
 }
@@ -128,16 +128,16 @@ func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
 
 func (hui *WorkspaceHierarchyUI) hideHierarchy(*document.Element) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.hideHierarchy").End()
+	hui.hierarchyArea.UI.Hide()
 	hui.hideHierarchyElm.UI.Hide()
 	hui.showHierarchyElm.UI.Show()
-	hui.hierarchyArea.UI.Hide()
 }
 
 func (hui *WorkspaceHierarchyUI) showHierarchy(*document.Element) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.showHierarchy").End()
+	hui.hierarchyArea.UI.Show()
 	hui.hideHierarchyElm.UI.Show()
 	hui.showHierarchyElm.UI.Hide()
-	hui.hierarchyArea.UI.Show()
 }
 
 func (hui *WorkspaceHierarchyUI) selectEntity(e *document.Element) {
