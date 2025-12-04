@@ -102,8 +102,8 @@ func (m *Mesh) DelayedCreate(renderer Renderer) {
 	defer tracing.NewRegion("Mesh.DelayedCreate").End()
 	if len(m.pendingVerts) > 0 {
 		renderer.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
-		m.pendingVerts = m.pendingVerts[:0]
-		m.pendingIndexes = m.pendingIndexes[:0]
+		m.pendingVerts = make([]Vertex, 0)
+		m.pendingIndexes = make([]uint32, 0)
 	}
 }
 
