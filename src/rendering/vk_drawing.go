@@ -49,22 +49,6 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
-func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
-	defer tracing.NewRegion("Vulkan.mapAndCopy").End()
-	var data unsafe.Pointer
-	r := vk.MapMemory(vr.device, sb.memories[vr.currentFrame], 0, mapLen, 0, &data)
-	if r != vulkan_const.Success {
-		slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
-		return false
-	} else if data == nil {
-		slog.Error("MapMemory was a success, but data is nil")
-		return false
-	}
-	vk.Memcopy(data, fromBuffer[:mapLen])
-	vk.UnmapMemory(vr.device, sb.memories[vr.currentFrame])
-	return true
-}
-
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup) bool {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	updatedAnything := false
