@@ -150,8 +150,13 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
 	}
 	host.threads.Initialize()
-	host.UIUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
-	host.UILateUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
+	if runtime.NumCPU() >= 16 {
+		host.UIUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
+		host.UILateUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
+	} else {
+		host.UIUpdater = NewUpdater()
+		host.UILateUpdater = NewUpdater()
+	}
 	return host
 }
 
