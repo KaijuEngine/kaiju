@@ -158,13 +158,13 @@ func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer { return n
 func (s *ShaderDataBase) NamedDataInstanceSize(name string) int { return 0 }
 
 type InstanceCopyData struct {
-	bytes   []byte
-	padding int
+	byteMapping [maxFramesInFlight]unsafe.Pointer
+	padding     int
+	length      int
 }
 
 func InstanceCopyDataNew(padding int) InstanceCopyData {
 	return InstanceCopyData{
-		bytes:   make([]byte, 0),
 		padding: padding,
 	}
 }
@@ -197,9 +197,7 @@ func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
 	newPadding := blockSize - d.instanceSize%blockSize
 	if d.rawData.padding != newPadding {
 		d.rawData.padding = newPadding
-		old := d.rawData.bytes
-		d.rawData.bytes = make([]byte, d.TotalSize())
-		copy(d.rawData.bytes, old)
+		d.rawData.length = d.TotalSize()
 	}
 }
 
@@ -218,7 +216,7 @@ func (d *DrawInstanceGroup) TotalSize() int {
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
-	d.rawData.bytes = append(d.rawData.bytes, make([]byte, d.instanceSize+d.rawData.padding)...)
+	d.rawData.length = d.instanceSize + d.rawData.padding
 	for i := range d.MaterialInstance.shaderInfo.LayoutGroups {
 		g := &d.MaterialInstance.shaderInfo.LayoutGroups[i]
 		for j := range g.Layouts {
@@ -226,29 +224,13 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 				b := &g.Layouts[j]
 				n := b.FullName()
 				s := d.namedInstanceData[n]
-				if len(s.bytes) < b.Capacity() {
-					s.bytes = append(s.bytes, make([]byte, instance.NamedDataInstanceSize(n)+s.padding)...)
+				if s.length < b.Capacity() {
+					s.length = instance.NamedDataInstanceSize(n) + s.padding
 					d.namedInstanceData[n] = s
 				}
 			}
 		}
 	}
-}
-
-func (d *DrawInstanceGroup) texSize() (int32, int32) {
-	// Low end devices have a max 2048 texture size
-	pixelCount := int32(len(d.rawData.bytes)) / 4 / 4
-	width := min(pixelCount, 2048)
-	height := int32(1)
-	for pixelCount > 2048 {
-		height++
-		pixelCount -= 2048
-	}
-	if height > 2048 {
-		// TODO:  Handle this case with multiple textures
-		panic("Too many instances")
-	}
-	return width, height
 }
 
 func (d *DrawInstanceGroup) AnyVisible() bool  { return d.visibleCount > 0 }
@@ -258,20 +240,20 @@ func (d *DrawInstanceGroup) VisibleSize() int {
 	return d.visibleCount * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, name string) {
+func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, name string, frame int) {
 	if !instance.UpdateNamedData(index, d.namedBuffers[name].capacity, name) {
 		return
 	}
 	if ptr := instance.NamedDataPointer(name); ptr != nil {
 		offset := uintptr(d.namedBuffers[name].stride * index)
-		base := unsafe.Pointer(&d.namedInstanceData[name].bytes[0])
+		base := d.namedInstanceData[name].byteMapping[frame]
 		to := unsafe.Pointer(uintptr(base) + offset)
-		klib.Memcpy(to, ptr, uint64(len(d.namedInstanceData[name].bytes)))
+		klib.Memcpy(to, ptr, uint64(d.namedInstanceData[name].length))
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
-	base := unsafe.Pointer(&d.rawData.bytes[0])
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
+	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
 	count := len(d.Instances)
 	d.visibleCount = 0
@@ -286,7 +268,7 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 		} else if instance.IsActive() {
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
-					d.updateNamedData(instanceIndex, instance, k)
+					d.updateNamedData(instanceIndex, instance, k, frame)
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)
@@ -297,9 +279,8 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer) {
 		}
 	}
 	if count < len(d.Instances) {
-		newMemLen := count * (d.instanceSize + d.rawData.padding)
+		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
 		d.Instances = d.Instances[:count]
-		d.rawData.bytes = d.rawData.bytes[:newMemLen]
 	}
 	d.bindInstanceDriverData()
 	if len(d.Instances) == 0 {
