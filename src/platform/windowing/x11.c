@@ -243,6 +243,32 @@ void window_poll(void* x11State) {
 				});
 				break;
 			case ButtonPress:
+			{
+				int btn = e.xbutton.button;
+				if (btn >= 4 && btn <= 7) {
+					int deltaX = 0;
+					int deltaY = 0;
+					if (btn == 4) {
+						deltaY =  120;	// Scroll up
+					} else if (btn == 5) {
+						deltaY = -120;	// Scroll down
+					} else if (btn == 6) {
+						deltaX = -120;	// Scroll left
+					} else if (btn == 7) {
+						deltaX =  120;	// Scroll right
+					}
+					WindowEvent evt = {
+						.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
+						.mouseScroll = {
+							.deltaX = deltaX,
+							.deltaY = deltaY,
+							.x = e.xbutton.x,
+							.y = e.xbutton.y,
+						}
+					};
+					shared_mem_add_event(&s->sm, evt);
+				}
+			}
 			case ButtonRelease:
 			{
 				WindowEvent evt = {
@@ -260,12 +286,12 @@ void window_poll(void* x11State) {
 					case Button3:
 						evt.mouseButton.buttonId = MOUSE_BUTTON_RIGHT;
 						break;
-					case Button4:
-						evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
-						break;
-					case Button5:
-						evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
-						break;
+					// case Button4:
+					// 	evt.mouseButton.buttonId = MOUSE_BUTTON_X1;
+					// 	break;
+					// case Button5:
+					// 	evt.mouseButton.buttonId = MOUSE_BUTTON_X2;
+					// 	break;
 				}
 				evt.mouseButton.x = e.xbutton.x;
 				evt.mouseButton.y = e.xbutton.y;

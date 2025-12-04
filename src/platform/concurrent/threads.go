@@ -78,6 +78,9 @@ func (t *Threads) Stop() {
 
 func (t *Threads) AddWork(work []func(threadId int)) {
 	defer tracing.NewRegion("Threads.AddWork").End()
+	if len(work) == 0 {
+		return
+	}
 	t.mutex.Lock()
 	for _, w := range work {
 		t.queue.PushBack(w)

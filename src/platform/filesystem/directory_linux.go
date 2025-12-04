@@ -40,7 +40,7 @@
 package filesystem
 
 import (
-	"errors"
+	"kaiju/build"
 	"kaiju/klib"
 	"os"
 	"os/exec"
@@ -49,10 +49,21 @@ import (
 )
 
 func knownPaths() map[string]string {
-	return map[string]string{
+	out := map[string]string{
 		"Root": "/",
 		"Home": "/home",
 	}
+	if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
+		out["UserHome"] = userHome
+		common := []string{"Desktop", "Documents", "Downloads", "Music", "Pictures", "Videos"}
+		for i := range common {
+			p := filepath.Join(userHome, common[i])
+			if s, err := os.Stat(p); err == nil && s.IsDir() {
+				out[common[i]] = p
+			}
+		}
+	}
+	return out
 }
 
 func imageDirectory() (string, error) {
@@ -64,13 +75,11 @@ func imageDirectory() (string, error) {
 }
 
 func gameDirectory() (string, error) {
-	klib.NotYetImplemented(318)
-	return "", errors.New("not yet implemented")
-	//appdata, err := os.UserConfigDir()
-	//if err != nil {
-	//	return "", err
-	//}
-	//return filepath.Join(appdata, "../Local", build.CompanyDirName, build.Title.String()), nil
+	appdata, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(appdata, build.CompanyDirName, build.Title.String()), nil
 }
 
 func openFileBrowserCommand(path string) *exec.Cmd {
