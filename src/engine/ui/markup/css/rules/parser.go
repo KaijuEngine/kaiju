@@ -40,6 +40,7 @@ package rules
 import (
 	"bytes"
 	"kaiju/engine/ui/markup/css/helpers"
+	"slices"
 	"strings"
 
 	"github.com/tdewolff/parse/v2"
@@ -191,6 +192,7 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 	cssParser := css.NewParser(parse.NewInput(bytes.NewBufferString(cssStr)), false)
 	exit := false
 	s.addGroup()
+	qualifiedGroupStart := -1
 	for !exit {
 		gt, _, propData := cssParser.Next()
 		switch gt {
@@ -218,10 +220,13 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 			s.setGroupMediaQuery(q)
 		case css.AtRuleGrammar:
 		case css.QualifiedRuleGrammar:
-			s.addGroup()
+			if qualifiedGroupStart < 0 {
+				qualifiedGroupStart = len(s.Groups) - 1
+			}
 			if s.state < ReadingProperty {
 				s.readSelector(cssParser)
 			}
+			s.addGroup()
 		case css.BeginRulesetGrammar:
 			s.readSelector(cssParser)
 			s.state = ReadingProperty
@@ -231,6 +236,16 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 			s.clearGroupMediaQuery()
 		case css.EndRulesetGrammar:
 			s.state = ReadingTag
+			if qualifiedGroupStart >= 0 {
+				last := &s.Groups[len(s.Groups)-1]
+				for i := len(s.Groups) - 2; i >= qualifiedGroupStart; i-- {
+					s.Groups[i].Rules = append(s.Groups[i].Rules, slices.Clone(last.Rules)...)
+					s.Groups[i].Selectors = append(s.Groups[i].Selectors, slices.Clone(last.Selectors)...)
+					// Likely don't need to copy the media query, would be weird
+					// s.Groups[i].MediaQuery = last.MediaQuery
+				}
+				qualifiedGroupStart = -1
+			}
 			s.addGroup()
 		case css.DeclarationGrammar:
 			s.readProperty(string(propData), cssParser, window)

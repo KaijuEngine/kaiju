@@ -41,6 +41,7 @@ import "testing"
 
 const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
+const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
 
 type dummyWindow struct{}
 
@@ -99,5 +100,27 @@ func TestParseNarrowClass(t *testing.T) {
 	}
 	if sel.Parts[1].SelectType != ReadingClass {
 		t.FailNow()
+	}
+}
+
+func TestParseCommaIds(t *testing.T) {
+	s := StyleSheet{}
+	s.Parse(testCSSCommaId, dummyWindow{})
+	if len(s.Groups) != 3 {
+		t.FailNow()
+	}
+	for i := range s.Groups {
+		if len(s.Groups[i].Rules) != 1 {
+			t.FailNow()
+		}
+		if s.Groups[i].Rules[0].Property != "display" {
+			t.FailNow()
+		}
+		if len(s.Groups[i].Rules[0].Values) != 1 {
+			t.FailNow()
+		}
+		if s.Groups[i].Rules[0].Values[0].Str != "none" {
+			t.FailNow()
+		}
 	}
 }
