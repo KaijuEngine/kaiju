@@ -40,6 +40,7 @@ package rendering
 import (
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"reflect"
 	"unsafe"
 )
@@ -253,6 +254,7 @@ func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, na
 }
 
 func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
+	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
 	count := len(d.Instances)

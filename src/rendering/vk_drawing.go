@@ -50,10 +50,8 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup) bool {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
-	var p runtime.Pinner
-	defer p.Unpin()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	addWrite := func(write vk.WriteDescriptorSet) {
 		p.Pin(write.PImageInfo)
@@ -61,7 +59,6 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 		p.Pin(write.PTexelBufferView)
 		allWrites = append(allWrites, write)
 	}
-	updatedAnything := false
 	for i := range groups {
 		group := &groups[i]
 		if !group.IsReady() {
@@ -112,14 +109,8 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 					vulkan_const.DescriptorTypeUniformBuffer))
 			}
 		}
-		updatedAnything = true
 	}
-	if len(allWrites) > 0 {
-		defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.UpdateDescriptorSets").End()
-		vk.UpdateDescriptorSets(vr.device, uint32(len(allWrites)), &allWrites[0], 0, nil)
-		runtime.KeepAlive(allWrites)
-	}
-	return updatedAnything
+	return allWrites
 }
 
 func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
@@ -162,10 +153,23 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 	}
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
+	{
+		var p runtime.Pinner
+		allWrites := []vk.WriteDescriptorSet{}
 	for i := range drawings {
 		d := &drawings[i]
-		doDrawings[i] = vr.writeDrawingDescriptors(d.material, d.instanceGroups)
+			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, &p)
+			allWrites = append(allWrites, writes...)
+			doDrawings[i] = len(writes) > 0
 		drawingAnything = drawingAnything || doDrawings[i]
+		}
+		if len(allWrites) > 0 {
+			t := tracing.NewRegion("Vulkan.Draw.UpdateDescriptorSets")
+			vk.UpdateDescriptorSets(vr.device, uint32(len(allWrites)), &allWrites[0], 0, nil)
+			runtime.KeepAlive(allWrites)
+			t.End()
+		}
+		p.Unpin()
 	}
 	if !drawingAnything {
 		return false
@@ -360,7 +364,10 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 	defer tracing.NewRegion("Vulkan.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
 	lastCount := group.InstanceDriverData.lastInstanceCount
-	if currentCount > lastCount {
+	if currentCount <= lastCount {
+		return
+	}
+	defer tracing.NewRegion("Vulkan.resizeUniformBuffer.DoResize").End()
 		for i := range maxFramesInFlight {
 			if group.instanceBuffer.memories[i] != vk.NullDeviceMemory {
 				vk.UnmapMemory(vr.device, group.instanceBuffer.memories[i])
@@ -428,7 +435,6 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 				return
 			} else {
 				group.rawData.byteMapping[i] = data
-			}
 		}
 	}
 }
