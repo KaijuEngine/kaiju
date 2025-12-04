@@ -157,7 +157,7 @@ func (ed *Editor) CreateNewStage() {
 	if ed.history.HasPendingChanges() {
 		ed.BlurInterface()
 		confirm_prompt.Show(ed.host, confirm_prompt.Config{
-			Title:       "Discrad changes",
+			Title:       "Discard changes",
 			Description: "You have unsaved changes to your stage, would you like to discard them and create a new stage?",
 			ConfirmText: "Yes",
 			CancelText:  "No",
