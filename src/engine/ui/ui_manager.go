@@ -82,7 +82,7 @@ func (man *Manager) update(deltaTime float64) {
 	})
 	// First we update all the root UI elements, this will stabilize the tree
 	wg.Add(len(roots))
-	threads := man.Host.Threads()
+	threads := man.Host.UIThreads()
 	work := make([]func(int), len(roots))
 	for i := range roots {
 		work[i] = func(int) {

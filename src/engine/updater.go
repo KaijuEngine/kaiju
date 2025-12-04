@@ -41,6 +41,7 @@ import (
 	"kaiju/klib"
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
+	"sync"
 	"sync/atomic"
 )
 
@@ -58,7 +59,6 @@ type engineUpdate struct {
 // *Note that update functions are unordered, so don't rely on the order*
 type Updater struct {
 	updates    map[UpdateId]engineUpdate
-	workGroup  *concurrent.WorkGroup
 	threads    *concurrent.Threads
 	backAdd    []engineUpdate
 	backRemove []UpdateId
@@ -68,7 +68,7 @@ type Updater struct {
 
 // IsConcurrent will return if this updater is a concurrent updater
 func (u *Updater) IsConcurrent() bool {
-	return u.threads != nil && u.workGroup != nil
+	return u.threads != nil
 }
 
 // NewUpdater creates a new #Updater struct and returns it
@@ -77,9 +77,8 @@ func NewUpdater() Updater {
 }
 
 // NewConcurrentUpdater creates a new concurrent #Updater struct and returns it
-func NewConcurrentUpdater(threads *concurrent.Threads, workGroup *concurrent.WorkGroup) Updater {
+func NewConcurrentUpdater(threads *concurrent.Threads) Updater {
 	u := NewUpdater()
-	u.workGroup = workGroup
 	u.threads = threads
 	return u
 }
@@ -143,13 +142,17 @@ func (u *Updater) inlineUpdate(deltaTime float64) {
 }
 
 func (u *Updater) concurrentUpdate(deltaTime float64) {
-	for i := range u.updates {
-		idx := i
-		u.workGroup.Add("concurrentUpdate", func() {
-			u.updates[idx].update(deltaTime)
+	work := make([]func(int), 0, len(u.updates))
+	wg := sync.WaitGroup{}
+	for _, v := range u.updates {
+		wg.Add(1)
+		work = append(work, func(int) {
+			v.update(deltaTime)
+			wg.Done()
 		})
 	}
-	u.workGroup.Execute("concurrentUpdate", u.threads)
+	u.threads.AddWork(work)
+	wg.Wait()
 }
 
 func (u *Updater) addInternal() {

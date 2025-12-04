@@ -102,6 +102,8 @@ type Host struct {
 	LogStream         *logging.LogStream
 	workGroup         concurrent.WorkGroup
 	threads           concurrent.Threads
+	updateThreads     concurrent.Threads
+	uiThreads         concurrent.Threads
 	Camera            cameras.Camera
 	UICamera          cameras.Camera
 	collisionManager  collision_system.Manager
@@ -150,13 +152,10 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
 	}
 	host.threads.Initialize()
-	if runtime.NumCPU() >= 16 {
-		host.UIUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
-		host.UILateUpdater = NewConcurrentUpdater(&host.threads, &host.workGroup)
-	} else {
-		host.UIUpdater = NewUpdater()
-		host.UILateUpdater = NewUpdater()
-	}
+	host.updateThreads.Initialize()
+	host.uiThreads.Initialize()
+	host.UIUpdater = NewConcurrentUpdater(&host.updateThreads)
+	host.UILateUpdater = NewConcurrentUpdater(&host.updateThreads)
 	return host
 }
 
@@ -190,6 +189,8 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	}
 	host.Window = win
 	host.threads.Start()
+	host.updateThreads.Start()
+	host.uiThreads.Start()
 	host.Camera.ViewportChanged(float32(width), float32(height))
 	host.UICamera.ViewportChanged(float32(width), float32(height))
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, host.assetDatabase)
@@ -228,7 +229,14 @@ func (host *Host) InitializeAudio() (err error) {
 func (host *Host) WorkGroup() *concurrent.WorkGroup { return &host.workGroup }
 
 // Threads returns the long-running threads for this instance of host
-func (host *Host) Threads() *concurrent.Threads { return &host.threads }
+func (host *Host) Threads() *concurrent.Threads {
+	return &host.threads
+}
+
+// UIThreads returns the long-running threads for the UI
+func (host *Host) UIThreads() *concurrent.Threads {
+	return &host.uiThreads
+}
 
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
@@ -517,6 +525,8 @@ func (host *Host) Teardown() {
 	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
+	host.updateThreads.Stop()
+	host.uiThreads.Stop()
 	host.CloseSignal <- struct{}{}
 	*host = Host{}
 	runtime.GC()
