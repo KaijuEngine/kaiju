@@ -51,6 +51,9 @@ import (
 
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup) bool {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
+	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
+	bufferInfos := make([]vk.DescriptorBufferInfo, 0, len(groups)*4)
+	imageInfos := make([]vk.DescriptorImageInfo, 0, len(groups)*16)
 	updatedAnything := false
 	for i := range groups {
 		group := &groups[i]
@@ -62,64 +65,75 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 		if !group.AnyVisible() {
 			continue
 		}
+		defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.1").End()
 		set := group.InstanceDriverData.descriptorSets[vr.currentFrame]
-		globalInfo := bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
-			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil))))
-		namedInfos := map[string]vk.DescriptorBufferInfo{}
-		for k := range group.namedBuffers {
-			namedInfos[k] = bufferInfo(group.namedBuffers[k].buffers[vr.currentFrame],
-				group.namedBuffers[k].size)
-		}
+		bufferInfos = append(bufferInfos, bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
+			vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))))
+		//namedInfos := map[string]vk.DescriptorBufferInfo{}
+		//for k := range group.namedBuffers {
+		//	namedInfos[k] = bufferInfo(group.namedBuffers[k].buffers[vr.currentFrame],
+		//		group.namedBuffers[k].size)
+		//}
+		allWrites = append(allWrites, prepareSetWriteBuffer(set, bufferInfos[0:1],
+			0, vulkan_const.DescriptorTypeUniformBuffer))
 		texCount := len(group.MaterialInstance.Textures)
 		if texCount > 0 {
+			defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2").End()
 			for j := 0; j < texCount; j++ {
 				t := group.MaterialInstance.Textures[j]
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
+				imageInfos = append(imageInfos, group.imageInfos[j])
 			}
-			const maxDescriptorWrites = 4
-			descriptorWrites := [maxDescriptorWrites]vk.WriteDescriptorSet{
-				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
-					0, vulkan_const.DescriptorTypeUniformBuffer),
-				prepareSetWriteImage(set, group.imageInfos, 1, false),
-			}
-			count := 2
+			defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2.1").End()
+			allWrites = append(allWrites, prepareSetWriteImage(set, group.imageInfos, 1, false))
+
+			defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2.2").End()
+			//count := 2
 			if group.MaterialInstance.HasShadowMap() {
 				const id = 2
 				sm := &group.MaterialInstance.ShadowMap.RenderId
-				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
-				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
-				descriptorWrites[id+1] = prepareSetWriteImage(set, info, id, false)
-				count = 4
+				imageInfos = append(imageInfos, imageInfo(sm.View, sm.Sampler))
+				last := len(imageInfos) - 1
+				allWrites = append(allWrites,
+					prepareSetWriteImage(set, imageInfos[last:last+1], id, false),
+					prepareSetWriteImage(set, imageInfos[last:last+1], id, false))
+				//count = 4
 			}
+			defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2.3").End()
 			if group.MaterialInstance.HasShadowCubeMap() {
 				const id = 3
 				sm := &group.MaterialInstance.ShadowCubeMap.RenderId
-				info := []vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
-				descriptorWrites[id-1] = prepareSetWriteImage(set, info, id, false)
-				descriptorWrites[id] = prepareSetWriteImage(set, info, id, false)
-				count = 4
+				imageInfos = append(imageInfos, imageInfo(sm.View, sm.Sampler))
+				last := len(imageInfos) - 1
+				allWrites = append(allWrites,
+					prepareSetWriteImage(set, imageInfos[last:last+1], id, false),
+					prepareSetWriteImage(set, imageInfos[last:last+1], id, false))
+				//count = 4
 			}
-			for k := range group.namedBuffers {
-				if count >= maxDescriptorWrites {
-					slog.Error("need to increase max descriptor writes array size")
-					break
-				}
-				descriptorWrites[count] = prepareSetWriteBuffer(set,
-					[]vk.DescriptorBufferInfo{namedInfos[k]},
-					uint32(group.namedBuffers[k].bindingId),
-					vulkan_const.DescriptorTypeUniformBuffer)
-				count++
-			}
-			vk.UpdateDescriptorSets(vr.device, uint32(count), &descriptorWrites[0], 0, nil)
-		} else {
-			descriptorWrites := []vk.WriteDescriptorSet{
-				prepareSetWriteBuffer(set, []vk.DescriptorBufferInfo{globalInfo},
-					0, vulkan_const.DescriptorTypeUniformBuffer),
-			}
-			count := uint32(len(descriptorWrites))
-			vk.UpdateDescriptorSets(vr.device, count, &descriptorWrites[0], 0, nil)
+			//defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2.4").End()
+			//for k := range group.namedBuffers {
+			//	if count >= maxDescriptorWrites {
+			//		slog.Error("need to increase max descriptor writes array size")
+			//		break
+			//	}
+			//	descriptorWrites[count] = prepareSetWriteBuffer(set,
+			//		[]vk.DescriptorBufferInfo{namedInfos[k]},
+			//		uint32(group.namedBuffers[k].bindingId),
+			//		vulkan_const.DescriptorTypeUniformBuffer)
+			//	count++
+			//}
+			//defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.2.5").End()
+			//vk.UpdateDescriptorSets(vr.device, uint32(count), &descriptorWrites[0], 0, nil)
 		}
 		updatedAnything = true
+	}
+	if len(allWrites) > 0 {
+		// TODO:  Fix this asap
+		const maxDescriptorWrites = 5000
+		writes := [maxDescriptorWrites]vk.WriteDescriptorSet{}
+		copy(writes[:], allWrites)
+		defer tracing.NewRegion("Vulkan.writeDrawingDescriptors.BATCH_UPDATE").End()
+		vk.UpdateDescriptorSets(vr.device, uint32(len(allWrites)), &writes[0], 0, nil)
 	}
 	return updatedAnything
 }
