@@ -50,6 +50,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
+	"time"
 )
 
 func consoleTop(host *engine.Host) string {
@@ -294,7 +295,54 @@ func gc(host *engine.Host, arg string) string {
 func memStats(host *engine.Host, arg string) string {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	return fmt.Sprintf("Alloc: %d, TotalAlloc: %d, Sys: %d, NumGC: %d", mem.Alloc, mem.TotalAlloc, mem.Sys, mem.NumGC)
+	return fmt.Sprintf(`---------
+Time: %s
+Goroutines: %d
+NumCPU: %d
+
+Alloc: %s (memory currently allocated to Go objects)
+TotalAlloc: %s (cumulative bytes allocated, even if freed)
+Sys: %s (total memory obtained from OS - closest to Task Manager)
+HeapAlloc: %s (same as Alloc)
+HeapSys: %s (memory reserved for heap from OS)
+HeapIdle: %s (idle heap memory)
+HeapInuse: %s (heap memory in active use)
+HeapReleased: %s (returned to OS)
+HeapObjects: %d (number of allocated objects)
+
+Stack (in use): %s (current stack memory used)
+Stack (sys): %s (stack memory reserved from OS)
+MSpan/MSpanSys: %s / %s
+MCache/MCacheSys: %s / %s
+
+GC: NextGC at: %s
+GC: LastGC: %s ago
+GC Count: %d
+GC CPU Fraction: %.4f%% (of total CPU time spent in GC)
+GOMAXPROCS: %d
+---------`,
+		time.Now().Format("15:04:05.000"),
+		runtime.NumGoroutine(),
+		runtime.NumCPU(),
+		klib.ByteCountToString(mem.Alloc),
+		klib.ByteCountToString(mem.TotalAlloc),
+		klib.ByteCountToString(mem.Sys),
+		klib.ByteCountToString(mem.HeapAlloc),
+		klib.ByteCountToString(mem.HeapSys),
+		klib.ByteCountToString(mem.HeapIdle),
+		klib.ByteCountToString(mem.HeapInuse),
+		klib.ByteCountToString(mem.HeapReleased),
+		mem.HeapObjects,
+		klib.ByteCountToString(mem.StackInuse),
+		klib.ByteCountToString(mem.StackSys),
+		klib.ByteCountToString(mem.MSpanInuse), klib.ByteCountToString(mem.MSpanSys),
+		klib.ByteCountToString(mem.MCacheInuse), klib.ByteCountToString(mem.MCacheSys),
+		klib.ByteCountToString(mem.NextGC),
+		time.Since(time.Unix(0, int64(mem.LastGC))).Round(time.Millisecond),
+		mem.NumGC,
+		mem.GCCPUFraction*100,
+		runtime.GOMAXPROCS(0),
+	)
 }
 
 func SetupConsole(host *engine.Host) {

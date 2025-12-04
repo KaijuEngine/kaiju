@@ -43,6 +43,14 @@ import (
 	"strings"
 )
 
+const (
+	_         = iota
+	kb uint64 = 1 << (10 * iota)
+	mb
+	gb
+	tb
+)
+
 var (
 	snakeCaseMatchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
 	snakeCaseMatchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
@@ -70,4 +78,19 @@ func ToSnakeCase(str string) string {
 	snake := snakeCaseMatchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = snakeCaseMatchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+func ByteCountToString(bytes uint64) string {
+	switch {
+	case bytes >= tb:
+		return fmt.Sprintf("%.2fTB", float64(bytes)/float64(tb))
+	case bytes >= gb:
+		return fmt.Sprintf("%.2fGB", float64(bytes)/float64(gb))
+	case bytes >= mb:
+		return fmt.Sprintf("%.2fMB", float64(bytes)/float64(mb))
+	case bytes >= kb:
+		return fmt.Sprintf("%.2fKB", float64(bytes)/float64(kb))
+	default:
+		return fmt.Sprintf("%dB", bytes)
+	}
 }
