@@ -557,6 +557,7 @@ func (input *Input) onClick() {
 
 func (input *Input) onMiss() {
 	input.RemoveFocus()
+	input.man.Value().Host.Window.CursorStandard()
 }
 
 func (input *Input) deactivated() {
