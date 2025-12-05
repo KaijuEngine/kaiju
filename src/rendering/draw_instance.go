@@ -262,12 +262,14 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 	instanceIndex := 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
-		instance.UpdateModel()
 		if instance.IsDestroyed() {
 			d.Instances[i] = d.Instances[count-1]
 			i--
 			count--
-		} else if instance.IsActive() {
+			continue
+		}
+		instance.UpdateModel()
+		if instance.IsActive() {
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
 					d.updateNamedData(instanceIndex, instance, k, frame)
