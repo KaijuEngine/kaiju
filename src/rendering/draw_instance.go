@@ -126,6 +126,9 @@ func (s *ShaderDataBase) Deactivate() {
 
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
+	if s.transform != nil {
+		s.forceUpdateTransformModel()
+	}
 }
 
 func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
@@ -142,9 +145,13 @@ func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 	}
 }
 
+func (s *ShaderDataBase) forceUpdateTransformModel() {
+	s.model = matrix.Mat4Multiply(s.InitModel, s.transform.WorldMatrix())
+}
+
 func (s *ShaderDataBase) UpdateModel() {
 	if s.transform != nil && s.transform.IsDirty() {
-		s.model = matrix.Mat4Multiply(s.InitModel, s.transform.WorldMatrix())
+		s.forceUpdateTransformModel()
 	}
 }
 

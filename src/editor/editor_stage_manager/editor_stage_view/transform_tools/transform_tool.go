@@ -71,7 +71,7 @@ type TransformTool struct {
 
 func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings) {
 	defer tracing.NewRegion("TransformTool.Initialize").End()
-	wt := matrix.NewTransform(stage.WorkspaceHost().WorkGroup())
+	wt := matrix.NewTransform()
 	t.stage = stage
 	t.snapSettings = snapSettings
 	t.wireTransform = &wt

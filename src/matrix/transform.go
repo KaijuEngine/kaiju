@@ -39,14 +39,8 @@ package matrix
 
 import (
 	"kaiju/klib"
-	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 	"slices"
-)
-
-const (
-	TransformWorkGroup      = "transform"
-	TransformResetWorkGroup = "transformReset"
 )
 
 type Transform struct {
@@ -54,8 +48,10 @@ type Transform struct {
 	worldMatrix               Mat4
 	parent                    *Transform
 	children                  []*Transform
-	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
+	framePosition             Vec3
+	frameRotation             Vec3
+	frameScale                Vec3
 	isDirty                   bool
 	frameDirty                bool
 	isLive                    bool
@@ -69,37 +65,36 @@ func (t *Transform) setup() {
 	t.position = Vec3Zero()
 	t.rotation = Vec3Zero()
 	t.scale = Vec3One()
-	if t.workGroup != nil {
-		t.SetDirty()
-	} else {
-		t.isDirty = true
-		t.frameDirty = true
-	}
+	t.SetDirty()
 }
 
-func NewTransform(workGroup *concurrent.WorkGroup) Transform {
+func NewTransform() Transform {
 	defer tracing.NewRegion("matrix.NewTransform").End()
-	t := Transform{
-		workGroup: workGroup,
-	}
+	t := Transform{}
 	t.setup()
 	return t
 }
 
 func (t *Transform) SetupRawTransform() { t.setup() }
 
-func (t *Transform) WorkGroup() *concurrent.WorkGroup { return t.workGroup }
-
 func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
 func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
 
 func (t *Transform) StartLive()         { t.isLive = true }
 func (t *Transform) StopLive()          { t.isLive = false }
-func (t *Transform) IsDirty() bool      { return t.frameDirty }
 func (t *Transform) Position() Vec3     { return t.position }
 func (t *Transform) Rotation() Vec3     { return t.rotation }
 func (t *Transform) Scale() Vec3        { return t.scale }
 func (t *Transform) Parent() *Transform { return t.parent }
+
+func (t *Transform) IsDirty() bool {
+	if !t.frameDirty {
+		return false
+	}
+	return !t.framePosition.Equals(t.position) ||
+		!t.frameRotation.Equals(t.rotation) ||
+		!t.frameScale.Equals(t.scale)
+}
 
 func (t *Transform) Right() Vec3 {
 	t.UpdateMatrix()
@@ -165,10 +160,6 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
-	if !t.isDirty {
-		t.workGroup.Add(TransformWorkGroup, t.updateMatrices)
-		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
-	}
 	t.isDirty = true
 	t.frameDirty = true
 	for _, child := range t.children {
@@ -178,14 +169,19 @@ func (t *Transform) SetDirty() {
 
 func (t *Transform) ResetDirty() {
 	if t.isDirty {
-		t.UpdateMatrix()
+		t.UpdateMatrices()
 		t.isDirty = false
-		t.frameDirty = false
 	}
+	t.frameDirty = false
 }
 
 func (t *Transform) SetPosition(position Vec3) {
 	if !t.position.Equals(position) {
+		if !t.frameDirty {
+			t.framePosition = t.position
+			t.frameRotation = t.rotation
+			t.frameScale = t.scale
+		}
 		t.position = position
 		t.SetDirty()
 	}
@@ -193,6 +189,11 @@ func (t *Transform) SetPosition(position Vec3) {
 
 func (t *Transform) SetRotation(rotation Vec3) {
 	if !t.rotation.Equals(rotation) {
+		if !t.frameDirty {
+			t.framePosition = t.position
+			t.frameRotation = t.rotation
+			t.frameScale = t.scale
+		}
 		t.rotation = rotation
 		t.SetDirty()
 	}
@@ -200,6 +201,11 @@ func (t *Transform) SetRotation(rotation Vec3) {
 
 func (t *Transform) SetScale(scale Vec3) {
 	if !t.scale.Equals(scale) {
+		if !t.frameDirty {
+			t.framePosition = t.position
+			t.frameRotation = t.rotation
+			t.frameScale = t.scale
+		}
 		t.scale = scale
 		t.SetDirty()
 	}
@@ -221,7 +227,7 @@ func (t *Transform) UpdateWorldMatrix() {
 	}
 }
 
-func (t *Transform) updateMatrices() {
+func (t *Transform) UpdateMatrices() {
 	t.UpdateMatrix()
 	t.UpdateWorldMatrix()
 	t.isDirty = false
@@ -229,14 +235,14 @@ func (t *Transform) updateMatrices() {
 
 func (t *Transform) Matrix() Mat4 {
 	if t.isDirty {
-		t.updateMatrices()
+		t.UpdateMatrices()
 	}
 	return t.localMatrix
 }
 
 func (t *Transform) WorldMatrix() Mat4 {
 	if t.isDirty {
-		t.updateMatrices()
+		t.UpdateMatrices()
 	}
 	return t.worldMatrix
 }

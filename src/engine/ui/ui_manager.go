@@ -190,7 +190,7 @@ func (man *Manager) Add() *UI {
 		id:     elmId,
 		man:    weak.Make(man),
 	}
-	ui.entity.Init(man.Host.WorkGroup())
+	ui.entity.Init()
 	man.Host.AddEntity(&ui.entity)
 	return ui
 }

@@ -155,7 +155,7 @@ func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
-	e.Init(m.host.WorkGroup())
+	e.Init()
 	e.SetName(name)
 	e.StageData.Description.Id = id
 	m.host.AddEntity(&e.Entity)
