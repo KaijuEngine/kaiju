@@ -216,7 +216,7 @@ func (label *Label) renderText() {
 			host, ld.text, xOffset, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
-			true, false, ld.fontFace, ld.lineHeight)
+			true, false, ld.fontFace, ld.lineHeight, &host.Cameras.UI)
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]

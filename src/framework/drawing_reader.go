@@ -95,7 +95,7 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 				matKey = mat
 			}
 		}
-		tForm := matrix.NewTransform(host.WorkGroup())
+		tForm := matrix.NewTransform()
 		tForm.SetPosition(m.Node.Transform.WorldPosition())
 		tForm.SetRotation(m.Node.Transform.WorldRotation())
 		tForm.SetScale(m.Node.Transform.WorldScale())
@@ -126,6 +126,7 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 				Material:   mat,
 				Mesh:       mesh,
 				Transform:  &tForm,
+				ViewCuller: &host.Cameras.Primary,
 				ShaderData: shaderData(),
 			},
 		})

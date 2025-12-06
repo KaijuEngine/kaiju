@@ -105,7 +105,7 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					continue
 				}
 			}
-			tForm := matrix.NewTransform(host.WorkGroup())
+			tForm := matrix.NewTransform()
 			tForm.SetPosition(m.Node.Transform.WorldPosition())
 			tForm.SetRotation(m.Node.Transform.WorldRotation())
 			tForm.SetScale(m.Node.Transform.WorldScale())
@@ -140,6 +140,7 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 						Material:   mat,
 						Mesh:       mesh,
 						Transform:  &tForm,
+						ViewCuller: &host.Cameras.Primary,
 						ShaderData: s.RenderInfo[j].DataFactory(),
 					},
 				})
@@ -163,6 +164,7 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 						Renderer:   host.Window.Renderer,
 						Material:   mat,
 						Mesh:       info.Meshes[j],
+						ViewCuller: &host.Cameras.Primary,
 						ShaderData: s.RenderInfo[i].DataFactory(),
 					},
 				})

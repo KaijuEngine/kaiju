@@ -245,7 +245,7 @@ func (c *TurntableCamera) internalUpdateView() {
 func (c *TurntableCamera) updateViewAndPosition() {
 	defer tracing.NewRegion("TurntableCamera.updateViewAndPosition").End()
 	c.position.SetZ(c.zoom)
-	c.updateView()
+	c.callUpdateView()
 	c.position = c.iView.Position()
 }
 

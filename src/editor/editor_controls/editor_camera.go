@@ -104,16 +104,17 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		tc.SetLookAt(matrix.Vec3Zero())
 		tc.SetZoom(15)
 		e.camera = tc
-		host.Camera = e.camera
+		host.Cameras.Primary.ChangeCamera(e.camera)
 	case EditorCameraMode2d:
-		cw := host.Camera.Width()
-		ch := host.Camera.Height()
+		prev := host.Cameras.Primary.Camera
+		cw := prev.Width()
+		ch := prev.Height()
 		ratio := cw / ch
 		w := (cw / cw) * ratio * 10
 		h := (ch / cw) * ratio * 10
 		oc := cameras.NewStandardCameraOrthographic(w, h, cw, ch, matrix.NewVec3(0, 0, 100))
 		e.camera = oc
-		host.Camera = e.camera
+		host.Cameras.Primary.ChangeCamera(e.camera)
 		host.Window.OnResize.Remove(e.resizeId)
 		e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
 	}
@@ -280,8 +281,9 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		changed = true
 	}
 	if mouse.Scrolled() {
-		cw := host.Camera.Width()
-		ch := host.Camera.Height()
+		cam := host.PrimaryCamera()
+		cw := cam.Width()
+		ch := cam.Height()
 		w := oc.Width()
 		h := oc.Height()
 		r := cw / ch

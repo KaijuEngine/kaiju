@@ -103,6 +103,7 @@ func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_
 		Mesh:       grid,
 		ShaderData: gsd,
 		Transform:  &target.Transform,
+		ViewCuller: &host.Cameras.Primary,
 	})
 	c.LightLines[target] = sd
 }

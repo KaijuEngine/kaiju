@@ -63,6 +63,7 @@ type StandardCamera struct {
 	viewHeight       float32
 	isOrthographic   bool
 	sizeIsViewSize   bool
+	frameDirty       bool
 }
 
 // NewStandardCamera creates a new perspective camera using the width/height
@@ -90,47 +91,50 @@ func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32,
 // Frustum will return the camera's view frustum which is updated any time the
 // view or project of the camera changes.
 func (c *StandardCamera) Frustum() collision.Frustum { return c.frustum }
+func (c *StandardCamera) IsDirty() bool              { return c.frameDirty }
+
+func (c *StandardCamera) NewFrame() { c.frameDirty = false }
 
 // SetPosition sets the position of the camera.
 func (c *StandardCamera) SetPosition(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetPosition").End()
 	c.position = position
-	c.updateView()
+	c.callUpdateView()
 }
 
 // SetFOV sets the field of view for the camera.
 func (c *StandardCamera) SetFOV(fov float32) {
 	defer tracing.NewRegion("StandardCamera.SetFOV").End()
 	c.fieldOfView = fov
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // SetNearPlane sets the near plane for the camera.
 func (c *StandardCamera) SetNearPlane(near float32) {
 	defer tracing.NewRegion("StandardCamera.SetNearPlane").End()
 	c.nearPlane = near
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // SetFarPlane sets the far plane for the camera.
 func (c *StandardCamera) SetFarPlane(far float32) {
 	defer tracing.NewRegion("StandardCamera.SetFarPlane").End()
 	c.farPlane = far
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // SetWidth sets the width of the camera viewport.
 func (c *StandardCamera) SetWidth(width float32) {
 	defer tracing.NewRegion("StandardCamera.SetWidth").End()
 	c.width = width
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // SetHeight sets the height of the camera viewport.
 func (c *StandardCamera) SetHeight(height float32) {
 	defer tracing.NewRegion("StandardCamera.SetHeight").End()
 	c.height = height
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // Resize sets the width and height of the camera viewport.
@@ -138,7 +142,7 @@ func (c *StandardCamera) Resize(width, height float32) {
 	defer tracing.NewRegion("StandardCamera.Resize").End()
 	c.width = width
 	c.height = height
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // ViewportChanged will update the camera's projection matrix and should only
@@ -152,7 +156,7 @@ func (c *StandardCamera) ViewportChanged(width, height float32) {
 	}
 	c.viewWidth = width
 	c.viewHeight = height
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // SetProperties is quick access to set many properties of the camera at once.
@@ -166,7 +170,7 @@ func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height f
 	c.farPlane = farPlane
 	c.width = width
 	c.height = height
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 // Forward returns the forward vector of the camera.
@@ -200,7 +204,7 @@ func (c *StandardCamera) Up() matrix.Vec3 {
 func (c *StandardCamera) SetLookAt(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetLookAt").End()
 	c.lookAt = position
-	c.updateView()
+	c.callUpdateView()
 }
 
 // SetLookAtWithUp sets the look at position of the camera and the up vector to use.
@@ -208,7 +212,7 @@ func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetLookAtWithUp").End()
 	c.lookAt = point
 	c.up = up
-	c.updateView()
+	c.callUpdateView()
 }
 
 // SetPositionAndLookAt sets the position and look at position of the camera.
@@ -222,7 +226,7 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	}
 	c.position = position
 	c.lookAt = lookAt
-	c.updateView()
+	c.callUpdateView()
 }
 
 // RayCast will project a ray from the camera's position given a screen position
@@ -312,7 +316,7 @@ func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32
 	c.viewWidth = viewWidth
 	c.viewHeight = viewHeight
 	c.setProjection(width, height)
-	c.updateView()
+	c.callUpdateView()
 	c.sizeIsViewSize = width == viewWidth && height == viewHeight
 }
 
@@ -320,7 +324,7 @@ func (c *StandardCamera) setProjection(width, height float32) {
 	defer tracing.NewRegion("StandardCamera.setProjection").End()
 	c.width = width
 	c.height = height
-	c.updateProjection()
+	c.callUpdateProjection()
 }
 
 func (c *StandardCamera) internalUpdateProjection() {
@@ -383,4 +387,14 @@ func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3)
 		direction = forward
 	}
 	return collision.Ray{Origin: origin, Direction: direction}
+}
+
+func (c *StandardCamera) callUpdateView() {
+	c.updateView()
+	c.frameDirty = true
+}
+
+func (c *StandardCamera) callUpdateProjection() {
+	c.updateProjection()
+	c.frameDirty = true
 }

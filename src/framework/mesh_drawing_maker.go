@@ -57,9 +57,10 @@ func createDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer: host.Window.Renderer,
-		Material: mat,
-		Mesh:     mesh,
+		Renderer:   host.Window.Renderer,
+		Material:   mat,
+		Mesh:       mesh,
+		ViewCuller: &host.Cameras.Primary,
 		ShaderData: &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -85,9 +86,10 @@ func CreateDrawingFromMeshBasicLit(host *engine.Host, mesh *rendering.Mesh, text
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer: host.Window.Renderer,
-		Material: mat,
-		Mesh:     mesh,
+		Renderer:   host.Window.Renderer,
+		Material:   mat,
+		Mesh:       mesh,
+		ViewCuller: &host.Cameras.Primary,
 		ShaderData: &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -104,9 +106,10 @@ func CreateDrawingFromMeshBasicLitDynamic(host *engine.Host, mesh *rendering.Mes
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer: host.Window.Renderer,
-		Material: mat,
-		Mesh:     mesh,
+		Renderer:   host.Window.Renderer,
+		Material:   mat,
+		Mesh:       mesh,
+		ViewCuller: &host.Cameras.Primary,
 		ShaderData: &shader_data_registry.ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),

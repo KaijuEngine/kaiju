@@ -79,6 +79,16 @@ type timeRun struct {
 	call func()
 }
 
+type hostCameras struct {
+	Primary cameras.Container
+	UI      cameras.Container
+}
+
+func (c *hostCameras) NewFrame() {
+	c.Primary.Camera.NewFrame()
+	c.UI.Camera.NewFrame()
+}
+
 // Host is the mediator to the entire runtime for the game/editor. It is the
 // main entry point for the game loop and is responsible for managing all
 // entities, the window, and the rendering context. The host can be used to
@@ -105,8 +115,7 @@ type Host struct {
 	threads             concurrent.Threads
 	updateThreads       concurrent.Threads
 	uiThreads           concurrent.Threads
-	Camera              cameras.Camera
-	UICamera            cameras.Camera
+	Cameras             hostCameras
 	collisionManager    collision_system.Manager
 	audio               *audio.Audio
 	shaderCache         rendering.ShaderCache
@@ -147,11 +156,13 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
 		CloseSignal:   make(chan struct{}, 1),
-		Camera:        cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward()),
-		UICamera:      cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250}),
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
 		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
+		Cameras: hostCameras{
+			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
+			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
+		},
 	}
 	host.threads.Initialize()
 	host.updateThreads.Initialize()
@@ -193,8 +204,8 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.threads.Start()
 	host.updateThreads.Start()
 	host.uiThreads.Start()
-	host.Camera.ViewportChanged(float32(width), float32(height))
-	host.UICamera.ViewportChanged(float32(width), float32(height))
+	host.Cameras.Primary.Camera.ViewportChanged(float32(width), float32(height))
+	host.Cameras.UI.Camera.ViewportChanged(float32(width), float32(height))
 	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, host.assetDatabase)
@@ -242,6 +253,14 @@ func (host *Host) UIThreads() *concurrent.Threads {
 
 // Name returns the name of the host
 func (host *Host) Name() string { return host.name }
+
+func (host *Host) PrimaryCamera() cameras.Camera {
+	return host.Cameras.Primary.Camera
+}
+
+func (host *Host) UICamera() cameras.Camera {
+	return host.Cameras.UI.Camera
+}
 
 // CollisionManager returns the collision manager for this host
 func (host *Host) CollisionManager() *collision_system.Manager {
@@ -384,6 +403,7 @@ func (host *Host) NewEntity() *Entity {
 func (host *Host) Update(deltaTime float64) {
 	defer tracing.NewRegion("Host.Update").End()
 	host.frame++
+	host.Cameras.NewFrame()
 	debug.Ensure(deltaTime >= 0)
 	host.frameTime += max(0.0, deltaTime)
 	host.Window.Poll()
@@ -461,7 +481,8 @@ func (host *Host) Render() {
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
 		host.lighting.Update(host.renderDetailsFrom)
-		if host.Window.Renderer.ReadyFrame(host.Window, host.Camera, host.UICamera,
+		if host.Window.Renderer.ReadyFrame(host.Window,
+			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			host.lighting.Lights.Cache, host.lighting.StaticShadows.Cache,
 			host.lighting.DynamicShadows.Cache, float32(host.Runtime())) {
 			host.Drawings.Render(host.Window.Renderer)
@@ -610,6 +631,6 @@ func (host *Host) ImportPlugins(path string) error {
 
 func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
-	host.Camera.ViewportChanged(w, h)
-	host.UICamera.ViewportChanged(w, h)
+	host.Cameras.Primary.Camera.ViewportChanged(w, h)
+	host.Cameras.UI.Camera.ViewportChanged(w, h)
 }

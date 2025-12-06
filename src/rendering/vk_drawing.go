@@ -277,6 +277,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			Mesh:       mesh,
 			ShaderData: sd,
 			Sort:       sorts[i],
+			ViewCuller: &vr.combinedDrawingCuller,
 		})
 	}
 	vr.combinedDrawings.PreparePending()

@@ -124,7 +124,7 @@ func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
-	camPos := v.host.Camera.Position()
+	camPos := v.host.PrimaryCamera().Position()
 	switch v.camera.Mode() {
 	case editor_controls.EditorCameraMode2d:
 		v.gridTransform.SetPosition(matrix.NewVec3(
@@ -164,6 +164,7 @@ func (v *StageView) createViewportGrid() {
 		Mesh:       grid,
 		ShaderData: v.gridShader,
 		Transform:  &v.gridTransform,
+		ViewCuller: &v.host.Cameras.Primary,
 	})
 }
 

@@ -102,7 +102,7 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 	} else {
 		mp = m.ScreenPosition()
 	}
-	ray := w.Host.Camera.RayCast(mp)
+	ray := w.Host.PrimaryCamera().RayCast(mp)
 	e, eHitOk := w.stageView.Manager().TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
 	// to doing the ground plane/distance hit point
@@ -237,6 +237,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 			Mesh:       e.StageData.Mesh,
 			ShaderData: e.StageData.ShaderData,
 			Transform:  &e.Transform,
+			ViewCuller: &w.Host.Cameras.Primary,
 		}
 		w.Host.Drawings.AddDrawing(draw)
 	})
@@ -280,6 +281,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
+		ViewCuller: &w.Host.Cameras.Primary,
 	}
 	w.Host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })

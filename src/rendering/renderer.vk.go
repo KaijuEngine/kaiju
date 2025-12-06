@@ -41,6 +41,7 @@ import (
 	"errors"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/engine/pooling"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -100,15 +101,21 @@ type Vulkan struct {
 	currentFrame               int
 	msaaSamples                vulkan_const.SampleCountFlagBits
 	combinedDrawings           Drawings
-	preRuns                    []func()
-	dbg                        debugVulkan
-	renderPassCache            map[string]*RenderPass
-	hasSwapChain               bool
-	writtenCommands            []CommandRecorder
-	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
-	combineCmds                [maxFramesInFlight]CommandRecorder
-	blitCmds                   [maxFramesInFlight]CommandRecorder
+	combinedDrawingCuller
+	preRuns               []func()
+	dbg                   debugVulkan
+	renderPassCache       map[string]*RenderPass
+	hasSwapChain          bool
+	writtenCommands       []CommandRecorder
+	singleTimeCommandPool pooling.PoolGroup[CommandRecorder]
+	combineCmds           [maxFramesInFlight]CommandRecorder
+	blitCmds              [maxFramesInFlight]CommandRecorder
 }
+
+type combinedDrawingCuller struct{}
+
+func (combinedDrawingCuller) IsInView(collision.AABB) bool { return true }
+func (combinedDrawingCuller) ViewChanged() bool            { return true }
 
 func init() {
 	klib.Must(vk.SetDefaultGetInstanceProcAddr())
