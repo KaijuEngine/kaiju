@@ -1,0 +1,50 @@
+package editor_settings // import "."
+
+
+TYPES
+
+type AppDataMissingError struct {
+	Err error
+}
+
+func (e AppDataMissingError) Error() string
+
+type BuildToolSettings struct {
+	AndroidNDK string `label:"Android NDK"`
+	JavaHome   string
+}
+
+type ReadError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e ReadError) Error() string
+
+type Settings struct {
+	RecentProjects []string `visible:"false"`
+	RefreshRate    int32    `clamp:"60,0,320"`
+	UIScrollSpeed  float32  `default:"20" label:"UI Scroll Speed"`
+	Snapping       SnapSettings
+	BuildTools     BuildToolSettings
+}
+
+func (s *Settings) AddRecentProject(path string)
+
+func (s *Settings) Load() error
+
+func (s *Settings) Save() error
+
+type SnapSettings struct {
+	TranslateIncrement float32
+	RotateIncrement    float32
+	ScaleIncrement     float32
+}
+
+type WriteError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e WriteError) Error() string
+
