@@ -118,8 +118,9 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 	wd := weak.Make(d)
 	d.onWindowResizeId = host.Window.OnResize.Add(func() {
 		sd := wd.Value()
-		if sd != nil {
-			sd.ApplyStyles()
+		h := sd.host.Value()
+		if sd != nil && h != nil {
+			h.RunOnMainThread(sd.ApplyStyles)
 		}
 	})
 	type documentCleanup struct {
