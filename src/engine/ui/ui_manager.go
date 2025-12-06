@@ -94,7 +94,7 @@ func (man *Manager) update(deltaTime float64) {
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
 	all := append(children, roots...)
-	//wg.Add(len(all))
+	wg.Add(len(all))
 	tCount := threads.ThreadCount()
 	if len(man.hovered) != tCount {
 		man.hovered = make([][]*UI, tCount)
@@ -111,11 +111,11 @@ func (man *Manager) update(deltaTime float64) {
 			if e.isActive() && e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
-			//wg.Done()
+			wg.Done()
 		}
 	}
 	threads.AddWork(work)
-	//wg.Wait()
+	wg.Wait()
 	man.windowResized = false
 }
 
