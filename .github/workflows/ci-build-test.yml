@@ -39,6 +39,7 @@ jobs:
             mesa-vulkan-drivers \
             vulkan-tools \
             libvulkan-dev \
+            libasound2-dev \
             xvfb \
             xauth
 
