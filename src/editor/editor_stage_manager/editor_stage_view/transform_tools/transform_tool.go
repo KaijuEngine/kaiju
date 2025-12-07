@@ -91,6 +91,7 @@ func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, hist
 			host.Drawings.AddDrawing(t.wires[i])
 		}
 	}
+	t.wireTransform.ResetDirty()
 }
 
 func (t *TransformTool) Update() (busy bool) {

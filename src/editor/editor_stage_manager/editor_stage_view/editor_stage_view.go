@@ -133,6 +133,7 @@ func (v *StageView) updateGridPosition() {
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}
+	v.gridTransform.ResetDirty()
 }
 
 func (v *StageView) createViewportGrid() {
@@ -166,6 +167,7 @@ func (v *StageView) createViewportGrid() {
 		Transform:  &v.gridTransform,
 		ViewCuller: &v.host.Cameras.Primary,
 	})
+	v.gridTransform.ResetDirty()
 }
 
 func (v *StageView) setupCamera() {
