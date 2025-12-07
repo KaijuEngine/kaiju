@@ -73,6 +73,11 @@ func (EditorGame) Launch(host *engine.Host) {
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
 		ed.BlurInterface()
-		ed.newProjectOverlay()
+		if engine.LaunchParams.AutoTest {
+			// Auto-test mode: create a temporary test project automatically
+			ed.createProject("AutoTest", "autotestproject")
+		} else {
+			ed.newProjectOverlay()
+		}
 	})
 }
