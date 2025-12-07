@@ -101,15 +101,15 @@ type Vulkan struct {
 	currentFrame               int
 	msaaSamples                vulkan_const.SampleCountFlagBits
 	combinedDrawings           Drawings
-	combinedDrawingCuller
-	preRuns               []func()
-	dbg                   debugVulkan
-	renderPassCache       map[string]*RenderPass
-	hasSwapChain          bool
-	writtenCommands       []CommandRecorder
-	singleTimeCommandPool pooling.PoolGroup[CommandRecorder]
-	combineCmds           [maxFramesInFlight]CommandRecorder
-	blitCmds              [maxFramesInFlight]CommandRecorder
+	combinedDrawingCuller      combinedDrawingCuller
+	preRuns                    []func()
+	dbg                        debugVulkan
+	renderPassCache            map[string]*RenderPass
+	hasSwapChain               bool
+	writtenCommands            []CommandRecorder
+	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
+	combineCmds                [maxFramesInFlight]CommandRecorder
+	blitCmds                   [maxFramesInFlight]CommandRecorder
 }
 
 type combinedDrawingCuller struct{}
