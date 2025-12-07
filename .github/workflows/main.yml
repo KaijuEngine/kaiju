@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - feature/vulkan-matrix
 
 permissions:
   contents: write

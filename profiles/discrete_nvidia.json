@@ -1,0 +1,107 @@
+{
+  "$schema": "https://schema.khronos.org/vulkan/profiles-0.8.2-latest.json#",
+  "capabilities": {
+    "baseline": {
+      "extensions": {
+        "VK_KHR_swapchain": 1
+      }
+    }
+  },
+  "profiles": {
+    "VP_KAIJU_discrete_nvidia": {
+      "version": 1,
+      "api-version": "1.3.0",
+      "label": "Kaiju NVIDIA Discrete GPU Profile",
+      "description": "Simulates NVIDIA discrete GPU for CI testing",
+      "contributors": {},
+      "history": [],
+      "capabilities": [
+        "baseline"
+      ],
+      "device": {
+        "properties": {
+          "VkPhysicalDeviceProperties": {
+            "apiVersion": 4206850,
+            "driverVersion": 1,
+            "vendorID": 4318,
+            "deviceID": 1,
+            "deviceType": "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU",
+            "deviceName": "Simulated NVIDIA GeForce RTX",
+            "limits": {
+              "maxImageDimension2D": 32768,
+              "maxImageDimension3D": 16384,
+              "maxComputeSharedMemorySize": 49152,
+              "maxComputeWorkGroupInvocations": 1024,
+              "maxMemoryAllocationCount": 4096,
+              "maxSamplerAllocationCount": 4000,
+              "maxBoundDescriptorSets": 32,
+              "maxPerStageDescriptorSamplers": 1000000,
+              "maxPerStageDescriptorUniformBuffers": 15,
+              "maxPerStageDescriptorStorageBuffers": 1000000,
+              "maxPerStageDescriptorSampledImages": 1000000,
+              "maxPerStageDescriptorStorageImages": 1000000,
+              "maxDescriptorSetSamplers": 1000000,
+              "maxDescriptorSetUniformBuffers": 90,
+              "maxDescriptorSetStorageBuffers": 1000000,
+              "maxDescriptorSetSampledImages": 1000000,
+              "maxDescriptorSetStorageImages": 1000000,
+              "maxFragmentCombinedOutputResources": 16,
+              "maxFramebufferWidth": 32768,
+              "maxFramebufferHeight": 32768,
+              "framebufferColorSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT",
+                "VK_SAMPLE_COUNT_2_BIT",
+                "VK_SAMPLE_COUNT_4_BIT",
+                "VK_SAMPLE_COUNT_8_BIT"
+              ],
+              "framebufferDepthSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT",
+                "VK_SAMPLE_COUNT_2_BIT",
+                "VK_SAMPLE_COUNT_4_BIT",
+                "VK_SAMPLE_COUNT_8_BIT"
+              ],
+              "sampledImageColorSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT",
+                "VK_SAMPLE_COUNT_2_BIT",
+                "VK_SAMPLE_COUNT_4_BIT",
+                "VK_SAMPLE_COUNT_8_BIT"
+              ],
+              "sampledImageDepthSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT",
+                "VK_SAMPLE_COUNT_2_BIT",
+                "VK_SAMPLE_COUNT_4_BIT",
+                "VK_SAMPLE_COUNT_8_BIT"
+              ],
+              "sampledImageIntegerSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT",
+                "VK_SAMPLE_COUNT_2_BIT",
+                "VK_SAMPLE_COUNT_4_BIT",
+                "VK_SAMPLE_COUNT_8_BIT"
+              ],
+              "maxSampleMaskWords": 1,
+              "maxColorAttachments": 8,
+              "maxViewportDimensions": [32768, 32768],
+              "viewportBoundsRange": [-65536, 65536],
+              "maxViewports": 16,
+              "pointSizeRange": [1.0, 2047.0],
+              "lineWidthRange": [0.5, 10.0]
+            }
+          }
+        },
+        "features": {
+          "VkPhysicalDeviceFeatures": {
+            "samplerAnisotropy": true,
+            "fillModeNonSolid": true,
+            "wideLines": true,
+            "largePoints": true,
+            "multiViewport": true,
+            "geometryShader": true,
+            "tessellationShader": true,
+            "shaderFloat64": true,
+            "shaderInt64": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://schema.khronos.org/vulkan/profiles-0.8.2-latest.json#",
+  "capabilities": {
+    "baseline": {
+      "extensions": {
+        "VK_KHR_swapchain": 1
+      }
+    }
+  },
+  "profiles": {
+    "VP_KAIJU_minimal": {
+      "version": 1,
+      "api-version": "1.0.0",
+      "label": "Kaiju Minimal Vulkan Profile",
+      "description": "Minimal Vulkan 1.0 baseline for compatibility testing",
+      "contributors": {},
+      "history": [],
+      "capabilities": [
+        "baseline"
+      ],
+      "device": {
+        "properties": {
+          "VkPhysicalDeviceProperties": {
+            "apiVersion": 4194304,
+            "driverVersion": 1,
+            "vendorID": 65535,
+            "deviceID": 1,
+            "deviceType": "VK_PHYSICAL_DEVICE_TYPE_CPU",
+            "deviceName": "Minimal Vulkan 1.0 Device",
+            "limits": {
+              "maxImageDimension2D": 4096,
+              "maxImageDimension3D": 256,
+              "maxComputeSharedMemorySize": 16384,
+              "maxComputeWorkGroupInvocations": 128,
+              "maxMemoryAllocationCount": 4096,
+              "maxSamplerAllocationCount": 4000,
+              "maxBoundDescriptorSets": 4,
+              "maxPerStageDescriptorSamplers": 16,
+              "maxPerStageDescriptorUniformBuffers": 12,
+              "maxPerStageDescriptorStorageBuffers": 4,
+              "maxPerStageDescriptorSampledImages": 16,
+              "maxPerStageDescriptorStorageImages": 4,
+              "maxDescriptorSetSamplers": 96,
+              "maxDescriptorSetUniformBuffers": 72,
+              "maxDescriptorSetStorageBuffers": 24,
+              "maxDescriptorSetSampledImages": 96,
+              "maxDescriptorSetStorageImages": 24,
+              "maxFragmentCombinedOutputResources": 4,
+              "maxFramebufferWidth": 4096,
+              "maxFramebufferHeight": 4096,
+              "framebufferColorSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT"
+              ],
+              "framebufferDepthSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT"
+              ],
+              "sampledImageColorSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT"
+              ],
+              "sampledImageDepthSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT"
+              ],
+              "sampledImageIntegerSampleCounts": [
+                "VK_SAMPLE_COUNT_1_BIT"
+              ],
+              "maxSampleMaskWords": 1,
+              "maxColorAttachments": 4,
+              "maxViewportDimensions": [4096, 4096],
+              "viewportBoundsRange": [-8192, 8192],
+              "maxViewports": 1,
+              "pointSizeRange": [1.0, 64.0],
+              "lineWidthRange": [1.0, 1.0]
+            }
+          }
+        },
+        "features": {
+          "VkPhysicalDeviceFeatures": {
+            "samplerAnisotropy": true,
+            "fillModeNonSolid": false,
+            "wideLines": false,
+            "largePoints": false,
+            "multiViewport": false,
+            "geometryShader": false,
+            "tessellationShader": false
+          }
+        }
+      }
+    }
+  }
+}
