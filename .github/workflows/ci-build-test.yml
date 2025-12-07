@@ -81,12 +81,16 @@ jobs:
           XVFB_PID=$!
           echo "Xvfb PID: $XVFB_PID"
 
-          # Give Xvfb time to start
+          # Give Xvfb time to start and verify it's running
           sleep 2
+          if ! kill -0 $XVFB_PID 2>/dev/null; then
+            echo "✗ Xvfb failed to start"
+            exit 1
+          fi
 
           # Run the editor with automated integration tests
           echo "Starting Kaiju Editor with automated tests..."
-          timeout 30s ./kaiju --autotest || EXIT_CODE=$?
+          timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           # Exit code 0 means auto-test completed successfully
@@ -102,8 +106,10 @@ jobs:
             TEST_RESULT=1
           fi
 
-          # Kill Xvfb
+          # Cleanup
+          echo "Cleaning up..."
           kill $XVFB_PID 2>/dev/null || true
+          rm -rf autotestproject
 
           exit $TEST_RESULT
 
