@@ -283,6 +283,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kaiju-editor-${{ matrix.profile }}
+          name: kaiju-editor-${{ matrix.profile }}-${{ matrix.validation }}
           path: kaiju
           retention-days: 7
