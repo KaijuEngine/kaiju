@@ -52,11 +52,11 @@ type ViewCuller interface {
 }
 
 type DrawInstance interface {
+	Base() *ShaderDataBase
 	Destroy()
 	IsDestroyed() bool
 	Activate()
 	Deactivate()
-	IsActive() bool
 	IsInView() bool
 	Size() int
 	SetModel(model matrix.Mat4)
@@ -114,12 +114,12 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
-func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }
-func (s *ShaderDataBase) IsInView() bool     { return !s.viewCulled }
-func (s *ShaderDataBase) Model() matrix.Mat4 { return s.model }
+func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
+func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()        { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool     { return s.destroyed }
+func (s *ShaderDataBase) IsInView() bool        { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) Model() matrix.Mat4    { return s.model }
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
@@ -295,21 +295,23 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 	instanceIndex := 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
-		if instance.IsDestroyed() {
+		// This gives me a tiny fraction of extra perf for some reason, don't judge me
+		instanceBase := instance.Base()
+		if instanceBase.IsDestroyed() {
 			d.Instances[i] = d.Instances[count-1]
 			i--
 			count--
 			continue
 		}
-		instance.UpdateModel(d.viewCuller, d.Mesh.Bounds())
-		if instance.IsActive() && instance.IsInView() {
+		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
+		if instanceBase.IsInView() {
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
 					d.updateNamedData(instanceIndex, instance, k, frame)
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)
-			klib.Memcpy(to, instance.DataPointer(), uint64(d.instanceSize))
+			klib.Memcpy(to, instanceBase.DataPointer(), uint64(d.instanceSize))
 			offset += uintptr(d.instanceSize + d.rawData.padding)
 			d.visibleCount++
 			instanceIndex++
