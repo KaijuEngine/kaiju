@@ -99,6 +99,7 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 		Mesh:       frustum,
 		ShaderData: sd,
 		Transform:  &target.Transform,
+		ViewCuller: &host.Cameras.Primary,
 	})
 	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
 }

@@ -95,6 +95,7 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
+		ViewCuller: &manager.host.Cameras.Primary,
 	}
 	manager.host.Drawings.AddDrawing(draw)
 }

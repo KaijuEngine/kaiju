@@ -123,6 +123,9 @@ func (c *TurntableCamera) Dolly(delta float32) {
 // Orbit orbits the camera around the look at point by the given delta.
 func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	defer tracing.NewRegion("TurntableCamera.Orbit").End()
+	if delta.Equals(matrix.Vec3Zero()) {
+		return
+	}
 	c.pitch += delta.X()
 	c.yaw += delta.Y()
 	c.updateViewAndPosition()
@@ -245,7 +248,7 @@ func (c *TurntableCamera) internalUpdateView() {
 func (c *TurntableCamera) updateViewAndPosition() {
 	defer tracing.NewRegion("TurntableCamera.updateViewAndPosition").End()
 	c.position.SetZ(c.zoom)
-	c.updateView()
+	c.callUpdateView()
 	c.position = c.iView.Position()
 }
 

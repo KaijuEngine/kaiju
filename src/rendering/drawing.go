@@ -52,6 +52,7 @@ type Drawing struct {
 	ShaderData   DrawInstance
 	Transform    *matrix.Transform
 	Sort         int
+	ViewCuller   ViewCuller
 	CastsShadows bool
 }
 
@@ -130,7 +131,7 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 	if idx >= 0 && !draw.instanceGroups[idx].destroyed {
 		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
 	} else {
-		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size())
+		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size(), drawing.ViewCuller)
 		group.MaterialInstance = drawing.Material
 		group.AddInstance(drawing.ShaderData)
 		group.MaterialInstance.Textures = drawing.Material.Textures

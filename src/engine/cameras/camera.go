@@ -71,4 +71,6 @@ type Camera interface {
 	IsOrthographic() bool
 	Viewport() matrix.Vec4
 	Frustum() collision.Frustum
+	IsDirty() bool
+	NewFrame()
 }

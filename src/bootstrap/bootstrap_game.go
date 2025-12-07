@@ -65,7 +65,7 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 	container.RunFunction(func() {
 		container.Host.Window.EnableRawMouseInput()
 		initExternalGameServiceRuntime(container.Host)
-		container.Host.Camera.SetPosition(matrix.Vec3{0, 0, 5})
+		container.Host.PrimaryCamera().SetPosition(matrix.Vec3{0, 0, 5})
 		if build.Debug {
 			profiler.SetupConsole(container.Host)
 			html_preview.SetupConsole(container.Host)

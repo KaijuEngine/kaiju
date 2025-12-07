@@ -157,9 +157,10 @@ func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
 func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
 	m.ClearSelection()
-	f := m.host.Camera.Frustum()
-	v, p := m.host.Camera.View(), m.host.Camera.Projection()
-	viewport := m.host.Camera.Viewport()
+	cam := m.host.PrimaryCamera()
+	f := cam.Frustum()
+	v, p := cam.View(), cam.Projection()
+	viewport := cam.Viewport()
 	for _, e := range m.entities {
 		if e.StageData.Bvh == nil {
 			continue

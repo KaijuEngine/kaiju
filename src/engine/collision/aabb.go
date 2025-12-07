@@ -40,7 +40,6 @@ package collision
 import (
 	"kaiju/matrix"
 	"math"
-	"unsafe"
 )
 
 // AABB is an axis-aligned bounding box
@@ -326,63 +325,24 @@ func (box *AABB) InFrustum(frustum Frustum) bool {
 	min := box.Min()
 	max := box.Max()
 	for i := 0; i < 6; i++ {
-		out := 0
-		pv := *(*matrix.Vec4)(unsafe.Pointer(&frustum.Planes[i].Normal))
-		if matrix.Vec4Dot(pv, matrix.Vec4{min.X(), min.Y(), min.Z(), 1}) < 0 {
-			out += 1
+		n := frustum.Planes[i].Normal
+		d := frustum.Planes[i].Dot
+		px := min.X()
+		if n.X() > 0 {
+			px = max.X()
 		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{max.X(), min.Y(), min.Z(), 1}) < 0 {
-			out += 1
+		py := min.Y()
+		if n.Y() > 0 {
+			py = max.Y()
 		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{min.X(), max.Y(), min.Z(), 1}) < 0 {
-			out += 1
+		pz := min.Z()
+		if n.Z() > 0 {
+			pz = max.Z()
 		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{max.X(), max.Y(), min.Z(), 1}) < 0 {
-			out += 1
-		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{min.X(), min.Y(), max.Z(), 1}) < 0 {
-			out += 1
-		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{max.X(), min.Y(), max.Z(), 1}) < 0 {
-			out += 1
-		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{min.X(), max.Y(), max.Z(), 1}) < 0 {
-			out += 1
-		}
-		if matrix.Vec4Dot(pv, matrix.Vec4{max.X(), max.Y(), max.Z(), 1}) < 0 {
-			out += 1
-		}
-		if out == 8 {
+		if n.X()*px+n.Y()*py+n.Z()*pz+d < 0 {
 			return false
 		}
 	}
-	// TODO:  Uncomment for large object calculations
-	// check frustum outside/inside box
-	//int out;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].x > max.x) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].x < min.x) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].y > max.y) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].y < min.y) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].z > max.z) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
-	//out = 0;
-	//for (int i = 0; i < 8; ++i) out += ((frustum->planePositions[i].z < min.z) ? 1 : 0);
-	//if (out == 8)
-	//	return false;
 	return true
 }
 

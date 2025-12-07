@@ -42,6 +42,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"kaiju/engine/assets"
+	"kaiju/engine/cameras"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -448,7 +449,7 @@ func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches Rend
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
-	is3D bool, face FontFace, lineHeight float32) []Drawing {
+	is3D bool, face FontFace, lineHeight float32, cam *cameras.Container) []Drawing {
 	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
 	cx := x
@@ -602,6 +603,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					Mesh:       m,
 					ShaderData: shaderData,
 					Transform:  nil,
+					ViewCuller: cam,
 				}
 				fontMeshes = append(fontMeshes, drawing)
 				cx += ch.advance * scale * inverseWidth

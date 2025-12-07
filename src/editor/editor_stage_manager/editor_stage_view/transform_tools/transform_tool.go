@@ -91,6 +91,7 @@ func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, hist
 			host.Drawings.AddDrawing(t.wires[i])
 		}
 	}
+	t.wireTransform.ResetDirty()
 }
 
 func (t *TransformTool) Update() (busy bool) {
@@ -176,6 +177,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
+		ViewCuller: &host.Cameras.Primary,
 	}, nil
 }
 
@@ -347,7 +349,8 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	var delta, point matrix.Vec3
 	switch t.stage.Camera().Mode() {
 	case editor_controls.EditorCameraMode3d:
-		r := host.Camera.RayCast(mp)
+		cam := host.PrimaryCamera()
+		r := cam.RayCast(mp)
 		center := sel[0].Transform.Position()
 		delta = matrix.Vec3Zero()
 		point = matrix.Vec3Zero()
@@ -356,7 +359,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 			if t.axis != AxisStateNone {
 				point = t.findPlaneHitPoint(r, center)
 			} else {
-				hp, ok := host.Camera.ForwardPlaneHit(mp, center)
+				hp, ok := cam.ForwardPlaneHit(mp, center)
 				if ok {
 					point = hp
 				} else {
@@ -366,7 +369,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		case ToolStateRotate:
 			point = mp.AsVec3()
 		case ToolStateScale:
-			if hp, ok := host.Camera.ForwardPlaneHit(mp, center); ok {
+			if hp, ok := cam.ForwardPlaneHit(mp, center); ok {
 				point = hp
 			}
 		}
@@ -381,7 +384,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 			t.lastHit = point
 			t.firstHitUpdate = false
 		}
-		oc := host.Camera.(*cameras.StandardCamera)
+		oc := host.PrimaryCamera().(*cameras.StandardCamera)
 		cw := oc.Width() / float32(host.Window.Width())
 		ch := oc.Height() / float32(host.Window.Height())
 		delta = t.lastHit.Subtract(point).Multiply(matrix.NewVec3(-cw, -ch, 0))
@@ -433,7 +436,7 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	defer tracing.NewRegion("TransformTool.rotate").End()
 	var axis matrix.Vec3
 	var angle float32
-	camera := t.stage.WorkspaceHost().Camera
+	camera := t.stage.WorkspaceHost().PrimaryCamera()
 	forward := camera.Forward()
 	switch t.axis {
 	case AxisStateX:

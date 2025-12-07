@@ -88,14 +88,15 @@ func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host) {
 }
 
 func (c *CameraModule) SetAsActive() {
-	c.host.Camera = c.camera
+	c.host.Cameras.Primary.ChangeCamera(c.camera)
 }
 
 func (c *CameraModule) update(deltaTime float64) {
-	if !c.entity.IsActive() || c.camera != c.host.Camera {
+	p := &c.host.Cameras.Primary
+	if !c.entity.IsActive() || !p.Equal(c.camera) {
 		return
 	}
 	t := &c.entity.Transform
 	lookAt := t.Position().Add(t.Forward())
-	c.host.Camera.SetPositionAndLookAt(t.Position(), lookAt)
+	p.Camera.SetPositionAndLookAt(t.Position(), lookAt)
 }

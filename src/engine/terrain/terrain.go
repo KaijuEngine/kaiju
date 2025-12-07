@@ -179,6 +179,7 @@ func (t *Terrain) createDrawing(host *engine.Host, textures [textureCount]string
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			heightScalar:   defaultHeightScale,
 		},
+		ViewCuller: &host.Cameras.Primary,
 		//CastsShadows: true,
 	}
 	t.Entity.OnDestroy.Add(func() { t.drawing.ShaderData.Destroy() })

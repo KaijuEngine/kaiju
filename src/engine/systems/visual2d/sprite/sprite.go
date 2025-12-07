@@ -431,7 +431,8 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 			FgColor:        color,
 			UVs:            matrix.NewVec4(0, 0, 1, 1),
 		},
-		Transform: &s.Entity.Transform,
+		Transform:  &s.Entity.Transform,
+		ViewCuller: &host.Cameras.Primary,
 	}
 	return d, err
 }

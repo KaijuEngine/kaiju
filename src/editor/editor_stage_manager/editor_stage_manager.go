@@ -682,6 +682,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			Mesh:       mesh,
 			ShaderData: e.StageData.ShaderData,
 			Transform:  &e.Transform,
+			ViewCuller: &host.Cameras.Primary,
 		}
 		host.Drawings.AddDrawing(draw)
 		e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })

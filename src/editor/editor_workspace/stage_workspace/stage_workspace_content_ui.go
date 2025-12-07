@@ -308,7 +308,7 @@ func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
 		slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
 		return
 	}
-	w.spawnContentAtPosition(&cc, w.Host.Camera.LookAt())
+	w.spawnContentAtPosition(&cc, w.Host.PrimaryCamera().LookAt())
 	cui.dragPreview.UI.Hide()
 }
 

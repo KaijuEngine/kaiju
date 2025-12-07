@@ -342,6 +342,7 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 		Mesh:       mesh,
 		ShaderData: sd,
 		Transform:  &e.Transform,
+		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { sd.Destroy() })

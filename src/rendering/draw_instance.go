@@ -38,6 +38,7 @@
 package rendering
 
 import (
+	"kaiju/engine/collision"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -45,15 +46,21 @@ import (
 	"unsafe"
 )
 
+type ViewCuller interface {
+	IsInView(box collision.AABB) bool
+	ViewChanged() bool
+}
+
 type DrawInstance interface {
+	Base() *ShaderDataBase
 	Destroy()
 	IsDestroyed() bool
 	Activate()
 	Deactivate()
-	IsActive() bool
+	IsInView() bool
 	Size() int
 	SetModel(model matrix.Mat4)
-	UpdateModel()
+	UpdateModel(viewCuller ViewCuller, container collision.AABB)
 	DataPointer() unsafe.Pointer
 	// Returns true if it should write the data, otherwise false
 	UpdateNamedData(index, capacity int, name string) bool
@@ -61,6 +68,7 @@ type DrawInstance interface {
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
 	setShadow(shadow DrawInstance)
+	renderBounds() collision.AABB
 }
 
 func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
@@ -76,9 +84,11 @@ func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {
+	aabb        collision.AABB
 	destroyed   bool
 	deactivated bool
-	_           [2]byte
+	viewCulled  bool
+	_           [1]byte // Byte alignment
 	shadow      DrawInstance
 	transform   *matrix.Transform
 	InitModel   matrix.Mat4
@@ -104,11 +114,12 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) Destroy()           { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()     { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool  { return s.destroyed }
-func (s *ShaderDataBase) IsActive() bool     { return !s.deactivated }
-func (s *ShaderDataBase) Model() matrix.Mat4 { return s.model }
+func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
+func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()        { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool     { return s.destroyed }
+func (s *ShaderDataBase) IsInView() bool        { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) Model() matrix.Mat4    { return s.model }
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
@@ -126,9 +137,7 @@ func (s *ShaderDataBase) Deactivate() {
 
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
-	if s.transform != nil {
-		s.forceUpdateTransformModel()
-	}
+	s.forceUpdateTransformModel()
 }
 
 func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
@@ -146,14 +155,29 @@ func (s *ShaderDataBase) SetModel(model matrix.Mat4) {
 }
 
 func (s *ShaderDataBase) forceUpdateTransformModel() {
+	if s.transform == nil {
+		return
+	}
 	s.model = matrix.Mat4Multiply(s.InitModel, s.transform.WorldMatrix())
 }
 
-func (s *ShaderDataBase) UpdateModel() {
+func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB) {
+	recalcCulling := viewCuller.ViewChanged()
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
+		a := s.model.TransformPoint(container.Min())
+		b := s.model.TransformPoint(container.Max())
+		s.aabb = collision.AABBFromMinMax(a, b)
+		recalcCulling = true
+	} else if s.transform == nil {
+		s.aabb = container
+	}
+	if recalcCulling {
+		s.viewCulled = !viewCuller.IsInView(s.aabb)
 	}
 }
+
+func (s *ShaderDataBase) renderBounds() collision.AABB { return s.aabb }
 
 func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 	return unsafe.Pointer(&s.model[0])
@@ -181,6 +205,7 @@ type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
 	MaterialInstance  *Material
+	viewCuller        ViewCuller
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
 	namedInstanceData map[string]InstanceCopyData
@@ -190,7 +215,7 @@ type DrawInstanceGroup struct {
 	destroyed         bool
 }
 
-func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
+func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawInstanceGroup {
 	return DrawInstanceGroup{
 		Mesh:              mesh,
 		Instances:         make([]DrawInstance, 0),
@@ -198,6 +223,7 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int) DrawInstanceGroup {
 		namedInstanceData: make(map[string]InstanceCopyData),
 		instanceSize:      dataSize,
 		destroyed:         false,
+		viewCuller:        viewCuller,
 	}
 }
 
@@ -269,21 +295,23 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 	instanceIndex := 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
-		if instance.IsDestroyed() {
+		// This gives me a tiny fraction of extra perf for some reason, don't judge me
+		instanceBase := instance.Base()
+		if instanceBase.IsDestroyed() {
 			d.Instances[i] = d.Instances[count-1]
 			i--
 			count--
 			continue
 		}
-		instance.UpdateModel()
-		if instance.IsActive() {
+		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
+		if instanceBase.IsInView() {
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
 					d.updateNamedData(instanceIndex, instance, k, frame)
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)
-			klib.Memcpy(to, instance.DataPointer(), uint64(d.instanceSize))
+			klib.Memcpy(to, instanceBase.DataPointer(), uint64(d.instanceSize))
 			offset += uintptr(d.instanceSize + d.rawData.padding)
 			d.visibleCount++
 			instanceIndex++

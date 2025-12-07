@@ -79,10 +79,8 @@ type Mesh struct {
 	key            string
 	pendingVerts   []Vertex
 	pendingIndexes []uint32
-	bvh            *collision.BVH
+	bounds         collision.AABB
 }
-
-func (m *Mesh) BVH() *collision.BVH { return m.bvh }
 
 func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	defer tracing.NewRegion("rendering.NewMesh").End()
@@ -90,6 +88,14 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		key:            key,
 		pendingVerts:   verts,
 		pendingIndexes: indexes,
+	}
+	if len(verts) > 0 {
+		low, high := verts[0].Position, verts[0].Position
+		for i := 1; i < len(verts); i++ {
+			low = matrix.Vec3Min(low, verts[i].Position)
+			high = matrix.Vec3Max(high, verts[i].Position)
+		}
+		m.bounds = collision.AABBFromMinMax(low, high)
 	}
 	return m
 }
@@ -107,8 +113,9 @@ func (m *Mesh) DelayedCreate(renderer Renderer) {
 	}
 }
 
-func (m Mesh) Key() string   { return m.key }
-func (m Mesh) IsReady() bool { return m.MeshId.IsValid() }
+func (m Mesh) Key() string            { return m.key }
+func (m Mesh) IsReady() bool          { return m.MeshId.IsValid() }
+func (m Mesh) Bounds() collision.AABB { return m.bounds }
 
 var (
 	meshQuadUvs         = [4]matrix.Vec2{{0, 1}, {0, 0}, {1, 0}, {1, 1}}
