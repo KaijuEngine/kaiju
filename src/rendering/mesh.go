@@ -93,7 +93,7 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		low, high := verts[0].Position, verts[0].Position
 		for i := 1; i < len(verts); i++ {
 			low = matrix.Vec3Min(low, verts[i].Position)
-			high = matrix.Vec3Max(low, verts[i].Position)
+			high = matrix.Vec3Max(high, verts[i].Position)
 		}
 		m.bounds = collision.AABBFromMinMax(low, high)
 	}
