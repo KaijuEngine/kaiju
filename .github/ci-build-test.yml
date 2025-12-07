@@ -1,0 +1,115 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches:
+      - master
+      - staging
+  pull_request:
+    branches:
+      - master
+      - staging
+
+jobs:
+  build-and-test-linux:
+    name: Build and E2E Test on Linux
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            mesa-common-dev \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            libvulkan-dev \
+            xvfb \
+            xauth
+
+      - name: Install Vulkan SDK
+        run: |
+          # Add LunarG public key (modern approach without apt-key)
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+
+          # Add LunarG repository
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+
+          # Update and install Vulkan SDK
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Verify Vulkan installation
+        run: |
+          echo "Vulkan SDK version:"
+          vulkaninfo --summary || echo "vulkaninfo failed, but continuing..."
+          echo "VK_SDK_PATH: $VK_SDK_PATH"
+          echo "VULKAN_SDK: $VULKAN_SDK"
+
+      - name: Build editor (debug mode)
+        working-directory: ./src
+        run: |
+          go build -v -tags="debug,editor" -o ../kaiju ./
+          ls -lh ../kaiju
+
+      - name: Run editor E2E test
+        working-directory: .
+        env:
+          DISPLAY: ':99'
+        run: |
+          # Start Xvfb (X Virtual Frame Buffer) for headless display
+          echo "Starting Xvfb..."
+          Xvfb :99 -screen 0 1920x1080x24 &
+          XVFB_PID=$!
+          echo "Xvfb PID: $XVFB_PID"
+
+          # Give Xvfb time to start
+          sleep 2
+
+          # Run the editor with a timeout
+          echo "Starting Kaiju Editor..."
+          timeout 10s ./kaiju || EXIT_CODE=$?
+
+          # Check exit code
+          # timeout returns 124 if it times out (expected for GUI app)
+          # We want to catch actual crashes (non-zero exit codes other than 124)
+          if [ ${EXIT_CODE:-0} -eq 124 ]; then
+            echo "✓ Editor ran successfully for 10 seconds (timed out as expected)"
+            TEST_RESULT=0
+          elif [ ${EXIT_CODE:-0} -eq 0 ]; then
+            echo "✓ Editor exited cleanly"
+            TEST_RESULT=0
+          else
+            echo "✗ Editor crashed with exit code: ${EXIT_CODE}"
+            TEST_RESULT=1
+          fi
+
+          # Kill Xvfb
+          kill $XVFB_PID 2>/dev/null || true
+
+          exit $TEST_RESULT
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-linux
+          path: kaiju
+          retention-days: 7
