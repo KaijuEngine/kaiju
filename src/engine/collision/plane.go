@@ -66,7 +66,6 @@ func (p *Plane) SetFloatValue(value float32, index int) {
 	case 3:
 		p.Dot = value
 	}
-	p.Normal.Normalize()
 }
 
 // ToArray converts the plane to an array of 4 floats

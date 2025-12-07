@@ -351,14 +351,7 @@ func (c *StandardCamera) internalUpdateView() {
 func (c *StandardCamera) updateFrustum() {
 	defer tracing.NewRegion("StandardCamera.updateFrustum").End()
 	vp := matrix.Mat4Multiply(c.view, c.projection)
-	for i := 3; i >= 0; i-- {
-		c.frustum.Planes[0].SetFloatValue(vp[i*4+3]+vp[i*4+0], i)
-		c.frustum.Planes[1].SetFloatValue(vp[i*4+3]-vp[i*4+0], i)
-		c.frustum.Planes[2].SetFloatValue(vp[i*4+3]+vp[i*4+1], i)
-		c.frustum.Planes[3].SetFloatValue(vp[i*4+3]-vp[i*4+1], i)
-		c.frustum.Planes[4].SetFloatValue(vp[i*4+3]+vp[i*4+2], i)
-		c.frustum.Planes[5].SetFloatValue(vp[i*4+3]-vp[i*4+2], i)
-	}
+	c.frustum.ExtractPlanes(vp)
 }
 
 func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {

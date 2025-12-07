@@ -37,6 +37,29 @@
 
 package collision
 
+import "kaiju/matrix"
+
 type Frustum struct {
 	Planes [6]Plane
+}
+
+func (f *Frustum) ExtractPlanes(vp matrix.Mat4) {
+	// Left
+	f.Planes[0].Normal = matrix.Vec3{vp[12] + vp[0], vp[13] + vp[4], vp[14] + vp[8]}
+	f.Planes[0].Dot = vp[15] + vp[3]
+	// Right
+	f.Planes[1].Normal = matrix.Vec3{vp[12] - vp[0], vp[13] - vp[4], vp[14] - vp[8]}
+	f.Planes[1].Dot = vp[15] - vp[3]
+	// Bottom
+	f.Planes[2].Normal = matrix.Vec3{vp[12] + vp[1], vp[13] + vp[5], vp[14] + vp[9]}
+	f.Planes[2].Dot = vp[15] + vp[7]
+	// Top
+	f.Planes[3].Normal = matrix.Vec3{vp[12] - vp[1], vp[13] - vp[5], vp[14] - vp[9]}
+	f.Planes[3].Dot = vp[15] - vp[7]
+	// Near
+	f.Planes[4].Normal = matrix.Vec3{vp[12] + vp[2], vp[13] + vp[6], vp[14] + vp[10]}
+	f.Planes[4].Dot = vp[15] + vp[11]
+	// Far
+	f.Planes[5].Normal = matrix.Vec3{vp[12] - vp[2], vp[13] - vp[6], vp[14] - vp[10]}
+	f.Planes[5].Dot = vp[15] - vp[11]
 }
