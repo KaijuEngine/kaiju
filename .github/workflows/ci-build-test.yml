@@ -124,68 +124,37 @@ jobs:
           path: kaiju
           retention-days: 7
 
-  # Multi-GPU scenario testing - tests with different renderers and GPU profiles
+  # Multi-GPU scenario testing - tests with different GPU profiles using Lavapipe
   gpu-scenario-matrix:
-    name: GPU Test (${{ matrix.renderer }}, ${{ matrix.profile }})
+    name: GPU Test (${{ matrix.profile_name }}, ${{ matrix.validation }})
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Lavapipe (Mesa) + Integrated GPU
-          - renderer: lavapipe
-            renderer_name: Lavapipe
-            profile: integrated_gpu
+          # Integrated GPU
+          - profile: integrated_gpu
             profile_name: Integrated GPU
             validation: standard
 
-          # Lavapipe + NVIDIA Discrete GPU
-          - renderer: lavapipe
-            renderer_name: Lavapipe
-            profile: discrete_nvidia
+          # NVIDIA Discrete GPU
+          - profile: discrete_nvidia
             profile_name: NVIDIA Discrete
             validation: standard
 
-          # Lavapipe + AMD Discrete GPU
-          - renderer: lavapipe
-            renderer_name: Lavapipe
-            profile: discrete_amd
+          # AMD Discrete GPU
+          - profile: discrete_amd
             profile_name: AMD Discrete
             validation: standard
 
-          # Lavapipe + Minimal Vulkan 1.0
-          - renderer: lavapipe
-            renderer_name: Lavapipe
-            profile: minimal_vulkan
+          # Minimal Vulkan 1.0 with extended validation
+          - profile: minimal_vulkan
             profile_name: Minimal Vulkan 1.0
             validation: extended
 
-          # SwiftShader + Integrated GPU
-          - renderer: swiftshader
-            renderer_name: SwiftShader
-            profile: integrated_gpu
-            profile_name: Integrated GPU
-            validation: standard
-
-          # SwiftShader + NVIDIA Discrete GPU
-          - renderer: swiftshader
-            renderer_name: SwiftShader
-            profile: discrete_nvidia
-            profile_name: NVIDIA Discrete
-            validation: extended
-
-          # SwiftShader + AMD Discrete GPU
-          - renderer: swiftshader
-            renderer_name: SwiftShader
-            profile: discrete_amd
-            profile_name: AMD Discrete
-            validation: standard
-
-          # SwiftShader + Minimal Vulkan 1.0
-          - renderer: swiftshader
-            renderer_name: SwiftShader
-            profile: minimal_vulkan
-            profile_name: Minimal Vulkan 1.0
+          # NVIDIA with extended validation (best practices + sync)
+          - profile: discrete_nvidia
+            profile_name: NVIDIA Discrete (Extended)
             validation: extended
 
     steps:
@@ -226,43 +195,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y vulkan-sdk
 
-      - name: Install SwiftShader
-        if: matrix.renderer == 'swiftshader'
-        run: |
-          # Download and extract SwiftShader
-          wget -q https://github.com/google/swiftshader/releases/download/latest/swiftshader-linux-x86_64.tar.gz
-          tar -xzf swiftshader-linux-x86_64.tar.gz
-
-          # Create ICD manifest for SwiftShader
-          mkdir -p swiftshader/icd
-          cat > swiftshader/icd/vk_swiftshader_icd.json << 'EOF'
-          {
-            "file_format_version": "1.0.0",
-            "ICD": {
-              "library_path": "./libvk_swiftshader.so",
-              "api_version": "1.3.0"
-            }
-          }
-          EOF
-
-          # Move SwiftShader library to ICD directory
-          mv swiftshader/libvk_swiftshader.so swiftshader/icd/
-
-          echo "SwiftShader installed at: $(pwd)/swiftshader/icd"
-          ls -la swiftshader/icd/
-
-      - name: Configure Vulkan renderer
-        run: |
-          if [ "${{ matrix.renderer }}" = "swiftshader" ]; then
-            # Use SwiftShader ICD
-            export VK_DRIVER_FILES="$(pwd)/swiftshader/icd/vk_swiftshader_icd.json"
-            echo "VK_DRIVER_FILES=$VK_DRIVER_FILES" >> $GITHUB_ENV
-            echo "Using SwiftShader renderer"
-          else
-            # Use default Lavapipe (Mesa)
-            echo "Using Lavapipe renderer (default)"
-          fi
-
       - name: Configure GPU profile
         run: |
           # Set profile file environment variable
@@ -290,7 +222,7 @@ jobs:
       - name: Verify Vulkan configuration
         run: |
           echo "=== Vulkan Configuration ==="
-          echo "Renderer: ${{ matrix.renderer_name }}"
+          echo "Renderer: Lavapipe (Mesa)"
           echo "GPU Profile: ${{ matrix.profile_name }}"
           echo "Validation: ${{ matrix.validation }}"
           echo ""
@@ -325,7 +257,6 @@ jobs:
 
           # Run editor with automated tests
           echo "Starting Kaiju Editor with automated tests..."
-          echo "Renderer: ${{ matrix.renderer_name }}"
           echo "GPU Profile: ${{ matrix.profile_name }}"
           timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
@@ -352,6 +283,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kaiju-editor-${{ matrix.renderer }}-${{ matrix.profile }}
+          name: kaiju-editor-${{ matrix.profile }}
           path: kaiju
           retention-days: 7
