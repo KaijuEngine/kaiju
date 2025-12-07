@@ -512,6 +512,9 @@ func (host *Host) Runtime() float64 { return host.frameTime }
 // RunAfterFrames will call the given function after the given number of frames
 // have passed from the current frame
 func (host *Host) RunAfterFrames(wait int, call func()) {
+	if call == nil {
+		return
+	}
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame + uint64(wait),
 		call:  call,
@@ -534,6 +537,9 @@ func (host *Host) RunAfterNextUIClean(call func()) {
 }
 
 func (host *Host) RunOnMainThread(call func()) {
+	if call == nil {
+		return
+	}
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame,
 		call:  call,
