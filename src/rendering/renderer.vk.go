@@ -232,7 +232,7 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 	if vr.globalUniformBuffersPtr[vr.currentFrame] == nil {
 		var data unsafe.Pointer
 		r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
-			0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
+			0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)
 		if r != vulkan_const.Success {
 			slog.Error("Failed to map uniform buffer memory", slog.Int("code", int(r)))
 			return

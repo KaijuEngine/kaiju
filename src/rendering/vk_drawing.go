@@ -429,7 +429,7 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 	group.InstanceDriverData.lastInstanceCount = currentCount
 	for i := range maxFramesInFlight {
 		var data unsafe.Pointer
-		r := vk.MapMemory(vr.device, group.instanceBuffer.memories[i], 0, vk.DeviceSize(group.rawData.length), 0, &data)
+		r := vk.MapMemory(vr.device, group.instanceBuffer.memories[i], 0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)
 		if r != vulkan_const.Success {
 			slog.Error("Failed to map instance memory", slog.Int("code", int(r)))
 			return
