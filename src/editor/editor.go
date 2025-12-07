@@ -90,8 +90,9 @@ type Editor struct {
 		deactivateId   events.Id
 		lastActiveTime time.Time
 	}
-	updateId engine.UpdateId
-	blurred  bool
+	updateId       engine.UpdateId
+	blurred        bool
+	autoTestActive bool
 }
 
 type workspaces struct {
@@ -168,9 +169,16 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
 	ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	ed.autoTestActive = ed.initAutoTest()
 }
 
 func (ed *Editor) update(deltaTime float64) {
+	// Run automated tests if in auto-test mode
+	if ed.autoTestActive {
+		ed.runAutoTest()
+		return
+	}
+
 	if ed.blurred {
 		return
 	}

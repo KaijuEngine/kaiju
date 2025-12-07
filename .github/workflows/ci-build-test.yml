@@ -84,21 +84,21 @@ jobs:
           # Give Xvfb time to start
           sleep 2
 
-          # Run the editor with a timeout
-          echo "Starting Kaiju Editor..."
-          timeout 10s ./kaiju || EXIT_CODE=$?
+          # Run the editor with automated integration tests
+          echo "Starting Kaiju Editor with automated tests..."
+          timeout 30s ./kaiju --autotest || EXIT_CODE=$?
 
           # Check exit code
-          # timeout returns 124 if it times out (expected for GUI app)
-          # We want to catch actual crashes (non-zero exit codes other than 124)
-          if [ ${EXIT_CODE:-0} -eq 124 ]; then
-            echo "✓ Editor ran successfully for 10 seconds (timed out as expected)"
+          # Exit code 0 means auto-test completed successfully
+          # timeout returns 124 if it times out (should not happen with auto-test)
+          if [ ${EXIT_CODE:-0} -eq 0 ]; then
+            echo "✓ Editor automated tests completed successfully"
             TEST_RESULT=0
-          elif [ ${EXIT_CODE:-0} -eq 0 ]; then
-            echo "✓ Editor exited cleanly"
-            TEST_RESULT=0
+          elif [ ${EXIT_CODE:-0} -eq 124 ]; then
+            echo "✗ Editor tests timed out after 30 seconds"
+            TEST_RESULT=1
           else
-            echo "✗ Editor crashed with exit code: ${EXIT_CODE}"
+            echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
             TEST_RESULT=1
           fi
 

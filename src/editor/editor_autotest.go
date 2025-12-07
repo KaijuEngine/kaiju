@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* launch_params.go                                                           */
+/* editor_autotest.go                                                         */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,30 +35,97 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine
+package editor
 
 import (
-	"flag"
-	"kaiju/build"
+	"kaiju/engine"
+	"log/slog"
+	"os"
 )
 
-var LaunchParams = LaunchParameters{}
-
-type LaunchParameters struct {
-	Generate   string
-	StartStage string
-	Trace      bool
-	RecordPGO  bool
-	AutoTest   bool
+// autoTestState tracks the state of the automated integration test
+type autoTestState struct {
+	frameCount    int
+	testStep      int
+	entityCreated bool
 }
 
-func LoadLaunchParams() {
-	flag.StringVar(&LaunchParams.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	if build.Debug {
-		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
-		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")
-		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
+var autoTest autoTestState
+
+// runAutoTest executes automated integration tests when --autotest flag is set
+func (ed *Editor) runAutoTest() {
+	// Wait for initialization (project loaded, workspaces ready)
+	autoTest.frameCount++
+
+	// Wait 60 frames (~1 second) for everything to initialize
+	if autoTest.frameCount < 60 {
+		return
 	}
-	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
+
+	// Execute test sequence
+	switch autoTest.testStep {
+	case 0:
+		slog.Info("AutoTest: Starting automated integration test")
+		slog.Info("AutoTest: Step 1 - Creating new entity")
+		ed.CreateNewEntity()
+		autoTest.entityCreated = true
+		autoTest.testStep++
+
+	case 1:
+		// Wait a few frames for entity creation to complete
+		if autoTest.frameCount > 65 {
+			slog.Info("AutoTest: Step 2 - Testing undo operation")
+			ed.history.Undo()
+			autoTest.testStep++
+		}
+
+	case 2:
+		// Wait a few frames after undo
+		if autoTest.frameCount > 70 {
+			slog.Info("AutoTest: Step 3 - Testing redo operation")
+			ed.history.Redo()
+			autoTest.testStep++
+		}
+
+	case 3:
+		// Wait a few frames after redo
+		if autoTest.frameCount > 75 {
+			slog.Info("AutoTest: Step 4 - Switching to content workspace")
+			ed.ContentWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 4:
+		// Wait a few frames after workspace switch
+		if autoTest.frameCount > 80 {
+			slog.Info("AutoTest: Step 5 - Switching to shading workspace")
+			ed.ShadingWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 5:
+		// Wait a few frames after workspace switch
+		if autoTest.frameCount > 85 {
+			slog.Info("AutoTest: Step 6 - Switching back to stage workspace")
+			ed.StageWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 6:
+		// Wait a few frames to ensure stability
+		if autoTest.frameCount > 90 {
+			slog.Info("AutoTest: All tests completed successfully!")
+			slog.Info("AutoTest: Exiting with success code")
+			os.Exit(0)
+		}
+	}
+}
+
+// initAutoTest checks if auto-test mode is enabled and sets it up
+func (ed *Editor) initAutoTest() bool {
+	if engine.LaunchParams.AutoTest {
+		slog.Info("AutoTest mode enabled - will run automated integration tests")
+		return true
+	}
+	return false
 }
