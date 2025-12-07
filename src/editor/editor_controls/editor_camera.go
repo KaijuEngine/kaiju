@@ -183,6 +183,9 @@ func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 			e.lastHit = hitPoint
 		}
 		delta := hitPoint.Subtract(e.lastHit)
+		if delta.Equals(matrix.Vec3Zero()) {
+			return
+		}
 		tc.SetLookAt(tc.LookAt().Add(delta))
 		e.lastHit, _ = tc.ForwardPlaneHit(mp, tc.LookAt())
 	}
