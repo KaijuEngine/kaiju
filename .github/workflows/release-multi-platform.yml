@@ -372,10 +372,11 @@ jobs:
           export CGO_LDFLAGS="-landroid"
 
           # Build the native library
-          # Note: Don't specify build tags - GOOS=android automatically activates main.android.go
-          # Specifying tags would also include main.test.go (!editor) which causes import errors
+          # Note: We need to specify "editor" tag to exclude main.test.go which has "!editor" tag
+          # main.test.go imports kaiju/games/editor but would be compiled without editor tag
+          # GOOS=android automatically activates main.android.go via its "android" build tag
           mkdir -p ../android-build/arm64-v8a
-          go build -buildmode=c-shared \
+          go build -buildmode=c-shared -tags="editor" \
             -o ../android-build/arm64-v8a/libkaiju_android.so ./
           ls -lh ../android-build/arm64-v8a/
 
