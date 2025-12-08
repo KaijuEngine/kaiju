@@ -107,6 +107,7 @@ func (v *StageView) Close() {
 
 func (v *StageView) Update(deltaTime float64) {
 	defer tracing.NewRegion("StageView.Update").End()
+	v.gridTransform.ResetDirty()
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
 	} else {
@@ -133,7 +134,6 @@ func (v *StageView) updateGridPosition() {
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}
-	v.gridTransform.ResetDirty()
 }
 
 func (v *StageView) createViewportGrid() {
