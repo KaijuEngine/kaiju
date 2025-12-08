@@ -1,7 +1,7 @@
-//go:build ios
+//go:build darwin || ios
 
 /******************************************************************************/
-/* vulkan.mobile.go                                                           */
+/* vulkan.apple.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -44,13 +44,15 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+// Common Apple (macOS + iOS) Vulkan configuration
+
+const vkGeometryShaderValid = vulkan_const.False
+const vkInstanceFlags = 1
+const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
+
+func preTransform(_ vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
 	return vulkan_const.SurfaceTransformIdentityBit
 }
-
-const vkGeometryShaderValid = vulkan_const.True
-const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
-const vkInstanceFlags = 1
 
 func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
 	return vulkan_const.ColorSpaceSrgbNonlinear

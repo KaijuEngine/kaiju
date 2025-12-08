@@ -1,3 +1,6 @@
+//go:build darwin && !ios
+// +build darwin,!ios
+
 /******************************************************************************/
 /* vulkan_darwin.go                                                           */
 /******************************************************************************/
@@ -35,14 +38,11 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build darwin && !ios
-// +build darwin,!ios
-
 package vulkan
 
 /*
 #cgo darwin CFLAGS: -DVK_USE_PLATFORM_MACOS_MVK -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan -lc++
+#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan
 
 #include "vulkan/vulkan.h"
 #include "vk_wrapper.h"
@@ -50,8 +50,8 @@ package vulkan
 */
 import "C"
 import (
-	"unsafe"
 	vkc "kaiju/rendering/vulkan_const"
+	"unsafe"
 )
 
 const (
