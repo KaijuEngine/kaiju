@@ -1,0 +1,414 @@
+name: Multi-Platform Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create GitHub Release'
+        required: false
+        default: 'true'
+        type: boolean
+  push:
+    branches:
+      - master
+      - feature/multi-os-build-ci
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  # Extract version and prepare build metadata
+  prepare:
+    name: Prepare Build Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      is_draft: ${{ steps.release.outputs.is_draft }}
+      is_prerelease: ${{ steps.release.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract Version
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            # Use tag version
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          else
+            # Use editor_version.go + commit hash
+            GO_VERSION=$(grep "EditorVersion float64" src/editor/editor_version.go | awk '{print $NF}')
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            echo "version=${GO_VERSION}-dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+          echo "Version: $(cat $GITHUB_OUTPUT | grep version)"
+
+      - name: Determine Release Type
+        id: release
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "is_draft=false" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/master ]]; then
+            echo "is_draft=false" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            GO_VERSION=$(grep "EditorVersion float64" src/editor/editor_version.go | awk '{print $NF}')
+            echo "tag_name=v${GO_VERSION}-dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          else
+            echo "is_draft=true" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "tag_name=draft-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          fi
+
+  # Multi-platform builds (Windows, Linux, macOS)
+  build-multi-platform:
+    name: Build ${{ matrix.platform }}-${{ matrix.arch }}
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows-latest
+            platform: windows
+            arch: amd64
+            binary_name: kaiju-editor.exe
+            archive_ext: zip
+
+          # Linux x64
+          - os: ubuntu-22.04
+            platform: linux
+            arch: amd64
+            binary_name: kaiju-editor
+            archive_ext: tar.gz
+
+          # macOS ARM64 (DISABLED - not ready yet)
+          # Uncomment when macOS support is ready
+          # - os: macos-latest
+          #   platform: darwin
+          #   arch: arm64
+          #   binary_name: kaiju-editor
+          #   archive_ext: tar.gz
+
+          # macOS x64 (DISABLED - not ready yet)
+          # - os: macos-13
+          #   platform: darwin
+          #   arch: amd64
+          #   binary_name: kaiju-editor
+          #   archive_ext: tar.gz
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: src/go.sum
+
+      # Windows-specific dependencies
+      - name: Install MinGW (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          choco install mingw --force
+
+      - name: Install Vulkan SDK (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Write-Host "Downloading Vulkan SDK..."
+          $url = "https://sdk.lunarg.com/sdk/download/1.3.290.0/windows/VulkanSDK-1.3.290.0-Installer.exe"
+          $installer = "$env:TEMP\VulkanSDK-Installer.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+
+          Write-Host "Installing Vulkan SDK..."
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
+
+          Write-Host "Vulkan SDK installed"
+
+      # Linux-specific dependencies
+      - name: Install Dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            mesa-common-dev \
+            libvulkan-dev \
+            libasound2-dev
+
+      - name: Install Vulkan SDK (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          # Add LunarG public key
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+
+          # Add LunarG repository
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+
+          # Install Vulkan SDK
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      # macOS-specific dependencies (for when macOS is enabled)
+      # - name: Install Dependencies (macOS)
+      #   if: matrix.platform == 'darwin'
+      #   run: |
+      #     brew install vulkan-sdk
+
+      # Build the editor binary
+      - name: Build ${{ matrix.platform }} Binary
+        working-directory: ./src
+        run: |
+          go build -ldflags="-s -w" -tags="editor" -o ../${{ matrix.binary_name }} ./
+          ls -lh ../${{ matrix.binary_name }}
+
+      # Package the binary with LICENSE
+      - name: Package Artifacts
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          PACKAGE_NAME="kaiju-editor-${VERSION}-${{ matrix.platform }}-${{ matrix.arch }}"
+
+          mkdir -p "release/${PACKAGE_NAME}"
+          cp "${{ matrix.binary_name }}" "release/${PACKAGE_NAME}/"
+          cp LICENSE "release/${PACKAGE_NAME}/"
+
+          cd release
+
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            # Windows: Create ZIP
+            7z a "${PACKAGE_NAME}.zip" "${PACKAGE_NAME}"
+            echo "ARCHIVE_FILE=${PACKAGE_NAME}.zip" >> $GITHUB_ENV
+          else
+            # Linux/macOS: Create tar.gz
+            tar -czf "${PACKAGE_NAME}.tar.gz" "${PACKAGE_NAME}"
+            echo "ARCHIVE_FILE=${PACKAGE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+
+          ls -lh
+
+      # Generate checksum
+      - name: Generate Checksum
+        shell: bash
+        run: |
+          cd release
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            certutil -hashfile "${{ env.ARCHIVE_FILE }}" SHA256 | findstr /v "hash" | findstr /v "CertUtil" > "${{ env.ARCHIVE_FILE }}.sha256"
+          else
+            sha256sum "${{ env.ARCHIVE_FILE }}" > "${{ env.ARCHIVE_FILE }}.sha256"
+          fi
+          cat "${{ env.ARCHIVE_FILE }}.sha256"
+
+      # Upload artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            release/${{ env.ARCHIVE_FILE }}
+            release/${{ env.ARCHIVE_FILE }}.sha256
+          retention-days: 90
+
+  # Android build (separate job due to unique requirements)
+  build-android:
+    name: Build Android (arm64-v8a)
+    needs: prepare
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: src/go.sum
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: |
+          echo "y" | sdkmanager "ndk;26.1.10909125"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+
+      - name: Build Native Library
+        working-directory: ./src
+        env:
+          CC: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
+          CXX: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
+          AR: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          RANLIB: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+          GOOS: android
+          GOARCH: arm64
+          CGO_ENABLED: 1
+          CGO_CFLAGS: -D__android__=1
+          CGO_LDFLAGS: -landroid
+        run: |
+          mkdir -p ../android-build/arm64-v8a
+          go build -buildmode=c-shared -tags="editor" \
+            -o ../android-build/arm64-v8a/libkaiju_android.so ./
+          ls -lh ../android-build/arm64-v8a/
+
+      - name: Package Android Artifacts
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          PACKAGE_NAME="kaiju-editor-${VERSION}-android-arm64"
+
+          mkdir -p "release/${PACKAGE_NAME}"
+          cp android-build/arm64-v8a/libkaiju_android.so "release/${PACKAGE_NAME}/"
+          cp LICENSE "release/${PACKAGE_NAME}/"
+
+          cd release
+          tar -czf "${PACKAGE_NAME}.tar.gz" "${PACKAGE_NAME}"
+          sha256sum "${PACKAGE_NAME}.tar.gz" > "${PACKAGE_NAME}.tar.gz.sha256"
+          ls -lh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-android-arm64
+          path: |
+            release/kaiju-editor-${{ needs.prepare.outputs.version }}-android-arm64.tar.gz
+            release/kaiju-editor-${{ needs.prepare.outputs.version }}-android-arm64.tar.gz.sha256
+          retention-days: 90
+
+  # Generate master checksums file
+  generate-checksums:
+    name: Generate Master Checksums
+    needs: [prepare, build-multi-platform, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Master Checksums File
+        run: |
+          echo "# Kaiju Engine v${{ needs.prepare.outputs.version }}" > SHA256SUMS.txt
+          echo "Generated on $(date -u)" >> SHA256SUMS.txt
+          echo "" >> SHA256SUMS.txt
+
+          # Find all archive files and compute checksums
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec sha256sum {} \; | \
+            sed 's|artifacts/[^/]*/||g' | sort >> SHA256SUMS.txt
+
+          cat SHA256SUMS.txt
+
+      - name: Upload Checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: SHA256SUMS.txt
+          retention-days: 90
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [prepare, build-multi-platform, build-android, generate-checksums]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          # Flatten artifact structure - copy all archives and checksums
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" -o -name "*.sha256" -o -name "SHA256SUMS.txt" \) \
+            -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      - name: Create Release Notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          # Kaiju Engine ${{ needs.prepare.outputs.tag_name }}
+
+          ## Downloads
+
+          ### Desktop Platforms
+          - **Windows (x64)**: `kaiju-editor-${{ needs.prepare.outputs.version }}-windows-amd64.zip`
+          - **Linux (x64)**: `kaiju-editor-${{ needs.prepare.outputs.version }}-linux-amd64.tar.gz`
+
+          ### Mobile Platforms
+          - **Android (ARM64)**: `kaiju-editor-${{ needs.prepare.outputs.version }}-android-arm64.tar.gz` (native library)
+
+          ## Verification
+
+          All binaries include SHA256 checksums for verification. See `SHA256SUMS.txt` for a complete list.
+
+          ## Platform Support
+
+          - ✅ Windows (x64) - Full editor support
+          - ✅ Linux (x64) - Full editor support
+          - 🚧 macOS - Work in progress
+          - ✅ Android (ARM64) - Native library (APK building requires project configuration)
+
+          ## Build Information
+
+          - **Version**: ${{ needs.prepare.outputs.version }}
+          - **Go Version**: 1.25
+          - **Build Type**: Editor (Release with optimizations)
+          - **Commit**: ${{ github.sha }}
+
+          ## Notes
+
+          - The Android build provides the native library (`.so` file). Building a complete APK requires project-specific configuration including app ID and signing keys.
+          - See the [Build from Source](https://github.com/${{ github.repository }}/tree/master/docs/engine_developers/build_from_source.md) documentation for compilation instructions.
+
+          ---
+
+          🤖 Generated with [Claude Code](https://claude.com/claude-code)
+          EOF
+
+          cat release-notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          name: Kaiju Engine ${{ needs.prepare.outputs.tag_name }}
+          draft: ${{ needs.prepare.outputs.is_draft }}
+          prerelease: ${{ needs.prepare.outputs.is_prerelease }}
+          body_path: release-notes.md
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
