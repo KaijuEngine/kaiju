@@ -1,7 +1,7 @@
 //go:build darwin && !ios
 
 /******************************************************************************/
-/* vulkan.macos.go                                                            */
+/* keyboard.win32.go                                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -36,25 +36,13 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package rendering
+package hid
 
-import vk "kaiju/rendering/vulkan"
+import "kaiju/klib"
 
-const vkGeometryShaderValid = vk.False
-const vkInstanceFlags = 1
+const macOSSupportIssueID = 485
 
-func vkColorSpace(_ vk.SurfaceFormat) vk.ColorSpace {
-	return vk.ColorSpaceSrgbNonlinear
-}
-
-func vkInstanceExtensions() []string {
-	return []string{
-		"VK_KHR_portability_enumeration\x00",
-	}
-}
-
-func vkDeviceExtensions() []string {
-	return []string{
-		"VK_KHR_portability_subset\x00",
-	}
+func ToKeyboardKey(nativeKey int) KeyboardKey {
+	klib.NotYetImplemented(macOSSupportIssueID)
+	return KeyBoardKeyInvalid
 }

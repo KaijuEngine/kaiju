@@ -993,6 +993,14 @@ VkResult callVkGetSwapchainPerformanceMVK(
     MVKSwapchainPerformance*                    pSwapchainPerf);
 #endif /* VK_USE_PLATFORM_IOS_MVK */
 
+#ifdef VK_USE_PLATFORM_MACOS_MVK
+VkResult callVkCreateMacOSSurfaceMVK(
+    VkInstance                         instance,
+    const VkMacOSSurfaceCreateInfoMVK* pCreateInfo,
+    const VkAllocationCallbacks*       pAllocator,
+    VkSurfaceKHR*                      pSurface);
+#endif /* VK_USE_PLATFORM_MACOS_MVK */
+
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 VkResult callVkCreateWin32SurfaceKHR(
     VkInstance                                  instance,

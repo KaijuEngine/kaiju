@@ -57,3 +57,9 @@ func vkInstanceExtensions() []string {
 func vkDeviceExtensions() []string {
 	return []string{}
 }
+
+func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+	return scs.capabilities.CurrentTransform
+}
+
+const compositeAlpha = vulkan_const.CompositeAlphaOpaqueBit

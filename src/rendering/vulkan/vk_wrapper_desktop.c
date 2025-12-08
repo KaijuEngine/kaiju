@@ -214,6 +214,10 @@ int vkInitInstance(VkInstance instance) {
     vgo_vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)((*getInstanceProcAddress)(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR"));
 #endif
 
+#ifdef VK_USE_PLATFORM_MACOS_MVK
+    vgo_vkCreateMacOSSurfaceMVK = (PFN_vkCreateMacOSSurfaceMVK)((*getInstanceProcAddress)(instance, "vkCreateMacOSSurfaceMVK"));
+#endif
+
     vgo_vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)((*getInstanceProcAddress)(instance, "vkCreateDebugReportCallbackEXT"));
     vgo_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)((*getInstanceProcAddress)(instance, "vkDestroyDebugReportCallbackEXT"));
     vgo_vkDebugReportMessageEXT = (PFN_vkDebugReportMessageEXT)((*getInstanceProcAddress)(instance, "vkDebugReportMessageEXT"));
@@ -404,6 +408,7 @@ PFN_vkCreateAndroidSurfaceKHR vgo_vkCreateAndroidSurfaceKHR;
 #endif
 
 #ifdef VK_USE_PLATFORM_MACOS_MVK
+PFN_vkCreateMacOSSurfaceMVK vgo_vkCreateMacOSSurfaceMVK;
 void __link_moltenvk() { vkGetInstanceProcAddr(NULL, NULL); }
 #endif
 

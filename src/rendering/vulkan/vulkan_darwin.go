@@ -41,13 +41,17 @@ package vulkan
 
 /*
 #cgo darwin CFLAGS: -DVK_USE_PLATFORM_MACOS_MVK -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan -lc++
+#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan
 
 #include "vulkan/vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"
 */
 import "C"
+import (
+	vkc "kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
 const (
 	// UsePlatformMacos means enabled support of MoltenVK.
@@ -59,3 +63,19 @@ const (
 	// MvkMacosSurfaceExtensionName
 	MvkMacosSurfaceExtensionName = "VK_MVK_macos_surface"
 )
+
+// CreateSurfaceFromNSView creates a Vulkan surface using an NSView*.
+// nsView must be an unsafe.Pointer to an Objective-C NSView instance.
+func CreateSurfaceFromNSView(instance Instance, nsView unsafe.Pointer, surface *Surface) vkc.Result {
+	ci := C.VkMacOSSurfaceCreateInfoMVK{}
+	ci.sType = C.VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK
+	ci.pView = nsView
+	var alloc *C.VkAllocationCallbacks
+	res := C.callVkCreateMacOSSurfaceMVK(
+		(C.VkInstance)(instance),
+		&ci,
+		alloc,
+		(*C.VkSurfaceKHR)(unsafe.Pointer(surface)),
+	)
+	return vkc.Result(res)
+}

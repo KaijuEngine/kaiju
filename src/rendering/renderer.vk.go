@@ -646,3 +646,14 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.Ima
 	}
 	return fb, true
 }
+
+func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
+	var surface vk.Surface
+	res := vk.CreateSurfaceFromNSView(vr.instance, nsView, &surface)
+	if res != vulkan_const.Success {
+		return false
+	}
+	vr.surface = surface
+	return true
+}
