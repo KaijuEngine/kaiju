@@ -38,12 +38,13 @@
 package editor_stage_manager
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
 )
 
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }

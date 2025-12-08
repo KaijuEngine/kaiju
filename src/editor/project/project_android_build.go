@@ -44,9 +44,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -55,6 +52,10 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error {

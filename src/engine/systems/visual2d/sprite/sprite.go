@@ -38,14 +38,15 @@
 package sprite
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"log/slog"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 const (

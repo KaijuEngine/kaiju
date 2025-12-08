@@ -38,9 +38,10 @@
 package codegen
 
 import (
-	"kaiju/engine"
-	"kaiju/matrix"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 var (

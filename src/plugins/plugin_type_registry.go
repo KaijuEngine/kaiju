@@ -38,9 +38,10 @@
 package plugins
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 var (

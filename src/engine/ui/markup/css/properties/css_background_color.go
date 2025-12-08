@@ -39,14 +39,15 @@ package properties
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/functions"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/functions"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/helpers"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {

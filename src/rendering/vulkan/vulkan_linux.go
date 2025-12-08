@@ -1,3 +1,6 @@
+//go:build linux && !android && !wayland
+// +build linux,!android,!wayland
+
 /******************************************************************************/
 /* vulkan_linux.go                                                            */
 /******************************************************************************/
@@ -34,9 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build linux && !android && !wayland
-// +build linux,!android,!wayland
 
 package vulkan
 

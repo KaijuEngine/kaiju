@@ -38,13 +38,14 @@
 package debug
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
 
 	"github.com/KaijuEngine/uuid"
 )

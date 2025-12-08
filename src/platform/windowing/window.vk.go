@@ -38,9 +38,10 @@
 package windowing
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/rendering"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 func selectRenderer(w *Window, name string, assets assets.Database) (rendering.Renderer, error) {

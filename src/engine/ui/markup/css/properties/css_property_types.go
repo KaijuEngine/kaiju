@@ -37,7 +37,7 @@
 
 package properties
 
-import "kaiju/engine/ui/markup/css/rules"
+import "github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
 
 type PropertyBase struct{}
 

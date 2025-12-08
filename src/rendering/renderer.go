@@ -38,9 +38,9 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type Renderer interface {

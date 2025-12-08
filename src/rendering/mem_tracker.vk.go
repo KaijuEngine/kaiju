@@ -39,10 +39,11 @@ package rendering
 
 import (
 	"fmt"
-	"kaiju/build"
-	"kaiju/klib"
 	"log/slog"
 	"sync"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 type debugVulkan sync.Map

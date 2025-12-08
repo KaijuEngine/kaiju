@@ -42,8 +42,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
-	"kaiju/debug"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -51,6 +49,9 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"

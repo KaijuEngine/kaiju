@@ -37,7 +37,7 @@
 
 package collision
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type Frustum struct {
 	Planes [6]Plane

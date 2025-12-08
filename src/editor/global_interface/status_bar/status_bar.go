@@ -38,15 +38,16 @@
 package status_bar
 
 import (
-	"kaiju/editor/common_interfaces"
-	"kaiju/editor/editor_logging"
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/common_interfaces"
+	"github.com/KaijuEngine/kaiju/editor/editor_logging"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const maxLogEntries = 100

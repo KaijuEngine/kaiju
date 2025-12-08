@@ -40,8 +40,8 @@ package rendering
 import (
 	"log/slog"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createSwapChainFrameBuffer() bool {

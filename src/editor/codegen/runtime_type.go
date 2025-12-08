@@ -38,9 +38,10 @@
 package codegen
 
 import (
-	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/platform/profiler/tracing"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type RuntimeType struct {

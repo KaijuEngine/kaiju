@@ -38,8 +38,9 @@
 package terrain
 
 import (
-	"kaiju/rendering"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type TerrainShaderData struct {

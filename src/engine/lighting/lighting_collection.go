@@ -38,11 +38,12 @@
 package lighting
 
 import (
-	"kaiju/debug"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"sort"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type EntryId = int

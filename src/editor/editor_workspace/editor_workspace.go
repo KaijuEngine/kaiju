@@ -37,7 +37,7 @@
 
 package editor_workspace
 
-import "kaiju/editor/editor_workspace/common_workspace"
+import "github.com/KaijuEngine/kaiju/editor/editor_workspace/common_workspace"
 
 type Workspace interface {
 	Open()

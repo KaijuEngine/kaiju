@@ -39,10 +39,11 @@ package engine
 
 import (
 	"errors"
-	"kaiju/build"
-	"kaiju/engine/runtime/encoding/gob"
 	"log/slog"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
 )
 
 var DebugEntityDataRegistry = map[string]EntityData{}

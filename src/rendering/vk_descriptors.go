@@ -40,9 +40,9 @@ package rendering
 import (
 	"errors"
 
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure DescriptorSetLayoutStructure) (vk.DescriptorSetLayout, error) {

@@ -39,12 +39,13 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/engine/pooling"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine/pooling"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 const (

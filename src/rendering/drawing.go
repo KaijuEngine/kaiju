@@ -38,11 +38,12 @@
 package rendering
 
 import (
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"sort"
 	"sync"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Drawing struct {

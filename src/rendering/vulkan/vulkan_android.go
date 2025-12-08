@@ -53,8 +53,9 @@ package vulkan
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 const (

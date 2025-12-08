@@ -39,22 +39,23 @@ package content_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/context_menu"
-	"kaiju/editor/editor_overlay/file_browser"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
 	"os/exec"
 	"slices"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/confirm_prompt"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/context_menu"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/file_browser"
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/common_workspace"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type ContentWorkspace struct {

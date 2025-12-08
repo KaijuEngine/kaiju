@@ -38,8 +38,9 @@
 package editor_stage_manager
 
 import (
-	"kaiju/platform/profiler/tracing"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type selectHistory struct {

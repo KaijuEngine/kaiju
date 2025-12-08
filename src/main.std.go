@@ -38,11 +38,11 @@
 package main
 
 import (
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
+	"github.com/KaijuEngine/kaiju/bootstrap"
+	"github.com/KaijuEngine/kaiju/engine"
+	_ "github.com/KaijuEngine/kaiju/engine/ui/markup/css/properties" // Run init functions
+	"github.com/KaijuEngine/kaiju/platform/profiler"
+	"github.com/KaijuEngine/kaiju/plugins"
 )
 
 func _main(platformState any) {

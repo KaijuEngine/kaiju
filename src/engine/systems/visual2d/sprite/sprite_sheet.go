@@ -40,11 +40,12 @@ package sprite
 import (
 	"bytes"
 	"encoding/json"
-	"kaiju/klib"
-	"kaiju/klib/streaming"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/klib/streaming"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type SpriteSheetFrame struct {

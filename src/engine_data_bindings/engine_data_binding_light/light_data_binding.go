@@ -38,10 +38,10 @@
 package engine_data_binding_light
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/lighting"
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/lighting"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 const BindingKey = "kaiju.LightDataBinding"

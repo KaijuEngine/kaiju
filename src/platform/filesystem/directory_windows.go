@@ -49,12 +49,13 @@ import "C"
 
 import (
 	"fmt"
-	"kaiju/build"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/build"
 
 	"golang.org/x/sys/windows"
 )

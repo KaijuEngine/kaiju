@@ -60,8 +60,9 @@ package physics
 */
 import "C"
 import (
-	"kaiju/matrix"
 	"runtime"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type World struct{ ptr *C.btDiscreteDynamicsWorld }

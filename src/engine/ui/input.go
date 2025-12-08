@@ -38,16 +38,17 @@
 package ui
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"math"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type InputType = int32

@@ -39,21 +39,22 @@ package file_browser
 
 import (
 	"fmt"
-	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"unicode"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/input_prompt"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type FileBrowser struct {

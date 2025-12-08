@@ -38,13 +38,14 @@
 package document
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
-	"kaiju/matrix"
 	"slices"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/matrix"
 
 	"golang.org/x/net/html"
 )

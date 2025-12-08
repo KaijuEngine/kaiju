@@ -38,13 +38,14 @@
 package shader_designer
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/rendering"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 const (

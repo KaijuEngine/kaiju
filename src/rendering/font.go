@@ -41,11 +41,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"strings"
@@ -53,6 +48,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const (

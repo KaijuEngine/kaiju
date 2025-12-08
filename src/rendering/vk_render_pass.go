@@ -45,10 +45,10 @@ import (
 	"strings"
 	"weak"
 
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/klib"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 type RenderPass struct {

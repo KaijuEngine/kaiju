@@ -40,11 +40,12 @@ package project
 import (
 	"bytes"
 	"encoding/json"
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/stages"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen/entity_data_binding"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
+	"github.com/KaijuEngine/kaiju/stages"
 )
 
 func (p *Project) initializeCustomSerializers() {

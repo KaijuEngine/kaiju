@@ -38,15 +38,16 @@
 package ui
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/pooling"
-	"kaiju/engine/systems/events"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/rendering"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/pooling"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/platform/windowing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type DirtyType = int

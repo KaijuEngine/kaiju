@@ -38,11 +38,12 @@
 package rendering
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 type ShaderPipelineData struct {

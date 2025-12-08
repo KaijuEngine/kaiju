@@ -38,16 +38,17 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"slices"
 	"unsafe"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, p *runtime.Pinner) []vk.WriteDescriptorSet {

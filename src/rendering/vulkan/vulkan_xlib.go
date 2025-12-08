@@ -48,8 +48,9 @@ package vulkan
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func XlibSurfaceCreateInfoKHRHelper(window, display unsafe.Pointer, instance Instance, surface *Surface) vulkan_const.Result {

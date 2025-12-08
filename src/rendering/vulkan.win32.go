@@ -40,9 +40,10 @@
 package rendering
 
 import (
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 	"log/slog"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createSurface(window RenderingContainer) bool {

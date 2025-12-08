@@ -38,12 +38,13 @@
 package rendering
 
 import (
-	"kaiju/klib"
 	"log/slog"
 	"math"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/klib"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func chooseSwapSurfaceFormat(formats []vk.SurfaceFormat, formatCount uint32) vk.SurfaceFormat {

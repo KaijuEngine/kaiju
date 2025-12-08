@@ -38,10 +38,11 @@
 package document
 
 import (
-	"kaiju/matrix"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 func asFloat(valStr string) float32 {

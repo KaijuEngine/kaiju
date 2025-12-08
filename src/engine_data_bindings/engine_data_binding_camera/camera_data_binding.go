@@ -38,8 +38,8 @@
 package engine_data_binding_camera
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
 )
 
 const BindingKey = "kaiju.CameraDataBinding"

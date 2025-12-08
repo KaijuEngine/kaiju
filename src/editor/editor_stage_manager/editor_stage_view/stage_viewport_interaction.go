@@ -38,10 +38,10 @@
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/editor/editor_controls"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func (v *StageView) processViewportInteractions() {

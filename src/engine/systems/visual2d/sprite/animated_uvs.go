@@ -37,7 +37,7 @@
 
 package sprite
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type AnimatedUV struct {
 	uv      matrix.Vec4

@@ -39,10 +39,11 @@
 package editor
 
 import (
-	"kaiju/build"
-	"kaiju/engine"
 	"log/slog"
 	"os"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/engine"
 )
 
 // autoTestState tracks the state of the automated integration test

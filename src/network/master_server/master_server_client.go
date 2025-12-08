@@ -38,12 +38,13 @@
 package master_server
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/network"
 	"log/slog"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/network"
 )
 
 const (

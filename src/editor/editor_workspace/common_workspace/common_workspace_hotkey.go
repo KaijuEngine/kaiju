@@ -37,7 +37,7 @@
 
 package common_workspace
 
-import "kaiju/platform/hid"
+import "github.com/KaijuEngine/kaiju/platform/hid"
 
 type HotKey struct {
 	Keys  []hid.KeyboardKey

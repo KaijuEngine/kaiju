@@ -38,12 +38,13 @@
 package rendering
 
 import (
-	"kaiju/klib"
 	"log/slog"
 	"unsafe"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/klib"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {

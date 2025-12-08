@@ -38,12 +38,13 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
 	"path/filepath"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
 )
 
 type Shader struct {

@@ -38,9 +38,9 @@
 package transform_tools
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
+	"github.com/KaijuEngine/kaiju/editor/editor_controls"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/engine"
 )
 
 type StageInterface interface {

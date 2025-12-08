@@ -37,7 +37,7 @@
 
 package collision
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type Octree struct {
 	Center    matrix.Vec3

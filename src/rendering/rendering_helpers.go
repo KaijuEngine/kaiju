@@ -39,7 +39,8 @@ package rendering
 
 import (
 	"encoding/json"
-	"kaiju/engine/assets"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
 )
 
 func unmarshallJsonFile(assets assets.Database, file string, to any) error {

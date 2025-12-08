@@ -1,3 +1,6 @@
+//go:build !386 && !arm
+// +build !386,!arm
+
 /******************************************************************************/
 /* vk_null64.go                                                               */
 /******************************************************************************/
@@ -34,9 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build !386 && !arm
-// +build !386,!arm
 
 package vulkan
 

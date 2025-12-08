@@ -43,9 +43,10 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 // Asset holds metadata.

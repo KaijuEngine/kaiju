@@ -39,11 +39,12 @@ package project_file_system
 
 import (
 	"errors"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const gitignoreAnythingWithExtension = `*.*

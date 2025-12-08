@@ -38,12 +38,13 @@
 package content_database
 
 import (
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 	"github.com/KaijuEngine/uuid"
 )

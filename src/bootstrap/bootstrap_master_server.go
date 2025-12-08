@@ -40,10 +40,11 @@
 package bootstrap
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/network/master_server"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
+	"github.com/KaijuEngine/kaiju/network/master_server"
 )
 
 func bootstrapInternal(*logging.LogStream) {

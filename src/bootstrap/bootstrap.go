@@ -38,9 +38,10 @@
 package bootstrap
 
 import (
-	"kaiju/build"
-	"kaiju/engine/systems/logging"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
 )
 
 func Main(game GameInterface, platformState any) {

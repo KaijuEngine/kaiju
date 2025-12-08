@@ -38,8 +38,8 @@
 package ui_workspace
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
 )
 
 type UIWorkspaceEditorInterface interface {

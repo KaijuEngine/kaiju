@@ -39,14 +39,6 @@ package create_entity_data
 
 import (
 	"fmt"
-	"kaiju/editor/editor_overlay/file_browser"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -54,6 +46,15 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/file_browser"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type CreateEntityDataOverlay struct {

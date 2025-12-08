@@ -38,8 +38,8 @@
 package events
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Id = int64

@@ -41,9 +41,10 @@ package windowing
 
 import (
 	"errors"
-	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 	"golang.design/x/clipboard"
 )

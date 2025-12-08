@@ -37,7 +37,7 @@
 
 package lighting
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type LightingInformation struct {
 	Lights         LightCollection

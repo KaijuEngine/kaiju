@@ -1,3 +1,5 @@
+//go:build !editor
+
 /******************************************************************************/
 /* main.test.go                                                               */
 /******************************************************************************/
@@ -35,14 +37,15 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build !editor
-
 package main
 
 import (
-	"kaiju/bootstrap"
-	"kaiju/games/editor"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/bootstrap"
+	"github.com/KaijuEngine/kaiju/editor"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
 )
 
 type DummyGame struct{}

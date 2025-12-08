@@ -38,13 +38,14 @@
 package editor
 
 import (
-	"kaiju/build"
-	"kaiju/editor/editor_embedded_content"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/editor/editor_embedded_content"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 // EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to

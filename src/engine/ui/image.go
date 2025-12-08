@@ -38,12 +38,13 @@
 package ui
 
 import (
-	"kaiju/engine/systems/visual2d/sprite"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/engine/systems/visual2d/sprite"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type Image Panel

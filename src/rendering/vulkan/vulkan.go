@@ -366,8 +366,9 @@ package vulkan
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 // CreateInstance function as declared in https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCreateInstance.html

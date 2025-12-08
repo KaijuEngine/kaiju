@@ -38,11 +38,12 @@
 package editor_stage_manager
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/engine"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen/entity_data_binding"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type StageEntity struct {

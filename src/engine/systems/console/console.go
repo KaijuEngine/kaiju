@@ -38,16 +38,17 @@
 package console
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type ConsoleFunc func(*engine.Host, string) string

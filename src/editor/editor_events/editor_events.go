@@ -37,7 +37,7 @@
 
 package editor_events
 
-import "kaiju/engine/systems/events"
+import "github.com/KaijuEngine/kaiju/engine/systems/events"
 
 type EditorEvents struct {
 	// OnContentAdded sends the id of the content that was renamed

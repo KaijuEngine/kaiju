@@ -40,11 +40,12 @@ package main
 import (
 	"bufio"
 	"flag"
-	"kaiju/klib"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 func compile(args ...string) error {

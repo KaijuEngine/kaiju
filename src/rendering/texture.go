@@ -43,10 +43,11 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 	"github.com/KaijuEngine/uuid"
 )

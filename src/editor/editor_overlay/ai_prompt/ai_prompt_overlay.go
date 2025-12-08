@@ -38,15 +38,16 @@
 package ai_prompt
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/ollama"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/ollama"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const systemPrompt = `You are a helpful assistant for the Kaiju game engine with access to tools. When calling a tool, respond ONLY with valid JSON in this exact format:

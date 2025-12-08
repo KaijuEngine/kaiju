@@ -40,12 +40,13 @@ package content_database
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/debug"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string {

@@ -38,11 +38,12 @@
 package ui
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"slices"
 	"unicode/utf8"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 const (

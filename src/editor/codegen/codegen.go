@@ -43,8 +43,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -55,6 +53,9 @@ import (
 	"strings"
 	"unicode"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 var (

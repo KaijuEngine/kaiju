@@ -40,8 +40,9 @@ package logging
 import (
 	"context"
 	"io"
-	"kaiju/build"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/build"
 )
 
 type RuntimeLogHandler struct {

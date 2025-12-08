@@ -38,13 +38,13 @@
 package terrain
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders"
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders"
 )
 
 const (

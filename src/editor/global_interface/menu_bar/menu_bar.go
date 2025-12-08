@@ -38,17 +38,18 @@
 package menu_bar
 
 import (
-	"kaiju/editor/editor_overlay/create_entity_data"
-	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/create_entity_data"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/input_prompt"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type MenuBar struct {

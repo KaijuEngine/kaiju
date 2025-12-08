@@ -38,7 +38,7 @@
 package lighting
 
 import (
-	"kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type LightCollection = Collection[rendering.Light]

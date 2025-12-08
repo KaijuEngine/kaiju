@@ -44,8 +44,9 @@ package gob_test
 import (
 	"bytes"
 	"fmt"
-	"kaiju/engine/runtime/encoding/gob"
 	"log"
+
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
 )
 
 type P struct {

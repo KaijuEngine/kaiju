@@ -40,11 +40,12 @@ package ollama
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 var (

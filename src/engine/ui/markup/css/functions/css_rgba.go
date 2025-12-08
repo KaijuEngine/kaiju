@@ -38,11 +38,12 @@
 package functions
 
 import (
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
 	"strconv"
+
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 func (f Rgba) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {

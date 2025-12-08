@@ -37,7 +37,7 @@
 
 package collision
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type Triangle struct {
 	P           Plane

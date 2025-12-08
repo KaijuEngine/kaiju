@@ -38,7 +38,7 @@
 package collision
 
 import (
-	"kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type Ray struct {

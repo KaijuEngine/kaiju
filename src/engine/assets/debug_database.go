@@ -39,10 +39,11 @@ package assets
 
 import (
 	"io/fs"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type DebugContentDatabase struct{}

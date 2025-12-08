@@ -40,10 +40,11 @@ package properties
 import (
 	"errors"
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
 )
 
 // visibility: visible|hidden|collapse|initial|inherit;

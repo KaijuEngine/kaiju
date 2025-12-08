@@ -48,8 +48,9 @@ package physics
 */
 import "C"
 import (
-	"kaiju/matrix"
 	"runtime"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type MotionState struct{ ptr *C.btMotionState }

@@ -41,8 +41,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,6 +49,9 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
 )
 
 //go:embed api_index.md

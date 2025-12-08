@@ -1,3 +1,5 @@
+//go:build windows
+
 /******************************************************************************/
 /* window.win32.vk.go                                                         */
 /******************************************************************************/
@@ -34,8 +36,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build windows
 
 package windowing
 

@@ -38,8 +38,8 @@
 package pseudos
 
 import (
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
 )
 
 func (p Hover) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {

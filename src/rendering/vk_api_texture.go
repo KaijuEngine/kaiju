@@ -38,14 +38,15 @@
 package rendering
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"unsafe"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 type TextureCleanup struct {

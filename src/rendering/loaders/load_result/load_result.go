@@ -38,9 +38,10 @@
 package load_result
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type AnimationPathType = int

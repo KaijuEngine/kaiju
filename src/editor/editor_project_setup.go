@@ -40,12 +40,13 @@ package editor
 import (
 	"errors"
 	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/new_project"
-	"kaiju/editor/project"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/confirm_prompt"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/new_project"
+	"github.com/KaijuEngine/kaiju/editor/project"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func (ed *Editor) setProjectName(name string) {

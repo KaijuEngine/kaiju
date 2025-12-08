@@ -1,3 +1,6 @@
+//go:build required
+// +build required
+
 /******************************************************************************/
 /* dummy.go                                                                   */
 /******************************************************************************/
@@ -34,9 +37,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build required
-// +build required
 
 // Package dummy prevents go tooling from stripping the c dependencies.
 package dummy

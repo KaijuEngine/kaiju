@@ -1,4 +1,4 @@
-module kaiju
+module github.com/KaijuEngine/kaiju
 
 go 1.25.0
 

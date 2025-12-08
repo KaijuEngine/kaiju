@@ -39,13 +39,14 @@ package rendering
 
 import (
 	"encoding/json"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"strings"
 	"sync"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Material struct {

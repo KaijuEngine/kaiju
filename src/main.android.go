@@ -41,8 +41,9 @@ package main
 
 import (
 	"C"
-	"kaiju/engine/systems/logging"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
 )
 
 //export AndroidMain

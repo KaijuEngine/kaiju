@@ -38,12 +38,13 @@
 package rendering
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"reflect"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type ViewCuller interface {

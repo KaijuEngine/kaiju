@@ -39,13 +39,14 @@ package editor_embedded_content
 
 import (
 	"io/fs"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const absoluteFilePrefix = ':'

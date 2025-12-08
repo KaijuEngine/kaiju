@@ -38,7 +38,7 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
 )
 
 type detailSetNameHistory struct {

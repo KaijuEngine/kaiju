@@ -37,7 +37,7 @@
 
 package editor
 
-import "kaiju/platform/profiler/tracing"
+import "github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 type workspaceStateHistory struct {
 	ed   *Editor

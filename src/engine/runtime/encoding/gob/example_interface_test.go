@@ -44,9 +44,10 @@ package gob_test
 import (
 	"bytes"
 	"fmt"
-	"kaiju/engine/runtime/encoding/gob"
 	"log"
 	"math"
+
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
 )
 
 type Point struct {

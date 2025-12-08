@@ -39,10 +39,11 @@ package codegen
 
 import (
 	"bytes"
-	"kaiju/engine/runtime/encoding/gob"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
 )
 
 func TestWalk(t *testing.T) {

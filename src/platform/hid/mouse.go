@@ -38,8 +38,9 @@
 package hid
 
 import (
-	"kaiju/matrix"
 	"math"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 const (

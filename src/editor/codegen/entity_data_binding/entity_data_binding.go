@@ -38,14 +38,15 @@
 package entity_data_binding
 
 import (
-	"kaiju/editor/codegen"
-	"kaiju/editor/codegen/reflect_helpers"
-	"kaiju/engine"
-	"kaiju/klib"
 	"log/slog"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen"
+	"github.com/KaijuEngine/kaiju/editor/codegen/reflect_helpers"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 var (

@@ -38,8 +38,9 @@
 package rendering
 
 import (
-	"kaiju/klib"
 	"sort"
+
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 type ShaderDraw struct {

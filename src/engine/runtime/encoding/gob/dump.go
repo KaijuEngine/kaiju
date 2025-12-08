@@ -1,3 +1,5 @@
+//go:build ignore
+
 /******************************************************************************/
 /* dump.go                                                                    */
 /******************************************************************************/
@@ -39,8 +41,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build ignore
-
 package main
 
 // Need to compile package gob with debug.go to build this program.
@@ -48,8 +48,9 @@ package main
 
 import (
 	"fmt"
-	"kaiju/engine/runtime/encoding/gob"
 	"os"
+
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
 )
 
 func main() {

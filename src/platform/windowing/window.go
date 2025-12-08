@@ -39,18 +39,19 @@ package windowing
 
 import (
 	"errors"
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"slices"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 var (

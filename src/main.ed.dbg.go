@@ -41,11 +41,12 @@ package main
 
 import (
 	"io/fs"
-	"kaiju/bootstrap"
-	"kaiju/editor"
-	"kaiju/editor/project/project_file_system"
 	"os"
 	"path/filepath"
+
+	"github.com/KaijuEngine/kaiju/bootstrap"
+	"github.com/KaijuEngine/kaiju/editor"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
 )
 
 type srcRoot struct{ *os.Root }

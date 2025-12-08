@@ -40,14 +40,15 @@ package kaiju_mesh
 import (
 	"bytes"
 	"encoding/gob"
-	"kaiju/debug"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/concurrent"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/load_result"
 	"slices"
 	"sync"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/concurrent"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/load_result"
 )
 
 // KaijuMesh is a base primitive representing a single mesh. This is the

@@ -38,11 +38,12 @@
 package engine
 
 import (
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
 	"log/slog"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 // EntityId is a string that represents a unique identifier for an entity. The

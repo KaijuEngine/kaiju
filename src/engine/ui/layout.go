@@ -38,7 +38,7 @@
 package ui
 
 import (
-	"kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 const (

@@ -39,13 +39,14 @@ package content_database
 
 import (
 	"encoding/json"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 // ContentConfig is a composition of all possible configs, identified by their

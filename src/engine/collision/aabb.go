@@ -38,8 +38,9 @@
 package collision
 
 import (
-	"kaiju/matrix"
 	"math"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 // AABB is an axis-aligned bounding box

@@ -38,12 +38,13 @@
 package profiler
 
 import (
-	"kaiju/build"
-	"kaiju/klib/contexts"
 	"os"
 	"os/exec"
 	"runtime"
 	"runtime/pprof"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/klib/contexts"
 )
 
 const (

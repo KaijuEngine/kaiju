@@ -39,8 +39,9 @@ package editor
 
 import (
 	_ "embed"
-	"kaiju/klib"
-	"kaiju/ollama"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/ollama"
 )
 
 //go:embed docs.md

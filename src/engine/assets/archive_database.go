@@ -38,10 +38,11 @@
 package assets
 
 import (
-	"kaiju/engine/assets/content_archive"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"runtime"
+
+	"github.com/KaijuEngine/kaiju/engine/assets/content_archive"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const absoluteFilePrefix = ':'

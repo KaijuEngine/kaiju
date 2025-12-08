@@ -1,3 +1,7 @@
+//go:build darwin && (arm || arm64)
+// +build darwin
+// +build arm arm64
+
 /******************************************************************************/
 /* vulkan_ios.go                                                              */
 /******************************************************************************/
@@ -34,10 +38,6 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
-
-//go:build darwin && (arm || arm64)
-// +build darwin
-// +build arm arm64
 
 package vulkan
 

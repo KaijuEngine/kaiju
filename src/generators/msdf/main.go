@@ -41,11 +41,12 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/json"
-	"kaiju/klib"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 const binDir = "../tools/content_tools/"

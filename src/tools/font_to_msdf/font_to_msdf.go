@@ -39,13 +39,14 @@ package font_to_msdf
 
 import (
 	"encoding/json"
-	"kaiju/build"
-	"kaiju/klib"
-	"kaiju/rendering/loaders/kaiju_font"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/kaiju_font"
 )
 
 const binDir = "../tools/content_tools/"

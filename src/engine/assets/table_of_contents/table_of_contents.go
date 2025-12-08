@@ -41,7 +41,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"kaiju/build"
+
+	"github.com/KaijuEngine/kaiju/build"
 )
 
 type TableOfContents struct {

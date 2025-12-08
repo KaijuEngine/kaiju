@@ -38,9 +38,10 @@
 package concurrent
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"sync"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type WorkGroup struct {

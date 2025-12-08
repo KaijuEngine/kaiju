@@ -39,7 +39,7 @@
 
 package rendering
 
-import "kaiju/rendering/vulkan_const"
+import "github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 
 func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
 	return scs.capabilities.CurrentTransform

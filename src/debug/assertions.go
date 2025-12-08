@@ -39,9 +39,10 @@ package debug
 
 import (
 	"errors"
-	"kaiju/build"
 	"log/slog"
 	"runtime"
+
+	"github.com/KaijuEngine/kaiju/build"
 )
 
 var NotImplementedError = errors.New("not implemented")

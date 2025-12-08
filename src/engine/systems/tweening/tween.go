@@ -37,7 +37,7 @@
 
 package tweening
 
-import "kaiju/platform/profiler/tracing"
+import "github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 type Tween struct {
 	val         *float32

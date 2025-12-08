@@ -39,8 +39,9 @@ package project
 
 import (
 	"encoding/json"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Settings struct {

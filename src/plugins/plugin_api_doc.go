@@ -43,13 +43,14 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 var pkgSources = map[string][]string{}

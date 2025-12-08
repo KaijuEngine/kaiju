@@ -38,17 +38,18 @@
 package editor
 
 import (
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"text/template"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/confirm_prompt"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/input_prompt"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 // StageWorkspaceSelected will inform the editor that the developer has

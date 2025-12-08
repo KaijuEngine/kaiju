@@ -38,20 +38,21 @@
 package transform_tools
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_controls"
+	"github.com/KaijuEngine/kaiju/editor/editor_settings"
+	"github.com/KaijuEngine/kaiju/editor/memento"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type TransformTool struct {

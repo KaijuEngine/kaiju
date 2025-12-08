@@ -38,9 +38,10 @@
 package rendering
 
 import (
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
 	"runtime"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
 )
 
 type MeshCleanup struct {

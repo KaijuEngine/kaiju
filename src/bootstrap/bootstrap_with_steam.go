@@ -1,3 +1,5 @@
+//go:build steam
+
 /******************************************************************************/
 /* bootstrap_with_steam.go                                                    */
 /******************************************************************************/
@@ -35,13 +37,11 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build steam
-
 package bootstrap
 
 import (
-	"kaiju/engine"
-	"kaiju/platform/steam"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/platform/steam"
 )
 
 func initExternalGameService() {

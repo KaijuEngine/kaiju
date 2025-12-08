@@ -39,14 +39,15 @@ package content_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/audio"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/audio"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type ContentAudioView struct {

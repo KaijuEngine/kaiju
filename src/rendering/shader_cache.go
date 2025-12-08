@@ -38,10 +38,11 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"sync"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type ShaderCache struct {

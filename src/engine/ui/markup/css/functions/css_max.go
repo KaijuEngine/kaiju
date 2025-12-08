@@ -39,9 +39,10 @@ package functions
 
 import (
 	"errors"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
 )
 
 func (f Max) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error) {

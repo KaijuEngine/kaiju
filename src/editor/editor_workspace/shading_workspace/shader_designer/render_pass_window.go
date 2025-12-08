@@ -39,14 +39,15 @@ package shader_designer
 
 import (
 	"encoding/json"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/common_workspace"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
 
 	"github.com/KaijuEngine/uuid"
 )

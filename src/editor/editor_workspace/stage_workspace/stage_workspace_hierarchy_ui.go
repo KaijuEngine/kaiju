@@ -38,14 +38,15 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/platform/windowing"
 )
 
 type WorkspaceHierarchyUI struct {

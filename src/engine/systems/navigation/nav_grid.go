@@ -38,8 +38,8 @@
 package navigation
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Grid [][][]int8

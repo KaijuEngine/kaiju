@@ -40,20 +40,21 @@ package html_preview
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/host_container"
-	"kaiju/engine/systems/console"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/host_container"
+	"github.com/KaijuEngine/kaiju/engine/systems/console"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Preview struct {

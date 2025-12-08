@@ -38,13 +38,14 @@
 package ui
 
 import (
-	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"sort"
 	"sync"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type requestState = int

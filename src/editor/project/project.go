@@ -42,13 +42,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets/content_archive"
-	"kaiju/engine/systems/events"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -56,6 +49,14 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine/assets/content_archive"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/stages"
 )
 
 // Project is the mediator/container for all information about the developer's

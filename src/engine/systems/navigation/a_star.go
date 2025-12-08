@@ -39,8 +39,9 @@ package navigation
 
 import (
 	"container/heap"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func AStar(grid Grid, start, end matrix.Vec3i) []*Node {

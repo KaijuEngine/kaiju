@@ -38,22 +38,6 @@
 package engine
 
 import (
-	"kaiju/debug"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision_system"
-	"kaiju/engine/lighting"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/systems/tweening"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/audio"
-	"kaiju/platform/concurrent"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/plugins"
-	"kaiju/rendering"
 	"log/slog"
 	"math"
 	"runtime"
@@ -61,6 +45,23 @@ import (
 	"sync"
 	"time"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/engine/collision_system"
+	"github.com/KaijuEngine/kaiju/engine/lighting"
+	"github.com/KaijuEngine/kaiju/engine/systems/events"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
+	"github.com/KaijuEngine/kaiju/engine/systems/tweening"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/audio"
+	"github.com/KaijuEngine/kaiju/platform/concurrent"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/platform/windowing"
+	"github.com/KaijuEngine/kaiju/plugins"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 // FrameId is a unique identifier for a frame

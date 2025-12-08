@@ -38,17 +38,18 @@
 package data_binding_renderer
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine_data_bindings/engine_data_binding_camera"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen/entity_data_binding"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/engine_data_bindings/engine_data_binding_camera"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 func init() {

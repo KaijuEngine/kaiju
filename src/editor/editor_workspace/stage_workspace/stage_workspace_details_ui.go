@@ -39,23 +39,24 @@ package stage_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen"
+	"github.com/KaijuEngine/kaiju/editor/codegen/entity_data_binding"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/data_binding_renderer"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type transformKind int

@@ -40,11 +40,12 @@ package loaders
 import (
 	"bufio"
 	"fmt"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/load_result"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/load_result"
 )
 
 type objBuilder struct {

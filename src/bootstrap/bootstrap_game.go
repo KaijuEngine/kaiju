@@ -40,17 +40,18 @@
 package bootstrap
 
 import (
-	"kaiju/build"
-	"kaiju/engine"
-	"kaiju/engine/host_container"
-	"kaiju/engine/systems/logging"
-	"kaiju/matrix"
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
-	"kaiju/tools/html_preview"
 	"log/slog"
 	"runtime"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/host_container"
+	"github.com/KaijuEngine/kaiju/engine/systems/logging"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler"
+	"github.com/KaijuEngine/kaiju/plugins"
+	"github.com/KaijuEngine/kaiju/tools/html_preview"
 )
 
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool

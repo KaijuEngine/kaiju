@@ -39,10 +39,11 @@ package stage_workspace
 
 import (
 	"errors"
-	"kaiju/matrix"
-	"kaiju/ollama"
-	"kaiju/platform/profiler/tracing"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/ollama"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type llmCreateCameraAction struct {

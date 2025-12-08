@@ -38,11 +38,12 @@
 package network
 
 import (
-	"kaiju/engine"
-	"kaiju/klib"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 const reliableRetryDelay = time.Millisecond * 15

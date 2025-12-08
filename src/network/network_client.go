@@ -39,13 +39,14 @@ package network
 
 import (
 	"encoding/binary"
-	"kaiju/engine"
-	"kaiju/platform/concurrent"
 	"log/slog"
 	"net"
 	"strconv"
 	"time"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/platform/concurrent"
 )
 
 type NetworkClient struct {

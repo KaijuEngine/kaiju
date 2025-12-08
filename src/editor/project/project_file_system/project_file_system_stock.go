@@ -38,12 +38,13 @@
 package project_file_system
 
 import (
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 func (pfs *FileSystem) copyStockContent() error {

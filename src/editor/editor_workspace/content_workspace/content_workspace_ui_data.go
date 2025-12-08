@@ -38,9 +38,9 @@
 package content_workspace
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type WorkspaceUIData struct {

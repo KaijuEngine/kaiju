@@ -38,9 +38,10 @@
 package memento
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type History struct {

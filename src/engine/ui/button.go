@@ -38,8 +38,8 @@
 package ui
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type buttonData struct {

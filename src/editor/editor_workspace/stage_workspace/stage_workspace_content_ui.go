@@ -39,20 +39,21 @@ package stage_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_overlay/context_menu"
-	"kaiju/editor/editor_workspace/content_workspace"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
 	"strings"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_events"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/context_menu"
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/content_workspace"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type WorkspaceContentUI struct {

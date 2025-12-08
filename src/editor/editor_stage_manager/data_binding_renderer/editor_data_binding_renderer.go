@@ -38,11 +38,12 @@
 package data_binding_renderer
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/platform/profiler/tracing"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen/entity_data_binding"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 var renderers = map[string]DataBindingRenderer{}

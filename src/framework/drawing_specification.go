@@ -39,13 +39,14 @@ package framework
 
 import (
 	"fmt"
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/load_result"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/load_result"
 )
 
 var drawingSpecifications = map[string]DrawingSpecification{}

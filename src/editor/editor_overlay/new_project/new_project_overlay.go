@@ -38,14 +38,15 @@
 package new_project
 
 import (
-	"kaiju/editor/editor_overlay/file_browser"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/file_browser"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type NewProject struct {

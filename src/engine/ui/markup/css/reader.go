@@ -38,14 +38,15 @@
 package css
 
 import (
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/pseudos"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/windowing"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/helpers"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/pseudos"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/css/rules"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/windowing"
 )
 
 type CSSMap map[*ui.UI][]rules.Rule

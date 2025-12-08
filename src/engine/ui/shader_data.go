@@ -38,9 +38,10 @@
 package ui
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type ShaderData struct {

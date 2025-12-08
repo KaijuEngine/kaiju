@@ -37,7 +37,7 @@
 
 package collision
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type Plane struct {
 	Normal matrix.Vec3

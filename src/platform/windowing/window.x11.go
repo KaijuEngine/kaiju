@@ -73,8 +73,9 @@ package windowing
 import "C"
 import (
 	"errors"
-	"kaiju/klib"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/klib"
 
 	"golang.design/x/clipboard"
 )

@@ -38,7 +38,7 @@
 package ui
 
 import (
-	"kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 const (

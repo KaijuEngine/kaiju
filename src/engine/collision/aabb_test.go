@@ -38,8 +38,9 @@
 package collision
 
 import (
-	"kaiju/matrix"
 	"testing"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 func TestAABBHit(t *testing.T) {

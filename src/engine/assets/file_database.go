@@ -38,8 +38,9 @@
 package assets
 
 import (
-	"kaiju/platform/profiler/tracing"
 	"os"
+
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type FileDatabase struct {

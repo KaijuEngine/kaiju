@@ -39,17 +39,18 @@ package stages
 
 import (
 	"bytes"
-	"kaiju/build"
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/matrix"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"reflect"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/runtime/encoding/gob"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/kaiju_mesh"
 )
 
 const EntryPointAssetKey = "entryPointStage"

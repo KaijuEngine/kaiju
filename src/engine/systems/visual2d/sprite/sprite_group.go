@@ -38,11 +38,12 @@
 package sprite
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/klib"
 	"slices"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/debug"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 type SpriteGroupId = int

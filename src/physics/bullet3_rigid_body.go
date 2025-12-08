@@ -56,9 +56,10 @@ package physics
 */
 import "C"
 import (
-	"kaiju/matrix"
 	"runtime"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type RigidBody struct {

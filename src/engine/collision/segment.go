@@ -37,7 +37,7 @@
 
 package collision
 
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type Segment struct {
 	A matrix.Vec3

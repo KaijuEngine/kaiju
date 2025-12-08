@@ -38,14 +38,14 @@
 package editor
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_overlay/reference_viewer"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/editor/editor_events"
+	"github.com/KaijuEngine/kaiju/editor/editor_overlay/reference_viewer"
+	"github.com/KaijuEngine/kaiju/editor/editor_settings"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/editor_stage_view"
+	"github.com/KaijuEngine/kaiju/editor/memento"
+	"github.com/KaijuEngine/kaiju/editor/project"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
 )
 
 func (ed *Editor) Events() *editor_events.EditorEvents {

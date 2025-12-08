@@ -38,9 +38,9 @@
 package cameras
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type StandardCamera struct {

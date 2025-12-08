@@ -39,16 +39,17 @@ package shading_workspace
 
 import (
 	"encoding/json"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/editor_workspace/shading_workspace/shader_designer"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/editor_stage_view"
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/common_workspace"
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/shading_workspace/shader_designer"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type ShadingWorkspace struct {

@@ -38,9 +38,9 @@
 package content_workspace
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/editor/editor_events"
+	"github.com/KaijuEngine/kaiju/editor/project/project_database/content_database"
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
 )
 
 type ContentWorkspaceEditorInterface interface {

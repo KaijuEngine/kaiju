@@ -38,8 +38,9 @@
 package collision
 
 import (
-	"kaiju/matrix"
 	"sort"
+
+	"github.com/KaijuEngine/kaiju/matrix"
 )
 
 type HitObject interface {

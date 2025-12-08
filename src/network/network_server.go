@@ -39,8 +39,6 @@ package network
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/platform/concurrent"
 	"log/slog"
 	"net"
 	"sort"
@@ -49,6 +47,9 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/platform/concurrent"
 )
 
 type ClientMessage struct {

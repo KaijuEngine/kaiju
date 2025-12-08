@@ -48,9 +48,9 @@ import (
 	"slices"
 	"strings"
 
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/plugins/lua"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/plugins/lua"
 )
 
 type jsLogType = int

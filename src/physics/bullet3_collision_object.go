@@ -43,7 +43,7 @@ package physics
 #include "bullet3_wrapper.h"
 */
 import "C"
-import "kaiju/matrix"
+import "github.com/KaijuEngine/kaiju/matrix"
 
 type CollisionHit C.HitWrapper
 type CollisionObject struct{ ptr *C.btCollisionObject }

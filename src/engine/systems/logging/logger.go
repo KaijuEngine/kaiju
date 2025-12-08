@@ -40,10 +40,6 @@ package logging
 import (
 	"bufio"
 	"fmt"
-	"kaiju/build"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -52,6 +48,11 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/build"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/filesystem"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const (

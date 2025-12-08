@@ -41,17 +41,18 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/gltf"
-	"kaiju/rendering/loaders/load_result"
 	"path/filepath"
 	"slices"
 	"strings"
 	"unsafe"
+
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/rendering"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/gltf"
+	"github.com/KaijuEngine/kaiju/rendering/loaders/load_result"
 )
 
 type fullGLTF struct {

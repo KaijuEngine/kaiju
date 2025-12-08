@@ -39,14 +39,15 @@ package shader_designer
 
 import (
 	"bufio"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib/string_equations"
-	"kaiju/rendering"
 	"log/slog"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/klib/string_equations"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 var (

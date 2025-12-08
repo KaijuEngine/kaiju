@@ -38,22 +38,23 @@
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"weak"
+
+	"github.com/KaijuEngine/kaiju/editor/editor_controls"
+	"github.com/KaijuEngine/kaiju/editor/editor_settings"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/data_binding_renderer"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
+	"github.com/KaijuEngine/kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"github.com/KaijuEngine/kaiju/editor/memento"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/hid"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/registry/shader_data_registry"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type StageView struct {

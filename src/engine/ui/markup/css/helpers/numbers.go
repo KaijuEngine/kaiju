@@ -39,9 +39,10 @@ package helpers
 
 import (
 	"fmt"
-	"kaiju/rendering"
 	"strconv"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type WindowDimensions interface {

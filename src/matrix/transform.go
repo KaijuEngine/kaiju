@@ -38,9 +38,10 @@
 package matrix
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"slices"
+
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type Transform struct {

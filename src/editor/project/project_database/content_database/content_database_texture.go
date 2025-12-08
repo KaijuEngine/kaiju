@@ -44,10 +44,11 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+
+	"github.com/KaijuEngine/kaiju/editor/project/project_file_system"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 
 	"golang.org/x/image/bmp"
 )

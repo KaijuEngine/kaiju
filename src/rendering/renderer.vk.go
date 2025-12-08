@@ -39,21 +39,22 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/engine/pooling"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"math"
 	"runtime"
 	"sort"
 	"unsafe"
 
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"github.com/KaijuEngine/kaiju/engine/assets"
+	"github.com/KaijuEngine/kaiju/engine/cameras"
+	"github.com/KaijuEngine/kaiju/engine/collision"
+	"github.com/KaijuEngine/kaiju/engine/pooling"
+	"github.com/KaijuEngine/kaiju/klib"
+	"github.com/KaijuEngine/kaiju/matrix"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
+
+	vk "github.com/KaijuEngine/kaiju/rendering/vulkan"
+	"github.com/KaijuEngine/kaiju/rendering/vulkan_const"
 )
 
 type vkQueueFamilyIndices struct {

@@ -38,13 +38,13 @@
 package settings_workspace
 
 import (
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/project"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/editor/editor_settings"
+	"github.com/KaijuEngine/kaiju/editor/editor_workspace/common_workspace"
+	"github.com/KaijuEngine/kaiju/editor/project"
+	"github.com/KaijuEngine/kaiju/engine"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 const uiFile = "editor/ui/workspace/settings_workspace.go.html"

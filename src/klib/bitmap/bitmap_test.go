@@ -38,11 +38,12 @@
 package bitmap
 
 import (
-	"kaiju/klib"
 	"math/rand/v2"
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/KaijuEngine/kaiju/klib"
 )
 
 func seededRandomTestSet(maxMapLen int, seed1, seed2 uint64) []int {

@@ -38,7 +38,7 @@
 package editor_stage_manager
 
 import (
-	"kaiju/platform/profiler/tracing"
+	"github.com/KaijuEngine/kaiju/platform/profiler/tracing"
 )
 
 type changeParentHistory struct {

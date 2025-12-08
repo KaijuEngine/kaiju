@@ -39,16 +39,17 @@ package common_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/codegen/reflect_helpers"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/rendering"
 	"reflect"
 	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/KaijuEngine/kaiju/editor/codegen/reflect_helpers"
+	"github.com/KaijuEngine/kaiju/engine/ui"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/rendering"
 )
 
 type DataUISection struct {

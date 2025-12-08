@@ -38,7 +38,7 @@
 package properties
 
 import (
-	"kaiju/engine/ui/markup/document"
+	"github.com/KaijuEngine/kaiju/engine/ui/markup/document"
 )
 
 func init() {
