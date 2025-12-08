@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/build"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
@@ -167,7 +168,11 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	if build.Debug && ed.initAutoTest() {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+	} else {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
 }
 
 func (ed *Editor) update(deltaTime float64) {

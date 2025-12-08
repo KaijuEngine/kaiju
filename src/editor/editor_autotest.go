@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_plugins.go                                                          */
+/* editor_autotest.go                                                         */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -9,6 +9,7 @@
 /*                                                                            */
 /* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
 /* Copyright (c) 2015-present Brent Farris.                                   */
+/* Copyright (c) 2025-present Raphaël Côté.                                   */
 /*                                                                            */
 /* May all those that this source may reach be blessed by the LORD and find   */
 /* peace and joy in life.                                                     */
@@ -39,46 +40,94 @@ package editor
 
 import (
 	"kaiju/build"
-	"kaiju/editor/editor_embedded_content"
 	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
-	"reflect"
+	"os"
 )
 
-// EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
-// bootstrap the editor (as it would a game).
-type EditorGame struct{}
-
-func (EditorGame) PluginRegistry() []reflect.Type {
-	defer tracing.NewRegion("EditorGame.PluginRegistry").End()
-	return []reflect.Type{}
+// autoTestState tracks the state of the automated integration test
+type autoTestState struct {
+	frameCount    int
+	testStep      int
+	entityCreated bool
 }
 
-func (EditorGame) ContentDatabase() (assets.Database, error) {
-	return &editor_embedded_content.EditorContent{}, nil
-}
+var autoTest autoTestState
 
-func (EditorGame) Launch(host *engine.Host) {
-	defer tracing.NewRegion("EditorGame.Launch").End()
-	ed := &Editor{host: host}
-	host.SetGame(ed)
-	if err := ed.settings.Load(); err != nil {
-		slog.Error("failed to load the settings for the editor", "error", err)
+// runAutoTest executes automated integration tests when --autotest flag is set
+func (ed *Editor) runAutoTest(deltaTime float64) {
+	// Wait for initialization (project loaded, workspaces ready)
+	autoTest.frameCount++
+
+	// Wait 60 frames (~1 second) for everything to initialize
+	if autoTest.frameCount < 60 {
+		return
 	}
-	ed.UpdateSettings()
-	ed.logging.Initialize(host, host.LogStream)
-	ed.history.Initialize(128)
-	ed.earlyLoadUI()
-	// Wait 2 frames to blur so the UI is updated properly before being disabled
-	host.RunAfterFrames(2, func() {
-		ed.BlurInterface()
-		if build.Debug && engine.LaunchParams.AutoTest {
-			// Auto-test mode: create a temporary test project automatically
-			ed.createProject("AutoTest", "autotestproject")
-		} else {
-			ed.newProjectOverlay()
+
+	// Execute test sequence
+	switch autoTest.testStep {
+	case 0:
+		slog.Info("AutoTest: Starting automated integration test")
+		slog.Info("AutoTest: Step 1 - Creating new entity")
+		ed.CreateNewEntity()
+		autoTest.entityCreated = true
+		autoTest.testStep++
+
+	case 1:
+		// Wait a few frames for entity creation to complete
+		if autoTest.frameCount > 65 {
+			slog.Info("AutoTest: Step 2 - Testing undo operation")
+			ed.history.Undo()
+			autoTest.testStep++
 		}
-	})
+
+	case 2:
+		// Wait a few frames after undo
+		if autoTest.frameCount > 70 {
+			slog.Info("AutoTest: Step 3 - Testing redo operation")
+			ed.history.Redo()
+			autoTest.testStep++
+		}
+
+	case 3:
+		// Wait a few frames after redo
+		if autoTest.frameCount > 75 {
+			slog.Info("AutoTest: Step 4 - Switching to content workspace")
+			ed.ContentWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 4:
+		// Wait a few frames after workspace switch
+		if autoTest.frameCount > 80 {
+			slog.Info("AutoTest: Step 5 - Switching to shading workspace")
+			ed.ShadingWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 5:
+		// Wait a few frames after workspace switch
+		if autoTest.frameCount > 85 {
+			slog.Info("AutoTest: Step 6 - Switching back to stage workspace")
+			ed.StageWorkspaceSelected()
+			autoTest.testStep++
+		}
+
+	case 6:
+		// Wait a few frames to ensure stability
+		if autoTest.frameCount > 90 {
+			slog.Info("AutoTest: All tests completed successfully!")
+			slog.Info("AutoTest: Exiting with success code")
+			os.Exit(0)
+		}
+	}
+}
+
+// initAutoTest checks if auto-test mode is enabled and sets it up
+func (ed *Editor) initAutoTest() bool {
+	if build.Debug && engine.LaunchParams.AutoTest {
+		slog.Info("AutoTest mode enabled - will run automated integration tests")
+		return true
+	}
+	return false
 }

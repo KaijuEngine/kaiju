@@ -5,3 +5,6 @@
 
 ## Project Co-Founder
     [Brett Faulds](https://github.com/Crazy8Ball)
+
+## Project Contributor
+    [Raphaël Côté](https://github.com/qwertyuu)
