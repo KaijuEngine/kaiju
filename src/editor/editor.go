@@ -38,6 +38,7 @@
 package editor
 
 import (
+	"kaiju/build"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
@@ -90,9 +91,8 @@ type Editor struct {
 		deactivateId   events.Id
 		lastActiveTime time.Time
 	}
-	updateId       engine.UpdateId
-	blurred        bool
-	autoTestActive bool
+	updateId engine.UpdateId
+	blurred  bool
 }
 
 type workspaces struct {
@@ -168,8 +168,7 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	ed.autoTestActive = ed.initAutoTest()
-	if ed.autoTestActive {
+	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
