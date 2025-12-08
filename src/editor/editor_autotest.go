@@ -39,6 +39,7 @@
 package editor
 
 import (
+	"kaiju/build"
 	"kaiju/engine"
 	"log/slog"
 	"os"
@@ -54,7 +55,7 @@ type autoTestState struct {
 var autoTest autoTestState
 
 // runAutoTest executes automated integration tests when --autotest flag is set
-func (ed *Editor) runAutoTest() {
+func (ed *Editor) runAutoTest(deltaTime float64) {
 	// Wait for initialization (project loaded, workspaces ready)
 	autoTest.frameCount++
 
@@ -124,7 +125,7 @@ func (ed *Editor) runAutoTest() {
 
 // initAutoTest checks if auto-test mode is enabled and sets it up
 func (ed *Editor) initAutoTest() bool {
-	if engine.LaunchParams.AutoTest {
+	if build.Debug && engine.LaunchParams.AutoTest {
 		slog.Info("AutoTest mode enabled - will run automated integration tests")
 		return true
 	}

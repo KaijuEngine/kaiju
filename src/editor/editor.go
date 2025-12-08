@@ -168,17 +168,15 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	ed.updateId = ed.host.Updater.AddUpdate(ed.update)
 	ed.autoTestActive = ed.initAutoTest()
+	if ed.autoTestActive {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+	} else {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
 }
 
 func (ed *Editor) update(deltaTime float64) {
-	// Run automated tests if in auto-test mode
-	if ed.autoTestActive {
-		ed.runAutoTest()
-		return
-	}
-
 	if ed.blurred {
 		return
 	}
