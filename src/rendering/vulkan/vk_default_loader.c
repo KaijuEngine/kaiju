@@ -35,8 +35,7 @@ void* getDefaultProcAddr() {
         return &loaderWrap;
     #elif defined(__APPLE__) && defined(__MACH__)
         // On macOS, try to load MoltenVK (which includes the Vulkan loader)
-        // Try SDK version first, then system install
-        void* libvulkan = dlopen("@rpath/libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+        void* libvulkan = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
         if (libvulkan == NULL) {
             libvulkan = dlopen("/usr/local/lib/libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
         }

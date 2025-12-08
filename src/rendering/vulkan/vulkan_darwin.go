@@ -49,7 +49,6 @@ package vulkan
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
 	vkc "kaiju/rendering/vulkan_const"
 	"unsafe"
 )
@@ -79,15 +78,4 @@ func CreateSurfaceFromNSView(instance Instance, nsView unsafe.Pointer, surface *
 		(*C.VkSurfaceKHR)(unsafe.Pointer(surface)),
 	)
 	return vkc.Result(res)
-}
-
-func (vr *Vulkan) createSurface(window RenderingContainer) bool {
-	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
-	var surface vk.Surface
-	res := vk.CreateSurfaceFromNSView(vr.instance, nsView, &surface)
-	if res != vulkan_const.Success {
-		return false
-	}
-	vr.surface = surface
-	return true
 }
