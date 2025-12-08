@@ -22,9 +22,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -38,6 +37,7 @@
 package editor
 
 import (
+	"kaiju/build"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
@@ -167,7 +167,11 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	if build.Debug && ed.initAutoTest() {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+	} else {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
 }
 
 func (ed *Editor) update(deltaTime float64) {

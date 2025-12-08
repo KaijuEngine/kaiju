@@ -1,0 +1,287 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches:
+      - master
+      - staging
+  pull_request:
+    branches:
+      - master
+      - staging
+
+jobs:
+  # Quick smoke test - runs on every commit for fast feedback
+  build-and-test-linux:
+    name: Build and E2E Test on Linux
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: src/go.sum
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            mesa-common-dev \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            libvulkan-dev \
+            libasound2-dev \
+            xvfb \
+            xauth
+
+      - name: Install Vulkan SDK
+        run: |
+          # Add LunarG public key (modern approach without apt-key)
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+
+          # Add LunarG repository
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+
+          # Update and install Vulkan SDK
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Verify Vulkan installation
+        run: |
+          echo "Vulkan SDK version:"
+          vulkaninfo --summary || echo "vulkaninfo failed, but continuing..."
+          echo "VK_SDK_PATH: $VK_SDK_PATH"
+          echo "VULKAN_SDK: $VULKAN_SDK"
+
+      - name: Build editor (debug mode)
+        working-directory: ./src
+        run: |
+          go build -v -tags="debug,editor" -o ../kaiju ./
+          ls -lh ../kaiju
+
+      - name: Run editor E2E test
+        working-directory: .
+        env:
+          DISPLAY: ':99'
+        run: |
+          # Start Xvfb (X Virtual Frame Buffer) for headless display
+          echo "Starting Xvfb..."
+          Xvfb :99 -screen 0 1920x1080x24 &
+          XVFB_PID=$!
+          echo "Xvfb PID: $XVFB_PID"
+
+          # Give Xvfb time to start and verify it's running
+          sleep 2
+          if ! kill -0 $XVFB_PID 2>/dev/null; then
+            echo "✗ Xvfb failed to start"
+            exit 1
+          fi
+
+          # Run the editor with automated integration tests
+          echo "Starting Kaiju Editor with automated tests..."
+          timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+
+          # Check exit code
+          # Exit code 0 means auto-test completed successfully
+          # timeout returns 124 if it times out (should not happen with auto-test)
+          if [ ${EXIT_CODE:-0} -eq 0 ]; then
+            echo "✓ Editor automated tests completed successfully"
+            TEST_RESULT=0
+          elif [ ${EXIT_CODE:-0} -eq 124 ]; then
+            echo "✗ Editor tests timed out after 30 seconds"
+            TEST_RESULT=1
+          else
+            echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
+            TEST_RESULT=1
+          fi
+
+          # Cleanup
+          echo "Cleaning up..."
+          kill $XVFB_PID 2>/dev/null || true
+          rm -rf autotestproject
+
+          exit $TEST_RESULT
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-linux
+          path: kaiju
+          retention-days: 7
+
+  # Multi-GPU scenario testing - tests with different GPU profiles using Lavapipe
+  gpu-scenario-matrix:
+    name: GPU Test (${{ matrix.profile_name }}, ${{ matrix.validation }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Integrated GPU
+          - profile: integrated_gpu
+            profile_name: Integrated GPU
+            validation: standard
+
+          # NVIDIA Discrete GPU
+          - profile: discrete_nvidia
+            profile_name: NVIDIA Discrete
+            validation: standard
+
+          # AMD Discrete GPU
+          - profile: discrete_amd
+            profile_name: AMD Discrete
+            validation: standard
+
+          # Minimal Vulkan 1.0 with extended validation
+          - profile: minimal_vulkan
+            profile_name: Minimal Vulkan 1.0
+            validation: extended
+
+          # NVIDIA with extended validation (best practices + sync)
+          - profile: discrete_nvidia
+            profile_name: NVIDIA Discrete (Extended)
+            validation: extended
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: src/go.sum
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            mesa-common-dev \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            libvulkan-dev \
+            libasound2-dev \
+            xvfb \
+            xauth
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Configure GPU profile
+        run: |
+          # Set profile file environment variable
+          export VK_KHRONOS_PROFILES_PROFILE_FILE="$(pwd)/profiles/${{ matrix.profile }}.json"
+          echo "VK_KHRONOS_PROFILES_PROFILE_FILE=$VK_KHRONOS_PROFILES_PROFILE_FILE" >> $GITHUB_ENV
+
+          # Enable profiles layer
+          export VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_profiles
+          echo "VK_INSTANCE_LAYERS=$VK_INSTANCE_LAYERS" >> $GITHUB_ENV
+
+          echo "GPU Profile: ${{ matrix.profile_name }}"
+          echo "Profile file: $VK_KHRONOS_PROFILES_PROFILE_FILE"
+
+      - name: Configure validation layers
+        run: |
+          if [ "${{ matrix.validation }}" = "extended" ]; then
+            # Extended validation with GPU-assisted, best practices, and synchronization
+            export VK_LAYER_ENABLES="VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT"
+            echo "VK_LAYER_ENABLES=$VK_LAYER_ENABLES" >> $GITHUB_ENV
+            echo "Using extended validation"
+          else
+            echo "Using standard validation"
+          fi
+
+      - name: Verify Vulkan configuration
+        run: |
+          echo "=== Vulkan Configuration ==="
+          echo "Renderer: Lavapipe (Mesa)"
+          echo "GPU Profile: ${{ matrix.profile_name }}"
+          echo "Validation: ${{ matrix.validation }}"
+          echo ""
+          echo "Environment variables:"
+          env | grep VK_ || echo "No VK_ variables set"
+          echo ""
+          echo "Vulkan info:"
+          vulkaninfo --summary || echo "vulkaninfo failed"
+
+      - name: Build editor (debug mode)
+        working-directory: ./src
+        run: |
+          go build -v -tags="debug,editor" -o ../kaiju ./
+          ls -lh ../kaiju
+
+      - name: Run editor E2E test
+        working-directory: .
+        env:
+          DISPLAY: ':99'
+        run: |
+          # Start Xvfb
+          echo "Starting Xvfb..."
+          Xvfb :99 -screen 0 1920x1080x24 &
+          XVFB_PID=$!
+          echo "Xvfb PID: $XVFB_PID"
+
+          sleep 2
+          if ! kill -0 $XVFB_PID 2>/dev/null; then
+            echo "✗ Xvfb failed to start"
+            exit 1
+          fi
+
+          # Run editor with automated tests
+          echo "Starting Kaiju Editor with automated tests..."
+          echo "GPU Profile: ${{ matrix.profile_name }}"
+          timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+
+          # Check exit code
+          if [ ${EXIT_CODE:-0} -eq 0 ]; then
+            echo "✓ Editor automated tests completed successfully"
+            TEST_RESULT=0
+          elif [ ${EXIT_CODE:-0} -eq 124 ]; then
+            echo "✗ Editor tests timed out after 30 seconds"
+            TEST_RESULT=1
+          else
+            echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
+            TEST_RESULT=1
+          fi
+
+          # Cleanup
+          echo "Cleaning up..."
+          kill $XVFB_PID 2>/dev/null || true
+          rm -rf autotestproject
+
+          exit $TEST_RESULT
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-${{ matrix.profile }}-${{ matrix.validation }}
+          path: kaiju
+          retention-days: 7

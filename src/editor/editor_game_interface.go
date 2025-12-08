@@ -22,9 +22,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -38,6 +37,7 @@
 package editor
 
 import (
+	"kaiju/build"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -73,6 +73,11 @@ func (EditorGame) Launch(host *engine.Host) {
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
 		ed.BlurInterface()
-		ed.newProjectOverlay()
+		if build.Debug && engine.LaunchParams.AutoTest {
+			// Auto-test mode: create a temporary test project automatically
+			ed.createProject("AutoTest", "autotestproject")
+		} else {
+			ed.newProjectOverlay()
+		}
 	})
 }

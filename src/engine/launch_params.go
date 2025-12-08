@@ -22,9 +22,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -49,6 +48,7 @@ type LaunchParameters struct {
 	StartStage string
 	Trace      bool
 	RecordPGO  bool
+	AutoTest   bool
 }
 
 func LoadLaunchParams() {
@@ -56,6 +56,7 @@ func LoadLaunchParams() {
 	if build.Debug {
 		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
 		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")
+		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
 	}
 	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
 	flag.Parse()

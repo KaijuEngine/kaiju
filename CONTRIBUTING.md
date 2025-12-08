@@ -1,27 +1,27 @@
 # How to contribute to Kaiju Engine
 
-## Contributing via Git platform
-You are free to contribute to the project via git through bug reports, feature
-requests, pull requrests, discussions, video tutorials, etc. Below are some
-guides on how to use the platform to contribute in this way.
+## Contributing via GitHub
+You are free to contribute to the project via GitHub. Be it bug reports, feature
+requests, pull requests, or discussions. Video tutorials, etc. are welcome too.
+Below are some guides on how to use the platform to contribute in this way.
 
 ### **Did you find a bug?**
 1. Search issues, both open and closed first
 2. If you didn't find the bug, report it via issues with bug tag
 
-### **Pull requeset rules**
+### **Pull request rules**
 1. Ensure you've discussed the issue/addition before starting (issues, discussion, etc.)
-2. You must make a pull request to the `staging` branch
-3. Title must be short and self explanitory
+2. You must make a pull request to the `master` branch (for now). This will be changed in the future.
+3. Title must be short and self-explanatory
 4. Give a detailed description of the change, why it was made, and what it solves
-5. Pull request title should include issue number (eg: #1234)
+5. Pull request title should include an issue number (e.g.: #1234)
 
 ## Coding guidelines
 Every attempt is made to make the code as performant as possible as well as
 generate minimal memory garbage. All new code must be thoroughly planned and
 designed before being written. This can be via technical design doc, flow
-charts, and/or any other type of specification document. Your go code should be
-well written prose, fancy code, tricks, and bespoke patterns are fun to code but
+charts, and/or any other type of specification document. Your Go code should be
+well-written prose, fancy code, tricks, and bespoke patterns are fun to code but
 not typically welcome.
 
 ### Comments and documentation
@@ -31,15 +31,15 @@ formatted the same way as Go's standard library. Comment lines should not
 exceed 80 columns in width.
 
 Comments within the code are welcome for when the code is not possible to
-express itself in an understandable way. This is typical in tight performance
+express itself understandably. This is typical in tight performance
 loops, or code needed to access low-level resources. If your code is otherwise
-difficult to understand and needs a comment, consider improving your code first
+hard to understand and needs a comment, consider improving your code first
 before writing a comment.
 
 Do not commit TODO, FIXME, or any other sorts of similar comments without first
-discussing why it needs to be there and getting approval for it's addition. No
+discussing why it needs to be there and getting approval for its addition. No
 such comment should be committed without an accompanying issue id, regardless
-of it's approval. If you create an issue, remove the TODO or FIXME comment and
+of its approval. If you create an issue, remove the TODO or FIXME comment and
 add in the klib.NotYetImplemented(X) function call, replacing `X` with the id
 of the issue.
 
@@ -47,7 +47,7 @@ of the issue.
 function does not need to be documented, even though it is a public function.*
 
 ### Pointers
-Pointers are to be deliberately hand selected and used as sparingly as possible.
+Pointers are to be deliberately hand-selected and used as sparingly as possible.
 Prefer composition of structures with members into a single pointer over
 creating multiple pointers that can be passed around. This will require
 forethought and thorough design to reduce mistakes. Please review `host.go` for
@@ -58,16 +58,16 @@ over-use of pointers.
 Though it's enticing to simply return `fmt.Errorf` or `errors.New`, these are
 frowned upon. Having a structure that implements the Error interface is the
 preferred method for the Go source code, and so too is it to be the preferred
-method within the engine. Typically errors stem from uncontrollable sources,
+method within the engine. Typically, errors stem from uncontrollable sources,
 but make every attempt to resolve the error with a fallback solution as soon as
 possible and avoid bubbling up the error if at all possible.
 
 ### Interfaces
 Interfaces should be used sparingly, only when no other solution is possible.
-Typically an interface is to solve an unknown problem that a future developer
+Typically, an interface is to solve an unknown problem that a future developer
 may need, or to create a more generic way to interact with a part of a system.
 Most of the time, interfaces are not needed. Most interfaces built into the
-engine are for generic type constraints, bi-directional communication between
+engine are for generic type constraints, bidirectional communication between
 packages, and solutions to larger problems like HTML/CSS parsing.
 
 ### 3rd party packages
@@ -88,12 +88,12 @@ the go implementation of the code.
 
 ### Goroutines
 You can write goroutines (for the editor), but for the engine runtime, make use
-of the threads structure that is attached to the host. When firing off a
+of the thread structure that is attached to the host. When firing off a
 goroutine in the editor code, put a comment above it `// goroutine`. This will
 make it easy to search through all the goroutines in the code (until I find a
 better way of doing this).
 
 ### In any other case
-Generally, if you would like a guide at how the code should be formatted and
+Generally, if you would like a guide on how the code should be formatted and
 what standards you should hold yourself to, review the existing code in the
 repository. When in Rome, do as the Romans do.
