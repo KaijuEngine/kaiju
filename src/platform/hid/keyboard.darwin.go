@@ -38,6 +38,11 @@
 
 package hid
 
+import "kaiju/klib"
+
+const macOSSupportIssueID = 485
+
 func ToKeyboardKey(nativeKey int) KeyboardKey {
+	klib.NotYetImplemented(macOSSupportIssueID)
 	return KeyBoardKeyInvalid
 }
