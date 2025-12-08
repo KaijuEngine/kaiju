@@ -1,17 +1,20 @@
-# Cross-Compilation Windows depuis Linux (TODO)
+# 💻 Cross-Compilation Windows from Linux (TODO)
 
-## Objectif
-Éliminer le runner Windows du CI en faisant la cross-compilation pour Windows depuis Linux avec MinGW-w64.
+## 🎯 Objective
 
-## Avantages
-- ✅ Tout builder sur le même runner Linux (plus rapide)
-- ✅ Moins de complexité (pas besoin de gérer 2 OS différents)
-- ✅ Moins cher (les runners Windows coûtent 2x plus en minutes CI)
-- ✅ Plus fiable (Linux est plus stable pour CI)
+Eliminate the **Windows runner** from the CI (Continuous Integration) pipeline by performing cross-compilation for Windows from Linux using **MinGW-w64**.
 
-## Approche Recommandée
+## ✅ Advantages
 
-### 1. Installer MinGW sur Ubuntu
+  * **Build everything on the same Linux runner** (faster)
+  * **Less complexity** (no need to manage 2 different OSes)
+  * **Cheaper** (Windows runners cost 2x more in CI minutes)
+  * **More reliable** (Linux is more stable for CI)
+
+## 🛠️ Recommended Approach
+
+### 1\. Install MinGW on Ubuntu
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
@@ -20,58 +23,62 @@ sudo apt-get install -y \
   gcc-mingw-w64-x86-64
 ```
 
-### 2. Obtenir les Headers Vulkan
+### 2\. Get the Vulkan Headers
 
-**Option A - Cloner depuis GitHub (recommandé)**:
+**Option A - Clone from GitHub (recommended)**:
+
 ```bash
-# Les headers Vulkan sont platform-agnostic
+# Vulkan headers are platform-agnostic
 git clone --depth 1 --branch sdk-1.3.290 \
   https://github.com/KhronosGroup/Vulkan-Headers.git
 cd Vulkan-Headers
 mkdir build && cd build
 
-# Installer dans le préfixe MinGW
+# Install into the MinGW prefix
 cmake -DCMAKE_INSTALL_PREFIX=/usr/x86_64-w64-mingw32 ..
 sudo make install
 ```
 
-**Option B - Copier headers système**:
+**Option B - Copy system headers**:
+
 ```bash
-# Les headers Vulkan Linux fonctionnent aussi pour Windows
+# Linux Vulkan headers also work for Windows
 sudo apt-get install libvulkan-dev
 sudo cp -r /usr/include/vulkan /usr/x86_64-w64-mingw32/include/
 sudo cp -r /usr/include/vk_video /usr/x86_64-w64-mingw32/include/
 ```
 
-### 3. Obtenir la Bibliothèque Vulkan Windows
+### 3\. Get the Windows Vulkan Library
 
-**Option A - Télécharger SDK Windows**:
+**Option A - Download Windows SDK**:
+
 ```bash
 wget https://sdk.lunarg.com/sdk/download/1.3.290.0/windows/VulkanSDK-1.3.290.0-Installer.exe
 7z x VulkanSDK-1.3.290.0-Installer.exe
 sudo cp Lib/vulkan-1.lib /usr/x86_64-w64-mingw32/lib/
 ```
 
-**Option B - Extraire depuis MSYS2** (plus complexe):
+**Option B - Extract from MSYS2** (more complex):
+
 ```bash
-# Télécharger le paquet MSYS2
+# Download the MSYS2 package
 wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-vulkan-loader-*.pkg.tar.zst
 tar -I zstd -xf mingw-w64-x86_64-vulkan-loader-*.pkg.tar.zst
 sudo cp mingw64/lib/libvulkan.a /usr/x86_64-w64-mingw32/lib/
 sudo cp mingw64/bin/vulkan-1.dll /usr/x86_64-w64-mingw32/bin/
 ```
 
-### 4. Cross-Compiler avec Go
+### 4\. Cross-Compile with Go
 
 ```bash
-# Configuration de l'environnement
+# Environment Configuration
 export CC=x86_64-w64-mingw32-gcc
 export CXX=x86_64-w64-mingw32-g++
 export GOOS=windows
 export GOARCH=amd64
 export CGO_ENABLED=1
 
-# Chemins Vulkan pour MinGW
+# Vulkan paths for MinGW
 export CGO_CFLAGS="-I/usr/x86_64-w64-mingw32/include"
 export CGO_LDFLAGS="-L/usr/x86_64-w64-mingw32/lib -lvulkan-1"
 
@@ -80,7 +87,7 @@ cd src
 go build -ldflags="-s -w" -tags="editor" -o ../kaiju-editor.exe ./
 ```
 
-### 5. Intégration CI/CD
+### 5\. CI/CD Integration
 
 ```yaml
 - name: Install MinGW and Cross-Compile Tools
@@ -123,69 +130,90 @@ go build -ldflags="-s -w" -tags="editor" -o ../kaiju-editor.exe ./
     go build -ldflags="-s -w" -tags="editor" -o ../kaiju-editor.exe ./
 ```
 
-## Défis Potentiels
+-----
 
-### 1. Dépendances Système Windows
-Kaiju utilise plusieurs bibliothèques qui peuvent avoir des comportements différents:
-- **Vulkan**: Devrait fonctionner avec les headers/libs Windows
-- **Audio (WASAPI)**: Peut nécessiter des headers Windows SDK
-- **Window management**: Peut nécessiter des headers Win32
+## ⚠️ Potential Challenges
 
-### 2. Bibliothèques Manquantes
-MinGW peut nécessiter des bibliothèques supplémentaires:
+### 1\. Windows System Dependencies
+
+Kaiju uses several libraries that might behave differently:
+
+  * **Vulkan**: Should work with Windows headers/libs
+  * **Audio (WASAPI)**: May require Windows SDK headers
+  * **Window management**: May require Win32 headers
+
+### 2\. Missing Libraries
+
+MinGW might require additional libraries:
+
 ```bash
 sudo apt-get install -y \
   mingw-w64-tools \
-  wine64  # Pour tester les binaires Windows
+  wine64  # To test Windows binaries
 ```
 
-### 3. Génération de `.lib` depuis `.dll`
-Si vulkan-1.lib n'est pas disponible:
+### 3\. Generating `.lib` from `.dll`
+
+If `vulkan-1.lib` is not available:
+
 ```bash
-# Extraire les symboles de vulkan-1.dll
+# Extract symbols from vulkan-1.dll
 dlltool -d vulkan-1.def -l libvulkan-1.a vulkan-1.dll
 ```
 
-## Tests de Validation
+-----
 
-### Test Local avec Wine
+## 🧪 Validation Tests
+
+### Local Test with Wine
+
 ```bash
-# Installer Wine pour tester
+# Install Wine for testing
 sudo apt-get install wine64
 
-# Tester le binaire Windows
+# Test the Windows binary
 wine64 kaiju-editor.exe --version
 ```
 
-### Test sur Windows Réel
-- Utiliser un runner Windows juste pour tester le binaire compilé
-- Ou télécharger et tester manuellement
+### Test on Real Windows
 
-## Ressources
+  * Use a Windows runner just to test the compiled binary
+  * Or download and test manually
+
+-----
+
+## 📚 Resources
 
 ### Documentation
-- [Vulkan-Headers GitHub](https://github.com/KhronosGroup/Vulkan-Headers)
-- [MSYS2 MinGW Packages](https://packages.msys2.org/packages/mingw-w64-x86_64-vulkan-headers)
-- [LunarG Vulkan SDK](https://vulkan.lunarg.com/)
-- [MinGW-w64 Documentation](http://mingw-w64.org/)
+
+  * [Vulkan-Headers GitHub](https://github.com/KhronosGroup/Vulkan-Headers)
+  * [MSYS2 MinGW Packages](https://packages.msys2.org/packages/mingw-w64-x86_64-vulkan-loader)
+  * [LunarG Vulkan SDK](https://vulkan.lunarg.com/)
+  * [MinGW-w64 Documentation](http://mingw-w64.org/)
 
 ### Articles
-- [Stack Overflow: MinGW with Vulkan](https://stackoverflow.com/questions/35529246/how-do-i-use-vulkan-with-mingw-r-x86-64-32-error)
-- [Conan Cross-Compilation Guide](https://docs.conan.io/2/examples/cross_build/linux_to_windows_mingw.html)
-- [GitHub: MINGW-packages Vulkan](https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-vulkan-headers)
 
-## État Actuel
+  * [Stack Overflow: MinGW with Vulkan](https://stackoverflow.com/questions/35529246/how-do-i-use-vulkan-with-mingw-r-x86-64-32-error)
+  * [Conan Cross-Compilation Guide](https://docs.conan.io/2/examples/cross_build/linux_to_windows_mingw.html)
+  * [GitHub: MINGW-packages Vulkan](https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-vulkan-headers)
 
-**Status**: 🚧 TODO - Non implémenté
+-----
 
-**Date de création**: 2025-12-07
+## 📝 Current Status
 
-**Priorité**: Moyenne (optimisation, pas critique)
+**Status**: 🚧 **TODO - Not implemented**
 
-**Assigné à**: À déterminer
+**Creation Date**: 2025-12-07
+
+**Priority**: Medium (optimization, not critical)
+
+**Assigned to**: To be determined
 
 ## Notes
-- Cette approche réduirait le temps de build de ~30-40%
-- Réduirait les coûts CI (minutes Windows = 2x Linux)
-- Nécessite validation approfondie sur Windows réel
-- Peut être implémenté après stabilisation du CI actuel
+
+  * This approach would reduce build time by \~30-40%
+  * Would reduce CI costs (Windows minutes = 2x Linux)
+  * Requires in-depth validation on real Windows
+  * Can be implemented after the current CI stabilization
+
+Would you like me to elaborate on any specific step or provide more detail on the potential challenges?
