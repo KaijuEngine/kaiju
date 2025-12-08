@@ -40,9 +40,11 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #include "win32.h"
-#elif defined(__android__)
+#elif defined(__ANDROID__)
 #include "android.h"
-#elif defined(__linux__) || defined(__unix__) || defined(__APPLE__)
+#elif defined(__APPLE__)
+#include "cocoa_window.h"
+#elif defined(__linux__) || defined(__unix__)
 #include "x11.h"
 #endif
 
