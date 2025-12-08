@@ -10,17 +10,11 @@ import (
 const macOSSupportIssueID = 485
 
 // Lifecycle and eventing
-<<<<<<< HEAD
 func (w *Window) createWindow(windowName string, x, y int, _ any) {
 	klib.NotYetImplemented(macOSSupportIssueID)
 }
 func (w *Window) showWindow() { klib.NotYetImplemented(macOSSupportIssueID) }
 func (w *Window) poll()       { klib.NotYetImplemented(macOSSupportIssueID) }
-=======
-func (w *Window) createWindow(windowName string, x, y int, _ any) { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) showWindow()                                     { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) poll()                                           { klib.NotYetImplemented(macOSSupportIssueID) }
->>>>>>> 0e5b251164fb0eb5064ffda7c075bc7b4c5df9f9
 
 // Cursor variants (private)
 func (w *Window) cursorStandard() { klib.NotYetImplemented(macOSSupportIssueID) }
