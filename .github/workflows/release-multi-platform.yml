@@ -257,24 +257,42 @@ jobs:
 
       - name: Install Android NDK
         run: |
-          echo "y" | sdkmanager "ndk;26.1.10909125"
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+          # Use NDK r21e LTS which still includes native_app_glue in sources/
+          echo "y" | sdkmanager "ndk;21.4.7075529"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/21.4.7075529" >> $GITHUB_ENV
+
+      - name: Verify Native App Glue
+        run: |
+          # Verify native_app_glue exists
+          if [ -d "${{ env.NDK_HOME }}/sources/android/native_app_glue" ]; then
+            echo "✓ native_app_glue found at: ${{ env.NDK_HOME }}/sources/android/native_app_glue"
+            ls -la "${{ env.NDK_HOME }}/sources/android/native_app_glue"
+          else
+            echo "✗ ERROR: native_app_glue not found!"
+            exit 1
+          fi
 
       - name: Build Native Library
         working-directory: ./src
-        env:
-          CC: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-          CXX: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
-          AR: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          RANLIB: ${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          GOOS: android
-          GOARCH: arm64
-          CGO_ENABLED: 1
-          CGO_CFLAGS: -D__android__=1
-          CGO_LDFLAGS: -landroid
         run: |
+          # Set up NDK toolchain paths
+          export CC="${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+          export CXX="${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++"
+          export AR="${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          export RANLIB="${{ env.NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
+
+          # Set up Go build environment
+          export GOOS=android
+          export GOARCH=arm64
+          export CGO_ENABLED=1
+
+          # Set up CGO flags with native_app_glue include path
+          export CGO_CFLAGS="-D__android__=1 -I${{ env.NDK_HOME }}/sources/android/native_app_glue"
+          export CGO_LDFLAGS="-landroid"
+
+          # Build the native library
           mkdir -p ../android-build/arm64-v8a
-          go build -buildmode=c-shared -tags="editor" \
+          go build -buildmode=c-shared -tags="android" \
             -o ../android-build/arm64-v8a/libkaiju_android.so ./
           ls -lh ../android-build/arm64-v8a/
 
