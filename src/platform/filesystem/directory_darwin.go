@@ -1,5 +1,7 @@
+//go:build darwin && !ios
+
 /******************************************************************************/
-/* soloud.c.go                                                                */
+/* directory_darwin.go                                                        */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,94 +37,70 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package audio
+package filesystem
 
-/*
-#cgo windows LDFLAGS: -L../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
-#cgo android LDFLAGS: -L../../libs -lsoloud_android
-#cgo linux,!android LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
-#cgo darwin,!ios LDFLAGS: -L../../libs -lsoloud_darwin -lstdc++ -framework AudioToolbox -framework CoreAudio
-#include <stdlib.h>
-#include "soloud_c.h"
-*/
-import "C"
 import (
-	"fmt"
+	"kaiju/build"
+	"kaiju/klib"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"unsafe"
 )
 
-type SoloudHandle = *C.Soloud
-type SoloudWav = *C.Wav
-type VoiceHandle = uint32
-
-func errToString(soloud SoloudHandle, errCode int) string {
-	return C.GoString(C.Soloud_getErrorString(soloud, C.int(errCode)))
-}
-
-func create() SoloudHandle {
-	return C.Soloud_create()
-}
-
-func initialize(soloud SoloudHandle) int {
-	return int(C.Soloud_init(soloud))
-}
-
-func deinitialize(soloud SoloudHandle) {
-	C.Soloud_deinit(soloud)
-}
-
-func destroy(soloud SoloudHandle) {
-	C.Soloud_destroy(soloud)
-}
-
-func wavCreate() SoloudWav {
-	return C.Wav_create()
-}
-
-func wavLoadMem(wav SoloudWav, data []byte) error {
-	res := int(C.Wav_loadMemEx(wav, (*C.uchar)(unsafe.Pointer(&data[0])), C.uint(len(data)), C.int(1), C.int(0)))
-	if res != 0 {
-		return fmt.Errorf("there was an error loading the audio memory: %d", res)
+func knownPaths() map[string]string {
+	out := map[string]string{
+		"Root": "/",
+		// mac doesn’t have a fixed multi-user /home layout; omit "Home" to avoid confusion
 	}
+	if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
+		out["UserHome"] = userHome
+		common := []string{"Desktop", "Documents", "Downloads", "Pictures", "Music", "Movies"}
+		for _, name := range common {
+			p := filepath.Join(userHome, name)
+			if s, err := os.Stat(p); err == nil && s.IsDir() {
+				out[name] = p
+			}
+		}
+	}
+	return out
+}
+
+func imageDirectory() (string, error) {
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(userHome, "Pictures"), nil
+}
+
+func gameDirectory() (string, error) {
+	// macOS convention: ~/Library/Application Support/<Company>/<Title>
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	base := filepath.Join(userHome, "Library", "Application Support", build.CompanyDirName, build.Title.String())
+	return base, nil
+}
+
+func openFileBrowserCommand(path string) *exec.Cmd {
+	if path == "" {
+		return exec.Command("open", ".")
+	}
+	return exec.Command("open", path)
+}
+
+func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO: implement via NSOpenPanel (CGO / Cocoa). For now, don’t hang UI.
+	klib.NotYetImplemented(-1)
+	cancel()
 	return nil
 }
 
-func wavDestroy(wav SoloudWav) {
-	C.Wav_destroy(wav)
-}
-
-func wavSetVolume(wav SoloudWav, volume float32) {
-	C.Wav_setVolume(wav, C.float(volume))
-}
-
-func setVolume(soloud SoloudHandle, handle uint32, volume float32) {
-	C.Soloud_setVolume(soloud, C.uint(handle), C.float(volume))
-}
-
-func clipLength(wav SoloudWav) float64 {
-	return float64(C.Wav_getLength(wav))
-}
-
-func play(soloud SoloudHandle, wav SoloudWav) VoiceHandle {
-	return VoiceHandle(C.Soloud_play(soloud, (*C.AudioSource)(wav)))
-}
-
-func stopAudioSource(soloud SoloudHandle, wav SoloudWav) {
-	C.Soloud_stopAudioSource(soloud, (*C.AudioSource)(wav))
-}
-
-func isValidVoiceHandle(soloud SoloudHandle, handle VoiceHandle) bool {
-	return int(C.Soloud_isValidVoiceHandle(soloud, (C.uint)(handle))) != 0
-}
-
-func seek(soloud SoloudHandle, handle VoiceHandle, seconds float64) int {
-	return int(C.Soloud_seek(soloud, (C.uint)(handle), C.double(seconds)))
-}
-
-func setLooping(soloud SoloudHandle, handle uint32, loop bool) {
-	if loop {
-		C.Soloud_setLooping(soloud, C.uint(handle), C.int(1))
-	} else {
-		C.Soloud_setLooping(soloud, C.uint(handle), C.int(0))
-	}
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO: implement via NSSavePanel (CGO / Cocoa). For now, don’t hang UI.
+	klib.NotYetImplemented(-1)
+	cancel()
+	return nil
 }

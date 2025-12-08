@@ -39,13 +39,16 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
-const vkGeometryShaderValid = vk.False
+const vkGeometryShaderValid = vulkan_const.False
 const vkInstanceFlags = 1
 
-func vkColorSpace(_ vk.SurfaceFormat) vk.ColorSpace {
-	return vk.ColorSpaceSrgbNonlinear
+func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
+	return vulkan_const.ColorSpaceSrgbNonlinear
 }
 
 func vkInstanceExtensions() []string {
@@ -59,3 +62,10 @@ func vkDeviceExtensions() []string {
 		"VK_KHR_portability_subset\x00",
 	}
 }
+ 
+// macOS swapchain preferences
+func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+	return vulkan_const.SurfaceTransformIdentityBit
+}
+
+const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
