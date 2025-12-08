@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - staging
+      - feature/vulkan-matrix
   pull_request:
     branches:
       - master
