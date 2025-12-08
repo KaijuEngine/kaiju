@@ -1,3 +1,5 @@
+//go:build ignore
+
 /******************************************************************************/
 /* decgen.go                                                                  */
 /******************************************************************************/
@@ -22,9 +24,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -38,8 +39,6 @@
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-//go:build ignore
 
 // encgen writes the helper functions for encoding. Intended to be
 // used with go generate; see the invocation in encode.go.
