@@ -47,6 +47,8 @@ import (
 	"unsafe"
 )
 
+const macOSSupportIssueID = 485
+
 func knownPaths() map[string]string {
 	out := map[string]string{
 		"Root": "/",
@@ -91,15 +93,15 @@ func openFileBrowserCommand(path string) *exec.Cmd {
 }
 
 func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
-	// TODO: implement via NSOpenPanel (CGO / Cocoa). For now, don’t hang UI.
-	klib.NotYetImplemented(-1)
+	// TODO: implement via NSOpenPanel (CGO / Cocoa). For now, don't hang UI.
+	klib.NotYetImplemented(macOSSupportIssueID)
 	cancel()
 	return nil
 }
 
 func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
-	// TODO: implement via NSSavePanel (CGO / Cocoa). For now, don’t hang UI.
-	klib.NotYetImplemented(-1)
+	// TODO: implement via NSSavePanel (CGO / Cocoa). For now, don't hang UI.
+	klib.NotYetImplemented(macOSSupportIssueID)
 	cancel()
 	return nil
 }
