@@ -118,16 +118,47 @@ jobs:
           cache: true
           cache-dependency-path: src/go.sum
 
+      - name: Cache Go Build Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.os == 'Windows' && '~\AppData\Local\go-build' || '~/.cache/go-build' }}
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-build-${{ matrix.platform }}-${{ hashFiles('src/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-${{ matrix.platform }}-
+            ${{ runner.os }}-go-build-
+
       # Windows-specific dependencies
+      - name: Cache MinGW (Windows)
+        if: matrix.platform == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\ProgramData\chocolatey\lib\mingw
+          key: windows-mingw-${{ runner.os }}
+
       - name: Install MinGW (Windows)
         if: matrix.platform == 'windows'
         run: |
           choco install mingw --force
 
+      - name: Cache Vulkan SDK (Windows)
+        if: matrix.platform == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\VulkanSDK
+          key: windows-vulkan-sdk-1.3.290.0
+
       - name: Install Vulkan SDK (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
+          # Check if already installed from cache
+          if (Test-Path "C:\VulkanSDK\1.3.290.0") {
+            Write-Host "Vulkan SDK already installed from cache"
+            exit 0
+          }
+
           Write-Host "Downloading Vulkan SDK..."
           $url = "https://sdk.lunarg.com/sdk/download/1.3.290.0/windows/VulkanSDK-1.3.290.0-Installer.exe"
           $installer = "$env:TEMP\VulkanSDK-Installer.exe"
@@ -139,6 +170,15 @@ jobs:
           Write-Host "Vulkan SDK installed"
 
       # Linux-specific dependencies
+      - name: Cache APT packages (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/release-multi-platform.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
       - name: Install Dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
@@ -154,6 +194,13 @@ jobs:
             mesa-common-dev \
             libvulkan-dev \
             libasound2-dev
+
+      - name: Cache Vulkan SDK (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/share/vulkan
+          key: linux-vulkan-sdk-${{ runner.os }}
 
       - name: Install Vulkan SDK (Linux)
         if: matrix.platform == 'linux'
@@ -246,19 +293,53 @@ jobs:
           cache: true
           cache-dependency-path: src/go.sum
 
+      - name: Cache Go Build Cache (Android)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-build-android-${{ hashFiles('src/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-android-
+            ${{ runner.os }}-go-build-
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Cache Android NDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/21.4.7075529
+          key: android-ndk-r21e-21.4.7075529
+          restore-keys: |
+            android-ndk-r21e-
+
       - name: Install Android NDK
         run: |
-          # Use NDK r21e LTS which still includes native_app_glue in sources/
-          echo "y" | sdkmanager "ndk;21.4.7075529"
+          # Check if NDK is already cached
+          if [ -d "$ANDROID_SDK_ROOT/ndk/21.4.7075529" ]; then
+            echo "NDK r21e already installed from cache"
+          else
+            echo "Installing NDK r21e..."
+            echo "y" | sdkmanager "ndk;21.4.7075529"
+          fi
           echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/21.4.7075529" >> $GITHUB_ENV
 
       - name: Verify Native App Glue
@@ -291,8 +372,10 @@ jobs:
           export CGO_LDFLAGS="-landroid"
 
           # Build the native library
+          # Note: Don't specify build tags - GOOS=android automatically activates main.android.go
+          # Specifying tags would also include main.test.go (!editor) which causes import errors
           mkdir -p ../android-build/arm64-v8a
-          go build -buildmode=c-shared -tags="android" \
+          go build -buildmode=c-shared \
             -o ../android-build/arm64-v8a/libkaiju_android.so ./
           ls -lh ../android-build/arm64-v8a/
 
