@@ -368,7 +368,9 @@ jobs:
           export CGO_ENABLED=1
 
           # Set up CGO flags with native_app_glue include path
-          export CGO_CFLAGS="-D__android__=1 -I${{ env.NDK_HOME }}/sources/android/native_app_glue"
+          # Use -std=gnu2x to support __VA_OPT__ in macros (used in android.c logging)
+          # Disable format-security warning as error (it's just a warning in logger.android.go)
+          export CGO_CFLAGS="-D__android__=1 -I${{ env.NDK_HOME }}/sources/android/native_app_glue -std=gnu2x -Wno-error=format-security"
           export CGO_LDFLAGS="-landroid"
 
           # Build the native library
