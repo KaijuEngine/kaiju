@@ -40,10 +40,10 @@ package filesystem
 
 import (
 	"kaiju/build"
-	"kaiju/klib"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"unsafe"
 )
 
@@ -93,15 +93,63 @@ func openFileBrowserCommand(path string) *exec.Cmd {
 }
 
 func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
-	// TODO: implement via NSOpenPanel (CGO / Cocoa). For now, don't hang UI.
-	klib.NotYetImplemented(macOSSupportIssueID)
-	cancel()
+	// Use osascript (AppleScript) to show native macOS file picker
+	script := `POSIX path of (choose file`
+
+	if startPath != "" {
+		script += ` default location "` + startPath + `"`
+	}
+
+	script += `)`
+
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.Output()
+
+	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
+		return nil
+	}
+
+	path := strings.TrimSpace(string(output))
+	if path != "" {
+		ok(path)
+	} else if cancel != nil {
+		cancel()
+	}
 	return nil
 }
 
 func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
-	// TODO: implement via NSSavePanel (CGO / Cocoa). For now, don't hang UI.
-	klib.NotYetImplemented(macOSSupportIssueID)
-	cancel()
+	// Use osascript (AppleScript) to show native macOS save dialog
+	script := `POSIX path of (choose file name`
+
+	if fileName != "" {
+		script += ` default name "` + fileName + `"`
+	}
+
+	if startPath != "" {
+		script += ` default location "` + startPath + `"`
+	}
+
+	script += `)`
+
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.Output()
+
+	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
+		return nil
+	}
+
+	path := strings.TrimSpace(string(output))
+	if path != "" {
+		ok(path)
+	} else if cancel != nil {
+		cancel()
+	}
 	return nil
 }

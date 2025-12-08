@@ -10,7 +10,9 @@ package windowing
 */
 import "C"
 import (
+	"fmt"
 	"kaiju/klib"
+	"os"
 	"unsafe"
 )
 
@@ -53,32 +55,61 @@ func (w *Window) poll() {
 }
 
 // Cursor variants (private)
-func (w *Window) cursorStandard() { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) cursorIbeam()    { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) cursorSizeAll()  { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) cursorSizeNS()   { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) cursorSizeWE()   { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) cursorStandard() { C.cocoa_cursor_standard() }
+func (w *Window) cursorIbeam()    { C.cocoa_cursor_ibeam() }
+func (w *Window) cursorSizeAll()  { C.cocoa_cursor_size_all() }
+func (w *Window) cursorSizeNS()   { C.cocoa_cursor_size_ns() }
+func (w *Window) cursorSizeWE()   { C.cocoa_cursor_size_we() }
 
 // Clipboard (private)
-func (w *Window) copyToClipboard(text string) { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) copyToClipboard(text string) {
+	cText := C.CString(text)
+	defer C.free(unsafe.Pointer(cText))
+	C.cocoa_copy_to_clipboard(cText)
+}
+
 func (w *Window) clipboardContents() string {
-	klib.NotYetImplemented(macOSSupportIssueID)
-	return ""
+	cStr := C.cocoa_clipboard_contents()
+	if cStr == nil {
+		return ""
+	}
+	defer C.free(unsafe.Pointer(cStr))
+	return C.GoString(cStr)
 }
 
 func destroyWindow(handle unsafe.Pointer) {
-	klib.NotYetImplemented(macOSSupportIssueID)
+	if handle != nil {
+		C.cocoa_destroy_window(handle)
+	}
 }
 
 // Focus (private)
-func (w *Window) focus() { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) focus() {
+	if w.instance != nil {
+		C.cocoa_focus_window(w.instance)
+	}
+}
 
 // Position/Size (private)
-func (w *Window) setPosition(x, y int)      { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) setSize(width, height int) { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) setPosition(x, y int) {
+	if w.instance != nil {
+		C.cocoa_set_position(w.instance, C.int(x), C.int(y))
+	}
+}
+
+func (w *Window) setSize(width, height int) {
+	if w.instance != nil {
+		C.cocoa_set_size(w.instance, C.int(width), C.int(height))
+	}
+}
+
 func (w *Window) position() (x, y int) {
-	klib.NotYetImplemented(macOSSupportIssueID)
-	return 0, 0
+	if w.instance == nil {
+		return 0, 0
+	}
+	var cx, cy C.int
+	C.cocoa_get_position(w.instance, &cx, &cy)
+	return int(cx), int(cy)
 }
 
 // Physical metrics (private)
@@ -112,8 +143,8 @@ func (w *Window) dotsPerMillimeter() float64 {
 // Window decoration and cursor visibility (private)
 func (w *Window) removeBorder() { klib.NotYetImplemented(macOSSupportIssueID) }
 func (w *Window) addBorder()    { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) showCursor()   { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) hideCursor()   { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) showCursor()   { C.cocoa_show_cursor() }
+func (w *Window) hideCursor()   { C.cocoa_hide_cursor() }
 
 // Cursor lock (private) — window.go passes (x, y)
 func (w *Window) lockCursor(x, y int) { klib.NotYetImplemented(macOSSupportIssueID) }
@@ -128,12 +159,39 @@ func (w *Window) disableRawMouse() { klib.NotYetImplemented(macOSSupportIssueID)
 func (w *Window) enableRawMouse()  { klib.NotYetImplemented(macOSSupportIssueID) }
 
 // Title (private)
-func (w *Window) setTitle(title string) { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) setTitle(title string) {
+	if w.instance != nil {
+		cTitle := C.CString(title)
+		defer C.free(unsafe.Pointer(cTitle))
+		C.cocoa_set_title(w.instance, cTitle)
+	}
+}
 
 // App asset read (private)
+// On macOS, application assets are stored in the app bundle's Resources folder.
+// This function reads files from Contents/Resources/ in the .app bundle.
 func (w *Window) readApplicationAsset(name string) ([]byte, error) {
-	klib.NotYetImplemented(macOSSupportIssueID)
-	return nil, nil
+	// Try to get the main bundle's resource path
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	
+	// Use Cocoa to get the bundle resource path
+	var bundlePath unsafe.Pointer
+	C.cocoa_get_bundle_resource_path(cName, &bundlePath)
+	
+	if bundlePath == nil {
+		// Not in a bundle or resource not found, try direct file read
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return nil, fmt.Errorf("asset not found in bundle or filesystem: %s", name)
+		}
+		return data, nil
+	}
+	
+	goPath := C.GoString((*C.char)(bundlePath))
+	C.free(bundlePath)
+	
+	return os.ReadFile(goPath)
 }
 
 // cHandle/cInstance used by PlatformWindow/PlatformInstance

@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <objc/runtime.h>
+#include <string.h>
 #include "cocoa_window.h"
 #include "window_event.h"
 
@@ -144,8 +145,20 @@ void* cocoa_create_window(const char* title, int x, int y, int width, int height
 void cocoa_destroy_window(void* nsWindow) {
     @autoreleasepool {
         if (nsWindow != NULL) {
-            NSWindow* window = (NSWindow*)CFBridgingRelease(nsWindow);
+            NSWindow* window = (__bridge NSWindow*)(nsWindow);
+            
+            // Free SharedMem if allocated
+            NSValue* value = objc_getAssociatedObject(window, "sharedMem");
+            if (value != nil) {
+                SharedMem* sm = [value pointerValue];
+                if (sm != NULL) {
+                    free(sm);
+                }
+            }
+            
             [window close];
+            // Release the retained object (from CFBridgingRetain)
+            CFBridgingRelease(nsWindow);
         }
     }
 }
@@ -315,6 +328,69 @@ void cocoa_poll_events(void* nsWindow) {
                     break;
                 }
                 
+                case NSEventTypeFlagsChanged: {
+                    // Handle modifier key changes (Cmd, Ctrl, Shift, Alt, etc.)
+                    NSEventModifierFlags flags = [event modifierFlags];
+                    unsigned short keyCode = [event keyCode];
+                    
+                    // Determine if this is a press or release by checking the flag state
+                    // For modifier keys, we need to check if the corresponding flag is set
+                    BOOL isPressed = NO;
+                    switch (keyCode) {
+                        case 0x37: // Left Command
+                        case 0x36: // Right Command
+                            isPressed = (flags & NSEventModifierFlagCommand) != 0;
+                            break;
+                        case 0x3B: // Left Control
+                        case 0x3E: // Right Control
+                            isPressed = (flags & NSEventModifierFlagControl) != 0;
+                            break;
+                        case 0x38: // Left Shift
+                        case 0x3C: // Right Shift
+                            isPressed = (flags & NSEventModifierFlagShift) != 0;
+                            break;
+                        case 0x3A: // Left Option/Alt
+                        case 0x3D: // Right Option/Alt
+                            isPressed = (flags & NSEventModifierFlagOption) != 0;
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    shared_mem_add_event(sm, (WindowEvent) {
+                        .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
+                        .keyboardButton = {
+                            .buttonId = keyCode,
+                            .action = isPressed ? WINDOW_EVENT_BUTTON_TYPE_DOWN : WINDOW_EVENT_BUTTON_TYPE_UP,
+                        }
+                    });
+                    break;
+                }
+                
+                case NSEventTypeKeyDown: {
+                    unsigned short keyCode = [event keyCode];
+                    shared_mem_add_event(sm, (WindowEvent) {
+                        .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
+                        .keyboardButton = {
+                            .buttonId = keyCode,
+                            .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
+                        }
+                    });
+                    break;
+                }
+                
+                case NSEventTypeKeyUp: {
+                    unsigned short keyCode = [event keyCode];
+                    shared_mem_add_event(sm, (WindowEvent) {
+                        .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
+                        .keyboardButton = {
+                            .buttonId = keyCode,
+                            .action = WINDOW_EVENT_BUTTON_TYPE_UP,
+                        }
+                    });
+                    break;
+                }
+                
                 default:
                     break;
             }
@@ -363,5 +439,128 @@ void cocoa_screen_size_mm(void* nsWindow, int* width, int* height) {
         
         *width = (int)displayPhysicalSize.width;
         *height = (int)displayPhysicalSize.height;
+    }
+}
+
+void cocoa_get_position(void* nsWindow, int* x, int* y) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        NSRect frame = [window frame];
+        *x = (int)frame.origin.x;
+        *y = (int)frame.origin.y;
+    }
+}
+
+void cocoa_set_position(void* nsWindow, int x, int y) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        NSPoint point = NSMakePoint(x, y);
+        [window setFrameOrigin:point];
+    }
+}
+
+void cocoa_set_size(void* nsWindow, int width, int height) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        NSRect frame = [window frame];
+        frame.size.width = width;
+        frame.size.height = height;
+        [window setFrame:frame display:YES animate:NO];
+    }
+}
+
+void cocoa_set_title(void* nsWindow, const char* title) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        [window setTitle:[NSString stringWithUTF8String:title]];
+    }
+}
+
+void cocoa_copy_to_clipboard(const char* text) {
+    @autoreleasepool {
+        NSPasteboard* pasteboard = [NSPasteboard generalPasteboard];
+        [pasteboard clearContents];
+        [pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
+    }
+}
+
+char* cocoa_clipboard_contents(void) {
+    @autoreleasepool {
+        NSPasteboard* pasteboard = [NSPasteboard generalPasteboard];
+        NSString* content = [pasteboard stringForType:NSPasteboardTypeString];
+        if (content == nil) {
+            return strdup("");
+        }
+        return strdup([content UTF8String]);
+    }
+}
+
+void cocoa_cursor_standard(void) {
+    @autoreleasepool {
+        [[NSCursor arrowCursor] set];
+    }
+}
+
+void cocoa_cursor_ibeam(void) {
+    @autoreleasepool {
+        [[NSCursor IBeamCursor] set];
+    }
+}
+
+void cocoa_cursor_size_all(void) {
+    @autoreleasepool {
+        [[NSCursor closedHandCursor] set];
+    }
+}
+
+void cocoa_cursor_size_ns(void) {
+    @autoreleasepool {
+        [[NSCursor resizeUpDownCursor] set];
+    }
+}
+
+void cocoa_cursor_size_we(void) {
+    @autoreleasepool {
+        [[NSCursor resizeLeftRightCursor] set];
+    }
+}
+
+void cocoa_show_cursor(void) {
+    @autoreleasepool {
+        [NSCursor unhide];
+    }
+}
+
+void cocoa_hide_cursor(void) {
+    @autoreleasepool {
+        [NSCursor hide];
+    }
+}
+
+void cocoa_focus_window(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        [window makeKeyAndOrderFront:nil];
+        [NSApp activateIgnoringOtherApps:YES];
+    }
+}
+
+void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath) {
+    @autoreleasepool {
+        NSString* name = [NSString stringWithUTF8String:resourceName];
+        NSString* path = [[NSBundle mainBundle] pathForResource:name ofType:nil];
+        
+        if (path == nil) {
+            // Try with extension separated
+            NSString* extension = [name pathExtension];
+            NSString* basename = [name stringByDeletingPathExtension];
+            path = [[NSBundle mainBundle] pathForResource:basename ofType:extension];
+        }
+        
+        if (path != nil) {
+            *outPath = (void*)strdup([path UTF8String]);
+        } else {
+            *outPath = NULL;
+        }
     }
 }

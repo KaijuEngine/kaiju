@@ -9,6 +9,23 @@ Below are instructions on how to build the editor from source
 ## Prerequisites
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
 
+## macOS Development
+- Install Xcode Command Line Tools:
+  - Run `xcode-select --install` in Terminal
+- Install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#mac) for macOS
+  - After installation, add the Vulkan library path to your environment:
+    ```sh
+    export DYLD_LIBRARY_PATH=$HOME/Library/VulkanSDK/1.4.XXX.X/macOS/lib  # Replace with your version and your sdk path
+    ```
+- Pull the repository
+- Go into src: `cd src`
+- To build the editor in debug mode, run:
+  - `CGO_ENABLED=1 go build -tags="debug,editor" -o ../bin/kaiju`
+- To build the editor, run:
+  - `CGO_ENABLED=1 go build -ldflags="-s -w" -tags="editor" -o ../bin/kaiju`
+
+**Note:** On macOS, the engine uses Cocoa/AppKit for windowing and MoltenVK for Vulkan support. Keyboard shortcuts use the Cmd key (not Ctrl) for operations like copy/paste (Cmd+C/Cmd+V).
+
 ## Windows Development
 - Download mingw into `C:/`
   - I use [x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z](https://github.com/niXman/mingw-builds-binaries/releases)
@@ -54,6 +71,18 @@ mkdir build
 cd build
 cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON -DSOLOUD_C_API=ON
 cmake --build . --config Release
+```
+
+### Soloud macOS
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud/contrib
+mkdir build
+cd build
+cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_COREAUDIO=ON -DSOLOUD_C_API=ON -DSOLOUD_STATIC=ON
+cmake --build . --config Release
+# Copy the library to kaiju
+cp build/libsoloud.a /path/to/kaiju/src/libs/libsoloud_darwin.a
 ```
 
 ### Soloud Android (on Windows)

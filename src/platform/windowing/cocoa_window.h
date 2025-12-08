@@ -24,4 +24,31 @@ float cocoa_get_dpi(void* nsWindow);
 // Get screen size in millimeters
 void cocoa_screen_size_mm(void* nsWindow, int* width, int* height);
 
+// Window position and size
+void cocoa_get_position(void* nsWindow, int* x, int* y);
+void cocoa_set_position(void* nsWindow, int x, int y);
+void cocoa_set_size(void* nsWindow, int width, int height);
+
+// Window title
+void cocoa_set_title(void* nsWindow, const char* title);
+
+// Clipboard
+void cocoa_copy_to_clipboard(const char* text);
+char* cocoa_clipboard_contents(void);
+
+// Cursor variants
+void cocoa_cursor_standard(void);
+void cocoa_cursor_ibeam(void);
+void cocoa_cursor_size_all(void);
+void cocoa_cursor_size_ns(void);
+void cocoa_cursor_size_we(void);
+void cocoa_show_cursor(void);
+void cocoa_hide_cursor(void);
+
+// Window focus
+void cocoa_focus_window(void* nsWindow);
+
+// Get bundle resource path (for reading app assets)
+void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath);
+
 #endif // COCOA_WINDOW_H
