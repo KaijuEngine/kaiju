@@ -215,7 +215,14 @@ func (b *MenuBar) clickCreateEntityData(*document.Element) {
 	b.hidePopups()
 	b.handler.BlurInterface()
 	create_entity_data.Show(b.uiMan.Host, b.handler.ProjectFileSystem(), create_entity_data.Config{
-		OnCreate: b.handler.FocusInterface,
+		OnCreate: func() {
+			// TODO:  Rather than doing a broad ReadSourceCode, just do a
+			// targeted import of the specific file. Would need to return it
+			// in the callback.
+			// goroutine
+			go b.handler.Project().ReadSourceCode()
+			b.handler.FocusInterface()
+		},
 		OnCancel: b.handler.FocusInterface,
 	})
 }
