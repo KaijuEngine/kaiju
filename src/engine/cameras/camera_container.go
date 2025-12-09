@@ -49,6 +49,5 @@ func (c *Container) Equal(other Camera) bool    { return c.Camera == other }
 func (c *Container) ViewChanged() bool          { return c.Camera.IsDirty() }
 
 func (c *Container) IsInView(box collision.AABB) bool {
-	return true
-	// return box.IntersectsFrustum(c.Camera.Frustum())
+	return box.IntersectsFrustum(c.Camera.Frustum())
 }
