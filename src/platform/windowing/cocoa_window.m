@@ -31,6 +31,39 @@
 
 @end
 
+// Application delegate to handle dock icon clicks when window is minimized
+@interface AppDelegate : NSObject <NSApplicationDelegate>
+@end
+
+@implementation AppDelegate
+
+- (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag {
+    
+    // When dock icon is clicked, restore and activate windows
+    BOOL didRestoreWindow = NO;
+    
+    for (NSWindow* window in [NSApp windows]) {
+        if ([window isMiniaturized]) {
+            [window deminiaturize:nil];
+            didRestoreWindow = YES;
+        }
+        // Bring window to front regardless
+        [window makeKeyAndOrderFront:nil];
+    }
+    
+    // Always activate the application
+    [NSApp activateIgnoringOtherApps:YES];
+    return YES;
+}
+
+@end
+
+// Helper function to retrieve SharedMem from window
+static inline SharedMem* getSharedMem(NSWindow* window) {
+    NSValue* value = objc_getAssociatedObject(window, "sharedMem");
+    return (value != nil) ? [value pointerValue] : NULL;
+}
+
 // Window delegate to handle resize events.
 // Uses NSWindowDelegate to receive resize notifications only when size actually changes,
 // preventing continuous swapchain recreation that would occur with polling-based detection.
@@ -41,9 +74,8 @@
 
 - (void)windowDidResize:(NSNotification *)notification {
     NSWindow* window = [notification object];
-    NSValue* value = objc_getAssociatedObject(window, "sharedMem");
-    if (value == nil) return;
-    SharedMem* sm = [value pointerValue];
+    SharedMem* sm = getSharedMem(window);
+    if (sm == NULL) return;
     
     NSRect contentRect = [window contentRectForFrameRect:[window frame]];
     int newWidth = (int)contentRect.size.width;
@@ -74,6 +106,29 @@
     }
 }
 
+- (void)windowDidResignKey:(NSNotification *)notification {
+    NSWindow* window = [notification object];
+    // Unlock cursor when window loses focus to prevent it from getting stuck
+    cocoa_unlock_cursor((__bridge void*)window);
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+    NSWindow* window = [notification object];
+    SharedMem* sm = getSharedMem(window);
+    
+    // Send close event to notify Go that window is closing
+    if (sm != NULL) {
+        shared_mem_add_event(sm, (WindowEvent) {
+            .type = WINDOW_EVENT_TYPE_ACTIVITY,
+            .windowActivity = { .activityType = WINDOW_EVENT_ACTIVITY_TYPE_CLOSE }
+        });
+        shared_mem_flush_events(sm);
+    }
+    
+    // Unlock cursor when window closes
+    cocoa_unlock_cursor((__bridge void*)window);
+}
+
 @end
 
 void* cocoa_create_window(const char* title, int x, int y, int width, int height, void** outWindow, void* goWindow) {
@@ -81,6 +136,22 @@ void* cocoa_create_window(const char* title, int x, int y, int width, int height
         // Ensure NSApplication is initialized
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        
+        // Finish launching to enable full app behavior
+        static dispatch_once_t launchToken;
+        dispatch_once(&launchToken, ^{
+            [NSApp finishLaunching];
+        });
+        
+        // Set application delegate to handle dock icon clicks (only once)
+        static dispatch_once_t delegateToken;
+        dispatch_once(&delegateToken, ^{
+            if ([NSApp delegate] == nil) {
+                AppDelegate* appDelegate = [[AppDelegate alloc] init];
+                [NSApp setDelegate:appDelegate];
+            } else {
+            }
+        });
         
         // Create window
         NSRect frame = NSMakeRect(x, y, width, height);
@@ -142,43 +213,43 @@ void* cocoa_create_window(const char* title, int x, int y, int width, int height
     }
 }
 
-void cocoa_destroy_window(void* nsWindow) {
+void cocoa_destroy_window(void* nsView) {
     @autoreleasepool {
-        if (nsWindow != NULL) {
-            NSWindow* window = (__bridge NSWindow*)(nsWindow);
-            
-            // Free SharedMem if allocated
-            NSValue* value = objc_getAssociatedObject(window, "sharedMem");
-            if (value != nil) {
-                SharedMem* sm = [value pointerValue];
-                if (sm != NULL) {
-                    free(sm);
-                }
-            }
-            
-            [window close];
-            // Release the retained object (from CFBridgingRetain)
-            CFBridgingRelease(nsWindow);
+        if (nsView == NULL) return;
+        
+        // nsView is actually the MetalView, get the window from it
+        NSView* view = (__bridge NSView*)(nsView);
+        NSWindow* window = [view window];
+        
+        if (window == NULL) return;
+        
+        // Free SharedMem if allocated
+        SharedMem* sm = getSharedMem(window);
+        if (sm != NULL) {
+            free(sm);
         }
+        
+        [window close];
+        CFBridgingRelease(nsView);
     }
 }
 
 void cocoa_show_window(void* nsWindow) {
     @autoreleasepool {
-        if (nsWindow != NULL) {
-            NSWindow* window = (__bridge NSWindow*)(nsWindow);
-            [window makeKeyAndOrderFront:nil];
-            [NSApp activateIgnoringOtherApps:YES];
-        }
+        if (nsWindow == NULL) return;
+        
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        [window makeKeyAndOrderFront:nil];
+        [NSApp activateIgnoringOtherApps:YES];
     }
 }
 
 void cocoa_poll_events(void* nsWindow) {
-    NSWindow* window = (__bridge NSWindow*)(nsWindow);
-    NSValue* value = objc_getAssociatedObject(window, "sharedMem");
-    if (value == nil) return;
-    SharedMem* sm = [value pointerValue];
     @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        SharedMem* sm = getSharedMem(window);
+        if (sm == NULL) return;
+        
         NSEvent* event;
         while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
                                           untilDate:[NSDate distantPast]
@@ -192,8 +263,7 @@ void cocoa_poll_events(void* nsWindow) {
                 case NSEventTypeRightMouseDragged:
                 case NSEventTypeOtherMouseDragged: {
                     NSPoint location = [event locationInWindow];
-                    // Cocoa uses bottom-left origin, convert to top-left to match Windows/Linux.
-                    // Y-axis is flipped: top = 0, bottom = height
+                    // Cocoa uses bottom-left origin; convert to top-left origin to match Windows/Linux
                     int32_t x = (int32_t)location.x;
                     int32_t y = sm->windowHeight - (int32_t)location.y;
                     shared_mem_add_event(sm, (WindowEvent) {
@@ -203,6 +273,13 @@ void cocoa_poll_events(void* nsWindow) {
                             .y = y,
                         }
                     });
+                    
+                    // Apply cursor lock if active (matches Windows behavior)
+                    if (sm->lockCursor.active) {
+                        NSPoint windowPoint = NSMakePoint(sm->lockCursor.x, sm->lockCursor.y);
+                        NSPoint screenPoint = [window convertPointToScreen:windowPoint];
+                        CGWarpMouseCursorPosition(NSPointToCGPoint(screenPoint));
+                    }
                     break;
                 }
                 
@@ -562,5 +639,102 @@ void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath) {
         } else {
             *outPath = NULL;
         }
+    }
+}
+
+void cocoa_remove_border(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        NSWindowStyleMask styleMask = [window styleMask];
+        // Remove title bar and border decorations
+        styleMask &= ~(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | 
+                       NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
+        styleMask |= NSWindowStyleMaskBorderless;
+        [window setStyleMask:styleMask];
+    }
+}
+
+void cocoa_add_border(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        NSWindowStyleMask styleMask = [window styleMask];
+        // Add title bar and border decorations
+        styleMask &= ~NSWindowStyleMaskBorderless;
+        styleMask |= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | 
+                      NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
+        [window setStyleMask:styleMask];
+    }
+}
+
+void cocoa_set_fullscreen(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        // Check if already in fullscreen
+        if (([window styleMask] & NSWindowStyleMaskFullScreen) == 0) {
+            [window toggleFullScreen:nil];
+        }
+    }
+}
+
+void cocoa_set_windowed(void* nsWindow, int width, int height) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        // Exit fullscreen if needed
+        if (([window styleMask] & NSWindowStyleMaskFullScreen) != 0) {
+            [window toggleFullScreen:nil];
+        }
+        // Set the requested window size
+        NSRect frame = [window frame];
+        frame.size.width = width;
+        frame.size.height = height;
+        [window setFrame:frame display:YES animate:YES];
+    }
+}
+
+void cocoa_lock_cursor(void* nsWindow, int x, int y) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        SharedMem* sm = getSharedMem(window);
+        if (sm == NULL) return;
+        
+        sm->lockCursor.x = x;
+        sm->lockCursor.y = y;
+        sm->lockCursor.active = true;
+    }
+}
+
+void cocoa_unlock_cursor(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        SharedMem* sm = getSharedMem(window);
+        if (sm == NULL) return;
+        
+        sm->lockCursor.active = false;
+    }
+}
+
+
+// Enable raw mouse input for game mode (mouselook): hides and decouples cursor
+void cocoa_enable_raw_mouse(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        SharedMem* sm = getSharedMem(window);
+        if (sm == NULL) return;
+        if (sm->rawInputRequested) {
+            CGAssociateMouseAndMouseCursorPosition(NO);
+            [NSCursor hide];
+        }
+    }
+}
+
+// Disable raw mouse input: restores normal cursor behavior
+void cocoa_disable_raw_mouse(void* nsWindow) {
+    @autoreleasepool {
+        NSWindow* window = (__bridge NSWindow*)(nsWindow);
+        SharedMem* sm = getSharedMem(window);
+        if (sm == NULL) return;
+        sm->rawInputRequested = false;
+        CGAssociateMouseAndMouseCursorPosition(YES);
+        [NSCursor unhide];
     }
 }

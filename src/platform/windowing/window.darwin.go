@@ -11,12 +11,9 @@ package windowing
 import "C"
 import (
 	"fmt"
-	"kaiju/klib"
 	"os"
 	"unsafe"
 )
-
-const macOSSupportIssueID = 485
 
 //export goProcessEvents
 func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
@@ -141,22 +138,59 @@ func (w *Window) dotsPerMillimeter() float64 {
 }
 
 // Window decoration and cursor visibility (private)
-func (w *Window) removeBorder() { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) addBorder()    { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) showCursor()   { C.cocoa_show_cursor() }
-func (w *Window) hideCursor()   { C.cocoa_hide_cursor() }
+func (w *Window) removeBorder() {
+	if w.instance != nil {
+		C.cocoa_remove_border(w.instance)
+	}
+}
+
+func (w *Window) addBorder() {
+	if w.instance != nil {
+		C.cocoa_add_border(w.instance)
+	}
+}
+
+func (w *Window) showCursor() { C.cocoa_show_cursor() }
+func (w *Window) hideCursor() { C.cocoa_hide_cursor() }
 
 // Cursor lock (private) — window.go passes (x, y)
-func (w *Window) lockCursor(x, y int) { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) unlockCursor()       { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) lockCursor(x, y int) {
+	if w.instance != nil {
+		C.cocoa_lock_cursor(w.instance, C.int(x), C.int(y))
+	}
+}
+
+func (w *Window) unlockCursor() {
+	if w.instance != nil {
+		C.cocoa_unlock_cursor(w.instance)
+	}
+}
 
 // Fullscreen/windowed (private) — window.go calls setWindowed(width, height)
-func (w *Window) setFullscreen()                { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) setWindowed(width, height int) { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) setFullscreen() {
+	if w.instance != nil {
+		C.cocoa_set_fullscreen(w.instance)
+	}
+}
+
+func (w *Window) setWindowed(width, height int) {
+	if w.instance != nil {
+		C.cocoa_set_windowed(w.instance, C.int(width), C.int(height))
+	}
+}
 
 // Raw mouse input (private)
-func (w *Window) disableRawMouse() { klib.NotYetImplemented(macOSSupportIssueID) }
-func (w *Window) enableRawMouse()  { klib.NotYetImplemented(macOSSupportIssueID) }
+func (w *Window) disableRawMouse() {
+	if w.instance != nil {
+		C.cocoa_disable_raw_mouse(w.instance)
+	}
+}
+
+func (w *Window) enableRawMouse() {
+	if w.instance != nil {
+		C.cocoa_enable_raw_mouse(w.instance)
+	}
+}
 
 // Title (private)
 func (w *Window) setTitle(title string) {
@@ -174,11 +208,11 @@ func (w *Window) readApplicationAsset(name string) ([]byte, error) {
 	// Try to get the main bundle's resource path
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
-	
+
 	// Use Cocoa to get the bundle resource path
 	var bundlePath unsafe.Pointer
 	C.cocoa_get_bundle_resource_path(cName, &bundlePath)
-	
+
 	if bundlePath == nil {
 		// Not in a bundle or resource not found, try direct file read
 		data, err := os.ReadFile(name)
@@ -187,10 +221,10 @@ func (w *Window) readApplicationAsset(name string) ([]byte, error) {
 		}
 		return data, nil
 	}
-	
+
 	goPath := C.GoString((*C.char)(bundlePath))
 	C.free(bundlePath)
-	
+
 	return os.ReadFile(goPath)
 }
 

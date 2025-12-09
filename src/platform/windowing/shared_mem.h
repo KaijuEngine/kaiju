@@ -76,7 +76,7 @@ typedef struct {
 		bool active;
 	} lockCursor;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
-#if defined(__android__)
+#if defined(__android__) || defined(__ANDROID__)
 	const ASensor* accelerometer;
 	ASensorManager* sensorManager;
 	ASensorEventQueue* sensorQueue;

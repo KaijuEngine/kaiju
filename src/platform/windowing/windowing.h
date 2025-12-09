@@ -40,7 +40,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #include "win32.h"
-#elif defined(__ANDROID__)
+#elif defined(__android__) || defined(__ANDROID__)
 #include "android.h"
 #elif defined(__APPLE__)
 #include "cocoa_window.h"

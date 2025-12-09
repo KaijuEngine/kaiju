@@ -51,4 +51,20 @@ void cocoa_focus_window(void* nsWindow);
 // Get bundle resource path (for reading app assets)
 void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath);
 
+// Window border manipulation
+void cocoa_remove_border(void* nsWindow);
+void cocoa_add_border(void* nsWindow);
+
+// Fullscreen mode
+void cocoa_set_fullscreen(void* nsWindow);
+void cocoa_set_windowed(void* nsWindow, int width, int height);
+
+// Cursor lock/confinement
+void cocoa_lock_cursor(void* nsWindow, int x, int y);
+void cocoa_unlock_cursor(void* nsWindow);
+
+// Raw mouse input (delta mode)
+void cocoa_enable_raw_mouse(void* nsWindow);
+void cocoa_disable_raw_mouse(void* nsWindow);
+
 #endif // COCOA_WINDOW_H

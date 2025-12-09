@@ -47,8 +47,6 @@ import (
 	"unsafe"
 )
 
-const macOSSupportIssueID = 485
-
 func knownPaths() map[string]string {
 	out := map[string]string{
 		"Root": "/",
