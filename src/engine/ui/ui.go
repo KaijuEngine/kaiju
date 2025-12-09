@@ -110,7 +110,7 @@ type UI struct {
 	dontClean        bool
 }
 
-func (ui *UI) isActive() bool { return ui.entity.IsActive() }
+func (ui *UI) IsActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.isDown }
 
 func (ui *UI) init(textureSize matrix.Vec2) {
@@ -509,7 +509,7 @@ func (ui *UI) anyChildDirty() bool {
 
 func (ui *UI) updateFromManager(deltaTime float64) {
 	defer tracing.NewRegion("UI.updateFromManager").End()
-	if !ui.isActive() {
+	if !ui.IsActive() {
 		return
 	}
 	switch ui.elmType {
