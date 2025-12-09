@@ -37,7 +37,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-#if (defined(__linux__) || defined(__unix__)) && !defined(__android__) || defined(__ANDROID__)
+#if (defined(__linux__) || defined(__unix__)) && !(defined(__android__) || defined(__ANDROID__))
 
 #include "x11.h"
 #include <stdlib.h>
