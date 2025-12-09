@@ -62,3 +62,6 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 [status-bar-update.mp4](https://github.com/user-attachments/assets/6f3d6511-5db0-405f-b264-af041c199bd0)
 
 [focus-and-transform-hotkeys](https://github.com/user-attachments/assets/95a9bcdc-55fe-4317-9200-412f84a494ce)
+
+## Star history
+[![Star History Chart](https://api.star-history.com/svg?repos=KaijuEngine/kaiju&type=Date)](https://star-history.com/#KaijuEngine/kaiju&Date)   
