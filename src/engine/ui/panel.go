@@ -728,7 +728,7 @@ func (p *Panel) updateScrollBars() {
 	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
-	if pd.scrollBarX != nil && pd.scrollBarX.Base().isActive() {
+	if pd.scrollBarX != nil && pd.scrollBarX.Base().IsActive() {
 		y := panelH - scrollBarWidth
 		pd.scrollBarX.layout.SetOffsetY(y)
 		maxX := pd.maxScroll.X()
@@ -758,7 +758,7 @@ func (p *Panel) updateScrollBars() {
 			pd.scrollBarX.Base().Hide()
 		}
 	}
-	if pd.scrollBarY != nil && pd.scrollBarY.Base().isActive() {
+	if pd.scrollBarY != nil && pd.scrollBarY.Base().IsActive() {
 		x := panelW - scrollBarWidth
 		pd.scrollBarY.layout.SetOffsetX(x)
 		maxY := pd.maxScroll.Y()
