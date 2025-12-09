@@ -214,9 +214,6 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 			}
 		}
 	}
-	if elm.UI.Entity().Name() == "openProjectBtn" {
-		println("...")
-	}
 	return problems
 }
 

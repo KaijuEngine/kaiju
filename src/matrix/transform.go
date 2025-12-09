@@ -87,9 +87,6 @@ func (t *Transform) Scale() Vec3        { return t.scale }
 func (t *Transform) Parent() *Transform { return t.parent }
 
 func (t *Transform) IsDirty() bool {
-	if t.rotation.X() == 90 {
-		println("...")
-	}
 	if !t.frameDirty {
 		return false
 	}

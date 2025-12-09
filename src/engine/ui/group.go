@@ -124,7 +124,7 @@ func (group *Group) setFocus(ui *UI) {
 }
 
 func (group *Group) IsFocusedOnInput() bool {
-	if group.focus == nil || !group.focus.isActive() {
+	if group.focus == nil || !group.focus.IsActive() {
 		return false
 	}
 	return group.focus.IsType(ElementTypeInput)

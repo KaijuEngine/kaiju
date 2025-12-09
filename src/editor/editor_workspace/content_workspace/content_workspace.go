@@ -379,7 +379,7 @@ func (w *ContentWorkspace) clickEntry(e *document.Element) {
 		}
 		for i := from; i <= idx; i++ {
 			t := list.Children[i]
-			if slices.Contains(w.selectedContent, t) {
+			if slices.Contains(w.selectedContent, t) || !t.UI.IsActive() {
 				continue
 			}
 			w.appendSelected(t)

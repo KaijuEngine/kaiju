@@ -212,6 +212,10 @@ func Vec3ApproxTo(a, b Vec3, delta Float) bool {
 		Abs(a.Z()-b.Z()) < delta
 }
 
+func Vec3Abs(v Vec3) Vec3 {
+	return NewVec3(Abs(v.X()), Abs(v.Y()), Abs(v.Z()))
+}
+
 func Vec3Min(v ...Vec3) Vec3 {
 	res := v[0]
 	for i := 1; i < len(v); i++ {
