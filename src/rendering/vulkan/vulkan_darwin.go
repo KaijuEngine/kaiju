@@ -1,3 +1,6 @@
+//go:build darwin && !ios
+// +build darwin,!ios
+
 /******************************************************************************/
 /* vulkan_darwin.go                                                           */
 /******************************************************************************/
@@ -22,9 +25,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -35,20 +37,22 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build darwin && !ios
-// +build darwin,!ios
-
 package vulkan
 
 /*
 #cgo darwin CFLAGS: -DVK_USE_PLATFORM_MACOS_MVK -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan -lc++
+#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan
 
 #include "vulkan/vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"
 */
 import "C"
+import (
+	"kaiju/rendering/vulkan_const"
+	vkc "kaiju/rendering/vulkan_const"
+	"unsafe"
+)
 
 const (
 	// UsePlatformMacos means enabled support of MoltenVK.
@@ -60,3 +64,30 @@ const (
 	// MvkMacosSurfaceExtensionName
 	MvkMacosSurfaceExtensionName = "VK_MVK_macos_surface"
 )
+
+// CreateSurfaceFromNSView creates a Vulkan surface using an NSView*.
+// nsView must be an unsafe.Pointer to an Objective-C NSView instance.
+func CreateSurfaceFromNSView(instance Instance, nsView unsafe.Pointer, surface *Surface) vkc.Result {
+	ci := C.VkMacOSSurfaceCreateInfoMVK{}
+	ci.sType = C.VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK
+	ci.pView = nsView
+	var alloc *C.VkAllocationCallbacks
+	res := C.callVkCreateMacOSSurfaceMVK(
+		(C.VkInstance)(instance),
+		&ci,
+		alloc,
+		(*C.VkSurfaceKHR)(unsafe.Pointer(surface)),
+	)
+	return vkc.Result(res)
+}
+
+func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
+	var surface vk.Surface
+	res := vk.CreateSurfaceFromNSView(vr.instance, nsView, &surface)
+	if res != vulkan_const.Success {
+		return false
+	}
+	vr.surface = surface
+	return true
+}

@@ -46,6 +46,11 @@
 #include <stdbool.h>
 
 
+// On Apple, `uchar.h` may be unavailable depending on toolchain.
+#ifdef __APPLE__
+#define STR_NO_16 1
+#endif
+
 #ifndef STR_NO_16
 #include <uchar.h>
 #include <wchar.h>

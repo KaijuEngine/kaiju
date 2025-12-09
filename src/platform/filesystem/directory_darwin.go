@@ -1,7 +1,7 @@
-//go:build windows || darwin || (linux && !android)
+//go:build darwin && !ios
 
 /******************************************************************************/
-/* vulkan.desktop.go                                                          */
+/* directory_darwin.go                                                        */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -24,9 +24,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -37,12 +36,72 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package rendering
+package filesystem
 
-import "kaiju/rendering/vulkan_const"
+import (
+	"kaiju/build"
+	"kaiju/klib"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"unsafe"
+)
 
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
-	return scs.capabilities.CurrentTransform
+const macOSSupportIssueID = 485
+
+func knownPaths() map[string]string {
+	out := map[string]string{
+		"Root": "/",
+		// mac doesn’t have a fixed multi-user /home layout; omit "Home" to avoid confusion
+	}
+	if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
+		out["UserHome"] = userHome
+		common := []string{"Desktop", "Documents", "Downloads", "Pictures", "Music", "Movies"}
+		for _, name := range common {
+			p := filepath.Join(userHome, name)
+			if s, err := os.Stat(p); err == nil && s.IsDir() {
+				out[name] = p
+			}
+		}
+	}
+	return out
 }
 
-const compositeAlpha = vulkan_const.CompositeAlphaOpaqueBit
+func imageDirectory() (string, error) {
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(userHome, "Pictures"), nil
+}
+
+func gameDirectory() (string, error) {
+	// macOS convention: ~/Library/Application Support/<Company>/<Title>
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	base := filepath.Join(userHome, "Library", "Application Support", build.CompanyDirName, build.Title.String())
+	return base, nil
+}
+
+func openFileBrowserCommand(path string) *exec.Cmd {
+	if path == "" {
+		return exec.Command("open", ".")
+	}
+	return exec.Command("open", path)
+}
+
+func openFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO: implement via NSOpenPanel (CGO / Cocoa). For now, don't hang UI.
+	klib.NotYetImplemented(macOSSupportIssueID)
+	cancel()
+	return nil
+}
+
+func openSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO: implement via NSSavePanel (CGO / Cocoa). For now, don't hang UI.
+	klib.NotYetImplemented(macOSSupportIssueID)
+	cancel()
+	return nil
+}

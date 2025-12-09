@@ -22,9 +22,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -41,6 +40,7 @@ package audio
 #cgo windows LDFLAGS: -L../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
 #cgo android LDFLAGS: -L../../libs -lsoloud_android
 #cgo linux,!android LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
+#cgo darwin,!ios LDFLAGS: -L../../libs -lsoloud_darwin -lstdc++ -framework AudioToolbox -framework CoreAudio
 #include <stdlib.h>
 #include "soloud_c.h"
 */

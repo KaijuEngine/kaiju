@@ -1,7 +1,7 @@
-//go:build ios || darwin
+//go:build darwin || ios
 
 /******************************************************************************/
-/* vulkan.mobile.go                                                           */
+/* vulkan.apple.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -24,9 +24,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -44,13 +43,15 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+// Common Apple (macOS + iOS) Vulkan configuration
+
+const vkGeometryShaderValid = vulkan_const.False
+const vkInstanceFlags = 1
+const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
+
+func preTransform(_ vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
 	return vulkan_const.SurfaceTransformIdentityBit
 }
-
-const vkGeometryShaderValid = vulkan_const.True
-const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
-const vkInstanceFlags = 1
 
 func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
 	return vulkan_const.ColorSpaceSrgbNonlinear

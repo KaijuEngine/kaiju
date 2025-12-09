@@ -224,6 +224,8 @@ extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 #ifdef VK_USE_PLATFORM_MACOS_MVK
 // vkGetInstanceProcAddr left there so the linker would link MoltenVK
 extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+// VK_MVK_macos_surface
+extern PFN_vkCreateMacOSSurfaceMVK vgo_vkCreateMacOSSurfaceMVK;
 #endif
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
