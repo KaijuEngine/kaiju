@@ -75,7 +75,7 @@ type Entity struct {
 	orderedChildren       bool
 }
 
-// NewEntity creates a new #Entity struct and returns it
+// NewEntity creates a new #Entity struct and returns that
 func NewEntity() *Entity {
 	e := &Entity{}
 	e.Init()
