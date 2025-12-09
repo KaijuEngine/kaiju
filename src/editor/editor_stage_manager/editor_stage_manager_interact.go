@@ -165,7 +165,7 @@ func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 			continue
 		}
 		b := e.StageData.Bvh.Bounds()
-		if !b.InFrustum(f) {
+		if !b.IntersectsFrustum(f) {
 			continue
 		}
 		ss, ok := matrix.Mat4ToScreenSpace(e.Transform.Position(), v, p, viewport)
