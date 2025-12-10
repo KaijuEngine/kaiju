@@ -10,6 +10,23 @@ Below are instructions on how to build the editor from source
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
 
 ## Windows Development
+### Windows Requirements (Important)
+
+Kaiju requires a **64-bit Go toolchain** on Windows.
+
+Do **not** install the legacy 32-bit `windows-386` version of Go, as it will
+fail when compiling the Vulkan backend.
+
+Install the 64-bit distribution: goX.Y.Z.windows-amd64.msi
+
+Download from: https://go.dev/dl/
+
+You can verify your Go architecture by running:
+```
+go env GOARCH
+```
+Expected output: amd64
+
 - Download mingw into `C:/`
   - I use [x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z](https://github.com/niXman/mingw-builds-binaries/releases)
 - Add the `bin` folder to your environment path
