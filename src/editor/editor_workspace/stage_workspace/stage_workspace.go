@@ -65,7 +65,7 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorIn
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	w.stageView.Initialize(host, ed.History(), &ed.Settings().Snapping, ed)
+	w.stageView.Initialize(host, ed.History(), ed.Settings(), ed)
 	w.pageData.SetupUIData(w.ed.Cache())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,

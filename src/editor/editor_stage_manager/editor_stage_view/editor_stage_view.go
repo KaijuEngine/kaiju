@@ -75,15 +75,15 @@ func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
-func (v *StageView) Initialize(host *engine.Host, history *memento.History, snapSettings *editor_settings.SnapSettings, editorUI editor_stage_manager.EditorUserInterface) {
+func (v *StageView) Initialize(host *engine.Host, history *memento.History, settings *editor_settings.Settings, editorUI editor_stage_manager.EditorUserInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
 	v.manager.Initialize(host, history, editorUI)
 	v.manager.NewStage()
 	v.host = host
-	v.transformTool.Initialize(host, v, history, snapSettings)
+	v.transformTool.Initialize(host, v, history, &settings.Snapping)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
-	v.setupCamera()
+	v.setupCamera(&settings.EditorCamera)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -169,7 +169,7 @@ func (v *StageView) createViewportGrid() {
 	v.gridTransform.ResetDirty()
 }
 
-func (v *StageView) setupCamera() {
+func (v *StageView) setupCamera(settings *editor_settings.EditorCameraSettings) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
 	v.camera.OnModeChange.Add(func() {
 		switch v.camera.Mode() {
@@ -184,4 +184,5 @@ func (v *StageView) setupCamera() {
 		v.updateGridPosition()
 	})
 	v.camera.SetMode(editor_controls.EditorCameraMode3d, v.host)
+	v.camera.Settings = settings
 }

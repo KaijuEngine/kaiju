@@ -38,7 +38,7 @@ package klib
 
 import "cmp"
 
-type Signed interface {
+type SignedInteger interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
@@ -47,11 +47,15 @@ type Unsigned interface {
 }
 
 type Integer interface {
-	Signed | Unsigned
+	SignedInteger | Unsigned
 }
 
 type Float interface {
 	~float32 | ~float64
+}
+
+type Signed interface {
+	SignedInteger | Float
 }
 
 type Complex interface {
@@ -68,4 +72,14 @@ type Number interface {
 
 func Clamp[T cmp.Ordered](current, minimum, maximum T) T {
 	return max(minimum, min(maximum, current))
+}
+
+func ClampAbs[T Signed](value, minimum T) T {
+	if value > minimum {
+		return minimum
+	}
+	if value < -minimum {
+		return -minimum
+	}
+	return value
 }
