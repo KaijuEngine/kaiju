@@ -37,9 +37,6 @@ void* getDefaultProcAddr() {
         // On macOS, try to load MoltenVK (which includes the Vulkan loader)
         void* libvulkan = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
         if (libvulkan == NULL) {
-            libvulkan = dlopen("/usr/local/lib/libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
-        }
-        if (libvulkan == NULL) {
             return NULL;
         }
         symLoader = dlsym(libvulkan, "vkGetInstanceProcAddr");

@@ -2871,12 +2871,6 @@ type CommandBufferInheritanceConditionalRenderingInfo struct {
 	ConditionalRenderingEnable Bool32
 }
 
-// ObjectTableNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkObjectTableNVX
-type ObjectTableNVX C.VkObjectTableNVX
-
-// IndirectCommandsLayoutNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkIndirectCommandsLayoutNVX
-type IndirectCommandsLayoutNVX C.VkIndirectCommandsLayoutNVX
-
 // IndirectCommandsLayoutUsageFlagsNVX type as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkIndirectCommandsLayoutUsageFlagsNVX
 type IndirectCommandsLayoutUsageFlagsNVX uint32
 
@@ -2924,31 +2918,6 @@ type IndirectCommandsLayoutCreateInfoNVX struct {
 	Flags             IndirectCommandsLayoutUsageFlagsNVX
 	TokenCount        uint32
 	PTokens           *IndirectCommandsLayoutTokenNVX
-}
-
-// CmdProcessCommandsInfoNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkCmdProcessCommandsInfoNVX
-type CmdProcessCommandsInfoNVX struct {
-	SType                      vulkan_const.StructureType
-	PNext                      unsafe.Pointer
-	ObjectTable                ObjectTableNVX
-	IndirectCommandsLayout     IndirectCommandsLayoutNVX
-	IndirectCommandsTokenCount uint32
-	PIndirectCommandsTokens    *IndirectCommandsTokenNVX
-	MaxSequencesCount          uint32
-	TargetCommandBuffer        CommandBuffer
-	SequencesCountBuffer       Buffer
-	SequencesCountOffset       DeviceSize
-	SequencesIndexBuffer       Buffer
-	SequencesIndexOffset       DeviceSize
-}
-
-// CmdReserveSpaceForCommandsInfoNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkCmdReserveSpaceForCommandsInfoNVX
-type CmdReserveSpaceForCommandsInfoNVX struct {
-	SType                  vulkan_const.StructureType
-	PNext                  unsafe.Pointer
-	ObjectTable            ObjectTableNVX
-	IndirectCommandsLayout IndirectCommandsLayoutNVX
-	MaxSequencesCount      uint32
 }
 
 // ObjectTableCreateInfoNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkObjectTableCreateInfoNVX
@@ -3588,7 +3557,7 @@ type PipelineViewportCoarseSampleOrderStateCreateInfoNV struct {
 }
 
 // AccelerationStructureNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkAccelerationStructureNVX
-type AccelerationStructureNVX C.VkAccelerationStructureNVX
+type AccelerationStructureNVX C.VkAccelerationStructureNV
 
 // GeometryFlagsNVX type as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkGeometryFlagsNVX
 type GeometryFlagsNVX uint32
