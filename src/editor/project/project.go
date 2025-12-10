@@ -234,6 +234,7 @@ func (p *Project) CompileWithTags(tags ...string) {
 	args = append(args, "./src")
 	cmd := exec.Command("go", args...)
 	cmd.Dir = p.fileSystem.Name()
+	cmd.Env = buildEnv()
 	var stderr, stdout bytes.Buffer
 	cmd.Stderr, cmd.Stdout = &stderr, &stdout
 	if err := cmd.Run(); err != nil {
