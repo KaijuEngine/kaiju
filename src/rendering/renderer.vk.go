@@ -85,7 +85,6 @@ type Vulkan struct {
 	descriptorPools            []vk.DescriptorPool
 	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
 	globalUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
-	globalUniformBuffersPtr    [maxFramesInFlight]unsafe.Pointer
 	bufferTrash                bufferDestroyer
 	depth                      TextureId
 	color                      TextureId
@@ -228,18 +227,15 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			ubo.LightInfos[i] = lights[i].transformToGPULightInfo()
 		}
 	}
-	if vr.globalUniformBuffersPtr[vr.currentFrame] == nil {
-		var data unsafe.Pointer
-		r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
-			0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)
-		if r != vulkan_const.Success {
-			slog.Error("Failed to map uniform buffer memory", slog.Int("code", int(r)))
-			return
-		} else {
-			vr.globalUniformBuffersPtr[vr.currentFrame] = data
-		}
+	var data unsafe.Pointer
+	r := vk.MapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame],
+		0, vk.DeviceSize(unsafe.Sizeof(ubo)), 0, &data)
+	if r != vulkan_const.Success {
+		slog.Error("Failed to map uniform buffer memory", slog.Int("code", int(r)))
+		return
 	}
-	vk.Memcopy(vr.globalUniformBuffersPtr[vr.currentFrame], klib.StructToByteArray(ubo))
+	vk.Memcopy(data, klib.StructToByteArray(ubo))
+	vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[vr.currentFrame])
 }
 
 func (vr *Vulkan) createColorResources() bool {
@@ -348,10 +344,6 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	}
 	// Destroy the previous global uniform buffers
 	for i := 0; i < maxFramesInFlight; i++ {
-		if vr.globalUniformBuffersPtr[i] != nil {
-			vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[i])
-			vr.globalUniformBuffersPtr[i] = nil
-		}
 		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
 		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
 		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
@@ -574,10 +566,6 @@ func (vr *Vulkan) Destroy() {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
 		for i := 0; i < maxFramesInFlight; i++ {
-			if vr.globalUniformBuffersMemory[i] != vk.NullDeviceMemory {
-				vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[i])
-				vr.globalUniformBuffersPtr[i] = nil
-			}
 			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
 			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
