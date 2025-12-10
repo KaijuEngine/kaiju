@@ -38,8 +38,6 @@ package content_database
 
 import (
 	"io/fs"
-	"kaiju/build"
-	"kaiju/debug"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
@@ -254,14 +252,14 @@ func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 func (c *Cache) Remove(id string) {
 	defer tracing.NewRegion("Cache.Remove").End()
 	if idx, ok := c.lookup[id]; ok {
-		lastId := c.cache[len(c.cache)-1].Id()
-		c.cache = klib.RemoveUnordered(c.cache, idx)
+		lastCacheIdx := len(c.cache) - 1
 		delete(c.lookup, id)
-		if len(c.cache) > 0 {
-			c.lookup[lastId] = idx
-			if build.Debug {
-				debug.Assert(c.cache[idx].Id() == lastId,
-					"the behavior of klib.RemoveUnordered must have changed!")
+		if lastCacheIdx == idx {
+			c.cache = c.cache[:idx]
+		} else {
+			c.cache = klib.RemoveUnordered(c.cache, idx)
+			if len(c.cache) > 0 {
+				c.lookup[c.cache[idx].Id()] = idx
 			}
 		}
 	}
