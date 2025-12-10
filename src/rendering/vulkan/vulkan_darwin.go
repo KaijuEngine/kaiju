@@ -41,7 +41,7 @@ package vulkan
 
 /*
 #cgo darwin CFLAGS: -DVK_USE_PLATFORM_MACOS_MVK -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal
+#cgo darwin LDFLAGS: -L/usr/local/lib -lMoltenVK -Wl,-rpath,/usr/local/lib -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal
 
 #include "vulkan/vulkan.h"
 #include "vk_wrapper.h"
