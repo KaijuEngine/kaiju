@@ -62,7 +62,7 @@ type Settings struct {
 }
 
 type EditorCameraSettings struct {
-	ZoomSpeed float32 `default:"20" label:"Editor Camera Zoom Speed (floor)"`
+	ZoomSpeed float32 `default:"120" label:"Editor Camera Zoom Speed (floor)"`
 }
 
 type SnapSettings struct {

@@ -44,11 +44,11 @@ import (
 
 type Settings struct {
 	Name                 string
+	EntryPointStage      string
 	CodeEditor           string `default:"code"`
 	ArchiveEncryptionKey string
-	EditorVersion        float64 `visible:"false"`
 	Android              AndroidSettings
-	EntryPointStage      string
+	EditorVersion        float64 `visible:"false"`
 }
 
 type AndroidSettings struct {
