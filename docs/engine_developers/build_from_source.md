@@ -79,7 +79,7 @@ git clone https://github.com/jarikomppa/soloud.git
 cd soloud/contrib
 mkdir build
 cd build
-cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_COREAUDIO=ON -DSOLOUD_C_API=ON -DSOLOUD_STATIC=ON
+cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_COREAUDIO=ON -DSOLOUD_C_API=ON -DSOLOUD_STATIC=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build . --config Release
 # Copy the library to kaiju
 cp build/libsoloud.a /path/to/kaiju/src/libs/libsoloud_darwin.a
