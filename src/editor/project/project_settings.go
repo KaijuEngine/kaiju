@@ -44,6 +44,7 @@ import (
 
 type Settings struct {
 	Name                 string
+	CodeEditor           string `default:"code"`
 	ArchiveEncryptionKey string
 	EditorVersion        float64 `visible:"false"`
 	Android              AndroidSettings
