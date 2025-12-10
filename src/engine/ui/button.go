@@ -61,8 +61,7 @@ func (b *Button) Label() *Label {
 	var pui *UI
 	for _, c := range b.entity.Children {
 		pui = FirstOnEntity(c)
-		ok := pui.elmType == ElementTypeLabel
-		if pui != nil && ok {
+		if pui != nil && pui.elmType == ElementTypeLabel {
 			break
 		} else {
 			pui = nil
