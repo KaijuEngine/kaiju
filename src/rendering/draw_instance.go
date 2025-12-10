@@ -227,7 +227,11 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawI
 }
 
 func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
-	newPadding := blockSize - d.instanceSize%blockSize
+	newPadding := 0
+	remainder := d.instanceSize % blockSize
+	if remainder != 0 {
+		newPadding = blockSize - remainder
+	}
 	if d.rawData.padding != newPadding {
 		d.rawData.padding = newPadding
 		d.rawData.length = d.TotalSize()
