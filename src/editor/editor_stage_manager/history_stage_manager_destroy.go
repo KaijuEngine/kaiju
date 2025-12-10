@@ -88,7 +88,9 @@ func (h *objectDeleteHistory) Delete() {}
 
 func (h *objectDeleteHistory) Exit() {
 	for _, e := range h.entities {
-		e.StageData.ShaderData.Destroy()
+		if e.StageData.ShaderData != nil {
+			e.StageData.ShaderData.Destroy()
+		}
 		e.Destroy()
 	}
 }
