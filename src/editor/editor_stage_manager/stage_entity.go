@@ -57,6 +57,16 @@ func EntityToStageEntity(e *engine.Entity) *StageEntity {
 
 func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
 
+func (e *StageEntity) DataBindingsByKey(key string) []*entity_data_binding.EntityDataEntry {
+	out := []*entity_data_binding.EntityDataEntry{}
+	for _, d := range e.dataBindings {
+		if d.Gen.RegisterKey == key {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
 func (e *StageEntity) AddDataBinding(binding *entity_data_binding.EntityDataEntry) {
 	e.dataBindings = append(e.dataBindings, binding)
 }
