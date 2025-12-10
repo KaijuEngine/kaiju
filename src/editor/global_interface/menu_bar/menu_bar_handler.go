@@ -56,7 +56,7 @@ type MenuBarHandler interface {
 	Build()
 	BuildAndRun()
 	BuildAndRunCurrentStage()
-	OpenVSCodeProject()
+	OpenCodeEditor()
 	CreateNewStage()
 	SaveCurrentStage()
 	CreateNewCamera()
