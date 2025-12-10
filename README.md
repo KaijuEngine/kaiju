@@ -43,6 +43,8 @@ For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3)
 Please review the Ad-Hoc [editor readme](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md)
 
 ## Compiling the engine
+> **Windows developers must install the 64-bit Go toolchain (`windows-amd64`).**
+> The 32-bit (`windows-386`) Go distribution will not compile Kaiju’s Vulkan backend.
 Please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) on how to get started and compile the engine
 
 ## Editor previews
