@@ -3557,7 +3557,7 @@ type PipelineViewportCoarseSampleOrderStateCreateInfoNV struct {
 }
 
 // AccelerationStructureNVX as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkAccelerationStructureNVX
-type AccelerationStructureNVX C.VkAccelerationStructureNV
+type AccelerationStructureNVX C.VkAccelerationStructureNVX
 
 // GeometryFlagsNVX type as declared in https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#VkGeometryFlagsNVX
 type GeometryFlagsNVX uint32
