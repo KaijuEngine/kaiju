@@ -48,6 +48,8 @@ type objectSpawnHistory struct {
 
 func (h *objectSpawnHistory) Redo() {
 	defer tracing.NewRegion("objectSpawnHistory.Redo").End()
+	h.e.Activate()
+	h.e.isDeleted = false
 	h.m.host.AddEntity(&h.e.Entity)
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Activate()
@@ -60,6 +62,8 @@ func (h *objectSpawnHistory) Redo() {
 
 func (h *objectSpawnHistory) Undo() {
 	defer tracing.NewRegion("objectSpawnHistory.Undo").End()
+	h.e.Deactivate()
+	h.e.isDeleted = true
 	h.m.host.RemoveEntity(&h.e.Entity)
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Deactivate()

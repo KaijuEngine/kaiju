@@ -267,6 +267,10 @@ func (m *StageManager) Clear() {
 	for i := range m.entities {
 		m.OnEntityDestroy.Execute(m.entities[i])
 		m.entities[i].Destroy()
+		// Deleted entities are not in the host and need to be cleaned up manually
+		if m.entities[i].isDeleted {
+			m.entities[i].ForceCleanup()
+		}
 	}
 	m.worldBVH = nil
 }

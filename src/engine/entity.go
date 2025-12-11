@@ -290,13 +290,20 @@ func (e *Entity) FindByName(name string) *Entity {
 func (e *Entity) TickCleanup() bool {
 	if e.isDestroyed {
 		if e.destroyedFrames <= 0 {
-			e.OnDestroy.Execute()
-			*e = Entity{}
+			e.ForceCleanup()
 			return true
 		}
 		e.destroyedFrames--
 	}
 	return false
+}
+
+// ForceCleanup will force the full cleanup of the entity, typically this is to
+// be called in very specific scenarios and not directly in game code. Unless
+// there is a good reason (like this entity no longer bein gin the host).
+func (e *Entity) ForceCleanup() {
+	e.OnDestroy.Execute()
+	*e = Entity{}
 }
 
 // Root will return the root entity of the entity's hierarchy

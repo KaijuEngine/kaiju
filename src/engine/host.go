@@ -565,8 +565,7 @@ func (host *Host) Teardown() {
 	host.OnClose.Execute()
 	for i := range host.entities {
 		host.entities[i].Destroy()
-		for !host.entities[i].TickCleanup() {
-		}
+		host.entities[i].ForceCleanup()
 	}
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
