@@ -118,7 +118,7 @@ func (s *Settings) Load() error {
 		// here as there is no need to continue with the load if we're saving
 		s.RefreshRate = 60
 		s.UIScrollSpeed = 20
-		s.EditorCamera.ZoomSpeed = 20
+		s.EditorCamera.ZoomSpeed = 120
 		return s.Save()
 	}
 	f, err := os.Open(path)
