@@ -4,10 +4,18 @@ package windowing
 
 import (
 	"kaiju/klib"
+	"kaiju/platform/hid"
+
 	"unsafe"
 )
 
 const macOSSupportIssueID = 485
+
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool{
+	klib.NotYetImplemented(494)
+	return map[hid.KeyboardKey]bool{}
+}
+
 
 // Lifecycle and eventing
 func (w *Window) createWindow(windowName string, x, y int, _ any) {

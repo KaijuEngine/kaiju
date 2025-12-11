@@ -40,6 +40,8 @@ package windowing
 
 import (
 	"errors"
+	"kaiju/klib"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
 	"unsafe"
@@ -92,6 +94,11 @@ func scaleScrollDelta(delta float32) float32 {
 		v = delta
 	}
 	return v
+}
+
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool{
+	klib.NotYetImplemented(494)
+	return map[hid.KeyboardKey]bool{}
 }
 
 func (w *Window) createWindow(windowName string, x, y int, _ any) {
