@@ -153,6 +153,7 @@ func (np *NewProject) createProject(e *document.Element) {
 	}
 	if path == "" {
 		slog.Error("project path was not set")
+		return
 	}
 	np.Close()
 	if np.config.OnCreate == nil {

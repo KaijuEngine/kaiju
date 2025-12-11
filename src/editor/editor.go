@@ -155,10 +155,6 @@ func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
-	// goroutine
-	go ed.project.CompileDebug()
-	// goroutine
-	go ed.project.ReadSourceCode()
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, ed)
@@ -167,6 +163,10 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
+	// goroutine
+	go ed.project.CompileDebug()
+	// goroutine
+	go ed.project.ReadSourceCode()
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {

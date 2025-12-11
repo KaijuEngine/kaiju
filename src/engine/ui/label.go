@@ -250,7 +250,7 @@ func (label *Label) labelRender() {
 		label.renderText()
 	}
 	label.setLabelScissors()
-	if !label.Base().isActive() {
+	if !label.Base().IsActive() {
 		label.deactivateDrawings()
 	}
 	label.updateColors()

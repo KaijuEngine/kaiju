@@ -37,7 +37,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-#if defined(__android__)
+#if defined(__android__) || defined(__ANDROID__)
 
 
 #include <jni.h>

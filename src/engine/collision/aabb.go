@@ -59,7 +59,7 @@ func AABBFromWidth(center matrix.Vec3, halfWidth matrix.Float) AABB {
 func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	return AABB{
 		Center: min.Add(max).Scale(0.5),
-		Extent: max.Subtract(min).Scale(0.5),
+		Extent: matrix.Vec3Abs(max.Subtract(min).Scale(0.5)),
 	}
 }
 
@@ -319,8 +319,8 @@ func (box *AABB) FromTriangle(triangle DetailedTriangle) AABB {
 	return AABB{mid, e}
 }
 
-// InFrustum returns whether the AABB is in the frustum
-func (box *AABB) InFrustum(frustum Frustum) bool {
+// IntersectsFrustum returns whether the AABB is in the frustum
+func (box *AABB) IntersectsFrustum(frustum Frustum) bool {
 	min := box.Min()
 	max := box.Max()
 	for i := 0; i < 6; i++ {

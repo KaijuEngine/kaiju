@@ -353,7 +353,7 @@ func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 	q := strings.ToLower(e.UI.ToInput().Text())
 	for _, c := range dui.entityDataList.Children[1:] {
 		name := strings.ToLower(c.InnerLabel().Text())
-		if strings.Contains(name, q) {
+		if q != "" && strings.Contains(name, q) {
 			c.UI.Show()
 		} else {
 			c.UI.Hide()

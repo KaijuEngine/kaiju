@@ -122,3 +122,19 @@ func TestAABBUnion(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestFrustimInAABB(t *testing.T) {
+	v := matrix.Mat4Identity()
+	var p matrix.Mat4
+	p.Orthographic(-10*0.5, 10*0.5, -10*0.5, 10*0.5, 0.01, 100)
+	vp := matrix.Mat4Multiply(v, p)
+	var f Frustum
+	f.ExtractPlanes(vp)
+	b := AABB{
+		Center: matrix.Vec3Zero(),
+		Extent: matrix.Vec3{50, 50, 0},
+	}
+	if !b.IntersectsFrustum(f) {
+		t.Fail()
+	}
+}

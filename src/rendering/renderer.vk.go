@@ -348,7 +348,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	}
 	// Destroy the previous global uniform buffers
 	for i := 0; i < maxFramesInFlight; i++ {
-		if vr.globalUniformBuffersMemory[i] != vk.NullDeviceMemory {
+		if vr.globalUniformBuffersPtr[i] != nil {
 			vk.UnmapMemory(vr.device, vr.globalUniformBuffersMemory[i])
 			vr.globalUniformBuffersPtr[i] = nil
 		}
