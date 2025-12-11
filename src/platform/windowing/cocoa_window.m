@@ -1,3 +1,6 @@
+//go:build darwin
+// +build darwin
+
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <objc/runtime.h>
@@ -131,6 +134,32 @@ static inline SharedMem* getSharedMem(NSWindow* window) {
 
 @end
 
+static inline NSEventModifierFlags modifierFlagForKeyCode(unsigned short keyCode) {
+    switch (keyCode) {
+        case 0x36: // Right Command
+        case 0x37: // Left Command
+            return NSEventModifierFlagCommand;
+
+        case 0x3B: // Left Control
+        case 0x3E: // Right Control
+            return NSEventModifierFlagControl;
+
+        case 0x38: // Left Shift
+        case 0x3C: // Right Shift
+            return NSEventModifierFlagShift;
+
+        case 0x3A: // Left Option / Alt
+        case 0x3D: // Right Option / Alt
+            return NSEventModifierFlagOption;
+
+        case 0x39: // Caps Lock
+            return NSEventModifierFlagCapsLock;
+
+        default:
+            return 0;
+    }
+}
+
 void* cocoa_create_window(const char* title, int x, int y, int width, int height, void** outWindow, void* goWindow) {
     @autoreleasepool {
         // Ensure NSApplication is initialized
@@ -244,26 +273,26 @@ void cocoa_show_window(void* nsWindow) {
     }
 }
 
+
 void cocoa_poll_events(void* nsWindow) {
     @autoreleasepool {
         NSWindow* window = (__bridge NSWindow*)(nsWindow);
         SharedMem* sm = getSharedMem(window);
         if (sm == NULL) return;
-        
+
         NSEvent* event;
         while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
                                           untilDate:[NSDate distantPast]
                                              inMode:NSDefaultRunLoopMode
                                             dequeue:YES]) != nil) {
-            
-            // Process mouse events
+
             switch ([event type]) {
                 case NSEventTypeMouseMoved:
                 case NSEventTypeLeftMouseDragged:
                 case NSEventTypeRightMouseDragged:
                 case NSEventTypeOtherMouseDragged: {
                     NSPoint location = [event locationInWindow];
-                    // Cocoa uses bottom-left origin; convert to top-left origin to match Windows/Linux
+                    // Cocoa origin: bottom-left; convert to top-left (your shared mem expects top-left)
                     int32_t x = (int32_t)location.x;
                     int32_t y = sm->windowHeight - (int32_t)location.y;
                     shared_mem_add_event(sm, (WindowEvent) {
@@ -273,130 +302,88 @@ void cocoa_poll_events(void* nsWindow) {
                             .y = y,
                         }
                     });
-                    
-                    // Apply cursor lock if active (matches Windows behavior)
+
+                    // cursor lock: convert window point to screen and warp
                     if (sm->lockCursor.active) {
-                        NSPoint windowPoint = NSMakePoint(sm->lockCursor.x, sm->lockCursor.y);
-                        NSPoint screenPoint = [window convertPointToScreen:windowPoint];
-                        CGWarpMouseCursorPosition(NSPointToCGPoint(screenPoint));
+                        // Build a zero-sized rect at the locked window coordinates and convert to screen.
+                        NSRect winRect = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0.0, 0.0);
+                        NSRect screenRect = [window convertRectToScreen:winRect];
+                        CGPoint screenPoint = CGPointMake(screenRect.origin.x, screenRect.origin.y);
+                        CGWarpMouseCursorPosition(screenPoint);
                     }
                     break;
                 }
-                
-                case NSEventTypeLeftMouseDown: {
-                    NSPoint location = [event locationInWindow];
-                    int32_t x = (int32_t)location.x;
-                    int32_t y = sm->windowHeight - (int32_t)location.y;
-                    shared_mem_add_event(sm, (WindowEvent) {
-                        .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
-                        .mouseButton = {
-                            .buttonId = MOUSE_BUTTON_LEFT,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
-                            .x = x,
-                            .y = y,
-                        }
-                    });
-                    break;
-                }
-                
-                case NSEventTypeLeftMouseUp: {
-                    NSPoint location = [event locationInWindow];
-                    int32_t x = (int32_t)location.x;
-                    int32_t y = sm->windowHeight - (int32_t)location.y;
-                    shared_mem_add_event(sm, (WindowEvent) {
-                        .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
-                        .mouseButton = {
-                            .buttonId = MOUSE_BUTTON_LEFT,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_UP,
-                            .x = x,
-                            .y = y,
-                        }
-                    });
-                    break;
-                }
-                
-                case NSEventTypeRightMouseDown: {
-                    NSPoint location = [event locationInWindow];
-                    int32_t x = (int32_t)location.x;
-                    int32_t y = sm->windowHeight - (int32_t)location.y;
-                    shared_mem_add_event(sm, (WindowEvent) {
-                        .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
-                        .mouseButton = {
-                            .buttonId = MOUSE_BUTTON_RIGHT,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
-                            .x = x,
-                            .y = y,
-                        }
-                    });
-                    break;
-                }
-                
-                case NSEventTypeRightMouseUp: {
-                    NSPoint location = [event locationInWindow];
-                    int32_t x = (int32_t)location.x;
-                    int32_t y = sm->windowHeight - (int32_t)location.y;
-                    shared_mem_add_event(sm, (WindowEvent) {
-                        .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
-                        .mouseButton = {
-                            .buttonId = MOUSE_BUTTON_RIGHT,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_UP,
-                            .x = x,
-                            .y = y,
-                        }
-                    });
-                    break;
-                }
-                
-                case NSEventTypeOtherMouseDown: {
-                    NSPoint location = [event locationInWindow];
-                    int32_t x = (int32_t)location.x;
-                    int32_t y = sm->windowHeight - (int32_t)location.y;
-                    int32_t buttonId = MOUSE_BUTTON_MIDDLE;
-                    if ([event buttonNumber] == 3) buttonId = MOUSE_BUTTON_X1;
-                    else if ([event buttonNumber] == 4) buttonId = MOUSE_BUTTON_X2;
-                    shared_mem_add_event(sm, (WindowEvent) {
-                        .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
-                        .mouseButton = {
-                            .buttonId = buttonId,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
-                            .x = x,
-                            .y = y,
-                        }
-                    });
-                    break;
-                }
-                
+
+                case NSEventTypeLeftMouseDown:
+                case NSEventTypeLeftMouseUp:
+                case NSEventTypeRightMouseDown:
+                case NSEventTypeRightMouseUp:
+                case NSEventTypeOtherMouseDown:
                 case NSEventTypeOtherMouseUp: {
                     NSPoint location = [event locationInWindow];
                     int32_t x = (int32_t)location.x;
                     int32_t y = sm->windowHeight - (int32_t)location.y;
-                    int32_t buttonId = MOUSE_BUTTON_MIDDLE;
-                    if ([event buttonNumber] == 3) buttonId = MOUSE_BUTTON_X1;
-                    else if ([event buttonNumber] == 4) buttonId = MOUSE_BUTTON_X2;
+
+                    // map buttonNumber to your enum:
+                    // macOS buttonNumber: left=0, right=1, middle=2, x1=3, x2=4
+                    NSInteger btn = [event buttonNumber];
+                    int32_t buttonId;
+                    switch (btn) {
+                        case 0: buttonId = MOUSE_BUTTON_LEFT; break;
+                        case 1: buttonId = MOUSE_BUTTON_RIGHT; break;
+                        case 2: buttonId = MOUSE_BUTTON_MIDDLE; break;
+                        case 3: buttonId = MOUSE_BUTTON_X1; break;
+                        case 4: buttonId = MOUSE_BUTTON_X2; break;
+                    }
+
+                    int action = (([event type] == NSEventTypeLeftMouseDown ||
+                                   [event type] == NSEventTypeRightMouseDown ||
+                                   [event type] == NSEventTypeOtherMouseDown) ?
+                                   WINDOW_EVENT_BUTTON_TYPE_DOWN :
+                                   WINDOW_EVENT_BUTTON_TYPE_UP);
+
                     shared_mem_add_event(sm, (WindowEvent) {
                         .type = WINDOW_EVENT_TYPE_MOUSE_BUTTON,
                         .mouseButton = {
                             .buttonId = buttonId,
-                            .action = WINDOW_EVENT_BUTTON_TYPE_UP,
+                            .action = action,
                             .x = x,
                             .y = y,
                         }
                     });
+
                     break;
                 }
-                
+
                 case NSEventTypeScrollWheel: {
                     NSPoint location = [event locationInWindow];
-                    // NSEvent provides deltaX/Y in points. Multiply by 120 to match Windows scroll wheel units.
-                    int32_t deltaX = (int32_t)([event scrollingDeltaX] * 120.0);
-                    int32_t deltaY = (int32_t)([event scrollingDeltaY] * 120.0);
-                    
-                    if (deltaX != 0 || deltaY != 0) {
+
+                    // Prefer precise scrolling deltas when available, otherwise fall back to deltaX/deltaY.
+                    double dx = 0.0;
+                    double dy = 0.0;
+                    if ([event hasPreciseScrollingDeltas]) {
+                        dx = [event scrollingDeltaX];
+                        dy = [event scrollingDeltaY];
+                    } else {
+                        dx = [event deltaX];
+                        dy = [event deltaY];
+                    }
+
+                    // If device indicates inverted direction, flip vertical delta to match user expectation.
+                    if ([event isDirectionInvertedFromDevice]) {
+                        dy = -dy;
+                    }
+
+                    // Convert to Windows-like wheel units (120 per notch). Using double then cast to int keeps partial scrolls.
+                    int32_t outDx = (int32_t)(dx * 120.0);
+                    int32_t outDy = (int32_t)(dy * 120.0);
+
+                    if (outDx != 0 || outDy != 0) {
                         shared_mem_add_event(sm, (WindowEvent) {
                             .type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
                             .mouseScroll = {
-                                .deltaX = deltaX,
-                                .deltaY = deltaY,
+                                .deltaX = outDx,
+                                .deltaY = outDy,
                                 .x = (int32_t)location.x,
                                 .y = (int32_t)location.y,
                             }
@@ -404,36 +391,17 @@ void cocoa_poll_events(void* nsWindow) {
                     }
                     break;
                 }
-                
+
                 case NSEventTypeFlagsChanged: {
-                    // Handle modifier key changes (Cmd, Ctrl, Shift, Alt, etc.)
-                    NSEventModifierFlags flags = [event modifierFlags];
+                    // Modifier key (Cmd/Ctrl/Shift/Alt/CapsLock) changed.
                     unsigned short keyCode = [event keyCode];
-                    
-                    // Determine if this is a press or release by checking the flag state
-                    // For modifier keys, we need to check if the corresponding flag is set
-                    BOOL isPressed = NO;
-                    switch (keyCode) {
-                        case 0x37: // Left Command
-                        case 0x36: // Right Command
-                            isPressed = (flags & NSEventModifierFlagCommand) != 0;
-                            break;
-                        case 0x3B: // Left Control
-                        case 0x3E: // Right Control
-                            isPressed = (flags & NSEventModifierFlagControl) != 0;
-                            break;
-                        case 0x38: // Left Shift
-                        case 0x3C: // Right Shift
-                            isPressed = (flags & NSEventModifierFlagShift) != 0;
-                            break;
-                        case 0x3A: // Left Option/Alt
-                        case 0x3D: // Right Option/Alt
-                            isPressed = (flags & NSEventModifierFlagOption) != 0;
-                            break;
-                        default:
-                            break;
+                    NSEventModifierFlags flag = modifierFlagForKeyCode(keyCode);
+                    if (flag == 0) {
+                        // unknown modifier key (could be Fn, etc.) — ignore or optionally send raw key event
+                        break;
                     }
-                    
+
+                    BOOL isPressed = ([event modifierFlags] & flag) != 0;
                     shared_mem_add_event(sm, (WindowEvent) {
                         .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
                         .keyboardButton = {
@@ -443,9 +411,10 @@ void cocoa_poll_events(void* nsWindow) {
                     });
                     break;
                 }
-                
+
                 case NSEventTypeKeyDown: {
                     unsigned short keyCode = [event keyCode];
+                    // push keyboard button down
                     shared_mem_add_event(sm, (WindowEvent) {
                         .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
                         .keyboardButton = {
@@ -453,9 +422,18 @@ void cocoa_poll_events(void* nsWindow) {
                             .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
                         }
                     });
+
+                    // also send text input (characters) for text composition/typing
+                    NSString *chars = [event charactersIgnoringModifiers];
+                    if (chars && [chars length] > 0) {
+                        // If your shared mem has a text event type, use it.
+                        // Otherwise you can encode the first UTF-8 byte(s) into your keyboard event payload.
+                        // Example (pseudocode) — replace with your actual text event API if present:
+                        // shared_mem_add_text_input(sm, [chars UTF8String]);
+                    }
                     break;
                 }
-                
+
                 case NSEventTypeKeyUp: {
                     unsigned short keyCode = [event keyCode];
                     shared_mem_add_event(sm, (WindowEvent) {
@@ -467,18 +445,18 @@ void cocoa_poll_events(void* nsWindow) {
                     });
                     break;
                 }
-                
+
                 default:
                     break;
             }
-            
-            // Forward event to application for standard handling
+
+            // Let the system/app get the event as well (keeps normal behaviour)
             [NSApp sendEvent:event];
         }
-        
-        // Flush any accumulated events
+
+        // flush events into the consumer
         shared_mem_flush_events(sm);
-    }
+    } // autoreleasepool
 }
 
 float cocoa_get_dpi(void* nsWindow) {
