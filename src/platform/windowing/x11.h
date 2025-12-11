@@ -52,6 +52,7 @@ typedef struct {
 	Atom CLIPBOARD;
 } X11State;
 
+unsigned int get_toggle_key_state();
 void window_main(const char* windowTitle,
 	int width, int height, int x, int y, uint64_t goWindow);
 void window_show(void* x11State);
