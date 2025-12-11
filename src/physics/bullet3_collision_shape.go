@@ -38,7 +38,10 @@ package physics
 
 /*
 #cgo CXXFLAGS: -std=c++11
-#cgo LDFLAGS: -L../../libs -lBulletDynamics -lBulletCollision -lLinearMath -lstdc++ -lm
+#cgo windows LDFLAGS: -L../../libs -lBulletDynamics_windows_amd64 -lBulletCollision_windows_amd64 -lLinearMath_windows_amd64 -lstdc++ -lm
+#cgo linux,!android LDFLAGS: -L../../libs -lBulletDynamics_linux_amd64 -lBulletCollision_linux_amd64 -lLinearMath_linux_amd64 -lstdc++ -lm
+#cgo darwin,arm64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_arm64 -lBulletCollision_darwin_arm64 -lLinearMath_darwin_arm64 -lstdc++ -lm
+#cgo darwin,amd64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_amd64 -lBulletCollision_darwin_amd64 -lLinearMath_darwin_amd64 -lstdc++ -lm
 #include "bullet3_wrapper.h"
 #cgo noescape btCollisionShape_calculateLocalInertia
 #cgo nocallback btCollisionShape_calculateLocalInertia
