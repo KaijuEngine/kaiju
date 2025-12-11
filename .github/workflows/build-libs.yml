@@ -57,7 +57,8 @@ jobs:
             -DSOLOUD_BACKEND_SDL2=OFF \
             -DSOLOUD_BACKEND_WASAPI=ON \
             -DSOLOUD_C_API=ON \
-            -DSOLOUD_STATIC=ON
+            -DSOLOUD_STATIC=ON \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Upload artifact
@@ -254,7 +255,8 @@ jobs:
             -DBUILD_CPU_DEMOS=OFF \
             -DBUILD_OPENGL3_DEMOS=OFF \
             -DUSE_GRAPHICAL_BENCHMARK=OFF \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Collect libraries
@@ -300,7 +302,8 @@ jobs:
             -DBUILD_CPU_DEMOS=OFF \
             -DBUILD_OPENGL3_DEMOS=OFF \
             -DUSE_GRAPHICAL_BENCHMARK=OFF \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Collect libraries
@@ -341,7 +344,8 @@ jobs:
             -DBUILD_OPENGL3_DEMOS=OFF \
             -DUSE_GRAPHICAL_BENCHMARK=OFF \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=arm64
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Collect libraries
@@ -382,7 +386,8 @@ jobs:
             -DBUILD_OPENGL3_DEMOS=OFF \
             -DUSE_GRAPHICAL_BENCHMARK=OFF \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=x86_64
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Collect libraries
