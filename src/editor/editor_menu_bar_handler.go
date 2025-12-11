@@ -151,16 +151,13 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 // func (ed *Editor) OpenVSCodeProject() {
 func (ed *Editor) OpenCodeEditor() {
 	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
-
-	fullArgs := strings.Split(ed.project.Settings().CodeEditor, " ")
+	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
 	command := fullArgs[0]
-
 	var args []string
 	if len(fullArgs) > 1 {
 		args = append(args, fullArgs[1:]...)
 	}
 	args = append(args, ed.project.FileSystem().FullPath(""))
-
 	// goroutine
 	go exec.Command(command, args...).Run()
 }
