@@ -37,6 +37,7 @@
 package editor_controls
 
 import (
+	"kaiju/editor/editor_settings"
 	"kaiju/engine"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
@@ -64,6 +65,7 @@ const (
 
 type EditorCamera struct {
 	OnModeChange events.Event
+	Settings     *editor_settings.EditorCameraSettings
 	camera       cameras.Camera
 	lastMousePos matrix.Vec2
 	mouseDown    matrix.Vec2
@@ -250,7 +252,8 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
-		tc.Dolly(mouse.Scroll().Y() * scale)
+		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
+		tc.Dolly(zoomFloor * scale)
 		changed = true
 	}
 	e.lastMousePos = mp
@@ -289,8 +292,9 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		w := oc.Width()
 		h := oc.Height()
 		r := cw / ch
-		w += (cw / cw) * r * -ZOOM_SCALE_2D * mouse.Scroll().Y()
-		h += (ch / cw) * r * -ZOOM_SCALE_2D * mouse.Scroll().Y()
+		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
+		w += (cw / cw) * r * -ZOOM_SCALE_2D * zoomFloor
+		h += (ch / cw) * r * -ZOOM_SCALE_2D * zoomFloor
 		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
 			oc.Resize(w, h)
 			changed = true

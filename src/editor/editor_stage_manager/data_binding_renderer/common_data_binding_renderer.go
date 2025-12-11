@@ -91,4 +91,6 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 		}
 		sd.Destroy()
 	})
+	target.OnDeactivate.Add(sd.Deactivate)
+	target.OnActivate.Add(sd.Activate)
 }

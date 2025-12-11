@@ -144,12 +144,25 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 	}()
 }
 
-// OpenVSCodeProject will open Visual Studio Code directly to the project top-
-// level folder. This is an exposed function to meet the interface needs of
+// OpenCodeEditor will run a command specified in CodeEditor settings entry
+// directly to the project top level folder.
+// This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].
-func (ed *Editor) OpenVSCodeProject() {
-	defer tracing.NewRegion("Editor.OpenVSCodeProject").End()
-	exec.Command("code", ed.project.FileSystem().FullPath("")).Run()
+// func (ed *Editor) OpenVSCodeProject() {
+func (ed *Editor) OpenCodeEditor() {
+	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
+
+	fullArgs := strings.Split(ed.project.Settings().CodeEditor, " ")
+	command := fullArgs[0]
+
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, ed.project.FileSystem().FullPath(""))
+
+	// goroutine
+	go exec.Command(command, args...).Run()
 }
 
 func (ed *Editor) CreateNewStage() {

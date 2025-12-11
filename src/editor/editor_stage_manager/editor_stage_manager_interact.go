@@ -161,7 +161,7 @@ func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 	v, p := cam.View(), cam.Projection()
 	viewport := cam.Viewport()
 	for _, e := range m.entities {
-		if e.StageData.Bvh == nil {
+		if e.StageData.Bvh == nil || e.isDeleted {
 			continue
 		}
 		b := e.StageData.Bvh.Bounds()

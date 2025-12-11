@@ -67,7 +67,24 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
-	return w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
+	cam, ok := w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
+	if ok {
+		shouldMakePrimary := true
+		for _, e := range w.stageView.Manager().List() {
+			if e == cam {
+				continue
+			}
+			if len(e.DataBindingsByKey(engine_data_binding_camera.BindingKey)) > 0 {
+				shouldMakePrimary = false
+				break
+			}
+		}
+		db := cam.DataBindingsByKey(engine_data_binding_camera.BindingKey)
+		if shouldMakePrimary && len(db) > 0 {
+			db[0].SetFieldByName("IsMainCamera", true)
+		}
+	}
+	return cam, ok
 }
 
 func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, bool) {

@@ -56,6 +56,7 @@ func (h *objectDeleteHistory) Redo() {
 		}
 		h.m.OnEntityDestroy.Execute(e)
 		e.isDeleted = true
+		e.Deactivate()
 		if e.StageData.Bvh != nil {
 			collision.RemoveAllLeavesMatchingTransform(&h.m.worldBVH, &e.Transform)
 		}
@@ -71,6 +72,7 @@ func (h *objectDeleteHistory) Undo() {
 		}
 		h.m.OnEntitySpawn.Execute(e)
 		e.isDeleted = false
+		e.Activate()
 		if e.StageData.Bvh != nil {
 			h.m.AddBVH(e.StageData.Bvh, &e.Transform)
 		}
@@ -86,7 +88,9 @@ func (h *objectDeleteHistory) Delete() {}
 
 func (h *objectDeleteHistory) Exit() {
 	for _, e := range h.entities {
-		e.StageData.ShaderData.Destroy()
+		if e.StageData.ShaderData != nil {
+			e.StageData.ShaderData.Destroy()
+		}
 		e.Destroy()
 	}
 }

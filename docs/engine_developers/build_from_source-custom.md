@@ -19,6 +19,23 @@ I have made modifications to the Go compiler to increase the performance of the 
   - This will build the Kaiju Engine Go compiler into the `bin` directory
 
 ## Windows Development
+### Windows Requirements (Important)
+
+Kaiju requires a **64-bit Go toolchain** on Windows.
+
+Do **not** install the legacy 32-bit `windows-386` version of Go, as it will
+fail when compiling the Vulkan backend.
+
+Install the 64-bit distribution: goX.Y.Z.windows-amd64.msi
+
+Download from: https://go.dev/dl/
+
+You can verify your Go architecture by running:
+```
+go env GOARCH
+```
+Expected output: amd64
+
 - Download mingw into `C:/`
   - I use [x86_64-13.2.0-release-win32-seh-msvcrt-rt_v11-rev1.7z
 ](https://github.com/niXman/mingw-builds-binaries/releases)

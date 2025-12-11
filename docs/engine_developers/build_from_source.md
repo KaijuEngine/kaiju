@@ -27,6 +27,23 @@ To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home
 **Note:** On macOS, the engine uses Cocoa/AppKit for windowing and MoltenVK for Vulkan support. Keyboard shortcuts use the Cmd key (not Ctrl) for operations like copy/paste (Cmd+C/Cmd+V).
 
 ## Windows Development
+### Windows Requirements (Important)
+
+Kaiju requires a **64-bit Go toolchain** on Windows.
+
+Do **not** install the legacy 32-bit `windows-386` version of Go, as it will
+fail when compiling the Vulkan backend.
+
+Install the 64-bit distribution: goX.Y.Z.windows-amd64.msi
+
+Download from: https://go.dev/dl/
+
+You can verify your Go architecture by running:
+```
+go env GOARCH
+```
+Expected output: amd64
+
 - Download mingw into `C:/`
   - I use [x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z](https://github.com/niXman/mingw-builds-binaries/releases)
 - Add the `bin` folder to your environment path
