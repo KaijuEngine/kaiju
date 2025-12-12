@@ -84,6 +84,30 @@ cmake .. -G "MinGW Makefiles" .. -DCMAKE_TOOLCHAIN_FILE=%NDK_HOME%/build/cmake/a
 cmake --build . --config Release
 ```
 
+## Building Bullet3
+Currently the engine uses Bullet3 for the physics system. Below are instructions
+on how to build the library for the engine.
+
+### Bullet3 Windows
+```sh
+git clone https://github.com/bulletphysics/bullet3.git
+cd bullet3
+mkdir build_mingw_static
+cd build_mingw_static
+cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_CPU_DEMOS=OFF -DBUILD_OPENGL3_DEMOS=OFF -DBUILD_BULLET2_DEMOS=OFF -DBUILD_EXTRAS=OFF -DBUILD_UNIT_TESTS=OFF -DUSE_GLUT=OFF -DBULLET2_MULTITHREADING=ON
+mingw32-make -j$(nproc)
+```
+
+### Bullet3 Linux
+```sh
+git clone https://github.com/bulletphysics/bullet3.git
+cd bullet3
+mkdir build_static
+cd build_static
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_CPU_DEMOS=OFF -DBUILD_OPENGL3_DEMOS=OFF -DBUILD_BULLET2_DEMOS=OFF -DBUILD_EXTRAS=OFF -DBUILD_UNIT_TESTS=OFF -DUSE_GLUT=OFF -DINSTALL_LIBS=ON
+make -j$(nproc)
+```
+
 ## Compiling Android
 To compile for android, you can go to the engine root folder and run:
 ```sh
