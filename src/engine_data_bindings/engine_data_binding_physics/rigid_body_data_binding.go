@@ -23,28 +23,39 @@ func init() {
 }
 
 type RigidBodyDataBinding struct {
-	Extent matrix.Vec3
-	Mass   float32
-	Radius float32
-	Height float32
-	Shape  Shape
+	Extent   matrix.Vec3 `default:"1,1,1"`
+	Mass     float32     `default:"1"`
+	Radius   float32     `default:"1"`
+	Height   float32     `default:"1"`
+	Shape    Shape
+	IsStatic bool
 }
 
 func (r RigidBodyDataBinding) Init(e *engine.Entity, host *engine.Host) {
 	t := &e.Transform
-	// TODO:  Scale the shape by the transform scale
+	scale := t.Scale()
 	var shape *physics.CollisionShape
 	switch r.Shape {
 	case ShapeBox:
-		shape = &physics.NewBoxShape(r.Extent).CollisionShape
+		size := r.Extent.Multiply(scale)
+		shape = &physics.NewBoxShape(size).CollisionShape
 	case ShapeSphere:
-		shape = &physics.NewSphereShape(r.Radius).CollisionShape
+		rad := r.Radius * float32(scale.LongestAxis())
+		shape = &physics.NewSphereShape(rad).CollisionShape
 	case ShapeCapsule:
-		shape = &physics.NewCapsuleShape(r.Radius, r.Height).CollisionShape
+		rad := r.Radius * float32(scale.LongestAxis())
+		height := r.Height * scale.Y()
+		shape = &physics.NewCapsuleShape(rad, height).CollisionShape
 	case ShapeCylinder:
-		shape = &physics.NewnCylinderShape(r.Extent).CollisionShape
+		size := r.Extent.Multiply(scale)
+		shape = &physics.NewnCylinderShape(size).CollisionShape
 	case ShapeCone:
-		shape = &physics.NewConeShape(r.Radius, r.Height).CollisionShape
+		rad := r.Radius * float32(scale.LongestAxis())
+		height := r.Height * scale.Y()
+		shape = &physics.NewConeShape(rad, height).CollisionShape
+	}
+	if r.IsStatic {
+		r.Mass = 0
 	}
 	inertia := shape.CalculateLocalInertia(r.Mass)
 	motion := physics.NewDefaultMotionState(matrix.QuaternionFromEuler(t.Rotation()), t.Position())

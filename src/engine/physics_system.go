@@ -94,8 +94,11 @@ func (p *StagePhysics) Update(threads *concurrent.Threads, deltaTime float64) {
 	p.world.StepSimulation(float32(deltaTime))
 	wg := sync.WaitGroup{}
 	works := []func(threadId int){}
-	wg.Add(len(p.entities))
 	for i := range p.entities {
+		if p.entities[i].Body.IsStatic() {
+			continue
+		}
+		wg.Add(1)
 		works = append(works, func(threadId int) {
 			wg.Done()
 			p.entities[i].updateTransform()

@@ -64,6 +64,7 @@ import (
 type RigidBody struct {
 	ptr   *C.btRigidBody
 	shape *CollisionShape
+	mass  float32
 }
 
 func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, inertia matrix.Vec3) *RigidBody {
@@ -72,12 +73,15 @@ func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, iner
 			motion.ptr, shape.ptr,
 			C.float(inertia.X()), C.float(inertia.Y()), C.float(inertia.Z())),
 		shape: shape,
+		mass:  mass,
 	}
 	runtime.AddCleanup(b, func(ptr *C.btRigidBody) {
 		C.destroy_btRigidBody(ptr)
 	}, b.ptr)
 	return b
 }
+
+func (r *RigidBody) IsStatic() bool { return r.mass == 0 }
 
 func (r *RigidBody) Shape() *CollisionShape { return r.shape }
 
