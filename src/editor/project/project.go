@@ -116,7 +116,6 @@ func (p *Project) CacheDatabase() *content_database.Cache {
 // the supplied path is to that of a file and not a folder.
 func (p *Project) Initialize(path string, editorVersion float64) error {
 	defer tracing.NewRegion("Project.Initialize").End()
-	p.initializeCustomSerializers()
 	if err := ensurePathIsNewOrEmpty(path); err != nil {
 		return err
 	}
@@ -135,6 +134,7 @@ func (p *Project) Initialize(path string, editorVersion float64) error {
 		return ConfigLoadError{Err: err}
 	}
 	p.settings.EditorVersion = editorVersion
+	p.commonInit()
 	return nil
 }
 
@@ -173,7 +173,12 @@ func (p *Project) Open(path string) error {
 	if err = p.settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
+	p.commonInit()
 	return nil
+}
+
+func (p *Project) commonInit() {
+	p.initializeCustomSerializers()
 }
 
 // Name will return the name that has been set for this project. If the name is
