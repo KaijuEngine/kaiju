@@ -48,6 +48,7 @@ const (
 	KeyStateHeld
 	KeyStateUp
 	KeyStatePressedAndReleased
+	KeyStateToggled
 )
 
 const (
@@ -220,6 +221,19 @@ func (k Keyboard) HasAlt() bool {
 	return k.KeyHeld(KeyboardKeyLeftAlt) || k.KeyHeld(KeyboardKeyRightAlt)
 }
 
+func (k Keyboard) IsToggleKey(key KeyboardKey) bool {
+	return key == KeyboardKeyCapsLock ||
+		key == KeyboardKeyNumLock ||
+		key == KeyboardKeyScrollLock
+}
+
+func (k Keyboard) IsToggleKeyOn(key KeyboardKey) bool {
+	if k.IsToggleKey(key){
+		return k.keyStates[key] == KeyStateToggled
+	}
+	return false
+}
+
 func (k *Keyboard) EndUpdate() {
 	for i := 0; i < KeyboardKeyMaximum; i++ {
 		switch k.keyStates[i] {
@@ -259,6 +273,23 @@ func (k *Keyboard) SetKeyUp(key KeyboardKey) {
 	if key != KeyBoardKeyInvalid {
 		k.keyStates[key] = KeyStateUp
 		k.doKeyCallbacks(key, KeyStateUp)
+	}
+}
+
+func (k *Keyboard) ToggleKey(key KeyboardKey) {
+	if k.IsToggleKey(key){
+		isOn := k.IsToggleKeyOn(key)
+		if isOn {
+			k.keyStates[key] = KeyStateIdle
+		}else{
+			k.keyStates[key] = KeyStateToggled
+		}
+	}
+}
+
+func (k *Keyboard) SetToggleKeyState(key KeyboardKey, state KeyState) {
+	if key != KeyBoardKeyInvalid && k.IsToggleKey(key){
+		k.keyStates[key] = state
 	}
 }
 

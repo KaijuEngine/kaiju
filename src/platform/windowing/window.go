@@ -114,6 +114,12 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 		title:      windowName,
 		windowSync: make(chan struct{}),
 	}
+	keys := w.checkToggleKeyState()
+	for key,pressed := range keys {
+		if pressed {
+			w.Keyboard.SetToggleKeyState(key, hid.KeyStateToggled)
+		}
+	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	w.createWindow(windowName+"\x00\x00", x, y, platformState)
@@ -489,10 +495,16 @@ func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
 	switch evt.action {
 	case windowEventButtonTypeDown:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyDown(key)
+		if !w.Keyboard.IsToggleKey(key){
+			w.Keyboard.SetKeyDown(key)
+		}
 	case windowEventButtonTypeUp:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyUp(key)
+		if w.Keyboard.IsToggleKey(key){
+			w.Keyboard.ToggleKey(key)
+		}else{
+			w.Keyboard.SetKeyUp(key)
+		}
 	}
 }
 
