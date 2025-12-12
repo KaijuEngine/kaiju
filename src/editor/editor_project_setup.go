@@ -72,9 +72,9 @@ func (ed *Editor) retryNewProjectOverlay(err error) {
 	})
 }
 
-func (ed *Editor) createProject(name, path string) {
+func (ed *Editor) createProject(name, path, templatePath string) {
 	defer tracing.NewRegion("Editor.createProject").End()
-	err := ed.project.Initialize(path, EditorVersion)
+	err := ed.project.Initialize(path, templatePath, EditorVersion)
 	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
 		ed.retryNewProjectOverlay(err)

@@ -75,7 +75,7 @@ func (EditorGame) Launch(host *engine.Host) {
 		ed.BlurInterface()
 		if build.Debug && engine.LaunchParams.AutoTest {
 			// Auto-test mode: create a temporary test project automatically
-			ed.createProject("AutoTest", "autotestproject")
+			ed.createProject("AutoTest", "autotestproject", "")
 		} else {
 			ed.newProjectOverlay()
 		}

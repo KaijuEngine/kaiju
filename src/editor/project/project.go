@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/systems/events"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/stages"
 	"log/slog"
@@ -114,17 +115,25 @@ func (p *Project) CacheDatabase() *content_database.Cache {
 // Initialize constructs a new project that is bound to the given path. This
 // function can fail if the project path already exists and is not empty, or if
 // the supplied path is to that of a file and not a folder.
-func (p *Project) Initialize(path string, editorVersion float64) error {
+func (p *Project) Initialize(path, templatePath string, editorVersion float64) error {
 	defer tracing.NewRegion("Project.Initialize").End()
-	if err := ensurePathIsNewOrEmpty(path); err != nil {
+	var err error
+	if err = ensurePathIsNewOrEmpty(path); err != nil {
 		return err
 	}
-	var err error
-	if p.fileSystem, err = project_file_system.New(path); err == nil {
-		err = p.fileSystem.SetupStructure()
-		if err != nil {
+	if p.fileSystem, err = project_file_system.New(path); err != nil {
+		return err
+	}
+	if templatePath != "" {
+		if s, err := os.Stat(templatePath); err != nil && s.IsDir() {
+			return fmt.Errorf("the path '%s' is not a valid template", templatePath)
+		}
+		if err = filesystem.Unzip(templatePath, path); err != nil {
 			return err
 		}
+		p.TryUpgrade()
+	} else if err = p.fileSystem.SetupStructure(); err != nil {
+		return err
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
 		slog.Error("failed to read the cache database", "error", err)
@@ -434,6 +443,27 @@ func (p *Project) TryUpgrade() error {
 		return err
 	}
 	p.writeProjectTitle()
+	return nil
+}
+
+func (p *Project) ExportAsTemplate(path, name string) error {
+	if !strings.HasSuffix(name, ".zip") {
+		name += ".zip"
+	}
+	fullPath := filepath.Join(path, name)
+	slog.Info("Creating template project...", "path", fullPath)
+	if _, err := os.Stat(fullPath); err == nil {
+		return fmt.Errorf("export template path '%s' already exists: %v", fullPath, err)
+	}
+	err := filesystem.Zip(p.fileSystem.FullPath(""), fullPath,
+		[]string{"database/project.json"},
+		[]string{"build", "kaiju"},
+		[]string{".exe"})
+	if err != nil {
+		slog.Info("Failed to create template project", "path", fullPath, "error", err)
+		return err
+	}
+	slog.Info("Project template created successfully", "path", fullPath)
 	return nil
 }
 

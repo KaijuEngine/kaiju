@@ -37,7 +37,9 @@
 package menu_bar
 
 import (
+	"fmt"
 	"kaiju/editor/editor_overlay/create_entity_data"
+	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/project"
 	"kaiju/engine"
@@ -49,6 +51,8 @@ import (
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"os"
+	"path/filepath"
 )
 
 type MenuBar struct {
@@ -87,6 +91,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickRunCurrentStage":    b.clickRunCurrentStage,
 			"clickBuildAndroid":       b.clickBuildAndroid,
 			"clickBuildRunAndroid":    b.clickBuildRunAndroid,
+			"clickExportProject":      b.clickExportProject,
 			"clickCreateEntityData":   b.clickCreateEntityData,
 			"clickCreateHtmlUi":       b.clickCreateHtmlUi,
 			"clickNewCamera":          b.clickNewCamera,
@@ -298,6 +303,35 @@ func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
 	bts := b.handler.Settings().BuildTools
 	// goroutine
 	go b.handler.Project().BuildRunAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+}
+
+func (b *MenuBar) clickExportProject(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickExportProject").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	file_browser.Show(b.uiMan.Host, file_browser.Config{
+		Title:        "Export project to...",
+		StartingPath: b.handler.ProjectFileSystem().FullPath(""),
+		OnlyFolders:  true,
+		OnConfirm: func(paths []string) {
+			path := paths[0]
+			name := "KaijuTemplate.zip"
+			if _, err := os.Stat(filepath.Join(path, name)); err == nil {
+				i := 0
+				f := `KaijuTemplate (%d).zip`
+				for {
+					name = fmt.Sprintf(f, i)
+					_, err := os.Stat(filepath.Join(path, fmt.Sprintf(name, i)))
+					if err != nil {
+						break
+					}
+				}
+			}
+			b.handler.FocusInterface()
+			go b.handler.Project().ExportAsTemplate(path, name)
+		},
+		OnCancel: b.handler.FocusInterface,
+	})
 }
 
 func (b *MenuBar) clickNewCamera(*document.Element) {
