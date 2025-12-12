@@ -76,7 +76,7 @@ func (p *Project) stageArchiveSerializer(rawData []byte) ([]byte, error) {
 					"key", desc.DataBinding[i].RegistraionKey)
 			}
 		}
-		desc.DataBinding = desc.DataBinding[0:]
+		desc.DataBinding = make([]stages.EntityDataBinding, 0)
 		for i := range desc.Children {
 			removeUnpackedDataBindings(&desc.Children[i])
 		}
