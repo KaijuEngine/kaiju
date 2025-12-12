@@ -72,7 +72,7 @@ func QuaternionFromSlice(xyzw []Float) Quaternion {
 }
 
 func QuaternionFromVec4(v Vec4) Quaternion {
-	return Quaternion{v.X(), v.Y(), v.Z(), v.W()}
+	return Quaternion{v.W(), v.X(), v.Y(), v.Z()}
 }
 
 func QuaternionApprox(a, b Quaternion) bool {
