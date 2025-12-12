@@ -152,16 +152,24 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 }
 
 func (q Quaternion) ToEuler() Vec3 {
-	out := Vec3{}
 	m := q.ToMat4()
-	out[Vy] = Rad2Deg(Asin(Clamp(m[x0y2], -1.0, 1.0)))
-	if Abs(m[x0y2]) < 0.9999999 {
-		out.SetX(Rad2Deg(Atan2(-m[x1y2], m[x2y2])))
-		out.SetZ(Rad2Deg(Atan2(-m[x0y1], m[x0y0])))
+	var thetaX, thetaY, thetaZ Float
+	if m[x0y2] < 1 {
+		if m[x0y2] > -1.0 {
+			thetaY = Asin(m[x0y2])
+			thetaX = Atan2(-m[x1y2], m[x2y2])
+			thetaZ = Atan2(-m[x0y1], m[x0y0])
+		} else {
+			thetaY = -math.Pi / 2
+			thetaX = -Atan2(m[x1y0], m[x1y1])
+			thetaZ = 0
+		}
 	} else {
-		out.SetX(Rad2Deg(Atan2(m[x2y1], m[x1y1])))
-		out.SetZ(0.0)
+		thetaY = math.Pi / 2
+		thetaX = Atan2(m[x1y0], m[x1y1])
+		thetaZ = 0
 	}
+	out := NewVec3(Rad2Deg(thetaX), Rad2Deg(thetaY), Rad2Deg(thetaZ))
 	return out
 }
 
