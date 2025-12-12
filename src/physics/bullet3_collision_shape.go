@@ -138,7 +138,7 @@ func NewCapsuleShape(radius, height float32) *CapsuleShape {
 	return s
 }
 
-func NewnCylinderShape(halfExtents matrix.Vec3) *CylinderShape {
+func NewCylinderShape(halfExtents matrix.Vec3) *CylinderShape {
 	s := &CylinderShape{
 		CollisionShape: CollisionShape{
 			ptr: (*C.btCollisionShape)(C.new_btCylinderShape(C.float(halfExtents.X()),

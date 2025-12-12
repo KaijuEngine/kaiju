@@ -48,7 +48,7 @@ func (r RigidBodyDataBinding) Init(e *engine.Entity, host *engine.Host) {
 		shape = &physics.NewCapsuleShape(rad, height).CollisionShape
 	case ShapeCylinder:
 		size := r.Extent.Multiply(scale)
-		shape = &physics.NewnCylinderShape(size).CollisionShape
+		shape = &physics.NewCylinderShape(size).CollisionShape
 	case ShapeCone:
 		rad := r.Radius * float32(scale.LongestAxis())
 		height := r.Height * scale.Y()
