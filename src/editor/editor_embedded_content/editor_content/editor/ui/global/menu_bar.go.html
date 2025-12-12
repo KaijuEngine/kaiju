@@ -50,6 +50,9 @@
 			}
 			.popupEntry { background-color: #121212; }
 			.popupEntry:hover { color: white; background-color: #575757; }
+			hr {
+				background-color: #AAA;
+			}
 		</style>
 	</head>
 	<body>
@@ -74,10 +77,16 @@
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
 			<div class="popupEntry" onclick="clickOpenStage">Open stage</div>
 			<div class="popupEntry" onclick="clickSaveStage">Save stage</div>
-			<div class="popupEntry" onclick="clickOpenCodeEditor">Open Code Editor</div>
-			<div class="popupEntry" onclick="clickBuild">Build Game</div>
-			<div class="popupEntry" onclick="clickBuildAndRun">Build and Run Game</div>
-			<div class="popupEntry" onclick="clickRunCurrentStage">Run Current Stage</div>
+			<hr />
+			<div class="popupEntry" onclick="clickOpenCodeEditor">Open code editor</div>
+			<hr />
+			<div class="popupEntry" onclick="clickBuild">Build game</div>
+			<div class="popupEntry" onclick="clickBuildAndRun">Build and run game</div>
+			<div class="popupEntry" onclick="clickRunCurrentStage">Run current stage</div>
+			<hr />
+			<div class="popupEntry" onclick="clickBuildRelease">Build game (release)</div>
+			<div class="popupEntry" onclick="clickBuildAndRunRelease">Build and run game (release)</div>
+			<hr />
 			<div class="popupEntry" onclick="clickBuildAndroid">Build Android</div>
 			<div class="popupEntry" onclick="clickBuildRunAndroid">BuildRun Android</div>
 		</div>

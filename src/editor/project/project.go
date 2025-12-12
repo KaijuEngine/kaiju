@@ -57,6 +57,13 @@ import (
 	"sync/atomic"
 )
 
+type GameBuildMode int
+
+const (
+	GameBuildModeDebug GameBuildMode = iota
+	GameBuildModeRelease
+)
+
 // Project is the mediator/container for all information about the developer's
 // project. This type is used to access the file system, project specific
 // settings, content, cache, and anything related to the project.
@@ -204,6 +211,18 @@ func (p *Project) CompileRelease() {
 	p.CompileWithTags()
 }
 
+// CompileGame will build all of the Go code for the project without launching
+// it. Internally, this will call #CompileDebug or #CompileRelease based on the
+// supplied buildMode.
+func (p *Project) CompileGame(buildMode GameBuildMode) {
+	switch buildMode {
+	case GameBuildModeDebug:
+		p.CompileDebug()
+	case GameBuildModeRelease:
+		p.CompileRelease()
+	}
+}
+
 // CompileWithTags will build all of the Go code for the project without
 // launching it. Any errors during the build process will be contained within an
 // error slog. Look for the fields "error", "log", and "errorlog" for more
@@ -229,7 +248,7 @@ func (p *Project) CompileWithTags(tags ...string) {
 		slog.Info("compiling the project")
 	}
 	if !slices.Contains(tags, "debug") {
-		args = append(args, `-ldflags="-s -w"`)
+		args = append(args, `-ldflags=-s -w`)
 	}
 	args = append(args, "./src")
 	cmd := exec.Command("go", args...)
