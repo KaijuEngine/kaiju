@@ -189,6 +189,7 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 		dui.showDetails(nil)
 		dui.hideDetails(nil)
 	}
+	dui.detailsArea.UI.Clean()
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
