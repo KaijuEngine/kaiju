@@ -50,13 +50,13 @@ type objectDeleteHistory struct {
 func (h *objectDeleteHistory) Redo() {
 	defer tracing.NewRegion("objectDeleteHistory.Redo").End()
 	for _, e := range h.entities {
+		e.Deactivate()
 		h.m.host.RemoveEntity(&e.Entity)
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Deactivate()
 		}
 		h.m.OnEntityDestroy.Execute(e)
 		e.isDeleted = true
-		e.Deactivate()
 		if e.StageData.Bvh != nil {
 			collision.RemoveAllLeavesMatchingTransform(&h.m.worldBVH, &e.Transform)
 		}
@@ -66,13 +66,13 @@ func (h *objectDeleteHistory) Redo() {
 func (h *objectDeleteHistory) Undo() {
 	defer tracing.NewRegion("objectDeleteHistory.Undo").End()
 	for _, e := range h.entities {
+		e.Activate()
 		h.m.host.AddEntity(&e.Entity)
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Activate()
 		}
 		h.m.OnEntitySpawn.Execute(e)
 		e.isDeleted = false
-		e.Activate()
 		if e.StageData.Bvh != nil {
 			h.m.AddBVH(e.StageData.Bvh, &e.Transform)
 		}
