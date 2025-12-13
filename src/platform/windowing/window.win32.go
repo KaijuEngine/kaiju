@@ -40,7 +40,6 @@ package windowing
 
 import (
 	"errors"
-	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
@@ -51,6 +50,7 @@ import (
 
 /*
 #cgo LDFLAGS: -lgdi32 -lXInput
+#cgo noescape get_toggle_key_state
 #cgo noescape window_main
 #cgo noescape window_show
 #cgo noescape window_destroy
@@ -96,9 +96,16 @@ func scaleScrollDelta(delta float32) float32 {
 	return v
 }
 
-func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool{
-	klib.NotYetImplemented(494)
-	return map[hid.KeyboardKey]bool{}
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
+	mask := C.get_toggle_key_state()
+	caps := (mask & 1) != 0
+	num := (mask & 2) != 0
+	scroll := (mask & 4) != 0
+	return map[hid.KeyboardKey]bool{
+		hid.KeyboardKeyCapsLock:   caps,
+		hid.KeyboardKeyNumLock:    num,
+		hid.KeyboardKeyScrollLock: scroll,
+	}
 }
 
 func (w *Window) createWindow(windowName string, x, y int, _ any) {

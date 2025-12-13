@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+unsigned int get_toggle_key_state();
 void window_main(const wchar_t* windowTitle,
 	int width, int height, int x, int y, uint64_t goWindow);
 void window_show(void* hwnd);

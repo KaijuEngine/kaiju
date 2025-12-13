@@ -494,6 +494,20 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+unsigned int get_toggle_key_state() {
+	unsigned int state = 0;
+    if (GetAsyncKeyState(VK_CAPITAL) & 1) {
+        state |= 1;  // Caps Lock on
+    }
+    if (GetAsyncKeyState(VK_NUMLOCK) & 1) {
+        state |= 2;  // Num Lock on
+    }
+    if (GetAsyncKeyState(VK_SCROLL) & 1) {
+        state |= 4;  // Scroll Lock on
+    }
+    return state;
+}
+
 void window_main(const wchar_t* windowTitle,
 	int width, int height, int x, int y, uint64_t goWindow)
 {
