@@ -1,0 +1,47 @@
+package lighting // import "kaiju/engine/lighting"
+
+
+TYPES
+
+type Collection[T any] struct {
+	Cache []T
+
+	// Has unexported fields.
+}
+
+func (c *Collection[T]) Add(position matrix.Vec3, target T) EntryId
+
+func (c *Collection[T]) Clear()
+
+func (c *Collection[T]) FindById(id EntryId) *Entry[T]
+
+func (c *Collection[T]) FindClosest(point matrix.Vec3, writeTo []T)
+
+func (c *Collection[T]) UpdateCache(point matrix.Vec3) []T
+
+type Entry[T any] struct {
+	Position matrix.Vec3
+	Target   T
+	// Has unexported fields.
+}
+
+type EntryId = int
+
+type LightCollection = Collection[rendering.Light]
+
+func NewLightCollection(capacity int) LightCollection
+
+type LightingInformation struct {
+	Lights         LightCollection
+	StaticShadows  PointShadowCollection
+	DynamicShadows PointShadowCollection
+}
+
+func NewLightingInformation(lightCapacity, shadowCapacity int) LightingInformation
+
+func (l *LightingInformation) Update(point matrix.Vec3)
+
+type PointShadowCollection = Collection[rendering.PointShadow]
+
+func NewPointShadowCollection(capacity int) PointShadowCollection
+

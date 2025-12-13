@@ -1,0 +1,57 @@
+package stage_workspace // import "kaiju/editor/editor_workspace/stage_workspace"
+
+
+TYPES
+
+type HierarchyEntityDragData struct {
+	// Has unexported fields.
+}
+
+func (d HierarchyEntityDragData) DragUpdate()
+
+type StageWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *StageWorkspace) Close()
+
+func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface)
+
+func (w *StageWorkspace) Open()
+
+type StageWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	FocusInterface()
+	BlurInterface()
+	Settings() *editor_settings.Settings
+	StageView() *editor_stage_view.StageView
+	ShowReferences(id string)
+	ContentWorkspaceSelected()
+}
+
+type WorkspaceContentUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceDetailsUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceHierarchyUI struct {
+	// Has unexported fields.
+}
+

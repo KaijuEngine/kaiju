@@ -1,0 +1,65 @@
+package common_workspace // import "kaiju/editor/editor_workspace/common_workspace"
+
+
+FUNCTIONS
+
+func ReflectAddToSlice(obj any, e *document.Element)
+func ReflectObjectValueFromUI(obj any, e *document.Element) reflect.Value
+func ReflectRemoveFromSlice(obj any, e *document.Element)
+func SetObjectValueFromUI(obj any, e *document.Element)
+
+TYPES
+
+type CommonWorkspace struct {
+	Host      *engine.Host
+	Doc       *document.Document
+	UiMan     ui.Manager
+	IsBlurred bool
+}
+
+func (w *CommonWorkspace) Blur()
+
+func (w *CommonWorkspace) CommonClose()
+
+func (w *CommonWorkspace) CommonOpen()
+
+func (w *CommonWorkspace) Focus()
+
+func (w *CommonWorkspace) InitializeWithUI(host *engine.Host, htmlPath string, withData any, funcMap map[string]func(*document.Element)) error
+
+func (w *CommonWorkspace) ReloadUI(htmlPath string, withData any, funcMap map[string]func(*document.Element)) error
+
+type DataUISection struct {
+	Name   string
+	Fields []DataUISectionField
+}
+
+func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.SelectOption) DataUISection
+
+type DataUISectionField struct {
+	Name     string
+	Type     string
+	List     []ui.SelectOption
+	Value    any
+	Sections []DataUISection
+	RootPath string
+	TipKey   string
+	Label    string
+}
+
+func (f DataUISectionField) DisplayName() string
+
+func (f DataUISectionField) FullPath() string
+
+func (f DataUISectionField) PascalToTitle(str string) string
+
+func (f DataUISectionField) ValueListHas(val string) bool
+
+type HotKey struct {
+	Keys  []hid.KeyboardKey
+	Ctrl  bool
+	Shift bool
+	Alt   bool
+	Call  func()
+}
+

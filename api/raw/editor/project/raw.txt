@@ -1,0 +1,141 @@
+package project // import "kaiju/editor/project"
+
+
+TYPES
+
+type AndroidSettings struct {
+	RootProjectName string
+	ApplicationId   string
+}
+
+type ConfigLoadError struct {
+	Err error
+}
+
+func (e ConfigLoadError) Error() string
+
+type ContentReference struct {
+	Id           string
+	Name         string
+	Source       string
+	SubReference []ContentReference
+}
+
+type GameBuildMode int
+
+const (
+	GameBuildModeDebug GameBuildMode = iota
+	GameBuildModeRelease
+)
+type Project struct {
+	// OnNameChange will fire whenever [SetName] is called, it will pass the
+	// name that was set as the argument.
+	OnNameChange        func(string)
+	OnEntityDataUpdated events.EventWithArg[[]codegen.GeneratedType]
+
+	// Has unexported fields.
+}
+    Project is the mediator/container for all information about the developer's
+    project. This type is used to access the file system, project specific
+    settings, content, cache, and anything related to the project.
+
+func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error
+
+func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error
+
+func (p *Project) CacheDatabase() *content_database.Cache
+    ContentDatabase returns a pointer to [cache_database.CacheDatabase]
+
+func (p *Project) Close() error
+    Close will finalize the closing of the project and save any unsaved
+    configurations for the project. An error can be returned if there was an
+    error saving the config.
+
+func (p *Project) CompileDebug()
+    CompileDebug will build all of the Go code for the project without launching
+    it. The build will be compiled using the 'debug' tag.
+
+func (p *Project) CompileGame(buildMode GameBuildMode)
+    CompileGame will build all of the Go code for the project without launching
+    it. Internally, this will call #CompileDebug or #CompileRelease based on the
+    supplied buildMode.
+
+func (p *Project) CompileRelease()
+    CompileRelease will build all of the Go code for the project without
+    launching it.
+
+func (p *Project) CompileWithTags(tags ...string)
+    CompileWithTags will build all of the Go code for the project without
+    launching it. Any errors during the build process will be contained within
+    an error slog. Look for the fields "error", "log", and "errorlog" for more
+    details.
+
+func (p *Project) EntityData() []codegen.GeneratedType
+    EntityData returns all of the generated/reflected entity data binding types
+
+func (p *Project) EntityDataBinding(name string) (codegen.GeneratedType, bool)
+    EntityDataBinding will search through the generated/reflected entity data
+    binding types for the one with the matching registration key
+
+func (p *Project) ExportAsTemplate(path, name string) error
+
+func (p *Project) FileSystem() *project_file_system.FileSystem
+    FileSystem returns a pointer to project_file_system.FileSystem
+
+func (p *Project) FindReferences(id string) ([]ContentReference, error)
+
+func (p *Project) FindReferencesWithCallback(id string, onFound func(ref ContentReference)) error
+
+func (p *Project) Initialize(path, templatePath string, editorVersion float64) error
+    Initialize constructs a new project that is bound to the given path.
+    This function can fail if the project path already exists and is not empty,
+    or if the supplied path is to that of a file and not a folder.
+
+func (p *Project) IsValid() bool
+    IsValid will return if this project has been constructed by simply returning
+    if the file system for it has is valid.
+
+func (p *Project) Name() string
+    Name will return the name that has been set for this project. If the name is
+    not set, either the project hasn't been setup/selected or it is an error.
+
+func (p *Project) Open(path string) error
+    Open constructs an existing project given a target folder. This function can
+    fail if the target path is not a folder, or if the folder is deemed to not
+    be a project. This will open a project in an empty folder. A project that is
+    opened will check that all the base folder structure is in place and if not,
+    it will create the missing folders.
+
+func (p *Project) Package() error
+
+func (p *Project) ReadSourceCode()
+
+func (p *Project) Run(args ...string)
+
+func (p *Project) SetName(name string)
+    SetName will update the name of the project and save the project config
+    file. When the name is successfully set, the [OnNameChange] func will be
+    called.
+
+func (p *Project) Settings() *Settings
+
+func (p *Project) TryUpgrade() error
+
+type ProjectOpenError struct {
+	Path      string
+	IsFile    bool
+	IsMissing bool
+}
+
+func (e ProjectOpenError) Error() string
+
+type Settings struct {
+	Name                 string
+	EntryPointStage      string
+	ArchiveEncryptionKey string
+	Android              AndroidSettings
+	EditorVersion        float64 `visible:"false"`
+}
+
+func (c *Settings) Save(fs *project_file_system.FileSystem) error
+

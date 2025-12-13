@@ -1,0 +1,41 @@
+package transform_tools // import "kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
+
+
+TYPES
+
+type AxisState uint8
+
+const (
+	AxisStateNone AxisState = iota
+	AxisStateX
+	AxisStateY
+	AxisStateZ
+)
+func (a *AxisState) Toggle(axis AxisState)
+
+type StageInterface interface {
+	Camera() *editor_controls.EditorCamera
+	WorkspaceHost() *engine.Host
+	Manager() *editor_stage_manager.StageManager
+}
+
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
+)
+type TransformTool struct {
+	// Has unexported fields.
+}
+
+func (t *TransformTool) Disable()
+
+func (t *TransformTool) Enable(state ToolState)
+
+func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings)
+
+func (t *TransformTool) Update() (busy bool)
+

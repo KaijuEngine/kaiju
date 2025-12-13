@@ -1,0 +1,34 @@
+package codegen // import "kaiju/editor/codegen"
+
+
+FUNCTIONS
+
+func RegisterType[T any]()
+func RegisterTypeName(name string, t any)
+
+TYPES
+
+type GeneratedType struct {
+	Pkg         string
+	PkgPath     string
+	Name        string
+	Fields      []reflect.StructField
+	FieldGens   []GeneratedType
+	Type        reflect.Type
+	EnumValues  map[string]any
+	RegisterKey string
+
+	// Has unexported fields.
+}
+
+func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error)
+
+func (g *GeneratedType) IsValid() bool
+
+func (g *GeneratedType) New() RuntimeType
+
+type RuntimeType struct {
+	Generator *GeneratedType
+	Value     reflect.Value
+}
+

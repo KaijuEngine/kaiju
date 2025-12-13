@@ -1,0 +1,28 @@
+package ui_workspace // import "kaiju/editor/editor_workspace/ui_workspace"
+
+
+TYPES
+
+type UIWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *UIWorkspace) Close()
+
+func (w *UIWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterface)
+
+func (w *UIWorkspace) Open()
+
+func (w *UIWorkspace) OpenHtml(html string)
+
+type UIWorkspaceEditorInterface interface {
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	FocusInterface()
+	BlurInterface()
+}
+

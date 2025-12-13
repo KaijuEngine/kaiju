@@ -1,0 +1,153 @@
+package functions // import "kaiju/engine/ui/markup/css/functions"
+
+
+VARIABLES
+
+var FunctionMap = map[string]Function{
+	"attr":                      Attr{},
+	"calc":                      Calc{},
+	"conic-gradient":            ConicGradient{},
+	"counter":                   Counter{},
+	"cubic-bezier":              CubicBezier{},
+	"hsl":                       Hsl{},
+	"hsla":                      Hsla{},
+	"linear-gradient":           LinearGradient{},
+	"max":                       Max{},
+	"min":                       Min{},
+	"radial-gradient":           RadialGradient{},
+	"repeating-conic-gradient":  RepeatingConicGradient{},
+	"repeating-linear-gradient": RepeatingLinearGradient{},
+	"repeating-radial-gradient": RepeatingRadialGradient{},
+	"rgb":                       Rgb{},
+	"rgba":                      Rgba{},
+	"var":                       Var{},
+}
+
+TYPES
+
+type Attr struct{}
+    Returns the value of an attribute of the selected element
+
+func (f Attr) Key() string
+
+func (f Attr) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Calc struct{}
+    Allows you to perform calculations to determine CSS property values
+
+func (f Calc) Key() string
+
+func (f Calc) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type ConicGradient struct{}
+    Creates a conic gradient
+
+func (f ConicGradient) Key() string
+
+func (f ConicGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Counter struct{}
+    Returns the current value of the named counter
+
+func (f Counter) Key() string
+
+func (f Counter) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type CubicBezier struct{}
+    Defines a Cubic Bezier curve
+
+func (f CubicBezier) Key() string
+
+func (f CubicBezier) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Function interface {
+	Key() string
+	Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+}
+
+type Hsl struct{}
+    Defines colors using the Hue-Saturation-Lightness model (HSL)
+
+func (f Hsl) Key() string
+
+func (f Hsl) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Hsla struct{}
+    Defines colors using the Hue-Saturation-Lightness-Alpha model (HSLA)
+
+func (f Hsla) Key() string
+
+func (f Hsla) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type LinearGradient struct{}
+    Creates a linear gradient
+
+func (f LinearGradient) Key() string
+
+func (f LinearGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Max struct{}
+    Uses the largest value, from a comma-separated list of values, as the
+    property value
+
+func (f Max) Key() string
+
+func (f Max) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Min struct{}
+    Uses the smallest value, from a comma-separated list of values, as the
+    property value
+
+func (f Min) Key() string
+
+func (f Min) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type RadialGradient struct{}
+    Creates a radial gradient
+
+func (f RadialGradient) Key() string
+
+func (f RadialGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type RepeatingConicGradient struct{}
+    Repeats a conic gradient
+
+func (f RepeatingConicGradient) Key() string
+
+func (f RepeatingConicGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type RepeatingLinearGradient struct{}
+    Repeats a linear gradient
+
+func (f RepeatingLinearGradient) Key() string
+
+func (f RepeatingLinearGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type RepeatingRadialGradient struct{}
+    Repeats a radial gradient
+
+func (f RepeatingRadialGradient) Key() string
+
+func (f RepeatingRadialGradient) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Rgb struct{}
+    Defines colors using the Red-Green-Blue model (RGB)
+
+func (f Rgb) Key() string
+
+func (f Rgb) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Rgba struct{}
+    Defines colors using the Red-Green-Blue-Alpha model (RGBA)
+
+func (f Rgba) Key() string
+
+func (f Rgba) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+
+type Var struct{}
+    Inserts the value of a custom property
+
+func (f Var) Key() string
+
+func (f Var) Process(panel *ui.Panel, elm *document.Element, value rules.PropertyValue) (string, error)
+

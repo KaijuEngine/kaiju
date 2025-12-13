@@ -1,0 +1,139 @@
+package assets // import "kaiju/engine/assets"
+
+
+CONSTANTS
+
+const (
+	TextureSquare      = "square.png"
+	TextureBlankSquare = "blank_square.png"
+	TextureTriangle    = "triangle.png"
+)
+    Textures
+
+const (
+	MaterialDefinitionGrid                = "grid"
+	MaterialDefinitionUnlit               = "unlit"
+	MaterialDefinitionUnlitTransparent    = "unlit_transparent"
+	MaterialDefinitionBasic               = "basic"
+	MaterialDefinitionBasicLit            = "basic_lit"
+	MaterialDefinitionBasicLitStatic      = "basic_lit_static"
+	MaterialDefinitionBasicLitDynamic     = "basic_lit_dynamic"
+	MaterialDefinitionBasicLitTransparent = "basic_lit_transparent"
+	MaterialDefinitionBasicTransparent    = "basic_transparent"
+	MaterialDefinitionPBR                 = "pbr"
+	MaterialDefinitionTerrain             = "terrain"
+	MaterialDefinitionBasicSkinned        = "basic_skinned"
+	MaterialDefinitionBasicColor          = "basic_color"
+	MaterialDefinitionText3D              = "text3d"
+	MaterialDefinitionText                = "text"
+	MaterialDefinitionCombine             = "combine"
+	MaterialDefinitionComposite           = "composite"
+	MaterialDefinitionUI                  = "ui"
+	MaterialDefinitionUITransparent       = "ui_transparent"
+	MaterialDefinitionSprite              = "sprite"
+	MaterialDefinitionSpriteTransparent   = "sprite_transparent"
+	MaterialDefinitionOutline             = "outline"
+	MaterialDefinitionLightDepth          = "light_depth"
+	MaterialDefinitionLightCubeDepth      = "light_cube_depth"
+
+	MaterialDefinitionEdTransformWire = "ed_transform_wire"
+	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire"
+	MaterialDefinitionEdGizmo         = "ed_gizmo"
+)
+    Material definitions
+
+const (
+	ShaderTextVert      = "text.vert.spv"
+	ShaderTextFrag      = "text.frag.spv"
+	ShaderText3DVert    = "text3d.vert.spv"
+	ShaderText3DFrag    = ShaderTextFrag
+	ShaderCompositeVert = "composite.vert.spv"
+	ShaderCompositeFrag = "composite.frag.spv"
+	ShaderHdrVert       = "hdr.vert.spv"
+	ShaderHdrFrag       = "hdr.frag.spv"
+	ShaderUIVert        = "ui.vert.spv"
+	ShaderUIFrag        = "ui.frag.spv"
+	ShadersUINineFrag   = "ui_nine.frag.spv"
+)
+    Shaders
+
+
+TYPES
+
+type ArchiveDatabase struct {
+	// Has unexported fields.
+}
+
+func (a *ArchiveDatabase) Cache(key string, data []byte)
+
+func (a *ArchiveDatabase) CacheClear()
+
+func (a *ArchiveDatabase) CacheRemove(key string)
+
+func (a *ArchiveDatabase) Close()
+
+func (a *ArchiveDatabase) Exists(key string) bool
+
+func (a *ArchiveDatabase) PostWindowCreate(windowHandle PostWindowCreateHandle) error
+
+func (a *ArchiveDatabase) Read(key string) ([]byte, error)
+
+func (a *ArchiveDatabase) ReadText(key string) (string, error)
+
+type Database interface {
+	PostWindowCreate(windowHandle PostWindowCreateHandle) error
+	Cache(key string, data []byte)
+	CacheRemove(key string)
+	CacheClear()
+	Read(key string) ([]byte, error)
+	ReadText(key string) (string, error)
+	Exists(key string) bool
+	Close()
+}
+
+func NewArchiveDatabase(archive string, key []byte) (Database, error)
+
+func NewFileDatabase(root string) (Database, error)
+
+type DebugContentDatabase struct{}
+
+func (DebugContentDatabase) Cache(key string, data []byte)
+
+func (DebugContentDatabase) CacheClear()
+
+func (DebugContentDatabase) CacheRemove(key string)
+
+func (DebugContentDatabase) Close()
+
+func (e DebugContentDatabase) Exists(key string) bool
+
+func (DebugContentDatabase) PostWindowCreate(PostWindowCreateHandle) error
+
+func (e DebugContentDatabase) Read(key string) ([]byte, error)
+
+func (e DebugContentDatabase) ReadText(key string) (string, error)
+
+type FileDatabase struct {
+	// Has unexported fields.
+}
+
+func (a *FileDatabase) Cache(key string, data []byte)
+
+func (a *FileDatabase) CacheClear()
+
+func (a *FileDatabase) CacheRemove(key string)
+
+func (a *FileDatabase) Close()
+
+func (a *FileDatabase) Exists(key string) bool
+
+func (a *FileDatabase) PostWindowCreate(PostWindowCreateHandle) error
+
+func (a *FileDatabase) Read(key string) ([]byte, error)
+
+func (a *FileDatabase) ReadText(key string) (string, error)
+
+type PostWindowCreateHandle interface {
+	ReadApplicationAsset(path string) ([]byte, error)
+}
+

@@ -1,0 +1,26 @@
+package engine_data_binding_camera // import "kaiju/engine_data_bindings/engine_data_binding_camera"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.CameraDataBinding"
+
+TYPES
+
+type CameraDataBinding struct {
+	FOV          float32 `clamp:"60,45,120"` //default,min,max
+	NearPlane    float32 `default:"0.01"`
+	FarPlane     float32 `default:"500.0"`
+	IsMainCamera bool
+}
+
+func NewCameraDataBinding() CameraDataBinding
+
+func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host)
+
+type CameraModule struct {
+	// Has unexported fields.
+}
+
+func (c *CameraModule) SetAsActive()
+

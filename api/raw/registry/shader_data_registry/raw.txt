@@ -1,0 +1,90 @@
+package shader_data_registry // import "kaiju/registry/shader_data_registry"
+
+
+CONSTANTS
+
+const (
+	ShaderDataStandardFlagOutline = ShaderDataStandardFlags(1 << iota)
+	// Enable bit will be set anytime there are flags. This is needed because
+	// bits at the extremes of the float will be truncated to 0 otherwise. By
+	// setting this bit (largest exponent bit 2^1) this issue can be prevented.
+	ShaderDataStandardFlagEnable = 1 << 30
+)
+
+FUNCTIONS
+
+func Create(name string) rendering.DrawInstance
+
+TYPES
+
+type ShaderDataBasicLit struct {
+	rendering.ShaderDataBase
+	Color  matrix.Color
+	Light0 float32
+	Light1 float32
+	Light2 float32
+	Light3 float32
+}
+
+func (t ShaderDataBasicLit) Size() int
+
+type ShaderDataEdFrustumWire struct {
+	rendering.ShaderDataBase
+	Color             matrix.Color
+	FrustumProjection matrix.Mat4
+}
+
+func (t ShaderDataEdFrustumWire) Size() int
+
+type ShaderDataEdTransformWire struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataEdTransformWire) Size() int
+
+type ShaderDataGrid struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataGrid) Size() int
+
+type ShaderDataPBR struct {
+	rendering.ShaderDataBase
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	Light0     float32
+	Light1     float32
+	Light2     float32
+	Light3     float32
+}
+
+func (t ShaderDataPBR) Size() int
+
+type ShaderDataStandard struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	Flags ShaderDataStandardFlags
+}
+
+func (s *ShaderDataStandard) ClearFlag(flag ShaderDataStandardFlags)
+
+func (s *ShaderDataStandard) SetFlag(flag ShaderDataStandardFlags)
+
+func (ShaderDataStandard) Size() int
+
+func (s *ShaderDataStandard) TestFlag(flag ShaderDataStandardFlags) bool
+
+type ShaderDataStandardFlags = uint32
+
+type ShaderDataUnlit struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4
+}
+
+func (t ShaderDataUnlit) Size() int
+

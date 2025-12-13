@@ -1,0 +1,90 @@
+package rules // import "kaiju/engine/ui/markup/css/rules"
+
+
+CONSTANTS
+
+const (
+	ReadingTag = iota
+	ReadingId
+	ReadingClass
+	ReadingChild
+	ReadingSibling
+	ReadingAdjacent
+	ReadingPseudo
+	ReadingPseudoFunction
+	ReadingProperty
+	ReadingPropertyValue
+	ReadingPropertyFunction
+)
+
+TYPES
+
+type MediaQuery struct {
+	Key   string
+	Value string
+}
+
+func (m *MediaQuery) Clear()
+
+func (m *MediaQuery) IsValid() bool
+
+type PropertyValue struct {
+	Str     string
+	Num     float32
+	Args    []string
+	ArgNums []float32
+}
+
+func (p *PropertyValue) Clone() PropertyValue
+
+func (p PropertyValue) IsFunction() bool
+
+type Rule struct {
+	Property     string
+	Values       []PropertyValue
+	Invocation   RuleInvoke
+	Sort         int
+	SelfDestruct bool
+}
+
+func (r *Rule) Clone() Rule
+
+type RuleInvoke = int
+
+const (
+	RuleInvokeImmediate RuleInvoke = iota
+	RuleInvokeHover
+	RuleInvokeActive
+)
+type RuleState = int
+
+type Selector struct {
+	Parts []SelectorPart
+}
+
+type SelectorGroup struct {
+	Selectors  []Selector
+	Rules      []Rule
+	MediaQuery MediaQuery
+}
+
+func (s *SelectorGroup) AddRule(r Rule)
+
+type SelectorPart struct {
+	Name       string
+	Args       []string
+	SelectType RuleState
+}
+
+type StyleSheet struct {
+	Groups     []SelectorGroup
+	CustomVars map[string][]string
+	// Has unexported fields.
+}
+
+func NewStyleSheet() StyleSheet
+
+func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions)
+
+func (s *StyleSheet) ParseInline(cssStr string, window helpers.WindowDimensions) *SelectorGroup
+

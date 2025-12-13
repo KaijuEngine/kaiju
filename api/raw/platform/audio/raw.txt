@@ -1,0 +1,65 @@
+package audio // import "kaiju/platform/audio"
+
+
+TYPES
+
+type Audio struct {
+	// Has unexported fields.
+}
+
+func New() (*Audio, error)
+
+func (a *Audio) IsMusicMuted() bool
+
+func (a *Audio) IsSoundMuted() bool
+
+func (a *Audio) IsValidVoiceHandle(handle VoiceHandle) bool
+
+func (a *Audio) LoadMusic(adb assets.Database, key string) (*AudioClip, error)
+
+func (a *Audio) LoadSound(adb assets.Database, key string) (*AudioClip, error)
+
+func (a *Audio) MusicById(id string) (*AudioClip, bool)
+
+func (a *Audio) MusicVolume() float32
+
+func (a *Audio) MuteMusic()
+
+func (a *Audio) MuteSounds()
+
+func (a *Audio) Play(clip *AudioClip) VoiceHandle
+
+func (a *Audio) PlayMusic(key string) (*AudioClip, uint32)
+
+func (a *Audio) PlaySound(key string) (*AudioClip, uint32)
+
+func (a *Audio) Seek(handle VoiceHandle, seconds float64) bool
+
+func (a *Audio) SetMusicVolume(volume float32)
+
+func (a *Audio) SetSoundVolume(volume float32)
+
+func (a *Audio) SoundById(id string) (*AudioClip, bool)
+
+func (a *Audio) SoundVolume() float32
+
+func (a *Audio) Stop(clip *AudioClip)
+
+func (a *Audio) UnloadClip(clip *AudioClip)
+
+func (a *Audio) UnmuteMusic()
+
+func (a *Audio) UnmuteSounds()
+
+type AudioClip struct {
+	// Has unexported fields.
+}
+
+func (c *AudioClip) Length() float64
+
+type SoloudHandle = *C.Soloud
+
+type SoloudWav = *C.Wav
+
+type VoiceHandle = uint32
+

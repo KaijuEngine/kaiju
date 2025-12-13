@@ -1,0 +1,167 @@
+package project_file_system // import "kaiju/editor/project/project_file_system"
+
+
+CONSTANTS
+
+const (
+	DatabaseFolder      = "database"
+	ContentFolder       = "database/content"
+	ContentConfigFolder = "database/config"
+	SrcFolder           = "database/src"
+	StockFolder         = "database/stock"
+	DebugFolder         = "database/debug"
+	ProjectConfigFile   = "database/project.json"
+)
+const (
+	SrcFontFolder    = SrcFolder + "/font"
+	SrcCharsetFolder = SrcFolder + "/font/charset"
+	SrcPluginFolder  = SrcFolder + "/plugin"
+	SrcRenderFolder  = SrcFolder + "/render"
+	SrcShaderFolder  = SrcFolder + "/render/shader"
+)
+const (
+	ContentAudioFolder           = "audio"
+	ContentMusicFolder           = ContentAudioFolder + "/music"
+	ContentSoundFolder           = ContentAudioFolder + "/sound"
+	ContentFontFolder            = "font"
+	ContentMeshFolder            = "mesh"
+	ContentRenderFolder          = "render"
+	ContentMaterialFolder        = ContentRenderFolder + "/material"
+	ContentRenderPassFolder      = ContentRenderFolder + "/renderpass"
+	ContentShaderFolder          = ContentRenderFolder + "/shader"
+	ContentShaderPipelineFolder  = ContentRenderFolder + "/pipeline"
+	ContentSpvFolder             = ContentRenderFolder + "/spv"
+	ContentStageFolder           = "stage"
+	ContentTemplateFolder        = "template"
+	ContentTextureFolder         = "texture"
+	ContentTableFolder           = "table"
+	ContentTableOfContentsFolder = ContentTableFolder + "/content"
+	ContentUiFolder              = "ui"
+	ContentHtmlFolder            = ContentUiFolder + "/html"
+	ContentCssFolder             = ContentUiFolder + "/css"
+)
+const (
+	KaijuSrcFolder            = "kaiju"
+	ProjectCodeFolder         = "src"
+	ProjectFileTemplates      = KaijuSrcFolder + "/file_templates"
+	ProjectCodeGameHostFolder = ProjectCodeFolder + "/game_host"
+	ProjectBuildFolder        = "build"
+	ProjectBuildAndroidFolder = ProjectBuildFolder + "/android"
+	ProjectVSCodeFolder       = ".vscode"
+	ProjectLaunchJsonFile     = ".vscode/launch.json"
+	ProjectCodeMain           = ProjectCodeFolder + "/main.go"
+	ProjectCodeGame           = ProjectCodeFolder + "/game.go"
+	ProjectModFile            = ProjectCodeFolder + "/go.mod"
+	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
+	ProjectWorkFile           = "go.work"
+	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
+	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
+)
+
+TYPES
+
+type ConfigPath string
+
+func (p ConfigPath) String() string
+
+func (p ConfigPath) ToContentPath() ContentPath
+
+type ContentPath string
+
+func AsContentPath(path string) ContentPath
+
+func HtmlPath(id string) ContentPath
+
+func StagePath(id string) ContentPath
+
+func (p ContentPath) String() string
+
+func (p ContentPath) ToConfigPath() ConfigPath
+
+type EngineFileSystem struct{ EngineFileSystemInterface }
+
+var EngineFS EngineFileSystem
+func (efs EngineFileSystem) CopyFolder(pfs *FileSystem, from, to string, skipExt []string) error
+
+type EngineFileSystemInterface interface {
+	fs.FS
+	ReadDir(name string) ([]fs.DirEntry, error)
+	ReadFile(name string) ([]byte, error)
+}
+
+type FileSystem struct {
+	*os.Root
+}
+    FileSystem is the rooted project folder that is responsible for accessing
+    any files or folders within the project. The type is a composition of
+    os.Root, so all functions availabe to that structure are available to this
+    one. Helper functions specific to projects are extended to it's behavior.
+
+    The FileSystem has no awareness of actual content/assets and simply
+    understands the structure for the project and allows raw read/write access
+    to the files within the project.
+
+func New(rootPath string) (FileSystem, error)
+    New creates a new FileSystem that is rooted to the given project path. This
+    function does not care about the status of the given path and only expects
+    that the path supplied is to a folder on the filesystem. If the supplied
+    path does not exist, an attempt will be made to create the folder.
+
+func (fs *FileSystem) EnsureDatabaseExists() error
+    Used to review the loaded FileSystem to ensure that the primary folders
+    required for this rooted FileSystem are present to be considered a project.
+    This will return an error if the core files are missing. Please review the
+    source code file for this function to review the required core files and
+    folders used, they are set as local package variables.
+
+func (fs *FileSystem) Exists(name string) bool
+    Exists will return true if the target file or folder exists in the rooted
+    file system
+
+func (fs *FileSystem) FileExists(name string) bool
+    FileExists will return true if the file exists in the rooted file system
+
+func (fs *FileSystem) FolderExists(name string) bool
+    FolderExists will return true if the folder exists in the rooted file system
+
+func (fs *FileSystem) FullPath(name string) string
+    FullPath will return the a cleaned version of the rooted file system path
+    with the supplied name joined onto it.
+
+func (fs *FileSystem) IsValid() bool
+    IsValid will return true if this project file system has been setup already.
+
+func (fs *FileSystem) NormalizePath(path string) string
+    NormalizePath will attempt to determine if the input path is a location held
+    within the project file system. If it is a path within this file systme,
+    then it will return the path as a relative path to the system, otherwise it
+    will return the path supplied.
+
+func (fs *FileSystem) ReadDir(name string) ([]os.DirEntry, error)
+    ReadDir is a wrapper around os.ReadDir since os.Root doesn't provide an
+    interface to this function directly. This simply grabs the rooted directory
+    path and joins the name argument to it before forwarding to os.ReadDir.
+
+func (pfs *FileSystem) ReadModName() string
+
+func (fs *FileSystem) SetupStructure() error
+    SetupStructure goes through and ensure all the base folders are
+    created for the project. This will only create the folders if
+    they do not yet exist. Folders are often missing if pulling the
+    project from version control, as empty folders are not typically
+    submitted. For more information on folder structure layout,
+    please review the high level editor design documentation in the
+    [README](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md).
+
+func (fs *FileSystem) TryUpgrade() error
+
+func (pfs *FileSystem) WriteDataBindingRegistryInit(g []codegen.GeneratedType) error
+
+type PathError struct {
+	Path string
+	Msg  string
+	Err  error
+}
+
+func (e PathError) Error() string
+

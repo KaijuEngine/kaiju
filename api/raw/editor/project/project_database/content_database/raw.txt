@@ -1,0 +1,625 @@
+package content_database // import "kaiju/editor/project/project_database/content_database"
+
+
+VARIABLES
+
+var (
+	// ContentCategories is a list of categories that the file system currently
+	// operates on. This is exported so that other parts of the editor can use
+	// it for filtering or generating menus and options.
+	ContentCategories = []ContentCategory{}
+
+	// ImportableTypes is a list of content types that the file system currently
+	// imports. This is exported so that other parts of the editor can use
+	// it for filtering or generating menus and options.
+	ImportableTypes = []string{}
+)
+
+FUNCTIONS
+
+func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string
+func ToContentPath(configPath string) string
+    ToContentPath is an auxiliary function to simplify getting the matching
+    content path relative to the project file system.
+
+func WriteConfig(path string, cfg ContentConfig, fs *project_file_system.FileSystem) error
+    WriteConfig is used to write a config file to the project file system.
+    This is primarily used by the cache database, but could be used for other
+    needs to extend the editor.
+
+
+TYPES
+
+type Cache struct {
+	OnBuildFinished events.Event
+	// Has unexported fields.
+}
+    Cache is an in-memory cache of all of the content in the project. It keeps
+    an internal lookup so that it's quick to look up cached information on an
+    asset by it's id. The structure is designed so that it keeps track of when
+    it is building internally atomically which is set when the [Build] function
+    is called. Removing items from the cache will cause a swap removal which
+    means that the ids inside of the lookup are not stable and change with
+    removals.
+
+func New() Cache
+    New will return a new instance of the cache database with it's members
+    pre-sized to an arbitrary amount to speed up initial loading
+
+func (c *Cache) Build(pfs *project_file_system.FileSystem) error
+    Build will run through the project's file system config folder and scan
+    all of the content configurations in the folder and load them into memory
+    as part of the cache. While the build is running, searches and filters
+    will work, but [Read] will not (due to it's mapping nature). You can use
+    [OnBuildFinished] to know when the build has completed.
+
+func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error
+    Index will insert the given content configuration into the cache. If the
+    cache already contains the id for the path, then the cache will replace
+    it's currently held values with the new values. This should be called
+    when building the cache, importing new content to the project, or when the
+    developer changes settings for content that alters the configuration.
+
+func (c *Cache) List() []CachedContent
+    List will return the internally held cached content slice.
+
+func (c *Cache) ListByType(typeName string) []CachedContent
+
+func (c *Cache) Read(id string) (CachedContent, error)
+    Read will try and locate the cached content data by id. This can fail if the
+    content is not in the cache, in which case the caller should call [Index]
+    to index the file. This can also fail if the cache is currently in the
+    process of being built, in which case the caller should wait until it's done
+    building and try again, or bind to the [OnBuildFinished] event.
+
+func (c *Cache) ReadLinked(id string) ([]CachedContent, error)
+    ReadLinked will return all of the linked content for the given id. This will
+    also return the content for the id itself.
+
+func (c *Cache) Remove(id string)
+    Remove will delete an entry from the cache (not the config), it is useful
+    when content is being deleted from the project. This will delete the entry
+    from the lookup as well. Deleting from the lookup makes it unstable since
+    removing items from the cache will swap the deleted entry with the last
+    entry and resize the length. This once last item will have the index of the
+    removed entry and it's lookup will be updated.
+
+func (c *Cache) Search(query string) []CachedContent
+    Search will filter all content by the given query and return any content
+    that matches the query. Currently the only thing that is matched by this
+    query is the developer-given name of the content. This is an exact match on
+    part or all of the name (case-insensitive), fuzzy search may be introduced
+    later.
+
+func (c *Cache) TagFilter(tags []string) []CachedContent
+    TagFilter will filter all content to that which matches the given tags.
+    This is an OR comparison so that any content that has at least one of the
+    tags will be selected by the filter.
+
+func (c *Cache) TypeFilter(types []string) []CachedContent
+    TypeFilter will filter all content to that which matches the given types.
+    This is an OR comparison so that any content that has at least one of the
+    types will be selected by the filter.
+
+type CachedContent struct {
+	// Path is the location in the file system for this cached configuration.
+	// You will typically want to use [content_database.ToContentPath] with this
+	// path to get the content's location in the content folder.
+	Path   string
+	Config ContentConfig
+}
+    CachedContent is the content entry in the cache that is returned from
+    lookups and searches.
+
+func (cc CachedContent) ContentPath() string
+
+func (c *CachedContent) Id() string
+    CachedContent will read the id from the file name and return it as a string
+
+type CategoryNotFoundError struct {
+	Path string
+	Type string
+}
+
+func (e CategoryNotFoundError) Error() string
+
+type ContentCategory interface {
+	// Path returns the singular folder that all of the content of the category
+	// will be stored within the file database. This path is relative to the
+	// content/config folders. So, the "Texture" category would return "texture"
+	// as the path, whereas the "Music" category would return "audio/music".
+	Path() string
+
+	// TypeName will return the string-friendly type name that is used to store
+	// into the content's config data file. It could be used to test against a
+	// specific asset type. It is expected that you can create a ContentCategory
+	// instance and use this method without any state, for example:
+	// Css{}.TypeName().
+	TypeName() string
+
+	// ExtNames will return all of the file extensions that this content
+	// category operates on. Many formats need only return a single string here
+	// like ".html" for a HTML file, but others may have multiple like ".png",
+	// ".jpg", ".jpeg", etc. for the Texture category.
+	ExtNames() []string
+
+	// Import will read the source file and extract the relevant data that
+	// should be stored in the database. In some cases, this would just return
+	// the contents of the file directly. In other cases, this may need to do
+	// some processing of the file to extract the relevant information which is
+	// contained within (i.e. glTF files).
+	Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// Reimport will mostly do the same thing as import, however it will also
+	// determine if the content can be re-imported. In some cases, like model
+	// files, there are multiple pices of content that match up in specific
+	// ways. This function will return an error if the re-import isn't possible.
+	Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+	// PostImportProcessing allows for any optional post-processing to be done
+	// now that the file and all of the dependencies have been imported into the
+	// project. This is called for each variant that has been imported. This is
+	// useful to do things like creating/importing new materials based on
+	// imported mesh files, for example.
+	PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+}
+    ContentCategory is the representation of a single category within the
+    content system for the engine. Different categories are things like
+    "texture", "mesh", "material", etc.
+
+func CategoryFromTypeName(typeName string) (ContentCategory, bool)
+    CategoryFromTypeName is an auxiliary function for getting the category that
+    matches the type supplied. If the content is found, true will be returned,
+    otherwise false.
+
+type ContentConfig struct {
+	// Tags is a list of strings used in the editor to group similar
+	// things together. This removes the need for the developer to manage their
+	// own folder structure and allows them to control content without
+	// physically moving things around.
+	Tags []string `json:",omitempty"`
+
+	// Name is a developer-facing friendly name for the content. This is often
+	// set to the same name as the asset that was imported. The developer can
+	// change it's name at a later time as needed though.
+	Name string
+
+	// Type is the type of asset this content is. This will always match
+	// ContentCategory.TypeName() and can not be changed by the developer.
+	Type string
+
+	// SrcPath is the path to the file that was used to import this content. If
+	// the path is within the project folder, then a relative path will be used.
+	// If the path is outside of the project folder, an absolute path will be
+	// used. This path is not guarenteed to exist, as the developer may have
+	// moved or deleted the file.
+	SrcPath string
+
+	// SrcName is the name given to this content when it was imported by the
+	// source file. This name is not allowed to be changed, it is mainly used
+	// for re-importing content.
+	SrcName string
+
+	// LinkedId will contain a unique identifier across all content that was
+	// linked to a single file import. This field will be empty if there is no
+	// other linked content to this one. All content that is linked together
+	// will have the same LinkedId.
+	LinkedId string `json:",omitempty"`
+
+	Font     *FontConfig     `json:",omitempty"`
+	Material *MaterialConfig `json:",omitempty"`
+	Mesh     *MeshConfig     `json:",omitempty"`
+	Music    *MusicConfig    `json:",omitempty"`
+	Sound    *SoundConfig    `json:",omitempty"`
+	Texture  *TextureConfig  `json:",omitempty"`
+}
+    ContentConfig is a composition of all possible configs, identified by
+    their matching field name. It also contains some generic developer-facing
+    properties.
+
+    The reason that an interface is not used is so that the serialization and
+    usage of the various metadata types is simpler to work with, at the cost of
+    some extra memory usage per instance.
+
+func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig, error)
+    ReadConfig is used to read a config file from the project file system.
+    This is primarily used by the cache database, but could be used for other
+    needs to extend the editor.
+
+func (c *ContentConfig) AddTag(tag string) (string, bool)
+    AddTag is an auxiliary function that will try to add the tag to the config.
+    If the config already contains the tag (case insensitive), then it will
+    return false. It will also return false if the tag is invalid. In both pass
+    and failed cases, it will return the cleaned tag value.
+
+func (c *ContentConfig) NameLower() string
+    NameLower is an auxiliary function that simply returns a lowercase version
+    of the Name assigned to the config
+
+func (c *ContentConfig) RemoveTag(tag string) bool
+    RemoveTag will attempt to locate the tag (case insensitive) and remove it.
+    If it finds the tag and removes it, this will return true, otherwise false.
+
+type Css struct{}
+    Css is a ContentCategory represented by a file with a ".css" extension.
+    It is a CSS (cascading style sheet) file as they are known to web browsers.
+    This expects to be a singular text file with the extension ".css" and
+    containing CSS parsable markup.
+
+func (Css) ExtNames() []string
+
+func (Css) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Css) Path() string
+
+func (Css) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Css) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Css) TypeName() string
+
+type Font struct{}
+    Font is a ContentCategory represented by a file with a ".ttf" extension.
+    This file is expected to be a binary file. When imported, the file will be
+    ran through a program to convert it to a format that is compatible with a
+    MSDF text shader. This file is a composition or character positional data
+    and an image/texture.
+
+func (Font) ExtNames() []string
+
+func (Font) Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Font) Path() string
+
+func (Font) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Font) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Font) TypeName() string
+
+type FontCharsetFilesMissingError struct {
+	Path string
+}
+
+func (e FontCharsetFilesMissingError) Error() string
+
+type FontConfig struct{}
+
+type Html struct{}
+    Html is a ContentCategory represented by a file with a ".html" extension.
+    It is a HTML (hyper-text markup language) file as they are known to web
+    browsers. This expects to be a singular text file with the extension ".html"
+    and containing HTML parsable markup code.
+
+func (Html) ExtNames() []string
+
+func (Html) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Html) Path() string
+
+func (Html) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Html) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Html) TypeName() string
+
+type ImageImportError struct {
+	Err   error
+	Stage string
+}
+
+func (e ImageImportError) Error() string
+
+type ImageReimportUnsupportedError struct{}
+
+func (ImageReimportUnsupportedError) Error() string
+
+type ImportResult struct {
+	// Id is a globally unique identifier for this imported content
+	Id string
+
+	// Category is the content type category that was used to import this file
+	Category ContentCategory
+
+	// Dependencies lists out the import results for all of the imported
+	// dependencies. An example of this is, when importing a mesh, that file
+	// will also contain references to textures that need to be imported. So,
+	// those textures would be imported and listed in this slice.
+	Dependencies []ImportResult
+}
+    ImportResult contains the result of importing a singular file into the
+    content database. The most important field is the Id field, which holds the
+    new content's GUID.
+
+func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linkedId string) ([]ImportResult, error)
+
+func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error)
+
+func (r *ImportResult) ConfigPath() string
+    ConfigPath will return the project file system path for the matching config
+    file for the target content.
+
+func (r *ImportResult) ContentPath() string
+    ContentPath will return the project file system path for the matching
+    content file for the target content.
+
+type ImportVariant struct {
+	// Name is the name of the content, typically the file name associated
+	Name string
+
+	// Data contains the binary representation of the content that was imported
+	Data []byte
+}
+    ImportVariant contains information about a variant of the imported content
+
+type Material struct{}
+    Material is a ContentCategory represented by a file with a ".material"
+    extension. A material is a conglomeration of a specific render pass,
+    a specific shader pipeline, and a set of specific shaders.
+
+func (Material) ExtNames() []string
+
+func (Material) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Material) Path() string
+
+func (Material) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Material) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Material) TypeName() string
+
+type MaterialConfig struct{}
+
+type Mesh struct{}
+    Mesh is a ContentCategory represented by a file with a ".gltf" or ".glb"
+    extension. This file can contain multiple meshes as well as the textures
+    that are assigned to the meshes. The textures will be imported as
+    dependencies.
+
+func (Mesh) ExtNames() []string
+
+func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Mesh) Path() string
+
+func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Mesh) TypeName() string
+
+type MeshConfig struct{}
+
+type MeshInvalidTextureError struct {
+	Mesh          string
+	SrcTexture    string
+	BackupTexture string
+}
+
+func (e MeshInvalidTextureError) Error() string
+
+type Music struct{}
+    Music is a ContentCategory represented by a file with a ".mp3" or ".ogg"
+    extension. Music is as it sounds.
+
+func (Music) ExtNames() []string
+
+func (Music) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Music) Path() string
+
+func (Music) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Music) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Music) TypeName() string
+
+type MusicConfig struct{}
+
+type NoMeshesInFileError struct {
+	Path string
+}
+
+func (e NoMeshesInFileError) Error() string
+
+type NotInCacheError struct {
+	Id string
+}
+
+func (e NotInCacheError) Error() string
+
+type ProcessedImport struct {
+	// Dependencies are the other files being imported when importing this file
+	Dependencies []string
+
+	// Variants holds all of the imported variants from this file. An example of
+	// this (in the future) might be different languages when importing a font.
+	Variants []ImportVariant
+
+	// Has unexported fields.
+}
+    ProcessedImport holds all the information related to the single target file
+    that was imported. A single imported file may expand into multiple pieces of
+    content being imported, those are stored in the Variants.
+
+type ReadDuringBuildError struct{}
+
+func (e ReadDuringBuildError) Error() string
+
+type ReimportMeshMissingError struct {
+	Path string
+	Name string
+}
+
+func (e ReimportMeshMissingError) Error() string
+
+type ReimportSourceMissingError struct {
+	Id string
+}
+
+func (e ReimportSourceMissingError) Error() string
+
+type RenderPass struct{}
+    RenderPass is a ContentCategory represented by a file with a ".RenderPass"
+    extension. A RenderPass is a conglomeration of a specific render pass,
+    a specific RenderPass pipeline, and a set of specific RenderPasss.
+
+func (RenderPass) ExtNames() []string
+
+func (RenderPass) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (RenderPass) Path() string
+
+func (RenderPass) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c RenderPass) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (RenderPass) TypeName() string
+
+type RenderPassConfig struct{}
+
+type Shader struct{}
+    Shader is a ContentCategory represented by a file with a ".shader"
+    extension. A Shader is a conglomeration of a specific render pass,
+    a specific shader pipeline, and a set of specific shaders.
+
+func (Shader) ExtNames() []string
+
+func (Shader) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Shader) Path() string
+
+func (Shader) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Shader) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Shader) TypeName() string
+
+type ShaderConfig struct{}
+
+type ShaderPipeline struct{}
+    ShaderPipeline is a ContentCategory represented by a file with a
+    ".ShaderPipeline" extension. A ShaderPipeline is a conglomeration of a
+    specific render pass, a specific ShaderPipeline pipeline, and a set of
+    specific ShaderPipelines.
+
+func (ShaderPipeline) ExtNames() []string
+
+func (ShaderPipeline) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (ShaderPipeline) Path() string
+
+func (ShaderPipeline) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c ShaderPipeline) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (ShaderPipeline) TypeName() string
+
+type ShaderPipelineConfig struct{}
+
+type Sound struct{}
+    Sound is a ContentCategory represented by a file with a ".wav" extension.
+    Sound is as it sounds.
+
+func (Sound) ExtNames() []string
+
+func (Sound) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Sound) Path() string
+
+func (Sound) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Sound) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Sound) TypeName() string
+
+type SoundConfig struct{}
+
+type Spv struct{}
+    Spv is a ContentCategory represented by a file with a ".spv" extension.
+    SPV is a file format for compiled shaders in Vulkan.
+
+func (Spv) ExtNames() []string
+
+func (Spv) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Spv) Path() string
+
+func (Spv) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Spv) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Spv) TypeName() string
+
+type Stage struct{}
+    Stage is a ContentCategory represented by a file with a ".stage" extension.
+    This expects to be a singular text file with the extension ".stage" and
+    containing the definitions that make up a Kaiju stage.
+
+func (Stage) ExtNames() []string
+
+func (Stage) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Stage) Path() string
+
+func (Stage) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Stage) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Stage) TypeName() string
+
+type TableOfContents struct{}
+    TableOfContents is a ContentCategory represented by a file with a ".toc"
+    extension. It is a collection of content under a single id that uses a
+    human-readableunique string key to locate entries (ids).
+
+func (TableOfContents) ArchiveSerializer(rawData []byte) ([]byte, error)
+
+func (TableOfContents) ExtNames() []string
+
+func (TableOfContents) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (TableOfContents) Path() string
+
+func (TableOfContents) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c TableOfContents) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (TableOfContents) TypeName() string
+
+type Template struct{}
+    Template is a ContentCategory represented by a file with a ".template"
+    extension. This expects to be a singular text file with the extension
+    ".template" and containing the definitions that make up a Kaiju Template.
+
+func (Template) ExtNames() []string
+
+func (Template) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Template) Path() string
+
+func (Template) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Template) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Template) TypeName() string
+
+type Texture struct{}
+    Texture is a ContentCategory represented by a file with a ".png", ".jpg",
+    or ".jpeg" extension. Textures are as they seem.
+
+func (Texture) ExtNames() []string
+
+func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Texture) Path() string
+
+func (Texture) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
+
+func (c Texture) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error)
+
+func (Texture) TypeName() string
+
+type TextureConfig struct{}
+

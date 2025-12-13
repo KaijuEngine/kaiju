@@ -1,0 +1,63 @@
+package shader_designer // import "kaiju/editor/editor_workspace/shading_workspace/shader_designer"
+
+
+CONSTANTS
+
+const (
+	StateNone = ShaderDesignerState(iota)
+	StateShader
+	StateRenderPass
+	StatePipeline
+	StateMaterial
+)
+
+TYPES
+
+type FileExtension = string
+
+type ShaderDesigner struct {
+	// Has unexported fields.
+}
+
+func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState)
+
+func (win *ShaderDesigner) Close()
+
+func (s *ShaderDesigner) Destroy()
+
+func (s *ShaderDesigner) Document() *document.Document
+
+func (s *ShaderDesigner) Initialize(host *engine.Host, uiMan *ui.Manager, pfs *project_file_system.FileSystem, cache *content_database.Cache)
+
+func (s *ShaderDesigner) Reload()
+
+func (win *ShaderDesigner) ShowMaterialWindow(id string, data rendering.MaterialData)
+
+func (win *ShaderDesigner) ShowPipelineWindow(id string, data rendering.ShaderPipelineData)
+
+func (win *ShaderDesigner) ShowRenderPassWindow(id string, data rendering.RenderPassData)
+
+func (win *ShaderDesigner) ShowShaderWindow(id string, data rendering.ShaderData)
+
+type ShaderDesignerMaterial struct {
+	rendering.MaterialData
+	// Has unexported fields.
+}
+
+type ShaderDesignerRenderPass struct {
+	rendering.RenderPassData
+	// Has unexported fields.
+}
+
+type ShaderDesignerShader struct {
+	rendering.ShaderData
+	// Has unexported fields.
+}
+
+type ShaderDesignerShaderPipeline struct {
+	rendering.ShaderPipelineData
+	// Has unexported fields.
+}
+
+type ShaderDesignerState = int
+
