@@ -63,7 +63,10 @@ type Settings struct {
 }
 
 type EditorCameraSettings struct {
-	ZoomSpeed float32 `default:"120" label:"Editor Camera Zoom Speed (floor)"`
+	ZoomSpeed       float32 `default:"120" label:"Zoom Speed"`
+	FlySpeed        float32 `default:"10"`
+	FlyXSensitivity float32 `default:"0.2"`
+	FlyYSensitivity float32 `default:"0.1"`
 }
 
 type SnapSettings struct {
@@ -75,6 +78,19 @@ type SnapSettings struct {
 type BuildToolSettings struct {
 	AndroidNDK string `label:"Android NDK"`
 	JavaHome   string
+}
+
+// setDefaults explicitly sets default values for all settings.
+// Struct tag defaults are informational for the Editor UI, we
+// must still explicitly set them in code.
+func (s *Settings) setDefaults() {
+	s.RefreshRate = 60
+	s.CodeEditor = "code"
+	s.UIScrollSpeed = 20
+	s.EditorCamera.ZoomSpeed = 120
+	s.EditorCamera.FlySpeed = 10
+	s.EditorCamera.FlyXSensitivity = 0.2
+	s.EditorCamera.FlyYSensitivity = 0.1
 }
 
 func (s *Settings) AddRecentProject(path string) {
@@ -113,14 +129,15 @@ func (s *Settings) Load() error {
 	if err != nil {
 		return AppDataMissingError{err}
 	}
+	// Set defaults before attempting to load.
+	// An existing settings file overrides these values during decode,
+	// but also populates previously untracked settings with non-zero
+	// value defaults.
+	s.setDefaults()
 	path := filepath.Join(appData, settingsFileName)
 	if _, err := os.Stat(path); err != nil {
 		// If the settings file doesn't exist, then create it. It is returning
 		// here as there is no need to continue with the load if we're saving
-		s.RefreshRate = 60
-		s.UIScrollSpeed = 20
-		s.EditorCamera.ZoomSpeed = 120
-		s.CodeEditor = "code"
 		return s.Save()
 	}
 	f, err := os.Open(path)

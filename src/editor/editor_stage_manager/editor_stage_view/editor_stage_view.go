@@ -104,17 +104,23 @@ func (v *StageView) Close() {
 	v.gridShader.Deactivate()
 }
 
-func (v *StageView) Update(deltaTime float64) {
+// Update will update the stage view and return `true` if the view is taking
+// control of the keyboard interactions. It'll return false otherwise. If this
+// returns true, then the caller shouldn't process any hotkeys or other types
+// of keyboard actions.
+func (v *StageView) Update(deltaTime float64) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.gridTransform.ResetDirty()
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
+		return true
 	} else {
 		v.processViewportInteractions()
 	}
 	if v.host.Window.Keyboard.KeyDown(hid.KeyboardKeyDelete) {
 		v.manager.DestroySelected()
 	}
+	return false
 }
 
 func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {

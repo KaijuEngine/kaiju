@@ -340,13 +340,17 @@ func (w *Window) SetSize(width, height int) {
 	w.height = height
 }
 
-func (w *Window) RemoveBorder()       { w.removeBorder() }
-func (w *Window) AddBorder()          { w.addBorder() }
-func (w *Window) ShowCursor()         { w.showCursor() }
-func (w *Window) HideCursor()         { w.hideCursor() }
-func (w *Window) IsFullScreen() bool  { return w.isFullScreen }
-func (w *Window) LockCursor(x, y int) { w.lockCursor(x, y) }
-func (w *Window) UnlockCursor()       { w.unlockCursor() }
+func (w *Window) RemoveBorder()      { w.removeBorder() }
+func (w *Window) AddBorder()         { w.addBorder() }
+func (w *Window) ShowCursor()        { w.showCursor() }
+func (w *Window) HideCursor()        { w.hideCursor() }
+func (w *Window) IsFullScreen() bool { return w.isFullScreen }
+func (w *Window) UnlockCursor()      { w.unlockCursor() }
+
+func (w *Window) LockCursor(x, y int) {
+	w.lockCursor(x, y)
+	w.Mouse.SetPosition(float32(x), float32(y), float32(w.width), float32(w.height))
+}
 
 func (w *Window) SetFullscreen() {
 	if w.isFullScreen {
