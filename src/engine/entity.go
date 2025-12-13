@@ -86,7 +86,7 @@ func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
-	e.Transform = matrix.NewTransform(workGroup)
+	e.Transform.Initialize(workGroup)
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
 }

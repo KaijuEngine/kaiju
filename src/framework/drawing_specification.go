@@ -104,7 +104,8 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					continue
 				}
 			}
-			tForm := matrix.NewTransform(host.WorkGroup())
+			var tForm matrix.Transform
+			tForm.Initialize(host.WorkGroup())
 			tForm.SetPosition(m.Node.Transform.WorldPosition())
 			tForm.SetRotation(m.Node.Transform.WorldRotation())
 			tForm.SetScale(m.Node.Transform.WorldScale())

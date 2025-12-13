@@ -74,12 +74,10 @@ func (t *Transform) setup() {
 	t.SetDirty()
 }
 
-func NewTransform(workGroup *concurrent.WorkGroup) Transform {
-	defer tracing.NewRegion("matrix.NewTransform").End()
-	t := Transform{}
+func (t *Transform) Initialize(workGroup *concurrent.WorkGroup) {
+	defer tracing.NewRegion("matrix.Initialize").End()
 	t.workGroup = workGroup
 	t.setup()
-	return t
 }
 
 func (t *Transform) SetupRawTransform() { t.setup() }
