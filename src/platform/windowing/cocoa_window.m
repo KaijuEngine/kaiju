@@ -418,15 +418,6 @@ void cocoa_poll_events(void* nsWindow) {
                             .action = WINDOW_EVENT_BUTTON_TYPE_DOWN,
                         }
                     });
-
-                    // also send text input (characters) for text composition/typing
-                    NSString *chars = [event charactersIgnoringModifiers];
-                    if (chars && [chars length] > 0) {
-                        // If your shared mem has a text event type, use it.
-                        // Otherwise you can encode the first UTF-8 byte(s) into your keyboard event payload.
-                        // Example (pseudocode) — replace with your actual text event API if present:
-                        // shared_mem_add_text_input(sm, [chars UTF8String]);
-                    }
                     break;
                 }
 

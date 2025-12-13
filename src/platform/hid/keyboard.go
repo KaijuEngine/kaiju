@@ -280,17 +280,6 @@ func (k *Keyboard) SetKeyUp(key KeyboardKey) {
 	}
 }
 
-func (k *Keyboard) ToggleKey(key KeyboardKey) {
-	if k.IsToggleKey(key) {
-		isOn := k.IsToggleKeyOn(key)
-		if isOn {
-			k.keyStates[key] = KeyStateIdle
-		} else {
-			k.keyStates[key] = KeyStateToggled
-		}
-	}
-}
-
 func (k *Keyboard) SetToggleKeyState(key KeyboardKey, state KeyState) {
 	if key != KeyBoardKeyInvalid && k.IsToggleKey(key) {
 		k.keyStates[key] = state
