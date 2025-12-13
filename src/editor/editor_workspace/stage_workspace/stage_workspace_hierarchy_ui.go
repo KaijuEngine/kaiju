@@ -68,6 +68,7 @@ func (hui *WorkspaceHierarchyUI) setupFuncs() map[string]func(*document.Element)
 		"entityDrop":      hui.entityDrop,
 		"entityDragEnter": hui.entityDragEnter,
 		"entityDragExit":  hui.entityDragExit,
+		"hierarchyDrop":   hui.hierarchyDrop,
 	}
 }
 
@@ -227,6 +228,22 @@ func (hui *WorkspaceHierarchyUI) entityDragExit(e *document.Element) {
 		return
 	}
 	hui.clearElementDragEnterColor(e)
+}
+
+func (hui *WorkspaceHierarchyUI) hierarchyDrop(*document.Element) {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.entityDragExit").End()
+	dd, ok := windowing.DragData().(HierarchyEntityDragData)
+	if !ok {
+		return
+	}
+	windowing.SetDragData(nil)
+	w := hui.workspace.Value()
+	man := w.stageView.Manager()
+	child, ok := man.EntityById(dd.id)
+	if !ok || child.Parent == nil {
+		return
+	}
+	man.SetEntityParent(child, nil)
 }
 
 func (hui *WorkspaceHierarchyUI) clearElementDragEnterColor(e *document.Element) {
