@@ -90,7 +90,6 @@ var (
 		DatabaseFolder,
 		ContentFolder,
 		ContentConfigFolder,
-		SrcFolder,
 		StockFolder,
 	}
 )

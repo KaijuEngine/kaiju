@@ -41,6 +41,7 @@ package windowing
 import (
 	"fmt"
 	"kaiju/klib"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"unsafe"
 )
@@ -74,6 +75,12 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 func scaleScrollDelta(delta float32) float32 {
 	return 1
 }
+
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool{
+	klib.NotYetImplemented(494)
+	return map[hid.KeyboardKey]bool{}
+}
+
 
 func (w *Window) createWindow(_ string, _, _ int, platformState any) {
 	w.handle = platformState.(unsafe.Pointer)

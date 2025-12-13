@@ -2,6 +2,42 @@
 
 package windowing
 
+/******************************************************************************/
+/* window.darwin.go                                                           */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework Cocoa -framework QuartzCore -framework Metal
@@ -9,10 +45,13 @@ package windowing
 #include <stdlib.h>
 */
 import "C"
+
 import (
 	"fmt"
 	"os"
 	"unsafe"
+
+	"kaiju/platform/hid"
 )
 
 //export goProcessEvents
@@ -24,6 +63,15 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 // so just pass through without additional scaling
 func scaleScrollDelta(delta float32) float32 {
 	return delta
+}
+
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
+	// macOS only has Caps Lock as a toggle key
+	caps := bool(C.cocoa_get_caps_lock_toggle_key_state())
+
+	return map[hid.KeyboardKey]bool{
+		hid.KeyboardKeyCapsLock: caps,
+	}
 }
 
 // Lifecycle and eventing
@@ -109,15 +157,20 @@ func (w *Window) position() (x, y int) {
 	return int(cx), int(cy)
 }
 
-// Physical metrics (private)
+// Physical metrics
 func (w *Window) sizeMM() (int, int, error) {
 	if w.instance == nil {
 		return 0, 0, nil
 	}
-	// Convert DPI to dots per millimeter, then multiply by window dimensions
-	dpi := float64(C.cocoa_get_dpi(w.instance))
-	mm := dpi / 25.4 // 1 inch = 25.4mm
-	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+
+	dpm := w.dotsPerMillimeter()
+
+	// avoid division by zero
+	if dpm == 0 {
+		return 0, 0, nil
+	}
+
+	return int(float64(w.width) / dpm), int(float64(w.height) / dpm), nil
 }
 
 func (w *Window) screenSizeMM() (int, int, error) {
@@ -133,8 +186,18 @@ func (w *Window) dotsPerMillimeter() float64 {
 	if w.instance == nil {
 		return 0
 	}
-	dpi := float64(C.cocoa_get_dpi(w.instance))
-	return dpi / 25.4
+
+	screenPixelWidth := float64(C.cocoa_get_screen_pixel_width(w.instance))
+
+	var width, height C.int
+	C.cocoa_screen_size_mm(w.instance, &width, &height)
+
+	// avoid division by zero
+	if width == 0 {
+		return 0
+	}
+
+	return screenPixelWidth / float64(width)
 }
 
 // Window decoration and cursor visibility (private)

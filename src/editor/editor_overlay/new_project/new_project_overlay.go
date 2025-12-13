@@ -48,17 +48,19 @@ import (
 )
 
 type NewProject struct {
-	doc       *document.Document
-	uiMan     ui.Manager
-	nameInput *document.Element
-	folder    *document.Element
-	config    Config
+	doc             *document.Document
+	uiMan           ui.Manager
+	nameInput       *document.Element
+	folder          *document.Element
+	templatePathElm *document.Element
+	config          Config
+	templatePath    string
 }
 
 type Config struct {
 	// OnCreate will be called when the "Create" button is clicked, it will
 	// return the name that the developer typed in and the path they selected.
-	OnCreate func(name, path string)
+	OnCreate func(name, path, templatePath string)
 
 	// OnOpen will be called when the "Browse" button is clicked, it will return
 	// the path that was selected.
@@ -98,6 +100,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 		"editor/ui/overlay/new_project_overlay.go.html",
 		data, map[string]func(*document.Element){
 			"openProject":       np.openProject,
+			"selectTemplate":    np.selectTemplate,
 			"browse":            np.browse,
 			"createProject":     np.createProject,
 			"openRecentProject": np.openRecentProject,
@@ -107,6 +110,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	}
 	np.nameInput, _ = np.doc.GetElementById("nameInput")
 	np.folder, _ = np.doc.GetElementById("folder")
+	np.templatePathElm, _ = np.doc.GetElementById("templatePath")
 	return np, err
 }
 
@@ -118,6 +122,20 @@ func (np *NewProject) Close() {
 func (np *NewProject) openProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.openProject").End()
 	np.showFolderPick(true)
+}
+
+func (np *NewProject) selectTemplate(e *document.Element) {
+	defer tracing.NewRegion("NewProject.openProject").End()
+	np.uiMan.DisableUpdate()
+	file_browser.Show(np.uiMan.Host, file_browser.Config{
+		OnlyFiles: true,
+		ExtFilter: []string{".zip"},
+		OnConfirm: func(paths []string) {
+			np.uiMan.EnableUpdate()
+			np.templatePath = paths[0]
+			np.templatePathElm.InnerLabel().SetText(np.templatePath)
+		}, OnCancel: np.uiMan.EnableUpdate,
+	})
 }
 
 func (np *NewProject) browse(e *document.Element) {
@@ -137,9 +155,7 @@ func (np *NewProject) showFolderPick(isOpen bool) {
 			} else {
 				np.folder.UI.ToInput().SetText(paths[0])
 			}
-		}, OnCancel: func() {
-			np.uiMan.EnableUpdate()
-		},
+		}, OnCancel: np.uiMan.EnableUpdate,
 	})
 }
 
@@ -160,7 +176,7 @@ func (np *NewProject) createProject(e *document.Element) {
 		slog.Error("nothing bound to OnCreate, doing nothing")
 		return
 	}
-	np.config.OnCreate(name, path)
+	np.config.OnCreate(name, path, np.templatePath)
 }
 
 func (np *NewProject) openRecentProject(e *document.Element) {

@@ -37,6 +37,7 @@
 package engine
 
 import (
+	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
@@ -131,6 +132,7 @@ type Host struct {
 	Updater             Updater
 	LateUpdater         Updater
 	assetDatabase       assets.Database
+	physics             StagePhysics
 	OnClose             events.Event
 	CloseSignal         chan struct{}
 	frameRateLimit      *time.Ticker
@@ -212,6 +214,11 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, host.assetDatabase)
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
+	// TODO:  This is tempoarary for testing, it should only be started if a
+	// stage has rigidbodies requested to be spawned (issue: #513)
+	if !build.Editor {
+		host.physics.Start()
+	}
 	return nil
 }
 
@@ -244,6 +251,9 @@ func (host *Host) WorkGroup() *concurrent.WorkGroup { return &host.workGroup }
 func (host *Host) Threads() *concurrent.Threads {
 	return &host.threads
 }
+
+// Physics returns the stage physics system
+func (host *Host) Physics() *StagePhysics { return &host.physics }
 
 // UIThreads returns the long-running threads for the UI
 func (host *Host) UIThreads() *concurrent.Threads {
@@ -431,6 +441,11 @@ func (host *Host) Update(deltaTime float64) {
 	host.UILateUpdater.Update(deltaTime)
 	tweening.Update(deltaTime)
 	host.Updater.Update(deltaTime)
+	if !build.Editor {
+		if host.physics.IsActive() {
+			host.physics.Update(&host.threads, deltaTime)
+		}
+	}
 	host.LateUpdater.Update(deltaTime)
 	host.collisionManager.Update(deltaTime)
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
@@ -565,8 +580,7 @@ func (host *Host) Teardown() {
 	host.OnClose.Execute()
 	for i := range host.entities {
 		host.entities[i].Destroy()
-		for !host.entities[i].TickCleanup() {
-		}
+		host.entities[i].ForceCleanup()
 	}
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()

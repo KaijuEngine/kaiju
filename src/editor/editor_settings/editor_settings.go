@@ -55,6 +55,7 @@ const (
 type Settings struct {
 	RecentProjects []string `visible:"false"`
 	RefreshRate    int32    `clamp:"60,0,320"`
+	CodeEditor     string   `default:"code"`
 	UIScrollSpeed  float32  `default:"20" label:"UI Scroll Speed"`
 	EditorCamera   EditorCameraSettings
 	Snapping       SnapSettings
@@ -118,7 +119,8 @@ func (s *Settings) Load() error {
 		// here as there is no need to continue with the load if we're saving
 		s.RefreshRate = 60
 		s.UIScrollSpeed = 20
-		s.EditorCamera.ZoomSpeed = 20
+		s.EditorCamera.ZoomSpeed = 120
+		s.CodeEditor = "code"
 		return s.Save()
 	}
 	f, err := os.Open(path)

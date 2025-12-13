@@ -18,8 +18,8 @@ void cocoa_show_window(void* nsWindow);
 // Poll events
 void cocoa_poll_events(void* nsWindow);
 
-// Get screen DPI (dots per inch)
-float cocoa_get_dpi(void* nsWindow);
+// Get screen pixel width
+int cocoa_get_screen_pixel_width(void* nsWindow);
 
 // Get screen size in millimeters
 void cocoa_screen_size_mm(void* nsWindow, int* width, int* height);
@@ -66,5 +66,8 @@ void cocoa_unlock_cursor(void* nsWindow);
 // Raw mouse input (delta mode)
 void cocoa_enable_raw_mouse(void* nsWindow);
 void cocoa_disable_raw_mouse(void* nsWindow);
+
+// Keyboard inputs
+bool cocoa_get_caps_lock_toggle_key_state(void);
 
 #endif // COCOA_WINDOW_H

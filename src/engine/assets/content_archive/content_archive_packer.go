@@ -46,7 +46,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"unsafe"
@@ -97,7 +96,6 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 	}
 	entries := make([]Asset, 0, len(files))
 	buff := bytes.NewBuffer([]byte{})
-	obfData := make([]byte, 0)
 	for i := range files {
 		var err error
 		buff.Reset()
@@ -120,8 +118,7 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 			return err
 		}
 		crc := crc32.ChecksumIEEE(srcData)
-		obfData = obfData[:0]
-		obfData = slices.Grow(obfData, len(srcData))
+		obfData := make([]byte, len(srcData))
 		copy(obfData, srcData)
 		keyLen := len(key)
 		if keyLen > 0 {

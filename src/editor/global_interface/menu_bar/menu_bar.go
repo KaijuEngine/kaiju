@@ -37,8 +37,11 @@
 package menu_bar
 
 import (
+	"fmt"
 	"kaiju/editor/editor_overlay/create_entity_data"
+	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
@@ -48,6 +51,8 @@ import (
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"os"
+	"path/filepath"
 )
 
 type MenuBar struct {
@@ -64,38 +69,41 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		nil, map[string]func(*document.Element){
-			"clickLogo":             b.openMenuTarget,
-			"clickFile":             b.openMenuTarget,
-			"clickEdit":             b.openMenuTarget,
-			"clickCreate":           b.openMenuTarget,
-			"clickHelp":             b.openMenuTarget,
-			"clickStage":            b.clickStage,
-			"clickContent":          b.clickContent,
-			"clickShading":          b.clickShading,
-			"clickAnimation":        b.clickAnimation,
-			"clickUI":               b.clickUI,
-			"clickSettings":         b.clickSettings,
-			"clickNewStage":         b.clickNewStage,
-			"clickOpenStage":        b.clickOpenStage,
-			"clickSaveStage":        b.clickSaveStage,
-			"clickOpenCodeEditor":   b.clickOpenCodeEditor,
-			"clickBuild":            b.clickBuild,
-			"clickBuildAndRun":      b.clickBuildAndRun,
-			"clickRunCurrentStage":  b.clickRunCurrentStage,
-			"clickBuildAndroid":     b.clickBuildAndroid,
-			"clickBuildRunAndroid":  b.clickBuildRunAndroid,
-			"clickCreateEntityData": b.clickCreateEntityData,
-			"clickCreateHtmlUi":     b.clickCreateHtmlUi,
-			"clickNewCamera":        b.clickNewCamera,
-			"clickNewEntity":        b.clickNewEntity,
-			"clickNewLight":         b.clickNewLight,
-			"clickAbout":            b.clickAbout,
-			"clickLogs":             b.clickLogs,
-			"clickIssues":           b.clickIssues,
-			"clickRepository":       b.clickRepository,
-			"clickJoinMailingList":  b.clickJoinMailingList,
-			"clickMailArchives":     b.clickMailArchives,
-			"popupMiss":             b.popupMiss,
+			"clickLogo":               b.openMenuTarget,
+			"clickFile":               b.openMenuTarget,
+			"clickEdit":               b.openMenuTarget,
+			"clickCreate":             b.openMenuTarget,
+			"clickHelp":               b.openMenuTarget,
+			"clickStage":              b.clickStage,
+			"clickContent":            b.clickContent,
+			"clickShading":            b.clickShading,
+			"clickAnimation":          b.clickAnimation,
+			"clickUI":                 b.clickUI,
+			"clickSettings":           b.clickSettings,
+			"clickNewStage":           b.clickNewStage,
+			"clickOpenStage":          b.clickOpenStage,
+			"clickSaveStage":          b.clickSaveStage,
+			"clickOpenCodeEditor":     b.clickOpenCodeEditor,
+			"clickBuild":              b.clickBuild,
+			"clickBuildAndRun":        b.clickBuildAndRun,
+			"clickBuildRelease":       b.clickBuildRelease,
+			"clickBuildAndRunRelease": b.clickBuildAndRunRelease,
+			"clickRunCurrentStage":    b.clickRunCurrentStage,
+			"clickBuildAndroid":       b.clickBuildAndroid,
+			"clickBuildRunAndroid":    b.clickBuildRunAndroid,
+			"clickExportProject":      b.clickExportProject,
+			"clickCreateEntityData":   b.clickCreateEntityData,
+			"clickCreateHtmlUi":       b.clickCreateHtmlUi,
+			"clickNewCamera":          b.clickNewCamera,
+			"clickNewEntity":          b.clickNewEntity,
+			"clickNewLight":           b.clickNewLight,
+			"clickAbout":              b.clickAbout,
+			"clickLogs":               b.clickLogs,
+			"clickIssues":             b.clickIssues,
+			"clickRepository":         b.clickRepository,
+			"clickJoinMailingList":    b.clickJoinMailingList,
+			"clickMailArchives":       b.clickMailArchives,
+			"popupMiss":               b.popupMiss,
 		})
 	b.doc.Clean()
 	return err
@@ -254,13 +262,25 @@ func (b *MenuBar) clickOpenCodeEditor(*document.Element) {
 func (b *MenuBar) clickBuild(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickBuild").End()
 	b.hidePopups()
-	b.handler.Build()
+	b.handler.Build(project.GameBuildModeDebug)
 }
 
 func (b *MenuBar) clickBuildAndRun(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickBuildAndRun").End()
 	b.hidePopups()
-	b.handler.BuildAndRun()
+	b.handler.BuildAndRun(project.GameBuildModeDebug)
+}
+
+func (b *MenuBar) clickBuildRelease(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickBuildRelease").End()
+	b.hidePopups()
+	b.handler.Build(project.GameBuildModeRelease)
+}
+
+func (b *MenuBar) clickBuildAndRunRelease(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickBuildAndRunRelease").End()
+	b.hidePopups()
+	b.handler.BuildAndRun(project.GameBuildModeRelease)
 }
 
 func (b *MenuBar) clickRunCurrentStage(*document.Element) {
@@ -283,6 +303,35 @@ func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
 	bts := b.handler.Settings().BuildTools
 	// goroutine
 	go b.handler.Project().BuildRunAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+}
+
+func (b *MenuBar) clickExportProject(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickExportProject").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	file_browser.Show(b.uiMan.Host, file_browser.Config{
+		Title:        "Export project to...",
+		StartingPath: b.handler.ProjectFileSystem().FullPath(""),
+		OnlyFolders:  true,
+		OnConfirm: func(paths []string) {
+			path := paths[0]
+			name := "KaijuTemplate.zip"
+			if _, err := os.Stat(filepath.Join(path, name)); err == nil {
+				i := 0
+				f := `KaijuTemplate (%d).zip`
+				for {
+					name = fmt.Sprintf(f, i)
+					_, err := os.Stat(filepath.Join(path, fmt.Sprintf(name, i)))
+					if err != nil {
+						break
+					}
+				}
+			}
+			b.handler.FocusInterface()
+			go b.handler.Project().ExportAsTemplate(path, name)
+		},
+		OnCancel: b.handler.FocusInterface,
+	})
 }
 
 func (b *MenuBar) clickNewCamera(*document.Element) {

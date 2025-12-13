@@ -200,12 +200,14 @@ head {
 header {
 	display: block;
 }
-hr {
+br, hr {
 	width: 100%;
 	height: 1px;
 	display: block;
-	margin-top: 0.5em;
-	margin-bottom: 0.5em;
+	margin-top: 0.25em;
+	margin-bottom: 0.25em;
+}
+hr {
 	background-color: black;
 }
 html {

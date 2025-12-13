@@ -713,7 +713,11 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
-					input.InsertText(string(c))
+					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock){
+						input.InsertText(string(unicode.ToUpper(c)))
+					}else{
+						input.InsertText(string(c))
+					}
 				} else {
 					switch c {
 					case 'c':

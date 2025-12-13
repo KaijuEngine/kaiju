@@ -374,16 +374,12 @@ void cocoa_poll_events(void* nsWindow) {
                         dy = -dy;
                     }
 
-                    // Convert to Windows-like wheel units (120 per notch). Using double then cast to int keeps partial scrolls.
-                    int32_t outDx = (int32_t)(dx * 120.0);
-                    int32_t outDy = (int32_t)(dy * 120.0);
-
-                    if (outDx != 0 || outDy != 0) {
+                    if (dx != 0 || dy != 0) {
                         shared_mem_add_event(sm, (WindowEvent) {
                             .type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
                             .mouseScroll = {
-                                .deltaX = outDx,
-                                .deltaY = outDy,
+                                .deltaX = dx,
+                                .deltaY = dy,
                                 .x = (int32_t)location.x,
                                 .y = (int32_t)location.y,
                             }
@@ -459,7 +455,7 @@ void cocoa_poll_events(void* nsWindow) {
     } // autoreleasepool
 }
 
-float cocoa_get_dpi(void* nsWindow) {
+int cocoa_get_screen_pixel_width(void* nsWindow) {
     @autoreleasepool {
         NSWindow* window = (__bridge NSWindow*)(nsWindow);
         NSScreen* screen = [window screen];
@@ -469,14 +465,9 @@ float cocoa_get_dpi(void* nsWindow) {
         
         NSDictionary* description = [screen deviceDescription];
         NSSize displayPixelSize = [[description objectForKey:NSDeviceSize] sizeValue];
-        CGSize displayPhysicalSize = CGDisplayScreenSize(
-            [[description objectForKey:@"NSScreenNumber"] unsignedIntValue]);
         
-        // Physical size is in millimeters, convert to inches
-        float widthInInches = displayPhysicalSize.width / 25.4;
-        float dpi = displayPixelSize.width / widthInInches;
-        
-        return dpi > 0 ? dpi : 72.0; // Default to 72 DPI if calculation fails
+        // Fallback to 1920 if size retrieval fails
+        return displayPixelSize.width > 0 ? displayPixelSize.width : 1920;
     }
 }
 
@@ -714,5 +705,13 @@ void cocoa_disable_raw_mouse(void* nsWindow) {
         sm->rawInputRequested = false;
         CGAssociateMouseAndMouseCursorPosition(YES);
         [NSCursor unhide];
+    }
+}
+
+// Get the current state of the Caps Lock toggle key
+bool cocoa_get_caps_lock_toggle_key_state(void) {
+    @autoreleasepool {
+        NSEventModifierFlags flags = [NSEvent modifierFlags];
+        return (flags & NSEventModifierFlagCapsLock) != 0;
     }
 }

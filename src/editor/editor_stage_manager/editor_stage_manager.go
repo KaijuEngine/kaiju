@@ -264,9 +264,13 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 // Clear will destroy all entities that are managed by this stage manager.
 func (m *StageManager) Clear() {
 	defer tracing.NewRegion("StageManager.Clear").End()
-	for i := range m.entities {
+	for i := len(m.entities) - 1; i >= 0; i-- {
 		m.OnEntityDestroy.Execute(m.entities[i])
 		m.entities[i].Destroy()
+		// Deleted entities are not in the host and need to be cleaned up manually
+		if m.entities[i].isDeleted {
+			m.entities[i].ForceCleanup()
+		}
 	}
 	m.worldBVH = nil
 }

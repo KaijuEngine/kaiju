@@ -39,6 +39,7 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
@@ -85,17 +86,17 @@ func (ed *Editor) SettingsWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateSettings)
 }
 
-func (ed *Editor) Build() {
+func (ed *Editor) Build(buildMode project.GameBuildMode) {
 	if !ed.ensureMainStageExists() {
 		return
 	}
 	// goroutine
-	go ed.project.CompileDebug()
+	go ed.project.CompileGame(buildMode)
 	// goroutine
 	go ed.project.Package()
 }
 
-func (ed *Editor) BuildAndRun() {
+func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 	if !ed.ensureMainStageExists() {
 		return
 	}
@@ -103,7 +104,7 @@ func (ed *Editor) BuildAndRun() {
 	wg.Add(2)
 	// goroutine
 	go func() {
-		ed.project.CompileDebug()
+		ed.project.CompileGame(buildMode)
 		wg.Done()
 	}()
 	// goroutine
@@ -151,16 +152,13 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 // func (ed *Editor) OpenVSCodeProject() {
 func (ed *Editor) OpenCodeEditor() {
 	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
-
-	fullArgs := strings.Split(ed.project.Settings().CodeEditor, " ")
+	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
 	command := fullArgs[0]
-
 	var args []string
 	if len(fullArgs) > 1 {
 		args = append(args, fullArgs[1:]...)
 	}
 	args = append(args, ed.project.FileSystem().FullPath(""))
-
 	// goroutine
 	go exec.Command(command, args...).Run()
 }
