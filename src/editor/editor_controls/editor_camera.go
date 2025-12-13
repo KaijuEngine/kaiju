@@ -214,7 +214,8 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	if kb.HasAlt() || kb.KeyHeld(hid.KeyboardKeySpace) {
 		changed = true
 	}
-	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) {
+	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) ||
+		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt()) {
 		e.dragging = true
 		e.mouseDown = mp
 		rg := int(math.Abs(float64(int(matrix.Rad2Deg(tc.Pitch())) % 360)))
@@ -239,7 +240,19 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
 		e.pan3d(tc, mp)
 		changed = true
-	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonRight) && kb.HasAlt() {
+		dragDeltaY := e.lastMousePos.Y() - mp.Y()
+		dragDeltaX := mp.X() - e.lastMousePos.X()
+		dragDelta := dragDeltaY + dragDeltaX
+		zoom := tc.Zoom()
+		scale := ZOOM_SCALE_3D
+		if zoom < 1.0 {
+			scale *= zoom / 1.0
+		}
+		tc.Dolly(dragDelta * scale)
+		changed = true
+	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight) {
 		e.lastHit = matrix.Vec3Zero()
 		if mouse.Released(hid.MouseButtonMiddle) {
 			changed = true
@@ -266,7 +279,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()
-	if mouse.Pressed(hid.MouseButtonMiddle) {
+	if mouse.Pressed(hid.MouseButtonMiddle) ||
+		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt()) {
 		e.dragging = true
 		e.mouseDown = mp
 		if mouse.Pressed(hid.MouseButtonMiddle) {
@@ -275,7 +289,24 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
 		e.pan2d(oc, mp, host)
 		changed = true
-	} else if mouse.Released(hid.MouseButtonMiddle) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonRight) && kb.HasAlt() {
+		cam := host.PrimaryCamera()
+		cw := cam.Width()
+		ch := cam.Height()
+		w := oc.Width()
+		h := oc.Height()
+		r := cw / ch
+		dragDeltaY := e.lastMousePos.Y() - mp.Y()
+		dragDeltaX := mp.X() - e.lastMousePos.X()
+		dragDelta := dragDeltaY + dragDeltaX
+		w += (cw / cw) * r * -ZOOM_SCALE_2D * dragDelta
+		h += (ch / cw) * r * -ZOOM_SCALE_2D * dragDelta
+		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
+			oc.Resize(w, h)
+			changed = true
+		}
+	} else if mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight) {
 		e.lastHit = matrix.Vec3Zero()
 		if mouse.Released(hid.MouseButtonMiddle) {
 			changed = true
