@@ -38,8 +38,14 @@ package matrix
 
 import (
 	"kaiju/klib"
+	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 	"slices"
+)
+
+const (
+	TransformWorkGroup      = "transform"
+	TransformResetWorkGroup = "transformReset"
 )
 
 type Transform struct {
@@ -47,6 +53,7 @@ type Transform struct {
 	worldMatrix               Mat4
 	parent                    *Transform
 	children                  []*Transform
+	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
 	framePosition             Vec3
 	frameRotation             Vec3
@@ -67,9 +74,10 @@ func (t *Transform) setup() {
 	t.SetDirty()
 }
 
-func NewTransform() Transform {
+func NewTransform(workGroup *concurrent.WorkGroup) Transform {
 	defer tracing.NewRegion("matrix.NewTransform").End()
 	t := Transform{}
+	t.workGroup = workGroup
 	t.setup()
 	return t
 }
@@ -159,6 +167,10 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
+	if !t.frameDirty {
+		t.workGroup.Add(TransformWorkGroup, t.UpdateMatrices)
+		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+	}
 	t.isDirty = true
 	t.frameDirty = true
 	for _, child := range t.children {

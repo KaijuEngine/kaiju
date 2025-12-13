@@ -40,6 +40,7 @@ import (
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/concurrent"
 	"log/slog"
 	"slices"
 )
@@ -76,16 +77,16 @@ type Entity struct {
 }
 
 // NewEntity creates a new #Entity struct and returns it
-func NewEntity() *Entity {
+func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 	e := &Entity{}
-	e.Init()
+	e.Init(workGroup)
 	return e
 }
 
-func (e *Entity) Init() {
+func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
-	e.Transform = matrix.NewTransform()
+	e.Transform = matrix.NewTransform(workGroup)
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
 }
@@ -389,12 +390,12 @@ func (e *Entity) deactivateFromParent() {
 	e.deactivatedFromParent = fromParent
 }
 
-func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity)) *Entity {
-	dupe := NewEntity()
+func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity), workGroup *concurrent.WorkGroup) *Entity {
+	dupe := NewEntity(workGroup)
 	if !sparse {
 		dupe.Children = make([]*Entity, len(e.Children))
 		for i := range e.Children {
-			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe)
+			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe, workGroup)
 		}
 	}
 	dupe.Copy(e)

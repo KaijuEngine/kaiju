@@ -94,7 +94,7 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 				matKey = mat
 			}
 		}
-		tForm := matrix.NewTransform()
+		tForm := matrix.NewTransform(host.WorkGroup())
 		tForm.SetPosition(m.Node.Transform.WorldPosition())
 		tForm.SetRotation(m.Node.Transform.WorldRotation())
 		tForm.SetScale(m.Node.Transform.WorldScale())

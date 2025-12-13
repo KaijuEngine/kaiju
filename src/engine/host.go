@@ -58,7 +58,6 @@ import (
 	"math"
 	"runtime"
 	"slices"
-	"sync"
 	"time"
 	"weak"
 )
@@ -100,43 +99,42 @@ func (c *hostCameras) NewFrame() {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name                string
-	game                any
-	entities            []*Entity
-	entityLookup        map[EntityId]*Entity
-	lighting            lighting.LightingInformation
-	renderDetailsFrom   matrix.Vec3
-	timeRunner          []timeRun
-	frameRunner         []frameRun
-	plugins             []*plugins.LuaVM
-	Window              *windowing.Window
-	LogStream           *logging.LogStream
-	workGroup           concurrent.WorkGroup
-	threads             concurrent.Threads
-	updateThreads       concurrent.Threads
-	uiThreads           concurrent.Threads
-	Cameras             hostCameras
-	collisionManager    collision_system.Manager
-	audio               *audio.Audio
-	shaderCache         rendering.ShaderCache
-	textureCache        rendering.TextureCache
-	meshCache           rendering.MeshCache
-	fontCache           rendering.FontCache
-	materialCache       rendering.MaterialCache
-	Drawings            rendering.Drawings
-	frame               FrameId
-	frameTime           float64
-	Closing             bool
-	UIUpdater           Updater
-	UILateUpdater       Updater
-	Updater             Updater
-	LateUpdater         Updater
-	assetDatabase       assets.Database
-	physics             StagePhysics
-	OnClose             events.Event
-	CloseSignal         chan struct{}
-	frameRateLimit      *time.Ticker
-	entityTransformWork []func(int)
+	name              string
+	game              any
+	entities          []*Entity
+	entityLookup      map[EntityId]*Entity
+	lighting          lighting.LightingInformation
+	renderDetailsFrom matrix.Vec3
+	timeRunner        []timeRun
+	frameRunner       []frameRun
+	plugins           []*plugins.LuaVM
+	Window            *windowing.Window
+	LogStream         *logging.LogStream
+	workGroup         concurrent.WorkGroup
+	threads           concurrent.Threads
+	updateThreads     concurrent.Threads
+	uiThreads         concurrent.Threads
+	Cameras           hostCameras
+	collisionManager  collision_system.Manager
+	audio             *audio.Audio
+	shaderCache       rendering.ShaderCache
+	textureCache      rendering.TextureCache
+	meshCache         rendering.MeshCache
+	fontCache         rendering.FontCache
+	materialCache     rendering.MaterialCache
+	Drawings          rendering.Drawings
+	frame             FrameId
+	frameTime         float64
+	Closing           bool
+	UIUpdater         Updater
+	UILateUpdater     Updater
+	Updater           Updater
+	LateUpdater       Updater
+	assetDatabase     assets.Database
+	physics           StagePhysics
+	OnClose           events.Event
+	CloseSignal       chan struct{}
+	frameRateLimit    *time.Ticker
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -165,6 +163,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
 		},
 	}
+	host.workGroup.Init()
 	host.threads.Initialize()
 	host.updateThreads.Initialize()
 	host.uiThreads.Initialize()
@@ -388,8 +387,8 @@ func (host *Host) EntitiesRaw() []*Entity { return host.entities }
 // NewEntity creates a new entity and adds it to the host. This will add the
 // entity to the standard entity pool. If the host is in the process of creating
 // editor entities, then the entity will be added to the editor entity pool.
-func (host *Host) NewEntity() *Entity {
-	entity := NewEntity()
+func (host *Host) NewEntity(workGroup *concurrent.WorkGroup) *Entity {
+	entity := NewEntity(workGroup)
 	host.AddEntity(entity)
 	return entity
 }
@@ -478,21 +477,7 @@ func (host *Host) SetRenderDetailsFrom(point matrix.Vec3) {
 // transformations that are dirty on entities are then cleaned.
 func (host *Host) Render() {
 	defer tracing.NewRegion("Host.Render").End()
-	wg := sync.WaitGroup{}
-	// host.entityTransformWork = slices.Grow(host.entityTransformWork, len(host.entities))
-	for _, e := range host.entities {
-		if e.Transform.IsDirty() {
-			wg.Add(1)
-			host.entityTransformWork = append(host.entityTransformWork, func(int) {
-				e.Transform.UpdateMatrices()
-				wg.Done()
-			})
-		}
-	}
-	host.threads.AddWork(host.entityTransformWork)
-	// Using klib.WipeSlice at the end, so this is fine here
-	host.entityTransformWork = host.entityTransformWork[:0]
-	wg.Wait()
+	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
 	host.Drawings.PreparePending()
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
@@ -507,18 +492,7 @@ func (host *Host) Render() {
 		}
 	}
 	host.Window.SwapBuffers()
-	for _, e := range host.entities {
-		if e.Transform.IsDirty() {
-			wg.Add(1)
-			host.entityTransformWork = append(host.entityTransformWork, func(int) {
-				e.Transform.ResetDirty()
-				wg.Done()
-			})
-		}
-	}
-	host.threads.AddWork(host.entityTransformWork)
-	wg.Wait()
-	host.entityTransformWork = klib.WipeSlice(host.entityTransformWork)
+	host.workGroup.Execute(matrix.TransformResetWorkGroup, &host.threads)
 }
 
 // Frame will return the current frame id

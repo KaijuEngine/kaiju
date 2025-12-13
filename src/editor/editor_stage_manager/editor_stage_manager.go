@@ -154,7 +154,7 @@ func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
-	e.Init()
+	e.Init(m.host.WorkGroup())
 	e.SetName(name)
 	e.StageData.Description.Id = id
 	m.host.AddEntity(&e.Entity)
@@ -247,7 +247,7 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 	} else {
 		child.SetParent(nil)
 	}
-	if parent.StageData.Bvh != nil {
+	if parent != nil && parent.StageData.Bvh != nil {
 		m.RefitBVH(parent)
 	} else if child.StageData.Bvh != nil {
 		m.RefitBVH(child)
