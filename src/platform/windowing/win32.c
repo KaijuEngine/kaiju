@@ -831,6 +831,7 @@ void window_lock_cursor(void* hwnd, int x, int y) {
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
 	sm->lockCursor.active = true;
+	SetCursorPos(x, y);
 }
 
 void window_unlock_cursor(void* hwnd) {

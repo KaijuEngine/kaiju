@@ -64,16 +64,17 @@ const (
 )
 
 type EditorCamera struct {
-	OnModeChange events.Event
-	Settings     *editor_settings.EditorCameraSettings
-	camera       cameras.Camera
-	lastMousePos matrix.Vec2
-	mouseDown    matrix.Vec2
-	lastHit      matrix.Vec3
-	yawScale     matrix.Float
-	dragging     bool
-	mode         EditorCameraMode
-	resizeId     events.Id
+	OnModeChange     events.Event
+	Settings         *editor_settings.EditorCameraSettings
+	camera           cameras.Camera
+	lastMousePos     matrix.Vec2
+	mouseDown        matrix.Vec2
+	lastHit          matrix.Vec3
+	yawScale         matrix.Float
+	dragging         bool
+	mode             EditorCameraMode
+	resizeId         events.Id
+	flyCamFlickerFix bool
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
@@ -131,7 +132,29 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	defer tracing.NewRegion("EditorCamera.Update").End()
 	switch e.mode {
 	case EditorCameraMode3d:
-		return e.update3d(host, delta)
+		win := host.Window
+		m := &win.Mouse
+		if m.Pressed(hid.MouseButtonRight) {
+			lockX, lockY := win.Width()/2, win.Height()/2
+			host.Window.HideCursor()
+			host.Window.LockCursor(lockX, lockY)
+			e.lastMousePos = m.Position()
+			e.flyCamFlickerFix = false
+			return true
+		} else if m.Released(hid.MouseButtonRight) {
+			host.Window.UnlockCursor()
+			host.Window.ShowCursor()
+			return false
+		} else if m.Held(hid.MouseButtonRight) {
+			// TODO:  This is annoying and unfortunate, but functional
+			if !e.flyCamFlickerFix {
+				e.flyCamFlickerFix = true
+				return false
+			}
+			return e.update3dFly(host, delta)
+		} else {
+			return e.update3d(host, delta)
+		}
 	case EditorCameraMode2d:
 		return e.update2d(host, delta)
 	case EditorCameraModeNone:
@@ -203,6 +226,44 @@ func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *e
 	delta := e.lastHit.Subtract(hitPoint).Multiply(matrix.NewVec3(cw, ch, 0))
 	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
 	e.lastHit = hitPoint.Add(delta)
+}
+
+func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (changed bool) {
+	defer tracing.NewRegion("EditorCamera.update3dFly").End()
+	flySpeed := e.Settings.FlySpeed
+	xSensitivity := e.Settings.FlyXSensitivity
+	ySensitivity := e.Settings.FlyYSensitivity
+	tc := e.camera.(*cameras.TurntableCamera)
+	mouse := &host.Window.Mouse
+	kb := &host.Window.Keyboard
+	mp := mouse.Position()
+	md := e.lastMousePos.Subtract(mp)
+	tc.FlyRotate(md.X()*xSensitivity, -md.Y()*ySensitivity)
+	cp := e.camera.Position()
+	cl := e.camera.LookAt()
+	var delta matrix.Vec3
+	if kb.KeyHeld(hid.KeyboardKeyW) {
+		delta = e.camera.Forward().Scale(matrix.Float(deltaTime) * flySpeed)
+		changed = true
+	} else if kb.KeyHeld(hid.KeyboardKeyS) {
+		delta = e.camera.Forward().Negative().Scale(matrix.Float(deltaTime) * flySpeed)
+		changed = true
+	}
+	if kb.KeyHeld(hid.KeyboardKeyA) {
+		delta.AddAssign(e.camera.Right().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
+		changed = true
+	} else if kb.KeyHeld(hid.KeyboardKeyD) {
+		delta.AddAssign(e.camera.Right().Scale(matrix.Float(deltaTime) * flySpeed))
+		changed = true
+	}
+	if kb.KeyHeld(hid.KeyboardKey1) {
+		e.camera.SetPositionAndLookAt(cp, cl.Add(matrix.NewVec3(0, 0.1, 0)))
+		changed = true
+	}
+	if changed {
+		e.camera.SetPositionAndLookAt(cp.Add(delta), cl.Add(delta))
+	}
+	return changed
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {

@@ -115,7 +115,7 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 		windowSync: make(chan struct{}),
 	}
 	keys := w.checkToggleKeyState()
-	for key,pressed := range keys {
+	for key, pressed := range keys {
 		if pressed {
 			w.Keyboard.SetToggleKeyState(key, hid.KeyStateToggled)
 		}
@@ -340,13 +340,17 @@ func (w *Window) SetSize(width, height int) {
 	w.height = height
 }
 
-func (w *Window) RemoveBorder()       { w.removeBorder() }
-func (w *Window) AddBorder()          { w.addBorder() }
-func (w *Window) ShowCursor()         { w.showCursor() }
-func (w *Window) HideCursor()         { w.hideCursor() }
-func (w *Window) IsFullScreen() bool  { return w.isFullScreen }
-func (w *Window) LockCursor(x, y int) { w.lockCursor(x, y) }
-func (w *Window) UnlockCursor()       { w.unlockCursor() }
+func (w *Window) RemoveBorder()      { w.removeBorder() }
+func (w *Window) AddBorder()         { w.addBorder() }
+func (w *Window) ShowCursor()        { w.showCursor() }
+func (w *Window) HideCursor()        { w.hideCursor() }
+func (w *Window) IsFullScreen() bool { return w.isFullScreen }
+func (w *Window) UnlockCursor()      { w.unlockCursor() }
+
+func (w *Window) LockCursor(x, y int) {
+	w.lockCursor(x, y)
+	w.Mouse.SetPosition(float32(x), float32(y), float32(w.width), float32(w.height))
+}
 
 func (w *Window) SetFullscreen() {
 	if w.isFullScreen {
@@ -495,14 +499,14 @@ func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
 	switch evt.action {
 	case windowEventButtonTypeDown:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		if !w.Keyboard.IsToggleKey(key){
+		if !w.Keyboard.IsToggleKey(key) {
 			w.Keyboard.SetKeyDown(key)
 		}
 	case windowEventButtonTypeUp:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		if w.Keyboard.IsToggleKey(key){
+		if w.Keyboard.IsToggleKey(key) {
 			w.Keyboard.ToggleKey(key)
-		}else{
+		} else {
 			w.Keyboard.SetKeyUp(key)
 		}
 	}

@@ -424,6 +424,7 @@ void window_lock_cursor(void* state, int x, int y) {
 	s->sm.lockCursor.x = x;
 	s->sm.lockCursor.y = y;
 	s->sm.lockCursor.active = true;
+	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, x, y);
 }
 
 void window_unlock_cursor(void* state) {
