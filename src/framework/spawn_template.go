@@ -68,7 +68,7 @@ func SpawnTemplate(id string, host *engine.Host, parent *engine.Entity) (*engine
 		slog.Error("failed to deserialize the template data", "template", id, "error", err)
 		return nil, err
 	}
-	e := host.NewEntity()
+	e := host.NewEntity(host.WorkGroup())
 	if parent != nil {
 		e.SetParent(parent)
 	}
