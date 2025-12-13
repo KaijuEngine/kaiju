@@ -256,7 +256,7 @@ func (c *Console) update(deltaTime float64) {
 	host := c.host.Value()
 	debug.EnsureNotNil(host)
 	kb := &host.Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyBackQuote) {
+	if !kb.HasModifier() && kb.KeyDown(hid.KeyboardKeyF1) {
 		c.toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyUp) {
 		c.input.SetText(c.history.back())
