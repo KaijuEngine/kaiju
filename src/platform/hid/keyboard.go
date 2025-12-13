@@ -221,6 +221,10 @@ func (k Keyboard) HasAlt() bool {
 	return k.KeyHeld(KeyboardKeyLeftAlt) || k.KeyHeld(KeyboardKeyRightAlt)
 }
 
+func (k Keyboard) HasModifier() bool {
+	return k.HasCtrl() || k.HasShift() || k.HasAlt()
+}
+
 func (k Keyboard) IsToggleKey(key KeyboardKey) bool {
 	return key == KeyboardKeyCapsLock ||
 		key == KeyboardKeyNumLock ||
@@ -228,7 +232,7 @@ func (k Keyboard) IsToggleKey(key KeyboardKey) bool {
 }
 
 func (k Keyboard) IsToggleKeyOn(key KeyboardKey) bool {
-	if k.IsToggleKey(key){
+	if k.IsToggleKey(key) {
 		return k.keyStates[key] == KeyStateToggled
 	}
 	return false
@@ -277,18 +281,18 @@ func (k *Keyboard) SetKeyUp(key KeyboardKey) {
 }
 
 func (k *Keyboard) ToggleKey(key KeyboardKey) {
-	if k.IsToggleKey(key){
+	if k.IsToggleKey(key) {
 		isOn := k.IsToggleKeyOn(key)
 		if isOn {
 			k.keyStates[key] = KeyStateIdle
-		}else{
+		} else {
 			k.keyStates[key] = KeyStateToggled
 		}
 	}
 }
 
 func (k *Keyboard) SetToggleKeyState(key KeyboardKey, state KeyState) {
-	if key != KeyBoardKeyInvalid && k.IsToggleKey(key){
+	if key != KeyBoardKeyInvalid && k.IsToggleKey(key) {
 		k.keyStates[key] = state
 	}
 }

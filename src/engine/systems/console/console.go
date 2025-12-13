@@ -95,16 +95,15 @@ type consoleCommand struct {
 }
 
 type Console struct {
-	doc        *document.Document
-	host       weak.Pointer[engine.Host]
-	uiMan      ui.Manager
-	commands   map[string]consoleCommand
-	history    history
-	historyIdx int
-	updateId   engine.UpdateId
-	isActive   bool
-	input      *ui.Input
-	data       map[string]ConsoleData
+	doc      *document.Document
+	host     weak.Pointer[engine.Host]
+	uiMan    ui.Manager
+	commands map[string]consoleCommand
+	history  history
+	updateId engine.UpdateId
+	isActive bool
+	input    *ui.Input
+	data     map[string]ConsoleData
 }
 
 func For(host *engine.Host) *Console {
@@ -256,7 +255,7 @@ func (c *Console) update(deltaTime float64) {
 	host := c.host.Value()
 	debug.EnsureNotNil(host)
 	kb := &host.Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyBackQuote) {
+	if !kb.HasModifier() && kb.KeyDown(hid.KeyboardKeyF1) {
 		c.toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyUp) {
 		c.input.SetText(c.history.back())

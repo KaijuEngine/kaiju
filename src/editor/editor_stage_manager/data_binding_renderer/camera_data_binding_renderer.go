@@ -48,6 +48,7 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
+	"weak"
 )
 
 func init() {
@@ -101,6 +102,13 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 		ViewCuller: &host.Cameras.Primary,
 	})
 	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
+	wc := weak.Make(c)
+	target.OnDeactivate.Add(func() {
+		sc := wc.Value()
+		if sc != nil {
+			sc.Hide(host, target, nil)
+		}
+	})
 }
 
 func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
