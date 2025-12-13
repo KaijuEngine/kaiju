@@ -95,16 +95,15 @@ type consoleCommand struct {
 }
 
 type Console struct {
-	doc        *document.Document
-	host       weak.Pointer[engine.Host]
-	uiMan      ui.Manager
-	commands   map[string]consoleCommand
-	history    history
-	historyIdx int
-	updateId   engine.UpdateId
-	isActive   bool
-	input      *ui.Input
-	data       map[string]ConsoleData
+	doc      *document.Document
+	host     weak.Pointer[engine.Host]
+	uiMan    ui.Manager
+	commands map[string]consoleCommand
+	history  history
+	updateId engine.UpdateId
+	isActive bool
+	input    *ui.Input
+	data     map[string]ConsoleData
 }
 
 func For(host *engine.Host) *Console {
