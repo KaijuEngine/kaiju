@@ -341,6 +341,9 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			if a := e.Attribute("value"); a != "" {
 				selectStartValue = a
 			}
+			slices.SortStableFunc(e.Children, func(a, b *Element) int {
+				return klib.StringValueCompare(a.Attribute("value"), b.Attribute("value"))
+			})
 			for i := range e.Children {
 				child := e.Children[i]
 				if child.IsSelectOption() {
