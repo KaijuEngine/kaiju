@@ -411,8 +411,15 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			selectInput.UI.Show()
 			sel := selectInput.Children[0].UI.ToSelect()
 			sel.ClearOptions()
+			opts := []ui.SelectOption{}
 			for k, v := range fg.EnumValues {
-				sel.AddOption(k, fmt.Sprintf("%v", v))
+				opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+			}
+			slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
+				return klib.StringValueCompare(a.Value, b.Value)
+			})
+			for _, opt := range opts {
+				sel.AddOption(opt.Name, opt.Value)
 			}
 			sel.PickOptionByLabel(g.FieldNumberAsString(i))
 		} else if g.Fields[i].IsInput() {
