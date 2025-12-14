@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  run:
+    dir: 'src'
+    desc: 'Starts the Kaiju Editor via go run'
+    cmd: 'go run -tags=editor,debug .'
+
+  build:
+    dir: 'src'
+    desc: 'Builds the Kaiju Editor for your current platform'
+    cmd: 'go build -tags=editor,debug -o ../dist/ .'
+
+  install:
+    dir: 'src'
+    desc: 'Installs the current version of the Kaiju Editor'
+    cmd: 'go install -tags=editor,debug .'
