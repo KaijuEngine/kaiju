@@ -174,8 +174,13 @@ func (s *Select) AddOption(name, value string) {
 func (s *Select) ClearOptions() {
 	data := s.SelectData()
 	data.options = data.options[:0]
+	lpd := data.list.PanelData()
 	for i := len(data.list.entity.Children) - 1; i >= 0; i-- {
-		data.list.RemoveChild(data.list.Child(i))
+		c := data.list.Child(i)
+		if c == (*UI)(lpd.scrollBarX) || c == (*UI)(lpd.scrollBarY) {
+			continue
+		}
+		data.list.RemoveChild(c)
 	}
 }
 
