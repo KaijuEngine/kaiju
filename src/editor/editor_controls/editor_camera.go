@@ -184,7 +184,7 @@ func (e *EditorCamera) Focus(bounds collision.AABB) {
 	if z <= 0.01 {
 		z = 5
 	} else {
-		z *= 2
+		z *= 5
 	}
 	if e.camera.IsOrthographic() {
 		c := e.camera.(*cameras.StandardCamera)
@@ -200,7 +200,7 @@ func (e *EditorCamera) Focus(bounds collision.AABB) {
 		}
 	} else {
 		c := e.camera.(*cameras.TurntableCamera)
-		c.SetLookAt(bounds.Center.Negative())
+		c.SetLookAt(bounds.Center)
 		c.SetZoom(z)
 	}
 }
@@ -211,7 +211,7 @@ func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 			e.lastHit = hitPoint
 		}
-		delta := hitPoint.Subtract(e.lastHit)
+		delta := e.lastHit.Subtract(hitPoint)
 		if delta.Equals(matrix.Vec3Zero()) {
 			return
 		}
