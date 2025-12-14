@@ -647,7 +647,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	texs := make([]*rendering.Texture, 0, len(textureIds))
 	for i := range textureIds {
-		texData, err := fs.ReadFile(filepath.Join(rootFolder, texFolder, textureIds[i]))
+		path := filepath.Join(rootFolder, texFolder, textureIds[i])
+		if _, err := fs.Stat(path); err != nil {
+			path = filepath.Join(project_file_system.StockFolder, textureIds[i])
+		}
+		texData, err := fs.ReadFile(path)
 		if err != nil {
 			slog.Error("failed to read the texture file", "id", textureIds[i], "error", err)
 			return err

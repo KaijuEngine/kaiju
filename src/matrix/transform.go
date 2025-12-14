@@ -165,7 +165,7 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
-	if !t.frameDirty {
+	if !t.frameDirty && t.workGroup != nil {
 		t.workGroup.Add(TransformWorkGroup, t.UpdateMatrices)
 		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
 	}
