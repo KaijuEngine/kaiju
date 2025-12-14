@@ -122,9 +122,9 @@ func (w *Window) clipboardContents() string {
 	return C.GoString(cStr)
 }
 
-func destroyWindow(handle unsafe.Pointer) {
-	if handle != nil {
-		C.cocoa_destroy_window(handle)
+func (w *Window) destroyWindow() {
+	if w.instance != nil {
+		C.cocoa_destroy_window(w.instance)
 	}
 }
 
@@ -159,27 +159,28 @@ func (w *Window) position() (x, y int) {
 
 // Physical metrics
 func (w *Window) sizeMM() (int, int, error) {
-	if w.instance == nil {
-		return 0, 0, nil
-	}
-
 	dpm := w.dotsPerMillimeter()
-
-	// avoid division by zero
-	if dpm == 0 {
+	if dpm <= 0 {
 		return 0, 0, nil
 	}
 
-	return int(float64(w.width) / dpm), int(float64(w.height) / dpm), nil
+	return int(float64(w.width) / dpm),
+		int(float64(w.height) / dpm),
+		nil
 }
 
 func (w *Window) screenSizeMM() (int, int, error) {
-	if w.instance == nil {
+	dpm := w.dotsPerMillimeter()
+	if dpm <= 0 {
 		return 0, 0, nil
 	}
-	var width, height C.int
-	C.cocoa_screen_size_mm(w.instance, &width, &height)
-	return int(width), int(height), nil
+
+	pw := float64(C.cocoa_get_screen_pixel_width(w.instance))
+	ph := float64(C.cocoa_get_screen_pixel_height(w.instance))
+
+	return int(pw / dpm),
+		int(ph / dpm),
+		nil
 }
 
 func (w *Window) dotsPerMillimeter() float64 {
@@ -187,17 +188,14 @@ func (w *Window) dotsPerMillimeter() float64 {
 		return 0
 	}
 
-	screenPixelWidth := float64(C.cocoa_get_screen_pixel_width(w.instance))
-
-	var width, height C.int
-	C.cocoa_screen_size_mm(w.instance, &width, &height)
-
-	// avoid division by zero
-	if width == 0 {
-		return 0
+	scale := float64(C.cocoa_get_backing_scale_factor(w.instance))
+	if scale <= 0 {
+		scale = 1
 	}
 
-	return screenPixelWidth / float64(width)
+	// macOS logical DPI model
+	dpi := 96.0 * scale
+	return dpi / 25.4
 }
 
 // Window decoration and cursor visibility (private)
@@ -294,3 +292,7 @@ func (w *Window) readApplicationAsset(name string) ([]byte, error) {
 // cHandle/cInstance used by PlatformWindow/PlatformInstance
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
+
+func CocoaRunApp() {
+	C.cocoa_run_app()
+}

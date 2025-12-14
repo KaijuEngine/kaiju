@@ -1,7 +1,7 @@
-//go:build !android && !darwin
+//go:build darwin
 
 /******************************************************************************/
-/* main.go                                                                    */
+/* main.darwin.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -38,4 +38,17 @@
 
 package main
 
-func main() { _main(nil) }
+import (
+	"kaiju/platform/windowing"
+	"runtime"
+)
+
+func main() {
+	runtime.LockOSThread()
+
+	go func() {
+		_main(nil) // your engine
+	}()
+
+	windowing.CocoaRunApp() // blocks forever
+}

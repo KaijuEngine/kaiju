@@ -311,7 +311,7 @@ func (w *Window) Destroy() {
 	w.isClosed = true
 	w.removeFromActiveWindows()
 	w.Renderer.Destroy()
-	destroyWindow(w.handle)
+	w.destroyWindow()
 	close(w.windowSync)
 }
 

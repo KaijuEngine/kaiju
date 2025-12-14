@@ -21,8 +21,11 @@ void cocoa_poll_events(void* nsWindow);
 // Get screen pixel width
 int cocoa_get_screen_pixel_width(void* nsWindow);
 
-// Get screen size in millimeters
-void cocoa_screen_size_mm(void* nsWindow, int* width, int* height);
+// Get screen pixel height
+int cocoa_get_screen_pixel_height(void* nsWindow);
+
+// Get backing scale factor
+double cocoa_get_backing_scale_factor(void* nsWindow);
 
 // Window position and size
 void cocoa_get_position(void* nsWindow, int* x, int* y);
@@ -69,5 +72,7 @@ void cocoa_disable_raw_mouse(void* nsWindow);
 
 // Keyboard inputs
 bool cocoa_get_caps_lock_toggle_key_state(void);
+
+void cocoa_run_app(void);
 
 #endif // COCOA_WINDOW_H
