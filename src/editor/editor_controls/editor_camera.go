@@ -151,7 +151,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			host.Window.ShowCursor()
 			return false
 		} else if m.Held(hid.MouseButtonRight) {
-			// TODO:  This is annoying and unfortunate, but functional
+			// TODO:  This is annoying and unfortunate, but functional,
+			// basically skip one update to prevent camera jumping
 			if !e.flyCamFlickerFix {
 				e.flyCamFlickerFix = true
 				return false
