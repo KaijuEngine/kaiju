@@ -51,8 +51,10 @@ import (
 
 const (
 	rotScale                = 0.005
-	zoomScale3D             = float32(0.05)
-	zoomScale2D             = float32(1.0)
+	zoomScale3DScroll       = float32(0.05)
+	zoomScale2DScroll       = float32(1.0)
+	zoomScale3D             = zoomScale3DScroll * 0.1
+	zoomScale2D             = zoomScale2DScroll * 0.1
 	flySpeedScrollIncrement = 0.1
 	flySpeedModifierMin     = 0.1
 	flySpeedModifierMax     = 10
@@ -139,18 +141,19 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	case EditorCameraMode3d:
 		win := host.Window
 		m := &win.Mouse
-		if m.Pressed(hid.MouseButtonRight) {
+		kb := &win.Keyboard
+		if !kb.HasAlt() && m.Pressed(hid.MouseButtonRight) {
 			lockX, lockY := win.Width()/2, win.Height()/2
 			host.Window.HideCursor()
 			host.Window.LockCursor(lockX, lockY)
 			e.lastMousePos = m.Position()
 			e.flyCamFlickerFix = false
 			return true
-		} else if m.Released(hid.MouseButtonRight) {
+		} else if !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
 			host.Window.UnlockCursor()
 			host.Window.ShowCursor()
 			return false
-		} else if m.Held(hid.MouseButtonRight) {
+		} else if !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			// TODO:  This is annoying and unfortunate, but functional,
 			// basically skip one update to prevent camera jumping
 			if !e.flyCamFlickerFix {
@@ -324,7 +327,7 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 		dragDeltaX := mp.X() - e.lastMousePos.X()
 		dragDelta := dragDeltaY + dragDeltaX
 		zoom := tc.Zoom()
-		scale := zoomScale3D * 0.1
+		scale := zoomScale3D
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
@@ -340,7 +343,7 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	}
 	if mouse.Scrolled() {
 		zoom := tc.Zoom()
-		scale := -zoomScale3D
+		scale := -zoomScale3DScroll
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
@@ -378,8 +381,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		dragDeltaY := e.lastMousePos.Y() - mp.Y()
 		dragDeltaX := mp.X() - e.lastMousePos.X()
 		dragDelta := dragDeltaY + dragDeltaX
-		w += (cw / cw) * r * -zoomScale2D * 0.1 * dragDelta
-		h += (ch / cw) * r * -zoomScale2D * 0.1 * dragDelta
+		w += (cw / cw) * r * -zoomScale2D * dragDelta
+		h += (ch / cw) * r * -zoomScale2D * dragDelta
 		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
 			oc.Resize(w, h)
 			changed = true
@@ -403,8 +406,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		h := oc.Height()
 		r := cw / ch
 		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
-		w += (cw / cw) * r * -zoomScale2D * zoomFloor
-		h += (ch / cw) * r * -zoomScale2D * zoomFloor
+		w += (cw / cw) * r * -zoomScale2DScroll * zoomFloor
+		h += (ch / cw) * r * -zoomScale2DScroll * zoomFloor
 		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
 			oc.Resize(w, h)
 			changed = true
