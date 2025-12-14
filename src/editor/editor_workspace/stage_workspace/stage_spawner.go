@@ -226,7 +226,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	man := w.stageView.Manager()
-	e := man.AddEntity(cc.Config.Name, point)
+	e := man.AddEntity(cc.Config.Name, matrix.Vec3Zero())
 	var km kaiju_mesh.KaijuMesh
 	if w.stageView.IsView3D() {
 		e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
@@ -239,6 +239,8 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
 	e.StageData.Description.Material = mat.Name
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
+	// Set the position after generating the BVH
+	e.Transform.SetPosition(point)
 	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
@@ -286,9 +288,9 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
-	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	// Set the position after generating the BVH
 	e.Transform.SetPosition(point)
+	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	man.RefitBVH(e)
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),

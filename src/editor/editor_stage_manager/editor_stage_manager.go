@@ -677,7 +677,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	// Temp set position to 0,0,0 for the BVH generation
+	ePos := e.Transform.Position()
+	e.Transform.SetPosition(matrix.Vec3Zero())
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
+	e.Transform.SetPosition(ePos)
 	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	host.RunOnMainThread(func() {
 		for i := range texs {
