@@ -183,7 +183,10 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 				keys := reflect.ValueOf(rendering.StringVkMap[op]).MapKeys()
 				field.List = make([]ui.SelectOption, len(keys))
 				for i := range keys {
-					field.List[i] = ui.SelectOption{keys[i].String(), keys[i].String()}
+					field.List[i] = ui.SelectOption{
+						Name:  keys[i].String(),
+						Value: keys[i].String(),
+					}
 				}
 				isList = true
 			} else {

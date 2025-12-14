@@ -72,7 +72,10 @@ func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *cont
 			continue
 		}
 		if slices.Contains(cat.ExtNames(), filepath.Ext(dir[i].Name())) {
-			options = append(options, ui.SelectOption{dir[i].Name(), dir[i].Name()})
+			options = append(options, ui.SelectOption{
+				Name:  dir[i].Name(),
+				Value: dir[i].Name(),
+			})
 		}
 	}
 	return options

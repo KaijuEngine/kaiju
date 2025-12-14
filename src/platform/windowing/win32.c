@@ -715,15 +715,12 @@ void window_poll(void* hwnd) {
 								hadMouseEvent = true;
 							}
 						}
-						if (sm->lockCursor.active) {
-							lock_cursor_position(sm);
-						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
 							|| pt.x > sm->clientRect.right
 							|| pt.y > sm->clientRect.bottom;
 						if (mouseLeftWindow && sm->rawInputRequested) {
 							window_disable_raw_mouse(hwnd);
-							// Reset rawInputRequested as requested by develper code
+							// Reset rawInputRequested to true as requested by develper code
 							sm->rawInputRequested = true;
 						}
 					}

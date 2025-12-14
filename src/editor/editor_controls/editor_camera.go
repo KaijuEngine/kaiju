@@ -50,9 +50,14 @@ import (
 )
 
 const (
-	ROT_SCALE     = 0.005
-	ZOOM_SCALE_3D = float32(0.05)
-	ZOOM_SCALE_2D = float32(1.0)
+	rotScale                = 0.005
+	zoomScale3DScroll       = float32(0.05)
+	zoomScale2DScroll       = float32(1.0)
+	zoomScale3D             = zoomScale3DScroll * 0.1
+	zoomScale2D             = zoomScale2DScroll * 0.1
+	flySpeedScrollIncrement = 0.1
+	flySpeedModifierMin     = 0.1
+	flySpeedModifierMax     = 10
 )
 
 type EditorCameraMode = int
@@ -75,6 +80,7 @@ type EditorCamera struct {
 	mode             EditorCameraMode
 	resizeId         events.Id
 	flyCamFlickerFix bool
+	flySpeedModifier float32
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
@@ -95,6 +101,7 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 	if e.mode == mode {
 		return
 	}
+	e.flySpeedModifier = 1
 	e.mode = mode
 	switch e.mode {
 	case EditorCameraMode3d:
@@ -134,19 +141,21 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 	case EditorCameraMode3d:
 		win := host.Window
 		m := &win.Mouse
-		if m.Pressed(hid.MouseButtonRight) {
+		kb := &win.Keyboard
+		if !kb.HasAlt() && m.Pressed(hid.MouseButtonRight) {
 			lockX, lockY := win.Width()/2, win.Height()/2
 			host.Window.HideCursor()
 			host.Window.LockCursor(lockX, lockY)
 			e.lastMousePos = m.Position()
 			e.flyCamFlickerFix = false
 			return true
-		} else if m.Released(hid.MouseButtonRight) {
+		} else if !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
 			host.Window.UnlockCursor()
 			host.Window.ShowCursor()
 			return false
-		} else if m.Held(hid.MouseButtonRight) {
-			// TODO:  This is annoying and unfortunate, but functional
+		} else if !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
+			// TODO:  This is annoying and unfortunate, but functional,
+			// basically skip one update to prevent camera jumping
 			if !e.flyCamFlickerFix {
 				e.flyCamFlickerFix = true
 				return false
@@ -179,7 +188,7 @@ func (e *EditorCamera) Focus(bounds collision.AABB) {
 	if z <= 0.01 {
 		z = 5
 	} else {
-		z *= 2
+		z *= 5
 	}
 	if e.camera.IsOrthographic() {
 		c := e.camera.(*cameras.StandardCamera)
@@ -195,7 +204,7 @@ func (e *EditorCamera) Focus(bounds collision.AABB) {
 		}
 	} else {
 		c := e.camera.(*cameras.TurntableCamera)
-		c.SetLookAt(bounds.Center.Negative())
+		c.SetLookAt(bounds.Center)
 		c.SetZoom(z)
 	}
 }
@@ -206,7 +215,7 @@ func (e *EditorCamera) pan3d(tc *cameras.TurntableCamera, mp matrix.Vec2) {
 		if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
 			e.lastHit = hitPoint
 		}
-		delta := hitPoint.Subtract(e.lastHit)
+		delta := e.lastHit.Subtract(hitPoint)
 		if delta.Equals(matrix.Vec3Zero()) {
 			return
 		}
@@ -230,7 +239,6 @@ func (e *EditorCamera) pan2d(oc *cameras.StandardCamera, mp matrix.Vec2, host *e
 
 func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (changed bool) {
 	defer tracing.NewRegion("EditorCamera.update3dFly").End()
-	flySpeed := e.Settings.FlySpeed
 	xSensitivity := e.Settings.FlyXSensitivity
 	ySensitivity := e.Settings.FlyYSensitivity
 	tc := e.camera.(*cameras.TurntableCamera)
@@ -242,6 +250,16 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 	cp := e.camera.Position()
 	cl := e.camera.LookAt()
 	var delta matrix.Vec3
+	if mouse.Scrolled() {
+		v := e.flySpeedModifier
+		if mouse.ScrollY > 0 {
+			v += flySpeedScrollIncrement
+		} else {
+			v -= flySpeedScrollIncrement
+		}
+		e.flySpeedModifier = klib.Clamp(v, flySpeedModifierMin, flySpeedModifierMax)
+	}
+	flySpeed := e.Settings.FlySpeed * e.flySpeedModifier
 	if kb.KeyHeld(hid.KeyboardKeyW) {
 		delta = e.camera.Forward().Scale(matrix.Float(deltaTime) * flySpeed)
 		changed = true
@@ -256,8 +274,11 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 		delta.AddAssign(e.camera.Right().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	}
-	if kb.KeyHeld(hid.KeyboardKey1) {
-		e.camera.SetPositionAndLookAt(cp, cl.Add(matrix.NewVec3(0, 0.1, 0)))
+	if kb.KeyHeld(hid.KeyboardKeyQ) {
+		delta.AddAssign(e.camera.Up().Scale(matrix.Float(deltaTime) * flySpeed))
+		changed = true
+	} else if kb.KeyHeld(hid.KeyboardKeyE) {
+		delta.AddAssign(e.camera.Up().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	}
 	if changed {
@@ -275,21 +296,22 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	if kb.HasAlt() || kb.KeyHeld(hid.KeyboardKeySpace) {
 		changed = true
 	}
-	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) {
+	if mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) ||
+		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt()) {
 		e.dragging = true
 		e.mouseDown = mp
 		rg := int(math.Abs(float64(int(matrix.Rad2Deg(tc.Pitch())) % 360)))
 		if rg < 90 || rg > 270 {
-			e.yawScale = ROT_SCALE
+			e.yawScale = rotScale
 		} else {
-			e.yawScale = -ROT_SCALE
+			e.yawScale = -rotScale
 		}
 		if mouse.Pressed(hid.MouseButtonMiddle) {
 			changed = true
 		}
 	} else if e.dragging && mouse.Held(hid.MouseButtonLeft) {
 		if kb.HasAlt() {
-			x := (e.lastMousePos.Y() - mp.Y()) * -ROT_SCALE
+			x := (e.lastMousePos.Y() - mp.Y()) * -rotScale
 			y := (e.lastMousePos.X() - mp.X()) * e.yawScale
 			tc.Orbit(matrix.Vec3{x, y, 0.0})
 			changed = true
@@ -300,7 +322,19 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
 		e.pan3d(tc, mp)
 		changed = true
-	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonRight) && kb.HasAlt() {
+		dragDeltaY := e.lastMousePos.Y() - mp.Y()
+		dragDeltaX := mp.X() - e.lastMousePos.X()
+		dragDelta := dragDeltaY + dragDeltaX
+		zoom := tc.Zoom()
+		scale := zoomScale3D
+		if zoom < 1.0 {
+			scale *= zoom / 1.0
+		}
+		tc.Dolly(dragDelta * scale)
+		changed = true
+	} else if mouse.Released(hid.MouseButtonLeft) || mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight) {
 		e.lastHit = matrix.Vec3Zero()
 		if mouse.Released(hid.MouseButtonMiddle) {
 			changed = true
@@ -309,7 +343,7 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	}
 	if mouse.Scrolled() {
 		zoom := tc.Zoom()
-		scale := -ZOOM_SCALE_3D
+		scale := -zoomScale3DScroll
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
@@ -327,7 +361,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := mouse.Position()
-	if mouse.Pressed(hid.MouseButtonMiddle) {
+	if mouse.Pressed(hid.MouseButtonMiddle) ||
+		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt()) {
 		e.dragging = true
 		e.mouseDown = mp
 		if mouse.Pressed(hid.MouseButtonMiddle) {
@@ -336,7 +371,24 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
 		e.pan2d(oc, mp, host)
 		changed = true
-	} else if mouse.Released(hid.MouseButtonMiddle) {
+	} else if e.dragging && mouse.Held(hid.MouseButtonRight) && kb.HasAlt() {
+		cam := host.PrimaryCamera()
+		cw := cam.Width()
+		ch := cam.Height()
+		w := oc.Width()
+		h := oc.Height()
+		r := cw / ch
+		dragDeltaY := e.lastMousePos.Y() - mp.Y()
+		dragDeltaX := mp.X() - e.lastMousePos.X()
+		dragDelta := dragDeltaY + dragDeltaX
+		w += (cw / cw) * r * -zoomScale2D * dragDelta
+		h += (ch / cw) * r * -zoomScale2D * dragDelta
+		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
+			oc.Resize(w, h)
+			changed = true
+		}
+	} else if mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight) {
 		e.lastHit = matrix.Vec3Zero()
 		if mouse.Released(hid.MouseButtonMiddle) {
 			changed = true
@@ -354,8 +406,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		h := oc.Height()
 		r := cw / ch
 		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
-		w += (cw / cw) * r * -ZOOM_SCALE_2D * zoomFloor
-		h += (ch / cw) * r * -ZOOM_SCALE_2D * zoomFloor
+		w += (cw / cw) * r * -zoomScale2DScroll * zoomFloor
+		h += (ch / cw) * r * -zoomScale2DScroll * zoomFloor
 		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
 			oc.Resize(w, h)
 			changed = true

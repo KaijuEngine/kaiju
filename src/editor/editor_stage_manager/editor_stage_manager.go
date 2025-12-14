@@ -647,7 +647,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	texs := make([]*rendering.Texture, 0, len(textureIds))
 	for i := range textureIds {
-		texData, err := fs.ReadFile(filepath.Join(rootFolder, texFolder, textureIds[i]))
+		path := filepath.Join(rootFolder, texFolder, textureIds[i])
+		if _, err := fs.Stat(path); err != nil {
+			path = filepath.Join(project_file_system.StockFolder, textureIds[i])
+		}
+		texData, err := fs.ReadFile(path)
 		if err != nil {
 			slog.Error("failed to read the texture file", "id", textureIds[i], "error", err)
 			return err
@@ -673,7 +677,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	// Temp set position to 0,0,0 for the BVH generation
+	ePos := e.Transform.Position()
+	e.Transform.SetPosition(matrix.Vec3Zero())
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
+	e.Transform.SetPosition(ePos)
 	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	host.RunOnMainThread(func() {
 		for i := range texs {

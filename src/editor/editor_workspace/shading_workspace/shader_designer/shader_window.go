@@ -67,7 +67,10 @@ func collectFileOptions(pfs *project_file_system.FileSystem) map[string][]ui.Sel
 			if f.IsDir() {
 				continue
 			}
-			op := ui.SelectOption{f.Name(), filepath.ToSlash(filepath.Join(project_file_system.SrcShaderFolder, f.Name()))}
+			op := ui.SelectOption{
+				Name:  f.Name(),
+				Value: filepath.ToSlash(filepath.Join(project_file_system.SrcShaderFolder, f.Name())),
+			}
 			switch filepath.Ext(f.Name()) {
 			case ".vert":
 				vert = append(vert, op)

@@ -66,7 +66,7 @@ type EditorCameraSettings struct {
 	ZoomSpeed       float32 `default:"120" label:"Zoom Speed"`
 	FlySpeed        float32 `default:"10"`
 	FlyXSensitivity float32 `default:"0.2"`
-	FlyYSensitivity float32 `default:"0.1"`
+	FlyYSensitivity float32 `default:"0.2"`
 }
 
 type SnapSettings struct {
@@ -90,7 +90,7 @@ func (s *Settings) setDefaults() {
 	s.EditorCamera.ZoomSpeed = 120
 	s.EditorCamera.FlySpeed = 10
 	s.EditorCamera.FlyXSensitivity = 0.2
-	s.EditorCamera.FlyYSensitivity = 0.1
+	s.EditorCamera.FlyYSensitivity = 0.2
 }
 
 func (s *Settings) AddRecentProject(path string) {
