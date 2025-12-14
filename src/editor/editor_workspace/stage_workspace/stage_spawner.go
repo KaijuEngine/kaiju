@@ -302,6 +302,10 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		Transform:  &e.Transform,
 		ViewCuller: &w.Host.Cameras.Primary,
 	}
+	if mat.IsLit {
+		// TODO:  This some shady stuff to pull the first light here
+		draw.Material.ShadowMap = w.Host.Lighting().Lights.FindById(1).Target.ShadowMapTexture()
+	}
 	w.Host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 }

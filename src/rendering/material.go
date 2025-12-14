@@ -93,6 +93,7 @@ type MaterialData struct {
 	RenderPass     string `options:""` // Blank = fallback
 	ShaderPipeline string `options:""` // Blank = fallback
 	Textures       []MaterialTextureData
+	IsLit          bool
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -142,6 +143,7 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 		Name:      d.Name,
 		Textures:  make([]*Texture, len(d.Textures)),
 		Instances: make(map[string]*Material),
+		IsLit:     d.IsLit,
 	}
 	sd := ShaderData{}
 	rp := RenderPassData{}

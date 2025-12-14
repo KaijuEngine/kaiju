@@ -93,19 +93,18 @@ func (c LightDataBinding) Init(e *engine.Entity, host *engine.Host) {
 	}
 	e.AddNamedData("LightModule", lm)
 	lm.updateId = host.Updater.AddUpdate(lm.update)
-	lm.id = host.Lighting().Lights.Add(e.Transform.Position(), light)
+	lm.id = host.Lighting().Lights.Add(&e.Transform, light)
 }
 
 func (c *LightModule) update(deltaTime float64) {
 	if !c.entity.IsActive() {
 		return
 	}
-	t := &c.entity.Transform
 	light := c.host.Lighting().Lights.FindById(c.id)
 	// TODO:  Only make updates if things have changed?
-	light.Position = t.Position()
-	light.Target.SetPosition(light.Position)
-	light.Target.SetDirection(t.Forward())
+	light.Transform = &c.entity.Transform
+	light.Target.SetPosition(light.Transform.Position())
+	light.Target.SetDirection(light.Transform.Forward())
 	light.Target.SetDirection(matrix.Vec3Forward())
 	light.Target.SetPosition(matrix.Vec3Zero())
 	light.Target.SetAmbient(c.Data.Ambient)

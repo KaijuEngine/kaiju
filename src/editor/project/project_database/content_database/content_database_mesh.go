@@ -161,6 +161,7 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			Shader:         "pbr.shader",
 			ShaderPipeline: "simple.shaderpipeline",
 			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			IsLit:          true,
 		}
 		if t, ok := variant.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))

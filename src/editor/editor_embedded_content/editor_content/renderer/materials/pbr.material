@@ -1,1 +1,1 @@
-{"Name":"pbr","Shader":"pbr.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[{"Texture":"square.png","Filter":"Linear"}]}
+{"Name":"pbr","Shader":"pbr.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[{"Texture":"square.png","Filter":"Linear"}],"IsLit":true}

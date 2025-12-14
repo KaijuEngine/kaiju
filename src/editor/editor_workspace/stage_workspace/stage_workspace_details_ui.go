@@ -282,6 +282,9 @@ func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v fl
 		// TODO:  Should be refitting the BVH of each, but since the current
 		// refit just does the world anyway, we're skipping for now to do the
 		// world at the end.
+		for _, db := range s.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(dui.workspace.Value().Host), s)
+		}
 	}
 	history := dui.workspace.Value().ed.History()
 	if last, ok := history.Last(); ok {

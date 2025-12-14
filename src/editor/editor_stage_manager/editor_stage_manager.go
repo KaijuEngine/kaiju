@@ -687,6 +687,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			Transform:  &e.Transform,
 			ViewCuller: &host.Cameras.Primary,
 		}
+		if mat.IsLit {
+			// TODO:  This some shady stuff to pull the first light here
+			draw.Material.ShadowMap = host.Lighting().Lights.FindById(1).Target.ShadowMapTexture()
+			draw.CastsShadows = true
+		}
 		host.Drawings.AddDrawing(draw)
 		e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 	})

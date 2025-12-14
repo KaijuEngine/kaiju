@@ -47,11 +47,10 @@ import (
 type EntryId = int
 
 type Entry[T any] struct {
-	// TODO:  If the target moves, this transform would need to be updated
-	id       EntryId
-	Position matrix.Vec3
-	Target   T
-	lastDist float32
+	id        EntryId
+	Transform *matrix.Transform
+	Target    T
+	lastDist  float32
 }
 
 type Collection[T any] struct {
@@ -61,13 +60,13 @@ type Collection[T any] struct {
 	entries   []Entry[T]
 }
 
-func (c *Collection[T]) Add(position matrix.Vec3, target T) EntryId {
-	defer tracing.NewRegion("ShadowCollection.Add").End()
+func (c *Collection[T]) Add(transform *matrix.Transform, target T) EntryId {
+	defer tracing.NewRegion("Collection.Add").End()
 	c.nextId++
 	c.entries = append(c.entries, Entry[T]{
-		id:       c.nextId,
-		Position: position,
-		Target:   target,
+		id:        c.nextId,
+		Transform: transform,
+		Target:    target,
 	})
 	return c.nextId
 }
@@ -89,7 +88,7 @@ func (c *Collection[T]) FindClosest(point matrix.Vec3, writeTo []T) {
 	if matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
 		for i := range c.entries {
 			e := &c.entries[i]
-			e.lastDist = point.Subtract(e.Position).Length()
+			e.lastDist = point.Subtract(e.Transform.Position()).Length()
 		}
 		sort.Slice(c.entries, func(i, j int) bool {
 			return c.entries[i].lastDist < c.entries[j].lastDist
