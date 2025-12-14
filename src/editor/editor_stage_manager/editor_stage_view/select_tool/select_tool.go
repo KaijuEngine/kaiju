@@ -73,10 +73,13 @@ func (s *SelectTool) Update() {
 		l.Scale(0.0001, 0.0001)
 		u.Clean()
 	} else if c.Released() {
-		if s.start.Distance(c.ScreenPosition()) > 5 {
-			s.handler.TryBoxSelect(s.box())
+		u := s.panel.Base()
+		if u.IsActive() {
+			if s.start.Distance(c.ScreenPosition()) > 5 {
+				s.handler.TryBoxSelect(s.box())
+			}
+			s.panel.Base().Hide()
 		}
-		s.panel.Base().Hide()
 	} else if c.Held() && s.panel.Base().Entity().IsActive() {
 		box := s.box()
 		x, y := box.Left(), box.Top()

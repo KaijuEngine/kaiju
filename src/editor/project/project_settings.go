@@ -45,7 +45,6 @@ import (
 type Settings struct {
 	Name                 string
 	EntryPointStage      string
-	CodeEditor           string `default:"code"`
 	ArchiveEncryptionKey string
 	Android              AndroidSettings
 	EditorVersion        float64 `visible:"false"`

@@ -190,7 +190,7 @@ func (ed *Editor) update(deltaTime float64) {
 			ed.history.Redo()
 		}
 	}
-	if kb.KeyDown(hid.KeyboardKeyF1) {
+	if kb.HasShift() && kb.KeyDown(hid.KeyboardKeyF1) {
 		ed.blurred = true
 		ed.BlurInterface()
 		ai_prompt.Show(ed.host, func() {

@@ -56,8 +56,9 @@ type selectData struct {
 }
 
 type SelectOption struct {
-	Name  string
-	Value string
+	Name   string
+	Value  string
+	target *UI
 }
 
 func (s *selectData) innerPanelData() *panelData { return &s.panelData }
@@ -138,7 +139,6 @@ func (s *Select) Init(text string, options []SelectOption) {
 
 func (s *Select) AddOption(name, value string) {
 	data := s.SelectData()
-	data.options = append(data.options, SelectOption{name, value})
 	// Create panel to hold the label
 	man := s.man.Value()
 	panel := man.Add()
@@ -169,13 +169,19 @@ func (s *Select) AddOption(name, value string) {
 		p.UnEnforceColor()
 		lbl.SetBGColor(p.shaderData.FgColor)
 	})
+	data.options = append(data.options, SelectOption{name, value, panel})
 }
 
 func (s *Select) ClearOptions() {
 	data := s.SelectData()
 	data.options = data.options[:0]
+	lpd := data.list.PanelData()
 	for i := len(data.list.entity.Children) - 1; i >= 0; i-- {
-		data.list.RemoveChild(data.list.Child(i))
+		c := data.list.Child(i)
+		if c == (*UI)(lpd.scrollBarX) || c == (*UI)(lpd.scrollBarY) {
+			continue
+		}
+		data.list.RemoveChild(c)
 	}
 }
 
@@ -270,7 +276,14 @@ func (s *Select) collapse() {
 
 func (s *Select) optionClick(option *UI) {
 	data := s.SelectData()
-	idx := data.list.entity.IndexOfChild(&option.entity)
+	// Scroll bar is a child, can't use data.list.entity.IndexOfChild(&option.entity)
+	idx := 0
+	for i := range data.options {
+		if option == data.options[i].target {
+			idx = i
+			break
+		}
+	}
 	s.PickOption(idx)
 }
 

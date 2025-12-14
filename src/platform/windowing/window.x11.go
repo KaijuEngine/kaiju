@@ -41,6 +41,7 @@ package windowing
 /*
 #cgo CFLAGS: -I/usr/include
 #cgo LDFLAGS: -lX11 -lXcursor
+#cgo noescape get_toggle_key_state
 #cgo noescape window_main
 #cgo noescape window_poll_controller
 #cgo noescape window_poll
@@ -73,6 +74,7 @@ import "C"
 import (
 	"errors"
 	"kaiju/klib"
+	"kaiju/platform/hid"
 	"unsafe"
 
 	"golang.design/x/clipboard"
@@ -85,6 +87,20 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 
 func scaleScrollDelta(delta float32) float32 {
 	return delta
+}
+
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
+    mask := C.get_toggle_key_state()
+   
+	caps := (mask & 1) != 0
+    num  := (mask & 2) != 0
+    scroll := (mask & 4) != 0
+
+	return map[hid.KeyboardKey]bool{
+		hid.KeyboardKeyCapsLock: caps,
+		hid.KeyboardKeyNumLock:  num,
+		hid.KeyboardKeyScrollLock: scroll,
+	}
 }
 
 func (w *Window) createWindow(windowName string, x, y int, _ any) {

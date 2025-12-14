@@ -216,7 +216,7 @@ func (s *Stage) Launch(host *engine.Host) {
 	entityBindings := []func(){}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
-		e := host.NewEntity()
+		e := host.NewEntity(host.WorkGroup())
 		e.SetName(se.Name)
 		if parent != nil {
 			e.SetParent(parent)

@@ -38,8 +38,8 @@ package physics
 
 /*
 #cgo CXXFLAGS: -std=c++11
-#cgo windows LDFLAGS: -L../../libs -lBulletDynamics_windows_amd64 -lBulletCollision_windows_amd64 -lLinearMath_windows_amd64 -lstdc++ -lm
-#cgo linux,!android LDFLAGS: -L../../libs -lBulletDynamics_linux_amd64 -lBulletCollision_linux_amd64 -lLinearMath_linux_amd64 -lstdc++ -lm
+#cgo windows,amd64 LDFLAGS: -L../../libs -lBulletDynamics_windows_amd64 -lBulletCollision_windows_amd64 -lLinearMath_windows_amd64 -lstdc++ -lm
+#cgo linux,amd64,!android LDFLAGS: -L../../libs -lBulletDynamics_linux_amd64 -lBulletCollision_linux_amd64 -lLinearMath_linux_amd64 -lstdc++ -lm
 #cgo darwin,arm64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_arm64 -lBulletCollision_darwin_arm64 -lLinearMath_darwin_arm64 -lstdc++ -lm
 #cgo darwin,amd64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_amd64 -lBulletCollision_darwin_amd64 -lLinearMath_darwin_amd64 -lstdc++ -lm
 #include "bullet3_wrapper.h"
@@ -66,6 +66,7 @@ import (
 type RigidBody struct {
 	ptr   *C.btRigidBody
 	shape *CollisionShape
+	mass  float32
 }
 
 func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, inertia matrix.Vec3) *RigidBody {
@@ -74,12 +75,15 @@ func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, iner
 			motion.ptr, shape.ptr,
 			C.float(inertia.X()), C.float(inertia.Y()), C.float(inertia.Z())),
 		shape: shape,
+		mass:  mass,
 	}
 	runtime.AddCleanup(b, func(ptr *C.btRigidBody) {
 		C.destroy_btRigidBody(ptr)
 	}, b.ptr)
 	return b
 }
+
+func (r *RigidBody) IsStatic() bool { return r.mass == 0 }
 
 func (r *RigidBody) Shape() *CollisionShape { return r.shape }
 

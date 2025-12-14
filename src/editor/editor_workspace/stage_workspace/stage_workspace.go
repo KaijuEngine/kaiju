@@ -126,10 +126,12 @@ func (w *StageWorkspace) update(deltaTime float64) {
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
-	w.contentUI.processHotkeys(w.Host)
-	w.hierarchyUI.processHotkeys(w.Host)
-	w.detailsUI.processHotkeys(w.Host)
-	w.stageView.Update(deltaTime)
+	didKeyboardActions := w.stageView.Update(deltaTime)
+	if !didKeyboardActions {
+		w.contentUI.processHotkeys(w.Host)
+		w.hierarchyUI.processHotkeys(w.Host)
+		w.detailsUI.processHotkeys(w.Host)
+	}
 }
 
 func (w *StageWorkspace) toggleDimension(e *document.Element) {

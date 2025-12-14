@@ -46,6 +46,7 @@ import (
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/systems/events"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/stages"
 	"log/slog"
@@ -55,6 +56,13 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+)
+
+type GameBuildMode int
+
+const (
+	GameBuildModeDebug GameBuildMode = iota
+	GameBuildModeRelease
 )
 
 // Project is the mediator/container for all information about the developer's
@@ -107,18 +115,25 @@ func (p *Project) CacheDatabase() *content_database.Cache {
 // Initialize constructs a new project that is bound to the given path. This
 // function can fail if the project path already exists and is not empty, or if
 // the supplied path is to that of a file and not a folder.
-func (p *Project) Initialize(path string, editorVersion float64) error {
+func (p *Project) Initialize(path, templatePath string, editorVersion float64) error {
 	defer tracing.NewRegion("Project.Initialize").End()
-	p.initializeCustomSerializers()
-	if err := ensurePathIsNewOrEmpty(path); err != nil {
+	var err error
+	if err = ensurePathIsNewOrEmpty(path); err != nil {
 		return err
 	}
-	var err error
-	if p.fileSystem, err = project_file_system.New(path); err == nil {
-		err = p.fileSystem.SetupStructure()
-		if err != nil {
+	if p.fileSystem, err = project_file_system.New(path); err != nil {
+		return err
+	}
+	if templatePath != "" {
+		if s, err := os.Stat(templatePath); err != nil && s.IsDir() {
+			return fmt.Errorf("the path '%s' is not a valid template", templatePath)
+		}
+		if err = filesystem.Unzip(templatePath, path); err != nil {
 			return err
 		}
+		p.TryUpgrade()
+	} else if err = p.fileSystem.SetupStructure(); err != nil {
+		return err
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
 		slog.Error("failed to read the cache database", "error", err)
@@ -128,6 +143,7 @@ func (p *Project) Initialize(path string, editorVersion float64) error {
 		return ConfigLoadError{Err: err}
 	}
 	p.settings.EditorVersion = editorVersion
+	p.commonInit()
 	return nil
 }
 
@@ -166,7 +182,12 @@ func (p *Project) Open(path string) error {
 	if err = p.settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
+	p.commonInit()
 	return nil
+}
+
+func (p *Project) commonInit() {
+	p.initializeCustomSerializers()
 }
 
 // Name will return the name that has been set for this project. If the name is
@@ -204,6 +225,18 @@ func (p *Project) CompileRelease() {
 	p.CompileWithTags()
 }
 
+// CompileGame will build all of the Go code for the project without launching
+// it. Internally, this will call #CompileDebug or #CompileRelease based on the
+// supplied buildMode.
+func (p *Project) CompileGame(buildMode GameBuildMode) {
+	switch buildMode {
+	case GameBuildModeDebug:
+		p.CompileDebug()
+	case GameBuildModeRelease:
+		p.CompileRelease()
+	}
+}
+
 // CompileWithTags will build all of the Go code for the project without
 // launching it. Any errors during the build process will be contained within an
 // error slog. Look for the fields "error", "log", and "errorlog" for more
@@ -229,7 +262,7 @@ func (p *Project) CompileWithTags(tags ...string) {
 		slog.Info("compiling the project")
 	}
 	if !slices.Contains(tags, "debug") {
-		args = append(args, `-ldflags="-s -w"`)
+		args = append(args, `-ldflags=-s -w`)
 	}
 	args = append(args, "./src")
 	cmd := exec.Command("go", args...)
@@ -410,6 +443,27 @@ func (p *Project) TryUpgrade() error {
 		return err
 	}
 	p.writeProjectTitle()
+	return nil
+}
+
+func (p *Project) ExportAsTemplate(path, name string) error {
+	if !strings.HasSuffix(name, ".zip") {
+		name += ".zip"
+	}
+	fullPath := filepath.Join(path, name)
+	slog.Info("Creating template project...", "path", fullPath)
+	if _, err := os.Stat(fullPath); err == nil {
+		return fmt.Errorf("export template path '%s' already exists: %v", fullPath, err)
+	}
+	err := filesystem.Zip(p.fileSystem.FullPath(""), fullPath,
+		[]string{"database/project.json"},
+		[]string{"build", "kaiju"},
+		[]string{".exe"})
+	if err != nil {
+		slog.Info("Failed to create template project", "path", fullPath, "error", err)
+		return err
+	}
+	slog.Info("Project template created successfully", "path", fullPath)
 	return nil
 }
 

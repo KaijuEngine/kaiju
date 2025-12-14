@@ -49,9 +49,9 @@ type selectHistory struct {
 
 func (h *selectHistory) Redo() {
 	defer tracing.NewRegion("selectHistory.Redo").End()
-	for _, e := range h.manager.selected {
-		if !slices.Contains(h.to, e) {
-			h.manager.DeselectEntity(e)
+	for i := len(h.manager.selected) - 1; i >= 0; i-- {
+		if !slices.Contains(h.to, h.manager.selected[i]) {
+			h.manager.DeselectEntity(h.manager.selected[i])
 		}
 	}
 	for _, e := range h.to {
@@ -61,9 +61,9 @@ func (h *selectHistory) Redo() {
 
 func (h *selectHistory) Undo() {
 	defer tracing.NewRegion("selectHistory.Undo").End()
-	for _, e := range h.manager.selected {
-		if !slices.Contains(h.from, e) {
-			h.manager.DeselectEntity(e)
+	for i := len(h.manager.selected) - 1; i >= 0; i-- {
+		if !slices.Contains(h.from, h.manager.selected[i]) {
+			h.manager.DeselectEntity(h.manager.selected[i])
 		}
 	}
 	for _, e := range h.from {

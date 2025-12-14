@@ -47,6 +47,7 @@
 #include <pthread.h>
 #include <X11/Xlib.h>
 #include <X11/Xcursor/Xcursor.h>
+#include <X11/XKBlib.h>
 
 // Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
@@ -58,6 +59,17 @@
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask | StructureNotifyMask
 
 Atom XA_ATOM = 4, XA_STRING = 31;
+
+unsigned int get_toggle_key_state() {
+    Display *d = XOpenDisplay(NULL);
+    if (!d) return 0;
+
+    unsigned int state = 0;
+    XkbGetIndicatorState(d, XkbUseCoreKbd, &state);
+    XCloseDisplay(d);
+
+    return state;
+}
 
 static bool isExtensionSupported(const char* extList, const char* extension) {
 	const char* start;
@@ -412,6 +424,7 @@ void window_lock_cursor(void* state, int x, int y) {
 	s->sm.lockCursor.x = x;
 	s->sm.lockCursor.y = y;
 	s->sm.lockCursor.active = true;
+	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, x, y);
 }
 
 void window_unlock_cursor(void* state) {

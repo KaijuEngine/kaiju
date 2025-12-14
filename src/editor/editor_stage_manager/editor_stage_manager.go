@@ -154,7 +154,7 @@ func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
-	e.Init()
+	e.Init(m.host.WorkGroup())
 	e.SetName(name)
 	e.StageData.Description.Id = id
 	m.host.AddEntity(&e.Entity)
@@ -247,7 +247,7 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 	} else {
 		child.SetParent(nil)
 	}
-	if parent.StageData.Bvh != nil {
+	if parent != nil && parent.StageData.Bvh != nil {
 		m.RefitBVH(parent)
 	} else if child.StageData.Bvh != nil {
 		m.RefitBVH(child)
@@ -264,7 +264,7 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 // Clear will destroy all entities that are managed by this stage manager.
 func (m *StageManager) Clear() {
 	defer tracing.NewRegion("StageManager.Clear").End()
-	for i := range m.entities {
+	for i := len(m.entities) - 1; i >= 0; i-- {
 		m.OnEntityDestroy.Execute(m.entities[i])
 		m.entities[i].Destroy()
 		// Deleted entities are not in the host and need to be cleaned up manually

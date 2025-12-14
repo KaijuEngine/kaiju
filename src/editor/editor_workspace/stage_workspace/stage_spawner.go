@@ -281,12 +281,15 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	man := w.stageView.Manager()
-	e := man.AddEntity(cc.Config.Name, point)
+	e := man.AddEntity(cc.Config.Name, matrix.Vec3Zero())
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
 	man.AddBVH(e.StageData.Bvh, &e.Transform)
+	// Set the position after generating the BVH
+	e.Transform.SetPosition(point)
+	man.RefitBVH(e)
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),

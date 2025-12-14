@@ -37,9 +37,15 @@
 package filesystem
 
 import (
+	"archive/zip"
+	"fmt"
+	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"unsafe"
 )
 
@@ -165,4 +171,91 @@ func OpenFileDialogWindow(startPath string, extensions []DialogExtension, ok fun
 
 func OpenSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
 	return openSaveFileDialogWindow(startPath, fileName, extensions, ok, cancel, windowHandle)
+}
+
+func Zip(srcDir, outFile string, skipFiles, skipFolders, skipExtensions []string) error {
+	out, err := os.Create(outFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	z := zip.NewWriter(out)
+	defer z.Close()
+	err = filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if path == srcDir {
+			return nil
+		}
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && slices.Contains(skipFolders, relPath) {
+			return filepath.SkipDir
+		}
+		if !d.IsDir() {
+			ext := filepath.Ext(d.Name())
+			if slices.Contains(skipExtensions, ext) {
+				return nil
+			}
+		}
+		if d.IsDir() {
+			_, err := z.Create(relPath + "/")
+			return err
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		writer, err := z.Create(relPath)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(writer, file)
+		return err
+	})
+	return err
+}
+
+func Unzip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		return err
+	}
+	for _, f := range r.File {
+		fpath := filepath.Join(dest, f.Name)
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return fmt.Errorf("illegal file path: %s", f.Name)
+		}
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(fpath, f.Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
+			return err
+		}
+		inFile, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer inFile.Close()
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+		defer outFile.Close()
+		if _, err := io.Copy(outFile, inFile); err != nil {
+			return err
+		}
+	}
+	return nil
 }

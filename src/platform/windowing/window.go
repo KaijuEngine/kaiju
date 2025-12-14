@@ -114,6 +114,12 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 		title:      windowName,
 		windowSync: make(chan struct{}),
 	}
+	keys := w.checkToggleKeyState()
+	for key, pressed := range keys {
+		if pressed {
+			w.Keyboard.SetToggleKeyState(key, hid.KeyStateToggled)
+		}
+	}
 	activeWindows = slices.Insert(activeWindows, 0, w)
 	w.Cursor = hid.NewCursor(&w.Mouse, &w.Touch, &w.Stylus)
 	w.createWindow(windowName+"\x00\x00", x, y, platformState)
@@ -334,13 +340,17 @@ func (w *Window) SetSize(width, height int) {
 	w.height = height
 }
 
-func (w *Window) RemoveBorder()       { w.removeBorder() }
-func (w *Window) AddBorder()          { w.addBorder() }
-func (w *Window) ShowCursor()         { w.showCursor() }
-func (w *Window) HideCursor()         { w.hideCursor() }
-func (w *Window) IsFullScreen() bool  { return w.isFullScreen }
-func (w *Window) LockCursor(x, y int) { w.lockCursor(x, y) }
-func (w *Window) UnlockCursor()       { w.unlockCursor() }
+func (w *Window) RemoveBorder()      { w.removeBorder() }
+func (w *Window) AddBorder()         { w.addBorder() }
+func (w *Window) ShowCursor()        { w.showCursor() }
+func (w *Window) HideCursor()        { w.hideCursor() }
+func (w *Window) IsFullScreen() bool { return w.isFullScreen }
+func (w *Window) UnlockCursor()      { w.unlockCursor() }
+
+func (w *Window) LockCursor(x, y int) {
+	w.lockCursor(x, y)
+	w.Mouse.SetPosition(float32(x), float32(y), float32(w.width), float32(w.height))
+}
 
 func (w *Window) SetFullscreen() {
 	if w.isFullScreen {
@@ -489,10 +499,16 @@ func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
 	switch evt.action {
 	case windowEventButtonTypeDown:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyDown(key)
+		if !w.Keyboard.IsToggleKey(key) {
+			w.Keyboard.SetKeyDown(key)
+		}
 	case windowEventButtonTypeUp:
 		key := hid.ToKeyboardKey(int(evt.buttonId))
-		w.Keyboard.SetKeyUp(key)
+		if w.Keyboard.IsToggleKey(key) {
+			w.Keyboard.ToggleKey(key)
+		} else {
+			w.Keyboard.SetKeyUp(key)
+		}
 	}
 }
 

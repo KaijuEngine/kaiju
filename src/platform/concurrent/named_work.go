@@ -43,33 +43,38 @@ import (
 )
 
 type WorkGroup struct {
-	work sync.Map
+	work  map[string][]func()
+	mutex sync.Mutex
+}
+
+func (w *WorkGroup) Init() {
+	w.work = map[string][]func(){}
 }
 
 func (w *WorkGroup) Add(name string, work func()) {
-	if target, loaded := w.work.LoadOrStore(name, []func(){work}); loaded {
-		list := target.([]func())
-		list = append(list, work)
-		w.work.Store(name, list)
-	}
+	w.mutex.Lock()
+	m := w.work[name]
+	m = append(m, work)
+	w.work[name] = m
+	w.mutex.Unlock()
 }
 
 func (w *WorkGroup) Execute(name string, threads *Threads) {
 	defer tracing.NewRegion("WorkGroup: " + name).End()
-	if target, ok := w.work.Load(name); ok {
-		list := target.([]func())
-		wg := sync.WaitGroup{}
-		calls := make([]func(int), len(list))
-		wg.Add(len(calls))
-		for i := range list {
-			calls[i] = func(int) {
-				list[i]()
-				wg.Done()
-			}
-		}
-		threads.AddWork(calls)
-		wg.Wait()
-		list = klib.WipeSlice(list[:0])
-		w.work.Store(name, list)
+	work := w.work[name]
+	if len(work) == 0 {
+		return
 	}
+	calls := make([]func(int), len(work))
+	wg := sync.WaitGroup{}
+	wg.Add(len(calls))
+	for i := range work {
+		calls[i] = func(int) {
+			work[i]()
+			wg.Done()
+		}
+	}
+	threads.AddWork(calls)
+	wg.Wait()
+	w.work[name] = klib.WipeSlice(work[:0])
 }
