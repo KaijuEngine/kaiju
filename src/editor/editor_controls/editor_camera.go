@@ -324,7 +324,7 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 		dragDeltaX := mp.X() - e.lastMousePos.X()
 		dragDelta := dragDeltaY + dragDeltaX
 		zoom := tc.Zoom()
-		scale := ZOOM_SCALE_3D
+		scale := zoomScale3D * 0.1
 		if zoom < 1.0 {
 			scale *= zoom / 1.0
 		}
@@ -378,8 +378,8 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 		dragDeltaY := e.lastMousePos.Y() - mp.Y()
 		dragDeltaX := mp.X() - e.lastMousePos.X()
 		dragDelta := dragDeltaY + dragDeltaX
-		w += (cw / cw) * r * -ZOOM_SCALE_2D * dragDelta
-		h += (ch / cw) * r * -ZOOM_SCALE_2D * dragDelta
+		w += (cw / cw) * r * -zoomScale2D * 0.1 * dragDelta
+		h += (ch / cw) * r * -zoomScale2D * 0.1 * dragDelta
 		if w > matrix.FloatSmallestNonzero && h > matrix.FloatSmallestNonzero {
 			oc.Resize(w, h)
 			changed = true
