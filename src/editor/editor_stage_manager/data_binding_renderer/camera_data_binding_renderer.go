@@ -42,7 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
-	"kaiju/engine_data_bindings/engine_data_binding_camera"
+	"kaiju/engine_entity_data/engine_entity_data_camera"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -52,7 +52,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_data_binding_camera.BindingKey, &CameraDataBindingRenderer{
+	AddRenderer(engine_entity_data_camera.BindingKey, &CameraDataBindingRenderer{
 		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
 	})
 }
@@ -122,13 +122,13 @@ func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_sta
 			h = float32(host.Window.Height())
 		}
 		var cam cameras.Camera
-		camType := engine_data_binding_camera.CameraType(data.FieldValueByName("Type").(int))
+		camType := engine_entity_data_camera.CameraType(data.FieldValueByName("Type").(int))
 		switch camType {
-		case engine_data_binding_camera.CameraTypeOrthographic:
+		case engine_entity_data_camera.CameraTypeOrthographic:
 			cam = cameras.NewStandardCameraOrthographic(w, h, w, h, target.Transform.Position())
-		case engine_data_binding_camera.CameraTypeTurntable:
+		case engine_entity_data_camera.CameraTypeTurntable:
 			cam = cameras.ToTurntable(cameras.NewStandardCamera(w, h, w, h, target.Transform.Position()))
-		case engine_data_binding_camera.CameraTypePerspective:
+		case engine_entity_data_camera.CameraTypePerspective:
 			fallthrough
 		default:
 			cam = cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())

@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* rigid_body_data_binding.go                                                 */
+/* light_data_binding.go                                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,67 +34,88 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine_data_binding_physics
+package engine_entity_data_light
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/lighting"
 	"kaiju/matrix"
-	"kaiju/physics"
+	"kaiju/rendering"
 )
 
-const BindingKey = "kaiju.RigidBodyDataBinding"
-
-type Shape int
-
-const (
-	ShapeBox Shape = iota
-	ShapeSphere
-	ShapeCapsule
-	ShapeCylinder
-	ShapeCone
-)
+const BindingKey = "kaiju.LightDataBinding"
 
 func init() {
-	engine.RegisterEntityData(BindingKey, RigidBodyDataBinding{})
+	engine.RegisterEntityData(BindingKey, LightDataBinding{})
 }
 
-type RigidBodyDataBinding struct {
-	Extent   matrix.Vec3 `default:"1,1,1"`
-	Mass     float32     `default:"1"`
-	Radius   float32     `default:"1"`
-	Height   float32     `default:"1"`
-	Shape    Shape
-	IsStatic bool
+type LightDataBinding struct {
+	Ambient     matrix.Vec3 `default:"0.1,0.1,0.1"`
+	Diffuse     matrix.Vec3 `default:"1,1,1"`
+	Specular    matrix.Vec3 `default:"1,1,1"`
+	Intensity   float32     `default:"5"`
+	Constant    float32     `default:"1"`
+	Linear      float32     `default:"0.0014"`
+	Quadratic   float32     `default:"0.000007"`
+	Cutoff      float32     `default:"0.8433914458128857"` // matrix.Cos(matrix.Deg2Rad(32.5))
+	OuterCutoff float32     `default:"0.636078220277764"`  // matrix.Cos(matrix.Deg2Rad(50.5))
+	//lightType    rendering.LightType
+	CastsShadows bool
 }
 
-func (r RigidBodyDataBinding) Init(e *engine.Entity, host *engine.Host) {
-	t := &e.Transform
-	scale := t.Scale()
-	var shape *physics.CollisionShape
-	switch r.Shape {
-	case ShapeBox:
-		size := r.Extent.Multiply(scale)
-		shape = &physics.NewBoxShape(size).CollisionShape
-	case ShapeSphere:
-		rad := r.Radius * float32(scale.LongestAxis())
-		shape = &physics.NewSphereShape(rad).CollisionShape
-	case ShapeCapsule:
-		rad := r.Radius * float32(scale.LongestAxis())
-		height := r.Height * scale.Y()
-		shape = &physics.NewCapsuleShape(rad, height).CollisionShape
-	case ShapeCylinder:
-		size := r.Extent.Multiply(scale)
-		shape = &physics.NewCylinderShape(size).CollisionShape
-	case ShapeCone:
-		rad := r.Radius * float32(scale.LongestAxis())
-		height := r.Height * scale.Y()
-		shape = &physics.NewConeShape(rad, height).CollisionShape
+type LightModule struct {
+	id       lighting.EntryId
+	entity   *engine.Entity
+	host     *engine.Host
+	updateId engine.UpdateId
+	Data     LightDataBinding
+}
+
+func (c LightDataBinding) Init(e *engine.Entity, host *engine.Host) {
+	light := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+		host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
+	light.SetDirection(matrix.Vec3Forward())
+	light.SetPosition(matrix.Vec3Zero())
+	light.SetAmbient(c.Ambient)
+	light.SetDiffuse(c.Diffuse)
+	light.SetSpecular(c.Specular)
+	light.SetIntensity(c.Intensity)
+	light.SetConstant(c.Constant)
+	light.SetLinear(c.Linear)
+	light.SetQuadratic(c.Quadratic)
+	light.SetCutoff(c.Cutoff)
+	light.SetOuterCutoff(c.OuterCutoff)
+	light.SetCastsShadows(c.CastsShadows)
+	lm := &LightModule{
+		entity: e,
+		host:   host,
+		Data:   c,
 	}
-	if r.IsStatic {
-		r.Mass = 0
+	e.AddNamedData("LightModule", lm)
+	lm.updateId = host.Updater.AddUpdate(lm.update)
+	lm.id = host.Lighting().Lights.Add(e.Transform.Position(), light)
+}
+
+func (c *LightModule) update(deltaTime float64) {
+	if !c.entity.IsActive() {
+		return
 	}
-	inertia := shape.CalculateLocalInertia(r.Mass)
-	motion := physics.NewDefaultMotionState(matrix.QuaternionFromEuler(t.Rotation()), t.Position())
-	body := physics.NewRigidBody(r.Mass, motion, shape, inertia)
-	host.Physics().AddEntity(e, body)
+	t := &c.entity.Transform
+	light := c.host.Lighting().Lights.FindById(c.id)
+	// TODO:  Only make updates if things have changed?
+	light.Position = t.Position()
+	light.Target.SetPosition(light.Position)
+	light.Target.SetDirection(t.Forward())
+	light.Target.SetDirection(matrix.Vec3Forward())
+	light.Target.SetPosition(matrix.Vec3Zero())
+	light.Target.SetAmbient(c.Data.Ambient)
+	light.Target.SetDiffuse(c.Data.Diffuse)
+	light.Target.SetSpecular(c.Data.Specular)
+	light.Target.SetIntensity(c.Data.Intensity)
+	light.Target.SetConstant(c.Data.Constant)
+	light.Target.SetLinear(c.Data.Linear)
+	light.Target.SetQuadratic(c.Data.Quadratic)
+	light.Target.SetCutoff(c.Data.Cutoff)
+	light.Target.SetOuterCutoff(c.Data.OuterCutoff)
+	light.Target.SetCastsShadows(c.Data.CastsShadows)
 }

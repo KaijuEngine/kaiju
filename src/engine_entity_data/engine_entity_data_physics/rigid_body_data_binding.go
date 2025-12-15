@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* camera_data_binding.go                                                     */
+/* rigid_body_data_binding.go                                                 */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,94 +34,67 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine_data_binding_camera
+package engine_entity_data_physics
 
 import (
 	"kaiju/engine"
-	"kaiju/engine/cameras"
+	"kaiju/matrix"
+	"kaiju/physics"
 )
 
-const BindingKey = "kaiju.CameraDataBinding"
+const BindingKey = "kaiju.RigidBodyDataBinding"
 
-type CameraType int
+type Shape int
 
 const (
-	CameraTypePerspective CameraType = iota
-	CameraTypeOrthographic
-	CameraTypeTurntable
+	ShapeBox Shape = iota
+	ShapeSphere
+	ShapeCapsule
+	ShapeCylinder
+	ShapeCone
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, CameraDataBinding{})
+	engine.RegisterEntityData(BindingKey, RigidBodyDataBinding{})
 }
 
-type CameraDataBinding struct {
-	Width        float32 `default:"0" tip:"0 = viewport width"`
-	Height       float32 `default:"0" tip:"0 = viewport height"`
-	FOV          float32 `clamp:"60,45,120"` //default,min,max
-	NearPlane    float32 `default:"0.01"`
-	FarPlane     float32 `default:"500.0"`
-	Type         CameraType
-	IsMainCamera bool
+type RigidBodyDataBinding struct {
+	Extent   matrix.Vec3 `default:"1,1,1"`
+	Mass     float32     `default:"1"`
+	Radius   float32     `default:"1"`
+	Height   float32     `default:"1"`
+	Shape    Shape
+	IsStatic bool
 }
 
-type CameraModule struct {
-	entity   *engine.Entity
-	host     *engine.Host
-	updateId engine.UpdateId
-	camera   cameras.Camera
-}
-
-func NewCameraDataBinding() CameraDataBinding {
-	return CameraDataBinding{
-		FOV:          60,
-		NearPlane:    0.01,
-		FarPlane:     500,
-		IsMainCamera: false,
+func (r RigidBodyDataBinding) Init(e *engine.Entity, host *engine.Host) {
+	t := &e.Transform
+	scale := t.Scale()
+	var shape *physics.CollisionShape
+	switch r.Shape {
+	case ShapeBox:
+		size := r.Extent.Multiply(scale)
+		shape = &physics.NewBoxShape(size).CollisionShape
+	case ShapeSphere:
+		rad := r.Radius * float32(scale.LongestAxis())
+		shape = &physics.NewSphereShape(rad).CollisionShape
+	case ShapeCapsule:
+		rad := r.Radius * float32(scale.LongestAxis())
+		height := r.Height * scale.Y()
+		shape = &physics.NewCapsuleShape(rad, height).CollisionShape
+	case ShapeCylinder:
+		size := r.Extent.Multiply(scale)
+		shape = &physics.NewCylinderShape(size).CollisionShape
+	case ShapeCone:
+		rad := r.Radius * float32(scale.LongestAxis())
+		height := r.Height * scale.Y()
+		shape = &physics.NewConeShape(rad, height).CollisionShape
 	}
-}
-
-func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host) {
-	cm := &CameraModule{}
-	e.AddNamedData("CameraModule", cm)
-	cm.entity = e
-	cm.host = host
-	w := c.Width
-	h := c.Height
-	if w <= 0 {
-		w = float32(host.Window.Width())
+	if r.IsStatic {
+		r.Mass = 0
 	}
-	if h <= 0 {
-		h = float32(host.Window.Height())
-	}
-	switch c.Type {
-	case CameraTypeOrthographic:
-		cm.camera = cameras.NewStandardCameraOrthographic(w, h, w, h, e.Transform.Position())
-	case CameraTypeTurntable:
-		cm.camera = cameras.ToTurntable(cameras.NewStandardCamera(w, h, w, h, e.Transform.Position()))
-	case CameraTypePerspective:
-		fallthrough
-	default:
-		cm.camera = cameras.NewStandardCamera(w, h, w, h, e.Transform.Position())
-	}
-	cm.camera.SetProperties(c.FOV, c.NearPlane, c.FarPlane, w, h)
-	cm.updateId = host.Updater.AddUpdate(cm.update)
-	cm.entity.OnDestroy.Add(func() { host.Updater.RemoveUpdate(&cm.updateId) })
-	if c.IsMainCamera {
-		cm.SetAsActive()
-	}
-}
-
-func (c *CameraModule) SetAsActive() {
-	c.host.Cameras.Primary.ChangeCamera(c.camera)
-}
-
-func (c *CameraModule) update(deltaTime float64) {
-	p := &c.host.Cameras.Primary
-	if !c.entity.IsActive() || !p.Equal(c.camera) {
-		return
-	}
-	t := &c.entity.Transform
-	lookAt := t.Position().Add(t.Forward())
-	p.Camera.SetPositionAndLookAt(t.Position(), lookAt)
+	inertia := shape.CalculateLocalInertia(r.Mass)
+	motion := physics.NewDefaultMotionState(matrix.QuaternionFromEuler(t.Rotation()), t.Position())
+	body := physics.NewRigidBody(r.Mass, motion, shape, inertia)
+	host.Physics().AddEntity(e, body)
 }
