@@ -403,8 +403,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		}
 		textInput := fields[i].Children[1]
 		checkInput := fields[i].Children[2]
-		vec3Input := fields[i].Children[3]
-		selectInput := fields[i].Children[4]
+		vec2Input := fields[i].Children[3]
+		vec3Input := fields[i].Children[4]
+		vec4Input := fields[i].Children[5]
+		colorInput := fields[i].Children[6]
+		selectInput := fields[i].Children[7]
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		fg := &g.Gen.FieldGens[i]
 		if fg.IsValid() && len(fg.EnumValues) > 0 {
@@ -436,12 +439,33 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			checkInput.UI.Show()
 			checkInput.Children[0].UI.ToCheckbox().SetChecked(g.FieldBool(i))
 			w.Doc.RemoveElement(textInput)
+		} else if g.Fields[i].IsVec2() {
+			vec2Input.UI.Show()
+			for j := range 2 {
+				c := vec2Input.Children[j].UI.ToInput()
+				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+				vec2Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			}
 		} else if g.Fields[i].IsVec3() {
 			vec3Input.UI.Show()
 			for j := range 3 {
 				c := vec3Input.Children[j].UI.ToInput()
 				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
 				vec3Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			}
+		} else if g.Fields[i].IsVec4() {
+			vec4Input.UI.Show()
+			for j := range 4 {
+				c := vec4Input.Children[j].UI.ToInput()
+				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+				vec4Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			}
+		} else if g.Fields[i].IsColor() {
+			colorInput.UI.Show()
+			for j := range 4 {
+				c := colorInput.Children[j].UI.ToInput()
+				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+				colorInput.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
 			}
 		}
 	}
