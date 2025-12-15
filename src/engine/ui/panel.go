@@ -450,10 +450,14 @@ func (p *Panel) panelPostLayoutUpdate() {
 	}
 	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
-	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, bounds.Y()-ws.Y()))
+	yScroll := bounds.Y() - ws.Y()
+	if pd.scrollBarX != nil {
+		yScroll += scrollBarWidth
+	}
+	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, yScroll))
 	if !matrix.Vec2Roughly(last, pd.maxScroll) {
 		if pd.scrollBarX != nil {
-			pd.scrollBarY.Base().Show()
+			pd.scrollBarX.Base().Show()
 		}
 		if pd.scrollBarY != nil {
 			pd.scrollBarY.Base().Show()
@@ -679,11 +683,11 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	} else if pd.scrollEvent == 0 {
 		pd.scrollEvent = p.Base().AddEvent(EventTypeScroll, p.onScroll)
 	}
-	if pd.scrollBarX == nil {
+	if pd.scrollBarX == nil && (pd.scrollDirection&PanelScrollDirectionHorizontal) != 0 {
 		pd.scrollBarX = p.createScrollBar()
 		p.AddChild((*UI)(pd.scrollBarX))
 	}
-	if pd.scrollBarY == nil {
+	if pd.scrollBarY == nil && (pd.scrollDirection&PanelScrollDirectionVertical) != 0 {
 		pd.scrollBarY = p.createScrollBar()
 		p.AddChild((*UI)(pd.scrollBarY))
 	}
