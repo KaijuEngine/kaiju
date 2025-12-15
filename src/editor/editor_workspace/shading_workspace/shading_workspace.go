@@ -118,7 +118,7 @@ func (w *ShadingWorkspace) update(deltaTime float64) {
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
-	w.stageView.Update(deltaTime)
+	w.stageView.Update(deltaTime, w.ed.Project())
 }
 
 func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {

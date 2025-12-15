@@ -213,11 +213,11 @@ func (ed *Editor) CreateNewCamera() {
 
 func (ed *Editor) CreateNewEntity() {
 	ed.history.BeginTransaction()
+	defer ed.history.CommitTransaction()
 	e, _ := ed.workspaces.stage.CreateNewEntity()
 	m := ed.stageView.Manager()
 	m.ClearSelection()
 	m.SelectEntity(e)
-	ed.history.CommitTransaction()
 }
 
 func (ed *Editor) CreateNewLight() {

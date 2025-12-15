@@ -59,9 +59,9 @@ import (
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	defer tracing.NewRegion("StageWorkspace.attachEntityData").End()
-	de := &entity_data_binding.EntityDataEntry{}
-	e.AddDataBinding(de.ReadEntityDataBindingType(g))
-	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
+	m := w.stageView.Manager()
+	de := m.AttachEntityData(e, g)
+	data_binding_renderer.Attached(de, weak.Make(w.Host), m, e)
 	return de
 }
 
