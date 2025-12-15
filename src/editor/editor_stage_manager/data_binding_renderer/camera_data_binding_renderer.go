@@ -113,8 +113,26 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 
 func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if t, ok := c.Frustums[target]; ok {
-		w, h := float32(host.Window.Width()), float32(host.Window.Height())
-		cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
+		w := float32(data.FieldValueByName("Width").(float32))
+		h := float32(data.FieldValueByName("Height").(float32))
+		if w <= 0 {
+			w = float32(host.Window.Width())
+		}
+		if h <= 0 {
+			h = float32(host.Window.Height())
+		}
+		var cam cameras.Camera
+		camType := engine_data_binding_camera.CameraType(data.FieldValueByName("Type").(int))
+		switch camType {
+		case engine_data_binding_camera.CameraTypeOrthographic:
+			cam = cameras.NewStandardCameraOrthographic(w, h, w, h, target.Transform.Position())
+		case engine_data_binding_camera.CameraTypeTurntable:
+			cam = cameras.ToTurntable(cameras.NewStandardCamera(w, h, w, h, target.Transform.Position()))
+		case engine_data_binding_camera.CameraTypePerspective:
+			fallthrough
+		default:
+			cam = cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
+		}
 		cam.SetProperties(
 			data.FieldValueByName("FOV").(float32),
 			data.FieldValueByName("NearPlane").(float32),

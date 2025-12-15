@@ -43,16 +43,26 @@ import (
 
 const BindingKey = "kaiju.CameraDataBinding"
 
+type CameraType int
+
+const (
+	CameraTypePerspective CameraType = iota
+	CameraTypeOrthographic
+	CameraTypeTurntable
+)
+
 func init() {
 	engine.RegisterEntityData(BindingKey, CameraDataBinding{})
 }
 
 type CameraDataBinding struct {
+	Width        float32 `default:"0" tip:"0 = viewport width"`
+	Height       float32 `default:"0" tip:"0 = viewport height"`
 	FOV          float32 `clamp:"60,45,120"` //default,min,max
 	NearPlane    float32 `default:"0.01"`
 	FarPlane     float32 `default:"500.0"`
+	Type         CameraType
 	IsMainCamera bool
-	// TODO:  Work out the orthographic camera stuff
 }
 
 type CameraModule struct {
@@ -76,9 +86,25 @@ func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host) {
 	e.AddNamedData("CameraModule", cm)
 	cm.entity = e
 	cm.host = host
-	w := float32(host.Window.Width())
-	h := float32(host.Window.Height())
-	cm.camera = cameras.NewStandardCamera(w, h, w, h, e.Transform.Position())
+	w := c.Width
+	h := c.Height
+	if w <= 0 {
+		w = float32(host.Window.Width())
+	}
+	if h <= 0 {
+		h = float32(host.Window.Height())
+	}
+	switch c.Type {
+	case CameraTypeOrthographic:
+		cm.camera = cameras.NewStandardCameraOrthographic(w, h, w, h, e.Transform.Position())
+	case CameraTypeTurntable:
+		cm.camera = cameras.ToTurntable(cameras.NewStandardCamera(w, h, w, h, e.Transform.Position()))
+	case CameraTypePerspective:
+		fallthrough
+	default:
+		cm.camera = cameras.NewStandardCamera(w, h, w, h, e.Transform.Position())
+	}
+	cm.camera.SetProperties(c.FOV, c.NearPlane, c.FarPlane, w, h)
 	cm.updateId = host.Updater.AddUpdate(cm.update)
 	cm.entity.OnDestroy.Add(func() { host.Updater.RemoveUpdate(&cm.updateId) })
 	if c.IsMainCamera {
