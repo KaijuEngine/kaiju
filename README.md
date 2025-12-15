@@ -43,9 +43,50 @@ For the latest updates, please join the [Discord](https://discord.gg/HYj7Dh7ke3)
 Please review the Ad-Hoc [editor readme](https://github.com/KaijuEngine/kaiju/blob/master/src/editor/README.md)
 
 ## Compiling the engine
-> **Windows developers must install the 64-bit Go toolchain (`windows-amd64`).**
-> The 32-bit (`windows-386`) Go distribution will not compile Kaiju’s Vulkan backend.
-Please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) on how to get started and compile the engine
+
+### Quickstart:
+
+> [!NOTE]
+> This is just a short version, please see the [documentation](https://kaijuengine.org/engine_developers/build_from_source/) for a more comprehensive guide.
+
+#### Requirements
+
+You need the following:
+
+**Windows:**
+
+- Vulkan SDK (https://vulkan.lunarg.com/sdk/home)
+- Go 1.25.0 (or newer) (https://go.dev/dl/)
+- MinGW (https://github.com/niXman/mingw-builds-binaries/releases)
+- Soloud (https://github.com/jarikomppa/soloud.git)
+- Bullet3 (https://github.com/bulletphysics/bullet3.git)
+
+**Linux:**
+
+- GCC
+- Go 1.25.0 (or newer) (https://go.dev/dl/)
+- X11 libs
+- Soloud (https://github.com/jarikomppa/soloud.git)
+- Bullet3 (https://github.com/bulletphysics/bullet3.git)
+
+> [!IMPORTANT]
+> You need a 64-bit operating system and you need a 64-bit version of the Go toolchain. 32-bit *will* fail.
+
+#### Compiling the editor
+
+This works for Windows, Linux and macOS:
+
+```
+git clone https://github.com/KaijuEngine/kaiju
+cd kaiju/src
+go build -tags=editor,debug -o ../ .
+```
+
+> [!TIP]
+> Some of those steps can be made easier by using Task (https://taskfile.dev).
+> After cloning the repository, you can use commands such as
+> `task run` to start the editor, `task build` to build the editor and `task install` to build and install it. Simply running `task` shows the available commands and a short description.
+
 
 ## Editor previews
 ⚠️⚠️⚠️ **Please note, this video is not professional at all. It's one I made to aid in the [Mac port pull request](https://github.com/KaijuEngine/kaiju/pull/489), but shows many features.**
