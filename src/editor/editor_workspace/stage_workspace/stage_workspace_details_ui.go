@@ -130,6 +130,8 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	man := w.stageView.Manager()
 	man.OnEntitySelected.Add(dui.entitySelected)
 	man.OnEntityDeselected.Add(dui.entityDeselected)
+	man.OnDataBindingAdded.Add(dui.dataBindingAdded)
+	man.OnDataBindingRemoved.Add(dui.dataBindingRemoved)
 	w.ed.Project().OnEntityDataUpdated.Add(dui.reloadDataList)
 }
 
@@ -195,6 +197,39 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.entityDeselected").End()
 	dui.hideIfNothingSelected()
+}
+
+func (dui *WorkspaceDetailsUI) dataBindingAdded(change editor_stage_manager.DataBindingChange) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.dataBindingAdded").End()
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) != 1 || sel[0] != change.Entity {
+		return
+	}
+	dui.createDataBindingEntry(change.Binding)
+	data_binding_renderer.Attached(change.Binding, weak.Make(w.Host), w.stageView.Manager(), change.Entity)
+	data_binding_renderer.ShowSpecific(change.Binding, weak.Make(w.Host), change.Entity)
+	dui.detailsArea.UI.Clean()
+}
+
+func (dui *WorkspaceDetailsUI) dataBindingRemoved(change editor_stage_manager.DataBindingChange) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.dataBindingRemoved").End()
+	w := dui.workspace.Value()
+	data_binding_renderer.Detached(change.Binding, weak.Make(w.Host), w.stageView.Manager(), change.Entity)
+	sel := w.stageView.Manager().Selection()
+	if len(sel) != 1 || sel[0] != change.Entity {
+		return
+	}
+	// Find and remove the UI element for this binding
+	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- {
+		child := dui.boundEntityDataList.Children[i]
+		nameSpan := child.Children[0]
+		if nameSpan.InnerLabel().Text() == change.Binding.Name {
+			w.Doc.RemoveElement(child)
+			break
+		}
+	}
+	dui.detailsArea.UI.Clean()
 }
 
 func (dui *WorkspaceDetailsUI) hideIfNothingSelected() {
@@ -374,9 +409,9 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	sel := w.stageView.Manager().Selection()
 	// TODO:  Multi-select stuff
 	target := sel[0]
-	de := w.attachEntityData(target, g)
-	dui.createDataBindingEntry(de)
-	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
+	de := &entity_data_binding.EntityDataEntry{}
+	de.ReadEntityDataBindingType(g)
+	w.stageView.Manager().AddEntityDataBinding(target, de)
 	dui.entityDataList.UI.Hide()
 }
 

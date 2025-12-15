@@ -48,6 +48,7 @@ var renderers = map[string]DataBindingRenderer{}
 
 type DataBindingRenderer interface {
 	Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Detached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Hide(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
@@ -66,6 +67,17 @@ func Attached(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engin
 	}
 	if r, ok := renderers[data.Gen.RegisterKey]; ok {
 		r.Attached(h, manager, target, data)
+	}
+}
+
+func Detached(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("data_binding_renderer.Detached").End()
+	h := host.Value()
+	if h == nil {
+		return
+	}
+	if r, ok := renderers[data.Gen.RegisterKey]; ok {
+		r.Detached(h, manager, target, data)
 	}
 }
 

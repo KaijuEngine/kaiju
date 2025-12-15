@@ -70,6 +70,11 @@ func (c *CameraDataBindingRenderer) Attached(host *engine.Host, manager *editor_
 	commonAttached(host, manager, target, "camera.png")
 }
 
+func (c *CameraDataBindingRenderer) Detached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	c.Hide(host, target, data)
+	commonDetached(host, manager, target)
+}
+
 func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("CameraDataBindingRenderer.Show").End()
 	if _, ok := c.Frustums[target]; ok {

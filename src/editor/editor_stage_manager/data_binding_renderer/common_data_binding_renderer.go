@@ -48,6 +48,13 @@ import (
 	"weak"
 )
 
+type commonBindingResources struct {
+	shaderData rendering.DrawInstance
+	meshKey    string
+}
+
+var commonResources = make(map[*editor_stage_manager.StageEntity]commonBindingResources)
+
 func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, iconName string) {
 	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionEdGizmo)
 	if err != nil {
@@ -83,6 +90,10 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 	box.Extent.ScaleAssign(0.5)
 	target.StageData.Bvh = collision.NewBVH([]collision.HitObject{box}, &target.Transform, target)
 	manager.AddBVH(target.StageData.Bvh, &target.Transform)
+	commonResources[target] = commonBindingResources{
+		shaderData: sd,
+		meshKey:    mesh.Key(),
+	}
 	wManager := weak.Make(manager)
 	target.OnDestroy.Add(func() {
 		m := wManager.Value()
@@ -90,7 +101,18 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 			m.RemoveEntityBVH(target)
 		}
 		sd.Destroy()
+		delete(commonResources, target)
 	})
 	target.OnDeactivate.Add(sd.Deactivate)
 	target.OnActivate.Add(sd.Activate)
+}
+
+func commonDetached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity) {
+	if res, ok := commonResources[target]; ok {
+		res.shaderData.Destroy()
+		host.MeshCache().RemoveMesh(res.meshKey)
+		manager.RemoveEntityBVH(target)
+		target.StageData.Bvh = nil
+		delete(commonResources, target)
+	}
 }

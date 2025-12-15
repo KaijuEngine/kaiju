@@ -63,6 +63,11 @@ func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_s
 	commonAttached(host, manager, target, "light.png")
 }
 
+func (c *LightDataBindingRenderer) Detached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	c.Hide(host, target, data)
+	commonDetached(host, manager, target)
+}
+
 func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("LightDataBindingRenderer.Show").End()
 	if _, ok := c.LightLines[target]; ok {

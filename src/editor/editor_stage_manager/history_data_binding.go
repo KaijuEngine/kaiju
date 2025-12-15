@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* stage_entity.go                                                            */
+/* history_data_binding.go                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -38,82 +38,32 @@ package editor_stage_manager
 
 import (
 	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/engine"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"unsafe"
+	"kaiju/platform/profiler/tracing"
 )
 
-type StageEntity struct {
-	engine.Entity
-	StageData    StageEntityEditorData
-	dataBindings []*entity_data_binding.EntityDataEntry
-	isDeleted    bool
+type DataBindingChange struct {
+	Entity  *StageEntity
+	Binding *entity_data_binding.EntityDataEntry
 }
 
-func EntityToStageEntity(e *engine.Entity) *StageEntity {
-	return (*StageEntity)(unsafe.Pointer(e))
+type dataBindingHistory struct {
+	m *StageManager
+	e *StageEntity
+	b *entity_data_binding.EntityDataEntry
 }
 
-func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
-
-func (e *StageEntity) DataBindingsByKey(key string) []*entity_data_binding.EntityDataEntry {
-	out := []*entity_data_binding.EntityDataEntry{}
-	for _, d := range e.dataBindings {
-		if d.Gen.RegisterKey == key {
-			out = append(out, d)
-		}
-	}
-	return out
+func (h *dataBindingHistory) Redo() {
+	defer tracing.NewRegion("dataBindingHistory.Redo").End()
+	h.e.AddDataBinding(h.b)
+	h.m.OnDataBindingAdded.Execute(DataBindingChange{h.e, h.b})
 }
 
-func (e *StageEntity) AddDataBinding(binding *entity_data_binding.EntityDataEntry) {
-	e.dataBindings = append(e.dataBindings, binding)
+func (h *dataBindingHistory) Undo() {
+	defer tracing.NewRegion("dataBindingHistory.Undo").End()
+	h.e.RemoveDataBinding(h.b)
+	h.m.OnDataBindingRemoved.Execute(DataBindingChange{h.e, h.b})
 }
 
-func (e *StageEntity) RemoveDataBinding(binding *entity_data_binding.EntityDataEntry) {
-	for i, b := range e.dataBindings {
-		if b == binding {
-			e.dataBindings = append(e.dataBindings[:i], e.dataBindings[i+1:]...)
-			return
-		}
-	}
-}
+func (h *dataBindingHistory) Delete() {}
 
-func (e *StageEntity) Depth() int {
-	depth := 0
-	p := e.Parent
-	for p != nil {
-		depth++
-		p = p.Parent
-	}
-	return depth
-}
-
-func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager) {
-	manager.history.Add(&attachMaterialHistory{
-		m:         manager,
-		e:         e,
-		fromMatId: e.StageData.Description.Material,
-		toMatId:   mat.Id,
-	})
-	e.StageData.ShaderData.Destroy()
-	e.StageData.Description.Textures = make([]string, len(mat.Textures))
-	e.StageData.Description.Material = mat.Id
-	if e.StageData.Description.Material == "" {
-		e.StageData.Description.Material = mat.Name
-	}
-	for i := range mat.Textures {
-		e.StageData.Description.Textures[i] = mat.Textures[i].Key
-	}
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
-	draw := rendering.Drawing{
-		Renderer:   manager.host.Window.Renderer,
-		Material:   mat,
-		Mesh:       e.StageData.Mesh,
-		ShaderData: e.StageData.ShaderData,
-		Transform:  &e.Transform,
-		ViewCuller: &manager.host.Cameras.Primary,
-	}
-	manager.host.Drawings.AddDrawing(draw)
-}
+func (h *dataBindingHistory) Exit() {}

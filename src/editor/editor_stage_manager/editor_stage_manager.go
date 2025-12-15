@@ -75,6 +75,8 @@ type StageManager struct {
 	OnEntitySelected      events.EventWithArg[*StageEntity]
 	OnEntityDeselected    events.EventWithArg[*StageEntity]
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
+	OnDataBindingAdded    events.EventWithArg[DataBindingChange]
+	OnDataBindingRemoved  events.EventWithArg[DataBindingChange]
 	stageId               string
 	stageName             string
 	host                  *engine.Host
@@ -748,6 +750,12 @@ func (m *StageManager) RefitBVH(entity *StageEntity) {
 	// update the matching ones here. For now I'm just going to update the whole
 	// tree before it gets too late.
 	m.RefitWorldBVH()
+}
+
+func (m *StageManager) AddEntityDataBinding(e *StageEntity, b *entity_data_binding.EntityDataEntry) {
+	e.AddDataBinding(b)
+	m.history.Add(&dataBindingHistory{m, e, b})
+	m.OnDataBindingAdded.Execute(DataBindingChange{e, b})
 }
 
 func explodeEntityHierarchy(e *StageEntity) []*StageEntity {
