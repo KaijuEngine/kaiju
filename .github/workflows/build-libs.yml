@@ -1,0 +1,509 @@
+name: Build Native Libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      library:
+        description: 'Library to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - soloud
+          - bullet
+  push:
+    paths:
+      - '.github/workflows/build-libs.yml'
+    branches:
+      - master
+
+env:
+  SOLOUD_VERSION: 'master'
+  BULLET_VERSION: '3.25'
+
+jobs:
+  # ============================================================================
+  # Soloud Builds
+  # ============================================================================
+  soloud-windows:
+    name: Soloud (Windows x64)
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'soloud' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Setup MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            make
+
+      - name: Clone Soloud
+        run: git clone --depth 1 https://github.com/jarikomppa/soloud.git
+
+      - name: Build Soloud
+        shell: msys2 {0}
+        run: |
+          cd soloud/contrib
+          mkdir build && cd build
+          cmake .. -G "MinGW Makefiles" \
+            -DSOLOUD_BACKEND_SDL2=OFF \
+            -DSOLOUD_BACKEND_WASAPI=ON \
+            -DSOLOUD_C_API=ON \
+            -DSOLOUD_STATIC=ON \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsoloud_windows_amd64
+          path: soloud/contrib/build/libsoloud.a
+          retention-days: 90
+
+  soloud-linux:
+    name: Soloud (Linux x64)
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'soloud' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libasound2-dev
+
+      - name: Clone Soloud
+        run: git clone --depth 1 https://github.com/jarikomppa/soloud.git
+
+      - name: Build Soloud
+        run: |
+          cd soloud/contrib
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DSOLOUD_BACKEND_SDL2=OFF \
+            -DSOLOUD_BACKEND_ALSA=ON \
+            -DSOLOUD_C_API=ON \
+            -DSOLOUD_STATIC=ON \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsoloud_linux_amd64
+          path: soloud/contrib/build/libsoloud.a
+          retention-days: 90
+
+  soloud-macos-arm64:
+    name: Soloud (macOS arm64)
+    runs-on: macos-14
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'soloud' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Clone Soloud
+        run: git clone --depth 1 https://github.com/jarikomppa/soloud.git
+
+      - name: Build Soloud (arm64)
+        run: |
+          cd soloud/contrib
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DSOLOUD_BACKEND_SDL2=OFF \
+            -DSOLOUD_BACKEND_COREAUDIO=ON \
+            -DSOLOUD_C_API=ON \
+            -DSOLOUD_STATIC=ON \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsoloud_darwin_arm64
+          path: soloud/contrib/build/libsoloud.a
+          retention-days: 90
+
+  soloud-macos-amd64:
+    name: Soloud (macOS x86_64)
+    runs-on: macos-13
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'soloud' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Clone Soloud
+        run: git clone --depth 1 https://github.com/jarikomppa/soloud.git
+
+      - name: Build Soloud (x86_64)
+        run: |
+          cd soloud/contrib
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DSOLOUD_BACKEND_SDL2=OFF \
+            -DSOLOUD_BACKEND_COREAUDIO=ON \
+            -DSOLOUD_C_API=ON \
+            -DSOLOUD_STATIC=ON \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsoloud_darwin_amd64
+          path: soloud/contrib/build/libsoloud.a
+          retention-days: 90
+
+  soloud-android:
+    name: Soloud (Android arm64-v8a)
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'soloud' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: |
+          sdkmanager --install "ndk;25.2.9519653"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Clone Soloud
+        run: git clone --depth 1 https://github.com/jarikomppa/soloud.git
+
+      - name: Build Soloud
+        run: |
+          cd soloud/contrib
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DCMAKE_TOOLCHAIN_FILE=$NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-21 \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSOLOUD_STATIC=ON \
+            -DSOLOUD_BUILD_DEMOS=OFF \
+            -DSOLOUD_BACKEND_OPENSLES=ON \
+            -DSOLOUD_BACKEND_SDL2=OFF \
+            -DSOLOUD_C_API=ON \
+            -DSOLOUD_BACKEND_NULL=OFF \
+            -DSOLOUD_BACKEND_MINIAUDIO=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsoloud_android_arm64
+          path: soloud/contrib/build/libsoloud.a
+          retention-days: 90
+
+  # ============================================================================
+  # Bullet Physics Builds
+  # ============================================================================
+  bullet-windows:
+    name: Bullet (Windows x64)
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'bullet' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Setup MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            make
+
+      - name: Clone Bullet
+        run: git clone --depth 1 --branch ${{ env.BULLET_VERSION }} https://github.com/bulletphysics/bullet3.git
+
+      - name: Build Bullet
+        shell: msys2 {0}
+        run: |
+          cd bullet3
+          mkdir build && cd build
+          cmake .. -G "MinGW Makefiles" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXTRAS=OFF \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DBUILD_BULLET2_DEMOS=OFF \
+            -DBUILD_CPU_DEMOS=OFF \
+            -DBUILD_OPENGL3_DEMOS=OFF \
+            -DUSE_GRAPHICAL_BENCHMARK=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Collect libraries
+        shell: msys2 {0}
+        run: |
+          mkdir -p artifacts
+          find bullet3/build -name "*.a" -exec cp {} artifacts/ \;
+          ls -la artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullet_windows_amd64
+          path: artifacts/
+          retention-days: 90
+
+  bullet-linux:
+    name: Bullet (Linux x64)
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'bullet' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Clone Bullet
+        run: git clone --depth 1 --branch ${{ env.BULLET_VERSION }} https://github.com/bulletphysics/bullet3.git
+
+      - name: Build Bullet
+        run: |
+          cd bullet3
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXTRAS=OFF \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DBUILD_BULLET2_DEMOS=OFF \
+            -DBUILD_CPU_DEMOS=OFF \
+            -DBUILD_OPENGL3_DEMOS=OFF \
+            -DUSE_GRAPHICAL_BENCHMARK=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Collect libraries
+        run: |
+          mkdir -p artifacts
+          find bullet3/build -name "*.a" -exec cp {} artifacts/ \;
+          ls -la artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullet_linux_amd64
+          path: artifacts/
+          retention-days: 90
+
+  bullet-macos-arm64:
+    name: Bullet (macOS arm64)
+    runs-on: macos-14
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'bullet' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Clone Bullet
+        run: git clone --depth 1 --branch ${{ env.BULLET_VERSION }} https://github.com/bulletphysics/bullet3.git
+
+      - name: Build Bullet (arm64)
+        run: |
+          cd bullet3
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXTRAS=OFF \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DBUILD_BULLET2_DEMOS=OFF \
+            -DBUILD_CPU_DEMOS=OFF \
+            -DBUILD_OPENGL3_DEMOS=OFF \
+            -DUSE_GRAPHICAL_BENCHMARK=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Collect libraries
+        run: |
+          mkdir -p artifacts
+          find bullet3/build -name "*.a" -exec cp {} artifacts/ \;
+          ls -la artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullet_darwin_arm64
+          path: artifacts/
+          retention-days: 90
+
+  bullet-macos-amd64:
+    name: Bullet (macOS x86_64)
+    runs-on: macos-13
+    if: ${{ github.event.inputs.library == 'all' || github.event.inputs.library == 'bullet' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+
+      - name: Clone Bullet
+        run: git clone --depth 1 --branch ${{ env.BULLET_VERSION }} https://github.com/bulletphysics/bullet3.git
+
+      - name: Build Bullet (x86_64)
+        run: |
+          cd bullet3
+          mkdir build && cd build
+          cmake .. -G "Unix Makefiles" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXTRAS=OFF \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DBUILD_BULLET2_DEMOS=OFF \
+            -DBUILD_CPU_DEMOS=OFF \
+            -DBUILD_OPENGL3_DEMOS=OFF \
+            -DUSE_GRAPHICAL_BENCHMARK=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build . --config Release
+
+      - name: Collect libraries
+        run: |
+          mkdir -p artifacts
+          find bullet3/build -name "*.a" -exec cp {} artifacts/ \;
+          ls -la artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullet_darwin_amd64
+          path: artifacts/
+          retention-days: 90
+
+  # ============================================================================
+  # Commit libraries to repository
+  # ============================================================================
+  commit-libs:
+    name: Commit Libraries to Repository
+    runs-on: ubuntu-latest
+    needs:
+      - soloud-windows
+      - soloud-linux
+      - soloud-macos-arm64
+      - soloud-macos-amd64
+      - soloud-android
+      - bullet-windows
+      - bullet-linux
+      - bullet-macos-arm64
+      - bullet-macos-amd64
+    if: ${{ always() && !cancelled() }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Kaiju
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Copy libraries to src/libs
+        run: |
+          # Soloud
+          [ -f artifacts/libsoloud_windows_amd64/libsoloud.a ] && cp artifacts/libsoloud_windows_amd64/libsoloud.a src/libs/libsoloud_windows_amd64.a
+          [ -f artifacts/libsoloud_linux_amd64/libsoloud.a ] && cp artifacts/libsoloud_linux_amd64/libsoloud.a src/libs/libsoloud_linux_amd64.a
+          [ -f artifacts/libsoloud_darwin_arm64/libsoloud.a ] && cp artifacts/libsoloud_darwin_arm64/libsoloud.a src/libs/libsoloud_darwin_arm64.a
+          [ -f artifacts/libsoloud_darwin_amd64/libsoloud.a ] && cp artifacts/libsoloud_darwin_amd64/libsoloud.a src/libs/libsoloud_darwin_amd64.a
+          [ -f artifacts/libsoloud_android_arm64/libsoloud.a ] && cp artifacts/libsoloud_android_arm64/libsoloud.a src/libs/libsoloud_android_arm64.a
+
+          # Bullet - copy with platform/arch suffix
+          for platform in windows_amd64 linux_amd64 darwin_arm64 darwin_amd64; do
+            if [ -d "artifacts/bullet_${platform}" ]; then
+              for lib in artifacts/bullet_${platform}/*.a; do
+                libname=$(basename "$lib" .a)
+                cp "$lib" "src/libs/${libname}_${platform}.a"
+              done
+            fi
+          done
+
+          echo "Libraries in src/libs/:"
+          ls -la src/libs/*.a
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet src/libs/ || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/libs/*.a
+          git commit -m "chore: update pre-built native libraries
+
+          Built by GitHub Actions workflow run #${{ github.run_number }}
+
+          Libraries updated:
+          - Soloud (Windows/amd64, Linux/amd64, macOS/arm64, macOS/amd64, Android/arm64)
+          - Bullet Physics (Windows/amd64, Linux/amd64, macOS/arm64, macOS/amd64)
+
+          Soloud version: ${{ env.SOLOUD_VERSION }}
+          Bullet version: ${{ env.BULLET_VERSION }}"
+          git push
+
+      - name: Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Soloud Libraries" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Architecture | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------------|--------|" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libsoloud_windows_amd64.a ] && echo "| Windows | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| Windows | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libsoloud_linux_amd64.a ] && echo "| Linux | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| Linux | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libsoloud_darwin_arm64.a ] && echo "| macOS | arm64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| macOS | arm64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libsoloud_darwin_amd64.a ] && echo "| macOS | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| macOS | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libsoloud_android_arm64.a ] && echo "| Android | arm64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| Android | arm64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bullet Physics Libraries" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Architecture | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------------|--------|" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libBulletCollision_windows_amd64.a ] && echo "| Windows | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| Windows | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libBulletCollision_linux_amd64.a ] && echo "| Linux | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| Linux | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libBulletCollision_darwin_arm64.a ] && echo "| macOS | arm64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| macOS | arm64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          [ -f src/libs/libBulletCollision_darwin_amd64.a ] && echo "| macOS | amd64 | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY || echo "| macOS | amd64 | :x: |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_changes.outputs.changes }}" == "true" ]; then
+            echo ":white_check_mark: **Libraries committed to repository**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo ":information_source: **No changes detected - libraries are up to date**" >> $GITHUB_STEP_SUMMARY
+          fi
