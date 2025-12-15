@@ -615,7 +615,7 @@ func (d *Document) RemoveElement(elm *Element) {
 
 func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 	for i := len(elm.Children) - 1; i >= 0; i-- {
-		d.RemoveElement(elm.Children[i])
+		d.RemoveElementWithoutApplyStyles(elm.Children[i])
 	}
 	if elm.Parent.Value() != nil {
 		for i, c := range elm.Parent.Value().Children {
@@ -671,6 +671,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 			d.classElements[c] = []*Element{elm}
 		}
 	}
+	elm.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 // SetElementClasses updates the class list of the given element and applies

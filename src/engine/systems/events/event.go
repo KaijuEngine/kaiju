@@ -69,6 +69,9 @@ func (e *Event) Clear() {
 
 func (e *Event) Remove(id Id) {
 	defer tracing.NewRegion("Event.Remove").End()
+	if id == 0 {
+		return
+	}
 	for i := range e.calls {
 		if e.calls[i].id == id {
 			last := len(e.calls) - 1
