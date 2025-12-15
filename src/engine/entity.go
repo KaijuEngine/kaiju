@@ -390,16 +390,13 @@ func (e *Entity) deactivateFromParent() {
 	e.deactivatedFromParent = fromParent
 }
 
-func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity), workGroup *concurrent.WorkGroup) *Entity {
+func (e *Entity) Duplicate(workGroup *concurrent.WorkGroup) *Entity {
 	dupe := NewEntity(workGroup)
-	if !sparse {
-		dupe.Children = make([]*Entity, len(e.Children))
-		for i := range e.Children {
-			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe, workGroup)
-		}
+	dupe.Children = make([]*Entity, len(e.Children))
+	for i := range e.Children {
+		dupe.Children[i] = e.Children[i].Duplicate(workGroup)
 	}
 	dupe.Copy(e)
-	onDupe(e, dupe)
 	return dupe
 }
 
