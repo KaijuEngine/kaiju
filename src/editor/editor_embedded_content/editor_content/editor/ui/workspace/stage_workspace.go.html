@@ -266,8 +266,14 @@
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
 				<div class="dataTable">
 					<div id="boundEntityDataList">
-						<div id="boundEntityDataTemplate" class="dataBindingBlock">
-							<div class="center">Data name...</div>
+							<div id="boundEntityDataTemplate" class="dataBindingBlock">
+								<div class="center">
+									<span>Data name...</span>
+									<span class="deleteButton"
+									      style="float:right; cursor:pointer;"
+									      data-bindidx=""
+									      onclick="removeEntityData">X</span>
+								</div>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
 								<!-- Text input -->

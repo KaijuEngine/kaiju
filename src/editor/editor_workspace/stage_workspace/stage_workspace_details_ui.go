@@ -386,16 +386,19 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(dui.boundEntityDataTemplate.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(dui.boundEntityDataTemplate)
-	nameSpan := cpy.Children[0]
 
-	deleteBtn := w.Doc.DuplicateElement(dui.hideDetailsElm)
-	deleteBtn.InnerLabel().SetText("X")
+	header := cpy.Children[0]
+
+	label := header.Children[0]
+
+	deleteBtn := header.Children[1]
+
 	deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
-	deleteBtn.SetAttribute("onclick", "removeEntityData")
 
-	nameSpan.Children = append(nameSpan.Children, deleteBtn)
+	label.InnerLabel().SetText(g.Name)
+
 	fieldDiv := cpy.Children[1]
-	nameSpan.InnerLabel().SetText(g.Name)
+
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
