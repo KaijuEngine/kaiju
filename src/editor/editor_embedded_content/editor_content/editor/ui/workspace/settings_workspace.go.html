@@ -1,6 +1,6 @@
 {{define "bitmask"}}
 <div class="inputItemFlags">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<div class="inputFlags lightDarkBG">
 		{{range .List}}
 			<div class="checkboxListEntry">
@@ -14,14 +14,14 @@
 
 {{define "bool"}}
 <div class="inputItem">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<input data-path="{{.FullPath}}" class="inputCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="valueChanged" />
 </div>
 {{end}}
 
 {{define "enum"}}
 <div class="inputItem">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
 	{{range .List}}
 		<option value="{{.Value}}">{{$.PascalToTitle .Name}}</option>
@@ -32,7 +32,7 @@
 
 {{define "any"}}
 <div class="inputItem">
-	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
 </div>
 {{end}}
