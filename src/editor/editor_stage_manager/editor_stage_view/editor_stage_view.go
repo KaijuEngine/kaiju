@@ -122,7 +122,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	if kb.KeyDown(hid.KeyboardKeyDelete) {
 		v.manager.DestroySelected()
 	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyD) {
-		v.execDuplicate(proj)
+		v.DuplicateSelected(proj)
 		return true
 	}
 	return false
@@ -198,7 +198,7 @@ func (v *StageView) setupCamera(settings *editor_settings.EditorCameraSettings) 
 	v.camera.Settings = settings
 }
 
-func (v *StageView) execDuplicate(proj *project.Project) {
+func (v *StageView) DuplicateSelected(proj *project.Project) {
 	v.manager.DuplicateSelected(proj)
 	// The new selection is the duplicated entities
 	var callAttachments func(e *editor_stage_manager.StageEntity)

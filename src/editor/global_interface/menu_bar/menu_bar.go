@@ -92,6 +92,10 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickBuildAndroid":       b.clickBuildAndroid,
 			"clickBuildRunAndroid":    b.clickBuildRunAndroid,
 			"clickExportProject":      b.clickExportProject,
+			"clickUndo":               b.clickUndo,
+			"clickRedo":               b.clickRedo,
+			"clickDuplicate":          b.clickDuplicate,
+			"clickCreateTemplate":     b.clickCreateTemplate,
 			"clickCreateEntityData":   b.clickCreateEntityData,
 			"clickCreateHtmlUi":       b.clickCreateHtmlUi,
 			"clickNewCamera":          b.clickNewCamera,
@@ -216,6 +220,28 @@ func (b *MenuBar) clickSaveStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSaveStage").End()
 	b.hidePopups()
 	b.handler.SaveCurrentStage()
+}
+
+func (b *MenuBar) clickUndo(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickUndo").End()
+	b.handler.History().Undo()
+}
+
+func (b *MenuBar) clickRedo(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickRedo").End()
+	b.handler.History().Redo()
+}
+
+func (b *MenuBar) clickDuplicate(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickDuplicate").End()
+	b.hidePopups()
+	b.handler.StageView().DuplicateSelected(b.handler.Project())
+}
+
+func (b *MenuBar) clickCreateTemplate(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateTemplate").End()
+	b.hidePopups()
+	b.handler.StageView().Manager().CreateTemplateFromSelected(b.handler.Events(), b.handler.Project())
 }
 
 func (b *MenuBar) clickCreateEntityData(*document.Element) {
