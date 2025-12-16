@@ -1,5 +1,5 @@
 ---
-title: Profiling | Kaiju Engine
+title: Performance Profiling | Kaiju Engine
 ---
 
 The engine currently uses [Gotraceui](https://gotraceui.dev/) for visualizing the pprof traces that are built into Go. There is some helper code to automatically trace the running engine and launch GotraceUI upon closing the game window.
