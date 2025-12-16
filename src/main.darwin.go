@@ -1,5 +1,7 @@
+//go:build darwin
+
 /******************************************************************************/
-/* bullet3_rigid_body.go                                                      */
+/* main.darwin.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,85 +36,19 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package physics
+package main
 
-/*
-#cgo CXXFLAGS: -std=c++11
-#cgo windows,amd64 LDFLAGS: -L../../libs -lBulletDynamics_win_amd64 -lBulletCollision_win_amd64 -lLinearMath_win_amd64 -lstdc++ -lm
-#cgo linux,amd64 LDFLAGS: -L../../libs -lBulletDynamics_nix_amd64 -lBulletCollision_nix_amd64 -lLinearMath_nix_amd64 -lstdc++ -lm
-#cgo darwin,arm64 LDFLAGS: -L../libs -lBulletDynamics_darwin_arm64 -lBulletCollision_darwin_arm64 -lLinearMath_darwin_arm64 -lstdc++ -lm
-#include "bullet3_wrapper.h"
-#cgo noescape new_btRigidBody
-#cgo nocallback new_btRigidBody
-#cgo noescape destroy_btRigidBody
-#cgo nocallback destroy_btRigidBody
-#cgo noescape btRigidBody_getPosition
-#cgo nocallback btRigidBody_getPosition
-#cgo noescape btRigidBody_getRotation
-#cgo nocallback btRigidBody_getRotation
-#cgo noescape btRigidBody_applyForceAtPoint
-#cgo nocallback btRigidBody_applyForceAtPoint
-#cgo noescape btRigidBody_applyImpulseAtPoint
-#cgo nocallback btRigidBody_applyImpulseAtPoint
-*/
-import "C"
 import (
-	"kaiju/matrix"
+	"kaiju/platform/windowing"
 	"runtime"
-	"unsafe"
 )
 
-type RigidBody struct {
-	ptr   *C.btRigidBody
-	shape *CollisionShape
-	mass  float32
-}
+func main() {
+	runtime.LockOSThread()
 
-func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, inertia matrix.Vec3) *RigidBody {
-	b := &RigidBody{
-		ptr: C.new_btRigidBody(C.float(mass),
-			motion.ptr, shape.ptr,
-			C.float(inertia.X()), C.float(inertia.Y()), C.float(inertia.Z())),
-		shape: shape,
-		mass:  mass,
-	}
-	runtime.AddCleanup(b, func(ptr *C.btRigidBody) {
-		C.destroy_btRigidBody(ptr)
-	}, b.ptr)
-	return b
-}
+	go func() {
+		_main(nil) // your engine
+	}()
 
-func (r *RigidBody) IsStatic() bool { return r.mass == 0 }
-
-func (r *RigidBody) Shape() *CollisionShape { return r.shape }
-
-func (r *RigidBody) IsCollisionObject(obj CollisionObject) bool {
-	return unsafe.Pointer(r.ptr) == unsafe.Pointer(obj.ptr)
-}
-
-func (r *RigidBody) Position() matrix.Vec3 {
-	out := matrix.Vec3{}
-	C.btRigidBody_getPosition(r.ptr,
-		(*C.float)(out.PX()), (*C.float)(out.PY()), (*C.float)(out.PZ()))
-	return out
-}
-
-func (r *RigidBody) Rotation() matrix.Quaternion {
-	out := matrix.Vec4{}
-	C.btRigidBody_getRotation(r.ptr,
-		(*C.float)(out.PX()), (*C.float)(out.PY()),
-		(*C.float)(out.PZ()), (*C.float)(out.PW()))
-	return matrix.QuaternionFromVec4(out)
-}
-
-func (r *RigidBody) ApplyForceAtPoint(force, point matrix.Vec3) {
-	C.btRigidBody_applyForceAtPoint(r.ptr,
-		C.float(force.X()), C.float(force.Y()), C.float(force.Z()),
-		C.float(point.X()), C.float(point.Y()), C.float(point.Z()))
-}
-
-func (r *RigidBody) ApplyImpulseAtPoint(force, point matrix.Vec3) {
-	C.btRigidBody_applyImpulseAtPoint(r.ptr,
-		C.float(force.X()), C.float(force.Y()), C.float(force.Z()),
-		C.float(point.X()), C.float(point.Y()), C.float(point.Z()))
+	windowing.CocoaRunApp() // blocks forever
 }

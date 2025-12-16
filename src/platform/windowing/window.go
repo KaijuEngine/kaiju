@@ -311,7 +311,7 @@ func (w *Window) Destroy() {
 	w.isClosed = true
 	w.removeFromActiveWindows()
 	w.Renderer.Destroy()
-	destroyWindow(w.handle)
+	w.destroyWindow()
 	close(w.windowSync)
 }
 
@@ -489,26 +489,29 @@ func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
 	s := w.Mouse.Scroll()
 	deltaX := scaleScrollDelta(float32(evt.deltaX))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
 	deltaY := scaleScrollDelta(float32(evt.deltaY))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaY)
+	w.Mouse.SetScroll(s.X()+deltaX, s.Y()+deltaY)
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
 	defer tracing.NewRegion("Window.processKeyboardButtonEvent").End()
+
+	key := hid.ToKeyboardKey(int(evt.buttonId))
+	if w.Keyboard.IsToggleKey(key) {
+		toggleState := w.checkToggleKeyState()
+		state := hid.KeyStateIdle
+		if toggleState[key] {
+			state = hid.KeyStateToggled
+		}
+		w.Keyboard.SetToggleKeyState(key, state)
+		return
+	}
+
 	switch evt.action {
 	case windowEventButtonTypeDown:
-		key := hid.ToKeyboardKey(int(evt.buttonId))
-		if !w.Keyboard.IsToggleKey(key) {
-			w.Keyboard.SetKeyDown(key)
-		}
+		w.Keyboard.SetKeyDown(key)
 	case windowEventButtonTypeUp:
-		key := hid.ToKeyboardKey(int(evt.buttonId))
-		if w.Keyboard.IsToggleKey(key) {
-			w.Keyboard.ToggleKey(key)
-		} else {
-			w.Keyboard.SetKeyUp(key)
-		}
+		w.Keyboard.SetKeyUp(key)
 	}
 }
 

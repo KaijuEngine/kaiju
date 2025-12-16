@@ -37,7 +37,7 @@
 
 extern void goProcessEvents(uint64_t goWindow, void* events, uint32_t eventCount);
 
-#if __linux__
+#if __linux__ || defined(__APPLE__)
 typedef long LONG;
 typedef struct {
 	LONG left;
@@ -76,7 +76,7 @@ typedef struct {
 		bool active;
 	} lockCursor;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
-#if defined(__android__)
+#if defined(__android__) || defined(__ANDROID__)
 	const ASensor* accelerometer;
 	ASensorManager* sensorManager;
 	ASensorEventQueue* sensorQueue;

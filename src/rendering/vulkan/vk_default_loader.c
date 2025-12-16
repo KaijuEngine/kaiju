@@ -8,17 +8,18 @@
     static void* loaderWrap(VkInstance instance, const char* vkproc) {
         return (*symLoader)(instance, vkproc);
     }
-#elif defined(__ANDROID__) || defined(__linux__) || defined(__unix__) || defined(unix)
+#elif defined(__android__) || defined(__ANDROID__) || defined(__linux__) || defined(__unix__) || defined(unix)
     #include <dlfcn.h>
     static void* (*symLoader)(void* lib, const char* procname);
     static void* loaderWrap(VkInstance instance, const char* vkproc) {
         return (*symLoader)(instance, vkproc);
     }
 #elif defined(__APPLE__) && defined(__MACH__)
-    // #include <GLFW/glfw3.h>
-    // static void* loaderWrap(VkInstance instance, const char* vkproc) {
-    //     return glfwGetInstanceProcAddress(instance, vkproc);
-    // }
+    #include <dlfcn.h>
+    static void* (*symLoader)(void* lib, const char* procname);
+    static void* loaderWrap(VkInstance instance, const char* vkproc) {
+        return (*symLoader)(instance, vkproc);
+    }
 #endif
 
 void* getDefaultProcAddr() {
@@ -33,9 +34,17 @@ void* getDefaultProcAddr() {
         }
         return &loaderWrap;
     #elif defined(__APPLE__) && defined(__MACH__)
-        // return &loaderWrap;
-        return NULL;
-    #elif defined(__ANDROID__) || defined(__linux__) || defined(__unix__) || defined(unix)
+        // On macOS, try to load MoltenVK (which includes the Vulkan loader)
+        void* libvulkan = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+        if (libvulkan == NULL) {
+            return NULL;
+        }
+        symLoader = dlsym(libvulkan, "vkGetInstanceProcAddr");
+        if (symLoader == NULL) {
+            return NULL;
+        }
+        return &loaderWrap;
+    #elif defined(__android__) || defined(__ANDROID__) || defined(__linux__) || defined(__unix__) || defined(unix)
         void* libvulkan = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
         if (libvulkan == NULL) {
             return NULL;

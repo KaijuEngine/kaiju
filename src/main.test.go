@@ -40,7 +40,8 @@ package main
 
 import (
 	"kaiju/bootstrap"
-	"kaiju/games/editor"
+	"kaiju/engine"
+	"kaiju/engine/assets"
 	"reflect"
 )
 
@@ -56,4 +57,4 @@ func (DummyGame) ContentDatabase() (assets.Database, error) {
 
 func (DummyGame) Launch(*engine.Host) {}
 
-func getGame() bootstrap.GameInterface { return editor.DummyGame{} }
+func getGame() bootstrap.GameInterface { return DummyGame{} }

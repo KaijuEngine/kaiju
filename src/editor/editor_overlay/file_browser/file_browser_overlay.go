@@ -104,6 +104,12 @@ func Show(host *engine.Host, config Config) (*FileBrowser, error) {
 			} else {
 				startPath = "/home"
 			}
+		case "darwin":
+			if userHome, err := os.UserHomeDir(); err == nil && userHome != "" {
+				startPath = userHome
+			} else {
+				startPath = "/"
+			}
 		default:
 			slog.Error("unknown platform")
 			return nil, fmt.Errorf("unknown platform: %s", runtime.GOOS)
