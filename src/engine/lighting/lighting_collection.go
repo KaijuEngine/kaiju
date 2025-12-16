@@ -70,6 +70,8 @@ func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Ligh
 		Light:     target,
 		Transform: transform,
 	}
+	// Hack to force the next update cache to happen
+	c.lastPoint = matrix.NewVec3(matrix.Inf(1), matrix.Inf(1), matrix.Inf(1))
 	return entry
 }
 
