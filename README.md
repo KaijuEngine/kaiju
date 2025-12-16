@@ -55,6 +55,9 @@ Please see the [documentation](https://kaijuengine.org/engine_developers/build_f
 ### Physics
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/306f069a-ed4e-4e78-9336-b5a62c48289f)
 
+### Editor plugins
+[kaiju-editor-plugins.mp4](https://github.com/user-attachments/assets/4c7b7c65-f77b-47de-8d45-175dcb421afa)
+
 ### Older videos
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
 
