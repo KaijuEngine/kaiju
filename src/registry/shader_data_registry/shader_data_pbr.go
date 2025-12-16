@@ -47,6 +47,10 @@ func init() {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
+			Light0:         -1,
+			Light1:         -1,
+			Light2:         -1,
+			Light3:         -1,
 		}
 	})
 }
