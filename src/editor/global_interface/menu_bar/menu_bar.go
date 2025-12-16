@@ -423,12 +423,25 @@ func (b *MenuBar) clickMailArchives(*document.Element) {
 }
 
 func (b *MenuBar) clickCreatePluginProject(*document.Element) {
+	const pathA = "editor/editor_plugin/developer_plugins"
+	const pathB = "src/" + pathA
 	defer tracing.NewRegion("MenuBar.clickCreatePluginProject").End()
 	b.hidePopups()
 	b.handler.BlurInterface()
+	exePath, _ := os.Executable()
+	startPaths := [...]string{
+		filepath.Join(filepath.Dir(exePath), pathB),
+		filepath.Join(filepath.Dir(exePath), pathA),
+	}
+	for i := range startPaths {
+		if s, err := os.Stat(startPaths[i]); err == nil && s.IsDir() {
+			exePath = startPaths[i]
+			break
+		}
+	}
 	file_browser.Show(b.uiMan.Host, file_browser.Config{
 		Title:        "Select plugin project path",
-		StartingPath: b.handler.ProjectFileSystem().FullPath(""),
+		StartingPath: exePath,
 		OnlyFolders:  true,
 		OnConfirm: func(paths []string) {
 			b.handler.FocusInterface()
