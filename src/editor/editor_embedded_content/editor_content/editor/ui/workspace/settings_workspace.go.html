@@ -179,6 +179,9 @@
 			.pluginWebsite {
 				color: #63b361;
 			}
+			#pluginSettingsBox button {
+				margin-right: 1em;
+			}
 		</style>
 	</head>
 	<body>
@@ -200,6 +203,7 @@
 				<div id="pluginSettingsBox" class="settingsBox">
 					<h1>Plugin Settings</h1>
 					<button onclick="clickOpenPlugins">Open plugins folder</button>
+					<button onclick="recompileEditor">Recompile Editor</button>
 					{{range $i, $p := .Plugins}}
 					<div class="pluginEntry">
 						<h1>{{$p.Config.Name}}</h1>

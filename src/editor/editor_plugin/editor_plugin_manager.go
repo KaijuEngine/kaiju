@@ -182,6 +182,15 @@ func AvailablePlugins() []PluginInfo {
 	return plugs
 }
 
+func UpdatePluginConfigState(info PluginInfo) error {
+	f, err := os.Create(filepath.Join(info.Path, pluginConfigFile))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return json.NewEncoder(f).Encode(info.Config)
+}
+
 func createPluginFolder(path string) error {
 	defer tracing.NewRegion("editor_plugin.createPluginFolder").End()
 	if s, err := os.Stat(path); err == nil && !s.IsDir() {

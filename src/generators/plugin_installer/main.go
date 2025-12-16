@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_plugin.go                                                           */
+/* main.go                                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,30 +34,37 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor_plugin
+package main
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
+	"kaiju/platform/filesystem"
+	"os"
+	"os/exec"
+	"time"
 )
 
-type EditorPlugin interface {
-	Launch(EditorInterface) error
-}
+// This program is used for installing a modified version of the editor.
+// Typically this is done when a plugin has been enabled. When a plugin is
+// enabled within the editor, the editor will export it's code, compile the code
+// with the plugin installed, and then launch this program. After launching this
+// program, the editor will close, this program will then copy the newly
+// compiled editor executable in it's place, then launch it.
 
-type EditorInterface interface {
-	Host() *engine.Host
-	BlurInterface()
-	FocusInterface()
-	Settings() *editor_settings.Settings
-	Events() *editor_events.EditorEvents
-	History() *memento.History
-	Project() *project.Project
-	ProjectFileSystem() *project_file_system.FileSystem
-	StageView() *editor_stage_view.StageView
+func main() {
+	if len(os.Args) < 3 {
+		panic("expected 3 args, <exe> <to> <from>")
+	}
+	to := os.Args[1]
+	from := os.Args[2]
+	retries := 10
+	for retries > 0 {
+		if err := filesystem.CopyFileOverwrite(from, to); err == nil {
+			if err := exec.Command(to).Run(); err != nil {
+				panic(err)
+			}
+			break
+		}
+		retries--
+		time.Sleep(time.Second)
+	}
 }

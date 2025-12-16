@@ -62,8 +62,9 @@ type SettingsWorkspace struct {
 	editorSettings     *editor_settings.Settings
 	projectSettings    *project.Settings
 	plugins            []editor_plugin.PluginInfo
-	pluginsChanged     bool
+	pluginInitStates   []bool
 	reloadRequested    bool
+	recompiling        bool
 }
 
 type settingsWorkspaceData struct {
@@ -166,7 +167,6 @@ func (w *SettingsWorkspace) togglePlugin(e *document.Element) {
 		return
 	}
 	w.plugins[idx].Config.Enabled = !w.plugins[idx].Config.Enabled
-	w.pluginsChanged = true
 }
 
 func (w *SettingsWorkspace) clickOpenPlugins(e *document.Element) {
@@ -181,9 +181,37 @@ func (w *SettingsWorkspace) clickOpenPlugins(e *document.Element) {
 	}
 }
 
+func (w *SettingsWorkspace) recompileEditor(*document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.recompileEditor").End()
+	if w.recompiling {
+		slog.Warn("the editor is already in the process of recompiling, please wait")
+		return
+	}
+	pluginsChanged := false
+	for i := 0; i < len(w.plugins) && !pluginsChanged; i++ {
+		pluginsChanged = w.pluginInitStates[i] != w.plugins[i].Config.Enabled
+	}
+	if !pluginsChanged {
+		slog.Warn("plugin settings have not changed, no reason to recompile")
+		return
+	}
+	w.recompiling = true
+	err := w.editor.RecompileWithPlugins(w.plugins, func(err error) {
+		w.recompiling = false
+	})
+	if err != nil {
+		slog.Error("failed to compile the editor", "error", err)
+		w.recompiling = false
+	}
+}
+
 func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 	defer tracing.NewRegion("SettingsWorkspace.uiData").End()
 	w.plugins = editor_plugin.AvailablePlugins()
+	w.pluginInitStates = make([]bool, len(w.plugins))
+	for i := range w.plugins {
+		w.pluginInitStates[i] = w.plugins[i].Config.Enabled
+	}
 	listings := map[string][]ui.SelectOption{}
 	return settingsWorkspaceData{
 		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
@@ -201,6 +229,7 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 		"openPluginWebsite":   w.openPluginWebsite,
 		"togglePlugin":        w.togglePlugin,
 		"clickOpenPlugins":    w.clickOpenPlugins,
+		"recompileEditor":     w.recompileEditor,
 	}
 }
 

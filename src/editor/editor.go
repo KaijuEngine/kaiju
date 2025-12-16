@@ -109,6 +109,8 @@ type globalUI struct {
 	statusBar status_bar.StatusBar
 }
 
+func (ed *Editor) Host() *engine.Host { return ed.host }
+
 // FocusInterface is responsible for enabling the input on the various
 // interfaces that are currently presented to the developer. This primarily
 // includes the menu bar, status bar, and whichever workspace is active.
