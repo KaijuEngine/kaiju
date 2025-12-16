@@ -184,7 +184,9 @@ func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id {
 }
 
 func (ui *UI) RemoveEvent(evtType EventType, evtId events.Id) {
-	ui.events[evtType].Remove(evtId)
+	if evtId != 0 {
+		ui.events[evtType].Remove(evtId)
+	}
 }
 
 func (ui *UI) Event(evtType EventType) *events.Event {

@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_overlay/ai_prompt"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace"
@@ -79,12 +80,13 @@ type Editor struct {
 	project          project.Project
 	workspaceState   WorkspaceState
 	workspaces       workspaces
-	globalInterfaces globalInterface
+	globalInterfaces globalUI
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
 	history          memento.History
 	events           editor_events.EditorEvents
 	stageView        editor_stage_view.StageView
+	plugins          []editor_plugin.EditorPlugin
 	window           struct {
 		activateId     events.Id
 		deactivateId   events.Id
@@ -102,10 +104,12 @@ type workspaces struct {
 	settings settings_workspace.SettingsWorkspace
 }
 
-type globalInterface struct {
+type globalUI struct {
 	menuBar   menu_bar.MenuBar
 	statusBar status_bar.StatusBar
 }
+
+func (ed *Editor) Host() *engine.Host { return ed.host }
 
 // FocusInterface is responsible for enabling the input on the various
 // interfaces that are currently presented to the developer. This primarily
@@ -171,6 +175,13 @@ func (ed *Editor) postProjectLoad() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
+	for k, v := range editorPluginRegistry {
+		if err := v.Launch(ed); err != nil {
+			slog.Error("failed to launch plugin", "key", k, "error", err)
+			continue
+		}
+		ed.plugins = append(ed.plugins, v)
 	}
 }
 

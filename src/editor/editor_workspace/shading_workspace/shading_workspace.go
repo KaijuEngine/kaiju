@@ -58,6 +58,7 @@ type ShadingWorkspace struct {
 	designer               shader_designer.ShaderDesigner
 	renderSpecList         *document.Element
 	renderSpecListTemplate *document.Element
+	toolTip                *document.Element
 }
 
 type ShadingWorkspaceUIData struct {
@@ -82,10 +83,12 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 			"clickNewPipeline":   w.clickNewPipeline,
 			"clickNewShader":     w.clickNewShader,
 			"clickNewMaterial":   w.clickNewMaterial,
+			"showTooltip":        w.showTooltip,
 		})
 	w.designer.Initialize(host, &w.UiMan, w.ed.ProjectFileSystem(), w.ed.Cache())
 	w.renderSpecList, _ = w.Doc.GetElementById("renderSpecList")
 	w.renderSpecListTemplate, _ = w.Doc.GetElementById("renderSpecListTemplate")
+	w.toolTip, _ = w.Doc.GetElementById("toolTip")
 }
 
 func (w *ShadingWorkspace) Open() {
@@ -118,7 +121,7 @@ func (w *ShadingWorkspace) update(deltaTime float64) {
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
-	w.stageView.Update(deltaTime)
+	w.stageView.Update(deltaTime, w.ed.Project())
 }
 
 func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
@@ -256,4 +259,9 @@ func (w *ShadingWorkspace) clickNewShader(elm *document.Element) {
 func (w *ShadingWorkspace) clickNewMaterial(elm *document.Element) {
 	defer tracing.NewRegion("ShadingWorkspace.clickNewMaterial").End()
 	w.designer.ShowMaterialWindow("", rendering.MaterialData{})
+}
+
+func (w *ShadingWorkspace) showTooltip(elm *document.Element) {
+	defer tracing.NewRegion("ShadingWorkspace.showTooltip").End()
+	w.toolTip.InnerLabel().SetText(elm.Attribute("data-tooltip"))
 }

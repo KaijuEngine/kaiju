@@ -54,6 +54,7 @@ var modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
 
 var skipFiles = []string{
 	"main.ed.go",
+	"main.ed.dbg.go",
 	"main.test.go",
 	"build/generator.go",
 }

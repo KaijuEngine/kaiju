@@ -45,8 +45,8 @@ import (
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
-	"kaiju/engine_data_bindings/engine_data_binding_camera"
-	"kaiju/engine_data_bindings/engine_data_binding_light"
+	"kaiju/engine_entity_data/engine_entity_data_camera"
+	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -59,27 +59,27 @@ import (
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	defer tracing.NewRegion("StageWorkspace.attachEntityData").End()
-	de := &entity_data_binding.EntityDataEntry{}
-	e.AddDataBinding(de.ReadEntityDataBindingType(g))
-	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
+	m := w.stageView.Manager()
+	de := m.AttachEntityData(e, g)
+	data_binding_renderer.Attached(de, weak.Make(w.Host), m, e)
 	return de
 }
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
-	cam, ok := w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
+	cam, ok := w.createDataBoundEntity("Camera", engine_entity_data_camera.BindingKey)
 	if ok {
 		shouldMakePrimary := true
 		for _, e := range w.stageView.Manager().List() {
 			if e == cam {
 				continue
 			}
-			if len(e.DataBindingsByKey(engine_data_binding_camera.BindingKey)) > 0 {
+			if len(e.DataBindingsByKey(engine_entity_data_camera.BindingKey)) > 0 {
 				shouldMakePrimary = false
 				break
 			}
 		}
-		db := cam.DataBindingsByKey(engine_data_binding_camera.BindingKey)
+		db := cam.DataBindingsByKey(engine_entity_data_camera.BindingKey)
 		if shouldMakePrimary && len(db) > 0 {
 			db[0].SetFieldByName("IsMainCamera", true)
 		}
@@ -95,7 +95,7 @@ func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, b
 
 func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewLight").End()
-	return w.createDataBoundEntity("Light", engine_data_binding_light.BindingKey)
+	return w.createDataBoundEntity("Light", engine_entity_data_light.BindingKey)
 }
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {

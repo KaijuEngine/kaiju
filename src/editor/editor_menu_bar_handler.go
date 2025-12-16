@@ -39,6 +39,7 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -152,15 +153,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 // func (ed *Editor) OpenVSCodeProject() {
 func (ed *Editor) OpenCodeEditor() {
 	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
-	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
-	command := fullArgs[0]
-	var args []string
-	if len(fullArgs) > 1 {
-		args = append(args, fullArgs[1:]...)
-	}
-	args = append(args, ed.project.FileSystem().FullPath(""))
-	// goroutine
-	go exec.Command(command, args...).Run()
+	ed.openCodeEditor(ed.project.FileSystem().FullPath(""))
 }
 
 func (ed *Editor) CreateNewStage() {
@@ -213,15 +206,21 @@ func (ed *Editor) CreateNewCamera() {
 
 func (ed *Editor) CreateNewEntity() {
 	ed.history.BeginTransaction()
+	defer ed.history.CommitTransaction()
 	e, _ := ed.workspaces.stage.CreateNewEntity()
 	m := ed.stageView.Manager()
 	m.ClearSelection()
 	m.SelectEntity(e)
-	ed.history.CommitTransaction()
 }
 
 func (ed *Editor) CreateNewLight() {
 	ed.workspaces.stage.CreateNewLight()
+}
+
+func (ed *Editor) CreatePluginProject(path string) {
+	if err := editor_plugin.CreatePluginProject(path); err == nil {
+		ed.openCodeEditor(path)
+	}
 }
 
 func (ed *Editor) CreateHtmlUiFile(name string) {
@@ -292,4 +291,17 @@ func (ed *Editor) saveNewStage(name string) {
 		ps.Save(ed.project.FileSystem())
 		ed.workspaces.settings.RequestReload()
 	}
+}
+
+func (ed *Editor) openCodeEditor(path string) {
+	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
+	command := fullArgs[0]
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, path)
+	// goroutine
+	go exec.Command(command, args...).Run()
 }

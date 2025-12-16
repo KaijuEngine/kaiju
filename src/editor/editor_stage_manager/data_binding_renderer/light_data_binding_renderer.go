@@ -42,7 +42,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/lighting"
-	"kaiju/engine_data_bindings/engine_data_binding_light"
+	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -51,7 +51,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_data_binding_light.BindingKey, &LightDataBindingRenderer{
+	AddRenderer(engine_entity_data_light.BindingKey, &LightDataBindingRenderer{
 		LightLines: make(map[*editor_stage_manager.StageEntity]rendering.DrawInstance),
 		LightIds:   make(map[*editor_stage_manager.StageEntity]lighting.EntryId),
 	})

@@ -43,11 +43,18 @@ import (
 	"kaiju/platform/profiler/tracing"
 )
 
+const menuBarHeightArea = 30
+
 func (v *StageView) processViewportInteractions() {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &v.host.Window.Mouse
 	kb := &v.host.Window.Keyboard
 	if v.transformTool.Update() {
+		return
+	}
+	// TODO:  This is to prevent deselecting and box selection if the mouse was
+	// over the menu bar area. Probably should do this check in a better way
+	if m.ScreenPosition().Y() <= menuBarHeightArea {
 		return
 	}
 	v.selectTool.Update()

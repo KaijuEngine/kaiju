@@ -64,6 +64,7 @@ type Camera interface {
 	Height() float32
 	View() matrix.Mat4
 	Projection() matrix.Mat4
+	InverseProjection() matrix.Mat4
 	LookAt() matrix.Vec3
 	NearPlane() float32
 	FarPlane() float32

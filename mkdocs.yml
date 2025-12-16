@@ -18,6 +18,7 @@ nav:
   - Engine Developers:
     - Build from source: engine_developers/build_from_source.md
     - Build tags: engine_developers/build_tags.md
+    - Performance Profiling: engine_developers/performance_profiling.md
     - Building new fonts: engine_developers/building_fonts.md
     - Editor windows: engine_developers/editor_windows.md
     - Prompt popups: engine_developers/prompt_popup.md

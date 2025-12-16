@@ -155,6 +155,8 @@ func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
 
 func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
 	m.ClearSelection()
 	cam := m.host.PrimaryCamera()
 	f := cam.Frustum()

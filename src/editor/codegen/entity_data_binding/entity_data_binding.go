@@ -73,7 +73,10 @@ type EntityDataField struct {
 
 func (f *EntityDataField) IsNumber() bool   { return isNumber(f.Type) }
 func (f *EntityDataField) IsInput() bool    { return isInput(f.Type) }
+func (f *EntityDataField) IsVec2() bool     { return isVec2(f.Type) }
 func (f *EntityDataField) IsVec3() bool     { return isVec3(f.Type) }
+func (f *EntityDataField) IsVec4() bool     { return isVec4(f.Type) }
+func (f *EntityDataField) IsColor() bool    { return isColor(f.Type) }
 func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
 
 func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
@@ -329,9 +332,10 @@ func isNumber(typeName string) bool {
 	}
 }
 
-func isVec3(typeName string) bool {
-	return typeName == "Vec3"
-}
+func isVec2(typeName string) bool  { return typeName == "Vec2" }
+func isVec3(typeName string) bool  { return typeName == "Vec3" }
+func isVec4(typeName string) bool  { return typeName == "Vec4" }
+func isColor(typeName string) bool { return typeName == "Color" }
 
 func isInput(typeName string) bool {
 	return typeName == "string" || isNumber(typeName)

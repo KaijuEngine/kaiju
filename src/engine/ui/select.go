@@ -65,6 +65,14 @@ func (s *selectData) innerPanelData() *panelData { return &s.panelData }
 
 type Select Panel
 
+type TriangleStylizer RightStylizer
+
+func (t TriangleStylizer) ProcessStyle(layout *Layout) []error {
+	RightStylizer(t).ProcessStyle(layout)
+	layout.Scale(16, 16)
+	return []error{}
+}
+
 func (u *UI) ToSelect() *Select { return (*Select)(u) }
 func (s *Select) Base() *UI     { return (*UI)(s) }
 
@@ -119,11 +127,10 @@ func (s *Select) Init(text string, options []SelectOption) {
 		tri := man.Add()
 		img := tri.ToImage()
 		img.Init(triTex)
-		img.layout.Stylizer = RightStylizer{BasicStylizer{p.Base()}}
+		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{p.Base()}})
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
-		img.layout.Scale(16, 16)
 		tri.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
 		data.triangle = tri
 		//img.layout.SetOffset(5, 0)
@@ -178,7 +185,8 @@ func (s *Select) ClearOptions() {
 	lpd := data.list.PanelData()
 	for i := len(data.list.entity.Children) - 1; i >= 0; i-- {
 		c := data.list.Child(i)
-		if c == (*UI)(lpd.scrollBarX) || c == (*UI)(lpd.scrollBarY) {
+		switch c {
+		case (*UI)(lpd.scrollBarX), (*UI)(lpd.scrollBarY):
 			continue
 		}
 		data.list.RemoveChild(c)
@@ -258,7 +266,9 @@ func (s *Select) expand() {
 	data := s.SelectData()
 	selectSize := s.layout.PixelSize()
 	data.list.Base().Show()
-	height := selectSize.Y() * 5
+	// Not a permanent solution, just ensures all options are visible
+	nOpts := len(s.SelectData().options)
+	height := selectSize.Y() * float32(nOpts)
 	layout := &data.list.layout
 	layout.Scale(selectSize.X(), height)
 	pos := s.entity.Transform.WorldPosition()
@@ -302,6 +312,6 @@ func (s *Select) update(deltaTime float64) {
 			matrix.Float(win.Height())*0.5
 		// TODO:  If it's off the screen on the bottom, make it show up above select
 		layout.SetOffset(x, -y)
-		// TODO:  For some reason it's not cleaning on the first frame
+		data.list.Base().Clean()
 	}
 }

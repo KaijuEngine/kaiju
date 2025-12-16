@@ -72,6 +72,8 @@
 		<div id="logoPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickAbout">About Kaiju Engine</div>
 			<div class="popupEntry" onclick="clickJoinMailingList">Mailing List</div>
+			<div class="popupEntry" onclick="clickCreatePluginProject">Create plugin project</div>
+			<div class="popupEntry" onclick="clickCloseEditor">Close Editor</div>
 		</div>
 		<div id="filePopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickNewStage">New stage</div>
@@ -93,15 +95,17 @@
 			<div class="popupEntry" onclick="clickExportProject">Export project template...</div>
 		</div>
 		<div id="editPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickUndo">Undo</div>
-			<div class="popupEntry" onclick="clickRedo">Redo</div>
+			<div class="popupEntry" onclick="clickUndo">Undo (ctrl + z)</div>
+			<div class="popupEntry" onclick="clickRedo">Redo (ctrl + y)</div>
+			<div class="popupEntry" onclick="clickDuplicate">Duplicate (ctrl + d)</div>
 		</div>
 		<div id="createPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickCreateEntityData">Create Entity Data</div>
-			<div class="popupEntry" onclick="clickCreateHtmlUi">Create HTML UI</div>
-			<div class="popupEntry" onclick="clickNewCamera">New camera</div>
-			<div class="popupEntry" onclick="clickNewEntity">New entity</div>
-			<div class="popupEntry" onclick="clickNewLight">New light</div>
+			<div class="popupEntry" onclick="clickCreateTemplate">Template selected (ctrl + t)</div>
+			<div class="popupEntry" onclick="clickCreateEntityData">Entity Data</div>
+			<div class="popupEntry" onclick="clickCreateHtmlUi">HTML UI</div>
+			<div class="popupEntry" onclick="clickNewCamera">Camera</div>
+			<div class="popupEntry" onclick="clickNewEntity">Entity</div>
+			<div class="popupEntry" onclick="clickNewLight">Light</div>
 		</div>
 		<div id="helpPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickLogs">Logs</div>

@@ -52,6 +52,9 @@ type StageEntity struct {
 }
 
 func EntityToStageEntity(e *engine.Entity) *StageEntity {
+	if e == nil {
+		return nil
+	}
 	return (*StageEntity)(unsafe.Pointer(e))
 }
 

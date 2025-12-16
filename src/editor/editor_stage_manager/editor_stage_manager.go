@@ -39,6 +39,7 @@ package editor_stage_manager
 import (
 	"encoding/json"
 	"errors"
+	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/confirm_prompt"
@@ -148,6 +149,27 @@ func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	return e
 }
 
+func (m *StageManager) AttachEntityData(e *StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
+	defer tracing.NewRegion("StageManager.AttachEntityData").End()
+	de := &entity_data_binding.EntityDataEntry{}
+	e.AddDataBinding(de.ReadEntityDataBindingType(g))
+	return de
+}
+
+func (m *StageManager) duplicateEntity(target *StageEntity, proj *project.Project) (*StageEntity, error) {
+	defer tracing.NewRegion("StageManager.duplicateEntity").End()
+	desc := m.entityToDescription(target)
+	var newId func(d *stages.EntityDescription)
+	newId = func(d *stages.EntityDescription) {
+		d.Id = uuid.NewString()
+		for i := range d.Children {
+			newId(&d.Children[i])
+		}
+	}
+	newId(&desc)
+	return m.importEntityByDescription(m.host, proj, EntityToStageEntity(target.Parent), &desc)
+}
+
 // AddEntityWithId will create an entity for the stage with a specified Id
 // rather than generating one. This entity will have a #StageEntityData
 // automatically added to it as named data named "stage".
@@ -207,7 +229,28 @@ func (m *StageManager) DestroySelected() {
 	h.Redo()
 }
 
+func (m *StageManager) DuplicateSelected(proj *project.Project) {
+	defer tracing.NewRegion("StageManager.DuplicateSelected").End()
+	sel := slices.Clone(m.Selection())
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
+	m.ClearSelection()
+	for _, e := range sel {
+		dup, err := m.duplicateEntity(e, proj)
+		if err != nil {
+			slog.Error("failed to duplicate entity", "error", err)
+			continue
+		}
+		m.history.Add(&objectSpawnHistory{
+			m: m,
+			e: dup,
+		})
+		m.SelectEntity(dup)
+	}
+}
+
 func (m *StageManager) HierarchyRespectiveSelection() []*StageEntity {
+	defer tracing.NewRegion("StageManager.HierarchyRespectiveSelection").End()
 	sel := slices.Clone(m.Selection())
 	for i := 0; i < len(sel); i++ {
 		for j := i + 1; j < len(sel); j++ {
