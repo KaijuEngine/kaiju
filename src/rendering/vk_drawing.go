@@ -65,7 +65,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 	return true
 }
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights []Light, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	addWrite := func(write vk.WriteDescriptorSet) {
@@ -109,10 +109,10 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				for j := range MaxLocalLights {
 					sm := &vr.fallbackShadowMap.RenderId
 					smCube := &vr.fallbackShadowMap.RenderId
-					if lights[j].IsValid() {
-						s := lights[j].ShadowMapTexture()
+					if lights.Lights[j].IsValid() {
+						s := lights.Lights[j].ShadowMapTexture()
 						if s.RenderId.IsValid() {
-							if lights[j].Type() == LightTypePoint {
+							if lights.Lights[j].Type() == LightTypePoint {
 								smCube = &s.RenderId
 							} else {
 								sm = &s.RenderId
@@ -171,7 +171,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights []Light) bool {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) bool {
 	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return false
@@ -323,7 +323,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
-	vr.Draw(combinePass, draws, []Light{})
+	vr.Draw(combinePass, draws, LightsForRender{})
 	return &combinePass.textures[0].RenderId
 }
 

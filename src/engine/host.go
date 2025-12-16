@@ -475,11 +475,17 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
+		lights := rendering.LightsForRender{
+			Lights: host.lighting.Lights.Cache,
+		}
+		for i := 0; i < len(lights.Lights) && !lights.HasChanges; i++ {
+			lights.HasChanges = lights.Lights[i].ResetFrameDirty()
+		}
 		host.lighting.Update(host.Cameras.Primary.Camera.Position())
 		if host.Window.Renderer.ReadyFrame(host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			host.lighting.Lights.Cache, float32(host.Runtime())) {
-			host.Drawings.Render(host.Window.Renderer, host.lighting.Lights.Cache)
+			lights, float32(host.Runtime())) {
+			host.Drawings.Render(host.Window.Renderer, lights)
 		}
 	}
 	host.Window.SwapBuffers()

@@ -66,7 +66,7 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
-	SelectLights(lights []Light)
+	SelectLights(lights LightsForRender)
 	setShadow(shadow DrawInstance)
 	renderBounds() collision.AABB
 }
@@ -114,8 +114,8 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) SelectLights(lights []Light)  {}
-func (s *ShaderDataBase) Transform() *matrix.Transform { return s.transform }
+func (s *ShaderDataBase) SelectLights(lights LightsForRender) {}
+func (s *ShaderDataBase) Transform() *matrix.Transform        { return s.transform }
 
 func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
 func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
@@ -293,7 +293,7 @@ func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, na
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights []Light) {
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)

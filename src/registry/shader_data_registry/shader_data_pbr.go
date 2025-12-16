@@ -65,9 +65,8 @@ func (t ShaderDataPBR) Size() int {
 	return int(unsafe.Sizeof(ShaderDataPBR{}) - rendering.ShaderBaseDataStart)
 }
 
-func (s *ShaderDataPBR) SelectLights(lights []rendering.Light) {
-	// TODO:  Should update if the lights are dirty too
-	shouldUpdate := false
+func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {
+	shouldUpdate := lights.HasChanges
 	t := s.Transform()
 	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
 	if !shouldUpdate {
@@ -77,8 +76,8 @@ func (s *ShaderDataPBR) SelectLights(lights []rendering.Light) {
 	for i := range s.LightIds {
 		s.LightIds[i] = -1
 	}
-	for i := range lights {
-		if lights[i].IsValid() {
+	for i := range lights.Lights {
+		if lights.Lights[i].IsValid() {
 			s.LightIds[i] = int32(i)
 		} else {
 			break
