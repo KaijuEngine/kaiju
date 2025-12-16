@@ -69,45 +69,47 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		nil, map[string]func(*document.Element){
-			"clickLogo":               b.openMenuTarget,
-			"clickFile":               b.openMenuTarget,
-			"clickEdit":               b.openMenuTarget,
-			"clickCreate":             b.openMenuTarget,
-			"clickHelp":               b.openMenuTarget,
-			"clickStage":              b.clickStage,
-			"clickContent":            b.clickContent,
-			"clickShading":            b.clickShading,
-			"clickAnimation":          b.clickAnimation,
-			"clickUI":                 b.clickUI,
-			"clickSettings":           b.clickSettings,
-			"clickNewStage":           b.clickNewStage,
-			"clickOpenStage":          b.clickOpenStage,
-			"clickSaveStage":          b.clickSaveStage,
-			"clickOpenCodeEditor":     b.clickOpenCodeEditor,
-			"clickBuild":              b.clickBuild,
-			"clickBuildAndRun":        b.clickBuildAndRun,
-			"clickBuildRelease":       b.clickBuildRelease,
-			"clickBuildAndRunRelease": b.clickBuildAndRunRelease,
-			"clickRunCurrentStage":    b.clickRunCurrentStage,
-			"clickBuildAndroid":       b.clickBuildAndroid,
-			"clickBuildRunAndroid":    b.clickBuildRunAndroid,
-			"clickExportProject":      b.clickExportProject,
-			"clickUndo":               b.clickUndo,
-			"clickRedo":               b.clickRedo,
-			"clickDuplicate":          b.clickDuplicate,
-			"clickCreateTemplate":     b.clickCreateTemplate,
-			"clickCreateEntityData":   b.clickCreateEntityData,
-			"clickCreateHtmlUi":       b.clickCreateHtmlUi,
-			"clickNewCamera":          b.clickNewCamera,
-			"clickNewEntity":          b.clickNewEntity,
-			"clickNewLight":           b.clickNewLight,
-			"clickAbout":              b.clickAbout,
-			"clickLogs":               b.clickLogs,
-			"clickIssues":             b.clickIssues,
-			"clickRepository":         b.clickRepository,
-			"clickJoinMailingList":    b.clickJoinMailingList,
-			"clickMailArchives":       b.clickMailArchives,
-			"popupMiss":               b.popupMiss,
+			"clickLogo":                b.openMenuTarget,
+			"clickFile":                b.openMenuTarget,
+			"clickEdit":                b.openMenuTarget,
+			"clickCreate":              b.openMenuTarget,
+			"clickHelp":                b.openMenuTarget,
+			"clickStage":               b.clickStage,
+			"clickContent":             b.clickContent,
+			"clickShading":             b.clickShading,
+			"clickAnimation":           b.clickAnimation,
+			"clickUI":                  b.clickUI,
+			"clickSettings":            b.clickSettings,
+			"clickNewStage":            b.clickNewStage,
+			"clickOpenStage":           b.clickOpenStage,
+			"clickSaveStage":           b.clickSaveStage,
+			"clickOpenCodeEditor":      b.clickOpenCodeEditor,
+			"clickBuild":               b.clickBuild,
+			"clickBuildAndRun":         b.clickBuildAndRun,
+			"clickBuildRelease":        b.clickBuildRelease,
+			"clickBuildAndRunRelease":  b.clickBuildAndRunRelease,
+			"clickRunCurrentStage":     b.clickRunCurrentStage,
+			"clickBuildAndroid":        b.clickBuildAndroid,
+			"clickBuildRunAndroid":     b.clickBuildRunAndroid,
+			"clickExportProject":       b.clickExportProject,
+			"clickUndo":                b.clickUndo,
+			"clickRedo":                b.clickRedo,
+			"clickDuplicate":           b.clickDuplicate,
+			"clickCreateTemplate":      b.clickCreateTemplate,
+			"clickCreateEntityData":    b.clickCreateEntityData,
+			"clickCreateHtmlUi":        b.clickCreateHtmlUi,
+			"clickNewCamera":           b.clickNewCamera,
+			"clickNewEntity":           b.clickNewEntity,
+			"clickNewLight":            b.clickNewLight,
+			"clickAbout":               b.clickAbout,
+			"clickLogs":                b.clickLogs,
+			"clickIssues":              b.clickIssues,
+			"clickRepository":          b.clickRepository,
+			"clickJoinMailingList":     b.clickJoinMailingList,
+			"clickMailArchives":        b.clickMailArchives,
+			"clickCreatePluginProject": b.clickCreatePluginProject,
+			"clickCloseEditor":         b.clickCloseEditor,
+			"popupMiss":                b.popupMiss,
 		})
 	b.doc.Clean()
 	return err
@@ -418,6 +420,28 @@ func (b *MenuBar) clickMailArchives(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickMailArchives").End()
 	b.hidePopups()
 	klib.OpenWebsite("https://www.freelists.org/archive/kaijuengine/")
+}
+
+func (b *MenuBar) clickCreatePluginProject(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreatePluginProject").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	file_browser.Show(b.uiMan.Host, file_browser.Config{
+		Title:        "Select plugin project path",
+		StartingPath: b.handler.ProjectFileSystem().FullPath(""),
+		OnlyFolders:  true,
+		OnConfirm: func(paths []string) {
+			b.handler.FocusInterface()
+			b.handler.CreatePluginProject(paths[0])
+		},
+		OnCancel: b.handler.FocusInterface,
+	})
+}
+
+func (b *MenuBar) clickCloseEditor(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCloseEditor").End()
+	b.hidePopups()
+	b.uiMan.Host.Close()
 }
 
 func (b *MenuBar) popupMiss(e *document.Element) {

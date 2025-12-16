@@ -171,6 +171,14 @@
 			.lightDarkBG {
 				background-color: #313232;
 			}
+			.pluginEntry {
+				width: 100%;
+				border: 2px solid #CCC;
+				background-color: #282828;
+			}
+			.pluginWebsite {
+				color: #63b361;
+			}
 		</style>
 	</head>
 	<body>
@@ -178,6 +186,7 @@
 			<div class="leftPanel">
 				<div class="leftEntry" onclick="showProjectSettings">Project Settings</div>
 				<div class="leftEntry" onclick="showEditorSettings">Editor Settings</div>
+				<div class="leftEntry" onclick="showPluginSettings">Plugin Settings</div>
 			</div>
 			<div class="rightPanel">
 				<div id="projectSettingsBox" class="settingsBox">
@@ -187,6 +196,29 @@
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>
 					{{template "section" .Editor}}
+				</div>
+				<div id="pluginSettingsBox" class="settingsBox">
+					<h1>Plugin Settings</h1>
+					<button onclick="clickOpenPlugins">Open plugins folder</button>
+					{{range $i, $p := .Plugins}}
+					<div class="pluginEntry">
+						<h1>{{$p.Config.Name}}</h1>
+						<div>{{$p.Config.Description}}</div>
+						<div>Author: {{$p.Config.Author}}</div>
+						<div>Version: {{$p.Config.Version}}</div>
+						<div>
+							{{if $p.Config.Website}}
+							<div>
+								<a class="pluginWebsite" onclick="openPluginWebsite">{{$p.Config.Website}}</a>
+							</div>
+							{{end}}
+						</div>
+						<div>
+							<input type="checkbox" class="inputCheck" data-idx="{{$i}}" {{if $p.Config.Enabled}}checked="checked"{{end}} onchange="togglePlugin" />
+							<span class="inputCheckLabel">Enabled</span>
+						</div>
+					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>

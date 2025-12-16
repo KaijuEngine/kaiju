@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* menu_bar_handler.go                                                        */
+/* editor_plugin.go                                                           */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,7 +34,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package menu_bar
+package editor_plugin
 
 import (
 	"kaiju/editor/editor_events"
@@ -45,7 +45,11 @@ import (
 	"kaiju/editor/project/project_file_system"
 )
 
-type MenuBarHandler interface {
+type EditorPlugin interface {
+	Launch(EditorInterface) error
+}
+
+type EditorInterface interface {
 	BlurInterface()
 	FocusInterface()
 	Settings() *editor_settings.Settings
@@ -53,21 +57,5 @@ type MenuBarHandler interface {
 	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
-	StageWorkspaceSelected()
-	ContentWorkspaceSelected()
-	ShadingWorkspaceSelected()
-	UIWorkspaceSelected()
-	SettingsWorkspaceSelected()
 	StageView() *editor_stage_view.StageView
-	Build(buildMode project.GameBuildMode)
-	BuildAndRun(buildMode project.GameBuildMode)
-	BuildAndRunCurrentStage()
-	OpenCodeEditor()
-	CreateNewStage()
-	SaveCurrentStage()
-	CreateNewCamera()
-	CreateNewEntity()
-	CreateNewLight()
-	CreatePluginProject(path string)
-	CreateHtmlUiFile(name string)
 }

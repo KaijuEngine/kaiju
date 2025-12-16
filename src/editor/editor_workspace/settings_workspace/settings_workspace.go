@@ -37,13 +37,18 @@
 package settings_workspace
 
 import (
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/klib"
+	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
+	"strconv"
 )
 
 const uiFile = "editor/ui/workspace/settings_workspace.go.html"
@@ -52,15 +57,19 @@ type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
 	projectSettingsBox *document.Element
 	editorSettingsBox  *document.Element
+	pluginSettingsBox  *document.Element
 	editor             SettingsWorkspaceEditorInterface
 	editorSettings     *editor_settings.Settings
 	projectSettings    *project.Settings
+	plugins            []editor_plugin.PluginInfo
+	pluginsChanged     bool
 	reloadRequested    bool
 }
 
 type settingsWorkspaceData struct {
 	Editor  common_workspace.DataUISection
 	Project common_workspace.DataUISection
+	Plugins []editor_plugin.PluginInfo
 }
 
 func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspaceEditorInterface) {
@@ -80,6 +89,7 @@ func (w *SettingsWorkspace) Open() {
 	w.CommonOpen()
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Hide()
 	w.resetLeftEntrySelection()
 	for _, e := range w.Doc.GetElementsByClass("leftEntry") {
 		if e.InnerLabel().Text() == "Project Settings" {
@@ -114,6 +124,7 @@ func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
@@ -122,9 +133,20 @@ func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
+	w.pluginSettingsBox.UI.Show()
+}
+
+func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showPluginSettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "leftEntry", "leftEntrySelected")
+	w.projectSettingsBox.UI.Hide()
+	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Show()
 }
 
 func (w *SettingsWorkspace) valueChanged(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.valueChanged").End()
 	if w.editorSettingsBox.UI.Entity().IsActive() {
 		common_workspace.SetObjectValueFromUI(w.editorSettings, e)
 	} else if w.projectSettingsBox.UI.Entity().IsActive() {
@@ -132,11 +154,41 @@ func (w *SettingsWorkspace) valueChanged(e *document.Element) {
 	}
 }
 
+func (w *SettingsWorkspace) openPluginWebsite(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.openPluginWebsite").End()
+	klib.OpenWebsite(e.InnerLabel().Text())
+}
+
+func (w *SettingsWorkspace) togglePlugin(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.togglePlugin").End()
+	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if err != nil {
+		return
+	}
+	w.plugins[idx].Config.Enabled = !w.plugins[idx].Config.Enabled
+	w.pluginsChanged = true
+}
+
+func (w *SettingsWorkspace) clickOpenPlugins(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.togglePlugin").End()
+	folder, err := editor_plugin.PluginsFolder()
+	if err != nil {
+		slog.Error("failed to find the plugins folder", "error", err)
+		return
+	}
+	if err = filesystem.OpenFileBrowserToFolder(folder); err != nil {
+		slog.Error("failed to open the file browser to folder", "folder", folder, "error", err)
+	}
+}
+
 func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
+	defer tracing.NewRegion("SettingsWorkspace.uiData").End()
+	w.plugins = editor_plugin.AvailablePlugins()
 	listings := map[string][]ui.SelectOption{}
 	return settingsWorkspaceData{
 		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
 		Project: common_workspace.ReflectUIStructure(w.projectSettings, "", listings),
+		Plugins: w.plugins,
 	}
 }
 
@@ -144,22 +196,18 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 	return map[string]func(*document.Element){
 		"showProjectSettings": w.showProjectSettings,
 		"showEditorSettings":  w.showEditorSettings,
+		"showPluginSettings":  w.showPluginSettings,
 		"valueChanged":        w.valueChanged,
+		"openPluginWebsite":   w.openPluginWebsite,
+		"togglePlugin":        w.togglePlugin,
+		"clickOpenPlugins":    w.clickOpenPlugins,
 	}
 }
 
 func (w *SettingsWorkspace) reloadedUI() {
+	defer tracing.NewRegion("SettingsWorkspace.reloadedUI").End()
 	w.reloadRequested = false
 	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
 	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
-}
-
-func isUnderParentId(e *document.Element, id string) bool {
-	p := e
-	for p != nil {
-		if p.Attribute("id") == id {
-			return true
-		}
-	}
-	return false
+	w.pluginSettingsBox, _ = w.Doc.GetElementById("pluginSettingsBox")
 }

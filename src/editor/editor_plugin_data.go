@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* menu_bar_handler.go                                                        */
+/* editor_plugin_data.go                                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,40 +34,19 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package menu_bar
+package editor
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_file_system"
+	"kaiju/editor/editor_plugin"
+	"log/slog"
 )
 
-type MenuBarHandler interface {
-	BlurInterface()
-	FocusInterface()
-	Settings() *editor_settings.Settings
-	Events() *editor_events.EditorEvents
-	History() *memento.History
-	Project() *project.Project
-	ProjectFileSystem() *project_file_system.FileSystem
-	StageWorkspaceSelected()
-	ContentWorkspaceSelected()
-	ShadingWorkspaceSelected()
-	UIWorkspaceSelected()
-	SettingsWorkspaceSelected()
-	StageView() *editor_stage_view.StageView
-	Build(buildMode project.GameBuildMode)
-	BuildAndRun(buildMode project.GameBuildMode)
-	BuildAndRunCurrentStage()
-	OpenCodeEditor()
-	CreateNewStage()
-	SaveCurrentStage()
-	CreateNewCamera()
-	CreateNewEntity()
-	CreateNewLight()
-	CreatePluginProject(path string)
-	CreateHtmlUiFile(name string)
+var editorPluginRegistry = map[string]editor_plugin.EditorPlugin{}
+
+func RegisterPlugin(key string, plugin editor_plugin.EditorPlugin) {
+	if _, ok := editorPluginRegistry[key]; ok {
+		slog.Error("a plugin with the given key is already registered", "key", key)
+		return
+	}
+	editorPluginRegistry[key] = plugin
 }
