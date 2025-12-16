@@ -48,27 +48,19 @@ import (
 )
 
 type Material struct {
-	Id            string
-	Name          string
-	shaderInfo    ShaderDataCompiled
-	renderPass    *RenderPass
-	pipelineInfo  ShaderPipelineDataCompiled
-	Shader        *Shader
-	Textures      []*Texture
-	ShadowMap     *Texture
-	ShadowCubeMap *Texture
-	Instances     map[string]*Material
-	Root          weak.Pointer[Material]
-	mutex         sync.Mutex
-	IsLit         bool
-}
-
-func (m *Material) HasShadowMap() bool {
-	return m.ShadowMap != nil && m.ShadowMap.RenderId.IsValid()
-}
-
-func (m *Material) HasShadowCubeMap() bool {
-	return m.ShadowCubeMap != nil && m.ShadowCubeMap.RenderId.IsValid()
+	Id              string
+	Name            string
+	shaderInfo      ShaderDataCompiled
+	renderPass      *RenderPass
+	pipelineInfo    ShaderPipelineDataCompiled
+	Shader          *Shader
+	Textures        []*Texture
+	Instances       map[string]*Material
+	Root            weak.Pointer[Material]
+	mutex           sync.Mutex
+	IsLit           bool
+	RecievesShadows bool
+	CastsShadows    bool
 }
 
 func (m *Material) HasTransparentSuffix() bool {
@@ -113,8 +105,6 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
-	copy.ShadowMap = m.ShadowMap
-	copy.ShadowCubeMap = m.ShadowCubeMap
 	// TODO:  If using a read lock, then make sure to write lock the following line
 	m.Instances[key] = copy
 	copy.Root = weak.Make(m)
@@ -199,7 +189,5 @@ func (m *Material) Destroy(renderer Renderer) {
 	m.renderPass = nil
 	m.Shader = nil
 	m.Textures = make([]*Texture, 0)
-	m.ShadowMap = nil
-	m.ShadowCubeMap = nil
 	clear(m.Instances)
 }

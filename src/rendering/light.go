@@ -47,8 +47,7 @@ import (
 )
 
 const (
-	nrLights                 = 4
-	MaxLights                = 20
+	MaxLocalLights           = 20
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
@@ -206,18 +205,11 @@ func (l *Light) IsValid() bool   { return l.renderer != nil }
 func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
 	copy.Material = lightDepthMaterial.Value()
-	copy.CastsShadows = false // Shadows don't cast shadows
+	copy.Material.IsLit = false
+	copy.Material.RecievesShadows = false
+	copy.Material.CastsShadows = false
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	drawing.ShaderData.setShadow(sd)
-	copy.ShaderData = sd
-	return copy
-}
-
-func lightTransformDrawingToCubeDepth(drawing *Drawing) Drawing {
-	copy := *drawing
-	copy.Material = lightDepthMaterial.Value()
-	copy.CastsShadows = false // Shadows don't cast shadows
-	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	copy.ShaderData = sd
 	return copy
 }

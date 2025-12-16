@@ -6,10 +6,10 @@ layout(location = LOCATION_START) in vec4 vertColors;
 layout(location = LOCATION_START+1) in float metallic;
 layout(location = LOCATION_START+2) in float roughness;
 layout(location = LOCATION_START+3) in float emissive;
-layout(location = LOCATION_START+4) in float light0;
-layout(location = LOCATION_START+5) in float light1;
-layout(location = LOCATION_START+6) in float light2;
-layout(location = LOCATION_START+7) in float light3;
+layout(location = LOCATION_START+4) in int light0;
+layout(location = LOCATION_START+5) in int light1;
+layout(location = LOCATION_START+6) in int light2;
+layout(location = LOCATION_START+7) in int light3;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoords;
@@ -31,7 +31,6 @@ void main() {
 	fragTexCoords = UV0;
 	fragPos = vec3(model * vec4(Position, 1.0));
 	gl_Position = projection * view * model * vec4(Position, 1.0);
-
 	mat3 nmlMat = transpose(inverse(mat3(model)));
 	vec3 T = normalize(nmlMat * Tangent.xyz);
 	vec3 N = normalize(nmlMat * Normal);
@@ -40,30 +39,24 @@ void main() {
 	// then retrieve perpendicular vector B with the cross product of T and N
 	vec3 B = cross(N, T);
 	mat3 TBN = transpose(mat3(T, B, N));
-
-#ifdef MULTI_LIGHT
 	int indexes[NR_LIGHTS] = { light0, light1, light2, light3 };
+	lightCount = 0;
 	for (int i = 0; i < NR_LIGHTS; ++i) {
-		int idx = clamp(indexes[i], 0, MAX_LIGHTS - 1);
-		fragLightTPos[i] = TBN * vertLights[idx].position;
-		fragLightTDir[i] = TBN * normalize(vertLights[idx].direction);
-		fragPosLightSpace[i] = vertLights[idx].matrix[0] * vec4(fragPos, 1.0);
+		int idx = indexes[i];
+		if (idx < 0) {
+			continue;
+		}
+		idx = min(idx, MAX_LIGHTS - 1);
+		fragLightTPos[lightCount] = TBN * vertLights[idx].position;
+		fragLightTDir[lightCount] = TBN * normalize(vertLights[idx].direction);
+		fragPosLightSpace[lightCount] = vertLights[idx].matrix[0] * vec4(fragPos, 1.0);
+		lightIndexes[lightCount] = idx;
+		lightCount++;
 	}
-#else
-	fragLightTPos[0] = TBN * vertLights[0].position;
-	fragLightTDir[0] = TBN * normalize(vertLights[0].direction);
-	fragPosLightSpace[0] = vertLights[0].matrix[0] * vec4(fragPos, 1.0);
-#endif
-
 	fragTangentViewPos = TBN * cameraPosition.xyz;
 	fragTangentFragPos = TBN * fragPos;
 	fragNormal = N;
 	fragMetallic = metallic;
 	fragRoughness = roughness;
 	fragEmissive = emissive;
-#ifdef MULTI_LIGHT
-	lightCount = min(light0 + 1, 1) + min(light1 + 1, 1) + min(light2 + 1, 1) + min(light3 + 1, 1);
-	for (int i = 0; i < NR_LIGHTS; ++i)
-		lightIndexes[i] = indexes[i];
-#endif
 }

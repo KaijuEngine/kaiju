@@ -53,6 +53,9 @@ type Manager struct {
 	Group           Group
 	pools           pooling.PoolGroup[UI]
 	hovered         [][]*UI
+	itrRoots        []*UI
+	itrChildren     []*UI
+	itrAll          []*UI
 	updateId        engine.UpdateId
 	skipUpdate      int
 	resizeEvtId     events.Id
@@ -65,35 +68,37 @@ func (man *Manager) update(deltaTime float64) {
 	if man.windowMinimized || (man.skipUpdate > 0 && !man.windowResized) {
 		return
 	}
+	man.itrRoots = klib.WipeSlice(man.itrRoots)
+	man.itrChildren = klib.WipeSlice(man.itrChildren)
+	man.itrAll = klib.WipeSlice(man.itrAll)
 	// There is no update without a host, this is safe
 	wg := sync.WaitGroup{}
-	roots := []*UI{}
-	children := []*UI{}
 	man.pools.Each(func(elm *UI) {
 		if elm.entity.IsDestroyed() {
 			return
 		}
 		if elm.entity.IsRoot() {
-			roots = append(roots, elm)
+			man.itrRoots = append(man.itrRoots, elm)
 		} else {
-			children = append(children, elm)
+			man.itrChildren = append(man.itrChildren, elm)
 		}
 	})
 	// First we update all the root UI elements, this will stabilize the tree
-	wg.Add(len(roots))
+	wg.Add(len(man.itrRoots))
 	threads := man.Host.UIThreads()
-	work := make([]func(int), len(roots))
-	for i := range roots {
+	work := make([]func(int), len(man.itrRoots))
+	for i := range man.itrRoots {
 		work[i] = func(int) {
-			roots[i].cleanIfNeeded()
+			man.itrRoots[i].cleanIfNeeded()
 			wg.Done()
 		}
 	}
 	threads.AddWork(work)
 	wg.Wait()
 	// Then we go through and update all the remaining UI elements
-	all := append(children, roots...)
-	wg.Add(len(all))
+	man.itrAll = append(man.itrAll, man.itrChildren...)
+	man.itrAll = append(man.itrAll, man.itrRoots...)
+	wg.Add(len(man.itrAll))
 	tCount := threads.ThreadCount()
 	if len(man.hovered) != tCount {
 		man.hovered = make([][]*UI, tCount)
@@ -102,10 +107,10 @@ func (man *Manager) update(deltaTime float64) {
 			man.hovered[i] = klib.WipeSlice(man.hovered[i])
 		}
 	}
-	work = make([]func(int), len(all))
-	for i := range all {
+	work = make([]func(int), len(man.itrAll))
+	for i := range man.itrAll {
 		work[i] = func(threadId int) {
-			e := all[i]
+			e := man.itrAll[i]
 			e.updateFromManager(deltaTime)
 			if e.IsActive() && e.hovering && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)

@@ -53,13 +53,13 @@ import (
 func init() {
 	AddRenderer(engine_entity_data_light.BindingKey, &LightDataBindingRenderer{
 		LightLines: make(map[*editor_stage_manager.StageEntity]rendering.DrawInstance),
-		LightIds:   make(map[*editor_stage_manager.StageEntity]lighting.EntryId),
+		LightIds:   make(map[*editor_stage_manager.StageEntity]*lighting.LightEntry),
 	})
 }
 
 type LightDataBindingRenderer struct {
 	LightLines map[*editor_stage_manager.StageEntity]rendering.DrawInstance
-	LightIds   map[*editor_stage_manager.StageEntity]lighting.EntryId
+	LightIds   map[*editor_stage_manager.StageEntity]*lighting.LightEntry
 }
 
 func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
@@ -114,8 +114,8 @@ func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_
 }
 
 func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	l := host.Lighting().Lights.FindById(c.LightIds[target])
-	l.Target.SetDirection(l.Transform.Up().Negative())
+	l := c.LightIds[target]
+	l.Light.SetDirection(l.Transform.Up().Negative())
 }
 
 func (c *LightDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {

@@ -45,14 +45,13 @@ import (
 )
 
 type Drawing struct {
-	Renderer     Renderer
-	Material     *Material
-	Mesh         *Mesh
-	ShaderData   DrawInstance
-	Transform    *matrix.Transform
-	Sort         int
-	ViewCuller   ViewCuller
-	CastsShadows bool
+	Renderer   Renderer
+	Material   *Material
+	Mesh       *Mesh
+	ShaderData DrawInstance
+	Transform  *matrix.Transform
+	Sort       int
+	ViewCuller ViewCuller
 }
 
 func (d *Drawing) IsValid() bool {
@@ -157,9 +156,8 @@ func (d *Drawings) PreparePending() {
 			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
 		}
 		d.addToRenderPassGroup(drawing, rpGroup)
-		if drawing.CastsShadows {
+		if drawing.Material.CastsShadows {
 			d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing))
-			//d.backDraws = append(d.backDraws, lightTransformDrawingToCubeDepth(drawing))
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
@@ -185,7 +183,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 }
 
-func (d *Drawings) Render(renderer Renderer) {
+func (d *Drawings) Render(renderer Renderer, lights []Light) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
@@ -193,7 +191,7 @@ func (d *Drawings) Render(renderer Renderer) {
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		renderer.Draw(rp, d.renderPassGroups[i].draws)
+		renderer.Draw(rp, d.renderPassGroups[i].draws, lights)
 		passes = append(passes, rp)
 	}
 	if len(passes) > 0 {

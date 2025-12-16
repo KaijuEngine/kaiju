@@ -38,75 +38,77 @@ package lighting
 
 import (
 	"kaiju/debug"
+	"kaiju/engine/pooling"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
 	"sort"
 )
 
-type EntryId = int
-
-type Entry[T any] struct {
-	id        EntryId
+type LightEntry struct {
+	rendering.Light
 	Transform *matrix.Transform
-	Target    T
 	lastDist  float32
+	poolId    pooling.PoolGroupId
+	id        pooling.PoolIndex
 }
 
-type Collection[T any] struct {
-	Cache     []T
-	nextId    EntryId
+type LightCollection struct {
+	Cache     []rendering.Light
+	pools     pooling.PoolGroup[LightEntry]
 	lastPoint matrix.Vec3
-	entries   []Entry[T]
+	itrDists  []*LightEntry
 }
 
-func (c *Collection[T]) Add(transform *matrix.Transform, target T) EntryId {
-	defer tracing.NewRegion("Collection.Add").End()
-	c.nextId++
-	c.entries = append(c.entries, Entry[T]{
-		id:        c.nextId,
+func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Light) *LightEntry {
+	defer tracing.NewRegion("LightCollection.Add").End()
+	entry, poolId, elmId := c.pools.Add()
+	*entry = LightEntry{
+		poolId:    poolId,
+		id:        elmId,
+		Light:     target,
 		Transform: transform,
-		Target:    target,
-	})
-	return c.nextId
-}
-
-func (c *Collection[T]) FindById(id EntryId) *Entry[T] {
-	for i := range c.entries {
-		if c.entries[i].id == id {
-			return &c.entries[i]
-		}
 	}
-	debug.Throw("an invalid id was passed in to search the collection for")
-	return nil
+	return entry
 }
 
-func (c *Collection[T]) FindClosest(point matrix.Vec3, writeTo []T) {
+func (c *LightCollection) Clear() {
+	c.pools.Clear()
+}
+
+func (c *LightCollection) UpdateCache(point matrix.Vec3) []rendering.Light {
+	defer tracing.NewRegion("Collection[T].UpdateCache").End()
+	if len(c.Cache) > 0 {
+		c.findLocalLights(point, c.Cache)
+	}
+	return c.Cache
+}
+
+func (c *LightCollection) findLocalLights(point matrix.Vec3, writeTo []rendering.Light) {
+	defer tracing.NewRegion("LightCollection.FindClosest").End()
 	const moveDistanceToRecalculate = 1
-	defer tracing.NewRegion("Collection[T].FindClosest").End()
-	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for Collection[T].FindClosest")
-	if matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
-		for i := range c.entries {
-			e := &c.entries[i]
-			e.lastDist = point.Subtract(e.Transform.Position()).Length()
-		}
-		sort.Slice(c.entries, func(i, j int) bool {
-			return c.entries[i].lastDist < c.entries[j].lastDist
+	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for LightCollection.FindClosest")
+	if !matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
+		c.itrDists = klib.WipeSlice(c.itrDists)
+		c.pools.Each(func(elm *LightEntry) {
+			if elm.Type() != rendering.LightTypeDirectional {
+				elm.lastDist = point.Subtract(elm.Transform.Position()).Length()
+			}
+			c.itrDists = append(c.itrDists, elm)
+		})
+		sort.Slice(c.itrDists, func(i, j int) bool {
+			if c.itrDists[i].Light.Type() == rendering.LightTypeDirectional {
+				return true
+			} else if c.itrDists[j].Light.Type() == rendering.LightTypeDirectional {
+				return false
+			} else {
+				return c.itrDists[i].lastDist < c.itrDists[j].lastDist
+			}
 		})
 		c.lastPoint = point
 	}
-	for i := range min(len(writeTo), len(c.entries)) {
-		writeTo[i] = c.entries[i].Target
+	for i := range min(len(writeTo), len(c.itrDists)) {
+		writeTo[i] = c.itrDists[i].Light
 	}
-}
-
-func (c *Collection[T]) Clear() {
-	c.entries = klib.WipeSlice(c.entries)
-}
-
-func (c *Collection[T]) UpdateCache(point matrix.Vec3) []T {
-	if len(c.Cache) > 0 {
-		c.FindClosest(point, c.Cache)
-	}
-	return c.Cache
 }

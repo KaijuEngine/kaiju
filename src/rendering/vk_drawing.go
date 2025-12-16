@@ -65,7 +65,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 	return true
 }
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights []Light, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	addWrite := func(write vk.WriteDescriptorSet) {
@@ -98,24 +98,29 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			0, vulkan_const.DescriptorTypeUniformBuffer))
 		texCount := len(group.MaterialInstance.Textures)
 		if texCount > 0 {
-			for j := 0; j < texCount; j++ {
+			for j := range texCount {
 				t := group.MaterialInstance.Textures[j]
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
 			addWrite(prepareSetWriteImage(set, group.imageInfos, 1, false))
-			if group.MaterialInstance.HasShadowMap() {
-				const id = 2
-				sm := &group.MaterialInstance.ShadowMap.RenderId
-				imageInfos := [1]vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
-				addWrite(prepareSetWriteImage(set, imageInfos[:], id, false))
-				addWrite(prepareSetWriteImage(set, imageInfos[:], id, false))
-			}
-			if group.MaterialInstance.HasShadowCubeMap() {
-				const id = 3
-				sm := &group.MaterialInstance.ShadowCubeMap.RenderId
-				imageInfos := [1]vk.DescriptorImageInfo{imageInfo(sm.View, sm.Sampler)}
-				addWrite(prepareSetWriteImage(set, imageInfos[:], id, false))
-				addWrite(prepareSetWriteImage(set, imageInfos[:], id, false))
+			if group.MaterialInstance.RecievesShadows {
+				imageInfos := [MaxLocalLights]vk.DescriptorImageInfo{}
+				for j := range MaxLocalLights {
+					sm := &lights[j].ShadowMapTexture().RenderId
+					if !sm.IsValid() || lights[j].Type() == LightTypePoint {
+						sm = &vr.fallbackShadowMap.RenderId
+					}
+					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
+				}
+				addWrite(prepareSetWriteImage(set, imageInfos[:], 2, false))
+				for j := range MaxLocalLights {
+					sm := &lights[j].ShadowMapTexture().RenderId
+					if !sm.IsValid() || lights[j].Type() != LightTypePoint {
+						sm = &vr.fallbackCubeShadowMap.RenderId
+					}
+					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
+				}
+				addWrite(prepareSetWriteImage(set, imageInfos[:], 3, false))
 			}
 			for k := range group.namedBuffers {
 				addWrite(prepareSetWriteBuffer(set,
@@ -163,7 +168,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights []Light) bool {
 	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return false
@@ -175,7 +180,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw) bool {
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, &p)
+			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -315,7 +320,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
-	vr.Draw(combinePass, draws)
+	vr.Draw(combinePass, draws, []Light{})
 	return &combinePass.textures[0].RenderId
 }
 

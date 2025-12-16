@@ -36,24 +36,23 @@
 
 package lighting
 
-import "kaiju/matrix"
+import (
+	"kaiju/matrix"
+	"kaiju/rendering"
+)
 
 type LightingInformation struct {
-	Lights         LightCollection
-	StaticShadows  PointShadowCollection
-	DynamicShadows PointShadowCollection
+	Lights LightCollection
 }
 
-func NewLightingInformation(lightCapacity, shadowCapacity int) LightingInformation {
+func NewLightingInformation(lightCacheCapacity int) LightingInformation {
 	return LightingInformation{
-		Lights:         NewLightCollection(lightCapacity),
-		StaticShadows:  NewPointShadowCollection(shadowCapacity),
-		DynamicShadows: NewPointShadowCollection(shadowCapacity),
+		Lights: LightCollection{
+			Cache: make([]rendering.Light, lightCacheCapacity),
+		},
 	}
 }
 
 func (l *LightingInformation) Update(point matrix.Vec3) {
 	l.Lights.UpdateCache(point)
-	l.StaticShadows.UpdateCache(point)
-	l.DynamicShadows.UpdateCache(point)
 }

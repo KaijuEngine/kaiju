@@ -57,10 +57,10 @@ type ShaderDataPBR struct {
 	Metallic   float32
 	Roughness  float32
 	Emissive   float32
-	Light0     float32
-	Light1     float32
-	Light2     float32
-	Light3     float32
+	Light0     int32
+	Light1     int32
+	Light2     int32
+	Light3     int32
 }
 
 func (t ShaderDataPBR) Size() int {

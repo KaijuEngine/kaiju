@@ -157,7 +157,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		CloseSignal:   make(chan struct{}, 1),
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
-		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
+		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
 			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
@@ -486,9 +486,8 @@ func (host *Host) Render() {
 		host.lighting.Update(host.renderDetailsFrom)
 		if host.Window.Renderer.ReadyFrame(host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			host.lighting.Lights.Cache, host.lighting.StaticShadows.Cache,
-			host.lighting.DynamicShadows.Cache, float32(host.Runtime())) {
-			host.Drawings.Render(host.Window.Renderer)
+			host.lighting.Lights.Cache, float32(host.Runtime())) {
+			host.Drawings.Render(host.Window.Renderer, host.lighting.Lights.Cache)
 		}
 	}
 	host.Window.SwapBuffers()
