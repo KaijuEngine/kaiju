@@ -59,7 +59,7 @@ type Material struct {
 	Root            weak.Pointer[Material]
 	mutex           sync.Mutex
 	IsLit           bool
-	RecievesShadows bool
+	ReceivesShadows bool
 	CastsShadows    bool
 }
 
@@ -80,12 +80,14 @@ type MaterialTextureData struct {
 }
 
 type MaterialData struct {
-	Name           string
-	Shader         string `options:""` // Blank = fallback
-	RenderPass     string `options:""` // Blank = fallback
-	ShaderPipeline string `options:""` // Blank = fallback
-	Textures       []MaterialTextureData
-	IsLit          bool
+	Name            string
+	Shader          string `options:""` // Blank = fallback
+	RenderPass      string `options:""` // Blank = fallback
+	ShaderPipeline  string `options:""` // Blank = fallback
+	Textures        []MaterialTextureData
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -130,10 +132,12 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		Name:      d.Name,
-		Textures:  make([]*Texture, len(d.Textures)),
-		Instances: make(map[string]*Material),
-		IsLit:     d.IsLit,
+		Name:            d.Name,
+		Textures:        make([]*Texture, len(d.Textures)),
+		Instances:       make(map[string]*Material),
+		IsLit:           d.IsLit,
+		ReceivesShadows: d.ReceivesShadows,
+		CastsShadows:    d.CastsShadows,
 	}
 	sd := ShaderData{}
 	rp := RenderPassData{}

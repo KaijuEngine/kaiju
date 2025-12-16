@@ -206,7 +206,7 @@ func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
 	copy.Material = lightDepthMaterial.Value()
 	copy.Material.IsLit = false
-	copy.Material.RecievesShadows = false
+	copy.Material.ReceivesShadows = false
 	copy.Material.CastsShadows = false
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	drawing.ShaderData.setShadow(sd)

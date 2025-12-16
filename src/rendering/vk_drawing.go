@@ -103,24 +103,27 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
 			}
 			addWrite(prepareSetWriteImage(set, group.imageInfos, 1, false))
-			if group.MaterialInstance.RecievesShadows {
+			if group.MaterialInstance.ReceivesShadows {
 				imageInfos := [MaxLocalLights]vk.DescriptorImageInfo{}
+				imageInfosCube := [MaxLocalLights]vk.DescriptorImageInfo{}
 				for j := range MaxLocalLights {
-					sm := &lights[j].ShadowMapTexture().RenderId
-					if !sm.IsValid() || lights[j].Type() == LightTypePoint {
-						sm = &vr.fallbackShadowMap.RenderId
+					sm := &vr.fallbackShadowMap.RenderId
+					smCube := &vr.fallbackShadowMap.RenderId
+					if lights[j].IsValid() {
+						s := lights[j].ShadowMapTexture()
+						if s.RenderId.IsValid() {
+							if lights[j].Type() == LightTypePoint {
+								smCube = &s.RenderId
+							} else {
+								sm = &s.RenderId
+							}
+						}
 					}
 					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
+					imageInfosCube[j] = imageInfo(smCube.View, smCube.Sampler)
 				}
 				addWrite(prepareSetWriteImage(set, imageInfos[:], 2, false))
-				for j := range MaxLocalLights {
-					sm := &lights[j].ShadowMapTexture().RenderId
-					if !sm.IsValid() || lights[j].Type() != LightTypePoint {
-						sm = &vr.fallbackCubeShadowMap.RenderId
-					}
-					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
-				}
-				addWrite(prepareSetWriteImage(set, imageInfos[:], 3, false))
+				addWrite(prepareSetWriteImage(set, imageInfosCube[:], 3, false))
 			}
 			for k := range group.namedBuffers {
 				addWrite(prepareSetWriteBuffer(set,
