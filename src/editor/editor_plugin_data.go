@@ -40,6 +40,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"kaiju/build"
 	"kaiju/editor/editor_plugin"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/filesystem"
@@ -97,7 +98,12 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 	}
 	registry.WriteString(")\n")
 	// Run compile of the editor
-	cmd := exec.Command("go", "build", "-tags=debug,editor", "-o", filepath.Base(exe), ".")
+	var cmd *exec.Cmd
+	if build.Debug {
+		cmd = exec.Command("go", "build", "-tags=debug,editor", "-o", filepath.Base(exe), ".")
+	} else {
+		cmd = exec.Command("go", "build", "-tags=editor", "-o", filepath.Base(exe), ".")
+	}
 	cmd.Dir = to
 	if err := cmd.Start(); err != nil {
 		return err
