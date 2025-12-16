@@ -22,9 +22,6 @@ jobs:
         with:
           submodules: recursive
           
-      - name: Ensure submodules are initialized
-        run: git submodule update --init --recursive
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -167,9 +164,6 @@ jobs:
         with:
           submodules: recursive
           
-      - name: Ensure submodules are initialized
-        run: git submodule update --init --recursive
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
