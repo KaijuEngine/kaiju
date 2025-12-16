@@ -310,6 +310,9 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("StageWorkspace.attachMaterial").End()
+	if e.StageData.ShaderData == nil {
+		return
+	}
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)

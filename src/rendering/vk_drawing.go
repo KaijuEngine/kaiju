@@ -80,7 +80,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			continue
 		}
 		vr.resizeUniformBuffer(material, group)
-		group.UpdateData(vr, vr.currentFrame)
+		group.UpdateData(vr, vr.currentFrame, lights)
 		if !group.AnyVisible() {
 			continue
 		}

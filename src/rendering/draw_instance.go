@@ -66,6 +66,7 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
+	SelectLights(lights []Light)
 	setShadow(shadow DrawInstance)
 	renderBounds() collision.AABB
 }
@@ -112,6 +113,9 @@ func NewShaderDataBase() ShaderDataBase {
 func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
+
+func (s *ShaderDataBase) SelectLights(lights []Light)  {}
+func (s *ShaderDataBase) Transform() *matrix.Transform { return s.transform }
 
 func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
 func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
@@ -289,7 +293,7 @@ func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, na
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights []Light) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
@@ -308,6 +312,9 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
 		if instanceBase.IsInView() {
+			if d.MaterialInstance.IsLit {
+				instance.SelectLights(lights)
+			}
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
 					d.updateNamedData(instanceIndex, instance, k, frame)

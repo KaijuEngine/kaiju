@@ -6,10 +6,7 @@ layout(location = LOCATION_START) in vec4 vertColors;
 layout(location = LOCATION_START+1) in float metallic;
 layout(location = LOCATION_START+2) in float roughness;
 layout(location = LOCATION_START+3) in float emissive;
-layout(location = LOCATION_START+4) in int light0;
-layout(location = LOCATION_START+5) in int light1;
-layout(location = LOCATION_START+6) in int light2;
-layout(location = LOCATION_START+7) in int light3;
+layout(location = LOCATION_START+4) in int lightIds[NR_LIGHTS];
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoords;
@@ -39,10 +36,9 @@ void main() {
 	// then retrieve perpendicular vector B with the cross product of T and N
 	vec3 B = cross(N, T);
 	mat3 TBN = transpose(mat3(T, B, N));
-	int indexes[NR_LIGHTS] = { light0, light1, light2, light3 };
 	lightCount = 0;
 	for (int i = 0; i < NR_LIGHTS; ++i) {
-		int idx = indexes[i];
+		int idx = lightIds[i];
 		if (idx < 0) {
 			continue;
 		}

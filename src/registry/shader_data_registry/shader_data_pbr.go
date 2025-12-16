@@ -47,10 +47,7 @@ func init() {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
-			Light0:         -1,
-			Light1:         -1,
-			Light2:         -1,
-			Light3:         -1,
+			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
 	})
 }
@@ -61,12 +58,30 @@ type ShaderDataPBR struct {
 	Metallic   float32
 	Roughness  float32
 	Emissive   float32
-	Light0     int32
-	Light1     int32
-	Light2     int32
-	Light3     int32
+	LightIds   [4]int32
 }
 
 func (t ShaderDataPBR) Size() int {
 	return int(unsafe.Sizeof(ShaderDataPBR{}) - rendering.ShaderBaseDataStart)
+}
+
+func (s *ShaderDataPBR) SelectLights(lights []rendering.Light) {
+	// TODO:  Should update if the lights are dirty too
+	shouldUpdate := false
+	t := s.Transform()
+	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
+	if !shouldUpdate {
+		return
+	}
+	// TODO:  This is for testing, should select closest
+	for i := range s.LightIds {
+		s.LightIds[i] = -1
+	}
+	for i := range lights {
+		if lights[i].IsValid() {
+			s.LightIds[i] = int32(i)
+		} else {
+			break
+		}
+	}
 }
