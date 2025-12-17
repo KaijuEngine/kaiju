@@ -38,25 +38,28 @@ package loaders
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"kaiju/klib"
+	"kaiju/engine/assets"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/load_result"
+	"path/filepath"
+	"strconv"
 	"strings"
 )
 
 type objBuilder struct {
-	name                 string
-	material             string
-	points               []matrix.Vec3
-	colors               []matrix.Color
-	uvs                  []matrix.Vec2
-	normals              []matrix.Vec3
-	vIndexes             []uint32
-	tIndexes             []uint32
-	nIndexes             []uint32
-	complainedAboutQuads bool
+	name     string
+	material string
+	points   []matrix.Vec3
+	colors   []matrix.Color
+	uvs      []matrix.Vec2
+	normals  []matrix.Vec3
+	vIndexes []uint32
+	tIndexes []uint32
+	nIndexes []uint32
 }
 
 func (o *objBuilder) fromVertIdx(idx int) int {
@@ -68,11 +71,11 @@ func (o *objBuilder) fromVertIdx(idx int) int {
 	return 0
 }
 
-func (o *objBuilder) complainAboutQuads() {
-	if !o.complainedAboutQuads {
-		klib.NotYetImplemented(139)
-		o.complainedAboutQuads = true
-	}
+type objOffsets struct {
+	pointsOffset  uint32
+	uvsOffset     uint32
+	normalsOffset uint32
+	colorsOffset  uint32
 }
 
 type objLineType = int
@@ -133,7 +136,7 @@ func objNewObject(line string) objBuilder {
 	return obj
 }
 
-func (obj *objBuilder) readVertex(line string) {
+func (obj *objBuilder) readVertex(line string) error {
 	var p matrix.Vec3
 	c := matrix.ColorWhite()
 	spaceCount := strings.Count(line, " ")
@@ -141,81 +144,144 @@ func (obj *objBuilder) readVertex(line string) {
 		fmt.Sscanf(line, "v %f %f %f", p.PX(), p.PY(), p.PZ())
 	} else if spaceCount == 6 {
 		fmt.Sscanf(line, "v %f %f %f %f %f %f", p.PX(), p.PY(), p.PZ(), c.PR(), c.PG(), c.PB())
+	} else {
+		return errors.New("invalid OBJ file")
 	}
 	obj.points = append(obj.points, p)
 	obj.colors = append(obj.colors, c)
+	return nil
 }
 
-func (obj *objBuilder) readUv(line string) {
+func (obj *objBuilder) readUv(line string) error {
 	var uv matrix.Vec2
-	fmt.Sscanf(line, "vt %f %f", uv.PX(), uv.PY())
+	spaceCount := strings.Count(line, " ")
+	if spaceCount == 2 {
+		fmt.Sscanf(line, "vt %f %f", uv.PX(), uv.PY())
+	} else {
+		return errors.New("invalid OBJ file")
+	}
 	obj.uvs = append(obj.uvs, uv)
+	return nil
 }
 
-func (obj *objBuilder) readNormal(line string) {
+func (obj *objBuilder) readNormal(line string) error {
 	var n matrix.Vec3
-	fmt.Sscanf(line, "vn %f %f %f", n.PX(), n.PY(), n.PZ())
+	spaceCount := strings.Count(line, " ")
+	if spaceCount == 3 {
+		fmt.Sscanf(line, "vn %f %f %f", n.PX(), n.PY(), n.PZ())
+	} else {
+		return errors.New("invalid OBJ file")
+	}
 	obj.normals = append(obj.normals, n)
+	return nil
 }
 
 func (obj *objBuilder) readMaterial(line string) {
 	fmt.Sscanf(line, "mtllib %s", obj.material)
 }
 
-func (obj *objBuilder) readFace(line string) {
-	var v, vt, vn [4]uint32
-	spaceCount := strings.Count(line, " ")
-	if spaceCount == 3 {
-		fmt.Sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
-			&v[0], &vt[0], &vn[0], &v[1], &vt[1], &vn[1], &v[2], &vt[2], &vn[2])
-		for i := 0; i < 3; i++ {
-			v[i]--
-			vt[i]--
-			vn[i]--
-		}
-		obj.vIndexes = append(obj.vIndexes, v[:3]...)
-		obj.tIndexes = append(obj.tIndexes, vt[:3]...)
-		obj.nIndexes = append(obj.nIndexes, vn[:3]...)
-	} else if spaceCount == 4 {
-		obj.complainAboutQuads()
-		fmt.Sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d",
-			&v[0], &vt[0], &vn[0], &v[1], &vt[1], &vn[1], &v[2], &vt[2], &vn[2], &v[3], &vt[3], &vn[3])
-		for i := 0; i < 4; i++ {
-			v[i]--
-			vt[i]--
-			vn[i]--
-		}
-		obj.vIndexes = append(obj.vIndexes, v[:]...)
-		obj.tIndexes = append(obj.tIndexes, vt[:]...)
-		obj.nIndexes = append(obj.nIndexes, vn[:]...)
-	}
-}
+func (obj *objBuilder) readFace(line string, offsets objOffsets) error {
+	fields := strings.Fields(line)[1:]
+	v := make([]uint32, 0, len(fields))
+	vt := make([]uint32, 0, len(fields))
+	vn := make([]uint32, 0, len(fields))
 
-func OBJ(objData string) load_result.Result {
-	builders := ObjToRaw(objData)
-	res := load_result.Result{}
-	for i := range builders {
-		builder := &builders[i]
-		verts := make([]rendering.Vertex, len(builder.points))
-		for j := range builder.points {
-			vi := builder.fromVertIdx(j)
-			verts[j] = rendering.Vertex{
-				Position: builder.points[j],
-				UV0:      builder.uvs[builder.tIndexes[vi]],
-				Normal:   builder.normals[builder.nIndexes[vi]],
-				Color:    builder.colors[builder.vIndexes[vi]],
+	for _, field := range fields {
+		parts := strings.Split(field, "/")
+		if len(parts) < 1 || parts[0] == "" {
+			return errors.New("invalid OBJ file")
+		}
+		vIdx, err := strconv.ParseUint(parts[0], 10, 32)
+		if err != nil {
+			return errors.New("invalid OBJ file")
+		}
+		v = append(v, uint32(vIdx-1))
+
+		if len(parts) >= 2 && parts[1] != "" {
+			vtIdx, err := strconv.ParseUint(parts[1], 10, 32)
+			if err != nil {
+				return errors.New("invalid OBJ file")
 			}
+			vt = append(vt, uint32(vtIdx-1))
+		} else {
+			// TODO: What if nothing is specified?
+			vt = append(vt, 0)
 		}
-		// TODO:  Read the .obj material file for textures
-		res.Add(builder.name, builder.name, verts, builder.vIndexes, map[string]string{}, nil)
+
+		if len(parts) >= 3 && parts[2] != "" {
+			vnIdx, err := strconv.ParseUint(parts[2], 10, 32)
+			if err != nil {
+				return errors.New("invalid OBJ file")
+			}
+			vn = append(vn, uint32(vnIdx-1))
+		} else {
+			// TODO: What if nothing is specified?
+			vn = append(vn, 0)
+		}
 	}
-	return res
+
+	if len(fields) >= 3 {
+		// Fan triangulation
+		pIdx := 1
+		for i := 2; i < len(v); i++ {
+			obj.vIndexes = append(obj.vIndexes, v[0]-offsets.pointsOffset)
+			obj.vIndexes = append(obj.vIndexes, v[pIdx]-offsets.pointsOffset)
+			obj.vIndexes = append(obj.vIndexes, v[i]-offsets.pointsOffset)
+			obj.tIndexes = append(obj.tIndexes, vt[0]-offsets.uvsOffset)
+			obj.tIndexes = append(obj.tIndexes, vt[pIdx]-offsets.uvsOffset)
+			obj.tIndexes = append(obj.tIndexes, vt[i]-offsets.uvsOffset)
+			obj.nIndexes = append(obj.nIndexes, vn[0]-offsets.normalsOffset)
+			obj.nIndexes = append(obj.nIndexes, vn[pIdx]-offsets.normalsOffset)
+			obj.nIndexes = append(obj.nIndexes, vn[i]-offsets.normalsOffset)
+			pIdx = i
+		}
+	} else {
+		return errors.New("invalid OBJ file")
+	}
+	return nil
 }
 
-func ObjToRaw(objData string) []objBuilder {
+func OBJ(path string, assetDB assets.Database) (load_result.Result, error) {
+	defer tracing.NewRegion("loaders.OBJ").End()
+	if !assetDB.Exists(path) {
+		return load_result.Result{}, errors.New("file does not exist")
+	} else if filepath.Ext(path) == ".obj" {
+		objData, err := assetDB.ReadText(path)
+		if err != nil {
+			return load_result.Result{}, err
+		}
+		builders, err := ObjToRaw(objData)
+		if err != nil {
+			return load_result.Result{}, err
+		}
+		res := load_result.Result{}
+		for i := range builders {
+			builder := &builders[i]
+			verts := make([]rendering.Vertex, len(builder.points))
+			for j := range builder.points {
+				vi := builder.fromVertIdx(j)
+				verts[j] = rendering.Vertex{
+					Position: builder.points[j],
+					UV0:      builder.uvs[builder.tIndexes[vi]],
+					Normal:   builder.normals[builder.nIndexes[vi]],
+					Color:    builder.colors[j],
+				}
+			}
+			// TODO:  Read the .obj material file for textures
+			res.Add(builder.name, builder.name, verts, builder.vIndexes, map[string]string{}, nil)
+		}
+		return res, nil
+	} else {
+		return load_result.Result{}, errors.New("invalid file extension")
+	}
+
+}
+
+func ObjToRaw(objData string) ([]objBuilder, error) {
 	var matLib string
 	var builders []objBuilder
 	builder := objBuilder{}
+	indexOffsets := objOffsets{}
 	builderSet := false
 	scan := bufio.NewScanner(strings.NewReader(objData))
 	for scan.Scan() {
@@ -226,28 +292,46 @@ func ObjToRaw(objData string) []objBuilder {
 			fmt.Sscanf(line, "usemtl %s", matLib)
 		case objLineTypeObject:
 			if builderSet {
+				// Indicies are relative to all verticies, etc. in the file
+				indexOffsets.pointsOffset += uint32(len(builder.points))
+				indexOffsets.uvsOffset += uint32(len(builder.uvs))
+				indexOffsets.normalsOffset += uint32(len(builder.normals))
+				indexOffsets.colorsOffset += uint32(len(builder.colors))
 				builders = append(builders, builder)
 			}
+
 			builder = objNewObject(line)
 			if len(line) > 2 {
 				builder.name = line[2:]
 			}
 			builderSet = true
 		case objLineTypeVertex:
-			builder.readVertex(line)
+			err := builder.readVertex(line)
+			if err != nil {
+				return nil, err
+			}
 		case objLineTypeUv:
-			builder.readUv(line)
+			err := builder.readUv(line)
+			if err != nil {
+				return nil, err
+			}
 		case objLineTypeNormal:
-			builder.readNormal(line)
+			err := builder.readNormal(line)
+			if err != nil {
+				return nil, err
+			}
 		case objLineTypeMaterial:
 			builder.readMaterial(line)
 		case objLineTypeFace:
-			builder.readFace(line)
+			err := builder.readFace(line, indexOffsets)
+			if err != nil {
+				return nil, err
+			}
 		case objLineTypeNotSupported:
 		case objLineTypeComment:
 			break
 		}
 	}
 	builders = append(builders, builder)
-	return builders
+	return builders, nil
 }
