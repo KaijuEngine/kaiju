@@ -440,11 +440,17 @@ func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapSca
 	defer tracing.NewRegion("TransformTool.translate").End()
 	p := t.unsnapped[idx].Add(delta)
 	t.unsnapped[idx] = p
-	// TODO:  Fix arbitrary movement snapping
-	if snap && t.axis != AxisStateNone {
-		p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
-		p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
-		p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+	if snap {
+		switch t.axis {
+		case AxisStateX:
+			p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+		case AxisStateY:
+			p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+		default:
+			// TODO:  Fix arbitrary movement snapping
+		}
 	}
 	return p
 }
@@ -533,6 +539,7 @@ func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 		case ToolStateScale:
 			snapScale = t.snapSettings.ScaleIncrement
 		}
+		snap = !matrix.Approx(snapScale, 0)
 	}
 	for i, e := range t.stage.Manager().HierarchyRespectiveSelection() {
 		et := &e.Transform
