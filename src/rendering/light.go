@@ -304,10 +304,14 @@ func (l *Light) Direction(followcam cameras.Camera) matrix.Vec3 {
 }
 
 func (l *Light) SetPosition(position matrix.Vec3) {
-	if l.lightType != LightTypeDirectional {
-		l.position = position
-		l.setDirty()
+	if l.lightType == LightTypeDirectional {
+		return
 	}
+	if l.position.Equals(position) {
+		return
+	}
+	l.position = position
+	l.setDirty()
 }
 
 func (l *Light) SetDirection(dir matrix.Vec3) {
@@ -319,52 +323,83 @@ func (l *Light) SetDirection(dir matrix.Vec3) {
 }
 
 func (l *Light) SetIntensity(intensity float32) {
+	if matrix.Approx(l.intensity, intensity) {
+		return
+	}
 	l.intensity = intensity
 	l.setDirty()
 }
 
 func (l *Light) SetConstant(constant float32) {
+	if matrix.Approx(l.constant, constant) {
+		return
+	}
 	l.constant = constant
 	l.setDirty()
 }
 
 func (l *Light) SetLinear(linear float32) {
+	if matrix.Approx(l.linear, linear) {
+		return
+	}
 	l.linear = linear
 	l.setDirty()
 }
 
 func (l *Light) SetQuadratic(quadratic float32) {
+	if matrix.Approx(l.quadratic, quadratic) {
+		return
+	}
 	l.quadratic = quadratic
 	l.setDirty()
 }
 
 func (l *Light) SetCutoff(cutoff float32) {
+	if matrix.Approx(l.cutoff, cutoff) {
+		return
+	}
 	l.cutoff = cutoff
 	l.setDirty()
 }
 
 func (l *Light) SetOuterCutoff(outerCutoff float32) {
+	if matrix.Approx(l.outerCutoff, outerCutoff) {
+		return
+	}
 	l.outerCutoff = outerCutoff
 	l.setDirty()
 }
 
 func (l *Light) SetAmbient(ambient matrix.Vec3) {
+	if l.ambient.Equals(ambient) {
+		return
+	}
 	l.ambient = ambient
 	l.setDirty()
 }
 
 func (l *Light) SetDiffuse(diffuse matrix.Vec3) {
+	if l.diffuse.Equals(diffuse) {
+		return
+	}
 	l.diffuse = diffuse
 	l.setDirty()
 }
 
 func (l *Light) SetSpecular(specular matrix.Vec3) {
+	if l.specular.Equals(specular) {
+		return
+	}
 	l.specular = specular
 	l.setDirty()
 }
 
 func (l *Light) SetCastsShadows(castsShadows bool) {
+	if l.castsShadows == castsShadows {
+		return
+	}
 	l.castsShadows = castsShadows
+	// TODO:  Create or remove shadow texture
 	l.setDirty()
 }
 

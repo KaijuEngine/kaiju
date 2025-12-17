@@ -45,21 +45,29 @@ import (
 
 const BindingKey = "kaiju.LightEntityData"
 
+type LightType int
+
+const (
+	LightTypeDirectional = LightType(iota)
+	LightTypePoint
+	LightTypeSpot
+)
+
 func init() {
 	engine.RegisterEntityData(BindingKey, LightEntityData{})
 }
 
 type LightEntityData struct {
-	Ambient     matrix.Vec3 `default:"0.1,0.1,0.1"`
-	Diffuse     matrix.Vec3 `default:"1,1,1"`
-	Specular    matrix.Vec3 `default:"1,1,1"`
-	Intensity   float32     `default:"5"`
-	Constant    float32     `default:"1"`
-	Linear      float32     `default:"0.0014"`
-	Quadratic   float32     `default:"0.000007"`
-	Cutoff      float32     `default:"0.8433914458128857"` // matrix.Cos(matrix.Deg2Rad(32.5))
-	OuterCutoff float32     `default:"0.636078220277764"`  // matrix.Cos(matrix.Deg2Rad(50.5))
-	//lightType    rendering.LightType
+	Ambient      matrix.Vec3 `default:"0.1,0.1,0.1"`
+	Diffuse      matrix.Vec3 `default:"1,1,1"`
+	Specular     matrix.Vec3 `default:"1,1,1"`
+	Intensity    float32     `default:"5"`
+	Constant     float32     `default:"1"`
+	Linear       float32     `default:"0.0014"`
+	Quadratic    float32     `default:"0.000007"`
+	Cutoff       float32     `default:"0.8433914458128857"` // matrix.Cos(matrix.Deg2Rad(32.5))
+	OuterCutoff  float32     `default:"0.636078220277764"`  // matrix.Cos(matrix.Deg2Rad(50.5))
+	Type         LightType
 	CastsShadows bool
 }
 
@@ -73,7 +81,8 @@ type LightModule struct {
 
 func (c LightEntityData) Init(e *engine.Entity, host *engine.Host) {
 	light := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
-		host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
+		host.AssetDatabase(), host.MaterialCache(),
+		rendering.LightType(c.Type))
 	light.SetDirection(matrix.Vec3Forward())
 	light.SetPosition(matrix.Vec3Zero())
 	light.SetAmbient(c.Ambient)

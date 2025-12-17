@@ -64,8 +64,21 @@ type LightDataBindingRenderer struct {
 
 func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	commonAttached(host, manager, target, "light.png")
-	// TODO:  Select correct one
-	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan), host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
+	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
+	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+		host.AssetDatabase(), host.MaterialCache(), lightType)
+	l.SetPosition(target.Transform.WorldPosition())
+	l.SetDirection(target.Transform.Up().Negative())
+	l.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
+	l.SetDiffuse(data.FieldValueByName("Diffuse").(matrix.Vec3))
+	l.SetSpecular(data.FieldValueByName("Specular").(matrix.Vec3))
+	l.SetIntensity(float32(data.FieldValueByName("Intensity").(float32)))
+	l.SetConstant(float32(data.FieldValueByName("Constant").(float32)))
+	l.SetLinear(float32(data.FieldValueByName("Linear").(float32)))
+	l.SetQuadratic(float32(data.FieldValueByName("Quadratic").(float32)))
+	l.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
+	l.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
+	l.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
 	c.LightIds[target] = host.Lighting().Lights.Add(&target.Transform, l)
 }
 
@@ -113,9 +126,25 @@ func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_
 	c.LightLines[target] = sd
 }
 
-func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	l := c.LightIds[target]
+	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
+	if l.Type() != lightType {
+		l.Light = rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+			host.AssetDatabase(), host.MaterialCache(), lightType)
+	}
+	l.Light.SetPosition(l.Transform.WorldPosition())
 	l.Light.SetDirection(l.Transform.Up().Negative())
+	l.Light.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
+	l.Light.SetDiffuse(data.FieldValueByName("Diffuse").(matrix.Vec3))
+	l.Light.SetSpecular(data.FieldValueByName("Specular").(matrix.Vec3))
+	l.Light.SetIntensity(float32(data.FieldValueByName("Intensity").(float32)))
+	l.Light.SetConstant(float32(data.FieldValueByName("Constant").(float32)))
+	l.Light.SetLinear(float32(data.FieldValueByName("Linear").(float32)))
+	l.Light.SetQuadratic(float32(data.FieldValueByName("Quadratic").(float32)))
+	l.Light.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
+	l.Light.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
+	l.Light.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
 }
 
 func (c *LightDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
