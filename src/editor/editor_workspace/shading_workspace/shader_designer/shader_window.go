@@ -40,6 +40,7 @@ import (
 	"encoding/json"
 	"errors"
 	"kaiju/editor/editor_workspace/common_workspace"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -143,14 +144,18 @@ func (win *ShaderDesigner) shaderValueChanged(e *document.Element) {
 	common_workspace.SetObjectValueFromUI(&win.shader, e)
 }
 
-func compileShaderFile(pfs *project_file_system.FileSystem, s *rendering.ShaderData, src, flags string) error {
+func compileShaderFile(id string, pfs *project_file_system.FileSystem, cache *content_database.Cache, s *rendering.ShaderData, src, flags string) (string, error) {
 	if src == "" {
-		return nil
+		return "", errors.New("blank src")
 	}
 	path := pfs.FullPath(src)
 	flags = strings.TrimSpace(flags)
-	// TODO:  This CompileVariantName is outdated and needs to be updated
-	out := s.CompileVariantName(path, flags)
+	out := filepath.Join(os.TempDir(), filepath.Base(path)+".spv")
+	if id != "" {
+		out = pfs.FullPath(string(project_file_system.SpvPath(id)))
+	} else {
+		defer os.Remove(out)
+	}
 	args := []string{path, "-o", out}
 	if flags != "" {
 		args = append(args, flags)
@@ -158,11 +163,15 @@ func compileShaderFile(pfs *project_file_system.FileSystem, s *rendering.ShaderD
 	cmd := exec.Command("glslc", args...)
 	if errStr, err := cmd.CombinedOutput(); err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
-			return errors.New(string(errStr))
+			return "", errors.New(string(errStr))
 		}
-		return err
+		return "", err
 	}
-	return nil
+	if id == "" {
+		res, err := content_database.Import(out, pfs, cache, "")
+		return res[0].Id, err
+	}
+	return id, nil
 }
 
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
@@ -179,25 +188,30 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	if s.EnableDebug {
 		addFlags = " -g"
 	}
-	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Vertex, s.VertexFlags+addFlags); err != nil {
-		slog.Error("failed to compile the vertex shader", "error", err)
-		return
+	list := []struct {
+		name  string
+		stage string
+		spv   *string
+		flags string
+	}{
+		{"vertex", s.Vertex, &s.VertexSpv, s.VertexFlags},
+		{"fragment", s.Fragment, &s.FragmentSpv, s.FragmentFlags},
+		{"geometry", s.Geometry, &s.GeometrySpv, s.GeometryFlags},
+		{"tessellation control", s.TessellationControl, &s.TessellationControlSpv, s.TessellationControlFlags},
+		{"tessellation evaluation", s.TessellationEvaluation, &s.TessellationEvaluationSpv, s.TessellationEvaluationFlags},
 	}
-	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Fragment, s.FragmentFlags+addFlags); err != nil {
-		slog.Error("failed to compile the fragment shader", "error", err)
-		return
-	}
-	if err := compileShaderFile(win.pfs, &s.ShaderData, s.Geometry, s.GeometryFlags+addFlags); err != nil {
-		slog.Error("failed to compile the geometry shader", "error", err)
-		return
-	}
-	if err := compileShaderFile(win.pfs, &s.ShaderData, s.TessellationControl, s.TessellationControlFlags+addFlags); err != nil {
-		slog.Error("failed to compile the tessellation control shader", "error", err)
-		return
-	}
-	if err := compileShaderFile(win.pfs, &s.ShaderData, s.TessellationEvaluation, s.TessellationEvaluationFlags+addFlags); err != nil {
-		slog.Error("failed to compile the tessellation evaluation shader", "error", err)
-		return
+	for i := range list {
+		if list[i].stage != "" {
+			if id, err := compileShaderFile(*list[i].spv, win.pfs, win.cache, &s.ShaderData, list[i].stage, list[i].flags+addFlags); err != nil {
+				slog.Error("failed to compile the "+list[i].name+" shader", "error", err)
+				return
+			} else {
+				*list[i].spv = id
+			}
+		} else if *list[i].spv != "" {
+			content_database.Delete(*list[i].spv, win.pfs, win.cache)
+			*list[i].spv = ""
+		}
 	}
 	win.shader.Vertex = filepath.ToSlash(win.shader.Vertex)
 	win.shader.Fragment = filepath.ToSlash(win.shader.Fragment)
@@ -209,14 +223,13 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 		slog.Error("failed to marshal the shader data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(filepath.Join(project_file_system.ContentFolder,
-		project_file_system.ContentShaderFolder, win.pipeline.id), res, os.ModePerm)
+	err = win.pfs.WriteFile(string(project_file_system.ShaderPath(win.shader.id)), res, os.ModePerm)
 	if err != nil {
 		slog.Error("failed to write the shader data to file", "error", err)
 		return
 	}
+	win.host.ShaderCache().ReloadShader(win.shader.Compile())
 	slog.Info("shader successfully saved")
-	// TODO:  Show an in-window popup for prompting that things saved
 	if len(e.Children) > 0 {
 		u := e.Children[0].UI
 		if u.IsType(ui.ElementTypeLabel) {

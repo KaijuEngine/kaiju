@@ -138,13 +138,13 @@ func (s *shaderSource) readDefines() {
 
 func (s *shaderSource) readLayouts() error {
 	matches := layoutReg.FindAllStringSubmatch(s.src, -1)
-	s.layouts = make([]rendering.ShaderLayout, len(matches))
+	s.layouts = make([]rendering.ShaderLayout, 0, len(matches))
 	for i := range matches {
 		name := matches[i][4]
 		if name == "" {
 			name = matches[i][6]
 		}
-		s.layouts[i] = rendering.ShaderLayout{
+		s.layouts = append(s.layouts, rendering.ShaderLayout{
 			Location:        -1,
 			Binding:         -1,
 			Count:           1,
@@ -153,14 +153,15 @@ func (s *shaderSource) readLayouts() error {
 			Type:            matches[i][3],
 			Name:            name,
 			Source:          matches[i][2],
-		}
+		})
+		layout := &s.layouts[len(s.layouts)-1]
 		if matches[i][8] != "" {
 			v, err := s.processDefineEquation(matches[i][8])
 			if err != nil {
 				slog.Error("invalid array value for layout", "value", matches[i][8], "error", err)
 				return err
 			}
-			s.layouts[i].Count = int(v)
+			layout.Count = int(v)
 		}
 		attrs := strings.Split(matches[i][1], ",")
 		for j := range attrs {
@@ -171,13 +172,22 @@ func (s *shaderSource) readLayouts() error {
 			}
 			switch parts[0] {
 			case "location":
-				s.layouts[i].Location = int(val)
+				layout.Location = int(val)
+				if layout.Count > 1 {
+					for j := 1; j < layout.Count; j++ {
+						l := *layout
+						l.Count = 1
+						l.Location = layout.Location + j
+						s.layouts = append(s.layouts, l)
+					}
+					layout.Count = 1
+				}
 			case "binding":
-				s.layouts[i].Binding = int(val)
+				layout.Binding = int(val)
 			case "set":
-				s.layouts[i].Set = int(val)
+				layout.Set = int(val)
 			case "input_attachment_index":
-				s.layouts[i].InputAttachment = int(val)
+				layout.InputAttachment = int(val)
 			}
 		}
 		if matches[i][5] != "" {
@@ -185,14 +195,14 @@ func (s *shaderSource) readLayouts() error {
 			if len(fields) > 0 && fields[len(fields)-1] == "" {
 				fields = fields[:len(fields)-1]
 			}
-			s.layouts[i].Fields = make([]rendering.ShaderLayoutStructField, len(fields))
+			layout.Fields = make([]rendering.ShaderLayoutStructField, len(fields))
 			for j := range fields {
 				parts := strings.Fields(fields[j])
 				name, err := s.processArrayField(parts[1])
 				if err != nil {
 					return err
 				}
-				s.layouts[i].Fields[j] = rendering.ShaderLayoutStructField{
+				layout.Fields[j] = rendering.ShaderLayoutStructField{
 					Type: parts[0],
 					Name: name,
 				}

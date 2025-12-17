@@ -59,7 +59,7 @@ func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *cont
 	for i := range found {
 		options = append(options, ui.SelectOption{
 			Name:  found[i].Config.Name,
-			Value: content_database.ToContentPath(found[i].Path),
+			Value: found[i].Id(),
 		})
 	}
 	stock := project_file_system.StockFolder

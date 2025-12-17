@@ -189,3 +189,25 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 	}
 	return res, nil
 }
+
+func Delete(id string, fs *project_file_system.FileSystem, cache *Cache) error {
+	if id == "" {
+		return DeleteContentMissingIdError
+	}
+	cc, err := cache.Read(id)
+	if err != nil {
+		slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+		return err
+	}
+	if err := fs.Remove(cc.Path); err != nil {
+		slog.Error("failed to delete config file", "path", cc.Path, "error", err)
+		return err
+	}
+	contentPath := ToContentPath(cc.Path)
+	if err := fs.Remove(contentPath); err != nil {
+		slog.Error("failed to delete content file", "path", contentPath, "error", err)
+		return err
+	}
+	cache.Remove(id)
+	return nil
+}

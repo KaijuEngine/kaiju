@@ -37,6 +37,7 @@
 package content_workspace
 
 import (
+	"errors"
 	"fmt"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
@@ -556,23 +557,13 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 	ids := w.selectedIds()
 	for _, id := range ids {
-		if id == "" {
-			slog.Warn("clickDelete contained a blank id")
-			continue
-		}
-		cc, err := w.cache.Read(id)
+		err := content_database.Delete(id, w.pfs, w.cache)
 		if err != nil {
-			slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+			if errors.Is(err, content_database.DeleteContentMissingIdError) {
+				slog.Warn("clickDelete contained a blank id")
+			}
 			continue
 		}
-		if err := w.pfs.Remove(cc.Path); err != nil {
-			slog.Error("failed to delete config file", "path", cc.Path, "error", err)
-		}
-		contentPath := content_database.ToContentPath(cc.Path)
-		if err := w.pfs.Remove(contentPath); err != nil {
-			slog.Error("failed to delete content file", "path", contentPath, "error", err)
-		}
-		w.cache.Remove(id)
 		w.editor.Events().OnContentRemoved.Execute([]string{id})
 		w.rightBody.UI.Hide()
 		w.tooltip.UI.Hide()

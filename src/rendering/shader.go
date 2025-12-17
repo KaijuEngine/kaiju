@@ -40,8 +40,6 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
-	"path/filepath"
-	"strings"
 	"weak"
 )
 
@@ -69,6 +67,11 @@ type ShaderData struct {
 	TessellationEvaluation      string              `options:""`
 	TessellationEvaluationFlags string              `tip:"CompileFlags"`
 	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
+	VertexSpv                   string
+	FragmentSpv                 string
+	GeometrySpv                 string
+	TessellationControlSpv      string
+	TessellationEvaluationSpv   string
 }
 
 type ShaderDataCompiled struct {
@@ -158,34 +161,15 @@ func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayo
 	return structure
 }
 
-func (d *ShaderData) CompileVariantName(path, flags string) string {
-	defer tracing.NewRegion("Shader.CompileVariantName").End()
-	// It is possible to have 2 shaders which have modules in common but other
-	// modules are different. When compiling using flags, the output file name
-	// will have the shader name prefixed to it as it's a variant. This will
-	// make it so that we don't have 2 copies of the same module.
-	if path == "" {
-		return ""
-	}
-	path = filepath.ToSlash(path)
-	name := filepath.Base(path) + ".spv"
-	dir := filepath.Dir(strings.Replace(path, "/src/", "/spv/", 1))
-	// Just having a debug symbols flag doesn't create a variant
-	if flags != "" && flags != "-g" {
-		return filepath.Join(dir, d.Name+"_"+name)
-	}
-	return filepath.Join(dir, name)
-}
-
 func (d *ShaderData) Compile() ShaderDataCompiled {
 	defer tracing.NewRegion("Shader.Compile").End()
 	return ShaderDataCompiled{
 		Name:                   d.Name,
-		Vertex:                 d.CompileVariantName(d.Vertex, d.VertexFlags),
-		Fragment:               d.CompileVariantName(d.Fragment, d.FragmentFlags),
-		Geometry:               d.CompileVariantName(d.Geometry, d.GeometryFlags),
-		TessellationControl:    d.CompileVariantName(d.TessellationControl, d.TessellationControlFlags),
-		TessellationEvaluation: d.CompileVariantName(d.TessellationEvaluation, d.TessellationEvaluationFlags),
+		Vertex:                 d.VertexSpv,
+		Fragment:               d.FragmentSpv,
+		Geometry:               d.GeometrySpv,
+		TessellationControl:    d.TessellationControlSpv,
+		TessellationEvaluation: d.TessellationEvaluationSpv,
 		LayoutGroups:           d.LayoutGroups,
 	}
 }
@@ -213,6 +197,12 @@ func NewShader(shaderData ShaderDataCompiled) *Shader {
 		DriverData: NewShaderDriverData(),
 	}
 	return s
+}
+
+func (s *Shader) Reload(shaderData ShaderDataCompiled) {
+	s.RenderId = ShaderId{}
+	s.data = shaderData
+	s.DriverData = NewShaderDriverData()
 }
 
 func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase assets.Database) {
