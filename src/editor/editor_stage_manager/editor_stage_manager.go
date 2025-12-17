@@ -628,6 +628,17 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 	}
 	for i := range desc.DataBinding {
 		db := &desc.DataBinding[i]
+		// TODO:  Remove this in a week or so
+		{
+			switch db.RegistraionKey {
+			case "kaiju.CameraDataBinding":
+				db.RegistraionKey = "kaiju.CameraEntityData"
+			case "kaiju.LightDataBinding":
+				db.RegistraionKey = "kaiju.LightEntityData"
+			case "kaiju.RigidBodyDataBinding":
+				db.RegistraionKey = "kaiju.RigidBodyEntityData"
+			}
+		}
 		g, ok := proj.EntityDataBinding(db.RegistraionKey)
 		if !ok {
 			slog.Error("failed to locate the data binding for entity",

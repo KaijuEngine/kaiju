@@ -224,7 +224,7 @@ func (s *Stage) Launch(host *engine.Host) {
 		e.Transform.SetPosition(se.Position)
 		e.Transform.SetRotation(se.Rotation)
 		e.Transform.SetScale(se.Scale)
-		// TODO:  Data binding should have been serialized
+		// TODO:  Entity data should have been serialized
 		if build.Debug {
 			for i := range se.DataBinding {
 				b, ok := engine.DebugEntityDataRegistry[se.DataBinding[i].RegistraionKey]

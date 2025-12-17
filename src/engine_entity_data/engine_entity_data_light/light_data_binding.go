@@ -43,13 +43,13 @@ import (
 	"kaiju/rendering"
 )
 
-const BindingKey = "kaiju.LightDataBinding"
+const BindingKey = "kaiju.LightEntityData"
 
 func init() {
-	engine.RegisterEntityData(BindingKey, LightDataBinding{})
+	engine.RegisterEntityData(BindingKey, LightEntityData{})
 }
 
-type LightDataBinding struct {
+type LightEntityData struct {
 	Ambient     matrix.Vec3 `default:"0.1,0.1,0.1"`
 	Diffuse     matrix.Vec3 `default:"1,1,1"`
 	Specular    matrix.Vec3 `default:"1,1,1"`
@@ -68,10 +68,10 @@ type LightModule struct {
 	entity     *engine.Entity
 	host       *engine.Host
 	updateId   engine.UpdateId
-	Data       LightDataBinding
+	Data       LightEntityData
 }
 
-func (c LightDataBinding) Init(e *engine.Entity, host *engine.Host) {
+func (c LightEntityData) Init(e *engine.Entity, host *engine.Host) {
 	light := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
 		host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
 	light.SetDirection(matrix.Vec3Forward())

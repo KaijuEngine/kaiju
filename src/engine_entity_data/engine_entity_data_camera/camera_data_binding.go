@@ -41,7 +41,7 @@ import (
 	"kaiju/engine/cameras"
 )
 
-const BindingKey = "kaiju.CameraDataBinding"
+const BindingKey = "kaiju.CameraEntityData"
 
 type CameraType int
 
@@ -52,10 +52,10 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, CameraDataBinding{})
+	engine.RegisterEntityData(BindingKey, CameraEntityData{})
 }
 
-type CameraDataBinding struct {
+type CameraEntityData struct {
 	Width        float32 `default:"0" tip:"0 = viewport width"`
 	Height       float32 `default:"0" tip:"0 = viewport height"`
 	FOV          float32 `clamp:"60,45,120"` //default,min,max
@@ -72,8 +72,8 @@ type CameraModule struct {
 	camera   cameras.Camera
 }
 
-func NewCameraDataBinding() CameraDataBinding {
-	return CameraDataBinding{
+func NewCameraDataBinding() CameraEntityData {
+	return CameraEntityData{
 		FOV:          60,
 		NearPlane:    0.01,
 		FarPlane:     500,
@@ -81,7 +81,7 @@ func NewCameraDataBinding() CameraDataBinding {
 	}
 }
 
-func (c CameraDataBinding) Init(e *engine.Entity, host *engine.Host) {
+func (c CameraEntityData) Init(e *engine.Entity, host *engine.Host) {
 	cm := &CameraModule{}
 	e.AddNamedData("CameraModule", cm)
 	cm.entity = e

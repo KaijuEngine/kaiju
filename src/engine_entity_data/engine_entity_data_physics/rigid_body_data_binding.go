@@ -42,7 +42,7 @@ import (
 	"kaiju/physics"
 )
 
-const BindingKey = "kaiju.RigidBodyDataBinding"
+const BindingKey = "kaiju.RigidBodyEntityData"
 
 type Shape int
 
@@ -55,10 +55,10 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, RigidBodyDataBinding{})
+	engine.RegisterEntityData(BindingKey, RigidBodyEntityData{})
 }
 
-type RigidBodyDataBinding struct {
+type RigidBodyEntityData struct {
 	Extent   matrix.Vec3 `default:"1,1,1"`
 	Mass     float32     `default:"1"`
 	Radius   float32     `default:"1"`
@@ -67,7 +67,7 @@ type RigidBodyDataBinding struct {
 	IsStatic bool
 }
 
-func (r RigidBodyDataBinding) Init(e *engine.Entity, host *engine.Host) {
+func (r RigidBodyEntityData) Init(e *engine.Entity, host *engine.Host) {
 	t := &e.Transform
 	scale := t.Scale()
 	var shape *physics.CollisionShape
