@@ -636,6 +636,7 @@ func (input *Input) SetType(inputType InputType) {
 func (input *Input) SetFGColor(newColor matrix.Color) {
 	data := input.InputData()
 	data.label.SetColor(newColor)
+	data.cursor.SetColor(newColor)
 	phColor := matrix.ColorMix(newColor, newColor.Inverted(), 0.5)
 	data.placeholder.SetColor(phColor)
 }
@@ -713,9 +714,9 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
-					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock){
+					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {
 						input.InsertText(string(unicode.ToUpper(c)))
-					}else{
+					} else {
 						input.InsertText(string(c))
 					}
 				} else {
