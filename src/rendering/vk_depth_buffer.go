@@ -87,10 +87,20 @@ func (vr *Vulkan) findDepthStencilFormat() vulkan_const.Format {
 
 func (vr *Vulkan) createDepthResources() bool {
 	slog.Info("creating vulkan depth resources")
-	depthFormat := vr.findDepthFormat()
-	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height,
-		1, vr.msaaSamples, depthFormat, vulkan_const.ImageTilingOptimal,
-		vk.ImageUsageFlags(vulkan_const.ImageUsageDepthStencilAttachmentBit),
-		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), &vr.depth, 1)
-	return vr.createImageView(&vr.depth, vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit))
+	vr.CreateImage(&vr.depth, vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit),
+		vk.ImageCreateInfo{
+			ImageType: vulkan_const.ImageType2d,
+			Extent: vk.Extent3D{
+				Width:  uint32(vr.swapChainExtent.Width),
+				Height: uint32(vr.swapChainExtent.Height),
+			},
+			MipLevels:   uint32(1),
+			ArrayLayers: uint32(1),
+			Format:      vr.findDepthFormat(),
+			Tiling:      vulkan_const.ImageTilingOptimal,
+			Usage:       vk.ImageUsageFlags(vulkan_const.ImageUsageDepthStencilAttachmentBit),
+			Samples:     vr.msaaSamples,
+		})
+	return vr.createImageView(&vr.depth,
+		vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit), vulkan_const.ImageViewType2d)
 }

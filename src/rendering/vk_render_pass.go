@@ -298,15 +298,26 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 			}
 			p.textures[i].Width = int(w)
 			p.textures[i].Height = int(h)
-			success := vr.CreateImage(w, h, img.MipLevels, a.Samples,
-				a.Format, img.Tiling, img.Usage,
-				img.MemoryProperty, &p.textures[i].RenderId, int(img.LayerCount))
+			success := vr.CreateImage(&p.textures[i].RenderId, img.MemoryProperty,
+				vk.ImageCreateInfo{
+					ImageType: vulkan_const.ImageType2d,
+					Extent: vk.Extent3D{
+						Width:  w,
+						Height: h,
+					},
+					MipLevels:   img.MipLevels,
+					ArrayLayers: img.LayerCount,
+					Format:      a.Format,
+					Tiling:      img.Tiling,
+					Usage:       img.Usage,
+					Samples:     a.Samples,
+				})
 			if !success {
 				const e = "failed to create image for render pass attachment"
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
 			}
-			success = vr.createImageView(&p.textures[i].RenderId, img.Aspect)
+			success = vr.createImageView(&p.textures[i].RenderId, img.Aspect, vulkan_const.ImageViewType2d)
 			if !success {
 				const e = "failed to create image view for render pass attachment"
 				for j := range i + 1 {

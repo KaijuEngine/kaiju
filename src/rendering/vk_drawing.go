@@ -108,7 +108,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				imageInfosCube := [MaxLocalLights]vk.DescriptorImageInfo{}
 				for j := range MaxLocalLights {
 					sm := &vr.fallbackShadowMap.RenderId
-					smCube := &vr.fallbackShadowMap.RenderId
+					smCube := &vr.fallbackCubeShadowMap.RenderId
 					if lights.Lights[j].IsValid() {
 						s := lights.Lights[j].ShadowMapTexture()
 						if s.RenderId.IsValid() {

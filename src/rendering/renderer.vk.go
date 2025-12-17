@@ -237,11 +237,22 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 func (vr *Vulkan) createColorResources() bool {
 	slog.Info("creating vulkan color resources")
 	colorFormat := vr.swapImages[0].Format
-	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height, 1,
-		vr.msaaSamples, colorFormat, vulkan_const.ImageTilingOptimal,
-		vk.ImageUsageFlags(vulkan_const.ImageUsageTransientAttachmentBit|vulkan_const.ImageUsageColorAttachmentBit),
-		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), &vr.color, 1)
-	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit))
+	vr.CreateImage(&vr.color, vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit),
+		vk.ImageCreateInfo{
+			ImageType: vulkan_const.ImageType2d,
+			Extent: vk.Extent3D{
+				Width:  uint32(vr.swapChainExtent.Width),
+				Height: uint32(vr.swapChainExtent.Height),
+			},
+			MipLevels:   uint32(1),
+			ArrayLayers: uint32(1),
+			Format:      colorFormat,
+			Tiling:      vulkan_const.ImageTilingOptimal,
+			Usage:       vk.ImageUsageFlags(vulkan_const.ImageUsageTransientAttachmentBit | vulkan_const.ImageUsageColorAttachmentBit),
+			Samples:     vr.msaaSamples,
+		})
+	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+		vulkan_const.ImageViewType2d)
 }
 
 func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error) {
@@ -320,7 +331,8 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	defer tracing.NewRegion("Vulkan.Initialize").End()
 	vr.caches = caches
 	vr.fallbackShadowMap, _ = caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
-	// TODO:  Create the fallback cube map
+	vr.fallbackCubeShadowMap, _ = caches.TextureCache().Texture(assets.TextureCube, TextureFilterLinear)
+	vr.fallbackCubeShadowMap.SetPendingDataDimensions(TextureDimensionsCube)
 	caches.TextureCache().CreatePending()
 	return nil
 }
