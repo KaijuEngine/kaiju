@@ -180,7 +180,7 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 		fallthrough
 	default:
 		light.depthMaterial = lightDepthMaterial.Value()
-		light.camera = cameras.NewStandardCameraOrthographic(20, 20, 20, 20, v30)
+		light.camera = cameras.NewStandardCameraOrthographic(10, 10, 10, 10, v30)
 		light.camera.SetFarPlane(lightDirectionalScaleOut * 2.0)
 	case LightTypePoint:
 		light.depthMaterial = lightCubeDepthMaterial.Value()
