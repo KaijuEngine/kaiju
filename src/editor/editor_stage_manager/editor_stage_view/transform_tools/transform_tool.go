@@ -480,7 +480,8 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	r := t.unsnapped[idx]
 	currentQuat := matrix.QuaternionFromEuler(r)
 	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
-	newQuat := currentQuat.Multiply(incrementalQuat)
+	// newQuat := currentQuat.Multiply(incrementalQuat) // Local space
+	newQuat := incrementalQuat.Multiply(currentQuat) // World space
 	newEuler := newQuat.ToEuler()
 	t.unsnapped[idx] = newEuler
 	if snap {
