@@ -45,6 +45,8 @@ const (
 	ReadingChild
 	ReadingSibling
 	ReadingAdjacent
+	ReadingCondition
+	ReadingConditionAssignment
 	ReadingPseudo
 	ReadingPseudoFunction
 	ReadingProperty

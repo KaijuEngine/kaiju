@@ -87,13 +87,19 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		switch val.TokenType {
 		case css.IdentToken:
 			fallthrough
+		case css.StringToken:
+			fallthrough
 		case css.NumberToken:
 			if s.state == ReadingPseudoFunction {
 				idx := len(sel.Parts) - 1
 				sel.Parts[idx].Args = append(sel.Parts[idx].Args, string(val.Data))
 			} else {
+				d := string(val.Data)
+				if s.state == ReadingConditionAssignment {
+					d = strings.Trim(d, `"`)
+				}
 				sel.Parts = append(sel.Parts, SelectorPart{
-					Name:       string(val.Data),
+					Name:       d,
 					SelectType: s.state,
 				})
 			}
@@ -115,6 +121,10 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			s.state = ReadingPseudo
 		case css.WhitespaceToken:
 			s.state = ReadingTag
+		case css.LeftBracketToken:
+			s.state = ReadingCondition
+		case css.RightBracketToken:
+			s.state = ReadingTag
 		case css.DelimToken:
 			switch string(val.Data) {
 			case "#":
@@ -129,6 +139,10 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 				s.state = ReadingAdjacent
 			case ":":
 				s.state = ReadingPseudo
+			case "=":
+				if s.state == ReadingCondition {
+					s.state = ReadingConditionAssignment
+				}
 			}
 		}
 	}
