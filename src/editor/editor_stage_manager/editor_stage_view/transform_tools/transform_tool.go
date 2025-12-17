@@ -39,6 +39,7 @@ package transform_tools
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -51,6 +52,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"weak"
 )
 
 type TransformTool struct {
@@ -195,6 +197,11 @@ func (t *TransformTool) resetChange() {
 		}
 	}
 	t.firstHitUpdate = true
+	for _, e := range all {
+		for _, db := range e.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+		}
+	}
 }
 
 func (t *TransformTool) updateResets() {
@@ -417,6 +424,11 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	}
 	t.transform(delta, host.Window.Keyboard.HasCtrl())
 	t.lastHit = point
+	for _, e := range sel {
+		for _, db := range e.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+		}
+	}
 }
 
 func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
