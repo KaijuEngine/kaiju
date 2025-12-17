@@ -55,10 +55,11 @@ type LightEntry struct {
 }
 
 type LightCollection struct {
-	Cache     []rendering.Light
-	pools     pooling.PoolGroup[LightEntry]
-	lastPoint matrix.Vec3
-	itrDists  []*LightEntry
+	Cache      []rendering.Light
+	pools      pooling.PoolGroup[LightEntry]
+	lastPoint  matrix.Vec3
+	itrDists   []*LightEntry
+	hasChanges bool
 }
 
 func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Light) *LightEntry {
@@ -72,11 +73,18 @@ func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Ligh
 	}
 	// Hack to force the next update cache to happen
 	c.lastPoint = matrix.NewVec3(matrix.Inf(1), matrix.Inf(1), matrix.Inf(1))
+	c.hasChanges = true
 	return entry
 }
 
 func (c *LightCollection) Clear() {
 	c.pools.Clear()
+}
+
+func (c *LightCollection) HasChanges() bool {
+	changes := c.hasChanges
+	c.hasChanges = false
+	return changes
 }
 
 func (c *LightCollection) UpdateCache(point matrix.Vec3) []rendering.Light {

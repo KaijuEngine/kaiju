@@ -476,7 +476,8 @@ func (host *Host) Render() {
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
 		lights := rendering.LightsForRender{
-			Lights: host.lighting.Lights.Cache,
+			Lights:     host.lighting.Lights.Cache,
+			HasChanges: host.lighting.Lights.HasChanges(),
 		}
 		for i := 0; i < len(lights.Lights) && !lights.HasChanges; i++ {
 			lights.HasChanges = lights.Lights[i].ResetFrameDirty()

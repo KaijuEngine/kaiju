@@ -321,6 +321,7 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	if e.StageData.ShaderData == nil {
 		return
 	}
+	e.Transform.SetDirty() // Trigger changes for lighting
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)
