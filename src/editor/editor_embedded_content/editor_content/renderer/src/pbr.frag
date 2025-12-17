@@ -73,8 +73,6 @@ void main() {
 
 	// Reflectance equation
 	vec3 Lo = vec3(0.0);
-	float shadow = 0.0;
-	float iShadow = 0.0;
 	for (int i = 0; i < lightCount; ++i) {
 		int lightIdx = lightIndexes[i];
 		LightInfo light = lightInfos[lightIdx];
@@ -107,8 +105,6 @@ void main() {
 			attenuation *= intensity;
 			lightShadow = SpotShadowCalculation(fplSpace, N, fltDir, light.nearPlane, light.farPlane, lightIdx);
 		}
-		shadow += lightShadow;
-		iShadow += 1.0 - lightShadow;
 		vec3 radiance = light.diffuse * attenuation;
 		// Cook-torrance brdf
 		float NDF = DistributionGGX(N, H, mRoughness);
@@ -124,35 +120,15 @@ void main() {
 		vec3 specular = numerator / max(denominator, 0.001);
 			
 		// Add to outgoing radiance Lo
+		float visibility = 1.0 - lightShadow;
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL * visibility;
 	}
-
 	vec3 ambient = vec3(0.03) * albedo * occlusion;
-	vec3 color = ambient + Lo * (1.0 - shadow);
-	//vec3 color = ambient + Lo;
-	//shadow = (1.2 - clamp(shadow - iShadow * 0.65, 0.0, 1.0));
-
+	vec3 color = ambient + Lo;
 	color = color / (color + vec3(1.0));
 	color = pow(color, vec3(1.0/2.2));
-
 	outColor = (vec4(color, 1.0) * fragColor) + emission;
-	//vec4 unWeightedColor = (vec4(color, 1.0) * fragColor) + emission;
-	//float weight = clamp(pow(min(1.0, unWeightedColor.a * 10.0) + 0.01, 3.0) * 1e8 *
-	//pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
-	//outColor = vec4(unWeightedColor.rgb * unWeightedColor.a, unWeightedColor.a) * weight;
-	//reveal = unWeightedColor.a;
-
-	//outColor = (vec4(color * shadow, 1.0) * fragColor) + emission;
-	//outColor = (vec4(texture(textures[0], fragTexCoords).rgb, 1.0) * fragColor);
-	//outColor = vec4(1.0, 1.0, 1.0, 1.0);
-	//outColor = texture(shadowMap, fragTexCoords);
-	//outColor = vec4(vec3(LinearizeDepth(texture(shadowMap, fragTexCoords).r, shadowNear, shadowFar) / 20.0), 1.0);
-
-	//vec3 delta = fragPos - lightInfos[0].position;
-	//float closestDepth = texture(textures[5], delta).r;
-	//closestDepth *= shadowFar;
-	//outColor = vec4(vec3(closestDepth / shadowFar), 1.0);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
