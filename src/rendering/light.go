@@ -47,8 +47,7 @@ import (
 )
 
 const (
-	nrLights                 = 4
-	MaxLights                = 20
+	MaxLocalLights           = 20
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
@@ -97,12 +96,16 @@ type GPULightInfo struct {
 	_           float32
 }
 
+type LightsForRender struct {
+	Lights     []Light
+	HasChanges bool
+}
+
 type Light struct {
 	renderer         *Vulkan
 	depthMaterial    *Material
 	camera           cameras.Camera
 	renderPass       *RenderPass
-	vulkanDepthMap   TextureId
 	lightSpaceMatrix [cubeMapSides]matrix.Mat4
 	ambient          matrix.Vec3
 	diffuse          matrix.Vec3
@@ -119,6 +122,7 @@ type Light struct {
 	lightType        LightType
 	castsShadows     bool
 	reset            bool
+	frameDirty       bool
 }
 
 type LightShadowShaderData struct {
@@ -159,6 +163,7 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 		constant:    1,
 		linear:      0.0014,
 		quadratic:   0.000007,
+		direction:   matrix.Vec3Down(),
 		lightType:   lightType,
 		cutoff:      matrix.Cos(matrix.Deg2Rad(32.5)),
 		outerCutoff: matrix.Cos(matrix.Deg2Rad(50.5)),
@@ -195,6 +200,8 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 	return light
 }
 
+func (l *Light) FrameDirty() bool { return l.reset }
+
 func (l *Light) ShadowMapTexture() *Texture {
 	return &l.renderPass.textures[0]
 }
@@ -205,18 +212,11 @@ func (l *Light) IsValid() bool   { return l.renderer != nil }
 func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	copy := *drawing
 	copy.Material = lightDepthMaterial.Value()
-	copy.CastsShadows = false // Shadows don't cast shadows
+	copy.Material.IsLit = false
+	copy.Material.ReceivesShadows = false
+	copy.Material.CastsShadows = false
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	drawing.ShaderData.setShadow(sd)
-	copy.ShaderData = sd
-	return copy
-}
-
-func lightTransformDrawingToCubeDepth(drawing *Drawing) Drawing {
-	copy := *drawing
-	copy.Material = lightDepthMaterial.Value()
-	copy.CastsShadows = false // Shadows don't cast shadows
-	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
 	copy.ShaderData = sd
 	return copy
 }
@@ -306,61 +306,75 @@ func (l *Light) Direction(followcam cameras.Camera) matrix.Vec3 {
 func (l *Light) SetPosition(position matrix.Vec3) {
 	if l.lightType != LightTypeDirectional {
 		l.position = position
-		l.reset = true
+		l.setDirty()
 	}
 }
 
 func (l *Light) SetDirection(dir matrix.Vec3) {
+	if l.direction.Equals(dir) {
+		return
+	}
 	l.direction = dir
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetIntensity(intensity float32) {
 	l.intensity = intensity
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetConstant(constant float32) {
 	l.constant = constant
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetLinear(linear float32) {
 	l.linear = linear
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetQuadratic(quadratic float32) {
 	l.quadratic = quadratic
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetCutoff(cutoff float32) {
 	l.cutoff = cutoff
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetOuterCutoff(outerCutoff float32) {
 	l.outerCutoff = outerCutoff
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetAmbient(ambient matrix.Vec3) {
 	l.ambient = ambient
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetDiffuse(diffuse matrix.Vec3) {
 	l.diffuse = diffuse
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetSpecular(specular matrix.Vec3) {
 	l.specular = specular
-	l.reset = true
+	l.setDirty()
 }
 
 func (l *Light) SetCastsShadows(castsShadows bool) {
 	l.castsShadows = castsShadows
+	l.setDirty()
+}
+
+func (l *Light) ResetFrameDirty() bool {
+	wasReset := l.frameDirty
+	l.frameDirty = false
+	return wasReset
+}
+
+func (l *Light) setDirty() {
+	l.frameDirty = true
 	l.reset = true
 }

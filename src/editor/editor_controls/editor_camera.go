@@ -87,13 +87,7 @@ func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
 
 func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
 	defer tracing.NewRegion("EditorCamera.LookAtPoint").End()
-	switch e.mode {
-	case EditorCameraMode3d:
-		// Something is backwards about the lookat for the turntable camera...
-		return e.camera.LookAt().Negative()
-	default:
-		return e.camera.LookAt()
-	}
+	return e.camera.LookAt()
 }
 
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {

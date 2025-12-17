@@ -207,6 +207,8 @@ func (w *StageWorkspace) loadStage(id string) {
 
 func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -259,10 +261,14 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		}
 		w.Host.Drawings.AddDrawing(draw)
 	})
+	w.stageView.Manager().ClearSelection()
+	w.stageView.Manager().SelectEntity(e)
 }
 
 func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnMesh").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -306,10 +312,16 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	}
 	w.Host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
+	w.stageView.Manager().ClearSelection()
+	w.stageView.Manager().SelectEntity(e)
 }
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("StageWorkspace.attachMaterial").End()
+	if e.StageData.ShaderData == nil {
+		return
+	}
+	e.Transform.SetDirty() // Trigger changes for lighting
 	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 	if !ok {
 		path := content_database.ToContentPath(cc.Path)

@@ -39,6 +39,7 @@ package transform_tools
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -51,6 +52,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"weak"
 )
 
 type TransformTool struct {
@@ -195,6 +197,11 @@ func (t *TransformTool) resetChange() {
 		}
 	}
 	t.firstHitUpdate = true
+	for _, e := range all {
+		for _, db := range e.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+		}
+	}
 }
 
 func (t *TransformTool) updateResets() {
@@ -417,6 +424,11 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	}
 	t.transform(delta, host.Window.Keyboard.HasCtrl())
 	t.lastHit = point
+	for _, e := range sel {
+		for _, db := range e.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+		}
+	}
 }
 
 func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
@@ -468,7 +480,8 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	r := t.unsnapped[idx]
 	currentQuat := matrix.QuaternionFromEuler(r)
 	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
-	newQuat := currentQuat.Multiply(incrementalQuat)
+	// newQuat := currentQuat.Multiply(incrementalQuat) // Local space
+	newQuat := incrementalQuat.Multiply(currentQuat) // World space
 	newEuler := newQuat.ToEuler()
 	t.unsnapped[idx] = newEuler
 	if snap {

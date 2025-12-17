@@ -39,6 +39,7 @@ package assets
 // Textures
 const (
 	TextureSquare      = "square.png"
+	TextureCube        = "cube.png"
 	TextureBlankSquare = "blank_square.png"
 	TextureTriangle    = "triangle.png"
 )

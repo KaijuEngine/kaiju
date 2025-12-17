@@ -99,42 +99,41 @@ func (c *hostCameras) NewFrame() {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name              string
-	game              any
-	entities          []*Entity
-	entityLookup      map[EntityId]*Entity
-	lighting          lighting.LightingInformation
-	renderDetailsFrom matrix.Vec3
-	timeRunner        []timeRun
-	frameRunner       []frameRun
-	plugins           []*plugins.LuaVM
-	Window            *windowing.Window
-	LogStream         *logging.LogStream
-	workGroup         concurrent.WorkGroup
-	threads           concurrent.Threads
-	updateThreads     concurrent.Threads
-	uiThreads         concurrent.Threads
-	Cameras           hostCameras
-	collisionManager  collision_system.Manager
-	audio             *audio.Audio
-	shaderCache       rendering.ShaderCache
-	textureCache      rendering.TextureCache
-	meshCache         rendering.MeshCache
-	fontCache         rendering.FontCache
-	materialCache     rendering.MaterialCache
-	Drawings          rendering.Drawings
-	frame             FrameId
-	frameTime         float64
-	Closing           bool
-	UIUpdater         Updater
-	UILateUpdater     Updater
-	Updater           Updater
-	LateUpdater       Updater
-	assetDatabase     assets.Database
-	physics           StagePhysics
-	OnClose           events.Event
-	CloseSignal       chan struct{}
-	frameRateLimit    *time.Ticker
+	name             string
+	game             any
+	entities         []*Entity
+	entityLookup     map[EntityId]*Entity
+	lighting         lighting.LightingInformation
+	timeRunner       []timeRun
+	frameRunner      []frameRun
+	plugins          []*plugins.LuaVM
+	Window           *windowing.Window
+	LogStream        *logging.LogStream
+	workGroup        concurrent.WorkGroup
+	threads          concurrent.Threads
+	updateThreads    concurrent.Threads
+	uiThreads        concurrent.Threads
+	Cameras          hostCameras
+	collisionManager collision_system.Manager
+	audio            *audio.Audio
+	shaderCache      rendering.ShaderCache
+	textureCache     rendering.TextureCache
+	meshCache        rendering.MeshCache
+	fontCache        rendering.FontCache
+	materialCache    rendering.MaterialCache
+	Drawings         rendering.Drawings
+	frame            FrameId
+	frameTime        float64
+	Closing          bool
+	UIUpdater        Updater
+	UILateUpdater    Updater
+	Updater          Updater
+	LateUpdater      Updater
+	assetDatabase    assets.Database
+	physics          StagePhysics
+	OnClose          events.Event
+	CloseSignal      chan struct{}
+	frameRateLimit   *time.Ticker
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -157,7 +156,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		CloseSignal:   make(chan struct{}, 1),
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
-		lighting:      lighting.NewLightingInformation(rendering.MaxLights, rendering.MaxPointShadows),
+		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
 			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
@@ -464,13 +463,6 @@ func (host *Host) Update(deltaTime float64) {
 	host.Window.EndUpdate()
 }
 
-// SetRenderDetailsFrom will set the point where the lights and shadows will
-// be sourced from. This will limit the data sent to the GPU to only the render
-// details closest to the point.
-func (host *Host) SetRenderDetailsFrom(point matrix.Vec3) {
-	host.renderDetailsFrom = point
-}
-
 // Render will render the scene. This starts by preparing any drawings that are
 // pending. It also creates any pending shaders, textures, and meshes before
 // the start of the render. The frame is then readied, buffers swapped, and any
@@ -483,12 +475,18 @@ func (host *Host) Render() {
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
 	if host.Drawings.HasDrawings() {
-		host.lighting.Update(host.renderDetailsFrom)
+		lights := rendering.LightsForRender{
+			Lights:     host.lighting.Lights.Cache,
+			HasChanges: host.lighting.Lights.HasChanges(),
+		}
+		for i := 0; i < len(lights.Lights) && !lights.HasChanges; i++ {
+			lights.HasChanges = lights.Lights[i].ResetFrameDirty()
+		}
+		host.lighting.Update(host.Cameras.Primary.Camera.Position())
 		if host.Window.Renderer.ReadyFrame(host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			host.lighting.Lights.Cache, host.lighting.StaticShadows.Cache,
-			host.lighting.DynamicShadows.Cache, float32(host.Runtime())) {
-			host.Drawings.Render(host.Window.Renderer)
+			lights, float32(host.Runtime())) {
+			host.Drawings.Render(host.Window.Renderer, lights)
 		}
 	}
 	host.Window.SwapBuffers()

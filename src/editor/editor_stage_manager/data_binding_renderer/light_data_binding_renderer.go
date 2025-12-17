@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/engine/lighting"
 	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -52,15 +53,20 @@ import (
 func init() {
 	AddRenderer(engine_entity_data_light.BindingKey, &LightDataBindingRenderer{
 		LightLines: make(map[*editor_stage_manager.StageEntity]rendering.DrawInstance),
+		LightIds:   make(map[*editor_stage_manager.StageEntity]*lighting.LightEntry),
 	})
 }
 
 type LightDataBindingRenderer struct {
 	LightLines map[*editor_stage_manager.StageEntity]rendering.DrawInstance
+	LightIds   map[*editor_stage_manager.StageEntity]*lighting.LightEntry
 }
 
 func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	commonAttached(host, manager, target, "light.png")
+	// TODO:  Select correct one
+	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan), host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
+	c.LightIds[target] = host.Lighting().Lights.Add(&target.Transform, l)
 }
 
 func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
@@ -107,7 +113,9 @@ func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_
 	c.LightLines[target] = sd
 }
 
-func (c *LightDataBindingRenderer) Update(*engine.Host, *editor_stage_manager.StageEntity, *entity_data_binding.EntityDataEntry) {
+func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	l := c.LightIds[target]
+	l.Light.SetDirection(l.Transform.Up().Negative())
 }
 
 func (c *LightDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {

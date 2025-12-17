@@ -72,6 +72,7 @@ type TextureColorFormat int
 type TextureFilter = int
 type TextureMemType = int
 type TextureFileFormat = int
+type TextureDimensions = int
 
 const (
 	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
@@ -123,6 +124,13 @@ const (
 )
 
 const (
+	TextureDimensions2 TextureDimensions = iota
+	TextureDimensions1
+	TextureDimensions3
+	TextureDimensionsCube
+)
+
+const (
 	GenerateUniqueTextureKey = ""
 )
 
@@ -139,6 +147,7 @@ type TextureData struct {
 	Width          int
 	Height         int
 	InputType      TextureFileFormat
+	Dimensions     TextureDimensions
 }
 
 type Texture struct {
@@ -349,6 +358,12 @@ func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest
 
 func (t Texture) Size() matrix.Vec2 {
 	return matrix.Vec2{float32(t.Width), float32(t.Height)}
+}
+
+func (t *Texture) SetPendingDataDimensions(dim TextureDimensions) {
+	if t.pendingData != nil {
+		t.pendingData.Dimensions = dim
+	}
 }
 
 func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error) {

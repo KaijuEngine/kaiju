@@ -156,27 +156,42 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	var mat rendering.MaterialData
 	if _, ok := variant.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
-			Name:           "pbr",
-			RenderPass:     "simple_opaque.renderpass",
-			Shader:         "pbr.shader",
-			ShaderPipeline: "simple.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Name:            "pbr",
+			RenderPass:      "simple_opaque.renderpass",
+			Shader:          "pbr.shader",
+			ShaderPipeline:  "simple.shaderpipeline",
+			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			IsLit:           true,
+			ReceivesShadows: true,
+			CastsShadows:    true,
 		}
 		if t, ok := variant.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "baseColor")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["normal"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "normal")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["metallicRoughness"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "metallicRoughness")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["emissive"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "emissive")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		for _, t := range variant.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))

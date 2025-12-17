@@ -44,14 +44,14 @@ import (
 
 type Renderer interface {
 	Initialize(caches RenderCaches, width, height int32) error
-	ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera,
-		lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool
+	ReadyFrame(window RenderingContainer, camera cameras.Camera,
+		uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool
 	CreateShader(shader *Shader, assetDatabase assets.Database) error
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
-	Draw(renderPass *RenderPass, drawings []ShaderDraw) bool
+	Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) bool
 	BlitTargets(passes []*RenderPass)
 	SwapFrame(window RenderingContainer, width, height int32) bool
 	Resize(window RenderingContainer, width, height int)

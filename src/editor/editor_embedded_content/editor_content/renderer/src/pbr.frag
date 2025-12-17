@@ -27,16 +27,16 @@ layout(binding = 1) uniform sampler2D textures[4];
 //normalMap;
 //metallicRoughnessMap;
 //emissiveMap;
-layout(binding = 2) uniform sampler2D shadowMap;
-layout(binding = 3) uniform samplerCube shadowCubeMap;
+layout(binding = 2) uniform sampler2D shadowMap[MAX_LIGHTS];
+layout(binding = 3) uniform samplerCube shadowCubeMap[MAX_LIGHTS];
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
 float DistributionGGX(vec3 N, vec3 H, float fragRoughness);
 float GeometrySchlickGGX(float NdotV, float fragRoughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float fragRoughness);
-float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
-float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far);
-float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far);
+float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx);
+float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far, int lightIdx);
+float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far, int lightIdx);
 
 float LinearizeDepth(float depth, float near, float far) {
 	float z = depth * 2.0 - 1.0; // Back to NDC 
@@ -48,8 +48,6 @@ void main() {
 	//normalMap = textures[1];
 	//metallicRoughnessMap = textures[2];
 	//emissiveMap = textures[3];
-	//shadowMap = textures[4];
-	//shadowCubeMap = textures[5];
 
 	vec3 V = normalize(fragTangentViewPos - fragTangentFragPos);
 
@@ -77,38 +75,29 @@ void main() {
 	vec3 Lo = vec3(0.0);
 	float shadow = 0.0;
 	float iShadow = 0.0;
-#ifdef MULTI_LIGHT
 	for (int i = 0; i < lightCount; ++i) {
-		LightInfo light = lightInfos[lightIndexes[i]];
+		int lightIdx = lightIndexes[i];
+		LightInfo light = lightInfos[lightIdx];
 		vec3 fltPos = fragLightTPos[i];
 		vec3 fltDir = fragLightTDir[i];
 		vec4 fplSpace = fragPosLightSpace[i];
-#else
-		LightInfo light = lightInfos[0];
-		vec3 fltPos = fragLightTPos[0];
-		vec3 fltDir = fragLightTDir[0];
-		vec4 fplSpace = fragPosLightSpace[0];
-#endif
 		// Calculate per-light radiance
 		vec3 L = normalize(fltPos - fragTangentFragPos);
 		vec3 H = normalize(V + L);
 		float attenuation = 1.0;
 		float lightShadow = 0.0;
-
-#ifdef MULTI_LIGHT
 		if (light.type == 0) {
 			attenuation = light.intensity;
-			lightShadow = DirectShadowCalculation(fplSpace, N, fltDir);
+			lightShadow = DirectShadowCalculation(fplSpace, N, fltDir, lightIdx);
 		} else if (light.type == 1) {
 			float d = length(fltPos - fragTangentFragPos);
 			attenuation = light.intensity / (light.constant +
 				light.linear * d + light.quadratic * (d * d));
-			lightShadow = PointShadowCalculation(fragPos, light.position, V, light.farPlane);
+			lightShadow = PointShadowCalculation(fragPos, light.position, V, light.farPlane, lightIdx);
 		} else if (light.type == 2) {
 			float d = length(fltPos - fragTangentFragPos);
 			attenuation = light.intensity / (light.constant +
 				light.linear * d + light.quadratic * (d * d));
-
 			// Spotlight (soft edges)
 			vec3 fragDir = normalize(fragPos - light.position);
 			float theta = dot(light.direction, fragDir);
@@ -116,17 +105,11 @@ void main() {
 			float epsilon = (light.cutoff - light.outerCutoff);
 			float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
 			attenuation *= intensity;
-			lightShadow = SpotShadowCalculation(fplSpace, N, fltDir, light.nearPlane, light.farPlane);
+			lightShadow = SpotShadowCalculation(fplSpace, N, fltDir, light.nearPlane, light.farPlane, lightIdx);
 		}
-#else
-		attenuation = light.intensity;
-		lightShadow = DirectShadowCalculation(fplSpace, N, fltDir);
-#endif
 		shadow += lightShadow;
 		iShadow += 1.0 - lightShadow;
-		
 		vec3 radiance = light.diffuse * attenuation;
-		
 		// Cook-torrance brdf
 		float NDF = DistributionGGX(N, H, mRoughness);
 		float G = GeometrySmith(N, V, L, mRoughness);
@@ -143,9 +126,7 @@ void main() {
 		// Add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
 		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-#ifdef MULTI_LIGHT
 	}
-#endif
 
 	vec3 ambient = vec3(0.03) * albedo * occlusion;
 	vec3 color = ambient + Lo * (1.0 - shadow);
@@ -205,7 +186,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float fragRoughness) {
 	return ggx1 * ggx2;
 }
 
-float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
+float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx) {
 	// Perform perspective divide
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	// Transform to [0,1] range
@@ -213,7 +194,7 @@ float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir
 
 	// Get closest depth value from light's perspective
 	// (using [0,1] range fragPosLight as coords)
-	float closestDepth = texture(shadowMap, projCoords.xy).r;
+	float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
 
 	// Get depth of current fragment from light's perspective
 	float currentDepth = projCoords.z;
@@ -222,10 +203,10 @@ float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir
 	float shadow = 0.0;
 
 	// Make the shadow smoother
-	vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+	vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
 	for (int x = -1; x <= 1; ++x) {
 		for (int y = -1; y <= 1; ++y) {
-			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r;
 			shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
 		}
 	}
@@ -236,7 +217,7 @@ float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir
 	return shadow;
 }
 
-float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far)
+float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far, int lightIdx)
 {
 	// Perform perspective divide
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -245,7 +226,7 @@ float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, 
 
 	// Get closest depth value from light's perspective
 	// (using [0,1] range fragPosLight as coords)
-	float closestDepth = texture(shadowMap, projCoords.xy).r;
+	float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
 
 	// Get depth of current fragment from light's perspective
 	float currentDepth = projCoords.z;
@@ -257,10 +238,10 @@ float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, 
 	float shadow = 0.0;
 
 	// Make the shadow smoother
-	vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+	vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
 	for (int x = -1; x <= 1; ++x) {
 		for (int y = -1; y <= 1; ++y) {
-			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + vec2(x, y) * texelSize).r;
 			pcfDepth = LinearizeDepth(pcfDepth, near, far) / far;
 			shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
 		}
@@ -282,7 +263,7 @@ const vec3 pointSamplingDiskGrid[20] = vec3[]
 	vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
 	vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
-float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far) {
+float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far, int lightIdx) {
 	vec3 delta = fragPos - lightPos;
 	float currentDepth = length(delta);
 	float shadow = 0.0;
@@ -291,7 +272,7 @@ float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float fa
 	float viewDistance = length(viewPos - fragPos);
 	float diskRadius = (1.0 + (viewDistance / far)) / 25.0;
 	for (int i = 0; i < samples; ++i) {
-		float closestDepth = texture(shadowCubeMap, delta + pointSamplingDiskGrid[i] * diskRadius).r;
+		float closestDepth = texture(shadowCubeMap[lightIdx], delta + pointSamplingDiskGrid[i] * diskRadius).r;
 		closestDepth *= far;   // undo mapping [0;1]
 		if ((currentDepth - bias) > closestDepth)
 			shadow += 1.0;

@@ -64,11 +64,11 @@ type LightDataBinding struct {
 }
 
 type LightModule struct {
-	id       lighting.EntryId
-	entity   *engine.Entity
-	host     *engine.Host
-	updateId engine.UpdateId
-	Data     LightDataBinding
+	lightEntry *lighting.LightEntry
+	entity     *engine.Entity
+	host       *engine.Host
+	updateId   engine.UpdateId
+	Data       LightDataBinding
 }
 
 func (c LightDataBinding) Init(e *engine.Entity, host *engine.Host) {
@@ -93,29 +93,28 @@ func (c LightDataBinding) Init(e *engine.Entity, host *engine.Host) {
 	}
 	e.AddNamedData("LightModule", lm)
 	lm.updateId = host.Updater.AddUpdate(lm.update)
-	lm.id = host.Lighting().Lights.Add(e.Transform.Position(), light)
+	lm.lightEntry = host.Lighting().Lights.Add(&e.Transform, light)
 }
 
 func (c *LightModule) update(deltaTime float64) {
 	if !c.entity.IsActive() {
 		return
 	}
-	t := &c.entity.Transform
-	light := c.host.Lighting().Lights.FindById(c.id)
+	light := c.lightEntry
 	// TODO:  Only make updates if things have changed?
-	light.Position = t.Position()
-	light.Target.SetPosition(light.Position)
-	light.Target.SetDirection(t.Forward())
-	light.Target.SetDirection(matrix.Vec3Forward())
-	light.Target.SetPosition(matrix.Vec3Zero())
-	light.Target.SetAmbient(c.Data.Ambient)
-	light.Target.SetDiffuse(c.Data.Diffuse)
-	light.Target.SetSpecular(c.Data.Specular)
-	light.Target.SetIntensity(c.Data.Intensity)
-	light.Target.SetConstant(c.Data.Constant)
-	light.Target.SetLinear(c.Data.Linear)
-	light.Target.SetQuadratic(c.Data.Quadratic)
-	light.Target.SetCutoff(c.Data.Cutoff)
-	light.Target.SetOuterCutoff(c.Data.OuterCutoff)
-	light.Target.SetCastsShadows(c.Data.CastsShadows)
+	light.Transform = &c.entity.Transform
+	light.Light.SetPosition(light.Transform.Position())
+	light.Light.SetDirection(light.Transform.Forward())
+	light.Light.SetDirection(matrix.Vec3Forward())
+	light.Light.SetPosition(matrix.Vec3Zero())
+	light.Light.SetAmbient(c.Data.Ambient)
+	light.Light.SetDiffuse(c.Data.Diffuse)
+	light.Light.SetSpecular(c.Data.Specular)
+	light.Light.SetIntensity(c.Data.Intensity)
+	light.Light.SetConstant(c.Data.Constant)
+	light.Light.SetLinear(c.Data.Linear)
+	light.Light.SetQuadratic(c.Data.Quadratic)
+	light.Light.SetCutoff(c.Data.Cutoff)
+	light.Light.SetOuterCutoff(c.Data.OuterCutoff)
+	light.Light.SetCastsShadows(c.Data.CastsShadows)
 }

@@ -227,11 +227,9 @@ func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingS
 		}
 	})
 	for i := range drawings {
-		drawings[i].Drawing.CastsShadows = true
+		drawings[i].Drawing.Material.CastsShadows = true
+		drawings[i].Drawing.Material.ReceivesShadows = true
 		drawings[i].Drawing.Material.IsLit = true
-		// TODO:  This some shady stuff to pull the first light here
-		drawings[i].Drawing.Material.ShadowMap = host.Lighting().Lights.FindById(1).Target.ShadowMapTexture()
-		//drawings[i].Material.ShadowCubeMap =
 	}
 	return drawings, err
 }
