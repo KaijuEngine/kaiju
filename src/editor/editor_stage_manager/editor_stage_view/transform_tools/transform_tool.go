@@ -101,6 +101,9 @@ func (t *TransformTool) Update() (busy bool) {
 	if t.state == ToolStateNone {
 		return false
 	}
+	if !t.stage.Manager().HasSelection() {
+		t.Disable()
+	}
 	if t.transformDirty > 0 {
 		t.transformDirty--
 		if t.transformDirty == 0 {
@@ -151,7 +154,9 @@ func (t *TransformTool) Enable(state ToolState) {
 
 func (t *TransformTool) Disable() {
 	defer tracing.NewRegion("TransformTool.Disable").End()
-	t.resetChange()
+	if t.stage.Manager().HasSelection() {
+		t.resetChange()
+	}
 	t.state = ToolStateNone
 	t.axis = AxisStateNone
 	for i := range t.wires {
