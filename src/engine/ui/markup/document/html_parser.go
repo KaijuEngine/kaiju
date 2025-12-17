@@ -194,6 +194,9 @@ func (h *Document) recacheElementTags() {
 	clear(h.tagElements)
 	for i := range h.Elements {
 		e := h.Elements[i]
+		if e.IsText() {
+			continue
+		}
 		if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 			h.tagElement(e, tag.Key())
 		}

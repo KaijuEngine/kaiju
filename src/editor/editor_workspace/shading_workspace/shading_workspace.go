@@ -67,7 +67,7 @@ type ShadingWorkspaceUIData struct {
 
 type ShadingWorkspaceUIDataFile struct {
 	Id   string
-	Ext  string
+	Type string
 	Name string
 }
 
@@ -89,6 +89,9 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 	w.renderSpecList, _ = w.Doc.GetElementById("renderSpecList")
 	w.renderSpecListTemplate, _ = w.Doc.GetElementById("renderSpecListTemplate")
 	w.toolTip, _ = w.Doc.GetElementById("toolTip")
+	w.ed.Events().OnContentAdded.Add(w.contentAdded)
+	w.ed.Events().OnContentRemoved.Add(w.contentRemoved)
+	w.ed.Events().OnContentRenamed.Add(w.contentRenamed)
 }
 
 func (w *ShadingWorkspace) Open() {
@@ -135,7 +138,7 @@ func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
 		".renderpass":     project_file_system.ContentFolder + "/" + project_file_system.ContentRenderPassFolder,
 	}
 	cache := w.ed.Cache()
-	for k, v := range paths {
+	for _, v := range paths {
 		dir, err := fs.ReadDir(v)
 		if err != nil {
 			continue
@@ -151,7 +154,7 @@ func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
 			out = append(out, ShadingWorkspaceUIDataFile{
 				Id:   cc.Id(),
 				Name: cc.Config.Name,
-				Ext:  k,
+				Type: cc.Config.Type,
 			})
 		}
 	}
@@ -161,7 +164,7 @@ func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
 func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
 	defer tracing.NewRegion("ShadingWorkspace.toggleFilterSpec").End()
 	txt := e.InnerLabel().Text()
-	extFilter := ""
+	typeFilter := ""
 	for _, elm := range e.Parent.Value().Children {
 		w.Doc.SetElementClassesWithoutApply(elm, "filterLabel")
 	}
@@ -170,23 +173,23 @@ func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
 	switch txt {
 	case "All":
 	case "R":
-		extFilter = ".renderpass"
+		typeFilter = content_database.RenderPass{}.TypeName()
 	case "P":
-		extFilter = ".shaderpipeline"
+		typeFilter = content_database.ShaderPipeline{}.TypeName()
 	case "S":
-		extFilter = ".shader"
+		typeFilter = content_database.Shader{}.TypeName()
 	case "M":
-		extFilter = ".material"
+		typeFilter = content_database.Material{}.TypeName()
 	default:
 		return
 	}
 	for _, e := range w.renderSpecList.Children {
-		if extFilter == "" {
+		if typeFilter == "" {
 			e.UI.Show()
 			continue
 		}
-		ext := e.Attribute("data-ext")
-		if ext != extFilter {
+		ext := e.Attribute("data-type")
+		if ext != typeFilter {
 			e.UI.Hide()
 		} else {
 			e.UI.Show()
@@ -264,4 +267,57 @@ func (w *ShadingWorkspace) clickNewMaterial(elm *document.Element) {
 func (w *ShadingWorkspace) showTooltip(elm *document.Element) {
 	defer tracing.NewRegion("ShadingWorkspace.showTooltip").End()
 	w.toolTip.InnerLabel().SetText(elm.Attribute("data-tooltip"))
+}
+
+func (w *ShadingWorkspace) contentAdded(ids []string) {
+	targets := []content_database.CachedContent{}
+	for i := range ids {
+		cc, err := w.ed.Cache().Read(ids[i])
+		if err != nil {
+			continue
+		}
+		switch cc.Config.Type {
+		case content_database.Material{}.TypeName(),
+			content_database.Shader{}.TypeName(),
+			content_database.ShaderPipeline{}.TypeName(),
+			content_database.RenderPass{}.TypeName():
+			targets = append(targets, cc)
+		}
+	}
+	if len(targets) == 0 {
+		return
+	}
+	elms := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.renderSpecListTemplate, len(targets))
+	for i := range elms {
+		w.Doc.SetElementId(elms[i], targets[i].Id())
+		elms[i].SetAttribute("data-type", targets[i].Config.Type)
+		elms[i].InnerLabel().SetText(targets[i].Config.Name)
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *ShadingWorkspace) contentRemoved(ids []string) {
+	elms := make([]*document.Element, 0, len(ids))
+	for i := range ids {
+		e, ok := w.Doc.GetElementById(ids[i])
+		if ok {
+			elms = append(elms, e)
+		}
+	}
+	for i := range elms {
+		w.Doc.RemoveElementWithoutApplyStyles(elms[i])
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *ShadingWorkspace) contentRenamed(id string) {
+	e, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return
+	}
+	e.InnerLabel().SetText(cc.Config.Name)
 }

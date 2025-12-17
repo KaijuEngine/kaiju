@@ -191,6 +191,7 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 }
 
 func Delete(id string, fs *project_file_system.FileSystem, cache *Cache) error {
+	// TODO:  Find all references and warn or prevent deletion
 	if id == "" {
 		return DeleteContentMissingIdError
 	}
