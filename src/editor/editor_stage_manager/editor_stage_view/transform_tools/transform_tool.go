@@ -496,9 +496,16 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	newEuler := newQuat.ToEuler()
 	t.unsnapped[idx] = newEuler
 	if snap {
-		newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
-		newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
-		newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
+		switch t.axis {
+		case AxisStateX:
+			newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
+		case AxisStateY:
+			newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
+		default:
+			// TODO:  Fix arbitrary rotation snapping
+		}
 	}
 	return newEuler
 }
@@ -520,9 +527,18 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 	s := t.unsnapped[idx].Add(scale)
 	t.unsnapped[idx] = s
 	if snap {
-		s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
-		s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
-		s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		switch t.axis {
+		case AxisStateX:
+			s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+		case AxisStateY:
+			s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		default:
+			s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+			s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+			s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		}
 	}
 	return s
 }
