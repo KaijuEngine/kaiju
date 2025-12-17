@@ -11,20 +11,20 @@
 				padding: 0 5px;
 				width: 15em;
 				height: 100%;
-				background-color: #282828;
+				background-color: #1C1E25;
 				overflow-y: scroll;
 			}
 			.center {
 				width: calc(100% - 30em);
 				height: 100%;
-				background-color: #121212;
+				background-color: #181A20;
 				padding: 10px;
 				overflow-y: scroll;
 			}
 			.right {
 				width: 15em;
 				height: 100%;
-				background-color: #282828;
+				background-color: #1C1E25;
 				overflow-y: scroll;
 			}
 			#rightBody {
@@ -33,34 +33,7 @@
 				color: white;
 				overflow-y: scroll;
 			}
-			.leftBtn {
-				padding: 1px;
-				background-color: #282828;
-				border: 2px solid #575757;
-				border-radius: 5px;
-				color: #AAA;
-				width: 100%;
-				font-size: 1em;
-				vertical-align: middle;
-				text-align: center;
-			}
-			.leftBtn:hover {
-				color: white;
-				background-color: #353535;
-			}
-			.leftBtn:active {
-				background-color: #121212;
-			}
-			.leftBtn img {
-				width: 1em;
-				height: 1em;
-				background-color: #1D731C;
-				margin-right: 5px;
-			}
-			.filterSelected {
-				background-color: #575757;
-				color: white;
-			}
+			
 			input {
 				width: 100%;
 				height: 2em;
@@ -156,20 +129,20 @@
 	<body>
 		<div class="content">
 			<div class="left">
-				<input type="text" placeholder="Content search..." onsubmit="inputFilter" />
-				<div class="leftBtn" onclick="clickImport">
+				<input type="text" placeholder="Content search..." onchange="inputFilter" />
+				<div class="filterBtn" onclick="clickImport">
 					<img src="editor/textures/icons/plus.png" />
 					<span>Import content...</span>
 				</div>
-				<div class="leftBtn" onclick="toggleListView">List view</div>
+				<div class="filterBtn" onclick="toggleListView">List view</div>
 				{{range .Filters}}
-				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
-					<div id="tagFilterTemplate" class="leftBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</div>
+					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</span>
 					{{range .Tags}}
-					<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
+					<span class="filterBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</span>
 					{{end}}
 				</div>
 			</div>

@@ -273,13 +273,13 @@ func (cui *WorkspaceContentUI) runFilter() {
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
 	w := cui.workspace.Value()
 	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
 		if typeName != "" {
 			cui.typeFilters = append(cui.typeFilters, typeName)
 		}
@@ -287,7 +287,7 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 			cui.tagFilters = append(cui.tagFilters, tagName)
 		}
 	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
+		w.Doc.SetElementClasses(e, "filterBtn")
 		if typeName != "" {
 			cui.typeFilters = klib.SlicesRemoveElement(cui.typeFilters, typeName)
 		}

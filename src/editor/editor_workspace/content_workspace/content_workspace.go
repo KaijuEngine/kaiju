@@ -198,10 +198,10 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 func (w *ContentWorkspace) toggleListView(e *document.Element) {
 	if w.isListMode {
 		w.disableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn")
 	} else {
 		w.enableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn", "filterBtnSelected")
 	}
 	w.Doc.ApplyStyles()
 	w.contentList.UIPanel.SetScrollY(0)
@@ -302,12 +302,12 @@ func (w *ContentWorkspace) tagFilter(e *document.Element) {
 
 func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
 	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
 		if typeName != "" {
 			w.typeFilters = append(w.typeFilters, typeName)
 		}
@@ -315,7 +315,7 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 			w.tagFilters = append(w.tagFilters, tagName)
 		}
 	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
+		w.Doc.SetElementClasses(e, "filterBtn")
 		if typeName != "" {
 			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
 		}
