@@ -36,7 +36,7 @@ float GeometrySchlickGGX(float NdotV, float fragRoughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float fragRoughness);
 float DirectShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx);
 float SpotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far, int lightIdx);
-float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far, int lightIdx);
+float PointShadowCalculation(vec3 fragPos, vec3 lightPos, float far, int lightIdx, vec3 normal);
 
 float LinearizeDepth(float depth, float near, float far) {
 	float z = depth * 2.0 - 1.0; // Back to NDC 
@@ -91,7 +91,7 @@ void main() {
 			float d = length(fltPos - fragTangentFragPos);
 			attenuation = light.intensity / (light.constant +
 				light.linear * d + light.quadratic * (d * d));
-			lightShadow = PointShadowCalculation(fragPos, light.position, V, light.farPlane, lightIdx);
+			lightShadow = PointShadowCalculation(fragPos, light.position, light.farPlane, lightIdx, fragNormal);
 		} else if (light.type == 2) {
 			float d = length(fltPos - fragTangentFragPos);
 			attenuation = light.intensity / (light.constant +
@@ -266,14 +266,14 @@ const vec3 pointSamplingDiskGrid[20] = vec3[]
 	vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
 	vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
-float PointShadowCalculation(vec3 fragPos, vec3 lightPos, vec3 viewPos, float far, int lightIdx) {
+float PointShadowCalculation(vec3 fragPos, vec3 lightPos, float far, int lightIdx, vec3 normal) {
 	vec3 delta = fragPos - lightPos;
 	float currentDepth = length(delta);
 	float shadow = 0.0;
-	float bias = 0.15;
+	//float bias = 0.15;
+	float bias = 0.15 + (1.0 - dot(normalize(delta), normal)) * 0.1;
 	int samples = 20;
-	float viewDistance = length(viewPos - fragPos);
-	float diskRadius = (1.0 + (viewDistance / far)) / 25.0;
+	float diskRadius = (currentDepth / far) / 25.0;
 	for (int i = 0; i < samples; ++i) {
 		float closestDepth = texture(shadowCubeMap[lightIdx], delta + pointSamplingDiskGrid[i] * diskRadius).r;
 		closestDepth *= far;   // undo mapping [0;1]
