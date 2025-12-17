@@ -156,12 +156,14 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	var mat rendering.MaterialData
 	if _, ok := variant.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
-			Name:           "pbr",
-			RenderPass:     "simple_opaque.renderpass",
-			Shader:         "pbr.shader",
-			ShaderPipeline: "simple.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
-			IsLit:          true,
+			Name:            "pbr",
+			RenderPass:      "simple_opaque.renderpass",
+			Shader:          "pbr.shader",
+			ShaderPipeline:  "simple.shaderpipeline",
+			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			IsLit:           true,
+			ReceivesShadows: true,
+			CastsShadows:    true,
 		}
 		if t, ok := variant.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
