@@ -95,6 +95,7 @@ type ShaderDesigner struct {
 	pfs               *project_file_system.FileSystem
 	cache             *content_database.Cache
 	state             ShaderDesignerState
+	liveShader        bool
 }
 
 type flagState struct {
@@ -239,6 +240,7 @@ func (win *ShaderDesigner) ShowMaterialWindow(id string, data rendering.Material
 
 func (win *ShaderDesigner) Close() {
 	win.ChangeWindowState(StateNone)
+	win.liveShader = false
 }
 
 func (win *ShaderDesigner) resetDataValues() {

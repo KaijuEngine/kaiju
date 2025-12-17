@@ -45,6 +45,7 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
 	"os"
@@ -52,6 +53,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -101,6 +103,8 @@ func collectFileOptions(pfs *project_file_system.FileSystem) map[string][]ui.Sel
 }
 
 func (win *ShaderDesigner) reloadShaderDoc() {
+	defer tracing.NewRegion("ShaderDesigner.reloadShaderDoc").End()
+	win.liveShader = false
 	sy := float32(0)
 	if win.shaderDoc != nil {
 		content := win.shaderDoc.GetElementsByClass("topFields")[0]
@@ -111,9 +115,10 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
-			"showTooltip":  showShaderTooltip,
-			"valueChanged": win.shaderValueChanged,
-			"saveData":     win.shaderSave,
+			"showTooltip":     showShaderTooltip,
+			"valueChanged":    win.shaderValueChanged,
+			"saveData":        win.shaderSave,
+			"clickLiveShader": win.clickLiveShader,
 		})
 	if sy != 0 {
 		content := win.shaderDoc.GetElementsByClass("topFields")[0]
@@ -124,6 +129,7 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 }
 
 func showShaderTooltip(e *document.Element) {
+	defer tracing.NewRegion("shader_designer.showShaderTooltip").End()
 	id := e.Attribute("data-tooltip")
 	tip, ok := shaderTooltips[id]
 	if !ok {
@@ -141,10 +147,12 @@ func showShaderTooltip(e *document.Element) {
 }
 
 func (win *ShaderDesigner) shaderValueChanged(e *document.Element) {
+	defer tracing.NewRegion("ShaderDesigner.shaderValueChanged").End()
 	common_workspace.SetObjectValueFromUI(&win.shader, e)
 }
 
 func compileShaderFile(id string, pfs *project_file_system.FileSystem, cache *content_database.Cache, s *rendering.ShaderData, src, flags string) (string, error) {
+	defer tracing.NewRegion("ShaderDesigner.compileShaderFile").End()
 	if src == "" {
 		return "", errors.New("blank src")
 	}
@@ -175,6 +183,7 @@ func compileShaderFile(id string, pfs *project_file_system.FileSystem, cache *co
 }
 
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
+	defer tracing.NewRegion("ShaderDesigner.shaderSave").End()
 	if win.shader.id == "" {
 		win.shader.id = uuid.NewString()
 	}
@@ -230,10 +239,55 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	}
 	win.host.ShaderCache().ReloadShader(win.shader.Compile())
 	slog.Info("shader successfully saved")
-	if len(e.Children) > 0 {
+	if e != nil && len(e.Children) > 0 {
 		u := e.Children[0].UI
 		if u.IsType(ui.ElementTypeLabel) {
 			u.ToLabel().SetText("File saved!")
 		}
 	}
+}
+
+func (win *ShaderDesigner) clickLiveShader(elm *document.Element) {
+	defer tracing.NewRegion("ShaderDesigner.clickLiveShader").End()
+	if win.liveShader {
+		elm.InnerLabel().SetText("Start live")
+		win.liveShader = false
+		return
+	}
+	elm.InnerLabel().SetText("Stop live")
+	win.liveShader = true
+	// goroutine
+	go func() {
+		paths := map[string]time.Time{}
+		keys := [...]string{
+			win.shader.Vertex,
+			win.shader.Fragment,
+			win.shader.Geometry,
+			win.shader.TessellationControl,
+			win.shader.TessellationEvaluation,
+		}
+		for i := range keys {
+			if keys[i] != "" {
+				s, err := win.pfs.Stat(keys[i])
+				if err == nil && !s.IsDir() {
+					paths[keys[i]] = s.ModTime()
+				}
+			}
+		}
+		for win.liveShader {
+			time.Sleep(time.Second * 1)
+			for k, v := range paths {
+				s, err := win.pfs.Stat(k)
+				if err != nil || s.IsDir() {
+					delete(paths, k)
+					continue
+				}
+				if s.ModTime().After(v) {
+					paths[k] = s.ModTime()
+					win.shaderSave(nil)
+					break
+				}
+			}
+		}
+	}()
 }
