@@ -112,6 +112,7 @@ type UI struct {
 
 func (ui *UI) IsActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.isDown }
+func (ui *UI) IsValid() bool  { return ui.elmData != nil }
 
 func (ui *UI) init(textureSize matrix.Vec2) {
 	defer tracing.NewRegion("UI.init").End()

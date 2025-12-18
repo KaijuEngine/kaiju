@@ -50,7 +50,7 @@ type RightStylizer struct{ BasicStylizer }
 
 func (s StretchWidthStylizer) ProcessStyle(layout *Layout) []error {
 	parent := s.Parent.Value()
-	if parent == nil {
+	if parent == nil || !parent.IsValid() {
 		return []error{}
 	}
 	sw := parent.layout.PixelSize().X()
@@ -64,7 +64,7 @@ func (s StretchWidthStylizer) ProcessStyle(layout *Layout) []error {
 
 func (s StretchHeightStylizer) ProcessStyle(layout *Layout) []error {
 	parent := s.Parent.Value()
-	if parent == nil {
+	if parent == nil || !parent.IsValid() {
 		return []error{}
 	}
 	sh := parent.layout.PixelSize().Y()
