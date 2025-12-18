@@ -92,8 +92,9 @@ type ShaderLayout struct {
 }
 
 type ShaderLayoutGroup struct {
-	Type    string
-	Layouts []ShaderLayout
+	Type       string
+	WorkGroups [3]uint32
+	Layouts    []ShaderLayout
 }
 
 type shaderFieldType struct {
@@ -163,6 +164,9 @@ func (l *ShaderLayout) Capacity() int {
 }
 
 func (l *ShaderLayout) DescriptorType() vulkan_const.DescriptorType {
+	if l.Type == "StorageBuffer" {
+		return vulkan_const.DescriptorTypeStorageBuffer
+	}
 	if l.Binding >= 0 && l.Set >= 0 && l.Source == "uniform" {
 		return vulkan_const.DescriptorTypeUniformBuffer
 	}

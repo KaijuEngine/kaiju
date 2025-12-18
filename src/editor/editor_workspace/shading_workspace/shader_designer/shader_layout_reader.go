@@ -49,14 +49,17 @@ import (
 )
 
 var (
-	layoutReg = regexp.MustCompile(`(?s)\s*layout\s*\(([\w\s=\d,\+\-\*\/]+)\)\s*(?:readonly\s+)?(in|out|uniform)\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9_]+){0,1}(?:\s*\{(.*?)\})?\s*(\w+){0,1}(\[(.*?)\]){0,1}`)
+	layoutReg        = regexp.MustCompile(`(?s)\s*layout\s*\(([\w\s=\d,\+\-\*\/]+)\)\s*(?:readonly\s+)?(in|out|uniform|buffer)\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9_]+){0,1}(?:\s*\{(.*?)\})?\s*(\w+){0,1}(\[(.*?)\]){0,1}`)
+	computeLayoutReg = regexp.MustCompile(`(?s)\s*layout\s*\(\s*local_size_x\s*=\s*(\d+)\s*,\s*local_size_y\s*=\s*(\d+)\s*,\s*local_size_z\s*=\s*(\d+)\)\s*in\s*;`)
 )
 
 type shaderSource struct {
-	src     string
-	file    string
-	defines map[string]any
-	layouts []rendering.ShaderLayout
+	src        string
+	file       string
+	defines    map[string]any
+	workGroups [3]uint32
+	layouts    []rendering.ShaderLayout
+	isCompute  bool
 }
 
 func (s *shaderSource) defineAsString(name string) string {
@@ -134,6 +137,26 @@ func (s *shaderSource) readDefines() {
 			}
 		}
 	}
+}
+
+func (s *shaderSource) readComputeLayouts() error {
+	matches := computeLayoutReg.FindAllStringSubmatch(s.src, -1)
+	s.layouts = make([]rendering.ShaderLayout, 0, len(matches))
+	for i := range matches {
+		x, _ := strconv.Atoi(matches[i][1])
+		y, _ := strconv.Atoi(matches[i][2])
+		z, _ := strconv.Atoi(matches[i][3])
+		s.workGroups = [3]uint32{uint32(x), uint32(y), uint32(z)}
+		break
+	}
+	if err := s.readLayouts(); err != nil {
+		return err
+	}
+	for i := range s.layouts {
+		// TODO:  Accurate?
+		s.layouts[i].Type = "StorageBuffer"
+	}
+	return nil
 }
 
 func (s *shaderSource) readLayouts() error {
@@ -233,10 +256,11 @@ func readShaderImports(pfs *project_file_system.FileSystem, inSrc, path string) 
 	return src.String()
 }
 
-func readShaderCode(pfs *project_file_system.FileSystem, file string) (shaderSource, error) {
+func readShaderCode(pfs *project_file_system.FileSystem, file string, isCompute bool) (shaderSource, error) {
 	source := shaderSource{
-		file:    file,
-		defines: make(map[string]any),
+		file:      file,
+		defines:   make(map[string]any),
+		isCompute: isCompute,
 	}
 	data, err := pfs.ReadFile(source.file)
 	if err != nil {
@@ -245,7 +269,11 @@ func readShaderCode(pfs *project_file_system.FileSystem, file string) (shaderSou
 	}
 	source.src = readShaderImports(pfs, string(data), filepath.Dir(source.file))
 	source.readDefines()
-	if err := source.readLayouts(); err != nil {
+	if source.isCompute {
+		if err := source.readComputeLayouts(); err != nil {
+			return source, err
+		}
+	} else if err := source.readLayouts(); err != nil {
 		return source, err
 	}
 	return source, nil
@@ -255,7 +283,7 @@ func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.Sh
 	shader.LayoutGroups = make([]rendering.ShaderLayoutGroup, 0)
 	if shader.Vertex != "" {
 		s := filepath.ToSlash(shader.Vertex)
-		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), false)
 		if err != nil {
 			return shader, err
 		}
@@ -266,7 +294,7 @@ func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.Sh
 	}
 	if shader.Fragment != "" {
 		s := filepath.ToSlash(shader.Fragment)
-		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), false)
 		if err != nil {
 			return shader, err
 		}
@@ -277,7 +305,7 @@ func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.Sh
 	}
 	if shader.Geometry != "" {
 		s := filepath.ToSlash(shader.Geometry)
-		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), false)
 		if err != nil {
 			return shader, err
 		}
@@ -288,7 +316,7 @@ func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.Sh
 	}
 	if shader.TessellationControl != "" {
 		s := filepath.ToSlash(shader.TessellationControl)
-		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), false)
 		if err != nil {
 			return shader, err
 		}
@@ -299,13 +327,25 @@ func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.Sh
 	}
 	if shader.TessellationEvaluation != "" {
 		s := filepath.ToSlash(shader.TessellationEvaluation)
-		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"))
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), false)
 		if err != nil {
 			return shader, err
 		}
 		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
 			Type:    "TessellationEvaluation",
 			Layouts: c.layouts,
+		})
+	}
+	if shader.Compute != "" {
+		s := filepath.ToSlash(shader.Compute)
+		c, err := readShaderCode(pfs, strings.TrimPrefix(s, shaderSrcFolder+"/"), true)
+		if err != nil {
+			return shader, err
+		}
+		shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
+			Type:       "Compute",
+			Layouts:    c.layouts,
+			WorkGroups: c.workGroups,
 		})
 	}
 	return shader, nil

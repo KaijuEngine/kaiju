@@ -59,4 +59,5 @@ type Renderer interface {
 	DestroyGroup(group *DrawInstanceGroup)
 	Destroy()
 	WaitForRender()
+	QueueCompute(buffer *ComputeShaderBuffer)
 }
