@@ -54,8 +54,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/KaijuEngine/uuid"
 )
 
 func collectFileOptions(pfs *project_file_system.FileSystem) map[string][]ui.SelectOption {
@@ -111,7 +109,7 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.shaderDoc.Destroy()
 	}
-	data := common_workspace.ReflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.pfs))
+	data := common_workspace.ReflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.ed.ProjectFileSystem()))
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -184,11 +182,10 @@ func compileShaderFile(id string, pfs *project_file_system.FileSystem, cache *co
 
 func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	defer tracing.NewRegion("ShaderDesigner.shaderSave").End()
-	if win.shader.id == "" {
-		win.shader.id = uuid.NewString()
-	}
 	var err error
-	if win.shader.ShaderData, err = importShaderLayout(win.pfs, win.shader.ShaderData); err != nil {
+	pfs := win.ed.ProjectFileSystem()
+	cache := win.ed.Cache()
+	if win.shader.ShaderData, err = importShaderLayout(pfs, win.shader.ShaderData); err != nil {
 		slog.Error("failed to read the shader layout", "error", err)
 		return
 	}
@@ -211,14 +208,14 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 	}
 	for i := range list {
 		if list[i].stage != "" {
-			if id, err := compileShaderFile(*list[i].spv, win.pfs, win.cache, &s.ShaderData, list[i].stage, list[i].flags+addFlags); err != nil {
+			if id, err := compileShaderFile(*list[i].spv, pfs, cache, &s.ShaderData, list[i].stage, list[i].flags+addFlags); err != nil {
 				slog.Error("failed to compile the "+list[i].name+" shader", "error", err)
 				return
 			} else {
 				*list[i].spv = id
 			}
 		} else if *list[i].spv != "" {
-			content_database.Delete(*list[i].spv, win.pfs, win.cache)
+			content_database.Delete(*list[i].spv, pfs, cache)
 			*list[i].spv = ""
 		}
 	}
@@ -232,7 +229,17 @@ func (win *ShaderDesigner) shaderSave(e *document.Element) {
 		slog.Error("failed to marshal the shader data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(string(project_file_system.ShaderPath(win.shader.id)), res, os.ModePerm)
+	if win.shader.id != "" {
+		err = pfs.WriteFile(string(project_file_system.ShaderPath(win.shader.id)), res, os.ModePerm)
+	} else {
+		ids := content_database.ImportRaw(win.shader.Name, res, content_database.Shader{}, pfs, cache)
+		if len(ids) > 0 {
+			win.shader.id = ids[0]
+			win.ed.Events().OnContentAdded.Execute(ids)
+		} else {
+			err = errors.New("failed to import the raw shader file data to the database")
+		}
+	}
 	if err != nil {
 		slog.Error("failed to write the shader data to file", "error", err)
 		return
@@ -268,7 +275,7 @@ func (win *ShaderDesigner) clickLiveShader(elm *document.Element) {
 		}
 		for i := range keys {
 			if keys[i] != "" {
-				s, err := win.pfs.Stat(keys[i])
+				s, err := win.ed.ProjectFileSystem().Stat(keys[i])
 				if err == nil && !s.IsDir() {
 					paths[keys[i]] = s.ModTime()
 				}
@@ -277,7 +284,7 @@ func (win *ShaderDesigner) clickLiveShader(elm *document.Element) {
 		for win.liveShader {
 			time.Sleep(time.Second * 1)
 			for k, v := range paths {
-				s, err := win.pfs.Stat(k)
+				s, err := win.ed.ProjectFileSystem().Stat(k)
 				if err != nil || s.IsDir() {
 					delete(paths, k)
 					continue

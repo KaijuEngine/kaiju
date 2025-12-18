@@ -85,7 +85,7 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 			"clickNewMaterial":   w.clickNewMaterial,
 			"showTooltip":        w.showTooltip,
 		})
-	w.designer.Initialize(host, &w.UiMan, w.ed.ProjectFileSystem(), w.ed.Cache())
+	w.designer.Initialize(host, &w.UiMan, w.ed)
 	w.renderSpecList, _ = w.Doc.GetElementById("renderSpecList")
 	w.renderSpecListTemplate, _ = w.Doc.GetElementById("renderSpecListTemplate")
 	w.toolTip, _ = w.Doc.GetElementById("toolTip")

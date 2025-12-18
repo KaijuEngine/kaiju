@@ -193,7 +193,7 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 				field.List, isList = fallbackOptions[field.Name]
 			}
 			sort.Slice(field.List, func(i, j int) bool {
-				return field.List[i].Name < field.List[i].Name
+				return field.List[i].Name < field.List[j].Name
 			})
 			if isList {
 				if kind == reflect.String {
