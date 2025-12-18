@@ -97,7 +97,7 @@ func (ed *Editor) openProject(path string) {
 		ed.retryNewProjectOverlay(err)
 		return
 	}
-	projectVersion := ed.project.Settings().EditorVersion
+	projectVersion := ed.project.Settings.EditorVersion
 	finishLoad := func() {
 		ed.setProjectName(ed.project.Name())
 		ed.postProjectLoad()
@@ -113,8 +113,8 @@ func (ed *Editor) openProject(path string) {
 				if err := ed.project.TryUpgrade(); err != nil {
 					ed.retryNewProjectOverlay(err)
 				} else {
-					ed.project.Settings().EditorVersion = EditorVersion
-					ed.project.Settings().Save(ed.ProjectFileSystem())
+					ed.project.Settings.EditorVersion = EditorVersion
+					ed.project.Settings.Save(ed.ProjectFileSystem())
 					finishLoad()
 				}
 			},

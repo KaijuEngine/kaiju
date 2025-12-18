@@ -38,12 +38,11 @@ package editor_stage_view
 
 import (
 	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/memento"
+	"kaiju/editor/editor_workspace"
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -76,15 +75,15 @@ func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
-func (v *StageView) Initialize(host *engine.Host, history *memento.History, settings *editor_settings.Settings, editorUI editor_stage_manager.EditorUserInterface) {
+func (v *StageView) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
-	v.manager.Initialize(host, history, editorUI)
-	v.manager.NewStage()
+	v.manager.Initialize(host, ed.History(), ed)
 	v.host = host
-	v.transformTool.Initialize(host, v, history, &settings.Snapping)
+	v.loadLatestOpenStage(ed)
+	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
-	v.setupCamera(&settings.EditorCamera)
+	v.setupCamera(ed)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -181,22 +180,26 @@ func (v *StageView) createViewportGrid() {
 	v.gridTransform.ResetDirty()
 }
 
-func (v *StageView) setupCamera(settings *editor_settings.EditorCameraSettings) {
+func (v *StageView) setupCamera(ed editor_workspace.StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
+	pjs := ed.Project().Settings
 	v.camera.OnModeChange.Add(func() {
 		switch v.camera.Mode() {
 		case editor_controls.EditorCameraMode3d:
 			// Identity matrix is fine
 			v.gridShader.Color.SetA(1)
 			v.gridTransform.SetRotation(matrix.Vec3Zero())
+			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
 		case editor_controls.EditorCameraMode2d:
 			v.gridShader.Color.SetA(0)
 			v.gridTransform.SetRotation(matrix.NewVec3(90, 0, 0))
+			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode2d
 		}
 		v.updateGridPosition()
+		pjs.Save(ed.ProjectFileSystem())
 	})
-	v.camera.SetMode(editor_controls.EditorCameraMode3d, v.host)
-	v.camera.Settings = settings
+	v.camera.SetMode(pjs.EditorSettings.CameraMode, v.host)
+	v.camera.Settings = &ed.Settings().EditorCamera
 }
 
 func (v *StageView) DuplicateSelected(proj *project.Project) {
@@ -213,5 +216,14 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 	}
 	for _, e := range v.manager.HierarchyRespectiveSelection() {
 		callAttachments(e)
+	}
+}
+
+func (v *StageView) loadLatestOpenStage(ed editor_workspace.StageWorkspaceEditorInterface) {
+	pj := ed.Project()
+	if pj.Settings.EditorSettings.LatestOpenStage != "" {
+		v.manager.LoadStage(pj.Settings.EditorSettings.LatestOpenStage, v.host, ed.Cache(), pj)
+	} else {
+		v.manager.NewStage()
 	}
 }

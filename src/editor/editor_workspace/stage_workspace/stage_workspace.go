@@ -39,8 +39,8 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
+	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
@@ -53,20 +53,20 @@ const maxContentDropDistance = 10
 
 type StageWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed          StageWorkspaceEditorInterface
+	ed          editor_workspace.StageWorkspaceEditorInterface
 	stageView   *editor_stage_view.StageView
-	pageData    content_workspace.WorkspaceUIData
+	pageData    WorkspaceUIData
 	contentUI   WorkspaceContentUI
 	hierarchyUI WorkspaceHierarchyUI
 	detailsUI   WorkspaceDetailsUI
 }
 
-func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
+func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface, sv *editor_stage_view.StageView) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
-	w.stageView = ed.StageView()
-	w.stageView.Initialize(host, ed.History(), ed.Settings(), ed)
-	w.pageData.SetupUIData(w.ed.Cache())
+	w.stageView = sv
+	w.stageView.Initialize(host, ed)
+	w.pageData.SetupUIData(w.ed.Cache(), sv.Camera().ModeString())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
 	}
