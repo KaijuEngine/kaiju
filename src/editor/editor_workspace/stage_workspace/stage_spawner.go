@@ -321,28 +321,37 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	if e.StageData.ShaderData == nil {
 		return
 	}
-	e.Transform.SetDirty() // Trigger changes for lighting
-	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
-	if !ok {
-		path := content_database.ToContentPath(cc.Path)
-		f, err := w.ed.ProjectFileSystem().Open(path)
-		if err != nil {
-			slog.Error("error reading the mesh file", "path", path)
-			return
-		}
-		defer f.Close()
-		var matData rendering.MaterialData
-		if err = json.NewDecoder(f).Decode(&matData); err != nil {
-			slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
-			return
-		}
-		mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
-		if err != nil {
-			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
-			return
-		}
-		mat.Id = cc.Id()
-		mat = w.Host.MaterialCache().AddMaterial(mat)
+	if e.StageData.PendingMaterialChange {
+		slog.Warn("a material is already being compiled to attach to this entity, please wait")
+		return
 	}
-	e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+	e.StageData.PendingMaterialChange = true
+	// goroutine
+	go func() {
+		e.Transform.SetDirty() // Trigger changes for lighting
+		mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
+		if !ok {
+			path := content_database.ToContentPath(cc.Path)
+			f, err := w.ed.ProjectFileSystem().Open(path)
+			if err != nil {
+				slog.Error("error reading the mesh file", "path", path)
+				return
+			}
+			defer f.Close()
+			var matData rendering.MaterialData
+			if err = json.NewDecoder(f).Decode(&matData); err != nil {
+				slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
+				return
+			}
+			mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
+			if err != nil {
+				slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
+				return
+			}
+			mat.Id = cc.Id()
+			mat = w.Host.MaterialCache().AddMaterial(mat)
+		}
+		e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+		e.StageData.PendingMaterialChange = false
+	}()
 }

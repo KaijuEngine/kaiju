@@ -90,10 +90,11 @@ type StageManager struct {
 // and linking data about the entity on this stage. That will include things
 // like content linkage, data bindings, etc.
 type StageEntityEditorData struct {
-	Bvh         *collision.BVH
-	Mesh        *rendering.Mesh
-	ShaderData  rendering.DrawInstance
-	Description stages.EntityDescription
+	Bvh                   *collision.BVH
+	Mesh                  *rendering.Mesh
+	ShaderData            rendering.DrawInstance
+	Description           stages.EntityDescription
+	PendingMaterialChange bool
 }
 
 func (m *StageManager) Initialize(host *engine.Host, history *memento.History, editorUI EditorUserInterface) {
