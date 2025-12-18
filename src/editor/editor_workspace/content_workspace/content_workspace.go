@@ -228,7 +228,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
-		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		w.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -252,22 +252,15 @@ func (w *ContentWorkspace) focusContent(id string) {
 	w.clickEntry(elm)
 }
 
-func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.pfs.ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
-				return
-			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
 			w.Host.RunOnMainThread(func() {
@@ -534,7 +527,15 @@ func (w *ContentWorkspace) clickReimport(*document.Element) {
 			continue
 		}
 		slog.Info("successfully re-import the content", "id", id)
-		w.loadEntryImage(w.selectedContent[i], res.ConfigPath(), res.Category.TypeName())
+		cc, err := w.cache.Read(res.Id)
+		if err != nil {
+			slog.Error("failed to load the re-imported content from cache", "id", res.Id, "error", err)
+			continue
+		}
+		if cc.Config.Type == (content_database.Texture{}).TypeName() {
+			w.Host.TextureCache().ReloadTexture(cc.Id(), rendering.TextureFilterLinear)
+		}
+		w.loadEntryImage(w.selectedContent[i], &cc)
 	}
 }
 

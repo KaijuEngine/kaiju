@@ -82,6 +82,19 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 	}
 }
 
+func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) error {
+	texture, ok := t.textures[filter][textureKey]
+	if !ok {
+		return nil
+	}
+	t.renderer.(*Vulkan).destroyTextureHandle(texture.RenderId)
+	if err := texture.Reload(t.renderer, t.assetDatabase); err != nil {
+		return err
+	}
+	t.pendingTextures = append(t.pendingTextures, texture)
+	return nil
+}
+
 func (t *TextureCache) InsertTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.InsertTexture").End()
 	t.mutex.Lock()
