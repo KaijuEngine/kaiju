@@ -52,12 +52,12 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_entity_data_camera.BindingKey, &CameraDataBindingRenderer{
+	AddRenderer(engine_entity_data_camera.BindingKey, &CameraEntityDataRenderer{
 		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
 	})
 }
 
-type CameraDataBindingRenderer struct {
+type CameraEntityDataRenderer struct {
 	Frustums map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing
 }
 
@@ -66,14 +66,14 @@ type cameraDataBindingDrawing struct {
 	sd  rendering.DrawInstance
 }
 
-func (c *CameraDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	commonAttached(host, manager, target, "camera.png")
 }
 
-func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraDataBindingRenderer.Show").End()
+func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraEntityDataRenderer.Show").End()
 	if _, ok := c.Frustums[target]; ok {
-		slog.Error("there is an internal error in state for the editor's CameraDataBindingRenderer, show was called before any hide happened. Double selected the same target?")
+		slog.Error("there is an internal error in state for the editor's CameraEntityDataRenderer, show was called before any hide happened. Double selected the same target?")
 		c.Hide(host, target, data)
 	}
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
@@ -111,7 +111,7 @@ func (c *CameraDataBindingRenderer) Show(host *engine.Host, target *editor_stage
 	})
 }
 
-func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if t, ok := c.Frustums[target]; ok {
 		w := float32(data.FieldValueByName("Width").(float32))
 		h := float32(data.FieldValueByName("Height").(float32))
@@ -143,8 +143,8 @@ func (c *CameraDataBindingRenderer) Update(host *engine.Host, target *editor_sta
 	}
 }
 
-func (c *CameraDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraDataBindingRenderer.Hide").End()
+func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraEntityDataRenderer.Hide").End()
 	if d, ok := c.Frustums[target]; ok {
 		d.sd.Destroy()
 		host.MeshCache().RemoveMesh(d.key)
