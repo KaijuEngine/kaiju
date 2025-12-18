@@ -39,6 +39,7 @@ package ui
 import (
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"weak"
 )
 
 type ProgressBar Panel
@@ -66,7 +67,7 @@ func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture) {
 	fgPanel := p.man.Value().Add().ToPanel()
 	panel.Init(bgTexture, ElementTypePanel)
 	fgPanel.Init(fgTexture, ElementTypePanel)
-	fgPanel.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
+	fgPanel.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(p.Base())}}
 	panel.AddChild(fgPanel.Base())
 	pd.fgPanel = fgPanel
 }

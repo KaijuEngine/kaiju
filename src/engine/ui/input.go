@@ -47,6 +47,7 @@ import (
 	"math"
 	"unicode"
 	"unicode/utf8"
+	"weak"
 )
 
 type InputType = int32
@@ -117,7 +118,7 @@ func (input *Input) Init(placeholderText string) {
 	// Label
 	data.label = man.Add().ToLabel()
 	data.label.Init("")
-	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -127,7 +128,7 @@ func (input *Input) Init(placeholderText string) {
 	// Placeholder
 	data.placeholder = man.Add().ToLabel()
 	data.placeholder.Init(placeholderText)
-	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)

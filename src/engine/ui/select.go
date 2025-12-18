@@ -42,6 +42,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"slices"
+	"weak"
 )
 
 type selectData struct {
@@ -127,7 +128,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 		tri := man.Add()
 		img := tri.ToImage()
 		img.Init(triTex)
-		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{p.Base()}})
+		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{weak.Make(p.Base())}})
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
@@ -151,7 +152,7 @@ func (s *Select) AddOption(name, value string) {
 	panel := man.Add()
 	p := panel.ToPanel()
 	p.Init(nil, ElementTypePanel)
-	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
+	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{weak.Make(s.Base())}}
 	p.DontFitContent()
 	p.entity.SetName(name)
 	// Create the label
