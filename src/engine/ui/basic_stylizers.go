@@ -85,7 +85,7 @@ func (s StretchCenterStylizer) ProcessStyle(layout *Layout) []error {
 func (s RightStylizer) ProcessStyle(layout *Layout) []error {
 	width := float32(layout.ui.Host().Window.Width())
 	parent := s.Parent.Value()
-	if parent != nil && parent.IsValid() {
+	if parent != nil {
 		width = parent.Layout().PixelSize().X()
 	}
 	selfWidth := layout.PixelSize().X()
@@ -96,7 +96,7 @@ func (s RightStylizer) ProcessStyle(layout *Layout) []error {
 func (s LeftStylizer) ProcessStyle(layout *Layout) []error {
 	height := float32(layout.ui.Host().Window.Height())
 	parent := s.Parent.Value()
-	if parent != nil && parent.IsValid() {
+	if parent != nil {
 		height = parent.Layout().PixelSize().Y()
 	}
 	selfHeight := layout.PixelSize().Y()
