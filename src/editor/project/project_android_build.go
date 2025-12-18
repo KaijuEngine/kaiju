@@ -475,7 +475,7 @@ func (p *Project) updateAndroidSettingsGradleKTS() error {
 		// handled later.
 		return err
 	}
-	newRootName := fmt.Sprintf(`rootProject.name = "%s"`, p.settings.Android.RootProjectName)
+	newRootName := fmt.Sprintf(`rootProject.name = "%s"`, p.Settings.Android.RootProjectName)
 	re := regexp.MustCompile(`(?m)^(\s*)rootProject\.name\s*=.*$`)
 	if re.Match(data) {
 		data = re.ReplaceAllFunc(data, func(m []byte) []byte {
@@ -494,12 +494,12 @@ func (p *Project) updateAndroidSettingsGradleKTS() error {
 }
 
 func (p *Project) updateAndroidAppBuildGradleKTS() error {
-	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+	if strings.TrimSpace(p.Settings.Android.ApplicationId) == "" {
 		slog.Warn("the ApplicationId was not set in the project settings")
 		return nil
 	}
-	// Set namespace to p.settings.Android.ApplicationId in app/build.gradle.kts
-	// Set applicationId to p.settings.Android.ApplicationId in app/build.gradle.kts
+	// Set namespace to p.Settings.Android.ApplicationId in app/build.gradle.kts
+	// Set applicationId to p.Settings.Android.ApplicationId in app/build.gradle.kts
 	gradlePath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
 		"app/build.gradle.kts",
@@ -514,7 +514,7 @@ func (p *Project) updateAndroidAppBuildGradleKTS() error {
 		slog.Error("failed to read build.gradle.kts", "path", gradlePath, "error", err)
 		return err
 	}
-	appID := p.settings.Android.ApplicationId
+	appID := p.Settings.Android.ApplicationId
 	// Update the namespace
 	nsRe := regexp.MustCompile(`(?m)^(\s*)namespace\s*=.*$`)
 	newNS := fmt.Sprintf(`namespace = "%s"`, appID)
@@ -546,11 +546,11 @@ func (p *Project) updateAndroidAppBuildGradleKTS() error {
 }
 
 func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
-	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+	if strings.TrimSpace(p.Settings.Android.ApplicationId) == "" {
 		slog.Warn("the ApplicationId was not set in the project settings")
 		return nil
 	}
-	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/AndroidManifest.xml
+	// Set android:name to p.Settings.Android.ApplicationId+".MainActivity" in app/src/main/AndroidManifest.xml
 	manifestPath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
 		"app/src/main/AndroidManifest.xml",
@@ -566,7 +566,7 @@ func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
 		return err
 	}
 	re := regexp.MustCompile(`android:name\s*=\s*"[^"]*.MainActivity"`)
-	newName := fmt.Sprintf(`android:name="%s.MainActivity"`, p.settings.Android.ApplicationId)
+	newName := fmt.Sprintf(`android:name="%s.MainActivity"`, p.Settings.Android.ApplicationId)
 	if re.Match(data) {
 		data = re.ReplaceAll(data, []byte(newName))
 	} else {
@@ -581,11 +581,11 @@ func (p *Project) updateAndroidAppSrcMainAndroidManifestXML() error {
 }
 
 func (p *Project) updateAndroidAppSrcMainJavaComKaijuengineKaijuengine() error {
-	if strings.TrimSpace(p.settings.Android.ApplicationId) == "" {
+	if strings.TrimSpace(p.Settings.Android.ApplicationId) == "" {
 		slog.Warn("the ApplicationId was not set in the project settings")
 		return nil
 	}
-	// Set android:name to p.settings.Android.ApplicationId+".MainActivity" in app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java
+	// Set android:name to p.Settings.Android.ApplicationId+".MainActivity" in app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java
 	manifestPath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
 		"app/src/main/java/com/kaijuengine/kaijuengine/MainActivity.java",
@@ -601,7 +601,7 @@ func (p *Project) updateAndroidAppSrcMainJavaComKaijuengineKaijuengine() error {
 		return err
 	}
 	re := regexp.MustCompile(`package ([\w\.]+);`)
-	newName := fmt.Sprintf(`package %s;`, p.settings.Android.ApplicationId)
+	newName := fmt.Sprintf(`package %s;`, p.Settings.Android.ApplicationId)
 	if re.Match(data) {
 		data = re.ReplaceAll(data, []byte(newName))
 	} else {
@@ -616,7 +616,7 @@ func (p *Project) updateAndroidAppSrcMainJavaComKaijuengineKaijuengine() error {
 }
 
 func (p *Project) updateAndroidAppSrcMainResValuesStringsXML() error {
-	// Set app_name to p.settings.Android.RootProjectName in app/src/main/res/values/strings.xml
+	// Set app_name to p.Settings.Android.RootProjectName in app/src/main/res/values/strings.xml
 	stringsPath := filepath.Join(
 		p.fileSystem.FullPath(project_file_system.ProjectBuildAndroidFolder),
 		"app/src/main/res/values/strings.xml",
@@ -632,7 +632,7 @@ func (p *Project) updateAndroidAppSrcMainResValuesStringsXML() error {
 		return err
 	}
 	re := regexp.MustCompile(`(?s)<string\s+name\s*=\s*"app_name"\s*>.*?</string>`)
-	newEntry := fmt.Sprintf(`<string name="app_name">%s</string>`, p.settings.Android.RootProjectName)
+	newEntry := fmt.Sprintf(`<string name="app_name">%s</string>`, p.Settings.Android.RootProjectName)
 	if re.Match(data) {
 		data = re.ReplaceAll(data, []byte(newEntry))
 	} else {

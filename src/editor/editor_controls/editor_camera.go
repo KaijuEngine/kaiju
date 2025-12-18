@@ -68,6 +68,8 @@ const (
 	EditorCameraMode2d
 )
 
+var cameraModeStrings = []string{"None", "3D", "2D"}
+
 type EditorCamera struct {
 	OnModeChange     events.Event
 	Settings         *editor_settings.EditorCameraSettings
@@ -84,6 +86,7 @@ type EditorCamera struct {
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
+func (e *EditorCamera) ModeString() string     { return cameraModeStrings[e.mode] }
 
 func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
 	defer tracing.NewRegion("EditorCamera.LookAtPoint").End()

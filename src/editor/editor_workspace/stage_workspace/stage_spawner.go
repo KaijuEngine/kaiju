@@ -211,6 +211,8 @@ func (w *StageWorkspace) loadStage(id string) {
 			}
 		}
 	}
+	w.ed.Project().Settings.EditorSettings.LatestOpenStage = id
+	w.ed.Project().Settings.Save(w.ed.ProjectFileSystem())
 }
 
 func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
