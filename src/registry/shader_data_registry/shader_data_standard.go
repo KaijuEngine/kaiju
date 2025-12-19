@@ -64,7 +64,7 @@ func init() {
 type ShaderDataStandard struct {
 	rendering.ShaderDataBase
 	Color matrix.Color
-	Flags ShaderDataStandardFlags
+	Flags ShaderDataStandardFlags `visible:"false"`
 }
 
 func (ShaderDataStandard) Size() int {

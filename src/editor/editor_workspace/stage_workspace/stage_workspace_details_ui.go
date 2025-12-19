@@ -434,7 +434,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	} else if len(g.Fields) > 1 {
 		fields = append(fields, w.Doc.DuplicateElementRepeat(fieldDiv, len(g.Fields)-1)...)
 	}
+	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
+		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
+			if f.Tag.Get("visible") == "false" {
+				continue
+			}
+		}
 		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
 		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		nameSpan := fields[i].Children[0]
