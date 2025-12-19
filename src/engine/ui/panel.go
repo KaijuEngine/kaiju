@@ -277,6 +277,9 @@ func (p *Panel) onScroll() {
 func (p *Panel) update(deltaTime float64) {
 	defer tracing.NewRegion("Panel.update").End()
 	base := p.Base()
+	if !base.IsActive() {
+		return
+	}
 	base.eventUpdates()
 	base.Update(deltaTime)
 	pd := p.PanelData()
@@ -374,6 +377,9 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 
 func (p *Panel) panelPostLayoutUpdate() {
 	defer tracing.NewRegion("Panel.panelPostLayoutUpdate").End()
+	if !p.Base().IsActive() {
+		return
+	}
 	if p.PanelData().drawing.IsValid() {
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 	}
