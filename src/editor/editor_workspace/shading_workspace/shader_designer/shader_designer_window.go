@@ -171,9 +171,6 @@ func (s *ShaderDesigner) Initialize(host *engine.Host, uiMan *ui.Manager, ed Sha
 }
 
 func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
-	if win.state == state {
-		return
-	}
 	win.state = state
 	if win.shaderDoc != nil {
 		win.shaderDoc.Deactivate()
