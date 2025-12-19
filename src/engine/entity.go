@@ -41,6 +41,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/concurrent"
+	"kaiju/rendering"
 	"log/slog"
 	"slices"
 )
@@ -424,4 +425,23 @@ func (e *Entity) IndexOfChild(child *Entity) int {
 		}
 	}
 	return -1
+}
+
+func (e *Entity) StoreShaderData(sd rendering.DrawInstance) {
+	e.AddNamedData("ShaderData", sd)
+}
+
+func (e *Entity) ShaderData() rendering.DrawInstance {
+	all := e.NamedData("ShaderData")
+	if len(all) > 0 {
+		return all[0].(rendering.DrawInstance)
+	}
+	return nil
+}
+
+func (e *Entity) DestroyShaderData() {
+	all := e.NamedData("ShaderData")
+	for i := range all {
+		all[i].(rendering.DrawInstance).Destroy()
+	}
 }

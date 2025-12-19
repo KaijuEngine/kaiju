@@ -358,6 +358,7 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 		Transform:  &e.Transform,
 		ViewCuller: &host.Cameras.Primary,
 	}
+	e.StoreShaderData(sd)
 	// TODO:  Keeping this simple reflection for now so that this is flexible
 	// for the future. I want to think this through and not be locked into any
 	// one way of doing things.
