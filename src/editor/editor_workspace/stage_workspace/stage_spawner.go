@@ -100,13 +100,18 @@ func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bo
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.createDataBoundEntity").End()
-	e := w.stageView.Manager().AddEntity(name, w.stageView.LookAtPoint())
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, w.stageView.LookAtPoint())
 	g, ok := w.ed.Project().EntityDataBinding(bindKey)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", bindKey)
 		return nil, false
 	}
 	w.attachEntityData(e, g)
+	man.ClearSelection()
+	man.SelectEntity(e)
 	return e, true
 }
 
