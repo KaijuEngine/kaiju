@@ -332,6 +332,8 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	e.StageData.PendingMaterialChange = true
 	// goroutine
 	go func() {
+		w.ed.History().BeginTransaction()
+		defer w.ed.History().CommitTransaction()
 		mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 		if !ok {
 			var err error
@@ -342,6 +344,11 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 			}
 		}
 		e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+		if w.stageView.Manager().IsSelected(e) {
+			// This is a goofy way to update UIs related to the selection
+			w.stageView.Manager().DeselectEntity(e)
+			w.stageView.Manager().SelectEntity(e)
+		}
 		e.StageData.PendingMaterialChange = false
 		// Don't want dirties to run during the transform clean map read
 		w.Host.RunOnMainThread(e.Transform.SetDirty)

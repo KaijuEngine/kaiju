@@ -39,6 +39,7 @@ package memento
 import (
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"reflect"
 )
 
@@ -74,7 +75,11 @@ func (h *History) IsInTransaction() bool { return h.transaction != nil }
 // will generate history, thus creating 2 history entries (clear and delete). By
 // starting a transaction, both of those will be within the same undo/redo call.
 func (h *History) BeginTransaction() {
-	h.transaction = &HistoryTransaction{}
+	if h.transaction != nil {
+		slog.Warn("history is already in a transaction state")
+	} else {
+		h.transaction = &HistoryTransaction{}
+	}
 }
 
 // CommitTransaction finalizes the current transaction, adding all queued
