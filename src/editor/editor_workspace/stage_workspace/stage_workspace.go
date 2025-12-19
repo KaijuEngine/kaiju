@@ -61,6 +61,7 @@ type StageWorkspace struct {
 	detailsUI   WorkspaceDetailsUI
 }
 
+// TODO(#537): Revisit cyclical import issue
 func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface, sv *editor_stage_view.StageView) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed

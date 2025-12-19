@@ -137,6 +137,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
+	p.Settings = &Settings{}
 	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
@@ -198,7 +199,7 @@ func (p *Project) Name() string { return p.Settings.Name }
 func (p *Project) SetName(name string) {
 	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
-	if name == "" || p.Settings.Name == name {
+	if name == "" || p.Settings.Name == name { // TODO: panic
 		return
 	}
 	p.Settings.Name = name

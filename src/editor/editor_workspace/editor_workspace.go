@@ -64,7 +64,7 @@ type StageWorkspaceEditorInterface interface {
 	FocusInterface()
 	BlurInterface()
 	Settings() *editor_settings.Settings
-	// StageView() *editor_stage_view.StageView // Removed due to cyclical import
+	// StageView() *editor_stage_view.StageView // TODO(#537): Revisit cyclical import issue
 	ShowReferences(id string)
 	ContentWorkspaceSelected()
 }
