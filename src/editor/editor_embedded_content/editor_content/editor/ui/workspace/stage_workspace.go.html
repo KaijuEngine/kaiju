@@ -240,6 +240,53 @@
 				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
 				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div id="shaderInstanceData" class="dataTable">
+					<div id="shaderInstanceDataList">
+						<div id="shaderInstanceDataTemplate" class="dataBindingBlock">
+							<div class="center">Shader name...</div>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeShaderData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeShaderData" />
+								</div>
+								<!-- Vec2 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec4 -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="W..." onchange="changeShaderData" />
+								</div>
+								<!-- Color -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="R..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="G..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="B..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="A..." onchange="changeShaderData" />
+								</div>
+								<!-- Select input -->
+								<div>
+									<select class="dataInput" onchange="changeShaderData"></select>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 				<div class="dataTable">
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">

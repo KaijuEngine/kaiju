@@ -66,24 +66,26 @@ const (
 )
 
 type WorkspaceDetailsUI struct {
-	workspace               weak.Pointer[StageWorkspace]
-	detailsArea             *document.Element
-	hideDetailsElm          *document.Element
-	showDetailsElm          *document.Element
-	detailsName             *document.Element
-	detailsPosX             *document.Element
-	detailsPosY             *document.Element
-	detailsPosZ             *document.Element
-	detailsRotX             *document.Element
-	detailsRotY             *document.Element
-	detailsRotZ             *document.Element
-	detailsScaleX           *document.Element
-	detailsScaleY           *document.Element
-	detailsScaleZ           *document.Element
-	boundEntityDataList     *document.Element
-	entityDataList          *document.Element
-	entityDataListTemplate  *document.Element
-	boundEntityDataTemplate *document.Element
+	workspace                  weak.Pointer[StageWorkspace]
+	detailsArea                *document.Element
+	hideDetailsElm             *document.Element
+	showDetailsElm             *document.Element
+	detailsName                *document.Element
+	detailsPosX                *document.Element
+	detailsPosY                *document.Element
+	detailsPosZ                *document.Element
+	detailsRotX                *document.Element
+	detailsRotY                *document.Element
+	detailsRotZ                *document.Element
+	detailsScaleX              *document.Element
+	detailsScaleY              *document.Element
+	detailsScaleZ              *document.Element
+	shaderInstanceDataList     *document.Element
+	boundEntityDataList        *document.Element
+	entityDataList             *document.Element
+	entityDataListTemplate     *document.Element
+	boundEntityDataTemplate    *document.Element
+	shaderInstanceDataTemplate *document.Element
 }
 
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
@@ -104,6 +106,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"searchEntityData":  dui.searchEntityData,
 		"addEntityData":     dui.addEntityData,
 		"changeData":        dui.changeData,
+		"changeShaderData":  dui.changeShaderData,
 	}
 }
 
@@ -123,10 +126,12 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	dui.detailsScaleX, _ = w.Doc.GetElementById("detailsScaleX")
 	dui.detailsScaleY, _ = w.Doc.GetElementById("detailsScaleY")
 	dui.detailsScaleZ, _ = w.Doc.GetElementById("detailsScaleZ")
+	dui.shaderInstanceDataList, _ = w.Doc.GetElementById("shaderInstanceDataList")
 	dui.boundEntityDataList, _ = w.Doc.GetElementById("boundEntityDataList")
 	dui.entityDataList, _ = w.Doc.GetElementById("entityDataList")
 	dui.entityDataListTemplate, _ = w.Doc.GetElementById("entityDataListTemplate")
 	dui.boundEntityDataTemplate, _ = w.Doc.GetElementById("boundEntityDataTemplate")
+	dui.shaderInstanceDataTemplate, _ = w.Doc.GetElementById("shaderInstanceDataTemplate")
 	man := w.stageView.Manager()
 	man.OnEntitySelected.Add(dui.entitySelected)
 	man.OnEntityDeselected.Add(dui.entityDeselected)
@@ -141,6 +146,7 @@ func (dui *WorkspaceDetailsUI) open() {
 	dui.entityDataList.UI.Hide()
 	dui.entityDataListTemplate.UI.Hide()
 	dui.boundEntityDataTemplate.UI.Hide()
+	dui.shaderInstanceDataTemplate.UI.Hide()
 	dui.hideIfNothingSelected()
 }
 
@@ -177,12 +183,19 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
 	w := dui.workspace.Value()
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
-		w.Doc.RemoveElement(dui.boundEntityDataList.Children[i])
+		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
+	}
+	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
+		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
+	}
+	if e.StageData.ShaderData != nil {
+		g := shaderDataToDataBinding("Shader Data", e.StageData.ShaderData)
+		dui.createDataBindingEntry(&g, dui.shaderInstanceDataTemplate)
 	}
 	// TODO:  Multi-select stuff
 	db := e.DataBindings()
 	for _, a := range db {
-		dui.createDataBindingEntry(a)
+		dui.createDataBindingEntry(a, dui.boundEntityDataTemplate)
 	}
 	// Lazy hiding of children
 	if !dui.hideDetailsElm.UI.Entity().IsActive() {
@@ -190,6 +203,30 @@ func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntit
 		dui.hideDetails(nil)
 	}
 	dui.detailsArea.UI.Clean()
+}
+
+func shaderDataToDataBinding(name string, target any) entity_data_binding.EntityDataEntry {
+	var g entity_data_binding.EntityDataEntry
+	g.Name = name
+	v := reflect.ValueOf(target)
+	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+	t := v.Type()
+	g.Fields = make([]entity_data_binding.EntityDataField, t.NumField())
+	g.BoundData = target
+	for i := range t.NumField() {
+		f := t.Field(i)
+		fieldValue := v.Field(i)
+		g.Fields[i] = entity_data_binding.EntityDataField{
+			Idx:   i,
+			Name:  f.Name,
+			Type:  f.Type.Name(),
+			Value: fieldValue.Interface(),
+		}
+		g.Gen.FieldGens = append(g.Gen.FieldGens, codegen.GeneratedType{})
+	}
+	return g
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
@@ -378,16 +415,16 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	// TODO:  Multi-select stuff
 	target := sel[0]
 	de := w.attachEntityData(target, g)
-	dui.createDataBindingEntry(de)
+	dui.createDataBindingEntry(de, dui.boundEntityDataTemplate)
 	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
 	dui.entityDataList.UI.Hide()
 }
 
-func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
+func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
 	w := dui.workspace.Value()
-	bindIdx := len(dui.boundEntityDataTemplate.Parent.Value().Children) - 1
-	cpy := w.Doc.DuplicateElement(dui.boundEntityDataTemplate)
+	bindIdx := len(tpl.Parent.Value().Children) - 1
+	cpy := w.Doc.DuplicateElement(tpl)
 	nameSpan := cpy.Children[0]
 	fieldDiv := cpy.Children[1]
 	nameSpan.InnerLabel().SetText(g.Name)
@@ -474,29 +511,48 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	}
 }
 
+func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.changeShaderData").End()
+	dui.commonChangeData(e, true)
+}
+
 func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.changeData").End()
+	dui.commonChangeData(e, false)
+}
+
+func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderData bool) bool {
 	root := e.Parent.Value().Parent.Value()
 	idx, err := strconv.Atoi(root.Attribute("data-fieldidx"))
 	if err != nil {
-		return
-	}
-	pIdx, err := strconv.Atoi(root.Attribute("data-bindidx"))
-	if err != nil {
-		return
+		return false
 	}
 	w := dui.workspace.Value()
 	sel := w.stageView.Manager().Selection()
 	if len(sel) == 0 {
-		return
+		return false
 	}
 	entity := sel[0]
-	target := entity.DataBindings()[pIdx]
-	v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+	var v reflect.Value
+	if isShaderData {
+		v = reflect.ValueOf(entity.StageData.ShaderData).Elem().Field(idx)
+	} else {
+		pIdx, err := strconv.Atoi(root.Attribute("data-bindidx"))
+		if err != nil {
+			return false
+		}
+		target := entity.DataBindings()[pIdx]
+		v = reflect.ValueOf(target.BoundData).Elem().Field(idx)
+		data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+	}
+	return reflectAssignChanges(e, v)
+}
+
+func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 	ii := e.Attribute("data-inneridx")
 	if ii != "" {
 		if iidx, err := strconv.Atoi(ii); err != nil {
-			return
+			return false
 		} else {
 			v = v.Index(iidx)
 		}
@@ -520,7 +576,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	case reflect.Bool:
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
 	}
-	data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+	return true
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
