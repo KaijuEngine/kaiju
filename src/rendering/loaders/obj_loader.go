@@ -63,8 +63,6 @@ type objBuilder struct {
 	material string
 	points   []matrix.Vec3
 	colors   []matrix.Color
-	uvs      []matrix.Vec2
-	normals  []matrix.Vec3
 	vIndexes []uint32
 	tIndexes []uint32
 	nIndexes []uint32
@@ -133,8 +131,6 @@ func objDecipherLine(str string) objLineType {
 func objNewObject(line string) *objBuilder {
 	obj := objBuilder{}
 	obj.points = make([]matrix.Vec3, 0)
-	obj.uvs = make([]matrix.Vec2, 0)
-	obj.normals = make([]matrix.Vec3, 0)
 	obj.vIndexes = make([]uint32, 0)
 	obj.tIndexes = make([]uint32, 0)
 	obj.nIndexes = make([]uint32, 0)
