@@ -165,9 +165,9 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	if _, ok := variant.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
 			Name:            "pbr",
-			RenderPass:      "simple_opaque.renderpass",
 			Shader:          "pbr.shader",
-			ShaderPipeline:  "simple.shaderpipeline",
+			RenderPass:      "opaque.renderpass",
+			ShaderPipeline:  "basic.shaderpipeline",
 			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
 			IsLit:           true,
 			ReceivesShadows: true,
@@ -207,8 +207,8 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	} else {
 		mat = rendering.MaterialData{
 			Name:           "standard",
-			RenderPass:     "opaque.renderpass",
 			Shader:         "basic.shader",
+			RenderPass:     "opaque.renderpass",
 			ShaderPipeline: "basic.shaderpipeline",
 			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
 		}

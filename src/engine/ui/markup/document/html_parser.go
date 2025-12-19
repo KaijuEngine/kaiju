@@ -194,6 +194,9 @@ func (h *Document) recacheElementTags() {
 	clear(h.tagElements)
 	for i := range h.Elements {
 		e := h.Elements[i]
+		if e.IsText() {
+			continue
+		}
 		if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 			h.tagElement(e, tag.Key())
 		}
@@ -705,6 +708,30 @@ func (d *Document) DuplicateElement(elm *Element) *Element {
 	d.appendElement(cpy)
 	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
+}
+
+func (d *Document) SetupInputTabIndexs() {
+	var lastInput *ui.Input
+	var setupTabs func(e *Element)
+	setupTabs = func(e *Element) {
+		if e.UI == nil || e.IsText() {
+			return
+		}
+		if e.UI.IsType(ui.ElementTypeInput) {
+			input := e.UI.ToInput()
+			if lastInput != nil {
+				lastInput.SetNextFocusedInput(input)
+			}
+			lastInput = input
+		} else {
+			for _, c := range e.Children {
+				setupTabs(c)
+			}
+		}
+	}
+	for _, h := range d.TopElements {
+		setupTabs(h)
+	}
 }
 
 func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {

@@ -65,6 +65,7 @@ type ShaderId struct {
 	instanceCount       int
 	currentUBSizes      [maxFramesInFlight]uint64
 	graphicsPipeline    vk.Pipeline
+	computePipeline     vk.Pipeline
 	pipelineLayout      vk.PipelineLayout
 	descriptorSetLayout vk.DescriptorSetLayout
 	vertModule          vk.ShaderModule
@@ -72,6 +73,7 @@ type ShaderId struct {
 	geomModule          vk.ShaderModule
 	tescModule          vk.ShaderModule
 	teseModule          vk.ShaderModule
+	compModule          vk.ShaderModule
 }
 
 func (s ShaderId) IsValid() bool {

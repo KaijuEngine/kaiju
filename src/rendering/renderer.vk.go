@@ -57,6 +57,7 @@ import (
 
 type vkQueueFamilyIndices struct {
 	graphicsFamily int
+	computeFamily  int
 	presentFamily  int
 }
 
@@ -110,6 +111,14 @@ type Vulkan struct {
 	blitCmds                   [maxFramesInFlight]CommandRecorder
 	fallbackShadowMap          *Texture
 	fallbackCubeShadowMap      *Texture
+	computeTasks               []ComputeTask
+	computeQueue               vk.Queue
+}
+
+type ComputeTask struct {
+	Shader         *Shader
+	DescriptorSets []vk.DescriptorSet
+	WorkGroups     [3]uint32
 }
 
 type combinedDrawingCuller struct{}
@@ -474,6 +483,7 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 		r()
 	}
 	vr.preRuns = klib.WipeSlice(vr.preRuns)
+	vr.executeCompute()
 	return true
 }
 
@@ -643,4 +653,44 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.Ima
 		vr.dbg.add(vk.TypeToUintPtr(fb))
 	}
 	return fb, true
+}
+
+func (vr *Vulkan) QueueCompute(buffer *ComputeShaderBuffer) {
+	if buffer.Shader.Type != ShaderTypeCompute {
+		slog.Error("QueueCompute called with non-compute shader")
+		return
+	}
+	vr.computeTasks = append(vr.computeTasks, ComputeTask{
+		Shader:         buffer.Shader,
+		DescriptorSets: buffer.sets[:],
+		WorkGroups:     buffer.Shader.data.WorkGroups(),
+	})
+}
+
+func (vr *Vulkan) executeCompute() {
+	if len(vr.computeTasks) == 0 {
+		return
+	}
+	// TODO:  Cache this for reuse on subsequent calls
+	ds := [1]vk.DescriptorSet{}
+	computeCmd := vr.beginSingleTimeCommands()
+	for _, task := range vr.computeTasks {
+		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, task.Shader.RenderId.computePipeline)
+		ds[0] = task.DescriptorSets[vr.currentFrame]
+		if len(ds) > 0 {
+			vk.CmdBindDescriptorSets(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, task.Shader.RenderId.pipelineLayout, 0, uint32(len(ds)), &ds[0], 0, nil)
+		}
+		vk.CmdDispatch(computeCmd.buffer, task.WorkGroups[0], task.WorkGroups[1], task.WorkGroups[2])
+	}
+	barrier := vk.MemoryBarrier{
+		SType:         vulkan_const.StructureTypeMemoryBarrier,
+		SrcAccessMask: vk.AccessFlags(vulkan_const.AccessShaderWriteBit),
+		DstAccessMask: vk.AccessFlags(vulkan_const.AccessShaderReadBit | vulkan_const.AccessVertexAttributeReadBit),
+	}
+	vk.CmdPipelineBarrier(computeCmd.buffer,
+		vk.PipelineStageFlags(vulkan_const.PipelineStageComputeShaderBit),
+		vk.PipelineStageFlags(vulkan_const.PipelineStageVertexInputBit|vulkan_const.PipelineStageVertexShaderBit|vulkan_const.PipelineStageFragmentShaderBit),
+		0, 1, &barrier, 0, nil, 0, nil)
+	vr.endSingleTimeCommands(computeCmd)
+	vr.computeTasks = vr.computeTasks[:0]
 }

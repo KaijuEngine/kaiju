@@ -36,7 +36,10 @@
 
 package rendering
 
-import vk "kaiju/rendering/vulkan"
+import (
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+)
 
 type InstanceGroupSkinningData struct {
 }
@@ -50,6 +53,13 @@ type ShaderBuffer struct {
 	capacity  int
 }
 
+type ComputeShaderBuffer struct {
+	ShaderBuffer
+	Shader *Shader
+	sets   [maxFramesInFlight]vk.DescriptorSet
+	pool   vk.DescriptorPool
+}
+
 type InstanceDriverData struct {
 	descriptorPool    vk.DescriptorPool
 	descriptorSets    [maxFramesInFlight]vk.DescriptorSet
@@ -58,6 +68,38 @@ type InstanceDriverData struct {
 	namedBuffers      map[string]ShaderBuffer
 	lastInstanceCount int
 	generatedSets     bool
+}
+
+func (b *ComputeShaderBuffer) Initialize(renderer Renderer, size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags) error {
+	vr := renderer.(*Vulkan)
+	for i := range b.buffers {
+		vr.CreateBuffer(size, usage, properties, &b.buffers[i], &b.memories[i])
+	}
+	var err error
+	b.sets, b.pool, err = vr.createDescriptorSet(b.Shader.RenderId.descriptorSetLayout, 0)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *ComputeShaderBuffer) WriteDescriptors(renderer Renderer) {
+	vr := renderer.(*Vulkan)
+	bufferInfo := vk.DescriptorBufferInfo{
+		Buffer: b.buffers[vr.currentFrame],
+		Offset: 0,
+		Range:  vk.DeviceSize(vulkan_const.WholeSize),
+	}
+	write := vk.WriteDescriptorSet{
+		SType:           vulkan_const.StructureTypeWriteDescriptorSet,
+		DstSet:          b.sets[vr.currentFrame],
+		DstBinding:      0,
+		DstArrayElement: 0,
+		DescriptorCount: 1,
+		DescriptorType:  vulkan_const.DescriptorTypeStorageBuffer,
+		PBufferInfo:     &bufferInfo,
+	}
+	vk.UpdateDescriptorSets(vr.device, 1, &write, 0, nil)
 }
 
 func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, material *Material) {

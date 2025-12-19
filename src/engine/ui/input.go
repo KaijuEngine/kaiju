@@ -47,6 +47,7 @@ import (
 	"math"
 	"unicode"
 	"unicode/utf8"
+	"weak"
 )
 
 type InputType = int32
@@ -83,8 +84,8 @@ type inputData struct {
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	isActive                          bool
-	prevFocusInput                    *Input
-	nextFocusInput                    *Input
+	prevFocusInput                    weak.Pointer[Input]
+	nextFocusInput                    weak.Pointer[Input]
 	labelShift                        float32
 }
 
@@ -100,8 +101,8 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
-	next.InputData().prevFocusInput = input
-	input.InputData().nextFocusInput = next
+	next.InputData().prevFocusInput = weak.Make(input)
+	input.InputData().nextFocusInput = weak.Make(next)
 }
 
 func (input *Input) Init(placeholderText string) {
@@ -117,7 +118,7 @@ func (input *Input) Init(placeholderText string) {
 	// Label
 	data.label = man.Add().ToLabel()
 	data.label.Init("")
-	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	p.AddChild(data.label.Base())
 	data.label.SetBaseline(rendering.FontBaselineCenter)
 	data.label.SetMaxWidth(100000.0)
@@ -127,7 +128,7 @@ func (input *Input) Init(placeholderText string) {
 	// Placeholder
 	data.placeholder = man.Add().ToLabel()
 	data.placeholder.Init(placeholderText)
-	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	p.AddChild(data.placeholder.Base())
 	data.placeholder.SetBaseline(rendering.FontBaselineCenter)
 	data.placeholder.SetMaxWidth(100000.0)
@@ -589,11 +590,17 @@ func (input *Input) changeFocusToAnother(target *Input) {
 }
 
 func (input *Input) focusNext() {
-	input.changeFocusToAnother(input.InputData().nextFocusInput)
+	n := input.InputData().nextFocusInput.Value()
+	if n != nil {
+		input.changeFocusToAnother(n)
+	}
 }
 
 func (input *Input) focusPrevious() {
-	input.changeFocusToAnother(input.InputData().prevFocusInput)
+	p := input.InputData().prevFocusInput.Value()
+	if p != nil {
+		input.changeFocusToAnother(p)
+	}
 }
 
 func (input *Input) Text() string {
@@ -636,6 +643,7 @@ func (input *Input) SetType(inputType InputType) {
 func (input *Input) SetFGColor(newColor matrix.Color) {
 	data := input.InputData()
 	data.label.SetColor(newColor)
+	data.cursor.SetColor(newColor)
 	phColor := matrix.ColorMix(newColor, newColor.Inverted(), 0.5)
 	data.placeholder.SetColor(phColor)
 }
@@ -713,9 +721,9 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 			c := kb.KeyToRune(keyId)
 			if c != 0 {
 				if !kb.HasCtrl() {
-					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock){
+					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {
 						input.InsertText(string(unicode.ToUpper(c)))
-					}else{
+					} else {
 						input.InsertText(string(c))
 					}
 				} else {

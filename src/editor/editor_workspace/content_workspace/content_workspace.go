@@ -37,6 +37,7 @@
 package content_workspace
 
 import (
+	"errors"
 	"fmt"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
@@ -197,10 +198,10 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 func (w *ContentWorkspace) toggleListView(e *document.Element) {
 	if w.isListMode {
 		w.disableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn")
 	} else {
 		w.enableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn", "filterBtnSelected")
 	}
 	w.Doc.ApplyStyles()
 	w.contentList.UIPanel.SetScrollY(0)
@@ -227,7 +228,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
-		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		w.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -251,22 +252,15 @@ func (w *ContentWorkspace) focusContent(id string) {
 	w.clickEntry(elm)
 }
 
-func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.pfs.ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
-				return
-			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
 			w.Host.RunOnMainThread(func() {
@@ -301,12 +295,12 @@ func (w *ContentWorkspace) tagFilter(e *document.Element) {
 
 func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
 	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
 		if typeName != "" {
 			w.typeFilters = append(w.typeFilters, typeName)
 		}
@@ -314,7 +308,7 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 			w.tagFilters = append(w.tagFilters, tagName)
 		}
 	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
+		w.Doc.SetElementClasses(e, "filterBtn")
 		if typeName != "" {
 			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
 		}
@@ -533,7 +527,15 @@ func (w *ContentWorkspace) clickReimport(*document.Element) {
 			continue
 		}
 		slog.Info("successfully re-import the content", "id", id)
-		w.loadEntryImage(w.selectedContent[i], res.ConfigPath(), res.Category.TypeName())
+		cc, err := w.cache.Read(res.Id)
+		if err != nil {
+			slog.Error("failed to load the re-imported content from cache", "id", res.Id, "error", err)
+			continue
+		}
+		if cc.Config.Type == (content_database.Texture{}).TypeName() {
+			w.Host.TextureCache().ReloadTexture(cc.Id(), rendering.TextureFilterLinear)
+		}
+		w.loadEntryImage(w.selectedContent[i], &cc)
 	}
 }
 
@@ -556,23 +558,13 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 	ids := w.selectedIds()
 	for _, id := range ids {
-		if id == "" {
-			slog.Warn("clickDelete contained a blank id")
-			continue
-		}
-		cc, err := w.cache.Read(id)
+		err := content_database.Delete(id, w.pfs, w.cache)
 		if err != nil {
-			slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+			if errors.Is(err, content_database.DeleteContentMissingIdError) {
+				slog.Warn("clickDelete contained a blank id")
+			}
 			continue
 		}
-		if err := w.pfs.Remove(cc.Path); err != nil {
-			slog.Error("failed to delete config file", "path", cc.Path, "error", err)
-		}
-		contentPath := content_database.ToContentPath(cc.Path)
-		if err := w.pfs.Remove(contentPath); err != nil {
-			slog.Error("failed to delete content file", "path", contentPath, "error", err)
-		}
-		w.cache.Remove(id)
 		w.editor.Events().OnContentRemoved.Execute([]string{id})
 		w.rightBody.UI.Hide()
 		w.tooltip.UI.Hide()

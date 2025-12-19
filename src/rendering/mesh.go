@@ -924,3 +924,184 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 	indices[iIndex+5] = v11
 	return cache.Mesh(key, verts, indices)
 }
+
+func NewMeshWireSphereLatLon(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireSphereLatLon").End()
+	key := fmt.Sprintf("wire_sphere_latlon_%.2f_%d_%d", radius, latitudeBands, longitudeBands)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if latitudeBands < 4 {
+		latitudeBands = 4
+	}
+	if longitudeBands < 8 {
+		longitudeBands = 8
+	}
+	numRings := latitudeBands - 1
+	numVerts := numRings * longitudeBands
+	verts := make([]Vertex, numVerts)
+	vIdx := 0
+	for ring := 1; ring < latitudeBands; ring++ {
+		theta := float32(ring) * math.Pi / float32(latitudeBands)
+		sinTheta := matrix.Sin(theta)
+		cosTheta := matrix.Cos(theta)
+		for lon := 0; lon < longitudeBands; lon++ {
+			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands)
+			sinPhi := matrix.Sin(phi)
+			cosPhi := matrix.Cos(phi)
+
+			verts[vIdx].Position = matrix.Vec3{
+				radius * cosPhi * sinTheta,
+				radius * cosTheta,
+				radius * sinPhi * sinTheta,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		base := uint32(ring * longitudeBands)
+		for lon := 0; lon < longitudeBands; lon++ {
+			curr := base + uint32(lon)
+			next := base + uint32((lon+1)%longitudeBands)
+			indices = append(indices, curr, next)
+		}
+	}
+	for lon := 0; lon < longitudeBands; lon++ {
+		for ring := 0; ring < numRings-1; ring++ {
+			curr := uint32(ring*longitudeBands + lon)
+			next := uint32((ring+1)*longitudeBands + lon)
+			indices = append(indices, curr, next)
+		}
+	}
+
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireCylinder").End()
+	key := fmt.Sprintf("wire_cylinder_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if segments < 8 {
+		segments = 8
+	}
+	if heightSegments < 1 {
+		heightSegments = 1
+	}
+	numRings := heightSegments + 1
+	numVerts := numRings * segments
+	verts := make([]Vertex, numVerts)
+	vIdx := 0
+	halfHeight := height / 2.0
+	for ring := 0; ring < numRings; ring++ {
+		y := -halfHeight + float32(ring)/float32(heightSegments)*height
+		for s := 0; s < segments; s++ {
+			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			cosPhi := matrix.Cos(phi)
+			sinPhi := matrix.Sin(phi)
+			verts[vIdx].Position = matrix.Vec3{
+				radius * cosPhi,
+				y,
+				radius * sinPhi,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0} // not used for wireframe
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		base := uint32(ring * segments)
+		for s := 0; s < segments; s++ {
+			curr := base + uint32(s)
+			next := base + uint32((s+1)%segments)
+			indices = append(indices, curr, next)
+		}
+	}
+	for s := 0; s < segments; s++ {
+		for ring := 0; ring < heightSegments; ring++ {
+			curr := uint32(ring*segments + s)
+			next := uint32((ring+1)*segments + s)
+			indices = append(indices, curr, next)
+		}
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireCone").End()
+	key := fmt.Sprintf("wire_cone_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if segments < 8 {
+		segments = 8
+	}
+	if heightSegments < 1 {
+		heightSegments = 1
+	}
+	numRings := heightSegments + 1
+	numVerts := 1 + numRings*segments
+	verts := make([]Vertex, numVerts)
+	verts[0].Position = matrix.Vec3{0.0, height / 2.0, 0.0}
+	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[0].Color = matrix.ColorWhite()
+	halfHeight := height / 2.0
+	apexIdx := uint32(0)
+	vIdx := 1
+	for ring := 0; ring < numRings; ring++ {
+		t := float32(ring) / float32(heightSegments)
+		y := -halfHeight + t*height
+		currentRadius := radius * (1.0 - t)
+		for s := 0; s < segments; s++ {
+			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			cosPhi := matrix.Cos(phi)
+			sinPhi := matrix.Sin(phi)
+
+			verts[vIdx].Position = matrix.Vec3{
+				currentRadius * cosPhi,
+				y,
+				currentRadius * sinPhi,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		t := float32(ring) / float32(heightSegments)
+		if t >= 1.0 {
+			continue
+		}
+		base := uint32(1 + ring*segments)
+		for s := 0; s < segments; s++ {
+			curr := base + uint32(s)
+			next := base + uint32((s+1)%segments)
+			indices = append(indices, curr, next)
+		}
+	}
+	baseRingStart := uint32(1 + (numRings-1)*segments)
+	for s := 0; s < segments; s++ {
+		baseVert := baseRingStart + uint32(s)
+		indices = append(indices, apexIdx, baseVert)
+	}
+	for s := 0; s < segments; s++ {
+		for ring := 0; ring < numRings-1; ring++ {
+			curr := uint32(1 + ring*segments + s)
+			next := uint32(1 + (ring+1)*segments + s)
+			indices = append(indices, curr, next)
+		}
+		topOfLine := uint32(1 + (numRings-1)*segments + s)
+		indices = append(indices, topOfLine, apexIdx)
+	}
+	return cache.Mesh(key, verts, indices)
+}

@@ -41,6 +41,7 @@ import "testing"
 const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
 const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
+const testCSSInputText = `input[type="text"] { display: none; }`
 
 type dummyWindow struct{}
 
@@ -121,5 +122,29 @@ func TestParseCommaIds(t *testing.T) {
 		if s.Groups[i].Rules[0].Values[0].Str != "none" {
 			t.FailNow()
 		}
+	}
+}
+
+func TestParseTextSubType(t *testing.T) {
+	s := StyleSheet{}
+	s.Parse(testCSSInputText, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
+	}
+	if len(s.Groups[0].Selectors) != 1 {
+		t.FailNow()
+	}
+	if len(s.Groups[0].Selectors[0].Parts) != 3 {
+		t.FailNow()
+	}
+	p := s.Groups[0].Selectors[0].Parts
+	if p[0].Name != "input" {
+		t.FailNow()
+	}
+	if p[1].Name != "type" {
+		t.FailNow()
+	}
+	if p[2].Name != "text" {
+		t.FailNow()
 	}
 }

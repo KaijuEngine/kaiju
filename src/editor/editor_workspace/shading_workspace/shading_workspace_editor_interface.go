@@ -37,6 +37,7 @@
 package shading_workspace
 
 import (
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
@@ -45,6 +46,7 @@ import (
 )
 
 type ShadingWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
 	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem

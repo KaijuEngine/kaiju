@@ -114,6 +114,14 @@ func StagePath(id string) ContentPath {
 	return AsContentPath(filepath.Join(ContentFolder, ContentStageFolder, id))
 }
 
+func ShaderPath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentShaderFolder, id))
+}
+
+func SpvPath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentSpvFolder, id))
+}
+
 func (p ContentPath) String() string { return string(p) }
 func (p ConfigPath) String() string  { return string(p) }
 

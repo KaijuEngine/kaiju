@@ -37,6 +37,7 @@
 package rendering
 
 import (
+	"errors"
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -56,6 +57,17 @@ type FuncPipeline func(renderer Renderer, shader *Shader, shaderStages []vk.Pipe
 
 func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 	defer tracing.NewRegion("Vulkan.CreateShader").End()
+	switch shader.Type {
+	case ShaderTypeGraphics:
+		return vr.createGraphicsShader(shader, assetDB)
+	case ShaderTypeCompute:
+		return vr.createComputeShader(shader, assetDB)
+	}
+	return errors.New("unhandled shader type")
+}
+
+func (vr *Vulkan) createGraphicsShader(shader *Shader, assetDB assets.Database) error {
+	defer tracing.NewRegion("Vulkan.createGraphicsShader").End()
 	var vert, frag, geom, tesc, tese vk.ShaderModule
 	var vMem, fMem, gMem, cMem, eMem []byte
 	vertStage := vk.PipelineShaderStageCreateInfo{}
@@ -182,6 +194,60 @@ func (vr *Vulkan) CreateShader(shader *Shader, assetDB assets.Database) error {
 	return nil
 }
 
+func (vr *Vulkan) createComputeShader(shader *Shader, assetDB assets.Database) error {
+	defer tracing.NewRegion("Vulkan.createComputeShader").End()
+	compStage := vk.PipelineShaderStageCreateInfo{}
+	cMem, err := assetDB.Read(shader.data.Compute)
+	if err != nil {
+		return err
+	}
+	comp, ok := vr.createSpvModule(cMem)
+	if !ok {
+		slog.Error("Failed to load compute module", "module", shader.data.Compute)
+		return err
+	}
+	compStage.SType = vulkan_const.StructureTypePipelineShaderStageCreateInfo
+	compStage.Stage = vulkan_const.ShaderStageComputeBit
+	compStage.Module = comp
+	compStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
+	shader.RenderId.compModule = comp
+	id := &shader.RenderId
+	shader.DriverData.setup(&shader.data)
+	id.descriptorSetLayout, err = vr.createDescriptorSetLayout(vr.device, shader.DriverData.DescriptorSetLayoutStructure)
+	if err != nil {
+		return err
+	}
+	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
+		SType:                  vulkan_const.StructureTypePipelineLayoutCreateInfo,
+		SetLayoutCount:         1,
+		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
+		PushConstantRangeCount: 0, // Adjust if push constants are used
+		PPushConstantRanges:    nil,
+	}
+	var pLayout vk.PipelineLayout
+	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vulkan_const.Success {
+		slog.Error("Failed to create pipeline layout")
+		return errors.New("failed to create pipeline layout")
+	} else {
+		vr.dbg.add(vk.TypeToUintPtr(pLayout))
+	}
+	shader.RenderId.pipelineLayout = pLayout
+	pipelineInfo := vk.ComputePipelineCreateInfo{
+		SType:  vulkan_const.StructureTypeComputePipelineCreateInfo,
+		Stage:  compStage,
+		Layout: id.pipelineLayout,
+	}
+	pipelines := [1]vk.Pipeline{}
+	if vk.CreateComputePipelines(vr.device, vk.NullPipelineCache, 1, &pipelineInfo, nil, &pipelines[0]) != vulkan_const.Success {
+		slog.Error("Failed to create compute pipeline")
+		return errors.New("failed to create compute pipeline")
+	} else {
+		vr.dbg.add(vk.TypeToUintPtr(pipelines[0]))
+	}
+	id.computePipeline = pipelines[0]
+	return nil
+}
+
 func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	defer tracing.NewRegion("Vulkan.createSpvModule").End()
 	info := vk.ShaderModuleCreateInfo{}
@@ -203,6 +269,8 @@ func (vr *Vulkan) destroyShaderHandle(id ShaderId) {
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyPipeline(vr.device, id.graphicsPipeline, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(id.graphicsPipeline))
+	vk.DestroyPipeline(vr.device, id.computePipeline, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(id.computePipeline))
 	vk.DestroyPipelineLayout(vr.device, id.pipelineLayout, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(id.pipelineLayout))
 	vk.DestroyShaderModule(vr.device, id.vertModule, nil)
@@ -220,6 +288,10 @@ func (vr *Vulkan) destroyShaderHandle(id ShaderId) {
 	if id.teseModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, id.teseModule, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(id.teseModule))
+	}
+	if id.compModule != vk.ShaderModule(vk.NullHandle) {
+		vk.DestroyShaderModule(vr.device, id.compModule, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.compModule))
 	}
 	vk.DestroyDescriptorSetLayout(vr.device, id.descriptorSetLayout, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(id.descriptorSetLayout))

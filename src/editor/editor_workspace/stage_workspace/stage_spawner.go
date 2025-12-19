@@ -100,13 +100,18 @@ func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bo
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.createDataBoundEntity").End()
-	e := w.stageView.Manager().AddEntity(name, w.stageView.LookAtPoint())
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, w.stageView.LookAtPoint())
 	g, ok := w.ed.Project().EntityDataBinding(bindKey)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", bindKey)
 		return nil, false
 	}
 	w.attachEntityData(e, g)
+	man.ClearSelection()
+	man.SelectEntity(e)
 	return e, true
 }
 
@@ -321,28 +326,38 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	if e.StageData.ShaderData == nil {
 		return
 	}
-	e.Transform.SetDirty() // Trigger changes for lighting
-	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
-	if !ok {
-		path := content_database.ToContentPath(cc.Path)
-		f, err := w.ed.ProjectFileSystem().Open(path)
-		if err != nil {
-			slog.Error("error reading the mesh file", "path", path)
-			return
-		}
-		defer f.Close()
-		var matData rendering.MaterialData
-		if err = json.NewDecoder(f).Decode(&matData); err != nil {
-			slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
-			return
-		}
-		mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
-		if err != nil {
-			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
-			return
-		}
-		mat.Id = cc.Id()
-		mat = w.Host.MaterialCache().AddMaterial(mat)
+	if e.StageData.PendingMaterialChange {
+		slog.Warn("a material is already being compiled to attach to this entity, please wait")
+		return
 	}
-	e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+	e.StageData.PendingMaterialChange = true
+	// goroutine
+	go func() {
+		mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
+		if !ok {
+			path := content_database.ToContentPath(cc.Path)
+			f, err := w.ed.ProjectFileSystem().Open(path)
+			if err != nil {
+				slog.Error("error reading the mesh file", "path", path)
+				return
+			}
+			defer f.Close()
+			var matData rendering.MaterialData
+			if err = json.NewDecoder(f).Decode(&matData); err != nil {
+				slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
+				return
+			}
+			mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
+			if err != nil {
+				slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
+				return
+			}
+			mat.Id = cc.Id()
+			mat = w.Host.MaterialCache().AddMaterial(mat)
+		}
+		e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+		e.StageData.PendingMaterialChange = false
+		// Don't want dirties to run during the transform clean map read
+		w.Host.RunOnMainThread(e.Transform.SetDirty)
+	}()
 }

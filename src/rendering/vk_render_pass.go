@@ -468,9 +468,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		}
 	}
 	if len(imageViews) == len(attachments) {
-		err := p.CreateFrameBuffer(vr, imageViews,
-			p.textures[0].Width, p.textures[0].Height)
-		if err != nil {
+		if err = p.CreateFrameBuffer(vr, imageViews, p.textures[0].Width, p.textures[0].Height); err != nil {
 			slog.Error("failed to create the frame buffer for the render pass", "error", err)
 			return err
 		}

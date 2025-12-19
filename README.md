@@ -78,6 +78,9 @@ I'll be the first to admit, I think the developers of Go can create a better GC 
 ### Editor plugins
 [kaiju-editor-plugins.mp4](https://github.com/user-attachments/assets/4c7b7c65-f77b-47de-8d45-175dcb421afa)
 
+### Shader writing with live updates
+[kaiju-engine-live-shader-preview.mp4](https://github.com/user-attachments/assets/6697776c-458e-49a6-9eb1-b3309149b8cf)
+
 ### Older videos
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/04c75879-23af-40fa-9773-33cd22cc9552)
 
