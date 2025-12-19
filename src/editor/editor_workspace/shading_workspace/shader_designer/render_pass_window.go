@@ -137,7 +137,7 @@ func showRenderPassTooltip(e *document.Element) {
 	if !ok {
 		return
 	}
-	tipElm := e.Root().FindElementById("ToolTip")
+	tipElm := e.Root().FindElementById("toolTip")
 	if tipElm == nil || len(tipElm.Children) == 0 {
 		return
 	}
