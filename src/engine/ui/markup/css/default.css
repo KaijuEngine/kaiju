@@ -457,3 +457,9 @@ button:active {
 	border-color: #881E1E;
 	color: white;
 }
+.edPanelBg {
+	background-color: #1C1E25;
+}
+.edPanelBgDark {
+	background-color: #181A20;
+}

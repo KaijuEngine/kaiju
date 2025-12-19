@@ -11,20 +11,17 @@
 				padding: 0 5px;
 				width: 15em;
 				height: 100%;
-				background-color: #1C1E25;
 				overflow-y: scroll;
 			}
 			.center {
 				width: calc(100% - 30em);
 				height: 100%;
-				background-color: #181A20;
 				padding: 10px;
 				overflow-y: scroll;
 			}
 			.right {
 				width: 15em;
 				height: 100%;
-				background-color: #1C1E25;
 				overflow-y: scroll;
 			}
 			#rightBody {
@@ -128,7 +125,7 @@
 	</head>
 	<body>
 		<div class="content">
-			<div class="left">
+			<div class="left edPanelBg">
 				<input type="text" placeholder="Content search..." onchange="inputFilter" />
 				<div class="filterBtn" onclick="clickImport">
 					<img src="editor/textures/icons/plus.png" />
@@ -146,14 +143,14 @@
 					{{end}}
 				</div>
 			</div>
-			<div id="contentList" class="center" onclick="clickClearSelection">
+			<div id="contentList" class="center edPanelBgDark" onclick="clickClearSelection">
 				<span id="entryTemplate" data-type="" group="entry" class="entry" onclick="clickEntry" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div class="entryLabel">Name...</div>
 					<img class="typeThumb" src="editor/textures/icons/file.png" />
 				</span>
 			</div>
-			<div class="right">
+			<div class="right edPanelBg">
 				<div id="rightBody">
 					<div id="multiSelectNote">Multiple content selected!</div>
 					<input id="entryName" type="text" placeholder="Name..." onsubmit="submitName" />
