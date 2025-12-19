@@ -399,34 +399,39 @@ ul {
 var {
 	font-style: italic; 
 }
-/* input[type="text"] {
-	width: 100%;
-	height: 2em;
-	color: white;
-	background-color: #58595e;
-	border: 2px solid #727a8f;
-} */
 button {
 	padding: 5px 10px 5px 10px;
 	font-size: 16px;
 	text-align: center;
 	vertical-align: middle;
 	overflow: hidden;
+	/* background-color: #20222A;
+	border: 2px solid #292C34; */
+	/* border-radius: 7px; */
 	background-color: #282828;
 	background-image: url("editor/textures/button_idle.png");
 }
 button:hover {
+	/* background-color: #721e21;
+	border: 2px solid #a72a2f; */
 	background-color: #575757;
 	background-image: url("editor/textures/button_hover.png");
 }
 button:active {
 	padding: 10px 10px 0px 10px;
+	/* background-color: #611a1c;
+	border: 2px solid #8d2528; */
 	background-image: url("editor/textures/button_down.png");
 }
 /** Unconventional helpers **/
 .centerText { text-align: center; }
 
 /** EDITOR STYLES **/
+input[type="text"] {
+	color: black;
+	background-color: #BBB;
+	border: 2px solid black;
+}
 .filterBtn {
 	padding: 2px 5px;
 	background-color: #20222A;
@@ -459,6 +464,18 @@ button:active {
 }
 .edPanelBg {
 	background-color: #1C1E25;
+}
+.edPanelBgHoverable {
+	color: #AAA;
+	background-color: #1C1E25;
+}
+.edPanelBgHoverable:hover {
+	color: white;
+	background-color: #2a2d38;
+}
+.edPanelBgHoverableSelected {
+	color: white;
+	background-color: #2a2d38;
 }
 .edPanelBgDark {
 	background-color: #181A20;

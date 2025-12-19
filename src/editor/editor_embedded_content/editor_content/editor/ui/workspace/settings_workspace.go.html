@@ -81,7 +81,6 @@
 			.leftPanel, .rightPanel {
 				height: 100%;
 				overflow-y: scroll;
-				background-color: #282828;
 			}
 			.leftPanel {
 				width: 10em;
@@ -94,18 +93,6 @@
 			}
 			.settingsBox {
 				width: 100%;
-			}
-			.leftEntry {
-				color: #AAA;
-				background-color: #282828;
-			}
-			.leftEntry:hover {
-				color: white;
-				background-color: #353535;
-			}
-			.leftEntrySelected {
-				color: white;
-				background-color: #353535;
 			}
 			/*** Data fields styles ***/
 			h2 {
@@ -174,7 +161,6 @@
 			.pluginEntry {
 				width: 100%;
 				border: 2px solid #CCC;
-				background-color: #282828;
 			}
 			.pluginWebsite {
 				color: #63b361;
@@ -186,12 +172,12 @@
 	</head>
 	<body>
 		<div class="content">
-			<div class="leftPanel">
-				<div class="leftEntry" onclick="showProjectSettings">Project Settings</div>
-				<div class="leftEntry" onclick="showEditorSettings">Editor Settings</div>
-				<div class="leftEntry" onclick="showPluginSettings">Plugin Settings</div>
+			<div class="leftPanel edPanelBg">
+				<div class="edPanelBgHoverable" onclick="showProjectSettings">Project Settings</div>
+				<div class="edPanelBgHoverable" onclick="showEditorSettings">Editor Settings</div>
+				<div class="edPanelBgHoverable" onclick="showPluginSettings">Plugin Settings</div>
 			</div>
-			<div class="rightPanel">
+			<div class="rightPanel edPanelBg">
 				<div id="projectSettingsBox" class="settingsBox">
 					<h1>Project Settings</h1>
 					{{template "section" .Project}}
@@ -205,7 +191,7 @@
 					<button onclick="clickOpenPlugins">Open plugins folder</button>
 					<button onclick="recompileEditor">Recompile Editor</button>
 					{{range $i, $p := .Plugins}}
-					<div class="pluginEntry">
+					<div class="pluginEntry edPanelBgDark">
 						<h1>{{$p.Config.Name}}</h1>
 						<div>{{$p.Config.Description}}</div>
 						<div>Author: {{$p.Config.Author}}</div>

@@ -12,13 +12,11 @@
 				padding: 0 5px;
 				width: 15em;
 				height: 100%;
-				background-color: #282828;
 				overflow-y: scroll;
 			}
 			.right {
 				width: calc(100% - 15em);
 				height: 100%;
-				background-color: #121212;
 				overflow-y: scroll;
 				padding: 10px;
 			}
@@ -97,7 +95,6 @@
 				top: 3em;
 				height: calc(100% - 16em);
 				width: 15em;
-				background-color: #282828;
 				color: white;
 				overflow-y: scroll;
 			}
@@ -159,7 +156,6 @@
 				top: 3em;
 				height: calc(100% - 16em);
 				width: 15em;
-				background-color: #282828;
 				color: white;
 				overflow-y: scroll;
 			}
@@ -211,7 +207,7 @@
 		<!-- Hierarchy UI -->
 		<span id="hideHierarchy" onclick="hideHierarchy">&lt;</span>
 		<span id="showHierarchy" onclick="showHierarchy">&gt;</span>
-		<div id="hierarchyArea" ondrop="hierarchyDrop">
+		<div id="hierarchyArea" class="edPanelBg" ondrop="hierarchyDrop">
 			<div class="searchInput">
 				<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
 			</div>
@@ -225,7 +221,7 @@
 		<!-- Details UI -->
 		<span id="hideDetails" onclick="hideDetails">&gt;</span>
 		<span id="showDetails" onclick="showDetails">&lt;</span>
-		<div id="detailsArea">
+		<div id="detailsArea" class="edPanelBg">
 			<div class="detailsBody">
 				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" />
 				<div>Position</div>
@@ -346,7 +342,7 @@
 		<span id="showContent" onclick="showContent">^</span>
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
 		<div id="contentArea">
-			<div class="left">
+			<div class="left edPanelBg">
 				<input type="text" placeholder="Content search..." onchange="inputFilter" />
 				<span id="test1" class="filterBtn" data-type="none" onclick="clickFilter">None test...</span>
 				{{range .Filters}}
@@ -359,7 +355,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="right">
+			<div class="right edPanelBgDark">
 				<span id="entryTemplate" data-type="" group="entry" class="entry" ondblclick="dblClickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div>Name...</div>

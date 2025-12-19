@@ -166,9 +166,9 @@ func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
 	txt := e.InnerLabel().Text()
 	typeFilter := ""
 	for _, elm := range e.Parent.Value().Children {
-		w.Doc.SetElementClassesWithoutApply(elm, "filterLabel")
+		w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable")
 	}
-	w.Doc.SetElementClassesWithoutApply(e, "filterLabel", "filterLabelSelected")
+	w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable", "edPanelBgHoverableSelected")
 	w.Doc.ApplyStyles()
 	switch txt {
 	case "All":
@@ -242,6 +242,11 @@ func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
 		}
 		w.designer.ShowRenderPassWindow(id, d)
 	}
+	for _, elm := range elm.Parent.Value().Children {
+		w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable")
+	}
+	w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable", "edPanelBgHoverableSelected")
+	w.Doc.ApplyStyles()
 }
 
 func (w *ShadingWorkspace) clickNewRenderPass(elm *document.Element) {
