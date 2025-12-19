@@ -174,7 +174,7 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
 			project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
 	} else {
-		ids := content_database.ImportRaw(win.shader.Name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		ids := content_database.ImportRaw(win.material.Name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
 		if len(ids) > 0 {
 			win.material.id = ids[0]
 			win.ed.Events().OnContentAdded.Execute(ids)
