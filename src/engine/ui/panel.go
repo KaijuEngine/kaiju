@@ -736,6 +736,16 @@ func (p *Panel) updateScrollBars() {
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
 	}
+	bars := [...]*Panel{pd.scrollBarX, pd.scrollBarY}
+	for i := range bars {
+		if bars[i] != nil {
+			if p.hovering {
+				bars[i].Base().Show()
+			} else {
+				bars[i].Base().Hide()
+			}
+		}
+	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
 	if pd.scrollBarX != nil && pd.scrollBarX.Base().IsActive() {
