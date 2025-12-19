@@ -328,7 +328,6 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	e.StageData.PendingMaterialChange = true
 	// goroutine
 	go func() {
-		e.Transform.SetDirty() // Trigger changes for lighting
 		mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
 		if !ok {
 			path := content_database.ToContentPath(cc.Path)
@@ -353,5 +352,7 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 		}
 		e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
 		e.StageData.PendingMaterialChange = false
+		// Don't want dirties to run during the transform clean map read
+		w.Host.RunOnMainThread(e.Transform.SetDirty)
 	}()
 }
