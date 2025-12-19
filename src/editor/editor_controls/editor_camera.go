@@ -269,10 +269,10 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 		changed = true
 	}
 	if kb.KeyHeld(hid.KeyboardKeyQ) {
-		delta.AddAssign(e.camera.Up().Scale(matrix.Float(deltaTime) * flySpeed))
+		delta.AddAssign(e.camera.Up().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	} else if kb.KeyHeld(hid.KeyboardKeyE) {
-		delta.AddAssign(e.camera.Up().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
+		delta.AddAssign(e.camera.Up().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	}
 	if changed {
