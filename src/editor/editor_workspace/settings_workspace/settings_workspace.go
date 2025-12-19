@@ -94,7 +94,7 @@ func (w *SettingsWorkspace) Open() {
 	w.resetLeftEntrySelection()
 	for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
 		if e.InnerLabel().Text() == "Project Settings" {
-			w.Doc.SetElementClasses(e, "edPanelBgHoverable", "edPanelBgHoverableSelected")
+			w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 			break
 		}
 	}
@@ -122,7 +122,7 @@ func (w *SettingsWorkspace) resetLeftEntrySelection() {
 func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
 	w.resetLeftEntrySelection()
-	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "edPanelBgHoverableSelected")
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
@@ -131,7 +131,7 @@ func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
 	w.resetLeftEntrySelection()
-	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "edPanelBgHoverableSelected")
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
 	w.pluginSettingsBox.UI.Show()
@@ -140,7 +140,7 @@ func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.showPluginSettings").End()
 	w.resetLeftEntrySelection()
-	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "edPanelBgHoverableSelected")
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Show()

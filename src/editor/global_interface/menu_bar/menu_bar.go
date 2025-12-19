@@ -470,9 +470,9 @@ func (b *MenuBar) selectTab(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.selectTab").End()
 	tabs := b.doc.GetElementsByGroup("tabs")
 	for i := range tabs {
-		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab")
+		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab", "edPanelBgHoverable")
 	}
-	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "tabSelected")
+	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "edPanelBgHoverable", "tabSelected")
 	b.doc.ApplyStyles()
 	b.hidePopups()
 }
