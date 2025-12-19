@@ -51,18 +51,18 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_entity_data_light.BindingKey, &LightDataBindingRenderer{
+	AddRenderer(engine_entity_data_light.BindingKey, &LightEntityDataRenderer{
 		LightLines: make(map[*editor_stage_manager.StageEntity]rendering.DrawInstance),
 		LightIds:   make(map[*editor_stage_manager.StageEntity]*lighting.LightEntry),
 	})
 }
 
-type LightDataBindingRenderer struct {
+type LightEntityDataRenderer struct {
 	LightLines map[*editor_stage_manager.StageEntity]rendering.DrawInstance
 	LightIds   map[*editor_stage_manager.StageEntity]*lighting.LightEntry
 }
 
-func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	commonAttached(host, manager, target, "light.png")
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
@@ -82,10 +82,10 @@ func (c *LightDataBindingRenderer) Attached(host *engine.Host, manager *editor_s
 	c.LightIds[target] = host.Lighting().Lights.Add(&target.Transform, l)
 }
 
-func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("LightDataBindingRenderer.Show").End()
+func (c *LightEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightEntityDataRenderer.Show").End()
 	if _, ok := c.LightLines[target]; ok {
-		slog.Error("there is an internal error in state for the editor's LightDataBindingRenderer, show was called before any hide happened. Double selected the same target?")
+		slog.Error("there is an internal error in state for the editor's LightEntityDataRenderer, show was called before any hide happened. Double selected the same target?")
 		c.Hide(host, target, data)
 	}
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
@@ -126,7 +126,7 @@ func (c *LightDataBindingRenderer) Show(host *engine.Host, target *editor_stage_
 	c.LightLines[target] = sd
 }
 
-func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	l := c.LightIds[target]
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	if l.Type() != lightType {
@@ -147,8 +147,8 @@ func (c *LightDataBindingRenderer) Update(host *engine.Host, target *editor_stag
 	l.Light.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
 }
 
-func (c *LightDataBindingRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("LightDataBindingRenderer.Hide").End()
+func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightEntityDataRenderer.Hide").End()
 	if d, ok := c.LightLines[target]; ok {
 		d.Destroy()
 		delete(c.LightLines, target)

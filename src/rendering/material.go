@@ -81,9 +81,9 @@ type MaterialTextureData struct {
 
 type MaterialData struct {
 	Name            string
-	Shader          string `options:""` // Blank = fallback
-	RenderPass      string `options:""` // Blank = fallback
-	ShaderPipeline  string `options:""` // Blank = fallback
+	Shader          string `options:""`                  // Blank = fallback
+	RenderPass      string `options:""`                  // Blank = fallback
+	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
 	Textures        []MaterialTextureData
 	IsLit           bool
 	ReceivesShadows bool

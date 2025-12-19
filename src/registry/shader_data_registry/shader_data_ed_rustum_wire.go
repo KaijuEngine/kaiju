@@ -43,13 +43,13 @@ import (
 )
 
 func init() {
-	register("ed_frustum_wire", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataEdFrustumWire{
 			ShaderDataBase:    rendering.NewShaderDataBase(),
 			Color:             matrix.ColorWhite(),
 			FrustumProjection: matrix.Mat4Identity(),
 		}
-	})
+	}, "ed_frustum_wire")
 }
 
 type ShaderDataEdFrustumWire struct {

@@ -43,13 +43,13 @@ import (
 )
 
 func init() {
-	register("pbr", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
 			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
-	})
+	}, "pbr")
 }
 
 type ShaderDataPBR struct {

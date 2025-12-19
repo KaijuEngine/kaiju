@@ -323,6 +323,21 @@ func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter T
 	}
 }
 
+func (t *Texture) Reload(renderer Renderer, assetDb assets.Database) error {
+	t.RenderId = TextureId{}
+	if assetDb.Exists(t.Key) {
+		if imgBuff, err := assetDb.Read(t.Key); err != nil {
+			return err
+		} else if len(imgBuff) == 0 {
+			return errors.New("no data in texture")
+		} else {
+			t.create(imgBuff)
+			return nil
+		}
+	}
+	return errors.New("texture does not exist")
+}
+
 func (t *Texture) DelayedCreate(renderer Renderer) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
 	if t.RenderId.IsValid() {

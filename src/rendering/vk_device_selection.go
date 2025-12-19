@@ -141,11 +141,14 @@ func (vr *Vulkan) createLogicalDevice() bool {
 		// cgo argument has Go pointer to Go pointer panic
 		vr.device = device
 		var graphicsQueue vk.Queue
+		var computeQueue vk.Queue
 		var presentQueue vk.Queue
 		vk.GetDeviceQueue(vr.device, uint32(indices.graphicsFamily), 0, &graphicsQueue)
 		vk.GetDeviceQueue(vr.device, uint32(indices.presentFamily), 0, &presentQueue)
+		vk.GetDeviceQueue(vr.device, uint32(indices.computeFamily), 0, &computeQueue)
 		vr.graphicsQueue = graphicsQueue
 		vr.presentQueue = presentQueue
+		vr.computeQueue = computeQueue
 		return true
 	}
 }

@@ -38,7 +38,9 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"errors"
 	"kaiju/editor/editor_workspace/common_workspace"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -46,8 +48,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-
-	"github.com/KaijuEngine/uuid"
 )
 
 func (win *ShaderDesigner) reloadRenderPassDoc() {
@@ -95,9 +95,6 @@ func (win *ShaderDesigner) renderPassRemoveFromSlice(e *document.Element) {
 }
 
 func (win *ShaderDesigner) renderPassSaveRenderPass(e *document.Element) {
-	if win.renderPass.id == "" {
-		win.renderPass.id = uuid.NewString()
-	}
 	for i := range win.renderPass.SubpassDescriptions {
 		s := win.renderPass.SubpassDescriptions[i]
 		s.Subpass.Shader = filepath.ToSlash(s.Subpass.Shader)
@@ -108,8 +105,18 @@ func (win *ShaderDesigner) renderPassSaveRenderPass(e *document.Element) {
 		slog.Error("failed to marshal the render pass data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(filepath.Join(project_file_system.ContentFolder,
-		project_file_system.ContentRenderPassFolder, win.renderPass.id), res, os.ModePerm)
+	if win.renderPass.id != "" {
+		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
+			project_file_system.ContentRenderPassFolder, win.renderPass.id), res, os.ModePerm)
+	} else {
+		ids := content_database.ImportRaw(win.shader.Name, res, content_database.RenderPass{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		if len(ids) > 0 {
+			win.renderPass.id = ids[0]
+			win.ed.Events().OnContentAdded.Execute(ids)
+		} else {
+			err = errors.New("failed to import the raw render pass file data to the database")
+		}
+	}
 	if err != nil {
 		slog.Error("failed to write the render pass data to file", "error", err)
 		return
@@ -130,7 +137,7 @@ func showRenderPassTooltip(e *document.Element) {
 	if !ok {
 		return
 	}
-	tipElm := e.Root().FindElementById("ToolTip")
+	tipElm := e.Root().FindElementById("toolTip")
 	if tipElm == nil || len(tipElm.Children) == 0 {
 		return
 	}

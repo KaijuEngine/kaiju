@@ -39,6 +39,7 @@ package ui
 import (
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"weak"
 )
 
 type buttonData struct {
@@ -84,7 +85,7 @@ func (b *Button) Init(texture *rendering.Texture, text string) {
 	// Create the label for the button
 	lbl := b.man.Value().Add().ToLabel()
 	lbl.Init("")
-	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{b.Base()}}
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(b.Base())}}
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)

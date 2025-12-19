@@ -22,37 +22,10 @@
 				overflow-y: scroll;
 				padding: 10px;
 			}
-			.leftBtn {
-				padding: 1px;
-				background-color: #282828;
-				border: 2px solid #575757;
-				border-radius: 5px;
-				color: #AAA;
-				width: 100%;
-				font-size: 1em;
-				vertical-align: middle;
-				text-align: center;
-			}
-			.leftBtn:hover {
-				color: white;
-				background-color: #353535;
-			}
-			.leftBtn:active {
-				background-color: #121212;
-			}
-			.leftBtn img {
-				width: 1em;
-				height: 1em;
-				background-color: #1D731C;
-				margin-right: 5px;
-			}
-			.filterSelected {
-				background-color: #575757;
-				color: white;
-			}
 			input {
 				width: 100%;
 				height: 2em;
+				margin-bottom: 0.5em;
 			}
 			.entry {
 				width: 5em;
@@ -267,6 +240,53 @@
 				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
 				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div id="shaderInstanceData" class="dataTable">
+					<div id="shaderInstanceDataList">
+						<div id="shaderInstanceDataTemplate" class="dataBindingBlock">
+							<div class="center">Shader name...</div>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeShaderData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeShaderData" />
+								</div>
+								<!-- Vec2 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec4 -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="W..." onchange="changeShaderData" />
+								</div>
+								<!-- Color -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="R..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="G..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="B..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="A..." onchange="changeShaderData" />
+								</div>
+								<!-- Select input -->
+								<div>
+									<select class="dataInput" onchange="changeShaderData"></select>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 				<div class="dataTable">
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">
@@ -327,14 +347,15 @@
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
 		<div id="contentArea">
 			<div class="left">
-				<input type="text" placeholder="Content search..." onsubmit="inputFilter" />
+				<input type="text" placeholder="Content search..." onchange="inputFilter" />
+				<span id="test1" class="filterBtn" data-type="none" onclick="clickFilter">None test...</span>
 				{{range .Filters}}
-				<div class="leftBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</div>
+				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
 					{{range .Tags}}
-					<div class="leftBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</div>
+					<span class="filterBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</span>
 					{{end}}
 				</div>
 			</div>

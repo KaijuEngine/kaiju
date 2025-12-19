@@ -36,7 +36,10 @@
 
 package content_database
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type CategoryNotFoundError struct {
 	Path string
@@ -109,3 +112,5 @@ type ReimportMeshMissingError struct {
 func (e ReimportMeshMissingError) Error() string {
 	return fmt.Sprintf("re-import failed on mesh, the file %s was missing the mesh %s", e.Path, e.Name)
 }
+
+var DeleteContentMissingIdError = errors.New("id was blank")

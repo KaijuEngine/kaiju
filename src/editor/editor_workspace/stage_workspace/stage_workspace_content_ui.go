@@ -157,7 +157,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
-		cui.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		cui.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -203,23 +203,16 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 	}
 }
 
-func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("WorkspaceContentUI.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	w := cui.workspace.Value()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.ed.ProjectFileSystem().ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
-				return
-			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
 			w.Host.RunOnMainThread(func() {
@@ -273,13 +266,13 @@ func (cui *WorkspaceContentUI) runFilter() {
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
 	w := cui.workspace.Value()
 	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
 		if typeName != "" {
 			cui.typeFilters = append(cui.typeFilters, typeName)
 		}
@@ -287,7 +280,7 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 			cui.tagFilters = append(cui.tagFilters, tagName)
 		}
 	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
+		w.Doc.SetElementClasses(e, "filterBtn")
 		if typeName != "" {
 			cui.typeFilters = klib.SlicesRemoveElement(cui.typeFilters, typeName)
 		}

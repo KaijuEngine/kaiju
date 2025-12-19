@@ -204,6 +204,7 @@ func (man *Manager) Remove(ui *UI) {
 	id := ui.id
 	pid := ui.poolId
 	man.pools.Remove(pid, id)
+	ui.layout.Stylizer = nil
 }
 
 func (man *Manager) Reserve(additionalElements int) {

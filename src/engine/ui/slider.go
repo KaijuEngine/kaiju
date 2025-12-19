@@ -41,6 +41,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"weak"
 )
 
 type sliderData struct {
@@ -73,7 +74,7 @@ func (s *Slider) Init() {
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = man.Add().ToPanel()
 	ld.bgPanel.Init(tex, ElementTypePanel)
-	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	ld.bgPanel.SetColor(matrix.ColorBlack())
 	ld.fgPanel = man.Add().ToPanel()
 	ld.fgPanel.Init(tex, ElementTypePanel)

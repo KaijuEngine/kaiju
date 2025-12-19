@@ -77,6 +77,22 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 	}
 }
 
+func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
+	shader, ok := s.shaders[shaderData.Name]
+	if !ok {
+		return
+	}
+	var destroyHandle func(target *Shader)
+	destroyHandle = func(target *Shader) {
+		for _, v := range target.subShaders {
+			destroyHandle(v)
+		}
+		s.renderer.(*Vulkan).destroyShaderHandle(target.RenderId)
+	}
+	shader.Reload(shaderData)
+	s.pendingShaders = append(s.pendingShaders, shader)
+}
+
 func (s *ShaderCache) CreatePending() {
 	defer tracing.NewRegion("ShaderCache.CreatePending").End()
 	s.mutex.Lock()

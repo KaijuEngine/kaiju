@@ -72,9 +72,9 @@
 				<span class="filterLabel" onclick="toggleFilterSpec">M</span>
 			</div>
 			<div id="renderSpecList">
-				<div id="renderSpecListTemplate" class="renderSpecListEntry" data-ext="" onclick="selectSpec">Name...</div>
+				<div id="renderSpecListTemplate" class="renderSpecListEntry" data-type="" onclick="selectSpec">Name...</div>
 				{{range .Files}}
-				<div id="{{.Id}}" class="renderSpecListEntry" data-ext="{{.Ext}}" onclick="selectSpec">{{.Name}}</div>
+				<div id="{{.Id}}" class="renderSpecListEntry" data-type="{{.Type}}" onclick="selectSpec">{{.Name}}</div>
 				{{end}}
 			</div>
 		</div>

@@ -53,18 +53,18 @@ const (
 )
 
 func init() {
-	register(fallback, func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataStandard{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
-	})
+	}, fallback)
 }
 
 type ShaderDataStandard struct {
 	rendering.ShaderDataBase
 	Color matrix.Color
-	Flags ShaderDataStandardFlags
+	Flags ShaderDataStandardFlags `visible:"false"`
 }
 
 func (ShaderDataStandard) Size() int {

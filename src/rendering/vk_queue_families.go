@@ -52,6 +52,7 @@ func queueFamilyIndicesValid(indices vkQueueFamilyIndices) bool {
 func findQueueFamilies(device vk.PhysicalDevice, surface vk.Surface) vkQueueFamilyIndices {
 	indices := vkQueueFamilyIndices{
 		graphicsFamily: invalidQueueFamily,
+		computeFamily:  invalidQueueFamily,
 		presentFamily:  invalidQueueFamily,
 	}
 	count := uint32(0)
@@ -62,12 +63,19 @@ func findQueueFamilies(device vk.PhysicalDevice, surface vk.Surface) vkQueueFami
 		if (uint32(queueFamilies[i].QueueFlags) & uint32(vulkan_const.QueueGraphicsBit)) != 0 {
 			indices.graphicsFamily = i
 		}
+		if (uint32(queueFamilies[i].QueueFlags) & uint32(vulkan_const.QueueComputeBit)) != 0 {
+			indices.computeFamily = int(i)
+		}
 		presentSupport := vk.Bool32(0)
 		vk.GetPhysicalDeviceSurfaceSupport(device, uint32(i), surface, &presentSupport)
 		if presentSupport != 0 {
 			indices.presentFamily = i
 		}
-		// TODO:  Prefer graphicsFamily & presentFamily in same queue for performance
+		// TODO:  Prefer graphics & compute & present in same queue for performance
+		// TODO:  Prefer graphics & present in same queue for performance
+	}
+	if indices.computeFamily == invalidQueueFamily {
+		indices.computeFamily = indices.graphicsFamily
 	}
 	return indices
 }
