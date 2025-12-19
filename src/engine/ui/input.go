@@ -84,8 +84,8 @@ type inputData struct {
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	isActive                          bool
-	prevFocusInput                    *Input
-	nextFocusInput                    *Input
+	prevFocusInput                    weak.Pointer[Input]
+	nextFocusInput                    weak.Pointer[Input]
 	labelShift                        float32
 }
 
@@ -101,8 +101,8 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
-	next.InputData().prevFocusInput = input
-	input.InputData().nextFocusInput = next
+	next.InputData().prevFocusInput = weak.Make(input)
+	input.InputData().nextFocusInput = weak.Make(next)
 }
 
 func (input *Input) Init(placeholderText string) {
@@ -590,11 +590,17 @@ func (input *Input) changeFocusToAnother(target *Input) {
 }
 
 func (input *Input) focusNext() {
-	input.changeFocusToAnother(input.InputData().nextFocusInput)
+	n := input.InputData().nextFocusInput.Value()
+	if n != nil {
+		input.changeFocusToAnother(n)
+	}
 }
 
 func (input *Input) focusPrevious() {
-	input.changeFocusToAnother(input.InputData().prevFocusInput)
+	p := input.InputData().prevFocusInput.Value()
+	if p != nil {
+		input.changeFocusToAnother(p)
+	}
 }
 
 func (input *Input) Text() string {

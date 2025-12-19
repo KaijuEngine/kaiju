@@ -509,6 +509,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			}
 		}
 	}
+	dui.workspace.Value().Doc.SetupInputTabIndexs()
 }
 
 func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {

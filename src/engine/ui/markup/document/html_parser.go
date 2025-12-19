@@ -710,6 +710,30 @@ func (d *Document) DuplicateElement(elm *Element) *Element {
 	return cpy
 }
 
+func (d *Document) SetupInputTabIndexs() {
+	var lastInput *ui.Input
+	var setupTabs func(e *Element)
+	setupTabs = func(e *Element) {
+		if e.UI == nil || e.IsText() {
+			return
+		}
+		if e.UI.IsType(ui.ElementTypeInput) {
+			input := e.UI.ToInput()
+			if lastInput != nil {
+				lastInput.SetNextFocusedInput(input)
+			}
+			lastInput = input
+		} else {
+			for _, c := range e.Children {
+				setupTabs(c)
+			}
+		}
+	}
+	for _, h := range d.TopElements {
+		setupTabs(h)
+	}
+}
+
 func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
 	if elm.Attribute("id") != "" {
