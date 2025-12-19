@@ -43,12 +43,12 @@ import (
 )
 
 func init() {
-	register("grid", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataGrid{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
-	})
+	}, "grid")
 }
 
 type ShaderDataGrid struct {

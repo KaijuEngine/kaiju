@@ -43,12 +43,12 @@ import (
 )
 
 func init() {
-	register(fallback+"_lit", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataBasicLit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
-	})
+	}, fallback+"_lit")
 }
 
 type ShaderDataBasicLit struct {

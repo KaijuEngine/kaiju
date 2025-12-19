@@ -43,12 +43,12 @@ import (
 )
 
 func init() {
-	register("ed_transform_wire", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataEdTransformWire{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
-	})
+	}, "ed_transform_wire")
 }
 
 type ShaderDataEdTransformWire struct {

@@ -56,11 +56,13 @@ func Create(name string) rendering.DrawInstance {
 	return r()
 }
 
-func register(name string, factory func() rendering.DrawInstance) {
-	_, ok := registry[name]
-	debug.Assert(!ok, fmt.Sprintf("duplicate name '%s' used for shader_data_registry", name))
-	if ok {
-		return
+func register(factory func() rendering.DrawInstance, names ...string) {
+	for _, name := range names {
+		_, ok := registry[name]
+		debug.Assert(!ok, fmt.Sprintf("duplicate name '%s' used for shader_data_registry", name))
+		if ok {
+			return
+		}
+		registry[name] = factory
 	}
-	registry[name] = factory
 }
