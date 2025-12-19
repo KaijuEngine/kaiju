@@ -61,6 +61,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"weak"
@@ -353,6 +354,7 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 	desc.Rotation = parent.Transform.Rotation()
 	desc.Scale = parent.Transform.Scale()
 	desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
+	desc.ShaderData = make([]stages.EntityDescriptionShaderDataField, 0)
 	desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
 	desc.Children = make([]stages.EntityDescription, 0)
 	for _, d := range parent.dataBindings {
@@ -365,6 +367,24 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 		}
 		desc.DataBinding = append(desc.DataBinding, db)
 		desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
+	}
+	if parent.StageData.ShaderData != nil {
+		v := reflect.ValueOf(parent.StageData.ShaderData)
+		for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+			v = v.Elem()
+		}
+		t := v.Type()
+		for i := range t.NumField() {
+			f := t.Field(i)
+			if f.Name == "ShaderDataBase" {
+				continue
+			}
+			desc.ShaderData = append(desc.ShaderData, stages.EntityDescriptionShaderDataField{
+				Name:  f.Name,
+				Index: int32(i),
+				Value: v.Field(i).Interface(),
+			})
+		}
 	}
 	for _, e := range m.entities {
 		if e.isDeleted {
@@ -652,6 +672,12 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 			b.SetFieldByName(k, v)
 		}
 		e.AddDataBinding(b)
+	}
+	if e.StageData.ShaderData != nil {
+		db := entity_data_binding.ToDataBinding("Shader data", e.StageData.ShaderData)
+		for i := range desc.ShaderData {
+			db.SetFieldByName(desc.ShaderData[i].Name, desc.ShaderData[i].Value)
+		}
 	}
 	for i := range desc.Children {
 		if _, err := m.importEntityByDescription(host, proj, e, &desc.Children[i]); err != nil {

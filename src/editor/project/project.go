@@ -78,7 +78,7 @@ type Project struct {
 	settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
-	contentSerializers  map[string]func([]byte) ([]byte, error)
+	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
 	readingCode         bool
 	isCompiling         atomic.Bool
 }
@@ -282,7 +282,7 @@ func (p *Project) packagePath() string {
 	return filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
 }
 
-func (p *Project) Package() error {
+func (p *Project) Package(reader content_archive.FileReader) error {
 	defer tracing.NewRegion("Project.Package").End()
 	outPath := p.packagePath()
 	// TODO:  Needs to use a reference graph to determine all of the content
@@ -319,7 +319,7 @@ func (p *Project) Package() error {
 		Key:     stages.EntryPointAssetKey,
 		RawData: []byte(p.settings.EntryPointStage),
 	})
-	err = content_archive.CreateArchiveFromFiles(outPath,
+	err = content_archive.CreateArchiveFromFiles(reader, outPath,
 		files, []byte(p.settings.ArchiveEncryptionKey))
 	if err != nil {
 		slog.Error("failed to package game content", "error", err)

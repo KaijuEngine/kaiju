@@ -220,10 +220,7 @@ func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingS
 			Metallic:       0,
 			Roughness:      1,
 			Emissive:       0,
-			Light0:         0,
-			Light1:         0,
-			Light2:         0,
-			Light3:         0,
+			LightIds:       [...]int32{0, 0, 0, 0},
 		}
 	})
 	for i := range drawings {

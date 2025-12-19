@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_version.go                                                          */
+/* gob_matrix.go                                                              */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,6 +34,16 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor
+package matrix
 
-const EditorVersion float64 = 0.008
+import "kaiju/engine/runtime/encoding/gob"
+
+func init() {
+	gob.RegisterName("matrix.Vec2", Vec2{})
+	gob.RegisterName("matrix.Vec3", Vec3{})
+	gob.RegisterName("matrix.Vec4", Vec4{})
+	gob.RegisterName("matrix.Color", Color{})
+	gob.RegisterName("matrix.Mat3", Mat3{})
+	gob.RegisterName("matrix.Mat4", Mat4{})
+	gob.RegisterName("matrix.Quaternion", Quaternion{})
+}

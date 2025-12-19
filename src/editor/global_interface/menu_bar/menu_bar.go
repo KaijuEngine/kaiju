@@ -322,7 +322,8 @@ func (b *MenuBar) clickBuildAndroid(*document.Element) {
 	b.hidePopups()
 	bts := b.handler.Settings().BuildTools
 	// goroutine
-	go b.handler.Project().BuildAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+	go b.handler.Project().BuildAndroid(b.uiMan.Host.AssetDatabase(),
+		bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
@@ -330,7 +331,8 @@ func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
 	b.hidePopups()
 	bts := b.handler.Settings().BuildTools
 	// goroutine
-	go b.handler.Project().BuildRunAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+	go b.handler.Project().BuildRunAndroid(b.uiMan.Host.AssetDatabase(),
+		bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickExportProject(*document.Element) {

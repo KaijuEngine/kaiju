@@ -89,7 +89,7 @@ func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
 // exist or cannot be set.
 func (de *EntityDataEntry) SetFieldByName(name string, value any) {
 	f := reflect.ValueOf(de.BoundData).Elem().FieldByName(name)
-	engine.ReflectEntityDataBindingValueFromJson(value, f)
+	engine.ReflectValueFromJson(value, f)
 }
 
 // ReadEntityDataBindingType populates the EntityDataEntry with information

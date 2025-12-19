@@ -66,6 +66,12 @@ type StageJson struct {
 	Entities  []EntityDescriptionJson `json:",omitempty"`
 }
 
+type EntityDescriptionShaderDataField struct {
+	Name  string
+	Index int32
+	Value any
+}
+
 type EntityDescription struct {
 	Id             string
 	TemplateId     string
@@ -78,6 +84,7 @@ type EntityDescription struct {
 	Scale          matrix.Vec3
 	DataBinding    []EntityDataBinding
 	Children       []EntityDescription
+	ShaderData     []EntityDescriptionShaderDataField
 	RawDataBinding []any
 }
 
@@ -93,6 +100,7 @@ type EntityDescriptionJson struct {
 	Scale       matrix.Vec3             `json:"S"`
 	DataBinding []EntityDataBinding     `json:"Data,omitempty"`
 	Children    []EntityDescriptionJson `json:"Kids,omitempty"`
+	ShaderData  map[string]EntityDescriptionShaderDataField
 }
 
 type EntityDataBinding struct {
@@ -160,6 +168,10 @@ func (s *Stage) ToMinimized() StageJson {
 		for i := range from.Textures {
 			to.Textures[i] = texMap[from.Textures[i]]
 		}
+		to.ShaderData = make(map[string]EntityDescriptionShaderDataField)
+		for i := range from.ShaderData {
+			to.ShaderData[from.ShaderData[i].Name] = from.ShaderData[i]
+		}
 		to.Children = make([]EntityDescriptionJson, len(from.Children))
 		for i := range from.Children {
 			proc(&from.Children[i], &to.Children[i])
@@ -190,6 +202,9 @@ func (s *Stage) FromMinimized(ss StageJson) {
 		for i := range from.Textures {
 			to.Textures[i] = ss.Textures[from.Textures[i]]
 		}
+		for _, v := range from.ShaderData {
+			to.ShaderData = append(to.ShaderData, v)
+		}
 		to.Children = make([]EntityDescription, len(from.Children))
 		for i := range from.Children {
 			proc(&from.Children[i], &to.Children[i])
@@ -212,7 +227,7 @@ func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, er
 	return desc, err
 }
 
-func (s *Stage) Launch(host *engine.Host) {
+func (s *Stage) Load(host *engine.Host) {
 	entityBindings := []func(){}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
@@ -233,7 +248,7 @@ func (s *Stage) Launch(host *engine.Host) {
 					nb := reflect.New(reflect.TypeOf(bi)).Elem()
 					for k, v := range se.DataBinding[i].Fields {
 						f := nb.FieldByName(k)
-						engine.ReflectEntityDataBindingValueFromJson(v, f)
+						engine.ReflectValueFromJson(v, f)
 					}
 					reflect.ValueOf(&b).Elem().Set(nb)
 					entityBindings = append(entityBindings, func() {
@@ -342,6 +357,26 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 		ShaderData: sd,
 		Transform:  &e.Transform,
 		ViewCuller: &host.Cameras.Primary,
+	}
+	// TODO:  Keeping this simple reflection for now so that this is flexible
+	// for the future. I want to think this through and not be locked into any
+	// one way of doing things.
+	if len(se.ShaderData) > 0 {
+		v := reflect.ValueOf(sd)
+		for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+			v = v.Elem()
+		}
+		if build.Debug {
+			for i := range se.ShaderData {
+				f := v.Field(int(se.ShaderData[i].Index))
+				engine.ReflectValueFromJson(se.ShaderData[i].Value, f)
+			}
+		} else {
+			for i := range se.ShaderData {
+				f := v.Field(int(se.ShaderData[i].Index))
+				f.Set(reflect.ValueOf(se.ShaderData[i].Value))
+			}
+		}
 	}
 	host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { sd.Destroy() })

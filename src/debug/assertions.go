@@ -52,12 +52,12 @@ func Log(msg string, args ...any) {
 }
 
 func Assert(res bool, msg string) {
-	if build.Debug {
-		if !res {
+	if !res {
+		if build.Debug {
 			panic(msg)
+		} else {
+			slog.Error(msg)
 		}
-	} else {
-		slog.Error(msg)
 	}
 }
 

@@ -163,70 +163,7 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.entitySelected").End()
-	if len(dui.workspace.Value().stageView.Manager().Selection()) > 1 {
-		// TODO:  Support multiple objects being selected here
-		return
-	}
-	dui.detailsArea.Children[0].UI.Show()
-	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
-	p := e.Transform.Position()
-	r := e.Transform.Rotation()
-	s := e.Transform.Scale()
-	dui.detailsPosX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.X(), 3))
-	dui.detailsPosY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Y(), 3))
-	dui.detailsPosZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Z(), 3))
-	dui.detailsRotX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.X(), 3))
-	dui.detailsRotY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Y(), 3))
-	dui.detailsRotZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Z(), 3))
-	dui.detailsScaleX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.X(), 3))
-	dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Y(), 3))
-	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
-	w := dui.workspace.Value()
-	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
-		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
-	}
-	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
-		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
-	}
-	if e.StageData.ShaderData != nil {
-		g := shaderDataToDataBinding("Shader Data", e.StageData.ShaderData)
-		dui.createDataBindingEntry(&g, dui.shaderInstanceDataTemplate)
-	}
-	// TODO:  Multi-select stuff
-	db := e.DataBindings()
-	for _, a := range db {
-		dui.createDataBindingEntry(a, dui.boundEntityDataTemplate)
-	}
-	// Lazy hiding of children
-	if !dui.hideDetailsElm.UI.Entity().IsActive() {
-		dui.showDetails(nil)
-		dui.hideDetails(nil)
-	}
-	dui.detailsArea.UI.Clean()
-}
-
-func shaderDataToDataBinding(name string, target any) entity_data_binding.EntityDataEntry {
-	var g entity_data_binding.EntityDataEntry
-	g.Name = name
-	v := reflect.ValueOf(target)
-	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-	t := v.Type()
-	g.Fields = make([]entity_data_binding.EntityDataField, t.NumField())
-	g.BoundData = target
-	for i := range t.NumField() {
-		f := t.Field(i)
-		fieldValue := v.Field(i)
-		g.Fields[i] = entity_data_binding.EntityDataField{
-			Idx:   i,
-			Name:  f.Name,
-			Type:  f.Type.Name(),
-			Value: fieldValue.Interface(),
-		}
-		g.Gen.FieldGens = append(g.Gen.FieldGens, codegen.GeneratedType{})
-	}
-	return g
+	dui.reload()
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
@@ -584,6 +521,56 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
 	}
 	return true
+}
+
+func (dui *WorkspaceDetailsUI) reload() {
+	defer tracing.NewRegion("WorkspaceDetailsUI.reload").End()
+	sel := dui.workspace.Value().stageView.Manager().Selection()
+	if len(sel) == 0 {
+		dui.detailsArea.Children[0].UI.Hide()
+		return
+	}
+	dui.detailsArea.Children[0].UI.Show()
+	if len(sel) > 1 {
+		// TODO:  Support multiple objects being selected here
+		return
+	}
+	e := sel[0]
+	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
+	p := e.Transform.Position()
+	r := e.Transform.Rotation()
+	s := e.Transform.Scale()
+	dui.detailsPosX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.X(), 3))
+	dui.detailsPosY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Y(), 3))
+	dui.detailsPosZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Z(), 3))
+	dui.detailsRotX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.X(), 3))
+	dui.detailsRotY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Y(), 3))
+	dui.detailsRotZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Z(), 3))
+	dui.detailsScaleX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.X(), 3))
+	dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Y(), 3))
+	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
+	w := dui.workspace.Value()
+	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
+		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
+	}
+	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
+		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
+	}
+	if e.StageData.ShaderData != nil {
+		g := entity_data_binding.ToDataBinding("Shader Data", e.StageData.ShaderData)
+		dui.createDataBindingEntry(&g, dui.shaderInstanceDataTemplate)
+	}
+	// TODO:  Multi-select stuff
+	db := e.DataBindings()
+	for _, a := range db {
+		dui.createDataBindingEntry(a, dui.boundEntityDataTemplate)
+	}
+	// Lazy hiding of children
+	if !dui.hideDetailsElm.UI.Entity().IsActive() {
+		dui.showDetails(nil)
+		dui.hideDetails(nil)
+	}
+	dui.detailsArea.UI.Clean()
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {

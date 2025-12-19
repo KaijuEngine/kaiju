@@ -163,7 +163,7 @@ func (Game) Launch(host *engine.Host) {
 		}
 	}
 	host.SetGame(game_host.NewGameHost())
-	s.Launch(host)
+	s.Load(host)
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }

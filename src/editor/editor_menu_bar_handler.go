@@ -94,7 +94,7 @@ func (ed *Editor) Build(buildMode project.GameBuildMode) {
 	// goroutine
 	go ed.project.CompileGame(buildMode)
 	// goroutine
-	go ed.project.Package()
+	go ed.project.Package(ed.host.AssetDatabase())
 }
 
 func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
@@ -110,7 +110,7 @@ func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 	}()
 	// goroutine
 	go func() {
-		ed.project.Package()
+		ed.project.Package(ed.host.AssetDatabase())
 		wg.Done()
 	}()
 	// goroutine
@@ -136,7 +136,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 	}()
 	// goroutine
 	go func() {
-		ed.project.Package()
+		ed.project.Package(ed.host.AssetDatabase())
 		wg.Done()
 	}()
 	// goroutine

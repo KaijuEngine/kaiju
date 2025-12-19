@@ -65,7 +65,7 @@ func RegisterEntityData(name string, value EntityData) error {
 	return err
 }
 
-func ReflectEntityDataBindingValueFromJson(v any, f reflect.Value) {
+func ReflectValueFromJson(v any, f reflect.Value) {
 	switch f.Kind() {
 	case reflect.Array:
 		fallthrough
