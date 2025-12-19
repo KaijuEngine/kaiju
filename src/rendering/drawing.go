@@ -166,6 +166,11 @@ func (d *Drawings) PreparePending() {
 func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	if p := drawing.Material.PrepassMaterial.Value(); p != nil {
+		cpy := drawing
+		cpy.Material = p
+		d.backDraws = append(d.backDraws, cpy)
+	}
 	d.backDraws = append(d.backDraws, drawing)
 	if drawing.Material == nil {
 		panic("no")
@@ -175,6 +180,13 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	for i := range drawings {
+		if p := drawings[i].Material.PrepassMaterial.Value(); p != nil {
+			cpy := drawings[i]
+			cpy.Material = p
+			d.backDraws = append(d.backDraws, cpy)
+		}
+	}
 	d.backDraws = append(d.backDraws, drawings...)
 	for i := range drawings {
 		if drawings[i].Material == nil {

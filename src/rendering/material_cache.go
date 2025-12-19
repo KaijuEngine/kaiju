@@ -43,13 +43,15 @@ import (
 	"log/slog"
 	"path/filepath"
 	"sync"
+	"weak"
 )
 
 type MaterialCache struct {
-	renderer      Renderer
-	assetDatabase assets.Database
-	materials     map[string]*Material
-	mutex         sync.Mutex
+	renderer       Renderer
+	assetDatabase  assets.Database
+	materials      map[string]*Material
+	mutex          sync.Mutex
+	loadingPrepass bool
 }
 
 func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache {
@@ -57,7 +59,6 @@ func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) Material
 		renderer:      renderer,
 		assetDatabase: assetDatabase,
 		materials:     make(map[string]*Material),
-		mutex:         sync.Mutex{},
 	}
 }
 
@@ -87,10 +88,11 @@ func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
 func (m *MaterialCache) Material(key string) (*Material, error) {
 	defer tracing.NewRegion("MaterialCache.Material").End()
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	if material, ok := m.materials[key]; ok {
+		m.mutex.Unlock()
 		return material, nil
 	} else {
+		m.mutex.Unlock()
 		matStr, err := m.assetDatabase.ReadText(key)
 		if err != nil {
 			key = filepath.Join(key + ".material")
@@ -110,8 +112,18 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
+		if materialData.PrepassMaterial != "" {
+			prep, err := m.Material(materialData.PrepassMaterial)
+			if err != nil {
+				slog.Error("failed to create the material prepass", "prepass", materialData.PrepassMaterial, "error", err)
+				return nil, err
+			}
+			material.PrepassMaterial = weak.Make(prep)
+		}
 		material.Id = key
+		m.mutex.Lock()
 		m.materials[materialData.Name] = material
+		m.mutex.Unlock()
 		return material, nil
 	}
 }

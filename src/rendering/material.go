@@ -57,6 +57,7 @@ type Material struct {
 	Textures        []*Texture
 	Instances       map[string]*Material
 	Root            weak.Pointer[Material]
+	PrepassMaterial weak.Pointer[Material]
 	mutex           sync.Mutex
 	IsLit           bool
 	ReceivesShadows bool
@@ -85,6 +86,7 @@ type MaterialData struct {
 	RenderPass      string `options:""`                  // Blank = fallback
 	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
 	Textures        []MaterialTextureData
+	PrepassMaterial string
 	IsLit           bool
 	ReceivesShadows bool
 	CastsShadows    bool
