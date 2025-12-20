@@ -373,6 +373,9 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
+		for _, c := range fields[i].Children {
+			c.UI.Hide()
+		}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
 				continue
@@ -381,9 +384,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
 		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		nameSpan := fields[i].Children[0]
-		for _, c := range fields[i].Children[1:] {
-			c.UI.Hide()
-		}
+		nameSpan.UI.Show()
 		textInput := fields[i].Children[1]
 		checkInput := fields[i].Children[2]
 		vec2Input := fields[i].Children[3]
