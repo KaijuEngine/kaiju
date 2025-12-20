@@ -37,7 +37,6 @@
 package content_database
 
 import (
-	"errors"
 	"io/fs"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/systems/events"
@@ -116,14 +115,14 @@ func (c *Cache) Rename(id, newName string, pfs *project_file_system.FileSystem) 
 		return cc, err
 	}
 	if cc.Config.Name == newName {
-		return cc, errors.New("name already matches new name, nothing to do")
+		return cc, CacheContentNameEqual
 	}
 	cc.Config.Name = newName
 	if err := WriteConfig(cc.Path, cc.Config, pfs); err != nil {
 		slog.Error("failed to update the content config file", "id", id, "error", err)
 		return cc, err
 	}
-	c.indexCachedContent(cc)
+	c.IndexCachedContent(cc)
 	return cc, nil
 }
 
@@ -253,11 +252,11 @@ func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 		Path:   path,
 		Config: cfg,
 	}
-	c.indexCachedContent(cc)
+	c.IndexCachedContent(cc)
 	return nil
 }
 
-func (c *Cache) indexCachedContent(cc CachedContent) {
+func (c *Cache) IndexCachedContent(cc CachedContent) {
 	if idx, ok := c.lookup[cc.Id()]; ok {
 		c.cache[idx] = cc
 	} else {

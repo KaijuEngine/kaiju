@@ -84,7 +84,7 @@ func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_s
 		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
 		return ids
 	}
-	cache.Index(cc.Path, fs)
+	cache.IndexCachedContent(cc)
 	return ids
 }
 

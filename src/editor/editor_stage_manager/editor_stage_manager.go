@@ -576,10 +576,7 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 			slog.Warn("failed to update the name for the template", "error", err)
 			return nil
 		}
-		if err = cache.Index(c.Path, fs); err != nil {
-			slog.Warn("failed to update the name for the template", "error", err)
-			return nil
-		}
+		cache.IndexCachedContent(c)
 	}
 	return nil
 }

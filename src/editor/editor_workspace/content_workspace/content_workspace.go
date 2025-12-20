@@ -507,7 +507,7 @@ func (w *ContentWorkspace) submitName(e *document.Element) {
 		for i := range w.selectedContent {
 			w.selectedContent[i].Children[1].InnerLabel().SetText(name)
 		}
-		w.cache.Index(cc.Path, w.pfs)
+		w.cache.IndexCachedContent(cc)
 		w.editor.Events().OnContentRenamed.Execute(id)
 	}
 }
@@ -735,11 +735,10 @@ func (w *ContentWorkspace) runFilter() {
 
 func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
 	defer tracing.NewRegion("ContentWorkspace.updateIndexForCachedContent").End()
-	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
-	if err := w.cache.Index(cc.Path, w.pfs); err != nil {
-		slog.Error("failed to index the content after updating tags", "error", err)
+	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
 		return err
 	}
+	w.cache.IndexCachedContent(*cc)
 	return nil
 }
 

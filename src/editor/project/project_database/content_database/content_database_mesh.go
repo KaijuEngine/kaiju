@@ -38,6 +38,7 @@ package content_database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
@@ -223,9 +224,9 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	if err != nil {
 		return err
 	}
-	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
-	if err := WriteConfig(ccMat.Path, ccMat.Config, fs); err != nil {
+	_, err = cache.Rename(ccMat.Id(), fmt.Sprintf("%s_mat", cc.Config.Name), fs)
+	if !errors.Is(err, CacheContentNameEqual) {
 		return err
 	}
-	return cache.Index(ccMat.Path, fs)
+	return nil
 }
