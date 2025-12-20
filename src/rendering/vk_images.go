@@ -172,30 +172,27 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 	samplerInfo.SType = vulkan_const.StructureTypeSamplerCreateInfo
 	samplerInfo.MagFilter = filter
 	samplerInfo.MinFilter = filter
+	switch filter {
+	case vulkan_const.FilterNearest:
+		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeNearest
+		samplerInfo.AnisotropyEnable = vulkan_const.False
+	case vulkan_const.FilterCubicImg:
+		fallthrough
+	case vulkan_const.FilterLinear:
+		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeLinear
+		samplerInfo.AnisotropyEnable = vulkan_const.True
+	}
 	samplerInfo.AddressModeU = vulkan_const.SamplerAddressModeRepeat
 	samplerInfo.AddressModeV = vulkan_const.SamplerAddressModeRepeat
 	samplerInfo.AddressModeW = vulkan_const.SamplerAddressModeRepeat
-	if filter == vulkan_const.FilterNearest {
-		samplerInfo.AnisotropyEnable = vulkan_const.False
-	} else {
-		samplerInfo.AnisotropyEnable = vulkan_const.False
-	}
 	samplerInfo.MaxAnisotropy = properties.Limits.MaxSamplerAnisotropy
 	samplerInfo.BorderColor = vulkan_const.BorderColorIntOpaqueBlack
 	samplerInfo.UnnormalizedCoordinates = vulkan_const.False
 	samplerInfo.CompareEnable = vulkan_const.False
 	samplerInfo.CompareOp = vulkan_const.CompareOpAlways
-	switch filter {
-	case vulkan_const.FilterNearest:
-		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeNearest
-	case vulkan_const.FilterCubicImg:
-		fallthrough
-	case vulkan_const.FilterLinear:
-		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeLinear
-	}
 	samplerInfo.MipLodBias = 0.0
 	samplerInfo.MinLod = 0.0
-	samplerInfo.MaxLod = float32(mipLevels)
+	samplerInfo.MaxLod = float32(mipLevels + 1)
 	var localSampler vk.Sampler
 	if vk.CreateSampler(vr.device, &samplerInfo, nil, &localSampler) != vulkan_const.Success {
 		slog.Error("Failed to create texture sampler")
