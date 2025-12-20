@@ -500,14 +500,8 @@ func (w *ContentWorkspace) submitName(e *document.Element) {
 	}
 	ids := w.selectedIds()
 	for _, id := range ids {
-		cc, err := w.cache.Read(id)
+		cc, err := w.cache.Rename(id, name, w.pfs)
 		if err != nil {
-			slog.Error("failed to find the content by id", "id", id, "error", err)
-			continue
-		}
-		cc.Config.Name = name
-		if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
-			slog.Error("failed to update the content config file", "id", id, "error", err)
 			continue
 		}
 		for i := range w.selectedContent {

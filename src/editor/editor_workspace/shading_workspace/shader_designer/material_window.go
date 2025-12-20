@@ -50,6 +50,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"weak"
 )
 
 func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *content_database.Cache, cat content_database.ContentCategory) []ui.SelectOption {
@@ -112,6 +113,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["Texture"] = collectTextureOptions(pfs, cache)
 	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
+	data.GroupName = win.material.name
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showMaterialTooltip,
@@ -120,6 +122,8 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 			"removeFromSlice": win.materialRemoveFromSlice,
 			"saveData":        win.materialSave,
 		})
+	input, _ := win.materialDoc.GetElementById("nameInput")
+	win.nameInputField = weak.Make(input)
 	if sy != 0 {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
 		win.uiMan.Host.RunAfterFrames(2, func() {
@@ -159,6 +163,7 @@ func loadMaterialData(path string) (rendering.MaterialData, bool) {
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {
+	win.material.name = win.nameInputField.Value().UI.ToInput().Text()
 	win.material.RenderPass = filepath.ToSlash(win.material.RenderPass)
 	win.material.Shader = filepath.ToSlash(win.material.Shader)
 	win.material.ShaderPipeline = filepath.ToSlash(win.material.ShaderPipeline)
@@ -173,8 +178,11 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 	if win.material.id != "" {
 		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
 			project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
+		if _, err := win.ed.Cache().Rename(win.material.id, win.material.name, win.ed.ProjectFileSystem()); err == nil {
+			win.ed.Events().OnContentRenamed.Execute(win.material.id)
+		}
 	} else {
-		ids := content_database.ImportRaw(win.material.Name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		ids := content_database.ImportRaw(win.material.name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
 		if len(ids) > 0 {
 			win.material.id = ids[0]
 			win.ed.Events().OnContentAdded.Execute(ids)

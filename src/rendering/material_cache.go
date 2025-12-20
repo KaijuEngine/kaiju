@@ -41,7 +41,6 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
-	"path/filepath"
 	"sync"
 	"weak"
 )
@@ -66,8 +65,8 @@ func (m *MaterialCache) AddMaterial(material *Material) *Material {
 	defer tracing.NewRegion("MaterialCache.AddMaterial").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if found, ok := m.materials[material.Name]; !ok {
-		m.materials[material.Name] = material
+	if found, ok := m.materials[material.Id]; !ok {
+		m.materials[material.Id] = material
 		return material
 	} else {
 		return found
@@ -95,10 +94,6 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		m.mutex.Unlock()
 		matStr, err := m.assetDatabase.ReadText(key)
 		if err != nil {
-			key = filepath.Join(key + ".material")
-			matStr, err = m.assetDatabase.ReadText(key)
-		}
-		if err != nil {
 			slog.Error("failed to load the material", "material", key, "error", err)
 			return nil, err
 		}
@@ -122,7 +117,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		}
 		material.Id = key
 		m.mutex.Lock()
-		m.materials[materialData.Name] = material
+		m.materials[key] = material
 		m.mutex.Unlock()
 		return material, nil
 	}

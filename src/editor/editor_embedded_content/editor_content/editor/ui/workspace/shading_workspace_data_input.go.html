@@ -171,6 +171,12 @@
 		<div class="rightPanel edPanelBg">
 			<div class="topFields">
 				<h1>{{.Name}}</h1>
+				{{if eq .Name "Material Editor"}}
+				<div class="inputItem">
+					<div class="inputLabel">Name:</div>
+					<input id="nameInput" class="input" type="text" placeholder="Name..." value="{{.GroupName}}" />
+				</div>
+				{{end}}
 				{{template "section" .}}
 				<button class="inputButtonWide" onclick="saveData">Save</button>
 				{{if eq .Name "Shader Editor"}}

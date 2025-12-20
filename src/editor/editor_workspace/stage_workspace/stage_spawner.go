@@ -243,7 +243,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	}
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
-	e.StageData.Description.Material = mat.Name
+	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
 	// Set the position after generating the BVH
 	e.Transform.SetPosition(point)

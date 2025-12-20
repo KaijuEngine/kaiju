@@ -37,11 +37,13 @@
 package content_database
 
 import (
+	"errors"
 	"io/fs"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -106,6 +108,23 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 	} else {
 		return c.cache[idx], nil
 	}
+}
+
+func (c *Cache) Rename(id, newName string, pfs *project_file_system.FileSystem) (CachedContent, error) {
+	cc, err := c.Read(id)
+	if err != nil {
+		return cc, err
+	}
+	if cc.Config.Name == newName {
+		return cc, errors.New("name already matches new name, nothing to do")
+	}
+	cc.Config.Name = newName
+	if err := WriteConfig(cc.Path, cc.Config, pfs); err != nil {
+		slog.Error("failed to update the content config file", "id", id, "error", err)
+		return cc, err
+	}
+	c.indexCachedContent(cc)
+	return cc, nil
 }
 
 func (c *Cache) ListByType(typeName string) []CachedContent {
@@ -234,13 +253,17 @@ func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 		Path:   path,
 		Config: cfg,
 	}
+	c.indexCachedContent(cc)
+	return nil
+}
+
+func (c *Cache) indexCachedContent(cc CachedContent) {
 	if idx, ok := c.lookup[cc.Id()]; ok {
 		c.cache[idx] = cc
 	} else {
 		c.cache = append(c.cache, cc)
 		c.lookup[cc.Id()] = len(c.cache) - 1
 	}
-	return nil
 }
 
 // Remove will delete an entry from the cache (not the config), it is useful

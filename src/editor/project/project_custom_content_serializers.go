@@ -106,7 +106,7 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 			if err != nil {
 				return
 			}
-			var sh rendering.MaterialData
+			var sh rendering.ShaderData
 			err = json.Unmarshal(s, &sh)
 			if err != nil {
 				return

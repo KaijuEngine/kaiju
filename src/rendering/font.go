@@ -202,7 +202,7 @@ func (cache *FontCache) TransparentMaterial(target *Material) *Material {
 		target == cache.textOrthoMaterialTransparent.SelectRoot() {
 		return target
 	}
-	slog.Error("invalid material used for getting transparent text material", "material", target.Name)
+	slog.Error("invalid material used for getting transparent text material", "material", target.Id)
 	return nil
 }
 
@@ -425,19 +425,19 @@ func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches Rend
 	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
 	mc := caches.MaterialCache()
-	if cache.textMaterial, err = mc.Material("text3d"); err != nil {
+	if cache.textMaterial, err = mc.Material(assets.MaterialDefinitionText3D); err != nil {
 		slog.Error("failed to load the text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterial, err = mc.Material("text"); err != nil {
+	if cache.textOrthoMaterial, err = mc.Material(assets.MaterialDefinitionText); err != nil {
 		slog.Error("failed to load the text material", "error", err)
 		return err
 	}
-	if cache.textMaterialTransparent, err = mc.Material("text3d_transparent"); err != nil {
+	if cache.textMaterialTransparent, err = mc.Material(assets.MaterialDefinitionText3DTransparent); err != nil {
 		slog.Error("failed to load the transparent text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterialTransparent, err = mc.Material("text_transparent"); err != nil {
+	if cache.textOrthoMaterialTransparent, err = mc.Material(assets.MaterialDefinitionTextTransparent); err != nil {
 		slog.Error("failed to load the transparent text material", "error", err)
 		return err
 	}

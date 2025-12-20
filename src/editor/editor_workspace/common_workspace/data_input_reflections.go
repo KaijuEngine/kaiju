@@ -51,8 +51,9 @@ import (
 )
 
 type DataUISection struct {
-	Name   string
-	Fields []DataUISectionField
+	Name      string
+	GroupName string // This is added just for material window, maybe better way?
+	Fields    []DataUISectionField
 }
 
 type DataUISectionField struct {

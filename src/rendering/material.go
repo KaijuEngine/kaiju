@@ -49,7 +49,6 @@ import (
 
 type Material struct {
 	Id              string
-	Name            string
 	shaderInfo      ShaderDataCompiled
 	renderPass      *RenderPass
 	pipelineInfo    ShaderPipelineDataCompiled
@@ -65,7 +64,7 @@ type Material struct {
 }
 
 func (m *Material) HasTransparentSuffix() bool {
-	return strings.HasSuffix(m.Name, "_transparent")
+	return strings.Contains(m.Id, "_transparent")
 }
 
 func (m *Material) SelectRoot() *Material {
@@ -81,7 +80,6 @@ type MaterialTextureData struct {
 }
 
 type MaterialData struct {
-	Name            string
 	Shader          string `options:""`                  // Blank = fallback
 	RenderPass      string `options:""`                  // Blank = fallback
 	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
@@ -134,7 +132,6 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		Name:            d.Name,
 		Textures:        make([]*Texture, len(d.Textures)),
 		Instances:       make(map[string]*Material),
 		IsLit:           d.IsLit,
@@ -160,7 +157,7 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 			vr.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {
-			slog.Error("failed to load the render pass for the material", "material", d.Name, "renderPass", rp.Name)
+			slog.Error("failed to load the render pass for the material", "renderPass", rp.Name)
 		}
 	} else {
 		c.renderPass = pass

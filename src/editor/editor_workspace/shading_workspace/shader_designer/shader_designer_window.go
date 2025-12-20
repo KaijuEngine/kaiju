@@ -42,6 +42,7 @@ import (
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
 	"slices"
+	"weak"
 )
 
 const (
@@ -75,7 +76,8 @@ type ShaderDesignerShaderPipeline struct {
 
 type ShaderDesignerMaterial struct {
 	rendering.MaterialData
-	id string
+	id   string
+	name string
 }
 
 type ShaderDesigner struct {
@@ -89,6 +91,7 @@ type ShaderDesigner struct {
 	pipelineDoc       *document.Document
 	renderPassDoc     *document.Document
 	materialDoc       *document.Document
+	nameInputField    weak.Pointer[document.Element]
 	uiMan             *ui.Manager
 	ed                ShaderDesignerEditorInterface
 	state             ShaderDesignerState
@@ -227,6 +230,11 @@ func (win *ShaderDesigner) ShowPipelineWindow(id string, data rendering.ShaderPi
 func (win *ShaderDesigner) ShowMaterialWindow(id string, data rendering.MaterialData) {
 	win.resetDataValues()
 	win.material.id = id
+	if id != "" {
+		if cc, err := win.ed.Cache().Read(id); err == nil {
+			win.material.name = cc.Config.Name
+		}
+	}
 	win.material.MaterialData = data
 	win.ChangeWindowState(StateMaterial)
 }
