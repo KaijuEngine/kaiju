@@ -97,7 +97,9 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 	s.Parse(cssStr, window)
 	for i := range doc.HeadElements {
 		if doc.HeadElements[i].Data == "style" {
-			s.Parse(doc.HeadElements[i].Children[0].Data, window)
+			if len(doc.HeadElements[i].Children) > 0 {
+				s.Parse(doc.HeadElements[i].Children[0].Data, window)
+			}
 		} else if doc.HeadElements[i].Data == "link" {
 			if doc.HeadElements[i].Attribute("rel") == "stylesheet" {
 				cssPath := doc.HeadElements[i].Attribute("href")
