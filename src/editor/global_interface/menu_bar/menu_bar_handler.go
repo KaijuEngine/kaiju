@@ -56,6 +56,7 @@ type MenuBarHandler interface {
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
 	ShadingWorkspaceSelected()
+	VfxWorkspaceSelected()
 	UIWorkspaceSelected()
 	SettingsWorkspaceSelected()
 	StageView() *editor_stage_view.StageView

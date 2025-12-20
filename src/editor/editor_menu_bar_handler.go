@@ -73,6 +73,10 @@ func (ed *Editor) ShadingWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateShading)
 }
 
+func (ed *Editor) VfxWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateVfx)
+}
+
 // UIWorkspaceSelected will inform the editor that the developer has changed to
 // the ui workspace. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].

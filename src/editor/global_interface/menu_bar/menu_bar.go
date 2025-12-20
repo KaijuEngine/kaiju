@@ -77,6 +77,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickStage":               b.clickStage,
 			"clickContent":             b.clickContent,
 			"clickShading":             b.clickShading,
+			"clickVfx":                 b.clickVfx,
 			"clickAnimation":           b.clickAnimation,
 			"clickUI":                  b.clickUI,
 			"clickSettings":            b.clickSettings,
@@ -130,6 +131,11 @@ func (b *MenuBar) SetWorkspaceContent() {
 
 func (b *MenuBar) SetWorkspaceShading() {
 	t, _ := b.doc.GetElementById("tabShading")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceVfx() {
+	t, _ := b.doc.GetElementById("tabVfx")
 	b.selectTab(t)
 }
 
@@ -188,6 +194,12 @@ func (b *MenuBar) clickShading(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickShading").End()
 	b.selectTab(e)
 	b.handler.ShadingWorkspaceSelected()
+}
+
+func (b *MenuBar) clickVfx(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickAnimation").End()
+	b.selectTab(e)
+	b.handler.VfxWorkspaceSelected()
 }
 
 func (b *MenuBar) clickAnimation(e *document.Element) {
