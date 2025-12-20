@@ -45,6 +45,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
@@ -352,12 +353,24 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 		ui.Show()
 	}
 	host := cui.workspace.Value().Host
+	win := host.Window
+	p := win.Mouse.ScreenPosition()
+	// Offsetting the box so the mouse doesn't collide with it easily
+	const xOffset, yOffset = 10, 20
+	const statusBarYBuffer = 20
+	x := p.X() + xOffset
+	y := p.Y() + yOffset
+	ps := ui.Layout().PixelSize()
+	if x+ps.Width() > matrix.Float(win.Width()) {
+		x = p.X() - ps.Width() - xOffset
+	}
+	if y+ps.Height()+statusBarYBuffer > matrix.Float(win.Height()) {
+		y = p.Y() - ps.Height() - yOffset
+	}
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	host.RunOnMainThread(func() {
-		p := host.Window.Mouse.ScreenPosition()
-		// Offsetting the box so the mouse doesn't collide with it easily
-		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+		ui.Layout().SetOffset(x, y)
 	})
 }
 
