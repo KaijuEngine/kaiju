@@ -150,6 +150,14 @@ type TextureData struct {
 	Dimensions     TextureDimensions
 }
 
+type transparencyReadState int
+
+const (
+	transparencyReadStateNone transparencyReadState = iota
+	transparencyReadStateRead
+	transparencyReadStateFound
+)
+
 type Texture struct {
 	Key               string
 	TexturePixelCache []byte
@@ -161,6 +169,7 @@ type Texture struct {
 	Height            int
 	CacheInvalid      bool
 	pendingData       *TextureData
+	hasTransparency   transparencyReadState
 }
 
 func TextureKeys(textures []*Texture) []string {
@@ -336,6 +345,27 @@ func (t *Texture) Reload(renderer Renderer, assetDb assets.Database) error {
 		}
 	}
 	return errors.New("texture does not exist")
+}
+
+func (t *Texture) triedToReadTransparency() bool {
+	return t.hasTransparency != transparencyReadStateNone
+}
+
+func (t *Texture) ReadPendingDataForTransparency() bool {
+	if t.hasTransparency == transparencyReadStateFound {
+		return true
+	}
+	if t.triedToReadTransparency() || t.pendingData == nil {
+		return false
+	}
+	t.hasTransparency = transparencyReadStateRead
+	for i := 0; i < len(t.pendingData.Mem); i += 4 {
+		if t.pendingData.Mem[i] != 255 {
+			t.hasTransparency = transparencyReadStateFound
+			break
+		}
+	}
+	return t.hasTransparency == transparencyReadStateFound
 }
 
 func (t *Texture) DelayedCreate(renderer Renderer) {

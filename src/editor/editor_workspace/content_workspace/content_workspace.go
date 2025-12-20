@@ -263,9 +263,13 @@ func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_datab
 				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
+			// This has to happen before delayed create to have access to the texture data
+			isTransparent := tex.ReadPendingDataForTransparency()
 			w.Host.RunOnMainThread(func() {
-				tex.DelayedCreate(w.Host.Window.Renderer)
 				img.SetBackground(tex)
+				if isTransparent {
+					img.SetUseBlending(true)
+				}
 			})
 		}()
 	}
