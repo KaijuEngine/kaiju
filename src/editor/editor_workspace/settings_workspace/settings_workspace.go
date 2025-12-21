@@ -134,7 +134,7 @@ func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
-	w.pluginSettingsBox.UI.Show()
+	w.pluginSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
