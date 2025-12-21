@@ -79,7 +79,7 @@ func (v *StageView) Initialize(host *engine.Host, ed editor_workspace.StageWorks
 	defer tracing.NewRegion("StageView.Initialize").End()
 	v.manager.Initialize(host, ed.History(), ed)
 	v.host = host
-	v.loadLatestOpenStage(ed)
+	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
@@ -219,11 +219,9 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 	}
 }
 
-func (v *StageView) loadLatestOpenStage(ed editor_workspace.StageWorkspaceEditorInterface) {
+func (v *StageView) LoadLatestOpenStage(ed editor_workspace.StageWorkspaceEditorInterface) {
 	pj := ed.Project()
 	if pj.Settings.EditorSettings.LatestOpenStage != "" {
 		v.manager.LoadStage(pj.Settings.EditorSettings.LatestOpenStage, v.host, ed.Cache(), pj)
-	} else {
-		v.manager.NewStage()
 	}
 }

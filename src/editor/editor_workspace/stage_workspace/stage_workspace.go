@@ -66,6 +66,7 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.Stage
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = sv
+	w.stageView.Initialize(host, ed)
 	w.pageData.SetupUIData(w.ed.Cache(), sv.Camera().ModeString())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
@@ -79,7 +80,7 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.Stage
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
 	w.initLLMActions()
-	w.stageView.Initialize(host, ed)
+	w.stageView.LoadLatestOpenStage(ed)
 }
 
 func (w *StageWorkspace) Open() {
