@@ -92,6 +92,11 @@ func (de *EntityDataEntry) SetFieldByName(name string, value any) {
 	engine.ReflectValueFromJson(value, f)
 }
 
+func (de *EntityDataEntry) SetField(idx int, value any) {
+	f := reflect.ValueOf(de.BoundData).Elem().Field(idx)
+	engine.ReflectValueFromJson(value, f)
+}
+
 // ReadEntityDataBindingType populates the EntityDataEntry with information
 // from the provided GeneratedType. It sets the entry's name, generated
 // type reference, and creates a slice of EntityDataField values for each
@@ -141,6 +146,26 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *E
 	}
 	de.BoundData = v.Interface()
 	return de
+}
+
+func (de *EntityDataEntry) RunTagParserOnField(fieldIndex int) bool {
+	if fieldIndex < 0 {
+		return false
+	}
+	t := reflect.ValueOf(de.BoundData).Elem().Type()
+	if fieldIndex >= t.NumField() {
+		return false
+	}
+	f := t.Field(fieldIndex)
+	if string(f.Tag) != "" {
+		for k, fn := range tagParsers {
+			if v, ok := f.Tag.Lookup(k); ok {
+				fn(&de.Fields[fieldIndex], v)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // FieldNumberAsString returns the numeric value of the field at the given

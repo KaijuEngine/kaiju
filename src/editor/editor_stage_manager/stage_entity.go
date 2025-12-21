@@ -106,5 +106,11 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 		Transform:  &e.Transform,
 		ViewCuller: &manager.host.Cameras.Primary,
 	}
+	db := entity_data_binding.ToDataBinding("", e.StageData.ShaderData)
+	for i := range db.Fields {
+		if db.RunTagParserOnField(i) {
+			db.SetField(i, db.Fields[i].Value)
+		}
+	}
 	manager.host.Drawings.AddDrawing(draw)
 }
