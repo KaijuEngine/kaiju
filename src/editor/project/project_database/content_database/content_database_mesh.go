@@ -68,7 +68,7 @@ type MeshConfig struct{}
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
 func (Mesh) TypeName() string   { return "mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb"} }
+func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Import").End()
@@ -84,6 +84,14 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			return p, err
 		}
 		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
+			return p, err
+		}
+	case ".obj":
+		adb, err := assets.NewFileDatabase(filepath.Dir(src))
+		if err != nil {
+			return p, err
+		}
+		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
 	}
