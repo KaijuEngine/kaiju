@@ -299,6 +299,7 @@ func (ed *Editor) saveNewStage(name string) {
 
 func (ed *Editor) openCodeEditor(path string) {
 	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	// TODO:  If this is a file path, the space split won't be enough
 	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
 	command := fullArgs[0]
 	var args []string

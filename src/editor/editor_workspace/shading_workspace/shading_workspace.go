@@ -116,6 +116,62 @@ func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
+func (w *ShadingWorkspace) OpenSpec(id string) {
+	defer tracing.NewRegion("ShadingWorkspace.OpenSpec").End()
+	if id == "" {
+		return
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		slog.Error("failed to read the config for content", "id", id, "error", err)
+		return
+	}
+	w.designer.ChangeWindowState(shader_designer.StateNone)
+	data, err := w.ed.ProjectFileSystem().ReadFile(content_database.ToContentPath(cc.Path))
+	if err != nil {
+		slog.Error("failed to read the "+cc.Config.Type+" content", "id", id, "error", err)
+		return
+	}
+	if cc.Config.Type == (content_database.Material{}).TypeName() {
+		d := rendering.MaterialData{}
+		if err := json.Unmarshal(data, &d); err != nil {
+			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
+			return
+		}
+		w.designer.ShowMaterialWindow(id, d)
+	} else if cc.Config.Type == (content_database.Shader{}).TypeName() {
+		d := rendering.ShaderData{}
+		if err := json.Unmarshal(data, &d); err != nil {
+			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
+			return
+		}
+		w.designer.ShowShaderWindow(id, d)
+	} else if cc.Config.Type == (content_database.ShaderPipeline{}).TypeName() {
+		d := rendering.ShaderPipelineData{}
+		if err := json.Unmarshal(data, &d); err != nil {
+			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
+			return
+		}
+		w.designer.ShowPipelineWindow(id, d)
+	} else if cc.Config.Type == (content_database.RenderPass{}).TypeName() {
+		d := rendering.RenderPassData{}
+		if err := json.Unmarshal(data, &d); err != nil {
+			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
+			return
+		}
+		w.designer.ShowRenderPassWindow(id, d)
+	}
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	for _, e := range elm.Parent.Value().Children {
+		w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable")
+	}
+	w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable", "selected")
+	w.Doc.ApplyStyles()
+}
+
 func (w *ShadingWorkspace) update(deltaTime float64) {
 	defer tracing.NewRegion("ShadingWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
@@ -201,52 +257,7 @@ func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
 
 func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
 	defer tracing.NewRegion("ShadingWorkspace.selectSpec").End()
-	id := elm.Attribute("id")
-	cc, err := w.ed.Cache().Read(id)
-	if err != nil {
-		slog.Error("failed to read the config for content", "id", id, "error", err)
-		return
-	}
-	w.designer.ChangeWindowState(shader_designer.StateNone)
-	data, err := w.ed.ProjectFileSystem().ReadFile(content_database.ToContentPath(cc.Path))
-	if err != nil {
-		slog.Error("failed to read the "+cc.Config.Type+" content", "id", id, "error", err)
-		return
-	}
-	if cc.Config.Type == (content_database.Material{}).TypeName() {
-		d := rendering.MaterialData{}
-		if err := json.Unmarshal(data, &d); err != nil {
-			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
-			return
-		}
-		w.designer.ShowMaterialWindow(id, d)
-	} else if cc.Config.Type == (content_database.Shader{}).TypeName() {
-		d := rendering.ShaderData{}
-		if err := json.Unmarshal(data, &d); err != nil {
-			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
-			return
-		}
-		w.designer.ShowShaderWindow(id, d)
-	} else if cc.Config.Type == (content_database.ShaderPipeline{}).TypeName() {
-		d := rendering.ShaderPipelineData{}
-		if err := json.Unmarshal(data, &d); err != nil {
-			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
-			return
-		}
-		w.designer.ShowPipelineWindow(id, d)
-	} else if cc.Config.Type == (content_database.RenderPass{}).TypeName() {
-		d := rendering.RenderPassData{}
-		if err := json.Unmarshal(data, &d); err != nil {
-			slog.Error("failed to unmarshal the material data", "id", id, "error", err)
-			return
-		}
-		w.designer.ShowRenderPassWindow(id, d)
-	}
-	for _, elm := range elm.Parent.Value().Children {
-		w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable")
-	}
-	w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable", "selected")
-	w.Doc.ApplyStyles()
+	w.OpenSpec(elm.Attribute("id"))
 }
 
 func (w *ShadingWorkspace) clickNewRenderPass(elm *document.Element) {

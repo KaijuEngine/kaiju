@@ -51,7 +51,9 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"weak"
@@ -115,6 +117,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"clickClearSelection": w.clickClearSelection,
 			"clickPlayAudio":      w.clickPlayAudio,
 			"changeAudioPosition": w.changeAudioPosition,
+			"clickOpenInEditor":   w.clickOpenInEditor,
 		})
 	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
@@ -652,11 +655,10 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			})
 		}
 		if isEditableText {
-			pfs := w.editor.ProjectFileSystem()
 			options = append(options, context_menu.ContextMenuOption{
-				Label: "Edit in text editor",
+				Label: "Open in editor",
 				Call: func() {
-					exec.Command("code", pfs.FullPath(""), pfs.FullPath(cc.ContentPath())).Run()
+					w.openInEditor(cc)
 				},
 			})
 		}
@@ -678,6 +680,18 @@ func (w *ContentWorkspace) clickPlayAudio(*document.Element) {
 func (w *ContentWorkspace) changeAudioPosition(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
 	w.audio.setAudioPosition(e.UI.ToSlider().Value())
+}
+
+func (w *ContentWorkspace) clickOpenInEditor(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickOpenInEditor").End()
+	for _, id := range w.selectedIds() {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+			continue
+		}
+		w.openInEditor(cc)
+	}
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
@@ -765,4 +779,63 @@ func (w *ContentWorkspace) disableListMode() {
 			w.Doc.SetElementClassesWithoutApply(cc, klib.SlicesRemoveElement(cc.ClassList(), "wide")...)
 		}
 	}
+}
+
+func openContentEditor(contentEditor, path string) {
+	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	dir := filepath.Dir(contentEditor)
+	base := filepath.Base(contentEditor)
+	fullArgs := strings.Split(base, " ")
+	testExePath := filepath.Join(dir, fullArgs[0])
+	if _, err := os.Stat(testExePath); err == nil {
+		fullArgs[0] = testExePath
+	}
+	command := fullArgs[0]
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, path)
+	// goroutine
+	go exec.Command(command, args...).Run()
+}
+
+func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
+	ed := ""
+	switch cc.Config.Type {
+	case content_database.Html{}.TypeName():
+		fallthrough
+	case content_database.Css{}.TypeName():
+		ed = w.editor.Settings().CodeEditor
+	case content_database.Mesh{}.TypeName():
+		ed = w.editor.Settings().MeshEditor
+	case content_database.Music{}.TypeName():
+		ed = w.editor.Settings().AudioEditor
+	case content_database.Sound{}.TypeName():
+		ed = w.editor.Settings().AudioEditor
+	case content_database.Texture{}.TypeName():
+		ed = w.editor.Settings().ImageEditor
+	case content_database.Material{}.TypeName():
+		fallthrough
+	case content_database.RenderPass{}.TypeName():
+		fallthrough
+	case content_database.ShaderPipeline{}.TypeName():
+		fallthrough
+	case content_database.Shader{}.TypeName():
+		w.editor.ShadingWorkspaceSelected()
+		w.editor.ShadingWorkspace().OpenSpec(cc.Id())
+		return
+	case content_database.Stage{}.TypeName():
+		w.editor.OpenStageInStageWorkspace(cc.Id())
+	case content_database.TableOfContents{}.TypeName():
+		w.showTableOfContents(cc.Id())
+		return
+	case content_database.Spv{}.TypeName():
+	case content_database.Template{}.TypeName():
+	}
+	if ed == "" {
+		slog.Warn("currently there isn't an editor that can open the content", "type", cc.Config.Type)
+		return
+	}
+	openContentEditor(ed, w.pfs.FullPath(cc.ContentPath()))
 }

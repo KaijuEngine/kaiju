@@ -173,25 +173,29 @@ func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedConte
 	case content_database.Mesh:
 		w.spawnMesh(cc, point)
 	case content_database.Stage:
-		if w.ed.History().HasPendingChanges() {
-			w.ed.BlurInterface()
-			confirm_prompt.Show(w.Host, confirm_prompt.Config{
-				Title:       "Discrad changes",
-				Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
-				ConfirmText: "Yes",
-				CancelText:  "No",
-				OnConfirm: func() {
-					w.ed.FocusInterface()
-					w.loadStage(cc.Id())
-				},
-				OnCancel: func() { w.ed.FocusInterface() },
-			})
-		} else {
-			w.loadStage(cc.Id())
-		}
+		w.OpenStage(cc.Id())
 	default:
 		slog.Error("double clicking this type of content is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
+	}
+}
+
+func (w *StageWorkspace) OpenStage(id string) {
+	if w.ed.History().HasPendingChanges() {
+		w.ed.BlurInterface()
+		confirm_prompt.Show(w.Host, confirm_prompt.Config{
+			Title:       "Discrad changes",
+			Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
+			ConfirmText: "Yes",
+			CancelText:  "No",
+			OnConfirm: func() {
+				w.ed.FocusInterface()
+				w.loadStage(id)
+			},
+			OnCancel: func() { w.ed.FocusInterface() },
+		})
+	} else {
+		w.loadStage(id)
 	}
 }
 
