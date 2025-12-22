@@ -172,7 +172,7 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 		d.backDraws = append(d.backDraws, cpy)
 	}
 	d.backDraws = append(d.backDraws, drawing)
-	if drawing.Material == nil {
+	if drawing.Mesh == nil || drawing.Material == nil {
 		panic("no")
 	}
 }
@@ -189,7 +189,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 	d.backDraws = append(d.backDraws, drawings...)
 	for i := range drawings {
-		if drawings[i].Material == nil {
+		if drawings[i].Mesh == nil || drawings[i].Material == nil {
 			panic("no")
 		}
 	}
