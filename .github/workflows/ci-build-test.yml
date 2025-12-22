@@ -33,6 +33,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # optional, but handy if you need full history
+          submodules: recursive   # or: true
 
       - name: Setup Go
         uses: actions/setup-go@v5
