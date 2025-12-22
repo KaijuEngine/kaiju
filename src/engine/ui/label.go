@@ -474,35 +474,15 @@ func (label *Label) SetFontWeight(weight string) {
 	face := ld.fontFace
 	switch weight {
 	case "normal":
-		if ld.fontFace.IsItalic() {
-			face = rendering.FontItalic
-		} else {
-			face = rendering.FontRegular
-		}
+		face = face.RemoveBold()
 	case "bold":
-		if ld.fontFace.IsItalic() {
-			face = rendering.FontBoldItalic
-		} else {
-			face = rendering.FontBold
-		}
+		face = face.AsBold()
 	case "bolder":
-		if ld.fontFace.IsItalic() {
-			face = rendering.FontExtraBoldItalic
-		} else {
-			face = rendering.FontExtraBold
-		}
+		face = face.AsExtraBold()
 	case "lighter":
-		if ld.fontFace.IsItalic() {
-			face = rendering.FontLightItalic
-		} else {
-			face = rendering.FontLight
-		}
+		face = face.AsLight()
 	}
-	if ld.fontFace == face {
-		return
-	}
-	ld.fontFace = face
-	label.Base().SetDirty(DirtyTypeGenerated)
+	label.SetFontFace(face)
 }
 
 func (label *Label) SetFontStyle(style string) {
@@ -510,27 +490,11 @@ func (label *Label) SetFontStyle(style string) {
 	face := ld.fontFace
 	switch style {
 	case "normal":
-		if ld.fontFace.IsExtraBold() {
-			face = rendering.FontExtraBold
-		} else if ld.fontFace.IsBold() {
-			face = rendering.FontBold
-		} else {
-			face = rendering.FontRegular
-		}
+		face = face.RemoveItalic()
 	case "italic":
-		if ld.fontFace.IsExtraBold() {
-			face = rendering.FontExtraBoldItalic
-		} else if ld.fontFace.IsBold() {
-			face = rendering.FontBoldItalic
-		} else {
-			face = rendering.FontItalic
-		}
+		face = face.AsItalic()
 	}
-	if face == ld.fontFace {
-		return
-	}
-	ld.fontFace = face
-	label.Base().SetDirty(DirtyTypeGenerated)
+	label.SetFontFace(face)
 }
 
 func (label *Label) CalculateMaxWidth() float32 {

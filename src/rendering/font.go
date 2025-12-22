@@ -95,6 +95,72 @@ func (f FontFace) IsItalic() bool {
 	return strings.Contains(string(f), "Italic")
 }
 
+func (f FontFace) AsBold() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-BoldItalic")
+	}
+	return FontFace(string(f.Base()) + "-Bold")
+}
+
+func (f FontFace) AsExtraBold() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-ExtraBoldItalic")
+	}
+	return FontFace(string(f.Base()) + "-ExtraBold")
+}
+
+func (f FontFace) AsLight() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-LightItalic")
+	}
+	return FontFace(string(f.Base()) + "-Light")
+}
+
+func (f FontFace) AsMedium() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-MediumItalic")
+	}
+	return FontFace(string(f.Base()) + "-Medium")
+}
+
+func (f FontFace) AsSemiBold() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-SemiBoldItalic")
+	}
+	return FontFace(string(f.Base()) + "-SemiBold")
+}
+
+func (f FontFace) AsItalic() FontFace {
+	if f.IsBold() {
+		return FontFace(string(f.Base()) + "-BoldItalic")
+	} else if f.IsExtraBold() {
+		return FontFace(string(f.Base()) + "-ExtraBoldItalic")
+	}
+	return FontFace(string(f.Base()) + "-Italic")
+}
+
+func (f FontFace) RemoveBold() FontFace {
+	if f.IsItalic() {
+		return FontFace(string(f.Base()) + "-Italic")
+	}
+	return f.AsRegular()
+}
+
+func (f FontFace) RemoveItalic() FontFace {
+	if f.IsBold() {
+		return FontFace(string(f.Base()) + "-Bold")
+	} else if f.IsExtraBold() {
+		return FontFace(string(f.Base()) + "-ExtraBold")
+	}
+	return f.AsRegular()
+}
+
+func (f FontFace) AsRegular() FontFace {
+	return FontFace(string(f.Base()) + "-Regular")
+}
+
+func (f FontFace) Base() FontFace { return FontFace(strings.Split(string(f), "-")[0]) }
+
 func (f FontFace) string() string { return string(f) }
 
 const (
