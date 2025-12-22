@@ -80,6 +80,9 @@ type WorkspaceDetailsUI struct {
 	detailsScaleX              *document.Element
 	detailsScaleY              *document.Element
 	detailsScaleZ              *document.Element
+	detailsMultiSelect         *document.Element
+	shaderInstanceData         *document.Element
+	detailsEntityDataTable     *document.Element
 	shaderInstanceDataList     *document.Element
 	boundEntityDataList        *document.Element
 	entityDataList             *document.Element
@@ -126,6 +129,9 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	dui.detailsScaleX, _ = w.Doc.GetElementById("detailsScaleX")
 	dui.detailsScaleY, _ = w.Doc.GetElementById("detailsScaleY")
 	dui.detailsScaleZ, _ = w.Doc.GetElementById("detailsScaleZ")
+	dui.detailsMultiSelect, _ = w.Doc.GetElementById("detailsMultiSelect")
+	dui.shaderInstanceData, _ = w.Doc.GetElementById("shaderInstanceData")
+	dui.detailsEntityDataTable, _ = w.Doc.GetElementById("detailsEntityDataTable")
 	dui.shaderInstanceDataList, _ = w.Doc.GetElementById("shaderInstanceDataList")
 	dui.boundEntityDataList, _ = w.Doc.GetElementById("boundEntityDataList")
 	dui.entityDataList, _ = w.Doc.GetElementById("entityDataList")
@@ -148,6 +154,7 @@ func (dui *WorkspaceDetailsUI) open() {
 	dui.boundEntityDataTemplate.UI.Hide()
 	dui.shaderInstanceDataTemplate.UI.Hide()
 	dui.hideIfNothingSelected()
+	dui.reload()
 }
 
 func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
@@ -534,9 +541,16 @@ func (dui *WorkspaceDetailsUI) reload() {
 	dui.detailsArea.Children[0].UI.Show()
 	if len(sel) > 1 {
 		// TODO:  Support multiple objects being selected here
+		dui.detailsMultiSelect.UI.Show()
+		dui.shaderInstanceData.UI.Hide()
+		dui.detailsEntityDataTable.UI.Hide()
 		return
+	} else {
+		dui.detailsMultiSelect.UI.Hide()
+		dui.shaderInstanceData.UI.Show()
+		dui.detailsEntityDataTable.UI.Show()
 	}
-	e := sel[0]
+	e := sel[len(sel)-1]
 	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
 	p := e.Transform.Position()
 	r := e.Transform.Rotation()

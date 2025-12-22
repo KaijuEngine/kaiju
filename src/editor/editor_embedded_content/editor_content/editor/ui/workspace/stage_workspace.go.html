@@ -236,6 +236,7 @@
 				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
 				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div id="detailsMultiSelect">Multiple objects selected...</div>
 				<div id="shaderInstanceData" class="dataTable">
 					<div id="shaderInstanceDataList">
 						<div id="shaderInstanceDataTemplate" class="dataBindingBlock">
@@ -283,7 +284,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="dataTable">
+				<div id="detailsEntityDataTable" class="dataTable">
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">
 							<div class="center">Data name...</div>
