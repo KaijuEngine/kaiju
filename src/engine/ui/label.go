@@ -468,6 +468,17 @@ func (label *Label) SetWrap(wrapText bool) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
+func (label *Label) SetFontFace(face rendering.FontFace) {
+	defer tracing.NewRegion("Label.SetFontFace").End()
+	ld := label.LabelData()
+	if ld.fontFace == face {
+		return
+	}
+	ld.fontFace = face
+	label.Base().SetDirty(DirtyTypeGenerated)
+	ld.renderRequired = true
+}
+
 func (label *Label) SetFontWeight(weight string) {
 	defer tracing.NewRegion("Label.SetFontWeight").End()
 	ld := label.LabelData()
