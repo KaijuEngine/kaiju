@@ -802,6 +802,7 @@ func openContentEditor(contentEditor, path string) {
 
 func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 	ed := ""
+	path := w.pfs.FullPath(cc.ContentPath())
 	switch cc.Config.Type {
 	case content_database.Html{}.TypeName():
 		fallthrough
@@ -809,8 +810,15 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 		ed = w.editor.Settings().CodeEditor
 	case content_database.Mesh{}.TypeName():
 		ed = w.editor.Settings().MeshEditor
+		if _, err := w.pfs.Stat(cc.Config.SrcPath); err == nil {
+			path = w.pfs.FullPath(cc.Config.SrcPath)
+		} else if _, err := os.Stat(cc.Config.SrcPath); err == nil {
+			path = cc.Config.SrcPath
+		} else {
+			path = ""
+		}
 	case content_database.Music{}.TypeName():
-		ed = w.editor.Settings().AudioEditor
+		fallthrough
 	case content_database.Sound{}.TypeName():
 		ed = w.editor.Settings().AudioEditor
 	case content_database.Texture{}.TypeName():
@@ -833,9 +841,11 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 	case content_database.Spv{}.TypeName():
 	case content_database.Template{}.TypeName():
 	}
-	if ed == "" {
+	if path == "" {
+		slog.Warn("could not find the source file path for the selected content")
+	} else if ed == "" {
 		slog.Warn("currently there isn't an editor that can open the content", "type", cc.Config.Type)
-		return
+	} else {
+		openContentEditor(ed, path)
 	}
-	openContentEditor(ed, w.pfs.FullPath(cc.ContentPath()))
 }
