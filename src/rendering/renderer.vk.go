@@ -133,9 +133,6 @@ func init() {
 
 func (vr *Vulkan) WaitForRender() {
 	defer tracing.NewRegion("Vulkan.WaitForRender").End()
-	if !vr.hasSwapChain {
-		return
-	}
 	vk.DeviceWaitIdle(vr.device)
 	fences := [maxFramesInFlight]vk.Fence{}
 	for i := range fences {
@@ -299,6 +296,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
 	}
+	slog.Info("creating vulkan swap chain")
 	if !vr.createSwapChain(window) {
 		return nil, errors.New("failed to create swap chain")
 	}
@@ -351,30 +349,31 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 
 func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
-	vr.WaitForRender()
 	if vr.hasSwapChain {
+		vr.WaitForRender()
 		vr.swapChainCleanup()
-	}
-	// Destroy the previous swap sync objects
-	for i := 0; i < int(vr.swapImageCount); i++ {
-		vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
-		vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
-		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
-	}
-	// Destroy the previous global uniform buffers
-	for i := 0; i < maxFramesInFlight; i++ {
-		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
-		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+		// Destroy the previous swap sync objects
+		for i := 0; i < int(vr.swapImageCount); i++ {
+			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
+			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
+			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+		}
+		// Destroy the previous global uniform buffers
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
+			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+		}
 	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
 	}
+	slog.Info("recreated vulkan swap chain")
 	vr.createImageViews()
 	//vr.createRenderPass()
 	vr.createColorResources()
