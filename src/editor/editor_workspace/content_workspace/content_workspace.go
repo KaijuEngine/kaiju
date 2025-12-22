@@ -54,6 +54,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"weak"
@@ -789,6 +790,8 @@ func openContentEditor(contentEditor, path string) {
 	testExePath := filepath.Join(dir, fullArgs[0])
 	if _, err := os.Stat(testExePath); err == nil {
 		fullArgs[0] = testExePath
+	} else {
+		fullArgs[0] = contentEditor
 	}
 	command := fullArgs[0]
 	var args []string
@@ -796,6 +799,12 @@ func openContentEditor(contentEditor, path string) {
 		args = append(args, fullArgs[1:]...)
 	}
 	args = append(args, path)
+	if runtime.GOOS == "windows" {
+		if strings.HasPrefix(strings.ToLower(command), "shell:appsfolder") {
+			args = slices.Insert(args, 0, "/C", "start", "", command)
+			command = "cmd.exe"
+		}
+	}
 	// goroutine
 	go exec.Command(command, args...).Run()
 }
