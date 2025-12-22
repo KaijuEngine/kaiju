@@ -133,6 +133,9 @@ func init() {
 
 func (vr *Vulkan) WaitForRender() {
 	defer tracing.NewRegion("Vulkan.WaitForRender").End()
+	if !vr.hasSwapChain {
+		return
+	}
 	vk.DeviceWaitIdle(vr.device)
 	fences := [maxFramesInFlight]vk.Fence{}
 	for i := range fences {
