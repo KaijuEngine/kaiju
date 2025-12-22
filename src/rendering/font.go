@@ -47,7 +47,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
-	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -81,126 +80,7 @@ const (
 	FontBaselineTop
 )
 
-type FontFace string
-
-func (f FontFace) IsBold() bool {
-	return strings.Contains(string(f), "Bold")
-}
-
-func (f FontFace) IsExtraBold() bool {
-	return strings.Contains(string(f), "ExtraBold")
-}
-
-func (f FontFace) IsItalic() bool {
-	return strings.Contains(string(f), "Italic")
-}
-
-func (f FontFace) AsBold() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-BoldItalic")
-	}
-	return FontFace(string(f.Base()) + "-Bold")
-}
-
-func (f FontFace) AsExtraBold() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-ExtraBoldItalic")
-	}
-	return FontFace(string(f.Base()) + "-ExtraBold")
-}
-
-func (f FontFace) AsLight() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-LightItalic")
-	}
-	return FontFace(string(f.Base()) + "-Light")
-}
-
-func (f FontFace) AsMedium() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-MediumItalic")
-	}
-	return FontFace(string(f.Base()) + "-Medium")
-}
-
-func (f FontFace) AsSemiBold() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-SemiBoldItalic")
-	}
-	return FontFace(string(f.Base()) + "-SemiBold")
-}
-
-func (f FontFace) AsItalic() FontFace {
-	if f.IsBold() {
-		return FontFace(string(f.Base()) + "-BoldItalic")
-	} else if f.IsExtraBold() {
-		return FontFace(string(f.Base()) + "-ExtraBoldItalic")
-	}
-	return FontFace(string(f.Base()) + "-Italic")
-}
-
-func (f FontFace) RemoveBold() FontFace {
-	if f.IsItalic() {
-		return FontFace(string(f.Base()) + "-Italic")
-	}
-	return f.AsRegular()
-}
-
-func (f FontFace) RemoveItalic() FontFace {
-	if f.IsBold() {
-		return FontFace(string(f.Base()) + "-Bold")
-	} else if f.IsExtraBold() {
-		return FontFace(string(f.Base()) + "-ExtraBold")
-	}
-	return f.AsRegular()
-}
-
-func (f FontFace) AsRegular() FontFace {
-	return FontFace(string(f.Base()) + "-Regular")
-}
-
-func (f FontFace) Base() FontFace { return FontFace(strings.Split(string(f), "-")[0]) }
-
-func (f FontFace) string() string { return string(f) }
-
 const (
-	FontCondensedBold                = FontFace("OpenSans_Condensed-Bold")
-	FontCondensedBoldItalic          = FontFace("OpenSans_Condensed-BoldItalic")
-	FontCondensedExtraBold           = FontFace("OpenSans_Condensed-ExtraBold")
-	FontCondensedExtraBoldItalic     = FontFace("OpenSans_Condensed-ExtraBoldItalic")
-	FontCondensedItalic              = FontFace("OpenSans_Condensed-Italic")
-	FontCondensedLight               = FontFace("OpenSans_Condensed-Light")
-	FontCondensedLightItalic         = FontFace("OpenSans_Condensed-LightItalic")
-	FontCondensedMedium              = FontFace("OpenSans_Condensed-Medium")
-	FontCondensedMediumItalic        = FontFace("OpenSans_Condensed-MediumItalic")
-	FontCondensedRegular             = FontFace("OpenSans_Condensed-Regular")
-	FontCondensedSemiBold            = FontFace("OpenSans_Condensed-SemiBold")
-	FontCondensedSemiBoldItalic      = FontFace("OpenSans_Condensed-SemiBoldItalic")
-	FontSemiCondensedBold            = FontFace("OpenSans_SemiCondensed-Bold")
-	FontSemiCondensedBoldItalic      = FontFace("OpenSans_SemiCondensed-BoldItalic")
-	FontSemiCondensedExtraBold       = FontFace("OpenSans_SemiCondensed-ExtraBold")
-	FontSemiCondensedExtraBoldItalic = FontFace("OpenSans_SemiCondensed-ExtraBoldItalic")
-	FontSemiCondensedItalic          = FontFace("OpenSans_SemiCondensed-Italic")
-	FontSemiCondensedLight           = FontFace("OpenSans_SemiCondensed-Light")
-	FontSemiCondensedLightItalic     = FontFace("OpenSans_SemiCondensed-LightItalic")
-	FontSemiCondensedMedium          = FontFace("OpenSans_SemiCondensed-Medium")
-	FontSemiCondensedMediumItalic    = FontFace("OpenSans_SemiCondensed-MediumItalic")
-	FontSemiCondensedRegular         = FontFace("OpenSans_SemiCondensed-Regular")
-	FontSemiCondensedSemiBold        = FontFace("OpenSans_SemiCondensed-SemiBold")
-	FontSemiCondensedSemiBoldItalic  = FontFace("OpenSans_SemiCondensed-SemiBoldItalic")
-	FontBold                         = FontFace("OpenSans-Bold")
-	FontBoldItalic                   = FontFace("OpenSans-BoldItalic")
-	FontExtraBold                    = FontFace("OpenSans-ExtraBold")
-	FontExtraBoldItalic              = FontFace("OpenSans-ExtraBoldItalic")
-	FontItalic                       = FontFace("OpenSans-Italic")
-	FontLight                        = FontFace("OpenSans-Light")
-	FontLightItalic                  = FontFace("OpenSans-LightItalic")
-	FontMedium                       = FontFace("OpenSans-Medium")
-	FontMediumItalic                 = FontFace("OpenSans-MediumItalic")
-	FontRegular                      = FontFace("OpenSans-Regular")
-	FontSemiBold                     = FontFace("OpenSans-SemiBold")
-	FontSemiBoldItalic               = FontFace("OpenSans-SemiBoldItalic")
-
 	DefaultFontEMSize = 14.0
 )
 
