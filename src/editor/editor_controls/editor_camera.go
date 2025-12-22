@@ -154,7 +154,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 				e.flyCamFlickerFix = true
 				return false
 			}
-			return e.update3dFly(host, delta)
+			e.update3dFly(host, delta)
+			return true
 		} else {
 			return e.update3d(host, delta)
 		}
