@@ -97,7 +97,7 @@ func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
 	b.Base().AddEvent(EventTypeEnter, func() {
 		c := b.ButtonData().color
-		if panel.isDown {
+		if panel.flags.isDown() {
 			c = c.ScaleWithoutAlpha(0.7)
 		} else {
 			c = c.ScaleWithoutAlpha(0.8)

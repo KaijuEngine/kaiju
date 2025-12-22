@@ -485,7 +485,7 @@ func (input *Input) update(deltaTime float64) {
 			}
 			data.cursorBlink = cursorBlinkRate
 		}
-		if input.drag {
+		if input.flags.drag() {
 			offset := input.pointerPosWithin()
 			if data.selectStart == data.selectEnd {
 				data.dragStart = data.cursorOffset

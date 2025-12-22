@@ -107,7 +107,7 @@ func (slider *Slider) onLayoutUpdating() {
 func (slider *Slider) update(deltaTime float64) {
 	defer tracing.NewRegion("Slider.update").End()
 	slider.Base().ToPanel().update(deltaTime)
-	if slider.drag {
+	if slider.flags.drag() {
 		slider.SetValue(slider.Delta())
 	}
 }
