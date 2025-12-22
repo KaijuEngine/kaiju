@@ -431,6 +431,7 @@ input[type="text"] {
 	color: black;
 	background-color: #BBB;
 	border: 2px solid black;
+	overflow: hidden;
 }
 .filterBtn {
 	padding: 2px 5px;
