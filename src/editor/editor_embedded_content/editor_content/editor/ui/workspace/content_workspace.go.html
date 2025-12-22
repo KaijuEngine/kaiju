@@ -133,7 +133,7 @@
 				</div>
 				<div class="filterBtn" onclick="toggleListView">List view</div>
 				{{range .Filters}}
-				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
+				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter" onrightclick="clickFilterDisable">{{.}}</span>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">

@@ -345,7 +345,6 @@
 		<div id="contentArea">
 			<div class="left edPanelBg">
 				<input type="text" placeholder="Content search..." onchange="inputFilter" />
-				<span id="test1" class="filterBtn" data-type="none" onclick="clickFilter">None test...</span>
 				{{range .Filters}}
 				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
 				{{end}}

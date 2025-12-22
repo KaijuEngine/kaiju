@@ -458,10 +458,15 @@ input[type="text"] {
 	background-color: #1D731C;
 	margin-right: 5px;
 }
-.filterBtnSelected {
+.filterBtn .selected {
 	background-color: #682A2D;
 	border-color: #881E1E;
 	color: white;
+}
+.filterBtn .inverted {
+	background-color: #0e0f12;
+	border: 2px solid #121317;
+	color: #999;
 }
 .edPanelBg {
 	background-color: #1C1E25;

@@ -56,18 +56,20 @@ import (
 )
 
 type WorkspaceContentUI struct {
-	workspace      weak.Pointer[StageWorkspace]
-	typeFilters    []string
-	tagFilters     []string
-	query          string
-	contentArea    *document.Element
-	dragPreview    *document.Element
-	entryTemplate  *document.Element
-	hideContentElm *document.Element
-	showContentElm *document.Element
-	dragging       *document.Element
-	tooltip        *document.Element
-	dragContentId  string
+	workspace          weak.Pointer[StageWorkspace]
+	typeFilters        []string
+	typeFiltersDisable []string
+	tagFilters         []string
+	tagFiltersDisable  []string
+	query              string
+	contentArea        *document.Element
+	dragPreview        *document.Element
+	entryTemplate      *document.Element
+	hideContentElm     *document.Element
+	showContentElm     *document.Element
+	dragging           *document.Element
+	tooltip            *document.Element
+	dragContentId      string
 }
 
 func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
@@ -260,39 +262,58 @@ func (cui *WorkspaceContentUI) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
+		hide := content_workspace.ShouldHideContent(id, cui.typeFiltersDisable, cui.tagFiltersDisable, w.ed.Cache())
+		if !hide && content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
 			e.UI.Show()
 		} else {
 			e.UI.Hide()
 		}
 	}
-	cui.workspace.Value().Host.RunOnMainThread(w.Doc.Clean)
+	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
+	inverted := cui.workspace.Value().Host.Window.Keyboard.HasAlt()
+	isSelected := false
+	if inverted {
+		isSelected = slices.Contains(e.ClassList(), "inverted")
+	} else {
+		isSelected = slices.Contains(e.ClassList(), "selected")
+	}
+	w := cui.workspace.Value()
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	w := cui.workspace.Value()
+	var targetList *[]string
+	var invTargetList *[]string
+	var name string
+	if typeName != "" {
+		targetList = &cui.typeFilters
+		invTargetList = &cui.typeFiltersDisable
+		name = typeName
+	}
+	if tagName != "" {
+		targetList = &cui.tagFilters
+		invTargetList = &cui.tagFiltersDisable
+		name = tagName
+	}
+	if inverted {
+		targetList, invTargetList = invTargetList, targetList
+	}
 	if isSelected {
-		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
-		if typeName != "" {
-			cui.typeFilters = append(cui.typeFilters, typeName)
+		className := "selected"
+		if inverted {
+			className = "inverted"
 		}
-		if tagName != "" {
-			cui.tagFilters = append(cui.tagFilters, tagName)
-		}
+		w.Doc.SetElementClasses(e, "filterBtn", className)
+		*targetList = append(*targetList, name)
 	} else {
 		w.Doc.SetElementClasses(e, "filterBtn")
-		if typeName != "" {
-			cui.typeFilters = klib.SlicesRemoveElement(cui.typeFilters, typeName)
-		}
-		if tagName != "" {
-			cui.tagFilters = klib.SlicesRemoveElement(cui.tagFilters, tagName)
-		}
+		*targetList = klib.SlicesRemoveElement(*targetList, name)
 	}
+	// Remove it from inverse list in both cases intentionally
+	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
 	cui.runFilter()
 }
 

@@ -62,23 +62,25 @@ import (
 
 type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
-	pfs               *project_file_system.FileSystem
-	cache             *content_database.Cache
-	editor            ContentWorkspaceEditorInterface
-	typeFilters       []string
-	tagFilters        []string
-	query             string
-	contentList       *document.Element
-	entryTemplate     *document.Element
-	tagFilterTemplate *document.Element
-	addTagbtn         *document.Element
-	selectedContent   []*document.Element
-	rightBody         *document.Element
-	tooltip           *document.Element
-	pageData          WorkspaceUIData
-	isListMode        bool
-	audio             ContentAudioView
-	info              struct {
+	pfs                *project_file_system.FileSystem
+	cache              *content_database.Cache
+	editor             ContentWorkspaceEditorInterface
+	typeFilters        []string
+	typeFiltersDisable []string
+	tagFilters         []string
+	tagFiltersDisable  []string
+	query              string
+	contentList        *document.Element
+	entryTemplate      *document.Element
+	tagFilterTemplate  *document.Element
+	addTagbtn          *document.Element
+	selectedContent    []*document.Element
+	rightBody          *document.Element
+	tooltip            *document.Element
+	pageData           WorkspaceUIData
+	isListMode         bool
+	audio              ContentAudioView
+	info               struct {
 		multiSelectNote  *document.Element
 		nameInput        *document.Element
 		tagList          *document.Element
@@ -303,27 +305,45 @@ func (w *ContentWorkspace) tagFilter(e *document.Element) {
 
 func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterBtnSelected")
+	inverted := w.Host.Window.Keyboard.HasAlt()
+	isSelected := false
+	if inverted {
+		isSelected = slices.Contains(e.ClassList(), "inverted")
+	} else {
+		isSelected = slices.Contains(e.ClassList(), "selected")
+	}
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
+	var targetList *[]string
+	var invTargetList *[]string
+	var name string
+	if typeName != "" {
+		targetList = &w.typeFilters
+		invTargetList = &w.typeFiltersDisable
+		name = typeName
+	}
+	if tagName != "" {
+		targetList = &w.tagFilters
+		invTargetList = &w.tagFiltersDisable
+		name = tagName
+	}
+	if inverted {
+		targetList, invTargetList = invTargetList, targetList
+	}
 	if isSelected {
-		w.Doc.SetElementClasses(e, "filterBtn", "filterBtnSelected")
-		if typeName != "" {
-			w.typeFilters = append(w.typeFilters, typeName)
+		className := "selected"
+		if inverted {
+			className = "inverted"
 		}
-		if tagName != "" {
-			w.tagFilters = append(w.tagFilters, tagName)
-		}
+		w.Doc.SetElementClasses(e, "filterBtn", className)
+		*targetList = append(*targetList, name)
 	} else {
 		w.Doc.SetElementClasses(e, "filterBtn")
-		if typeName != "" {
-			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
-		}
-		if tagName != "" {
-			w.tagFilters = klib.SlicesRemoveElement(w.tagFilters, tagName)
-		}
+		*targetList = klib.SlicesRemoveElement(*targetList, name)
 	}
+	// Remove it from inverse list in both cases intentionally
+	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
 	w.runFilter()
 }
 
@@ -743,7 +763,8 @@ func (w *ContentWorkspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
+		hide := ShouldHideContent(id, w.typeFiltersDisable, w.tagFiltersDisable, w.cache)
+		if !hide && ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
 			e.UI.Show()
 		} else {
 			e.UI.Hide()
