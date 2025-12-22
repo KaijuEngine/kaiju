@@ -11,6 +11,174 @@ on:
       - staging
 
 jobs:
+
+  # Quick smoke test - runs on every commit for fast feedback
+  build-and-test-windows:
+    name: Build and E2E Test on Windows (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+          - windows-2025
+
+    env:
+      VULKAN_SDK_VERSION: "1.4.335.0"
+      MINGW_RELEASE: "15.2.0-rt_v13-rev0"
+      MINGW_FILENAME: "x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z"
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # optional, but handy if you need full history
+          submodules: recursive   # or: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: src/go.sum
+
+      - name: Install DirectX (June 2010) runtime for XINPUT1_3.dll
+        shell: pwsh
+        run: |
+          curl -L https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_Jun2010_redist.exe -o ${{ runner.temp }}/directx_Jun2010_redist.exe
+          & ${{ runner.temp }}/directx_Jun2010_redist.exe /Q /T:${{ runner.temp }}/directx | Out-Null
+          ${{ runner.temp }}/directx/DXSETUP.exe /silent | Out-Null
+
+      - name: Restore Vulkan SDK from Cache
+        id: cache-vulkansdk
+        uses: actions/cache@v5
+        with:
+          path: C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}
+          key: vulkan-sdk-${{ matrix.os }}-${{ env.VULKAN_SDK_VERSION }}
+          restore-keys: ""   # disables prefix matching
+
+      - name: Install Vulkan SDK if cache miss
+        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/windows/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe -o ${{ runner.temp }}/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe
+          ${{ runner.temp }}/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe --root C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }} --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.sdl2 com.lunarg.vulkan.debug
+
+      - name: Restore MinGW from Cache
+        id: cache-mingw
+        uses: actions/cache@v5
+        with:
+          path: C:\mingw64
+          key: ${{ env.MINGW_RELEASE }}/${{ env.MINGW_FILENAME }}
+          restore-keys: ""   # disables prefix matching
+
+      - name: Install MinGW if cache miss
+        if: steps.cache-mingw.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://github.com/niXman/mingw-builds-binaries/releases/download/${{ env.MINGW_RELEASE }}/${{ env.MINGW_FILENAME }} -o ${{ runner.temp }}/x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z
+          & "C:\Program Files\7-Zip\7z.exe" x ${{ runner.temp }}/${{ env.MINGW_FILENAME }} -oc:\ -y
+
+      - name: Ensure Vulkan & MinGW Env Vars are set
+        run: |
+          "C:\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $ErrorActionPreference = "Stop"
+          $sdk = "C:\VulkanSDK\1.4.335.0"
+          if (-not (Test-Path $sdk)) { throw "SDK path not found: $sdk" }
+          "VULKAN_SDK=$sdk" | Out-File -Append $env:GITHUB_ENV
+          "PATH=$sdk\Bin;$env:PATH" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Install Mesa (lavapipe)
+        working-directory: .
+        run: |
+          # Install Mesa (lavapipe) into MSYS2 mingw64
+          C:\msys64\usr\bin\pacman.exe -Syu --noconfirm
+          C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-mesa
+
+          # Find the lavapipe ICD manifest
+          $icd = Get-ChildItem -Recurse C:\msys64\mingw64 -Filter lvp_icd.x86_64.json |
+          Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $icd) { throw "lavapipe ICD manifest (lvp_icd.x86_64.json) not found" }
+
+          Write-Host "Using lavapipe ICD: $icd"
+
+          # Point Vulkan loader at the software ICD
+          "VK_ICD_FILENAMES=$icd" | Out-File -Append $env:GITHUB_ENV
+
+          # Make sure the DLL can be found (usually already on PATH if you're using mingw64)
+          # but include it explicitly to be safe:
+          $mesaBin = "C:\msys64\mingw64\bin"
+          "PATH=$mesaBin;$env:PATH" | Out-File -Append $env:GITHUB_ENV
+
+          # Register ICD for 64-bit Vulkan loader
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" `
+          -Name $icd -PropertyType DWord -Value 0 -Force | Out-Null
+
+
+      - name: Build editor (debug mode)
+        working-directory: ./src
+        run: |
+          go build -v -tags="debug,editor" -o ../kaiju.exe ./
+          Get-ChildItem ../kaiju.exe | Format-Table Name, Length, LastWriteTime
+
+      - name: Run objdump on editor exe
+        working-directory: .
+        run: |
+          & "C:\mingw64\bin\objdump.exe" -p .\kaiju.exe | Select-String "DLL Name"
+
+      - name: Run editor autotest with timeout + diagnostics
+        shell: pwsh
+        run: |
+
+          $ErrorActionPreference = "Stop"
+
+          $env:VK_LOADER_DEBUG = "all"
+
+          $exe  = ".\kaiju.exe"
+          $args = @("--autotest")
+
+          Write-Host "Starting: $exe $($args -join ' ')"
+
+          $p = Start-Process -FilePath $exe -ArgumentList $args -NoNewWindow -PassThru
+
+          $timeoutSec = 60
+          $exited = $p.WaitForExit($timeoutSec * 1000)
+
+          if (-not $exited) {
+            Write-Host "❌ Autotest exceeded ${timeoutSec}s. Collecting diagnostics..."
+
+            try {
+              Get-Process -Id $p.Id | Format-List *
+              try {
+                (Get-Process -Id $p.Id).Modules |
+                Select-Object ModuleName,FileName |
+                Sort-Object ModuleName |
+                Format-Table -AutoSize
+              } catch {
+                Write-Host "Could not list modules (permission/race): $_"
+              }
+            } catch {
+              Write-Host "Process already exited while collecting diagnostics: $_"
+            }
+
+            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+            exit 1
+          }
+
+          # IMPORTANT: refresh ExitCode after exit
+          $p.Refresh()
+          Write-Host "✅ Autotest exited with code $($p.ExitCode)"
+          exit $p.ExitCode
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-${{ matrix.os }}
+          path: kaiju.exe
+          retention-days: 7
+
   # Quick smoke test - runs on every commit for fast feedback
   build-and-test-linux:
     name: Build and E2E Test on Linux
