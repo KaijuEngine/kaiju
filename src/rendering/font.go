@@ -399,16 +399,13 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	cache.requireFace(face)
 	cx := x
 	cy := y
-
 	es := rootScale
 	if lineHeight != 0 {
 		baseline = FontBaselineCenter
 	}
-
 	left := -es.X() * 0.5
 	inverseWidth := 1.0 / es.X()
 	inverseHeight := 1.0 / es.Y()
-
 	fontFace := cache.fontFaces[face.string()]
 	var material *Material
 	if is3D {
@@ -416,7 +413,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	} else {
 		material = cache.textOrthoMaterial
 	}
-
 	// Iterate through all characters
 	runes := []rune(text)
 	textLen := len(runes)
@@ -424,7 +420,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	//size_t lenLeft = textLen;
 	current := 0
 	height := float32(0.0)
-
 	fontMeshes := make([]Drawing, 0)
 	maxHeight := fontFace.metrics.LineHeight * -scale
 	if lineHeight != 0 {
@@ -466,7 +461,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		xOffset *= inverseWidth
 		yOffset -= fontFace.metrics.Descender * scale
 		yOffset *= inverseHeight
-
 		if charLen > 0 || (unicode.IsSpace(runes[current]) && runes[current] != '\n') {
 			for i := current; i < current+charLen; i++ {
 				c := runes[i]
@@ -517,7 +511,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
 					indexes := [6]uint32{0, 1, 2, 0, 2, 3}
-					caches.MeshCache().Mesh(cache.nextInstanceKey(c), verts[:], indexes[:])
+					m = caches.MeshCache().Mesh(cache.nextInstanceKey(c), verts[:], indexes[:])
 					uvx := ch.atlasBounds[0]
 					uvy := ch.atlasBounds[1]
 					uvw := ch.atlasBounds[2] - ch.atlasBounds[0]
