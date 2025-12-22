@@ -170,6 +170,20 @@ func (input *Input) Init(placeholderText string) {
 	input.hideCursor()
 }
 
+func (input *Input) SetFontWeight(weight string) {
+	defer tracing.NewRegion("Input.SetFontWeight").End()
+	data := input.elmData.(*inputData)
+	data.label.SetFontWeight(weight)
+	data.placeholder.SetFontWeight(weight)
+}
+
+func (input *Input) SetFontStyle(style string) {
+	defer tracing.NewRegion("Input.SetFontStyle").End()
+	data := input.elmData.(*inputData)
+	data.label.SetFontStyle(style)
+	data.placeholder.SetFontStyle(style)
+}
+
 func (input *Input) onLayoutUpdating() {
 	data := input.elmData.(*inputData)
 
