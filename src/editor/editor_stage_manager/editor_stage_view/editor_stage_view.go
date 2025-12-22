@@ -114,6 +114,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	v.gridTransform.ResetDirty()
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
+		v.transformTool.Cancel()
 		return true
 	} else {
 		v.processViewportInteractions()

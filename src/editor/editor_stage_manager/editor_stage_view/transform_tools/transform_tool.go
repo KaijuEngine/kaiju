@@ -152,6 +152,15 @@ func (t *TransformTool) Enable(state ToolState) {
 	}
 }
 
+func (t *TransformTool) Cancel() {
+	if t.state == ToolStateNone {
+		return
+	}
+	t.resetChange()
+	t.state = ToolStateNone
+	t.Disable()
+}
+
 func (t *TransformTool) Disable() {
 	defer tracing.NewRegion("TransformTool.Disable").End()
 	if t.stage.Manager().HasSelection() {
@@ -288,9 +297,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 		t.axis.Toggle(AxisStateZ)
 		t.Enable(t.state)
 	} else if kb.KeyDown(hid.KeyboardKeyEscape) {
-		t.resetChange()
-		t.state = ToolStateNone
-		t.Disable()
+		t.Cancel()
 	}
 }
 
