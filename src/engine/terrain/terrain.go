@@ -170,7 +170,6 @@ func (t *Terrain) createDrawing(host *engine.Host, textures [textureCount]string
 	mat.IsLit = true
 	//mat.ShadowMap = host.Lights()[0].ShadowMapTexture()
 	t.drawing = rendering.Drawing{
-		Renderer:  host.Window.Renderer,
 		Material:  mat,
 		Mesh:      mesh,
 		Transform: &t.Entity.Transform,

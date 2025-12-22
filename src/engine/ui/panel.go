@@ -624,7 +624,6 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		material = material.CreateInstance([]*rendering.Texture{tex})
 		pd.drawing = rendering.Drawing{
-			Renderer:   host.Window.Renderer,
 			Material:   material,
 			Mesh:       rendering.NewMeshQuad(host.MeshCache()),
 			ShaderData: p.shaderData,

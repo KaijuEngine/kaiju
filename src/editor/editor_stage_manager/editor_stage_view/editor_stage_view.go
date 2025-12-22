@@ -170,7 +170,6 @@ func (v *StageView) createViewportGrid() {
 	v.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
 	v.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	v.host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   v.host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: v.gridShader,

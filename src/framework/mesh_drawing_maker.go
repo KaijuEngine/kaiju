@@ -56,7 +56,6 @@ func createDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
 		ViewCuller: &host.Cameras.Primary,
@@ -85,7 +84,6 @@ func CreateDrawingFromMeshBasicLit(host *engine.Host, mesh *rendering.Mesh, text
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
 		ViewCuller: &host.Cameras.Primary,
@@ -105,7 +103,6 @@ func CreateDrawingFromMeshBasicLitDynamic(host *engine.Host, mesh *rendering.Mes
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
 		ViewCuller: &host.Cameras.Primary,

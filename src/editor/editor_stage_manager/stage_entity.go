@@ -99,7 +99,6 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 	}
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
-		Renderer:   manager.host.Window.Renderer,
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,

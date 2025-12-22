@@ -136,7 +136,6 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					Node:     m.Node,
 					MeshName: m.Name,
 					Drawing: rendering.Drawing{
-						Renderer:   host.Window.Renderer,
 						Material:   mat,
 						Mesh:       mesh,
 						Transform:  &tForm,
@@ -161,7 +160,6 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					Node:     nil,
 					MeshName: info.Meshes[j].Key(),
 					Drawing: rendering.Drawing{
-						Renderer:   host.Window.Renderer,
 						Material:   mat,
 						Mesh:       info.Meshes[j],
 						ViewCuller: &host.Cameras.Primary,

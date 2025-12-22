@@ -116,7 +116,6 @@ func (c *LightEntityDataRenderer) Show(host *engine.Host, target *editor_stage_m
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(1, 1, 1, 1)
 	host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: gsd,

@@ -295,7 +295,6 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 		m.Scale(matrix.Vec3{1, 1, 1})
 		sd.SetModel(m)
 		vr.combinedDrawings.AddDrawing(Drawing{
-			Renderer:   vr,
 			Material:   mats[i],
 			Mesh:       mesh,
 			ShaderData: sd,

@@ -351,7 +351,6 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 		texs[i].DelayedCreate(host.Window.Renderer)
 	}
 	draw := rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
 		ShaderData: sd,

@@ -122,7 +122,6 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 			Node:     m.Node,
 			MeshName: m.Name,
 			Drawing: rendering.Drawing{
-				Renderer:   host.Window.Renderer,
 				Material:   mat,
 				Mesh:       mesh,
 				Transform:  &tForm,

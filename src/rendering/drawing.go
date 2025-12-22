@@ -45,7 +45,6 @@ import (
 )
 
 type Drawing struct {
-	Renderer   Renderer
 	Material   *Material
 	Mesh       *Mesh
 	ShaderData DrawInstance

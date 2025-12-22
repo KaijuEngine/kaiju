@@ -260,7 +260,6 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	w.Host.RunOnMainThread(func() {
 		tex.DelayedCreate(w.Host.Window.Renderer)
 		draw := rendering.Drawing{
-			Renderer:   w.Host.Window.Renderer,
 			Material:   mat,
 			Mesh:       e.StageData.Mesh,
 			ShaderData: e.StageData.ShaderData,
@@ -311,7 +310,6 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		Color:          matrix.ColorWhite(),
 	}
 	draw := rendering.Drawing{
-		Renderer:   w.Host.Window.Renderer,
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,

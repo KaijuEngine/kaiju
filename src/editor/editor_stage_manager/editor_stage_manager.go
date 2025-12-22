@@ -766,7 +766,6 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			texs[i].DelayedCreate(host.Window.Renderer)
 		}
 		draw := rendering.Drawing{
-			Renderer:   host.Window.Renderer,
 			Material:   mat,
 			Mesh:       mesh,
 			ShaderData: e.StageData.ShaderData,

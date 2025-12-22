@@ -422,7 +422,6 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	d := rendering.Drawing{
-		Renderer: host.Window.Renderer,
 		Material: mat,
 		Mesh:     mesh,
 		ShaderData: &ShaderData{

@@ -94,7 +94,6 @@ func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_
 	sd.(*shader_data_registry.ShaderDataEdFrustumWire).Color = matrix.ColorWhite()
 	sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
 	host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       frustum,
 		ShaderData: sd,

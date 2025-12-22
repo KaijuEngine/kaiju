@@ -179,7 +179,6 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	sd.Deactivate()
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
