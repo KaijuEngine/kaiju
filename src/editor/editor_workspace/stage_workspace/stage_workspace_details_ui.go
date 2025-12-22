@@ -485,19 +485,22 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 		return false
 	}
 	entity := sel[0]
-	var v reflect.Value
 	if isShaderData {
-		v = reflect.ValueOf(entity.StageData.ShaderData).Elem().Field(idx)
+		v := reflect.ValueOf(entity.StageData.ShaderData).Elem().Field(idx)
+		return reflectAssignChanges(e, v)
 	} else {
 		pIdx, err := strconv.Atoi(root.Attribute("data-bindidx"))
 		if err != nil {
 			return false
 		}
 		target := entity.DataBindings()[pIdx]
-		v = reflect.ValueOf(target.BoundData).Elem().Field(idx)
-		data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+		v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+		if ok := reflectAssignChanges(e, v); ok {
+			data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+			return true
+		}
+		return false
 	}
-	return reflectAssignChanges(e, v)
 }
 
 func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
