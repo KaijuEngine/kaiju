@@ -65,8 +65,6 @@ const (
 	cursorWidth       float32 = 2.0
 	cursorBlinkRate   float32 = 0.75
 	verticalPadding   float32 = 3.0
-	cursorZ           float32 = 0.3
-	highlightZ        float32 = 0.07
 	cursorY           float32 = 2
 )
 
@@ -150,6 +148,7 @@ func (input *Input) Init(placeholderText string) {
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
+	data.highlight.allowClickThrough()
 	p.AddChild((*UI)(data.highlight))
 	data.highlight.entity.Deactivate()
 
@@ -287,10 +286,10 @@ func (input *Input) setBgColors() {
 		sd := ld.runeDrawings[0].ShaderData.(*rendering.TextShaderData)
 		data.label.ColorRange(0, ld.textLength,
 			ld.fgColor, sd.FgColor)
-		if data.selectStart != data.selectEnd {
-			data.label.ColorRange(data.selectStart, data.selectEnd,
-				ld.fgColor, data.highlight.shaderData.FgColor)
-		}
+		//if data.selectStart != data.selectEnd {
+		//	data.label.ColorRange(data.selectStart, data.selectEnd,
+		//		ld.fgColor, data.highlight.shaderData.FgColor)
+		//}
 	}
 }
 

@@ -166,8 +166,10 @@ func (group *Group) lateUpdate() {
 			sort.Slice(hovered, func(i, j int) bool {
 				return sortElements(hovered[i], hovered[j])
 			})
-			if len(hovered) > 0 {
-				top = hovered[0]
+			for i := 0; i < len(hovered) && top == nil; i++ {
+				if hovered[i].IsType(ElementTypePanel) && !hovered[i].ToPanel().PanelData().panelBits.allowClickThrough() {
+					top = hovered[i]
+				}
 			}
 		}
 		group.isProcessing = true
