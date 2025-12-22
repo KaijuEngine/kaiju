@@ -6,7 +6,21 @@ title: Building new fonts | Kaiju Engine
 Kaiju uses MSDF (multi-channel signed distance field) fonts for rendering text. This allows for high quality text rendering at any size. Other forms of fonts (such as bitmap) is not supported by default, you'll need to add support for fonts like that yourself if you need to [[1](#notes)].
 
 ## Building MSDF fonts
-To build new font's you'll need the `msdf-atlas-gen` tool, which can be [found here](https://github.com/Chlumsky/msdf-atlas-gen/releases). Place this executable into the `bin` folder of the Kaiju repository (you may need to create this folder). Also in this folder, create a folder for the font face you'd like to convert. For example, if you'd like to convert the OpenSans font, create a folder called `OpenSans`. Inside this folder, place the TTF files for the font. Lastly, you'll need to create a text file named `charset.txt` within your font folder. This text file should have all of the characters you need out of your font. Check out the sample `charset.txt` file in the `content/editor/fonts/charset.txt` file for an example. Make note of double quotes on the ends, the escaped characters, and the UTF-8 file format.
+
+To build new font's you'll need the `msdf-atlas-gen` tool, which can be [found here](https://github.com/Chlumsky/msdf-atlas-gen/releases).
+
+Place this executable into the `tools/content_tools` folder of the Kaiju repository (you may need to create this folder), and rename to `msdf-atlas-gen-${OS}-${ARCH}[.exe]`.
+
+For example:
+
+- On Windows/amd64, the filename should be `msdf-atlas-gen-windows-amd64.exe`
+- On macOS/arm64, the filename should be `msdf-atlas-gen-darwin-arm64`
+
+Also in this folder, create a folder for the font face you'd like to convert. For example, if you'd like to convert the OpenSans font, create a folder called `OpenSans`. Inside this folder, place the TTF files for the font.
+
+Lastly, you'll need to create a text file named `charset.txt` within your font folder. This text file should have all of the characters you need out of your font.
+
+Check out the sample `charset.txt` file in the `content/editor/fonts/charset.txt` file for an example. Make note of double quotes on the ends, the escaped characters, and the UTF-8 file format.
 
 Once you've done this setup work, you can run the following command from within the `src` folder:
 
