@@ -63,6 +63,7 @@ type EmitterConfig struct {
 	SpawnRate        float64
 	ParticleLifeSpan float32
 	LifeSpan         float64
+	Offset           matrix.Vec3
 	DirectionMin     matrix.Vec3
 	DirectionMax     matrix.Vec3
 	VelocityMinMax   matrix.Vec2
@@ -205,7 +206,7 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	pd := &e.particleData[idx]
 	c := &e.Config
 	pd.Activate()
-	p.Transform.Position = transform.Position()
+	p.Transform.Position = transform.Position().Add(e.Config.Offset)
 	p.Transform.Rotation = transform.Rotation()
 	p.Transform.Scale = matrix.Vec3One()
 	p.LifeSpan = e.Config.ParticleLifeSpan
