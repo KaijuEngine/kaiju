@@ -85,6 +85,9 @@ func (w *VfxWorkspace) Open() {
 	w.stageView.Open()
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.emitterDataTemplate.UI.Hide()
+	if w.emitter.IsValid() {
+		w.loadEmitterConfig()
+	}
 }
 
 func (w *VfxWorkspace) Close() {
@@ -127,12 +130,15 @@ func (w *VfxWorkspace) clickTest(e *document.Element) {
 
 func (w *VfxWorkspace) loadEmitterConfig() {
 	defer tracing.NewRegion("VfxWorkspace.loadEmitterConfig").End()
-	g := entity_data_binding.ToDataBinding("Shader Data", &w.emitter.Config)
+	g := entity_data_binding.ToDataBinding("Particle Emitter Data", &w.emitter.Config)
 	w.createDataBindingEntry(&g)
 }
 
 func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("VfxWorkspace.createDataBindingEntry").End()
+	for _, e := range w.emitterDataList.Children[1:] {
+		w.Doc.RemoveElement(e)
+	}
 	bindIdx := len(w.emitterDataTemplate.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(w.emitterDataTemplate)
 	nameSpan := cpy.Children[0]

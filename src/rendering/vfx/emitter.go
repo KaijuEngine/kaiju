@@ -74,8 +74,14 @@ type EmitterConfig struct {
 	Repeat           bool
 }
 
+func (e *Emitter) IsValid() bool { return e.host != nil }
+
 func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig) {
 	defer tracing.NewRegion("Emitter.Initialize").End()
+	if e.IsValid() {
+		e.ReloadConfig(host)
+		return
+	}
 	e.host = host
 	e.Config = config
 	e.updateId = host.Updater.AddUpdate(e.update)
