@@ -370,13 +370,12 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(tpl)
-	header := cpy.Children[0]
-	nameSpan := header.Children[0]
-	deleteBtn := header.Children[1]
-	deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+	// header := cpy.Children[0]
+	nameSpan := cpy.Children[0]
+	// deleteBtn := header.Children[1]
+	// deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 	nameSpan.InnerLabel().SetText(g.Name)
 	fieldDiv := cpy.Children[1]
-
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
