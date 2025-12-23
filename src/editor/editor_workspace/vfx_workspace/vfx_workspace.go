@@ -282,6 +282,7 @@ func (w *VfxWorkspace) clearSelected() {
 		w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable")
 	}
 	w.emitter = nil
+	w.emitterData.UI.Hide()
 }
 
 func (w *VfxWorkspace) selectEmitter(emit *vfx.Emitter) {

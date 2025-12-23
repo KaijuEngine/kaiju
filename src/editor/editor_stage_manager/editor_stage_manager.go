@@ -144,10 +144,6 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
 	e := m.AddEntityWithId(uuid.NewString(), name, point)
-	m.history.Add(&objectSpawnHistory{
-		m: m,
-		e: e,
-	})
 	return e
 }
 
@@ -205,6 +201,10 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 				return
 			}
 		}
+	})
+	m.history.Add(&objectSpawnHistory{
+		m: m,
+		e: e,
 	})
 	m.OnEntitySpawn.Execute(e)
 	return e
@@ -583,6 +583,8 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 
 func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) error {
 	defer tracing.NewRegion("StageManager.SpawnTemplate").End()
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
 	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
 	if err != nil {
 		slog.Error("failed to load the template file", "path", cc.Path, "error", err)

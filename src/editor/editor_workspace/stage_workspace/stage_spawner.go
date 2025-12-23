@@ -215,6 +215,7 @@ func (w *StageWorkspace) loadStage(id string) {
 				data_binding_renderer.Attached(b, weak.Make(w.Host), man, e)
 			}
 		}
+		w.ed.History().Clear()
 	}
 }
 
