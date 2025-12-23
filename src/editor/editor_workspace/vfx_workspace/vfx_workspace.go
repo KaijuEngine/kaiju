@@ -38,6 +38,7 @@ package vfx_workspace
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
@@ -126,12 +127,18 @@ func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
 
 func (w *VfxWorkspace) OpenParticleSystem(id string) {
 	defer tracing.NewRegion("VfxWorkspace.OpenParticleSystem").End()
+	cc, err := w.ed.Project().CacheDatabase().Read(id)
+	if err != nil {
+		slog.Error("could not find the particle system in the cache database", "id", id, "error", err)
+		return
+	}
 	w.systemId = id
 	spec, err := vfx.LoadSpec(w.Host, id)
 	if err != nil {
 		slog.Error("failed to locate/decode the particle system", "id", id, "error", err)
 		return
 	}
+	w.systemName.UI.ToInput().SetText(cc.Config.Name)
 	w.clear()
 	for i := range spec {
 		w.addEmitter(spec[i])
@@ -201,7 +208,7 @@ func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 			slog.Error("failed to find the config cache for particle system", "id", w.systemId, "error", err)
 			return
 		}
-		if cc, err = cache.Rename(w.systemId, name, pfs); err != nil {
+		if cc, err = cache.Rename(w.systemId, name, pfs); err != nil && !errors.Is(err, content_database.CacheContentNameEqual) {
 			slog.Error("failed to rename the particle system", "id", w.systemId, "error", err)
 			return
 		}
@@ -215,12 +222,13 @@ func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 			slog.Error("failed to write the particle system", "id", w.systemId, "error", err)
 			return
 		}
+		w.ed.Events().OnContentChangesSaved.Execute(w.systemId)
 	} else {
 		ids := content_database.ImportRaw(name, data, content_database.ParticleSystem{}, pfs, cache)
 		w.systemId = ids[0]
 		w.ed.Events().OnContentAdded.Execute(ids)
-		slog.Info("particle system successfully saved")
 	}
+	slog.Info("particle system successfully saved")
 }
 
 func (w *VfxWorkspace) clickSelectEmitter(e *document.Element) {

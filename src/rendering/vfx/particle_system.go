@@ -70,12 +70,12 @@ func (p *ParticleSystem) Initialize(host *engine.Host, entity *engine.Entity, sp
 	p.host = host
 	p.entity = entity
 	p.updateId = host.Updater.AddUpdate(p.update)
-	p.Emitters = make([]Emitter, len(spec))
 	p.entity.OnDestroy.Add(p.Destroy)
 	p.LoadSpec(host, spec)
 }
 
 func (p *ParticleSystem) LoadSpec(host *engine.Host, spec ParticleSystemSpec) {
+	p.Emitters = make([]Emitter, len(spec))
 	for i := range p.Emitters {
 		p.Emitters[i].Initialize(host, spec[i])
 	}

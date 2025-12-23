@@ -53,4 +53,8 @@ type EditorEvents struct {
 	// to be able to focus content in the content workspace, but it could be
 	// used in other ways as needed.
 	OnFocusContent events.EventWithArg[string]
+
+	// OnContentChangesSaved is called when content is updated and allows for
+	// other parts of the system to update in order to reflect those changes.
+	OnContentChangesSaved events.EventWithArg[string]
 }

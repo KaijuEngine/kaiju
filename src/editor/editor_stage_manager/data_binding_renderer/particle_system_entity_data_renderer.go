@@ -78,19 +78,17 @@ func (c *ParticleSystemEntityDataRenderer) Show(host *engine.Host, target *edito
 func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if g, ok := c.Systems[target]; ok {
 		id := data.FieldValueByName("Id").(string)
-		if g.Id != id {
-			g.Id = id
-			g.System.Clear()
-			spec, err := vfx.LoadSpec(host, id)
-			if err != nil {
-				slog.Error("invlaid particle system id specified", "id", id, "error", err)
-				return
-			}
-			if !g.System.IsValid() {
-				g.System.Initialize(host, &target.Entity, spec)
-			} else {
-				g.System.LoadSpec(host, spec)
-			}
+		g.Id = id
+		g.System.Clear()
+		spec, err := vfx.LoadSpec(host, id)
+		if err != nil {
+			slog.Error("invlaid particle system id specified", "id", id, "error", err)
+			return
+		}
+		if !g.System.IsValid() {
+			g.System.Initialize(host, &target.Entity, spec)
+		} else {
+			g.System.LoadSpec(host, spec)
 		}
 	}
 }
