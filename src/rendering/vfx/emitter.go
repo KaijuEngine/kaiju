@@ -49,13 +49,10 @@ import (
 
 type Emitter struct {
 	Config       EmitterConfig
-	Transform    matrix.Transform
-	host         *engine.Host
 	rand         *rand.Rand
 	particles    []Particle
 	particleData []shader_data_registry.ShaderDataParticle
 	available    []int
-	updateId     engine.UpdateId
 	nextSpawn    float64
 	lifeTime     float64
 	deactivated  bool
@@ -75,7 +72,7 @@ type EmitterConfig struct {
 	Repeat           bool
 }
 
-func (e *Emitter) IsValid() bool { return e.host != nil }
+func (e *Emitter) IsValid() bool { return e.rand != nil }
 
 func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig) {
 	defer tracing.NewRegion("Emitter.Initialize").End()
@@ -83,9 +80,7 @@ func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig) {
 		e.ReloadConfig(host)
 		return
 	}
-	e.host = host
 	e.Config = config
-	e.updateId = host.Updater.AddUpdate(e.update)
 	seed1 := uint64(time.Now().UnixNano())
 	seed2 := uint64(float64(time.Now().UnixNano()) * 0.13)
 	e.rand = rand.New(rand.NewPCG(seed1, seed2))
@@ -94,7 +89,6 @@ func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig) {
 
 func (e *Emitter) Destroy() {
 	defer tracing.NewRegion("Emitter.Destroy").End()
-	e.host.Updater.RemoveUpdate(&e.updateId)
 	for i := range e.particleData {
 		e.particleData[i].Destroy()
 	}
@@ -160,7 +154,7 @@ func (e *Emitter) ReloadConfig(host *engine.Host) {
 	e.lifeTime = e.Config.LifeSpan
 }
 
-func (e *Emitter) update(deltaTime float64) {
+func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 	defer tracing.NewRegion("Emitter.update").End()
 	if e.deactivated {
 		return
@@ -178,10 +172,10 @@ func (e *Emitter) update(deltaTime float64) {
 	if e.nextSpawn <= 0 {
 		if e.Config.Burst {
 			for len(e.available) > 0 {
-				e.spawn()
+				e.spawn(transform)
 			}
 		} else {
-			e.spawn()
+			e.spawn(transform)
 		}
 		e.nextSpawn = e.Config.SpawnRate
 	}
@@ -200,7 +194,7 @@ func (e *Emitter) update(deltaTime float64) {
 	}
 }
 
-func (e *Emitter) spawn() {
+func (e *Emitter) spawn(transform *matrix.Transform) {
 	defer tracing.NewRegion("Emitter.spawn").End()
 	if len(e.available) == 0 {
 		return
@@ -211,8 +205,8 @@ func (e *Emitter) spawn() {
 	pd := &e.particleData[idx]
 	c := &e.Config
 	pd.Activate()
-	p.Transform.Position = e.Transform.Position()
-	p.Transform.Rotation = e.Transform.Rotation()
+	p.Transform.Position = transform.Position()
+	p.Transform.Rotation = transform.Rotation()
 	p.Transform.Scale = matrix.Vec3One()
 	p.LifeSpan = e.Config.ParticleLifeSpan
 	if e.Config.FadeOutOverLife {

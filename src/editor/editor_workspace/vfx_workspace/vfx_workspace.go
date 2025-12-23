@@ -69,7 +69,8 @@ type VfxWorkspace struct {
 	emitterList              *document.Element
 	emitterListEntryTemplate *document.Element
 	emitter                  *vfx.Emitter
-	emitters                 []*vfx.Emitter
+	particleSystem           *vfx.ParticleSystem
+	entity                   engine.Entity
 	systemId                 string
 }
 
@@ -101,9 +102,14 @@ func (w *VfxWorkspace) Open() {
 	w.emitterData.UI.Hide()
 	w.emitterDataTemplate.UI.Hide()
 	w.emitterListEntryTemplate.UI.Hide()
-	for i := range w.emitters {
-		w.emitters[i].Activate()
+	w.entity.Transform.SetPosition(w.Host.PrimaryCamera().LookAt())
+	w.entity.Transform.SetRotation(matrix.Vec3Zero())
+	w.entity.Transform.SetScale(matrix.Vec3One())
+	if w.particleSystem == nil {
+		w.particleSystem = &vfx.ParticleSystem{}
+		w.particleSystem.Initialize(w.Host, &w.entity, vfx.ParticleSystemSpec{})
 	}
+	w.particleSystem.Activate()
 }
 
 func (w *VfxWorkspace) Close() {
@@ -111,9 +117,7 @@ func (w *VfxWorkspace) Close() {
 	w.CommonClose()
 	w.stageView.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
-	for i := range w.emitters {
-		w.emitters[i].Deactivate()
-	}
+	w.particleSystem.Deactivate()
 }
 
 func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
@@ -135,9 +139,7 @@ func (w *VfxWorkspace) OpenParticleSystem(id string) {
 	}
 	w.clear()
 	for i := range spec {
-		emit := &vfx.Emitter{}
-		emit.Initialize(w.Host, spec[i])
-		w.addEmitter(emit)
+		w.addEmitter(spec[i])
 	}
 }
 
@@ -147,10 +149,7 @@ func (w *VfxWorkspace) clear() {
 		w.Doc.RemoveElementWithoutApplyStyles(w.emitterList.Children[i])
 	}
 	w.emitter = nil
-	for i := range w.emitters {
-		w.emitters[i].Destroy()
-	}
-	w.emitters = klib.WipeSlice(w.emitters)
+	w.particleSystem.Clear()
 }
 
 func (w *VfxWorkspace) update(deltaTime float64) {
@@ -166,8 +165,7 @@ func (w *VfxWorkspace) update(deltaTime float64) {
 
 func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickTest").End()
-	emit := &vfx.Emitter{}
-	emit.Initialize(w.Host, vfx.EmitterConfig{
+	w.addEmitter(vfx.EmitterConfig{
 		Texture:          "smoke.png",
 		SpawnRate:        0.05,
 		ParticleLifeSpan: 2,
@@ -177,14 +175,13 @@ func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 		OpacityMinMax:    matrix.NewVec2(0.3, 1.0),
 		FadeOutOverLife:  true,
 	})
-	w.addEmitter(emit)
 }
 
-func (w *VfxWorkspace) addEmitter(emit *vfx.Emitter) {
-	w.emitters = append(w.emitters, emit)
+func (w *VfxWorkspace) addEmitter(cfg vfx.EmitterConfig) {
+	emit := w.particleSystem.AddEmitter(cfg)
 	cpy := w.Doc.DuplicateElementWithoutApplyStyles(w.emitterListEntryTemplate)
 	w.Doc.SetElementId(cpy, "")
-	cpy.Children[0].InnerLabel().SetText(fmt.Sprintf("Emitter %d", len(w.emitters)))
+	cpy.Children[0].InnerLabel().SetText(fmt.Sprintf("Emitter %d", len(w.particleSystem.Emitters)))
 	w.selectEmitter(emit)
 }
 
@@ -192,8 +189,8 @@ func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickSaveEmitter").End()
 	name := w.systemName.UI.ToInput().Text()
 	spec := vfx.ParticleSystemSpec{}
-	for i := range w.emitters {
-		spec = append(spec, w.emitters[i].Config)
+	for i := range w.particleSystem.Emitters {
+		spec = append(spec, w.particleSystem.Emitters[i].Config)
 	}
 	data, err := json.Marshal(spec)
 	if err != nil {
@@ -233,8 +230,8 @@ func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 func (w *VfxWorkspace) clickSelectEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickSelectEmitter").End()
 	idx := w.emitterList.IndexOfChild(e) - 1
-	if idx >= 0 && idx < len(w.emitters) {
-		w.selectEmitter(w.emitters[idx])
+	if idx >= 0 && idx < len(w.particleSystem.Emitters) {
+		w.selectEmitter(&w.particleSystem.Emitters[idx])
 	}
 }
 
@@ -250,27 +247,45 @@ func (w *VfxWorkspace) clickDeleteEmitter(e *document.Element) {
 			w.ed.FocusInterface()
 			idx := w.emitterList.IndexOfChild(e) - 1
 			w.Doc.RemoveElement(e)
-			if idx >= 0 && idx < len(w.emitters) {
-				w.deleteEmitter(w.emitters[idx])
-			}
+			w.deleteEmitter(idx)
 		},
 		OnCancel: w.ed.FocusInterface,
 	})
 }
 
-func (w *VfxWorkspace) deleteEmitter(emit *vfx.Emitter) {
-	emit.Destroy()
-	w.emitters = klib.SlicesRemoveElement(w.emitters, emit)
+func (w *VfxWorkspace) deleteEmitter(idx int) {
+	defer tracing.NewRegion("VfxWorkspace.deleteEmitter").End()
+	if idx < 0 || idx >= len(w.particleSystem.Emitters) {
+		return
+	}
+	curr := -1
+	for i := range w.particleSystem.Emitters {
+		if w.emitter == &w.particleSystem.Emitters[i] {
+			curr = i
+			break
+		}
+	}
+	if curr == idx {
+		w.clearSelected()
+	}
+	w.particleSystem.RemoveEmitter(idx)
 }
 
-func (w *VfxWorkspace) selectEmitter(emit *vfx.Emitter) {
-	w.emitter = emit
+func (w *VfxWorkspace) clearSelected() {
+	defer tracing.NewRegion("VfxWorkspace.clearSelected").End()
 	for _, e := range w.emitterList.Children {
 		w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable")
 	}
+	w.emitter = nil
+}
+
+func (w *VfxWorkspace) selectEmitter(emit *vfx.Emitter) {
+	defer tracing.NewRegion("VfxWorkspace.selectEmitter").End()
+	w.clearSelected()
+	w.emitter = emit
 	name := "Particle Emitter Data"
-	for i := range w.emitters {
-		if w.emitters[i] == emit {
+	for i := range w.particleSystem.Emitters {
+		if emit == &w.particleSystem.Emitters[i] {
 			idx := i + 1 // +1 because of the template
 			w.Doc.SetElementClassesWithoutApply(w.emitterList.Children[idx],
 				"edPanelBgHoverable", "selected")
