@@ -101,6 +101,22 @@ func (c *RigidBodyEntityDataRenderer) Update(host *engine.Host, target *editor_s
 	}
 }
 
+func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Hide").End()
+	if d, ok := c.Wireframes[target]; ok {
+		d.ShaderData.Destroy()
+		delete(c.Wireframes, target)
+	}
+}
+
+func (c *RigidBodyEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("RigidBodyEntityDataRenderer.EntitySpawn").End()
+}
+
+func (c *RigidBodyEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("RigidBodyEntityDataRenderer.EntityDestroy").End()
+}
+
 func rigidBodyLoadWireframe(host *engine.Host, g RigidBodyGizmo, transform *matrix.Transform) (rendering.DrawInstance, error) {
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
 	if err != nil {
@@ -137,14 +153,6 @@ func rigidBodyLoadWireframe(host *engine.Host, g RigidBodyGizmo, transform *matr
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return gsd, nil
-}
-
-func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Hide").End()
-	if d, ok := c.Wireframes[target]; ok {
-		d.ShaderData.Destroy()
-		delete(c.Wireframes, target)
-	}
 }
 
 func (g *RigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) bool {

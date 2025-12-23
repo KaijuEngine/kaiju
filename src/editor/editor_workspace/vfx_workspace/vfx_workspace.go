@@ -127,14 +127,9 @@ func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
 func (w *VfxWorkspace) OpenParticleSystem(id string) {
 	defer tracing.NewRegion("VfxWorkspace.OpenParticleSystem").End()
 	w.systemId = id
-	data, err := w.Host.AssetDatabase().Read(w.systemId)
+	spec, err := vfx.LoadSpec(w.Host, id)
 	if err != nil {
-		slog.Error("failed to locate the particle system", "id", id, "error", err)
-		return
-	}
-	spec := vfx.ParticleSystemSpec{}
-	if err = json.Unmarshal(data, &spec); err != nil {
-		slog.Error("failed to deserialize the particle system", "id", id, "error", err)
+		slog.Error("failed to locate/decode the particle system", "id", id, "error", err)
 		return
 	}
 	w.clear()

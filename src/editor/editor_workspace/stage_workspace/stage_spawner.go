@@ -46,6 +46,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine_entity_data/engine_entity_data_camera"
 	"kaiju/engine_entity_data/engine_entity_data_light"
+	"kaiju/engine_entity_data/engine_entity_data_particles"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -153,6 +154,8 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		if eHitOk {
 			w.attachMaterial(cc, e)
 		}
+	case content_database.ParticleSystem:
+		w.spawnParticleSystem(cc, hit)
 	default:
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -174,6 +177,8 @@ func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedConte
 		w.spawnMesh(cc, point)
 	case content_database.Stage:
 		w.OpenStage(cc.Id())
+	case content_database.ParticleSystem:
+		w.spawnParticleSystem(cc, point)
 	default:
 		slog.Error("double clicking this type of content is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -320,6 +325,19 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 	w.stageView.Manager().ClearSelection()
 	w.stageView.Manager().SelectEntity(e)
+}
+
+func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnParticleSystem").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	bindKey := engine_entity_data_particles.BindingKey
+	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	e.Transform.SetPosition(point)
+	for _, de := range e.DataBindingsByKey(bindKey) {
+		de.SetFieldByName("Id", cc.Id())
+		data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+	}
 }
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {

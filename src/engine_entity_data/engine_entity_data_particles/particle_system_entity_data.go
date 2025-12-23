@@ -37,7 +37,6 @@
 package engine_entity_data_particles
 
 import (
-	"encoding/json"
 	"kaiju/engine"
 	"kaiju/rendering/vfx"
 	"log/slog"
@@ -64,14 +63,9 @@ type ParticleSystemEntityData struct {
 }
 
 func (r ParticleSystemEntityData) Init(e *engine.Entity, host *engine.Host) {
-	cfg, err := host.AssetDatabase().Read(r.Id)
+	sysSpec, err := vfx.LoadSpec(host, r.Id)
 	if err != nil {
-		slog.Error("failed to locate the particle system", "id", r.Id, "error", err)
-		return
-	}
-	var sysSpec vfx.ParticleSystemSpec
-	if err = json.Unmarshal(cfg, &sysSpec); err != nil {
-		slog.Error("failed to decode the particle system specification", "id", r.Id, "error", err)
+		slog.Error("failed to locate/decode the particle system", "id", r.Id, "error", err)
 		return
 	}
 	sys := &vfx.ParticleSystem{}

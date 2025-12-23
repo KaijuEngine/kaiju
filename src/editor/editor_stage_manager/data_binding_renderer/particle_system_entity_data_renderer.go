@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* history_stage_manager_spawn.go                                             */
+/* particle_system_entity_data_renderer.go                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,49 +34,77 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor_stage_manager
+package data_binding_renderer
 
 import (
-	"kaiju/engine/collision"
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/engine"
+	"kaiju/engine_entity_data/engine_entity_data_particles"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering/vfx"
+	"log/slog"
 )
 
-type objectSpawnHistory struct {
-	m *StageManager
-	e *StageEntity
+type ParticleSystemGizmo struct {
+	Id     string
+	System vfx.ParticleSystem
 }
 
-func (h *objectSpawnHistory) Redo() {
-	defer tracing.NewRegion("objectSpawnHistory.Redo").End()
-	h.e.Activate()
-	h.e.isDeleted = false
-	h.m.host.AddEntity(&h.e.Entity)
-	if h.e.StageData.ShaderData != nil {
-		h.e.StageData.ShaderData.Activate()
-	}
-	if h.e.StageData.Bvh != nil {
-		h.m.AddBVH(h.e.StageData.Bvh, &h.e.Transform)
-	}
-	h.m.OnEntitySpawn.Execute(h.e)
+type ParticleSystemEntityDataRenderer struct {
+	Systems map[*editor_stage_manager.StageEntity]*ParticleSystemGizmo
 }
 
-func (h *objectSpawnHistory) Undo() {
-	defer tracing.NewRegion("objectSpawnHistory.Undo").End()
-	h.e.Deactivate()
-	h.e.isDeleted = true
-	h.m.host.RemoveEntity(&h.e.Entity)
-	if h.e.StageData.ShaderData != nil {
-		h.e.StageData.ShaderData.Deactivate()
-	}
-	if h.e.StageData.Bvh != nil {
-		collision.RemoveAllLeavesMatchingTransform(&h.m.worldBVH, &h.e.Transform)
-	}
-	h.m.OnEntityDestroy.Execute(h.e)
+func init() {
+	AddRenderer(engine_entity_data_particles.BindingKey, &ParticleSystemEntityDataRenderer{
+		Systems: make(map[*editor_stage_manager.StageEntity]*ParticleSystemGizmo),
+	})
 }
 
-func (h *objectSpawnHistory) Delete() {
-	h.e.Destroy()
-	h.e.ForceCleanup()
+func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Attached").End()
+	c.Systems[target] = &ParticleSystemGizmo{}
+	target.OnDestroy.Add(func() {
+		c.Systems[target].System.Destroy()
+		delete(c.Systems, target)
+	})
+	commonAttached(host, manager, target, "particles.png")
 }
 
-func (h *objectSpawnHistory) Exit() {}
+func (c *ParticleSystemEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Show").End()
+}
+
+func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	if g, ok := c.Systems[target]; ok {
+		id := data.FieldValueByName("Id").(string)
+		if g.Id != id {
+			g.Id = id
+			g.System.Clear()
+			spec, err := vfx.LoadSpec(host, id)
+			if err != nil {
+				slog.Error("invlaid particle system id specified", "id", id, "error", err)
+				return
+			}
+			g.System.Initialize(host, &target.Entity, spec)
+		}
+	}
+}
+
+func (c *ParticleSystemEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Hide").End()
+}
+
+func (c *ParticleSystemEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.EntitySpawn").End()
+	if g, ok := c.Systems[target]; ok {
+		g.System.Activate()
+	}
+}
+
+func (c *ParticleSystemEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.EntityDestroy").End()
+	if g, ok := c.Systems[target]; ok {
+		g.System.Deactivate()
+	}
+}

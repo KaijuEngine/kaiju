@@ -150,3 +150,11 @@ func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_
 		delete(c.Frustums, target)
 	}
 }
+
+func (c *CameraEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("CameraEntityDataRenderer.EntitySpawn").End()
+}
+
+func (c *CameraEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("CameraEntityDataRenderer.EntityDestroy").End()
+}

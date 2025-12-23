@@ -153,3 +153,11 @@ func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_m
 		delete(c.LightLines, target)
 	}
 }
+
+func (c *LightEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("LightEntityDataRenderer.EntitySpawn").End()
+}
+
+func (c *LightEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("LightEntityDataRenderer.EntityDestroy").End()
+}

@@ -37,6 +37,7 @@
 package vfx
 
 import (
+	"encoding/json"
 	"kaiju/engine"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
@@ -50,6 +51,16 @@ type ParticleSystem struct {
 	entity   *engine.Entity
 	Emitters []Emitter
 	updateId engine.UpdateId
+}
+
+func LoadSpec(host *engine.Host, id string) (ParticleSystemSpec, error) {
+	var spec ParticleSystemSpec
+	data, err := host.AssetDatabase().Read(id)
+	if err != nil {
+		return spec, err
+	}
+	err = json.Unmarshal(data, &spec)
+	return spec, err
 }
 
 func (p *ParticleSystem) Initialize(host *engine.Host, entity *engine.Entity, spec ParticleSystemSpec) {
