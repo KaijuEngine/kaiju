@@ -38,8 +38,8 @@ package engine_entity_data_physics
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/physics"
 	"kaiju/matrix"
-	"kaiju/physics"
 )
 
 const BindingKey = "kaiju.RigidBodyEntityData"
