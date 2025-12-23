@@ -194,6 +194,16 @@ func (s *Select) ClearOptions() {
 	}
 }
 
+func (s *Select) PickOptionByLabelWithoutEvent(label string) {
+	data := s.SelectData()
+	for i := range data.options {
+		if data.options[i].Value == label || data.options[i].Name == label {
+			s.PickOptionWithoutEvent(i)
+			break
+		}
+	}
+}
+
 func (s *Select) PickOptionByLabel(label string) {
 	data := s.SelectData()
 	for i := range data.options {
@@ -204,21 +214,28 @@ func (s *Select) PickOptionByLabel(label string) {
 	}
 }
 
-func (s *Select) PickOption(index int) {
+func (s *Select) PickOptionWithoutEvent(index int) bool {
 	s.collapse()
 	data := s.SelectData()
 	if index < -1 || index >= len(data.options) {
-		return
+		return true
 	}
 	if data.selected != index {
 		data.selected = index
 		if index >= 0 {
-			s.Base().ExecuteEvent(EventTypeChange)
-			s.Base().ExecuteEvent(EventTypeSubmit)
 			data.label.SetText(data.options[index].Name)
+			return true
 		} else {
 			data.label.SetText(data.text)
 		}
+	}
+	return false
+}
+
+func (s *Select) PickOption(index int) {
+	if s.PickOptionWithoutEvent(index) {
+		s.Base().ExecuteEvent(EventTypeChange)
+		s.Base().ExecuteEvent(EventTypeSubmit)
 	}
 }
 

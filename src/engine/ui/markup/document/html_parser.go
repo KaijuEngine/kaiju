@@ -312,7 +312,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				cb := panel.Base().ToCheckbox()
 				cb.Init()
 				if e.Attribute("checked") != "" {
-					cb.SetChecked(true)
+					cb.SetCheckedWithoutEvent(true)
 				}
 			case "slider":
 				slider := panel.Base().ToSlider()
@@ -320,7 +320,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				panel.DontFitContent()
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
-						slider.SetValue(float32(f))
+						slider.SetValueWithoutEvent(float32(f))
 					}
 				}
 			case "text", "number":
@@ -357,9 +357,9 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					val := child.Attribute("value")
 					sel.AddOption(childText, val)
 					if val == selectStartValue {
-						sel.PickOption(i)
+						sel.PickOptionWithoutEvent(i)
 					} else if val == "" && childText == selectStartValue {
-						sel.PickOption(i)
+						sel.PickOptionWithoutEvent(i)
 					}
 				}
 			}

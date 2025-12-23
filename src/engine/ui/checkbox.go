@@ -163,7 +163,7 @@ func (cb *Checkbox) onClick() {
 	cb.SetChecked(!data.isChecked)
 }
 
-func (cb *Checkbox) SetChecked(isChecked bool) {
+func (cb *Checkbox) SetCheckedWithoutEvent(isChecked bool) {
 	data := cb.CheckboxData()
 	if data.isChecked == isChecked {
 		return
@@ -184,6 +184,10 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 		}
 	}
 	(*Panel)(cb).SetBackground(target)
+}
+
+func (cb *Checkbox) SetChecked(isChecked bool) {
+	cb.SetCheckedWithoutEvent(isChecked)
 	(*UI)(cb).requestEvent(EventTypeChange)
 }
 

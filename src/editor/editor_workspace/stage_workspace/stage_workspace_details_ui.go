@@ -415,7 +415,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			for _, opt := range opts {
 				sel.AddOption(opt.Name, opt.Value)
 			}
-			sel.PickOptionByLabel(g.FieldNumberAsString(i))
+			sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
 			u := textInput.Children[0].UI.ToInput()
@@ -428,7 +428,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			w.Doc.RemoveElement(checkInput)
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
-			checkInput.Children[0].UI.ToCheckbox().SetChecked(g.FieldBool(i))
+			checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
 			w.Doc.RemoveElement(textInput)
 		} else if g.Fields[i].IsVec2() {
 			vec2Input.UI.Show()

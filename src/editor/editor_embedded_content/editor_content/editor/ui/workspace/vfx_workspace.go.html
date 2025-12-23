@@ -2,14 +2,113 @@
 <html>
 	<head>
 		<style>
-			.test {
+			.leftPanel {
 				position: absolute;
-				top: 10em;
+				top: 3em;
+				height: calc(100% - 5em);
+				width: 15em;
 				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.leftPanel { left: 0; }
+			.rightPanel {
+				position: absolute;
+				top: 3em;
+				height: calc(100% - 5em);
+				width: 15em;
+				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.rightPanel { right: 0; }
+			.dataTable {
+				width: 100%;
+				padding: 5px;
+				font-size: 0.8em;
+			}
+			.dataBindingBlock {
+				background-color: #282828;
+				color: white;
+				border: 2px solid #AAA;
+				margin-bottom: 0.2em;
+			}
+			.center { text-align: center; }
+			.dataInput {
+				width: 100%;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-bottom: 0.2em;
+			}
+			.dataCheck {
+				width: 0.8em;
+				height: 0.8em;
+				margin-left: 5px;
+				margin-bottom: 0.2em;
+			}
+			.smallInput, .smallerInput {
+				width: 4.3em;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-left: 0.3em;
+			}
+			.smallerInput {
+				width: 3.15em;
 			}
 		</style>
 	</head>
 	<body>
-		<button class="test" onclick="clickTest">Test</button>
+		<div class="leftPanel edPanelBg">
+			<button onclick="clickTest">Test</button>
+		</div>
+		<div class="rightPanel edPanelBg">
+			<div id="emitterData" class="dataTable">
+				<div id="emitterDataList">
+					<div id="emitterDataTemplate" class="dataBindingBlock">
+						<div class="center">Shader name...</div>
+						<div class="entityDataField" data-fieldidx="" data-bindidx="">
+							<span>Field name...</span>
+							<!-- Text input -->
+							<div>
+								<input class="dataInput" type="text" placeholder="Input..." onchange="changeEmitterData" />
+							</div>
+							<!-- Checkbox input -->
+							<div>
+								<input class="dataCheck" type="checkbox" onchange="changeEmitterData" />
+							</div>
+							<!-- Vec2 -->
+							<div>
+								<input class="smallInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+							</div>
+							<!-- Vec3 -->
+							<div>
+								<input class="smallInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Z..." onchange="changeEmitterData" />
+							</div>
+							<!-- Vec4 -->
+							<div>
+								<input class="smallerInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="Z..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="W..." onchange="changeEmitterData" />
+							</div>
+							<!-- Color -->
+							<div>
+								<input class="smallerInput" type="text" placeholder="R..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="G..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="B..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="A..." onchange="changeEmitterData" />
+							</div>
+							<!-- Select input -->
+							<div>
+								<select class="dataInput" onchange="changeEmitterData"></select>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</body>
 </html>

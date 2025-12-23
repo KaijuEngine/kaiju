@@ -1,1 +1,1 @@
-{"Name":"particle_transparent","Shader":"particle_transparent.shader","RenderPass":"transparent.renderpass","ShaderPipeline":"particle.shaderpipeline","Textures":[{"Texture":"square.png","Filter":""}],"PrepassMaterial":"particle.material"}
+{"Name":"particle_transparent","Shader":"particle_transparent.shader","RenderPass":"transparent.renderpass","ShaderPipeline":"particle_transparent.shaderpipeline","Textures":[{"Texture":"square.png","Filter":""}],"PrepassMaterial":"particle.material"}

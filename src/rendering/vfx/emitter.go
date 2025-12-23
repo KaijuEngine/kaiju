@@ -39,8 +39,8 @@ package vfx
 import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
-	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"math/rand/v2"
@@ -48,7 +48,7 @@ import (
 )
 
 type Emitter struct {
-	config       EmitterConfig
+	Config       EmitterConfig
 	Transform    matrix.Transform
 	host         *engine.Host
 	rand         *rand.Rand
@@ -61,6 +61,7 @@ type Emitter struct {
 }
 
 type EmitterConfig struct {
+	Texture          *rendering.Texture
 	SpawnRate        float64
 	ParticleLifeSpan float32
 	LifeSpan         float64
@@ -68,71 +69,88 @@ type EmitterConfig struct {
 	DirectionMax     matrix.Vec3
 	VelocityMinMax   matrix.Vec2
 	OpacityMinMax    matrix.Vec2
-	EmitVolume       collision.AABB
 	FadeOutOverLife  bool
 	Burst            bool
 	Repeat           bool
 }
 
-func (e *Emitter) Initialize(host *engine.Host, tex *rendering.Texture, config EmitterConfig) {
+func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig) {
+	defer tracing.NewRegion("Emitter.Initialize").End()
 	e.host = host
-	e.config = config
-	e.nextSpawn = 0
-	maxCount := int(matrix.Ceil(float32(1 / e.config.SpawnRate * float64(e.config.ParticleLifeSpan))))
-	maxCount += 1 // Little buffer for overlapping spawn/destroy
-	e.particles = make([]Particle, maxCount)
-	e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))
-	e.available = make([]int, 0, cap(e.particles))
+	e.Config = config
 	e.updateId = host.Updater.AddUpdate(e.update)
-	e.lifeTime = e.config.LifeSpan
 	seed1 := uint64(time.Now().UnixNano())
 	seed2 := uint64(float64(time.Now().UnixNano()) * 0.13)
 	e.rand = rand.New(rand.NewPCG(seed1, seed2))
-	// Brute forcing all particles to be instance drawings
-	mesh := rendering.NewMeshQuad(host.MeshCache())
-	mat, _ := host.MaterialCache().Material(assets.MaterialDefinitionParticleTransparent)
-	mat = mat.CreateInstance([]*rendering.Texture{tex})
-	drawings := make([]rendering.Drawing, maxCount)
-	for i := range maxCount {
-		e.particleData[i].ShaderDataBase = rendering.NewShaderDataBase()
-		e.particleData[i].Color = matrix.ColorWhite()
-		e.particleData[i].UVs = matrix.NewVec4(0, 0, 1, 1)
-		e.particleData[i].Deactivate()
-		drawings[i].Material = mat
-		drawings[i].Mesh = mesh
-		drawings[i].ShaderData = &e.particleData[i]
-		e.available = append(e.available, maxCount-i-1)
-	}
-	host.Drawings.AddDrawings(drawings)
+	e.ReloadConfig(host)
 }
 
 func (e *Emitter) Destroy() {
+	defer tracing.NewRegion("Emitter.Destroy").End()
 	e.host.Updater.RemoveUpdate(&e.updateId)
 	for i := range e.particleData {
 		e.particleData[i].Destroy()
 	}
 }
 
+func (e *Emitter) ReloadConfig(host *engine.Host) {
+	defer tracing.NewRegion("Emitter.ReloadConfig").End()
+	maxCount := 0
+	if e.Config.SpawnRate > 0 {
+		maxCount = int(matrix.Ceil(float32(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
+		maxCount += 1 // Little buffer for overlapping spawn/destroy
+	}
+	if maxCount != cap(e.particles) {
+		for i := range e.particleData {
+			e.particleData[i].Destroy()
+		}
+		if maxCount > 0 {
+			e.particles = make([]Particle, maxCount)
+			e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))
+			e.available = make([]int, 0, cap(e.particles))
+			// Brute forcing all particles to be instance drawings
+			mesh := rendering.NewMeshQuad(host.MeshCache())
+			mat, _ := host.MaterialCache().Material(assets.MaterialDefinitionParticleTransparent)
+			mat = mat.CreateInstance([]*rendering.Texture{e.Config.Texture})
+			drawings := make([]rendering.Drawing, maxCount)
+			for i := range maxCount {
+				e.particleData[i].ShaderDataBase = rendering.NewShaderDataBase()
+				e.particleData[i].Color = matrix.ColorWhite()
+				e.particleData[i].UVs = matrix.NewVec4(0, 0, 1, 1)
+				e.particleData[i].Deactivate()
+				drawings[i].Material = mat
+				drawings[i].Mesh = mesh
+				drawings[i].ShaderData = &e.particleData[i]
+				e.available = append(e.available, maxCount-i-1)
+			}
+			host.Drawings.AddDrawings(drawings)
+		}
+	}
+	e.nextSpawn = 0
+	e.lifeTime = e.Config.LifeSpan
+}
+
 func (e *Emitter) update(deltaTime float64) {
-	if e.config.LifeSpan > 0 {
+	defer tracing.NewRegion("Emitter.update").End()
+	if e.Config.LifeSpan > 0 {
 		if e.lifeTime > 0 {
 			e.lifeTime -= deltaTime
 			e.nextSpawn -= deltaTime
-		} else if e.config.Repeat && len(e.available) == cap(e.particles) {
-			e.lifeTime = e.config.LifeSpan
+		} else if e.Config.Repeat && len(e.available) == cap(e.particles) {
+			e.lifeTime = e.Config.LifeSpan
 		}
 	} else {
 		e.nextSpawn -= deltaTime
 	}
 	if e.nextSpawn <= 0 {
-		if e.config.Burst {
+		if e.Config.Burst {
 			for len(e.available) > 0 {
 				e.spawn()
 			}
 		} else {
 			e.spawn()
 		}
-		e.nextSpawn = e.config.SpawnRate
+		e.nextSpawn = e.Config.SpawnRate
 	}
 	for i := range e.particles {
 		if e.particles[i].LifeSpan > 0 {
@@ -150,6 +168,7 @@ func (e *Emitter) update(deltaTime float64) {
 }
 
 func (e *Emitter) spawn() {
+	defer tracing.NewRegion("Emitter.spawn").End()
 	if len(e.available) == 0 {
 		return
 	}
@@ -157,13 +176,13 @@ func (e *Emitter) spawn() {
 	e.available = e.available[:len(e.available)-1]
 	p := &e.particles[idx]
 	pd := &e.particleData[idx]
-	c := &e.config
+	c := &e.Config
 	pd.Activate()
 	p.Transform.Position = e.Transform.Position()
 	p.Transform.Rotation = e.Transform.Rotation()
 	p.Transform.Scale = matrix.Vec3One()
-	p.LifeSpan = e.config.ParticleLifeSpan
-	if e.config.FadeOutOverLife {
+	p.LifeSpan = e.Config.ParticleLifeSpan
+	if e.Config.FadeOutOverLife {
 		opacity := c.OpacityMinMax.X()
 		if !matrix.Approx(opacity, c.OpacityMinMax.Y()) {
 			opacity = randomFloat32InRange(e.rand, c.OpacityMinMax)
