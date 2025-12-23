@@ -157,6 +157,7 @@ func (w *ContentWorkspace) Open() {
 	}
 	w.Doc.Clean()
 	w.runFilter()
+	w.showRightPanel()
 }
 
 func (w *ContentWorkspace) Close() {
