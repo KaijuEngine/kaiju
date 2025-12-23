@@ -241,8 +241,9 @@ func (w *VfxWorkspace) clickDeleteEmitter(e *document.Element) {
 		CancelText:  "Cancel",
 		OnConfirm: func() {
 			w.ed.FocusInterface()
-			idx := w.emitterList.IndexOfChild(e) - 1
-			w.Doc.RemoveElement(e)
+			entry := e.Parent.Value()
+			idx := w.emitterList.IndexOfChild(entry) - 1
+			w.Doc.RemoveElement(entry)
 			w.deleteEmitter(idx)
 		},
 		OnCancel: w.ed.FocusInterface,
