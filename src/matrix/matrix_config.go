@@ -93,6 +93,9 @@ type tMatrix interface {
 	Mat3 | Mat4
 }
 
+const RadToDegVal = (180.0 / math.Pi)
+const DegToRadVal = (math.Pi / 180.0)
+
 func Rad2Deg(radian Float) Float {
 	return radian * (180.0 / math.Pi)
 }

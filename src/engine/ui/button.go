@@ -39,6 +39,7 @@ package ui
 import (
 	"kaiju/matrix"
 	"kaiju/rendering"
+	"weak"
 )
 
 type buttonData struct {
@@ -84,7 +85,7 @@ func (b *Button) Init(texture *rendering.Texture, text string) {
 	// Create the label for the button
 	lbl := b.man.Value().Add().ToLabel()
 	lbl.Init("")
-	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{b.Base()}}
+	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(b.Base())}}
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)
 	lbl.SetJustify(rendering.FontJustifyCenter)
@@ -96,7 +97,7 @@ func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
 	b.Base().AddEvent(EventTypeEnter, func() {
 		c := b.ButtonData().color
-		if panel.isDown {
+		if panel.flags.isDown() {
 			c = c.ScaleWithoutAlpha(0.7)
 		} else {
 			c = c.ScaleWithoutAlpha(0.8)

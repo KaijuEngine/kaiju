@@ -48,31 +48,23 @@ import (
 )
 
 type Material struct {
-	Id            string
-	Name          string
-	shaderInfo    ShaderDataCompiled
-	renderPass    *RenderPass
-	pipelineInfo  ShaderPipelineDataCompiled
-	Shader        *Shader
-	Textures      []*Texture
-	ShadowMap     *Texture
-	ShadowCubeMap *Texture
-	Instances     map[string]*Material
-	Root          weak.Pointer[Material]
-	mutex         sync.Mutex
-	IsLit         bool
-}
-
-func (m *Material) HasShadowMap() bool {
-	return m.ShadowMap != nil && m.ShadowMap.RenderId.IsValid()
-}
-
-func (m *Material) HasShadowCubeMap() bool {
-	return m.ShadowCubeMap != nil && m.ShadowCubeMap.RenderId.IsValid()
+	Id              string
+	shaderInfo      ShaderDataCompiled
+	renderPass      *RenderPass
+	pipelineInfo    ShaderPipelineDataCompiled
+	Shader          *Shader
+	Textures        []*Texture
+	Instances       map[string]*Material
+	Root            weak.Pointer[Material]
+	PrepassMaterial weak.Pointer[Material]
+	mutex           sync.Mutex
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
 }
 
 func (m *Material) HasTransparentSuffix() bool {
-	return strings.HasSuffix(m.Name, "_transparent")
+	return strings.Contains(m.Id, "_transparent")
 }
 
 func (m *Material) SelectRoot() *Material {
@@ -88,11 +80,14 @@ type MaterialTextureData struct {
 }
 
 type MaterialData struct {
-	Name           string
-	Shader         string `options:""` // Blank = fallback
-	RenderPass     string `options:""` // Blank = fallback
-	ShaderPipeline string `options:""` // Blank = fallback
-	Textures       []MaterialTextureData
+	Shader          string `options:""`                  // Blank = fallback
+	RenderPass      string `options:""`                  // Blank = fallback
+	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
+	Textures        []MaterialTextureData
+	PrepassMaterial string
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -112,12 +107,15 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	copy := &Material{}
 	*copy = *m
 	copy.Textures = slices.Clone(textures)
-	copy.ShadowMap = m.ShadowMap
-	copy.ShadowCubeMap = m.ShadowCubeMap
 	// TODO:  If using a read lock, then make sure to write lock the following line
 	m.Instances[key] = copy
 	copy.Root = weak.Make(m)
 	copy.Instances = nil
+	ppMat := copy.PrepassMaterial.Value()
+	if ppMat != nil {
+		ppMat = ppMat.CreateInstance(textures)
+		copy.PrepassMaterial = weak.Make(ppMat)
+	}
 	return copy
 }
 
@@ -139,9 +137,11 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 	defer tracing.NewRegion("MaterialData.Compile").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
-		Name:      d.Name,
-		Textures:  make([]*Texture, len(d.Textures)),
-		Instances: make(map[string]*Material),
+		Textures:        make([]*Texture, len(d.Textures)),
+		Instances:       make(map[string]*Material),
+		IsLit:           d.IsLit,
+		ReceivesShadows: d.ReceivesShadows,
+		CastsShadows:    d.CastsShadows,
 	}
 	sd := ShaderData{}
 	rp := RenderPassData{}
@@ -162,7 +162,7 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 			vr.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {
-			slog.Error("failed to load the render pass for the material", "material", d.Name, "renderPass", rp.Name)
+			slog.Error("failed to load the render pass for the material", "renderPass", rp.Name)
 		}
 	} else {
 		c.renderPass = pass
@@ -197,7 +197,5 @@ func (m *Material) Destroy(renderer Renderer) {
 	m.renderPass = nil
 	m.Shader = nil
 	m.Textures = make([]*Texture, 0)
-	m.ShadowMap = nil
-	m.ShadowCubeMap = nil
 	clear(m.Instances)
 }

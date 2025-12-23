@@ -45,10 +45,10 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
+	"kaiju/engine/stages"
 	"kaiju/engine/systems/events"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -78,7 +78,7 @@ type Project struct {
 	settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
-	contentSerializers  map[string]func([]byte) ([]byte, error)
+	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
 	readingCode         bool
 	isCompiling         atomic.Bool
 }
@@ -282,7 +282,7 @@ func (p *Project) packagePath() string {
 	return filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
 }
 
-func (p *Project) Package() error {
+func (p *Project) Package(reader content_archive.FileReader) error {
 	defer tracing.NewRegion("Project.Package").End()
 	outPath := p.packagePath()
 	// TODO:  Needs to use a reference graph to determine all of the content
@@ -319,7 +319,7 @@ func (p *Project) Package() error {
 		Key:     stages.EntryPointAssetKey,
 		RawData: []byte(p.settings.EntryPointStage),
 	})
-	err = content_archive.CreateArchiveFromFiles(outPath,
+	err = content_archive.CreateArchiveFromFiles(reader, outPath,
 		files, []byte(p.settings.ArchiveEncryptionKey))
 	if err != nil {
 		slog.Error("failed to package game content", "error", err)
@@ -417,7 +417,7 @@ func (p *Project) ReadSourceCode() {
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
 	slog.Info("reading through project code to find bindable data")
-	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_data_bindings"))
+	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_entity_data"))
 	if err != nil {
 		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
 		return
@@ -427,7 +427,7 @@ func (p *Project) ReadSourceCode() {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuBindings, "kaiju/engine_data_bindings")
+	a, _ := codegen.Walk(kaijuBindings, "kaiju/engine_entity_data")
 	b, _ := codegen.Walk(srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
 	for i := range p.entityData {

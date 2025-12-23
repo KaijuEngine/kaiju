@@ -39,6 +39,7 @@ package editor_stage_manager
 import (
 	"encoding/json"
 	"errors"
+	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/confirm_prompt"
@@ -49,6 +50,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/collision"
+	"kaiju/engine/stages"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -56,10 +58,10 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
-	"kaiju/stages"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"weak"
@@ -89,10 +91,11 @@ type StageManager struct {
 // and linking data about the entity on this stage. That will include things
 // like content linkage, data bindings, etc.
 type StageEntityEditorData struct {
-	Bvh         *collision.BVH
-	Mesh        *rendering.Mesh
-	ShaderData  rendering.DrawInstance
-	Description stages.EntityDescription
+	Bvh                   *collision.BVH
+	Mesh                  *rendering.Mesh
+	ShaderData            rendering.DrawInstance
+	Description           stages.EntityDescription
+	PendingMaterialChange bool
 }
 
 func (m *StageManager) Initialize(host *engine.Host, history *memento.History, editorUI EditorUserInterface) {
@@ -141,11 +144,28 @@ func (m *StageManager) Selection() []*StageEntity { return m.selected }
 func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
 	e := m.AddEntityWithId(uuid.NewString(), name, point)
-	m.history.Add(&objectSpawnHistory{
-		m: m,
-		e: e,
-	})
 	return e
+}
+
+func (m *StageManager) AttachEntityData(e *StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
+	defer tracing.NewRegion("StageManager.AttachEntityData").End()
+	de := &entity_data_binding.EntityDataEntry{}
+	e.AddDataBinding(de.ReadEntityDataBindingType(g))
+	return de
+}
+
+func (m *StageManager) duplicateEntity(target *StageEntity, proj *project.Project) (*StageEntity, error) {
+	defer tracing.NewRegion("StageManager.duplicateEntity").End()
+	desc := m.entityToDescription(target)
+	var newId func(d *stages.EntityDescription)
+	newId = func(d *stages.EntityDescription) {
+		d.Id = uuid.NewString()
+		for i := range d.Children {
+			newId(&d.Children[i])
+		}
+	}
+	newId(&desc)
+	return m.importEntityByDescription(m.host, proj, EntityToStageEntity(target.Parent), &desc)
 }
 
 // AddEntityWithId will create an entity for the stage with a specified Id
@@ -154,7 +174,7 @@ func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
-	e.Init()
+	e.Init(m.host.WorkGroup())
 	e.SetName(name)
 	e.StageData.Description.Id = id
 	m.host.AddEntity(&e.Entity)
@@ -182,6 +202,10 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 			}
 		}
 	})
+	m.history.Add(&objectSpawnHistory{
+		m: m,
+		e: e,
+	})
 	m.OnEntitySpawn.Execute(e)
 	return e
 }
@@ -207,7 +231,28 @@ func (m *StageManager) DestroySelected() {
 	h.Redo()
 }
 
+func (m *StageManager) DuplicateSelected(proj *project.Project) {
+	defer tracing.NewRegion("StageManager.DuplicateSelected").End()
+	sel := slices.Clone(m.Selection())
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
+	m.ClearSelection()
+	for _, e := range sel {
+		dup, err := m.duplicateEntity(e, proj)
+		if err != nil {
+			slog.Error("failed to duplicate entity", "error", err)
+			continue
+		}
+		m.history.Add(&objectSpawnHistory{
+			m: m,
+			e: dup,
+		})
+		m.SelectEntity(dup)
+	}
+}
+
 func (m *StageManager) HierarchyRespectiveSelection() []*StageEntity {
+	defer tracing.NewRegion("StageManager.HierarchyRespectiveSelection").End()
 	sel := slices.Clone(m.Selection())
 	for i := 0; i < len(sel); i++ {
 		for j := i + 1; j < len(sel); j++ {
@@ -247,7 +292,7 @@ func (m *StageManager) SetEntityParent(child, parent *StageEntity) {
 	} else {
 		child.SetParent(nil)
 	}
-	if parent.StageData.Bvh != nil {
+	if parent != nil && parent.StageData.Bvh != nil {
 		m.RefitBVH(parent)
 	} else if child.StageData.Bvh != nil {
 		m.RefitBVH(child)
@@ -309,6 +354,7 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 	desc.Rotation = parent.Transform.Rotation()
 	desc.Scale = parent.Transform.Scale()
 	desc.DataBinding = make([]stages.EntityDataBinding, 0, len(parent.dataBindings))
+	desc.ShaderData = make([]stages.EntityDescriptionShaderDataField, 0)
 	desc.RawDataBinding = make([]any, 0, len(parent.dataBindings))
 	desc.Children = make([]stages.EntityDescription, 0)
 	for _, d := range parent.dataBindings {
@@ -321,6 +367,24 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 		}
 		desc.DataBinding = append(desc.DataBinding, db)
 		desc.RawDataBinding = append(desc.RawDataBinding, d.BoundData)
+	}
+	if parent.StageData.ShaderData != nil {
+		v := reflect.ValueOf(parent.StageData.ShaderData)
+		for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+			v = v.Elem()
+		}
+		t := v.Type()
+		for i := range t.NumField() {
+			f := t.Field(i)
+			if f.Name == "ShaderDataBase" {
+				continue
+			}
+			desc.ShaderData = append(desc.ShaderData, stages.EntityDescriptionShaderDataField{
+				Name:  f.Name,
+				Index: int32(i),
+				Value: v.Field(i).Interface(),
+			})
+		}
 	}
 	for _, e := range m.entities {
 		if e.isDeleted {
@@ -512,16 +576,15 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 			slog.Warn("failed to update the name for the template", "error", err)
 			return nil
 		}
-		if err = cache.Index(c.Path, fs); err != nil {
-			slog.Warn("failed to update the name for the template", "error", err)
-			return nil
-		}
+		cache.IndexCachedContent(c)
 	}
 	return nil
 }
 
 func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) error {
 	defer tracing.NewRegion("StageManager.SpawnTemplate").End()
+	m.history.BeginTransaction()
+	defer m.history.CommitTransaction()
 	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
 	if err != nil {
 		slog.Error("failed to load the template file", "path", cc.Path, "error", err)
@@ -543,9 +606,12 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		}
 	}
 	generateId(&desc)
-	if _, err = m.importEntityByDescription(host, proj, nil, &desc); err != nil {
+	if e, err := m.importEntityByDescription(host, proj, nil, &desc); err != nil {
 		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
 		return err
+	} else {
+		m.ClearSelection()
+		m.SelectEntity(e)
 	}
 	return nil
 }
@@ -585,6 +651,17 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 	}
 	for i := range desc.DataBinding {
 		db := &desc.DataBinding[i]
+		// TODO:  Remove this in a week or so
+		{
+			switch db.RegistraionKey {
+			case "kaiju.CameraDataBinding":
+				db.RegistraionKey = "kaiju.CameraEntityData"
+			case "kaiju.LightDataBinding":
+				db.RegistraionKey = "kaiju.LightEntityData"
+			case "kaiju.RigidBodyDataBinding":
+				db.RegistraionKey = "kaiju.RigidBodyEntityData"
+			}
+		}
 		g, ok := proj.EntityDataBinding(db.RegistraionKey)
 		if !ok {
 			slog.Error("failed to locate the data binding for entity",
@@ -597,6 +674,12 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 			b.SetFieldByName(k, v)
 		}
 		e.AddDataBinding(b)
+	}
+	if e.StageData.ShaderData != nil {
+		db := entity_data_binding.ToDataBinding("Shader data", e.StageData.ShaderData)
+		for i := range desc.ShaderData {
+			db.SetFieldByName(desc.ShaderData[i].Name, desc.ShaderData[i].Value)
+		}
 	}
 	for i := range desc.Children {
 		if _, err := m.importEntityByDescription(host, proj, e, &desc.Children[i]); err != nil {
@@ -647,7 +730,11 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	texs := make([]*rendering.Texture, 0, len(textureIds))
 	for i := range textureIds {
-		texData, err := fs.ReadFile(filepath.Join(rootFolder, texFolder, textureIds[i]))
+		path := filepath.Join(rootFolder, texFolder, textureIds[i])
+		if _, err := fs.Stat(path); err != nil {
+			path = filepath.Join(project_file_system.StockFolder, textureIds[i])
+		}
+		texData, err := fs.ReadFile(path)
 		if err != nil {
 			slog.Error("failed to read the texture file", "id", textureIds[i], "error", err)
 			return err
@@ -673,14 +760,17 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	// Temp set position to 0,0,0 for the BVH generation
+	ePos := e.Transform.Position()
+	e.Transform.SetPosition(matrix.Vec3Zero())
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
+	e.Transform.SetPosition(ePos)
 	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	host.RunOnMainThread(func() {
 		for i := range texs {
 			texs[i].DelayedCreate(host.Window.Renderer)
 		}
 		draw := rendering.Drawing{
-			Renderer:   host.Window.Renderer,
 			Material:   mat,
 			Mesh:       mesh,
 			ShaderData: e.StageData.ShaderData,

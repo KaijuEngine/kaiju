@@ -375,7 +375,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
@@ -387,7 +387,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
@@ -492,6 +492,20 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+unsigned int get_toggle_key_state() {
+	unsigned int state = 0;
+    if (GetAsyncKeyState(VK_CAPITAL) & 1) {
+        state |= 1;  // Caps Lock on
+    }
+    if (GetAsyncKeyState(VK_NUMLOCK) & 1) {
+        state |= 2;  // Num Lock on
+    }
+    if (GetAsyncKeyState(VK_SCROLL) & 1) {
+        state |= 4;  // Scroll Lock on
+    }
+    return state;
 }
 
 void window_main(const wchar_t* windowTitle,
@@ -701,15 +715,12 @@ void window_poll(void* hwnd) {
 								hadMouseEvent = true;
 							}
 						}
-						if (sm->lockCursor.active) {
-							lock_cursor_position(sm);
-						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
 							|| pt.x > sm->clientRect.right
 							|| pt.y > sm->clientRect.bottom;
 						if (mouseLeftWindow && sm->rawInputRequested) {
 							window_disable_raw_mouse(hwnd);
-							// Reset rawInputRequested as requested by develper code
+							// Reset rawInputRequested to true as requested by develper code
 							sm->rawInputRequested = true;
 						}
 					}
@@ -831,6 +842,7 @@ void window_lock_cursor(void* hwnd, int x, int y) {
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
 	sm->lockCursor.active = true;
+	SetCursorPos(x, y);
 }
 
 void window_unlock_cursor(void* hwnd) {

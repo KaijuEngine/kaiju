@@ -36,7 +36,12 @@
 
 package content_database
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var CacheContentNameEqual = errors.New("name already matches new name, nothing to do")
 
 type ReadDuringBuildError struct{}
 type NotInCacheError struct {

@@ -58,6 +58,7 @@ type ShadingWorkspace struct {
 	designer               shader_designer.ShaderDesigner
 	renderSpecList         *document.Element
 	renderSpecListTemplate *document.Element
+	toolTip                *document.Element
 }
 
 type ShadingWorkspaceUIData struct {
@@ -66,7 +67,7 @@ type ShadingWorkspaceUIData struct {
 
 type ShadingWorkspaceUIDataFile struct {
 	Id   string
-	Ext  string
+	Type string
 	Name string
 }
 
@@ -82,10 +83,15 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 			"clickNewPipeline":   w.clickNewPipeline,
 			"clickNewShader":     w.clickNewShader,
 			"clickNewMaterial":   w.clickNewMaterial,
+			"showTooltip":        w.showTooltip,
 		})
-	w.designer.Initialize(host, &w.UiMan, w.ed.ProjectFileSystem(), w.ed.Cache())
+	w.designer.Initialize(host, &w.UiMan, w.ed)
 	w.renderSpecList, _ = w.Doc.GetElementById("renderSpecList")
 	w.renderSpecListTemplate, _ = w.Doc.GetElementById("renderSpecListTemplate")
+	w.toolTip, _ = w.Doc.GetElementById("toolTip")
+	w.ed.Events().OnContentAdded.Add(w.contentAdded)
+	w.ed.Events().OnContentRemoved.Add(w.contentRemoved)
+	w.ed.Events().OnContentRenamed.Add(w.contentRenamed)
 }
 
 func (w *ShadingWorkspace) Open() {
@@ -110,92 +116,11 @@ func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
-func (w *ShadingWorkspace) update(deltaTime float64) {
-	defer tracing.NewRegion("ShadingWorkspace.update").End()
-	if w.UiMan.IsUpdateDisabled() {
+func (w *ShadingWorkspace) OpenSpec(id string) {
+	defer tracing.NewRegion("ShadingWorkspace.OpenSpec").End()
+	if id == "" {
 		return
 	}
-	if w.IsBlurred || w.UiMan.Group.HasRequests() {
-		return
-	}
-	w.stageView.Update(deltaTime)
-}
-
-func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
-	defer tracing.NewRegion("ShadingWorkspace.readExisting").End()
-	out := []ShadingWorkspaceUIDataFile{}
-	fs := w.ed.ProjectFileSystem()
-	paths := map[string]string{
-		".material":       project_file_system.ContentFolder + "/" + project_file_system.ContentMaterialFolder,
-		".shader":         project_file_system.ContentFolder + "/" + project_file_system.ContentShaderFolder,
-		".shaderpipeline": project_file_system.ContentFolder + "/" + project_file_system.ContentShaderPipelineFolder,
-		".renderpass":     project_file_system.ContentFolder + "/" + project_file_system.ContentRenderPassFolder,
-	}
-	cache := w.ed.Cache()
-	for k, v := range paths {
-		dir, err := fs.ReadDir(v)
-		if err != nil {
-			continue
-		}
-		for j := range dir {
-			if dir[j].IsDir() {
-				continue
-			}
-			cc, err := cache.Read(dir[j].Name())
-			if err != nil {
-				continue
-			}
-			out = append(out, ShadingWorkspaceUIDataFile{
-				Id:   cc.Id(),
-				Name: cc.Config.Name,
-				Ext:  k,
-			})
-		}
-	}
-	return out
-}
-
-func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.toggleFilterSpec").End()
-	txt := e.InnerLabel().Text()
-	extFilter := ""
-	for _, elm := range e.Parent.Value().Children {
-		w.Doc.SetElementClassesWithoutApply(elm, "filterLabel")
-	}
-	w.Doc.SetElementClassesWithoutApply(e, "filterLabel", "filterLabelSelected")
-	w.Doc.ApplyStyles()
-	switch txt {
-	case "All":
-	case "R":
-		extFilter = ".renderpass"
-	case "P":
-		extFilter = ".shaderpipeline"
-	case "S":
-		extFilter = ".shader"
-	case "M":
-		extFilter = ".material"
-	default:
-		return
-	}
-	for _, e := range w.renderSpecList.Children {
-		if extFilter == "" {
-			e.UI.Show()
-			continue
-		}
-		ext := e.Attribute("data-ext")
-		if ext != extFilter {
-			e.UI.Hide()
-		} else {
-			e.UI.Show()
-		}
-	}
-	w.renderSpecListTemplate.UI.Hide()
-	w.renderSpecList.UI.Clean()
-}
-
-func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.selectSpec").End()
-	id := elm.Attribute("id")
 	cc, err := w.ed.Cache().Read(id)
 	if err != nil {
 		slog.Error("failed to read the config for content", "id", id, "error", err)
@@ -236,6 +161,103 @@ func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
 		}
 		w.designer.ShowRenderPassWindow(id, d)
 	}
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	for _, e := range elm.Parent.Value().Children {
+		w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable")
+	}
+	w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable", "selected")
+	w.Doc.ApplyStyles()
+}
+
+func (w *ShadingWorkspace) update(deltaTime float64) {
+	defer tracing.NewRegion("ShadingWorkspace.update").End()
+	if w.UiMan.IsUpdateDisabled() {
+		return
+	}
+	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+		return
+	}
+	w.stageView.Update(deltaTime, w.ed.Project())
+}
+
+func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
+	defer tracing.NewRegion("ShadingWorkspace.readExisting").End()
+	out := []ShadingWorkspaceUIDataFile{}
+	fs := w.ed.ProjectFileSystem()
+	paths := map[string]string{
+		".material":       project_file_system.ContentFolder + "/" + project_file_system.ContentMaterialFolder,
+		".shader":         project_file_system.ContentFolder + "/" + project_file_system.ContentShaderFolder,
+		".shaderpipeline": project_file_system.ContentFolder + "/" + project_file_system.ContentShaderPipelineFolder,
+		".renderpass":     project_file_system.ContentFolder + "/" + project_file_system.ContentRenderPassFolder,
+	}
+	cache := w.ed.Cache()
+	for _, v := range paths {
+		dir, err := fs.ReadDir(v)
+		if err != nil {
+			continue
+		}
+		for j := range dir {
+			if dir[j].IsDir() {
+				continue
+			}
+			cc, err := cache.Read(dir[j].Name())
+			if err != nil {
+				continue
+			}
+			out = append(out, ShadingWorkspaceUIDataFile{
+				Id:   cc.Id(),
+				Name: cc.Config.Name,
+				Type: cc.Config.Type,
+			})
+		}
+	}
+	return out
+}
+
+func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
+	defer tracing.NewRegion("ShadingWorkspace.toggleFilterSpec").End()
+	txt := e.InnerLabel().Text()
+	typeFilter := ""
+	for _, elm := range e.Parent.Value().Children {
+		w.Doc.SetElementClassesWithoutApply(elm, "edPanelBgHoverable")
+	}
+	w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable", "selected")
+	w.Doc.ApplyStyles()
+	switch txt {
+	case "All":
+	case "R":
+		typeFilter = content_database.RenderPass{}.TypeName()
+	case "P":
+		typeFilter = content_database.ShaderPipeline{}.TypeName()
+	case "S":
+		typeFilter = content_database.Shader{}.TypeName()
+	case "M":
+		typeFilter = content_database.Material{}.TypeName()
+	default:
+		return
+	}
+	for _, e := range w.renderSpecList.Children {
+		if typeFilter == "" {
+			e.UI.Show()
+			continue
+		}
+		ext := e.Attribute("data-type")
+		if ext != typeFilter {
+			e.UI.Hide()
+		} else {
+			e.UI.Show()
+		}
+	}
+	w.renderSpecListTemplate.UI.Hide()
+	w.renderSpecList.UI.Clean()
+}
+
+func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
+	defer tracing.NewRegion("ShadingWorkspace.selectSpec").End()
+	w.OpenSpec(elm.Attribute("id"))
 }
 
 func (w *ShadingWorkspace) clickNewRenderPass(elm *document.Element) {
@@ -256,4 +278,62 @@ func (w *ShadingWorkspace) clickNewShader(elm *document.Element) {
 func (w *ShadingWorkspace) clickNewMaterial(elm *document.Element) {
 	defer tracing.NewRegion("ShadingWorkspace.clickNewMaterial").End()
 	w.designer.ShowMaterialWindow("", rendering.MaterialData{})
+}
+
+func (w *ShadingWorkspace) showTooltip(elm *document.Element) {
+	defer tracing.NewRegion("ShadingWorkspace.showTooltip").End()
+	w.toolTip.InnerLabel().SetText(elm.Attribute("data-tooltip"))
+}
+
+func (w *ShadingWorkspace) contentAdded(ids []string) {
+	targets := []content_database.CachedContent{}
+	for i := range ids {
+		cc, err := w.ed.Cache().Read(ids[i])
+		if err != nil {
+			continue
+		}
+		switch cc.Config.Type {
+		case content_database.Material{}.TypeName(),
+			content_database.Shader{}.TypeName(),
+			content_database.ShaderPipeline{}.TypeName(),
+			content_database.RenderPass{}.TypeName():
+			targets = append(targets, cc)
+		}
+	}
+	if len(targets) == 0 {
+		return
+	}
+	elms := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.renderSpecListTemplate, len(targets))
+	for i := range elms {
+		w.Doc.SetElementId(elms[i], targets[i].Id())
+		elms[i].SetAttribute("data-type", targets[i].Config.Type)
+		elms[i].InnerLabel().SetText(targets[i].Config.Name)
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *ShadingWorkspace) contentRemoved(ids []string) {
+	elms := make([]*document.Element, 0, len(ids))
+	for i := range ids {
+		e, ok := w.Doc.GetElementById(ids[i])
+		if ok {
+			elms = append(elms, e)
+		}
+	}
+	for i := range elms {
+		w.Doc.RemoveElementWithoutApplyStyles(elms[i])
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *ShadingWorkspace) contentRenamed(id string) {
+	e, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return
+	}
+	e.InnerLabel().SetText(cc.Config.Name)
 }

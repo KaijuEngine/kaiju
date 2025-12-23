@@ -43,18 +43,18 @@ import (
 )
 
 func init() {
-	register(fallback+"_unlit", func() rendering.DrawInstance {
+	register(func() rendering.DrawInstance {
 		return &ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
 		}
-	})
+	}, "unlit", "unlit_transparent")
 }
 
 type ShaderDataUnlit struct {
 	rendering.ShaderDataBase
 	Color matrix.Color
-	UVs   matrix.Vec4
+	UVs   matrix.Vec4 `default:"0,0,1,1"`
 }
 
 func (t ShaderDataUnlit) Size() int {

@@ -130,6 +130,36 @@ func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	c.updateViewAndPosition()
 }
 
+func (c *TurntableCamera) FlyRotate(yawDelta, pitchDelta float32) {
+	defer tracing.NewRegion("TurntableCamera.FlyRotate").End()
+	c.yaw += matrix.Deg2Rad(yawDelta)
+	c.pitch += matrix.Deg2Rad(pitchDelta)
+	const maxPitch = 89.0 * matrix.DegToRadVal
+	const minPitch = -89.0 * matrix.DegToRadVal
+	if c.pitch > maxPitch {
+		c.pitch = maxPitch
+	}
+	if c.pitch < minPitch {
+		c.pitch = minPitch
+	}
+	c.FlyUpdateView()
+}
+
+func (c *TurntableCamera) FlyUpdateView() {
+	defer tracing.NewRegion("TurntableCamera.FlyUpdateView").End()
+	direction := matrix.Vec3{
+		-matrix.Sin(c.yaw) * matrix.Cos(c.pitch),
+		matrix.Sin(c.pitch),
+		-matrix.Cos(c.yaw) * matrix.Cos(c.pitch),
+	}
+	direction.Normalize()
+	c.lookAt = c.position.Add(direction.Scale(c.zoom))
+	c.view = matrix.Mat4LookAt(c.position, c.lookAt, c.up)
+	c.iView = c.view
+	c.iView.Inverse()
+	c.updateFrustum()
+}
+
 // SetYaw sets the yaw of the camera.
 func (c *TurntableCamera) SetYaw(yaw float32) {
 	defer tracing.NewRegion("TurntableCamera.SetYaw").End()
@@ -180,9 +210,9 @@ func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
 func (c *TurntableCamera) internalUpdateView() {
 	defer tracing.NewRegion("TurntableCamera.internalUpdateView").End()
 	c.view = matrix.Mat4Identity()
-	tx := -c.lookAt.X()
-	ty := -c.lookAt.Y()
-	tz := -c.lookAt.Z()
+	tx := c.lookAt.X()
+	ty := c.lookAt.Y()
+	tz := c.lookAt.Z()
 	rx := c.pitch
 	ry := c.yaw
 	rz := float32(0.0)

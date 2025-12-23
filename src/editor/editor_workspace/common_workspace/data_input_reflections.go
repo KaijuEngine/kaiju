@@ -51,8 +51,9 @@ import (
 )
 
 type DataUISection struct {
-	Name   string
-	Fields []DataUISectionField
+	Name      string
+	GroupName string // This is added just for material window, maybe better way?
+	Fields    []DataUISectionField
 }
 
 type DataUISectionField struct {
@@ -183,14 +184,17 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 				keys := reflect.ValueOf(rendering.StringVkMap[op]).MapKeys()
 				field.List = make([]ui.SelectOption, len(keys))
 				for i := range keys {
-					field.List[i] = ui.SelectOption{keys[i].String(), keys[i].String()}
+					field.List[i] = ui.SelectOption{
+						Name:  keys[i].String(),
+						Value: keys[i].String(),
+					}
 				}
 				isList = true
 			} else {
 				field.List, isList = fallbackOptions[field.Name]
 			}
 			sort.Slice(field.List, func(i, j int) bool {
-				return field.List[i].Name < field.List[i].Name
+				return field.List[i].Name < field.List[j].Name
 			})
 			if isList {
 				if kind == reflect.String {

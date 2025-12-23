@@ -37,7 +37,10 @@
 package menu_bar
 
 import (
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
+	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_file_system"
 )
@@ -46,13 +49,17 @@ type MenuBarHandler interface {
 	BlurInterface()
 	FocusInterface()
 	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
 	StageWorkspaceSelected()
 	ContentWorkspaceSelected()
 	ShadingWorkspaceSelected()
+	VfxWorkspaceSelected()
 	UIWorkspaceSelected()
 	SettingsWorkspaceSelected()
+	StageView() *editor_stage_view.StageView
 	Build(buildMode project.GameBuildMode)
 	BuildAndRun(buildMode project.GameBuildMode)
 	BuildAndRunCurrentStage()
@@ -62,5 +69,6 @@ type MenuBarHandler interface {
 	CreateNewCamera()
 	CreateNewEntity()
 	CreateNewLight()
+	CreatePluginProject(path string)
 	CreateHtmlUiFile(name string)
 }

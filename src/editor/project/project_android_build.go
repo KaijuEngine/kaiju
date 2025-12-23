@@ -44,6 +44,7 @@ import (
 	"fmt"
 	"io"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/assets/content_archive"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -56,8 +57,8 @@ import (
 	"strings"
 )
 
-func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error {
-	if err := p.BuildAndroid(ndkHome, javaHome, tags); err != nil {
+func (p *Project) BuildRunAndroid(reader content_archive.FileReader, ndkHome, javaHome string, tags []string) error {
+	if err := p.BuildAndroid(reader, ndkHome, javaHome, tags); err != nil {
 		return err
 	}
 	if err := p.deployAndroidAPK(ndkHome, tags); err != nil {
@@ -67,10 +68,10 @@ func (p *Project) BuildRunAndroid(ndkHome, javaHome string, tags []string) error
 	return nil
 }
 
-func (p *Project) BuildAndroid(ndkHome, javaHome string, tags []string) error {
+func (p *Project) BuildAndroid(reader content_archive.FileReader, ndkHome, javaHome string, tags []string) error {
 	defer tracing.NewRegion("Project.BuildAndroid").End()
 	sdkHome := filepath.Join(ndkHome, "../../")
-	if err := p.Package(); err != nil {
+	if err := p.Package(reader); err != nil {
 		return err
 	}
 	if err := p.copyAndroidProjectTemplate(); err != nil {

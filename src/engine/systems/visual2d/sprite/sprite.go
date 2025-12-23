@@ -404,7 +404,7 @@ func (s *Sprite) baseInit(x, y, width, height float32, host *engine.Host) {
 		host:      weak.Make(host),
 		baseScale: matrix.NewVec3(width, height, 1.0),
 	}
-	s.Entity = host.NewEntity()
+	s.Entity = host.NewEntity(host.WorkGroup())
 	s.Entity.Transform.SetPosition(matrix.NewVec3(x, y, 0))
 	s.Entity.Transform.SetScale(matrix.NewVec3(width, height, 1))
 }
@@ -422,7 +422,6 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	d := rendering.Drawing{
-		Renderer: host.Window.Renderer,
 		Material: mat,
 		Mesh:     mesh,
 		ShaderData: &ShaderData{

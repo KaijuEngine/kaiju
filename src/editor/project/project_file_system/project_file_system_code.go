@@ -54,6 +54,7 @@ var modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
 
 var skipFiles = []string{
 	"main.ed.go",
+	"main.ed.dbg.go",
 	"main.test.go",
 	"build/generator.go",
 }
@@ -91,7 +92,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/klib"
-	"kaiju/stages"
+	"kaiju/engine/stages"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -162,7 +163,7 @@ func (Game) Launch(host *engine.Host) {
 		}
 	}
 	host.SetGame(game_host.NewGameHost())
-	s.Launch(host)
+	s.Load(host)
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }
@@ -230,7 +231,7 @@ func (pfs *FileSystem) createCodeProject() error {
 		return err
 	}
 	slog.Info("creating workspace management files")
-	goVersion := strings.TrimPrefix(runtime.Version(), "go")
+	goVersion := strings.Split(strings.TrimPrefix(runtime.Version(), "go"), " ")[0]
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
 		return err

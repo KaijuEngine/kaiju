@@ -39,6 +39,7 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -72,6 +73,10 @@ func (ed *Editor) ShadingWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateShading)
 }
 
+func (ed *Editor) VfxWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateVfx)
+}
+
 // UIWorkspaceSelected will inform the editor that the developer has changed to
 // the ui workspace. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].
@@ -93,7 +98,7 @@ func (ed *Editor) Build(buildMode project.GameBuildMode) {
 	// goroutine
 	go ed.project.CompileGame(buildMode)
 	// goroutine
-	go ed.project.Package()
+	go ed.project.Package(ed.host.AssetDatabase())
 }
 
 func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
@@ -109,7 +114,7 @@ func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 	}()
 	// goroutine
 	go func() {
-		ed.project.Package()
+		ed.project.Package(ed.host.AssetDatabase())
 		wg.Done()
 	}()
 	// goroutine
@@ -135,7 +140,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 	}()
 	// goroutine
 	go func() {
-		ed.project.Package()
+		ed.project.Package(ed.host.AssetDatabase())
 		wg.Done()
 	}()
 	// goroutine
@@ -152,15 +157,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 // func (ed *Editor) OpenVSCodeProject() {
 func (ed *Editor) OpenCodeEditor() {
 	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
-	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
-	command := fullArgs[0]
-	var args []string
-	if len(fullArgs) > 1 {
-		args = append(args, fullArgs[1:]...)
-	}
-	args = append(args, ed.project.FileSystem().FullPath(""))
-	// goroutine
-	go exec.Command(command, args...).Run()
+	ed.openCodeEditor(ed.project.FileSystem().FullPath(""))
 }
 
 func (ed *Editor) CreateNewStage() {
@@ -213,15 +210,21 @@ func (ed *Editor) CreateNewCamera() {
 
 func (ed *Editor) CreateNewEntity() {
 	ed.history.BeginTransaction()
+	defer ed.history.CommitTransaction()
 	e, _ := ed.workspaces.stage.CreateNewEntity()
 	m := ed.stageView.Manager()
 	m.ClearSelection()
 	m.SelectEntity(e)
-	ed.history.CommitTransaction()
 }
 
 func (ed *Editor) CreateNewLight() {
 	ed.workspaces.stage.CreateNewLight()
+}
+
+func (ed *Editor) CreatePluginProject(path string) {
+	if err := editor_plugin.CreatePluginProject(path); err == nil {
+		ed.openCodeEditor(path)
+	}
 }
 
 func (ed *Editor) CreateHtmlUiFile(name string) {
@@ -292,4 +295,18 @@ func (ed *Editor) saveNewStage(name string) {
 		ps.Save(ed.project.FileSystem())
 		ed.workspaces.settings.RequestReload()
 	}
+}
+
+func (ed *Editor) openCodeEditor(path string) {
+	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	// TODO:  If this is a file path, the space split won't be enough
+	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
+	command := fullArgs[0]
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, path)
+	// goroutine
+	go exec.Command(command, args...).Run()
 }

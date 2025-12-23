@@ -70,7 +70,6 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 	host.RunOnMainThread(func() {
 		tex.DelayedCreate(host.Window.Renderer)
 		draw := rendering.Drawing{
-			Renderer:   host.Window.Renderer,
 			Material:   mat,
 			Mesh:       mesh,
 			ShaderData: sd,

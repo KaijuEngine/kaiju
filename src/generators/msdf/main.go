@@ -40,10 +40,12 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"kaiju/klib"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -90,25 +92,49 @@ type FontData struct {
 	Kerning []Kerning `json:"kerning"`
 }
 
+func msdfAtlasGenPath() string {
+	// Executable names follow msdf-atlas-gen-${OS}-${ARCH}[.exe]
+	name := fmt.Sprintf("msdf-atlas-gen-%s-%s", runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	exePath := filepath.Join(binDir, name)
+	if _, err := os.Stat(exePath); err != nil {
+		panic(fmt.Errorf(
+			"msdf-atlas-gen not found for %s/%s (expected at %s): %w",
+			runtime.GOOS,
+			runtime.GOARCH,
+			exePath,
+			err,
+		))
+	}
+	return exePath
+}
+
 func processFile(ttfName string) {
 	println("Processing", ttfName)
+
 	name := filepath.Base(ttfName)
 	ttfDir := filepath.Dir(ttfName)
-	ttfFile := filepath.Join(binDir, ttfName+".ttf")
+	ttfFile := filepath.Join(ttfDir, name+".ttf")
 	jsonFile := filepath.Join(ttfDir, "out", name+".json")
 	binFile := filepath.Join(ttfDir, "out", name+".bin")
 	pngFile := filepath.Join(ttfDir, "out", name+".png")
-	cmd := exec.Command(binDir+"msdf-atlas-gen.exe",
+	charSetFile := filepath.Join(ttfDir, "charset.txt")
+
+	cmd := exec.Command(msdfAtlasGenPath(),
 		"-font", ttfFile,
 		"-pxrange", "4",
 		"-size", "64",
-		"-charset", filepath.Join(binDir, ttfDir, "charset.txt"),
+		"-charset", charSetFile,
 		"-fontname", ttfName,
 		"-type", "msdf",
 		"-format", "png",
 		"-pots",
 		"-json", jsonFile,
-		"-imageout", pngFile)
+		"-imageout", pngFile,
+	)
+
 	out := klib.MustReturn(cmd.StdoutPipe())
 	scanner := bufio.NewScanner(out)
 	klib.Must(cmd.Start())

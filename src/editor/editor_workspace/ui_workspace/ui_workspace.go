@@ -81,6 +81,7 @@ type UIWorkspace struct {
 }
 
 func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterface) {
+	defer tracing.NewRegion("UIWorkspace.Initialize").End()
 	w.ed = ed
 	w.ratio = matrix.NewVec2(16, 9)
 	w.CommonWorkspace.InitializeWithUI(host,

@@ -44,6 +44,7 @@ import (
 	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaiju/editor/memento"
+	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
@@ -92,6 +93,12 @@ func (v *StageView) Initialize(host *engine.Host, history *memento.History, sett
 	v.manager.OnEntityDeselected.Add(func(e *editor_stage_manager.StageEntity) {
 		data_binding_renderer.Hide(weakHost, e)
 	})
+	v.manager.OnEntitySpawn.Add(func(e *editor_stage_manager.StageEntity) {
+		data_binding_renderer.EntitySpawn(weakHost, e)
+	})
+	v.manager.OnEntityDestroy.Add(func(e *editor_stage_manager.StageEntity) {
+		data_binding_renderer.EntityDestroy(weakHost, e)
+	})
 }
 
 func (v *StageView) Open() {
@@ -104,17 +111,28 @@ func (v *StageView) Close() {
 	v.gridShader.Deactivate()
 }
 
-func (v *StageView) Update(deltaTime float64) {
+// Update will update the stage view and return `true` if the view is taking
+// control of the keyboard interactions. It'll return false otherwise. If this
+// returns true, then the caller shouldn't process any hotkeys or other types
+// of keyboard actions.
+func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.gridTransform.ResetDirty()
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
+		v.transformTool.Cancel()
+		return true
 	} else {
 		v.processViewportInteractions()
 	}
-	if v.host.Window.Keyboard.KeyDown(hid.KeyboardKeyDelete) {
+	kb := &v.host.Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyDelete) {
 		v.manager.DestroySelected()
+	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyD) {
+		v.DuplicateSelected(proj)
+		return true
 	}
+	return false
 }
 
 func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
@@ -154,12 +172,11 @@ func (v *StageView) createViewportGrid() {
 	}
 	grid := rendering.NewMeshGrid(v.host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
-	v.gridTransform = matrix.NewTransform()
+	v.gridTransform.Initialize(v.host.WorkGroup())
 	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
 	v.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
 	v.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	v.host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   v.host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: v.gridShader,
@@ -185,4 +202,21 @@ func (v *StageView) setupCamera(settings *editor_settings.EditorCameraSettings) 
 	})
 	v.camera.SetMode(editor_controls.EditorCameraMode3d, v.host)
 	v.camera.Settings = settings
+}
+
+func (v *StageView) DuplicateSelected(proj *project.Project) {
+	v.manager.DuplicateSelected(proj)
+	// The new selection is the duplicated entities
+	var callAttachments func(e *editor_stage_manager.StageEntity)
+	callAttachments = func(e *editor_stage_manager.StageEntity) {
+		for _, de := range e.DataBindings() {
+			data_binding_renderer.Attached(de, weak.Make(v.host), &v.manager, e)
+		}
+		for _, c := range e.Children {
+			callAttachments(editor_stage_manager.EntityToStageEntity(c))
+		}
+	}
+	for _, e := range v.manager.HierarchyRespectiveSelection() {
+		callAttachments(e)
+	}
 }

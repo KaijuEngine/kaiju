@@ -37,7 +37,6 @@
 package stage_workspace
 
 import (
-	"encoding/json"
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
@@ -45,8 +44,9 @@ import (
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets"
-	"kaiju/engine_data_bindings/engine_data_binding_camera"
-	"kaiju/engine_data_bindings/engine_data_binding_light"
+	"kaiju/engine_entity_data/engine_entity_data_camera"
+	"kaiju/engine_entity_data/engine_entity_data_light"
+	"kaiju/engine_entity_data/engine_entity_data_particles"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -59,27 +59,27 @@ import (
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
 	defer tracing.NewRegion("StageWorkspace.attachEntityData").End()
-	de := &entity_data_binding.EntityDataEntry{}
-	e.AddDataBinding(de.ReadEntityDataBindingType(g))
-	data_binding_renderer.Attached(de, weak.Make(w.Host), w.stageView.Manager(), e)
+	m := w.stageView.Manager()
+	de := m.AttachEntityData(e, g)
+	data_binding_renderer.Attached(de, weak.Make(w.Host), m, e)
 	return de
 }
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
-	cam, ok := w.createDataBoundEntity("Camera", engine_data_binding_camera.BindingKey)
+	cam, ok := w.createDataBoundEntity("Camera", engine_entity_data_camera.BindingKey)
 	if ok {
 		shouldMakePrimary := true
 		for _, e := range w.stageView.Manager().List() {
 			if e == cam {
 				continue
 			}
-			if len(e.DataBindingsByKey(engine_data_binding_camera.BindingKey)) > 0 {
+			if len(e.DataBindingsByKey(engine_entity_data_camera.BindingKey)) > 0 {
 				shouldMakePrimary = false
 				break
 			}
 		}
-		db := cam.DataBindingsByKey(engine_data_binding_camera.BindingKey)
+		db := cam.DataBindingsByKey(engine_entity_data_camera.BindingKey)
 		if shouldMakePrimary && len(db) > 0 {
 			db[0].SetFieldByName("IsMainCamera", true)
 		}
@@ -95,18 +95,23 @@ func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, b
 
 func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewLight").End()
-	return w.createDataBoundEntity("Light", engine_data_binding_light.BindingKey)
+	return w.createDataBoundEntity("Light", engine_entity_data_light.BindingKey)
 }
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.createDataBoundEntity").End()
-	e := w.stageView.Manager().AddEntity(name, w.stageView.LookAtPoint())
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, w.stageView.LookAtPoint())
 	g, ok := w.ed.Project().EntityDataBinding(bindKey)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", bindKey)
 		return nil, false
 	}
 	w.attachEntityData(e, g)
+	man.ClearSelection()
+	man.SelectEntity(e)
 	return e, true
 }
 
@@ -149,6 +154,8 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		if eHitOk {
 			w.attachMaterial(cc, e)
 		}
+	case content_database.ParticleSystem:
+		w.spawnParticleSystem(cc, hit)
 	default:
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -169,25 +176,31 @@ func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedConte
 	case content_database.Mesh:
 		w.spawnMesh(cc, point)
 	case content_database.Stage:
-		if w.ed.History().HasPendingChanges() {
-			w.ed.BlurInterface()
-			confirm_prompt.Show(w.Host, confirm_prompt.Config{
-				Title:       "Discrad changes",
-				Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
-				ConfirmText: "Yes",
-				CancelText:  "No",
-				OnConfirm: func() {
-					w.ed.FocusInterface()
-					w.loadStage(cc.Id())
-				},
-				OnCancel: func() { w.ed.FocusInterface() },
-			})
-		} else {
-			w.loadStage(cc.Id())
-		}
+		w.OpenStage(cc.Id())
+	case content_database.ParticleSystem:
+		w.spawnParticleSystem(cc, point)
 	default:
 		slog.Error("double clicking this type of content is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
+	}
+}
+
+func (w *StageWorkspace) OpenStage(id string) {
+	if w.ed.History().HasPendingChanges() {
+		w.ed.BlurInterface()
+		confirm_prompt.Show(w.Host, confirm_prompt.Config{
+			Title:       "Discrad changes",
+			Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
+			ConfirmText: "Yes",
+			CancelText:  "No",
+			OnConfirm: func() {
+				w.ed.FocusInterface()
+				w.loadStage(id)
+			},
+			OnCancel: func() { w.ed.FocusInterface() },
+		})
+	} else {
+		w.loadStage(id)
 	}
 }
 
@@ -202,11 +215,14 @@ func (w *StageWorkspace) loadStage(id string) {
 				data_binding_renderer.Attached(b, weak.Make(w.Host), man, e)
 			}
 		}
+		w.ed.History().Clear()
 	}
 }
 
 func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -226,7 +242,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	man := w.stageView.Manager()
-	e := man.AddEntity(cc.Config.Name, point)
+	e := man.AddEntity(cc.Config.Name, matrix.Vec3Zero())
 	var km kaiju_mesh.KaijuMesh
 	if w.stageView.IsView3D() {
 		e.StageData.Mesh = rendering.NewMeshPlane(w.Host.MeshCache())
@@ -237,8 +253,10 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	}
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
-	e.StageData.Description.Material = mat.Name
+	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
+	// Set the position after generating the BVH
+	e.Transform.SetPosition(point)
 	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.Description.Textures = []string{cc.Id()}
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
@@ -248,7 +266,6 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	w.Host.RunOnMainThread(func() {
 		tex.DelayedCreate(w.Host.Window.Renderer)
 		draw := rendering.Drawing{
-			Renderer:   w.Host.Window.Renderer,
 			Material:   mat,
 			Mesh:       e.StageData.Mesh,
 			ShaderData: e.StageData.ShaderData,
@@ -257,10 +274,14 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		}
 		w.Host.Drawings.AddDrawing(draw)
 	})
+	w.stageView.Manager().ClearSelection()
+	w.stageView.Manager().SelectEntity(e)
 }
 
 func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnMesh").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -281,18 +302,20 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		rendering.TextureFilterLinear)
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	man := w.stageView.Manager()
-	e := man.AddEntity(cc.Config.Name, point)
+	e := man.AddEntity(cc.Config.Name, matrix.Vec3Zero())
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
+	// Set the position after generating the BVH
+	e.Transform.SetPosition(point)
 	man.AddBVH(e.StageData.Bvh, &e.Transform)
+	man.RefitBVH(e)
 	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		Color:          matrix.ColorWhite(),
 	}
 	draw := rendering.Drawing{
-		Renderer:   w.Host.Window.Renderer,
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
@@ -301,31 +324,60 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	}
 	w.Host.Drawings.AddDrawing(draw)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
+	w.stageView.Manager().ClearSelection()
+	w.stageView.Manager().SelectEntity(e)
+}
+
+func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnParticleSystem").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	bindKey := engine_entity_data_particles.BindingKey
+	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	e.Transform.SetPosition(point)
+	for _, de := range e.DataBindingsByKey(bindKey) {
+		de.SetFieldByName("Id", cc.Id())
+		data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+	}
+	changeEvtId := w.ed.Events().OnContentChangesSaved.Add(func(id string) {
+		for _, de := range e.DataBindingsByKey(bindKey) {
+			if de.FieldValueByName("Id").(string) == id {
+				data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+			}
+		}
+	})
+	e.OnDestroy.Add(func() {
+		w.ed.Events().OnContentChangesSaved.Remove(changeEvtId)
+	})
 }
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("StageWorkspace.attachMaterial").End()
-	mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
-	if !ok {
-		path := content_database.ToContentPath(cc.Path)
-		f, err := w.ed.ProjectFileSystem().Open(path)
-		if err != nil {
-			slog.Error("error reading the mesh file", "path", path)
-			return
-		}
-		defer f.Close()
-		var matData rendering.MaterialData
-		if err = json.NewDecoder(f).Decode(&matData); err != nil {
-			slog.Error("failed to decode the material", "id", cc.Id(), "name", cc.Config.Name)
-			return
-		}
-		mat, err = matData.Compile(w.Host.AssetDatabase(), w.Host.Window.Renderer)
-		if err != nil {
-			slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
-			return
-		}
-		mat.Id = cc.Id()
-		mat = w.Host.MaterialCache().AddMaterial(mat)
+	if e.StageData.ShaderData == nil {
+		return
 	}
-	e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+	if e.StageData.PendingMaterialChange {
+		slog.Warn("a material is already being compiled to attach to this entity, please wait")
+		return
+	}
+	e.StageData.PendingMaterialChange = true
+	// goroutine
+	go func() {
+		mat, ok := w.Host.MaterialCache().FindMaterial(cc.Id())
+		if !ok {
+			var err error
+			mat, err = w.Host.MaterialCache().Material(cc.Id())
+			if err != nil {
+				slog.Error("failed to compile the material", "id", cc.Id(), "name", cc.Config.Name, "error", err)
+				return
+			}
+		}
+		e.SetMaterial(mat.CreateInstance(mat.Textures), w.stageView.Manager())
+		if w.stageView.Manager().IsSelected(e) {
+			w.Host.RunOnMainThread(w.detailsUI.reload)
+		}
+		e.StageData.PendingMaterialChange = false
+		// Don't want dirties to run during the transform clean map read
+		w.Host.RunOnMainThread(e.Transform.SetDirty)
+	}()
 }

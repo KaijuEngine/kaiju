@@ -37,6 +37,7 @@
 package content_workspace
 
 import (
+	"errors"
 	"fmt"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
@@ -50,7 +51,10 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"weak"
@@ -58,23 +62,25 @@ import (
 
 type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
-	pfs               *project_file_system.FileSystem
-	cache             *content_database.Cache
-	editor            ContentWorkspaceEditorInterface
-	typeFilters       []string
-	tagFilters        []string
-	query             string
-	contentList       *document.Element
-	entryTemplate     *document.Element
-	tagFilterTemplate *document.Element
-	addTagbtn         *document.Element
-	selectedContent   []*document.Element
-	rightBody         *document.Element
-	tooltip           *document.Element
-	pageData          WorkspaceUIData
-	isListMode        bool
-	audio             ContentAudioView
-	info              struct {
+	pfs                *project_file_system.FileSystem
+	cache              *content_database.Cache
+	editor             ContentWorkspaceEditorInterface
+	typeFilters        []string
+	typeFiltersDisable []string
+	tagFilters         []string
+	tagFiltersDisable  []string
+	query              string
+	contentList        *document.Element
+	entryTemplate      *document.Element
+	tagFilterTemplate  *document.Element
+	addTagbtn          *document.Element
+	selectedContent    []*document.Element
+	rightBody          *document.Element
+	tooltip            *document.Element
+	pageData           WorkspaceUIData
+	isListMode         bool
+	audio              ContentAudioView
+	info               struct {
 		multiSelectNote  *document.Element
 		nameInput        *document.Element
 		tagList          *document.Element
@@ -114,6 +120,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"clickClearSelection": w.clickClearSelection,
 			"clickPlayAudio":      w.clickPlayAudio,
 			"changeAudioPosition": w.changeAudioPosition,
+			"clickOpenInEditor":   w.clickOpenInEditor,
 		})
 	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
@@ -150,6 +157,7 @@ func (w *ContentWorkspace) Open() {
 	}
 	w.Doc.Clean()
 	w.runFilter()
+	w.showRightPanel()
 }
 
 func (w *ContentWorkspace) Close() {
@@ -197,10 +205,10 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 func (w *ContentWorkspace) toggleListView(e *document.Element) {
 	if w.isListMode {
 		w.disableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn")
 	} else {
 		w.enableListMode()
-		w.Doc.SetElementClassesWithoutApply(e, "leftBtn", "filterSelected")
+		w.Doc.SetElementClassesWithoutApply(e, "filterBtn", "filterBtnSelected")
 	}
 	w.Doc.ApplyStyles()
 	w.contentList.UIPanel.SetScrollY(0)
@@ -227,7 +235,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
-		w.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		w.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -251,27 +259,24 @@ func (w *ContentWorkspace) focusContent(id string) {
 	w.clickEntry(elm)
 }
 
-func (w *ContentWorkspace) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("ContentWorkspace.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.pfs.ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
-				return
-			}
+			// This has to happen before delayed create to have access to the texture data
+			isTransparent := tex.ReadPendingDataForTransparency()
 			w.Host.RunOnMainThread(func() {
-				tex.DelayedCreate(w.Host.Window.Renderer)
 				img.SetBackground(tex)
+				if isTransparent {
+					img.SetUseBlending(true)
+				}
 			})
 		}()
 	}
@@ -301,27 +306,45 @@ func (w *ContentWorkspace) tagFilter(e *document.Element) {
 
 func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	inverted := w.Host.Window.Keyboard.HasAlt()
+	isSelected := false
+	if inverted {
+		isSelected = slices.Contains(e.ClassList(), "inverted")
+	} else {
+		isSelected = slices.Contains(e.ClassList(), "selected")
+	}
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
-		if typeName != "" {
-			w.typeFilters = append(w.typeFilters, typeName)
-		}
-		if tagName != "" {
-			w.tagFilters = append(w.tagFilters, tagName)
-		}
-	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
-		if typeName != "" {
-			w.typeFilters = klib.SlicesRemoveElement(w.typeFilters, typeName)
-		}
-		if tagName != "" {
-			w.tagFilters = klib.SlicesRemoveElement(w.tagFilters, tagName)
-		}
+	var targetList *[]string
+	var invTargetList *[]string
+	var name string
+	if typeName != "" {
+		targetList = &w.typeFilters
+		invTargetList = &w.typeFiltersDisable
+		name = typeName
 	}
+	if tagName != "" {
+		targetList = &w.tagFilters
+		invTargetList = &w.tagFiltersDisable
+		name = tagName
+	}
+	if inverted {
+		targetList, invTargetList = invTargetList, targetList
+	}
+	if isSelected {
+		className := "selected"
+		if inverted {
+			className = "inverted"
+		}
+		w.Doc.SetElementClasses(e, "filterBtn", className)
+		*targetList = append(*targetList, name)
+	} else {
+		w.Doc.SetElementClasses(e, "filterBtn")
+		*targetList = klib.SlicesRemoveElement(*targetList, name)
+	}
+	// Remove it from inverse list in both cases intentionally
+	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
 	w.runFilter()
 }
 
@@ -506,20 +529,14 @@ func (w *ContentWorkspace) submitName(e *document.Element) {
 	}
 	ids := w.selectedIds()
 	for _, id := range ids {
-		cc, err := w.cache.Read(id)
+		cc, err := w.cache.Rename(id, name, w.pfs)
 		if err != nil {
-			slog.Error("failed to find the content by id", "id", id, "error", err)
-			continue
-		}
-		cc.Config.Name = name
-		if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
-			slog.Error("failed to update the content config file", "id", id, "error", err)
 			continue
 		}
 		for i := range w.selectedContent {
 			w.selectedContent[i].Children[1].InnerLabel().SetText(name)
 		}
-		w.cache.Index(cc.Path, w.pfs)
+		w.cache.IndexCachedContent(cc)
 		w.editor.Events().OnContentRenamed.Execute(id)
 	}
 }
@@ -533,7 +550,15 @@ func (w *ContentWorkspace) clickReimport(*document.Element) {
 			continue
 		}
 		slog.Info("successfully re-import the content", "id", id)
-		w.loadEntryImage(w.selectedContent[i], res.ConfigPath(), res.Category.TypeName())
+		cc, err := w.cache.Read(res.Id)
+		if err != nil {
+			slog.Error("failed to load the re-imported content from cache", "id", res.Id, "error", err)
+			continue
+		}
+		if cc.Config.Type == (content_database.Texture{}).TypeName() {
+			w.Host.TextureCache().ReloadTexture(cc.Id(), rendering.TextureFilterLinear)
+		}
+		w.loadEntryImage(w.selectedContent[i], &cc)
 	}
 }
 
@@ -556,23 +581,13 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 	ids := w.selectedIds()
 	for _, id := range ids {
-		if id == "" {
-			slog.Warn("clickDelete contained a blank id")
-			continue
-		}
-		cc, err := w.cache.Read(id)
+		err := content_database.Delete(id, w.pfs, w.cache)
 		if err != nil {
-			slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+			if errors.Is(err, content_database.DeleteContentMissingIdError) {
+				slog.Warn("clickDelete contained a blank id")
+			}
 			continue
 		}
-		if err := w.pfs.Remove(cc.Path); err != nil {
-			slog.Error("failed to delete config file", "path", cc.Path, "error", err)
-		}
-		contentPath := content_database.ToContentPath(cc.Path)
-		if err := w.pfs.Remove(contentPath); err != nil {
-			slog.Error("failed to delete content file", "path", contentPath, "error", err)
-		}
-		w.cache.Remove(id)
 		w.editor.Events().OnContentRemoved.Execute([]string{id})
 		w.rightBody.UI.Hide()
 		w.tooltip.UI.Hide()
@@ -662,11 +677,10 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 			})
 		}
 		if isEditableText {
-			pfs := w.editor.ProjectFileSystem()
 			options = append(options, context_menu.ContextMenuOption{
-				Label: "Edit in text editor",
+				Label: "Open in editor",
 				Call: func() {
-					exec.Command("code", pfs.FullPath(""), pfs.FullPath(cc.ContentPath())).Run()
+					w.openInEditor(cc)
 				},
 			})
 		}
@@ -688,6 +702,18 @@ func (w *ContentWorkspace) clickPlayAudio(*document.Element) {
 func (w *ContentWorkspace) changeAudioPosition(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
 	w.audio.setAudioPosition(e.UI.ToSlider().Value())
+}
+
+func (w *ContentWorkspace) clickOpenInEditor(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.clickOpenInEditor").End()
+	for _, id := range w.selectedIds() {
+		cc, err := w.cache.Read(id)
+		if err != nil {
+			slog.Error("failed to find the config to add tag to content", "id", id, "error", err)
+			continue
+		}
+		w.openInEditor(cc)
+	}
 }
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
@@ -738,7 +764,8 @@ func (w *ContentWorkspace) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
+		hide := ShouldHideContent(id, w.typeFiltersDisable, w.tagFiltersDisable, w.cache)
+		if !hide && ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
 			e.UI.Show()
 		} else {
 			e.UI.Hide()
@@ -749,11 +776,10 @@ func (w *ContentWorkspace) runFilter() {
 
 func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.CachedContent) error {
 	defer tracing.NewRegion("ContentWorkspace.updateIndexForCachedContent").End()
-	content_database.WriteConfig(cc.Path, cc.Config, w.pfs)
-	if err := w.cache.Index(cc.Path, w.pfs); err != nil {
-		slog.Error("failed to index the content after updating tags", "error", err)
+	if err := content_database.WriteConfig(cc.Path, cc.Config, w.pfs); err != nil {
 		return err
 	}
+	w.cache.IndexCachedContent(*cc)
 	return nil
 }
 
@@ -775,5 +801,86 @@ func (w *ContentWorkspace) disableListMode() {
 			cc.UI.Show()
 			w.Doc.SetElementClassesWithoutApply(cc, klib.SlicesRemoveElement(cc.ClassList(), "wide")...)
 		}
+	}
+}
+
+func openContentEditor(contentEditor, path string) {
+	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	dir := filepath.Dir(contentEditor)
+	base := filepath.Base(contentEditor)
+	fullArgs := strings.Split(base, " ")
+	testExePath := filepath.Join(dir, fullArgs[0])
+	if _, err := os.Stat(testExePath); err == nil {
+		fullArgs[0] = testExePath
+	} else {
+		fullArgs[0] = contentEditor
+	}
+	command := fullArgs[0]
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, path)
+	if runtime.GOOS == "windows" {
+		if strings.HasPrefix(strings.ToLower(command), "shell:appsfolder") {
+			args = slices.Insert(args, 0, "/C", "start", "", command)
+			command = "cmd.exe"
+		}
+	}
+	// goroutine
+	go exec.Command(command, args...).Run()
+}
+
+func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
+	ed := ""
+	path := w.pfs.FullPath(cc.ContentPath())
+	switch cc.Config.Type {
+	case content_database.Html{}.TypeName():
+		fallthrough
+	case content_database.Css{}.TypeName():
+		ed = w.editor.Settings().CodeEditor
+	case content_database.Mesh{}.TypeName():
+		ed = w.editor.Settings().MeshEditor
+		if _, err := w.pfs.Stat(cc.Config.SrcPath); err == nil {
+			path = w.pfs.FullPath(cc.Config.SrcPath)
+		} else if _, err := os.Stat(cc.Config.SrcPath); err == nil {
+			path = cc.Config.SrcPath
+		} else {
+			path = ""
+		}
+	case content_database.Music{}.TypeName():
+		fallthrough
+	case content_database.Sound{}.TypeName():
+		ed = w.editor.Settings().AudioEditor
+	case content_database.Texture{}.TypeName():
+		ed = w.editor.Settings().ImageEditor
+	case content_database.ParticleSystem{}.TypeName():
+		w.editor.VfxWorkspaceSelected()
+		w.editor.VfxWorkspace().OpenParticleSystem(cc.Id())
+		return
+	case content_database.Material{}.TypeName():
+		fallthrough
+	case content_database.RenderPass{}.TypeName():
+		fallthrough
+	case content_database.ShaderPipeline{}.TypeName():
+		fallthrough
+	case content_database.Shader{}.TypeName():
+		w.editor.ShadingWorkspaceSelected()
+		w.editor.ShadingWorkspace().OpenSpec(cc.Id())
+		return
+	case content_database.Stage{}.TypeName():
+		w.editor.OpenStageInStageWorkspace(cc.Id())
+	case content_database.TableOfContents{}.TypeName():
+		w.showTableOfContents(cc.Id())
+		return
+	case content_database.Spv{}.TypeName():
+	case content_database.Template{}.TypeName():
+	}
+	if path == "" {
+		slog.Warn("could not find the source file path for the selected content")
+	} else if ed == "" {
+		slog.Warn("currently there isn't an editor that can open the content", "type", cc.Config.Type)
+	} else {
+		openContentEditor(ed, path)
 	}
 }

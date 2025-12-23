@@ -44,13 +44,15 @@ import (
 	"kaiju/engine/ui/markup/document"
 )
 
-func setChildrenFontWeight(elm *document.Element, weight string, host *engine.Host) {
+func setChildrenFontWeight(elm *document.Element, weight string) {
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
 		lbl.SetFontWeight(weight)
+	} else if elm.UI.IsType(ui.ElementTypeInput) {
+		elm.UI.ToInput().SetFontWeight(weight)
 	} else {
 		for _, child := range elm.Children {
-			setChildrenFontWeight(child, weight, host)
+			setChildrenFontWeight(child, weight)
 		}
 	}
 }
@@ -60,6 +62,6 @@ func (p FontWeight) Process(panel *ui.Panel, elm *document.Element, values []rul
 	if len(values) != 1 {
 		return errors.New("FontWeight requires exactly 1 value")
 	}
-	setChildrenFontWeight(elm, values[0].Str, host)
+	setChildrenFontWeight(elm, values[0].Str)
 	return nil
 }

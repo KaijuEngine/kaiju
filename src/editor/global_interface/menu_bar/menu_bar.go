@@ -69,41 +69,48 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		nil, map[string]func(*document.Element){
-			"clickLogo":               b.openMenuTarget,
-			"clickFile":               b.openMenuTarget,
-			"clickEdit":               b.openMenuTarget,
-			"clickCreate":             b.openMenuTarget,
-			"clickHelp":               b.openMenuTarget,
-			"clickStage":              b.clickStage,
-			"clickContent":            b.clickContent,
-			"clickShading":            b.clickShading,
-			"clickAnimation":          b.clickAnimation,
-			"clickUI":                 b.clickUI,
-			"clickSettings":           b.clickSettings,
-			"clickNewStage":           b.clickNewStage,
-			"clickOpenStage":          b.clickOpenStage,
-			"clickSaveStage":          b.clickSaveStage,
-			"clickOpenCodeEditor":     b.clickOpenCodeEditor,
-			"clickBuild":              b.clickBuild,
-			"clickBuildAndRun":        b.clickBuildAndRun,
-			"clickBuildRelease":       b.clickBuildRelease,
-			"clickBuildAndRunRelease": b.clickBuildAndRunRelease,
-			"clickRunCurrentStage":    b.clickRunCurrentStage,
-			"clickBuildAndroid":       b.clickBuildAndroid,
-			"clickBuildRunAndroid":    b.clickBuildRunAndroid,
-			"clickExportProject":      b.clickExportProject,
-			"clickCreateEntityData":   b.clickCreateEntityData,
-			"clickCreateHtmlUi":       b.clickCreateHtmlUi,
-			"clickNewCamera":          b.clickNewCamera,
-			"clickNewEntity":          b.clickNewEntity,
-			"clickNewLight":           b.clickNewLight,
-			"clickAbout":              b.clickAbout,
-			"clickLogs":               b.clickLogs,
-			"clickIssues":             b.clickIssues,
-			"clickRepository":         b.clickRepository,
-			"clickJoinMailingList":    b.clickJoinMailingList,
-			"clickMailArchives":       b.clickMailArchives,
-			"popupMiss":               b.popupMiss,
+			"clickLogo":                b.openMenuTarget,
+			"clickFile":                b.openMenuTarget,
+			"clickEdit":                b.openMenuTarget,
+			"clickCreate":              b.openMenuTarget,
+			"clickHelp":                b.openMenuTarget,
+			"clickStage":               b.clickStage,
+			"clickContent":             b.clickContent,
+			"clickShading":             b.clickShading,
+			"clickVfx":                 b.clickVfx,
+			"clickAnimation":           b.clickAnimation,
+			"clickUI":                  b.clickUI,
+			"clickSettings":            b.clickSettings,
+			"clickNewStage":            b.clickNewStage,
+			"clickOpenStage":           b.clickOpenStage,
+			"clickSaveStage":           b.clickSaveStage,
+			"clickOpenCodeEditor":      b.clickOpenCodeEditor,
+			"clickBuild":               b.clickBuild,
+			"clickBuildAndRun":         b.clickBuildAndRun,
+			"clickBuildRelease":        b.clickBuildRelease,
+			"clickBuildAndRunRelease":  b.clickBuildAndRunRelease,
+			"clickRunCurrentStage":     b.clickRunCurrentStage,
+			"clickBuildAndroid":        b.clickBuildAndroid,
+			"clickBuildRunAndroid":     b.clickBuildRunAndroid,
+			"clickExportProject":       b.clickExportProject,
+			"clickUndo":                b.clickUndo,
+			"clickRedo":                b.clickRedo,
+			"clickDuplicate":           b.clickDuplicate,
+			"clickCreateTemplate":      b.clickCreateTemplate,
+			"clickCreateEntityData":    b.clickCreateEntityData,
+			"clickCreateHtmlUi":        b.clickCreateHtmlUi,
+			"clickNewCamera":           b.clickNewCamera,
+			"clickNewEntity":           b.clickNewEntity,
+			"clickNewLight":            b.clickNewLight,
+			"clickAbout":               b.clickAbout,
+			"clickLogs":                b.clickLogs,
+			"clickIssues":              b.clickIssues,
+			"clickRepository":          b.clickRepository,
+			"clickJoinMailingList":     b.clickJoinMailingList,
+			"clickMailArchives":        b.clickMailArchives,
+			"clickCreatePluginProject": b.clickCreatePluginProject,
+			"clickCloseEditor":         b.clickCloseEditor,
+			"popupMiss":                b.popupMiss,
 		})
 	b.doc.Clean()
 	return err
@@ -124,6 +131,11 @@ func (b *MenuBar) SetWorkspaceContent() {
 
 func (b *MenuBar) SetWorkspaceShading() {
 	t, _ := b.doc.GetElementById("tabShading")
+	b.selectTab(t)
+}
+
+func (b *MenuBar) SetWorkspaceVfx() {
+	t, _ := b.doc.GetElementById("tabVfx")
 	b.selectTab(t)
 }
 
@@ -184,6 +196,12 @@ func (b *MenuBar) clickShading(e *document.Element) {
 	b.handler.ShadingWorkspaceSelected()
 }
 
+func (b *MenuBar) clickVfx(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickAnimation").End()
+	b.selectTab(e)
+	b.handler.VfxWorkspaceSelected()
+}
+
 func (b *MenuBar) clickAnimation(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.clickAnimation").End()
 	b.selectTab(e)
@@ -216,6 +234,28 @@ func (b *MenuBar) clickSaveStage(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSaveStage").End()
 	b.hidePopups()
 	b.handler.SaveCurrentStage()
+}
+
+func (b *MenuBar) clickUndo(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickUndo").End()
+	b.handler.History().Undo()
+}
+
+func (b *MenuBar) clickRedo(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickRedo").End()
+	b.handler.History().Redo()
+}
+
+func (b *MenuBar) clickDuplicate(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickDuplicate").End()
+	b.hidePopups()
+	b.handler.StageView().DuplicateSelected(b.handler.Project())
+}
+
+func (b *MenuBar) clickCreateTemplate(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateTemplate").End()
+	b.hidePopups()
+	b.handler.StageView().Manager().CreateTemplateFromSelected(b.handler.Events(), b.handler.Project())
 }
 
 func (b *MenuBar) clickCreateEntityData(*document.Element) {
@@ -294,7 +334,8 @@ func (b *MenuBar) clickBuildAndroid(*document.Element) {
 	b.hidePopups()
 	bts := b.handler.Settings().BuildTools
 	// goroutine
-	go b.handler.Project().BuildAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+	go b.handler.Project().BuildAndroid(b.uiMan.Host.AssetDatabase(),
+		bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
@@ -302,7 +343,8 @@ func (b *MenuBar) clickBuildRunAndroid(*document.Element) {
 	b.hidePopups()
 	bts := b.handler.Settings().BuildTools
 	// goroutine
-	go b.handler.Project().BuildRunAndroid(bts.AndroidNDK, bts.JavaHome, []string{"debug"})
+	go b.handler.Project().BuildRunAndroid(b.uiMan.Host.AssetDatabase(),
+		bts.AndroidNDK, bts.JavaHome, []string{"debug"})
 }
 
 func (b *MenuBar) clickExportProject(*document.Element) {
@@ -394,6 +436,41 @@ func (b *MenuBar) clickMailArchives(*document.Element) {
 	klib.OpenWebsite("https://www.freelists.org/archive/kaijuengine/")
 }
 
+func (b *MenuBar) clickCreatePluginProject(*document.Element) {
+	const pathA = "editor/editor_plugin/developer_plugins"
+	const pathB = "src/" + pathA
+	defer tracing.NewRegion("MenuBar.clickCreatePluginProject").End()
+	b.hidePopups()
+	b.handler.BlurInterface()
+	exePath, _ := os.Executable()
+	startPaths := [...]string{
+		filepath.Join(filepath.Dir(exePath), pathB),
+		filepath.Join(filepath.Dir(exePath), pathA),
+	}
+	for i := range startPaths {
+		if s, err := os.Stat(startPaths[i]); err == nil && s.IsDir() {
+			exePath = startPaths[i]
+			break
+		}
+	}
+	file_browser.Show(b.uiMan.Host, file_browser.Config{
+		Title:        "Select plugin project path",
+		StartingPath: exePath,
+		OnlyFolders:  true,
+		OnConfirm: func(paths []string) {
+			b.handler.FocusInterface()
+			b.handler.CreatePluginProject(paths[0])
+		},
+		OnCancel: b.handler.FocusInterface,
+	})
+}
+
+func (b *MenuBar) clickCloseEditor(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCloseEditor").End()
+	b.hidePopups()
+	b.uiMan.Host.Close()
+}
+
 func (b *MenuBar) popupMiss(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.popupMiss").End()
 	if e == b.selectedPopup {
@@ -405,9 +482,9 @@ func (b *MenuBar) selectTab(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.selectTab").End()
 	tabs := b.doc.GetElementsByGroup("tabs")
 	for i := range tabs {
-		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab")
+		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab", "edPanelBgHoverable")
 	}
-	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "tabSelected")
+	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "edPanelBgHoverable", "tabSelected")
 	b.doc.ApplyStyles()
 	b.hidePopups()
 }

@@ -49,6 +49,8 @@ import (
 )
 
 type DirtyType = int
+type ElementType = uint8
+type uiBits uint8
 
 const (
 	DirtyTypeNone = iota
@@ -66,8 +68,6 @@ const (
 	DirtyTypeParentScissor
 )
 
-type ElementType = uint8
-
 const (
 	ElementTypeLabel = ElementType(iota)
 	ElementTypePanel
@@ -78,6 +78,17 @@ const (
 	ElementTypeProgressBar
 	ElementTypeSelect
 	ElementTypeSlider
+)
+
+const (
+	uiBitsIsScrolling uiBits = 1 << iota
+	uiBitsHovering
+	uiBitsCantMiss
+	uiBitsIsDown
+	uiBitsIsRightDown
+	uiBitsDrag
+	uiBitsLastActive
+	uiBitsDontClean
 )
 
 type UIElementData interface {
@@ -101,17 +112,34 @@ type UI struct {
 	lastClick        float64
 	poolId           pooling.PoolGroupId
 	id               pooling.PoolIndex
-	hovering         bool
-	cantMiss         bool
-	isDown           bool
-	isRightDown      bool
-	drag             bool
-	lastActive       bool
-	dontClean        bool
+	flags            uiBits
 }
 
+func (b uiBits) hovering() bool     { return b&uiBitsHovering != 0 }
+func (b uiBits) cantMiss() bool     { return b&uiBitsCantMiss != 0 }
+func (b uiBits) isDown() bool       { return b&uiBitsIsDown != 0 }
+func (b uiBits) isRightDown() bool  { return b&uiBitsIsRightDown != 0 }
+func (b uiBits) drag() bool         { return b&uiBitsDrag != 0 }
+func (b uiBits) lastActive() bool   { return b&uiBitsLastActive != 0 }
+func (b uiBits) dontClean() bool    { return b&uiBitsDontClean != 0 }
+func (b *uiBits) setHovering()      { *b |= uiBitsHovering }
+func (b *uiBits) setCantMiss()      { *b |= uiBitsCantMiss }
+func (b *uiBits) setIsDown()        { *b |= uiBitsIsDown }
+func (b *uiBits) setIsRightDown()   { *b |= uiBitsIsRightDown }
+func (b *uiBits) setDrag()          { *b |= uiBitsDrag }
+func (b *uiBits) setLastActive()    { *b |= uiBitsLastActive }
+func (b *uiBits) setDontClean()     { *b |= uiBitsDontClean }
+func (b *uiBits) resetHovering()    { *b &= ^uiBitsHovering }
+func (b *uiBits) resetCantMiss()    { *b &= ^uiBitsCantMiss }
+func (b *uiBits) resetIsDown()      { *b &= ^uiBitsIsDown }
+func (b *uiBits) resetIsRightDown() { *b &= ^uiBitsIsRightDown }
+func (b *uiBits) resetDrag()        { *b &= ^uiBitsDrag }
+func (b *uiBits) resetLastActive()  { *b &= ^uiBitsLastActive }
+func (b *uiBits) resetDontClean()   { *b &= ^uiBitsDontClean }
+
 func (ui *UI) IsActive() bool { return ui.entity.IsActive() }
-func (ui *UI) IsDown() bool   { return ui.isDown }
+func (ui *UI) IsDown() bool   { return ui.flags.isDown() }
+func (ui *UI) IsValid() bool  { return ui.elmData != nil }
 
 func (ui *UI) init(textureSize matrix.Vec2) {
 	defer tracing.NewRegion("UI.init").End()
@@ -171,7 +199,13 @@ func (ui *UI) Host() *engine.Host {
 	return nil
 }
 
-func (ui *UI) SetDontClean(val bool) { ui.dontClean = val }
+func (ui *UI) SetDontClean(val bool) {
+	if val {
+		ui.flags.setDontClean()
+	} else {
+		ui.flags.resetDontClean()
+	}
+}
 
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	defer tracing.NewRegion("UI.ExecuteEvent").End()
@@ -184,7 +218,9 @@ func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id {
 }
 
 func (ui *UI) RemoveEvent(evtType EventType, evtId events.Id) {
-	ui.events[evtType].Remove(evtId)
+	if evtId != 0 {
+		ui.events[evtType].Remove(evtId)
+	}
 }
 
 func (ui *UI) Event(evtType EventType) *events.Event {
@@ -240,7 +276,7 @@ func (ui *UI) rootUI() *UI {
 
 func (ui *UI) Clean() {
 	defer tracing.NewRegion("UI.Clean").End()
-	if ui.dontClean {
+	if ui.flags.dontClean() {
 		return
 	}
 	root := ui.rootUI()
@@ -349,51 +385,51 @@ func (ui *UI) eventUpdates() {
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
 		ui.containedCheck(cursor, &ui.entity)
-		if ui.isDown && !ui.drag {
+		if ui.flags.isDown() && !ui.flags.drag() {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
 			wmm, hmm, _ := host.Window.SizeMM()
 			threshold := max(windowing.DPI2PX(w, wmm, 1), windowing.DPI2PX(h, hmm, 1))
 			if ui.downPos.Distance(pos) > float32(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
-				ui.drag = true
+				ui.flags.setDrag()
 				ui.requestEvent(EventTypeDragStart)
 			}
 		}
 	}
 	if cursor.Pressed() {
 		ui.containedCheck(cursor, &ui.entity)
-		if ui.hovering && !ui.isDown {
-			ui.isDown = true
+		if ui.flags.hovering() && !ui.flags.isDown() {
+			ui.flags.setIsDown()
 			ui.downPos = ui.cursorPos(cursor)
 			ui.requestEvent(EventTypeDown)
-			ui.cantMiss = true
+			ui.flags.setCantMiss()
 		}
 	}
 	if mouse.Pressed(hid.MouseButtonRight) {
 		ui.containedCheck(cursor, &ui.entity)
-		if ui.hovering && !ui.isRightDown {
-			ui.isRightDown = true
+		if ui.flags.hovering() && !ui.flags.isRightDown() {
+			ui.flags.setIsRightDown()
 		}
 	}
 	if cursor.Released() {
-		if ui.hovering {
+		if ui.flags.hovering() {
 			ui.requestEvent(EventTypeUp)
 			if windowing.HasDragData() {
 				ui.requestEvent(EventTypeDrop)
 			}
 		}
-		if ui.lastActive {
-			if ui.isDown {
-				ui.isDown = false
+		if ui.flags.lastActive() {
+			if ui.flags.isDown() {
+				ui.flags.resetIsDown()
 				dragged := false
-				if ui.drag {
+				if ui.flags.drag() {
 					p := ui.entity.Transform.WorldPosition()
 					dragged = ui.dragStartPos.Distance(p) > 5
 				}
-				ui.drag = false
+				ui.flags.resetDrag()
 				ui.requestEvent(EventTypeDragEnd)
-				if ui.hovering && !dragged {
+				if ui.flags.hovering() && !dragged {
 					rt := host.Runtime()
 					if rt-ui.lastClick < dblCLickTime && !ui.events[EventTypeDoubleClick].IsEmpty() {
 						ui.requestEvent(EventTypeDoubleClick)
@@ -403,19 +439,19 @@ func (ui *UI) eventUpdates() {
 						ui.lastClick = rt
 					}
 				}
-			} else if !ui.hovering && !ui.cantMiss {
+			} else if !ui.flags.hovering() && !ui.flags.cantMiss() {
 				ui.requestEvent(EventTypeMiss)
 			}
-			ui.cantMiss = false
+			ui.flags.resetCantMiss()
 		}
 	}
 	if mouse.Released(hid.MouseButtonRight) {
-		if ui.isRightDown && ui.hovering {
+		if ui.flags.isRightDown() && ui.flags.hovering() {
 			ui.requestEvent(EventTypeRightClick)
 		}
-		ui.isRightDown = false
+		ui.flags.resetIsRightDown()
 	}
-	if mouse.Scrolled() && ui.hovering {
+	if mouse.Scrolled() && ui.flags.hovering() {
 		ui.requestEvent(EventTypeScroll)
 	}
 }
@@ -428,7 +464,11 @@ func (ui *UI) Update(deltaTime float64) {
 	//if ui.dirtyType != DirtyTypeNone {
 	//	ui.Clean()
 	//}
-	ui.lastActive = ui.entity.IsActive()
+	if ui.entity.IsActive() {
+		ui.flags.setLastActive()
+	} else {
+		ui.flags.resetLastActive()
+	}
 }
 
 func (ui *UI) cursorPos(cursor *hid.Cursor) matrix.Vec2 {
@@ -447,8 +487,8 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	if contained && ui.hasScissor() {
 		contained = ui.shaderData.Scissor.ScreenAreaContains(cp.X(), cp.Y())
 	}
-	if !ui.hovering && contained {
-		ui.hovering = true
+	if !ui.flags.hovering() && contained {
+		ui.flags.setHovering()
 		// This is to resolve the parent not getting it's exit call when the
 		// cursor enters a child element, effectively taking focus from the
 		// parent
@@ -460,18 +500,18 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 				FirstOnEntity(ui.entity.Parent).requestEvent(EventTypeDropExit)
 			}
 		}
-	} else if ui.hovering && !contained {
-		ui.hovering = false
+	} else if ui.flags.hovering() && !contained {
+		ui.flags.resetHovering()
 		ui.requestEvent(EventTypeExit)
 		// This is to resolve the parent not getting enter call when the
 		// cursor exits a child element puttin focus back on the parent
 		if !ui.events[EventTypeEnter].IsEmpty() && ui.entity.Parent != nil {
-			FirstOnEntity(ui.entity.Parent).hovering = false
+			FirstOnEntity(ui.entity.Parent).flags.resetHovering()
 		}
 		if windowing.HasDragData() {
 			ui.requestEvent(EventTypeDropExit)
 		}
-	} else if ui.hovering && contained {
+	} else if ui.flags.hovering() && contained {
 		ui.requestEvent(EventTypeMove)
 	}
 }

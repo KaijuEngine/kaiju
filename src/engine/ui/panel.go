@@ -49,6 +49,7 @@ type PanelScrollDirection = int32
 type BorderStyle = int32
 type ContentFit = int32
 type Overflow = int
+type panelBits uint8
 
 const (
 	PanelScrollDirectionNone       = 0x00
@@ -87,6 +88,14 @@ const (
 	OverflowHidden
 )
 
+const (
+	panelBitsIsScrolling panelBits = 1 << iota
+	panelBitsIsDragging
+	panelBitsIsFrozen
+	panelBitsAllowDragScroll
+	panelBitsAllowClickThrough
+)
+
 var UIScrollSpeed float32 = 20
 
 type requestScroll struct {
@@ -109,11 +118,24 @@ type panelData struct {
 	requestScrollY            requestScroll
 	overflow                  Overflow
 	enforcedColorStack        []matrix.Color
-	isScrolling               bool
-	dragging                  bool
-	frozen                    bool
-	allowDragScroll           bool
+	flags                     panelBits
 }
+
+func (b panelBits) isScrolling() bool        { return b&panelBitsIsScrolling != 0 }
+func (b panelBits) isDragging() bool         { return b&panelBitsIsDragging != 0 }
+func (b panelBits) isFrozen() bool           { return b&panelBitsIsFrozen != 0 }
+func (b panelBits) allowDragScroll() bool    { return b&panelBitsAllowDragScroll != 0 }
+func (b panelBits) allowClickThrough() bool  { return b&panelBitsAllowClickThrough != 0 }
+func (b *panelBits) setIsScrolling()         { *b |= panelBitsIsScrolling }
+func (b *panelBits) setDragging()            { *b |= panelBitsIsDragging }
+func (b *panelBits) setFrozen()              { *b |= panelBitsIsFrozen }
+func (b *panelBits) setAllowDragScroll()     { *b |= panelBitsAllowDragScroll }
+func (b *panelBits) setAllowClickThrough()   { *b |= panelBitsAllowClickThrough }
+func (b *panelBits) resetIsScrolling()       { *b &= ^panelBitsIsScrolling }
+func (b *panelBits) resetDragging()          { *b &= ^panelBitsIsDragging }
+func (b *panelBits) resetFrozen()            { *b &= ^panelBitsIsFrozen }
+func (b *panelBits) resetAllowDragScroll()   { *b &= ^panelBitsAllowDragScroll }
+func (b *panelBits) resetAllowClickThrough() { *b &= ^panelBitsAllowClickThrough }
 
 func (p *panelData) innerPanelData() *panelData { return p }
 
@@ -159,8 +181,8 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 func (p *Panel) MaxScroll() matrix.Vec2 { return p.PanelData().maxScroll }
 func (p *Panel) ScrollX() float32       { return p.PanelData().scroll.X() }
 func (p *Panel) ScrollY() float32       { return -p.PanelData().scroll.Y() }
-func (p *Panel) EnableDragScroll()      { p.PanelData().allowDragScroll = true }
-func (p *Panel) DisableDragScroll()     { p.PanelData().allowDragScroll = false }
+func (p *Panel) EnableDragScroll()      { p.PanelData().flags.setAllowDragScroll() }
+func (p *Panel) DisableDragScroll()     { p.PanelData().flags.resetAllowDragScroll() }
 
 func (p *Panel) DontFitContentWidth() {
 	pd := p.PanelData()
@@ -270,13 +292,16 @@ func (p *Panel) onScroll() {
 	if !matrix.Vec2Approx(scroll, pd.scroll) {
 		pd.scroll = scroll
 		base.SetDirty(DirtyTypeLayout)
-		pd.isScrolling = true
+		pd.flags.setIsScrolling()
 	}
 }
 
 func (p *Panel) update(deltaTime float64) {
 	defer tracing.NewRegion("Panel.update").End()
 	base := p.Base()
+	if !base.IsActive() {
+		return
+	}
 	base.eventUpdates()
 	base.Update(deltaTime)
 	pd := p.PanelData()
@@ -285,15 +310,15 @@ func (p *Panel) update(deltaTime float64) {
 		pd.scrollBarStart = -1
 	}
 	p.updateScrollBars()
-	if !pd.frozen {
-		if p.isDown && pd.dragging {
-			if pd.allowDragScroll {
+	if !pd.flags.isFrozen() {
+		if p.flags.isDown() && pd.flags.isDragging() {
+			if pd.flags.allowClickThrough() {
 				p.onScroll()
 			}
-		} else if pd.dragging {
-			pd.dragging = false
+		} else if pd.flags.isDragging() {
+			pd.flags.resetDragging()
 		} else {
-			pd.isScrolling = false
+			pd.flags.resetIsScrolling()
 		}
 	}
 }
@@ -374,6 +399,9 @@ func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
 
 func (p *Panel) panelPostLayoutUpdate() {
 	defer tracing.NewRegion("Panel.panelPostLayoutUpdate").End()
+	if !p.Base().IsActive() {
+		return
+	}
 	if p.PanelData().drawing.IsValid() {
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 	}
@@ -450,10 +478,14 @@ func (p *Panel) panelPostLayoutUpdate() {
 	}
 	last := pd.maxScroll
 	ws := p.entity.Transform.WorldScale()
-	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, bounds.Y()-ws.Y()))
+	yScroll := bounds.Y() - ws.Y()
+	if pd.scrollBarX != nil {
+		yScroll += scrollBarWidth
+	}
+	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, yScroll))
 	if !matrix.Vec2Roughly(last, pd.maxScroll) {
 		if pd.scrollBarX != nil {
-			pd.scrollBarY.Base().Show()
+			pd.scrollBarX.Base().Show()
 		}
 		if pd.scrollBarY != nil {
 			pd.scrollBarY.Base().Show()
@@ -592,7 +624,6 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
 		material = material.CreateInstance([]*rendering.Texture{tex})
 		pd.drawing = rendering.Drawing{
-			Renderer:   host.Window.Renderer,
 			Material:   material,
 			Mesh:       rendering.NewMeshQuad(host.MeshCache()),
 			ShaderData: p.shaderData,
@@ -605,10 +636,10 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	}
 	// TODO:  Allow this to be overridable for transparent overlays?
 	// Panels that have a background shouldn't be click-through-able (probably)
-	if p.events[EventTypeDown].IsEmpty() {
+	if p.events[EventTypeDown].IsEmpty() && !pd.flags.allowClickThrough() {
 		p.Base().AddEvent(EventTypeDown, func() { /* Do nothing, but block things */ })
 	}
-	if p.events[EventTypeUp].IsEmpty() {
+	if p.events[EventTypeUp].IsEmpty() && !pd.flags.allowClickThrough() {
 		p.Base().AddEvent(EventTypeUp, func() { /* Do nothing, but block things */ })
 	}
 }
@@ -649,19 +680,19 @@ func (p *Panel) RemoveBackground() {
 }
 
 func (p *Panel) IsScrolling() bool {
-	return p.PanelData().isScrolling
+	return p.PanelData().flags.isScrolling()
 }
 
 func (p *Panel) Freeze() {
-	p.PanelData().frozen = true
+	p.PanelData().flags.setFrozen()
 }
 
 func (p *Panel) UnFreeze() {
-	p.PanelData().frozen = false
+	p.PanelData().flags.resetFrozen()
 }
 
 func (p *Panel) IsFrozen() bool {
-	return p.PanelData().frozen
+	return p.PanelData().flags.isFrozen()
 }
 
 func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
@@ -679,11 +710,11 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	} else if pd.scrollEvent == 0 {
 		pd.scrollEvent = p.Base().AddEvent(EventTypeScroll, p.onScroll)
 	}
-	if pd.scrollBarX == nil {
+	if pd.scrollBarX == nil && (pd.scrollDirection&PanelScrollDirectionHorizontal) != 0 {
 		pd.scrollBarX = p.createScrollBar()
 		p.AddChild((*UI)(pd.scrollBarX))
 	}
-	if pd.scrollBarY == nil {
+	if pd.scrollBarY == nil && (pd.scrollDirection&PanelScrollDirectionVertical) != 0 {
 		pd.scrollBarY = p.createScrollBar()
 		p.AddChild((*UI)(pd.scrollBarY))
 	}
@@ -725,6 +756,16 @@ func (p *Panel) updateScrollBars() {
 	pd := p.PanelData()
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
+	}
+	bars := [...]*Panel{pd.scrollBarX, pd.scrollBarY}
+	for i := range bars {
+		if bars[i] != nil {
+			if p.flags.hovering() {
+				bars[i].Base().Show()
+			} else {
+				bars[i].Base().Hide()
+			}
+		}
 	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
@@ -882,4 +923,11 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		}
 	}
 	p.shaderData.FgColor = bgColor
+}
+
+func (p *Panel) allowClickThrough() {
+	pd := p.PanelData()
+	pd.flags.setAllowClickThrough()
+	p.events[EventTypeDown].Clear()
+	p.events[EventTypeUp].Clear()
 }

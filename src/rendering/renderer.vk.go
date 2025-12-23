@@ -57,6 +57,7 @@ import (
 
 type vkQueueFamilyIndices struct {
 	graphicsFamily int
+	computeFamily  int
 	presentFamily  int
 }
 
@@ -108,6 +109,16 @@ type Vulkan struct {
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 	combineCmds                [maxFramesInFlight]CommandRecorder
 	blitCmds                   [maxFramesInFlight]CommandRecorder
+	fallbackShadowMap          *Texture
+	fallbackCubeShadowMap      *Texture
+	computeTasks               []ComputeTask
+	computeQueue               vk.Queue
+}
+
+type ComputeTask struct {
+	Shader         *Shader
+	DescriptorSets []vk.DescriptorSet
+	WorkGroups     [3]uint32
 }
 
 type combinedDrawingCuller struct{}
@@ -195,7 +206,7 @@ func (vr *Vulkan) createDescriptorSet(layout vk.DescriptorSetLayout, poolIdx int
 	return sets, vr.descriptorPools[poolIdx], nil
 }
 
-func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) {
+func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) {
 	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
 	camOrtho := matrix.Float(0)
 	if camera.IsOrthographic() {
@@ -214,17 +225,11 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			matrix.Float(vr.swapChainExtent.Height),
 		},
 	}
-	for i := range min(len(staticShadows), len(ubo.StaticShadows)) {
-		ubo.StaticShadows[i] = staticShadows[i]
-	}
-	for i := range min(len(dynamicShadows), len(ubo.DynamicShadows)) {
-		ubo.DynamicShadows[i] = dynamicShadows[i]
-	}
-	for i := range lights {
-		if lights[i].IsValid() {
-			lights[i].recalculate(nil)
-			ubo.VertLights[i] = lights[i].transformToGPULight()
-			ubo.LightInfos[i] = lights[i].transformToGPULightInfo()
+	for i := range lights.Lights {
+		if lights.Lights[i].IsValid() {
+			lights.Lights[i].recalculate(nil)
+			ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
+			ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
 		}
 	}
 	var data unsafe.Pointer
@@ -241,11 +246,22 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 func (vr *Vulkan) createColorResources() bool {
 	slog.Info("creating vulkan color resources")
 	colorFormat := vr.swapImages[0].Format
-	vr.CreateImage(vr.swapChainExtent.Width, vr.swapChainExtent.Height, 1,
-		vr.msaaSamples, colorFormat, vulkan_const.ImageTilingOptimal,
-		vk.ImageUsageFlags(vulkan_const.ImageUsageTransientAttachmentBit|vulkan_const.ImageUsageColorAttachmentBit),
-		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), &vr.color, 1)
-	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit))
+	vr.CreateImage(&vr.color, vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit),
+		vk.ImageCreateInfo{
+			ImageType: vulkan_const.ImageType2d,
+			Extent: vk.Extent3D{
+				Width:  uint32(vr.swapChainExtent.Width),
+				Height: uint32(vr.swapChainExtent.Height),
+			},
+			MipLevels:   uint32(1),
+			ArrayLayers: uint32(1),
+			Format:      colorFormat,
+			Tiling:      vulkan_const.ImageTilingOptimal,
+			Usage:       vk.ImageUsageFlags(vulkan_const.ImageUsageTransientAttachmentBit | vulkan_const.ImageUsageColorAttachmentBit),
+			Samples:     vr.msaaSamples,
+		})
+	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+		vulkan_const.ImageViewType2d)
 }
 
 func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error) {
@@ -280,6 +296,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 	if !vr.createLogicalDevice() {
 		return nil, errors.New("failed to create logical device")
 	}
+	slog.Info("creating vulkan swap chain")
 	if !vr.createSwapChain(window) {
 		return nil, errors.New("failed to create swap chain")
 	}
@@ -323,36 +340,40 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	defer tracing.NewRegion("Vulkan.Initialize").End()
 	vr.caches = caches
+	vr.fallbackShadowMap, _ = caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	vr.fallbackCubeShadowMap, _ = caches.TextureCache().Texture(assets.TextureCube, TextureFilterLinear)
+	vr.fallbackCubeShadowMap.SetPendingDataDimensions(TextureDimensionsCube)
 	caches.TextureCache().CreatePending()
 	return nil
 }
 
 func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
-	vr.WaitForRender()
 	if vr.hasSwapChain {
+		vr.WaitForRender()
 		vr.swapChainCleanup()
-	}
-	// Destroy the previous swap sync objects
-	for i := 0; i < int(vr.swapImageCount); i++ {
-		vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
-		vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
-		vk.DestroyFence(vr.device, vr.renderFences[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
-	}
-	// Destroy the previous global uniform buffers
-	for i := 0; i < maxFramesInFlight; i++ {
-		vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
-		vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+		// Destroy the previous swap sync objects
+		for i := 0; i < int(vr.swapImageCount); i++ {
+			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
+			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
+			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+		}
+		// Destroy the previous global uniform buffers
+		for i := 0; i < maxFramesInFlight; i++ {
+			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffers[i]))
+			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
+		}
 	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
 		return
 	}
+	slog.Info("recreated vulkan swap chain")
 	vr.createImageViews()
 	//vr.createRenderPass()
 	vr.createColorResources()
@@ -432,7 +453,7 @@ func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
 	return true
 }
 
-func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights []Light, staticShadows []PointShadow, dynamicShadows []PointShadow, runtime float32) bool {
+func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
 		vr.remakeSwapChain(window)
@@ -459,11 +480,12 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 	inlTrace.End()
 	vk.ResetFences(vr.device, 1, &fences[0])
 	vr.bufferTrash.Cycle()
-	vr.updateGlobalUniformBuffer(camera, uiCamera, lights, staticShadows, dynamicShadows, runtime)
+	vr.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
 	for _, r := range vr.preRuns {
 		r()
 	}
 	vr.preRuns = klib.WipeSlice(vr.preRuns)
+	vr.executeCompute()
 	return true
 }
 
@@ -633,4 +655,44 @@ func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.Ima
 		vr.dbg.add(vk.TypeToUintPtr(fb))
 	}
 	return fb, true
+}
+
+func (vr *Vulkan) QueueCompute(buffer *ComputeShaderBuffer) {
+	if buffer.Shader.Type != ShaderTypeCompute {
+		slog.Error("QueueCompute called with non-compute shader")
+		return
+	}
+	vr.computeTasks = append(vr.computeTasks, ComputeTask{
+		Shader:         buffer.Shader,
+		DescriptorSets: buffer.sets[:],
+		WorkGroups:     buffer.Shader.data.WorkGroups(),
+	})
+}
+
+func (vr *Vulkan) executeCompute() {
+	if len(vr.computeTasks) == 0 {
+		return
+	}
+	// TODO:  Cache this for reuse on subsequent calls
+	ds := [1]vk.DescriptorSet{}
+	computeCmd := vr.beginSingleTimeCommands()
+	for _, task := range vr.computeTasks {
+		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, task.Shader.RenderId.computePipeline)
+		ds[0] = task.DescriptorSets[vr.currentFrame]
+		if len(ds) > 0 {
+			vk.CmdBindDescriptorSets(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, task.Shader.RenderId.pipelineLayout, 0, uint32(len(ds)), &ds[0], 0, nil)
+		}
+		vk.CmdDispatch(computeCmd.buffer, task.WorkGroups[0], task.WorkGroups[1], task.WorkGroups[2])
+	}
+	barrier := vk.MemoryBarrier{
+		SType:         vulkan_const.StructureTypeMemoryBarrier,
+		SrcAccessMask: vk.AccessFlags(vulkan_const.AccessShaderWriteBit),
+		DstAccessMask: vk.AccessFlags(vulkan_const.AccessShaderReadBit | vulkan_const.AccessVertexAttributeReadBit),
+	}
+	vk.CmdPipelineBarrier(computeCmd.buffer,
+		vk.PipelineStageFlags(vulkan_const.PipelineStageComputeShaderBit),
+		vk.PipelineStageFlags(vulkan_const.PipelineStageVertexInputBit|vulkan_const.PipelineStageVertexShaderBit|vulkan_const.PipelineStageFragmentShaderBit),
+		0, 1, &barrier, 0, nil, 0, nil)
+	vr.endSingleTimeCommands(computeCmd)
+	vr.computeTasks = vr.computeTasks[:0]
 }

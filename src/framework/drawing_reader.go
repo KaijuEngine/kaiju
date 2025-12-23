@@ -94,7 +94,8 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 				matKey = mat
 			}
 		}
-		tForm := matrix.NewTransform()
+		var tForm matrix.Transform
+		tForm.Initialize(host.WorkGroup())
 		tForm.SetPosition(m.Node.Transform.WorldPosition())
 		tForm.SetRotation(m.Node.Transform.WorldRotation())
 		tForm.SetScale(m.Node.Transform.WorldScale())
@@ -121,7 +122,6 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 			Node:     m.Node,
 			MeshName: m.Name,
 			Drawing: rendering.Drawing{
-				Renderer:   host.Window.Renderer,
 				Material:   mat,
 				Mesh:       mesh,
 				Transform:  &tForm,
@@ -219,18 +219,13 @@ func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingS
 			Metallic:       0,
 			Roughness:      1,
 			Emissive:       0,
-			Light0:         0,
-			Light1:         0,
-			Light2:         0,
-			Light3:         0,
+			LightIds:       [...]int32{0, 0, 0, 0},
 		}
 	})
 	for i := range drawings {
-		drawings[i].Drawing.CastsShadows = true
+		drawings[i].Drawing.Material.CastsShadows = true
+		drawings[i].Drawing.Material.ReceivesShadows = true
 		drawings[i].Drawing.Material.IsLit = true
-		// TODO:  This some shady stuff to pull the first light here
-		drawings[i].Drawing.Material.ShadowMap = host.Lighting().Lights.FindById(1).Target.ShadowMapTexture()
-		//drawings[i].Material.ShadowCubeMap =
 	}
 	return drawings, err
 }

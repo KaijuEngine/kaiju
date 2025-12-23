@@ -34,9 +34,9 @@ Expected output: amd64
 - Pull the repository
 - Go into src `cd src`
 - To build the exe in debug mode, run:
-  - `go build -tags="debug,editor" -o ../kaiju.exe ./`
+  - `go build -tags="debug,editor" -o ../ ./`
 - To build the exe, run:
-  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./`
+  - `go build -ldflags="-s -w" -tags="editor" -o ../ ./`
 
 ## Linux development
 - Ensure you've got `gcc` installed
@@ -44,9 +44,9 @@ Expected output: amd64
 - Pull the repository
 - Go into src `cd src`
 - To build the exe in debug mode, run:
-  - `go build -tags="debug,editor" -o ../kaiju ./`
+  - `go build -tags="debug,editor" -o ../ ./`
 - To build the exe, run:
-  - `go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./`
+  - `go build -ldflags="-s -w" -tags="editor" -o ../ ./`
 
 ## Building Soloud
 Currently the engine uses Soloud for playing music and sound effects. Below are instructions on how to build the library for the engine.

@@ -39,6 +39,7 @@ package transform_tools
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_settings"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -51,6 +52,7 @@ import (
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"weak"
 )
 
 type TransformTool struct {
@@ -70,7 +72,8 @@ type TransformTool struct {
 
 func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings) {
 	defer tracing.NewRegion("TransformTool.Initialize").End()
-	wt := matrix.NewTransform()
+	var wt matrix.Transform
+	wt.Initialize(host.WorkGroup())
 	t.stage = stage
 	t.snapSettings = snapSettings
 	t.wireTransform = &wt
@@ -97,6 +100,9 @@ func (t *TransformTool) Update() (busy bool) {
 	defer tracing.NewRegion("TransformTool.Update").End()
 	if t.state == ToolStateNone {
 		return false
+	}
+	if !t.stage.Manager().HasSelection() {
+		t.Disable()
 	}
 	if t.transformDirty > 0 {
 		t.transformDirty--
@@ -146,9 +152,20 @@ func (t *TransformTool) Enable(state ToolState) {
 	}
 }
 
+func (t *TransformTool) Cancel() {
+	if t.state == ToolStateNone {
+		return
+	}
+	t.resetChange()
+	t.state = ToolStateNone
+	t.Disable()
+}
+
 func (t *TransformTool) Disable() {
 	defer tracing.NewRegion("TransformTool.Disable").End()
-	t.resetChange()
+	if t.stage.Manager().HasSelection() {
+		t.resetChange()
+	}
 	t.state = ToolStateNone
 	t.axis = AxisStateNone
 	for i := range t.wires {
@@ -171,7 +188,6 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	sd.Deactivate()
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
@@ -194,6 +210,11 @@ func (t *TransformTool) resetChange() {
 		}
 	}
 	t.firstHitUpdate = true
+	for _, e := range all {
+		for _, db := range e.DataBindings() {
+			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+		}
+	}
 }
 
 func (t *TransformTool) updateResets() {
@@ -276,9 +297,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 		t.axis.Toggle(AxisStateZ)
 		t.Enable(t.state)
 	} else if kb.KeyDown(hid.KeyboardKeyEscape) {
-		t.resetChange()
-		t.state = ToolStateNone
-		t.Disable()
+		t.Cancel()
 	}
 }
 
@@ -414,19 +433,32 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		delta.SetZ(0)
 		t.lastHit = point.Add(delta)
 	}
-	t.transform(delta, host.Window.Keyboard.HasCtrl())
-	t.lastHit = point
+	if !t.lastHit.Equals(point) {
+		t.transform(delta, host.Window.Keyboard.HasCtrl())
+		t.lastHit = point
+		for _, e := range sel {
+			for _, db := range e.DataBindings() {
+				data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+			}
+		}
+	}
 }
 
 func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
 	defer tracing.NewRegion("TransformTool.translate").End()
 	p := t.unsnapped[idx].Add(delta)
 	t.unsnapped[idx] = p
-	// TODO:  Fix arbitrary movement snapping
-	if snap && t.axis != AxisStateNone {
-		p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
-		p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
-		p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+	if snap {
+		switch t.axis {
+		case AxisStateX:
+			p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+		case AxisStateY:
+			p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+		default:
+			// TODO:  Fix arbitrary movement snapping
+		}
 	}
 	return p
 }
@@ -467,13 +499,21 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	r := t.unsnapped[idx]
 	currentQuat := matrix.QuaternionFromEuler(r)
 	incrementalQuat := matrix.QuaternionAxisAngle(axis, angle)
-	newQuat := currentQuat.Multiply(incrementalQuat)
+	// newQuat := currentQuat.Multiply(incrementalQuat) // Local space
+	newQuat := incrementalQuat.Multiply(currentQuat) // World space
 	newEuler := newQuat.ToEuler()
 	t.unsnapped[idx] = newEuler
 	if snap {
-		newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
-		newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
-		newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
+		switch t.axis {
+		case AxisStateX:
+			newEuler.SetX(matrix.Floor(newEuler.X()/snapScale) * snapScale)
+		case AxisStateY:
+			newEuler.SetY(matrix.Floor(newEuler.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			newEuler.SetZ(matrix.Floor(newEuler.Z()/snapScale) * snapScale)
+		default:
+			// TODO:  Fix arbitrary rotation snapping
+		}
 	}
 	return newEuler
 }
@@ -495,9 +535,18 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 	s := t.unsnapped[idx].Add(scale)
 	t.unsnapped[idx] = s
 	if snap {
-		s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
-		s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
-		s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		switch t.axis {
+		case AxisStateX:
+			s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+		case AxisStateY:
+			s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+		case AxisStateZ:
+			s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		default:
+			s.SetX(matrix.Floor(s.X()/snapScale) * snapScale)
+			s.SetY(matrix.Floor(s.Y()/snapScale) * snapScale)
+			s.SetZ(matrix.Floor(s.Z()/snapScale) * snapScale)
+		}
 	}
 	return s
 }
@@ -514,6 +563,7 @@ func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 		case ToolStateScale:
 			snapScale = t.snapSettings.ScaleIncrement
 		}
+		snap = !matrix.Approx(snapScale, 0)
 	}
 	for i, e := range t.stage.Manager().HierarchyRespectiveSelection() {
 		et := &e.Transform

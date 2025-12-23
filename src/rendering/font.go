@@ -47,7 +47,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"slices"
-	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -81,60 +80,7 @@ const (
 	FontBaselineTop
 )
 
-type FontFace string
-
-func (f FontFace) IsBold() bool {
-	return strings.Contains(string(f), "Bold")
-}
-
-func (f FontFace) IsExtraBold() bool {
-	return strings.Contains(string(f), "ExtraBold")
-}
-
-func (f FontFace) IsItalic() bool {
-	return strings.Contains(string(f), "Italic")
-}
-
-func (f FontFace) string() string { return string(f) }
-
 const (
-	FontCondensedBold                = FontFace("OpenSans_Condensed-Bold")
-	FontCondensedBoldItalic          = FontFace("OpenSans_Condensed-BoldItalic")
-	FontCondensedExtraBold           = FontFace("OpenSans_Condensed-ExtraBold")
-	FontCondensedExtraBoldItalic     = FontFace("OpenSans_Condensed-ExtraBoldItalic")
-	FontCondensedItalic              = FontFace("OpenSans_Condensed-Italic")
-	FontCondensedLight               = FontFace("OpenSans_Condensed-Light")
-	FontCondensedLightItalic         = FontFace("OpenSans_Condensed-LightItalic")
-	FontCondensedMedium              = FontFace("OpenSans_Condensed-Medium")
-	FontCondensedMediumItalic        = FontFace("OpenSans_Condensed-MediumItalic")
-	FontCondensedRegular             = FontFace("OpenSans_Condensed-Regular")
-	FontCondensedSemiBold            = FontFace("OpenSans_Condensed-SemiBold")
-	FontCondensedSemiBoldItalic      = FontFace("OpenSans_Condensed-SemiBoldItalic")
-	FontSemiCondensedBold            = FontFace("OpenSans_SemiCondensed-Bold")
-	FontSemiCondensedBoldItalic      = FontFace("OpenSans_SemiCondensed-BoldItalic")
-	FontSemiCondensedExtraBold       = FontFace("OpenSans_SemiCondensed-ExtraBold")
-	FontSemiCondensedExtraBoldItalic = FontFace("OpenSans_SemiCondensed-ExtraBoldItalic")
-	FontSemiCondensedItalic          = FontFace("OpenSans_SemiCondensed-Italic")
-	FontSemiCondensedLight           = FontFace("OpenSans_SemiCondensed-Light")
-	FontSemiCondensedLightItalic     = FontFace("OpenSans_SemiCondensed-LightItalic")
-	FontSemiCondensedMedium          = FontFace("OpenSans_SemiCondensed-Medium")
-	FontSemiCondensedMediumItalic    = FontFace("OpenSans_SemiCondensed-MediumItalic")
-	FontSemiCondensedRegular         = FontFace("OpenSans_SemiCondensed-Regular")
-	FontSemiCondensedSemiBold        = FontFace("OpenSans_SemiCondensed-SemiBold")
-	FontSemiCondensedSemiBoldItalic  = FontFace("OpenSans_SemiCondensed-SemiBoldItalic")
-	FontBold                         = FontFace("OpenSans-Bold")
-	FontBoldItalic                   = FontFace("OpenSans-BoldItalic")
-	FontExtraBold                    = FontFace("OpenSans-ExtraBold")
-	FontExtraBoldItalic              = FontFace("OpenSans-ExtraBoldItalic")
-	FontItalic                       = FontFace("OpenSans-Italic")
-	FontLight                        = FontFace("OpenSans-Light")
-	FontLightItalic                  = FontFace("OpenSans-LightItalic")
-	FontMedium                       = FontFace("OpenSans-Medium")
-	FontMediumItalic                 = FontFace("OpenSans-MediumItalic")
-	FontRegular                      = FontFace("OpenSans-Regular")
-	FontSemiBold                     = FontFace("OpenSans-SemiBold")
-	FontSemiBoldItalic               = FontFace("OpenSans-SemiBoldItalic")
-
 	DefaultFontEMSize = 14.0
 )
 
@@ -202,7 +148,7 @@ func (cache *FontCache) TransparentMaterial(target *Material) *Material {
 		target == cache.textOrthoMaterialTransparent.SelectRoot() {
 		return target
 	}
-	slog.Error("invalid material used for getting transparent text material", "material", target.Name)
+	slog.Error("invalid material used for getting transparent text material", "material", target.Id)
 	return nil
 }
 
@@ -425,19 +371,19 @@ func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches Rend
 	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
 	mc := caches.MaterialCache()
-	if cache.textMaterial, err = mc.Material("text3d"); err != nil {
+	if cache.textMaterial, err = mc.Material(assets.MaterialDefinitionText3D); err != nil {
 		slog.Error("failed to load the text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterial, err = mc.Material("text"); err != nil {
+	if cache.textOrthoMaterial, err = mc.Material(assets.MaterialDefinitionText); err != nil {
 		slog.Error("failed to load the text material", "error", err)
 		return err
 	}
-	if cache.textMaterialTransparent, err = mc.Material("text3d_transparent"); err != nil {
+	if cache.textMaterialTransparent, err = mc.Material(assets.MaterialDefinitionText3DTransparent); err != nil {
 		slog.Error("failed to load the transparent text3d material", "error", err)
 		return err
 	}
-	if cache.textOrthoMaterialTransparent, err = mc.Material("text_transparent"); err != nil {
+	if cache.textOrthoMaterialTransparent, err = mc.Material(assets.MaterialDefinitionTextTransparent); err != nil {
 		slog.Error("failed to load the transparent text material", "error", err)
 		return err
 	}
@@ -453,16 +399,13 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	cache.requireFace(face)
 	cx := x
 	cy := y
-
 	es := rootScale
 	if lineHeight != 0 {
 		baseline = FontBaselineCenter
 	}
-
 	left := -es.X() * 0.5
 	inverseWidth := 1.0 / es.X()
 	inverseHeight := 1.0 / es.Y()
-
 	fontFace := cache.fontFaces[face.string()]
 	var material *Material
 	if is3D {
@@ -470,7 +413,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	} else {
 		material = cache.textOrthoMaterial
 	}
-
 	// Iterate through all characters
 	runes := []rune(text)
 	textLen := len(runes)
@@ -478,7 +420,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	//size_t lenLeft = textLen;
 	current := 0
 	height := float32(0.0)
-
 	fontMeshes := make([]Drawing, 0)
 	maxHeight := fontFace.metrics.LineHeight * -scale
 	if lineHeight != 0 {
@@ -520,7 +461,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		xOffset *= inverseWidth
 		yOffset -= fontFace.metrics.Descender * scale
 		yOffset *= inverseHeight
-
 		if charLen > 0 || (unicode.IsSpace(runes[current]) && runes[current] != '\n') {
 			for i := current; i < current+charLen; i++ {
 				c := runes[i]
@@ -571,7 +511,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
 					indexes := [6]uint32{0, 1, 2, 0, 2, 3}
-					caches.MeshCache().Mesh(cache.nextInstanceKey(c), verts[:], indexes[:])
+					m = caches.MeshCache().Mesh(cache.nextInstanceKey(c), verts[:], indexes[:])
 					uvx := ch.atlasBounds[0]
 					uvy := ch.atlasBounds[1]
 					uvw := ch.atlasBounds[2] - ch.atlasBounds[0]
@@ -597,7 +537,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				}
 				shaderData.SetModel(model)
 				drawing := Drawing{
-					Renderer:   cache.renderer,
 					Material:   material.CreateInstance([]*Texture{fontFace.texture}),
 					Mesh:       m,
 					ShaderData: shaderData,

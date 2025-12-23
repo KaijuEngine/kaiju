@@ -45,6 +45,7 @@ const (
 	WorkspaceStateStage
 	WorkspaceStateContent
 	WorkspaceStateShading
+	WorkspaceStateVfx
 	WorkspaceStateUI
 	WorkspaceStateSettings
 )
@@ -75,6 +76,9 @@ func (ed *Editor) setWorkspaceState(state WorkspaceState) {
 	case WorkspaceStateShading:
 		ed.currentWorkspace = &ed.workspaces.shading
 		ed.globalInterfaces.menuBar.SetWorkspaceShading()
+	case WorkspaceStateVfx:
+		ed.currentWorkspace = &ed.workspaces.vfx
+		ed.globalInterfaces.menuBar.SetWorkspaceVfx()
 	case WorkspaceStateUI:
 		ed.currentWorkspace = &ed.workspaces.ui
 		ed.globalInterfaces.menuBar.SetWorkspaceUI()

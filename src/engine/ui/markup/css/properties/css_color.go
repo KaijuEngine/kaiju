@@ -69,7 +69,11 @@ func (p Color) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 				hex = newHex
 			}
 			if color, err := matrix.ColorFromHexString(hex); err == nil {
-				setChildTextColor(elm, color)
+				if panel.Base().IsType(ui.ElementTypeInput) {
+					panel.Base().ToInput().SetFGColor(color)
+				} else {
+					setChildTextColor(elm, color)
+				}
 				return nil
 			} else {
 				return err

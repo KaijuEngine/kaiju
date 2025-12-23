@@ -63,7 +63,6 @@ func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 		Color:          matrix.Color{0.5, 0.5, 0.5, 1},
 	}
 	host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,

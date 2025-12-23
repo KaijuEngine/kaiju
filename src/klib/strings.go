@@ -39,6 +39,7 @@ package klib
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -92,4 +93,32 @@ func ByteCountToString(bytes uint64) string {
 	default:
 		return fmt.Sprintf("%dB", bytes)
 	}
+}
+
+// StringValueCompare compares two strings as integers or floats if possible,
+// otherwise compares as strings
+func StringValueCompare(a, b string) int {
+	if ai, err := strconv.Atoi(a); err == nil {
+		if bi, err := strconv.Atoi(b); err == nil {
+			ri := ai - bi
+			if ri < 0 {
+				return -1
+			} else if ri > 0 {
+				return 1
+			}
+			return 0
+		}
+	}
+	if af, err := strconv.ParseFloat(a, 64); err == nil {
+		if bf, err := strconv.ParseFloat(b, 64); err == nil {
+			rf := af - bf
+			if rf < 0 {
+				return -1
+			} else if rf > 0 {
+				return 1
+			}
+			return 0
+		}
+	}
+	return strings.Compare(a, b)
 }

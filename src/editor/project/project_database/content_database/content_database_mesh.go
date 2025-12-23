@@ -38,6 +38,7 @@ package content_database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
@@ -67,7 +68,7 @@ type MeshConfig struct{}
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
 func (Mesh) TypeName() string   { return "mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb"} }
+func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Import").End()
@@ -83,6 +84,14 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			return p, err
 		}
 		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
+			return p, err
+		}
+	case ".obj":
+		adb, err := assets.NewFileDatabase(filepath.Dir(src))
+		if err != nil {
+			return p, err
+		}
+		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
 	}
@@ -156,36 +165,49 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	var mat rendering.MaterialData
 	if _, ok := variant.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
-			Name:           "pbr",
-			RenderPass:     "simple_opaque.renderpass",
-			Shader:         "pbr.shader",
-			ShaderPipeline: "simple.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Shader:          "pbr.shader",
+			RenderPass:      "opaque.renderpass",
+			ShaderPipeline:  "basic.shaderpipeline",
+			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			IsLit:           true,
+			ReceivesShadows: true,
+			CastsShadows:    true,
 		}
 		if t, ok := variant.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "baseColor")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["normal"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "normal")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["metallicRoughness"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "metallicRoughness")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		if t, ok := variant.Textures["emissive"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 			delete(variant.Textures, "emissive")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
 		for _, t := range variant.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 		}
 	} else {
 		mat = rendering.MaterialData{
-			Name:           "standard",
-			RenderPass:     "opaque.renderpass",
 			Shader:         "basic.shader",
+			RenderPass:     "opaque.renderpass",
 			ShaderPipeline: "basic.shaderpipeline",
 			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
 		}
@@ -210,9 +232,9 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	if err != nil {
 		return err
 	}
-	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
-	if err := WriteConfig(ccMat.Path, ccMat.Config, fs); err != nil {
+	_, err = cache.Rename(ccMat.Id(), fmt.Sprintf("%s_mat", cc.Config.Name), fs)
+	if !errors.Is(err, CacheContentNameEqual) {
 		return err
 	}
-	return cache.Index(ccMat.Path, fs)
+	return nil
 }

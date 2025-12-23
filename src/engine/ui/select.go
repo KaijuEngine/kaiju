@@ -42,6 +42,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"slices"
+	"weak"
 )
 
 type selectData struct {
@@ -56,13 +57,22 @@ type selectData struct {
 }
 
 type SelectOption struct {
-	Name  string
-	Value string
+	Name   string
+	Value  string
+	target *UI
 }
 
 func (s *selectData) innerPanelData() *panelData { return &s.panelData }
 
 type Select Panel
+
+type TriangleStylizer RightStylizer
+
+func (t TriangleStylizer) ProcessStyle(layout *Layout) []error {
+	RightStylizer(t).ProcessStyle(layout)
+	layout.Scale(16, 16)
+	return []error{}
+}
 
 func (u *UI) ToSelect() *Select { return (*Select)(u) }
 func (s *Select) Base() *UI     { return (*UI)(s) }
@@ -118,11 +128,10 @@ func (s *Select) Init(text string, options []SelectOption) {
 		tri := man.Add()
 		img := tri.ToImage()
 		img.Init(triTex)
-		img.layout.Stylizer = RightStylizer{BasicStylizer{p.Base()}}
+		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{weak.Make(p.Base())}})
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
-		img.layout.Scale(16, 16)
 		tri.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
 		data.triangle = tri
 		//img.layout.SetOffset(5, 0)
@@ -138,13 +147,12 @@ func (s *Select) Init(text string, options []SelectOption) {
 
 func (s *Select) AddOption(name, value string) {
 	data := s.SelectData()
-	data.options = append(data.options, SelectOption{name, value})
 	// Create panel to hold the label
 	man := s.man.Value()
 	panel := man.Add()
 	p := panel.ToPanel()
 	p.Init(nil, ElementTypePanel)
-	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{s.Base()}}
+	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{weak.Make(s.Base())}}
 	p.DontFitContent()
 	p.entity.SetName(name)
 	// Create the label
@@ -169,13 +177,30 @@ func (s *Select) AddOption(name, value string) {
 		p.UnEnforceColor()
 		lbl.SetBGColor(p.shaderData.FgColor)
 	})
+	data.options = append(data.options, SelectOption{name, value, panel})
 }
 
 func (s *Select) ClearOptions() {
 	data := s.SelectData()
 	data.options = data.options[:0]
+	lpd := data.list.PanelData()
 	for i := len(data.list.entity.Children) - 1; i >= 0; i-- {
-		data.list.RemoveChild(data.list.Child(i))
+		c := data.list.Child(i)
+		switch c {
+		case (*UI)(lpd.scrollBarX), (*UI)(lpd.scrollBarY):
+			continue
+		}
+		data.list.RemoveChild(c)
+	}
+}
+
+func (s *Select) PickOptionByLabelWithoutEvent(label string) {
+	data := s.SelectData()
+	for i := range data.options {
+		if data.options[i].Value == label || data.options[i].Name == label {
+			s.PickOptionWithoutEvent(i)
+			break
+		}
 	}
 }
 
@@ -189,21 +214,28 @@ func (s *Select) PickOptionByLabel(label string) {
 	}
 }
 
-func (s *Select) PickOption(index int) {
+func (s *Select) PickOptionWithoutEvent(index int) bool {
 	s.collapse()
 	data := s.SelectData()
 	if index < -1 || index >= len(data.options) {
-		return
+		return true
 	}
 	if data.selected != index {
 		data.selected = index
 		if index >= 0 {
-			s.Base().ExecuteEvent(EventTypeChange)
-			s.Base().ExecuteEvent(EventTypeSubmit)
 			data.label.SetText(data.options[index].Name)
+			return true
 		} else {
 			data.label.SetText(data.text)
 		}
+	}
+	return false
+}
+
+func (s *Select) PickOption(index int) {
+	if s.PickOptionWithoutEvent(index) {
+		s.Base().ExecuteEvent(EventTypeChange)
+		s.Base().ExecuteEvent(EventTypeSubmit)
 	}
 }
 
@@ -250,15 +282,44 @@ func (s *Select) onMiss() {
 
 func (s *Select) expand() {
 	data := s.SelectData()
-	selectSize := s.layout.PixelSize()
 	data.list.Base().Show()
-	height := selectSize.Y() * 5
-	layout := &data.list.layout
-	layout.Scale(selectSize.X(), height)
-	pos := s.entity.Transform.WorldPosition()
-	layout.SetZ(pos.Z() + s.layout.Z() + 1)
 	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 0))
 	data.isOpen = true
+	layout := &data.list.layout
+	pos := s.entity.Transform.WorldPosition()
+	layout.SetZ(pos.Z() + s.layout.Z() + 1)
+	s.updateExpandedTransform()
+}
+
+func (s *Select) updateExpandedTransform() {
+	data := s.SelectData()
+	selectSize := s.layout.PixelSize()
+	arbitraryPadding := selectSize.Y()
+	win := s.Base().Host().Window
+	winHalfHeight := matrix.Float(win.Height()) * 0.5
+	pos := s.entity.Transform.WorldPosition()
+	// Not a permanent solution, just ensures all options are visible
+	topY := winHalfHeight - pos.Y()
+	nOpts := len(s.SelectData().options)
+	downHeight := selectSize.Y() * float32(nOpts)
+	upHeight := min(topY-arbitraryPadding, selectSize.Y()*float32(nOpts))
+	maxHeight := win.Height()
+	if d := matrix.Float(maxHeight) - (topY + downHeight + arbitraryPadding); d < 0 {
+		downHeight += d
+	}
+	layout := &data.list.layout
+	ps := layout.PixelSize()
+	var y matrix.Float
+	x := pos.X() - ps.Width()*0.5 + matrix.Float(win.Width())*0.5
+	height := downHeight
+	if upHeight > downHeight {
+		height = upHeight
+		y = winHalfHeight - pos.Y() + (selectSize.Y() * 0.5) - upHeight
+	} else {
+		y = -(pos.Y() + (selectSize.Y() * 0.5) - winHalfHeight)
+	}
+	layout.SetOffset(x, y)
+	layout.Scale(selectSize.X(), height)
 }
 
 func (s *Select) collapse() {
@@ -270,7 +331,14 @@ func (s *Select) collapse() {
 
 func (s *Select) optionClick(option *UI) {
 	data := s.SelectData()
-	idx := data.list.entity.IndexOfChild(&option.entity)
+	// Scroll bar is a child, can't use data.list.entity.IndexOfChild(&option.entity)
+	idx := 0
+	for i := range data.options {
+		if option == data.options[i].target {
+			idx = i
+			break
+		}
+	}
 	s.PickOption(idx)
 }
 
@@ -279,16 +347,6 @@ func (s *Select) update(deltaTime float64) {
 	s.Base().ToPanel().update(deltaTime)
 	data := s.SelectData()
 	if data.isOpen {
-		layout := &data.list.layout
-		pos := s.entity.Transform.WorldPosition()
-		selectSize := s.layout.PixelSize()
-		ps := layout.PixelSize()
-		win := s.man.Value().Host.Window
-		x := pos.X() - ps.Width()*0.5 + matrix.Float(win.Width())*0.5
-		y := pos.Y() - (selectSize.Y() * 0.5) -
-			matrix.Float(win.Height())*0.5
-		// TODO:  If it's off the screen on the bottom, make it show up above select
-		layout.SetOffset(x, -y)
-		// TODO:  For some reason it's not cleaning on the first frame
+		s.updateExpandedTransform()
 	}
 }

@@ -74,15 +74,19 @@ func (h *History) IsInTransaction() bool { return h.transaction != nil }
 // will generate history, thus creating 2 history entries (clear and delete). By
 // starting a transaction, both of those will be within the same undo/redo call.
 func (h *History) BeginTransaction() {
-	h.transaction = &HistoryTransaction{}
+	if h.transaction == nil {
+		h.transaction = &HistoryTransaction{}
+	}
 }
 
 // CommitTransaction finalizes the current transaction, adding all queued
 // mementos to the history as a single atomic operation.
 func (h *History) CommitTransaction() {
-	t := h.transaction
-	h.transaction = nil
-	h.Add(t)
+	if h.transaction != nil {
+		t := h.transaction
+		h.transaction = nil
+		h.Add(t)
+	}
 }
 
 // CancelTransaction aborts the current transaction, discarding any queued

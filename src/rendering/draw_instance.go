@@ -66,6 +66,7 @@ type DrawInstance interface {
 	NamedDataPointer(name string) unsafe.Pointer
 	NamedDataInstanceSize(name string) int
 	setTransform(transform *matrix.Transform)
+	SelectLights(lights LightsForRender)
 	setShadow(shadow DrawInstance)
 	renderBounds() collision.AABB
 }
@@ -113,12 +114,16 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
-func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()        { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool     { return s.destroyed }
-func (s *ShaderDataBase) IsInView() bool        { return !s.deactivated && !s.viewCulled }
-func (s *ShaderDataBase) Model() matrix.Mat4    { return s.model }
+func (s *ShaderDataBase) SelectLights(lights LightsForRender) {}
+func (s *ShaderDataBase) Transform() *matrix.Transform        { return s.transform }
+
+func (s *ShaderDataBase) Base() *ShaderDataBase  { return s }
+func (s *ShaderDataBase) Destroy()               { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()         { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool      { return s.destroyed }
+func (s *ShaderDataBase) IsInView() bool         { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) Model() matrix.Mat4     { return s.model }
+func (s *ShaderDataBase) ModelPtr() *matrix.Mat4 { return &s.model }
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
@@ -161,7 +166,10 @@ func (s *ShaderDataBase) forceUpdateTransformModel() {
 }
 
 func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB) {
-	recalcCulling := viewCuller.ViewChanged()
+	recalcCulling := false
+	if viewCuller != nil {
+		recalcCulling = viewCuller.ViewChanged()
+	}
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
 		a := s.model.TransformPoint(container.Min())
@@ -289,7 +297,7 @@ func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, na
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
@@ -308,6 +316,9 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
 		if instanceBase.IsInView() {
+			if d.MaterialInstance.IsLit {
+				instance.SelectLights(lights)
+			}
 			if d.generatedSets {
 				for k := range d.namedInstanceData {
 					d.updateNamedData(instanceIndex, instance, k, frame)

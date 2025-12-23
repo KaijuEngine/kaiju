@@ -45,6 +45,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
@@ -55,18 +56,20 @@ import (
 )
 
 type WorkspaceContentUI struct {
-	workspace      weak.Pointer[StageWorkspace]
-	typeFilters    []string
-	tagFilters     []string
-	query          string
-	contentArea    *document.Element
-	dragPreview    *document.Element
-	entryTemplate  *document.Element
-	hideContentElm *document.Element
-	showContentElm *document.Element
-	dragging       *document.Element
-	tooltip        *document.Element
-	dragContentId  string
+	workspace          weak.Pointer[StageWorkspace]
+	typeFilters        []string
+	typeFiltersDisable []string
+	tagFilters         []string
+	tagFiltersDisable  []string
+	query              string
+	contentArea        *document.Element
+	dragPreview        *document.Element
+	entryTemplate      *document.Element
+	hideContentElm     *document.Element
+	showContentElm     *document.Element
+	dragging           *document.Element
+	tooltip            *document.Element
+	dragContentId      string
 }
 
 func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
@@ -157,7 +160,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
-		cui.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		cui.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -203,28 +206,25 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 	}
 }
 
-func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("WorkspaceContentUI.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	w := cui.workspace.Value()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.ed.ProjectFileSystem().ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
-				return
-			}
+			// This has to happen before delayed create to have access to the texture data
+			isTransparent := tex.ReadPendingDataForTransparency()
 			w.Host.RunOnMainThread(func() {
-				tex.DelayedCreate(w.Host.Window.Renderer)
 				img.SetBackground(tex)
+				if isTransparent {
+					img.SetUseBlending(true)
+				}
 			})
 		}()
 	}
@@ -262,39 +262,58 @@ func (cui *WorkspaceContentUI) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
+		hide := content_workspace.ShouldHideContent(id, cui.typeFiltersDisable, cui.tagFiltersDisable, w.ed.Cache())
+		if !hide && content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
 			e.UI.Show()
 		} else {
 			e.UI.Hide()
 		}
 	}
-	cui.workspace.Value().Host.RunOnMainThread(w.Doc.Clean)
+	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	inverted := cui.workspace.Value().Host.Window.Keyboard.HasAlt()
+	isSelected := false
+	if inverted {
+		isSelected = slices.Contains(e.ClassList(), "inverted")
+	} else {
+		isSelected = slices.Contains(e.ClassList(), "selected")
+	}
+	w := cui.workspace.Value()
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	w := cui.workspace.Value()
-	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
-		if typeName != "" {
-			cui.typeFilters = append(cui.typeFilters, typeName)
-		}
-		if tagName != "" {
-			cui.tagFilters = append(cui.tagFilters, tagName)
-		}
-	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
-		if typeName != "" {
-			cui.typeFilters = klib.SlicesRemoveElement(cui.typeFilters, typeName)
-		}
-		if tagName != "" {
-			cui.tagFilters = klib.SlicesRemoveElement(cui.tagFilters, tagName)
-		}
+	var targetList *[]string
+	var invTargetList *[]string
+	var name string
+	if typeName != "" {
+		targetList = &cui.typeFilters
+		invTargetList = &cui.typeFiltersDisable
+		name = typeName
 	}
+	if tagName != "" {
+		targetList = &cui.tagFilters
+		invTargetList = &cui.tagFiltersDisable
+		name = tagName
+	}
+	if inverted {
+		targetList, invTargetList = invTargetList, targetList
+	}
+	if isSelected {
+		className := "selected"
+		if inverted {
+			className = "inverted"
+		}
+		w.Doc.SetElementClasses(e, "filterBtn", className)
+		*targetList = append(*targetList, name)
+	} else {
+		w.Doc.SetElementClasses(e, "filterBtn")
+		*targetList = klib.SlicesRemoveElement(*targetList, name)
+	}
+	// Remove it from inverse list in both cases intentionally
+	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
 	cui.runFilter()
 }
 
@@ -359,12 +378,24 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 		ui.Show()
 	}
 	host := cui.workspace.Value().Host
+	win := host.Window
+	p := win.Mouse.ScreenPosition()
+	// Offsetting the box so the mouse doesn't collide with it easily
+	const xOffset, yOffset = 10, 20
+	const statusBarYBuffer = 20
+	x := p.X() + xOffset
+	y := p.Y() + yOffset
+	ps := ui.Layout().PixelSize()
+	if x+ps.Width() > matrix.Float(win.Width()) {
+		x = p.X() - ps.Width() - xOffset
+	}
+	if y+ps.Height()+statusBarYBuffer > matrix.Float(win.Height()) {
+		y = p.Y() - ps.Height() - yOffset
+	}
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	host.RunOnMainThread(func() {
-		p := host.Window.Mouse.ScreenPosition()
-		// Offsetting the box so the mouse doesn't collide with it easily
-		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+		ui.Layout().SetOffset(x, y)
 	})
 }
 

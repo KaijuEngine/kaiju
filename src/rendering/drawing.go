@@ -45,14 +45,12 @@ import (
 )
 
 type Drawing struct {
-	Renderer     Renderer
-	Material     *Material
-	Mesh         *Mesh
-	ShaderData   DrawInstance
-	Transform    *matrix.Transform
-	Sort         int
-	ViewCuller   ViewCuller
-	CastsShadows bool
+	Material   *Material
+	Mesh       *Mesh
+	ShaderData DrawInstance
+	Transform  *matrix.Transform
+	Sort       int
+	ViewCuller ViewCuller
 }
 
 func (d *Drawing) IsValid() bool {
@@ -157,9 +155,8 @@ func (d *Drawings) PreparePending() {
 			rpGroup = &d.renderPassGroups[len(d.renderPassGroups)-1]
 		}
 		d.addToRenderPassGroup(drawing, rpGroup)
-		if drawing.CastsShadows {
+		if drawing.Material.CastsShadows {
 			d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing))
-			//d.backDraws = append(d.backDraws, lightTransformDrawingToCubeDepth(drawing))
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
@@ -168,8 +165,13 @@ func (d *Drawings) PreparePending() {
 func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	if p := drawing.Material.PrepassMaterial.Value(); p != nil {
+		cpy := drawing
+		cpy.Material = p
+		d.backDraws = append(d.backDraws, cpy)
+	}
 	d.backDraws = append(d.backDraws, drawing)
-	if drawing.Material == nil {
+	if drawing.Mesh == nil || drawing.Material == nil {
 		panic("no")
 	}
 }
@@ -177,15 +179,22 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	for i := range drawings {
+		if p := drawings[i].Material.PrepassMaterial.Value(); p != nil {
+			cpy := drawings[i]
+			cpy.Material = p
+			d.backDraws = append(d.backDraws, cpy)
+		}
+	}
 	d.backDraws = append(d.backDraws, drawings...)
 	for i := range drawings {
-		if drawings[i].Material == nil {
+		if drawings[i].Mesh == nil || drawings[i].Material == nil {
 			panic("no")
 		}
 	}
 }
 
-func (d *Drawings) Render(renderer Renderer) {
+func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
@@ -193,7 +202,10 @@ func (d *Drawings) Render(renderer Renderer) {
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		renderer.Draw(rp, d.renderPassGroups[i].draws)
+		if rp.Buffer == nil {
+			rp.Recontstruct(renderer.(*Vulkan))
+		}
+		renderer.Draw(rp, d.renderPassGroups[i].draws, lights)
 		passes = append(passes, rp)
 	}
 	if len(passes) > 0 {

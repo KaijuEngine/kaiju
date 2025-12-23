@@ -73,7 +73,10 @@ type EntityDataField struct {
 
 func (f *EntityDataField) IsNumber() bool   { return isNumber(f.Type) }
 func (f *EntityDataField) IsInput() bool    { return isInput(f.Type) }
+func (f *EntityDataField) IsVec2() bool     { return isVec2(f.Type) }
 func (f *EntityDataField) IsVec3() bool     { return isVec3(f.Type) }
+func (f *EntityDataField) IsVec4() bool     { return isVec4(f.Type) }
+func (f *EntityDataField) IsColor() bool    { return isColor(f.Type) }
 func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
 
 func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
@@ -86,7 +89,12 @@ func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
 // exist or cannot be set.
 func (de *EntityDataEntry) SetFieldByName(name string, value any) {
 	f := reflect.ValueOf(de.BoundData).Elem().FieldByName(name)
-	engine.ReflectEntityDataBindingValueFromJson(value, f)
+	engine.ReflectValueFromJson(value, f)
+}
+
+func (de *EntityDataEntry) SetField(idx int, value any) {
+	f := reflect.ValueOf(de.BoundData).Elem().Field(idx)
+	engine.ReflectValueFromJson(value, f)
 }
 
 // ReadEntityDataBindingType populates the EntityDataEntry with information
@@ -138,6 +146,26 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *E
 	}
 	de.BoundData = v.Interface()
 	return de
+}
+
+func (de *EntityDataEntry) RunTagParserOnField(fieldIndex int) bool {
+	if fieldIndex < 0 {
+		return false
+	}
+	t := reflect.ValueOf(de.BoundData).Elem().Type()
+	if fieldIndex >= t.NumField() {
+		return false
+	}
+	f := t.Field(fieldIndex)
+	if string(f.Tag) != "" {
+		for k, fn := range tagParsers {
+			if v, ok := f.Tag.Lookup(k); ok {
+				fn(&de.Fields[fieldIndex], v)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // FieldNumberAsString returns the numeric value of the field at the given
@@ -329,9 +357,10 @@ func isNumber(typeName string) bool {
 	}
 }
 
-func isVec3(typeName string) bool {
-	return typeName == "Vec3"
-}
+func isVec2(typeName string) bool  { return typeName == "Vec2" }
+func isVec3(typeName string) bool  { return typeName == "Vec3" }
+func isVec4(typeName string) bool  { return typeName == "Vec4" }
+func isColor(typeName string) bool { return typeName == "Color" }
 
 func isInput(typeName string) bool {
 	return typeName == "string" || isNumber(typeName)

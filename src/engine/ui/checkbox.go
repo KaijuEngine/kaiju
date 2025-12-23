@@ -109,7 +109,7 @@ func (cb *Checkbox) Init() {
 func (cb *Checkbox) onHover() {
 	var target *rendering.Texture = nil
 	data := cb.CheckboxData()
-	if cb.isDown {
+	if cb.flags.isDown() {
 		if data.isChecked {
 			target = data.textures[texOnDown]
 		} else {
@@ -163,7 +163,7 @@ func (cb *Checkbox) onClick() {
 	cb.SetChecked(!data.isChecked)
 }
 
-func (cb *Checkbox) SetChecked(isChecked bool) {
+func (cb *Checkbox) SetCheckedWithoutEvent(isChecked bool) {
 	data := cb.CheckboxData()
 	if data.isChecked == isChecked {
 		return
@@ -171,19 +171,23 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 	data.isChecked = isChecked
 	var target *rendering.Texture = nil
 	if data.isChecked {
-		if cb.hovering {
+		if cb.flags.hovering() {
 			target = data.textures[texOnHover]
 		} else {
 			target = data.textures[texOnIdle]
 		}
 	} else {
-		if cb.hovering {
+		if cb.flags.hovering() {
 			target = data.textures[texOffHover]
 		} else {
 			target = data.textures[texOffIdle]
 		}
 	}
 	(*Panel)(cb).SetBackground(target)
+}
+
+func (cb *Checkbox) SetChecked(isChecked bool) {
+	cb.SetCheckedWithoutEvent(isChecked)
 	(*UI)(cb).requestEvent(EventTypeChange)
 }
 

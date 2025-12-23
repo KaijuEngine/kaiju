@@ -40,6 +40,8 @@ import (
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
 	"kaiju/matrix"
+	"kaiju/platform/concurrent"
+	"kaiju/rendering"
 	"log/slog"
 	"slices"
 )
@@ -76,16 +78,16 @@ type Entity struct {
 }
 
 // NewEntity creates a new #Entity struct and returns it
-func NewEntity() *Entity {
+func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 	e := &Entity{}
-	e.Init()
+	e.Init(workGroup)
 	return e
 }
 
-func (e *Entity) Init() {
+func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
-	e.Transform = matrix.NewTransform()
+	e.Transform.Initialize(workGroup)
 	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
 }
@@ -389,16 +391,13 @@ func (e *Entity) deactivateFromParent() {
 	e.deactivatedFromParent = fromParent
 }
 
-func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity)) *Entity {
-	dupe := NewEntity()
-	if !sparse {
-		dupe.Children = make([]*Entity, len(e.Children))
-		for i := range e.Children {
-			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe)
-		}
+func (e *Entity) Duplicate(workGroup *concurrent.WorkGroup) *Entity {
+	dupe := NewEntity(workGroup)
+	dupe.Children = make([]*Entity, len(e.Children))
+	for i := range e.Children {
+		dupe.Children[i] = e.Children[i].Duplicate(workGroup)
 	}
 	dupe.Copy(e)
-	onDupe(e, dupe)
 	return dupe
 }
 
@@ -426,4 +425,23 @@ func (e *Entity) IndexOfChild(child *Entity) int {
 		}
 	}
 	return -1
+}
+
+func (e *Entity) StoreShaderData(sd rendering.DrawInstance) {
+	e.AddNamedData("ShaderData", sd)
+}
+
+func (e *Entity) ShaderData() rendering.DrawInstance {
+	all := e.NamedData("ShaderData")
+	if len(all) > 0 {
+		return all[0].(rendering.DrawInstance)
+	}
+	return nil
+}
+
+func (e *Entity) DestroyShaderData() {
+	all := e.NamedData("ShaderData")
+	for i := range all {
+		all[i].(rendering.DrawInstance).Destroy()
+	}
 }

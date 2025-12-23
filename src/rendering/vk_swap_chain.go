@@ -113,7 +113,6 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 }
 
 func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
-	slog.Info("creating vulkan swap chain")
 	scs := vr.querySwapChainSupport(vr.physicalDevice)
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)

@@ -38,6 +38,7 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"errors"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -49,8 +50,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-
-	"github.com/KaijuEngine/uuid"
+	"weak"
 )
 
 func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *content_database.Cache, cat content_database.ContentCategory) []ui.SelectOption {
@@ -59,7 +59,7 @@ func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *cont
 	for i := range found {
 		options = append(options, ui.SelectOption{
 			Name:  found[i].Config.Name,
-			Value: content_database.ToContentPath(found[i].Path),
+			Value: found[i].Id(),
 		})
 	}
 	stock := project_file_system.StockFolder
@@ -72,7 +72,10 @@ func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *cont
 			continue
 		}
 		if slices.Contains(cat.ExtNames(), filepath.Ext(dir[i].Name())) {
-			options = append(options, ui.SelectOption{dir[i].Name(), dir[i].Name()})
+			options = append(options, ui.SelectOption{
+				Name:  dir[i].Name(),
+				Value: dir[i].Name(),
+			})
 		}
 	}
 	return options
@@ -101,13 +104,16 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.materialDoc.Destroy()
 	}
+	pfs := win.ed.ProjectFileSystem()
+	cache := win.ed.Cache()
 	listings := map[string][]ui.SelectOption{}
-	listings["Shader"] = collectShaderOptions(win.pfs, win.cache)
-	listings["RenderPass"] = collectRenderPassOptions(win.pfs, win.cache)
-	listings["ShaderPipeline"] = collectShaderPipelinesOptions(win.pfs, win.cache)
-	listings["Texture"] = collectTextureOptions(win.pfs, win.cache)
+	listings["Shader"] = collectShaderOptions(pfs, cache)
+	listings["RenderPass"] = collectRenderPassOptions(pfs, cache)
+	listings["ShaderPipeline"] = collectShaderPipelinesOptions(pfs, cache)
+	listings["Texture"] = collectTextureOptions(pfs, cache)
 	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
+	data.GroupName = win.material.name
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":     showMaterialTooltip,
@@ -116,6 +122,8 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 			"removeFromSlice": win.materialRemoveFromSlice,
 			"saveData":        win.materialSave,
 		})
+	input, _ := win.materialDoc.GetElementById("nameInput")
+	win.nameInputField = weak.Make(input)
 	if sy != 0 {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
 		win.uiMan.Host.RunAfterFrames(2, func() {
@@ -155,9 +163,7 @@ func loadMaterialData(path string) (rendering.MaterialData, bool) {
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {
-	if win.material.id == "" {
-		win.material.id = uuid.NewString()
-	}
+	win.material.name = win.nameInputField.Value().UI.ToInput().Text()
 	win.material.RenderPass = filepath.ToSlash(win.material.RenderPass)
 	win.material.Shader = filepath.ToSlash(win.material.Shader)
 	win.material.ShaderPipeline = filepath.ToSlash(win.material.ShaderPipeline)
@@ -169,8 +175,21 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 		slog.Error("failed to marshal the material data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(filepath.Join(project_file_system.ContentFolder,
-		project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
+	if win.material.id != "" {
+		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
+			project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
+		if _, err := win.ed.Cache().Rename(win.material.id, win.material.name, win.ed.ProjectFileSystem()); err == nil {
+			win.ed.Events().OnContentRenamed.Execute(win.material.id)
+		}
+	} else {
+		ids := content_database.ImportRaw(win.material.name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		if len(ids) > 0 {
+			win.material.id = ids[0]
+			win.ed.Events().OnContentAdded.Execute(ids)
+		} else {
+			err = errors.New("failed to import the raw material file data to the database")
+		}
+	}
 	if err != nil {
 		slog.Error("failed to write the material data to file", "error", err)
 		return

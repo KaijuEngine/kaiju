@@ -75,10 +75,8 @@ func (h *objectSpawnHistory) Undo() {
 }
 
 func (h *objectSpawnHistory) Delete() {
-	if h.e.StageData.ShaderData != nil {
-		h.e.StageData.ShaderData.Destroy()
-	}
 	h.e.Destroy()
+	h.e.ForceCleanup()
 }
 
 func (h *objectSpawnHistory) Exit() {}

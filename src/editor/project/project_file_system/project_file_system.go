@@ -79,6 +79,7 @@ var (
 		ContentRenderFolder,
 		ContentMaterialFolder,
 		ContentShaderFolder,
+		ContentParticlesFolder,
 		ContentRenderPassFolder,
 		ContentShaderPipelineFolder,
 		ContentSpvFolder,
