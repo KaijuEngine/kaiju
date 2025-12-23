@@ -606,9 +606,12 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		}
 	}
 	generateId(&desc)
-	if _, err = m.importEntityByDescription(host, proj, nil, &desc); err != nil {
+	if e, err := m.importEntityByDescription(host, proj, nil, &desc); err != nil {
 		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
 		return err
+	} else {
+		m.ClearSelection()
+		m.SelectEntity(e)
 	}
 	return nil
 }
