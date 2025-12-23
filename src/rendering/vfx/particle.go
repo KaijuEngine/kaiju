@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* assets_config.go                                                           */
+/* particle.go                                                                */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,48 +34,35 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package assets
+package vfx
 
-// Textures
-const (
-	TextureSquare      = "square.png"
-	TextureCube        = "cube.png"
-	TextureBlankSquare = "blank_square.png"
-	TextureTriangle    = "triangle.png"
-)
+import "kaiju/matrix"
 
-// Material definitions
-const (
-	MaterialDefinitionGrid                = "grid.material"
-	MaterialDefinitionUnlit               = "unlit.material"
-	MaterialDefinitionUnlitTransparent    = "unlit_transparent.material"
-	MaterialDefinitionBasic               = "basic.material"
-	MaterialDefinitionBasicLit            = "basic_lit.material"
-	MaterialDefinitionBasicLitStatic      = "basic_lit_static.material"
-	MaterialDefinitionBasicLitDynamic     = "basic_lit_dynamic.material"
-	MaterialDefinitionBasicLitTransparent = "basic_lit_transparent.material"
-	MaterialDefinitionBasicTransparent    = "basic_transparent.material"
-	MaterialDefinitionPBR                 = "pbr.material"
-	MaterialDefinitionTerrain             = "terrain.material"
-	MaterialDefinitionBasicSkinned        = "basic_skinned.material"
-	MaterialDefinitionBasicColor          = "basic_color.material"
-	MaterialDefinitionText3D              = "text3d.material"
-	MaterialDefinitionText3DTransparent   = "text3d_transparent.material"
-	MaterialDefinitionText                = "text.material"
-	MaterialDefinitionTextTransparent     = "text_transparent.material"
-	MaterialDefinitionCombine             = "combine.material"
-	MaterialDefinitionComposite           = "composite.material"
-	MaterialDefinitionUI                  = "ui.material"
-	MaterialDefinitionUITransparent       = "ui_transparent.material"
-	MaterialDefinitionSprite              = "sprite.material"
-	MaterialDefinitionSpriteTransparent   = "sprite_transparent.material"
-	MaterialDefinitionOutline             = "outline.material"
-	MaterialDefinitionLightDepth          = "light_depth.material"
-	MaterialDefinitionLightCubeDepth      = "light_cube_depth.material"
-	MaterialDefinitionParticle            = "particle.material"
-	MaterialDefinitionParticleTransparent = "particle_transparent.material"
+type particleTransformation struct {
+	Position matrix.Vec3
+	Rotation matrix.Vec3 // TODO:  This can be 1D for billboarded particle
+	Scale    matrix.Vec3 // TODO:  This can be 2D for billboarded particle
+}
 
-	MaterialDefinitionEdTransformWire = "ed_transform_wire.material"
-	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire.material"
-	MaterialDefinitionEdGizmo         = "ed_gizmo.material"
-)
+type Particle struct {
+	Transform       particleTransformation
+	Velocity        particleTransformation
+	OpacityVelocity float32
+	LifeSpan        float32
+}
+
+func (p *Particle) update(deltaTime float64) {
+	p.LifeSpan -= float32(deltaTime)
+	t := &p.Transform
+	v := &p.Velocity
+	t.Position.AddAssign(v.Position.Scale(matrix.Float(deltaTime)))
+	t.Rotation.AddAssign(v.Rotation.Scale(matrix.Float(deltaTime)))
+	t.Scale.AddAssign(v.Scale.Scale(matrix.Float(deltaTime)))
+}
+
+func (p *Particle) putWorldMatrix(m *matrix.Mat4) {
+	m.Reset()
+	m.Scale(p.Transform.Scale)
+	m.Rotate(p.Transform.Rotation)
+	m.Translate(p.Transform.Position)
+}

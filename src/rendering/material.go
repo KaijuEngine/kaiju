@@ -111,6 +111,11 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	m.Instances[key] = copy
 	copy.Root = weak.Make(m)
 	copy.Instances = nil
+	ppMat := copy.PrepassMaterial.Value()
+	if ppMat != nil {
+		ppMat = ppMat.CreateInstance(textures)
+		copy.PrepassMaterial = weak.Make(ppMat)
+	}
 	return copy
 }
 

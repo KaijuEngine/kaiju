@@ -37,32 +37,73 @@
 package vfx_workspace
 
 import (
+	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
+	"kaiju/rendering/vfx"
 )
 
 type VfxWorkspace struct {
 	common_workspace.CommonWorkspace
+	ed        VfxWorkspaceEditorInterface
+	stageView *editor_stage_view.StageView
+	updateId  engine.UpdateId
 }
 
-func (w *VfxWorkspace) Initialize(host *engine.Host) {
+func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterface) {
 	defer tracing.NewRegion("VfxWorkspace.Initialize").End()
+	w.ed = ed
+	w.stageView = ed.StageView()
 	w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){})
+		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){
+			"clickTest": w.clickTest,
+		})
 }
 
 func (w *VfxWorkspace) Open() {
-	defer tracing.NewRegion("UIWorkspace.Open").End()
+	defer tracing.NewRegion("VfxWorkspace.Open").End()
 	w.CommonOpen()
+	w.stageView.Open()
+	w.updateId = w.Host.Updater.AddUpdate(w.update)
 }
 
 func (w *VfxWorkspace) Close() {
-	defer tracing.NewRegion("UIWorkspace.Close").End()
+	defer tracing.NewRegion("VfxWorkspace.Close").End()
 	w.CommonClose()
+	w.stageView.Close()
+	w.Host.Updater.RemoveUpdate(&w.updateId)
 }
 
 func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
+}
+
+func (w *VfxWorkspace) update(deltaTime float64) {
+	defer tracing.NewRegion("VfxWorkspace.update").End()
+	if w.UiMan.IsUpdateDisabled() {
+		return
+	}
+	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+		return
+	}
+	w.stageView.Update(deltaTime, w.ed.Project())
+}
+
+func (w *VfxWorkspace) clickTest(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.clickTest").End()
+	em := &vfx.Emitter{}
+	tex, _ := w.Host.TextureCache().Texture("smoke.png", rendering.TextureFilterLinear)
+	em.Initialize(w.Host, tex, vfx.EmitterConfig{
+		SpawnRate:        0.05,
+		ParticleLifeSpan: 2,
+		DirectionMin:     matrix.NewVec3(-0.3, 1, -0.3),
+		DirectionMax:     matrix.NewVec3(0.3, 1, 0.3),
+		VelocityMinMax:   matrix.Vec2One().Scale(1),
+		OpacityMinMax:    matrix.NewVec2(0.3, 1.0),
+		FadeOutOverLife:  true,
+	})
 }

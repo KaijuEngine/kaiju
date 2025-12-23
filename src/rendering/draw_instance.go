@@ -117,12 +117,13 @@ func (s *ShaderDataBase) Setup() {
 func (s *ShaderDataBase) SelectLights(lights LightsForRender) {}
 func (s *ShaderDataBase) Transform() *matrix.Transform        { return s.transform }
 
-func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
-func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()        { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool     { return s.destroyed }
-func (s *ShaderDataBase) IsInView() bool        { return !s.deactivated && !s.viewCulled }
-func (s *ShaderDataBase) Model() matrix.Mat4    { return s.model }
+func (s *ShaderDataBase) Base() *ShaderDataBase  { return s }
+func (s *ShaderDataBase) Destroy()               { s.destroyed = true }
+func (s *ShaderDataBase) CancelDestroy()         { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool      { return s.destroyed }
+func (s *ShaderDataBase) IsInView() bool         { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) Model() matrix.Mat4     { return s.model }
+func (s *ShaderDataBase) ModelPtr() *matrix.Mat4 { return &s.model }
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
@@ -165,7 +166,10 @@ func (s *ShaderDataBase) forceUpdateTransformModel() {
 }
 
 func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB) {
-	recalcCulling := viewCuller.ViewChanged()
+	recalcCulling := false
+	if viewCuller != nil {
+		recalcCulling = viewCuller.ViewChanged()
+	}
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
 		a := s.model.TransformPoint(container.Min())

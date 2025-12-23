@@ -166,7 +166,7 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.stage.Initialize(ed.host, ed)
 	ed.workspaces.content.Initialize(ed.host, ed)
 	ed.workspaces.shading.Initialize(ed.host, ed)
-	ed.workspaces.vfx.Initialize(ed.host)
+	ed.workspaces.vfx.Initialize(ed.host, ed)
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)

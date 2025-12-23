@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* assets_config.go                                                           */
+/* shader_data_particle.go                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,48 +34,29 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package assets
+package shader_data_registry
 
-// Textures
-const (
-	TextureSquare      = "square.png"
-	TextureCube        = "cube.png"
-	TextureBlankSquare = "blank_square.png"
-	TextureTriangle    = "triangle.png"
+import (
+	"kaiju/matrix"
+	"kaiju/rendering"
+	"unsafe"
 )
 
-// Material definitions
-const (
-	MaterialDefinitionGrid                = "grid.material"
-	MaterialDefinitionUnlit               = "unlit.material"
-	MaterialDefinitionUnlitTransparent    = "unlit_transparent.material"
-	MaterialDefinitionBasic               = "basic.material"
-	MaterialDefinitionBasicLit            = "basic_lit.material"
-	MaterialDefinitionBasicLitStatic      = "basic_lit_static.material"
-	MaterialDefinitionBasicLitDynamic     = "basic_lit_dynamic.material"
-	MaterialDefinitionBasicLitTransparent = "basic_lit_transparent.material"
-	MaterialDefinitionBasicTransparent    = "basic_transparent.material"
-	MaterialDefinitionPBR                 = "pbr.material"
-	MaterialDefinitionTerrain             = "terrain.material"
-	MaterialDefinitionBasicSkinned        = "basic_skinned.material"
-	MaterialDefinitionBasicColor          = "basic_color.material"
-	MaterialDefinitionText3D              = "text3d.material"
-	MaterialDefinitionText3DTransparent   = "text3d_transparent.material"
-	MaterialDefinitionText                = "text.material"
-	MaterialDefinitionTextTransparent     = "text_transparent.material"
-	MaterialDefinitionCombine             = "combine.material"
-	MaterialDefinitionComposite           = "composite.material"
-	MaterialDefinitionUI                  = "ui.material"
-	MaterialDefinitionUITransparent       = "ui_transparent.material"
-	MaterialDefinitionSprite              = "sprite.material"
-	MaterialDefinitionSpriteTransparent   = "sprite_transparent.material"
-	MaterialDefinitionOutline             = "outline.material"
-	MaterialDefinitionLightDepth          = "light_depth.material"
-	MaterialDefinitionLightCubeDepth      = "light_cube_depth.material"
-	MaterialDefinitionParticle            = "particle.material"
-	MaterialDefinitionParticleTransparent = "particle_transparent.material"
+func init() {
+	register(func() rendering.DrawInstance {
+		return &ShaderDataParticle{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+		}
+	}, "particle")
+}
 
-	MaterialDefinitionEdTransformWire = "ed_transform_wire.material"
-	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire.material"
-	MaterialDefinitionEdGizmo         = "ed_gizmo.material"
-)
+type ShaderDataParticle struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4 `default:"0,0,1,1"`
+}
+
+func (t ShaderDataParticle) Size() int {
+	return int(unsafe.Sizeof(ShaderDataParticle{}) - rendering.ShaderBaseDataStart)
+}

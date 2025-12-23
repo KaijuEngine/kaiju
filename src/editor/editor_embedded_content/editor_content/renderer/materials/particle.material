@@ -1,0 +1,1 @@
+{"Name":"particle","Shader":"particle.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"particle.shaderpipeline","Textures":[{"Texture":"square.png","Filter":""}]}
