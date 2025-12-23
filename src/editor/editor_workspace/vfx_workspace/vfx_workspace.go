@@ -39,6 +39,7 @@ package vfx_workspace
 import (
 	"fmt"
 	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/engine"
@@ -47,7 +48,6 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"kaiju/rendering/vfx"
 	"reflect"
 	"slices"
@@ -56,13 +56,17 @@ import (
 
 type VfxWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed                  VfxWorkspaceEditorInterface
-	stageView           *editor_stage_view.StageView
-	updateId            engine.UpdateId
-	emitterData         *document.Element
-	emitterDataList     *document.Element
-	emitterDataTemplate *document.Element
-	emitter             vfx.Emitter
+	ed                       VfxWorkspaceEditorInterface
+	stageView                *editor_stage_view.StageView
+	updateId                 engine.UpdateId
+	emitterData              *document.Element
+	emitterDataList          *document.Element
+	emitterDataTemplate      *document.Element
+	emitterList              *document.Element
+	emitterListEntryTemplate *document.Element
+	emitter                  *vfx.Emitter
+	emitters                 []*vfx.Emitter
+	systemId                 string
 }
 
 func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterface) {
@@ -71,12 +75,17 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 	w.stageView = ed.StageView()
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){
-			"clickTest":         w.clickTest,
-			"changeEmitterData": w.changeEmitterData,
+			"clickAddEmitter":    w.clickAddEmitter,
+			"clickSaveEmitter":   w.clickSaveEmitter,
+			"clickSelectEmitter": w.clickSelectEmitter,
+			"clickDeleteEmitter": w.clickDeleteEmitter,
+			"changeEmitterData":  w.changeEmitterData,
 		})
 	w.emitterData, _ = w.Doc.GetElementById("emitterData")
 	w.emitterDataList, _ = w.Doc.GetElementById("emitterDataList")
 	w.emitterDataTemplate, _ = w.Doc.GetElementById("emitterDataTemplate")
+	w.emitterList, _ = w.Doc.GetElementById("emitterList")
+	w.emitterListEntryTemplate, _ = w.Doc.GetElementById("emitterListEntryTemplate")
 }
 
 func (w *VfxWorkspace) Open() {
@@ -84,10 +93,9 @@ func (w *VfxWorkspace) Open() {
 	w.CommonOpen()
 	w.stageView.Open()
 	w.updateId = w.Host.Updater.AddUpdate(w.update)
+	w.emitterData.UI.Hide()
 	w.emitterDataTemplate.UI.Hide()
-	if w.emitter.IsValid() {
-		w.loadEmitterConfig()
-	}
+	w.emitterListEntryTemplate.UI.Hide()
 }
 
 func (w *VfxWorkspace) Close() {
@@ -95,10 +103,25 @@ func (w *VfxWorkspace) Close() {
 	w.CommonClose()
 	w.stageView.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
+	// > 0 here because we don't want to remove the template
+	for i := len(w.emitterList.Children) - 1; i > 0; i-- {
+		w.Doc.RemoveElementWithoutApplyStyles(w.emitterList.Children[i])
+	}
+	w.emitter = nil
+	for i := range w.emitters {
+		w.emitters[i].Destroy()
+	}
+	w.emitters = klib.WipeSlice(w.emitters)
 }
 
 func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
+}
+
+func (w *VfxWorkspace) OpenParticleSystem(id string) {
+	defer tracing.NewRegion("VfxWorkspace.OpenParticleSystem").End()
+	w.systemId = id
+
 }
 
 func (w *VfxWorkspace) update(deltaTime float64) {
@@ -112,11 +135,11 @@ func (w *VfxWorkspace) update(deltaTime float64) {
 	w.stageView.Update(deltaTime, w.ed.Project())
 }
 
-func (w *VfxWorkspace) clickTest(e *document.Element) {
+func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickTest").End()
-	tex, _ := w.Host.TextureCache().Texture("smoke.png", rendering.TextureFilterLinear)
-	w.emitter.Initialize(w.Host, vfx.EmitterConfig{
-		Texture:          tex,
+	emit := &vfx.Emitter{}
+	emit.Initialize(w.Host, vfx.EmitterConfig{
+		Texture:          "smoke.png",
 		SpawnRate:        0.05,
 		ParticleLifeSpan: 2,
 		DirectionMin:     matrix.NewVec3(-0.3, 1, -0.3),
@@ -125,12 +148,74 @@ func (w *VfxWorkspace) clickTest(e *document.Element) {
 		OpacityMinMax:    matrix.NewVec2(0.3, 1.0),
 		FadeOutOverLife:  true,
 	})
-	w.loadEmitterConfig()
+	w.emitters = append(w.emitters, emit)
+	cpy := w.Doc.DuplicateElementWithoutApplyStyles(w.emitterListEntryTemplate)
+	w.Doc.SetElementId(e, "")
+	cpy.Children[0].InnerLabel().SetText(fmt.Sprintf("Emitter %d", len(w.emitters)))
+	w.selectEmitter(emit)
 }
 
-func (w *VfxWorkspace) loadEmitterConfig() {
+func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.clickSaveEmitter").End()
+
+}
+
+func (w *VfxWorkspace) clickSelectEmitter(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.clickSelectEmitter").End()
+	idx := w.emitterList.IndexOfChild(e) - 1
+	if idx >= 0 && idx < len(w.emitters) {
+		w.selectEmitter(w.emitters[idx])
+	}
+}
+
+func (w *VfxWorkspace) clickDeleteEmitter(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.clickDeleteEmitter").End()
+	w.ed.BlurInterface()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       "Delete emitter?",
+		Description: "Are you sure you'd like to delete this emitter?",
+		ConfirmText: "Delete",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			w.ed.FocusInterface()
+			idx := w.emitterList.IndexOfChild(e) - 1
+			w.Doc.RemoveElement(e)
+			if idx >= 0 && idx < len(w.emitters) {
+				w.deleteEmitter(w.emitters[idx])
+			}
+		},
+		OnCancel: w.ed.FocusInterface,
+	})
+}
+
+func (w *VfxWorkspace) deleteEmitter(emit *vfx.Emitter) {
+	emit.Destroy()
+	w.emitters = klib.SlicesRemoveElement(w.emitters, emit)
+}
+
+func (w *VfxWorkspace) selectEmitter(emit *vfx.Emitter) {
+	w.emitter = emit
+	for _, e := range w.emitterList.Children {
+		w.Doc.SetElementClassesWithoutApply(e, "edPanelBgHoverable")
+	}
+	name := "Particle Emitter Data"
+	for i := range w.emitters {
+		if w.emitters[i] == emit {
+			idx := i + 1 // +1 because of the template
+			w.Doc.SetElementClassesWithoutApply(w.emitterList.Children[idx],
+				"edPanelBgHoverable", "selected")
+			name = fmt.Sprintf("Particle Emitter %d", idx)
+			break
+		}
+	}
+	w.loadEmitterConfig(name)
+}
+
+func (w *VfxWorkspace) loadEmitterConfig(name string) {
 	defer tracing.NewRegion("VfxWorkspace.loadEmitterConfig").End()
-	g := entity_data_binding.ToDataBinding("Particle Emitter Data", &w.emitter.Config)
+	w.emitterData.UI.Show()
+	w.emitterDataTemplate.UI.Hide()
+	g := entity_data_binding.ToDataBinding(name, &w.emitter.Config)
 	w.createDataBindingEntry(&g)
 }
 

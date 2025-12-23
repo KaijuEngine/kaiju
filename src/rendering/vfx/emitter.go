@@ -61,7 +61,7 @@ type Emitter struct {
 }
 
 type EmitterConfig struct {
-	Texture          *rendering.Texture
+	Texture          string
 	SpawnRate        float64
 	ParticleLifeSpan float32
 	LifeSpan         float64
@@ -111,13 +111,17 @@ func (e *Emitter) ReloadConfig(host *engine.Host) {
 			e.particleData[i].Destroy()
 		}
 		if maxCount > 0 {
+			tex, err := host.TextureCache().Texture(e.Config.Texture, rendering.TextureFilterLinear)
+			if err != nil {
+				tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			}
 			e.particles = make([]Particle, maxCount)
 			e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))
 			e.available = make([]int, 0, cap(e.particles))
 			// Brute forcing all particles to be instance drawings
 			mesh := rendering.NewMeshQuad(host.MeshCache())
 			mat, _ := host.MaterialCache().Material(assets.MaterialDefinitionParticleTransparent)
-			mat = mat.CreateInstance([]*rendering.Texture{e.Config.Texture})
+			mat = mat.CreateInstance([]*rendering.Texture{tex})
 			drawings := make([]rendering.Drawing, maxCount)
 			for i := range maxCount {
 				e.particleData[i].ShaderDataBase = rendering.NewShaderDataBase()

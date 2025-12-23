@@ -55,11 +55,40 @@
 			.smallerInput {
 				width: 3.15em;
 			}
+			.addBtn, .saveBtn {
+				position: absolute;
+				bottom: 0;
+				width: 50%;
+			}
+			.saveBtn {
+				right: 0
+			}
+			#emitterList {
+				width: 100%;
+				height: calc(100% - 5em);
+				overflow-y: scroll;
+			}
+			.edPanelBgHoverable button {
+				position: absolute;
+				width: 1.5em;
+				height: 100%;
+				font-size: 0.7em;
+				right: 0;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="leftPanel edPanelBg">
-			<button onclick="clickTest">Test</button>
+			<div class="center">Particle system</div>
+			<input class="dataInput" type="text" placeholder="Name..." />
+			<div id="emitterList">
+				<div id="emitterListEntryTemplate" class="edPanelBgHoverable" onclick="clickSelectEmitter">
+					<span>Name...</span>
+					<button onclick="clickDeleteEmitter">X</button>
+				</div>
+			</div>
+			<button class="addBtn" onclick="clickAddEmitter">Add Emitter</button>
+			<button class="saveBtn" onclick="clickSaveEmitter">Save</button>
 		</div>
 		<div class="rightPanel edPanelBg">
 			<div id="emitterData" class="dataTable">

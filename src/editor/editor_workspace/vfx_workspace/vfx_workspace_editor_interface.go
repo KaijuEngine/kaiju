@@ -42,6 +42,8 @@ import (
 )
 
 type VfxWorkspaceEditorInterface interface {
+	FocusInterface()
+	BlurInterface()
 	Project() *project.Project
 	StageView() *editor_stage_view.StageView
 }

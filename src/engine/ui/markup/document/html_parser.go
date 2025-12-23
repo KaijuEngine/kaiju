@@ -701,12 +701,17 @@ func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
 // duplicate an element and use one of the Insert functions, then use
 // Element.Clone followed by an Insert function instead
 func (d *Document) DuplicateElement(elm *Element) *Element {
+	cpy := d.DuplicateElementWithoutApplyStyles(elm)
+	d.stylizer.ApplyStyles(d.style, d)
+	return cpy
+}
+
+func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
 	if elm.Attribute("id") != "" {
 		cpy.SetAttribute("id", "")
 	}
 	d.appendElement(cpy)
-	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
 }
 
@@ -772,7 +777,9 @@ func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
 		delete(d.ids, currentId)
 	}
 	elm.SetAttribute("id", id)
-	d.ids[id] = elm
+	if id != "" {
+		d.ids[id] = elm
+	}
 }
 
 func (d *Document) SetElementId(elm *Element, id string) {
