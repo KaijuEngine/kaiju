@@ -48,7 +48,6 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
-	"weak"
 )
 
 func init() {
@@ -62,19 +61,17 @@ type CameraEntityDataRenderer struct {
 }
 
 type cameraDataBindingDrawing struct {
-	key string
-	sd  rendering.DrawInstance
+	key  string
+	sd   rendering.DrawInstance
+	icon rendering.DrawInstance
 }
 
 func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	commonAttached(host, manager, target, "camera.png")
-}
-
-func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraEntityDataRenderer.Show").End()
+	defer tracing.NewRegion("CameraEntityDataRenderer.Attached").End()
+	icon := commonAttached(host, manager, target, "camera.png")
 	if _, ok := c.Frustums[target]; ok {
 		slog.Error("there is an internal error in state for the editor's CameraEntityDataRenderer, show was called before any hide happened. Double selected the same target?")
-		c.Hide(host, target, data)
+		c.Detatched(host, manager, target, data)
 	}
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	cam := cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
@@ -100,14 +97,43 @@ func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_
 		Transform:  &target.Transform,
 		ViewCuller: &host.Cameras.Primary,
 	})
-	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd}
-	wc := weak.Make(c)
-	target.OnDeactivate.Add(func() {
-		sc := wc.Value()
-		if sc != nil {
-			sc.Hide(host, target, nil)
+	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd, icon}
+	target.OnActivate.Add(func() {
+		if d, ok := c.Frustums[target]; ok {
+			d.icon.Activate()
+			d.sd.Activate()
 		}
 	})
+	target.OnDeactivate.Add(func() {
+		if d, ok := c.Frustums[target]; ok {
+			d.icon.Deactivate()
+			d.sd.Deactivate()
+		}
+	})
+}
+
+func (c *CameraEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraEntityDataRenderer.Detatched").End()
+	if d, ok := c.Frustums[target]; ok {
+		d.sd.Destroy()
+		d.icon.Destroy()
+		host.MeshCache().RemoveMesh(d.key)
+		delete(c.Frustums, target)
+	}
+}
+
+func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraEntityDataRenderer.Show").End()
+	if d, ok := c.Frustums[target]; ok {
+		d.sd.Activate()
+	}
+}
+
+func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("CameraEntityDataRenderer.Hide").End()
+	if d, ok := c.Frustums[target]; ok {
+		d.sd.Deactivate()
+	}
 }
 
 func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
@@ -140,21 +166,4 @@ func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stag
 		)
 		t.sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
 	}
-}
-
-func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("CameraEntityDataRenderer.Hide").End()
-	if d, ok := c.Frustums[target]; ok {
-		d.sd.Destroy()
-		host.MeshCache().RemoveMesh(d.key)
-		delete(c.Frustums, target)
-	}
-}
-
-func (c *CameraEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("CameraEntityDataRenderer.EntitySpawn").End()
-}
-
-func (c *CameraEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("CameraEntityDataRenderer.EntityDestroy").End()
 }

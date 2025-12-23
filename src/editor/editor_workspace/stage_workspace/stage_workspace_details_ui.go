@@ -363,6 +363,11 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	dui.createDataBindingEntry(de, dui.boundEntityDataTemplate)
 	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
 	dui.entityDataList.UI.Hide()
+	w.ed.History().Add(&EntityDataAttachHistory{
+		DetailsWorkspace: dui,
+		Entity:           target,
+		Data:             de,
+	})
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
@@ -370,12 +375,14 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(tpl)
-	// header := cpy.Children[0]
 	nameSpan := cpy.Children[0]
-	// deleteBtn := header.Children[1]
-	// deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
-	nameSpan.InnerLabel().SetText(g.Name)
 	fieldDiv := cpy.Children[1]
+	if len(cpy.Children) == 3 {
+		deleteBtn := cpy.Children[1]
+		fieldDiv = cpy.Children[2]
+		deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+	}
+	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
@@ -597,35 +604,27 @@ func (dui *WorkspaceDetailsUI) reload() {
 
 func (dui *WorkspaceDetailsUI) removeEntityData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.removeEntityData").End()
-
 	bindIdx, err := strconv.Atoi(e.Attribute("data-bindidx"))
 	if err != nil {
 		return
 	}
-
 	w := dui.workspace.Value()
 	sel := w.stageView.Manager().Selection()
 	if len(sel) == 0 {
 		return
 	}
-
 	entity := sel[0]
 	if bindIdx < 0 || bindIdx >= len(entity.DataBindings()) {
 		return
 	}
-
 	data := entity.DataBindings()[bindIdx]
-
-	h := &editor_stage_manager.EntityDataDetachHistory{
-		Entity: entity,
-		Data:   data,
+	h := &EntityDataDetachHistory{
+		DetailsWorkspace: dui,
+		Entity:           entity,
+		Data:             data,
 	}
-
 	w.ed.History().Add(h)
 	h.Redo()
-
-	// Refresh UI
-	dui.entitySelected(entity)
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {

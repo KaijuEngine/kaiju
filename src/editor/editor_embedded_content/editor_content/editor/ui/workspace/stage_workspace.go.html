@@ -199,6 +199,13 @@
 				margin-bottom: 0.2em;
 			}
 			.center { text-align: center; }
+			.deleteButton {
+				position: absolute;
+				width: 1.5em;
+				height: 1.5em;
+				font-size: 0.7em;
+				right: 0;
+			}
 		</style>
 	</head>
 	<body>
@@ -286,14 +293,9 @@
 				</div>
 				<div id="detailsEntityDataTable" class="dataTable">
 					<div id="boundEntityDataList">
-							<div id="boundEntityDataTemplate" class="dataBindingBlock">
-								<div class="center">
-									<span>Data name...</span>
-									<span class="deleteButton"
-									      style="float:right; cursor:pointer;"
-									      data-bindidx=""
-									      onclick="removeEntityData">X</span>
-								</div>
+						<div id="boundEntityDataTemplate" class="dataBindingBlock">
+							<div class="center">Data name...</div>
+							<button class="deleteButton" data-bindidx="" onclick="removeEntityData">X</button>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
 								<!-- Text input -->

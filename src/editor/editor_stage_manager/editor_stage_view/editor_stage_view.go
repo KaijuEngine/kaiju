@@ -93,12 +93,6 @@ func (v *StageView) Initialize(host *engine.Host, history *memento.History, sett
 	v.manager.OnEntityDeselected.Add(func(e *editor_stage_manager.StageEntity) {
 		data_binding_renderer.Hide(weakHost, e)
 	})
-	v.manager.OnEntitySpawn.Add(func(e *editor_stage_manager.StageEntity) {
-		data_binding_renderer.EntitySpawn(weakHost, e)
-	})
-	v.manager.OnEntityDestroy.Add(func(e *editor_stage_manager.StageEntity) {
-		data_binding_renderer.EntityDestroy(weakHost, e)
-	})
 }
 
 func (v *StageView) Open() {
