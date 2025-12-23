@@ -1,0 +1,80 @@
+/******************************************************************************/
+/* rigid_body_data_binding.go                                                 */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
+package engine_entity_data_particles
+
+import (
+	"encoding/json"
+	"kaiju/engine"
+	"kaiju/rendering/vfx"
+	"log/slog"
+)
+
+const BindingKey = "kaiju.ParticleSystemEntityData"
+
+type Shape int
+
+const (
+	ShapeBox Shape = iota
+	ShapeSphere
+	ShapeCapsule
+	ShapeCylinder
+	ShapeCone
+)
+
+func init() {
+	engine.RegisterEntityData(BindingKey, ParticleSystemEntityData{})
+}
+
+type ParticleSystemEntityData struct {
+	Id string
+}
+
+func (r ParticleSystemEntityData) Init(e *engine.Entity, host *engine.Host) {
+	cfg, err := host.AssetDatabase().Read(r.Id)
+	if err != nil {
+		slog.Error("failed to locate the particle system", "id", r.Id, "error", err)
+		return
+	}
+	var sysSpec vfx.ParticleSystemSpec
+	if err = json.Unmarshal(cfg, &sysSpec); err != nil {
+		slog.Error("failed to decode the particle system specification", "id", r.Id, "error", err)
+		return
+	}
+	sys := &vfx.ParticleSystem{}
+	sys.Initialize(host, e, sysSpec)
+	e.AddNamedData("ParticleSystem", sys)
+}
