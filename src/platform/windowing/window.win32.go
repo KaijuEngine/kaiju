@@ -86,16 +86,6 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
 }
 
-func scaleScrollDelta(delta float32) float32 {
-	// TODO:  Store if we are using raw input (from C) and pick which to use
-	v := delta / 120.0
-	if v < 1 && v > -1 {
-		// We are most likely using raw input
-		v = delta
-	}
-	return v
-}
-
 func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
 	mask := C.get_toggle_key_state()
 	caps := (mask & 1) != 0

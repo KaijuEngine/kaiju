@@ -87,9 +87,10 @@ func (m Mouse) ButtonChanged() bool {
 
 func (m *Mouse) EndUpdate() {
 	for i := 0; i < MouseButtonLast; i++ {
-		if m.buttonStates[i] == MouseRelease {
+		switch m.buttonStates[i] {
+		case MouseRelease:
 			m.buttonStates[i] = MouseButtonStateInvalid
-		} else if m.buttonStates[i] == MousePress {
+		case MousePress:
 			m.buttonStates[i] = MouseRepeat
 			m.buttonChanged = true
 		}

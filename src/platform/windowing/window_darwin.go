@@ -1,3 +1,5 @@
+//go:build darwin && !ios
+
 /******************************************************************************/
 /* window_darwin.go                                                           */
 /******************************************************************************/
@@ -34,8 +36,6 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-//go:build darwin && !ios
-
 package windowing
 
 import (
@@ -47,11 +47,10 @@ import (
 
 const macOSSupportIssueID = 485
 
-func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool{
+func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
 	klib.NotYetImplemented(494)
 	return map[hid.KeyboardKey]bool{}
 }
-
 
 // Lifecycle and eventing
 func (w *Window) createWindow(windowName string, x, y int, _ any) {
@@ -132,6 +131,3 @@ func (w *Window) readApplicationAsset(name string) ([]byte, error) {
 // cHandle/cInstance used by PlatformWindow/PlatformInstance
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
-
-// Scale mouse wheel delta on macOS
-func scaleScrollDelta(delta float32) float32 { return delta }

@@ -488,10 +488,8 @@ func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
 func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
 	s := w.Mouse.Scroll()
-	deltaX := scaleScrollDelta(float32(evt.deltaX))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaX)
-	deltaY := scaleScrollDelta(float32(evt.deltaY))
-	w.Mouse.SetScroll(s.X(), s.Y()+deltaY)
+	w.Mouse.SetScroll(s.X(), s.Y()+float32(evt.deltaX))
+	w.Mouse.SetScroll(s.X(), s.Y()+float32(evt.deltaY))
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {

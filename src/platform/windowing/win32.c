@@ -375,7 +375,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
@@ -387,7 +387,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
