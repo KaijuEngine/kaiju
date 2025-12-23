@@ -109,6 +109,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"searchEntityData":  dui.searchEntityData,
 		"addEntityData":     dui.addEntityData,
 		"changeData":        dui.changeData,
+		"removeEntityData":  dui.removeEntityData,
 		"changeShaderData":  dui.changeShaderData,
 	}
 }
@@ -369,9 +370,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElement(tpl)
-	nameSpan := cpy.Children[0]
-	fieldDiv := cpy.Children[1]
+	header := cpy.Children[0]
+	nameSpan := header.Children[0]
+	deleteBtn := header.Children[1]
+	deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 	nameSpan.InnerLabel().SetText(g.Name)
+	fieldDiv := cpy.Children[1]
+
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
@@ -589,6 +594,39 @@ func (dui *WorkspaceDetailsUI) reload() {
 		dui.hideDetails(nil)
 	}
 	dui.detailsArea.UI.Clean()
+}
+
+func (dui *WorkspaceDetailsUI) removeEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.removeEntityData").End()
+
+	bindIdx, err := strconv.Atoi(e.Attribute("data-bindidx"))
+	if err != nil {
+		return
+	}
+
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
+
+	entity := sel[0]
+	if bindIdx < 0 || bindIdx >= len(entity.DataBindings()) {
+		return
+	}
+
+	data := entity.DataBindings()[bindIdx]
+
+	h := &editor_stage_manager.EntityDataDetachHistory{
+		Entity: entity,
+		Data:   data,
+	}
+
+	w.ed.History().Add(h)
+	h.Redo()
+
+	// Refresh UI
+	dui.entitySelected(entity)
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {

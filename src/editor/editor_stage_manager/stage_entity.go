@@ -60,6 +60,24 @@ func EntityToStageEntity(e *engine.Entity) *StageEntity {
 
 func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
 
+func (e *StageEntity) DetachDataBinding(binding *entity_data_binding.EntityDataEntry) {
+	for i, b := range e.dataBindings {
+		if b == binding {
+			e.dataBindings = append(e.dataBindings[:i], e.dataBindings[i+1:]...)
+			return
+		}
+	}
+}
+
+func (e *StageEntity) AttachDataBinding(binding *entity_data_binding.EntityDataEntry) {
+	for _, b := range e.dataBindings {
+		if b == binding {
+			return
+		}
+	}
+	e.dataBindings = append(e.dataBindings, binding)
+}
+
 func (e *StageEntity) DataBindingsByKey(key string) []*entity_data_binding.EntityDataEntry {
 	out := []*entity_data_binding.EntityDataEntry{}
 	for _, d := range e.dataBindings {
