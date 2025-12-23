@@ -231,7 +231,7 @@ func (pfs *FileSystem) createCodeProject() error {
 		return err
 	}
 	slog.Info("creating workspace management files")
-	goVersion := strings.TrimPrefix(runtime.Version(), "go")
+	goVersion := strings.Split(strings.TrimPrefix(runtime.Version(), "go"), " ")[0]
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
 		return err
