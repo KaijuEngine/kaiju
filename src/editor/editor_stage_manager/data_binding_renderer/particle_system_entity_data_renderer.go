@@ -65,7 +65,7 @@ func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *
 	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Attached").End()
 	c.Systems[target] = &ParticleSystemGizmo{}
 	target.OnDestroy.Add(func() {
-		c.Systems[target].System.Destroy()
+		// Particle system destroys itself when the entity is destroyed
 		delete(c.Systems, target)
 	})
 	commonAttached(host, manager, target, "particles.png")
@@ -86,7 +86,11 @@ func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *edi
 				slog.Error("invlaid particle system id specified", "id", id, "error", err)
 				return
 			}
-			g.System.Initialize(host, &target.Entity, spec)
+			if !g.System.IsValid() {
+				g.System.Initialize(host, &target.Entity, spec)
+			} else {
+				g.System.LoadSpec(host, spec)
+			}
 		}
 	}
 }

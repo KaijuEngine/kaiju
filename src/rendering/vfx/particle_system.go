@@ -63,22 +63,30 @@ func LoadSpec(host *engine.Host, id string) (ParticleSystemSpec, error) {
 	return spec, err
 }
 
+func (p *ParticleSystem) IsValid() bool { return p.host != nil }
+
 func (p *ParticleSystem) Initialize(host *engine.Host, entity *engine.Entity, spec ParticleSystemSpec) {
 	defer tracing.NewRegion("ParticleSystem.Initialize").End()
 	p.host = host
 	p.entity = entity
+	p.updateId = host.Updater.AddUpdate(p.update)
 	p.Emitters = make([]Emitter, len(spec))
+	p.entity.OnDestroy.Add(p.Destroy)
+	p.LoadSpec(host, spec)
+}
+
+func (p *ParticleSystem) LoadSpec(host *engine.Host, spec ParticleSystemSpec) {
 	for i := range p.Emitters {
 		p.Emitters[i].Initialize(host, spec[i])
 	}
-	p.updateId = host.Updater.AddUpdate(p.update)
-	p.entity.OnDestroy.Add(p.Destroy)
 }
 
 func (p *ParticleSystem) Destroy() {
 	defer tracing.NewRegion("ParticleSystem.Initialize").End()
 	p.Clear()
-	p.host.Updater.RemoveUpdate(&p.updateId)
+	if p.host != nil {
+		p.host.Updater.RemoveUpdate(&p.updateId)
+	}
 }
 
 func (p *ParticleSystem) Clear() {
