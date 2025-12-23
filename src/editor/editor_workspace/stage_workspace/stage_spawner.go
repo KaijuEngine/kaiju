@@ -339,12 +339,10 @@ func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent,
 		data_binding_renderer.Updated(de, weak.Make(w.Host), e)
 	}
 	changeEvtId := w.ed.Events().OnContentChangesSaved.Add(func(id string) {
-		if id != cc.Id() {
-			return
-		}
 		for _, de := range e.DataBindingsByKey(bindKey) {
-			de.SetFieldByName("Id", cc.Id())
-			data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+			if de.FieldValueByName("Id").(string) == id {
+				data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+			}
 		}
 	})
 	e.OnDestroy.Add(func() {
