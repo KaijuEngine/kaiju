@@ -160,6 +160,7 @@ func (w *VfxWorkspace) update(deltaTime float64) {
 
 func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickTest").End()
+	w.entity.Transform.SetPosition(w.Host.PrimaryCamera().LookAt())
 	w.addEmitter(vfx.EmitterConfig{
 		Texture:          "smoke.png",
 		SpawnRate:        0.05,
