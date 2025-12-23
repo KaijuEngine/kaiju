@@ -146,6 +146,7 @@ func (e *Emitter) ReloadConfig(host *engine.Host) {
 				drawings[i].Material = mat
 				drawings[i].Mesh = mesh
 				drawings[i].ShaderData = &e.particleData[i]
+				drawings[i].ViewCuller = &host.Cameras.Primary
 				e.available = append(e.available, maxCount-i-1)
 			}
 			host.Drawings.AddDrawings(drawings)
