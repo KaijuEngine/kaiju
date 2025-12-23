@@ -58,6 +58,7 @@ type Emitter struct {
 	updateId     engine.UpdateId
 	nextSpawn    float64
 	lifeTime     float64
+	deactivated  bool
 }
 
 type EmitterConfig struct {
@@ -97,6 +98,25 @@ func (e *Emitter) Destroy() {
 	for i := range e.particleData {
 		e.particleData[i].Destroy()
 	}
+}
+
+func (e *Emitter) Activate() {
+	defer tracing.NewRegion("Emitter.Activate").End()
+	for i := range e.particleData {
+		e.particleData[i].Activate()
+	}
+	for i := range e.available {
+		e.particleData[e.available[i]].Deactivate()
+	}
+	e.deactivated = false
+}
+
+func (e *Emitter) Deactivate() {
+	defer tracing.NewRegion("Emitter.Deactivate").End()
+	for i := range e.particleData {
+		e.particleData[i].Deactivate()
+	}
+	e.deactivated = true
 }
 
 func (e *Emitter) ReloadConfig(host *engine.Host) {
@@ -142,6 +162,9 @@ func (e *Emitter) ReloadConfig(host *engine.Host) {
 
 func (e *Emitter) update(deltaTime float64) {
 	defer tracing.NewRegion("Emitter.update").End()
+	if e.deactivated {
+		return
+	}
 	if e.Config.LifeSpan > 0 {
 		if e.lifeTime > 0 {
 			e.lifeTime -= deltaTime

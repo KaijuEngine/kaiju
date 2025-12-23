@@ -45,6 +45,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
+	"path/filepath"
 )
 
 func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string {
@@ -109,7 +110,9 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if useLinkedId && linkedId == "" {
 			linkedId = res[i].Id
 		}
-		f, err := fs.Create(res[i].ConfigPath())
+		configPath := res[i].ConfigPath()
+		fs.MkdirAll(filepath.Dir(configPath), os.ModePerm)
+		f, err := fs.Create(configPath)
 		if err != nil {
 			return res, err
 		}
@@ -129,7 +132,9 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
 			return res, err
 		}
-		if err = fs.WriteFile(res[i].ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
+		contentPath := res[i].ContentPath()
+		fs.MkdirAll(filepath.Dir(contentPath), os.ModePerm)
+		if err = fs.WriteFile(contentPath, proc.Variants[i].Data, os.ModePerm); err != nil {
 			return res, err
 		}
 		res[i].Dependencies = make([]ImportResult, 0, len(proc.Dependencies))

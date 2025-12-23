@@ -72,6 +72,7 @@ const (
 	ContentMaterialFolder        = ContentRenderFolder + "/material"
 	ContentRenderPassFolder      = ContentRenderFolder + "/renderpass"
 	ContentShaderFolder          = ContentRenderFolder + "/shader"
+	ContentParticlesFolder       = ContentRenderFolder + "/particles"
 	ContentShaderPipelineFolder  = ContentRenderFolder + "/pipeline"
 	ContentSpvFolder             = ContentRenderFolder + "/spv"
 	ContentStageFolder           = "stage"

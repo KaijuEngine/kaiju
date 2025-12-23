@@ -37,11 +37,13 @@
 package vfx_workspace
 
 import (
+	"encoding/json"
 	"fmt"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/common_workspace"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
@@ -49,6 +51,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering/vfx"
+	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
@@ -59,6 +62,7 @@ type VfxWorkspace struct {
 	ed                       VfxWorkspaceEditorInterface
 	stageView                *editor_stage_view.StageView
 	updateId                 engine.UpdateId
+	systemName               *document.Element
 	emitterData              *document.Element
 	emitterDataList          *document.Element
 	emitterDataTemplate      *document.Element
@@ -81,6 +85,7 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 			"clickDeleteEmitter": w.clickDeleteEmitter,
 			"changeEmitterData":  w.changeEmitterData,
 		})
+	w.systemName, _ = w.Doc.GetElementById("systemName")
 	w.emitterData, _ = w.Doc.GetElementById("emitterData")
 	w.emitterDataList, _ = w.Doc.GetElementById("emitterDataList")
 	w.emitterDataTemplate, _ = w.Doc.GetElementById("emitterDataTemplate")
@@ -96,6 +101,9 @@ func (w *VfxWorkspace) Open() {
 	w.emitterData.UI.Hide()
 	w.emitterDataTemplate.UI.Hide()
 	w.emitterListEntryTemplate.UI.Hide()
+	for i := range w.emitters {
+		w.emitters[i].Activate()
+	}
 }
 
 func (w *VfxWorkspace) Close() {
@@ -103,15 +111,9 @@ func (w *VfxWorkspace) Close() {
 	w.CommonClose()
 	w.stageView.Close()
 	w.Host.Updater.RemoveUpdate(&w.updateId)
-	// > 0 here because we don't want to remove the template
-	for i := len(w.emitterList.Children) - 1; i > 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(w.emitterList.Children[i])
-	}
-	w.emitter = nil
 	for i := range w.emitters {
-		w.emitters[i].Destroy()
+		w.emitters[i].Deactivate()
 	}
-	w.emitters = klib.WipeSlice(w.emitters)
 }
 
 func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
@@ -121,7 +123,34 @@ func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey {
 func (w *VfxWorkspace) OpenParticleSystem(id string) {
 	defer tracing.NewRegion("VfxWorkspace.OpenParticleSystem").End()
 	w.systemId = id
+	data, err := w.Host.AssetDatabase().Read(w.systemId)
+	if err != nil {
+		slog.Error("failed to locate the particle system", "id", id, "error", err)
+		return
+	}
+	spec := vfx.ParticleSystemSpec{}
+	if err = json.Unmarshal(data, &spec); err != nil {
+		slog.Error("failed to deserialize the particle system", "id", id, "error", err)
+		return
+	}
+	w.clear()
+	for i := range spec {
+		emit := &vfx.Emitter{}
+		emit.Initialize(w.Host, spec[i])
+		w.addEmitter(emit)
+	}
+}
 
+func (w *VfxWorkspace) clear() {
+	// > 0 here because we don't want to remove the template
+	for i := len(w.emitterList.Children) - 1; i > 0; i-- {
+		w.Doc.RemoveElementWithoutApplyStyles(w.emitterList.Children[i])
+	}
+	w.emitter = nil
+	for i := range w.emitters {
+		w.emitters[i].Destroy()
+	}
+	w.emitters = klib.WipeSlice(w.emitters)
 }
 
 func (w *VfxWorkspace) update(deltaTime float64) {
@@ -148,16 +177,57 @@ func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 		OpacityMinMax:    matrix.NewVec2(0.3, 1.0),
 		FadeOutOverLife:  true,
 	})
+	w.addEmitter(emit)
+}
+
+func (w *VfxWorkspace) addEmitter(emit *vfx.Emitter) {
 	w.emitters = append(w.emitters, emit)
 	cpy := w.Doc.DuplicateElementWithoutApplyStyles(w.emitterListEntryTemplate)
-	w.Doc.SetElementId(e, "")
+	w.Doc.SetElementId(cpy, "")
 	cpy.Children[0].InnerLabel().SetText(fmt.Sprintf("Emitter %d", len(w.emitters)))
 	w.selectEmitter(emit)
 }
 
 func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 	defer tracing.NewRegion("VfxWorkspace.clickSaveEmitter").End()
-
+	name := w.systemName.UI.ToInput().Text()
+	spec := vfx.ParticleSystemSpec{}
+	for i := range w.emitters {
+		spec = append(spec, w.emitters[i].Config)
+	}
+	data, err := json.Marshal(spec)
+	if err != nil {
+		slog.Error("failed to serialize the particle system", "error", err)
+		return
+	}
+	pfs := w.ed.Project().FileSystem()
+	cache := w.ed.Project().CacheDatabase()
+	if w.systemId != "" {
+		cc, err := cache.Read(w.systemId)
+		if err != nil {
+			slog.Error("failed to find the config cache for particle system", "id", w.systemId, "error", err)
+			return
+		}
+		if cc, err = cache.Rename(w.systemId, name, pfs); err != nil {
+			slog.Error("failed to rename the particle system", "id", w.systemId, "error", err)
+			return
+		}
+		path := cc.ContentPath()
+		s, err := pfs.Stat(path)
+		if err != nil {
+			slog.Error("failed to write the particle system", "id", w.systemId, "error", err)
+			return
+		}
+		if err = pfs.WriteFile(path, data, s.Mode()); err != nil {
+			slog.Error("failed to write the particle system", "id", w.systemId, "error", err)
+			return
+		}
+	} else {
+		ids := content_database.ImportRaw(name, data, content_database.ParticleSystem{}, pfs, cache)
+		w.systemId = ids[0]
+		w.ed.Events().OnContentAdded.Execute(ids)
+		slog.Info("particle system successfully saved")
+	}
 }
 
 func (w *VfxWorkspace) clickSelectEmitter(e *document.Element) {

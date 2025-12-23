@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/shading_workspace"
+	"kaiju/editor/editor_workspace/vfx_workspace"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
@@ -79,6 +80,10 @@ func (ed *Editor) StageView() *editor_stage_view.StageView {
 func (ed *Editor) OpenStageInStageWorkspace(id string) {
 	ed.StageWorkspaceSelected()
 	ed.workspaces.stage.OpenStage(id)
+}
+
+func (ed *Editor) VfxWorkspace() *vfx_workspace.VfxWorkspace {
+	return &ed.workspaces.vfx
 }
 
 func (ed *Editor) ShadingWorkspace() *shading_workspace.ShadingWorkspace {

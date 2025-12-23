@@ -37,11 +37,13 @@
 package vfx_workspace
 
 import (
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/project"
 )
 
 type VfxWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
 	FocusInterface()
 	BlurInterface()
 	Project() *project.Project

@@ -853,6 +853,10 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 		ed = w.editor.Settings().AudioEditor
 	case content_database.Texture{}.TypeName():
 		ed = w.editor.Settings().ImageEditor
+	case content_database.ParticleSystem{}.TypeName():
+		w.editor.VfxWorkspaceSelected()
+		w.editor.VfxWorkspace().OpenParticleSystem(cc.Id())
+		return
 	case content_database.Material{}.TypeName():
 		fallthrough
 	case content_database.RenderPass{}.TypeName():
