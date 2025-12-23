@@ -43,9 +43,9 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/stages"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
-	"kaiju/stages"
 	"log/slog"
 	"reflect"
 )

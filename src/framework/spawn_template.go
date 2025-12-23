@@ -40,9 +40,9 @@ import (
 	"encoding/json"
 	"kaiju/build"
 	"kaiju/engine"
+	"kaiju/engine/stages"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/stages"
 	"log/slog"
 )
 
