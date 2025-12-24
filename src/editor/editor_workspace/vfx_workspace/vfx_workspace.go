@@ -62,7 +62,6 @@ type VfxWorkspace struct {
 	common_workspace.CommonWorkspace
 	ed                       VfxWorkspaceEditorInterface
 	stageView                *editor_stage_view.StageView
-	updateId                 engine.UpdateId
 	systemName               *document.Element
 	emitterData              *document.Element
 	emitterDataList          *document.Element
@@ -99,7 +98,6 @@ func (w *VfxWorkspace) Open() {
 	defer tracing.NewRegion("VfxWorkspace.Open").End()
 	w.CommonOpen()
 	w.stageView.Open()
-	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.emitterData.UI.Hide()
 	w.emitterDataTemplate.UI.Hide()
 	w.emitterListEntryTemplate.UI.Hide()
@@ -117,7 +115,6 @@ func (w *VfxWorkspace) Close() {
 	defer tracing.NewRegion("VfxWorkspace.Close").End()
 	w.CommonClose()
 	w.stageView.Close()
-	w.Host.Updater.RemoveUpdate(&w.updateId)
 	w.particleSystem.Deactivate()
 }
 
@@ -154,7 +151,7 @@ func (w *VfxWorkspace) clear() {
 	w.particleSystem.Clear()
 }
 
-func (w *VfxWorkspace) update(deltaTime float64) {
+func (w *VfxWorkspace) Update(deltaTime float64) {
 	defer tracing.NewRegion("VfxWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return

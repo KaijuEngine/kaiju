@@ -54,7 +54,6 @@ type ShadingWorkspace struct {
 	common_workspace.CommonWorkspace
 	ed                     ShadingWorkspaceEditorInterface
 	stageView              *editor_stage_view.StageView
-	updateId               engine.UpdateId
 	designer               shader_designer.ShaderDesigner
 	renderSpecList         *document.Element
 	renderSpecListTemplate *document.Element
@@ -99,7 +98,6 @@ func (w *ShadingWorkspace) Open() {
 	w.CommonOpen()
 	w.stageView.Open()
 	w.renderSpecListTemplate.UI.Hide()
-	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.designer.ChangeWindowState(shader_designer.StateNone)
 	w.renderSpecList.UI.Clean()
 }
@@ -109,7 +107,6 @@ func (w *ShadingWorkspace) Close() {
 	w.CommonClose()
 	w.stageView.Close()
 	w.designer.Close()
-	w.Host.Updater.RemoveUpdate(&w.updateId)
 }
 
 func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
@@ -172,7 +169,7 @@ func (w *ShadingWorkspace) OpenSpec(id string) {
 	w.Doc.ApplyStyles()
 }
 
-func (w *ShadingWorkspace) update(deltaTime float64) {
+func (w *ShadingWorkspace) Update(deltaTime float64) {
 	defer tracing.NewRegion("ShadingWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return

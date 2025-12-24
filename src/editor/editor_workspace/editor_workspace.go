@@ -44,4 +44,5 @@ type Workspace interface {
 	Focus()
 	Blur()
 	Hotkeys() []common_workspace.HotKey
+	Update(float64)
 }

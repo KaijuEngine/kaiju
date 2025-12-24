@@ -169,6 +169,10 @@ func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
+func (w *ContentWorkspace) Update(deltaTime float64) {
+	w.audio.update(deltaTime)
+}
+
 func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
