@@ -42,73 +42,81 @@ import (
 	"kaiju/engine"
 	"kaiju/engine_entity_data/engine_entity_data_particles"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
 	"kaiju/rendering/vfx"
 	"log/slog"
 )
 
-type ParticleSystemGizmo struct {
-	Id     string
-	System vfx.ParticleSystem
+type particleSystemGizmo struct {
+	id     string
+	system vfx.ParticleSystem
+	icon   rendering.DrawInstance
 }
 
 type ParticleSystemEntityDataRenderer struct {
-	Systems map[*editor_stage_manager.StageEntity]*ParticleSystemGizmo
+	Systems map[*editor_stage_manager.StageEntity]*particleSystemGizmo
 }
 
 func init() {
 	AddRenderer(engine_entity_data_particles.BindingKey, &ParticleSystemEntityDataRenderer{
-		Systems: make(map[*editor_stage_manager.StageEntity]*ParticleSystemGizmo),
+		Systems: make(map[*editor_stage_manager.StageEntity]*particleSystemGizmo),
 	})
 }
 
 func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Attached").End()
-	c.Systems[target] = &ParticleSystemGizmo{}
+	c.Systems[target] = &particleSystemGizmo{
+		icon: commonAttached(host, manager, target, "particles.png"),
+	}
+	target.OnActivate.Add(func() {
+		if g, ok := c.Systems[target]; ok {
+			g.system.Activate()
+		}
+	})
+	target.OnDeactivate.Add(func() {
+		if g, ok := c.Systems[target]; ok {
+			g.system.Deactivate()
+		}
+	})
 	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
+}
+
+func (c *ParticleSystemEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Detatched").End()
+	if d, ok := c.Systems[target]; ok {
+		d.icon.Destroy()
 		// Particle system destroys itself when the entity is destroyed
 		delete(c.Systems, target)
-	})
-	commonAttached(host, manager, target, "particles.png")
+	}
 }
 
 func (c *ParticleSystemEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Show").End()
 }
 
-func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	if g, ok := c.Systems[target]; ok {
-		id := data.FieldValueByName("Id").(string)
-		if g.Id != id {
-			g.Id = id
-			g.System.Clear()
-			spec, err := vfx.LoadSpec(host, id)
-			if err != nil {
-				slog.Error("invlaid particle system id specified", "id", id, "error", err)
-				return
-			}
-			if !g.System.IsValid() {
-				g.System.Initialize(host, &target.Entity, spec)
-			} else {
-				g.System.LoadSpec(host, spec)
-			}
-		}
-	}
-}
-
 func (c *ParticleSystemEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
 	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Hide").End()
 }
 
-func (c *ParticleSystemEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.EntitySpawn").End()
+func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if g, ok := c.Systems[target]; ok {
-		g.System.Activate()
-	}
-}
-
-func (c *ParticleSystemEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.EntityDestroy").End()
-	if g, ok := c.Systems[target]; ok {
-		g.System.Deactivate()
+		id := data.FieldValueByName("Id").(string)
+		if g.id == id && target.Transform.IsDirty() {
+			return
+		}
+		g.id = id
+		g.system.Clear()
+		spec, err := vfx.LoadSpec(host, id)
+		if err != nil {
+			slog.Error("invlaid particle system id specified", "id", id, "error", err)
+			return
+		}
+		if !g.system.IsValid() {
+			g.system.Initialize(host, &target.Entity, spec)
+		} else {
+			g.system.LoadSpec(host, spec)
+		}
 	}
 }

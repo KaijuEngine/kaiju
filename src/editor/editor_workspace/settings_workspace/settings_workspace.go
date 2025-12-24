@@ -79,6 +79,15 @@ func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspa
 	w.projectSettings = editor.Project().Settings()
 	w.CommonWorkspace.InitializeWithUI(host, uiFile, w.uiData(), w.funcMap())
 	w.reloadedUI()
+	w.editor.Events().OnContentRemoved.Add(func(ids []string) {
+		for i := range ids {
+			if ids[i] == w.projectSettings.EntryPointStage {
+				w.projectSettings.EntryPointStage = ""
+				w.projectSettings.Save(w.editor.Project().FileSystem())
+				w.RequestReload()
+			}
+		}
+	})
 }
 
 func (w *SettingsWorkspace) Open() {

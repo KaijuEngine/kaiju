@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* particle_system.go                                                         */
+/* history_stage_workspace_detach_entity_data.go                              */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,100 +34,37 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vfx
+package stage_workspace
 
 import (
-	"encoding/json"
-	"kaiju/engine"
-	"kaiju/klib"
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/platform/profiler/tracing"
-	"slices"
+	"weak"
 )
 
-type ParticleSystemSpec []EmitterConfig
-
-type ParticleSystem struct {
-	host     *engine.Host
-	entity   *engine.Entity
-	Emitters []Emitter
-	updateId engine.UpdateId
+type EntityDataDetachHistory struct {
+	DetailsWorkspace *WorkspaceDetailsUI
+	Entity           *editor_stage_manager.StageEntity
+	Data             *entity_data_binding.EntityDataEntry
 }
 
-func LoadSpec(host *engine.Host, id string) (ParticleSystemSpec, error) {
-	var spec ParticleSystemSpec
-	data, err := host.AssetDatabase().Read(id)
-	if err != nil {
-		return spec, err
-	}
-	err = json.Unmarshal(data, &spec)
-	return spec, err
+func (h *EntityDataDetachHistory) Redo() {
+	defer tracing.NewRegion("EntityDataDetachHistory.Redo").End()
+	h.Entity.DetachDataBinding(h.Data)
+	w := h.DetailsWorkspace.workspace.Value()
+	data_binding_renderer.Detatched(h.Data, weak.Make(w.Host), w.stageView.Manager(), h.Entity)
+	h.DetailsWorkspace.entitySelected(h.Entity)
 }
 
-func (p *ParticleSystem) IsValid() bool { return p.host != nil }
-
-func (p *ParticleSystem) Initialize(host *engine.Host, entity *engine.Entity, spec ParticleSystemSpec) {
-	defer tracing.NewRegion("ParticleSystem.Initialize").End()
-	p.host = host
-	p.entity = entity
-	p.updateId = host.Updater.AddUpdate(p.update)
-	p.entity.OnDestroy.Add(p.Destroy)
-	p.LoadSpec(host, spec)
+func (h *EntityDataDetachHistory) Undo() {
+	defer tracing.NewRegion("EntityDataDetachHistory.Undo").End()
+	h.Entity.AttachDataBinding(h.Data)
+	w := h.DetailsWorkspace.workspace.Value()
+	data_binding_renderer.Attached(h.Data, weak.Make(w.Host), w.stageView.Manager(), h.Entity)
+	h.DetailsWorkspace.entitySelected(h.Entity)
 }
 
-func (p *ParticleSystem) LoadSpec(host *engine.Host, spec ParticleSystemSpec) {
-	p.Emitters = make([]Emitter, len(spec))
-	for i := range p.Emitters {
-		p.Emitters[i].Initialize(host, spec[i])
-	}
-}
-
-func (p *ParticleSystem) Destroy() {
-	defer tracing.NewRegion("ParticleSystem.Initialize").End()
-	p.Clear()
-	if p.host != nil {
-		p.host.Updater.RemoveUpdate(&p.updateId)
-	}
-}
-
-func (p *ParticleSystem) Clear() {
-	defer tracing.NewRegion("ParticleSystem.Clear").End()
-	for i := range p.Emitters {
-		p.Emitters[i].Destroy()
-	}
-	p.Emitters = klib.WipeSlice(p.Emitters)
-}
-
-func (p *ParticleSystem) Activate() {
-	defer tracing.NewRegion("ParticleSystem.Activate").End()
-	for i := range p.Emitters {
-		p.Emitters[i].Activate()
-	}
-}
-
-func (p *ParticleSystem) Deactivate() {
-	defer tracing.NewRegion("ParticleSystem.Deactivate").End()
-	for i := range p.Emitters {
-		p.Emitters[i].Deactivate()
-	}
-}
-
-func (p *ParticleSystem) AddEmitter(cfg EmitterConfig) *Emitter {
-	defer tracing.NewRegion("ParticleSystem.AddEmitter").End()
-	p.Emitters = append(p.Emitters, Emitter{})
-	last := &p.Emitters[len(p.Emitters)-1]
-	last.Initialize(p.host, cfg)
-	return last
-}
-
-func (p *ParticleSystem) RemoveEmitter(idx int) {
-	defer tracing.NewRegion("ParticleSystem.RemoveEmitter").End()
-	p.Emitters[idx].Destroy()
-	p.Emitters = slices.Delete(p.Emitters, idx, idx+1)
-}
-
-func (p *ParticleSystem) update(deltaTime float64) {
-	defer tracing.NewRegion("ParticleSystem.update").End()
-	for i := range p.Emitters {
-		p.Emitters[i].update(&p.entity.Transform, deltaTime)
-	}
-}
+func (h *EntityDataDetachHistory) Delete() {}
+func (h *EntityDataDetachHistory) Exit()   {}

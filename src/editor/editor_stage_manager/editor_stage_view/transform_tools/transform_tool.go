@@ -433,11 +433,13 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		delta.SetZ(0)
 		t.lastHit = point.Add(delta)
 	}
-	t.transform(delta, host.Window.Keyboard.HasCtrl())
-	t.lastHit = point
-	for _, e := range sel {
-		for _, db := range e.DataBindings() {
-			data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+	if !t.lastHit.Equals(point) {
+		t.transform(delta, host.Window.Keyboard.HasCtrl())
+		t.lastHit = point
+		for _, e := range sel {
+			for _, db := range e.DataBindings() {
+				data_binding_renderer.Updated(db, weak.Make(t.stage.WorkspaceHost()), e)
+			}
 		}
 	}
 }

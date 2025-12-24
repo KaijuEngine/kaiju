@@ -109,6 +109,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"searchEntityData":  dui.searchEntityData,
 		"addEntityData":     dui.addEntityData,
 		"changeData":        dui.changeData,
+		"removeEntityData":  dui.removeEntityData,
 		"changeShaderData":  dui.changeShaderData,
 	}
 }
@@ -362,6 +363,11 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	dui.createDataBindingEntry(de, dui.boundEntityDataTemplate)
 	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
 	dui.entityDataList.UI.Hide()
+	w.ed.History().Add(&EntityDataAttachHistory{
+		DetailsWorkspace: dui,
+		Entity:           target,
+		Data:             de,
+	})
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
@@ -371,6 +377,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	cpy := w.Doc.DuplicateElement(tpl)
 	nameSpan := cpy.Children[0]
 	fieldDiv := cpy.Children[1]
+	if len(cpy.Children) == 3 {
+		deleteBtn := cpy.Children[1]
+		fieldDiv = cpy.Children[2]
+		deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+	}
 	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
@@ -589,6 +600,31 @@ func (dui *WorkspaceDetailsUI) reload() {
 		dui.hideDetails(nil)
 	}
 	dui.detailsArea.UI.Clean()
+}
+
+func (dui *WorkspaceDetailsUI) removeEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.removeEntityData").End()
+	bindIdx, err := strconv.Atoi(e.Attribute("data-bindidx"))
+	if err != nil {
+		return
+	}
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
+	entity := sel[0]
+	if bindIdx < 0 || bindIdx >= len(entity.DataBindings()) {
+		return
+	}
+	data := entity.DataBindings()[bindIdx]
+	h := &EntityDataDetachHistory{
+		DetailsWorkspace: dui,
+		Entity:           entity,
+		Data:             data,
+	}
+	w.ed.History().Add(h)
+	h.Redo()
 }
 
 func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {

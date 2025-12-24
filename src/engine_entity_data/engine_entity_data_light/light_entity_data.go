@@ -83,8 +83,8 @@ func (c LightEntityData) Init(e *engine.Entity, host *engine.Host) {
 	light := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
 		host.AssetDatabase(), host.MaterialCache(),
 		rendering.LightType(c.Type))
-	light.SetDirection(matrix.Vec3Forward())
-	light.SetPosition(matrix.Vec3Zero())
+	light.SetPosition(e.Transform.WorldPosition())
+	light.SetDirection(e.Transform.Up().Negative())
 	light.SetAmbient(c.Ambient)
 	light.SetDiffuse(c.Diffuse)
 	light.SetSpecular(c.Specular)
@@ -112,10 +112,8 @@ func (c *LightModule) update(deltaTime float64) {
 	light := c.lightEntry
 	// TODO:  Only make updates if things have changed?
 	light.Transform = &c.entity.Transform
-	light.Light.SetPosition(light.Transform.Position())
-	light.Light.SetDirection(light.Transform.Forward())
-	light.Light.SetDirection(matrix.Vec3Forward())
-	light.Light.SetPosition(matrix.Vec3Zero())
+	light.SetPosition(light.Transform.WorldPosition())
+	light.SetDirection(light.Transform.Up().Negative())
 	light.Light.SetAmbient(c.Data.Ambient)
 	light.Light.SetDiffuse(c.Data.Diffuse)
 	light.Light.SetSpecular(c.Data.Specular)

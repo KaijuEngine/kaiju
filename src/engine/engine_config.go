@@ -37,6 +37,6 @@
 package engine
 
 const (
-	DefaultWindowWidth  = 944
-	DefaultWindowHeight = 500
+	DefaultWindowWidth  = 1280
+	DefaultWindowHeight = 720
 )

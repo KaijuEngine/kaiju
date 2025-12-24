@@ -48,11 +48,10 @@ var renderers = map[string]DataBindingRenderer{}
 
 type DataBindingRenderer interface {
 	Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 	Hide(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
-	EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
-	EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
 }
 
 func AddRenderer(key string, r DataBindingRenderer) {
@@ -68,6 +67,17 @@ func Attached(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engin
 	}
 	if r, ok := renderers[data.Gen.RegisterKey]; ok {
 		r.Attached(h, manager, target, data)
+	}
+}
+
+func Detatched(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("data_binding_renderer.Attached").End()
+	h := host.Value()
+	if h == nil {
+		return
+	}
+	if r, ok := renderers[data.Gen.RegisterKey]; ok {
+		r.Detatched(h, manager, target, data)
 	}
 }
 
@@ -117,34 +127,6 @@ func Hide(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEnti
 	for i := range binds {
 		if r, ok := renderers[binds[i].Gen.RegisterKey]; ok {
 			r.Hide(h, target, binds[i])
-		}
-	}
-}
-
-func EntitySpawn(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity) {
-	defer tracing.NewRegion("data_binding_renderer.EntitySpawn").End()
-	h := host.Value()
-	if h == nil {
-		return
-	}
-	binds := target.DataBindings()
-	for i := range binds {
-		if r, ok := renderers[binds[i].Gen.RegisterKey]; ok {
-			r.EntitySpawn(h, target, binds[i])
-		}
-	}
-}
-
-func EntityDestroy(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity) {
-	defer tracing.NewRegion("data_binding_renderer.EntityDestroy").End()
-	h := host.Value()
-	if h == nil {
-		return
-	}
-	binds := target.DataBindings()
-	for i := range binds {
-		if r, ok := renderers[binds[i].Gen.RegisterKey]; ok {
-			r.EntityDestroy(h, target, binds[i])
 		}
 	}
 }

@@ -45,20 +45,19 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
-	"weak"
 )
 
-func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, iconName string) {
+func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, iconName string) rendering.DrawInstance {
 	mat, err := host.MaterialCache().Material(assets.MaterialDefinitionEdGizmo)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
-		return
+		return nil
 	}
 	tex, err := host.TextureCache().Texture(
 		"editor/textures/icons/"+iconName, rendering.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load the gizmo icon", "icon", iconName, "error", err)
-		return
+		return nil
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
@@ -82,14 +81,7 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 	box.Extent.ScaleAssign(0.5)
 	target.StageData.Bvh = collision.NewBVH([]collision.HitObject{box}, &target.Transform, target)
 	manager.AddBVH(target.StageData.Bvh, &target.Transform)
-	wManager := weak.Make(manager)
-	target.OnDestroy.Add(func() {
-		m := wManager.Value()
-		if m != nil {
-			m.RemoveEntityBVH(target)
-		}
-		sd.Destroy()
-	})
 	target.OnDeactivate.Add(sd.Deactivate)
 	target.OnActivate.Add(sd.Activate)
+	return sd
 }

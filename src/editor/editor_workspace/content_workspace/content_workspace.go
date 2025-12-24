@@ -157,6 +157,7 @@ func (w *ContentWorkspace) Open() {
 	}
 	w.Doc.Clean()
 	w.runFilter()
+	w.showRightPanel()
 }
 
 func (w *ContentWorkspace) Close() {
@@ -168,12 +169,17 @@ func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
+func (w *ContentWorkspace) Update(deltaTime float64) {
+	w.audio.update(deltaTime)
+}
+
 func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
 	file_browser.Show(w.Host, file_browser.Config{
-		ExtFilter:   content_database.ImportableTypes,
-		MultiSelect: true,
+		StartingPath: w.editor.ProjectFileSystem().FullPath(""),
+		ExtFilter:    content_database.ImportableTypes,
+		MultiSelect:  true,
 		OnConfirm: func(paths []string) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
@@ -185,7 +191,7 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 					} else {
 						var addDependencies func(target *content_database.ImportResult)
 						addDependencies = func(target *content_database.ImportResult) {
-							index = append(index, target.Id)
+							index = klib.AppendUnique(index, target.Id)
 							for k := range target.Dependencies {
 								addDependencies(&target.Dependencies[k])
 							}
@@ -220,12 +226,14 @@ func (w *ContentWorkspace) addContent(ids []string) {
 	}
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cache.Read(ids[i])
-		if err != nil {
-			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
-			continue
+		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+			cc, err := w.cache.Read(ids[i])
+			if err != nil {
+				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
+				continue
+			}
+			ccAll = append(ccAll, cc)
 		}
-		ccAll = append(ccAll, cc)
 	}
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.entryTemplate, len(ccAll))
 	for i := range cpys {

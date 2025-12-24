@@ -50,7 +50,7 @@ import (
 	"log/slog"
 )
 
-type RigidBodyGizmo struct {
+type rigidBodyGizmo struct {
 	ShaderData rendering.DrawInstance
 	Extent     matrix.Vec3
 	Mass       float32
@@ -61,31 +61,52 @@ type RigidBodyGizmo struct {
 }
 
 type RigidBodyEntityDataRenderer struct {
-	Wireframes map[*editor_stage_manager.StageEntity]RigidBodyGizmo
+	Wireframes map[*editor_stage_manager.StageEntity]rigidBodyGizmo
 }
 
 func init() {
 	AddRenderer(engine_entity_data_physics.BindingKey, &RigidBodyEntityDataRenderer{
-		Wireframes: make(map[*editor_stage_manager.StageEntity]RigidBodyGizmo),
+		Wireframes: make(map[*editor_stage_manager.StageEntity]rigidBodyGizmo),
 	})
 }
 
 func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	// commonAttached(host, manager, target, "light.png")
-}
-
-func (c *RigidBodyEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Show").End()
+	// defer tracing.NewRegion("RigidBodyEntityDataRenderer.Attached").End()
+	// icon := commonAttached(host, manager, target, "light.png")
 	if _, ok := c.Wireframes[target]; ok {
 		slog.Error("there is an internal error in state for the editor's RigidBodyEntityDataRenderer, show was called before any hide happened. Double selected the same target?")
-		c.Hide(host, target, data)
+		c.Detatched(host, manager, target, data)
 	}
-
-	g := RigidBodyGizmo{}
+	g := rigidBodyGizmo{}
 	g.reloadData(data)
 	var err error
 	if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
 		c.Wireframes[target] = g
+	}
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
+}
+
+func (c *RigidBodyEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Detatched").End()
+	if d, ok := c.Wireframes[target]; ok {
+		d.ShaderData.Destroy()
+		delete(c.Wireframes, target)
+	}
+}
+
+func (c *RigidBodyEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Show").End()
+	if d, ok := c.Wireframes[target]; ok {
+		d.ShaderData.Activate()
+	}
+}
+
+func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Hide").End()
+	if d, ok := c.Wireframes[target]; ok {
+		d.ShaderData.Deactivate()
 	}
 }
 
@@ -101,23 +122,7 @@ func (c *RigidBodyEntityDataRenderer) Update(host *engine.Host, target *editor_s
 	}
 }
 
-func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Hide").End()
-	if d, ok := c.Wireframes[target]; ok {
-		d.ShaderData.Destroy()
-		delete(c.Wireframes, target)
-	}
-}
-
-func (c *RigidBodyEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("RigidBodyEntityDataRenderer.EntitySpawn").End()
-}
-
-func (c *RigidBodyEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("RigidBodyEntityDataRenderer.EntityDestroy").End()
-}
-
-func rigidBodyLoadWireframe(host *engine.Host, g RigidBodyGizmo, transform *matrix.Transform) (rendering.DrawInstance, error) {
+func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matrix.Transform) (rendering.DrawInstance, error) {
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
 	if err != nil {
 		slog.Error("failed to load the grid material", "error", err)
@@ -155,7 +160,7 @@ func rigidBodyLoadWireframe(host *engine.Host, g RigidBodyGizmo, transform *matr
 	return gsd, nil
 }
 
-func (g *RigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) bool {
+func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) bool {
 	e := data.FieldValueByName("Extent").(matrix.Vec3)
 	m := data.FieldValueByName("Mass").(float32)
 	r := data.FieldValueByName("Radius").(float32)

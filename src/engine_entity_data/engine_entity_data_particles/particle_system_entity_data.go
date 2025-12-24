@@ -59,7 +59,7 @@ func init() {
 }
 
 type ParticleSystemEntityData struct {
-	Id string
+	Id string `visible:"false"`
 }
 
 func (r ParticleSystemEntityData) Init(e *engine.Entity, host *engine.Host) {

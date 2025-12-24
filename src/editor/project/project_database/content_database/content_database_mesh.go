@@ -215,6 +215,36 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			mat.Textures = append(mat.Textures, matchTexture(t))
 		}
 	}
+	// Determine if a matching material already exists
+	options := cache.ListByType(Material{}.TypeName())
+	// Searching reverse here as the latest additions are more likely to collide
+	for i := len(options) - 1; i >= 0; i-- {
+		d, err := fs.ReadFile(options[i].ContentPath())
+		if err != nil {
+			continue
+		}
+		var dm rendering.MaterialData
+		if err = json.Unmarshal(d, &dm); err != nil {
+			continue
+		}
+		same := mat.Shader == dm.Shader &&
+			mat.RenderPass == dm.RenderPass &&
+			mat.ShaderPipeline == dm.ShaderPipeline &&
+			mat.PrepassMaterial == dm.PrepassMaterial &&
+			mat.IsLit == dm.IsLit &&
+			mat.ReceivesShadows == dm.ReceivesShadows &&
+			mat.CastsShadows == dm.CastsShadows &&
+			len(mat.Textures) == len(dm.Textures)
+		if !same {
+			continue
+		}
+		for j := 0; j < len(mat.Textures) && same; j++ {
+			same = mat.Textures[j] == dm.Textures[j]
+		}
+		if same {
+			return nil
+		}
+	}
 	f, err := os.CreateTemp("", "*-kaiju-mat.material")
 	if err != nil {
 		return err

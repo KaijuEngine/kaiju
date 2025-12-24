@@ -94,3 +94,5 @@ func (w *CommonWorkspace) Blur() {
 	w.UiMan.DisableUpdate()
 	w.IsBlurred = true
 }
+
+func (w *CommonWorkspace) Update(float64) {}

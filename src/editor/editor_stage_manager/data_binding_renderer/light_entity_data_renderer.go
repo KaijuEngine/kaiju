@@ -52,18 +52,26 @@ import (
 
 func init() {
 	AddRenderer(engine_entity_data_light.BindingKey, &LightEntityDataRenderer{
-		LightLines: make(map[*editor_stage_manager.StageEntity]rendering.DrawInstance),
-		LightIds:   make(map[*editor_stage_manager.StageEntity]*lighting.LightEntry),
+		Lights: make(map[*editor_stage_manager.StageEntity]lightEntityDataDrawing),
 	})
 }
 
 type LightEntityDataRenderer struct {
-	LightLines map[*editor_stage_manager.StageEntity]rendering.DrawInstance
-	LightIds   map[*editor_stage_manager.StageEntity]*lighting.LightEntry
+	Lights map[*editor_stage_manager.StageEntity]lightEntityDataDrawing
+}
+
+type lightEntityDataDrawing struct {
+	icon  rendering.DrawInstance
+	lines rendering.DrawInstance
+	light *lighting.LightEntry
 }
 
 func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	commonAttached(host, manager, target, "light.png")
+	defer tracing.NewRegion("LightEntityDataRenderer.Attached").End()
+	icon := commonAttached(host, manager, target, "light.png")
+	if _, ok := c.Lights[target]; ok {
+		return
+	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
 		host.AssetDatabase(), host.MaterialCache(), lightType)
@@ -79,19 +87,83 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 	l.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
 	l.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
 	l.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
-	c.LightIds[target] = host.Lighting().Lights.Add(&target.Transform, l)
+	c.Lights[target] = lightEntityDataDrawing{
+		icon:  icon,
+		lines: c.createLines(host, &target.Transform),
+		light: host.Lighting().Lights.Add(&target.Transform, l),
+	}
+	target.OnActivate.Add(func() {
+		if d, ok := c.Lights[target]; ok {
+			d.icon.Activate()
+			d.light = host.Lighting().Lights.Add(&target.Transform, l)
+			c.Lights[target] = d
+		}
+	})
+	target.OnDeactivate.Add(func() {
+		if d, ok := c.Lights[target]; ok {
+			d.icon.Deactivate()
+			host.Lighting().Lights.Remove(d.light)
+			d.light = nil
+			c.Lights[target] = d
+		}
+	})
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
+}
+
+func (c *LightEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightEntityDataRenderer.Detatched").End()
+	if d, ok := c.Lights[target]; ok {
+		if d.light != nil {
+			host.Lighting().Lights.Remove(d.light)
+		}
+		d.icon.Destroy()
+		d.lines.Destroy()
+		delete(c.Lights, target)
+	}
 }
 
 func (c *LightEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("LightEntityDataRenderer.Show").End()
-	if _, ok := c.LightLines[target]; ok {
-		slog.Error("there is an internal error in state for the editor's LightEntityDataRenderer, show was called before any hide happened. Double selected the same target?")
-		c.Hide(host, target, data)
+	if d, ok := c.Lights[target]; ok {
+		d.lines.Activate()
 	}
+}
+
+func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("LightEntityDataRenderer.Hide").End()
+	if d, ok := c.Lights[target]; ok {
+		d.lines.Deactivate()
+	}
+}
+
+func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	l := c.Lights[target]
+	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
+	if l.light.Type() != lightType {
+		l.light.Light = rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+			host.AssetDatabase(), host.MaterialCache(), lightType)
+	}
+	l.light.Light.SetPosition(l.light.Transform.WorldPosition())
+	l.light.Light.SetDirection(l.light.Transform.Up().Negative())
+	l.light.Light.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
+	l.light.Light.SetDiffuse(data.FieldValueByName("Diffuse").(matrix.Vec3))
+	l.light.Light.SetSpecular(data.FieldValueByName("Specular").(matrix.Vec3))
+	l.light.Light.SetIntensity(float32(data.FieldValueByName("Intensity").(float32)))
+	l.light.Light.SetConstant(float32(data.FieldValueByName("Constant").(float32)))
+	l.light.Light.SetLinear(float32(data.FieldValueByName("Linear").(float32)))
+	l.light.Light.SetQuadratic(float32(data.FieldValueByName("Quadratic").(float32)))
+	l.light.Light.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
+	l.light.Light.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
+	l.light.Light.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
+}
+
+func (c *LightEntityDataRenderer) createLines(host *engine.Host, transform *matrix.Transform) rendering.DrawInstance {
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
 	if err != nil {
 		slog.Error("failed to load the grid material", "error", err)
-		return
+		return nil
 	}
 	points := []matrix.Vec3{
 		matrix.NewVec3(0, 0, 0), // Center
@@ -119,45 +191,8 @@ func (c *LightEntityDataRenderer) Show(host *engine.Host, target *editor_stage_m
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: gsd,
-		Transform:  &target.Transform,
+		Transform:  transform,
 		ViewCuller: &host.Cameras.Primary,
 	})
-	c.LightLines[target] = sd
-}
-
-func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	l := c.LightIds[target]
-	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
-	if l.Type() != lightType {
-		l.Light = rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
-			host.AssetDatabase(), host.MaterialCache(), lightType)
-	}
-	l.Light.SetPosition(l.Transform.WorldPosition())
-	l.Light.SetDirection(l.Transform.Up().Negative())
-	l.Light.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
-	l.Light.SetDiffuse(data.FieldValueByName("Diffuse").(matrix.Vec3))
-	l.Light.SetSpecular(data.FieldValueByName("Specular").(matrix.Vec3))
-	l.Light.SetIntensity(float32(data.FieldValueByName("Intensity").(float32)))
-	l.Light.SetConstant(float32(data.FieldValueByName("Constant").(float32)))
-	l.Light.SetLinear(float32(data.FieldValueByName("Linear").(float32)))
-	l.Light.SetQuadratic(float32(data.FieldValueByName("Quadratic").(float32)))
-	l.Light.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
-	l.Light.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
-	l.Light.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
-}
-
-func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	defer tracing.NewRegion("LightEntityDataRenderer.Hide").End()
-	if d, ok := c.LightLines[target]; ok {
-		d.Destroy()
-		delete(c.LightLines, target)
-	}
-}
-
-func (c *LightEntityDataRenderer) EntitySpawn(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("LightEntityDataRenderer.EntitySpawn").End()
-}
-
-func (c *LightEntityDataRenderer) EntityDestroy(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
-	// defer tracing.NewRegion("LightEntityDataRenderer.EntityDestroy").End()
+	return sd
 }

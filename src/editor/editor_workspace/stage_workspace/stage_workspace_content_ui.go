@@ -146,12 +146,14 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w := cui.workspace.Value()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.ed.Cache().Read(ids[i])
-		if err != nil {
-			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
-			continue
+		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+			cc, err := w.ed.Cache().Read(ids[i])
+			if err != nil {
+				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
+				continue
+			}
+			ccAll = append(ccAll, cc)
 		}
-		ccAll = append(ccAll, cc)
 	}
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {

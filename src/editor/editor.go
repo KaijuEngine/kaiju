@@ -197,11 +197,17 @@ func (ed *Editor) update(deltaTime float64) {
 		if kb.KeyDown(hid.KeyboardKeyZ) {
 			if !kb.HasShift() {
 				ed.history.Undo()
+				return
 			} else {
 				ed.history.Redo()
+				return
 			}
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
+			return
+		} else if kb.KeyDown(hid.KeyboardKeyS) {
+			ed.SaveCurrentStage()
+			return
 		}
 	}
 	if kb.HasShift() && kb.KeyDown(hid.KeyboardKeyF1) {
@@ -210,8 +216,14 @@ func (ed *Editor) update(deltaTime float64) {
 		ai_prompt.Show(ed.host, func() {
 			ed.FocusInterface()
 		})
+		return
+	}
+	if kb.KeyDown(hid.KeyboardKeyF5) {
+		ed.BuildAndRunCurrentStage()
+		return
 	}
 	processWorkspaceHotkeys(ed, kb)
+	ed.currentWorkspace.Update(deltaTime)
 }
 
 func processWorkspaceHotkeys(ed *Editor, kb *hid.Keyboard) {

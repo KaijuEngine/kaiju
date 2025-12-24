@@ -134,12 +134,19 @@ func (s *Stage) ToMinimized() StageJson {
 	meshMap[""] = 0
 	matMap[""] = 0
 	texMap[""] = 0
-	for i := range s.Entities {
-		meshMap[s.Entities[i].Mesh] = 0
-		matMap[s.Entities[i].Material] = 0
-		for j := range s.Entities[i].Textures {
-			texMap[s.Entities[i].Textures[j]] = 0
+	var gatherMappings func(desc *EntityDescription)
+	gatherMappings = func(desc *EntityDescription) {
+		meshMap[desc.Mesh] = 0
+		matMap[desc.Material] = 0
+		for j := range desc.Textures {
+			texMap[desc.Textures[j]] = 0
 		}
+		for i := range desc.Children {
+			gatherMappings(&desc.Children[i])
+		}
+	}
+	for i := range s.Entities {
+		gatherMappings(&s.Entities[i])
 	}
 	for k := range meshMap {
 		meshMap[k] = len(ss.Meshes)

@@ -92,62 +92,79 @@ func (ed *Editor) SettingsWorkspaceSelected() {
 }
 
 func (ed *Editor) Build(buildMode project.GameBuildMode) {
-	if !ed.ensureMainStageExists() {
-		return
-	}
-	// goroutine
-	go ed.project.CompileGame(buildMode)
-	// goroutine
-	go ed.project.Package(ed.host.AssetDatabase())
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		if !ed.ensureMainStageExists() {
+			return
+		}
+		// goroutine
+		go ed.project.CompileGame(buildMode)
+		// goroutine
+		go ed.project.Package(ed.host.AssetDatabase())
+	})
 }
 
 func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
-	if !ed.ensureMainStageExists() {
-		return
-	}
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	// goroutine
-	go func() {
-		ed.project.CompileGame(buildMode)
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		ed.project.Package(ed.host.AssetDatabase())
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		wg.Wait()
-		ed.project.Run()
-	}()
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		if !ed.ensureMainStageExists() {
+			return
+		}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		// goroutine
+		go func() {
+			ed.project.CompileGame(buildMode)
+			wg.Done()
+		}()
+		// Archiving isn't required for debug builds as they don't use the
+		// packaged content archive
+		if buildMode != project.GameBuildModeDebug {
+			wg.Add(1)
+			// goroutine
+			go func() {
+				ed.project.Package(ed.host.AssetDatabase())
+				wg.Done()
+			}()
+		}
+		// goroutine
+		go func() {
+			wg.Wait()
+			ed.project.Run()
+		}()
+	})
 }
 
 func (ed *Editor) BuildAndRunCurrentStage() {
-	stageId := ed.stageView.Manager().StageId()
-	if stageId == "" {
-		slog.Error("current stage has not yet been created, please save it to test")
-		return
-	}
-	ed.stageView.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	// goroutine
-	go func() {
-		ed.project.CompileDebug()
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		ed.project.Package(ed.host.AssetDatabase())
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		wg.Wait()
-		ed.project.Run("-startStage", stageId)
-	}()
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		stageId := ed.stageView.Manager().StageId()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		// goroutine
+		go func() {
+			ed.project.CompileDebug()
+			wg.Done()
+		}()
+		// Archiving isn't required for build and run current stage because
+		// debug builds don't use the packaged content archive
+		// goroutine
+		//go func() {
+		//	ed.project.Package(ed.host.AssetDatabase())
+		//	wg.Done()
+		//}()
+		// goroutine
+		go func() {
+			wg.Wait()
+			ed.project.Run("-startStage", stageId)
+		}()
+	})
 }
 
 // OpenCodeEditor will run a command specified in CodeEditor settings entry
@@ -183,6 +200,9 @@ func (ed *Editor) CreateNewStage() {
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
 	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
+	if !ed.history.HasPendingChanges() {
+		return
+	}
 	sm := ed.stageView.Manager()
 	if sm.IsNew() {
 		ed.BlurInterface()
@@ -201,6 +221,38 @@ func (ed *Editor) SaveCurrentStage() {
 		})
 	} else {
 		ed.saveCurrentStageWithoutNameInput()
+	}
+}
+
+func (ed *Editor) SaveCurrentStageWithCallback(cb func(bool)) {
+	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
+	if !ed.history.HasPendingChanges() {
+		cb(true)
+		return
+	}
+	sm := ed.stageView.Manager()
+	if sm.IsNew() {
+		ed.BlurInterface()
+		input_prompt.Show(ed.host, input_prompt.Config{
+			Title:       "Name stage",
+			Description: "What would you like to name your stage?",
+			Placeholder: "Stage name...",
+			Value:       "New Stage",
+			ConfirmText: "Save",
+			CancelText:  "Cancel",
+			OnConfirm: func(name string) {
+				ed.FocusInterface()
+				ed.saveNewStage(strings.TrimSpace(name))
+				cb(true)
+			},
+			OnCancel: func() {
+				ed.FocusInterface()
+				cb(false)
+			},
+		})
+	} else {
+		ed.saveCurrentStageWithoutNameInput()
+		cb(true)
 	}
 }
 

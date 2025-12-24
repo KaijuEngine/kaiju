@@ -71,10 +71,20 @@ func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Ligh
 		Light:     target,
 		Transform: transform,
 	}
+	c.setHasChanges()
+	return entry
+}
+
+func (c *LightCollection) Remove(light *LightEntry) {
+	defer tracing.NewRegion("LightCollection.Remove").End()
+	c.pools.Remove(light.poolId, light.id)
+	c.setHasChanges()
+}
+
+func (c *LightCollection) setHasChanges() {
 	// Hack to force the next update cache to happen
 	c.lastPoint = matrix.NewVec3(matrix.Inf(1), matrix.Inf(1), matrix.Inf(1))
 	c.hasChanges = true
-	return entry
 }
 
 func (c *LightCollection) Clear() {
@@ -117,6 +127,7 @@ func (c *LightCollection) findLocalLights(point matrix.Vec3, writeTo []rendering
 			}
 		})
 		c.lastPoint = point
+		clear(writeTo)
 	}
 	for i := range min(len(writeTo), len(c.itrDists)) {
 		writeTo[i] = c.itrDists[i].Light

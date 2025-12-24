@@ -206,6 +206,21 @@ func (c *Cache) Search(query string) []CachedContent {
 	return out
 }
 
+func (c *Cache) SearchSources(typeName, src string) []CachedContent {
+	defer tracing.NewRegion("Cache.SearchSources").End()
+	out := []CachedContent{}
+	q := strings.ToLower(src)
+	for i := range c.cache {
+		if c.cache[i].Config.Type == typeName {
+			p := strings.ToLower(c.cache[i].Config.SrcPath)
+			if p == q {
+				out = append(out, c.cache[i])
+			}
+		}
+	}
+	return out
+}
+
 // Build will run through the project's file system config folder and scan all
 // of the content configurations in the folder and load them into memory as part
 // of the cache. While the build is running, searches and filters will work,

@@ -215,6 +215,7 @@ func (w *StageWorkspace) loadStage(id string) {
 				data_binding_renderer.Attached(b, weak.Make(w.Host), man, e)
 			}
 		}
+		w.ed.History().Clear()
 	}
 }
 
@@ -338,6 +339,16 @@ func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent,
 		de.SetFieldByName("Id", cc.Id())
 		data_binding_renderer.Updated(de, weak.Make(w.Host), e)
 	}
+	changeEvtId := w.ed.Events().OnContentChangesSaved.Add(func(id string) {
+		for _, de := range e.DataBindingsByKey(bindKey) {
+			if de.FieldValueByName("Id").(string) == id {
+				data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+			}
+		}
+	})
+	e.OnDestroy.Add(func() {
+		w.ed.Events().OnContentChangesSaved.Remove(changeEvtId)
+	})
 }
 
 func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *editor_stage_manager.StageEntity) {
