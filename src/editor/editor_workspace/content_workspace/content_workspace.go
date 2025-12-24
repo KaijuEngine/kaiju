@@ -190,7 +190,7 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 					} else {
 						var addDependencies func(target *content_database.ImportResult)
 						addDependencies = func(target *content_database.ImportResult) {
-							index = append(index, target.Id)
+							index = klib.AppendUnique(index, target.Id)
 							for k := range target.Dependencies {
 								addDependencies(&target.Dependencies[k])
 							}

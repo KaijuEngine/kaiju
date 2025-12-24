@@ -96,6 +96,14 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	if !ok {
 		return res, CategoryNotFoundError{Path: path}
 	}
+	srcPath := fs.NormalizePath(path)
+	matches := cache.SearchSources(cat.TypeName(), srcPath)
+	if len(matches) == 1 {
+		return []ImportResult{{
+			Id:       matches[0].Id(),
+			Category: cat,
+		}}, nil
+	}
 	proc, err := cat.Import(path, fs)
 	if err != nil {
 		return res, err
@@ -126,7 +134,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			Name:     proc.Variants[i].Name,
 			SrcName:  proc.Variants[i].Name,
 			Type:     cat.TypeName(),
-			SrcPath:  fs.NormalizePath(path),
+			SrcPath:  srcPath,
 			LinkedId: linkedId,
 		}
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
