@@ -731,9 +731,11 @@ func (input *Input) SetCursorOffset(offset int) {
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 	host := input.man.Value().Host
-	if input.entity.IsActive() && input.InputData().isActive {
+	data := input.InputData()
+	if input.entity.IsActive() && data.isActive {
 		if keyState == hid.KeyStateDown {
 			if keyId == hid.KeyboardKeyEscape {
+				input.SetTextWithoutEvent(data.textOnFocus)
 				input.RemoveFocus()
 				return
 			}
