@@ -218,6 +218,10 @@ func (ed *Editor) update(deltaTime float64) {
 		})
 		return
 	}
+	if kb.KeyDown(hid.KeyboardKeyF5) {
+		ed.BuildAndRunCurrentStage()
+		return
+	}
 	processWorkspaceHotkeys(ed, kb)
 	ed.currentWorkspace.Update(deltaTime)
 }
