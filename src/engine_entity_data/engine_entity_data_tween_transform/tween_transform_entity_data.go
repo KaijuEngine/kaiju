@@ -181,8 +181,13 @@ func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host) {
 			}
 		}
 	}
+	wh := weak.Make(host)
 	runTween = func(to float32) {
-		host.RunNextFrame(func() {
+		h := wh.Value()
+		if h == nil {
+			return
+		}
+		h.RunNextFrame(func() {
 			tween.t = 1 - to
 			tweening.DoTweenExt(&tween.t, to, d.Time, d.Delay, tweening.Easing(d.Easing), tweenTo, tweenDone)
 		})
