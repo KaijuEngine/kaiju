@@ -85,6 +85,7 @@ type inputData struct {
 	prevFocusInput                    weak.Pointer[Input]
 	nextFocusInput                    weak.Pointer[Input]
 	labelShift                        float32
+	textOnFocus                       string
 }
 
 func (i *inputData) innerPanelData() *panelData { return &i.panelData }
@@ -693,10 +694,12 @@ func (input *Input) IsFocused() bool {
 }
 
 func (input *Input) Focus() {
-	if !input.InputData().isActive {
-		input.InputData().isActive = true
+	data := input.InputData()
+	if !data.isActive {
+		data.isActive = true
 		input.resetSelect()
 		input.showCursor()
+		data.textOnFocus = input.Text()
 		man := input.man.Value()
 		if man != nil {
 			man.Group.setFocus((*UI)(input))
@@ -705,10 +708,16 @@ func (input *Input) Focus() {
 }
 
 func (input *Input) RemoveFocus() {
-	if input.InputData().isActive {
-		input.InputData().isActive = false
+	data := input.InputData()
+	if data.isActive {
+		data.isActive = false
 		input.resetSelect()
 		input.hideCursor()
+		txt := input.Text()
+		if data.textOnFocus != txt {
+			data.textOnFocus = txt
+			input.submit()
+		}
 		man := input.man.Value()
 		if man != nil {
 			man.Host.Window.CursorStandard()
