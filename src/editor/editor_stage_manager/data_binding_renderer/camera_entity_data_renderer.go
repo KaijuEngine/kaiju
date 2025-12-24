@@ -110,6 +110,9 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 			d.sd.Deactivate()
 		}
 	})
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
 }
 
 func (c *CameraEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {

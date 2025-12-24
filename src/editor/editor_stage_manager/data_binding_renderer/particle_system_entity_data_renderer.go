@@ -68,10 +68,6 @@ func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *
 	c.Systems[target] = &particleSystemGizmo{
 		icon: commonAttached(host, manager, target, "particles.png"),
 	}
-	target.OnDestroy.Add(func() {
-		// Particle system destroys itself when the entity is destroyed
-		delete(c.Systems, target)
-	})
 	target.OnActivate.Add(func() {
 		if g, ok := c.Systems[target]; ok {
 			g.system.Activate()
@@ -82,12 +78,17 @@ func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *
 			g.system.Deactivate()
 		}
 	})
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
 }
 
 func (c *ParticleSystemEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Detatched").End()
 	if d, ok := c.Systems[target]; ok {
 		d.icon.Destroy()
+		// Particle system destroys itself when the entity is destroyed
+		delete(c.Systems, target)
 	}
 }
 

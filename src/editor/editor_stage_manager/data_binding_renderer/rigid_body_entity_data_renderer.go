@@ -83,6 +83,9 @@ func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *edito
 	if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
 		c.Wireframes[target] = g
 	}
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
 }
 
 func (c *RigidBodyEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
