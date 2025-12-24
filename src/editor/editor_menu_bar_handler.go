@@ -115,17 +115,22 @@ func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 			return
 		}
 		wg := sync.WaitGroup{}
-		wg.Add(2)
+		wg.Add(1)
 		// goroutine
 		go func() {
 			ed.project.CompileGame(buildMode)
 			wg.Done()
 		}()
-		// goroutine
-		go func() {
-			ed.project.Package(ed.host.AssetDatabase())
-			wg.Done()
-		}()
+		// Archiving isn't required for debug builds as they don't use the
+		// packaged content archive
+		if buildMode != project.GameBuildModeDebug {
+			wg.Add(1)
+			// goroutine
+			go func() {
+				ed.project.Package(ed.host.AssetDatabase())
+				wg.Done()
+			}()
+		}
 		// goroutine
 		go func() {
 			wg.Wait()
@@ -141,17 +146,19 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 		}
 		stageId := ed.stageView.Manager().StageId()
 		wg := sync.WaitGroup{}
-		wg.Add(2)
+		wg.Add(1)
 		// goroutine
 		go func() {
 			ed.project.CompileDebug()
 			wg.Done()
 		}()
+		// Archiving isn't required for build and run current stage because
+		// debug builds don't use the packaged content archive
 		// goroutine
-		go func() {
-			ed.project.Package(ed.host.AssetDatabase())
-			wg.Done()
-		}()
+		//go func() {
+		//	ed.project.Package(ed.host.AssetDatabase())
+		//	wg.Done()
+		//}()
 		// goroutine
 		go func() {
 			wg.Wait()
