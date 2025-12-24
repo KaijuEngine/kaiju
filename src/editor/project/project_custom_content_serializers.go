@@ -64,8 +64,8 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 	}
 	s := stages.Stage{}
 	s.FromMinimized(ss)
-	var removeUnpackedDataBindings func(desc *stages.EntityDescription)
-	removeUnpackedDataBindings = func(desc *stages.EntityDescription) {
+	var removeUnpackedDataBindings func(desc *stages.EntityDescription) error
+	removeUnpackedDataBindings = func(desc *stages.EntityDescription) error {
 		for i := range desc.DataBinding {
 			g, ok := p.EntityDataBinding(desc.DataBinding[i].RegistraionKey)
 			if ok {
@@ -84,7 +84,7 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 		// Simpler than most ideas I had, essentially pull the shader data
 		// the same way you would in a running game. Then cast all of the JSON
 		// fields to the instance through the entity_data_binding.ToDataBinding
-		// helpers. Then pull the actual value out for seialization.
+		// helpers. Then pull the actual value out for serialization.
 		//
 		// This is needed because the JSON serialization doesn't use the correct
 		// types internally, int would be int64 and float32 would be float64. So
@@ -124,11 +124,16 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 		}
 		extractShaderData()
 		for i := range desc.Children {
-			removeUnpackedDataBindings(&desc.Children[i])
+			if err := removeUnpackedDataBindings(&desc.Children[i]); err != nil {
+				return err
+			}
 		}
+		return nil
 	}
 	for i := range s.Entities {
-		removeUnpackedDataBindings(&s.Entities[i])
+		if err := removeUnpackedDataBindings(&s.Entities[i]); err != nil {
+			return rawData, err
+		}
 	}
 	stream := bytes.NewBuffer(rawData)
 	stream.Reset()

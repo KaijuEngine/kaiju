@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* entity_data_binding.go                                                     */
+/* project_entity_template_reader.go                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,84 +34,30 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine
+package project
 
 import (
-	"errors"
-	"kaiju/build"
-	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/matrix"
-	"log/slog"
-	"reflect"
+	"encoding/json"
+	"kaiju/editor/project/project_database/content_database"
+	"kaiju/engine/stages"
+	"kaiju/platform/profiler/tracing"
 )
 
-var DebugEntityDataRegistry = map[string]EntityData{}
-
-type EntityData interface {
-	Init(entity *Entity, host *Host)
-}
-
-func RegisterEntityData(name string, value EntityData) error {
-	var err error
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.New(r.(string))
-		}
-	}()
-	gob.RegisterName(name, value)
-	if build.Debug {
-		DebugEntityDataRegistry[name] = value
+func (p *Project) ReadEntityTemplate(id string) (stages.EntityDescription, error) {
+	defer tracing.NewRegion("StageManager.readTemplate").End()
+	cc, err := p.cacheDatabase.Read(id)
+	if err != nil {
+		return stages.EntityDescription{}, err
 	}
-	return err
-}
-
-func ReflectValueFromJson(v any, f reflect.Value) {
-	switch f.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-		elemType := f.Type().Elem()
-		if elemType.Kind() == reflect.Float32 || elemType.Kind() == reflect.Float64 {
-			if ivs, ok := v.([]interface{}); ok && len(ivs) == f.Len() {
-				for i := 0; i < f.Len(); i++ {
-					if num, ok := ivs[i].(float64); ok {
-						f.Index(i).SetFloat(num)
-					} else {
-						slog.Error("invalid float in array of floats", "index", i)
-					}
-				}
-			} else if ivs, ok := v.([]float32); ok && len(ivs) == f.Len() {
-				for i := 0; i < f.Len(); i++ {
-					f.Index(i).SetFloat(float64(ivs[i]))
-				}
-			} else if ivs, ok := v.([]float64); ok && len(ivs) == f.Len() {
-				for i := 0; i < f.Len(); i++ {
-					f.Index(i).SetFloat(ivs[i])
-				}
-			} else if vec, ok := v.(matrix.Vec2); ok {
-				for i := 0; i < len(vec); i++ {
-					f.Index(i).SetFloat(float64(vec[i]))
-				}
-			} else if vec, ok := v.(matrix.Vec3); ok {
-				for i := 0; i < len(vec); i++ {
-					f.Index(i).SetFloat(float64(vec[i]))
-				}
-			} else if vec, ok := v.(matrix.Vec4); ok {
-				for i := 0; i < len(vec); i++ {
-					f.Index(i).SetFloat(float64(vec[i]))
-				}
-			} else if vec, ok := v.(matrix.Color); ok {
-				for i := 0; i < len(vec); i++ {
-					f.Index(i).SetFloat(float64(vec[i]))
-				}
-			}
-		}
-	case reflect.Float32, reflect.Int, reflect.Uint, reflect.Int8, reflect.Int16,
-		reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		f.Set(reflect.ValueOf(v).Convert(f.Type()))
-	default:
-		if f.IsValid() {
-			f.Set(reflect.ValueOf(v))
-		}
+	f, err := p.fileSystem.Open(content_database.ToContentPath(cc.Path))
+	if err != nil {
+		return stages.EntityDescription{}, err
 	}
+	defer f.Close()
+	var desc stages.EntityDescription
+	if err = json.NewDecoder(f).Decode(&desc); err != nil {
+		return stages.EntityDescription{}, err
+	}
+	desc.TemplateId = id
+	return desc, nil
 }

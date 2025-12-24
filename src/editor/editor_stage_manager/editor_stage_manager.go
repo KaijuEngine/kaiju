@@ -479,7 +479,7 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s.FromMinimized(ss)
 	for i := range s.Entities {
 		if s.Entities[i].TemplateId != "" {
-			s.Entities[i], err = m.readTemplate(cache, proj.FileSystem(), s.Entities[i].TemplateId)
+			s.Entities[i], err = proj.ReadEntityTemplate(s.Entities[i].TemplateId)
 			if err != nil {
 				return err
 			}
@@ -614,25 +614,6 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		m.SelectEntity(e)
 	}
 	return nil
-}
-
-func (m *StageManager) readTemplate(cache *content_database.Cache, fs *project_file_system.FileSystem, id string) (stages.EntityDescription, error) {
-	defer tracing.NewRegion("StageManager.readTemplate").End()
-	cc, err := cache.Read(id)
-	if err != nil {
-		return stages.EntityDescription{}, err
-	}
-	f, err := fs.Open(content_database.ToContentPath(cc.Path))
-	if err != nil {
-		return stages.EntityDescription{}, err
-	}
-	defer f.Close()
-	var desc stages.EntityDescription
-	if err = json.NewDecoder(f).Decode(&desc); err != nil {
-		return stages.EntityDescription{}, err
-	}
-	desc.TemplateId = id
-	return desc, nil
 }
 
 func (m *StageManager) importEntityByDescription(host *engine.Host, proj *project.Project, parent *StageEntity, desc *stages.EntityDescription) (*StageEntity, error) {
@@ -788,7 +769,7 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 	if templateId == "" {
 		return nil
 	}
-	tpl, err := m.readTemplate(proj.CacheDatabase(), proj.FileSystem(), templateId)
+	tpl, err := proj.ReadEntityTemplate(templateId)
 	if err != nil {
 		slog.Error("failed to read the template file", "error", err)
 		return err
