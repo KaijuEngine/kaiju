@@ -219,7 +219,15 @@ func (ed *Editor) update(deltaTime float64) {
 		return
 	}
 	if kb.KeyDown(hid.KeyboardKeyF5) {
-		ed.BuildAndRunCurrentStage()
+		if kb.HasCtrl() {
+			if kb.HasShift() {
+				ed.BuildAndRun(project.GameBuildModeRelease)
+			} else {
+				ed.BuildAndRun(project.GameBuildModeDebug)
+			}
+		} else {
+			ed.BuildAndRunCurrentStage()
+		}
 		return
 	}
 	processWorkspaceHotkeys(ed, kb)
