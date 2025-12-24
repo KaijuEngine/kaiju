@@ -51,13 +51,21 @@ type detailsDataChangeHistory struct {
 func (h *detailsDataChangeHistory) Redo() {
 	defer tracing.NewRegion("DetailsChangeHistory.Redo").End()
 	h.Value.Set(reflect.ValueOf(h.To))
-	h.DetailsWorkspace.reload()
+	if reload, ok := h.DetailsWorkspace.TargetedElementValueReload[h.Value]; ok {
+		reload()
+	} else {
+		h.DetailsWorkspace.reload()
+	}
 }
 
 func (h *detailsDataChangeHistory) Undo() {
 	defer tracing.NewRegion("DetailsChangeHistory.Undo").End()
 	h.Value.Set(reflect.ValueOf(h.From))
-	h.DetailsWorkspace.reload()
+	if reload, ok := h.DetailsWorkspace.TargetedElementValueReload[h.Value]; ok {
+		reload()
+	} else {
+		h.DetailsWorkspace.reload()
+	}
 }
 
 func (h *detailsDataChangeHistory) Delete() {}

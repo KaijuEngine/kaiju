@@ -89,6 +89,7 @@ type WorkspaceDetailsUI struct {
 	entityDataListTemplate     *document.Element
 	boundEntityDataTemplate    *document.Element
 	shaderInstanceDataTemplate *document.Element
+	TargetedElementValueReload map[reflect.Value]func()
 }
 
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
@@ -117,6 +118,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setup").End()
 	dui.workspace = weak.Make(w)
+	dui.TargetedElementValueReload = make(map[reflect.Value]func())
 	dui.detailsArea, _ = w.Doc.GetElementById("detailsArea")
 	dui.hideDetailsElm, _ = w.Doc.GetElementById("hideDetails")
 	dui.showDetailsElm, _ = w.Doc.GetElementById("showDetails")
@@ -372,9 +374,10 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
+	clear(dui.TargetedElementValueReload)
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
-	cpy := w.Doc.DuplicateElement(tpl)
+	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
 	nameSpan := cpy.Children[0]
 	fieldDiv := cpy.Children[1]
 	if len(cpy.Children) == 3 {
@@ -387,7 +390,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
 	} else if len(g.Fields) > 1 {
-		fields = append(fields, w.Doc.DuplicateElementRepeat(fieldDiv, len(g.Fields)-1)...)
+		fields = append(fields, w.Doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
 	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
@@ -412,63 +415,83 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		selectInput := fields[i].Children[7]
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		fg := &g.Gen.FieldGens[i]
+		v := reflect.ValueOf(g.BoundData).Elem().Field(i)
+		var valReload func()
 		if fg.IsValid() && len(fg.EnumValues) > 0 {
 			selectInput.UI.Show()
-			sel := selectInput.Children[0].UI.ToSelect()
-			sel.ClearOptions()
-			opts := []ui.SelectOption{}
-			for k, v := range fg.EnumValues {
-				opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+			valReload = func() {
+				sel := selectInput.Children[0].UI.ToSelect()
+				sel.ClearOptions()
+				opts := []ui.SelectOption{}
+				for k, v := range fg.EnumValues {
+					opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+				}
+				slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
+					return klib.StringValueCompare(a.Value, b.Value)
+				})
+				for _, opt := range opts {
+					sel.AddOption(opt.Name, opt.Value)
+				}
+				sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
 			}
-			slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
-				return klib.StringValueCompare(a.Value, b.Value)
-			})
-			for _, opt := range opts {
-				sel.AddOption(opt.Name, opt.Value)
-			}
-			sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
-			u := textInput.Children[0].UI.ToInput()
-			u.SetPlaceholder(g.Fields[i].Name + "...")
-			if g.Fields[i].IsNumber() {
-				u.SetTextWithoutEvent(g.FieldNumberAsString(i))
-			} else {
-				u.SetTextWithoutEvent(g.FieldString(i))
+			valReload = func() {
+				u := textInput.Children[0].UI.ToInput()
+				u.SetPlaceholder(g.Fields[i].Name + "...")
+				if g.Fields[i].IsNumber() {
+					u.SetTextWithoutEvent(g.FieldNumberAsString(i))
+				} else {
+					u.SetTextWithoutEvent(g.FieldString(i))
+				}
+				w.Doc.RemoveElement(checkInput)
 			}
-			w.Doc.RemoveElement(checkInput)
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
-			checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
-			w.Doc.RemoveElement(textInput)
+			valReload = func() {
+				checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
+				w.Doc.RemoveElement(textInput)
+			}
 		} else if g.Fields[i].IsVec2() {
 			vec2Input.UI.Show()
-			for j := range 2 {
-				c := vec2Input.Children[j].UI.ToInput()
-				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-				vec2Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			valReload = func() {
+				for j := range 2 {
+					c := vec2Input.Children[j].UI.ToInput()
+					c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+					vec2Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+				}
 			}
 		} else if g.Fields[i].IsVec3() {
 			vec3Input.UI.Show()
-			for j := range 3 {
-				c := vec3Input.Children[j].UI.ToInput()
-				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-				vec3Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			valReload = func() {
+				for j := range 3 {
+					c := vec3Input.Children[j].UI.ToInput()
+					c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+					vec3Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+				}
 			}
 		} else if g.Fields[i].IsVec4() {
 			vec4Input.UI.Show()
-			for j := range 4 {
-				c := vec4Input.Children[j].UI.ToInput()
-				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-				vec4Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			valReload = func() {
+				for j := range 4 {
+					c := vec4Input.Children[j].UI.ToInput()
+					c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+					vec4Input.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+				}
 			}
 		} else if g.Fields[i].IsColor() {
 			colorInput.UI.Show()
-			for j := range 4 {
-				c := colorInput.Children[j].UI.ToInput()
-				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-				colorInput.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+			valReload = func() {
+				for j := range 4 {
+					c := colorInput.Children[j].UI.ToInput()
+					c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
+					colorInput.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+				}
 			}
+		}
+		if valReload != nil {
+			dui.TargetedElementValueReload[v] = valReload
+			valReload()
 		}
 	}
 	dui.workspace.Value().Doc.SetupInputTabIndexs()
@@ -592,10 +615,12 @@ func (dui *WorkspaceDetailsUI) reload() {
 	dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Y(), 3))
 	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
 	w := dui.workspace.Value()
-	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
+	// > 0, don't delete template
+	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- {
 		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
 	}
-	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- { // > 0, don't delete template
+	// > 0, don't delete template
+	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- {
 		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
 	}
 	if e.StageData.ShaderData != nil {
