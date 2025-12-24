@@ -177,8 +177,9 @@ func (w *ContentWorkspace) clickImport(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickImport").End()
 	w.UiMan.DisableUpdate()
 	file_browser.Show(w.Host, file_browser.Config{
-		ExtFilter:   content_database.ImportableTypes,
-		MultiSelect: true,
+		StartingPath: w.editor.ProjectFileSystem().FullPath(""),
+		ExtFilter:    content_database.ImportableTypes,
+		MultiSelect:  true,
 		OnConfirm: func(paths []string) {
 			w.UiMan.EnableUpdate()
 			index := []string{}
