@@ -225,12 +225,14 @@ func (w *ContentWorkspace) addContent(ids []string) {
 	}
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.cache.Read(ids[i])
-		if err != nil {
-			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
-			continue
+		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+			cc, err := w.cache.Read(ids[i])
+			if err != nil {
+				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
+				continue
+			}
+			ccAll = append(ccAll, cc)
 		}
-		ccAll = append(ccAll, cc)
 	}
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.entryTemplate, len(ccAll))
 	for i := range cpys {
