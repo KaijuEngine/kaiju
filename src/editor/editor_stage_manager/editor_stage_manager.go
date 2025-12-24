@@ -478,12 +478,6 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	s := stages.Stage{}
 	s.FromMinimized(ss)
 	for i := range s.Entities {
-		if s.Entities[i].TemplateId != "" {
-			s.Entities[i], err = proj.ReadEntityTemplate(s.Entities[i].TemplateId)
-			if err != nil {
-				return err
-			}
-		}
 		if _, err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
 			return err
 		}
