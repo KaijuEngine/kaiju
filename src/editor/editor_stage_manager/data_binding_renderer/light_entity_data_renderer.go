@@ -107,6 +107,9 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 			c.Lights[target] = d
 		}
 	})
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
 }
 
 func (c *LightEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
@@ -115,6 +118,8 @@ func (c *LightEntityDataRenderer) Detatched(host *engine.Host, manager *editor_s
 		if d.light != nil {
 			host.Lighting().Lights.Remove(d.light)
 		}
+		d.icon.Destroy()
+		d.lines.Destroy()
 		delete(c.Lights, target)
 	}
 }
