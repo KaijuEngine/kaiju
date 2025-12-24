@@ -57,6 +57,8 @@ const (
 	EventTypeScroll
 	EventTypeRebuild
 	EventTypeDestroy
+	EventTypeFocus
+	EventTypeBlur
 	EventTypeSubmit
 	EventTypeChange
 	EventTypeRender

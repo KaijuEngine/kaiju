@@ -279,13 +279,10 @@ func (input *Input) moveCursor(newPos int) {
 	}
 }
 
-func (input *Input) submit() {
-	(*UI)(input).requestEvent(EventTypeSubmit)
-}
-
-func (input *Input) change() {
-	(*UI)(input).requestEvent(EventTypeChange)
-}
+func (input *Input) focus()  { (*UI)(input).requestEvent(EventTypeFocus) }
+func (input *Input) blur()   { (*UI)(input).requestEvent(EventTypeBlur) }
+func (input *Input) submit() { (*UI)(input).requestEvent(EventTypeSubmit) }
+func (input *Input) change() { (*UI)(input).requestEvent(EventTypeChange) }
 
 func (input *Input) charX(index int) float32 {
 	data := input.InputData()
@@ -704,6 +701,7 @@ func (input *Input) Focus() {
 		if man != nil {
 			man.Group.setFocus((*UI)(input))
 		}
+		input.focus()
 	}
 }
 
@@ -723,6 +721,7 @@ func (input *Input) RemoveFocus() {
 			man.Host.Window.CursorStandard()
 			man.Group.setFocus(nil)
 		}
+		input.blur()
 	}
 }
 

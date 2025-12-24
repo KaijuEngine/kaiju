@@ -67,6 +67,8 @@ func tryExecute(attr string, elm *Element, funcMap map[string]func(*Element)) {
 }
 
 func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
+	tryMap("onfocus", elm, elm.UI.Event(ui.EventTypeFocus), funcMap)
+	tryMap("onblur", elm, elm.UI.Event(ui.EventTypeBlur), funcMap)
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
 	tryMap("onrightclick", elm, elm.UI.Event(ui.EventTypeRightClick), funcMap)
 	tryMap("onmiss", elm, elm.UI.Event(ui.EventTypeMiss), funcMap)
