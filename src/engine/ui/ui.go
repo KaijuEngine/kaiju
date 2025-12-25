@@ -302,7 +302,7 @@ func (ui *UI) Clean() {
 			tree[i].postLayoutUpdate()
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
-		//maxIterations--
+		maxIterations--
 	}
 	for i := range tree {
 		tree[i].GenerateScissor()
