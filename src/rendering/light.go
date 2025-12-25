@@ -51,6 +51,8 @@ const (
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
+	lightWidth               = 50
+	lightHeight              = 50
 	lightDirectionalScaleOut = 50.0
 	lightShadowmapFilter     = vulkan_const.FilterLinear
 	lightDepthFormat         = vulkan_const.FormatD16Unorm
@@ -180,7 +182,8 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 		fallthrough
 	default:
 		light.depthMaterial = lightDepthMaterial.Value()
-		light.camera = cameras.NewStandardCameraOrthographic(10, 10, 10, 10, v30)
+		const w, h = lightWidth, lightHeight
+		light.camera = cameras.NewStandardCameraOrthographic(w, h, w, h, v30)
 		light.camera.SetFarPlane(lightDirectionalScaleOut * 2.0)
 	case LightTypePoint:
 		light.depthMaterial = lightCubeDepthMaterial.Value()
