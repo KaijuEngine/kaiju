@@ -7,6 +7,7 @@ layout(location = LOCATION_START+1) in float metallic;
 layout(location = LOCATION_START+2) in float roughness;
 layout(location = LOCATION_START+3) in float emissive;
 layout(location = LOCATION_START+4) in int lightIds[NR_LIGHTS];
+layout(location = LOCATION_START+4+NR_LIGHTS) in uint flags;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoords;
@@ -22,9 +23,11 @@ layout(location = 19) out float fragRoughness;
 layout(location = 20) out float fragEmissive;
 layout(location = 21) out flat int lightCount;
 layout(location = 22) out flat int lightIndexes[NR_LIGHTS];
+layout(location = 26) out uint fragFlags;
 
 void main() {
 	fragColor = vertColors * Color;
+	fragFlags = flags;
 	fragTexCoords = UV0;
 	fragPos = vec3(model * vec4(Position, 1.0));
 	gl_Position = projection * view * model * vec4(Position, 1.0);
