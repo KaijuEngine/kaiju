@@ -38,95 +38,62 @@
 package editor
 
 import (
+	"fmt"
 	"kaiju/build"
 	"kaiju/engine"
 	"log/slog"
 	"os"
 )
 
+type autoTestStep struct {
+	label string
+	call  func()
+	wait  int
+}
+
 // autoTestState tracks the state of the automated integration test
 type autoTestState struct {
 	frameCount    int
 	testStep      int
+	nextStepFrame int
 	entityCreated bool
+	steps         []autoTestStep
 }
 
 var autoTest autoTestState
 
-// runAutoTest executes automated integration tests when --autotest flag is set
-func (ed *Editor) runAutoTest(deltaTime float64) {
-	// Wait for initialization (project loaded, workspaces ready)
-	autoTest.frameCount++
-
-	// Wait 60 frames (~1 second) for everything to initialize
-	if autoTest.frameCount < 60 {
-		return
-	}
-
-	// Execute test sequence
-	switch autoTest.testStep {
-	case 0:
-		slog.Info("AutoTest: Starting automated integration test")
-		slog.Info("AutoTest: Step 1 - Creating new entity")
-		ed.CreateNewEntity()
-		autoTest.entityCreated = true
-		autoTest.testStep++
-
-	case 1:
-		// Wait a few frames for entity creation to complete
-		if autoTest.frameCount > 65 {
-			slog.Info("AutoTest: Step 2 - Testing undo operation")
-			ed.history.Undo()
-			autoTest.testStep++
-		}
-
-	case 2:
-		// Wait a few frames after undo
-		if autoTest.frameCount > 70 {
-			slog.Info("AutoTest: Step 3 - Testing redo operation")
-			ed.history.Redo()
-			autoTest.testStep++
-		}
-
-	case 3:
-		// Wait a few frames after redo
-		if autoTest.frameCount > 75 {
-			slog.Info("AutoTest: Step 4 - Switching to content workspace")
-			ed.ContentWorkspaceSelected()
-			autoTest.testStep++
-		}
-
-	case 4:
-		// Wait a few frames after workspace switch
-		if autoTest.frameCount > 80 {
-			slog.Info("AutoTest: Step 5 - Switching to shading workspace")
-			ed.ShadingWorkspaceSelected()
-			autoTest.testStep++
-		}
-
-	case 5:
-		// Wait a few frames after workspace switch
-		if autoTest.frameCount > 85 {
-			slog.Info("AutoTest: Step 6 - Switching back to stage workspace")
-			ed.StageWorkspaceSelected()
-			autoTest.testStep++
-		}
-
-	case 6:
-		// Wait a few frames to ensure stability
-		if autoTest.frameCount > 90 {
-			slog.Info("AutoTest: All tests completed successfully!")
-			slog.Info("AutoTest: Exiting with success code")
-			os.Exit(0)
-		}
-	}
-}
-
 // initAutoTest checks if auto-test mode is enabled and sets it up
 func (ed *Editor) initAutoTest() bool {
 	if build.Debug && engine.LaunchParams.AutoTest {
+		autoTest.steps = []autoTestStep{
+			{label: "Starting tests", call: func() {}, wait: 60},
+			{label: "Creating new entity", call: ed.CreateNewEntity, wait: 5},
+			{label: "Testing undo operation", call: ed.history.Undo, wait: 5},
+			{label: "Testing redo operation", call: ed.history.Redo, wait: 5},
+			{label: "Switching to content workspace", call: ed.ContentWorkspaceSelected, wait: 5},
+			{label: "Switching back to stage workspace", call: ed.StageWorkspaceSelected, wait: 5},
+		}
 		slog.Info("AutoTest mode enabled - will run automated integration tests")
 		return true
 	}
 	return false
+}
+
+// runAutoTest executes automated integration tests when --autotest flag is set
+func (ed *Editor) runAutoTest(deltaTime float64) {
+	autoTest.frameCount++
+	if autoTest.frameCount < autoTest.nextStepFrame {
+		return
+	}
+	t := autoTest.steps[autoTest.testStep]
+	slog.Info(fmt.Sprintf("AutoTest: Step %d - %s", autoTest.testStep, t.label))
+	t.call()
+	autoTest.nextStepFrame = t.wait
+	slog.Info(fmt.Sprintf("AutoTest: Step %d - Complete", autoTest.testStep))
+	autoTest.testStep++
+	if autoTest.testStep >= len(autoTest.steps) {
+		slog.Info("AutoTest: All tests completed successfully!")
+		slog.Info("AutoTest: Exiting with success code")
+		os.Exit(0)
+	}
 }

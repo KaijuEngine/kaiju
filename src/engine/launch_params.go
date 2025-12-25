@@ -56,7 +56,7 @@ func LoadLaunchParams() {
 	if build.Debug {
 		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
 		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")
-		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
+		flag.BoolVar(&LaunchParams.AutoTest, "autotest", true, "If supplied, runs automated integration tests and exits")
 	}
 	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
 	flag.Parse()
