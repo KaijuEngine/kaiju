@@ -140,11 +140,11 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	}
 }
 
-func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, bool) {
-	if target, ok := m.worldBVH.RayIntersect(ray, 1000); ok {
-		return target.(*StageEntity), ok
+func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, matrix.Vec3, bool) {
+	if target, pt, ok := m.worldBVH.RayIntersect(ray, 1000); ok {
+		return target.(*StageEntity), pt, ok
 	}
-	return nil, false
+	return nil, matrix.Vec3{}, false
 }
 
 func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
@@ -182,7 +182,7 @@ func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 
 func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
-	if e, ok := m.TryHitEntity(ray); ok {
+	if e, _, ok := m.TryHitEntity(ray); ok {
 		m.SelectEntity(e)
 		return e, true
 	}
@@ -191,7 +191,7 @@ func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
 
 func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryToggleSelect").End()
-	if e, ok := m.TryHitEntity(ray); ok {
+	if e, _, ok := m.TryHitEntity(ray); ok {
 		if m.IsSelected(e) {
 			m.DeselectEntity(e)
 		} else {

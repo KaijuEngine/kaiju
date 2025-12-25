@@ -124,18 +124,19 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		mp = m.ScreenPosition()
 	}
 	ray := w.Host.PrimaryCamera().RayCast(mp)
-	e, eHitOk := w.stageView.Manager().TryHitEntity(ray)
+	e, hit, eHitOk := w.stageView.Manager().TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
 	// to doing the ground plane/distance hit point
-	var hit matrix.Vec3
-	var ok bool
-	if w.stageView.IsView3D() {
-		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
-	} else {
-		hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Forward())
-	}
-	if !ok {
-		hit = ray.Point(maxContentDropDistance)
+	if !eHitOk {
+		var ok bool
+		if w.stageView.IsView3D() {
+			hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Up())
+		} else {
+			hit, ok = ray.PlaneHit(matrix.Vec3Zero(), matrix.Vec3Forward())
+		}
+		if !ok {
+			hit = ray.Point(maxContentDropDistance)
+		}
 	}
 	cat, ok := content_database.CategoryFromTypeName(cc.Config.Type)
 	if !ok {
