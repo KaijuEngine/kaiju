@@ -43,7 +43,7 @@ import (
 
 type HitObject interface {
 	Bounds() AABB
-	RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool
+	RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
 }
 
 type BVH struct {
@@ -76,7 +76,7 @@ func (item BVHItem) Bounds() AABB {
 	}
 }
 
-func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) bool {
+func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
 	return item.HitCheck.RayIntersectTest(ray, length, item.Transform)
 }
 
@@ -137,37 +137,45 @@ func CloneBVH(bvh *BVH) *BVH {
 	return clone
 }
 
-func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
-	_, ok := b.RayIntersect(ray, length)
-	return ok
+func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
+	_, pt, ok := b.RayIntersect(ray, length)
+	return pt, ok
 }
 
-func (b *BVH) RayIntersect(ray Ray, length float32) (any, bool) {
+func (b *BVH) RayIntersect(ray Ray, length float32) (any, matrix.Vec3, bool) {
 	if b == nil {
-		return nil, false
+		return nil, matrix.Vec3{}, false
 	}
-	bounds := b.Bounds()
-	_, hit := bounds.RayHit(ray)
+	_, hit := b.bounds.RayHit(ray)
 	if !hit {
-		return nil, false
+		return nil, matrix.Vec3{}, false
 	}
-	if b.Item.IsValid() {
-		if b.Item.RayIntersect(ray, length, b.Item.Transform) {
+	if b.IsLeaf() && b.Item.IsValid() {
+		if pt, ok := b.Item.RayIntersect(ray, length, b.Item.Transform); ok {
 			if sub, ok := b.Item.Data.(*BVH); ok {
 				return sub.RayIntersect(ray, length)
 			}
-			return b.Item.Data, true
+			return b.Item.Data, pt, true
 		}
-		return b.Item.Data, false
-	} else {
-		var res any
-		var ok bool
-		res, ok = b.Left.RayIntersect(ray, length)
-		if !ok {
-			res, ok = b.Right.RayIntersect(ray, length)
-		}
-		return res, ok
+		return nil, matrix.Vec3{}, false
 	}
+	resL, ptL, okL := b.Left.RayIntersect(ray, length)
+	resR, ptR, okR := b.Right.RayIntersect(ray, length)
+	if okL && okR {
+		distL := ptL.Subtract(ray.Origin).LengthSquared()
+		distR := ptR.Subtract(ray.Origin).LengthSquared()
+		if distL < distR {
+			return resL, ptL, true
+		}
+		return resR, ptR, true
+	}
+	if okL {
+		return resL, ptL, true
+	}
+	if okR {
+		return resR, ptR, true
+	}
+	return nil, matrix.Vec3{}, false
 }
 
 func (b *BVH) Bounds() AABB {

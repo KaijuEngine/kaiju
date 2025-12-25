@@ -16,10 +16,14 @@ layout(location = 19) in float fragRoughness;
 layout(location = 20) in float fragEmissive;
 layout(location = 21) in flat int lightCount;
 layout(location = 22) in flat int lightIndexes[NR_LIGHTS];
+layout(location = 26) in flat uint fragFlags;
 
 layout(location = 0) out vec4 outColor;
 #ifdef OIT
 layout(location = 1) out float reveal;
+#else
+layout(location = 1) out vec4 outPosition;
+layout(location = 2) out vec4 outNormal;
 #endif
 
 layout(binding = 1) uniform sampler2D textures[4];
@@ -67,6 +71,11 @@ void main() {
 	vec4 emission = vec4(texture(textures[3], fragTexCoords).rgb * fragEmissive, 0.0);
 	//float occlusion = max(mrMap.r, occlusion);
 	float occlusion = 1.0;
+
+#ifndef OIT
+    outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
+    outNormal = vec4(N, 0.0);
+#endif
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, mMetallic);

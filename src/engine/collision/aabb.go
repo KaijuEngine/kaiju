@@ -370,7 +370,7 @@ func (box AABB) Corners() [8]matrix.Vec3 {
 // //////////////////////////////////////////////////////////////////////////////
 func (box AABB) Bounds() AABB { return box }
 
-func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) bool {
+func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
 	mat := transform.WorldMatrix()
 	min := mat.TransformPoint(box.Min())
 	max := mat.TransformPoint(box.Max())
@@ -380,7 +380,7 @@ func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Tran
 	}
 	pt, ok := tBox.RayHit(ray)
 	if ray.Origin.Distance(pt) > length {
-		return false
+		return matrix.Vec3{}, false
 	}
-	return ok
+	return pt, ok
 }

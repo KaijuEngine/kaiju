@@ -49,7 +49,7 @@ func LineSegmentFromRay(ray Ray, length float32) Segment {
 }
 
 // TriangleHit returns true if the segment hits the triangle defined by the three points
-func (l Segment) TriangleHit(a, b, c matrix.Vec3) bool {
+func (l Segment) TriangleHit(a, b, c matrix.Vec3) (matrix.Vec3, bool) {
 	p := l.A
 	q := l.B
 	ab := b.Subtract(a)
@@ -60,21 +60,24 @@ func (l Segment) TriangleHit(a, b, c matrix.Vec3) bool {
 	n := matrix.Vec3Cross(ab, ac)
 	d := matrix.Vec3Dot(qp, n)
 	if d <= 0 {
-		return false
+		return matrix.Vec3{}, false
 	}
 	ap := p.Subtract(a)
 	t := matrix.Vec3Dot(ap, n)
 	if t < 0 {
-		return false
+		return matrix.Vec3{}, false
 	}
 	e := matrix.Vec3Cross(qp, ap)
 	v := matrix.Vec3Dot(ac, e)
 	if v < 0 || v > d {
-		return false
+		return matrix.Vec3{}, false
 	}
 	w := -matrix.Vec3Dot(ab, e)
 	if w < 0 || v+w > d {
-		return false
+		return matrix.Vec3{}, false
 	}
-	return true
+	s := t / d
+	dir := q.Subtract(p)
+	hit := p.Add(dir.Scale(s))
+	return hit, true
 }

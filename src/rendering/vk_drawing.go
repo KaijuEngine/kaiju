@@ -259,7 +259,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 	blankTex, _ := vr.caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
 	for i, p := range passes {
 		tex := p.SelectOutputAttachment(vr)
-		if tex == nil {
+		if tex == nil || p.construction.SkipCombine {
 			continue
 		}
 		var ok bool

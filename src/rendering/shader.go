@@ -139,6 +139,7 @@ func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.
 			l := &g.Layouts[i]
 			if l.Source == "in" && uint32(l.Location) >= locationStart {
 				dt := defTypes[l.Type]
+				dt.repeat *= max(1, l.Count)
 				for r := range dt.repeat {
 					attrs = append(attrs, vk.VertexInputAttributeDescription{
 						Location: uint32(l.Location + r),

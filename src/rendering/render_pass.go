@@ -51,6 +51,7 @@ type RenderPassData struct {
 	AttachmentDescriptions []RenderPassAttachmentDescription
 	SubpassDescriptions    []RenderPassSubpassDescription
 	SubpassDependencies    []RenderPassSubpassDependency
+	SkipCombine            bool
 }
 
 type RenderPassAttachmentDescription struct {
@@ -131,6 +132,7 @@ type RenderPassDataCompiled struct {
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
 	ImageClears            []vk.ClearValue
 	Subpass                []RenderPassSubpassDataCompiled
+	SkipCombine            bool
 }
 
 type RenderPassSubpassDataCompiled struct {
@@ -209,6 +211,7 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		AttachmentDescriptions: make([]RenderPassAttachmentDescriptionCompiled, len(d.AttachmentDescriptions)),
 		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
 		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
+		SkipCombine:            d.SkipCombine,
 	}
 	c.ImageClears = make([]vk.ClearValue, 0, len(d.AttachmentDescriptions))
 	for i := range d.AttachmentDescriptions {

@@ -153,6 +153,10 @@ func (v Vec3) Length() Float {
 	return Sqrt(Vec3Dot(v, v))
 }
 
+func (v Vec3) LengthSquared() Float {
+	return v[Vx]*v[Vx] + v[Vy]*v[Vy] + v[Vz]*v[Vz]
+}
+
 func (v Vec3) Normal() Vec3 {
 	return v.Scale(1.0 / v.Length())
 }
