@@ -171,7 +171,7 @@ func (v *ContentAudioView) stopAudio() {
 		return
 	}
 	a := v.workspace.Value().Host.Audio()
-	a.Stop(v.playing)
+	a.StopSource(v.playing)
 	v.playing = nil
 	v.handle = 0
 	audioPlayButton(v.audioPlayer).Label().SetText("Play")

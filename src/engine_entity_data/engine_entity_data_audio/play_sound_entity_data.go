@@ -43,10 +43,10 @@ import (
 	"time"
 )
 
-const BindingKey = "kaiju.PlaySoundEntityData"
+const SoundBindingKey = "kaiju.PlaySoundEntityData"
 
 func init() {
-	engine.RegisterEntityData(BindingKey, PlaySoundEntityData{})
+	engine.RegisterEntityData(SoundBindingKey, PlaySoundEntityData{})
 }
 
 type PlaySoundEntityData struct {
