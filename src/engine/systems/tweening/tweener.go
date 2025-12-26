@@ -84,12 +84,12 @@ var (
 	tweens = make([]Tween, 0, 16)
 )
 
-func DoTween(val *float32, target float32, time, delayTime float64, easing Easing) {
+func DoTween(val *float32, target float32, time float64, easing Easing) {
 	defer tracing.NewRegion("Tweener.DoTween").End()
-	DoTweenExt(val, target, time, delayTime, easing, nil, nil)
+	DoTweenExt(val, target, time, easing, nil, nil)
 }
 
-func DoTweenExt(val *float32, target float32, time, delayTime float64, easing Easing,
+func DoTweenExt(val *float32, target float32, time float64, easing Easing,
 	onChange func(val float32), onDone func()) {
 	defer tracing.NewRegion("Tweener.DoTweenExt").End()
 	tween := Tween{
@@ -97,7 +97,6 @@ func DoTweenExt(val *float32, target float32, time, delayTime float64, easing Ea
 		initial:     *val,
 		target:      target,
 		time:        time,
-		delayTime:   delayTime,
 		onChange:    onChange,
 		onDone:      onDone,
 		scale:       (target - *val) / max(float32(time), 0.00001),

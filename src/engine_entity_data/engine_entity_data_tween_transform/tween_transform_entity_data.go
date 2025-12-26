@@ -40,6 +40,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/systems/tweening"
 	"kaiju/matrix"
+	"time"
 	"weak"
 )
 
@@ -187,10 +188,15 @@ func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host) {
 		if h == nil {
 			return
 		}
-		h.RunNextFrame(func() {
+		run := func() {
 			tween.t = 1 - to
-			tweening.DoTweenExt(&tween.t, to, d.Time, d.Delay, tweening.Easing(d.Easing), tweenTo, tweenDone)
-		})
+			tweening.DoTweenExt(&tween.t, to, d.Time, tweening.Easing(d.Easing), tweenTo, tweenDone)
+		}
+		if d.Delay > 0 {
+			h.RunAfterTime(time.Millisecond*(time.Duration(d.Delay*1000)), run)
+		} else {
+			h.RunNextFrame(run)
+		}
 	}
 	runTween(1)
 }
