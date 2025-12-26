@@ -116,6 +116,7 @@ func (ed *Editor) runAutoTest(deltaTime float64) {
 		// Wait a few frames to ensure stability
 		if autoTest.frameCount > 90 {
 			slog.Info("AutoTest: All tests completed successfully!")
+			ed.cleanupAutoTestProject()
 			slog.Info("AutoTest: Exiting with success code")
 			os.Exit(0)
 		}
@@ -129,4 +130,15 @@ func (ed *Editor) initAutoTest() bool {
 		return true
 	}
 	return false
+}
+
+func (ed *Editor) cleanupAutoTestProject() {
+	if ed.autoTestProjectPath == "" {
+		return
+	}
+	if err := os.RemoveAll(ed.autoTestProjectPath); err != nil {
+		slog.Error("AutoTest: failed to remove temporary project directory", "error", err)
+	} else {
+		slog.Info("AutoTest: removed temporary project directory", "path", ed.autoTestProjectPath)
+	}
 }

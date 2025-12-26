@@ -74,18 +74,19 @@ import (
 // will supply interface functions that are needed to the systems that it holds
 // internally.
 type Editor struct {
-	host             *engine.Host
-	settings         editor_settings.Settings
-	project          project.Project
-	workspaceState   WorkspaceState
-	workspaces       workspaces
-	globalInterfaces globalInterface
-	currentWorkspace editor_workspace.Workspace
-	logging          editor_logging.Logging
-	history          memento.History
-	events           editor_events.EditorEvents
-	stageView        editor_stage_view.StageView
-	window           struct {
+	host                *engine.Host
+	settings            editor_settings.Settings
+	project             project.Project
+	workspaceState      WorkspaceState
+	workspaces          workspaces
+	globalInterfaces    globalInterface
+	currentWorkspace    editor_workspace.Workspace
+	logging             editor_logging.Logging
+	history             memento.History
+	events              editor_events.EditorEvents
+	stageView           editor_stage_view.StageView
+	autoTestProjectPath string
+	window              struct {
 		activateId     events.Id
 		deactivateId   events.Id
 		lastActiveTime time.Time
