@@ -66,13 +66,14 @@ type RenderPass struct {
 }
 
 type RenderPassSubpass struct {
-	shader         *Shader
-	shaderPipeline ShaderPipelineDataCompiled
-	descriptorSets [maxFramesInFlight]vk.DescriptorSet
-	descriptorPool vk.DescriptorPool
-	sampledImages  []int
-	renderQuad     *Mesh
-	cmd            [maxFramesInFlight]CommandRecorderSecondary
+	shader             *Shader
+	shaderPipeline     ShaderPipelineDataCompiled
+	descriptorSets     [maxFramesInFlight]vk.DescriptorSet
+	descriptorPool     vk.DescriptorPool
+	descriptorSetCount uint32
+	sampledImages      []int
+	renderQuad         *Mesh
+	cmd                [maxFramesInFlight]CommandRecorderSecondary
 }
 
 func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
@@ -114,6 +115,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 	}
 	sp.descriptorSets, sp.descriptorPool = klib.MustReturn2(
 		vr.createDescriptorSet(sp.shader.RenderId.descriptorSetLayout, 0))
+	sp.descriptorSetCount = vr.swapImageCount
 	for i := range c.SampledImages {
 		t := &r.textures[c.SampledImages[i]].RenderId
 		if t.Sampler == vk.NullSampler {
@@ -493,6 +495,10 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 		p.textures[i].RenderId = TextureId{}
 	}
 	for i := range p.subpasses {
+		if p.subpasses[i].descriptorPool != vk.DescriptorPool(vk.NullHandle) && p.subpasses[i].descriptorSetCount > 0 {
+			count := min(p.subpasses[i].descriptorSetCount, uint32(len(p.subpasses[i].descriptorSets)))
+			freeDescriptorSets(p.device, p.subpasses[i].descriptorPool, count, &p.subpasses[i].descriptorSets)
+		}
 		for j := range len(p.subpasses[i].cmd) {
 			p.subpasses[i].cmd[j].Destroy(vr)
 		}
