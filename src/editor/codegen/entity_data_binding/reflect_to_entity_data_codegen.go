@@ -59,6 +59,7 @@ func ToDataBinding(name string, target any) EntityDataEntry {
 			Name:  f.Name,
 			Type:  f.Type.Name(),
 			Value: fieldValue.Interface(),
+			Pkg:   f.Type.PkgPath(),
 		}
 		g.Gen.FieldGens = append(g.Gen.FieldGens, codegen.GeneratedType{})
 	}

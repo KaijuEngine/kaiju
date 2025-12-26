@@ -97,27 +97,27 @@ type WorkspaceDetailsUI struct {
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setupFuncs").End()
 	return map[string]func(*document.Element){
-		"hideDetails":        dui.hideDetails,
-		"showDetails":        dui.showDetails,
-		"submitDetailsName":  dui.submitDetailsName,
-		"setPosX":            dui.setPosX,
-		"setPosY":            dui.setPosY,
-		"setPosZ":            dui.setPosZ,
-		"setRotX":            dui.setRotX,
-		"setRotY":            dui.setRotY,
-		"setRotZ":            dui.setRotZ,
-		"setScaleX":          dui.setScaleX,
-		"setScaleY":          dui.setScaleY,
-		"setScaleZ":          dui.setScaleZ,
-		"searchEntityData":   dui.searchEntityData,
-		"addEntityData":      dui.addEntityData,
-		"changeData":         dui.changeData,
-		"removeEntityData":   dui.removeEntityData,
-		"changeShaderData":   dui.changeShaderData,
-		"selectContentId":    dui.selectContentId,
-		"contentIdDrop":      dui.contentIdDrop,
-		"contentIdDragEnter": dui.contentIdDragEnter,
-		"contentIdDragExit":  dui.contentIdDragExit,
+		"hideDetails":          dui.hideDetails,
+		"showDetails":          dui.showDetails,
+		"submitDetailsName":    dui.submitDetailsName,
+		"setPosX":              dui.setPosX,
+		"setPosY":              dui.setPosY,
+		"setPosZ":              dui.setPosZ,
+		"setRotX":              dui.setRotX,
+		"setRotY":              dui.setRotY,
+		"setRotZ":              dui.setRotZ,
+		"setScaleX":            dui.setScaleX,
+		"setScaleY":            dui.setScaleY,
+		"setScaleZ":            dui.setScaleZ,
+		"searchEntityData":     dui.searchEntityData,
+		"addEntityData":        dui.addEntityData,
+		"changeData":           dui.changeData,
+		"removeEntityData":     dui.removeEntityData,
+		"changeShaderData":     dui.changeShaderData,
+		"clickSelectContentId": dui.clickSelectContentId,
+		"contentIdDrop":        dui.contentIdDrop,
+		"contentIdDragEnter":   dui.contentIdDragEnter,
+		"contentIdDragExit":    dui.contentIdDragExit,
 	}
 }
 
@@ -528,7 +528,7 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	dui.commonChangeData(e, false)
 }
 
-func (dui *WorkspaceDetailsUI) selectContentId(e *document.Element) {
+func (dui *WorkspaceDetailsUI) clickSelectContentId(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.selectContentId").End()
 	w := dui.workspace.Value()
 	w.ed.BlurInterface()

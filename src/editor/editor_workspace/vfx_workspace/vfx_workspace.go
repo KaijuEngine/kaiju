@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/confirm_prompt"
+	"kaiju/editor/editor_overlay/content_selector"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
@@ -80,11 +81,12 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 	w.stageView = ed.StageView()
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){
-			"clickAddEmitter":    w.clickAddEmitter,
-			"clickSaveEmitter":   w.clickSaveEmitter,
-			"clickSelectEmitter": w.clickSelectEmitter,
-			"clickDeleteEmitter": w.clickDeleteEmitter,
-			"changeEmitterData":  w.changeEmitterData,
+			"clickAddEmitter":      w.clickAddEmitter,
+			"clickSaveEmitter":     w.clickSaveEmitter,
+			"clickSelectEmitter":   w.clickSelectEmitter,
+			"clickDeleteEmitter":   w.clickDeleteEmitter,
+			"changeEmitterData":    w.changeEmitterData,
+			"clickSelectContentId": w.clickSelectContentId,
 		})
 	w.systemName, _ = w.Doc.GetElementById("systemName")
 	w.emitterData, _ = w.Doc.GetElementById("emitterData")
@@ -344,6 +346,10 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 		vec4Input := fields[i].Children[5]
 		colorInput := fields[i].Children[6]
 		selectInput := fields[i].Children[7]
+		var contentIdInput *document.Element
+		if len(fields[i].Children) > 8 {
+			contentIdInput = fields[i].Children[8]
+		}
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		fg := &g.Gen.FieldGens[i]
 		if fg.IsValid() && len(fg.EnumValues) > 0 {
@@ -361,6 +367,15 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 				sel.AddOption(opt.Name, opt.Value)
 			}
 			sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
+		} else if g.Fields[i].IsContentId() {
+			contentIdInput.UI.Show()
+			child := contentIdInput.Children[0]
+			child.SetAttribute("data-type", g.Fields[i].Type)
+			str := g.FieldString(i)
+			if str == "" {
+				str = "empty"
+			}
+			child.InnerLabel().SetText(str)
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
 			u := textInput.Children[0].UI.ToInput()
@@ -430,6 +445,10 @@ func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
 		inputText = e.UI.ToInput().Text()
 	case ui.ElementTypeSelect:
 		inputText = e.UI.ToSelect().Value()
+	case ui.ElementTypePanel:
+		if e.HasClass("dataContentId") {
+			inputText = e.InnerLabel().Text()
+		}
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -446,6 +465,19 @@ func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
 	w.Host.RunOnMainThread(func() {
 		w.emitter.ReloadConfig(w.Host)
 	})
+}
+func (w *VfxWorkspace) clickSelectContentId(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.selectContentId").End()
+	w.ed.BlurInterface()
+	content_selector.Show(w.Host, e.Attribute("data-type"), w.ed.Project().CacheDatabase(),
+		func(id string) {
+			w.ed.FocusInterface()
+			e.InnerLabel().SetText(id)
+			w.changeEmitterData(e)
+			w.Host.RunOnMainThread(func() {
+				w.emitter.ForceReloadConfig(w.Host)
+			})
+		}, w.ed.FocusInterface)
 }
 
 func toInt(str string) int64 {

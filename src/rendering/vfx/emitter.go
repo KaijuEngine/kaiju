@@ -39,6 +39,7 @@ package vfx
 import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
+	"kaiju/engine_entity_data/content_id"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
@@ -59,7 +60,7 @@ type Emitter struct {
 }
 
 type EmitterConfig struct {
-	Texture          string
+	Texture          content_id.Texture
 	SpawnRate        float64
 	ParticleLifeSpan float32
 	LifeSpan         float64
@@ -114,6 +115,46 @@ func (e *Emitter) Deactivate() {
 	e.deactivated = true
 }
 
+func (e *Emitter) ForceReloadConfig(host *engine.Host) {
+	defer tracing.NewRegion("Emitter.ForceReloadConfig").End()
+	maxCount := 0
+	if e.Config.SpawnRate > 0 {
+		maxCount = int(matrix.Ceil(float32(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
+		maxCount += 1 // Little buffer for overlapping spawn/destroy
+	}
+	for i := range e.particleData {
+		e.particleData[i].Destroy()
+	}
+	if maxCount > 0 {
+		tex, err := host.TextureCache().Texture(string(e.Config.Texture), rendering.TextureFilterLinear)
+		if err != nil {
+			tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		}
+		e.particles = make([]Particle, maxCount)
+		e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))
+		e.available = make([]int, 0, cap(e.particles))
+		// Brute forcing all particles to be instance drawings
+		mesh := rendering.NewMeshQuad(host.MeshCache())
+		mat, _ := host.MaterialCache().Material(assets.MaterialDefinitionParticleTransparent)
+		mat = mat.CreateInstance([]*rendering.Texture{tex})
+		drawings := make([]rendering.Drawing, maxCount)
+		for i := range maxCount {
+			e.particleData[i].ShaderDataBase = rendering.NewShaderDataBase()
+			e.particleData[i].Color = matrix.ColorWhite()
+			e.particleData[i].UVs = matrix.NewVec4(0, 0, 1, 1)
+			e.particleData[i].Deactivate()
+			drawings[i].Material = mat
+			drawings[i].Mesh = mesh
+			drawings[i].ShaderData = &e.particleData[i]
+			// drawings[i].ViewCuller = &host.Cameras.Primary
+			e.available = append(e.available, maxCount-i-1)
+		}
+		host.Drawings.AddDrawings(drawings)
+	}
+	e.nextSpawn = 0
+	e.lifeTime = e.Config.LifeSpan
+}
+
 func (e *Emitter) ReloadConfig(host *engine.Host) {
 	defer tracing.NewRegion("Emitter.ReloadConfig").End()
 	maxCount := 0
@@ -122,35 +163,7 @@ func (e *Emitter) ReloadConfig(host *engine.Host) {
 		maxCount += 1 // Little buffer for overlapping spawn/destroy
 	}
 	if maxCount != cap(e.particles) {
-		for i := range e.particleData {
-			e.particleData[i].Destroy()
-		}
-		if maxCount > 0 {
-			tex, err := host.TextureCache().Texture(e.Config.Texture, rendering.TextureFilterLinear)
-			if err != nil {
-				tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-			}
-			e.particles = make([]Particle, maxCount)
-			e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))
-			e.available = make([]int, 0, cap(e.particles))
-			// Brute forcing all particles to be instance drawings
-			mesh := rendering.NewMeshQuad(host.MeshCache())
-			mat, _ := host.MaterialCache().Material(assets.MaterialDefinitionParticleTransparent)
-			mat = mat.CreateInstance([]*rendering.Texture{tex})
-			drawings := make([]rendering.Drawing, maxCount)
-			for i := range maxCount {
-				e.particleData[i].ShaderDataBase = rendering.NewShaderDataBase()
-				e.particleData[i].Color = matrix.ColorWhite()
-				e.particleData[i].UVs = matrix.NewVec4(0, 0, 1, 1)
-				e.particleData[i].Deactivate()
-				drawings[i].Material = mat
-				drawings[i].Mesh = mesh
-				drawings[i].ShaderData = &e.particleData[i]
-				// drawings[i].ViewCuller = &host.Cameras.Primary
-				e.available = append(e.available, maxCount-i-1)
-			}
-			host.Drawings.AddDrawings(drawings)
-		}
+		e.ForceReloadConfig(host)
 	}
 	e.nextSpawn = 0
 	e.lifeTime = e.Config.LifeSpan

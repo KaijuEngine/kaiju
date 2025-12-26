@@ -46,6 +46,12 @@
 				margin-left: 5px;
 				margin-bottom: 0.2em;
 			}
+			.dataContentId {
+				width: 100%;
+				background-color: #282828;
+				color: #AAA;
+				border: 2px solid #777;
+			}
 			.smallInput, .smallerInput {
 				width: 4.3em;
 				height: 1.2em;
@@ -133,6 +139,10 @@
 							<!-- Select input -->
 							<div>
 								<select class="dataInput" onchange="changeEmitterData"></select>
+							</div>
+							<!-- ContentId input -->
+							<div>
+								<div class="dataContentId" data-type="" onclick="clickSelectContentId">&lt;empty&gt;</div>
 							</div>
 						</div>
 					</div>
