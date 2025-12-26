@@ -77,7 +77,7 @@ jobs:
       - name: Build editor (debug mode)
         working-directory: ./src
         run: |
-          go build -v -tags="debug,editor" -o ../kaiju ./
+          CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -v -tags="debug,editor" -o ../kaiju ./
           ls -lh ../kaiju
 
       - name: Run editor E2E test
