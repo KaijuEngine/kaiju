@@ -451,7 +451,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			valReload = func() {
 				str := g.FieldString(i)
 				if str == "" {
-					str = "empty"
+					str = fmt.Sprintf("empty (%s)", g.Fields[i].Type)
 				}
 				child.InnerLabel().SetText(str)
 			}

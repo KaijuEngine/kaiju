@@ -374,7 +374,7 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 			child.SetAttribute("data-type", g.Fields[i].Type)
 			str := g.FieldString(i)
 			if str == "" {
-				str = "empty"
+				str = fmt.Sprintf("empty (%s)", g.Fields[i].Type)
 			}
 			child.InnerLabel().SetText(str)
 		} else if g.Fields[i].IsInput() {
