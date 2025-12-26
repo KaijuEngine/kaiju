@@ -200,6 +200,10 @@ func (a *Audio) PlayMusic(key string) (*AudioClip, uint32) {
 	return nil, 0
 }
 
+func (a *Audio) SetLooping(handle VoiceHandle, looping bool) {
+	setLooping(a.soloud, handle, looping)
+}
+
 func (a *Audio) SetSoundVolume(volume float32) {
 	a.sfxVolume = klib.Clamp(volume, 0.0, 1.0)
 	for k := range a.sfx {
