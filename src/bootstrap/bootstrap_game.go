@@ -92,6 +92,10 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 		<-container.PrepLock
 		initExternalGameService()
 		<-container.Host.Done()
+		if build.Debug {
+			hostCleanedUp = true
+			windowCleanedUp = true
+		}
 	}
 	terminateExternalGameService()
 }
@@ -99,21 +103,23 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 func bootstrapInternal(logStream *logging.LogStream, game GameInterface, platformState any) {
 	bootstrapLoop(logStream, game, platformState)
 	if build.Debug {
+		containerCleanedUp = true
+		const cleanupWaitTimeout = 10 * time.Second
+		waitForCleanup := func(label string, done *bool) {
+			start := time.Now()
+			for !*done {
+				if time.Since(start) > cleanupWaitTimeout {
+					println("Timed out waiting for " + label + " cleanup; continuing shutdown.")
+					return
+				}
+				println("Waiting for " + label + " cleanup...")
+				time.Sleep(time.Second)
+				runtime.GC()
+			}
+		}
 		runtime.GC()
-		for !containerCleanedUp {
-			println("Waiting for container cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
-		for !hostCleanedUp {
-			println("Waiting for host cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
-		for !windowCleanedUp {
-			println("Waiting for window cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
+		waitForCleanup("container", &containerCleanedUp)
+		waitForCleanup("host", &hostCleanedUp)
+		waitForCleanup("window", &windowCleanedUp)
 	}
 }
