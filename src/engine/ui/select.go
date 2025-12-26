@@ -119,6 +119,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 		lp.layout.SetZ(s.layout.z + 10)
 		listPanel.layout.SetPositioning(PositioningAbsolute)
 		data.list = lp
+		listPanel.AddEvent(EventTypeMiss, s.onMiss)
 	}
 	{
 		// Up/down triangle
@@ -140,7 +141,6 @@ func (s *Select) Init(text string, options []SelectOption) {
 	// TODO:  On list miss, close it, which means this local_select_click
 	// will probably need to skip on that miss?
 	s.Base().AddEvent(EventTypeClick, s.onClick)
-	s.Base().AddEvent(EventTypeMiss, s.onMiss)
 	s.entity.OnDeactivate.Add(s.collapse)
 	s.collapse()
 }
