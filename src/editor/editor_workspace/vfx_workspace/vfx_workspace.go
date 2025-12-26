@@ -171,6 +171,7 @@ func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 		Texture:          "smoke.png",
 		SpawnRate:        0.05,
 		ParticleLifeSpan: 2,
+		Color:            matrix.ColorWhite(),
 		DirectionMin:     matrix.NewVec3(-0.3, 1, -0.3),
 		DirectionMax:     matrix.NewVec3(0.3, 1, 0.3),
 		VelocityMinMax:   matrix.Vec2One().Scale(1),
@@ -466,6 +467,7 @@ func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
 		w.emitter.ReloadConfig(w.Host)
 	})
 }
+
 func (w *VfxWorkspace) clickSelectContentId(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.selectContentId").End()
 	w.ed.BlurInterface()

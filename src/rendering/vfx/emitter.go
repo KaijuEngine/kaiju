@@ -69,6 +69,7 @@ type EmitterConfig struct {
 	DirectionMax     matrix.Vec3
 	VelocityMinMax   matrix.Vec2
 	OpacityMinMax    matrix.Vec2
+	Color            matrix.Color
 	FadeOutOverLife  bool
 	Burst            bool
 	Repeat           bool
@@ -220,6 +221,8 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	pd := &e.particleData[idx]
 	c := &e.Config
 	pd.Activate()
+	pd.Color = e.Config.Color
+	pd.Color.SetA(1)
 	p.Transform.Position = transform.Position().Add(e.Config.Offset)
 	p.Transform.Rotation = transform.Rotation()
 	p.Transform.Scale = matrix.Vec3One()
