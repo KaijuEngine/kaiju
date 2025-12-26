@@ -44,7 +44,7 @@ package vulkan
 #cgo LDFLAGS: -framework Foundation -framework Metal -framework QuartzCore -framework MoltenVK -lc++
 #cgo CFLAGS: -x objective-c -DVK_USE_PLATFORM_IOS_MVK
 
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"
 #include <stdlib.h>
