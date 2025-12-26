@@ -40,6 +40,7 @@ import (
 	"fmt"
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_overlay/content_selector"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/engine"
@@ -529,7 +530,14 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) selectContentId(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.selectContentId").End()
-
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	content_selector.Show(w.Host, e.Attribute("data-type"), w.ed.Cache(),
+		func(id string) {
+			w.ed.FocusInterface()
+			e.InnerLabel().SetText(id)
+			dui.commonChangeData(e, false)
+		}, w.ed.FocusInterface)
 }
 
 func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 97; }
+			.overlay {
+				position: absolute;
+				width: 70%;
+				height: 70%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				color: white;
+				background-color: #121212;
+				border: 5px solid #575757;
+				border-radius: 5px;
+				padding: 1em;
+			}
+			input {
+				width: 100%;
+				height: 2em;
+				margin-bottom: 0.5em;
+			}
+			#list {
+				width: 100%;
+				height: calc(100% - 2.5em);
+				overflow-y: scroll;
+			}
+			.entry {
+				width: 10em;
+				height: 12em;
+				margin-right: 5px;
+				margin-bottom: 5px;
+				background-color: #282828;
+				color: #AAA;
+			}
+			.entry .wide {
+				width: 100%;
+				height: 2em;
+				margin-right: 0;
+				margin-bottom: 0;
+			}
+			.entryLabel .wide {
+				width: 100%;
+				padding-left: 20px;
+			}
+			.entry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.entry .selected {
+				background-color: #575757;
+				color: white;
+			}
+			.preview {
+				width: 10em;
+				height: 10em;
+			}
+			.preview .wide {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="overlay">
+			<div>
+				<input type="text" placeholder="Search..." onchange="search" />
+			</div>
+			<div id="list">
+				{{range .Options}}
+				<span id="{{.Id}}" data-type="" group="entry" class="entry" onclick="selectContent">
+					<img class="preview" src="{{.Texture}}" />
+					<div class="entryLabel">{{.Name}}</div>
+				</span>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>
