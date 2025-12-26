@@ -404,6 +404,10 @@ func (ui *UI) eventUpdates() {
 			ui.downPos = ui.cursorPos(cursor)
 			ui.requestEvent(EventTypeDown)
 			ui.flags.setCantMiss()
+		} else if !ui.flags.hovering() && !ui.flags.cantMiss() {
+			ui.requestEvent(EventTypeMiss)
+		} else {
+			ui.flags.resetCantMiss()
 		}
 	}
 	if mouse.Pressed(hid.MouseButtonRight) {
@@ -439,8 +443,6 @@ func (ui *UI) eventUpdates() {
 						ui.lastClick = rt
 					}
 				}
-			} else if !ui.flags.hovering() && !ui.flags.cantMiss() {
-				ui.requestEvent(EventTypeMiss)
 			}
 			ui.flags.resetCantMiss()
 		}
