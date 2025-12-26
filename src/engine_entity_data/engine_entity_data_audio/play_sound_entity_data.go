@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* codgen_registry.go                                                         */
+/* play_sound_entity_data.go                                                  */
 /******************************************************************************/
-/*                           This file is part of:                            */
+/*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com/                          */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -34,67 +34,39 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package codegen
+package engine_entity_data_audio
 
 import (
 	"kaiju/engine"
 	"kaiju/engine_entity_data/content_id"
-	"kaiju/matrix"
-	"reflect"
+	"log/slog"
+	"time"
 )
 
-var (
-	registry = make(map[string]reflect.Type)
-)
+const BindingKey = "kaiju.PlaySoundEntityData"
 
 func init() {
-	RegisterTypeName("matrix.Float", matrix.Float(0))
-	RegisterType[matrix.Color]()
-	RegisterType[matrix.Color]()
-	RegisterType[matrix.Mat3]()
-	RegisterType[matrix.Mat3]()
-	RegisterType[matrix.Mat4]()
-	RegisterType[matrix.Mat4]()
-	RegisterType[matrix.Quaternion]()
-	RegisterType[matrix.Quaternion]()
-	RegisterType[matrix.Transform]()
-	RegisterType[matrix.Transform]()
-	RegisterType[matrix.Vec2]()
-	RegisterType[matrix.Vec2]()
-	RegisterType[matrix.Vec2i]()
-	RegisterType[matrix.Vec2i]()
-	RegisterType[matrix.Vec3]()
-	RegisterType[matrix.Vec3]()
-	RegisterType[matrix.Vec3i]()
-	RegisterType[matrix.Vec3i]()
-	RegisterType[matrix.Vec4]()
-	RegisterType[matrix.Vec4]()
-	RegisterType[matrix.Vec4i]()
-	RegisterType[engine.Entity]()
-	RegisterType[engine.EntityId]()
-	RegisterType[engine.Host]()
-	RegisterType[engine.UpdateId]()
-	RegisterType[content_id.Css]()
-	RegisterType[content_id.Font]()
-	RegisterType[content_id.Html]()
-	RegisterType[content_id.Material]()
-	RegisterType[content_id.Music]()
-	RegisterType[content_id.ParticleSystem]()
-	RegisterType[content_id.RenderPass]()
-	RegisterType[content_id.ShaderPipeline]()
-	RegisterType[content_id.Shader]()
-	RegisterType[content_id.Sound]()
-	RegisterType[content_id.TableOfContents]()
-	RegisterType[content_id.Template]()
-	RegisterType[content_id.Texture]()
-	RegisterType[content_id.Stage]()
+	engine.RegisterEntityData(BindingKey, PlaySoundEntityData{})
 }
 
-func RegisterType[T any]() {
-	t := reflect.TypeFor[T]()
-	registry[reflect.TypeFor[T]().String()] = t
+type PlaySoundEntityData struct {
+	SoundId      content_id.Sound
+	DelaySeconds float32
 }
 
-func RegisterTypeName(name string, t any) {
-	registry[name] = reflect.TypeOf(t)
+func (c PlaySoundEntityData) Init(e *engine.Entity, host *engine.Host) {
+	a := host.Audio()
+	clip, err := a.LoadSound(host.AssetDatabase(), string(c.SoundId))
+	if err != nil {
+		slog.Error("failed to load the sound clip", "id", c.SoundId, "error", err)
+		return
+	}
+	if c.DelaySeconds <= 0 {
+		a.Play(clip)
+	} else {
+		ms := c.DelaySeconds * 1000
+		host.RunAfterTime(time.Millisecond*time.Duration(ms), func() {
+			a.Play(clip)
+		})
+	}
 }

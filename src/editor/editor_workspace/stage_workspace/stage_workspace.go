@@ -46,6 +46,7 @@ import (
 	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
 )
 
 const maxContentDropDistance = 10
@@ -117,7 +118,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
-	if !w.contentUI.update(w) {
+	if windowing.HasDragData() {
 		return
 	}
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {

@@ -67,7 +67,7 @@ type MeshConfig struct{}
 // the following functions
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
-func (Mesh) TypeName() string   { return "mesh" }
+func (Mesh) TypeName() string   { return "Mesh" }
 func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

@@ -198,6 +198,15 @@
 				border: 2px solid #AAA;
 				margin-bottom: 0.2em;
 			}
+			.dataContentId {
+				width: 100%;
+				background-color: #282828;
+				color: #AAA;
+				border: 2px solid #777;
+			}
+			.dataContentId .dragHover {
+				background-color: #682A2D;
+			}
 			.center { text-align: center; }
 			.deleteButton {
 				position: absolute;
@@ -334,6 +343,10 @@
 								<!-- Select input -->
 								<div>
 									<select class="dataInput" onchange="changeData"></select>
+								</div>
+								<!-- ContentId input -->
+								<div>
+									<div class="dataContentId" data-type="" onclick="selectContentId" ondrop="contentIdDrop" ondragenter="contentIdDragEnter" ondragleave="contentIdDragExit">&lt;empty&gt;</div>
 								</div>
 							</div>
 						</div>

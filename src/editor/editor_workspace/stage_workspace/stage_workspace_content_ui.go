@@ -48,6 +48,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -70,6 +71,20 @@ type WorkspaceContentUI struct {
 	dragging           *document.Element
 	tooltip            *document.Element
 	dragContentId      string
+}
+
+type StageDragContent struct {
+	cui *WorkspaceContentUI
+	id  string
+}
+
+func (d StageDragContent) DragUpdate() {
+	defer tracing.NewRegion("HierarchyEntityDragData.DragUpdate").End()
+	w := d.cui.workspace.Value()
+	m := &w.Host.Window.Mouse
+	mp := m.ScreenPosition()
+	ps := d.cui.dragPreview.UI.Layout().PixelSize()
+	d.cui.dragPreview.UI.Layout().SetOffset(mp.X()-ps.X()*0.5, mp.Y()-ps.Y()*0.5)
 }
 
 func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
@@ -110,21 +125,6 @@ func (cui *WorkspaceContentUI) open() {
 	if cui.hideContentElm.UI.Entity().IsActive() {
 		cui.showContentElm.UI.Hide()
 	}
-}
-
-func (cui *WorkspaceContentUI) update(w *StageWorkspace) bool {
-	defer tracing.NewRegion("WorkspaceContentUI.update").End()
-	if cui.dragging != nil {
-		m := &w.Host.Window.Mouse
-		mp := m.ScreenPosition()
-		ps := cui.dragPreview.UI.Layout().PixelSize()
-		cui.dragPreview.UI.Layout().SetOffset(mp.X()-ps.X()*0.5, mp.Y()-ps.Y()*0.5)
-		if m.Released(hid.MouseButtonLeft) {
-			cui.dropContent(w, m)
-		}
-		return false
-	}
-	return true
 }
 
 func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
@@ -352,6 +352,8 @@ func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 	cui.dragPreview.UI.Show()
 	cui.dragPreview.UIPanel.SetBackground(e.Children[0].UIPanel.Background())
 	cui.dragContentId = e.Attribute("id")
+	windowing.SetDragData(StageDragContent{cui, cui.dragContentId})
+	windowing.OnDragStop.Add(cui.dropContent)
 }
 
 func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
@@ -407,9 +409,14 @@ func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	cui.tooltip.UI.Hide()
 }
 
-func (cui *WorkspaceContentUI) dropContent(w *StageWorkspace, m *hid.Mouse) {
+func (cui *WorkspaceContentUI) dropContent() {
+	w := cui.workspace.Value()
+	m := &w.Host.Window.Mouse
 	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
-	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
+	inContentArea := cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	inDetailsArea := w.hierarchyUI.hierarchyArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	inHierarchyArea := w.detailsUI.detailsArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	if !inContentArea && !inDetailsArea && !inHierarchyArea {
 		cc, err := w.ed.Cache().Read(cui.dragContentId)
 		if err != nil {
 			slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)

@@ -52,7 +52,7 @@ type Stage struct{}
 // the following functions
 
 func (Stage) Path() string       { return project_file_system.ContentStageFolder }
-func (Stage) TypeName() string   { return "stage" }
+func (Stage) TypeName() string   { return "Stage" }
 func (Stage) ExtNames() []string { return []string{".stage"} }
 
 func (Stage) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

@@ -49,6 +49,7 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
 	"log/slog"
 	"reflect"
 	"slices"
@@ -95,23 +96,27 @@ type WorkspaceDetailsUI struct {
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setupFuncs").End()
 	return map[string]func(*document.Element){
-		"hideDetails":       dui.hideDetails,
-		"showDetails":       dui.showDetails,
-		"submitDetailsName": dui.submitDetailsName,
-		"setPosX":           dui.setPosX,
-		"setPosY":           dui.setPosY,
-		"setPosZ":           dui.setPosZ,
-		"setRotX":           dui.setRotX,
-		"setRotY":           dui.setRotY,
-		"setRotZ":           dui.setRotZ,
-		"setScaleX":         dui.setScaleX,
-		"setScaleY":         dui.setScaleY,
-		"setScaleZ":         dui.setScaleZ,
-		"searchEntityData":  dui.searchEntityData,
-		"addEntityData":     dui.addEntityData,
-		"changeData":        dui.changeData,
-		"removeEntityData":  dui.removeEntityData,
-		"changeShaderData":  dui.changeShaderData,
+		"hideDetails":        dui.hideDetails,
+		"showDetails":        dui.showDetails,
+		"submitDetailsName":  dui.submitDetailsName,
+		"setPosX":            dui.setPosX,
+		"setPosY":            dui.setPosY,
+		"setPosZ":            dui.setPosZ,
+		"setRotX":            dui.setRotX,
+		"setRotY":            dui.setRotY,
+		"setRotZ":            dui.setRotZ,
+		"setScaleX":          dui.setScaleX,
+		"setScaleY":          dui.setScaleY,
+		"setScaleZ":          dui.setScaleZ,
+		"searchEntityData":   dui.searchEntityData,
+		"addEntityData":      dui.addEntityData,
+		"changeData":         dui.changeData,
+		"removeEntityData":   dui.removeEntityData,
+		"changeShaderData":   dui.changeShaderData,
+		"selectContentId":    dui.selectContentId,
+		"contentIdDrop":      dui.contentIdDrop,
+		"contentIdDragEnter": dui.contentIdDragEnter,
+		"contentIdDragExit":  dui.contentIdDragExit,
 	}
 }
 
@@ -413,6 +418,10 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		vec4Input := fields[i].Children[5]
 		colorInput := fields[i].Children[6]
 		selectInput := fields[i].Children[7]
+		var contentIdInput *document.Element
+		if len(fields[i].Children) > 8 {
+			contentIdInput = fields[i].Children[8]
+		}
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		fg := &g.Gen.FieldGens[i]
 		v := reflect.ValueOf(g.BoundData).Elem().Field(i)
@@ -433,6 +442,17 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 					sel.AddOption(opt.Name, opt.Value)
 				}
 				sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
+			}
+		} else if g.Fields[i].IsContentId() {
+			contentIdInput.UI.Show()
+			child := contentIdInput.Children[0]
+			child.SetAttribute("data-type", g.Fields[i].Type)
+			valReload = func() {
+				str := g.FieldString(i)
+				if str == "" {
+					str = "empty"
+				}
+				child.InnerLabel().SetText(str)
 			}
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
@@ -507,6 +527,53 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	dui.commonChangeData(e, false)
 }
 
+func (dui *WorkspaceDetailsUI) selectContentId(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.selectContentId").End()
+
+}
+
+func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDrop").End()
+	w := dui.workspace.Value()
+	w.Doc.SetElementClasses(e, "dataContentId")
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != e.Attribute("data-type") {
+		return
+	}
+	e.InnerLabel().SetText(cc.Id())
+	dui.commonChangeData(e, false)
+}
+
+func (dui *WorkspaceDetailsUI) contentIdDragEnter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDragEnter").End()
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	w := dui.workspace.Value()
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != e.Attribute("data-type") {
+		return
+	}
+	w.Doc.SetElementClasses(e, "dataContentId", "dragHover")
+}
+
+func (dui *WorkspaceDetailsUI) contentIdDragExit(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDragExit").End()
+	w := dui.workspace.Value()
+	w.Doc.SetElementClasses(e, "dataContentId")
+}
+
 func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderData bool) bool {
 	root := e.Parent.Value().Parent.Value()
 	idx, err := strconv.Atoi(root.Attribute("data-fieldidx"))
@@ -565,6 +632,10 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 		inputText = e.UI.ToInput().Text()
 	case ui.ElementTypeSelect:
 		inputText = e.UI.ToSelect().Value()
+	case ui.ElementTypePanel:
+		if e.HasClass("dataContentId") {
+			inputText = e.InnerLabel().Text()
+		}
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

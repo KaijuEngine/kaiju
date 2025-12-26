@@ -58,7 +58,7 @@ type FontConfig struct{}
 // the following functions
 
 func (Font) Path() string       { return project_file_system.ContentFontFolder }
-func (Font) TypeName() string   { return "font" }
+func (Font) TypeName() string   { return "Font" }
 func (Font) ExtNames() []string { return []string{".ttf"} }
 
 func (Font) Import(src string, fs *project_file_system.FileSystem) (ProcessedImport, error) {

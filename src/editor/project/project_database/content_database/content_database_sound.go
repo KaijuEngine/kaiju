@@ -52,7 +52,7 @@ type SoundConfig struct{}
 // the following functions
 
 func (Sound) Path() string       { return project_file_system.ContentSoundFolder }
-func (Sound) TypeName() string   { return "sound" }
+func (Sound) TypeName() string   { return "Sound" }
 func (Sound) ExtNames() []string { return []string{".wav"} }
 
 func (Sound) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

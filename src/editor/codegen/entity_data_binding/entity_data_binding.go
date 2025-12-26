@@ -79,7 +79,8 @@ func (f *EntityDataField) IsVec4() bool     { return isVec4(f.Type) }
 func (f *EntityDataField) IsColor() bool    { return isColor(f.Type) }
 func (f *EntityDataField) IsCheckbox() bool { return isCheckbox(f.Type) }
 
-func (f *EntityDataField) IsEntityId() bool { return isEntityId(f.Pkg, f.Type) }
+func (f *EntityDataField) IsContentId() bool { return isContentId(f.Pkg) }
+func (f *EntityDataField) IsEntityId() bool  { return isEntityId(f.Pkg, f.Type) }
 
 // SetFieldByName sets the struct field identified by `name` to `value`.
 // It reflects into the bound data instance (de.BoundData), finds the
@@ -372,4 +373,8 @@ func isCheckbox(typeName string) bool {
 
 func isEntityId(packageName, typeName string) bool {
 	return packageName == "kaiju/engine" && typeName == "EntityId"
+}
+
+func isContentId(packageName string) bool {
+	return packageName == "kaiju/engine_entity_data/content_id"
 }

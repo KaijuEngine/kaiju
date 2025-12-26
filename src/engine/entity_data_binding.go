@@ -106,12 +106,9 @@ func ReflectValueFromJson(v any, f reflect.Value) {
 				}
 			}
 		}
-	case reflect.Float32, reflect.Int, reflect.Uint, reflect.Int8, reflect.Int16,
-		reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		f.Set(reflect.ValueOf(v).Convert(f.Type()))
 	default:
 		if f.IsValid() {
-			f.Set(reflect.ValueOf(v))
+			f.Set(reflect.ValueOf(v).Convert(f.Type()))
 		}
 	}
 }

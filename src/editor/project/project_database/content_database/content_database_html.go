@@ -53,7 +53,7 @@ type Html struct{}
 // the following functions
 
 func (Html) Path() string       { return project_file_system.ContentHtmlFolder }
-func (Html) TypeName() string   { return "html" }
+func (Html) TypeName() string   { return "Html" }
 func (Html) ExtNames() []string { return []string{".html"} }
 
 func (Html) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
