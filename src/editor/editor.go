@@ -164,10 +164,13 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	// goroutine
-	go ed.project.CompileDebug()
-	// goroutine
-	go ed.project.ReadSourceCode()
+	isAutoTest := build.Debug && engine.LaunchParams.AutoTest
+	if !isAutoTest {
+		// goroutine
+		go ed.project.CompileDebug()
+		// goroutine
+		go ed.project.ReadSourceCode()
+	}
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
