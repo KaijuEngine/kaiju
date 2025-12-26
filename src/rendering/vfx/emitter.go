@@ -44,6 +44,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
+	"log/slog"
 	"math/rand/v2"
 	"time"
 )
@@ -51,11 +52,14 @@ import (
 type Emitter struct {
 	Config       EmitterConfig
 	rand         *rand.Rand
+	path         func(t float64) matrix.Vec3
 	particles    []Particle
 	particleData []shader_data_registry.ShaderDataParticle
 	available    []int
 	nextSpawn    float64
 	lifeTime     float64
+	pathT        float64
+	offset       matrix.Vec3
 	deactivated  bool
 }
 
@@ -70,6 +74,11 @@ type EmitterConfig struct {
 	VelocityMinMax   matrix.Vec2
 	OpacityMinMax    matrix.Vec2
 	Color            matrix.Color
+	PathFuncName     string                      `options:"PathFuncName"`
+	PathFunc         func(t float64) matrix.Vec3 `visible:"hidden"`
+	PathFuncOffset   float64
+	PathFuncScale    float32
+	PathFuncSpeed    float32
 	FadeOutOverLife  bool
 	Burst            bool
 	Repeat           bool
@@ -116,13 +125,19 @@ func (e *Emitter) Deactivate() {
 	e.deactivated = true
 }
 
-func (e *Emitter) ForceReloadConfig(host *engine.Host) {
-	defer tracing.NewRegion("Emitter.ForceReloadConfig").End()
+func (e *Emitter) maxSpawnCount() int {
 	maxCount := 0
 	if e.Config.SpawnRate > 0 {
 		maxCount = int(matrix.Ceil(float32(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
-		maxCount += 1 // Little buffer for overlapping spawn/destroy
+		maxCount += int(float32(maxCount) * 0.25) // Quarter buffer for lower frame rates
 	}
+	return maxCount
+}
+
+func (e *Emitter) ForceReloadConfig(host *engine.Host) {
+	defer tracing.NewRegion("Emitter.ForceReloadConfig").End()
+	maxCount := e.maxSpawnCount()
+	e.updatePathFunc()
 	for i := range e.particleData {
 		e.particleData[i].Destroy()
 	}
@@ -158,22 +173,37 @@ func (e *Emitter) ForceReloadConfig(host *engine.Host) {
 
 func (e *Emitter) ReloadConfig(host *engine.Host) {
 	defer tracing.NewRegion("Emitter.ReloadConfig").End()
-	maxCount := 0
-	if e.Config.SpawnRate > 0 {
-		maxCount = int(matrix.Ceil(float32(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
-		maxCount += 1 // Little buffer for overlapping spawn/destroy
-	}
+	maxCount := e.maxSpawnCount()
 	if maxCount != cap(e.particles) {
 		e.ForceReloadConfig(host)
+	} else {
+		e.updatePathFunc()
 	}
 	e.nextSpawn = 0
 	e.lifeTime = e.Config.LifeSpan
+	e.pathT = e.Config.PathFuncOffset
+}
+
+func (e *Emitter) updatePathFunc() {
+	e.path = e.Config.PathFunc
+	if e.Config.PathFuncName != "" {
+		if fn, ok := pathFunctions[e.Config.PathFuncName]; ok {
+			e.path = fn
+		} else {
+			slog.Error("failed to find the particle emitter path function", "name", e.Config.PathFuncName)
+		}
+	}
+	e.offset = e.Config.Offset
 }
 
 func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 	defer tracing.NewRegion("Emitter.update").End()
 	if e.deactivated {
 		return
+	}
+	if e.path != nil {
+		e.pathT += deltaTime * float64(e.Config.PathFuncSpeed)
+		e.offset = e.path(e.pathT).Scale(e.Config.PathFuncScale)
 	}
 	if e.Config.LifeSpan > 0 {
 		if e.lifeTime > 0 {
@@ -191,7 +221,10 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 				e.spawn(transform)
 			}
 		} else {
-			e.spawn(transform)
+			for e.nextSpawn < e.Config.SpawnRate {
+				e.spawn(transform)
+				e.nextSpawn += max(0.0001, e.Config.SpawnRate)
+			}
 		}
 		e.nextSpawn = e.Config.SpawnRate
 	}
@@ -223,7 +256,7 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	pd.Activate()
 	pd.Color = e.Config.Color
 	pd.Color.SetA(1)
-	p.Transform.Position = transform.Position().Add(e.Config.Offset)
+	p.Transform.Position = transform.Position().Add(e.offset)
 	p.Transform.Rotation = transform.Rotation()
 	p.Transform.Scale = matrix.Vec3One()
 	p.LifeSpan = e.Config.ParticleLifeSpan

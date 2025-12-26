@@ -177,6 +177,8 @@ func (w *VfxWorkspace) clickAddEmitter(e *document.Element) {
 		VelocityMinMax:   matrix.Vec2One().Scale(1),
 		OpacityMinMax:    matrix.NewVec2(0.3, 1.0),
 		FadeOutOverLife:  true,
+		PathFuncScale:    1,
+		PathFuncSpeed:    1,
 	})
 }
 
@@ -331,9 +333,12 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 		for _, c := range fields[i].Children {
 			c.UI.Hide()
 		}
+		options := []string{}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
 				continue
+			} else if op := f.Tag.Get("options"); op != "" {
+				options = vfx.EditorReflectionOptions(op)
 			}
 		}
 		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
@@ -352,14 +357,13 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 			contentIdInput = fields[i].Children[8]
 		}
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
-		fg := &g.Gen.FieldGens[i]
-		if fg.IsValid() && len(fg.EnumValues) > 0 {
+		if len(options) > 0 {
 			selectInput.UI.Show()
 			sel := selectInput.Children[0].UI.ToSelect()
 			sel.ClearOptions()
 			opts := []ui.SelectOption{}
-			for k, v := range fg.EnumValues {
-				opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+			for _, s := range options {
+				opts = append(opts, ui.SelectOption{Name: s, Value: s})
 			}
 			slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
 				return klib.StringValueCompare(a.Value, b.Value)
