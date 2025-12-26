@@ -55,8 +55,13 @@ type PlaySoundEntityData struct {
 }
 
 func (c PlaySoundEntityData) Init(e *engine.Entity, host *engine.Host) {
+	adb := host.AssetDatabase()
+	if !adb.Exists(string(c.SoundId)) {
+		slog.Error("the sound could not be found", "id", c.SoundId)
+		return
+	}
 	a := host.Audio()
-	clip, err := a.LoadSound(host.AssetDatabase(), string(c.SoundId))
+	clip, err := a.LoadSound(adb, string(c.SoundId))
 	if err != nil {
 		slog.Error("failed to load the sound clip", "id", c.SoundId, "error", err)
 		return
