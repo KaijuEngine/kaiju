@@ -587,9 +587,18 @@ func (p *Panel) SetScrollY(value float32) {
 func (p *Panel) ScrollToChild(child *UI) {
 	pps := p.Base().Layout().PixelSize()
 	cps := child.layout.PixelSize()
-	ct := child.entity.Transform
-	top := pps.Y()*0.5 - cps.Y()*0.5 - ct.Position().Y()
-	bottom := -(pps.Y()*0.5 - cps.Y()*0.5) - ct.Position().Y()
+	y := child.entity.Transform.Position().Y()
+	parent := child.entity.Parent
+	for parent != &p.entity {
+		y += parent.Transform.Position().Y()
+		parent = parent.Parent
+		if parent == nil {
+			slog.Error("invalid child supplied to ScrollToChild, it is not a child or grandchild")
+			return
+		}
+	}
+	top := pps.Y()*0.5 - cps.Y()*0.5 - y
+	bottom := -(pps.Y()*0.5 - cps.Y()*0.5) - y
 	if top < 0 {
 		p.SetScrollY(p.ScrollY() + top)
 	} else if bottom >= 0 {

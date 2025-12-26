@@ -270,11 +270,15 @@ func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEn
 
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entitySelected").End()
-	entries := hui.workspace.Value().Doc.GetElementsByClass("hierarchyEntry")
+	w := hui.workspace.Value()
+	entries := w.Doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
 			hui.workspace.Value().Doc.SetElementClasses(
 				elm, hui.buildEntityClasses(elm)...)
+			w.Host.RunAfterNextUIClean(func() {
+				hui.entityList.UI.ToPanel().ScrollToChild(elm.UI)
+			})
 			break
 		}
 	}
