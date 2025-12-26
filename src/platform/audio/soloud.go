@@ -170,7 +170,11 @@ func (a *Audio) Play(clip *AudioClip) VoiceHandle {
 	return play(a.soloud, clip.wav)
 }
 
-func (a *Audio) Stop(clip *AudioClip) {
+func (a *Audio) Stop(handle VoiceHandle) {
+	stopAudio(a.soloud, handle)
+}
+
+func (a *Audio) StopSource(clip *AudioClip) {
 	stopAudioSource(a.soloud, clip.wav)
 	clip.handles = clip.handles[:0]
 }
