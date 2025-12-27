@@ -1,0 +1,10 @@
+package string_equations // import "kaiju/klib/string_equations"
+
+
+FUNCTIONS
+
+func CalculateSimpleStringExpression(expression string) (float64, error)
+    CalculateSimpleStringExpression will take an input string math equation,
+    using only simple expressions (+, -, *, /) (and parenthesis) to generate a
+    resulting value
+

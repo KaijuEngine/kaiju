@@ -1,0 +1,78 @@
+package load_result // import "kaiju/rendering/loaders/load_result"
+
+
+TYPES
+
+type AnimBone struct {
+	NodeIndex     int
+	PathType      AnimationPathType
+	Interpolation AnimationInterpolation
+	// Could be Vec3 or Quaternion, doing this because Go doesn't have a union
+	Data [4]matrix.Float
+}
+
+type AnimKeyFrame struct {
+	Bones []AnimBone
+	Time  float32
+}
+
+type Animation struct {
+	Name   string
+	Frames []AnimKeyFrame
+}
+
+type AnimationInterpolation = int
+
+const (
+	AnimInterpolateInvalid AnimationInterpolation = iota - 1
+	AnimInterpolateLinear
+	AnimInterpolateStep
+	AnimInterpolateCubicSpline
+)
+type AnimationPathType = int
+
+const (
+	AnimPathInvalid AnimationPathType = iota - 1
+	AnimPathTranslation
+	AnimPathRotation
+	AnimPathScale
+	AnimPathWeights
+)
+type Joint struct {
+	Id   int32
+	Skin matrix.Mat4
+}
+
+type Mesh struct {
+	Node     *Node
+	Name     string
+	MeshName string
+	Verts    []rendering.Vertex
+	Indexes  []uint32
+	Textures map[string]string
+}
+
+func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float
+
+type Node struct {
+	Name       string
+	Parent     int
+	Transform  matrix.Transform
+	Attributes map[string]any
+}
+
+type Result struct {
+	Nodes      []Node
+	Meshes     []Mesh
+	Animations []Animation
+	Joints     []Joint
+}
+
+func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures map[string]string, node *Node)
+
+func (r *Result) Extract(names ...string) Result
+
+func (r *Result) IsValid() bool
+
+func (r *Result) NodeByName(name string) *Node
+

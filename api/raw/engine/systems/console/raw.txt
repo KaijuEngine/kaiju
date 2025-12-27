@@ -1,0 +1,39 @@
+package console // import "kaiju/engine/systems/console"
+
+
+VARIABLES
+
+var (
+	ErrCommandNotFound = errors.New("the command with the given key does not exist")
+)
+
+TYPES
+
+type Console struct {
+	// Has unexported fields.
+}
+
+func For(host *engine.Host) *Console
+
+func (c *Console) AddCommand(key, description string, fn ConsoleFunc)
+
+func (c *Console) Data(key string) ConsoleData
+
+func (c *Console) DeleteData(key string)
+
+func (c *Console) ExecCommand(key, arg string) (string, error)
+
+func (c *Console) HasData(key string) bool
+
+func (c *Console) HasUIRequests() bool
+
+func (c *Console) IsActive() bool
+
+func (c *Console) SetData(key string, data ConsoleData)
+
+func (c *Console) Write(message string)
+
+type ConsoleData interface{}
+
+type ConsoleFunc func(*engine.Host, string) string
+

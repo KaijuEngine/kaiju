@@ -1,0 +1,785 @@
+package pseudos // import "kaiju/engine/ui/markup/css/pseudos"
+
+
+VARIABLES
+
+var PseudoMap = map[string]Pseudo{
+	"active":             Active{},
+	"any-link":           AnyLink{},
+	"autofill":           Autofill{},
+	"blank":              Blank{},
+	"checked":            Checked{},
+	"current":            Current{},
+	"default":            Default{},
+	"defined":            Defined{},
+	"dir":                Dir{},
+	"disabled":           Disabled{},
+	"empty":              Empty{},
+	"enabled":            Enabled{},
+	"first":              First{},
+	"first-child":        FirstChild{},
+	"first-of-type":      FirstOfType{},
+	"fullscreen":         Fullscreen{},
+	"future":             Future{},
+	"focus":              Focus{},
+	"focus-visible":      FocusVisible{},
+	"focus-within":       FocusWithin{},
+	"has":                Has{},
+	"host":               Host{},
+	"host-context":       HostContext{},
+	"hover":              Hover{},
+	"indeterminate":      Indeterminate{},
+	"in-range":           InRange{},
+	"invalid":            Invalid{},
+	"is":                 Is{},
+	"lang":               Lang{},
+	"last-child":         LastChild{},
+	"last-of-type":       LastOfType{},
+	"left":               Left{},
+	"link":               Link{},
+	"local-link":         LocalLink{},
+	"modal":              Modal{},
+	"not":                Not{},
+	"nth-child":          NthChild{},
+	"nth-col":            NthCol{},
+	"nth-last-child":     NthLastChild{},
+	"nth-last-col":       NthLastCol{},
+	"nth-last-of-type":   NthLastOfType{},
+	"nth-of-type":        NthOfType{},
+	"only-child":         OnlyChild{},
+	"only-of-type":       OnlyOfType{},
+	"optional":           Optional{},
+	"out-of-range":       OutOfRange{},
+	"past":               Past{},
+	"picture-in-picture": PictureInPicture{},
+	"placeholder-shown":  PlaceholderShown{},
+	"paused":             Paused{},
+	"playing":            Playing{},
+	"read-only":          ReadOnly{},
+	"read-write":         ReadWrite{},
+	"required":           Required{},
+	"right":              Right{},
+	"root":               Root{},
+	"scope":              Scope{},
+	"state":              State{},
+	"target":             Target{},
+	"target-within":      TargetWithin{},
+	"user-invalid":       UserInvalid{},
+	"valid":              Valid{},
+	"visited":            Visited{},
+	"where":              Where{},
+}
+
+TYPES
+
+type Active struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:active
+
+func (p Active) AlterRules(inRules []rules.Rule) []rules.Rule
+
+func (p Active) IsFunction() bool
+
+func (p Active) Key() string
+
+func (p Active) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type AnyLink struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:any-link
+
+func (p AnyLink) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p AnyLink) IsFunction() bool
+
+func (p AnyLink) Key() string
+
+func (p AnyLink) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Autofill struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:autofill
+
+func (p Autofill) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Autofill) IsFunction() bool
+
+func (p Autofill) Key() string
+
+func (p Autofill) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Blank struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:blank
+
+func (p Blank) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Blank) IsFunction() bool
+
+func (p Blank) Key() string
+
+func (p Blank) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Checked struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:checked
+
+func (p Checked) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Checked) IsFunction() bool
+
+func (p Checked) Key() string
+
+func (p Checked) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Current struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:current
+
+func (p Current) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Current) IsFunction() bool
+
+func (p Current) Key() string
+
+func (p Current) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Default struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:default
+
+func (p Default) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Default) IsFunction() bool
+
+func (p Default) Key() string
+
+func (p Default) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Defined struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:defined
+
+func (p Defined) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Defined) IsFunction() bool
+
+func (p Defined) Key() string
+
+func (p Defined) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Dir struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:dir
+
+func (p Dir) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Dir) IsFunction() bool
+
+func (p Dir) Key() string
+
+func (p Dir) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Disabled struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:disabled
+
+func (p Disabled) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Disabled) IsFunction() bool
+
+func (p Disabled) Key() string
+
+func (p Disabled) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Empty struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:empty
+
+func (p Empty) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Empty) IsFunction() bool
+
+func (p Empty) Key() string
+
+func (p Empty) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Enabled struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:enabled
+
+func (p Enabled) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Enabled) IsFunction() bool
+
+func (p Enabled) Key() string
+
+func (p Enabled) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type First struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:first
+
+func (p First) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p First) IsFunction() bool
+
+func (p First) Key() string
+
+func (p First) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type FirstChild struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:first-child
+
+func (p FirstChild) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p FirstChild) IsFunction() bool
+
+func (p FirstChild) Key() string
+
+func (p FirstChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type FirstOfType struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:first-of-type
+
+func (p FirstOfType) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p FirstOfType) IsFunction() bool
+
+func (p FirstOfType) Key() string
+
+func (p FirstOfType) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Focus struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:focus
+
+func (p Focus) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Focus) IsFunction() bool
+
+func (p Focus) Key() string
+
+func (p Focus) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type FocusVisible struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:focus-visible
+
+func (p FocusVisible) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p FocusVisible) IsFunction() bool
+
+func (p FocusVisible) Key() string
+
+func (p FocusVisible) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type FocusWithin struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:focus-within
+
+func (p FocusWithin) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p FocusWithin) IsFunction() bool
+
+func (p FocusWithin) Key() string
+
+func (p FocusWithin) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Fullscreen struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:fullscreen
+
+func (p Fullscreen) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Fullscreen) IsFunction() bool
+
+func (p Fullscreen) Key() string
+
+func (p Fullscreen) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Future struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:future
+
+func (p Future) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Future) IsFunction() bool
+
+func (p Future) Key() string
+
+func (p Future) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Has struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:has
+
+func (p Has) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Has) IsFunction() bool
+
+func (p Has) Key() string
+
+func (p Has) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Host struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:host
+
+func (p Host) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Host) IsFunction() bool
+
+func (p Host) Key() string
+
+func (p Host) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type HostContext struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:host-context
+
+func (p HostContext) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p HostContext) IsFunction() bool
+
+func (p HostContext) Key() string
+
+func (p HostContext) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Hover struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:hover
+
+func (p Hover) AlterRules(inRules []rules.Rule) []rules.Rule
+
+func (p Hover) IsFunction() bool
+
+func (p Hover) Key() string
+
+func (p Hover) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type InRange struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:in-range
+
+func (p InRange) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p InRange) IsFunction() bool
+
+func (p InRange) Key() string
+
+func (p InRange) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Indeterminate struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:indeterminate
+
+func (p Indeterminate) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Indeterminate) IsFunction() bool
+
+func (p Indeterminate) Key() string
+
+func (p Indeterminate) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Invalid struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:invalid
+
+func (p Invalid) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Invalid) IsFunction() bool
+
+func (p Invalid) Key() string
+
+func (p Invalid) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Is struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:is
+
+func (p Is) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Is) IsFunction() bool
+
+func (p Is) Key() string
+
+func (p Is) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Lang struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:lang
+
+func (p Lang) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Lang) IsFunction() bool
+
+func (p Lang) Key() string
+
+func (p Lang) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type LastChild struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:last-child
+
+func (p LastChild) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p LastChild) IsFunction() bool
+
+func (p LastChild) Key() string
+
+func (p LastChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type LastOfType struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:last-of-type
+
+func (p LastOfType) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p LastOfType) IsFunction() bool
+
+func (p LastOfType) Key() string
+
+func (p LastOfType) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Left struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:left
+
+func (p Left) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Left) IsFunction() bool
+
+func (p Left) Key() string
+
+func (p Left) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Link struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:link
+
+func (p Link) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Link) IsFunction() bool
+
+func (p Link) Key() string
+
+func (p Link) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type LocalLink struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:local-link
+
+func (p LocalLink) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p LocalLink) IsFunction() bool
+
+func (p LocalLink) Key() string
+
+func (p LocalLink) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Modal struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:modal
+
+func (p Modal) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Modal) IsFunction() bool
+
+func (p Modal) Key() string
+
+func (p Modal) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Not struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:not
+
+func (p Not) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Not) IsFunction() bool
+
+func (p Not) Key() string
+
+func (p Not) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthChild struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-child
+
+func (p NthChild) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthChild) IsFunction() bool
+
+func (p NthChild) Key() string
+
+func (p NthChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthCol struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-col
+
+func (p NthCol) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthCol) IsFunction() bool
+
+func (p NthCol) Key() string
+
+func (p NthCol) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthLastChild struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-last-child
+
+func (p NthLastChild) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthLastChild) IsFunction() bool
+
+func (p NthLastChild) Key() string
+
+func (p NthLastChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthLastCol struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-last-col
+
+func (p NthLastCol) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthLastCol) IsFunction() bool
+
+func (p NthLastCol) Key() string
+
+func (p NthLastCol) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthLastOfType struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-last-of-type
+
+func (p NthLastOfType) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthLastOfType) IsFunction() bool
+
+func (p NthLastOfType) Key() string
+
+func (p NthLastOfType) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type NthOfType struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-of-type
+
+func (p NthOfType) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p NthOfType) IsFunction() bool
+
+func (p NthOfType) Key() string
+
+func (p NthOfType) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type OnlyChild struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:only-child
+
+func (p OnlyChild) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p OnlyChild) IsFunction() bool
+
+func (p OnlyChild) Key() string
+
+func (p OnlyChild) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type OnlyOfType struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:only-of-type
+
+func (p OnlyOfType) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p OnlyOfType) IsFunction() bool
+
+func (p OnlyOfType) Key() string
+
+func (p OnlyOfType) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Optional struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:optional
+
+func (p Optional) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Optional) IsFunction() bool
+
+func (p Optional) Key() string
+
+func (p Optional) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type OutOfRange struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:out-of-range
+
+func (p OutOfRange) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p OutOfRange) IsFunction() bool
+
+func (p OutOfRange) Key() string
+
+func (p OutOfRange) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Past struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:past
+
+func (p Past) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Past) IsFunction() bool
+
+func (p Past) Key() string
+
+func (p Past) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Paused struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:paused
+
+func (p Paused) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Paused) IsFunction() bool
+
+func (p Paused) Key() string
+
+func (p Paused) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type PictureInPicture struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:picture-in-picture
+
+func (p PictureInPicture) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p PictureInPicture) IsFunction() bool
+
+func (p PictureInPicture) Key() string
+
+func (p PictureInPicture) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type PlaceholderShown struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:placeholder-shown
+
+func (p PlaceholderShown) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p PlaceholderShown) IsFunction() bool
+
+func (p PlaceholderShown) Key() string
+
+func (p PlaceholderShown) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Playing struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:playing
+
+func (p Playing) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Playing) IsFunction() bool
+
+func (p Playing) Key() string
+
+func (p Playing) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Pseudo interface {
+	Key() string
+	IsFunction() bool
+	Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+	AlterRules(rules []rules.Rule) []rules.Rule
+}
+
+type ReadOnly struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:read-only
+
+func (p ReadOnly) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p ReadOnly) IsFunction() bool
+
+func (p ReadOnly) Key() string
+
+func (p ReadOnly) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type ReadWrite struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:read-write
+
+func (p ReadWrite) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p ReadWrite) IsFunction() bool
+
+func (p ReadWrite) Key() string
+
+func (p ReadWrite) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Required struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:required
+
+func (p Required) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Required) IsFunction() bool
+
+func (p Required) Key() string
+
+func (p Required) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Right struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:right
+
+func (p Right) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Right) IsFunction() bool
+
+func (p Right) Key() string
+
+func (p Right) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Root struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:root
+
+func (p Root) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Root) IsFunction() bool
+
+func (p Root) Key() string
+
+func (p Root) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Scope struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:scope
+
+func (p Scope) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Scope) IsFunction() bool
+
+func (p Scope) Key() string
+
+func (p Scope) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type State struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:state
+
+func (p State) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p State) IsFunction() bool
+
+func (p State) Key() string
+
+func (p State) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Target struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:target
+
+func (p Target) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Target) IsFunction() bool
+
+func (p Target) Key() string
+
+func (p Target) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type TargetWithin struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:target-within
+
+func (p TargetWithin) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p TargetWithin) IsFunction() bool
+
+func (p TargetWithin) Key() string
+
+func (p TargetWithin) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type UserInvalid struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:user-invalid
+
+func (p UserInvalid) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p UserInvalid) IsFunction() bool
+
+func (p UserInvalid) Key() string
+
+func (p UserInvalid) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Valid struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:valid
+
+func (p Valid) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Valid) IsFunction() bool
+
+func (p Valid) Key() string
+
+func (p Valid) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Visited struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:visited
+
+func (p Visited) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Visited) IsFunction() bool
+
+func (p Visited) Key() string
+
+func (p Visited) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+
+type Where struct{}
+    https://developer.mozilla.org/en-US/docs/Web/CSS/:where
+
+func (p Where) AlterRules(rules []rules.Rule) []rules.Rule
+
+func (p Where) IsFunction() bool
+
+func (p Where) Key() string
+
+func (p Where) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error)
+

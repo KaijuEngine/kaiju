@@ -1,0 +1,24 @@
+package input_prompt // import "kaiju/editor/editor_overlay/input_prompt"
+
+
+TYPES
+
+type Config struct {
+	Title       string
+	Description string
+	Placeholder string
+	Value       string
+	ConfirmText string
+	CancelText  string
+	OnConfirm   func(string)
+	OnCancel    func()
+}
+
+type InputPrompt struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*InputPrompt, error)
+
+func (ip *InputPrompt) Close()
+

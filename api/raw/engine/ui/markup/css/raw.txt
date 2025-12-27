@@ -1,0 +1,17 @@
+package css // import "kaiju/engine/ui/markup/css"
+
+
+VARIABLES
+
+var DefaultCSS string
+
+TYPES
+
+type CSSMap map[*ui.UI][]rules.Rule
+
+type Stylizer struct {
+	Window *windowing.Window
+}
+
+func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document)
+

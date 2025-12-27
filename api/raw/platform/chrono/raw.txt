@@ -1,0 +1,13 @@
+package chrono // import "kaiju/platform/chrono"
+
+
+TYPES
+
+type HighResolutionTimer struct {
+	// Has unexported fields.
+}
+
+func (t *HighResolutionTimer) Start()
+
+func (t *HighResolutionTimer) Stop() (seconds float64)
+

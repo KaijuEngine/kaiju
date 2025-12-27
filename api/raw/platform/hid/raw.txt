@@ -1,0 +1,447 @@
+package hid // import "kaiju/platform/hid"
+
+
+CONSTANTS
+
+const (
+	ControllerButtonUp = iota
+	ControllerButtonDown
+	ControllerButtonLeft
+	ControllerButtonRight
+	ControllerButtonStart
+	ControllerButtonSelect
+	ControllerButtonLeftStick
+	ControllerButtonRightStick
+	ControllerButtonLeftBumper
+	ControllerButtonRightBumper
+	ControllerButtonEx1 // TODO:  Name this correctly
+	ControllerButtonEx2 // TODO:  Name this correctly
+	ControllerButtonA
+	ControllerButtonB
+	ControllerButtonX
+	ControllerButtonY
+	ControllerButtonMax
+)
+const (
+	ControllerAxisLeftVertical = iota
+	ControllerAxisLeftHorizontal
+	ControllerAxisRightVertical
+	ControllerAxisRightHorizontal
+	ControllerAxisLeftTrigger
+	ControllerAxisRightTrigger
+	ControllerAxisMax
+)
+const (
+	MouseButtonLeft = iota
+	MouseButtonMiddle
+	MouseButtonRight
+	MouseButtonX1
+	MouseButtonX2
+	MouseButtonLast
+)
+const (
+	MouseRelease = iota
+	MousePress
+	MouseRepeat
+	MouseInvalid            = -1
+	MouseButtonStateInvalid = -1
+)
+const (
+	ControllerMaxDevices = 8
+)
+    Based off XBOX controller
+
+const (
+	MaxTouchPointersAvailable = 10
+)
+
+TYPES
+
+type Controller struct {
+	// Has unexported fields.
+}
+
+func NewController() Controller
+    NewController creates a new controller. This is called automatically by the
+    system and should not be called by the end-developer
+
+func (c *Controller) Available(id int) bool
+    Available returns true if the controller is available. This is called
+    automatically by the system and should not be called by the end-developer
+
+func (c *Controller) Axis(id, stick int) float32
+    Axis returns the axis value for the given controller and stick
+
+func (c *Controller) Connected(id int)
+    Connected returns true if the controller is connected. This is called
+    automatically by the system and should not be called by the end-developer
+
+func (c *Controller) Disconnected(id int)
+    Disconnected returns true if the controller is disconnected. This is called
+    automatically by the system and should not be called by the end-developer
+
+func (c *Controller) EndUpdate()
+    EndUpdate is called at the end of the frame. It updates the state of each
+    controller for the next frame. This is called automatically by the system
+    and should not be called by the end-developer
+
+func (c *Controller) IsButtonDown(id, button int) bool
+    IsButtonDown returns true if the button is down
+
+func (c *Controller) IsButtonHeld(id, button int) bool
+    IsButtonHeld returns true if the button is held
+
+func (c *Controller) IsButtonUp(id, button int) bool
+    IsButtonUp returns true if the button is up
+
+func (c *Controller) Reset()
+    Reset will completely wipe the state of all controllers
+
+func (c *Controller) SetAxis(id, stick int, axis float32)
+    SetAxis sets the axis on the given controller. This is called automatically
+    by the system and should not be called by the end-developer
+
+func (c *Controller) SetButtonDown(id, button int)
+    SetButtonDown sets the button down on the given controller. This is called
+    automatically by the system and should not be called by the end-developer
+
+func (c *Controller) SetButtonUp(id, button int)
+    SetButtonUp sets the button up on the given controller. This is called
+    automatically by the system and should not be called by the end-developer
+
+type ControllerDevice struct {
+	// Has unexported fields.
+}
+
+type Cursor struct {
+	// Has unexported fields.
+}
+
+func NewCursor(mouse *Mouse, touch *Touch, stylus *Stylus) Cursor
+
+func (c *Cursor) Held() bool
+
+func (c *Cursor) Moved() bool
+
+func (c *Cursor) Poll()
+
+func (c *Cursor) Position() matrix.Vec2
+
+func (c *Cursor) Pressed() bool
+
+func (c *Cursor) Released() bool
+
+func (c *Cursor) ScreenPosition() matrix.Vec2
+
+func (c *Cursor) UIPosition(uiSize, windowSize matrix.Vec2) matrix.Vec2
+
+type KeyCallbackId int
+
+type KeyState = uint8
+
+const (
+	KeyStateIdle KeyState = iota
+	KeyStateDown
+	KeyStateHeld
+	KeyStateUp
+	KeyStatePressedAndReleased
+	KeyStateToggled
+)
+type Keyboard struct {
+	// Has unexported fields.
+}
+
+func NewKeyboard() Keyboard
+
+func (k *Keyboard) AddKeyCallback(cb func(keyId int, keyState KeyState)) KeyCallbackId
+
+func (k *Keyboard) EndUpdate()
+
+func (k Keyboard) HasAlt() bool
+
+func (k Keyboard) HasCtrl() bool
+
+func (k Keyboard) HasModifier() bool
+
+func (k Keyboard) HasShift() bool
+
+func (k Keyboard) IsToggleKey(key KeyboardKey) bool
+
+func (k Keyboard) IsToggleKeyOn(key KeyboardKey) bool
+
+func (k Keyboard) KeyDown(key KeyboardKey) bool
+
+func (k Keyboard) KeyHeld(key KeyboardKey) bool
+
+func (k *Keyboard) KeyToRune(key KeyboardKey) rune
+
+func (k Keyboard) KeyUp(key KeyboardKey) bool
+
+func (k *Keyboard) RemoveKeyCallback(id KeyCallbackId)
+
+func (k *Keyboard) Reset()
+
+func (k *Keyboard) SetKeyDown(key KeyboardKey)
+
+func (k *Keyboard) SetKeyDownUp(key KeyboardKey)
+
+func (k *Keyboard) SetKeyUp(key KeyboardKey)
+
+func (k *Keyboard) SetToggleKeyState(key KeyboardKey, state KeyState)
+
+func (k *Keyboard) ToggleKey(key KeyboardKey)
+
+type KeyboardKey = int
+
+const (
+	KeyBoardKeyInvalid KeyboardKey = -1 + iota
+	KeyboardKeyLeftAlt
+	KeyboardKeyRightAlt
+	KeyboardKeyLeftCtrl
+	KeyboardKeyRightCtrl
+	KeyboardKeyLeftShift
+	KeyboardKeyRightShift
+	KeyboardKeyA
+	KeyboardKeyB
+	KeyboardKeyC
+	KeyboardKeyD
+	KeyboardKeyE
+	KeyboardKeyF
+	KeyboardKeyG
+	KeyboardKeyH
+	KeyboardKeyI
+	KeyboardKeyJ
+	KeyboardKeyK
+	KeyboardKeyL
+	KeyboardKeyM
+	KeyboardKeyN
+	KeyboardKeyO
+	KeyboardKeyP
+	KeyboardKeyQ
+	KeyboardKeyR
+	KeyboardKeyS
+	KeyboardKeyT
+	KeyboardKeyU
+	KeyboardKeyV
+	KeyboardKeyW
+	KeyboardKeyX
+	KeyboardKeyY
+	KeyboardKeyZ
+	KeyboardKeyLeft
+	KeyboardKeyUp
+	KeyboardKeyRight
+	KeyboardKeyDown
+	KeyboardKeyEscape
+	KeyboardKeyTab
+	KeyboardKeySpace
+	KeyboardKeyBackspace
+	KeyboardKeyBackQuote
+	KeyboardKeyDelete
+	KeyboardKeyReturn
+	KeyboardKeyEnter
+	KeyboardKeyComma
+	KeyboardKeyPeriod
+	KeyboardKeyBackSlash
+	KeyboardKeyForwardSlash
+	KeyboardKeyOpenBracket
+	KeyboardKeyCloseBracket
+	KeyboardKeySemicolon
+	KeyboardKeyQuote
+	KeyboardKeyEqual
+	KeyboardKeyMinus
+	KeyboardKey0
+	KeyboardKey1
+	KeyboardKey2
+	KeyboardKey3
+	KeyboardKey4
+	KeyboardKey5
+	KeyboardKey6
+	KeyboardKey7
+	KeyboardKey8
+	KeyboardKey9
+	KeyboardNumKey0
+	KeyboardNumKey1
+	KeyboardNumKey2
+	KeyboardNumKey3
+	KeyboardNumKey4
+	KeyboardNumKey5
+	KeyboardNumKey6
+	KeyboardNumKey7
+	KeyboardNumKey8
+	KeyboardNumKey9
+	KeyboardNumKeyDivide
+	KeyboardNumKeyMultiply
+	KeyboardNumKeyAdd
+	KeyboardNumKeySubtract
+	KeyboardNumKeyPeriod
+	KeyboardKeyF1
+	KeyboardKeyF2
+	KeyboardKeyF3
+	KeyboardKeyF4
+	KeyboardKeyF5
+	KeyboardKeyF6
+	KeyboardKeyF7
+	KeyboardKeyF8
+	KeyboardKeyF9
+	KeyboardKeyF10
+	KeyboardKeyF11
+	KeyboardKeyF12
+	KeyboardKeyCapsLock
+	KeyboardKeyScrollLock
+	KeyboardKeyNumLock
+	KeyboardKeyPrintScreen
+	KeyboardKeyPause
+	KeyboardKeyInsert
+	KeyboardKeyHome
+	KeyboardKeyPageUp
+	KeyboardKeyPageDown
+	KeyboardKeyEnd
+	KeyboardKeyMaximum
+)
+func ToKeyboardKey(nativeKey int) KeyboardKey
+
+type Mouse struct {
+	X, Y             float32
+	SX, SY           float32
+	CX, CY           float32
+	ScrollX, ScrollY float32
+
+	// Has unexported fields.
+}
+
+func NewMouse() Mouse
+
+func (m Mouse) ButtonChanged() bool
+
+func (m Mouse) ButtonState(index int) int
+
+func (m Mouse) CenteredPosition() matrix.Vec2
+
+func (m *Mouse) EndUpdate()
+
+func (m *Mouse) ForceHeld(index int)
+
+func (m Mouse) Held(index int) bool
+
+func (m Mouse) Moved() bool
+
+func (m Mouse) Position() matrix.Vec2
+
+func (m Mouse) Pressed(index int) bool
+
+func (m Mouse) Released(index int) bool
+
+func (m *Mouse) Reset()
+
+func (m Mouse) ScreenPosition() matrix.Vec2
+
+func (m Mouse) Scroll() matrix.Vec2
+
+func (m Mouse) Scrolled() bool
+
+func (m *Mouse) SetDown(index int)
+
+func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32)
+
+func (m *Mouse) SetScroll(x, y float32)
+
+func (m *Mouse) SetUp(index int)
+
+type Stylus struct {
+	X        float32
+	Y        float32
+	SX       float32
+	SY       float32
+	Pressure float32
+	Distance float32
+	// Has unexported fields.
+}
+
+func NewStylus() Stylus
+
+func (s *Stylus) ActionState() int
+
+func (s *Stylus) EndUpdate()
+
+func (s *Stylus) Held() bool
+
+func (s *Stylus) IsActive() bool
+
+func (s *Stylus) Moved() bool
+
+func (s *Stylus) Pressed() bool
+
+func (s *Stylus) Released() bool
+
+func (s *Stylus) Reset()
+
+func (s *Stylus) Set(x, y, pressure, distance, windowHeight float32)
+
+func (s *Stylus) SetActionState(state StylusActionState)
+
+type StylusActionState = int
+
+const (
+	StylusActionNone StylusActionState = iota
+	StylusActionHoverEnter
+	StylusActionHoverMove
+	StylusActionHoverExit
+	StylusActionDown
+	StylusActionMove
+	StylusActionUp
+	StylusActionHeld
+	StylusActionHover
+)
+type Touch struct {
+	Pointers []*TouchPointer
+	Pool     [MaxTouchPointersAvailable]TouchPointer
+}
+
+func NewTouch() Touch
+
+func (t *Touch) Cancel()
+
+func (t *Touch) Cancelled() bool
+
+func (t *Touch) EndUpdate()
+
+func (t *Touch) Held() bool
+
+func (t *Touch) Moved() bool
+
+func (t *Touch) Pointer(index int) *TouchPointer
+
+func (t *Touch) Pressed() bool
+
+func (t *Touch) Released() bool
+
+func (t *Touch) Reset()
+
+func (t *Touch) SetDown(id int64, x, y, windowHeight float32)
+
+func (t *Touch) SetMoved(id int64, x, y, windowHeight float32)
+
+func (t *Touch) SetPressure(id int64, pressure float32)
+
+func (t *Touch) SetUp(id int64, x, y, windowHeight float32)
+
+type TouchAction = int
+
+const (
+	TouchActionNone   TouchAction = -1
+	TouchActionDown   TouchAction = internalTouchActionDown
+	TouchActionUp     TouchAction = internalTouchActionUp
+	TouchActionMove   TouchAction = internalTouchActionMove
+	TouchActionCancel TouchAction = -2
+	TouchActionHeld   TouchAction = -3
+)
+type TouchPointer struct {
+	Pressure float32
+	X        float32
+	Y        float32
+	SX       float32
+	SY       float32
+	State    TouchAction
+	Id       int64
+}
+

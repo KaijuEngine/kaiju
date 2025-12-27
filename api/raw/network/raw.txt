@@ -1,0 +1,75 @@
+package network // import "kaiju/network"
+
+
+TYPES
+
+type ClientMessage struct {
+	Client *ServerClient
+	// Has unexported fields.
+}
+
+func (c *ClientMessage) IsFromServer() bool
+
+func (c *ClientMessage) Message() []byte
+
+type NetworkClient struct {
+	NetworkUDP
+	ServerClient
+	ServerMessageQueue concurrent.MessageQueue[ClientMessage]
+}
+
+func NewClientUDP() NetworkClient
+
+func (c *NetworkClient) Connect(updater *engine.Updater, address string, port uint16) error
+
+func (c *NetworkClient) ReadMessages()
+
+func (c *NetworkClient) SendMessageReliable(message []byte) error
+
+func (c *NetworkClient) SendMessageUnreliable(message []byte) error
+
+type NetworkPacketUDP struct {
+	// Has unexported fields.
+}
+
+type NetworkServer struct {
+	NetworkUDP
+	ClientMessageQueue concurrent.MessageQueue[ClientMessage]
+
+	// Has unexported fields.
+}
+
+func NewServerUDP() NetworkServer
+
+func (s *NetworkServer) HolePunchClient(address string, port uint16) (*ServerClient, error)
+
+func (s *NetworkServer) RemoveClient(client *ServerClient)
+
+func (c *NetworkServer) SendMessageReliable(message []byte, client *ServerClient) error
+
+func (c *NetworkServer) SendMessageUnreliable(message []byte, client *ServerClient) error
+
+func (s *NetworkServer) Serve(updater *engine.Updater, port uint16) error
+
+type NetworkUDP struct {
+	// Has unexported fields.
+}
+
+func (n *NetworkUDP) Close(updater *engine.Updater)
+
+func (n *NetworkUDP) IsLive() bool
+
+type PendingNetworkPacketUDP struct {
+	// Has unexported fields.
+}
+
+type ServerClient struct {
+	// Has unexported fields.
+}
+
+func (c *ServerClient) Address() string
+
+func (c *ServerClient) Id() int
+
+func (c *ServerClient) PortlessAddress() string
+
