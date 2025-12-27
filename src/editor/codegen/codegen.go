@@ -141,7 +141,8 @@ func readAst(srcRoot *os.Root, file string, registrations *map[string]string, lo
 			return nil, fmt.Errorf("the registration key for type name '%s' was empty", typeName)
 		}
 		if _, ok := (*registrations)[key]; ok {
-			return nil, fmt.Errorf("the key '%s' has already been registered", key)
+			continue
+			// return nil, fmt.Errorf("the key '%s' has already been registered", key)
 		}
 		(*registrations)[key] = typeName
 		(*localRegs)[typeName] = key
