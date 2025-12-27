@@ -390,7 +390,6 @@ func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_bind
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
-	clear(dui.TargetedElementValueReload)
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
@@ -717,6 +716,7 @@ func (dui *WorkspaceDetailsUI) reload() {
 	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- {
 		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
 	}
+	clear(dui.TargetedElementValueReload)
 	if e.StageData.ShaderData != nil {
 		g := entity_data_binding.ToDataBinding("Shader Data", e.StageData.ShaderData)
 		dui.createDataBindingEntry(&g, dui.shaderInstanceDataTemplate)
