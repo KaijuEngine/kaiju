@@ -92,6 +92,7 @@ type WorkspaceDetailsUI struct {
 	boundEntityDataTemplate    *document.Element
 	shaderInstanceDataTemplate *document.Element
 	TargetedElementValueReload map[reflect.Value]func()
+	copiedEntityData           weak.Pointer[entity_data_binding.EntityDataEntry]
 }
 
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
@@ -112,6 +113,9 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"searchEntityData":     dui.searchEntityData,
 		"addEntityData":        dui.addEntityData,
 		"changeData":           dui.changeData,
+		"pasteEntityDataAsNew": dui.pasteEntityDataAsNew,
+		"pasteEntityData":      dui.pasteEntityData,
+		"copyEntityData":       dui.copyEntityData,
 		"removeEntityData":     dui.removeEntityData,
 		"changeShaderData":     dui.changeShaderData,
 		"clickSelectContentId": dui.clickSelectContentId,
@@ -357,12 +361,16 @@ func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.addEntityData").End()
-	key := e.InnerLabel().Text()
+	dui.addEntityDataBykey(e.InnerLabel().Text())
+}
+
+func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_binding.EntityDataEntry, bool) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.addEntityDataBykey").End()
 	w := dui.workspace.Value()
 	g, ok := w.ed.Project().EntityDataBinding(key)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", key)
-		return
+		return nil, false
 	}
 	sel := w.stageView.Manager().Selection()
 	// TODO:  Multi-select stuff
@@ -376,6 +384,7 @@ func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 		Entity:           target,
 		Data:             de,
 	})
+	return de, true
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
@@ -387,9 +396,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	nameSpan := cpy.Children[0]
 	fieldDiv := cpy.Children[1]
 	if len(cpy.Children) == 3 {
-		deleteBtn := cpy.Children[1]
+		nameSpan = cpy.Children[1]
 		fieldDiv = cpy.Children[2]
-		deleteBtn.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+		for _, c := range cpy.Children[0].Children {
+			c.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+		}
 	}
 	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
@@ -719,28 +730,92 @@ func (dui *WorkspaceDetailsUI) reload() {
 	dui.detailsArea.UI.Clean()
 }
 
-func (dui *WorkspaceDetailsUI) removeEntityData(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.removeEntityData").End()
-	bindIdx, err := strconv.Atoi(e.Attribute("data-bindidx"))
-	if err != nil {
+func (dui *WorkspaceDetailsUI) pasteEntityDataAsNew(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityDataAsNew").End()
+	paste := dui.copiedEntityData.Value()
+	if paste == nil {
+		slog.Warn("nothing copied to paste")
 		return
 	}
 	w := dui.workspace.Value()
-	sel := w.stageView.Manager().Selection()
-	if len(sel) == 0 {
+	w.ed.History().BeginTransaction()
+	var de *entity_data_binding.EntityDataEntry
+	var ok bool
+	if de, ok = dui.addEntityDataBykey(paste.Gen.RegisterKey); ok {
+		ok = dui.pasteEntityDataTo(paste, de)
+	}
+	if ok {
+		w.ed.History().CommitTransaction()
+		dui.reload()
+	} else {
+		w.ed.History().CancelTransaction()
+	}
+}
+
+func (dui *WorkspaceDetailsUI) pasteEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
+	paste := dui.copiedEntityData.Value()
+	if paste == nil {
+		slog.Warn("nothing copied to paste")
 		return
 	}
-	entity := sel[0]
-	if bindIdx < 0 || bindIdx >= len(entity.DataBindings()) {
+	_, data, ok := dui.entityDataForElement(e)
+	if !ok {
+		slog.Warn("could not find the entity data on the target")
 		return
 	}
-	data := entity.DataBindings()[bindIdx]
+	dui.pasteEntityDataTo(paste, data)
+}
+
+func (dui *WorkspaceDetailsUI) pasteEntityDataTo(src, dst *entity_data_binding.EntityDataEntry) bool {
+	if src.Gen.RegisterKey != dst.Gen.RegisterKey {
+		slog.Warn("the copied data doesn't match the target", "key", src.Gen.RegisterKey)
+		return false
+	}
+	if len(dst.Fields) != len(src.Fields) {
+		slog.Warn("the copied data field count doesn't match for the paste", "dst", len(dst.Fields), "src", len(src.Fields))
+		return false
+	}
+	for i := range dst.Fields {
+		if src.Fields[i].Type != dst.Fields[i].Type {
+			slog.Warn("the copied data field type doesn't match for the paste", "dst", dst.Fields[i].Type, "src", src.Fields[i].Type)
+			return false
+		}
+	}
+	v := reflect.ValueOf(dst.BoundData).Elem()
+	for i := range dst.Fields {
+		dst.SetField(i, src.FieldValue(i))
+		if r, ok := dui.TargetedElementValueReload[v.Field(i)]; ok {
+			r()
+		}
+	}
+	slog.Info("pasted entity data values")
+	return true
+}
+
+func (dui *WorkspaceDetailsUI) copyEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityData").End()
+	_, data, ok := dui.entityDataForElement(e)
+	if !ok {
+		slog.Warn("could not find the entity data on the target")
+		return
+	}
+	dui.copiedEntityData = weak.Make(data)
+	slog.Info("copied entity data values")
+}
+
+func (dui *WorkspaceDetailsUI) removeEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.removeEntityData").End()
+	entity, data, ok := dui.entityDataForElement(e)
+	if !ok {
+		return
+	}
 	h := &EntityDataDetachHistory{
 		DetailsWorkspace: dui,
 		Entity:           entity,
 		Data:             data,
 	}
-	w.ed.History().Add(h)
+	dui.workspace.Value().ed.History().Add(h)
 	h.Redo()
 }
 
@@ -786,6 +861,24 @@ func (dui *WorkspaceDetailsUI) focusRename() {
 	input := dui.detailsName.UI.ToInput()
 	input.Focus()
 	input.SelectAll()
+}
+
+func (dui *WorkspaceDetailsUI) entityDataForElement(e *document.Element) (*editor_stage_manager.StageEntity, *entity_data_binding.EntityDataEntry, bool) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entityDataForElement").End()
+	bindIdx, err := strconv.Atoi(e.Attribute("data-bindidx"))
+	if err != nil {
+		return nil, nil, false
+	}
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return nil, nil, false
+	}
+	entity := sel[0]
+	if bindIdx < 0 || bindIdx >= len(entity.DataBindings()) {
+		return nil, nil, false
+	}
+	return entity, entity.DataBindings()[bindIdx], true
 }
 
 func toInt(str string) int64 {
