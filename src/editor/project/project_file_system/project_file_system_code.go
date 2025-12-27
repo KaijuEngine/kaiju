@@ -74,11 +74,15 @@ go %s
 
 const srcGameHostFileData = `package game_host
 
+import (
+	"kaiju/engine"
+)
+
 type GameHost struct {
 	// Developer should fill in structure and NewGameHost as needed
 }
 
-func NewGameHost() *GameHost {
+func NewGameHost(host *engine.Host) *GameHost {
 	return &GameHost{}
 }`
 
