@@ -184,6 +184,7 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.entitySelected").End()
 	dui.reload()
+	dui.detailsArea.UI.ToPanel().SetScrollY(0)
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
