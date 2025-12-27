@@ -201,10 +201,6 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 	if e.deactivated {
 		return
 	}
-	if e.path != nil {
-		e.pathT += deltaTime * float64(e.Config.PathFuncSpeed)
-		e.offset = e.path(e.pathT).Scale(e.Config.PathFuncScale)
-	}
 	if e.Config.LifeSpan > 0 {
 		if e.lifeTime > 0 {
 			e.lifeTime -= deltaTime
@@ -217,11 +213,13 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 	}
 	if e.nextSpawn <= 0 {
 		if e.Config.Burst {
+			e.calcPath(deltaTime)
 			for len(e.available) > 0 {
 				e.spawn(transform)
 			}
 		} else {
 			for e.nextSpawn < e.Config.SpawnRate {
+				e.calcPath(e.Config.SpawnRate)
 				e.spawn(transform)
 				e.nextSpawn += max(0.0001, e.Config.SpawnRate)
 			}
@@ -240,6 +238,13 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 				e.available = append(e.available, i)
 			}
 		}
+	}
+}
+
+func (e *Emitter) calcPath(dt float64) {
+	if e.path != nil {
+		e.pathT += dt * float64(e.Config.PathFuncSpeed)
+		e.offset = e.path(e.pathT).Scale(e.Config.PathFuncScale)
 	}
 }
 
