@@ -38,16 +38,24 @@ package project
 
 import (
 	"encoding/json"
+	"kaiju/editor/editor_controls"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 )
 
 type Settings struct {
 	Name                 string
 	EntryPointStage      string
 	ArchiveEncryptionKey string
+	EditorSettings       EditorSettings `visible:"false"`
 	Android              AndroidSettings
 	EditorVersion        float64 `visible:"false"`
+}
+
+type EditorSettings struct {
+	CameraMode      int    `visible:"false"`
+	LatestOpenStage string `visible:"false"`
 }
 
 type AndroidSettings struct {
@@ -56,7 +64,7 @@ type AndroidSettings struct {
 }
 
 func (c *Settings) Save(fs *project_file_system.FileSystem) error {
-	defer tracing.NewRegion("Settings.save").End()
+	defer tracing.NewRegion("Settings.Save").End()
 	f, err := fs.Create(project_file_system.ProjectConfigFile)
 	if err != nil {
 		return err
@@ -70,5 +78,13 @@ func (c *Settings) load(fs *project_file_system.FileSystem) error {
 	if err != nil {
 		return err
 	}
-	return json.NewDecoder(f).Decode(c)
+	err = json.NewDecoder(f).Decode(c)
+	if err != nil {
+		return err
+	}
+	if c.EditorSettings.CameraMode == 0 {
+		slog.Info("defaulting to 3D camera mode")
+		c.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
+	}
+	return c.Save(fs)
 }

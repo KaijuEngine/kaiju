@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* stage_workspace_editor_interface.go                                        */
+/* stage_workspace_ui_data.go                                                 */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -37,25 +37,30 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"kaiju/klib"
+	"kaiju/platform/profiler/tracing"
 )
 
-type StageWorkspaceEditorInterface interface {
-	Events() *editor_events.EditorEvents
-	History() *memento.History
-	Project() *project.Project
-	ProjectFileSystem() *project_file_system.FileSystem
-	Cache() *content_database.Cache
-	FocusInterface()
-	BlurInterface()
-	Settings() *editor_settings.Settings
-	StageView() *editor_stage_view.StageView
-	ShowReferences(id string)
-	ContentWorkspaceSelected()
+type WorkspaceUIData struct {
+	Filters    []string
+	Tags       []string
+	CameraMode string
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache, cm string) []string {
+	defer tracing.NewRegion("ContentWorkspaceUIData.SetupUIData").End()
+	for _, cat := range content_database.ContentCategories {
+		w.Filters = append(w.Filters, cat.TypeName())
+	}
+	list := cdb.List()
+	ids := make([]string, 0, len(list))
+	for i := range list {
+		ids = append(ids, list[i].Id())
+		for j := range list[i].Config.Tags {
+			w.Tags = klib.AppendUnique(w.Tags, list[i].Config.Tags[j])
+		}
+	}
+	w.CameraMode = cm
+	return ids
 }
