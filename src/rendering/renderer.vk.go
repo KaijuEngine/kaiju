@@ -563,7 +563,9 @@ func (vr *Vulkan) Destroy() {
 	vr.renderPassCache = make(map[string]*RenderPass)
 	runtime.GC()
 	for i := range vr.preRuns {
-		vr.preRuns[i]()
+		if vr.preRuns[i] != nil {
+			vr.preRuns[i]()
+		}
 	}
 	vr.preRuns = make([]func(), 0)
 	vr.caches = nil

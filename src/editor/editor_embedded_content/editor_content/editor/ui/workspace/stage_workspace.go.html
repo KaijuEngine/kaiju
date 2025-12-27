@@ -212,13 +212,17 @@
 				background-color: #682A2D;
 			}
 			.center { text-align: center; }
-			.deleteButton {
-				position: absolute;
+			.dataControls {
+				width: 4.5em;
+				height: 1.5em;
+				right: 0;
+			}
+			.deleteButton, .copyIcon, .pasteIcon {
 				width: 1.5em;
 				height: 1.5em;
 				font-size: 0.7em;
-				right: 0;
 			}
+			.copyIcon, .pasteIcon { font-family: 'NotoEmoji-Regular'; }
 		</style>
 	</head>
 	<body>
@@ -307,8 +311,12 @@
 				<div id="detailsEntityDataTable" class="dataTable">
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">
+							<div class="dataControls">
+								<button class="pasteIcon" data-bindidx="" onclick="pasteEntityData">📋</button>
+								<button class="copyIcon" data-bindidx="" onclick="copyEntityData">🖨︎</button>
+								<button class="deleteButton" data-bindidx="" onclick="removeEntityData">X</button>
+							</div>
 							<div class="center">Data name...</div>
-							<button class="deleteButton" data-bindidx="" onclick="removeEntityData">X</button>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
 								<!-- Text input -->
@@ -355,7 +363,7 @@
 							</div>
 						</div>
 					</div>
-					<div>Add data</div>
+					<div><span>Add data, or </span><button class="pasteIcon" onclick="pasteEntityDataAsNew">📋</button></div>
 					<input type="text" placeholder="Find entity data..." onchange="searchEntityData" />
 					<div id="entityDataList">
 						<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
