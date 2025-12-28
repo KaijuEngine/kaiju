@@ -142,6 +142,9 @@ func (s *ShaderDataBase) Deactivate() {
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
 	s.forceUpdateTransformModel()
+	if s.transform != nil {
+		s.transform.SetDirty()
+	}
 }
 
 func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
