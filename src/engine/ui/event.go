@@ -48,6 +48,8 @@ const (
 	EventTypeDoubleClick
 	EventTypeDown
 	EventTypeUp
+	EventTypeRightDown
+	EventTypeRightUp
 	EventTypeMiss
 	EventTypeDragStart
 	EventTypeDrop

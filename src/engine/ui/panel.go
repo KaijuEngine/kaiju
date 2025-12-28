@@ -645,11 +645,19 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 	}
 	// TODO:  Allow this to be overridable for transparent overlays?
 	// Panels that have a background shouldn't be click-through-able (probably)
-	if p.events[EventTypeDown].IsEmpty() && !pd.flags.allowClickThrough() {
-		p.Base().AddEvent(EventTypeDown, func() { /* Do nothing, but block things */ })
-	}
-	if p.events[EventTypeUp].IsEmpty() && !pd.flags.allowClickThrough() {
-		p.Base().AddEvent(EventTypeUp, func() { /* Do nothing, but block things */ })
+	if !pd.flags.allowClickThrough() {
+		if p.events[EventTypeDown].IsEmpty() {
+			p.Base().AddEvent(EventTypeDown, func() { /* Do nothing, but block things */ })
+		}
+		if p.events[EventTypeUp].IsEmpty() {
+			p.Base().AddEvent(EventTypeUp, func() { /* Do nothing, but block things */ })
+		}
+		if p.events[EventTypeRightDown].IsEmpty() {
+			p.Base().AddEvent(EventTypeRightDown, func() { /* Do nothing, but block things */ })
+		}
+		if p.events[EventTypeRightUp].IsEmpty() {
+			p.Base().AddEvent(EventTypeRightUp, func() { /* Do nothing, but block things */ })
+		}
 	}
 }
 

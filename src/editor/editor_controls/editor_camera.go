@@ -79,6 +79,7 @@ type EditorCamera struct {
 	dragging         bool
 	mode             EditorCameraMode
 	resizeId         events.Id
+	flyCamStarted    bool
 	flyCamFlickerFix bool
 	flySpeedModifier float32
 }
@@ -142,12 +143,14 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			host.Window.LockCursor(lockX, lockY)
 			e.lastMousePos = m.Position()
 			e.flyCamFlickerFix = false
+			e.flyCamStarted = true
 			return true
-		} else if !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
+		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
+			e.flyCamStarted = false
 			host.Window.UnlockCursor()
 			host.Window.ShowCursor()
 			return false
-		} else if !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
+		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			// TODO:  This is annoying and unfortunate, but functional,
 			// basically skip one update to prevent camera jumping
 			if !e.flyCamFlickerFix {
