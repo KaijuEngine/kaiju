@@ -13,9 +13,11 @@ layout(location = LOCATION_START) in vec4 color;
 layout(location = LOCATION_START+1) in int skinIndex;
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec2 fragTexCoords;
-layout(location = 2) out vec3 fragNormal;
-layout(location = 3) out vec3 fragLightDirection;
+layout(location = 1) out uint fragFlags;
+layout(location = 2) out vec3 fragPos;
+layout(location = 3) out vec2 fragTexCoords;
+layout(location = 4) out vec3 fragNormal;
+layout(location = 5) out vec3 viewDir;
 
 void main() {
 	vec4 pos = vec4(Position, 1.0);
@@ -27,6 +29,6 @@ void main() {
 	fragTexCoords = UV0;
 	fragNormal = Normal;
 	vec4 wp = skinMatrix * pos;
-	fragLightDirection = normalize(cameraPosition - wp.xyz);
+	viewDir = normalize(cameraPosition.xyz - wp.xyz);
 	gl_Position = projection * view * model * wp;
 }
