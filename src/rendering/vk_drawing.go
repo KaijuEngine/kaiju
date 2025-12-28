@@ -435,13 +435,26 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 					n := b.FullName()
 					buff := group.namedBuffers[n]
 					count := min(currentCount, b.Capacity())
-					buff.size = vr.padUniformBufferSize(vk.DeviceSize(group.namedInstanceData[n].length))
+					nid := group.namedInstanceData[n]
+					buff.size = vr.padUniformBufferSize(vk.DeviceSize(nid.length))
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
 						vr.CreateBuffer(buff.size*vk.DeviceSize(count),
 							vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageUniformBufferBit),
 							vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
+						var data unsafe.Pointer
+						r := vk.MapMemory(vr.device, buff.memories[j], 0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)
+						if r != vulkan_const.Success {
+							slog.Error("Failed to map named instance memory", "name", n, "code", int(r))
+							return
+						} else if data == nil {
+							slog.Error("MapMemory for named instance memory was a success, but data is nil")
+							return
+						} else {
+							nid.byteMapping[j] = data
+						}
 					}
+					group.namedInstanceData[n] = nid
 					group.namedBuffers[n] = buff
 				}
 			}
