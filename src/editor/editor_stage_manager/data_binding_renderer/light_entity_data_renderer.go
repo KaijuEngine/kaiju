@@ -87,9 +87,11 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 	l.SetCutoff(float32(data.FieldValueByName("Cutoff").(float32)))
 	l.SetOuterCutoff(float32(data.FieldValueByName("OuterCutoff").(float32)))
 	l.SetCastsShadows(data.FieldValueByName("CastsShadows").(bool))
+	lines := c.createLines(host, &target.Transform)
+	lines.Deactivate()
 	c.Lights[target] = lightEntityDataDrawing{
 		icon:  icon,
-		lines: c.createLines(host, &target.Transform),
+		lines: lines,
 		light: host.Lighting().Lights.Add(&target.Transform, l),
 	}
 	target.OnActivate.Add(func() {

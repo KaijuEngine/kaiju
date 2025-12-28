@@ -97,6 +97,7 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 		Transform:  &target.Transform,
 		ViewCuller: &host.Cameras.Primary,
 	})
+	sd.Deactivate()
 	c.Frustums[target] = cameraDataBindingDrawing{frustum.Key(), sd, icon}
 	target.OnActivate.Add(func() {
 		if d, ok := c.Frustums[target]; ok {
