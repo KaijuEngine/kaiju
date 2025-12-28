@@ -60,6 +60,7 @@ func (EditorContent) Close()                        {}
 
 func toEmbedPath(key string) string {
 	const prefix = "editor/editor_embedded_content/editor_content"
+	key = filepath.ToSlash(key)
 	if strings.HasPrefix(key, "editor/") {
 		return filepath.ToSlash(filepath.Join(prefix, key))
 	}
