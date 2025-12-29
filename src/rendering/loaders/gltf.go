@@ -195,7 +195,6 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			bin = bin[16:]
 		}
 	}
-	meshDatas := map[int32]rawMeshData{}
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Id = int32(i)
@@ -225,18 +224,15 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			continue
 		}
 		m := &doc.glTF.Meshes[*n.Mesh]
-		rmd, ok := meshDatas[*n.Mesh]
 		for p := range m.Primitives {
-			if !ok {
-				if verts, err := gltfReadMeshVerts(m, doc, p); err != nil {
-					return res, err
-				} else if indices, err := gltfReadMeshIndices(m, doc, p); err != nil {
-					return res, err
-				} else {
-					rmd.verts = verts
-					rmd.indices = indices
-				}
-				meshDatas[*n.Mesh] = rmd
+			rmd := new(rawMeshData)
+			if verts, err := gltfReadMeshVerts(m, doc, p); err != nil {
+				return res, err
+			} else if indices, err := gltfReadMeshIndices(m, doc, p); err != nil {
+				return res, err
+			} else {
+				rmd.verts = verts
+				rmd.indices = indices
 			}
 			textures := gltfReadMeshTextures(m, &doc.glTF, p)
 			key := fmt.Sprintf("%s/%s", doc.path, m.Name)
