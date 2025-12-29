@@ -414,6 +414,9 @@ func (ui *UI) eventUpdates() {
 		ui.containedCheck(cursor, &ui.entity)
 		if ui.flags.hovering() && !ui.flags.isRightDown() {
 			ui.flags.setIsRightDown()
+			ui.downPos = ui.cursorPos(cursor)
+			ui.requestEvent(EventTypeRightDown)
+			ui.flags.setCantMiss()
 		}
 	}
 	if cursor.Released() {
@@ -448,8 +451,11 @@ func (ui *UI) eventUpdates() {
 		}
 	}
 	if mouse.Released(hid.MouseButtonRight) {
-		if ui.flags.isRightDown() && ui.flags.hovering() {
-			ui.requestEvent(EventTypeRightClick)
+		if ui.flags.hovering() {
+			ui.requestEvent(EventTypeUp)
+			if ui.flags.isRightDown() {
+				ui.requestEvent(EventTypeRightClick)
+			}
 		}
 		ui.flags.resetIsRightDown()
 	}

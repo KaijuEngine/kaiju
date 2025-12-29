@@ -218,7 +218,8 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 				e.spawn(transform)
 			}
 		} else {
-			for e.nextSpawn < e.Config.SpawnRate {
+			e.nextSpawn += e.Config.SpawnRate
+			for e.nextSpawn <= e.Config.SpawnRate {
 				e.calcPath(e.Config.SpawnRate)
 				e.spawn(transform)
 				e.nextSpawn += max(0.0001, e.Config.SpawnRate)

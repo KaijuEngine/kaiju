@@ -78,6 +78,7 @@ func init() {
 	RegisterType[content_id.Font]()
 	RegisterType[content_id.Html]()
 	RegisterType[content_id.Material]()
+	RegisterType[content_id.Mesh]()
 	RegisterType[content_id.Music]()
 	RegisterType[content_id.ParticleSystem]()
 	RegisterType[content_id.RenderPass]()

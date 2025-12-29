@@ -70,6 +70,11 @@ func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
 func (Mesh) TypeName() string   { return "Mesh" }
 func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
 
+type meshImportPostProcData struct {
+	mesh       load_result.Mesh
+	isAnimated bool
+}
+
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Import").End()
 	ext := filepath.Ext(src)
@@ -100,7 +105,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	baseName := fileNameNoExt(src)
 	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
-	postProcData := map[string]load_result.Mesh{}
+	postProcData := map[string]meshImportPostProcData{}
 	for i := range kms {
 		kd, err := kms[i].Serialize()
 		if err != nil {
@@ -112,7 +117,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			Data: kd,
 		}
 		p.Variants = append(p.Variants, v)
-		postProcData[v.Name] = res.Meshes[i]
+		postProcData[v.Name] = meshImportPostProcData{res.Meshes[i], res.IsTreeAnimated(int(res.Meshes[i].Node.Id))}
 	}
 	p.postProcessData = postProcData
 	for i := range res.Meshes {
@@ -140,7 +145,7 @@ func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 
 func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
-	meshes := proc.postProcessData.(map[string]load_result.Mesh)
+	meshes := proc.postProcessData.(map[string]meshImportPostProcData)
 	cc, err := cache.Read(res.Id)
 	if err != nil {
 		return err
@@ -163,45 +168,48 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		return rendering.MaterialTextureData{}
 	}
 	var mat rendering.MaterialData
-	if _, ok := variant.Textures["metallicRoughness"]; ok {
+	if _, ok := variant.mesh.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
 			Shader:          "pbr.shader",
 			RenderPass:      "opaque.renderpass",
 			ShaderPipeline:  "basic.shaderpipeline",
-			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
 			IsLit:           true,
 			ReceivesShadows: true,
 			CastsShadows:    true,
 		}
-		if t, ok := variant.Textures["baseColor"]; ok {
+		if variant.isAnimated {
+			mat.Shader = "pbr_skinned.shader"
+		}
+		if t, ok := variant.mesh.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "baseColor")
+			delete(variant.mesh.Textures, "baseColor")
 		} else {
 			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
 				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["normal"]; ok {
+		if t, ok := variant.mesh.Textures["normal"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "normal")
+			delete(variant.mesh.Textures, "normal")
 		} else {
 			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
 				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["metallicRoughness"]; ok {
+		if t, ok := variant.mesh.Textures["metallicRoughness"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "metallicRoughness")
+			delete(variant.mesh.Textures, "metallicRoughness")
 		} else {
 			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
 				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["emissive"]; ok {
+		if t, ok := variant.mesh.Textures["emissive"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "emissive")
+			delete(variant.mesh.Textures, "emissive")
 		} else {
 			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
 				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		for _, t := range variant.Textures {
+		for _, t := range variant.mesh.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 		}
 	} else {
@@ -209,9 +217,12 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			Shader:         "basic.shader",
 			RenderPass:     "opaque.renderpass",
 			ShaderPipeline: "basic.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
 		}
-		for _, t := range variant.Textures {
+		if variant.isAnimated {
+			mat.Shader = "basic_skinned.shader"
+		}
+		for _, t := range variant.mesh.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 		}
 	}

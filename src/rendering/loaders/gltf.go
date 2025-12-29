@@ -198,13 +198,15 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	meshDatas := map[int32]rawMeshData{}
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
+		res.Nodes[i].Id = int32(i)
 		res.Nodes[i].Name = n.Name
 		res.Nodes[i].Transform.SetupRawTransform()
-		res.Nodes[i].Transform.Identifier = uint8(i)
 		res.Nodes[i].Attributes = n.Extras
+		res.Nodes[i].Children = slices.Clone(n.Children)
 		for j := range n.Children {
-			res.Nodes[n.Children[j]].Parent = i
-			res.Nodes[n.Children[j]].Transform.SetParent(&res.Nodes[i].Transform)
+			cid := n.Children[j]
+			res.Nodes[cid].Parent = i
+			res.Nodes[cid].Transform.SetParent(&res.Nodes[i].Transform)
 		}
 		// TODO:  Come back for this scenario
 		//if n.Matrix != nil {
@@ -245,6 +247,17 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 		}
 	}
 	res.Animations = gltfReadAnimations(doc)
+	for i := range doc.glTF.Animations {
+		for j := range doc.glTF.Animations[i].Channels {
+			nid := doc.glTF.Animations[i].Channels[j].Target.Node
+			res.Nodes[nid].IsAnimated = true
+			p := res.Nodes[nid].Parent
+			for p >= 0 {
+				res.Nodes[p].IsAnimated = true
+				p = res.Nodes[p].Parent
+			}
+		}
+	}
 	return res, nil
 }
 

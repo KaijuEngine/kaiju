@@ -11,7 +11,7 @@ layout(location = 1) out float reveal;
 #endif
 
 void main() {
-	vec4 tex = texture(texSampler, fragTexCoords) * fragColor;
+	vec4 tex = texture(texSampler, fragTexCoords);
 	// vec4 unWeightedColor = texture(texSampler, fragTexCoords) * fragColor;
 	// float v = max(tex.r - 0.267, 0.0) * 1.364;
 	float v = tex.r;

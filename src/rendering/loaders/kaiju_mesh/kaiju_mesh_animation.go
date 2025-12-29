@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* shader_data_pbr.go                                                         */
+/* kaiju_mesh_animation.go                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,78 +34,72 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package shader_data_registry
+package kaiju_mesh
 
 import (
-	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/matrix"
-	"kaiju/rendering"
-	"unsafe"
+	"kaiju/rendering/loaders/load_result"
 )
 
-func init() {
-	gob.Register([4]int32{})
-	register(func() rendering.DrawInstance {
-		return &ShaderDataPBR{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			VertColors:     matrix.ColorWhite(),
-			LightIds:       [...]int32{-1, -1, -1, -1},
-		}
-	}, "pbr")
+type KaijuMeshJoint struct {
+	Id       int32
+	Parent   int32
+	Skin     matrix.Mat4
+	Position matrix.Vec3
+	Rotation matrix.Vec3
+	Scale    matrix.Vec3
 }
 
-type ShaderDataPBR struct {
-	rendering.ShaderDataBase
-	VertColors matrix.Color
-	Metallic   float32
-	Roughness  float32
-	Emissive   float32
-	LightIds   [4]int32                `visible:"false"`
-	Flags      ShaderDataStandardFlags `visible:"false"`
+type KaijuMeshAnimation struct {
+	Name   string
+	Frames []AnimKeyFrame
 }
 
-func (t ShaderDataPBR) Size() int {
-	return int(unsafe.Sizeof(ShaderDataPBR{}) - rendering.ShaderBaseDataStart)
+type AnimKeyFrame struct {
+	Bones []AnimBone
+	Time  float32
 }
 
-func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {
-	shouldUpdate := lights.HasChanges
-	t := s.Transform()
-	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
-	if !shouldUpdate {
-		return
-	}
-	// TODO:  This is for testing, should select closest
-	for i := range s.LightIds {
-		s.LightIds[i] = -1
-	}
-	for i := range lights.Lights {
-		if lights.Lights[i].IsValid() {
-			s.LightIds[i] = int32(i)
-		} else {
-			break
-		}
+type AnimBone struct {
+	NodeIndex     int
+	PathType      AnimationPathType
+	Interpolation AnimationInterpolation
+	// Could be Vec3 or Quaternion, doing this because Go doesn't have a union
+	Data [4]matrix.Float
+}
+
+func (j *KaijuMeshJoint) fromLoadResult(res *load_result.Result, r *load_result.Joint) {
+	j.Id = r.Id
+	j.Skin = r.Skin
+	pid := int32(res.Nodes[j.Id].Parent)
+	if pid >= 0 {
+		p := &res.Nodes[pid]
+		j.Parent = pid
+		j.Position = p.Transform.Position()
+		j.Rotation = p.Transform.Rotation()
+		j.Scale = p.Transform.Scale()
 	}
 }
 
-func (s *ShaderDataPBR) TestFlag(flag ShaderDataStandardFlags) bool {
-	return (s.Flags & flag) != 0
-}
-
-func (s *ShaderDataPBR) SetFlag(flag ShaderDataStandardFlags) {
-	s.Flags |= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataPBR) ClearFlag(flag ShaderDataStandardFlags) {
-	s.Flags &^= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataPBR) updateFlagEnableStatus() {
-	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
-		s.Flags = 0
-	} else {
-		s.Flags |= ShaderDataStandardFlagEnable
+func (a *KaijuMeshAnimation) fromLoadResult(r *load_result.Animation) {
+	a.Name = r.Name
+	a.Frames = make([]AnimKeyFrame, len(r.Frames))
+	for i := range r.Frames {
+		a.Frames[i].fromLoadResult(&r.Frames[i])
 	}
+}
+
+func (f *AnimKeyFrame) fromLoadResult(r *load_result.AnimKeyFrame) {
+	f.Time = r.Time
+	f.Bones = make([]AnimBone, len(r.Bones))
+	for i := range r.Bones {
+		f.Bones[i].fromLoadResult(&r.Bones[i])
+	}
+}
+
+func (b *AnimBone) fromLoadResult(r *load_result.AnimBone) {
+	b.Data = r.Data
+	b.Interpolation = r.Interpolation
+	b.NodeIndex = r.NodeIndex
+	b.PathType = r.PathType
 }
