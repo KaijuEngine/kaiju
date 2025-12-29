@@ -597,17 +597,17 @@ func (m Mat4) IsIdentity() bool {
 }
 
 func Mat4Approx(a, b Mat4) bool {
-	res := false
+	res := true
 	for i := range a {
-		res = res || Abs(a[i]-b[i]) < FloatSmallestNonzero
+		res = res && Abs(a[i]-b[i]) < FloatSmallestNonzero
 	}
 	return res
 }
 
-func Mat4ApproxTo(a, b Vec4, delta Float) bool {
-	res := false
+func Mat4ApproxTo(a, b Mat4, delta Float) bool {
+	res := true
 	for i := range a {
-		res = res || Abs(a[i]-b[i]) < delta
+		res = res && Abs(a[i]-b[i]) < delta
 	}
 	return res
 }
