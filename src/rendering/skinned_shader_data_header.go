@@ -7,6 +7,7 @@ import (
 
 type SkinnedShaderDataHeader struct {
 	bones           []BoneTransform
+	boneMap         map[int32]*BoneTransform
 	jointTransforms [MaxJoints]matrix.Mat4
 }
 
@@ -16,11 +17,16 @@ type BoneTransform struct {
 	Skin      matrix.Mat4
 }
 
-func (h *SkinnedShaderDataHeader) CreateBones(count int) {
-	h.bones = make([]BoneTransform, count)
+func (h *SkinnedShaderDataHeader) CreateBones(ids []int32) {
+	h.bones = make([]BoneTransform, len(ids))
+	h.boneMap = make(map[int32]*BoneTransform)
+	for i := range ids {
+		h.bones[i].Id = ids[i]
+		h.boneMap[ids[i]] = &h.bones[i]
+	}
 }
 
-func (h *SkinnedShaderDataHeader) Bone(index int) *BoneTransform {
+func (h *SkinnedShaderDataHeader) BoneByIndex(index int) *BoneTransform {
 	return &h.bones[index]
 }
 
@@ -28,10 +34,8 @@ func (h *SkinnedShaderDataHeader) FindBone(id int32) *BoneTransform {
 	if id < 0 {
 		return nil
 	}
-	for i := range h.bones {
-		if h.bones[i].Id == id {
-			return &h.bones[i]
-		}
+	if b, ok := h.boneMap[id]; ok {
+		return b
 	}
 	return nil
 }

@@ -47,6 +47,7 @@ import (
 	"kaiju/engine_entity_data/engine_entity_data_camera"
 	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/engine_entity_data/engine_entity_data_particles"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -391,16 +392,19 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 			if err != nil {
 				return
 			}
-			skin.CreateBones(len(km.Joints))
+			ids := klib.ExtractFromSlice(km.Joints, func(i int) int32 {
+				return km.Joints[i].Id
+			})
+			skin.CreateBones(ids)
 			for i := range km.Joints {
 				j := &km.Joints[i]
-				bone := skin.Bone(i)
+				bone := skin.BoneByIndex(i)
 				bone.Id = j.Id
 				bone.Skin = j.Skin
 				bone.Transform.Initialize(w.Host.WorkGroup())
 			}
 			for i := range km.Joints {
-				bone := skin.Bone(i)
+				bone := skin.BoneByIndex(i)
 				j := &km.Joints[i]
 				parent := skin.FindBone(j.Parent)
 				if parent != nil {

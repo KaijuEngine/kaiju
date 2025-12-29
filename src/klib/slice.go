@@ -184,3 +184,11 @@ func WipeSlice[S any](s []S) []S {
 }
 
 func RemakeSlice[S any](s []S) []S { return make([]S, 0, len(s)) }
+
+func ExtractFromSlice[T, S any](s []S, expression func(idx int) T) []T {
+	res := make([]T, len(s))
+	for i := range s {
+		res[i] = expression(i)
+	}
+	return res
+}
