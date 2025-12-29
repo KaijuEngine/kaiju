@@ -434,13 +434,11 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 				nextTime := float64(a.Frames[frame].AbsTime())
 				for animTime >= nextTime {
 					frame++
-					if frame >= len(a.Frames) {
+					if animTime > totalTime {
+						animTime = math.Mod(animTime, totalTime)
 						frame = 0
 					}
 					nextTime = float64(a.Frames[frame].AbsTime())
-					if animTime > totalTime {
-						animTime = math.Mod(animTime, totalTime)
-					}
 				}
 				for i := range a.Frames[frame].Bones {
 					b0 := &a.Frames[frame].Bones[i]
@@ -448,52 +446,52 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 					if bone == nil {
 						continue
 					}
-					b1Frame, b1 := a.FindNextFrameForBone(bone.Id, frame, b0.PathType)
-					timeBetween := float32(0)
-					if b1Frame < 0 {
-						b1Frame = frame
-						b1 = b0
+					// b1Frame, b1 := a.FindNextFrameForBone(bone.Id, frame, b0.PathType)
+					// timeBetween := float32(0)
+					// if b1Frame < 0 {
+					// 	b1Frame = frame
+					// 	b1 = b0
+					// }
+					// if !matrix.Vec4Approx(b0.Data, b1.Data) {
+					// 	target := frame
+					// 	for target != b1Frame {
+					// 		timeBetween += a.Frames[target].AbsTime()
+					// 		target++
+					// 		if target >= len(a.Frames) {
+					// 			target = 0
+					// 		}
+					// 	}
+					// 	t := float32(animTime) / timeBetween
+					// 	switch b0.PathType {
+					// 	case load_result.AnimPathTranslation:
+					// 		p0 := matrix.Vec3FromSlice(b0.Data[:])
+					// 		p1 := matrix.Vec3FromSlice(b1.Data[:])
+					// 		pos := matrix.Vec3Lerp(p0, p1, t)
+					// 		bone.Transform.SetPosition(pos)
+					// 	case load_result.AnimPathRotation:
+					// 		q0 := matrix.Quaternion(b0.Data)
+					// 		q1 := matrix.Quaternion(b1.Data)
+					// 		quat := matrix.QuaternionSlerp(q0, q1, t)
+					// 		bone.Transform.SetRotation(quat.ToEuler())
+					// 	case load_result.AnimPathScale:
+					// 		s0 := matrix.Vec3FromSlice(b0.Data[:])
+					// 		s1 := matrix.Vec3FromSlice(b1.Data[:])
+					// 		scale := matrix.Vec3Lerp(s0, s1, t)
+					// 		bone.Transform.SetScale(scale)
+					// 	}
+					// } else {
+					switch b0.PathType {
+					case load_result.AnimPathTranslation:
+						p0 := matrix.Vec3FromSlice(b0.Data[:])
+						bone.Transform.SetPosition(p0)
+					case load_result.AnimPathRotation:
+						q0 := matrix.Quaternion(b0.Data)
+						bone.Transform.SetRotation(q0.ToEuler())
+					case load_result.AnimPathScale:
+						s0 := matrix.Vec3FromSlice(b0.Data[:])
+						bone.Transform.SetScale(s0)
 					}
-					if !matrix.Vec4Approx(b0.Data, b1.Data) {
-						target := frame
-						for target != b1Frame {
-							timeBetween += a.Frames[target].AbsTime()
-							target++
-							if target >= len(a.Frames) {
-								target = 0
-							}
-						}
-						t := float32(animTime) / timeBetween
-						switch b0.PathType {
-						case load_result.AnimPathTranslation:
-							p0 := matrix.Vec3FromSlice(b0.Data[:])
-							p1 := matrix.Vec3FromSlice(b1.Data[:])
-							pos := matrix.Vec3Lerp(p0, p1, t)
-							bone.Transform.SetPosition(pos)
-						case load_result.AnimPathRotation:
-							q0 := matrix.Quaternion(b0.Data)
-							q1 := matrix.Quaternion(b1.Data)
-							quat := matrix.QuaternionSlerp(q0, q1, t)
-							bone.Transform.SetRotation(quat.ToEuler())
-						case load_result.AnimPathScale:
-							s0 := matrix.Vec3FromSlice(b0.Data[:])
-							s1 := matrix.Vec3FromSlice(b1.Data[:])
-							scale := matrix.Vec3Lerp(s0, s1, t)
-							bone.Transform.SetScale(scale)
-						}
-					} else {
-						switch b0.PathType {
-						case load_result.AnimPathTranslation:
-							p0 := matrix.Vec3FromSlice(b0.Data[:])
-							bone.Transform.SetPosition(p0)
-						case load_result.AnimPathRotation:
-							q0 := matrix.Quaternion(b0.Data)
-							bone.Transform.SetRotation(q0.ToEuler())
-						case load_result.AnimPathScale:
-							s0 := matrix.Vec3FromSlice(b0.Data[:])
-							bone.Transform.SetScale(s0)
-						}
-					}
+					// }
 				}
 			})
 		}
