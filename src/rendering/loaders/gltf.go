@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -238,7 +239,11 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			}
 			textures := gltfReadMeshTextures(m, &doc.glTF, p)
 			key := fmt.Sprintf("%s/%s", doc.path, m.Name)
-			res.Add(n.Name, key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
+			if p > 0 {
+				res.Add(n.Name+strconv.Itoa(p+1), key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
+			} else {
+				res.Add(n.Name, key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
+			}
 		}
 	}
 	res.Animations = gltfReadAnimations(doc)
