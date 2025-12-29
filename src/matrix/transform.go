@@ -101,17 +101,17 @@ func (t *Transform) IsDirty() bool {
 }
 
 func (t *Transform) Right() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Right().Normal()
 }
 
 func (t *Transform) Up() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Up().Normal()
 }
 
 func (t *Transform) Forward() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Forward().Normal()
 }
 
@@ -164,12 +164,14 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
-	if !t.frameDirty && t.workGroup != nil {
-		t.workGroup.Add(TransformWorkGroup, t.UpdateMatrices)
-		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+	if !t.isDirty {
+		if !t.frameDirty && t.workGroup != nil {
+			t.workGroup.Add(TransformWorkGroup, t.updateMatrices)
+			t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+		}
+		t.isDirty = true
+		t.frameDirty = true
 	}
-	t.isDirty = true
-	t.frameDirty = true
 	for _, child := range t.children {
 		child.SetDirty()
 	}
@@ -177,7 +179,7 @@ func (t *Transform) SetDirty() {
 
 func (t *Transform) ResetDirty() {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 		t.isDirty = false
 	}
 	t.frameDirty = false
@@ -219,7 +221,7 @@ func (t *Transform) SetScale(scale Vec3) {
 	}
 }
 
-func (t *Transform) UpdateMatrix() {
+func (t *Transform) updateMatrix() {
 	if t.isDirty || t.isLive {
 		t.localMatrix.Reset()
 		t.localMatrix.Scale(t.scale)
@@ -228,40 +230,36 @@ func (t *Transform) UpdateMatrix() {
 	}
 }
 
-func (t *Transform) UpdateWorldMatrix() {
+func (t *Transform) updateWorldMatrix() {
 	if t.isDirty || t.isLive {
-		t.worldMatrix.Reset()
-		t.worldMatrix = t.CalcWorldMatrix()
+		if t.parent != nil {
+			t.worldMatrix.Reset()
+			t.worldMatrix = t.parent.WorldMatrix()
+			t.worldMatrix.MultiplyAssign(t.localMatrix)
+		} else {
+			t.worldMatrix = t.localMatrix
+		}
 	}
 }
 
-func (t *Transform) UpdateMatrices() {
-	t.UpdateMatrix()
-	t.UpdateWorldMatrix()
+func (t *Transform) updateMatrices() {
+	t.updateMatrix()
+	t.updateWorldMatrix()
 	t.isDirty = false
 }
 
 func (t *Transform) Matrix() Mat4 {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 	}
 	return t.localMatrix
 }
 
 func (t *Transform) WorldMatrix() Mat4 {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 	}
 	return t.worldMatrix
-}
-
-func (t *Transform) CalcWorldMatrix() Mat4 {
-	p, r, s := t.WorldTransform()
-	m := Mat4Identity()
-	m.Scale(s)
-	m.Rotate(r)
-	m.Translate(p)
-	return m
 }
 
 func (t *Transform) Copy(other Transform) {
