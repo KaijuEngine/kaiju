@@ -42,19 +42,11 @@ import (
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/console"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
-	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders"
-	"kaiju/rendering/loaders/load_result"
-	"log/slog"
-	"unsafe"
 )
 
 const maxContentDropDistance = 10
@@ -87,164 +79,6 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorIn
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
 	w.initLLMActions()
-
-	// TODO:  This is for testing, remove asap
-	console.For(host).AddCommand("animtest",
-		"This will spawn a test animated model in the stage", w.deleteMeTestAnim)
-}
-
-type BoneTransform struct {
-	Transform *matrix.Transform
-	Skin      matrix.Mat4
-}
-
-type TestBasicSkinnedShaderData struct {
-	Bones           []BoneTransform
-	jointTransforms [rendering.MaxJoints]matrix.Mat4
-	rendering.ShaderDataBase
-	Color     matrix.Color
-	SkinIndex int32
-}
-
-func (t TestBasicSkinnedShaderData) Size() int {
-	const size = int(unsafe.Sizeof(TestBasicSkinnedShaderData{}) - rendering.ShaderBaseDataStart)
-	return size
-}
-
-func (t *TestBasicSkinnedShaderData) NamedDataInstanceSize(name string) int {
-	if name != "SkinnedUBO" {
-		return 0
-	}
-	return int(unsafe.Sizeof(t.jointTransforms))
-}
-
-func (t *TestBasicSkinnedShaderData) UpdateNamedData(index, capacity int, name string) bool {
-	if name != "SkinnedUBO" {
-		return false
-	}
-	cap := capacity / rendering.MaxJoints / int(unsafe.Sizeof(matrix.Mat4{}))
-	if index > cap {
-		t.SkinIndex = int32(index % cap)
-		return false
-	}
-	t.SkinIndex = int32(index)
-	if len(t.Bones) > 0 {
-		inverseRoot := t.Model()
-		inverseRoot.Inverse()
-		for i := range t.Bones {
-			b := &t.Bones[i]
-			m := matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
-			parent := b.Transform.Parent()
-			for parent != nil {
-				m.MultiplyAssign(parent.Matrix())
-				parent = parent.Parent()
-			}
-			t.jointTransforms[i] = m
-		}
-	}
-	return true
-}
-
-func (t *TestBasicSkinnedShaderData) NamedDataPointer(name string) unsafe.Pointer {
-	if name != "SkinnedUBO" {
-		return nil
-	}
-	return unsafe.Pointer(&t.jointTransforms)
-}
-
-func (w *StageWorkspace) deleteMeTestAnim(host *engine.Host, s string) string {
-	const animationGLTF = "editor/meshes/fox/Fox.gltf"
-	f := w.stageView.Manager().AddEntity("fox", matrix.Vec3Zero())
-	res := klib.MustReturn(loaders.GLTF(animationGLTF, host.AssetDatabase()))
-	m := res.Meshes[0]
-	textures := make([]*rendering.Texture, 0)
-	for _, path := range res.Meshes[0].Textures {
-		tex, _ := host.TextureCache().Texture(path, rendering.TextureFilterLinear)
-		textures = append(textures, tex)
-	}
-	if len(textures) == 0 {
-		tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-		textures = append(textures, tex)
-	}
-	entities := make([]*engine.Entity, len(res.Nodes))
-	boneTransforms := make([]BoneTransform, len(res.Joints))
-	for i := range res.Nodes {
-		entities[i] = engine.NewEntity(host.WorkGroup())
-		entities[i].SetName(res.Nodes[i].Name)
-		entities[i].Transform = res.Nodes[i].Transform
-	}
-	for i := range entities {
-		if res.Nodes[i].Parent >= 0 {
-			entities[i].SetParent(entities[res.Nodes[i].Parent])
-		}
-	}
-	for i := range res.Joints {
-		boneTransforms[i] = BoneTransform{
-			&entities[res.Joints[i].Id].Transform,
-			res.Joints[i].Skin,
-		}
-	}
-	host.AddEntities(entities...)
-	mesh := rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
-	host.MeshCache().AddMesh(mesh)
-	sd := &TestBasicSkinnedShaderData{
-		Bones:     boneTransforms,
-		Color:     matrix.ColorWhite(),
-		SkinIndex: 0,
-	}
-	sd.Setup()
-	matKey := assets.MaterialDefinitionBasicSkinned
-	mat, err := host.MaterialCache().Material(matKey)
-	if err != nil {
-		slog.Error("failed to load the material", "material", matKey, "error", err)
-		return ""
-	}
-	mat = mat.CreateInstance(textures)
-	host.Drawings.AddDrawing(rendering.Drawing{
-		Material:   mat,
-		Mesh:       mesh,
-		ShaderData: sd,
-		Transform:  &f.Transform,
-		ViewCuller: &host.Cameras.Primary,
-	})
-	f.Transform.SetScale(matrix.NewVec3(0.025, 0.025, 0.025))
-	f.StageData.ShaderData = sd
-	{
-		frame := 0
-		animTime := 0.0
-		host.Updater.AddUpdate(func(f float64) {
-			animTime += f
-			if animTime >= float64(res.Animations[0].Frames[frame].Time) {
-				frame++
-				animTime = 0
-				if frame >= len(res.Animations[0].Frames) {
-					frame = 0
-				}
-			}
-			for i := range res.Animations[0].Frames[frame].Bones {
-				b := &res.Animations[0].Frames[frame].Bones[i]
-				var bone *matrix.Transform
-				for j := range sd.Bones {
-					if sd.Bones[j].Transform.Identifier == uint8(b.NodeIndex) {
-						bone = sd.Bones[j].Transform
-						break
-					}
-				}
-				if bone == nil {
-					continue
-				}
-				switch b.PathType {
-				case load_result.AnimPathTranslation:
-					bone.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
-				case load_result.AnimPathRotation:
-					bone.SetRotation(matrix.Quaternion(b.Data).ToEuler())
-				case load_result.AnimPathScale:
-					bone.SetScale(matrix.Vec3FromSlice(b.Data[:]))
-				}
-			}
-		})
-	}
-	return ""
 }
 
 func (w *StageWorkspace) Open() {

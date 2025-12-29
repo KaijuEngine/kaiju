@@ -53,6 +53,7 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
+	"kaiju/rendering/loaders/load_result"
 	"log/slog"
 	"weak"
 )
@@ -380,5 +381,66 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 		e.StageData.PendingMaterialChange = false
 		// Don't want dirties to run during the transform clean map read
 		w.Host.RunOnMainThread(e.Transform.SetDirty)
+		skin := e.StageData.ShaderData.SkinningHeader()
+		if skin != nil {
+			data, err := w.Host.AssetDatabase().Read(string(e.StageData.Mesh.Key()))
+			if err != nil {
+				return
+			}
+			km, err := kaiju_mesh.Deserialize(data)
+			if err != nil {
+				return
+			}
+			skin.CreateBones(len(km.Joints))
+			for i := range km.Joints {
+				j := &km.Joints[i]
+				bone := skin.Bone(i)
+				bone.Id = j.Id
+				bone.Skin = j.Skin
+				bone.Transform.Initialize(w.Host.WorkGroup())
+			}
+			for i := range km.Joints {
+				bone := skin.Bone(i)
+				j := &km.Joints[i]
+				parent := skin.FindBone(j.Parent)
+				if parent != nil {
+					bone.Transform.SetParent(&parent.Transform)
+				} else {
+					bone.Transform.SetParent(&e.Transform)
+				}
+				bone.Transform.SetPosition(j.Position)
+				bone.Transform.SetRotation(j.Rotation)
+				bone.Transform.SetScale(j.Scale)
+			}
+			animTime := 0.0
+			frame := 0
+			animIdx := 0
+			anims := km.Animations
+			w.Host.Updater.AddUpdate(func(deltaTime float64) {
+				animTime += deltaTime
+				if animTime >= float64(anims[animIdx].Frames[frame].Time) {
+					frame++
+					animTime = 0
+					if frame >= len(anims[animIdx].Frames) {
+						frame = 0
+					}
+				}
+				for i := range anims[animIdx].Frames[frame].Bones {
+					b := &anims[animIdx].Frames[frame].Bones[i]
+					bone := skin.FindBone(int32(b.NodeIndex))
+					if bone == nil {
+						continue
+					}
+					switch b.PathType {
+					case load_result.AnimPathTranslation:
+						bone.Transform.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
+					case load_result.AnimPathRotation:
+						bone.Transform.SetRotation(matrix.Quaternion(b.Data).ToEuler())
+					case load_result.AnimPathScale:
+						bone.Transform.SetScale(matrix.Vec3FromSlice(b.Data[:]))
+					}
+				}
+			})
+		}
 	}()
 }

@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* load_result.go                                                             */
+/* kaiju_mesh_animation.go                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,39 +34,30 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package load_result
+package kaiju_mesh
 
 import (
 	"kaiju/matrix"
-	"kaiju/rendering"
-	"log/slog"
+	"kaiju/rendering/loaders/load_result"
 )
 
-type AnimationPathType = int
-type AnimationInterpolation = int
+type KaijuMeshJoint struct {
+	Id       int32
+	Parent   int32
+	Skin     matrix.Mat4
+	Position matrix.Vec3
+	Rotation matrix.Vec3
+	Scale    matrix.Vec3
+}
 
-const (
-	AnimPathInvalid AnimationPathType = iota - 1
-	AnimPathTranslation
-	AnimPathRotation
-	AnimPathScale
-	AnimPathWeights
-)
+type KaijuMeshAnimation struct {
+	Name   string
+	Frames []AnimKeyFrame
+}
 
-const (
-	AnimInterpolateInvalid AnimationInterpolation = iota - 1
-	AnimInterpolateLinear
-	AnimInterpolateStep
-	AnimInterpolateCubicSpline
-)
-
-type Mesh struct {
-	Node     *Node
-	Name     string
-	MeshName string
-	Verts    []rendering.Vertex
-	Indexes  []uint32
-	Textures map[string]string
+type AnimKeyFrame struct {
+	Bones []AnimBone
+	Time  float32
 }
 
 type AnimBone struct {
@@ -77,106 +68,38 @@ type AnimBone struct {
 	Data [4]matrix.Float
 }
 
-type AnimKeyFrame struct {
-	Bones []AnimBone
-	Time  float32
-}
-
-type Animation struct {
-	Name   string
-	Frames []AnimKeyFrame
-}
-
-type Node struct {
-	Id         int32
-	Name       string
-	Parent     int
-	Transform  matrix.Transform
-	Attributes map[string]any
-	Children   []int32
-	IsAnimated bool
-}
-
-type Joint struct {
-	Id   int32
-	Skin matrix.Mat4
-}
-
-type Result struct {
-	Nodes      []Node
-	Meshes     []Mesh
-	Animations []Animation
-	Joints     []Joint
-}
-
-func (r *Result) IsTreeAnimated(nodeIdx int) bool {
-	isAnimated := r.Nodes[nodeIdx].IsAnimated
-	p := r.Nodes[nodeIdx].Parent
-	for !isAnimated && p >= 0 {
-		isAnimated = r.Nodes[p].IsAnimated
-		p = r.Nodes[p].Parent
+func (j *KaijuMeshJoint) fromLoadResult(res *load_result.Result, r *load_result.Joint) {
+	j.Id = r.Id
+	j.Skin = r.Skin
+	pid := int32(res.Nodes[j.Id].Parent)
+	if pid >= 0 {
+		p := &res.Nodes[pid]
+		j.Parent = pid
+		j.Position = p.Transform.Position()
+		j.Rotation = p.Transform.Rotation()
+		j.Scale = p.Transform.Scale()
 	}
-	return isAnimated
 }
 
-func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }
-
-func (r *Result) Add(name, meshName string, verts []rendering.Vertex, indexes []uint32, textures map[string]string, node *Node) {
-	if node != nil {
-		// TODO:  This breaks Sudoku, but seems like something that should be done...
-		//mat := node.Transform.CalcWorldMatrix()
-		//if !mat.IsIdentity() {
-		//	for i := range verts {
-		//		verts[i].Position = mat.TransformPoint(verts[i].Position)
-		//	}
-		//}
+func (a *KaijuMeshAnimation) fromLoadResult(r *load_result.Animation) {
+	a.Name = r.Name
+	a.Frames = make([]AnimKeyFrame, len(r.Frames))
+	for i := range r.Frames {
+		a.Frames[i].fromLoadResult(&r.Frames[i])
 	}
-	r.Meshes = append(r.Meshes, Mesh{
-		Name:     name,
-		MeshName: meshName,
-		Verts:    verts,
-		Indexes:  indexes,
-		Textures: textures,
-		Node:     node,
-	})
 }
 
-func (r *Result) NodeByName(name string) *Node {
-	for i := range r.Nodes {
-		if r.Nodes[i].Name == name {
-			return &r.Nodes[i]
-		}
+func (f *AnimKeyFrame) fromLoadResult(r *load_result.AnimKeyFrame) {
+	f.Time = r.Time
+	f.Bones = make([]AnimBone, len(r.Bones))
+	for i := range r.Bones {
+		f.Bones[i].fromLoadResult(&r.Bones[i])
 	}
-	return nil
 }
 
-func (r *Result) Extract(names ...string) Result {
-	if len(r.Animations) > 0 || len(r.Joints) > 0 {
-		slog.Error("extracting animation entries from a mesh load result isn't yet supported")
-	}
-	res := Result{}
-	for i := range names {
-		for j := range r.Nodes {
-			if r.Nodes[j].Name == names[i] {
-				res.Nodes = append(res.Nodes, r.Nodes[j])
-				for k := range r.Meshes {
-					m := &r.Meshes[k]
-					if m.Node == &r.Nodes[j] {
-						res.Add(names[i], m.Name, m.Verts, m.Indexes, m.Textures, &res.Nodes[len(res.Nodes)-1])
-					}
-				}
-			}
-		}
-	}
-	return res
-}
-
-func (mesh *Mesh) ScaledRadius(scale matrix.Vec3) matrix.Float {
-	rad := matrix.Float(0)
-	// TODO:  Take scale into consideration
-	for i := range mesh.Verts {
-		pt := mesh.Verts[i].Position.Multiply(scale)
-		rad = max(rad, pt.Length())
-	}
-	return rad
+func (b *AnimBone) fromLoadResult(r *load_result.AnimBone) {
+	b.Data = r.Data
+	b.Interpolation = r.Interpolation
+	b.NodeIndex = r.NodeIndex
+	b.PathType = r.PathType
 }

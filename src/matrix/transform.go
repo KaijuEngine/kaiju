@@ -62,7 +62,6 @@ type Transform struct {
 	frameDirty                bool
 	isLive                    bool
 	orderedChildren           bool
-	Identifier                uint8 // Typically just used for bone index right now
 }
 
 func (t *Transform) setup() {

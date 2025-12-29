@@ -49,6 +49,24 @@ import (
 	"sync"
 )
 
+type AnimationPathType = int
+type AnimationInterpolation = int
+
+const (
+	AnimPathInvalid AnimationPathType = iota - 1
+	AnimPathTranslation
+	AnimPathRotation
+	AnimPathScale
+	AnimPathWeights
+)
+
+const (
+	AnimInterpolateInvalid AnimationInterpolation = iota - 1
+	AnimInterpolateLinear
+	AnimInterpolateStep
+	AnimInterpolateCubicSpline
+)
+
 // KaijuMesh is a base primitive representing a single mesh. This is the
 // archived format of the authored meshes. Typically this structure is created
 // by loading in a mesh using something like [loaders.GLTF] and then converting
@@ -56,9 +74,11 @@ import (
 // typically serialized and stored into the content database. When reading a
 // mesh from the content database, it will return a KaijuMesh.
 type KaijuMesh struct {
-	Name    string
-	Verts   []rendering.Vertex
-	Indexes []uint32
+	Name       string
+	Verts      []rendering.Vertex
+	Indexes    []uint32
+	Animations []KaijuMeshAnimation
+	Joints     []KaijuMeshJoint
 }
 
 // LoadedResultToKaijuMesh will take in a [load_result.Result] and convert every
@@ -69,11 +89,20 @@ func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh {
 	out := make([]KaijuMesh, 0, len(res.Meshes))
 	for i := range res.Meshes {
 		m := &res.Meshes[i]
-		out = append(out, KaijuMesh{
-			Name:    m.MeshName,
-			Verts:   slices.Clone(m.Verts),
-			Indexes: slices.Clone(m.Indexes),
-		})
+		km := KaijuMesh{
+			Name:       m.MeshName,
+			Verts:      slices.Clone(m.Verts),
+			Indexes:    slices.Clone(m.Indexes),
+			Animations: make([]KaijuMeshAnimation, len(res.Animations)),
+			Joints:     make([]KaijuMeshJoint, len(res.Joints)),
+		}
+		for i := range res.Joints {
+			km.Joints[i].fromLoadResult(&res, &res.Joints[i])
+		}
+		for i := range res.Animations {
+			km.Animations[i].fromLoadResult(&res.Animations[i])
+		}
+		out = append(out, km)
 	}
 	debug.Ensure(len(out) == len(res.Meshes))
 	return out

@@ -42,6 +42,7 @@ type Css string
 type Font string
 type Html string
 type Material string
+type Mesh string
 type Music string
 type ParticleSystem string
 type RenderPass string
@@ -58,6 +59,7 @@ func init() {
 	gob.RegisterName("content_id.Font", Font(""))
 	gob.RegisterName("content_id.Html", Html(""))
 	gob.RegisterName("content_id.Material", Material(""))
+	gob.RegisterName("content_id.Mesh", Mesh(""))
 	gob.RegisterName("content_id.Music", Music(""))
 	gob.RegisterName("content_id.ParticleSystem", ParticleSystem(""))
 	gob.RegisterName("content_id.RenderPass", RenderPass(""))
