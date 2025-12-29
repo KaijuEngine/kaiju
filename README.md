@@ -12,6 +12,9 @@ Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal o
 - 🔥 Better performance than other game engines
 - 💾 Less memory than other engines
 
+## Sponsor the project
+If you like the project, and would like to support it, please consider [becomming a sponsor of it on GitHub](https://github.com/sponsors/BrentFarris).
+
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
 - [Mailing list](https://www.freelists.org/list/kaijuengine) <- Recommended for detailed updates
