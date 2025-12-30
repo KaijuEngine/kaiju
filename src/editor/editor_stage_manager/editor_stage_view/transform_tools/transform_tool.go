@@ -202,11 +202,11 @@ func (t *TransformTool) resetChange() {
 	for i := range t.resets {
 		switch t.state {
 		case ToolStateMove:
-			all[i].Transform.SetPosition(t.resets[i])
+			all[i].Transform.SetWorldPosition(t.resets[i])
 		case ToolStateRotate:
-			all[i].Transform.SetRotation(t.resets[i])
+			all[i].Transform.SetWorldRotation(t.resets[i])
 		case ToolStateScale:
-			all[i].Transform.SetScale(t.resets[i])
+			all[i].Transform.SetWorldScale(t.resets[i])
 		}
 	}
 	t.firstHitUpdate = true
@@ -227,11 +227,11 @@ func (t *TransformTool) updateResets() {
 	for i := range entities {
 		switch t.state {
 		case ToolStateMove:
-			t.resets = append(t.resets, entities[i].Transform.Position())
+			t.resets = append(t.resets, entities[i].Transform.WorldPosition())
 		case ToolStateRotate:
-			t.resets = append(t.resets, entities[i].Transform.Rotation())
+			t.resets = append(t.resets, entities[i].Transform.WorldRotation())
 		case ToolStateScale:
-			t.resets = append(t.resets, entities[i].Transform.Scale())
+			t.resets = append(t.resets, entities[i].Transform.WorldScale())
 		}
 		t.unsnapped = append(t.unsnapped, t.resets[i])
 	}
@@ -246,11 +246,11 @@ func (t *TransformTool) addHistory() {
 		from[i] = t.resets[i]
 		switch t.state {
 		case ToolStateMove:
-			to[i] = e.Transform.Position()
+			to[i] = e.Transform.WorldPosition()
 		case ToolStateRotate:
-			to[i] = e.Transform.Rotation()
+			to[i] = e.Transform.WorldRotation()
 		case ToolStateScale:
-			to[i] = e.Transform.Scale()
+			to[i] = e.Transform.WorldScale()
 		}
 	}
 	{
@@ -369,7 +369,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	case editor_controls.EditorCameraMode3d:
 		cam := host.PrimaryCamera()
 		r := cam.RayCast(mp)
-		center := sel[0].Transform.Position()
+		center := sel[0].Transform.WorldPosition()
 		delta = matrix.Vec3Zero()
 		point = matrix.Vec3Zero()
 		switch t.state {
@@ -570,13 +570,13 @@ func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 		switch t.state {
 		case ToolStateMove:
 			p := t.translate(i, delta, snap, snapScale)
-			et.SetPosition(p)
+			et.SetWorldPosition(p)
 		case ToolStateRotate:
 			r := t.rotate(i, delta, snap, snapScale)
-			et.SetRotation(r)
+			et.SetWorldRotation(r)
 		case ToolStateScale:
 			s := t.scale(i, delta, snap, snapScale)
-			et.SetScale(s)
+			et.SetWorldScale(s)
 		}
 	}
 }
