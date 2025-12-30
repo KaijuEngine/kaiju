@@ -176,10 +176,13 @@ func (t *Transform) SetLocalPosition(position Vec3) {
 			t.frameScale = t.scale
 		}
 		t.position = position
-		t.relativePosition = position
 		if t.parent != nil {
 			wm := t.parent.WorldMatrix()
-			t.relativePosition.MultiplyAssign(wm.ExtractScale())
+			worldChild := wm.TransformPoint(position)
+			worldParent := t.parent.WorldPosition()
+			t.relativePosition = worldChild.Subtract(worldParent)
+		} else {
+			t.relativePosition = position
 		}
 		t.SetDirty()
 	}
@@ -190,10 +193,8 @@ func (t *Transform) SetPosition(position Vec3) {
 		t.SetLocalPosition(position)
 		return
 	}
-	wm := t.parent.WorldMatrix()
-	invParent := wm
-	invParent.Inverse()
-	localPos := invParent.TransformPoint(wm.ExtractPosition().Add(position))
+	desiredWorld := t.parent.WorldPosition().Add(position)
+	localPos := t.parent.InverseWorldMatrix().TransformPoint(desiredWorld)
 	if !t.position.Equals(localPos) {
 		if !t.frameDirty {
 			t.framePosition = t.position
@@ -327,7 +328,7 @@ func (t *Transform) SetWorldPosition(position Vec3) {
 
 func (t *Transform) SetWorldRotation(rotation Vec3) {
 	if t.parent == nil {
-	t.SetRotation(rotation)
+		t.SetRotation(rotation)
 		return
 	}
 	desiredMat := Mat4Identity()
