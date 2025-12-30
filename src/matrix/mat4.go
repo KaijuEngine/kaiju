@@ -525,15 +525,15 @@ func (m Mat4) TransformPoint(point Vec3) Vec3 {
 }
 
 func (m Mat4) Right() Vec3 {
-	return Vec3{m[x0y0], m[x1y0], m[x2y0]}.Normal()
+	return Vec3{m[x0y0], m[x1y0], m[x2y0]}
 }
 
 func (m Mat4) Up() Vec3 {
-	return Vec3{m[x0y1], m[x1y1], m[x2y1]}.Normal()
+	return Vec3{m[x0y1], m[x1y1], m[x2y1]}
 }
 
 func (m Mat4) Forward() Vec3 {
-	return Vec3{m[x0y2], m[x1y2], m[x2y2]}.Normal()
+	return Vec3{m[x0y2], m[x1y2], m[x2y2]}
 }
 
 func (m Mat4) ToQuaternion() Quaternion {
