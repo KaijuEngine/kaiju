@@ -397,8 +397,6 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	is3D bool, face FontFace, lineHeight float32, cam *cameras.Container) []Drawing {
 	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
-	cx := x
-	cy := y
 	es := rootScale
 	if lineHeight != 0 {
 		baseline = FontBaselineCenter
@@ -406,6 +404,8 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	left := -es.X() * 0.5
 	inverseWidth := 1.0 / es.X()
 	inverseHeight := 1.0 / es.Y()
+	cx := x * inverseWidth
+	cy := y * inverseHeight
 	fontFace := cache.fontFaces[face.string()]
 	var material *Material
 	if is3D {
@@ -443,7 +443,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		case FontJustifyRight:
 			xOffset = left + (maxWidth - lineWidth)
 		case FontJustifyCenter:
-			xOffset = (maxWidth * 0.5) - (lineWidth * 0.5)
+			xOffset = -(lineWidth * 0.5)
 		case FontJustifyLeft:
 			xOffset = left
 		default:

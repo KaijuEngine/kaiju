@@ -51,13 +51,15 @@ type KaijuMeshJoint struct {
 }
 
 type KaijuMeshAnimation struct {
-	Name   string
-	Frames []AnimKeyFrame
+	Name      string
+	Frames    []AnimKeyFrame
+	totalTime float32
 }
 
 type AnimKeyFrame struct {
-	Bones []AnimBone
-	Time  float32
+	Bones   []AnimBone
+	Time    float32
+	absTime float32
 }
 
 type AnimBone struct {
@@ -66,6 +68,34 @@ type AnimBone struct {
 	Interpolation AnimationInterpolation
 	// Could be Vec3 or Quaternion, doing this because Go doesn't have a union
 	Data [4]matrix.Float
+}
+
+func (a *KaijuMeshAnimation) TotalTime() float32 { return a.totalTime }
+func (f *AnimKeyFrame) AbsTime() float32         { return f.absTime }
+
+func (a *KaijuMeshAnimation) SetupCache() {
+	for i := range a.Frames {
+		a.totalTime += a.Frames[i].Time
+		a.Frames[i].absTime = a.totalTime
+	}
+}
+
+func (a *KaijuMeshAnimation) FindNextFrameForBone(boneId int32, currentFrame int, pathType AnimationPathType) (int, *AnimBone) {
+	for i := currentFrame + 1; i < len(a.Frames); i++ {
+		for j := range a.Frames[i].Bones {
+			if a.Frames[i].Bones[j].PathType == pathType {
+				return i, &a.Frames[i].Bones[j]
+			}
+		}
+	}
+	for i := 0; i < currentFrame; i++ {
+		for j := range a.Frames[i].Bones {
+			if a.Frames[i].Bones[j].PathType == pathType {
+				return i, &a.Frames[i].Bones[j]
+			}
+		}
+	}
+	return -1, nil
 }
 
 func (j *KaijuMeshJoint) fromLoadResult(res *load_result.Result, r *load_result.Joint) {

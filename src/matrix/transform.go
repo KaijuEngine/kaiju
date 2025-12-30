@@ -55,12 +55,12 @@ type Transform struct {
 	children                  []*Transform
 	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
+	relativePosition          Vec3
 	framePosition             Vec3
 	frameRotation             Vec3
 	frameScale                Vec3
 	isDirty                   bool
 	frameDirty                bool
-	isLive                    bool
 	orderedChildren           bool
 }
 
@@ -84,12 +84,11 @@ func (t *Transform) SetupRawTransform() { t.setup() }
 func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
 func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
 
-func (t *Transform) StartLive()         { t.isLive = true }
-func (t *Transform) StopLive()          { t.isLive = false }
-func (t *Transform) Position() Vec3     { return t.position }
-func (t *Transform) Rotation() Vec3     { return t.rotation }
-func (t *Transform) Scale() Vec3        { return t.scale }
-func (t *Transform) Parent() *Transform { return t.parent }
+func (t *Transform) LocalPosition() Vec3 { return t.position }
+func (t *Transform) Rotation() Vec3      { return t.rotation }
+func (t *Transform) Scale() Vec3         { return t.scale }
+func (t *Transform) Parent() *Transform  { return t.parent }
+func (t *Transform) Position() Vec3      { return t.relativePosition }
 
 func (t *Transform) IsDirty() bool {
 	if !t.frameDirty {
@@ -101,17 +100,17 @@ func (t *Transform) IsDirty() bool {
 }
 
 func (t *Transform) Right() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Right().Normal()
 }
 
 func (t *Transform) Up() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Up().Normal()
 }
 
 func (t *Transform) Forward() Vec3 {
-	t.UpdateMatrix()
+	t.updateMatrices()
 	return t.localMatrix.Forward().Normal()
 }
 
@@ -164,12 +163,14 @@ func (t *Transform) SetParent(parent *Transform) {
 }
 
 func (t *Transform) SetDirty() {
-	if !t.frameDirty && t.workGroup != nil {
-		t.workGroup.Add(TransformWorkGroup, t.UpdateMatrices)
-		t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+	if !t.isDirty {
+		if !t.frameDirty && t.workGroup != nil {
+			t.workGroup.Add(TransformWorkGroup, t.updateMatrices)
+			t.workGroup.Add(TransformResetWorkGroup, t.ResetDirty)
+		}
+		t.isDirty = true
+		t.frameDirty = true
 	}
-	t.isDirty = true
-	t.frameDirty = true
 	for _, child := range t.children {
 		child.SetDirty()
 	}
@@ -177,13 +178,13 @@ func (t *Transform) SetDirty() {
 
 func (t *Transform) ResetDirty() {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 		t.isDirty = false
 	}
 	t.frameDirty = false
 }
 
-func (t *Transform) SetPosition(position Vec3) {
+func (t *Transform) SetLocalPosition(position Vec3) {
 	if !t.position.Equals(position) {
 		if !t.frameDirty {
 			t.framePosition = t.position
@@ -191,6 +192,32 @@ func (t *Transform) SetPosition(position Vec3) {
 			t.frameScale = t.scale
 		}
 		t.position = position
+		t.relativePosition = position
+		if t.parent != nil {
+			wm := t.parent.WorldMatrix()
+			t.relativePosition.MultiplyAssign(wm.ExtractScale())
+		}
+		t.SetDirty()
+	}
+}
+
+func (t *Transform) SetPosition(position Vec3) {
+	if t.parent == nil {
+		t.SetLocalPosition(position)
+		return
+	}
+	wm := t.parent.WorldMatrix()
+	invParent := wm
+	invParent.Inverse()
+	localPos := invParent.TransformPoint(wm.ExtractPosition().Add(position))
+	if !t.position.Equals(localPos) {
+		if !t.frameDirty {
+			t.framePosition = t.position
+			t.frameRotation = t.rotation
+			t.frameScale = t.scale
+		}
+		t.position = localPos
+		t.relativePosition = position
 		t.SetDirty()
 	}
 }
@@ -219,8 +246,8 @@ func (t *Transform) SetScale(scale Vec3) {
 	}
 }
 
-func (t *Transform) UpdateMatrix() {
-	if t.isDirty || t.isLive {
+func (t *Transform) updateMatrix() {
+	if t.isDirty {
 		t.localMatrix.Reset()
 		t.localMatrix.Scale(t.scale)
 		t.localMatrix.Rotate(t.rotation)
@@ -228,40 +255,35 @@ func (t *Transform) UpdateMatrix() {
 	}
 }
 
-func (t *Transform) UpdateWorldMatrix() {
-	if t.isDirty || t.isLive {
-		t.worldMatrix.Reset()
-		t.worldMatrix = t.CalcWorldMatrix()
+func (t *Transform) updateWorldMatrix() {
+	if t.isDirty {
+		if t.parent != nil {
+			t.worldMatrix = t.localMatrix
+			t.worldMatrix.MultiplyAssign(t.parent.WorldMatrix())
+		} else {
+			t.worldMatrix = t.localMatrix
+		}
 	}
 }
 
-func (t *Transform) UpdateMatrices() {
-	t.UpdateMatrix()
-	t.UpdateWorldMatrix()
+func (t *Transform) updateMatrices() {
+	t.updateMatrix()
+	t.updateWorldMatrix()
 	t.isDirty = false
 }
 
 func (t *Transform) Matrix() Mat4 {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 	}
 	return t.localMatrix
 }
 
 func (t *Transform) WorldMatrix() Mat4 {
 	if t.isDirty {
-		t.UpdateMatrices()
+		t.updateMatrices()
 	}
 	return t.worldMatrix
-}
-
-func (t *Transform) CalcWorldMatrix() Mat4 {
-	p, r, s := t.WorldTransform()
-	m := Mat4Identity()
-	m.Scale(s)
-	m.Rotate(r)
-	m.Translate(p)
-	return m
 }
 
 func (t *Transform) Copy(other Transform) {
@@ -277,45 +299,29 @@ func (t *Transform) Copy(other Transform) {
 }
 
 func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3) {
-	pos, rot, scale := t.position, t.rotation, t.scale
-	p := t.parent
-	for p != nil {
-		pos.AddAssign(p.position)
-		rot.AddAssign(p.rotation)
-		scale.MultiplyAssign(p.scale)
-		p = p.parent
-	}
-	return pos, rot, scale
+	wm := t.WorldMatrix()
+	return wm.ExtractPosition(), wm.ExtractRotation().ToEuler(), wm.ExtractScale()
 }
 
 func (t *Transform) WorldPosition() Vec3 {
-	pos := t.position
-	p := t.parent
-	for p != nil {
-		pos.AddAssign(p.position)
-		p = p.parent
+	if t.parent == nil {
+		return t.position
 	}
-	return pos
+	return t.WorldMatrix().ExtractPosition()
 }
 
 func (t *Transform) WorldRotation() Vec3 {
-	rot := t.rotation
-	p := t.parent
-	for p != nil {
-		rot.AddAssign(p.rotation)
-		p = p.parent
+	if t.parent == nil {
+		return t.rotation
 	}
-	return rot
+	return t.WorldMatrix().ExtractRotation().ToEuler()
 }
 
 func (t *Transform) WorldScale() Vec3 {
-	scale := t.scale
-	p := t.parent
-	for p != nil {
-		scale.MultiplyAssign(p.scale)
-		p = p.parent
+	if t.parent == nil {
+		return t.scale
 	}
-	return scale
+	return t.WorldMatrix().ExtractScale()
 }
 
 func (t *Transform) SetWorldPosition(position Vec3) {
