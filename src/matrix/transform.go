@@ -60,7 +60,6 @@ type Transform struct {
 	frameScale                Vec3
 	isDirty                   bool
 	frameDirty                bool
-	isLive                    bool
 	orderedChildren           bool
 }
 
@@ -84,8 +83,6 @@ func (t *Transform) SetupRawTransform() { t.setup() }
 func (t *Transform) SetChildrenOrdered()   { t.orderedChildren = true }
 func (t *Transform) SetChildrenUnordered() { t.orderedChildren = false }
 
-func (t *Transform) StartLive()         { t.isLive = true }
-func (t *Transform) StopLive()          { t.isLive = false }
 func (t *Transform) Position() Vec3     { return t.position }
 func (t *Transform) Rotation() Vec3     { return t.rotation }
 func (t *Transform) Scale() Vec3        { return t.scale }
@@ -222,7 +219,7 @@ func (t *Transform) SetScale(scale Vec3) {
 }
 
 func (t *Transform) updateMatrix() {
-	if t.isDirty || t.isLive {
+	if t.isDirty {
 		t.localMatrix.Reset()
 		t.localMatrix.Scale(t.scale)
 		t.localMatrix.Rotate(t.rotation)
@@ -231,7 +228,7 @@ func (t *Transform) updateMatrix() {
 }
 
 func (t *Transform) updateWorldMatrix() {
-	if t.isDirty || t.isLive {
+	if t.isDirty {
 		if t.parent != nil {
 			t.worldMatrix.Reset()
 			t.worldMatrix = t.parent.WorldMatrix()
