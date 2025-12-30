@@ -74,11 +74,7 @@ func (w *WorkGroup) Execute(name string, threads *Threads) {
 			wg.Done()
 		}
 	}
-	// TODO:  This is temp until transform matrix updates are atomic
-	for i := range calls {
-		calls[i](0)
-	}
-	// threads.AddWork(calls)
+	threads.AddWork(calls)
 	wg.Wait()
 	w.work[name] = klib.WipeSlice(work[:0])
 }

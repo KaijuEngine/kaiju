@@ -41,6 +41,7 @@ import (
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 	"slices"
+	"sync"
 )
 
 const (
@@ -63,6 +64,7 @@ type Transform struct {
 	isDirty                   bool
 	frameDirty                bool
 	orderedChildren           bool
+	mutex                     sync.Mutex
 }
 
 func (t *Transform) setup() {
@@ -254,6 +256,8 @@ func (t *Transform) updateWorldMatrix() {
 }
 
 func (t *Transform) updateMatrices() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	t.updateMatrix()
 	t.updateWorldMatrix()
 	t.isDirty = false
