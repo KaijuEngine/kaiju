@@ -413,7 +413,7 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 				} else {
 					bone.Transform.SetParent(&e.Transform)
 				}
-				bone.Transform.SetPosition(j.Position)
+				bone.Transform.SetLocalPosition(j.Position)
 				bone.Transform.SetRotation(j.Rotation)
 				bone.Transform.SetScale(j.Scale)
 			}

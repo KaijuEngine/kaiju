@@ -66,13 +66,7 @@ func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(index, capacity int, name 
 	if len(h.bones) > 0 {
 		for i := range h.bones {
 			b := &h.bones[i]
-			m := matrix.Mat4Multiply(b.Skin, b.Transform.Matrix())
-			parent := b.Transform.Parent()
-			for parent != nil {
-				m.MultiplyAssign(parent.Matrix())
-				parent = parent.Parent()
-			}
-			h.jointTransforms[i] = m
+			h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 		}
 	}
 	return skinIndex, true

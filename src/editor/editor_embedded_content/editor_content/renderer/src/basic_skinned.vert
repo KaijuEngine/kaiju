@@ -32,5 +32,5 @@ void main() {
 	fragNormal = Normal;
 	vec4 wp = skinMatrix * pos;
 	viewDir = normalize(cameraPosition.xyz - wp.xyz);
-	gl_Position = projection * view * model * wp;
+	gl_Position = projection * view * wp;
 }
