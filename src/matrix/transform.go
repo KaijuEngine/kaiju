@@ -318,33 +318,50 @@ func (t *Transform) WorldScale() Vec3 {
 }
 
 func (t *Transform) SetWorldPosition(position Vec3) {
-	p := t.parent
-	for p != nil {
-		pp := p.position
-		position.SubtractAssign(pp)
-		p = p.parent
+	if t.parent == nil {
+		t.SetLocalPosition(position)
+		return
 	}
-	t.SetPosition(position)
+	t.SetLocalPosition(t.parent.InverseWorldMatrix().TransformPoint(position))
 }
 
 func (t *Transform) SetWorldRotation(rotation Vec3) {
-	p := t.parent
-	for p != nil {
-		r := p.rotation
-		rotation.SubtractAssign(r)
-		p = p.parent
-	}
+	if t.parent == nil {
 	t.SetRotation(rotation)
+		return
+	}
+	desiredMat := Mat4Identity()
+	desiredMat.Rotate(rotation)
+	desiredQuat := desiredMat.ExtractRotation()
+	parentQuat := t.parent.WorldMatrix().ExtractRotation()
+	parentQuat.Inverse()
+	localQuat := parentQuat.Multiply(desiredQuat)
+	t.SetRotation(localQuat.ToEuler())
 }
 
 func (t *Transform) SetWorldScale(scale Vec3) {
-	p := t.parent
-	for p != nil {
-		s := p.scale
-		scale.DivideAssign(s)
-		p = p.parent
+	if t.parent == nil {
+		t.SetScale(scale)
+		return
 	}
-	t.SetScale(scale)
+	rotMat := Mat4Identity()
+	rotMat.Rotate(t.rotation)
+	parentWM := t.parent.WorldMatrix()
+	temp := Mat4Multiply(parentWM, rotMat)
+	localScale := Vec3Zero()
+	denomX := temp.Right().Length()
+	if Abs(denomX) > FloatSmallestNonzero {
+		localScale.SetX(scale.X() / denomX)
+	}
+	denomY := temp.Up().Length()
+	if Abs(denomY) > FloatSmallestNonzero {
+		localScale.SetY(scale.Y() / denomY)
+	}
+	denomZ := temp.Forward().Length()
+	if Abs(denomZ) > FloatSmallestNonzero {
+		localScale.SetZ(scale.Z() / denomZ)
+	}
+	t.SetScale(localScale)
 }
 
 func (t *Transform) ContainsPoint2D(point Vec2) bool {
