@@ -204,10 +204,11 @@ func (label *Label) renderText() {
 	label.clearDrawings()
 	if ld.textLength > 0 {
 		maxWidth := label.MaxWidth()
+		label.entity.Transform.SetScale(matrix.Vec3One())
 		label.layout.ScaleHeight(label.Measure().Height())
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
 		xOffset := float32(0)
-		if label.LabelData().justify == rendering.FontJustifyCenter {
+		if ld.justify == rendering.FontJustifyCenter {
 			xOffset = -pl.padding.Left() - pl.border.Left()
 		}
 		host := label.man.Value().Host

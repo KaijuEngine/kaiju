@@ -483,7 +483,7 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 					switch b0.PathType {
 					case load_result.AnimPathTranslation:
 						p0 := matrix.Vec3FromSlice(b0.Data[:])
-						bone.Transform.SetPosition(p0)
+						bone.Transform.SetLocalPosition(p0)
 					case load_result.AnimPathRotation:
 						q0 := matrix.Quaternion(b0.Data)
 						bone.Transform.SetRotation(q0.ToEuler())

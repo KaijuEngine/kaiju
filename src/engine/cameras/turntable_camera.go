@@ -204,7 +204,7 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 // using the camera's view and projection matrices.
 func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
 	defer tracing.NewRegion("TurntableCamera.RayCast").End()
-	return c.internalRayCast(screenPos, c.iView.Position())
+	return c.internalRayCast(screenPos, c.iView.ExtractPosition())
 }
 
 func (c *TurntableCamera) internalUpdateView() {
@@ -278,7 +278,7 @@ func (c *TurntableCamera) updateViewAndPosition() {
 	defer tracing.NewRegion("TurntableCamera.updateViewAndPosition").End()
 	c.position.SetZ(c.zoom)
 	c.callUpdateView()
-	c.position = c.iView.Position()
+	c.position = c.iView.ExtractPosition()
 }
 
 func (c *TurntableCamera) setYaw(yaw float32) {
