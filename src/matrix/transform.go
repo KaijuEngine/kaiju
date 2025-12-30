@@ -51,6 +51,7 @@ const (
 type Transform struct {
 	localMatrix               Mat4
 	worldMatrix               Mat4
+	invWorldMatrix            Mat4
 	parent                    *Transform
 	children                  []*Transform
 	workGroup                 *concurrent.WorkGroup
@@ -67,6 +68,7 @@ type Transform struct {
 func (t *Transform) setup() {
 	t.localMatrix = Mat4Identity()
 	t.worldMatrix = Mat4Identity()
+	t.invWorldMatrix = Mat4Identity()
 	t.position = Vec3Zero()
 	t.rotation = Vec3Zero()
 	t.scale = Vec3One()
@@ -263,6 +265,8 @@ func (t *Transform) updateWorldMatrix() {
 		} else {
 			t.worldMatrix = t.localMatrix
 		}
+		t.invWorldMatrix = t.worldMatrix
+		t.invWorldMatrix.Inverse()
 	}
 }
 
@@ -284,6 +288,13 @@ func (t *Transform) WorldMatrix() Mat4 {
 		t.updateMatrices()
 	}
 	return t.worldMatrix
+}
+
+func (t *Transform) InverseWorldMatrix() Mat4 {
+	if t.isDirty {
+		t.updateMatrices()
+	}
+	return t.invWorldMatrix
 }
 
 func (t *Transform) Copy(other Transform) {
