@@ -139,29 +139,11 @@ func (t *Transform) SetParent(parent *Transform) {
 	}
 	t.parent = parent
 	if t.parent != nil {
-		p, r, s := t.parent.WorldTransform()
-		pos.SubtractAssign(p)
-		rot.SubtractAssign(r)
-		if Abs(s.X()) <= FloatSmallestNonzero {
-			scale.SetX(0)
-		} else {
-			scale.SetX(scale.X() / s.X())
-		}
-		if Abs(s.Y()) <= FloatSmallestNonzero {
-			scale.SetY(0)
-		} else {
-			scale.SetY(scale.Y() / s.Y())
-		}
-		if Abs(s.Z()) <= FloatSmallestNonzero {
-			scale.SetZ(0)
-		} else {
-			scale.SetZ(scale.Z() / s.Z())
-		}
 		t.parent.children = append(t.parent.children, t)
 	}
-	t.SetPosition(pos)
-	t.SetRotation(rot)
-	t.SetScale(scale)
+	t.SetWorldPosition(pos)
+	t.SetWorldRotation(rot)
+	t.SetWorldScale(scale)
 }
 
 func (t *Transform) SetDirty() {
@@ -406,28 +388,10 @@ func (t *Transform) ScaleWithoutChildren(scale Vec3) {
 		arr[i].pos, arr[i].rot, arr[i].scale = t.children[i].WorldTransform()
 	}
 	t.SetScale(scale)
-	p, r, s := t.WorldTransform()
 	for i := range count {
-		arr[i].pos.SubtractAssign(p)
-		arr[i].rot.SubtractAssign(r)
-		if Abs(s[Vx]) <= FloatSmallestNonzero {
-			arr[i].scale[Vx] = 0
-		} else {
-			arr[i].scale[Vx] = arr[i].scale[Vx] / s[Vx]
-		}
-		if Abs(s[Vy]) <= FloatSmallestNonzero {
-			arr[i].scale[Vy] = 0
-		} else {
-			arr[i].scale[Vy] = arr[i].scale[Vy] / s[Vy]
-		}
-		if Abs(s[Vz]) <= FloatSmallestNonzero {
-			arr[i].scale[Vz] = 0
-		} else {
-			arr[i].scale[Vz] = arr[i].scale[Vz] / s[Vz]
-		}
-		t.children[i].SetPosition(arr[i].pos)
-		t.children[i].SetRotation(arr[i].rot)
-		t.children[i].SetScale(arr[i].scale)
+		t.children[i].SetWorldPosition(arr[i].pos)
+		t.children[i].SetWorldRotation(arr[i].rot)
+		t.children[i].SetWorldScale(arr[i].scale)
 	}
 }
 
