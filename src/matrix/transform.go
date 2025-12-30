@@ -206,11 +206,10 @@ func (t *Transform) SetPosition(position Vec3) {
 		t.SetLocalPosition(position)
 		return
 	}
-	// invParent := t.parent.WorldMatrix()
-	// invParent.Inverse()
-	// localPos := invParent.TransformPoint(position)
-	localPos := position
-	localPos.DivideAssign(t.parent.WorldMatrix().ExtractScale())
+	wm := t.parent.WorldMatrix()
+	invParent := wm
+	invParent.Inverse()
+	localPos := invParent.TransformPoint(wm.ExtractPosition().Add(position))
 	if !t.position.Equals(localPos) {
 		if !t.frameDirty {
 			t.framePosition = t.position
