@@ -47,6 +47,7 @@ import (
 	"kaiju/engine_entity_data/engine_entity_data_camera"
 	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/engine_entity_data/engine_entity_data_particles"
+	"kaiju/framework"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
@@ -56,7 +57,6 @@ import (
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/rendering/loaders/load_result"
 	"log/slog"
-	"math"
 	"weak"
 )
 
@@ -417,81 +417,38 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 				bone.Transform.SetRotation(j.Rotation)
 				bone.Transform.SetScale(j.Scale)
 			}
-			animTime := 0.0
-			frame := 0
 			animIdx := 0
 			anims := km.Animations
-			for i := range anims {
-				anims[i].SetupCache()
-			}
 			if len(anims[animIdx].Frames) == 0 {
 				return
 			}
-			totalTime := float64(anims[animIdx].TotalTime())
+			a := framework.NewSkinAnimation(anims[animIdx])
 			w.Host.Updater.AddUpdate(func(deltaTime float64) {
-				a := &anims[animIdx]
-				animTime += deltaTime
-				nextTime := float64(a.Frames[frame].AbsTime())
-				for animTime >= nextTime {
-					frame++
-					if animTime > totalTime {
-						animTime = math.Mod(animTime, totalTime)
-						frame = 0
-					}
-					nextTime = float64(a.Frames[frame].AbsTime())
-				}
-				for i := range a.Frames[frame].Bones {
-					b0 := &a.Frames[frame].Bones[i]
-					bone := skin.FindBone(int32(b0.NodeIndex))
+				a.Update(deltaTime)
+				frame := a.CurrentFrame()
+				for i := range frame.Key.Bones {
+					frame.Bone = &frame.Key.Bones[i]
+					bone := skin.FindBone(int32(frame.Bone.NodeIndex))
 					if bone == nil {
 						continue
 					}
-					// b1Frame, b1 := a.FindNextFrameForBone(bone.Id, frame, b0.PathType)
-					// timeBetween := float32(0)
-					// if b1Frame < 0 {
-					// 	b1Frame = frame
-					// 	b1 = b0
-					// }
-					// if !matrix.Vec4Approx(b0.Data, b1.Data) {
-					// 	target := frame
-					// 	for target != b1Frame {
-					// 		timeBetween += a.Frames[target].AbsTime()
-					// 		target++
-					// 		if target >= len(a.Frames) {
-					// 			target = 0
-					// 		}
-					// 	}
-					// 	t := float32(animTime) / timeBetween
-					// 	switch b0.PathType {
-					// 	case load_result.AnimPathTranslation:
-					// 		p0 := matrix.Vec3FromSlice(b0.Data[:])
-					// 		p1 := matrix.Vec3FromSlice(b1.Data[:])
-					// 		pos := matrix.Vec3Lerp(p0, p1, t)
-					// 		bone.Transform.SetPosition(pos)
-					// 	case load_result.AnimPathRotation:
-					// 		q0 := matrix.Quaternion(b0.Data)
-					// 		q1 := matrix.Quaternion(b1.Data)
-					// 		quat := matrix.QuaternionSlerp(q0, q1, t)
-					// 		bone.Transform.SetRotation(quat.ToEuler())
-					// 	case load_result.AnimPathScale:
-					// 		s0 := matrix.Vec3FromSlice(b0.Data[:])
-					// 		s1 := matrix.Vec3FromSlice(b1.Data[:])
-					// 		scale := matrix.Vec3Lerp(s0, s1, t)
-					// 		bone.Transform.SetScale(scale)
-					// 	}
-					// } else {
-					switch b0.PathType {
+					nextFrame, ok := a.FindNextFrameForBone(bone.Id, frame.Bone.PathType)
+					if !ok {
+						nextFrame = frame
+						nextFrame.Bone = frame.Bone
+					}
+					data := a.Interpolate(frame, nextFrame)
+					switch frame.Bone.PathType {
 					case load_result.AnimPathTranslation:
-						p0 := matrix.Vec3FromSlice(b0.Data[:])
+						p0 := matrix.Vec3FromSlice(data[:])
 						bone.Transform.SetLocalPosition(p0)
 					case load_result.AnimPathRotation:
-						q0 := matrix.Quaternion(b0.Data)
+						q0 := matrix.Quaternion(data)
 						bone.Transform.SetRotation(q0.ToEuler())
 					case load_result.AnimPathScale:
-						s0 := matrix.Vec3FromSlice(b0.Data[:])
+						s0 := matrix.Vec3FromSlice(data[:])
 						bone.Transform.SetScale(s0)
 					}
-					// }
 				}
 			})
 		}
