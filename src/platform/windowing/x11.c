@@ -263,13 +263,13 @@ void window_poll(void* x11State) {
 					int deltaX = 0;
 					int deltaY = 0;
 					if (btn == 4) {
-						deltaY =  120;	// Scroll up
+						deltaY =  1;
 					} else if (btn == 5) {
-						deltaY = -120;	// Scroll down
+						deltaY = -1;
 					} else if (btn == 6) {
-						deltaX = -120;	// Scroll left
+						deltaX = -1;
 					} else if (btn == 7) {
-						deltaX =  120;	// Scroll right
+						deltaX =  1;
 					}
 					WindowEvent evt = {
 						.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
