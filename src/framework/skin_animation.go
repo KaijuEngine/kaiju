@@ -37,7 +37,9 @@
 package framework
 
 import (
+	"kaiju/matrix"
 	"kaiju/rendering/loaders/kaiju_mesh"
+	"kaiju/rendering/loaders/load_result"
 	"math"
 )
 
@@ -59,7 +61,7 @@ type SkinAnimationFrame struct {
 func NewSkinAnimation(anim kaiju_mesh.KaijuMeshAnimation) SkinAnimation {
 	s := SkinAnimation{
 		Animation: anim,
-		nextFrame: min(1, len(anim.Frames)-1),
+		frame:     -1,
 	}
 	s.absFrameTimes = make([]float64, len(s.Animation.Frames))
 	for i := range s.Animation.Frames {
@@ -72,10 +74,11 @@ func NewSkinAnimation(anim kaiju_mesh.KaijuMeshAnimation) SkinAnimation {
 func (a *SkinAnimation) FindNextFrameForBone(boneId int32, pathType kaiju_mesh.AnimationPathType) (SkinAnimationFrame, bool) {
 	for i := a.frame + 1; i < len(a.Animation.Frames); i++ {
 		for j := range a.Animation.Frames[i].Bones {
-			if a.Animation.Frames[i].Bones[j].PathType == pathType {
+			bone := &a.Animation.Frames[i].Bones[j]
+			if bone.NodeIndex == int(boneId) && bone.PathType == pathType {
 				return SkinAnimationFrame{
 					Key:     &a.Animation.Frames[i],
-					Bone:    &a.Animation.Frames[i].Bones[j],
+					Bone:    bone,
 					AbsTime: a.absFrameTimes[i],
 				}, true
 			}
@@ -83,10 +86,11 @@ func (a *SkinAnimation) FindNextFrameForBone(boneId int32, pathType kaiju_mesh.A
 	}
 	for i := 0; i < a.frame; i++ {
 		for j := range a.Animation.Frames[i].Bones {
-			if a.Animation.Frames[i].Bones[j].PathType == pathType {
+			bone := &a.Animation.Frames[i].Bones[j]
+			if bone.NodeIndex == int(boneId) && bone.PathType == pathType {
 				return SkinAnimationFrame{
 					Key:     &a.Animation.Frames[i],
-					Bone:    &a.Animation.Frames[i].Bones[j],
+					Bone:    bone,
 					AbsTime: a.absFrameTimes[i],
 				}, true
 			}
@@ -113,42 +117,48 @@ func (a *SkinAnimation) Update(deltaTime float64) {
 	if len(a.Animation.Frames) <= 1 {
 		return
 	}
-	a.time += deltaTime
-	nextTime := a.absFrameTimes[a.nextFrame]
-	for a.time >= nextTime {
-		a.frame++
-		if a.time > a.totalTime {
-			a.time = math.Mod(a.time, a.totalTime)
-			a.frame = 0
-		}
+	// Setting first frame is crutial, it shouldn't be skipped by large delta time
+	if a.frame < 0 {
+		a.frame = 0
 		a.nextFrame = min(a.frame+1, len(a.Animation.Frames)-1)
-		nextTime = a.absFrameTimes[a.nextFrame]
+	} else {
+		a.time += deltaTime
+		nextTime := a.absFrameTimes[a.nextFrame]
+		for a.time >= nextTime {
+			a.frame++
+			if a.time > a.totalTime {
+				a.time = math.Mod(a.time, a.totalTime)
+				a.frame = 0
+			}
+			a.nextFrame = min(a.frame+1, len(a.Animation.Frames)-1)
+			nextTime = a.absFrameTimes[a.nextFrame]
+		}
 	}
 }
 
 func (a *SkinAnimation) Interpolate(from, to SkinAnimationFrame) [4]float32 {
-	// if matrix.Vec4Approx(from.Bone.Data, to.Bone.Data) {
+	if matrix.Vec4Approx(from.Bone.Data, to.Bone.Data) {
+		return from.Bone.Data
+	}
+	t0 := from.AbsTime
+	t1 := to.AbsTime
+	if t1 < t0 {
+		t1 += t0
+	}
+	t := (a.time - t0) / (t1 - t0)
+	switch from.Bone.PathType {
+	case load_result.AnimPathRotation:
+		q0 := matrix.Quaternion(from.Bone.Data)
+		q1 := matrix.Quaternion(to.Bone.Data)
+		quat := matrix.QuaternionSlerp(q0, q1, float32(t))
+		return quat
+	case load_result.AnimPathTranslation:
+		fallthrough
+	case load_result.AnimPathScale:
+		p0 := matrix.Vec3FromSlice(from.Bone.Data[:])
+		p1 := matrix.Vec3FromSlice(to.Bone.Data[:])
+		out := matrix.Vec3Lerp(p0, p1, float32(t))
+		return [4]float32{out.X(), out.Y(), out.Z(), 1}
+	}
 	return from.Bone.Data
-	// }
-	// t0 := from.AbsTime
-	// t1 := to.AbsTime
-	// if t1 < t0 {
-	// 	t1 += t0
-	// }
-	// t := (a.time - t0) / (t1 - t0)
-	// switch from.Bone.PathType {
-	// case load_result.AnimPathRotation:
-	// 	q0 := matrix.Quaternion(from.Bone.Data)
-	// 	q1 := matrix.Quaternion(to.Bone.Data)
-	// 	quat := matrix.QuaternionSlerp(q0, q1, float32(t))
-	// 	return quat
-	// case load_result.AnimPathTranslation:
-	// 	fallthrough
-	// case load_result.AnimPathScale:
-	// 	p0 := matrix.Vec3FromSlice(from.Bone.Data[:])
-	// 	p1 := matrix.Vec3FromSlice(to.Bone.Data[:])
-	// 	out := matrix.Vec3Lerp(p0, p1, float32(t))
-	// 	return [4]float32{out.X(), out.Y(), out.Z(), 1}
-	// }
-	// return from.Bone.Data
 }

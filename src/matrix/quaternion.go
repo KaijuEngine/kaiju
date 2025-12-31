@@ -154,19 +154,18 @@ func QuaternionFromEuler(v Vec3) Quaternion {
 func (q Quaternion) ToEuler() Vec3 {
 	m := q.ToMat4()
 	var thetaX, thetaY, thetaZ Float
-	if m[x0y2] < 1 {
-		if m[x0y2] > -1.0 {
-			thetaY = Asin(m[x0y2])
-			thetaX = Atan2(-m[x1y2], m[x2y2])
-			thetaZ = Atan2(-m[x0y1], m[x0y0])
-		} else {
-			thetaY = -math.Pi / 2
-			thetaX = -Atan2(m[x1y0], m[x1y1])
-			thetaZ = 0
-		}
-	} else {
+	const epsilon = 1e-6
+	if math.Abs(float64(m[x0y2])) <= 1.0-epsilon {
+		thetaY = Float(math.Asin(float64(m[x0y2])))
+		thetaX = Float(math.Atan2(float64(-m[x1y2]), float64(m[x2y2])))
+		thetaZ = Float(math.Atan2(float64(-m[x0y1]), float64(m[x0y0])))
+	} else if m[x0y2] > 0 {
 		thetaY = math.Pi / 2
-		thetaX = Atan2(m[x1y0], m[x1y1])
+		thetaX = Float(math.Atan2(float64(m[x1y0]), float64(m[x1y1])))
+		thetaZ = 0
+	} else {
+		thetaY = -math.Pi / 2
+		thetaX = -Float(math.Atan2(float64(m[x1y0]), float64(m[x1y1])))
 		thetaZ = 0
 	}
 	out := NewVec3(Rad2Deg(thetaX), Rad2Deg(thetaY), Rad2Deg(thetaZ))

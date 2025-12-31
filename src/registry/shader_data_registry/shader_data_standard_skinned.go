@@ -85,3 +85,25 @@ func (t *ShaderDataStandardSkinned) UpdateNamedData(index, capacity int, name st
 	}
 	return false
 }
+
+func (s *ShaderDataStandardSkinned) TestFlag(flag ShaderDataStandardFlags) bool {
+	return (s.Flags & flag) != 0
+}
+
+func (s *ShaderDataStandardSkinned) SetFlag(flag ShaderDataStandardFlags) {
+	s.Flags |= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataStandardSkinned) ClearFlag(flag ShaderDataStandardFlags) {
+	s.Flags &^= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataStandardSkinned) updateFlagEnableStatus() {
+	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
+		s.Flags = 0
+	} else {
+		s.Flags |= ShaderDataStandardFlagEnable
+	}
+}
