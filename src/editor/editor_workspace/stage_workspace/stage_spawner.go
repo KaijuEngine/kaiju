@@ -440,14 +440,11 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 					data := a.Interpolate(frame, nextFrame)
 					switch frame.Bone.PathType {
 					case load_result.AnimPathTranslation:
-						p0 := matrix.Vec3FromSlice(data[:])
-						bone.Transform.SetLocalPosition(p0)
+						bone.Transform.SetLocalPosition(matrix.Vec3FromSlice(data[:]))
 					case load_result.AnimPathRotation:
-						q0 := matrix.Quaternion(data)
-						bone.Transform.SetRotation(q0.ToEuler())
+						bone.Transform.SetRotation(matrix.Quaternion(data).ToEuler())
 					case load_result.AnimPathScale:
-						s0 := matrix.Vec3FromSlice(data[:])
-						bone.Transform.SetScale(s0)
+						bone.Transform.SetScale(matrix.Vec3FromSlice(data[:]))
 					}
 				}
 			})
