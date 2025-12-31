@@ -93,6 +93,9 @@ type WorkspaceDetailsUI struct {
 	shaderInstanceDataTemplate *document.Element
 	TargetedElementValueReload map[reflect.Value]func()
 	copiedEntityData           weak.Pointer[entity_data_binding.EntityDataEntry]
+	previousPosition           matrix.Vec3
+	previousRotation           matrix.Vec3
+	previousScale              matrix.Vec3
 }
 
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
@@ -695,18 +698,10 @@ func (dui *WorkspaceDetailsUI) reload() {
 	}
 	e := sel[len(sel)-1]
 	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
-	p := e.Transform.Position()
-	r := e.Transform.Rotation()
-	s := e.Transform.Scale()
-	dui.detailsPosX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.X(), 3))
-	dui.detailsPosY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Y(), 3))
-	dui.detailsPosZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(p.Z(), 3))
-	dui.detailsRotX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.X(), 3))
-	dui.detailsRotY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Y(), 3))
-	dui.detailsRotZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(r.Z(), 3))
-	dui.detailsScaleX.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.X(), 3))
-	dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Y(), 3))
-	dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(klib.FormatFloatToNDecimals(s.Z(), 3))
+	dui.previousPosition = matrix.Vec3Inf(1)
+	dui.previousRotation = matrix.Vec3Inf(1)
+	dui.previousScale = matrix.Vec3Inf(1)
+	dui.update()
 	w := dui.workspace.Value()
 	// > 0, don't delete template
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- {
@@ -885,8 +880,47 @@ func (dui *WorkspaceDetailsUI) entityDataForElement(e *document.Element) (*edito
 	return entity, entity.DataBindings()[bindIdx], true
 }
 
+func (dui *WorkspaceDetailsUI) update() {
+	defer tracing.NewRegion("WorkspaceDetailsUI.update").End()
+	sel := dui.workspace.Value().stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
+	e := sel[len(sel)-1]
+	p := e.Transform.Position()
+	r := e.Transform.Rotation()
+	s := e.Transform.Scale()
+	if !dui.previousPosition.Equals(p) {
+		dui.previousPosition = p
+		dui.detailsPosX.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousPosition.X(), 3))
+		dui.detailsPosY.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousPosition.Y(), 3))
+		dui.detailsPosZ.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousPosition.Z(), 3))
+	}
+	if !dui.previousRotation.Equals(r) {
+		dui.previousRotation = r
+		dui.detailsRotX.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousRotation.X(), 3))
+		dui.detailsRotY.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousRotation.Y(), 3))
+		dui.detailsRotZ.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousRotation.Z(), 3))
+	}
+	if !dui.previousScale.Equals(s) {
+		dui.previousScale = s
+		dui.detailsScaleX.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousScale.X(), 3))
+		dui.detailsScaleY.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousScale.Y(), 3))
+		dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(
+			klib.FormatFloatToNDecimals(dui.previousScale.Z(), 3))
+	}
+}
+
 func toInt(str string) int64 {
-	defer tracing.NewRegion("toInt").End()
+	defer tracing.NewRegion("stage_workspace.toInt").End()
 	if str == "" {
 		return 0
 	}
@@ -897,7 +931,7 @@ func toInt(str string) int64 {
 }
 
 func toUint(str string) uint64 {
-	defer tracing.NewRegion("toUint").End()
+	defer tracing.NewRegion("stage_workspace.toUint").End()
 	if str == "" {
 		return 0
 	}
@@ -908,7 +942,7 @@ func toUint(str string) uint64 {
 }
 
 func toFloat(str string) float64 {
-	defer tracing.NewRegion("toFloat").End()
+	defer tracing.NewRegion("stage_workspace.toFloat").End()
 	if str == "" {
 		return 0
 	}

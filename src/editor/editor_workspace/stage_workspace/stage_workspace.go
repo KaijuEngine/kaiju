@@ -124,6 +124,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
+	w.detailsUI.update()
 	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
 	if !didKeyboardActions {
 		w.contentUI.processHotkeys(w.Host)
