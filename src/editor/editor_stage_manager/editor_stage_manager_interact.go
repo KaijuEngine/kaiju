@@ -253,6 +253,8 @@ func (m *StageManager) setShaderDataFlag(root *StageEntity) {
 		switch sd := e.StageData.ShaderData.(type) {
 		case *shader_data_registry.ShaderDataStandard:
 			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+		case *shader_data_registry.ShaderDataStandardSkinned:
+			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		case *shader_data_registry.ShaderDataPBR:
 			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		}
@@ -269,6 +271,8 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 		if !m.IsSelected(e) {
 			switch sd := e.StageData.ShaderData.(type) {
 			case *shader_data_registry.ShaderDataStandard:
+				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+			case *shader_data_registry.ShaderDataStandardSkinned:
 				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 			case *shader_data_registry.ShaderDataPBR:
 				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
