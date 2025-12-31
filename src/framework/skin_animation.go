@@ -61,7 +61,7 @@ type SkinAnimationFrame struct {
 func NewSkinAnimation(anim kaiju_mesh.KaijuMeshAnimation) SkinAnimation {
 	s := SkinAnimation{
 		Animation: anim,
-		nextFrame: min(1, len(anim.Frames)-1),
+		frame:     -1,
 	}
 	s.absFrameTimes = make([]float64, len(s.Animation.Frames))
 	for i := range s.Animation.Frames {
@@ -117,16 +117,22 @@ func (a *SkinAnimation) Update(deltaTime float64) {
 	if len(a.Animation.Frames) <= 1 {
 		return
 	}
-	a.time += deltaTime
-	nextTime := a.absFrameTimes[a.nextFrame]
-	for a.time >= nextTime {
-		a.frame++
-		if a.time > a.totalTime {
-			a.time = math.Mod(a.time, a.totalTime)
-			a.frame = 0
-		}
+	// Setting first frame is crutial, it shouldn't be skipped by large delta time
+	if a.frame < 0 {
+		a.frame = 0
 		a.nextFrame = min(a.frame+1, len(a.Animation.Frames)-1)
-		nextTime = a.absFrameTimes[a.nextFrame]
+	} else {
+		a.time += deltaTime
+		nextTime := a.absFrameTimes[a.nextFrame]
+		for a.time >= nextTime {
+			a.frame++
+			if a.time > a.totalTime {
+				a.time = math.Mod(a.time, a.totalTime)
+				a.frame = 0
+			}
+			a.nextFrame = min(a.frame+1, len(a.Animation.Frames)-1)
+			nextTime = a.absFrameTimes[a.nextFrame]
+		}
 	}
 }
 
