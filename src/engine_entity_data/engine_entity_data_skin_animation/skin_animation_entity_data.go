@@ -1,4 +1,4 @@
-package engine_entity_data_mesh_skinning
+package engine_entity_data_skin_animation
 
 import (
 	"kaiju/engine"
@@ -11,13 +11,13 @@ import (
 	"weak"
 )
 
-const BindingKey = "kaiju.MeshSkinningEntityData"
+const BindingKey = "kaiju.SkinAnimationEntityData"
 
 func init() {
-	engine.RegisterEntityData(BindingKey, MeshSkinningEntityData{})
+	engine.RegisterEntityData(BindingKey, SkinAnimationEntityData{})
 }
 
-type MeshSkinningEntityData struct {
+type SkinAnimationEntityData struct {
 	MeshId content_id.Mesh
 }
 
@@ -33,7 +33,7 @@ type MeshSkinningAnimation struct {
 	isPlaying bool
 }
 
-func (c MeshSkinningEntityData) Init(e *engine.Entity, host *engine.Host) {
+func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 	data, err := host.AssetDatabase().Read(string(c.MeshId))
 	if err != nil {
 		slog.Error("failed to read the mesh", "id", c.MeshId, "error", err)
