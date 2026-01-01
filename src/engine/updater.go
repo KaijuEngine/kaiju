@@ -134,6 +134,8 @@ func (u *Updater) Destroy() {
 	u.backRemove = make([]UpdateId, 0)
 }
 
+func (u *UpdateId) IsValid() bool { return *u != 0 }
+
 func (u *Updater) inlineUpdate(deltaTime float64) {
 	for i := range u.updates {
 		u.updates[i].update(deltaTime)
