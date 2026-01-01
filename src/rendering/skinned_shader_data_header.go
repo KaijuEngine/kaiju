@@ -56,6 +56,9 @@ type BoneTransform struct {
 func (h *SkinnedShaderDataHeader) HasBones() bool { return len(h.bones) > 0 }
 
 func (h *SkinnedShaderDataHeader) CreateBones(ids []int32) {
+	for i := range h.jointTransforms {
+		h.jointTransforms[i].Reset()
+	}
 	h.bones = make([]BoneTransform, len(ids))
 	h.boneMap = make(map[int32]*BoneTransform)
 	for i := range ids {
@@ -101,11 +104,9 @@ func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(index, capacity int, name 
 		return int32(index % cap), false
 	}
 	skinIndex := int32(index)
-	if len(h.bones) > 0 {
-		for i := range h.bones {
-			b := &h.bones[i]
-			h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
-		}
+	for i := range h.bones {
+		b := &h.bones[i]
+		h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 	}
 	return skinIndex, true
 }

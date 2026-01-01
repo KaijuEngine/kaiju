@@ -106,9 +106,9 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 			}
 			var tForm matrix.Transform
 			tForm.Initialize(host.WorkGroup())
-			tForm.SetPosition(m.Node.Transform.WorldPosition())
-			tForm.SetRotation(m.Node.Transform.WorldRotation())
-			tForm.SetScale(m.Node.Transform.WorldScale())
+			tForm.SetLocalPosition(m.Node.Position)
+			tForm.SetRotation(m.Node.Rotation.ToEuler())
+			tForm.SetScale(m.Node.Scale)
 			mesh, ok := host.MeshCache().FindMesh(m.MeshName)
 			if !ok {
 				mesh = rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)

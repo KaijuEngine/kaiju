@@ -75,9 +75,9 @@ func (j *KaijuMeshJoint) fromLoadResult(res *load_result.Result, r *load_result.
 	if pid >= 0 {
 		p := &res.Nodes[pid]
 		j.Parent = pid
-		j.Position = p.Transform.Position()
-		j.Rotation = p.Transform.Rotation()
-		j.Scale = p.Transform.Scale()
+		j.Position = p.Position
+		j.Rotation = p.Rotation.ToEuler()
+		j.Scale = p.Scale
 	}
 }
 

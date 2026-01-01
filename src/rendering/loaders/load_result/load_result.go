@@ -91,9 +91,10 @@ type Node struct {
 	Id         int32
 	Name       string
 	Parent     int
-	Transform  matrix.Transform
+	Position   matrix.Vec3
+	Rotation   matrix.Quaternion
+	Scale      matrix.Vec3
 	Attributes map[string]any
-	Children   []int32
 	IsAnimated bool
 }
 

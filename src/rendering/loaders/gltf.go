@@ -199,26 +199,26 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Id = int32(i)
 		res.Nodes[i].Name = n.Name
-		res.Nodes[i].Transform.SetupRawTransform()
 		res.Nodes[i].Attributes = n.Extras
-		res.Nodes[i].Children = slices.Clone(n.Children)
 		for j := range n.Children {
 			cid := n.Children[j]
 			res.Nodes[cid].Parent = i
-			res.Nodes[cid].Transform.SetParent(&res.Nodes[i].Transform)
 		}
 		// TODO:  Come back for this scenario
 		//if n.Matrix != nil {
 		//}
 		if n.Scale != nil {
-			res.Nodes[i].Transform.SetScale(*n.Scale)
+			res.Nodes[i].Scale = *n.Scale
+		} else {
+			res.Nodes[i].Scale = matrix.Vec3One()
 		}
 		if n.Rotation != nil {
-			q := matrix.QuaternionFromXYZW(*n.Rotation)
-			res.Nodes[i].Transform.SetRotation(q.ToEuler())
+			res.Nodes[i].Rotation = matrix.QuaternionFromXYZW(*n.Rotation)
+		} else {
+			res.Nodes[i].Rotation = matrix.QuaternionIdentity()
 		}
 		if n.Translation != nil {
-			res.Nodes[i].Transform.SetPosition(*n.Translation)
+			res.Nodes[i].Position = *n.Translation
 		}
 		if n.Mesh == nil {
 			continue

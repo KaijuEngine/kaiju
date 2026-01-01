@@ -234,32 +234,31 @@ func (t *Transform) SetScale(scale Vec3) {
 }
 
 func (t *Transform) updateMatrix() {
-	if t.isDirty {
-		t.localMatrix.Reset()
-		t.localMatrix.Scale(t.scale)
-		t.localMatrix.Rotate(t.rotation)
-		t.localMatrix.Translate(t.position)
-	}
+	t.localMatrix.Reset()
+	t.localMatrix.Scale(t.scale)
+	t.localMatrix.Rotate(t.rotation)
+	t.localMatrix.Translate(t.position)
 }
 
 func (t *Transform) updateWorldMatrix() {
-	if t.isDirty {
-		if t.parent != nil {
-			t.worldMatrix = t.localMatrix
-			t.worldMatrix.MultiplyAssign(t.parent.WorldMatrix())
-		} else {
-			t.worldMatrix = t.localMatrix
-		}
-		t.invWorldMatrix = t.worldMatrix
-		t.invWorldMatrix.Inverse()
+	if t.parent != nil {
+		t.worldMatrix = t.localMatrix
+		t.worldMatrix.MultiplyAssign(t.parent.WorldMatrix())
+	} else {
+		t.worldMatrix = t.localMatrix
 	}
+	t.invWorldMatrix = t.worldMatrix
+	t.invWorldMatrix.Inverse()
 }
 
 func (t *Transform) updateMatrices() {
+	if !t.isDirty {
+		return
+	}
 	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	t.updateMatrix()
 	t.updateWorldMatrix()
+	t.mutex.Unlock()
 	t.isDirty = false
 }
 
