@@ -71,13 +71,12 @@ type AnimBone struct {
 func (j *KaijuMeshJoint) fromLoadResult(res *load_result.Result, r *load_result.Joint) {
 	j.Id = r.Id
 	j.Skin = r.Skin
-	pid := int32(res.Nodes[j.Id].Parent)
-	if pid >= 0 {
-		p := &res.Nodes[pid]
-		j.Parent = pid
-		j.Position = p.Position
-		j.Rotation = p.Rotation.ToEuler()
-		j.Scale = p.Scale
+	n := &res.Nodes[j.Id]
+	if n.Parent >= 0 {
+		j.Parent = int32(n.Parent)
+		j.Position = n.Position
+		j.Rotation = n.Rotation.ToEuler()
+		j.Scale = n.Scale
 	}
 }
 
