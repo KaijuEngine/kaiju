@@ -47,7 +47,6 @@ import (
 	"kaiju/engine_entity_data/engine_entity_data_camera"
 	"kaiju/engine_entity_data/engine_entity_data_light"
 	"kaiju/engine_entity_data/engine_entity_data_particles"
-	"kaiju/framework"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
@@ -55,7 +54,6 @@ import (
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
-	"kaiju/rendering/loaders/load_result"
 	"log/slog"
 	"weak"
 )
@@ -417,35 +415,6 @@ func (w *StageWorkspace) setInitialSkinnedPose(e *editor_stage_manager.StageEnti
 			bone.Transform.SetLocalPosition(j.Position)
 			bone.Transform.SetRotation(j.Rotation)
 			bone.Transform.SetScale(j.Scale)
-		}
-		animIdx := 0
-		anims := km.Animations
-		if len(anims[animIdx].Frames) == 0 {
-			return
-		}
-		a := framework.NewSkinAnimation(anims[animIdx])
-		a.Update(0)
-		frame := a.CurrentFrame()
-		for i := range frame.Key.Bones {
-			frame.Bone = &frame.Key.Bones[i]
-			bone := skin.FindBone(int32(frame.Bone.NodeIndex))
-			if bone == nil {
-				continue
-			}
-			nextFrame, ok := a.FindNextFrameForBone(bone.Id, frame.Bone.PathType)
-			if !ok {
-				nextFrame = frame
-				nextFrame.Bone = frame.Bone
-			}
-			data := a.Interpolate(frame, nextFrame)
-			switch frame.Bone.PathType {
-			case load_result.AnimPathTranslation:
-				bone.Transform.SetLocalPosition(matrix.Vec3FromSlice(data[:]))
-			case load_result.AnimPathRotation:
-				bone.Transform.SetRotation(matrix.Quaternion(data).ToEuler())
-			case load_result.AnimPathScale:
-				bone.Transform.SetScale(matrix.Vec3FromSlice(data[:]))
-			}
 		}
 	}
 }
