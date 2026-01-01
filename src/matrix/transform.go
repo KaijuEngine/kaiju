@@ -416,6 +416,6 @@ func (t *Transform) ScaleWithoutChildren(scale Vec3) {
 	}
 }
 
-func (t *Transform) AddPosition(add Vec3) { t.SetPosition(t.position.Add(add)) }
+func (t *Transform) AddPosition(add Vec3) { t.SetPosition(t.relativePosition.Add(add)) }
 func (t *Transform) AddRotation(add Vec3) { t.SetRotation(t.rotation.Add(add)) }
 func (t *Transform) AddScale(add Vec3)    { t.SetScale(t.scale.Add(add)) }
