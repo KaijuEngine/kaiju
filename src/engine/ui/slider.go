@@ -93,7 +93,7 @@ func (slider *Slider) onLayoutUpdating() {
 	bl := &ld.bgPanel.layout
 	pLayout := FirstOnEntity(bl.Ui().Entity().Parent).Layout()
 	wh := pLayout.ContentSize()
-	bl.Scale(wh.Width()-10, wh.Height()) // TODO:  Why -10?
+	bl.Scale(max(0.001, wh.Width()-10), wh.Height())
 
 	// Foreground
 	fl := &ld.fgPanel.layout
