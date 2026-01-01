@@ -76,7 +76,7 @@ type settingsWorkspaceData struct {
 func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspaceEditorInterface) {
 	w.editor = editor
 	w.editorSettings = editor.Settings()
-	w.projectSettings = editor.Project().Settings()
+	w.projectSettings = editor.Project().Settings
 	w.CommonWorkspace.InitializeWithUI(host, uiFile, w.uiData(), w.funcMap())
 	w.reloadedUI()
 	w.editor.Events().OnContentRemoved.Add(func(ids []string) {
