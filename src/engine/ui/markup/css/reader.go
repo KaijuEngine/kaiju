@@ -156,6 +156,11 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 func cleanMapDuplicates(cssMap CSSMap) {
 	for k, v := range cssMap {
 		for i := 0; i < len(v); i++ {
+			if len(v[i].Values) == 1 && v[i].Values[0].Str == "revert" {
+				v = slices.Delete(v, i, i+1)
+				i--
+				continue
+			}
 			for j := i + 1; j < len(v); j++ {
 				if v[i].Property == v[j].Property && v[i].Invocation == v[j].Invocation {
 					v = slices.Delete(v, i, i+1)

@@ -216,7 +216,7 @@ func (input *Input) onLayoutUpdating() {
 	}
 
 	// Cursor
-	data.cursor.layout.Scale(cursorWidth, pLayout.PixelSize().Height()-5)
+	data.cursor.layout.Scale(cursorWidth, max(0.001, pLayout.PixelSize().Height()-5))
 }
 
 func (input *Input) showCursor() {
