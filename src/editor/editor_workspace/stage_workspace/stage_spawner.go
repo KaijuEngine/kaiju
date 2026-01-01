@@ -383,71 +383,69 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 		e.StageData.PendingMaterialChange = false
 		// Don't want dirties to run during the transform clean map read
 		w.Host.RunOnMainThread(e.Transform.SetDirty)
-		skin := e.StageData.ShaderData.SkinningHeader()
-		if skin != nil {
-			data, err := w.Host.AssetDatabase().Read(string(e.StageData.Mesh.Key()))
-			if err != nil {
-				return
-			}
-			km, err := kaiju_mesh.Deserialize(data)
-			if err != nil {
-				return
-			}
-			ids := klib.ExtractFromSlice(km.Joints, func(i int) int32 {
-				return km.Joints[i].Id
-			})
-			skin.CreateBones(ids)
-			for i := range km.Joints {
-				j := &km.Joints[i]
-				bone := skin.BoneByIndex(i)
-				bone.Id = j.Id
-				bone.Skin = j.Skin
-				bone.Transform.Initialize(w.Host.WorkGroup())
-			}
-			for i := range km.Joints {
-				bone := skin.BoneByIndex(i)
-				j := &km.Joints[i]
-				parent := skin.FindBone(j.Parent)
-				if parent != nil {
-					bone.Transform.SetParent(&parent.Transform)
-				} else {
-					bone.Transform.SetParent(&e.Transform)
-				}
-				bone.Transform.SetLocalPosition(j.Position)
-				bone.Transform.SetRotation(j.Rotation)
-				bone.Transform.SetScale(j.Scale)
-			}
-			animIdx := 0
-			anims := km.Animations
-			if len(anims[animIdx].Frames) == 0 {
-				return
-			}
-			a := framework.NewSkinAnimation(anims[animIdx])
-			w.Host.Updater.AddUpdate(func(deltaTime float64) {
-				a.Update(deltaTime)
-				frame := a.CurrentFrame()
-				for i := range frame.Key.Bones {
-					frame.Bone = &frame.Key.Bones[i]
-					bone := skin.FindBone(int32(frame.Bone.NodeIndex))
-					if bone == nil {
-						continue
-					}
-					nextFrame, ok := a.FindNextFrameForBone(bone.Id, frame.Bone.PathType)
-					if !ok {
-						nextFrame = frame
-						nextFrame.Bone = frame.Bone
-					}
-					data := a.Interpolate(frame, nextFrame)
-					switch frame.Bone.PathType {
-					case load_result.AnimPathTranslation:
-						bone.Transform.SetLocalPosition(matrix.Vec3FromSlice(data[:]))
-					case load_result.AnimPathRotation:
-						bone.Transform.SetRotation(matrix.Quaternion(data).ToEuler())
-					case load_result.AnimPathScale:
-						bone.Transform.SetScale(matrix.Vec3FromSlice(data[:]))
-					}
-				}
-			})
-		}
+		w.setInitialSkinnedPose(e)
 	}()
+}
+
+func (w *StageWorkspace) setInitialSkinnedPose(e *editor_stage_manager.StageEntity) {
+	skin := e.StageData.ShaderData.SkinningHeader()
+	if skin != nil {
+		km, err := kaiju_mesh.ReadMesh(e.StageData.Mesh.Key(), w.Host)
+		if err != nil {
+			return
+		}
+		ids := klib.ExtractFromSlice(km.Joints, func(i int) int32 {
+			return km.Joints[i].Id
+		})
+		skin.CreateBones(ids)
+		for i := range km.Joints {
+			j := &km.Joints[i]
+			bone := skin.BoneByIndex(i)
+			bone.Id = j.Id
+			bone.Skin = j.Skin
+			bone.Transform.Initialize(w.Host.WorkGroup())
+		}
+		for i := range km.Joints {
+			bone := skin.BoneByIndex(i)
+			j := &km.Joints[i]
+			parent := skin.FindBone(j.Parent)
+			if parent != nil {
+				bone.Transform.SetParent(&parent.Transform)
+			} else {
+				bone.Transform.SetParent(&e.Transform)
+			}
+			bone.Transform.SetLocalPosition(j.Position)
+			bone.Transform.SetRotation(j.Rotation)
+			bone.Transform.SetScale(j.Scale)
+		}
+		animIdx := 0
+		anims := km.Animations
+		if len(anims[animIdx].Frames) == 0 {
+			return
+		}
+		a := framework.NewSkinAnimation(anims[animIdx])
+		a.Update(0)
+		frame := a.CurrentFrame()
+		for i := range frame.Key.Bones {
+			frame.Bone = &frame.Key.Bones[i]
+			bone := skin.FindBone(int32(frame.Bone.NodeIndex))
+			if bone == nil {
+				continue
+			}
+			nextFrame, ok := a.FindNextFrameForBone(bone.Id, frame.Bone.PathType)
+			if !ok {
+				nextFrame = frame
+				nextFrame.Bone = frame.Bone
+			}
+			data := a.Interpolate(frame, nextFrame)
+			switch frame.Bone.PathType {
+			case load_result.AnimPathTranslation:
+				bone.Transform.SetLocalPosition(matrix.Vec3FromSlice(data[:]))
+			case load_result.AnimPathRotation:
+				bone.Transform.SetRotation(matrix.Quaternion(data).ToEuler())
+			case load_result.AnimPathScale:
+				bone.Transform.SetScale(matrix.Vec3FromSlice(data[:]))
+			}
+		}
+	}
 }

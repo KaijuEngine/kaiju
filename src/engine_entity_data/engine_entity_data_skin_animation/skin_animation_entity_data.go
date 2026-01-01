@@ -39,11 +39,14 @@ package engine_entity_data_skin_animation
 import (
 	"kaiju/engine"
 	"kaiju/engine_entity_data/content_id"
+	"kaiju/framework"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
 	"kaiju/rendering/loaders/load_result"
 	"log/slog"
+	"strings"
 	"weak"
 )
 
@@ -54,28 +57,24 @@ func init() {
 }
 
 type SkinAnimationEntityData struct {
-	MeshId content_id.Mesh
+	MeshId   content_id.Mesh
+	AnimName string `options:"animations"`
 }
 
 type MeshSkinningAnimation struct {
 	frame     int
 	animIdx   int
-	animTime  float64
 	anims     []kaiju_mesh.KaijuMeshAnimation
 	joints    []kaiju_mesh.KaijuMeshJoint
 	updateId  engine.UpdateId
 	entity    weak.Pointer[engine.Entity]
 	skin      weak.Pointer[rendering.SkinnedShaderDataHeader]
+	current   framework.SkinAnimation
 	isPlaying bool
 }
 
 func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
-	data, err := host.AssetDatabase().Read(string(c.MeshId))
-	if err != nil {
-		slog.Error("failed to read the mesh", "id", c.MeshId, "error", err)
-		return
-	}
-	km, err := kaiju_mesh.Deserialize(data)
+	km, err := kaiju_mesh.ReadMesh(string(c.MeshId), host)
 	if err != nil {
 		slog.Error("failed to deserialize kaiju mesh", "id", c.MeshId, "error", err)
 		return
@@ -85,6 +84,7 @@ func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 		joints: km.Joints,
 		entity: weak.Make(e),
 	}
+	anim.SetAnimation(anim.anims[0].Name)
 	wh := weak.Make(host)
 	e.OnDestroy.Add(func() {
 		h := wh.Value()
@@ -97,16 +97,53 @@ func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 	host.RunNextFrame(func() { anim.setup(host) })
 }
 
+func (a *MeshSkinningAnimation) SetAnimation(name string) {
+	for i := range a.anims {
+		if strings.EqualFold(a.anims[i].Name, name) {
+			a.animIdx = i
+		}
+	}
+	a.current = framework.NewSkinAnimation(a.anims[a.animIdx])
+}
+
 func (a *MeshSkinningAnimation) setup(host *engine.Host) {
 	e := a.entity.Value()
 	sd := e.ShaderData()
-	header := sd.SkinningHeader()
-	if header == nil {
+	skin := sd.SkinningHeader()
+	if skin == nil {
 		e.RemoveNamedData(BindingKey, a)
 		slog.Error("failed to find skinning shader data on entity for MeshSkinningAnimation", "entity", e.Id())
 		return
 	}
-	a.updateId = host.Updater.AddUpdate(a.update)
+	if !skin.HasBones() {
+		ids := klib.ExtractFromSlice(a.joints, func(i int) int32 {
+			return a.joints[i].Id
+		})
+		skin.CreateBones(ids)
+		for i := range a.joints {
+			j := &a.joints[i]
+			bone := skin.BoneByIndex(i)
+			bone.Id = j.Id
+			bone.Skin = j.Skin
+			bone.Transform.Initialize(host.WorkGroup())
+		}
+		for i := range a.joints {
+			bone := skin.BoneByIndex(i)
+			j := &a.joints[i]
+			parent := skin.FindBone(j.Parent)
+			if parent != nil {
+				bone.Transform.SetParent(&parent.Transform)
+			} else {
+				bone.Transform.SetParent(&e.Transform)
+			}
+			bone.Transform.SetLocalPosition(j.Position)
+			bone.Transform.SetRotation(j.Rotation)
+			bone.Transform.SetScale(j.Scale)
+		}
+	}
+	if !a.updateId.IsValid() {
+		a.updateId = host.Updater.AddUpdate(a.update)
+	}
 }
 
 func (a *MeshSkinningAnimation) update(deltaTime float64) {
@@ -117,27 +154,27 @@ func (a *MeshSkinningAnimation) update(deltaTime float64) {
 	if skin == nil {
 		return
 	}
-	a.animTime += deltaTime
-	if a.animTime >= float64(a.anims[a.animIdx].Frames[a.frame].Time) {
-		a.frame++
-		a.animTime = 0
-		if a.frame >= len(a.anims[a.animIdx].Frames) {
-			a.frame = 0
-		}
-	}
-	for i := range a.anims[a.animIdx].Frames[a.frame].Bones {
-		b := &a.anims[a.animIdx].Frames[a.frame].Bones[i]
-		bone := skin.FindBone(int32(b.NodeIndex))
+	a.current.Update(deltaTime)
+	frame := a.current.CurrentFrame()
+	for i := range frame.Key.Bones {
+		frame.Bone = &frame.Key.Bones[i]
+		bone := skin.FindBone(int32(frame.Bone.NodeIndex))
 		if bone == nil {
 			continue
 		}
-		switch b.PathType {
+		nextFrame, ok := a.current.FindNextFrameForBone(bone.Id, frame.Bone.PathType)
+		if !ok {
+			nextFrame = frame
+			nextFrame.Bone = frame.Bone
+		}
+		data := a.current.Interpolate(frame, nextFrame)
+		switch frame.Bone.PathType {
 		case load_result.AnimPathTranslation:
-			bone.Transform.SetPosition(matrix.Vec3FromSlice(b.Data[:]))
+			bone.Transform.SetLocalPosition(matrix.Vec3FromSlice(data[:]))
 		case load_result.AnimPathRotation:
-			bone.Transform.SetRotation(matrix.Quaternion(b.Data).ToEuler())
+			bone.Transform.SetRotation(matrix.Quaternion(data).ToEuler())
 		case load_result.AnimPathScale:
-			bone.Transform.SetScale(matrix.Vec3FromSlice(b.Data[:]))
+			bone.Transform.SetScale(matrix.Vec3FromSlice(data[:]))
 		}
 	}
 }

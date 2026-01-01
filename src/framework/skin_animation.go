@@ -71,6 +71,8 @@ func NewSkinAnimation(anim kaiju_mesh.KaijuMeshAnimation) SkinAnimation {
 	return s
 }
 
+func (a *SkinAnimation) IsValid() bool { return len(a.Animation.Frames) > 0 }
+
 func (a *SkinAnimation) FindNextFrameForBone(boneId int32, pathType kaiju_mesh.AnimationPathType) (SkinAnimationFrame, bool) {
 	for i := a.frame + 1; i < len(a.Animation.Frames); i++ {
 		for j := range a.Animation.Frames[i].Bones {

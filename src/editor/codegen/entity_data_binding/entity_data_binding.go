@@ -317,7 +317,10 @@ func (g *EntityDataEntry) FieldValue(fieldIdx int) any {
 // data is read‑only; no modifications are performed.
 func (g *EntityDataEntry) FieldValueByName(name string) any {
 	v := reflect.ValueOf(g.BoundData).Elem().FieldByName(name)
-	return v.Interface()
+	if v.IsValid() {
+		return v.Interface()
+	}
+	return nil
 }
 
 func tagDefault(f *EntityDataField, value string) {

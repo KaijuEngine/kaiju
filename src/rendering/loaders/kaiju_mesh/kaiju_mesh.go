@@ -40,11 +40,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"kaiju/debug"
+	"kaiju/engine"
 	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/platform/concurrent"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/load_result"
+	"log/slog"
 	"slices"
 	"sync"
 )
@@ -125,6 +127,15 @@ func Deserialize(data []byte) (KaijuMesh, error) {
 	var km KaijuMesh
 	err := dec.Decode(&km)
 	return km, err
+}
+
+func ReadMesh(id string, host *engine.Host) (KaijuMesh, error) {
+	data, err := host.AssetDatabase().Read(id)
+	if err != nil {
+		slog.Error("failed to read the mesh", "id", id, "error", err)
+		return KaijuMesh{}, err
+	}
+	return Deserialize(data)
 }
 
 func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *collision.BVH {

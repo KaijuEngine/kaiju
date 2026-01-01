@@ -46,11 +46,13 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/engine_entity_data/content_id"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
+	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"reflect"
 	"slices"
@@ -417,9 +419,17 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		for _, c := range fields[i].Children {
 			c.UI.Hide()
 		}
+		optionsSelect := []string{}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
 				continue
+			} else if ops := f.Tag.Get("options"); ops != "" {
+				switch ops {
+				case "animations":
+					optionsSelect = dui.selectAnimationNames(g)
+				default:
+					optionsSelect = strings.Split(ops, ",")
+				}
 			}
 		}
 		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
@@ -441,14 +451,20 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		fg := &g.Gen.FieldGens[i]
 		v := reflect.ValueOf(g.BoundData).Elem().Field(i)
 		var valReload func()
-		if fg.IsValid() && len(fg.EnumValues) > 0 {
+		if len(optionsSelect) > 0 || (fg.IsValid() && len(fg.EnumValues) > 0) {
 			selectInput.UI.Show()
 			valReload = func() {
 				sel := selectInput.Children[0].UI.ToSelect()
 				sel.ClearOptions()
 				opts := []ui.SelectOption{}
-				for k, v := range fg.EnumValues {
-					opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+				if len(optionsSelect) > 0 {
+					for i := range optionsSelect {
+						opts = append(opts, ui.SelectOption{Name: optionsSelect[i], Value: optionsSelect[i]})
+					}
+				} else {
+					for k, v := range fg.EnumValues {
+						opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+					}
 				}
 				slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
 					return klib.StringValueCompare(a.Value, b.Value)
@@ -917,6 +933,27 @@ func (dui *WorkspaceDetailsUI) update() {
 		dui.detailsScaleZ.UI.ToInput().SetTextWithoutEvent(
 			klib.FormatFloatToNDecimals(dui.previousScale.Z(), 3))
 	}
+}
+
+func (dui *WorkspaceDetailsUI) selectAnimationNames(g *entity_data_binding.EntityDataEntry) []string {
+	defer tracing.NewRegion("WorkspaceDetailsUI.selectAnimationNames").End()
+	v := g.FieldValueByName("MeshId")
+	if v == nil {
+		return []string{}
+	}
+	id, ok := v.(content_id.Mesh)
+	if id == "" || !ok {
+		return []string{}
+	}
+	km, err := kaiju_mesh.ReadMesh(string(id), dui.workspace.Value().Host)
+	if err != nil {
+		return []string{}
+	}
+	out := make([]string, 0, len(km.Animations))
+	for i := range km.Animations {
+		out = append(out, km.Animations[i].Name)
+	}
+	return out
 }
 
 func toInt(str string) int64 {
