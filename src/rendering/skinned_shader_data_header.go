@@ -53,6 +53,8 @@ type BoneTransform struct {
 	Skin      matrix.Mat4
 }
 
+func (h *SkinnedShaderDataHeader) HasBones() bool { return len(h.bones) > 0 }
+
 func (h *SkinnedShaderDataHeader) CreateBones(ids []int32) {
 	h.bones = make([]BoneTransform, len(ids))
 	h.boneMap = make(map[int32]*BoneTransform)
