@@ -257,6 +257,8 @@ func (m *StageManager) setShaderDataFlag(root *StageEntity) {
 			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		case *shader_data_registry.ShaderDataPBR:
 			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+		case *shader_data_registry.ShaderDataPbrSkinned:
+			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 		}
 		for i := range e.Children {
 			procChildren(EntityToStageEntity(e.Children[i]))
@@ -275,6 +277,8 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 			case *shader_data_registry.ShaderDataStandardSkinned:
 				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 			case *shader_data_registry.ShaderDataPBR:
+				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
+			case *shader_data_registry.ShaderDataPbrSkinned:
 				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
 			}
 		}

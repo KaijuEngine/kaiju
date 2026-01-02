@@ -57,7 +57,7 @@ type ShaderDataStandardSkinned struct {
 	rendering.ShaderDataBase
 	Color     matrix.Color
 	SkinIndex int32                   `visible:"false"`
-	Flags     ShaderDataStandardFlags `visible:"false"`
+	Flags     StandardShaderDataFlags `visible:"false"`
 }
 
 func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
@@ -86,16 +86,16 @@ func (t *ShaderDataStandardSkinned) UpdateNamedData(index, capacity int, name st
 	return false
 }
 
-func (s *ShaderDataStandardSkinned) TestFlag(flag ShaderDataStandardFlags) bool {
+func (s *ShaderDataStandardSkinned) TestFlag(flag StandardShaderDataFlags) bool {
 	return (s.Flags & flag) != 0
 }
 
-func (s *ShaderDataStandardSkinned) SetFlag(flag ShaderDataStandardFlags) {
+func (s *ShaderDataStandardSkinned) SetFlag(flag StandardShaderDataFlags) {
 	s.Flags |= flag
 	s.updateFlagEnableStatus()
 }
 
-func (s *ShaderDataStandardSkinned) ClearFlag(flag ShaderDataStandardFlags) {
+func (s *ShaderDataStandardSkinned) ClearFlag(flag StandardShaderDataFlags) {
 	s.Flags &^= flag
 	s.updateFlagEnableStatus()
 }

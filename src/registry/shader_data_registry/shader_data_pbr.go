@@ -61,7 +61,7 @@ type ShaderDataPBR struct {
 	Roughness  float32
 	Emissive   float32
 	LightIds   [4]int32                `visible:"false"`
-	Flags      ShaderDataStandardFlags `visible:"false"`
+	Flags      StandardShaderDataFlags `visible:"false"`
 }
 
 func (t ShaderDataPBR) Size() int {
@@ -88,16 +88,16 @@ func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {
 	}
 }
 
-func (s *ShaderDataPBR) TestFlag(flag ShaderDataStandardFlags) bool {
+func (s *ShaderDataPBR) TestFlag(flag StandardShaderDataFlags) bool {
 	return (s.Flags & flag) != 0
 }
 
-func (s *ShaderDataPBR) SetFlag(flag ShaderDataStandardFlags) {
+func (s *ShaderDataPBR) SetFlag(flag StandardShaderDataFlags) {
 	s.Flags |= flag
 	s.updateFlagEnableStatus()
 }
 
-func (s *ShaderDataPBR) ClearFlag(flag ShaderDataStandardFlags) {
+func (s *ShaderDataPBR) ClearFlag(flag StandardShaderDataFlags) {
 	s.Flags &^= flag
 	s.updateFlagEnableStatus()
 }

@@ -61,7 +61,7 @@ type ShaderDataPbrSkinned struct {
 	Emissive   float32
 	LightIds   [4]int32                `visible:"false"`
 	SkinIndex  int32                   `visible:"false"`
-	Flags      ShaderDataStandardFlags `visible:"false"`
+	Flags      StandardShaderDataFlags `visible:"false"`
 }
 
 func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
@@ -87,4 +87,26 @@ func (t *ShaderDataPbrSkinned) UpdateNamedData(index, capacity int, name string)
 		return true
 	}
 	return false
+}
+
+func (s *ShaderDataPbrSkinned) TestFlag(flag StandardShaderDataFlags) bool {
+	return (s.Flags & flag) != 0
+}
+
+func (s *ShaderDataPbrSkinned) SetFlag(flag StandardShaderDataFlags) {
+	s.Flags |= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataPbrSkinned) ClearFlag(flag StandardShaderDataFlags) {
+	s.Flags &^= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataPbrSkinned) updateFlagEnableStatus() {
+	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
+		s.Flags = 0
+	} else {
+		s.Flags |= ShaderDataStandardFlagEnable
+	}
 }

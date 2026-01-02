@@ -1,4 +1,4 @@
-{"Name":"basic_skinned","Vertex":"basic_skinned.vert","VertexFlags":"","Fragment":"basic.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
+{"Name":"basic_skinned","Vertex":"basic.vert","VertexFlags":"-DSKINNING","Fragment":"basic.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
 
 "VertexSpv":"basic_skinned.vert.spv",
 "FragmentSpv":"basic.frag.spv",
