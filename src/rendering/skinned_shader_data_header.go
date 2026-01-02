@@ -103,12 +103,11 @@ func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(index, capacity int, name 
 	if index > cap {
 		return int32(index % cap), false
 	}
-	skinIndex := int32(index)
 	for i := range h.bones {
 		b := &h.bones[i]
 		h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 	}
-	return skinIndex, true
+	return int32(index), true
 }
 
 func (h *SkinnedShaderDataHeader) isSkinNamedData(name string) bool {

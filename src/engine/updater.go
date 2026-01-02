@@ -145,8 +145,8 @@ func (u *Updater) inlineUpdate(deltaTime float64) {
 func (u *Updater) concurrentUpdate(deltaTime float64) {
 	work := make([]func(int), 0, len(u.updates))
 	wg := sync.WaitGroup{}
+	wg.Add(len(u.updates))
 	for _, v := range u.updates {
-		wg.Add(1)
 		work = append(work, func(int) {
 			v.update(deltaTime)
 			wg.Done()
