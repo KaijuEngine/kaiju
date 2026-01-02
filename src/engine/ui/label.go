@@ -204,7 +204,9 @@ func (label *Label) renderText() {
 	label.clearDrawings()
 	if ld.textLength > 0 {
 		maxWidth := label.MaxWidth()
-		label.entity.Transform.SetScale(matrix.Vec3One())
+		if label.entity.Parent != nil && !matrix.Approx(label.entity.Transform.Scale().X(), 0) {
+			label.layout.ScaleWidth(label.entity.Parent.Transform.WorldScale().X())
+		}
 		label.layout.ScaleHeight(label.Measure().Height())
 		pl := &FirstPanelOnEntity(label.entity.Parent).layout
 		xOffset := float32(0)

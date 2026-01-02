@@ -262,7 +262,7 @@ func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool
 	return outLetter
 }
 
-func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, renderer Renderer, meshCache *MeshCache) {
+func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, meshCache *MeshCache) {
 	defer tracing.NewRegion("FontCache.createLetterMesh").End()
 	mat := cache.textMaterial
 	oMat := cache.textOrthoMaterial
@@ -361,7 +361,7 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, adb assets.Da
 		planeBounds: [4]float32{0, 0, 0, 0}, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
 	bin.letters['\r'] = cReturn
 	for i := int32(0); i < count; i++ {
-		cache.createLetterMesh(bin, bin.letters[i].letter, bin.letters[i], renderer, cache.renderCaches.MeshCache())
+		cache.createLetterMesh(bin, bin.letters[i].letter, bin.letters[i], cache.renderCaches.MeshCache())
 	}
 	cache.fontFaces[face.string()] = bin
 	return true
@@ -485,6 +485,10 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				var clm *cachedLetterMesh = nil
 				if instanced {
 					clm = cache.cachedMeshLetter(fontFace, c, !is3D)
+					if clm == nil {
+						cache.createLetterMesh(fontFace, c, fontFace.letters[c], cache.renderCaches.MeshCache())
+						clm = cache.cachedMeshLetter(fontFace, c, !is3D)
+					}
 				}
 				var m *Mesh
 				model := matrix.Mat4Identity()
