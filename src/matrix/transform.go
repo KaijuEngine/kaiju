@@ -252,13 +252,13 @@ func (t *Transform) updateWorldMatrix() {
 }
 
 func (t *Transform) updateMatrices() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	if !t.isDirty {
 		return
 	}
-	t.mutex.Lock()
 	t.updateMatrix()
 	t.updateWorldMatrix()
-	t.mutex.Unlock()
 	t.isDirty = false
 }
 
