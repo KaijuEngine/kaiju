@@ -472,7 +472,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				for _, opt := range opts {
 					sel.AddOption(opt.Name, opt.Value)
 				}
-				sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
+				if len(optionsSelect) > 0 {
+					sel.PickOptionByLabelWithoutEvent(g.FieldString(i))
+				} else {
+					sel.PickOptionByLabelWithoutEvent(g.FieldNumberAsString(i))
+				}
 			}
 		} else if g.Fields[i].IsContentId() {
 			contentIdInput.UI.Show()
