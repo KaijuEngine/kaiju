@@ -62,15 +62,16 @@ type SkinAnimationEntityData struct {
 }
 
 type MeshSkinningAnimation struct {
-	frame     int
-	animIdx   int
-	anims     []kaiju_mesh.KaijuMeshAnimation
-	joints    []kaiju_mesh.KaijuMeshJoint
-	updateId  engine.UpdateId
-	entity    weak.Pointer[engine.Entity]
-	skin      weak.Pointer[rendering.SkinnedShaderDataHeader]
-	current   framework.SkinAnimation
-	isPlaying bool
+	frame          int
+	animIdx        int
+	anims          []kaiju_mesh.KaijuMeshAnimation
+	joints         []kaiju_mesh.KaijuMeshJoint
+	updateId       engine.UpdateId
+	entity         weak.Pointer[engine.Entity]
+	skin           weak.Pointer[rendering.SkinnedShaderDataHeader]
+	shaderDataBase weak.Pointer[rendering.ShaderDataBase]
+	current        framework.SkinAnimation
+	isPlaying      bool
 }
 
 func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
@@ -79,10 +80,13 @@ func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 		slog.Error("failed to deserialize kaiju mesh", "id", c.MeshId, "error", err)
 		return
 	}
+	sd := e.ShaderData()
 	anim := &MeshSkinningAnimation{
-		anims:  km.Animations,
-		joints: km.Joints,
-		entity: weak.Make(e),
+		anims:          km.Animations,
+		joints:         km.Joints,
+		entity:         weak.Make(e),
+		skin:           weak.Make(sd.SkinningHeader()),
+		shaderDataBase: weak.Make(sd.Base()),
 	}
 	anim.SetAnimation(anim.anims[0].Name)
 	wh := weak.Make(host)
@@ -150,8 +154,9 @@ func (a *MeshSkinningAnimation) update(deltaTime float64) {
 	if !a.isPlaying {
 		return
 	}
+	sd := a.shaderDataBase.Value()
 	skin := a.skin.Value()
-	if skin == nil {
+	if skin == nil || (sd != nil && !sd.IsInView()) {
 		return
 	}
 	a.current.Update(deltaTime)

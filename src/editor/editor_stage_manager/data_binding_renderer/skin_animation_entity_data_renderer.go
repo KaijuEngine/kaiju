@@ -189,7 +189,7 @@ func (c *SkinAnimationEntityDataRenderer) update(deltaTime float64) {
 			return
 		}
 		skin := v.skin.Value()
-		if skin == nil || !v.anim.IsValid() {
+		if skin == nil || !v.anim.IsValid() || !k.StageData.ShaderData.IsInView() {
 			return
 		}
 		v.anim.Update(deltaTime)
