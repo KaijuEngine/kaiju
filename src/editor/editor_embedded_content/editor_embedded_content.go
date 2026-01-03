@@ -132,6 +132,9 @@ func (e EditorContent) ReadText(key string) (string, error) {
 
 func (e EditorContent) Exists(key string) bool {
 	defer tracing.NewRegion("EditorContent.Exists: " + key).End()
+	if strings.TrimSpace(key) == "" {
+		return false
+	}
 	if key[0] == absoluteFilePrefix {
 		return filesystem.FileExists(key[1:])
 	}

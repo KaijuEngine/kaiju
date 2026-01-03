@@ -132,6 +132,9 @@ func (c *SkinAnimationEntityDataRenderer) bindSkin(host *engine.Host, target *ed
 	meshId := string(data.FieldValueByName("MeshId").(content_id.Mesh))
 	g := c.Skins[target]
 	if len(g.animations) == 0 {
+		if !host.AssetDatabase().Exists(meshId) {
+			return
+		}
 		meshData, err := host.AssetDatabase().Read(meshId)
 		if err != nil {
 			return
