@@ -40,6 +40,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"slices"
+	"strings"
+	"unsafe"
+
 	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -47,10 +52,6 @@ import (
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/gltf"
 	"kaiju/rendering/loaders/load_result"
-	"path/filepath"
-	"slices"
-	"strings"
-	"unsafe"
 )
 
 type fullGLTF struct {
@@ -77,8 +78,8 @@ func readFileGLB(file string, assetDB assets.Database) (fullGLTF, error) {
 		return g, errors.New("invalid glb file")
 	}
 	magic := data[:4]
-	//version := binary.LittleEndian.Uint32(data[4:8])
-	//length := binary.LittleEndian.Uint32(data[8:12])
+	// version := binary.LittleEndian.Uint32(data[4:8])
+	// length := binary.LittleEndian.Uint32(data[8:12])
 	if string(magic) != "glTF" {
 		return g, errors.New("invalid glb file")
 	}
@@ -194,7 +195,6 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			bin = bin[16:]
 		}
 	}
-	meshDatas := map[int32]rawMeshData{}
 	for i := range doc.glTF.Nodes {
 		n := &doc.glTF.Nodes[i]
 		res.Nodes[i].Id = int32(i)
@@ -224,21 +224,23 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 			continue
 		}
 		m := &doc.glTF.Meshes[*n.Mesh]
-		rmd, ok := meshDatas[*n.Mesh]
-		if !ok {
-			if verts, err := gltfReadMeshVerts(m, doc); err != nil {
+		for p := range m.Primitives {
+			rmd := new(rawMeshData)
+			if verts, err := gltfReadMeshVerts(m, doc, p); err != nil {
 				return res, err
-			} else if indices, err := gltfReadMeshIndices(m, doc); err != nil {
+			} else if indices, err := gltfReadMeshIndices(m, doc, p); err != nil {
 				return res, err
 			} else {
 				rmd.verts = verts
 				rmd.indices = indices
 			}
-			meshDatas[*n.Mesh] = rmd
+			textures := gltfReadMeshTextures(m, &doc.glTF, p)
+			key := fmt.Sprintf("%s/%s", doc.path, m.Name)
+			if p > 0 {
+				key += fmt.Sprintf("_%d", p+1)
+			}
+			res.Add(n.Name, key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
 		}
-		textures := gltfReadMeshTextures(m, &doc.glTF)
-		key := fmt.Sprintf("%s/%s", doc.path, m.Name)
-		res.Add(n.Name, key, rmd.verts, rmd.indices, textures, &res.Nodes[i])
 	}
 	res.Animations = gltfReadAnimations(doc)
 	for i := range doc.glTF.Animations {
@@ -255,9 +257,9 @@ func gltfParse(doc *fullGLTF) (load_result.Result, error) {
 	return res, nil
 }
 
-func gltfAttr(primitive []gltf.Primitive, cmp string) (uint32, bool) {
+func gltfAttr(primitive gltf.Primitive, cmp string) (uint32, bool) {
 	defer tracing.NewRegion("loaders.gltfAttr").End()
-	idx, ok := primitive[0].Attributes[cmp]
+	idx, ok := primitive.Attributes[cmp]
 	return idx, ok
 }
 
@@ -300,36 +302,36 @@ func gltfReadMeshMorphTargets(mesh *gltf.Mesh, doc *fullGLTF, verts []rendering.
 	return errs
 }
 
-func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, error) {
+func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int) ([]rendering.Vertex, error) {
 	defer tracing.NewRegion("loaders.gltfReadMeshVerts").End()
 	var pos, nml, tan, tex0, tex1, jnt0, wei0 *gltf.BufferView
 	var posAcc, nmlAcc, tanAcc, tex0Acc, tex1Acc, jnt0Acc, wei0Acc *gltf.Accessor
 	g := &doc.glTF
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.POSITION); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.POSITION); ok {
 		pos = &g.BufferViews[idx]
 		posAcc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.NORMAL); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.NORMAL); ok {
 		nml = &g.BufferViews[idx]
 		nmlAcc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.TANGENT); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.TANGENT); ok {
 		tan = &g.BufferViews[idx]
 		tanAcc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.TEXCOORD_0); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.TEXCOORD_0); ok {
 		tex0 = &g.BufferViews[idx]
 		tex0Acc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.TEXCOORD_1); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.TEXCOORD_1); ok {
 		tex1 = &g.BufferViews[idx]
 		tex1Acc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.JOINTS_0); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.JOINTS_0); ok {
 		jnt0 = &g.BufferViews[idx]
 		jnt0Acc = &g.Accessors[idx]
 	}
-	if idx, ok := gltfAttr(mesh.Primitives, gltf.WEIGHTS_0); ok {
+	if idx, ok := gltfAttr(mesh.Primitives[primitive], gltf.WEIGHTS_0); ok {
 		wei0 = &g.BufferViews[idx]
 		wei0Acc = &g.Accessors[idx]
 	}
@@ -349,7 +351,7 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 	} else {
 		tangent = nil
 	}
-	//const uint8_t* vertColors = col0 != NULL
+	// const uint8_t* vertColors = col0 != NULL
 	//	? (uint8_t*)gltfData.bin + col0.data.buffer_view.offset : NULL;
 	jointIds := make([]byte, 0)
 	weights := make([]float32, 0)
@@ -358,11 +360,11 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 		weights = klib.ByteSliceToFloat32Slice(gltfViewBytes(doc, wei0))
 	}
 
-	//size_t vertNormalsSize = nml.data.buffer_view.size;
-	//size_t texCoords0Size = tex0.data.buffer_view.size;
-	//size_t texCoords1Size = tex1 == NULL ? 0 : tex1.data.buffer_view.size;
-	//size_t vertTangentSize = tan == NULL ? 0 : tan.data.buffer_view.size;
-	//size_t vertColorsSize = col0 == NULL ? 0 : col0.data.buffer_view.size;
+	// size_t vertNormalsSize = nml.data.buffer_view.size;
+	// size_t texCoords0Size = tex0.data.buffer_view.size;
+	// size_t texCoords1Size = tex1 == NULL ? 0 : tex1.data.buffer_view.size;
+	// size_t vertTangentSize = tan == NULL ? 0 : tan.data.buffer_view.size;
+	// size_t vertColorsSize = col0 == NULL ? 0 : col0.data.buffer_view.size;
 	vertCount := posAcc.Count
 	if !(vertCount > 0) {
 		return []rendering.Vertex{}, errors.New("vertCount <= 0")
@@ -399,7 +401,7 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 		vertData[i].Color = vertColor
 		vertData[i].MorphTarget = vertData[i].Position
 		// NAN is being exported for colors, so skipping this line
-		//vertData[j].color = (vertColors != NULL ? ((color*)vertColors)[j] : color_white());
+		// vertData[j].color = (vertColors != NULL ? ((color*)vertColors)[j] : color_white());
 		vertData[i].Color.MultiplyAssign(vertColor)
 		joint := [4]int32{0, 0, 0, 0}
 		const jointSize = uint64(unsafe.Sizeof(joint))
@@ -455,9 +457,9 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF) ([]rendering.Vertex, erro
 	return vertData, errs.First()
 }
 
-func gltfReadMeshIndices(mesh *gltf.Mesh, doc *fullGLTF) ([]uint32, error) {
+func gltfReadMeshIndices(mesh *gltf.Mesh, doc *fullGLTF, primitive int) ([]uint32, error) {
 	defer tracing.NewRegion("loaders.gltfReadMeshIndices").End()
-	idx := mesh.Primitives[0].Indices
+	idx := mesh.Primitives[primitive].Indices
 	view := doc.glTF.BufferViews[idx]
 	acc := doc.glTF.Accessors[idx]
 	indices := doc.bins[view.Buffer][view.ByteOffset:]
@@ -499,16 +501,16 @@ func gltfReadMeshIndices(mesh *gltf.Mesh, doc *fullGLTF) ([]uint32, error) {
 	return convertedIndices, nil
 }
 
-func gltfReadMeshTextures(mesh *gltf.Mesh, doc *gltf.GLTF) map[string]string {
+func gltfReadMeshTextures(mesh *gltf.Mesh, doc *gltf.GLTF, primitive int) map[string]string {
 	defer tracing.NewRegion("loaders.gltfReadMeshTextures").End()
 	textures := make(map[string]string)
-	if len(doc.Materials) == 0 || mesh.Primitives[0].Material == nil {
+	if len(doc.Materials) == 0 || mesh.Primitives[primitive].Material == nil {
 		return textures
 	}
 	uri := func(path string) string {
 		return filepath.ToSlash(filepath.Join(filepath.Dir(doc.Asset.FilePath), path))
 	}
-	mat := doc.Materials[*mesh.Primitives[0].Material]
+	mat := doc.Materials[*mesh.Primitives[primitive].Material]
 	if mat.PBRMetallicRoughness.BaseColorTexture != nil {
 		textures["baseColor"] = uri(doc.Images[mat.PBRMetallicRoughness.BaseColorTexture.Index].URI)
 	}
