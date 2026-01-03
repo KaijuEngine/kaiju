@@ -107,5 +107,5 @@ func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(name string) bool {
 }
 
 func (h *SkinnedShaderDataHeader) isSkinNamedData(name string) bool {
-	return name == "SkinnedUBO"
+	return name == "SkinnedSSBO"
 }

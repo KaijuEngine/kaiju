@@ -47,7 +47,6 @@ func init() {
 		return &ShaderDataStandardSkinned{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
-			SkinIndex:      0,
 		}
 	}, fallback+"_skinned")
 }
@@ -56,9 +55,8 @@ type ShaderDataStandardSkinned struct {
 	rendering.SkinnedShaderDataHeader `visible:"false"`
 	rendering.ShaderDataBase          `visible:"false"`
 
-	Color     matrix.Color
-	SkinIndex int32                   `visible:"false"`
-	Flags     StandardShaderDataFlags `visible:"false"`
+	Color matrix.Color
+	Flags StandardShaderDataFlags `visible:"false"`
 }
 
 func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
@@ -80,11 +78,7 @@ func (t *ShaderDataStandardSkinned) NamedDataPointer(name string) unsafe.Pointer
 }
 
 func (t *ShaderDataStandardSkinned) UpdateNamedData(index, _ int, name string) bool {
-	if t.SkinUpdateNamedData(name) {
-		t.SkinIndex = int32(index)
-		return true
-	}
-	return false
+	return t.SkinUpdateNamedData(name)
 }
 
 func (s *ShaderDataStandardSkinned) TestFlag(flag StandardShaderDataFlags) bool {

@@ -61,7 +61,6 @@ type ShaderDataPbrSkinned struct {
 	Roughness  float32
 	Emissive   float32
 	LightIds   [4]int32                `visible:"false"`
-	SkinIndex  int32                   `visible:"false"`
 	Flags      StandardShaderDataFlags `visible:"false"`
 }
 
@@ -83,11 +82,7 @@ func (t *ShaderDataPbrSkinned) NamedDataPointer(name string) unsafe.Pointer {
 }
 
 func (t *ShaderDataPbrSkinned) UpdateNamedData(index, _ int, name string) bool {
-	if t.SkinUpdateNamedData(name) {
-		t.SkinIndex = int32(index)
-		return true
-	}
-	return false
+	return t.SkinUpdateNamedData(name)
 }
 
 func (s *ShaderDataPbrSkinned) TestFlag(flag StandardShaderDataFlags) bool {
