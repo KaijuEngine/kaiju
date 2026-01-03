@@ -16,7 +16,7 @@
 {"Location":6,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"vec4","Name":"JointWeights","Source":"in","Fields":null},
 {"Location":7,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"vec3","Name":"MorphTarget","Source":"in","Fields":null},
 {"Location":8,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"mat4","Name":"model","Source":"in","Fields":null},
-{"Location":-1,"Binding":2,"Set":0,"InputAttachment":-1,"Type":"SkinnedUBO","Name":"","Source":"buffer","Fields":[{"Type":"mat4","Name":"jointTransforms[50][50]"}]}
+{"Location":-1,"Binding":2,"Set":0,"InputAttachment":-1,"Type":"SkinnedUBO","Name":"","Source":"buffer","Fields":[{"Type":"mat4","Name":"jointTransforms[][50]"}]}
 {"Location":12,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"vec4","Name":"vertColors","Source":"in","Fields":null},
 {"Location":13,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"float","Name":"metallic","Source":"in","Fields":null},
 {"Location":14,"Binding":-1,"Count":1,"Set":-1,"InputAttachment":-1,"Type":"float","Name":"roughness","Source":"in","Fields":null},

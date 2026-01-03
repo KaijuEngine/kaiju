@@ -3,11 +3,10 @@
 #include "inc_vertex.inl"
 
 #define MAX_JOINTS			50
-#define MAX_SKIN_INSTANCES	50
 
 #ifdef SKINNING
 layout(set = 0, binding = 2) readonly buffer SkinnedSSBO {
-	mat4 jointTransforms[MAX_SKIN_INSTANCES][MAX_JOINTS];
+	mat4 jointTransforms[][MAX_JOINTS];
 };
 #endif
 

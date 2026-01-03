@@ -399,20 +399,30 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 		}
 		group.rawData.byteMapping[i] = nil
 	}
-	if group.instanceBuffer.buffers[0] != vk.Buffer(vk.NullHandle) {
+	for k := range group.namedBuffers {
+		nid := group.namedInstanceData[k]
+		for i := range maxFramesInFlight {
+			if group.namedBuffers[k].memories[i] != vk.NullDeviceMemory {
+				vk.UnmapMemory(vr.device, group.namedBuffers[k].memories[i])
+			}
+			nid.byteMapping[i] = nil
+		}
+		group.namedInstanceData[k] = nid
+	}
+	if group.instanceBuffer.buffers[0] != vk.NullBuffer {
 		pd := bufferTrash{delay: maxFramesInFlight}
 		for i := 0; i < maxFramesInFlight; i++ {
 			pd.buffers[i] = group.instanceBuffer.buffers[i]
 			pd.memories[i] = group.instanceBuffer.memories[i]
-			group.instanceBuffer.buffers[i] = vk.Buffer(vk.NullHandle)
-			group.instanceBuffer.memories[i] = vk.DeviceMemory(vk.NullHandle)
-			for k := range group.namedBuffers {
-				nb := group.namedBuffers[k]
+			group.instanceBuffer.buffers[i] = vk.NullBuffer
+			group.instanceBuffer.memories[i] = vk.NullDeviceMemory
+			for j := range group.namedBuffers {
+				nb := group.namedBuffers[j]
 				pd.namedBuffers[i] = append(pd.namedBuffers[i], nb.buffers[i])
 				pd.namedMemories[i] = append(pd.namedMemories[i], nb.memories[i])
-				nb.buffers[i] = vk.Buffer(vk.NullHandle)
-				nb.memories[i] = vk.DeviceMemory(vk.NullHandle)
-				group.namedBuffers[k] = nb
+				nb.buffers[i] = vk.NullBuffer
+				nb.memories[i] = vk.NullDeviceMemory
+				group.namedBuffers[j] = nb
 			}
 		}
 		vr.bufferTrash.Add(pd)
@@ -436,14 +446,14 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 					buff := group.namedBuffers[n]
 					count := min(currentCount, b.Capacity())
 					nid := group.namedInstanceData[n]
-					buff.size = vr.padBufferSize(vk.DeviceSize(nid.length))
+					buff.size = vr.padBufferSize(vk.DeviceSize(nid.length * count))
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
-						vr.CreateBuffer(buff.size*vk.DeviceSize(count),
+						vr.CreateBuffer(buff.size,
 							vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageStorageBufferBit),
 							vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
 						var data unsafe.Pointer
-						r := vk.MapMemory(vr.device, buff.memories[j], 0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)
+						r := vk.MapMemory(vr.device, buff.memories[j], 0, buff.size, 0, &data)
 						if r != vulkan_const.Success {
 							slog.Error("Failed to map named instance memory", "name", n, "code", int(r))
 							return

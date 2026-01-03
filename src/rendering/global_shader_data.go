@@ -63,7 +63,3 @@ type GlobalShaderData struct {
 	VertLights       [MaxLocalLights]GPULight
 	LightInfos       [MaxLocalLights]GPULightInfo
 }
-
-type SkinnedShaderData struct {
-	jointTransforms [MaxJoints]matrix.Mat4
-}

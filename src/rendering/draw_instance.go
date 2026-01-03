@@ -291,14 +291,16 @@ func (d *DrawInstanceGroup) VisibleSize() int {
 }
 
 func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, name string, frame int) {
-	if !instance.UpdateNamedData(index, d.namedBuffers[name].capacity, name) {
+	nb := d.namedBuffers[name]
+	if !instance.UpdateNamedData(index, nb.capacity, name) {
 		return
 	}
 	if ptr := instance.NamedDataPointer(name); ptr != nil {
-		offset := uintptr(d.namedBuffers[name].stride * index)
-		base := d.namedInstanceData[name].byteMapping[frame]
+		data := d.namedInstanceData[name]
+		offset := uintptr((nb.stride) * index)
+		base := data.byteMapping[frame]
 		to := unsafe.Pointer(uintptr(base) + offset)
-		klib.Memcpy(to, ptr, uint64(d.namedInstanceData[name].length))
+		klib.Memcpy(to, ptr, uint64(nb.stride))
 	}
 }
 
