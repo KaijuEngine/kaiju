@@ -37,6 +37,7 @@
 package rendering
 
 import (
+	"kaiju/klib"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 )
@@ -65,7 +66,7 @@ type InstanceDriverData struct {
 	descriptorSets    [maxFramesInFlight]vk.DescriptorSet
 	instanceBuffer    ShaderBuffer
 	imageInfos        []vk.DescriptorImageInfo
-	namedBuffers      map[string]ShaderBuffer
+	boundBuffers      []ShaderBuffer
 	lastInstanceCount int
 	generatedSets     bool
 }
@@ -110,12 +111,16 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, materi
 		d.imageInfos = make([]vk.DescriptorImageInfo, len(d.MaterialInstance.Textures))
 		d.generatedSets = true
 		d.instanceBuffer.bindingId = 1
-		d.namedBuffers = make(map[string]ShaderBuffer)
+		d.boundBuffers = make([]ShaderBuffer, 0)
 		for i := range material.shaderInfo.LayoutGroups {
 			g := &material.shaderInfo.LayoutGroups[i]
 			for j := range g.Layouts {
 				if g.Layouts[j].IsBuffer() {
-					d.namedBuffers[g.Layouts[j].FullName()] = ShaderBuffer{
+					if len(d.boundBuffers) <= g.Layouts[j].Binding {
+						grow := (g.Layouts[j].Binding + 1) - len(d.boundBuffers)
+						d.boundBuffers = klib.SliceSetLen(d.boundBuffers, grow)
+					}
+					d.boundBuffers[g.Layouts[j].Binding] = ShaderBuffer{
 						bindingId: g.Layouts[j].Binding,
 						stride:    g.Layouts[j].Stride(),
 						capacity:  g.Layouts[j].Capacity(),

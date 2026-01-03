@@ -49,6 +49,11 @@ import (
 	"kaiju/rendering/vulkan_const"
 )
 
+type boundBufferInfo struct {
+	info        vk.DescriptorBufferInfo
+	boundBuffer *ShaderBuffer
+}
+
 func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.DeviceSize) bool {
 	defer tracing.NewRegion("Vulkan.mapAndCopy").End()
 	var data unsafe.Pointer
@@ -68,6 +73,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
+	boundBufferInfos := make([]boundBufferInfo, 0)
 	addWrite := func(write vk.WriteDescriptorSet) {
 		p.Pin(write.PImageInfo)
 		p.Pin(write.PBufferInfo)
@@ -89,10 +95,15 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 			bufferInfo(vr.globalUniformBuffers[vr.currentFrame],
 				vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))),
 		}
-		namedInfos := map[string]vk.DescriptorBufferInfo{}
-		for k := range group.namedBuffers {
-			namedInfos[k] = bufferInfo(group.namedBuffers[k].buffers[vr.currentFrame],
-				group.namedBuffers[k].size)
+		boundBufferInfos := boundBufferInfos[:0]
+		for k := range group.boundBuffers {
+			if group.boundBuffers[k].size > 0 {
+				boundBufferInfos = append(boundBufferInfos, boundBufferInfo{
+					info: bufferInfo(group.boundBuffers[k].buffers[vr.currentFrame],
+						group.boundBuffers[k].size),
+					boundBuffer: &group.boundBuffers[k],
+				})
+			}
 		}
 		addWrite(prepareSetWriteBuffer(set, globalInfo[:],
 			0, vulkan_const.DescriptorTypeUniformBuffer))
@@ -125,10 +136,10 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				addWrite(prepareSetWriteImage(set, imageInfos[:], 2, false))
 				addWrite(prepareSetWriteImage(set, imageInfosCube[:], 3, false))
 			}
-			for k := range group.namedBuffers {
+			for k := range boundBufferInfos {
 				addWrite(prepareSetWriteBuffer(set,
-					[]vk.DescriptorBufferInfo{namedInfos[k]},
-					uint32(group.namedBuffers[k].bindingId),
+					[]vk.DescriptorBufferInfo{boundBufferInfos[k].info},
+					uint32(boundBufferInfos[k].boundBuffer.bindingId),
 					vulkan_const.DescriptorTypeStorageBuffer))
 			}
 		}
@@ -160,10 +171,12 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 		instanceBuffers[0] = group.instanceBuffer.buffers[vr.currentFrame]
 		vk.CmdBindVertexBuffers(cmd, uint32(group.instanceBuffer.bindingId),
 			uint32(len(instanceBuffers)), &instanceBuffers[0], &ibOffsets[0])
-		for k := range group.namedBuffers {
-			namedBuffers[0] = group.namedBuffers[k].buffers[vr.currentFrame]
-			vk.CmdBindVertexBuffers(cmd, uint32(group.namedBuffers[k].bindingId),
-				uint32(len(namedBuffers)), &namedBuffers[0], &ibOffsets[0])
+		for k := range group.boundBuffers {
+			if group.boundBuffers[k].size > 0 {
+				namedBuffers[0] = group.boundBuffers[k].buffers[vr.currentFrame]
+				vk.CmdBindVertexBuffers(cmd, uint32(group.boundBuffers[k].bindingId),
+					uint32(len(namedBuffers)), &namedBuffers[0], &ibOffsets[0])
+			}
 		}
 		vk.CmdBindIndexBuffer(cmd, meshId.indexBuffer, 0, vulkan_const.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd, meshId.indexCount,
@@ -399,15 +412,15 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 		}
 		group.rawData.byteMapping[i] = nil
 	}
-	for k := range group.namedBuffers {
-		nid := group.namedInstanceData[k]
+	for k := range group.boundBuffers {
+		nid := group.boundInstanceData[k]
 		for i := range maxFramesInFlight {
-			if group.namedBuffers[k].memories[i] != vk.NullDeviceMemory {
-				vk.UnmapMemory(vr.device, group.namedBuffers[k].memories[i])
+			if group.boundBuffers[k].memories[i] != vk.NullDeviceMemory {
+				vk.UnmapMemory(vr.device, group.boundBuffers[k].memories[i])
 			}
 			nid.byteMapping[i] = nil
 		}
-		group.namedInstanceData[k] = nid
+		group.boundInstanceData[k] = nid
 	}
 	if group.instanceBuffer.buffers[0] != vk.NullBuffer {
 		pd := bufferTrash{delay: maxFramesInFlight}
@@ -416,13 +429,13 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 			pd.memories[i] = group.instanceBuffer.memories[i]
 			group.instanceBuffer.buffers[i] = vk.NullBuffer
 			group.instanceBuffer.memories[i] = vk.NullDeviceMemory
-			for j := range group.namedBuffers {
-				nb := group.namedBuffers[j]
+			for j := range group.boundBuffers {
+				nb := group.boundBuffers[j]
 				pd.namedBuffers[i] = append(pd.namedBuffers[i], nb.buffers[i])
 				pd.namedMemories[i] = append(pd.namedMemories[i], nb.memories[i])
 				nb.buffers[i] = vk.NullBuffer
 				nb.memories[i] = vk.NullDeviceMemory
-				group.namedBuffers[j] = nb
+				group.boundBuffers[j] = nb
 			}
 		}
 		vr.bufferTrash.Add(pd)
@@ -442,10 +455,9 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 			for j := range g.Layouts {
 				if g.Layouts[j].IsBuffer() {
 					b := &g.Layouts[j]
-					n := b.FullName()
-					buff := group.namedBuffers[n]
+					buff := group.boundBuffers[b.Binding]
 					count := min(currentCount, b.Capacity())
-					nid := group.namedInstanceData[n]
+					nid := group.boundInstanceData[b.Binding]
 					buff.size = vr.padBufferSize(vk.DeviceSize(nid.length * count))
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
@@ -455,7 +467,7 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 						var data unsafe.Pointer
 						r := vk.MapMemory(vr.device, buff.memories[j], 0, buff.size, 0, &data)
 						if r != vulkan_const.Success {
-							slog.Error("Failed to map named instance memory", "name", n, "code", int(r))
+							slog.Error("Failed to map named instance memory", "binding", b.Binding, "code", int(r))
 							return
 						} else if data == nil {
 							slog.Error("MapMemory for named instance memory was a success, but data is nil")
@@ -464,8 +476,8 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 							nid.byteMapping[j] = data
 						}
 					}
-					group.namedInstanceData[n] = nid
-					group.namedBuffers[n] = buff
+					group.boundInstanceData[b.Binding] = nid
+					group.boundBuffers[b.Binding] = buff
 				}
 			}
 		}

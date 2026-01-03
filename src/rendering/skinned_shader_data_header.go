@@ -81,31 +81,18 @@ func (h *SkinnedShaderDataHeader) FindBone(id int32) *BoneTransform {
 	return nil
 }
 
-func (h *SkinnedShaderDataHeader) SkinNamedDataInstanceSize(name string) int {
-	if !h.isSkinNamedData(name) {
-		return 0
-	}
+func (h *SkinnedShaderDataHeader) SkinNamedDataInstanceSize() int {
 	return int(unsafe.Sizeof(h.jointTransforms))
 }
 
-func (h *SkinnedShaderDataHeader) SkinNamedDataPointer(name string) unsafe.Pointer {
-	if !h.isSkinNamedData(name) {
-		return nil
-	}
+func (h *SkinnedShaderDataHeader) SkinNamedDataPointer() unsafe.Pointer {
 	return unsafe.Pointer(&h.jointTransforms)
 }
 
-func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(name string) bool {
-	if !h.isSkinNamedData(name) {
-		return false
-	}
+func (h *SkinnedShaderDataHeader) SkinUpdateNamedData() bool {
 	for i := range h.bones {
 		b := &h.bones[i]
 		h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 	}
 	return true
-}
-
-func (h *SkinnedShaderDataHeader) isSkinNamedData(name string) bool {
-	return name == "SkinnedSSBO"
 }
