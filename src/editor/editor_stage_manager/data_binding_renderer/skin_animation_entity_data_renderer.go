@@ -193,11 +193,11 @@ func (c *SkinAnimationEntityDataRenderer) update(deltaTime float64) {
 	defer tracing.NewRegion("SkinAnimationEntityDataRenderer.update").End()
 	for k, v := range c.Skins {
 		if !k.IsActive() || len(v.animations) == 0 {
-			return
+			continue
 		}
 		skin := v.skin.Value()
 		if skin == nil || !v.anim.IsValid() || !k.StageData.ShaderData.IsInView() {
-			return
+			continue
 		}
 		v.anim.Update(deltaTime)
 		frame := v.anim.CurrentFrame()
