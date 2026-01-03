@@ -82,9 +82,9 @@ func (t *ShaderDataPbrSkinned) NamedDataPointer(name string) unsafe.Pointer {
 	return t.SkinNamedDataPointer(name)
 }
 
-func (t *ShaderDataPbrSkinned) UpdateNamedData(index, capacity int, name string) bool {
-	if s, ok := t.SkinUpdateNamedData(index, capacity, name); ok {
-		t.SkinIndex = s
+func (t *ShaderDataPbrSkinned) UpdateNamedData(index, _ int, name string) bool {
+	if t.SkinUpdateNamedData(name) {
+		t.SkinIndex = int32(index)
 		return true
 	}
 	return false

@@ -95,19 +95,15 @@ func (h *SkinnedShaderDataHeader) SkinNamedDataPointer(name string) unsafe.Point
 	return unsafe.Pointer(&h.jointTransforms)
 }
 
-func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(index, capacity int, name string) (int32, bool) {
+func (h *SkinnedShaderDataHeader) SkinUpdateNamedData(name string) bool {
 	if !h.isSkinNamedData(name) {
-		return 0, false
-	}
-	cap := capacity / MaxJoints / int(unsafe.Sizeof(matrix.Mat4{}))
-	if index > cap {
-		return int32(index % cap), false
+		return false
 	}
 	for i := range h.bones {
 		b := &h.bones[i]
 		h.jointTransforms[i] = matrix.Mat4Multiply(b.Skin, b.Transform.WorldMatrix())
 	}
-	return int32(index), true
+	return true
 }
 
 func (h *SkinnedShaderDataHeader) isSkinNamedData(name string) bool {
