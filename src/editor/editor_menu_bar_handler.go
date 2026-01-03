@@ -115,19 +115,23 @@ func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 			return
 		}
 		wg := sync.WaitGroup{}
-		wg.Add(1)
+		wg.Add(2)
 		// goroutine
 		go func() {
 			ed.project.CompileGame(buildMode)
 			wg.Done()
 		}()
-		// Archiving isn't required for debug builds as they don't use the
-		// packaged content archive
 		if buildMode != project.GameBuildModeDebug {
-			wg.Add(1)
 			// goroutine
 			go func() {
-				ed.project.Package(ed.host.AssetDatabase())
+				// Archiving isn't required for debug builds as they don't use
+				// the packaged content archive, but we still need to write any
+				// generated files like the starting stage id
+				if buildMode == project.GameBuildModeDebug {
+					ed.project.PackageDebug()
+				} else {
+					ed.project.Package(ed.host.AssetDatabase())
+				}
 				wg.Done()
 			}()
 		}

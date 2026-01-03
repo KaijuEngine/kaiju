@@ -282,6 +282,19 @@ func (p *Project) packagePath() string {
 	return filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
 }
 
+func (p *Project) PackageDebug() {
+	files := []content_archive.SourceContent{
+		{
+			Key:     stages.EntryPointAssetKey,
+			RawData: []byte(p.settings.EntryPointStage),
+		},
+	}
+	for i := range files {
+		path := filepath.Join(project_file_system.DebugFolder, files[i].Key)
+		p.fileSystem.WriteFile(path, files[i].RawData, os.ModePerm)
+	}
+}
+
 func (p *Project) Package(reader content_archive.FileReader) error {
 	defer tracing.NewRegion("Project.Package").End()
 	outPath := p.packagePath()
