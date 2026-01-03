@@ -53,8 +53,9 @@ func init() {
 }
 
 type ShaderDataPbrSkinned struct {
-	rendering.SkinnedShaderDataHeader
-	rendering.ShaderDataBase
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
 	VertColors matrix.Color
 	Metallic   float32
 	Roughness  float32

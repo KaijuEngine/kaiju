@@ -376,7 +376,7 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 		t := v.Type()
 		for i := range t.NumField() {
 			f := t.Field(i)
-			if f.Name == "ShaderDataBase" {
+			if f.Tag.Get("visible") == "false" {
 				continue
 			}
 			desc.ShaderData = append(desc.ShaderData, stages.EntityDescriptionShaderDataField{

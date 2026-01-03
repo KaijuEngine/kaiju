@@ -53,8 +53,9 @@ func init() {
 }
 
 type ShaderDataStandardSkinned struct {
-	rendering.SkinnedShaderDataHeader
-	rendering.ShaderDataBase
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
 	Color     matrix.Color
 	SkinIndex int32                   `visible:"false"`
 	Flags     StandardShaderDataFlags `visible:"false"`
