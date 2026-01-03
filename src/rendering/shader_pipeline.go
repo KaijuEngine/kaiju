@@ -603,7 +603,7 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
 	for i := uint32(1); i < bDescCount; i++ {
-		bDesc[i].Stride = uint32(vr.padUniformBufferSize(vk.DeviceSize(bDesc[i].Stride)))
+		bDesc[i].Stride = uint32(vr.padBufferSize(vk.DeviceSize(bDesc[i].Stride)))
 	}
 	aDesc := vertexGetAttributeDescription(shader)
 	vertexInputInfo := vk.PipelineVertexInputStateCreateInfo{

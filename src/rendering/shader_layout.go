@@ -87,7 +87,7 @@ type ShaderLayout struct {
 	InputAttachment int    // -1 if not set
 	Type            string // float, vec3, mat4, etc.
 	Name            string
-	Source          string // in, out, uniform
+	Source          string // in, out, uniform, buffer
 	Fields          []ShaderLayoutStructField
 }
 
@@ -167,8 +167,13 @@ func (l *ShaderLayout) DescriptorType() vulkan_const.DescriptorType {
 	if l.Type == "StorageBuffer" {
 		return vulkan_const.DescriptorTypeStorageBuffer
 	}
-	if l.Binding >= 0 && l.Set >= 0 && l.Source == "uniform" {
-		return vulkan_const.DescriptorTypeUniformBuffer
+	if l.Binding >= 0 && l.Set >= 0 {
+		switch l.Source {
+		case "uniform":
+			return vulkan_const.DescriptorTypeUniformBuffer
+		case "buffer":
+			return vulkan_const.DescriptorTypeStorageBuffer
+		}
 	}
 	switch l.Type {
 	case "subpassInput":

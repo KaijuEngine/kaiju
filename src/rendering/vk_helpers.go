@@ -54,7 +54,7 @@ func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.
 	}
 }
 
-func (vr *Vulkan) padUniformBufferSize(size vk.DeviceSize) vk.DeviceSize {
+func (vr *Vulkan) padBufferSize(size vk.DeviceSize) vk.DeviceSize {
 	// Calculate required alignment based on minimum device offset alignment
 	minUboAlignment := vk.DeviceSize(vr.physicalDeviceProperties.Limits.MinUniformBufferOffsetAlignment)
 	alignedSize := size

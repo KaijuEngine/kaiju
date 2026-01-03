@@ -153,16 +153,28 @@ func (vr *Vulkan) createGlobalUniformBuffers() {
 
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
 	slog.Info("creating vulkan descriptor pool")
-	poolSizes := make([]vk.DescriptorPoolSize, 4)
-	poolSizes[0].Type = vulkan_const.DescriptorTypeUniformBuffer
-	poolSizes[0].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[1].Type = vulkan_const.DescriptorTypeCombinedImageSampler
-	poolSizes[1].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[2].Type = vulkan_const.DescriptorTypeCombinedImageSampler
-	poolSizes[2].DescriptorCount = counts * vr.swapImageCount
-	poolSizes[3].Type = vulkan_const.DescriptorTypeInputAttachment
-	poolSizes[3].DescriptorCount = counts * vr.swapImageCount
-
+	poolSizes := [...]vk.DescriptorPoolSize{
+		{
+			Type:            vulkan_const.DescriptorTypeUniformBuffer,
+			DescriptorCount: counts * vr.swapImageCount,
+		},
+		{
+			Type:            vulkan_const.DescriptorTypeStorageBuffer,
+			DescriptorCount: counts * vr.swapImageCount,
+		},
+		{
+			Type:            vulkan_const.DescriptorTypeCombinedImageSampler,
+			DescriptorCount: counts * vr.swapImageCount,
+		},
+		{
+			Type:            vulkan_const.DescriptorTypeCombinedImageSampler,
+			DescriptorCount: counts * vr.swapImageCount,
+		},
+		{
+			Type:            vulkan_const.DescriptorTypeInputAttachment,
+			DescriptorCount: counts * vr.swapImageCount,
+		},
+	}
 	poolInfo := vk.DescriptorPoolCreateInfo{}
 	poolInfo.SType = vulkan_const.StructureTypeDescriptorPoolCreateInfo
 	poolInfo.PoolSizeCount = uint32(len(poolSizes))

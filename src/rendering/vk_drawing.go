@@ -79,7 +79,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 		if !group.IsReady() {
 			continue
 		}
-		vr.resizeUniformBuffer(material, group)
+		vr.resizeBuffers(material, group)
 		group.UpdateData(vr, vr.currentFrame, lights)
 		if !group.AnyVisible() {
 			continue
@@ -129,7 +129,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				addWrite(prepareSetWriteBuffer(set,
 					[]vk.DescriptorBufferInfo{namedInfos[k]},
 					uint32(group.namedBuffers[k].bindingId),
-					vulkan_const.DescriptorTypeUniformBuffer))
+					vulkan_const.DescriptorTypeStorageBuffer))
 			}
 		}
 	}
@@ -385,7 +385,7 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	vr.cleanupCombined(cmd)
 }
 
-func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGroup) {
+func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 	defer tracing.NewRegion("Vulkan.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
 	lastCount := group.InstanceDriverData.lastInstanceCount
@@ -419,7 +419,7 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 	}
 	if currentCount > 0 {
 		group.generateInstanceDriverData(vr, material)
-		iSize := vr.padUniformBufferSize(vk.DeviceSize(material.Shader.DriverData.Stride))
+		iSize := vr.padBufferSize(vk.DeviceSize(material.Shader.DriverData.Stride))
 		group.instanceBuffer.size = iSize
 		for i := 0; i < maxFramesInFlight; i++ {
 			vr.CreateBuffer(iSize*vk.DeviceSize(currentCount),
@@ -436,11 +436,11 @@ func (vr *Vulkan) resizeUniformBuffer(material *Material, group *DrawInstanceGro
 					buff := group.namedBuffers[n]
 					count := min(currentCount, b.Capacity())
 					nid := group.namedInstanceData[n]
-					buff.size = vr.padUniformBufferSize(vk.DeviceSize(nid.length))
+					buff.size = vr.padBufferSize(vk.DeviceSize(nid.length))
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
 						vr.CreateBuffer(buff.size*vk.DeviceSize(count),
-							vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageUniformBufferBit),
+							vk.BufferUsageFlags(vulkan_const.BufferUsageVertexBufferBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageStorageBufferBit),
 							vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &buff.buffers[j], &buff.memories[j])
 						var data unsafe.Pointer
 						r := vk.MapMemory(vr.device, buff.memories[j], 0, vk.DeviceSize(vulkan_const.WholeSize), 0, &data)

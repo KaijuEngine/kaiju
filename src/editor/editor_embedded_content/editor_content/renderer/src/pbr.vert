@@ -6,7 +6,7 @@
 #define MAX_SKIN_INSTANCES	50
 
 #ifdef SKINNING
-layout(set = 0, binding = 2) readonly uniform SkinnedUBO {
+layout(set = 0, binding = 2) readonly buffer SkinnedSSBO {
 	mat4 jointTransforms[MAX_SKIN_INSTANCES][MAX_JOINTS];
 };
 #endif
