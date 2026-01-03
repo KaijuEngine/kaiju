@@ -151,7 +151,7 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 	case content_database.Mesh:
 		w.spawnMesh(cc, hit)
 	case content_database.Template:
-		w.stageView.Manager().SpawnTemplate(w.Host, w.ed.Project(), cc, hit)
+		w.spawnTemplate(cc, hit)
 	case content_database.Material:
 		if eHitOk {
 			w.attachMaterial(cc, e)
@@ -162,6 +162,25 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
 	}
+}
+
+func (w *StageWorkspace) spawnTemplate(cc *content_database.CachedContent, hit matrix.Vec3) {
+	man := w.stageView.Manager()
+	e, err := man.SpawnTemplate(w.Host, w.ed.Project(), cc, hit)
+	if err != nil {
+		slog.Error("failed to spawn the template", "error", err)
+		return
+	}
+	var attachData func(target *editor_stage_manager.StageEntity)
+	attachData = func(target *editor_stage_manager.StageEntity) {
+		for _, b := range target.DataBindings() {
+			data_binding_renderer.Attached(b, weak.Make(w.Host), man, target)
+		}
+		for i := range target.Children {
+			attachData(editor_stage_manager.EntityToStageEntity(target.Children[i]))
+		}
+	}
+	attachData(e)
 }
 
 func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedContent, point matrix.Vec3) {

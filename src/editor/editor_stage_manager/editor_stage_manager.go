@@ -575,20 +575,20 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 	return nil
 }
 
-func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) error {
+func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) (*StageEntity, error) {
 	defer tracing.NewRegion("StageManager.SpawnTemplate").End()
 	m.history.BeginTransaction()
 	defer m.history.CommitTransaction()
 	f, err := proj.FileSystem().Open(content_database.ToContentPath(cc.Path))
 	if err != nil {
 		slog.Error("failed to load the template file", "path", cc.Path, "error", err)
-		return err
+		return nil, err
 	}
 	defer f.Close()
 	var desc stages.EntityDescription
 	if err = json.NewDecoder(f).Decode(&desc); err != nil {
 		slog.Error("failed to decode the entity template file", "path", cc.Path, "error", err)
-		return err
+		return nil, err
 	}
 	desc.Position = point
 	desc.TemplateId = cc.Id()
@@ -600,14 +600,14 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 		}
 	}
 	generateId(&desc)
-	if e, err := m.importEntityByDescription(host, proj, nil, &desc); err != nil {
+	e, err := m.importEntityByDescription(host, proj, nil, &desc)
+	if err != nil {
 		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
-		return err
-	} else {
-		m.ClearSelection()
-		m.SelectEntity(e)
+		return nil, err
 	}
-	return nil
+	m.ClearSelection()
+	m.SelectEntity(e)
+	return e, nil
 }
 
 func (m *StageManager) importEntityByDescription(host *engine.Host, proj *project.Project, parent *StageEntity, desc *stages.EntityDescription) (*StageEntity, error) {
