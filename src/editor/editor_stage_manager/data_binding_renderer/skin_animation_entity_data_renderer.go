@@ -75,7 +75,7 @@ func init() {
 func (c *SkinAnimationEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("SkinAnimationEntityDataRenderer.Attached").End()
 	if !c.updateId.IsValid() {
-		host.Updater.AddUpdate(c.update)
+		c.updateId = host.Updater.AddUpdate(c.update)
 	}
 	skin := target.StageData.ShaderData.SkinningHeader()
 	g := &skinAnimationGizmo{
@@ -85,6 +85,10 @@ func (c *SkinAnimationEntityDataRenderer) Attached(host *engine.Host, manager *e
 	target.OnDestroy.Add(func() {
 		c.Detatched(host, manager, target, data)
 	})
+	if skin != nil {
+		c.bindSkin(host, target, data)
+		c.Update(host, target, data)
+	}
 }
 
 func (c *SkinAnimationEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
