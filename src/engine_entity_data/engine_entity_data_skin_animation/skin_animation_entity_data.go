@@ -88,7 +88,7 @@ func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 		skin:           weak.Make(sd.SkinningHeader()),
 		shaderDataBase: weak.Make(sd.Base()),
 	}
-	anim.SetAnimation(anim.anims[0].Name)
+	anim.SetAnimation(c.AnimName)
 	wh := weak.Make(host)
 	e.OnDestroy.Add(func() {
 		h := wh.Value()
@@ -108,6 +108,7 @@ func (a *MeshSkinningAnimation) SetAnimation(name string) {
 		}
 	}
 	a.current = framework.NewSkinAnimation(a.anims[a.animIdx])
+	a.isPlaying = true
 }
 
 func (a *MeshSkinningAnimation) setup(host *engine.Host) {
