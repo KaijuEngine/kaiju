@@ -5,6 +5,9 @@ on:
     - cron: "0 2 * * *" # 2:00 AM UTC
   workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   build-windows:
     name: Build Windows
