@@ -73,16 +73,16 @@ func (t ShaderDataPbrSkinned) Size() int {
 	return size
 }
 
-func (t *ShaderDataPbrSkinned) NamedDataInstanceSize(name string) int {
-	return t.SkinNamedDataInstanceSize(name)
+func (t *ShaderDataPbrSkinned) InstanceBoundDataSize() int {
+	return t.SkinNamedDataInstanceSize()
 }
 
-func (t *ShaderDataPbrSkinned) NamedDataPointer(name string) unsafe.Pointer {
-	return t.SkinNamedDataPointer(name)
+func (t *ShaderDataPbrSkinned) BoundDataPointer() unsafe.Pointer {
+	return t.SkinNamedDataPointer()
 }
 
-func (t *ShaderDataPbrSkinned) UpdateNamedData(index, _ int, name string) bool {
-	return t.SkinUpdateNamedData(name)
+func (t *ShaderDataPbrSkinned) UpdateBoundData() bool {
+	return t.SkinUpdateNamedData()
 }
 
 func (s *ShaderDataPbrSkinned) TestFlag(flag StandardShaderDataFlags) bool {

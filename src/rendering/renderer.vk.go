@@ -643,12 +643,12 @@ func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 		pd.buffers[i] = group.instanceBuffer.buffers[i]
 		pd.memories[i] = group.instanceBuffer.memories[i]
 		pd.sets[i] = group.descriptorSets[i]
-		for k := range group.namedBuffers {
-			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.namedBuffers[k].buffers[i])
-			pd.namedMemories[i] = append(pd.namedMemories[i], group.namedBuffers[k].memories[i])
+		for k := range group.boundBuffers {
+			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.boundBuffers[k].buffers[i])
+			pd.namedMemories[i] = append(pd.namedMemories[i], group.boundBuffers[k].memories[i])
 		}
 	}
-	clear(group.namedBuffers)
+	clear(group.boundBuffers)
 	vr.bufferTrash.Add(pd)
 }
 
