@@ -73,7 +73,7 @@ jobs:
       - name: Build editor (Release)
         working-directory: ./src
         run: |
-          go build -ldflags="-s -w" -tags="editor" -o ../kaiju.exe ./
+          go build -tags="debug,editor" -o ../kaiju.exe ./
           Get-ChildItem ../kaiju.exe | Format-Table Name, Length, LastWriteTime
 
       - name: Upload build artifacts
@@ -127,7 +127,7 @@ jobs:
       - name: Build editor (Release)
         working-directory: ./src
         run: |
-          go build -ldflags="-s -w" -tags="editor" -o ../kaiju ./
+          go build -tags="debug,editor" -o ../kaiju ./
           ls -lh ../kaiju
 
       - name: Upload build artifacts
@@ -155,7 +155,7 @@ jobs:
 
       - name: Build editor (Release)
         working-directory: ./src
-        run: go build -ldflags="-s -w" -tags="editor" -o ../kaiju-macos ./
+        run: go build -tags="debug,editor" -o ../kaiju-macos ./
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
