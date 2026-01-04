@@ -70,10 +70,14 @@ Coincidentally, the overall design I have for the engine plays very well with th
 
 I'll be the first to admit, I think the developers of Go can create a better GC than I can, and probably better than Unreal and Unity too.
 
-## Editor previews
-⚠️⚠️⚠️ **Please note, this video is not professional at all. It's one I made to aid in the [Mac port pull request](https://github.com/KaijuEngine/kaiju/pull/489), but shows many features.**
+## Editor overview
+[(YouTube) Kaiju Engine Editor Introduction](https://www.youtube.com/watch?v=cmjX_M6lEZE)
 
-[(YouTube) Compatibility requirements video for Mac](https://www.youtube.com/watch?v=B36gYYSNRDc)
+### Particle Systems
+[kaiju-particle-path-functions.mp4](https://github.com/user-attachments/assets/27fe4b48-4a1f-4791-b6f3-8b6469e7e551)
+
+### Skinned animation
+[kaiju-skinned-mesh-instances.mp4](https://github.com/user-attachments/assets/352de42c-3c7a-4e93-83a1-8aac8ca6d55c)
 
 ### Physics
 [full-project-run-cycle.mp4](https://github.com/user-attachments/assets/306f069a-ed4e-4e78-9336-b5a62c48289f)
