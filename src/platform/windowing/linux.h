@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* windowing.h                                                                */
+/* linux.h                                                                    */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -35,16 +35,12 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-#ifndef WINDOWING_H
-#define WINDOWING_H
+#ifndef WINDOWING_LINUX_H
+#define WINDOWING_LINUX_H
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "win32.h"
-#elif defined(__android__)
-#include "android.h"
-#elif defined(__linux__) || defined(__unix__)
-#include "linux.h"
-#elif defined(__APPLE__)
+#ifdef USE_WAYLAND
+#include "wayland.h"
+#else
 #include "x11.h"
 #endif
 
