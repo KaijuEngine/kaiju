@@ -1,0 +1,2819 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package hid - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-hid" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package hid
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/editor_launch/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go Access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML Attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Engine Developers
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Engine Developers
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance Profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/editor_windows/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor windows
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine_developers/prompt_popup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prompt popups
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Shaders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Shaders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../shaders/shader_designer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shader definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constants
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Constants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonup" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttondown" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonleft" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonLeft
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonright" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonRight
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonStart
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonselect" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonSelect
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonleftstick" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonLeftStick
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonrightstick" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonRightStick
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonleftbumper" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonLeftBumper
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonrightbumper" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonRightBumper
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonex1" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonEx1
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#todo" class="md-nav__link">
+    <span class="md-ellipsis">
+      TODO
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name" class="md-nav__link">
+    <span class="md-ellipsis">
+      Name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#this" class="md-nav__link">
+    <span class="md-ellipsis">
+      this
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correctly" class="md-nav__link">
+    <span class="md-ellipsis">
+      correctly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonex2" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonEx2
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#todo_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      TODO
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#this_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      this
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correctly_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      correctly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttona" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonA
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonb" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonB
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonx" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonX
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttony" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonY
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerbuttonmax" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerButtonMax
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxisleftvertical" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisLeftVertical
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxislefthorizontal" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisLeftHorizontal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxisrightvertical" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisRightVertical
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxisrighthorizontal" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisRightHorizontal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxislefttrigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisLeftTrigger
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxisrighttrigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisRightTrigger
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxismax" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerAxisMax
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonleft" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonLeft
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonmiddle" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonMiddle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonright" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonRight
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonx1" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonX1
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonx2" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonX2
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonlast" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonLast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouserelease" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseRelease
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousepress" class="md-nav__link">
+    <span class="md-ellipsis">
+      MousePress
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouserepeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseRepeat
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouseinvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseInvalid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonstateinvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      MouseButtonStateInvalid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllermaxdevices" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerMaxDevices
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maxtouchpointersavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxTouchPointersAvailable
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controller">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewController
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleravailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.Available
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlleraxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.Axis
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerconnected" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.Connected
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerdisconnected" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.Disconnected
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerendupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.EndUpdate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerisbuttondown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.IsButtonDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerisbuttonheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.IsButtonHeld
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerisbuttonup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.IsButtonUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerreset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.Reset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllersetaxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.SetAxis
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllersetbuttondown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.SetButtonDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllersetbuttonup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller.SetButtonUp
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllerdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      ControllerDevice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cursor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewCursor
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Held
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursormoved" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Moved
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorpoll" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Poll
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Position
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorpressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Pressed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.Released
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursorscreenposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.ScreenPosition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cursoruiposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cursor.UIPosition
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keycallbackid" class="md-nav__link">
+    <span class="md-ellipsis">
+      KeyCallbackId
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keystate" class="md-nav__link">
+    <span class="md-ellipsis">
+      KeyState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keyboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newkeyboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewKeyboard
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardaddkeycallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.AddKeyCallback
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardendupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.EndUpdate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardhasalt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.HasAlt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardhasctrl" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.HasCtrl
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardhasmodifier" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.HasModifier
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardhasshift" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.HasShift
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardistogglekey" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.IsToggleKey
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardistogglekeyon" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.IsToggleKeyOn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardkeydown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.KeyDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardkeyheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.KeyHeld
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardkeytorune" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.KeyToRune
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardkeyup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.KeyUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardremovekeycallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.RemoveKeyCallback
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardreset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.Reset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardsetkeydown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.SetKeyDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardsetkeydownup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.SetKeyDownUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardsetkeyup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.SetKeyUp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardsettogglekeystate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.SetToggleKeyState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardtogglekey" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard.ToggleKey
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboardkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      KeyboardKey
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KeyboardKey">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tokeyboardkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      ToKeyboardKey
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouse" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Mouse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newmouse" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewMouse
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonchanged" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.ButtonChanged
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousebuttonstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.ButtonState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousecenteredposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.CenteredPosition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouseendupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.EndUpdate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouseforceheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.ForceHeld
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouseheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Held
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousemoved" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Moved
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouseposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Position
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousepressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Pressed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousereleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Released
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousereset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Reset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousescreenposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.ScreenPosition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousescroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Scroll
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousescrolled" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.Scrolled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousesetdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.SetDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousesetposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.SetPosition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousesetscroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.SetScroll
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mousesetup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse.SetUp
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylus" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stylus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newstylus" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewStylus
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusactionstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.ActionState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusendupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.EndUpdate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Held
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusisactive" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.IsActive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusmoved" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Moved
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#styluspressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Pressed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Released
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusreset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Reset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.Set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylussetactionstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stylus.SetActionState
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylusactionstate_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      StylusActionState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touch" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Touch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newtouch" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewTouch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchcancel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Cancel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchcancelled" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Cancelled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchendupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.EndUpdate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Held
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchmoved" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Moved
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchpointer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Pointer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchpressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Pressed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Released
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchreset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.Reset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchsetdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.SetDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchsetmoved" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.SetMoved
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchsetpressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.SetPressure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchsetup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Touch.SetUp
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      TouchAction
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#touchpointer_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      TouchPointer
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-hid">package hid</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/platform/hid&quot;</span>
+</span></code></pre></div>
+<h2 id="constants">Constants</h2>
+<h4 id="controllerbuttonup">ControllerButtonUp</h4>
+<p><code>iota</code></p>
+<h4 id="controllerbuttondown">ControllerButtonDown</h4>
+<h4 id="controllerbuttonleft">ControllerButtonLeft</h4>
+<h4 id="controllerbuttonright">ControllerButtonRight</h4>
+<h4 id="controllerbuttonstart">ControllerButtonStart</h4>
+<h4 id="controllerbuttonselect">ControllerButtonSelect</h4>
+<h4 id="controllerbuttonleftstick">ControllerButtonLeftStick</h4>
+<h4 id="controllerbuttonrightstick">ControllerButtonRightStick</h4>
+<h4 id="controllerbuttonleftbumper">ControllerButtonLeftBumper</h4>
+<h4 id="controllerbuttonrightbumper">ControllerButtonRightBumper</h4>
+<h4 id="controllerbuttonex1">ControllerButtonEx1</h4>
+<h4 id="todo">TODO</h4>
+<h4 id="name">Name</h4>
+<h4 id="this">this</h4>
+<h4 id="correctly">correctly</h4>
+<h4 id="controllerbuttonex2">ControllerButtonEx2</h4>
+<h4 id="todo_1">TODO</h4>
+<h4 id="name_1">Name</h4>
+<h4 id="this_1">this</h4>
+<h4 id="correctly_1">correctly</h4>
+<h4 id="controllerbuttona">ControllerButtonA</h4>
+<h4 id="controllerbuttonb">ControllerButtonB</h4>
+<h4 id="controllerbuttonx">ControllerButtonX</h4>
+<h4 id="controllerbuttony">ControllerButtonY</h4>
+<h4 id="controllerbuttonmax">ControllerButtonMax</h4>
+<h4 id="controlleraxisleftvertical">ControllerAxisLeftVertical</h4>
+<p><code>iota</code></p>
+<h4 id="controlleraxislefthorizontal">ControllerAxisLeftHorizontal</h4>
+<h4 id="controlleraxisrightvertical">ControllerAxisRightVertical</h4>
+<h4 id="controlleraxisrighthorizontal">ControllerAxisRightHorizontal</h4>
+<h4 id="controlleraxislefttrigger">ControllerAxisLeftTrigger</h4>
+<h4 id="controlleraxisrighttrigger">ControllerAxisRightTrigger</h4>
+<h4 id="controlleraxismax">ControllerAxisMax</h4>
+<h4 id="mousebuttonleft">MouseButtonLeft</h4>
+<p><code>iota</code></p>
+<h4 id="mousebuttonmiddle">MouseButtonMiddle</h4>
+<h4 id="mousebuttonright">MouseButtonRight</h4>
+<h4 id="mousebuttonx1">MouseButtonX1</h4>
+<h4 id="mousebuttonx2">MouseButtonX2</h4>
+<h4 id="mousebuttonlast">MouseButtonLast</h4>
+<h4 id="mouserelease">MouseRelease</h4>
+<p><code>iota</code></p>
+<h4 id="mousepress">MousePress</h4>
+<h4 id="mouserepeat">MouseRepeat</h4>
+<h4 id="mouseinvalid">MouseInvalid</h4>
+<p><code>-1</code></p>
+<h4 id="mousebuttonstateinvalid">MouseButtonStateInvalid</h4>
+<p><code>-1</code></p>
+<h4 id="controllermaxdevices">ControllerMaxDevices</h4>
+<p><code>8</code></p>
+<h4 id="maxtouchpointersavailable">MaxTouchPointersAvailable</h4>
+<p><code>10</code></p>
+<h2 id="types">Types</h2>
+<h3 id="controller">Controller</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Controller</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcontroller">NewController</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewController</span><span class="p">()</span><span class="w"> </span><span class="nx">Controller</span>
+</span></code></pre></div>
+<p>NewController creates a new controller. This is called automatically by the
+system and should not be called by the end-developer</p>
+<h4 id="controlleravailable">Controller.Available</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">Available</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>Available returns true if the controller is available. This is called
+automatically by the system and should not be called by the end-developer</p>
+<h4 id="controlleraxis">Controller.Axis</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">Axis</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">stick</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">float32</span>
+</span></code></pre></div>
+<p>Axis returns the axis value for the given controller and stick</p>
+<h4 id="controllerconnected">Controller.Connected</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">Connected</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Connected returns true if the controller is connected. This is called
+automatically by the system and should not be called by the end-developer</p>
+<h4 id="controllerdisconnected">Controller.Disconnected</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">Disconnected</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Disconnected returns true if the controller is disconnected. This is called
+automatically by the system and should not be called by the end-developer</p>
+<h4 id="controllerendupdate">Controller.EndUpdate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">EndUpdate</span><span class="p">()</span>
+</span></code></pre></div>
+<p>EndUpdate is called at the end of the frame. It updates the state of each
+controller for the next frame. This is called automatically by the system
+and should not be called by the end-developer</p>
+<h4 id="controllerisbuttondown">Controller.IsButtonDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">IsButtonDown</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsButtonDown returns true if the button is down</p>
+<h4 id="controllerisbuttonheld">Controller.IsButtonHeld</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">IsButtonHeld</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsButtonHeld returns true if the button is held</p>
+<h4 id="controllerisbuttonup">Controller.IsButtonUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">IsButtonUp</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<p>IsButtonUp returns true if the button is up</p>
+<h4 id="controllerreset">Controller.Reset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">Reset</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Reset will completely wipe the state of all controllers</p>
+<h4 id="controllersetaxis">Controller.SetAxis</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">SetAxis</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">stick</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">axis</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<p>SetAxis sets the axis on the given controller. This is called automatically
+by the system and should not be called by the end-developer</p>
+<h4 id="controllersetbuttondown">Controller.SetButtonDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">SetButtonDown</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<p>SetButtonDown sets the button down on the given controller. This is called
+automatically by the system and should not be called by the end-developer</p>
+<h4 id="controllersetbuttonup">Controller.SetButtonUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Controller</span><span class="p">)</span><span class="w"> </span><span class="nx">SetButtonUp</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<p>SetButtonUp sets the button up on the given controller. This is called
+automatically by the system and should not be called by the end-developer</p>
+<h3 id="controllerdevice">ControllerDevice</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ControllerDevice</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="cursor">Cursor</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Cursor</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcursor">NewCursor</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewCursor</span><span class="p">(</span><span class="nx">mouse</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">,</span><span class="w"> </span><span class="nx">touch</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">,</span><span class="w"> </span><span class="nx">stylus</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Cursor</span>
+</span></code></pre></div>
+<h4 id="cursorheld">Cursor.Held</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Held</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="cursormoved">Cursor.Moved</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Moved</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="cursorpoll">Cursor.Poll</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Poll</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="cursorposition">Cursor.Position</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Position</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="cursorpressed">Cursor.Pressed</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Pressed</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="cursorreleased">Cursor.Released</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">Released</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="cursorscreenposition">Cursor.ScreenPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">ScreenPosition</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="cursoruiposition">Cursor.UIPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Cursor</span><span class="p">)</span><span class="w"> </span><span class="nx">UIPosition</span><span class="p">(</span><span class="nx">uiSize</span><span class="p">,</span><span class="w"> </span><span class="nx">windowSize</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h3 id="keycallbackid">KeyCallbackId</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">KeyCallbackId</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<h3 id="keystate">KeyState</h3>
+<p><a href="#uint8">uint8</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">KeyState</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kt">uint8</span>
+</span></code></pre></div></p>
+<p>const (
+KeyStateIdle KeyState = iota
+KeyStateDown
+KeyStateHeld
+KeyStateUp
+KeyStatePressedAndReleased
+KeyStateToggled
+)</p>
+<h3 id="keyboard">Keyboard</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Keyboard</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newkeyboard">NewKeyboard</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewKeyboard</span><span class="p">()</span><span class="w"> </span><span class="nx">Keyboard</span>
+</span></code></pre></div>
+<h4 id="keyboardaddkeycallback">Keyboard.AddKeyCallback</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">AddKeyCallback</span><span class="p">(</span><span class="nx">cb</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">keyId</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">keyState</span><span class="w"> </span><span class="nx">KeyState</span><span class="p">))</span><span class="w"> </span><span class="nx">KeyCallbackId</span>
+</span></code></pre></div>
+<h4 id="keyboardendupdate">Keyboard.EndUpdate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">EndUpdate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="keyboardhasalt">Keyboard.HasAlt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">HasAlt</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardhasctrl">Keyboard.HasCtrl</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">HasCtrl</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardhasmodifier">Keyboard.HasModifier</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">HasModifier</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardhasshift">Keyboard.HasShift</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">HasShift</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardistogglekey">Keyboard.IsToggleKey</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">IsToggleKey</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardistogglekeyon">Keyboard.IsToggleKeyOn</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">IsToggleKeyOn</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardkeydown">Keyboard.KeyDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">KeyDown</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardkeyheld">Keyboard.KeyHeld</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">KeyHeld</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardkeytorune">Keyboard.KeyToRune</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">KeyToRune</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">rune</span>
+</span></code></pre></div>
+<h4 id="keyboardkeyup">Keyboard.KeyUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">KeyUp</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="keyboardremovekeycallback">Keyboard.RemoveKeyCallback</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveKeyCallback</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="nx">KeyCallbackId</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="keyboardreset">Keyboard.Reset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">Reset</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="keyboardsetkeydown">Keyboard.SetKeyDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">SetKeyDown</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="keyboardsetkeydownup">Keyboard.SetKeyDownUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">SetKeyDownUp</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="keyboardsetkeyup">Keyboard.SetKeyUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">SetKeyUp</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="keyboardsettogglekeystate">Keyboard.SetToggleKeyState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">SetToggleKeyState</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="nx">KeyState</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="keyboardtogglekey">Keyboard.ToggleKey</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">k</span><span class="w"> </span><span class="o">*</span><span class="nx">Keyboard</span><span class="p">)</span><span class="w"> </span><span class="nx">ToggleKey</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="keyboardkey">KeyboardKey</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">KeyboardKey</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+KeyBoardKeyInvalid KeyboardKey = -1 + iota
+KeyboardKeyLeftAlt
+KeyboardKeyRightAlt
+KeyboardKeyLeftCtrl
+KeyboardKeyRightCtrl
+KeyboardKeyLeftShift
+KeyboardKeyRightShift
+KeyboardKeyA
+KeyboardKeyB
+KeyboardKeyC
+KeyboardKeyD
+KeyboardKeyE
+KeyboardKeyF
+KeyboardKeyG
+KeyboardKeyH
+KeyboardKeyI
+KeyboardKeyJ
+KeyboardKeyK
+KeyboardKeyL
+KeyboardKeyM
+KeyboardKeyN
+KeyboardKeyO
+KeyboardKeyP
+KeyboardKeyQ
+KeyboardKeyR
+KeyboardKeyS
+KeyboardKeyT
+KeyboardKeyU
+KeyboardKeyV
+KeyboardKeyW
+KeyboardKeyX
+KeyboardKeyY
+KeyboardKeyZ
+KeyboardKeyLeft
+KeyboardKeyUp
+KeyboardKeyRight
+KeyboardKeyDown
+KeyboardKeyEscape
+KeyboardKeyTab
+KeyboardKeySpace
+KeyboardKeyBackspace
+KeyboardKeyBackQuote
+KeyboardKeyDelete
+KeyboardKeyReturn
+KeyboardKeyEnter
+KeyboardKeyComma
+KeyboardKeyPeriod
+KeyboardKeyBackSlash
+KeyboardKeyForwardSlash
+KeyboardKeyOpenBracket
+KeyboardKeyCloseBracket
+KeyboardKeySemicolon
+KeyboardKeyQuote
+KeyboardKeyEqual
+KeyboardKeyMinus
+KeyboardKey0
+KeyboardKey1
+KeyboardKey2
+KeyboardKey3
+KeyboardKey4
+KeyboardKey5
+KeyboardKey6
+KeyboardKey7
+KeyboardKey8
+KeyboardKey9
+KeyboardNumKey0
+KeyboardNumKey1
+KeyboardNumKey2
+KeyboardNumKey3
+KeyboardNumKey4
+KeyboardNumKey5
+KeyboardNumKey6
+KeyboardNumKey7
+KeyboardNumKey8
+KeyboardNumKey9
+KeyboardNumKeyDivide
+KeyboardNumKeyMultiply
+KeyboardNumKeyAdd
+KeyboardNumKeySubtract
+KeyboardNumKeyPeriod
+KeyboardKeyF1
+KeyboardKeyF2
+KeyboardKeyF3
+KeyboardKeyF4
+KeyboardKeyF5
+KeyboardKeyF6
+KeyboardKeyF7
+KeyboardKeyF8
+KeyboardKeyF9
+KeyboardKeyF10
+KeyboardKeyF11
+KeyboardKeyF12
+KeyboardKeyCapsLock
+KeyboardKeyScrollLock
+KeyboardKeyNumLock
+KeyboardKeyPrintScreen
+KeyboardKeyPause
+KeyboardKeyInsert
+KeyboardKeyHome
+KeyboardKeyPageUp
+KeyboardKeyPageDown
+KeyboardKeyEnd
+KeyboardKeyMaximum
+)</p>
+<h4 id="tokeyboardkey">ToKeyboardKey</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ToKeyboardKey</span><span class="p">(</span><span class="nx">nativeKey</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">KeyboardKey</span>
+</span></code></pre></div>
+<h3 id="mouse">Mouse</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Mouse</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="w">    </span><span class="nx">X</span><span class="p">,</span><span class="w"> </span><span class="nx">Y</span><span class="w">             </span><span class="kt">float32</span>
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="w">    </span><span class="nx">SX</span><span class="p">,</span><span class="w"> </span><span class="nx">SY</span><span class="w">           </span><span class="kt">float32</span>
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a><span class="w">    </span><span class="nx">CX</span><span class="p">,</span><span class="w"> </span><span class="nx">CY</span><span class="w">           </span><span class="kt">float32</span>
+</span><span id="__span-51-5"><a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a><span class="w">    </span><span class="nx">ScrollX</span><span class="p">,</span><span class="w"> </span><span class="nx">ScrollY</span><span class="w"> </span><span class="kt">float32</span>
+</span><span id="__span-51-6"><a id="__codelineno-51-6" name="__codelineno-51-6" href="#__codelineno-51-6"></a>
+</span><span id="__span-51-7"><a id="__codelineno-51-7" name="__codelineno-51-7" href="#__codelineno-51-7"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-51-8"><a id="__codelineno-51-8" name="__codelineno-51-8" href="#__codelineno-51-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newmouse">NewMouse</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewMouse</span><span class="p">()</span><span class="w"> </span><span class="nx">Mouse</span>
+</span></code></pre></div>
+<h4 id="mousebuttonchanged">Mouse.ButtonChanged</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">ButtonChanged</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mousebuttonstate">Mouse.ButtonState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">ButtonState</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="mousecenteredposition">Mouse.CenteredPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">CenteredPosition</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="mouseendupdate">Mouse.EndUpdate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">EndUpdate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="mouseforceheld">Mouse.ForceHeld</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">ForceHeld</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="mouseheld">Mouse.Held</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Held</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mousemoved">Mouse.Moved</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Moved</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mouseposition">Mouse.Position</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Position</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="mousepressed">Mouse.Pressed</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Pressed</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mousereleased">Mouse.Released</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Released</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mousereset">Mouse.Reset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Reset</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="mousescreenposition">Mouse.ScreenPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">ScreenPosition</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="mousescroll">Mouse.Scroll</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Scroll</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="mousescrolled">Mouse.Scrolled</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">Scrolled</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="mousesetdown">Mouse.SetDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">SetDown</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="mousesetposition">Mouse.SetPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">SetPosition</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">windowWidth</span><span class="p">,</span><span class="w"> </span><span class="nx">windowHeight</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="mousesetscroll">Mouse.SetScroll</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">SetScroll</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="mousesetup">Mouse.SetUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">Mouse</span><span class="p">)</span><span class="w"> </span><span class="nx">SetUp</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="stylus">Stylus</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Stylus</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a><span class="w">    </span><span class="nx">X</span><span class="w">        </span><span class="kt">float32</span>
+</span><span id="__span-71-3"><a id="__codelineno-71-3" name="__codelineno-71-3" href="#__codelineno-71-3"></a><span class="w">    </span><span class="nx">Y</span><span class="w">        </span><span class="kt">float32</span>
+</span><span id="__span-71-4"><a id="__codelineno-71-4" name="__codelineno-71-4" href="#__codelineno-71-4"></a><span class="w">    </span><span class="nx">SX</span><span class="w">       </span><span class="kt">float32</span>
+</span><span id="__span-71-5"><a id="__codelineno-71-5" name="__codelineno-71-5" href="#__codelineno-71-5"></a><span class="w">    </span><span class="nx">SY</span><span class="w">       </span><span class="kt">float32</span>
+</span><span id="__span-71-6"><a id="__codelineno-71-6" name="__codelineno-71-6" href="#__codelineno-71-6"></a><span class="w">    </span><span class="nx">Pressure</span><span class="w"> </span><span class="kt">float32</span>
+</span><span id="__span-71-7"><a id="__codelineno-71-7" name="__codelineno-71-7" href="#__codelineno-71-7"></a><span class="w">    </span><span class="nx">Distance</span><span class="w"> </span><span class="kt">float32</span>
+</span><span id="__span-71-8"><a id="__codelineno-71-8" name="__codelineno-71-8" href="#__codelineno-71-8"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-71-9"><a id="__codelineno-71-9" name="__codelineno-71-9" href="#__codelineno-71-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newstylus">NewStylus</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewStylus</span><span class="p">()</span><span class="w"> </span><span class="nx">Stylus</span>
+</span></code></pre></div>
+<h4 id="stylusactionstate">Stylus.ActionState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">ActionState</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="stylusendupdate">Stylus.EndUpdate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">EndUpdate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="stylusheld">Stylus.Held</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Held</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="stylusisactive">Stylus.IsActive</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">IsActive</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="stylusmoved">Stylus.Moved</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Moved</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="styluspressed">Stylus.Pressed</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Pressed</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="stylusreleased">Stylus.Released</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Released</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="stylusreset">Stylus.Reset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Reset</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="stylusset">Stylus.Set</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">Set</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">pressure</span><span class="p">,</span><span class="w"> </span><span class="nx">distance</span><span class="p">,</span><span class="w"> </span><span class="nx">windowHeight</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="stylussetactionstate">Stylus.SetActionState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Stylus</span><span class="p">)</span><span class="w"> </span><span class="nx">SetActionState</span><span class="p">(</span><span class="nx">state</span><span class="w"> </span><span class="nx">StylusActionState</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="stylusactionstate_1">StylusActionState</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">StylusActionState</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+StylusActionNone StylusActionState = iota
+StylusActionHoverEnter
+StylusActionHoverMove
+StylusActionHoverExit
+StylusActionDown
+StylusActionMove
+StylusActionUp
+StylusActionHeld
+StylusActionHover
+)</p>
+<h3 id="touch">Touch</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Touch</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-84-2"><a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="w">    </span><span class="nx">Pointers</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">TouchPointer</span>
+</span><span id="__span-84-3"><a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="w">    </span><span class="nx">Pool</span><span class="w">     </span><span class="p">[</span><span class="nx">MaxTouchPointersAvailable</span><span class="p">]</span><span class="nx">TouchPointer</span>
+</span><span id="__span-84-4"><a id="__codelineno-84-4" name="__codelineno-84-4" href="#__codelineno-84-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newtouch">NewTouch</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewTouch</span><span class="p">()</span><span class="w"> </span><span class="nx">Touch</span>
+</span></code></pre></div>
+<h4 id="touchcancel">Touch.Cancel</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Cancel</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="touchcancelled">Touch.Cancelled</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Cancelled</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="touchendupdate">Touch.EndUpdate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">EndUpdate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="touchheld">Touch.Held</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Held</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="touchmoved">Touch.Moved</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Moved</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="touchpointer">Touch.Pointer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-91-1"><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Pointer</span><span class="p">(</span><span class="nx">index</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">TouchPointer</span>
+</span></code></pre></div>
+<h4 id="touchpressed">Touch.Pressed</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-92-1"><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Pressed</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="touchreleased">Touch.Released</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-93-1"><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Released</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="touchreset">Touch.Reset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-94-1"><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">Reset</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="touchsetdown">Touch.SetDown</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-95-1"><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">SetDown</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">windowHeight</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="touchsetmoved">Touch.SetMoved</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-96-1"><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">SetMoved</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">windowHeight</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="touchsetpressure">Touch.SetPressure</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-97-1"><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">SetPressure</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">pressure</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="touchsetup">Touch.SetUp</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-98-1"><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Touch</span><span class="p">)</span><span class="w"> </span><span class="nx">SetUp</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">windowHeight</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="touchaction">TouchAction</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-99-1"><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TouchAction</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+TouchActionNone TouchAction = -1
+TouchActionDown TouchAction = internalTouchActionDown
+TouchActionUp TouchAction = internalTouchActionUp
+TouchActionMove TouchAction = internalTouchActionMove
+TouchActionCancel TouchAction = -2
+TouchActionHeld TouchAction = -3
+)</p>
+<h3 id="touchpointer_1">TouchPointer</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-100-1"><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TouchPointer</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-100-2"><a id="__codelineno-100-2" name="__codelineno-100-2" href="#__codelineno-100-2"></a><span class="w">    </span><span class="nx">Pressure</span><span class="w"> </span><span class="kt">float32</span>
+</span><span id="__span-100-3"><a id="__codelineno-100-3" name="__codelineno-100-3" href="#__codelineno-100-3"></a><span class="w">    </span><span class="nx">X</span><span class="w">        </span><span class="kt">float32</span>
+</span><span id="__span-100-4"><a id="__codelineno-100-4" name="__codelineno-100-4" href="#__codelineno-100-4"></a><span class="w">    </span><span class="nx">Y</span><span class="w">        </span><span class="kt">float32</span>
+</span><span id="__span-100-5"><a id="__codelineno-100-5" name="__codelineno-100-5" href="#__codelineno-100-5"></a><span class="w">    </span><span class="nx">SX</span><span class="w">       </span><span class="kt">float32</span>
+</span><span id="__span-100-6"><a id="__codelineno-100-6" name="__codelineno-100-6" href="#__codelineno-100-6"></a><span class="w">    </span><span class="nx">SY</span><span class="w">       </span><span class="kt">float32</span>
+</span><span id="__span-100-7"><a id="__codelineno-100-7" name="__codelineno-100-7" href="#__codelineno-100-7"></a><span class="w">    </span><span class="nx">State</span><span class="w">    </span><span class="nx">TouchAction</span>
+</span><span id="__span-100-8"><a id="__codelineno-100-8" name="__codelineno-100-8" href="#__codelineno-100-8"></a><span class="w">    </span><span class="nx">Id</span><span class="w">       </span><span class="kt">int64</span>
+</span><span id="__span-100-9"><a id="__codelineno-100-9" name="__codelineno-100-9" href="#__codelineno-100-9"></a><span class="p">}</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,81 @@
+package kaiju_mesh // import "kaiju/rendering/loaders/kaiju_mesh"
+
+
+TYPES
+
+type AnimBone struct {
+	NodeIndex     int
+	PathType      AnimationPathType
+	Interpolation AnimationInterpolation
+	// Could be Vec3 or Quaternion, doing this because Go doesn't have a union
+	Data [4]matrix.Float
+}
+
+type AnimKeyFrame struct {
+	Bones []AnimBone
+	Time  float32
+}
+
+type AnimationInterpolation = int
+
+const (
+	AnimInterpolateInvalid AnimationInterpolation = iota - 1
+	AnimInterpolateLinear
+	AnimInterpolateStep
+	AnimInterpolateCubicSpline
+)
+type AnimationPathType = int
+
+const (
+	AnimPathInvalid AnimationPathType = iota - 1
+	AnimPathTranslation
+	AnimPathRotation
+	AnimPathScale
+	AnimPathWeights
+)
+type KaijuMesh struct {
+	Name       string
+	Verts      []rendering.Vertex
+	Indexes    []uint32
+	Animations []KaijuMeshAnimation
+	Joints     []KaijuMeshJoint
+}
+    KaijuMesh is a base primitive representing a single mesh. This is the
+    archived format of the authored meshes. Typically this structure is created
+    by loading in a mesh using something like [loaders.GLTF] and then converting
+    the result of that using LoadedResultToKaijuMesh. From this point, it is
+    typically serialized and stored into the content database. When reading a
+    mesh from the content database, it will return a KaijuMesh.
+
+func Deserialize(data []byte) (KaijuMesh, error)
+    Deserialize will construct a KaijuMesh from the given array of bytes.
+    This deserialization uses the built-in gob.Decoder
+
+func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh
+    LoadedResultToKaijuMesh will take in a load_result.Result and convert
+    every mesh contained within the structure to our built in version known as
+    KaijuMesh. This is typically used for the editor, but games/applications may
+    find some use for it.
+
+func ReadMesh(id string, host *engine.Host) (KaijuMesh, error)
+
+func (k KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *collision.BVH
+
+func (k KaijuMesh) Serialize() ([]byte, error)
+    Serialize will convert a KaijuMesh into a byte array for saving to the
+    database or later use. This serialization uses the built-in gob.Encoder
+
+type KaijuMeshAnimation struct {
+	Name   string
+	Frames []AnimKeyFrame
+}
+
+type KaijuMeshJoint struct {
+	Id       int32
+	Parent   int32
+	Skin     matrix.Mat4
+	Position matrix.Vec3
+	Rotation matrix.Vec3
+	Scale    matrix.Vec3
+}
+

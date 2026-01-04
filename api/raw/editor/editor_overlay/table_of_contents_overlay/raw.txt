@@ -1,0 +1,19 @@
+package table_of_contents_overlay // import "kaiju/editor/editor_overlay/table_of_contents_overlay"
+
+
+TYPES
+
+type Config struct {
+	TOC       table_of_contents.TableOfContents
+	OnChanged func(toc table_of_contents.TableOfContents)
+	OnClose   func()
+}
+
+type TableOfContentsOverlay struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*TableOfContentsOverlay, error)
+
+func (o *TableOfContentsOverlay) Close()
+

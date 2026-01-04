@@ -1,0 +1,156 @@
+package shader_data_registry // import "kaiju/registry/shader_data_registry"
+
+
+CONSTANTS
+
+const (
+	ShaderDataStandardFlagOutline = StandardShaderDataFlags(1 << iota)
+	// Enable bit will be set anytime there are flags. This is needed because
+	// bits at the extremes of the float will be truncated to 0 otherwise. By
+	// setting this bit (largest exponent bit 2^1) this issue can be prevented.
+	ShaderDataStandardFlagEnable = 1 << 30
+)
+
+FUNCTIONS
+
+func Create(name string) rendering.DrawInstance
+
+TYPES
+
+type ShaderDataBasicLit struct {
+	rendering.ShaderDataBase
+	Color  matrix.Color
+	Light0 int32
+	Light1 int32
+	Light2 int32
+	Light3 int32
+}
+
+func (t ShaderDataBasicLit) Size() int
+
+type ShaderDataEdFrustumWire struct {
+	rendering.ShaderDataBase
+	Color             matrix.Color
+	FrustumProjection matrix.Mat4
+}
+
+func (t ShaderDataEdFrustumWire) Size() int
+
+type ShaderDataEdTransformWire struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataEdTransformWire) Size() int
+
+type ShaderDataGrid struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataGrid) Size() int
+
+type ShaderDataPBR struct {
+	rendering.ShaderDataBase
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	LightIds   [4]int32                `visible:"false"`
+	Flags      StandardShaderDataFlags `visible:"false"`
+}
+
+func (s *ShaderDataPBR) ClearFlag(flag StandardShaderDataFlags)
+
+func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender)
+
+func (s *ShaderDataPBR) SetFlag(flag StandardShaderDataFlags)
+
+func (t ShaderDataPBR) Size() int
+
+func (s *ShaderDataPBR) TestFlag(flag StandardShaderDataFlags) bool
+
+type ShaderDataParticle struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4 `default:"0,0,1,1"`
+}
+
+func (t ShaderDataParticle) Size() int
+
+type ShaderDataPbrSkinned struct {
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
+	VertColors matrix.Color
+	Metallic   float32
+	Roughness  float32
+	Emissive   float32
+	LightIds   [4]int32                `visible:"false"`
+	Flags      StandardShaderDataFlags `visible:"false"`
+}
+
+func (t *ShaderDataPbrSkinned) BoundDataPointer() unsafe.Pointer
+
+func (s *ShaderDataPbrSkinned) ClearFlag(flag StandardShaderDataFlags)
+
+func (t *ShaderDataPbrSkinned) InstanceBoundDataSize() int
+
+func (s *ShaderDataPbrSkinned) SetFlag(flag StandardShaderDataFlags)
+
+func (t ShaderDataPbrSkinned) Size() int
+
+func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader
+
+func (s *ShaderDataPbrSkinned) TestFlag(flag StandardShaderDataFlags) bool
+
+func (t *ShaderDataPbrSkinned) UpdateBoundData() bool
+
+type ShaderDataStandard struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	Flags StandardShaderDataFlags `visible:"false"`
+}
+
+func (s *ShaderDataStandard) ClearFlag(flag StandardShaderDataFlags)
+
+func (s *ShaderDataStandard) SetFlag(flag StandardShaderDataFlags)
+
+func (ShaderDataStandard) Size() int
+
+func (s *ShaderDataStandard) TestFlag(flag StandardShaderDataFlags) bool
+
+type ShaderDataStandardSkinned struct {
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
+	Color matrix.Color
+	Flags StandardShaderDataFlags `visible:"false"`
+}
+
+func (t *ShaderDataStandardSkinned) BoundDataPointer() unsafe.Pointer
+
+func (s *ShaderDataStandardSkinned) ClearFlag(flag StandardShaderDataFlags)
+
+func (t *ShaderDataStandardSkinned) InstanceBoundDataSize() int
+
+func (s *ShaderDataStandardSkinned) SetFlag(flag StandardShaderDataFlags)
+
+func (t ShaderDataStandardSkinned) Size() int
+
+func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader
+
+func (s *ShaderDataStandardSkinned) TestFlag(flag StandardShaderDataFlags) bool
+
+func (t *ShaderDataStandardSkinned) UpdateBoundData() bool
+
+type ShaderDataUnlit struct {
+	rendering.ShaderDataBase
+	Color matrix.Color
+	UVs   matrix.Vec4 `default:"0,0,1,1"`
+}
+
+func (t ShaderDataUnlit) Size() int
+
+type StandardShaderDataFlags = uint32
+

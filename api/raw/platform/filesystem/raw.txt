@@ -1,0 +1,91 @@
+package filesystem // import "kaiju/platform/filesystem"
+
+
+FUNCTIONS
+
+func CopyDirectory(src, dst string) error
+    CopyDirectory copies the directory at the source path to the destination
+    path.
+
+func CopyFile(src, dst string) error
+    CopyFile copies the file from the source path to the destination path.
+    If the destination file already exists, an error will be returned.
+
+func CopyFileOverwrite(src, dst string) error
+    CopyFileOverwrite copies the file from the source path to the destination
+    path. If the destination file already exists, it will be truncated.
+
+func CopyGoSourceFile(src, dst string) error
+    CopyGoSourceFile copies go specific source code from the source path to the
+    destination path. If the destination file already exists, an error will be
+    returned. This function is used to ensure that the generated files have the
+    correct header.
+
+func CreateDirectory(path string) error
+    CreateDirectory creates a directory at the specified path with full
+    permissions.
+
+func DeleteDirectory(path string) error
+    DeleteDirectory deletes the directory at the specified path.
+
+func DirectoryExists(path string) bool
+    DirectoryExists returns true if the directory exists at the specified path.
+
+func FileExists(path string) bool
+    FileExists returns true if the file exists at the specified path.
+
+func GameDirectory() (string, error)
+    GameDirectory will attempt to find the default directory for the application
+    to store and load it's data to and from
+
+func ImageDirectory() (string, error)
+    ImageDirectory will attempt to find the default user directory where images
+    are stored. This function is OS specific.
+
+func KnownDirectories() map[string]string
+    KnownDirectories returns a list of known, common directories on the current
+    computer. On windows this is things like Photos, Documents, etc.
+
+func ListFilesRecursive(path string) ([]string, error)
+    ListFilesRecursive returns a list of all files in the specified, it walks
+    through all of the subdirectories as well.
+
+func ListFoldersRecursive(path string) ([]string, error)
+    ListFoldersRecursive returns a list of all directories in the specified,
+    it walks through all of the subdirectories as well.
+
+func ListRecursive(path string) ([]string, error)
+    ListRecursive returns a list of all files and directories in the specified,
+    it walks through all of the subdirectories as well.
+
+func OpenFileBrowserToFolder(path string) error
+func OpenFileDialogWindow(startPath string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error
+func OpenSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error
+func ReadFile(path string) ([]byte, error)
+    ReadFile reads the binary data from the file at the specified path. If the
+    file does not exist, an error will be returned.
+
+func ReadTextFile(path string) (string, error)
+    ReadTextFile reads the text data from the file at the specified path.
+    If the file does not exist, an error will be returned.
+
+func Unzip(src, dest string) error
+func WriteFile(path string, data []byte) error
+    WriteFile writes the binary data to the file at the specified path.
+    This will use permissions 0644 for the file. If the file already exists,
+    it will be overwritten.
+
+func WriteTextFile(path string, data string) error
+    WriteTextFile writes the text data to the file at the specified path.
+    This will use permissions 0644 for the file. If the file already exists,
+    it will be overwritten.
+
+func Zip(srcDir, outFile string, skipFiles, skipFolders, skipExtensions []string) error
+
+TYPES
+
+type DialogExtension struct {
+	Name      string
+	Extension string
+}
+

@@ -1,0 +1,13 @@
+package content_selector // import "kaiju/editor/editor_overlay/content_selector"
+
+
+TYPES
+
+type ContentSelector struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, typeName string, cache *content_database.Cache, onSelect func(id string), onClose func()) (*ContentSelector, error)
+
+func (o *ContentSelector) Close()
+

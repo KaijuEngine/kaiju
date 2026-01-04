@@ -1,0 +1,57 @@
+package menu_bar // import "kaiju/editor/global_interface/menu_bar"
+
+
+TYPES
+
+type MenuBar struct {
+	// Has unexported fields.
+}
+
+func (b *MenuBar) Blur()
+
+func (b *MenuBar) Focus()
+
+func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error
+
+func (b *MenuBar) SetWorkspaceAnimation()
+
+func (b *MenuBar) SetWorkspaceContent()
+
+func (b *MenuBar) SetWorkspaceSettings()
+
+func (b *MenuBar) SetWorkspaceShading()
+
+func (b *MenuBar) SetWorkspaceStage()
+
+func (b *MenuBar) SetWorkspaceUI()
+
+func (b *MenuBar) SetWorkspaceVfx()
+
+type MenuBarHandler interface {
+	BlurInterface()
+	FocusInterface()
+	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	StageWorkspaceSelected()
+	ContentWorkspaceSelected()
+	ShadingWorkspaceSelected()
+	VfxWorkspaceSelected()
+	UIWorkspaceSelected()
+	SettingsWorkspaceSelected()
+	StageView() *editor_stage_view.StageView
+	Build(buildMode project.GameBuildMode)
+	BuildAndRun(buildMode project.GameBuildMode)
+	BuildAndRunCurrentStage()
+	OpenCodeEditor()
+	CreateNewStage()
+	SaveCurrentStage()
+	CreateNewCamera()
+	CreateNewEntity()
+	CreateNewLight()
+	CreatePluginProject(path string)
+	CreateHtmlUiFile(name string)
+}
+

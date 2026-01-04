@@ -1,0 +1,35 @@
+package editor_stage_view // import "kaiju/editor/editor_stage_manager/editor_stage_view"
+
+
+TYPES
+
+type StageView struct {
+	// Has unexported fields.
+}
+
+func (v *StageView) Camera() *editor_controls.EditorCamera
+
+func (v *StageView) Close()
+
+func (v *StageView) DuplicateSelected(proj *project.Project)
+
+func (v *StageView) Initialize(host *engine.Host, history *memento.History, settings *editor_settings.Settings, editorUI editor_stage_manager.EditorUserInterface)
+
+func (v *StageView) IsView3D() bool
+
+func (v *StageView) LookAtPoint() matrix.Vec3
+
+func (v *StageView) Manager() *editor_stage_manager.StageManager
+
+func (v *StageView) Open()
+
+func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode)
+
+func (v *StageView) Update(deltaTime float64, proj *project.Project) bool
+    Update will update the stage view and return `true` if the view is taking
+    control of the keyboard interactions. It'll return false otherwise. If this
+    returns true, then the caller shouldn't process any hotkeys or other types
+    of keyboard actions.
+
+func (v *StageView) WorkspaceHost() *engine.Host
+

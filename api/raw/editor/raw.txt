@@ -1,0 +1,143 @@
+package editor // import "kaiju/editor"
+
+
+CONSTANTS
+
+const (
+	WorkspaceStateNone = WorkspaceState(iota)
+	WorkspaceStateStage
+	WorkspaceStateContent
+	WorkspaceStateShading
+	WorkspaceStateVfx
+	WorkspaceStateUI
+	WorkspaceStateSettings
+)
+const EditorVersion float64 = 0.0006
+
+FUNCTIONS
+
+func RegisterPlugin(key string, plugin editor_plugin.EditorPlugin)
+
+TYPES
+
+type Editor struct {
+	// Has unexported fields.
+}
+    Editor is the entry point structure for the entire editor. It acts as the
+    delegate to the various systems and holds the primary members that make up
+    the bulk of the editor identity.
+
+    The design goal of the editor is different than that of the engine.Host,
+    as it is not intended to be passed around for access to the system. Instead
+    it will supply interface functions that are needed to the systems that it
+    holds internally.
+
+func (ed *Editor) BlurInterface()
+    FocusInterface is responsible for disabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) Build(buildMode project.GameBuildMode)
+
+func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode)
+
+func (ed *Editor) BuildAndRunCurrentStage()
+
+func (ed *Editor) Cache() *content_database.Cache
+
+func (ed *Editor) ContentWorkspaceSelected()
+    ContentWorkspaceSelected will inform the editor that the developer has
+    changed to the content workspace. This is an exposed function to meet the
+    interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) CreateHtmlUiFile(name string)
+
+func (ed *Editor) CreateNewCamera()
+
+func (ed *Editor) CreateNewEntity()
+
+func (ed *Editor) CreateNewLight()
+
+func (ed *Editor) CreateNewStage()
+
+func (ed *Editor) CreatePluginProject(path string)
+
+func (ed *Editor) Events() *editor_events.EditorEvents
+
+func (ed *Editor) FocusInterface()
+    FocusInterface is responsible for enabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) History() *memento.History
+
+func (ed *Editor) Host() *engine.Host
+
+func (ed *Editor) OpenCodeEditor()
+    OpenCodeEditor will run a command specified in CodeEditor settings entry
+    directly to the project top level folder. This is an exposed function to
+    meet the interface needs of menu_bar.MenuBarHandler. func (ed *Editor)
+    OpenVSCodeProject() {
+
+func (ed *Editor) OpenStageInStageWorkspace(id string)
+
+func (ed *Editor) Project() *project.Project
+
+func (ed *Editor) ProjectFileSystem() *project_file_system.FileSystem
+
+func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error
+
+func (ed *Editor) SaveCurrentStage()
+    SaveCurrentStage will save the currently open stage file. This is an exposed
+    function to meet the interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) SaveCurrentStageWithCallback(cb func(bool))
+
+func (ed *Editor) Settings() *editor_settings.Settings
+
+func (ed *Editor) SettingsWorkspaceSelected()
+    SettingsWorkspaceSelected will inform the editor that the developer has
+    changed to the settings workspace. This is an exposed function to meet the
+    interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) ShadingWorkspace() *shading_workspace.ShadingWorkspace
+
+func (ed *Editor) ShadingWorkspaceSelected()
+    ShadingWorkspaceSelected will inform the editor that the developer has
+    changed to the shading workspace. This is an exposed function to meet the
+    interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) ShowReferences(id string)
+
+func (ed *Editor) StageView() *editor_stage_view.StageView
+
+func (ed *Editor) StageWorkspaceSelected()
+    StageWorkspaceSelected will inform the editor that the developer has changed
+    to the stage workspace. This is an exposed function to meet the interface
+    needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) UIWorkspaceSelected()
+    UIWorkspaceSelected will inform the editor that the developer has changed to
+    the ui workspace. This is an exposed function to meet the interface needs of
+    menu_bar.MenuBarHandler.
+
+func (ed *Editor) UpdateSettings()
+
+func (ed *Editor) VfxWorkspace() *vfx_workspace.VfxWorkspace
+
+func (ed *Editor) VfxWorkspaceSelected()
+
+func (ed *Editor) ViewHtmlUi(id string)
+
+type EditorGame struct{}
+    EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
+    bootstrap the editor (as it would a game).
+
+func (EditorGame) ContentDatabase() (assets.Database, error)
+
+func (EditorGame) Launch(host *engine.Host)
+
+func (EditorGame) PluginRegistry() []reflect.Type
+
+type WorkspaceState = uint8
+
