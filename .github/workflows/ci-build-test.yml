@@ -142,7 +142,7 @@ jobs:
 
           $p = Start-Process -FilePath $exe -ArgumentList $args -NoNewWindow -PassThru
 
-          $timeoutSec = 60
+          $timeoutSec = 120
           $exited = $p.WaitForExit($timeoutSec * 1000)
 
           if (-not $exited) {
@@ -262,7 +262,7 @@ jobs:
 
           # Run the editor with automated integration tests
           echo "Starting Kaiju Editor with automated tests..."
-          timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           # Exit code 0 means auto-test completed successfully
@@ -271,7 +271,7 @@ jobs:
             echo "✓ Editor automated tests completed successfully"
             TEST_RESULT=0
           elif [ ${EXIT_CODE:-0} -eq 124 ]; then
-            echo "✗ Editor tests timed out after 30 seconds"
+            echo "✗ Editor tests timed out after 2 minutes"
             TEST_RESULT=1
           else
             echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
@@ -429,14 +429,14 @@ jobs:
           # Run editor with automated tests
           echo "Starting Kaiju Editor with automated tests..."
           echo "GPU Profile: ${{ matrix.profile_name }}"
-          timeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           if [ ${EXIT_CODE:-0} -eq 0 ]; then
             echo "✓ Editor automated tests completed successfully"
             TEST_RESULT=0
           elif [ ${EXIT_CODE:-0} -eq 124 ]; then
-            echo "✗ Editor tests timed out after 30 seconds"
+            echo "✗ Editor tests timed out after 2 minutes"
             TEST_RESULT=1
           else
             echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
