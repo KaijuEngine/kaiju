@@ -26,6 +26,7 @@ nav:
   - Shaders:
     - Shader definition: shaders/shader_designer.md
   - API: api/
+  - Sponsor Kaiju: https://github.com/sponsors/BrentFarris
 theme:
   name: 'material'
   icon:

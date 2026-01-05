@@ -142,7 +142,9 @@ The editor is a testament to the engine's flexibility, because the editor itself
 </div>
 
 ## Support the project
-If you like what you see, and want to support the project's continued development, please consider [becoming a sponsor](https://github.com/sponsors/BrentFarris?frequency=recurring).
+If you like what you see, and want to support the project's continued development, please consider [becoming a sponsor](https://github.com/sponsors/BrentFarris).
+
+<iframe src="https://github.com/sponsors/BrentFarris/button" title="Sponsor BrentFarris" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
 
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
