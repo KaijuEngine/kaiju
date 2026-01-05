@@ -136,11 +136,12 @@ func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
-	camPos := v.host.PrimaryCamera().Position()
+	cam := v.host.PrimaryCamera()
+	camPos := cam.Position()
 	switch v.camera.Mode() {
 	case editor_controls.EditorCameraMode2d:
 		v.gridTransform.SetPosition(matrix.NewVec3(
-			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), 0))
+			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
 	case editor_controls.EditorCameraMode3d:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
