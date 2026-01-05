@@ -1,7 +1,10 @@
 .indexHighlight {
-	display: flex;
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 1rem;
 }
 
 .indexHighlight div {
+	display: contents;
 	width: 50%;
 }
