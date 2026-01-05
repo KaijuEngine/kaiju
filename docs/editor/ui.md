@@ -1,5 +1,5 @@
 ---
-title: Launching the Editor | Kaiju Engine Editor
+title: UI | Kaiju Engine Editor
 ---
 
 # Coming soon!

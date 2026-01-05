@@ -1,5 +1,5 @@
 ---
-title: Launching the Editor | Kaiju Engine Editor
+title: Stage | Kaiju Engine Editor
 ---
 
 # Coming soon!

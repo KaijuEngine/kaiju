@@ -1,5 +1,5 @@
 ---
-title: Launching the Editor | Kaiju Engine Editor
+title: VFX | Kaiju Engine Editor
 ---
 
 # Coming soon!

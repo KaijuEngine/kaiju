@@ -9,10 +9,18 @@ nav:
   - Getting started: getting_started/getting_started.md
   - Kaiju Editor:
     - Launching the editor: editor/launching_the_editor.md
+    - Editor design: editor/editor_design.md
+    - Stage: editor/stage.md
+    - Content: editor/content.md
+    - Shading: editor/shading.md
+    - VFX (particles): editor/vfx.md
+    - UI: editor/ui.md
+    - Settings: editor/settings.md
     - Programming:
       - Data Binding: editor/programming/data_binding.md
     - Shaders:
       - Shader definition: editor/shaders/shader_designer.md
+    - Plugins: editor/plugins.md
   - Kaiju Engine:
     - Design goals: engine/design_goals.md
     - Build from source: engine/build_from_source.md
