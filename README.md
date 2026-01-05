@@ -46,14 +46,14 @@ go build -tags="debug,editor" -o ../ ./
 
 *Or just open the repository in VSCode (or other IDE) and begin debugging it.*
 
-If your environment isn't setup, check out [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine_developers/build_from_source.md#prerequisites) on getting it setup. You can skip the library building steps (Soloud and Bullet3), you already have this libs from the submodule clone.
+If your environment isn't setup, check out [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine/build_from_source.md#prerequisites) on getting it setup. You can skip the library building steps (Soloud and Bullet3), you already have this libs from the submodule clone.
 
 ### Clone the Repository without pre-built libaries
 ```sh
 git clone https://github.com/KaijuEngine/kaiju.git
 ```
 
-If you clone in this way, you'll need to manually build the library dependencies yourself. Please view [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine_developers/build_from_source.md#building-soloud) for how to build Soloud and [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine_developers/build_from_source.md#building-bullet3) for how to build Bullet3.
+If you clone in this way, you'll need to manually build the library dependencies yourself. Please view [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine/build_from_source.md#building-soloud) for how to build Soloud and [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine/build_from_source.md#building-bullet3) for how to build Bullet3.
 
 
 
