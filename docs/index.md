@@ -3,21 +3,108 @@ title: Kaiju Engine
 ---
 
 # Kaiju Engine
-Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
+An open source game engine and editor, written in Go backed by Vulkan.
 
-## Why Kaiju?
-The current version of the base engine renders extremely fast, faster than most would think a garbage collected language could go. In my testing a release mode build of a game in Unity with nothing but a black background and a cube runs at about 1,600 FPS. In Kaiju, the same thing runs at around 5,400 FPS on the same machine. In fact, a complete game, with audio, custom cursors, real time PBR rendering with real time shadows, UI, and more runs at 2,712 FPS (in "debug" mode) [screenshots or it didn't happen](https://x.com/ShieldCrush/status/1943516032674537958).
+## An editor, built in the engine
+The editor is a testament to the engine's flexibility, because the editor itself is a game running in the engine.
 
-## Why Go (golang)?
-I love C, and because I love C and found out that Ken Thompson played a part in designing Go, I gave Go a chance. It has been such a joy to use and work with I decided to port my C game engine to Go. Go is a modern system-level language that allows me to write code the way I want to write code and even have the opportunity to do some crazy things if I want to (no strings attached). Also the simplicity and "just works" of writing Assembly code was a great boost to my happiness.
+<img src="" />
 
-What's more, it's a language that other developers can easily learn and jump right into extending the engine/editor. No need for developers to re-figure out some bespoke macros or crazy templating non-sense. It's flat, easy, straight forward, and the foot-gun is hidden behind some walls, but there if you want it. Furthermore, developers can write their games in Go directly, no need for some alternative language that is different than the engine code (but we'll include Lua for modding).
+## 2D
+<div class="indexHighlight">
+	<div>
+		Making 2D games is as simple as switching the editor to "2D" mode.
+	</div>
+	<div>
+		<img src="" />
+	</div>
+</div>
 
-## ⚠️ Under heavy development ⚠️
-The engine is not released and is under heavy development. Now is a great time to make suggestions and give feedback and be part of the engine development!
+## 3D
+<div class="indexHighlight">
+	<div>
+		<img src="" />
+	</div>
+	<div>
+		A completely custom built math library backs the 3D rendering.
+	</div>
+</div>
+
+## Particle systems
+<div class="indexHighlight">
+	<div>
+		Compose multiple particle emitters into a system for stunning visual effects.
+	</div>
+	<div>
+		<img src="" />
+	</div>
+</div>
+
+## Animation
+<div class="indexHighlight">
+	<div>
+		<img src="" />
+	</div>
+	<div>
+		Full skeletal skinning, 2D sprite sheets, flip books, and material animations.
+	</div>
+</div>
+
+## UI
+<div class="indexHighlight">
+	<div>
+		A very fast, completely custom-built, retained-mode UI with the option of using HTML/CSS for markup.
+	</div>
+	<div>
+		<img src="" />
+	</div>
+</div>
+
+## Audio
+<div class="indexHighlight">
+	<div>
+		<img src="" />
+	</div>
+	<div>
+		Play sounds and music, even in 3D space, powered by Soloud.
+	</div>
+</div>
+
+## Physics
+<div class="indexHighlight">
+	<div>
+		Simulate your worlds with 3D physics.
+	</div>
+	<div>
+		<img src="" />
+	</div>
+</div>
+
+## Cross platform
+<div class="indexHighlight">
+	<div>
+		<img src="" />
+	</div>
+	<div>
+		Create on Windows, Linux and Mac.<br/>
+		Deploy to Windows, Linux, Mac, and Android (more platforms added soon).
+	</div>
+</div>
+
+## Development velocity
+<div class="indexHighlight">
+	<div>
+		Unmatched edit-build-launch speed. Iterate quickly with incredibly fast build times.
+	</div>
+	<div>
+		<img src="" />
+	</div>
+</div>
+
+## Support the project
+If you like what you see, and want to support the project's continued development, please consider [becoming a sponsor](https://github.com/sponsors/BrentFarris?frequency=recurring).
 
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
-- [Mailing list](https://www.freelists.org/list/kaijuengine)
+- [Kaiju creator on X/Twitter](https://twitter.com/ShieldCrush)
 - [Discord server](https://discord.gg/8rFPEu8U52)
-- [Brent Farris on X/Twitter](https://twitter.com/ShieldCrush)

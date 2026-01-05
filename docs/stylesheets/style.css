@@ -1,0 +1,7 @@
+.indexHighlight {
+	display: flex;
+}
+
+.indexHighlight div {
+	width: 50%;
+}
