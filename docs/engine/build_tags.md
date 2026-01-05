@@ -11,5 +11,3 @@ but others will do debugging/runtime changes.
 | ------------------ | ----------- |
 | `editor`           | Used to build the editor, otherwise the runtime will be built |
 | `debug`            | Used to enable various debug systems for the editor/runtime |
-| `shipping`         | Used to optimize functions and strip out debugging tools/functions  |
-| `vulkanValidation` | Turns on Vulkan validation layers |

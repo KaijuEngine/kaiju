@@ -44,9 +44,9 @@ import (
 
 func Main(game GameInterface, platformState any) {
 	var ops *slog.HandlerOptions = nil
-	if build.Shipping {
+	if !build.Debug {
 		ops = &slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level: slog.LevelError,
 		}
 	}
 	logStream := logging.Initialize(ops)
