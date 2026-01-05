@@ -3,7 +3,7 @@ title: Kaiju Engine
 ---
 
 # Kaiju Engine
-An open source game engine and editor, written in Go backed by Vulkan.
+An extremely fast, open source game engine and editor, written in Go backed by Vulkan.
 
 ## An editor, built in the engine
 The editor is a testament to the engine's flexibility, because the editor itself is a game running in the engine.

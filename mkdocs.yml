@@ -8,24 +8,29 @@ nav:
   - Home: index.md
   - Getting started: getting_started/getting_started.md
   - Kaiju Editor:
-    - Launching the Editor: editor/launching_the_editor.md
-  - Programming:
-    - Data Binding: programming/data_binding.md
-  - UI:
-    - Writing: ui/writing.md
-    - Preview: ui/preview.md
-    - Go Access: ui/go_access.md
-    - HTML Attributes: ui/html_attributes.md
-  - Engine Developers:
-    - Build from source: engine_developers/build_from_source.md
-    - Build tags: engine_developers/build_tags.md
-    - Performance Profiling: engine_developers/performance_profiling.md
-    - Building new fonts: engine_developers/building_fonts.md
-    - Editor windows: engine_developers/editor_windows.md
-    - Prompt popups: engine_developers/prompt_popup.md
-  - Shaders:
-    - Shader definition: shaders/shader_designer.md
+    - Launching the editor: editor/launching_the_editor.md
+    - Programming:
+      - Data Binding: editor/programming/data_binding.md
+    - Shaders:
+      - Shader definition: editor/shaders/shader_designer.md
+  - Kaiju Engine:
+    - Design goals: engine/design_goals.md
+    - Build from source: engine/build_from_source.md
+    - Build tags: engine/build_tags.md
+    - Performance profiling: engine/performance_profiling.md
+    - Building new fonts: engine/building_fonts.md
+    - Editor windows: engine/editor_windows.md
+    - Prompt popups: engine/prompt_popup.md
+    - UI:
+      - Writing: engine/ui/writing.md
+      - Preview: engine/ui/preview.md
+      - Go access: engine/ui/go_access.md
+      - HTML attributes: engine/ui/html_attributes.md
   - API: api/
+  - Community:
+    - GitHub: https://github.com/KaijuEngine/kaiju
+    - Creator X: https://twitter.com/ShieldCrush
+    - Discord: https://discord.gg/8rFPEu8U52
   - Sponsor Kaiju: https://github.com/sponsors/BrentFarris
 theme:
   name: 'material'
