@@ -408,20 +408,24 @@ button {
 	/* background-color: #20222A;
 	border: 2px solid #292C34; */
 	/* border-radius: 7px; */
-	background-color: #282828;
-	background-image: url("editor/textures/button_idle.png");
+	background-color: #373737;
+	background-image: url("input_atlas.png");
+	background-position: 64px 64px;
+	background-size: 64px 64px;
 }
 button:hover {
 	/* background-color: #721e21;
 	border: 2px solid #a72a2f; */
 	background-color: #575757;
-	background-image: url("editor/textures/button_hover.png");
+	background-image: url("input_atlas.png");
+	background-position: 0 64px;
 }
 button:active {
 	padding: 10px 10px 0px 10px;
 	/* background-color: #611a1c;
 	border: 2px solid #8d2528; */
-	background-image: url("editor/textures/button_down.png");
+	background-image: url("input_atlas.png");
+	background-position: 64px 0;
 }
 /** Unconventional helpers **/
 .centerText { text-align: center; }

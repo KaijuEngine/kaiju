@@ -403,7 +403,7 @@ func (p *Panel) panelPostLayoutUpdate() {
 		return
 	}
 	if p.PanelData().drawing.IsValid() {
-		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+		p.shaderData.setSize2d(p.Base())
 	}
 	if len(p.entity.Children) == 0 {
 		return
@@ -498,7 +498,9 @@ func (p *Panel) panelRender() {
 	pd := p.PanelData()
 	//p.Base().render() ---v
 	p.events[EventTypeRender].Execute()
-	p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+	if pd.drawing.IsValid() {
+		p.shaderData.setSize2d(p.Base())
+	}
 	pd.requestScrollX.requested = false
 	pd.requestScrollY.requested = false
 }
@@ -630,7 +632,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
 			float32(tex.Width), float32(tex.Height)}
 		p.textureSize = tex.Size()
-		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+		p.shaderData.resetSize2D(p.Base())
 		material = material.CreateInstance([]*rendering.Texture{tex})
 		pd.drawing = rendering.Drawing{
 			Material:   material,
@@ -642,6 +644,8 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		host.Drawings.AddDrawing(pd.drawing)
 	} else if tex != nil {
 		p.SetBackground(tex)
+		p.textureSize = tex.Size()
+		p.shaderData.setSize2d(p.Base())
 	}
 	// TODO:  Allow this to be overridable for transparent overlays?
 	// Panels that have a background shouldn't be click-through-able (probably)
@@ -680,7 +684,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 		// TODO:  Should this setting of mips be here?
 		tex.MipLevels = 1
 		p.textureSize = matrix.NewVec2(float32(tex.Width), float32(tex.Height))
-		p.shaderData.setSize2d(p.Base(), p.textureSize.X(), p.textureSize.Y())
+		p.shaderData.resetSize2D(p.Base())
 		pd.drawing.Material = pd.drawing.Material.SelectRoot().CreateInstance(t)
 		if pd.transparentDrawing.Material != nil {
 			pd.transparentDrawing.Material = pd.transparentDrawing.Material.SelectRoot().CreateInstance(t)

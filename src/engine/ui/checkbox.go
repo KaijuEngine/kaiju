@@ -41,12 +41,20 @@ import (
 )
 
 const (
-	offIdleTexture  = "checkbox-off-idle.png"
-	offDownTexture  = "checkbox-off-down.png"
-	offHoverTexture = "checkbox-off-hover.png"
-	onIdleTexture   = "checkbox-on-idle.png"
-	onDownTexture   = "checkbox-on-down.png"
-	onHoverTexture  = "checkbox-on-hover.png"
+	inputAtlas       = "input_atlas.png"
+	checkTexSize     = 32
+	checkOffIdleUvX  = 128
+	checkOffIdleUvY  = 64
+	checkOffDownUvX  = 128
+	checkOffDownUvY  = 0
+	checkOffHoverUvX = 128
+	checkOffHoverUvY = 32
+	checkOnIdleUvX   = 160
+	checkOnIdleUvY   = 32
+	checkOnDownUvX   = 128
+	checkOnDownUvY   = 96
+	checkOnHoverUvX  = 160
+	checkOnHoverUvY  = 0
 )
 
 const (
@@ -61,7 +69,6 @@ const (
 type checkboxData struct {
 	panelData
 	label     *Label
-	textures  [6]*rendering.Texture
 	isChecked bool
 }
 
@@ -83,22 +90,12 @@ func (cb *Checkbox) Init() {
 	p := base.ToPanel()
 	host := p.man.Value().Host
 	tc := host.TextureCache()
-	ld.textures[texOffIdle], _ = tc.Texture(
-		offIdleTexture, rendering.TextureFilterLinear)
-	ld.textures[texOffDown], _ = tc.Texture(
-		offDownTexture, rendering.TextureFilterLinear)
-	ld.textures[texOffHover], _ = tc.Texture(
-		offHoverTexture, rendering.TextureFilterLinear)
-	ld.textures[texOnIdle], _ = tc.Texture(
-		onIdleTexture, rendering.TextureFilterLinear)
-	ld.textures[texOnDown], _ = tc.Texture(
-		onDownTexture, rendering.TextureFilterLinear)
-	ld.textures[texOnHover], _ = tc.Texture(
-		onHoverTexture, rendering.TextureFilterLinear)
-	for i := range ld.textures {
-		ld.textures[i].MipLevels = 1
-	}
-	p.Init(ld.textures[texOffIdle], ElementTypeCheckbox)
+	tex, _ := tc.Texture(inputAtlas, rendering.TextureFilterLinear)
+	p.Init(tex, ElementTypeCheckbox)
+	p.shaderData.Size2D.SetZ(checkTexSize)
+	p.shaderData.Size2D.SetW(checkTexSize)
+	cb.shaderData.setUVSize(checkTexSize/cb.textureSize.X(), checkTexSize/cb.textureSize.Y())
+	cb.setAtlas(checkOffIdleUvX, checkOffIdleUvY)
 	base.AddEvent(EventTypeEnter, cb.onHover)
 	base.AddEvent(EventTypeExit, cb.onBlur)
 	base.AddEvent(EventTypeDown, cb.onDown)
@@ -107,55 +104,47 @@ func (cb *Checkbox) Init() {
 }
 
 func (cb *Checkbox) onHover() {
-	var target *rendering.Texture = nil
 	data := cb.CheckboxData()
 	if cb.flags.isDown() {
 		if data.isChecked {
-			target = data.textures[texOnDown]
+			cb.setAtlas(checkOnDownUvX, checkOnDownUvY)
 		} else {
-			target = data.textures[texOffDown]
+			cb.setAtlas(checkOffDownUvX, checkOffDownUvY)
 		}
 	} else {
 		if data.isChecked {
-			target = data.textures[texOnHover]
+			cb.setAtlas(checkOnHoverUvX, checkOnHoverUvY)
 		} else {
-			target = data.textures[texOffHover]
+			cb.setAtlas(checkOffHoverUvX, checkOffHoverUvY)
 		}
 	}
-	(*Panel)(cb).SetBackground(target)
 }
 
 func (cb *Checkbox) onBlur() {
 	data := cb.CheckboxData()
-	var target *rendering.Texture = nil
 	if data.isChecked {
-		target = data.textures[texOnIdle]
+		cb.setAtlas(checkOnIdleUvX, checkOnIdleUvY)
 	} else {
-		target = data.textures[texOffIdle]
+		cb.setAtlas(checkOffIdleUvX, checkOffIdleUvY)
 	}
-	(*Panel)(cb).SetBackground(target)
 }
 
 func (cb *Checkbox) onDown() {
 	data := cb.CheckboxData()
-	var target *rendering.Texture = nil
 	if data.isChecked {
-		target = data.textures[texOnDown]
+		cb.setAtlas(checkOnDownUvX, checkOnDownUvY)
 	} else {
-		target = data.textures[texOffDown]
+		cb.setAtlas(checkOffDownUvX, checkOffDownUvY)
 	}
-	(*Panel)(cb).SetBackground(target)
 }
 
 func (cb *Checkbox) onUp() {
 	data := cb.CheckboxData()
-	var target *rendering.Texture = nil
 	if data.isChecked {
-		target = data.textures[texOnHover]
+		cb.setAtlas(checkOnHoverUvX, checkOnHoverUvY)
 	} else {
-		target = data.textures[texOffHover]
+		cb.setAtlas(checkOffHoverUvX, checkOffHoverUvY)
 	}
-	(*Panel)(cb).SetBackground(target)
 }
 
 func (cb *Checkbox) onClick() {
@@ -169,21 +158,19 @@ func (cb *Checkbox) SetCheckedWithoutEvent(isChecked bool) {
 		return
 	}
 	data.isChecked = isChecked
-	var target *rendering.Texture = nil
 	if data.isChecked {
 		if cb.flags.hovering() {
-			target = data.textures[texOnHover]
+			cb.setAtlas(checkOnHoverUvX, checkOnHoverUvY)
 		} else {
-			target = data.textures[texOnIdle]
+			cb.setAtlas(checkOnIdleUvX, checkOnIdleUvY)
 		}
 	} else {
 		if cb.flags.hovering() {
-			target = data.textures[texOffHover]
+			cb.setAtlas(checkOffHoverUvX, checkOffHoverUvY)
 		} else {
-			target = data.textures[texOffIdle]
+			cb.setAtlas(checkOffIdleUvX, checkOffIdleUvY)
 		}
 	}
-	(*Panel)(cb).SetBackground(target)
 }
 
 func (cb *Checkbox) SetChecked(isChecked bool) {
@@ -191,6 +178,10 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 	(*UI)(cb).requestEvent(EventTypeChange)
 }
 
-func (cb Checkbox) IsChecked() bool {
+func (cb *Checkbox) IsChecked() bool {
 	return cb.CheckboxData().isChecked
+}
+
+func (cb *Checkbox) setAtlas(x, y float32) {
+	cb.shaderData.setUVXY(x/cb.textureSize.X(), y, cb.textureSize.Y())
 }

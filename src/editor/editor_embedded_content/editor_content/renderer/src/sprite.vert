@@ -15,6 +15,6 @@ void main() {
 	uv *= uvs.zw;
 	uv.y += (1.0 - uvs.w) - uvs.y;
 	uv.x += uvs.x;
-	fragColor = Color * fgColor;
 	fragTexCoord = uv;
+	fragColor = Color * fgColor;
 }

@@ -45,6 +45,12 @@ import (
 	"weak"
 )
 
+const (
+	triangleTexSize = 16
+	triangleUVX     = 160
+	triangleUVY     = 96
+)
+
 type selectData struct {
 	panelData
 	label    *Label
@@ -123,12 +129,15 @@ func (s *Select) Init(text string, options []SelectOption) {
 	}
 	{
 		// Up/down triangle
-		triTex, _ := host.TextureCache().Texture(
-			assets.TextureTriangle, rendering.TextureFilterLinear)
-		triTex.MipLevels = 1
+		triTex, _ := host.TextureCache().Texture(inputAtlas, rendering.TextureFilterLinear)
 		tri := man.Add()
 		img := tri.ToImage()
 		img.Init(triTex)
+		img.shaderData.Size2D.SetZ(triangleTexSize)
+		img.shaderData.Size2D.SetW(triangleTexSize)
+		imgTSize := img.textureSize
+		img.shaderData.setUVSize(triangleTexSize/imgTSize.X(), triangleTexSize/imgTSize.Y())
+		img.shaderData.setUVXY(triangleUVX/imgTSize.X(), triangleUVY, imgTSize.Y())
 		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{weak.Make(p.Base())}})
 		tri.ToPanel().SetColor(matrix.ColorBlack())
 		tri.layout.SetPositioning(PositioningAbsolute)
