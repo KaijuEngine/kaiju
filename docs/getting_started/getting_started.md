@@ -3,10 +3,13 @@ title: Getting Started | Kaiju Engine
 ---
 
 # Getting started
-TBD
+The best way to get started with the engine is to get the editor up and running and create a project. I'd highly recommend watching through the Sudoku port series I've created on YouTube to learn the basics on how to use the engine/editor.
 
 ## Installing the editor
 Kaiju is a portable program and doesn't require installation at this time. You can either [download a prebuilt version](https://github.com/KaijuEngine/kaiju/tags) or [build from source](/engine/build_from_source/).
+
+## Learn through the Sudoku series
+<iframe width="560" height="315" src="https://www.youtube.com/embed/cmjX_M6lEZE?si=ZiCpQOjbgfp_9AV6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## Launching the editor
 When you launch the editor, you will be presented with the project select window. In this window, you can either select an existing project from the list below or click the button to find or create a project.
@@ -31,6 +34,7 @@ The primary editor window gives you access to all other editor windows. The main
 | `Alt + LMB`    | Rotate viewport                   |
 | `MMB`	         | Pan viewport                      |
 | `Space + LMB`  | Pan viewport                      |
+| `Alt + RMB`    | Zoom viewport
 | `Scroll`       | Zoom viewport                     |
 | `F`            | Focus the selection               |
 | `G`            | Grab/move selection               |
@@ -39,11 +43,11 @@ The primary editor window gives you access to all other editor windows. The main
 | `X`            | Locks transform mod to X axis     |
 | `Y`            | Locks transform mod to Y axis     |
 | `Z`            | Locks transform mod to Z axis     |
-| `Y`            | Open content browser              |
-| `Z`            | Open content browser              |
+| `C`            | Toggle content panel              |
+| `H`            | Toggle hierarchy panel            |
+| `D`            | Toggle details panel              |
 | `Ctrl + S`     | Save the current stage            |
-| `Ctrl + Space` | Open content browser              |
-| `Ctrl + H`     | Open hierarchy window             |
+| `Ctrl + T`     | Create template from selected     |
 | `Ctrl + P`     | Parent selection [1]              |
 | `F5`           | Build and run a debug build [2]   |
 | `Ctrl + F5`    | Build and run a release build [3] |
