@@ -45,6 +45,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/exec"
+	"reflect"
 	"time"
 )
 
@@ -335,18 +336,20 @@ func toToolPayload(call ToolCall, res any, err error) string {
 	} else if res == nil {
 		return fmt.Sprintf(`{"tool":"%s","success":true}`, call.Function.Name)
 	} else {
+		val := reflect.ValueOf(res)
+		if val.Kind() == reflect.Ptr {
+			if val.IsNil() {
+				return fmt.Sprintf(`{"tool":"%s","success":true}`, call.Function.Name)
+			}
+			val = val.Elem()
+		}
+		if val.Kind() == reflect.Struct {
+			if field := val.FieldByName("Success"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Bool {
+				field.SetBool(true)
+			}
+		}
 		j, err := json.Marshal(res)
 		if err != nil {
-			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
-		}
-		var tmp map[string]any
-		if err = json.Unmarshal(j, &tmp); err != nil {
-			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
-		}
-		if _, ok := tmp["success"]; !ok {
-			tmp["success"] = true
-		}
-		if j, err = json.Marshal(tmp); err != nil {
 			return fmt.Sprintf(`{"tool":"%s","success":false,"error":"%v"}`, call.Function.Name, err)
 		}
 		return string(j)
