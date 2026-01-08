@@ -68,7 +68,7 @@ func (c PlayMusicEntityData) Init(e *engine.Entity, host *engine.Host) {
 		return
 	}
 	a := host.Audio()
-	clip, err := a.LoadSound(adb, string(c.MusicId))
+	clip, err := a.LoadMusic(adb, string(c.MusicId))
 	if err != nil {
 		slog.Error("failed to load the music clip", "id", c.MusicId, "error", err)
 		return
