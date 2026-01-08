@@ -46,9 +46,10 @@ import (
 
 type sliderData struct {
 	panelData
-	bgPanel *Panel
-	fgPanel *Panel
-	value   float32
+	bgPanel  *Panel
+	fgPanel  *Panel
+	value    float32
+	dragging bool
 }
 
 func (s *sliderData) innerPanelData() *panelData { return &s.panelData }
@@ -109,6 +110,10 @@ func (slider *Slider) update(deltaTime float64) {
 	slider.Base().ToPanel().update(deltaTime)
 	if slider.flags.drag() {
 		slider.SetValue(slider.Delta())
+		slider.SliderData().dragging = true
+	} else if slider.SliderData().dragging {
+		slider.submit()
+		slider.SliderData().dragging = false
 	}
 }
 
@@ -120,10 +125,6 @@ func (slider Slider) Delta() float32 {
 	xPos -= w * 0.5
 	mp := host.Window.Cursor.Position()
 	return (mp.X() - xPos) / w
-}
-
-func (slider *Slider) onDown() {
-	slider.SetValue(slider.Delta())
 }
 
 func (slider Slider) Value() float32 {
@@ -149,4 +150,13 @@ func (slider *Slider) SetFGColor(fgColor matrix.Color) {
 
 func (slider *Slider) SetBGColor(bgColor matrix.Color) {
 	slider.SliderData().bgPanel.SetColor(bgColor)
+}
+
+func (slider *Slider) submit() {
+	defer tracing.NewRegion("Slider.submit").End()
+	slider.Base().ExecuteEvent(EventTypeSubmit)
+}
+
+func (slider *Slider) onDown() {
+	slider.SetValue(slider.Delta())
 }
