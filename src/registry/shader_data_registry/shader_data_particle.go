@@ -52,7 +52,8 @@ func init() {
 }
 
 type ShaderDataParticle struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	Color matrix.Color
 	UVs   matrix.Vec4 `default:"0,0,1,1"`
 }

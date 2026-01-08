@@ -52,7 +52,8 @@ func init() {
 }
 
 type ShaderDataBasicLit struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	Color  matrix.Color
 	Light0 int32
 	Light1 int32

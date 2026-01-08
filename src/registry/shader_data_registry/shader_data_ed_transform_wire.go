@@ -52,7 +52,8 @@ func init() {
 }
 
 type ShaderDataEdTransformWire struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	Color matrix.Color
 }
 

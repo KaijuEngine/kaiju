@@ -55,7 +55,8 @@ func init() {
 }
 
 type ShaderDataPBR struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	VertColors matrix.Color
 	Metallic   float32
 	Roughness  float32

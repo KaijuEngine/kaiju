@@ -52,7 +52,8 @@ func init() {
 }
 
 type ShaderDataGrid struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	Color matrix.Color
 }
 
