@@ -167,7 +167,17 @@ func (a *Audio) LoadSound(adb assets.Database, key string) (*AudioClip, error) {
 }
 
 func (a *Audio) Play(clip *AudioClip) VoiceHandle {
-	return play(a.soloud, clip.wav)
+	handle := play(a.soloud, clip.wav)
+	if clip.isSFX {
+		if sfx, ok := a.sfx[clip.key]; ok {
+			sfx.handles = append(sfx.handles, uint32(handle))
+		}
+	} else {
+		if bgm, ok := a.bgm[clip.key]; ok {
+			bgm.handles = append(bgm.handles, uint32(handle))
+		}
+	}
+	return handle
 }
 
 func (a *Audio) Stop(handle VoiceHandle) {
