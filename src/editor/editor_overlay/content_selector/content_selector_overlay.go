@@ -94,9 +94,8 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 		})
 	}
 	data.Options = append(data.Options, contentSelectorEntry{
-		Name: "None",
-		// TODO:  Make a special blank texture for this
-		Texture: "editor/textures/icons/file.png",
+		Name:    "None",
+		Texture: "editor/textures/icons/none.png",
 	})
 	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/content_selector_overlay.go.html",
 		data, map[string]func(*document.Element){
