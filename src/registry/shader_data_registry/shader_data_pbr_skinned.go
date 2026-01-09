@@ -84,25 +84,3 @@ func (t *ShaderDataPbrSkinned) BoundDataPointer() unsafe.Pointer {
 func (t *ShaderDataPbrSkinned) UpdateBoundData() bool {
 	return t.SkinUpdateNamedData()
 }
-
-func (s *ShaderDataPbrSkinned) TestFlag(flag StandardShaderDataFlags) bool {
-	return (s.Flags & flag) != 0
-}
-
-func (s *ShaderDataPbrSkinned) SetFlag(flag StandardShaderDataFlags) {
-	s.Flags |= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataPbrSkinned) ClearFlag(flag StandardShaderDataFlags) {
-	s.Flags &^= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataPbrSkinned) updateFlagEnableStatus() {
-	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
-		s.Flags = 0
-	} else {
-		s.Flags |= ShaderDataStandardFlagEnable
-	}
-}

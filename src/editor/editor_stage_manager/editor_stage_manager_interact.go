@@ -250,18 +250,8 @@ func (m *StageManager) SelectionBounds() collision.AABB {
 func (m *StageManager) setShaderDataFlag(root *StageEntity) {
 	var procChildren func(e *StageEntity)
 	procChildren = func(e *StageEntity) {
-		switch sd := e.StageData.ShaderData.(type) {
-		case *shader_data_registry.ShaderDataStandard:
-			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-		case *shader_data_registry.ShaderDataStandardSkinned:
-			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-		case *shader_data_registry.ShaderDataPBR:
-			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-		case *shader_data_registry.ShaderDataPbrSkinned:
-			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-		case *shader_data_registry.ShaderDataUnlit:
-			sd.SetFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-		}
+		shader_data_registry.StandardShaderDataFlagsSet(
+			e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
 		for i := range e.Children {
 			procChildren(EntityToStageEntity(e.Children[i]))
 		}
@@ -273,18 +263,8 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 	var procChildren func(e *StageEntity)
 	procChildren = func(e *StageEntity) {
 		if !m.IsSelected(e) {
-			switch sd := e.StageData.ShaderData.(type) {
-			case *shader_data_registry.ShaderDataStandard:
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			case *shader_data_registry.ShaderDataStandardSkinned:
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			case *shader_data_registry.ShaderDataPBR:
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			case *shader_data_registry.ShaderDataPbrSkinned:
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			case *shader_data_registry.ShaderDataUnlit:
-				sd.ClearFlag(shader_data_registry.ShaderDataStandardFlagOutline)
-			}
+			shader_data_registry.StandardShaderDataFlagsClear(
+				e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
 		}
 		for i := range e.Children {
 			procChildren(EntityToStageEntity(e.Children[i]))

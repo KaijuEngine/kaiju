@@ -62,25 +62,3 @@ type ShaderDataUnlit struct {
 func (t ShaderDataUnlit) Size() int {
 	return int(unsafe.Sizeof(ShaderDataUnlit{}) - rendering.ShaderBaseDataStart)
 }
-
-func (s *ShaderDataUnlit) TestFlag(flag StandardShaderDataFlags) bool {
-	return (s.Flags & flag) != 0
-}
-
-func (s *ShaderDataUnlit) SetFlag(flag StandardShaderDataFlags) {
-	s.Flags |= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataUnlit) ClearFlag(flag StandardShaderDataFlags) {
-	s.Flags &^= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataUnlit) updateFlagEnableStatus() {
-	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
-		s.Flags = 0
-	} else {
-		s.Flags |= ShaderDataStandardFlagEnable
-	}
-}

@@ -42,16 +42,6 @@ import (
 	"unsafe"
 )
 
-type StandardShaderDataFlags = uint32
-
-const (
-	ShaderDataStandardFlagOutline = StandardShaderDataFlags(1 << iota)
-	// Enable bit will be set anytime there are flags. This is needed because
-	// bits at the extremes of the float will be truncated to 0 otherwise. By
-	// setting this bit (largest exponent bit 2^1) this issue can be prevented.
-	ShaderDataStandardFlagEnable = 1 << 30
-)
-
 func init() {
 	register(func() rendering.DrawInstance {
 		return &ShaderDataStandard{
@@ -70,26 +60,4 @@ type ShaderDataStandard struct {
 
 func (ShaderDataStandard) Size() int {
 	return int(unsafe.Sizeof(ShaderDataStandard{}) - rendering.ShaderBaseDataStart)
-}
-
-func (s *ShaderDataStandard) TestFlag(flag StandardShaderDataFlags) bool {
-	return (s.Flags & flag) != 0
-}
-
-func (s *ShaderDataStandard) SetFlag(flag StandardShaderDataFlags) {
-	s.Flags |= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataStandard) ClearFlag(flag StandardShaderDataFlags) {
-	s.Flags &^= flag
-	s.updateFlagEnableStatus()
-}
-
-func (s *ShaderDataStandard) updateFlagEnableStatus() {
-	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
-		s.Flags = 0
-	} else {
-		s.Flags |= ShaderDataStandardFlagEnable
-	}
 }
