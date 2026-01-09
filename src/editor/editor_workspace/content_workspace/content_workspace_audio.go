@@ -184,6 +184,9 @@ func (v *ContentAudioView) update(deltaTime float64) {
 	}
 	v.seconds += deltaTime
 	if v.seconds > v.duration {
+		v.stopAudio()
+		v.setAudioPosition(0)
+		audioSlider(v.audioPlayer).SetValueWithoutEvent(0)
 		return
 	}
 	v.setSliderPosition()
