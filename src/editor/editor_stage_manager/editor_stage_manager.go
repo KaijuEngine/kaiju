@@ -326,6 +326,7 @@ func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
 	defer tracing.NewRegion("StageManager.AddBVH").End()
 	cpy := collision.CloneBVH(bvh)
 	collision.AddSubBVH(&m.worldBVH, cpy, transform)
+	m.RefitWorldBVH()
 }
 
 //func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
