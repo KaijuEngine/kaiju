@@ -244,7 +244,13 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	defer tracing.NewRegion("StageWorkspace.spawnTexture").End()
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
-	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	var mat *rendering.Material
+	var err error
+	if w.stageView.IsView3D() {
+		mat, err = w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	} else {
+		mat, err = w.Host.MaterialCache().Material(assets.MaterialDefinitionUnlit)
+	}
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
 		return
@@ -280,9 +286,17 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 	e.Transform.SetPosition(point)
 	man.AddBVH(e.StageData.Bvh, &e.Transform)
 	e.StageData.Description.Textures = []string{cc.Id()}
-	e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
-		ShaderDataBase: rendering.NewShaderDataBase(),
-		Color:          matrix.ColorWhite(),
+	if w.stageView.IsView3D() {
+		e.StageData.ShaderData = &shader_data_registry.ShaderDataStandard{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+		}
+	} else {
+		e.StageData.ShaderData = &shader_data_registry.ShaderDataUnlit{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+			UVs:            matrix.Vec4{0, 0, 1, 1},
+		}
 	}
 	w.Host.RunOnMainThread(func() {
 		tex.DelayedCreate(w.Host.Window.Renderer)

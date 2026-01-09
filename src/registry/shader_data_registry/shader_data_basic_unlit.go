@@ -55,9 +55,32 @@ type ShaderDataUnlit struct {
 	rendering.ShaderDataBase `visible:"false"`
 
 	Color matrix.Color
-	UVs   matrix.Vec4 `default:"0,0,1,1"`
+	UVs   matrix.Vec4             `default:"0,0,1,1"`
+	Flags StandardShaderDataFlags `visible:"false"`
 }
 
 func (t ShaderDataUnlit) Size() int {
 	return int(unsafe.Sizeof(ShaderDataUnlit{}) - rendering.ShaderBaseDataStart)
+}
+
+func (s *ShaderDataUnlit) TestFlag(flag StandardShaderDataFlags) bool {
+	return (s.Flags & flag) != 0
+}
+
+func (s *ShaderDataUnlit) SetFlag(flag StandardShaderDataFlags) {
+	s.Flags |= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataUnlit) ClearFlag(flag StandardShaderDataFlags) {
+	s.Flags &^= flag
+	s.updateFlagEnableStatus()
+}
+
+func (s *ShaderDataUnlit) updateFlagEnableStatus() {
+	if s.Flags|ShaderDataStandardFlagEnable == ShaderDataStandardFlagEnable {
+		s.Flags = 0
+	} else {
+		s.Flags |= ShaderDataStandardFlagEnable
+	}
 }
