@@ -1,4 +1,4 @@
-{"Name":"unlit","EnableDebug":true,"Vertex":"unlit.vert","VertexFlags":"","Fragment":"unlit.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
+{"Name":"unlit","EnableDebug":false,"Vertex":"unlit.vert","VertexFlags":"","Fragment":"unlit.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
 
 "VertexSpv":"unlit.vert.spv",
 "FragmentSpv":"unlit.frag.spv",

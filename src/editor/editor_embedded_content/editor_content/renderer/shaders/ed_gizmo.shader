@@ -1,7 +1,7 @@
-{"Name":"ed_gizmo","EnableDebug":true,"Vertex":"ed_gizmo.vert","VertexFlags":"","Fragment":"ed_gizmo.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
+{"Name":"ed_gizmo","EnableDebug":false,"Vertex":"unlit.vert","VertexFlags":"-DBILLBOARD","Fragment":"unlit.frag","FragmentFlags":"","Geometry":"","GeometryFlags":"","TessellationControl":"","TessellationControlFlags":"","TessellationEvaluation":"","TessellationEvaluationFlags":"",
 
-"VertexSpv":"ed_gizmo.vert.spv",
-"FragmentSpv":"ed_gizmo.frag.spv",
+"VertexSpv":"unlit_ed_gizmo.vert.spv",
+"FragmentSpv":"unlit.frag.spv",
 "GeometrySpv":"",
 "TessellationControlSpv":"",
 "TessellationEvaluationSpv":"",
