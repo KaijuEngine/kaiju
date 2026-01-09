@@ -286,7 +286,7 @@ func (p *Project) PackageDebug() {
 	files := []content_archive.SourceContent{
 		{
 			Key:     stages.EntryPointAssetKey,
-			RawData: []byte(p.settings.EntryPointStage),
+			RawData: []byte(p.Settings.EntryPointStage),
 		},
 	}
 	for i := range files {

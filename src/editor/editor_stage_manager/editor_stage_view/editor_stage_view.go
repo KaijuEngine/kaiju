@@ -42,7 +42,7 @@ import (
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/editor_workspace"
+
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/assets"
@@ -75,7 +75,7 @@ func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
-func (v *StageView) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
+func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
 	v.manager.Initialize(host, ed.History(), ed)
 	v.host = host
@@ -180,7 +180,7 @@ func (v *StageView) createViewportGrid() {
 	v.gridTransform.ResetDirty()
 }
 
-func (v *StageView) setupCamera(ed editor_workspace.StageWorkspaceEditorInterface) {
+func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
 	pjs := ed.Project().Settings
 	v.camera.OnModeChange.Add(func() {
@@ -219,7 +219,7 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 	}
 }
 
-func (v *StageView) LoadLatestOpenStage(ed editor_workspace.StageWorkspaceEditorInterface) {
+func (v *StageView) LoadLatestOpenStage(ed EditorStageViewWorkspaceInterface) {
 	pj := ed.Project()
 	if pj.Settings.EditorSettings.LatestOpenStage != "" {
 		v.manager.LoadStage(pj.Settings.EditorSettings.LatestOpenStage, v.host, ed.Cache(), pj)

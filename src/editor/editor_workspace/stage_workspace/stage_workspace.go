@@ -61,13 +61,12 @@ type StageWorkspace struct {
 	detailsUI   WorkspaceDetailsUI
 }
 
-// TODO(#537): Revisit cyclical import issue
-func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface, sv *editor_stage_view.StageView) {
+func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
-	w.stageView = sv
+	w.stageView = ed.StageView()
 	w.stageView.Initialize(host, ed)
-	w.pageData.SetupUIData(w.ed.Cache(), sv.Camera().ModeString())
+	w.pageData.SetupUIData(w.ed.Cache(), ed.StageView().Camera().ModeString())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
 	}

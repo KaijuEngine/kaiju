@@ -163,7 +163,7 @@ func (ed *Editor) postProjectLoad() {
 	slog.Info("compiling the project to get things ready")
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
-	ed.workspaces.stage.Initialize(ed.host, ed, &ed.stageView) // TODO(#537): Revisit cyclical import issue
+	ed.workspaces.stage.Initialize(ed.host, ed)
 	ed.workspaces.content.Initialize(ed.host, ed)
 	ed.workspaces.shading.Initialize(ed.host, ed)
 	ed.workspaces.vfx.Initialize(ed.host, ed)
