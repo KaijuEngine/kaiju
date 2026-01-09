@@ -76,7 +76,7 @@ func (m *Material) SelectRoot() *Material {
 
 type MaterialTextureData struct {
 	Label   string `static:"true"`
-	Texture string `options:""` // Blank = fallback
+	Texture string `content:"Texture"`
 	Filter  string `options:"StringVkFilter"`
 }
 

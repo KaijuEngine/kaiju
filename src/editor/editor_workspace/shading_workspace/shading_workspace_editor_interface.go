@@ -46,6 +46,8 @@ import (
 )
 
 type ShadingWorkspaceEditorInterface interface {
+	BlurInterface()
+	FocusInterface()
 	Events() *editor_events.EditorEvents
 	History() *memento.History
 	Project() *project.Project

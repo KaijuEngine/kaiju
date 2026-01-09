@@ -39,6 +39,7 @@ package common_workspace
 import (
 	"fmt"
 	"kaiju/editor/codegen/reflect_helpers"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
@@ -57,15 +58,17 @@ type DataUISection struct {
 }
 
 type DataUISectionField struct {
-	Name     string
-	Type     string
-	List     []ui.SelectOption
-	Value    any
-	Sections []DataUISection
-	RootPath string
-	TipKey   string
-	Label    string
-	IsStatic bool
+	Name        string
+	Type        string
+	List        []ui.SelectOption
+	Value       any
+	Sections    []DataUISection
+	RootPath    string
+	TipKey      string
+	Label       string
+	ContentType string
+	ContentName string
+	IsStatic    bool
 }
 
 func (f DataUISectionField) DisplayName() string {
@@ -144,12 +147,14 @@ func SetObjectValueFromUI(obj any, e *document.Element) {
 			val = reflect.ValueOf(e.UI.ToSelect().Value())
 		case ui.ElementTypeCheckbox:
 			val = reflect.ValueOf(e.UI.ToCheckbox().IsChecked())
+		default:
+			val = reflect.ValueOf(e.Attribute("value"))
 		}
 		v.Set(val)
 	}
 }
 
-func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.SelectOption) DataUISection {
+func ReflectUIStructure(cache *content_database.Cache, obj any, path string, fallbackOptions map[string][]ui.SelectOption) DataUISection {
 	section := DataUISection{}
 	v := reflect.ValueOf(obj).Elem()
 	vt := v.Type()
@@ -162,13 +167,25 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 			continue
 		}
 		field := DataUISectionField{
-			Name:     vt.Field(i).Name,
-			Type:     f.Type().Name(),
-			Value:    f.Interface(),
-			RootPath: path,
-			TipKey:   tag.Get("tip"),
-			Label:    tag.Get("label"),
-			IsStatic: tag.Get("static") == "true",
+			Name:        vt.Field(i).Name,
+			Type:        f.Type().Name(),
+			Value:       f.Interface(),
+			RootPath:    path,
+			TipKey:      tag.Get("tip"),
+			Label:       tag.Get("label"),
+			ContentType: tag.Get("content"),
+			IsStatic:    tag.Get("static") == "true",
+		}
+		if field.ContentType != "" {
+			field.Type = "content"
+			if id, ok := field.Value.(string); ok {
+				cc, err := cache.Read(id)
+				if err == nil && cc.Config.Name != "" {
+					field.ContentName = cc.Config.Name
+				} else {
+					field.ContentName = id
+				}
+			}
 		}
 		if d := tag.Get("default"); d != "" {
 			v := reflect.New(reflect.TypeOf(field.Value))
@@ -212,12 +229,12 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 				childCount := f.Len()
 				for j := range childCount {
 					myPath := fmt.Sprintf("%s.%d", p, j)
-					s := ReflectUIStructure(f.Index(j).Addr().Interface(), myPath, fallbackOptions)
+					s := ReflectUIStructure(cache, f.Index(j).Addr().Interface(), myPath, fallbackOptions)
 					field.Sections = append(field.Sections, s)
 				}
 			} else {
 				field.Type = "struct"
-				s := ReflectUIStructure(f.Addr().Interface(), p, fallbackOptions)
+				s := ReflectUIStructure(cache, f.Addr().Interface(), p, fallbackOptions)
 				field.Sections = append(field.Sections, s)
 			}
 		}

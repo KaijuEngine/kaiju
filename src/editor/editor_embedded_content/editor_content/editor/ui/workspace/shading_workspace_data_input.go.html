@@ -30,6 +30,13 @@
 </div>
 {{end}}
 
+{{define "content"}}
+<div class="inputItem">
+	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<div data-path="{{.FullPath}}" value="{{.Value}}" class="edContentPickInput input" data-type="{{.ContentType}}" onclick="clickSelectContentId">{{if .Value}}{{.ContentName}}{{else}}empty &lpar;{{.ContentType}}&rpar;{{end}}</div>
+</div>
+{{end}}
+
 {{define "any"}}
 <div class="inputItem">
 	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
@@ -66,6 +73,8 @@
 			{{template "enum" $f}}
 		{{else if eq $f.Type "bitmask"}}
 			{{template "bitmask" $f}}
+		{{else if eq $f.Type "content"}}
+			{{template "content" $f}}
 		{{else}}
 			{{template "any" $f}}
 		{{end}}

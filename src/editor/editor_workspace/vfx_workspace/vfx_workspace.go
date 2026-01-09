@@ -451,7 +451,7 @@ func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
 	case ui.ElementTypeSelect:
 		inputText = e.UI.ToSelect().Value()
 	case ui.ElementTypePanel:
-		if e.HasClass("dataContentId") {
+		if e.HasClass("edContentPickInput") {
 			inputText = e.InnerLabel().Text()
 		}
 	}

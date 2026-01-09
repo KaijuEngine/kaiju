@@ -39,6 +39,7 @@ package shader_designer
 import (
 	"encoding/json"
 	"errors"
+	"kaiju/editor/editor_overlay/content_selector"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -93,10 +94,6 @@ func collectShaderPipelinesOptions(pfs *project_file_system.FileSystem, cache *c
 	return collectSpecificFileOptions(pfs, cache, content_database.ShaderPipeline{})
 }
 
-func collectTextureOptions(pfs *project_file_system.FileSystem, cache *content_database.Cache) []ui.SelectOption {
-	return collectSpecificFileOptions(pfs, cache, content_database.Texture{})
-}
-
 func (win *ShaderDesigner) materialPullTextureLabels() {
 	if win.material.Shader == "" {
 		return
@@ -128,18 +125,19 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["Shader"] = collectShaderOptions(pfs, cache)
 	listings["RenderPass"] = collectRenderPassOptions(pfs, cache)
 	listings["ShaderPipeline"] = collectShaderPipelinesOptions(pfs, cache)
-	listings["Texture"] = collectTextureOptions(pfs, cache)
 	win.materialPullTextureLabels()
-	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
+	data := common_workspace.ReflectUIStructure(win.ed.Cache(),
+		&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
 	data.GroupName = win.material.name
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
-			"showTooltip":     showMaterialTooltip,
-			"valueChanged":    win.materialValueChanged,
-			"addToSlice":      win.materialAddToSlice,
-			"removeFromSlice": win.materialRemoveFromSlice,
-			"saveData":        win.materialSave,
+			"showTooltip":          showMaterialTooltip,
+			"valueChanged":         win.materialValueChanged,
+			"addToSlice":           win.materialAddToSlice,
+			"removeFromSlice":      win.materialRemoveFromSlice,
+			"clickSelectContentId": win.clickSelectContentId,
+			"saveData":             win.materialSave,
 		})
 	input, _ := win.materialDoc.GetElementById("nameInput")
 	win.nameInputField = weak.Make(input)
@@ -156,6 +154,24 @@ func showMaterialTooltip(e *document.Element) { showTooltip(materialTooltips, e)
 func (win *ShaderDesigner) materialAddToSlice(e *document.Element) {
 	common_workspace.ReflectAddToSlice(&win.material, e)
 	win.reloadMaterialDoc()
+}
+
+func (win *ShaderDesigner) clickSelectContentId(e *document.Element) {
+	cache := win.ed.Cache()
+	win.ed.BlurInterface()
+	content_selector.Show(win.host, e.Attribute("data-type"), cache,
+		func(id string) {
+			e.SetAttribute("value", id)
+			cc, err := cache.Read(id)
+			if err != nil || cc.Config.Name == "" {
+				e.InnerLabel().SetText(id)
+			} else {
+				e.InnerLabel().SetText(cc.Config.Name)
+			}
+			win.materialValueChanged(e)
+			win.ed.FocusInterface()
+		}, win.ed.FocusInterface)
+
 }
 
 func (win *ShaderDesigner) materialRemoveFromSlice(e *document.Element) {

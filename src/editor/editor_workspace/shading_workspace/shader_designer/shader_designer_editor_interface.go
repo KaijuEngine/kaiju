@@ -43,6 +43,8 @@ import (
 )
 
 type ShaderDesignerEditorInterface interface {
+	BlurInterface()
+	FocusInterface()
 	Events() *editor_events.EditorEvents
 	ProjectFileSystem() *project_file_system.FileSystem
 	Cache() *content_database.Cache

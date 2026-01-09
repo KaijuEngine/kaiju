@@ -222,9 +222,12 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 		w.pluginInitStates[i] = w.plugins[i].Config.Enabled
 	}
 	listings := map[string][]ui.SelectOption{}
+	cache := w.editor.Project().CacheDatabase()
 	return settingsWorkspaceData{
-		Editor:  common_workspace.ReflectUIStructure(w.editorSettings, "", listings),
-		Project: common_workspace.ReflectUIStructure(w.projectSettings, "", listings),
+		Editor: common_workspace.ReflectUIStructure(cache,
+			w.editorSettings, "", listings),
+		Project: common_workspace.ReflectUIStructure(cache,
+			w.projectSettings, "", listings),
 		Plugins: w.plugins,
 	}
 }

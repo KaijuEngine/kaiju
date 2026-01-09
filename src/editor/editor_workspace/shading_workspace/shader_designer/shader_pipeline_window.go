@@ -57,7 +57,8 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.pipelineDoc.Destroy()
 	}
-	data := common_workspace.ReflectUIStructure(&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
+	data := common_workspace.ReflectUIStructure(win.ed.Cache(),
+		&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
 	data.Name = "Shader Pipeline Editor"
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){

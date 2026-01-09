@@ -490,3 +490,11 @@ input[type="text"] {
 	color: white;
 	background-color: #2a2d38;
 }
+.edContentPickInput {
+	background-color: #282828;
+	color: #AAA;
+	border: 2px solid #777;
+}
+.edContentPickInput:hover {
+	background-color: #881E1E;
+}

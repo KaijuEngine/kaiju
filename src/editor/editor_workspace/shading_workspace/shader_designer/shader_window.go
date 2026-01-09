@@ -113,7 +113,8 @@ func (win *ShaderDesigner) reloadShaderDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.shaderDoc.Destroy()
 	}
-	data := common_workspace.ReflectUIStructure(&win.shader.ShaderData, "", collectFileOptions(win.ed.ProjectFileSystem()))
+	data := common_workspace.ReflectUIStructure(win.ed.Cache(),
+		&win.shader.ShaderData, "", collectFileOptions(win.ed.ProjectFileSystem()))
 	data.Name = "Shader Editor"
 	win.shaderDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
