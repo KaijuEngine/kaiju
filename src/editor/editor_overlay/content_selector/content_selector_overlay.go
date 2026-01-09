@@ -39,6 +39,7 @@ package content_selector
 import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
+	"kaiju/engine/assets"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
@@ -74,7 +75,7 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 	var err error
 	all := cache.ListByType(typeName)
 	data := contentSelectorData{
-		Options: make([]contentSelectorEntry, len(all)),
+		Options: make([]contentSelectorEntry, len(all), len(all)+2),
 	}
 	for i := range all {
 		data.Options[i].Id = all[i].Id()
@@ -85,6 +86,18 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 			data.Options[i].Texture = "editor/textures/icons/file.png"
 		}
 	}
+	if typeName == (content_database.Texture{}).TypeName() {
+		data.Options = append(data.Options, contentSelectorEntry{
+			Id:      assets.TextureSquare,
+			Name:    assets.TextureSquare,
+			Texture: assets.TextureSquare,
+		})
+	}
+	data.Options = append(data.Options, contentSelectorEntry{
+		Name: "None",
+		// TODO:  Make a special blank texture for this
+		Texture: "editor/textures/icons/file.png",
+	})
 	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/content_selector_overlay.go.html",
 		data, map[string]func(*document.Element){
 			"search":        o.search,
