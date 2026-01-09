@@ -230,9 +230,9 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
-func (c *StandardCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+func (c *StandardCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray {
 	defer tracing.NewRegion("StandardCamera.RayCast").End()
-	return c.internalRayCast(screenPos, c.position)
+	return c.internalRayCast(cursorPosition, c.position)
 }
 
 // TryPlaneHit will project a ray from the camera's position given a screen
@@ -353,10 +353,10 @@ func (c *StandardCamera) updateFrustum() {
 	c.frustum.ExtractPlanes(vp)
 }
 
-func (c *StandardCamera) internalRayCast(screenPos matrix.Vec2, pos matrix.Vec3) collision.Ray {
+func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.Vec3) collision.Ray {
 	defer tracing.NewRegion("StandardCamera.internalRayCast").End()
-	x := (2.0*screenPos.X())/c.viewWidth - 1.0
-	y := 1.0 - (2.0*screenPos.Y())/c.viewHeight
+	x := (2.0*cursorPosition.X())/c.viewWidth - 1.0
+	y := 1.0 - (2.0*cursorPosition.Y())/c.viewHeight
 	var origin, direction matrix.Vec3
 	if !c.isOrthographic {
 		origin = pos

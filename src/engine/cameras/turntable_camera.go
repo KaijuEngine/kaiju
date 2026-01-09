@@ -202,9 +202,9 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
-func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+func (c *TurntableCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray {
 	defer tracing.NewRegion("TurntableCamera.RayCast").End()
-	return c.internalRayCast(screenPos, c.iView.ExtractPosition())
+	return c.internalRayCast(cursorPosition, c.iView.ExtractPosition())
 }
 
 func (c *TurntableCamera) internalUpdateView() {
