@@ -47,4 +47,8 @@
 {"Location":0,"Binding":-1,"Set":-1,"InputAttachment":-1,"Type":"vec3","Name":"outNormal","Source":"out","Fields":null},
 
 {"Location":-1,"Binding":1,"Count":4,"Set":-1,"InputAttachment":-1,"Type":"sampler2D","Name":"textures","Source":"uniform","Fields":null},
-{"Location":-1,"Binding":2,"Count":20,"Set":-1,"InputAttachment":-1,"Type":"sampler2D","Name":"shadowMap","Source":"uniform","Fields":null},{"Location":-1,"Binding":3,"Count":20,"Set":-1,"InputAttachment":-1,"Type":"samplerCube","Name":"shadowCubeMap","Source":"uniform","Fields":null}]}]}
+{"Location":-1,"Binding":2,"Count":20,"Set":-1,"InputAttachment":-1,"Type":"sampler2D","Name":"shadowMap","Source":"uniform","Fields":null},{"Location":-1,"Binding":3,"Count":20,"Set":-1,"InputAttachment":-1,"Type":"samplerCube","Name":"shadowCubeMap","Source":"uniform","Fields":null}]}],
+
+"SamplerLabels":["Diffuse","Normal","Metallic Roughness","Emissive"]
+
+}

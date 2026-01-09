@@ -16,4 +16,8 @@
 {"Location":0,"Binding":-1,"Set":-1,"InputAttachment":-1,"Type":"vec3","Name":"outPosition","Source":"out","Fields":null},
 {"Location":0,"Binding":-1,"Set":-1,"InputAttachment":-1,"Type":"vec3","Name":"outNormal","Source":"out","Fields":null},
 
-{"Location":1,"Binding":-1,"Set":-1,"InputAttachment":-1,"Type":"float","Name":"reveal","Source":"out","Fields":null}]}]}
+{"Location":1,"Binding":-1,"Set":-1,"InputAttachment":-1,"Type":"float","Name":"reveal","Source":"out","Fields":null}]}],
+
+"SamplerLabels":["Diffuse"]
+
+}

@@ -33,7 +33,11 @@
 {{define "any"}}
 <div class="inputItem">
 	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	{{if .IsStatic}}
+	<span>{{.Value}}</span>
+	{{else}}
 	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
+	{{end}}
 </div>
 {{end}}
 

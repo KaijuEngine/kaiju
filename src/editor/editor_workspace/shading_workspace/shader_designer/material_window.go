@@ -97,6 +97,24 @@ func collectTextureOptions(pfs *project_file_system.FileSystem, cache *content_d
 	return collectSpecificFileOptions(pfs, cache, content_database.Texture{})
 }
 
+func (win *ShaderDesigner) materialPullTextureLabels() {
+	if win.material.Shader == "" {
+		return
+	}
+	s, err := win.host.AssetDatabase().Read(win.material.Shader)
+	if err != nil {
+		return
+	}
+	var sh rendering.ShaderData
+	err = json.Unmarshal(s, &sh)
+	if err != nil {
+		return
+	}
+	for i := range min(len(win.material.Textures), len(sh.SamplerLabels)) {
+		win.material.Textures[i].Label = sh.SamplerLabels[i]
+	}
+}
+
 func (win *ShaderDesigner) reloadMaterialDoc() {
 	sy := float32(0)
 	if win.materialDoc != nil {
@@ -111,6 +129,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	listings["RenderPass"] = collectRenderPassOptions(pfs, cache)
 	listings["ShaderPipeline"] = collectShaderPipelinesOptions(pfs, cache)
 	listings["Texture"] = collectTextureOptions(pfs, cache)
+	win.materialPullTextureLabels()
 	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
 	data.GroupName = win.material.name

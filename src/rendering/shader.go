@@ -77,6 +77,7 @@ type ShaderData struct {
 	Compute                     string              `options:""`
 	ComputeFlags                string              `tip:"CompileFlags"`
 	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
+	SamplerLabels               []string
 	VertexSpv                   string
 	FragmentSpv                 string
 	GeometrySpv                 string
@@ -94,6 +95,7 @@ type ShaderDataCompiled struct {
 	TessellationEvaluation string
 	Compute                string
 	LayoutGroups           []ShaderLayoutGroup
+	SamplerLabels          []string
 }
 
 func (s *ShaderDataCompiled) IsCompute() bool { return s.Compute != "" }
@@ -199,6 +201,7 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 		TessellationControl:    d.TessellationControlSpv,
 		TessellationEvaluation: d.TessellationEvaluationSpv,
 		LayoutGroups:           d.LayoutGroups,
+		SamplerLabels:          d.SamplerLabels,
 	}
 }
 

@@ -65,6 +65,7 @@ type DataUISectionField struct {
 	RootPath string
 	TipKey   string
 	Label    string
+	IsStatic bool
 }
 
 func (f DataUISectionField) DisplayName() string {
@@ -167,6 +168,7 @@ func ReflectUIStructure(obj any, path string, fallbackOptions map[string][]ui.Se
 			RootPath: path,
 			TipKey:   tag.Get("tip"),
 			Label:    tag.Get("label"),
+			IsStatic: tag.Get("static") == "true",
 		}
 		if d := tag.Get("default"); d != "" {
 			v := reflect.New(reflect.TypeOf(field.Value))
