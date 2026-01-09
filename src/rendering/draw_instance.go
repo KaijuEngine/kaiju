@@ -120,12 +120,18 @@ func (s *ShaderDataBase) Transform() *matrix.Transform        { return s.transfo
 
 func (s *ShaderDataBase) Base() *ShaderDataBase                    { return s }
 func (s *ShaderDataBase) SkinningHeader() *SkinnedShaderDataHeader { return nil }
-func (s *ShaderDataBase) Destroy()                                 { s.destroyed = true }
 func (s *ShaderDataBase) CancelDestroy()                           { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool                        { return s.destroyed }
 func (s *ShaderDataBase) IsInView() bool                           { return !s.deactivated && !s.viewCulled }
 func (s *ShaderDataBase) Model() matrix.Mat4                       { return s.model }
 func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.model }
+
+func (s *ShaderDataBase) Destroy() {
+	s.destroyed = true
+	if s.shadow != nil {
+		s.shadow.Destroy()
+	}
+}
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
