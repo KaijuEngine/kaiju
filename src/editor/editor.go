@@ -161,6 +161,11 @@ func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
+	{
+		// Read the project source synchronosly for now, if not, any stage loading
+		// before this is complete will have issues.
+		ed.project.ReadSourceCode()
+	}
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, ed)
@@ -172,8 +177,6 @@ func (ed *Editor) postProjectLoad() {
 	ed.setWorkspaceState(WorkspaceStateStage)
 	// goroutine
 	go ed.project.CompileDebug()
-	// goroutine
-	go ed.project.ReadSourceCode()
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
