@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_project_setup.go                                                    */
+/* stage_workspace_ui_data.go                                                 */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,95 +34,33 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor
+package stage_workspace
 
 import (
-	"errors"
-	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/new_project"
-	"kaiju/editor/project"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
-	"log/slog"
 )
 
-func (ed *Editor) setProjectName(name string) {
-	ed.host.RunOnMainThread(func() {
-		ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
-	})
-	ed.project.SetName(name)
+type WorkspaceUIData struct {
+	Filters    []string
+	Tags       []string
+	CameraMode string
 }
 
-func (ed *Editor) newProjectOverlay() {
-	defer tracing.NewRegion("Editor.newProjectOverlay").End()
-	new_project.Show(ed.host, new_project.Config{
-		OnCreate:       ed.createProject,
-		OnOpen:         ed.openProject,
-		RecentProjects: ed.settings.RecentProjects,
-	})
-}
-
-func (ed *Editor) retryNewProjectOverlay(err error) {
-	new_project.Show(ed.host, new_project.Config{
-		OnCreate:       ed.createProject,
-		OnOpen:         ed.openProject,
-		RecentProjects: ed.settings.RecentProjects,
-		Error:          err.Error(),
-	})
-}
-
-func (ed *Editor) createProject(name, path, templatePath string) {
-	defer tracing.NewRegion("Editor.createProject").End()
-	err := ed.project.Initialize(path, templatePath, EditorVersion)
-	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
-		slog.Error("failed to create the project", "error", err)
-		ed.retryNewProjectOverlay(err)
-		return
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache, cm string) []string {
+	defer tracing.NewRegion("ContentWorkspaceUIData.SetupUIData").End()
+	for _, cat := range content_database.ContentCategories {
+		w.Filters = append(w.Filters, cat.TypeName())
 	}
-	ed.setProjectName(name)
-	ed.postProjectLoad()
-	ed.FocusInterface()
-}
-
-func (ed *Editor) openProject(path string) {
-	defer tracing.NewRegion("Editor.openProject").End()
-	if err := ed.project.Open(path); err != nil {
-		slog.Error("failed to open the project", "error", err)
-		lastCount := len(ed.settings.RecentProjects)
-		ed.settings.RecentProjects = klib.SlicesRemoveElement(ed.settings.RecentProjects, path)
-		if len(ed.settings.RecentProjects) != lastCount {
-			ed.settings.Save()
+	list := cdb.List()
+	ids := make([]string, 0, len(list))
+	for i := range list {
+		ids = append(ids, list[i].Id())
+		for j := range list[i].Config.Tags {
+			w.Tags = klib.AppendUnique(w.Tags, list[i].Config.Tags[j])
 		}
-		ed.retryNewProjectOverlay(err)
-		return
 	}
-	projectVersion := ed.project.Settings.EditorVersion
-	finishLoad := func() {
-		ed.setProjectName(ed.project.Name())
-		ed.postProjectLoad()
-		ed.FocusInterface()
-	}
-	if projectVersion != EditorVersion {
-		confirm_prompt.Show(ed.host, confirm_prompt.Config{
-			Title:       "Upgrade project",
-			Description: "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding.",
-			ConfirmText: "Yes",
-			CancelText:  "Cancel",
-			OnConfirm: func() {
-				if err := ed.project.TryUpgrade(); err != nil {
-					ed.retryNewProjectOverlay(err)
-				} else {
-					ed.project.Settings.EditorVersion = EditorVersion
-					ed.project.Settings.Save(ed.ProjectFileSystem())
-					finishLoad()
-				}
-			},
-			OnCancel: func() {
-				ed.retryNewProjectOverlay(errors.New("Project upgrade refused, unable to open project"))
-			},
-		})
-	} else {
-		finishLoad()
-	}
+	w.CameraMode = cm
+	return ids
 }

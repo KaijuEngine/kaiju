@@ -315,13 +315,15 @@ func (ed *Editor) saveCurrentStageWithoutNameInput() {
 	sm := ed.stageView.Manager()
 	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
 		ed.history.SetSavePosition()
+		ed.Project().Settings.EditorSettings.LatestOpenStage = sm.StageId()
+		ed.Project().Settings.Save(ed.ProjectFileSystem())
 	} else {
 		slog.Error("failed to save the current stage", "error", err)
 	}
 }
 
 func (ed *Editor) ensureMainStageExists() bool {
-	if ed.project.Settings().EntryPointStage == "" {
+	if ed.project.Settings.EntryPointStage == "" {
 		slog.Error("failed to build, 'main stage' not set in project settings")
 		return false
 	}
@@ -343,7 +345,7 @@ func (ed *Editor) saveNewStage(name string) {
 	ed.events.OnContentAdded.Execute([]string{id})
 	// If the entry point stage hasn't yet been created in the
 	// settings, assume that this stage will be the one.
-	ps := ed.project.Settings()
+	ps := ed.project.Settings
 	if ps.EntryPointStage == "" {
 		ps.EntryPointStage = id
 		ps.Save(ed.project.FileSystem())

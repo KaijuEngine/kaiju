@@ -210,7 +210,7 @@ func (w *StageWorkspace) OpenStage(id string) {
 	if w.ed.History().HasPendingChanges() {
 		w.ed.BlurInterface()
 		confirm_prompt.Show(w.Host, confirm_prompt.Config{
-			Title:       "Discrad changes",
+			Title:       "Discard changes",
 			Description: "You have unsaved changes to your stage, would you like to discard them and load the selected stage?",
 			ConfirmText: "Yes",
 			CancelText:  "No",
@@ -238,6 +238,8 @@ func (w *StageWorkspace) loadStage(id string) {
 		}
 		w.ed.History().Clear()
 	}
+	w.ed.Project().Settings.EditorSettings.LatestOpenStage = id
+	w.ed.Project().Settings.Save(w.ed.ProjectFileSystem())
 }
 
 func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point matrix.Vec3) {

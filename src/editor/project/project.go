@@ -75,15 +75,13 @@ type Project struct {
 	OnEntityDataUpdated events.EventWithArg[[]codegen.GeneratedType]
 	fileSystem          project_file_system.FileSystem
 	cacheDatabase       content_database.Cache
-	settings            Settings
+	Settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
 	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
 	readingCode         bool
 	isCompiling         atomic.Bool
 }
-
-func (p *Project) Settings() *Settings { return &p.settings }
 
 // EntityData returns all of the generated/reflected entity data binding types
 func (p *Project) EntityData() []codegen.GeneratedType { return p.entityData }
@@ -139,10 +137,11 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.settings.load(&p.fileSystem); err != nil {
+	p.Settings = Settings{}
+	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
-	p.settings.EditorVersion = editorVersion
+	p.Settings.EditorVersion = editorVersion
 	p.commonInit()
 	return nil
 }
@@ -152,7 +151,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 // error saving the config.
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
-	return p.settings.Save(&p.fileSystem)
+	return p.Settings.Save(&p.fileSystem)
 }
 
 // Open constructs an existing project given a target folder. This function can
@@ -179,7 +178,8 @@ func (p *Project) Open(path string) error {
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.settings.load(&p.fileSystem); err != nil {
+	p.Settings = Settings{}
+	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
 	p.commonInit()
@@ -192,22 +192,22 @@ func (p *Project) commonInit() {
 
 // Name will return the name that has been set for this project. If the name is
 // not set, either the project hasn't been setup/selected or it is an error.
-func (p *Project) Name() string { return p.settings.Name }
+func (p *Project) Name() string { return p.Settings.Name }
 
 // SetName will update the name of the project and save the project config file.
 // When the name is successfully set, the [OnNameChange] func will be called.
 func (p *Project) SetName(name string) {
 	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
-	if name == "" || p.settings.Name == name {
+	if name == "" || p.Settings.Name == name { // TODO: panic
 		return
 	}
-	p.settings.Name = name
-	p.settings.Save(&p.fileSystem)
+	p.Settings.Name = name
+	p.Settings.Save(&p.fileSystem)
 	if p.OnNameChange != nil {
-		p.OnNameChange(p.settings.Name)
+		p.OnNameChange(p.Settings.Name)
 	}
-	p.settings.Android.RootProjectName = p.settings.Name
+	p.Settings.Android.RootProjectName = p.Settings.Name
 	p.writeProjectTitle()
 }
 
@@ -286,7 +286,7 @@ func (p *Project) PackageDebug() {
 	files := []content_archive.SourceContent{
 		{
 			Key:     stages.EntryPointAssetKey,
-			RawData: []byte(p.settings.EntryPointStage),
+			RawData: []byte(p.Settings.EntryPointStage),
 		},
 	}
 	for i := range files {
@@ -330,10 +330,10 @@ func (p *Project) Package(reader content_archive.FileReader) error {
 	}
 	files = append(files, content_archive.SourceContent{
 		Key:     stages.EntryPointAssetKey,
-		RawData: []byte(p.settings.EntryPointStage),
+		RawData: []byte(p.Settings.EntryPointStage),
 	})
 	err = content_archive.CreateArchiveFromFiles(reader, outPath,
-		files, []byte(p.settings.ArchiveEncryptionKey))
+		files, []byte(p.Settings.ArchiveEncryptionKey))
 	if err != nil {
 		slog.Error("failed to package game content", "error", err)
 	} else {

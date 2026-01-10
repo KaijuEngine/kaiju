@@ -201,7 +201,7 @@
 	</head>
 	<body>
 		<!-- Floating UI -->
-		<span id="dimensionToggle" onclick="toggleDimension">3D</span>
+		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
 		<div id="hierarchyArea" class="edPanelBg" ondrop="hierarchyDrop">
 			<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
