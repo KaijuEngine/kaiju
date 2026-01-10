@@ -79,7 +79,16 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.Stage
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
 	w.initLLMActions()
-	w.stageView.LoadLatestOpenStage(ed)
+	w.loadLastOpenStage()
+}
+
+func (w *StageWorkspace) loadLastOpenStage() {
+	defer tracing.NewRegion("StageWorkspace.loadLastOpenStage").End()
+	p := w.ed.Project()
+	lastStage := p.Settings.EditorSettings.LatestOpenStage
+	if lastStage != "" {
+		w.OpenStage(lastStage)
+	}
 }
 
 func (w *StageWorkspace) Open() {

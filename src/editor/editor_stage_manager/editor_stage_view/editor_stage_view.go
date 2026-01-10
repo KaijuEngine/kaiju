@@ -218,10 +218,3 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 		callAttachments(e)
 	}
 }
-
-func (v *StageView) LoadLatestOpenStage(ed EditorStageViewWorkspaceInterface) {
-	pj := ed.Project()
-	if pj.Settings.EditorSettings.LatestOpenStage != "" {
-		v.manager.LoadStage(pj.Settings.EditorSettings.LatestOpenStage, v.host, ed.Cache(), pj)
-	}
-}
