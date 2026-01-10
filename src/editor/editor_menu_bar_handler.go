@@ -345,7 +345,7 @@ func (ed *Editor) saveNewStage(name string) {
 	ed.events.OnContentAdded.Execute([]string{id})
 	// If the entry point stage hasn't yet been created in the
 	// settings, assume that this stage will be the one.
-	ps := ed.project.Settings
+	ps := &ed.project.Settings
 	if ps.EntryPointStage == "" {
 		ps.EntryPointStage = id
 		ps.Save(ed.project.FileSystem())
