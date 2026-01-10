@@ -72,8 +72,6 @@ const (
 type WorkspaceDetailsUI struct {
 	workspace                  weak.Pointer[StageWorkspace]
 	detailsArea                *document.Element
-	hideDetailsElm             *document.Element
-	showDetailsElm             *document.Element
 	detailsName                *document.Element
 	detailsPosX                *document.Element
 	detailsPosY                *document.Element
@@ -103,8 +101,6 @@ type WorkspaceDetailsUI struct {
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setupFuncs").End()
 	return map[string]func(*document.Element){
-		"hideDetails":          dui.hideDetails,
-		"showDetails":          dui.showDetails,
 		"submitDetailsName":    dui.submitDetailsName,
 		"setPosX":              dui.setPosX,
 		"setPosY":              dui.setPosY,
@@ -135,8 +131,6 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	dui.workspace = weak.Make(w)
 	dui.TargetedElementValueReload = make(map[reflect.Value]func())
 	dui.detailsArea, _ = w.Doc.GetElementById("detailsArea")
-	dui.hideDetailsElm, _ = w.Doc.GetElementById("hideDetails")
-	dui.showDetailsElm, _ = w.Doc.GetElementById("showDetails")
 	dui.detailsName, _ = w.Doc.GetElementById("detailsName")
 	dui.detailsPosX, _ = w.Doc.GetElementById("detailsPosX")
 	dui.detailsPosY, _ = w.Doc.GetElementById("detailsPosY")
@@ -165,8 +159,6 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 func (dui *WorkspaceDetailsUI) open() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.open").End()
 	dui.detailsArea.UI.Show()
-	dui.hideDetailsElm.UI.Show()
-	dui.showDetailsElm.UI.Hide()
 	dui.entityDataList.UI.Hide()
 	dui.entityDataListTemplate.UI.Hide()
 	dui.boundEntityDataTemplate.UI.Hide()
@@ -178,10 +170,10 @@ func (dui *WorkspaceDetailsUI) open() {
 func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyD) {
-		if dui.hideDetailsElm.UI.Entity().IsActive() {
-			dui.hideDetails(nil)
+		if dui.detailsArea.UI.Entity().IsActive() {
+			dui.detailsArea.UI.Hide()
 		} else {
-			dui.showDetails(nil)
+			dui.detailsArea.UI.Show()
 		}
 	}
 }
@@ -202,20 +194,6 @@ func (dui *WorkspaceDetailsUI) hideIfNothingSelected() {
 	if len(dui.workspace.Value().stageView.Manager().Selection()) == 0 {
 		dui.detailsArea.Children[0].UI.Hide()
 	}
-}
-
-func (dui *WorkspaceDetailsUI) hideDetails(*document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.hideDetails").End()
-	dui.detailsArea.UI.Hide()
-	dui.hideDetailsElm.UI.Hide()
-	dui.showDetailsElm.UI.Show()
-}
-
-func (dui *WorkspaceDetailsUI) showDetails(*document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.showDetails").End()
-	dui.detailsArea.UI.Show()
-	dui.hideDetailsElm.UI.Show()
-	dui.showDetailsElm.UI.Hide()
 }
 
 func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
@@ -742,9 +720,9 @@ func (dui *WorkspaceDetailsUI) reload() {
 		dui.createDataBindingEntry(a, dui.boundEntityDataTemplate)
 	}
 	// Lazy hiding of children
-	if !dui.hideDetailsElm.UI.Entity().IsActive() {
-		dui.showDetails(nil)
-		dui.hideDetails(nil)
+	if !dui.detailsArea.UI.Entity().IsActive() {
+		dui.detailsArea.UI.Show()
+		dui.detailsArea.UI.Hide()
 	}
 	dui.detailsArea.UI.Clean()
 }

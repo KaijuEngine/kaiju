@@ -66,8 +66,6 @@ type WorkspaceContentUI struct {
 	contentArea        *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
-	hideContentElm     *document.Element
-	showContentElm     *document.Element
 	dragging           *document.Element
 	tooltip            *document.Element
 	dragContentId      string
@@ -93,8 +91,6 @@ func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 		"tagFilter":         cui.tagFilter,
 		"clickFilter":       cui.clickFilter,
 		"dblClickEntry":     cui.dblClickEntry,
-		"hideContent":       cui.hideContent,
-		"showContent":       cui.showContent,
 		"entryDragStart":    cui.entryDragStart,
 		"entryMouseEnter":   cui.entryMouseEnter,
 		"entryMouseMove":    cui.entryMouseMove,
@@ -109,8 +105,6 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
-	cui.hideContentElm, _ = w.Doc.GetElementById("hideContent")
-	cui.showContentElm, _ = w.Doc.GetElementById("showContent")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
@@ -122,18 +116,15 @@ func (cui *WorkspaceContentUI) open() {
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
 	cui.tooltip.UI.Hide()
-	if cui.hideContentElm.UI.Entity().IsActive() {
-		cui.showContentElm.UI.Hide()
-	}
 }
 
 func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
-		if cui.hideContentElm.UI.Entity().IsActive() {
-			cui.hideContent(nil)
+		if cui.contentArea.UI.Entity().IsActive() {
+			cui.contentArea.UI.Hide()
 		} else {
-			cui.showContent(nil)
+			cui.contentArea.UI.Show()
 		}
 	}
 }
@@ -330,20 +321,6 @@ func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
 	}
 	w.spawnContentAtPosition(&cc, w.Host.PrimaryCamera().LookAt())
 	cui.dragPreview.UI.Hide()
-}
-
-func (cui *WorkspaceContentUI) hideContent(*document.Element) {
-	defer tracing.NewRegion("WorkspaceContentUI.hideContent").End()
-	cui.hideContentElm.UI.Hide()
-	cui.showContentElm.UI.Show()
-	cui.contentArea.UI.Hide()
-}
-
-func (cui *WorkspaceContentUI) showContent(*document.Element) {
-	defer tracing.NewRegion("WorkspaceContentUI.showContent").End()
-	cui.showContentElm.UI.Hide()
-	cui.hideContentElm.UI.Show()
-	cui.contentArea.UI.Show()
 }
 
 func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
