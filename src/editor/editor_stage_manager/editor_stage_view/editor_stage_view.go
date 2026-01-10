@@ -182,7 +182,7 @@ func (v *StageView) createViewportGrid() {
 
 func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
-	pjs := ed.Project().Settings
+	pjs := &ed.Project().Settings
 	v.camera.OnModeChange.Add(func() {
 		switch v.camera.Mode() {
 		case editor_controls.EditorCameraMode3d:
