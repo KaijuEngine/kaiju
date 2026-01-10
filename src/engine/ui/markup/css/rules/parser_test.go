@@ -42,13 +42,17 @@ const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
 const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
 const testCSSInputText = `input[type="text"] { display: none; }`
+const testCSSVarDeclare = `:root { --ed-menu-bar-height: 24px; }
+.test { height: var(--ed-menu-bar-height); }`
+const testCSSVarInCalc = `:root { --ed-menu-bar-height: 24px; }
+.test { height: calc(100% - var(--ed-menu-bar-height)); }`
 
 type dummyWindow struct{}
 
 func (dummyWindow) DotsPerMillimeter() float64 { return 1 }
 
 func TestParseNarrowTag(t *testing.T) {
-	s := StyleSheet{}
+	s := NewStyleSheet()
 	s.Parse(testCSSNarrowTag, dummyWindow{})
 	if len(s.Groups) != 1 {
 		t.FailNow()
@@ -76,7 +80,7 @@ func TestParseNarrowTag(t *testing.T) {
 }
 
 func TestParseNarrowClass(t *testing.T) {
-	s := StyleSheet{}
+	s := NewStyleSheet()
 	s.Parse(testCSSNarrowClass, dummyWindow{})
 	if len(s.Groups) != 1 {
 		t.FailNow()
@@ -104,7 +108,7 @@ func TestParseNarrowClass(t *testing.T) {
 }
 
 func TestParseCommaIds(t *testing.T) {
-	s := StyleSheet{}
+	s := NewStyleSheet()
 	s.Parse(testCSSCommaId, dummyWindow{})
 	if len(s.Groups) != 3 {
 		t.FailNow()
@@ -126,7 +130,7 @@ func TestParseCommaIds(t *testing.T) {
 }
 
 func TestParseTextSubType(t *testing.T) {
-	s := StyleSheet{}
+	s := NewStyleSheet()
 	s.Parse(testCSSInputText, dummyWindow{})
 	if len(s.Groups) != 1 {
 		t.FailNow()
@@ -146,5 +150,74 @@ func TestParseTextSubType(t *testing.T) {
 	}
 	if p[2].Name != "text" {
 		t.FailNow()
+	}
+}
+
+func TestParseVariable(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSVarDeclare, dummyWindow{})
+	if len(s.Groups) != 2 {
+		t.FailNow()
+	}
+	if len(s.CustomVars) != 1 {
+		t.FailNow()
+	}
+	if v, ok := s.CustomVars["--ed-menu-bar-height"]; !ok {
+		t.FailNow()
+	} else if len(v) != 1 {
+		t.FailNow()
+	} else if v[0] != "24px" {
+		t.FailNow()
+	}
+	if len(s.Groups[1].Rules) != 1 {
+		t.FailNow()
+	}
+	if s.Groups[1].Rules[0].Property != "height" {
+		t.FailNow()
+	}
+	if len(s.Groups[1].Rules[0].Values) != 1 {
+		t.FailNow()
+	}
+	if s.Groups[1].Rules[0].Values[0].Str != "24px" {
+		t.FailNow()
+	}
+}
+
+func TestParseCalcAndVariable(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSVarInCalc, dummyWindow{})
+	if len(s.Groups) != 2 {
+		t.FailNow()
+	}
+	if len(s.CustomVars) != 1 {
+		t.FailNow()
+	}
+	if v, ok := s.CustomVars["--ed-menu-bar-height"]; !ok {
+		t.FailNow()
+	} else if len(v) != 1 {
+		t.FailNow()
+	} else if v[0] != "24px" {
+		t.FailNow()
+	}
+	if len(s.Groups[1].Rules) != 1 {
+		t.FailNow()
+	}
+	if s.Groups[1].Rules[0].Property != "height" {
+		t.FailNow()
+	}
+	if len(s.Groups[1].Rules[0].Values) != 1 {
+		t.FailNow()
+	}
+	if s.Groups[1].Rules[0].Values[0].Str != "calc" {
+		t.FailNow()
+	}
+	if len(s.Groups[1].Rules[0].Values[0].Args) != 3 {
+		t.FailNow()
+	}
+	expectedArgs := []string{"100%", "-", "24px"}
+	for i := range expectedArgs {
+		if s.Groups[1].Rules[0].Values[0].Args[i] != expectedArgs[i] {
+			t.FailNow()
+		}
 	}
 }

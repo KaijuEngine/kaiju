@@ -47,9 +47,10 @@ import (
 )
 
 type StyleSheet struct {
-	Groups     []SelectorGroup
-	CustomVars map[string][]string
-	state      RuleState
+	Groups         []SelectorGroup
+	CustomVars     map[string][]string
+	state          RuleState
+	stateFuncDepth int
 }
 
 func (s *StyleSheet) addGroup() {
@@ -158,23 +159,45 @@ func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window hel
 	for _, val := range cssParser.Values() {
 		switch val.TokenType {
 		case css.FunctionToken:
+			s.stateFuncDepth++
 			s.state = ReadingPropertyFunction
 			r.Values = append(r.Values, PropertyValue{
-				Str:  strings.TrimSuffix(string(val.Data), "("),
-				Args: make([]string, 0),
+				Str: strings.TrimSuffix(string(val.Data), "("),
 			})
 		case css.CommaToken:
 		case css.CommentToken:
 		case css.WhitespaceToken:
 		case css.RightParenthesisToken:
-			s.state = ReadingProperty
+			s.stateFuncDepth = max(0, s.stateFuncDepth-1)
+			if s.stateFuncDepth == 0 {
+				s.state = ReadingProperty
+			}
 		default:
 			if s.state == ReadingPropertyFunction {
-				r.Values[len(r.Values)-1].Args = append(r.Values[len(r.Values)-1].Args, string(val.Data))
+				last := &r.Values[len(r.Values)-1]
+				str := string(val.Data)
+				if last.Str == "var" {
+					r.Values = r.Values[0 : len(r.Values)-1]
+					if len(r.Values) > 0 {
+						last = &r.Values[len(r.Values)-1]
+					}
+					if v, ok := s.CustomVars[str]; ok {
+						for i := range v {
+							if s.stateFuncDepth > 1 {
+								last.Args = append(last.Args, v[i])
+							} else {
+								r.Values = append(r.Values, PropertyValue{
+									Str: v[i],
+								})
+							}
+						}
+					}
+				} else {
+					last.Args = append(last.Args, str)
+				}
 			} else {
 				r.Values = append(r.Values, PropertyValue{
-					Str:  string(val.Data),
-					Args: make([]string, 0),
+					Str: string(val.Data),
 				})
 			}
 		}
@@ -267,7 +290,7 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 			name := string(propData)
 			vals := make([]string, 0)
 			for _, val := range cssParser.Values() {
-				vals = append(vals, string(val.Data))
+				vals = append(vals, strings.TrimSpace(string(val.Data)))
 			}
 			s.CustomVars[name] = vals
 		}
