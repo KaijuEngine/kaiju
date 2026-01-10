@@ -315,6 +315,8 @@ func (ed *Editor) saveCurrentStageWithoutNameInput() {
 	sm := ed.stageView.Manager()
 	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
 		ed.history.SetSavePosition()
+		ed.Project().Settings.EditorSettings.LatestOpenStage = sm.StageId()
+		ed.Project().Settings.Save(ed.ProjectFileSystem())
 	} else {
 		slog.Error("failed to save the current stage", "error", err)
 	}

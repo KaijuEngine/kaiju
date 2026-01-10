@@ -75,7 +75,7 @@ type Project struct {
 	OnEntityDataUpdated events.EventWithArg[[]codegen.GeneratedType]
 	fileSystem          project_file_system.FileSystem
 	cacheDatabase       content_database.Cache
-	Settings            *Settings
+	Settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
 	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
@@ -137,7 +137,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	p.Settings = &Settings{}
+	p.Settings = Settings{}
 	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
@@ -178,7 +178,7 @@ func (p *Project) Open(path string) error {
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	p.Settings = &Settings{}
+	p.Settings = Settings{}
 	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
