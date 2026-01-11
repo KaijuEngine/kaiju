@@ -131,6 +131,7 @@ type Host struct {
 	LateUpdater      Updater
 	assetDatabase    assets.Database
 	physics          StagePhysics
+	eventManager     *events.Manager
 	OnClose          events.Event
 	CloseSignal      chan struct{}
 	frameRateLimit   *time.Ticker
@@ -155,6 +156,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		LogStream:     logStream,
 		entityLookup:  make(map[EntityId]*Entity),
 		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
+		eventManager:  events.NewManager(),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
 			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
@@ -312,6 +314,13 @@ func (host *Host) Plugins() []*plugins.LuaVM {
 // Audio returns the audio system for the host
 func (host *Host) Audio() *audio.Audio {
 	return host.audio
+}
+
+// EventManager returns the event manager for the host. The event manager
+// provides a centralized system for publish-subscribe event communication
+// between entities and systems.
+func (host *Host) EventManager() *events.Manager {
+	return host.eventManager
 }
 
 // ClearEntities will remove all entities from the host. This will remove all
@@ -564,6 +573,7 @@ func (host *Host) Teardown() {
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
 	host.materialCache.Destroy()
+	host.eventManager.Clear()
 	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
