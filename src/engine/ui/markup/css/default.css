@@ -431,6 +431,10 @@ button:active {
 .centerText { text-align: center; }
 
 /** EDITOR STYLES **/
+:root {
+	--ed-menu-bar-height: 24px;
+	--ed-status-bar-height: 1.3em;
+}
 input[type="text"] {
 	color: black;
 	background-color: #BBB;

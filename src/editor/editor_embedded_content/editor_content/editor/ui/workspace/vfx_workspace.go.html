@@ -4,8 +4,8 @@
 		<style>
 			.leftPanel {
 				position: absolute;
-				top: 3em;
-				height: calc(100% - 5em);
+				top: var(--ed-menu-bar-height);
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
 				width: 15em;
 				color: white;
 				overflow-y: scroll;
@@ -14,8 +14,8 @@
 			.leftPanel { left: 0; }
 			.rightPanel {
 				position: absolute;
-				top: 3em;
-				height: calc(100% - 5em);
+				top: var(--ed-menu-bar-height);
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
 				width: 15em;
 				color: white;
 				overflow-y: scroll;
