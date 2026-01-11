@@ -90,9 +90,9 @@ func New(host *engine.Host, size float32, textures [textureCount]string) (Terrai
 	return tMap, nil
 }
 
-func (t *Terrain) Destroy() {
+func (t *Terrain) Destroy(host *engine.Host) {
 	defer tracing.NewRegion("terrain.Destroy").End()
-	t.Entity.Destroy()
+	host.DestroyEntity(t.Entity)
 }
 
 func (t *Terrain) SetScale(scale float32) {

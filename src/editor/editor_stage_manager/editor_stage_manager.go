@@ -177,7 +177,6 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 	e.Init(m.host.WorkGroup())
 	e.SetName(name)
 	e.StageData.Description.Id = id
-	m.host.AddEntity(&e.Entity)
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
 	e.AddNamedData("stage", e.StageData)
@@ -311,7 +310,7 @@ func (m *StageManager) Clear() {
 	defer tracing.NewRegion("StageManager.Clear").End()
 	for i := len(m.entities) - 1; i >= 0; i-- {
 		m.OnEntityDestroy.Execute(m.entities[i])
-		m.entities[i].Destroy()
+		m.host.DestroyEntity(&m.entities[i].Entity)
 		// Deleted entities are not in the host and need to be cleaned up manually
 		if m.entities[i].isDeleted {
 			m.entities[i].ForceCleanup()
@@ -788,7 +787,7 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 		generateId(&cpy)
 		t := m.entities[i].Transform
 		m.OnEntityDestroy.Execute(m.entities[i])
-		m.entities[i].Destroy()
+		m.host.DestroyEntity(&m.entities[i].Entity)
 		e, err := m.importEntityByDescription(host, proj, nil, &cpy)
 		if err != nil {
 			return err

@@ -404,7 +404,7 @@ func (s *Sprite) baseInit(x, y, width, height float32, host *engine.Host) {
 		host:      weak.Make(host),
 		baseScale: matrix.NewVec3(width, height, 1.0),
 	}
-	s.Entity = host.NewEntity(host.WorkGroup())
+	s.Entity = engine.NewEntity(host.WorkGroup())
 	s.Entity.Transform.SetPosition(matrix.NewVec3(x, y, 0))
 	s.Entity.Transform.SetScale(matrix.NewVec3(width, height, 1))
 }
