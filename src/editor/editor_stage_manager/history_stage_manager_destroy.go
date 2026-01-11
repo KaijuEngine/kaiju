@@ -51,7 +51,6 @@ func (h *objectDeleteHistory) Redo() {
 	defer tracing.NewRegion("objectDeleteHistory.Redo").End()
 	for _, e := range h.entities {
 		e.Deactivate()
-		h.m.host.RemoveEntity(&e.Entity)
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Deactivate()
 		}
@@ -67,7 +66,6 @@ func (h *objectDeleteHistory) Undo() {
 	defer tracing.NewRegion("objectDeleteHistory.Undo").End()
 	for _, e := range h.entities {
 		e.Activate()
-		h.m.host.AddEntity(&e.Entity)
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Activate()
 		}
@@ -91,6 +89,6 @@ func (h *objectDeleteHistory) Exit() {
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Destroy()
 		}
-		e.Destroy()
+		h.m.host.DestroyEntity(&e.Entity)
 	}
 }

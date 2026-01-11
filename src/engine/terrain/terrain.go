@@ -72,7 +72,7 @@ func New(host *engine.Host, size float32, textures [textureCount]string) (Terrai
 	defer tracing.NewRegion("terrain.New").End()
 	var err error
 	tMap := Terrain{
-		Entity:      host.NewEntity(host.WorkGroup()),
+		Entity:      engine.NewEntity(host.WorkGroup()),
 		heightScale: defaultHeightScale,
 	}
 	if err = tMap.createDrawing(host, textures); err != nil {
@@ -90,9 +90,9 @@ func New(host *engine.Host, size float32, textures [textureCount]string) (Terrai
 	return tMap, nil
 }
 
-func (t *Terrain) Destroy() {
+func (t *Terrain) Destroy(host *engine.Host) {
 	defer tracing.NewRegion("terrain.Destroy").End()
-	t.Entity.Destroy()
+	host.DestroyEntity(t.Entity)
 }
 
 func (t *Terrain) SetScale(scale float32) {

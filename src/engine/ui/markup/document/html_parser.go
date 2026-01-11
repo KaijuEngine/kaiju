@@ -501,8 +501,10 @@ func (d *Document) Destroy() {
 			}
 		}
 	}
-	for _, e := range d.Elements {
-		e.UI.Entity().Destroy()
+	if host := d.host.Value(); host != nil {
+		for _, e := range d.Elements {
+			host.DestroyEntity(e.UI.Entity())
+		}
 	}
 	clear(d.funcMap)
 	*d = Document{}
@@ -623,7 +625,9 @@ func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 	if elm.Parent.Value() != nil {
 		for i, c := range elm.Parent.Value().Children {
 			if c == elm {
-				c.UI.Entity().Destroy()
+				if host := d.host.Value(); host != nil {
+					host.DestroyEntity(c.UI.Entity())
+				}
 				parent := elm.Parent.Value()
 				parent.Children = slices.Delete(parent.Children, i, i+1)
 				parent.UI.SetDirty(ui.DirtyTypeLayout)

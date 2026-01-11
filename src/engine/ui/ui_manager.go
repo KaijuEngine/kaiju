@@ -181,7 +181,7 @@ func (man *Manager) Init(host *engine.Host) {
 
 func (man *Manager) Clear() {
 	defer tracing.NewRegion("ui.Manager.Clear").End()
-	man.pools.Each(func(ui *UI) { ui.Entity().Destroy() })
+	man.pools.Each(func(ui *UI) { man.Host.DestroyEntity(ui.Entity()) })
 	// Clearing the pools shouldn't be needed as destroying the entities
 	// will remove the entry from the pool
 }
@@ -195,7 +195,6 @@ func (man *Manager) Add() *UI {
 		man:    weak.Make(man),
 	}
 	ui.entity.Init(man.Host.WorkGroup())
-	man.Host.AddEntity(&ui.entity)
 	return ui
 }
 
@@ -210,7 +209,6 @@ func (man *Manager) Remove(ui *UI) {
 func (man *Manager) Reserve(additionalElements int) {
 	defer tracing.NewRegion("ui.Manager.Reserve").End()
 	man.pools.Reserve(additionalElements)
-	man.Host.ReserveEntities(additionalElements)
 }
 
 func (man *Manager) IsUpdateDisabled() bool { return man.skipUpdate > 0 }

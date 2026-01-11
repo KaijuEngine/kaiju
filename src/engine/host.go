@@ -57,7 +57,6 @@ import (
 	"log/slog"
 	"math"
 	"runtime"
-	"slices"
 	"time"
 	"weak"
 )
@@ -99,41 +98,40 @@ func (c *hostCameras) NewFrame() {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name             string
-	game             any
-	entities         []*Entity
-	entityLookup     map[EntityId]*Entity
-	lighting         lighting.LightingInformation
-	timeRunner       []timeRun
-	frameRunner      []frameRun
-	plugins          []*plugins.LuaVM
-	Window           *windowing.Window
-	LogStream        *logging.LogStream
-	workGroup        concurrent.WorkGroup
-	threads          concurrent.Threads
-	updateThreads    concurrent.Threads
-	uiThreads        concurrent.Threads
-	Cameras          hostCameras
-	collisionManager collision_system.Manager
-	audio            *audio.Audio
-	shaderCache      rendering.ShaderCache
-	textureCache     rendering.TextureCache
-	meshCache        rendering.MeshCache
-	fontCache        rendering.FontCache
-	materialCache    rendering.MaterialCache
-	Drawings         rendering.Drawings
-	frame            FrameId
-	frameTime        float64
-	Closing          bool
-	UIUpdater        Updater
-	UILateUpdater    Updater
-	Updater          Updater
-	LateUpdater      Updater
-	assetDatabase    assets.Database
-	physics          StagePhysics
-	OnClose          events.Event
-	CloseSignal      chan struct{}
-	frameRateLimit   *time.Ticker
+	name              string
+	game              any
+	destroyedEntities []*Entity
+	lighting          lighting.LightingInformation
+	timeRunner        []timeRun
+	frameRunner       []frameRun
+	plugins           []*plugins.LuaVM
+	Window            *windowing.Window
+	LogStream         *logging.LogStream
+	workGroup         concurrent.WorkGroup
+	threads           concurrent.Threads
+	updateThreads     concurrent.Threads
+	uiThreads         concurrent.Threads
+	Cameras           hostCameras
+	collisionManager  collision_system.Manager
+	audio             *audio.Audio
+	shaderCache       rendering.ShaderCache
+	textureCache      rendering.TextureCache
+	meshCache         rendering.MeshCache
+	fontCache         rendering.FontCache
+	materialCache     rendering.MaterialCache
+	Drawings          rendering.Drawings
+	frame             FrameId
+	frameTime         float64
+	Closing           bool
+	UIUpdater         Updater
+	UILateUpdater     Updater
+	Updater           Updater
+	LateUpdater       Updater
+	assetDatabase     assets.Database
+	physics           StagePhysics
+	OnClose           events.Event
+	CloseSignal       chan struct{}
+	frameRateLimit    *time.Ticker
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -146,14 +144,12 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 	h := float32(DefaultWindowHeight)
 	host := &Host{
 		name:          name,
-		entities:      make([]*Entity, 0),
 		frameTime:     0,
 		Closing:       false,
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
 		CloseSignal:   make(chan struct{}, 1),
 		LogStream:     logStream,
-		entityLookup:  make(map[EntityId]*Entity),
 		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
@@ -314,82 +310,9 @@ func (host *Host) Audio() *audio.Audio {
 	return host.audio
 }
 
-// ClearEntities will remove all entities from the host. This will remove all
-// entities from the standard entity pool only. The entities will be destroyed
-// using the standard destroy method, so they will take not be fully removed
-// during the frame that this function was called.
-func (host *Host) ClearEntities() {
-	for _, e := range host.entities {
-		e.Destroy()
-	}
-}
-
-// RemoveEntity removes an entity from the host. This will remove the entity
-// from the standard entity pool. Entities are not ordered, do not assume the
-// entities are ordered at any time.
-func (host *Host) RemoveEntity(entity *Entity) {
-	for i, e := range host.entities {
-		if e == entity {
-			host.entities = klib.RemoveUnordered(host.entities, i)
-			break
-		}
-	}
-}
-
-// AddEntity adds an entity to the host. This will add the entity to the
-// standard entity pool. If the host is in the process of creating editor
-// entities, then the entity will be added to the editor entity pool.
-func (host *Host) AddEntity(entity *Entity) {
-	host.entities = append(host.entities, entity)
-	if entity.id != "" {
-		host.entityLookup[entity.id] = entity
-	}
-}
-
-// AddEntities adds multiple entities to the host. This will add the entities
-// using the same rules as AddEntity. If the host is in the process of creating
-// editor entities, then the entities will be added to the editor entity pool.
-func (host *Host) AddEntities(entities ...*Entity) {
-	host.entities = append(host.entities, entities...)
-	for _, e := range entities {
-		if e.id != "" {
-			host.entityLookup[e.id] = e
-		}
-	}
-}
-
 // Lighting returns a pointer to the internal lighting information
 func (host *Host) Lighting() *lighting.LightingInformation {
 	return &host.lighting
-}
-
-// FindEntity will search for an entity contained in this host by its id. If the
-// entity is found, then it will return the entity and true, otherwise it will
-// return nil and false.
-func (host *Host) FindEntity(id EntityId) (*Entity, bool) {
-	e, ok := host.entityLookup[id]
-	return e, ok
-}
-
-// Entities returns all the entities that are currently in the host. This will^
-// return all entities in the standard entity pool only. In the editor, this
-// will not return any entities that have been destroyed (and are pending
-// cleanup due to being in the undo history)
-func (host *Host) Entities() []*Entity { return host.entities }
-
-// Entities returns all the entities that are currently in the host. This will
-// return all entities in the standard entity pool only. In the editor, this
-// will also return any entities that have been destroyed (and are pending
-// cleanup due to being in the undo history)
-func (host *Host) EntitiesRaw() []*Entity { return host.entities }
-
-// NewEntity creates a new entity and adds it to the host. This will add the
-// entity to the standard entity pool. If the host is in the process of creating
-// editor entities, then the entity will be added to the editor entity pool.
-func (host *Host) NewEntity(workGroup *concurrent.WorkGroup) *Entity {
-	entity := NewEntity(workGroup)
-	host.AddEntity(entity)
-	return entity
 }
 
 // Update is the main update loop for the host. This will poll the window for
@@ -413,6 +336,7 @@ func (host *Host) Update(deltaTime float64) {
 	host.Cameras.NewFrame()
 	debug.Ensure(deltaTime >= 0)
 	host.frameTime += max(0.0, deltaTime)
+	host.processDestroyedEntities()
 	host.Window.Poll()
 	for i := 0; i < len(host.frameRunner); i++ {
 		if host.frameRunner[i].frame <= host.frame {
@@ -449,17 +373,6 @@ func (host *Host) Update(deltaTime float64) {
 	if host.Window.IsClosed() || host.Window.IsCrashed() {
 		host.Closing = true
 	}
-	end := len(host.entities)
-	back := end
-	for i := 0; i < back; i++ {
-		e := host.entities[i]
-		if e.TickCleanup() {
-			host.entities[i] = host.entities[back-1]
-			back--
-			i--
-		}
-	}
-	host.entities = host.entities[:back]
 	host.Window.EndUpdate()
 }
 
@@ -550,10 +463,7 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 func (host *Host) Teardown() {
 	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
-	for i := range host.entities {
-		host.entities[i].Destroy()
-		host.entities[i].ForceCleanup()
-	}
+	host.processDestroyedEntities()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
@@ -605,11 +515,11 @@ func (host *Host) Close() {
 	host.Closing = true
 }
 
-// ReserveEntities will grow the internal entity list by the given amount,
-// this is useful for when you need to create a large amount of entities
-func (host *Host) ReserveEntities(additional int) {
-	defer tracing.NewRegion("Host.ReserveEntities").End()
-	host.entities = slices.Grow(host.entities, additional)
+// DestroyEntity marks the given entity for destruction. The entity will be
+// cleaned up at the beginning of the next frame.
+func (host *Host) DestroyEntity(entity *Entity) {
+	entity.destroy(host)
+	host.destroyedEntities = append(host.destroyedEntities, entity)
 }
 
 // ImportPlugins will read all of the plugins that are in the specified folder
@@ -628,4 +538,11 @@ func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Cameras.Primary.Camera.ViewportChanged(w, h)
 	host.Cameras.UI.Camera.ViewportChanged(w, h)
+}
+
+func (host *Host) processDestroyedEntities() {
+	for i := range host.destroyedEntities {
+		host.destroyedEntities[i].ForceCleanup()
+	}
+	host.destroyedEntities = klib.WipeSlice(host.destroyedEntities)
 }
