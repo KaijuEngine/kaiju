@@ -71,6 +71,7 @@ type vkSwapChainSupportDetails struct {
 
 type Vulkan struct {
 	swapImages                 []TextureId
+	renderFinishedSemaphores   []vk.Semaphore
 	caches                     RenderCaches
 	instance                   vk.Instance
 	physicalDevice             vk.PhysicalDevice
@@ -433,6 +434,29 @@ func (vr *Vulkan) createSyncObjects() bool {
 		vr.renderSemaphores[i] = rdrSemaphore
 		vr.renderFences[i] = fence
 	}
+	if success {
+		vr.renderFinishedSemaphores = make([]vk.Semaphore, len(vr.swapImages))
+		for i := range vr.swapImages {
+			var finishedSemaphore vk.Semaphore
+			vr.renderFinishedSemaphores[i] = vk.NullSemaphore
+			if vk.CreateSemaphore(vr.device, &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
+				success = false
+				slog.Error("Failed to create render finished semaphores")
+			} else {
+				vr.dbg.add(vk.TypeToUintPtr(finishedSemaphore))
+				vr.renderFinishedSemaphores[i] = finishedSemaphore
+			}
+		}
+		if !success {
+			for i := range vr.swapImages {
+				if vr.renderFinishedSemaphores[i] != vk.NullSemaphore {
+					vk.DestroySemaphore(vr.device, vr.renderFinishedSemaphores[i], nil)
+					vr.dbg.remove(vk.TypeToUintPtr(vr.renderFinishedSemaphores[i]))
+					vr.renderFinishedSemaphores[i] = vk.NullSemaphore
+				}
+			}
+		}
+	}
 	if !success {
 		for i := 0; i < int(vr.swapImageCount) && success; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
@@ -441,6 +465,9 @@ func (vr *Vulkan) createSyncObjects() bool {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
+			vr.imageSemaphores[i] = vk.NullSemaphore
+			vr.renderSemaphores[i] = vk.NullSemaphore
+			vr.renderFences[i] = vk.NullFence
 		}
 	}
 	return success
@@ -518,7 +545,7 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 	vr.writtenCommands = vr.writtenCommands[:0]
 	waitSemaphores := [...]vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
 	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
-	signalSemaphores := [...]vk.Semaphore{vr.renderSemaphores[vr.currentFrame]}
+	signalSemaphores := [...]vk.Semaphore{vr.renderFinishedSemaphores[vr.imageIndex[vr.currentFrame]]}
 	submitInfo := vk.SubmitInfo{
 		SType:                vulkan_const.StructureTypeSubmitInfo,
 		WaitSemaphoreCount:   1,
@@ -593,6 +620,10 @@ func (vr *Vulkan) Destroy() {
 				elm.Destroy(vr)
 			}
 		})
+		for i := range vr.swapImages {
+			vk.DestroySemaphore(vr.device, vr.renderFinishedSemaphores[i], nil)
+			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFinishedSemaphores[i]))
+		}
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
