@@ -98,7 +98,7 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 
 func bootstrapInternal(logStream *logging.LogStream, game GameInterface, platformState any) {
 	bootstrapLoop(logStream, game, platformState)
-	if build.Debug {
+	if waitForCleanup {
 		runtime.GC()
 		for !containerCleanedUp {
 			println("Waiting for container cleanup...")
