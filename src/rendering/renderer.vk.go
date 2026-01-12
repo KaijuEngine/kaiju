@@ -451,6 +451,7 @@ func (vr *Vulkan) createSyncObjects() bool {
 					vr.renderFinishedSemaphores[i] = vk.NullSemaphore
 				}
 			}
+			vr.renderFinishedSemaphores = []vk.Semaphore{}
 		}
 	}
 	if !success {
@@ -617,6 +618,7 @@ func (vr *Vulkan) Destroy() {
 			vk.DestroySemaphore(vr.device, vr.renderFinishedSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFinishedSemaphores[i]))
 		}
+		vr.renderFinishedSemaphores = []vk.Semaphore{}
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
